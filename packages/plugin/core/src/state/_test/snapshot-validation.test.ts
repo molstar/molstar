@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { StateTransformer } from '@molstar/core/state';
 import { PluginState } from '@molstar/plugin/state';
 
@@ -85,8 +86,8 @@ describe('PluginState.validateSnapshotTransformers', () => {
 
 describe('PluginState.setSnapshot', () => {
   it('fails before any side effect when a transformer is not registered', async () => {
-    const stop = jest.fn();
-    const sideEffect = jest.fn();
+    const stop = vi.fn();
+    const sideEffect = vi.fn();
     const fake: any = {
       plugin: {
         managers: { animation: { stop }, structure: { component: { _setSnapshotState: sideEffect } } },

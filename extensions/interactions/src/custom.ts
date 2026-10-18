@@ -39,5 +39,6 @@ export function getCustomInteractionData(
 }
 
 function resolveLoci(structure: Structure, schema: StructureElement.Schema) {
+  // (a structure has many interactions, which are looked up in the indices of the model instead of querying every atom for each of them)
   return StructureElement.Schema.toLoci(structure, schema);
 }

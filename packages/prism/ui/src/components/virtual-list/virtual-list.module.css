@@ -1,0 +1,70 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.list {
+  flex: 1 1 0;
+}
+
+/* As tall as all the rows; only the window is in it, moved to where it shows. Behind the rows, a skeleton of empty rows
+   (a quiet bar where a label would be, one per row height): a fast wheel or flick scrolls on the compositor before the
+   rows are made, and what it uncovers reads as rows loading, never as a white patch. Painted by the compositor, it costs
+   nothing; the rows cover it. */
+.content {
+  position: relative;
+  contain: strict;
+  width: 100%;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 38%,
+    color-mix(in srgb, var(--msp-color-text) 7%, transparent) 62%,
+    transparent 62%
+  );
+  background-size: calc(100% - 2 * var(--msp-space-6)) var(--msp-virtual-row, 26px);
+  background-repeat: repeat-y;
+  background-position: var(--msp-space-6) 0;
+}
+
+.window {
+  position: absolute;
+  inset: 0 0 auto;
+  will-change: transform;
+  /* Opaque in the surface's color, so the skeleton shows only where no row is made yet (a list on another surface than a
+     panel sets `--msp-surface`). */
+  background-color: var(--msp-surface, var(--msp-color-panel));
+}
+
+/* A row of a `RecycledList`: placed by its own transform (its index × the row height); a recycled one is moved, never
+   made again. Opaque like `.window`: the content's skeleton shows only at a place no slot has reached yet (a fast scroll
+   uncovering more than a task's slice makes), the same bars as the keyed list's. */
+.row {
+  position: absolute;
+  inset: 0 0 auto;
+  contain: layout style;
+  background-color: var(--msp-surface, var(--msp-color-panel));
+}
+
+/* A reveal (`reveal`: a run of rows inserted, a node opened): the rows below glide to their new place over the rows
+   coming in, which fade in where they belong, so the opened run is uncovered as a tree's grew before (reset.css'
+   `msp-reveal`). Only for that change: a scroll is never animated. */
+.glide {
+  z-index: 1;
+  transition: transform var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+.enter {
+  animation: msp-reveal-fade var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+/* In a scroll area at the panel's edge (ScrollArea `edge`): the content's end padding is the scrollbar's gutter, and the
+   rows stop before it, as far from the panel's edge as they start from its other side (they are placed absolutely, so
+   the padding alone does not keep them in). */
+.list[data-edge] .window,
+.list[data-edge] .row {
+  right: var(--msp-scroll-edge, var(--msp-space-2));
+}

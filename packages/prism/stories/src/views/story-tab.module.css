@@ -1,0 +1,98 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Fills the panel's body, as the Structure tab does: the scene list scrolls, the caption below. */
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  font-size: var(--msp-font-size-sm);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 28px;
+  padding-left: var(--msp-space-3);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.scenes {
+  flex: 1 1 0;
+  min-height: 80px;
+}
+
+/* A scene: its number, its title; the current one picked (the accent, as the picked tree row). */
+.scene {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-accent-muted);
+  }
+}
+
+.number {
+  flex: none;
+  min-width: 16px;
+  color: var(--msp-color-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.sceneTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: scroll(self inline);
+}
+
+/* The current scene's caption: what the reader reads with it; it scrolls in a ScrollArea (styling.md §4). */
+.caption {
+  display: grid;
+  flex: none;
+  max-height: 40%;
+  border-top: 1px solid var(--msp-glass-edge);
+}
+
+.captionScroll {
+  min-height: 0;
+}
+
+.captionContent {
+  padding: var(--msp-space-3);
+}
+
+.empty {
+  margin: 0;
+  color: var(--msp-color-text-subtle);
+}

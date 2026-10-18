@@ -2,7 +2,13 @@
 
 ## Status
 
-- Not an immediate goal; keep in mind for the backend split ([backend-split.md](backend-split.md)) and WebGPU work.
+- **Current**: not started. Its prerequisites are done: the WebGPU compute interface and the texture mesh color
+  smoothing ([webgpu-compute.md](webgpu-compute.md)); grid3d runs as a kernel on WebGPU (decision 6A there), so this
+  plan is about the neutral map-kernel tier and core-level algorithms, not about missing GPU paths.
+- Planned after the WebGPU texture mesh color smoothing ([webgpu-compute.md](webgpu-compute.md)). The WebGPU-only
+  compute interface (`GraphicsContext.compute`, [webgpu-compute-shaders.md](webgpu-compute-shaders.md)) exists; this
+  plan adds the neutral map-kernel tier both backends implement (see Tiers), which is also where the deferred grid3d
+  decision of [webgpu-compute.md](webgpu-compute.md) (decision 6) lands.
 - Background: the workspace split ([workspace-prototype.md](../workspace-prototype.md), layer direction
   `plugin -> graphics -> model -> io -> core`) moved GPU helpers out of `core/math` into graphics because they depend on
   WebGL, e.g. the GPU Gaussian density (`computeGaussianDensityTexture*`, `GaussianDensityTextureData` now in
@@ -26,6 +32,28 @@
 Rule of thumb: algorithms with CPU-visible results (or GPU results consumed only through opaque handles) belong in core;
 anything producing render resources stays in graphics.
 
+## Tiers
+
+Neutral where both backends can deliver, and no further: WebGL fragment-shader compute can do per-element maps, scatter
+with blending (sum, min, max) and multi-pass reductions, but not arbitrary writes, atomics, workgroup memory and
+barriers, read-write buffers in one pass, indirect dispatch, or integer math on WebGL1.
+
+1. **`ComputeContext`** (exists, WebGPU only, `capabilities.compute`): kernels, storage buffers and textures, compute
+   passes. New GPU algorithms are written against it. WebGL does not implement it: emulating storage buffers with
+   textures would leave every algorithm to find out which operations don't work.
+2. **Map kernels** (`GpuCompute` below, both backends): a grid of elements (1d or 3d), uniforms, input arrays behind
+   opaque handles (a storage buffer on WebGPU, a data texture on WebGL), one output array of up to 4 floats per element
+   (more with multiple render targets on WebGL), asynchronous readback. WebGPU dispatches a compute kernel writing a
+   storage buffer, WebGL renders a fragment shader into a float target (the grid3d mechanism, generalized). WebGL's
+   limits are the contract: loop bounds as defines, output at the invocation's own index only, floats only. Kernel
+   bodies in GLSL and WGSL until there is a translation step.
+3. **Neutral algorithms with an implementation per backend**, for everything needing scatter, atomics or workgroup
+   memory: prefix sum, marching cubes, Gaussian density, color smoothing. One entry point, the implementation chosen by
+   capability (as the isosurface chooses the histogram pyramid or the compute kernels today).
+
+What moves to tier 2: grid3d and its callers (the alpha orbitals extension), and possibly the normalize step of color
+smoothing; marching cubes, the density and the accumulation stay tier 3.
+
 ## Design
 
 - `@molstar/core/gpu` (type-only module, `export type`/`interface` only, no runtime code):
@@ -48,16 +76,17 @@ anything producing render resources stays in graphics.
 - Graphics keeps thin adapters where rendering needs GPU-resident results (e.g. density texture into GPU marching
   cubes), built on the same handles.
 
-## Steps (when picked up)
+## Steps
 
-1. Prerequisites from the backend split: `GraphicsContext` with capabilities (step 1), neutral resources (step 3), async
-   readback (step 5).
+1. Prerequisites: `GraphicsContext` with capabilities, neutral resources, async readback (done in the backend split),
+   the WebGPU compute interface (done).
 2. Guard test: no imports of `@molstar/graphics` (or `plugin`) from core, io and model sources, including `import type`;
    the package dependency graph already forbids it at build time.
 3. Define the type-only `GpuCompute` interface and kernel spec in core; conformance tests in graphics (headless-gl for
    WebGL; WebGPU when available).
-4. Implement on WebGL by generalizing grid3d; port the alpha-orbitals compute to it (extension no longer imports
-   `gl/compute/grid3d`).
+4. Implement on WebGL by generalizing grid3d, and on WebGPU with a kernel per map writing a storage buffer (on
+   `ComputeContext`); port the alpha-orbitals compute to it (the extension no longer imports `gl/compute/grid3d`, and
+   runs on the GPU with WebGPU too).
 5. Move the Gaussian density grid computation back to `core/math` with the GPU path via `GpuCompute`; graphics keeps the
    texture-output variant for GPU surfaces.
 6. Document the moves in [breaking-v6-changes.md](../breaking-v6-changes.md) (or the v7 equivalent).

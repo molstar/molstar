@@ -7,6 +7,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import {
   TextureSpec,
@@ -121,10 +122,9 @@ export class ShadowPass {
     }
   }
 
-  render() {
-    this.graphics.beginRenderPass(this.target, { label: 'shadows' });
-    this.graphics.setRenderState(RenderState.Default);
-    this.renderable.render();
+  render(b: PassBuilder) {
+    b.begin(this.target, { label: 'shadows' });
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 
@@ -133,9 +133,9 @@ export const ShadowsSchema = {
   tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
 
-  uProjection: UniformSpec('m4'),
-  uInvProjection: UniformSpec('m4'),
-  uBounds: UniformSpec('v4'),
+  uProjection: { ...UniformSpec('m4'), depthRange: 'projection' as const },
+  uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
+  uBounds: { ...UniformSpec('v4'), windowRect: 'bounds' as const },
 
   dOrthographic: DefineSpec('number'),
   uNear: UniformSpec('f'),

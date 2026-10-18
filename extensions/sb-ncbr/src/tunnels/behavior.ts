@@ -71,7 +71,6 @@ export const TunnelsPreset = StructureRepresentationPresetProvider({
     if (!structureCell || !structure) return {};
 
     const update = plugin.build();
-    const graphics = plugin.canvas3dContext?.graphics;
     const response = await (
       await fetch(`${params.serverUrl}/channels/${params.serverType}/${structure.model.entryId.toLowerCase()}`)
     ).json();
@@ -90,7 +89,6 @@ export const TunnelsPreset = StructureRepresentationPresetProvider({
         .toRoot()
         .apply(TunnelFromRawData, { data: tunnel })
         .apply(TunnelShapeProvider, {
-          graphics,
           colorTheme: ColorGenerator.next().value,
         })
         .apply(ShapeRepresentation3D);

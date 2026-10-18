@@ -59,7 +59,7 @@ export interface TimerSource {
 /** The timer of a backend: the `GraphicsTimer` plus the pass boundaries reported by the backend's context */
 export type BackendTimer = GraphicsTimer & {
   /** A render pass begins on `target` (ending the open one) */
-  passBegin: (target: RenderPassTarget, label?: string) => void;
+  passBegin: (target: RenderPassTarget | 'compute', label?: string) => void;
   /** The open render pass ends */
   passEnd: () => void;
 };
@@ -113,9 +113,9 @@ function clearStats(stats: GraphicsStats) {
   stats.cacheHits.cull = 0;
 }
 
-function getPassLabel(target: RenderPassTarget, label?: string) {
+function getPassLabel(target: RenderPassTarget | 'compute', label?: string) {
   if (label) return label;
-  if (target === 'drawing-buffer') return 'drawing-buffer';
+  if (target === 'drawing-buffer' || target === 'compute') return target;
   return 'framebuffer' in target ? `render-target ${target.id}` : `framebuffer ${target.id}`;
 }
 
@@ -354,7 +354,7 @@ export function createGraphicsTimer(
 
       if (!group.parent) roots.push(group);
     },
-    passBegin: (target: RenderPassTarget, label?: string) => {
+    passBegin: (target: RenderPassTarget | 'compute', label?: string) => {
       if (!source) return;
       checkDraws();
       endPassTiming();

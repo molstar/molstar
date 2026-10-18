@@ -106,6 +106,8 @@ function getStencilOperation(gl: GLRenderingContext, operation: StencilOperation
 
 export interface WebGLRenderStateApplier {
   setRenderState: (renderState: RenderState) => void;
+  /** Masks depth and stencil writes (a pass with `depthReadOnly`), until set to false */
+  setDepthReadOnly: (readOnly: boolean) => void;
   setViewport: (x: number, y: number, width: number, height: number) => void;
   setScissor: (x: number, y: number, width: number, height: number) => void;
   disableScissor: () => void;
@@ -120,8 +122,12 @@ export function createRenderStateApplier(
   const intClearValue = new Int32Array(4);
   /** to restore the write masks after clearing */
   let current: RenderState = {};
+  let depthReadOnly = false;
 
   return {
+    setDepthReadOnly: (readOnly: boolean) => {
+      depthReadOnly = readOnly;
+    },
     setRenderState: (renderState: RenderState) => {
       current = renderState;
       const { blend, colorWrite, depth, stencil, cull, frontFace } = renderState;
@@ -152,7 +158,7 @@ export function createRenderStateApplier(
       if (depth) {
         state.enable(gl.DEPTH_TEST);
         state.depthFunc(getCompareFunction(gl, depth.compare));
-        state.depthMask(depth.write);
+        state.depthMask(depth.write && !depthReadOnly);
       } else {
         state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
@@ -175,7 +181,7 @@ export function createRenderStateApplier(
           getStencilOperation(gl, back.depthFailOp),
           getStencilOperation(gl, back.passOp),
         );
-        state.stencilMask(writeMask);
+        state.stencilMask(depthReadOnly ? 0 : writeMask);
       } else {
         state.disable(gl.STENCIL_TEST);
       }
@@ -201,6 +207,9 @@ export function createRenderStateApplier(
     clear: (values: ClearValues) => {
       checkRenderPass(state, 'clear');
       const { color, depth, stencil } = values;
+      if (depthReadOnly && (depth !== undefined || stencil !== undefined)) {
+        throw new Error('clearing the depth or stencil of a render pass with a read-only depth attachment');
+      }
       let mask = 0;
       if (color) {
         state.colorMask(true, true, true, true);
@@ -231,8 +240,8 @@ export function createRenderStateApplier(
         const cw = current.colorWrite;
         if (cw) state.colorMask(cw[0], cw[1], cw[2], cw[3]);
       }
-      if (depth !== undefined) state.depthMask(current.depth?.write ?? false);
-      if (stencil !== undefined && current.stencil) state.stencilMask(current.stencil.writeMask);
+      if (depth !== undefined) state.depthMask((current.depth?.write ?? false) && !depthReadOnly);
+      if (stencil !== undefined && current.stencil) state.stencilMask(depthReadOnly ? 0 : current.stencil.writeMask);
     },
   };
 }

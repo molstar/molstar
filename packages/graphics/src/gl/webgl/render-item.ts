@@ -5,9 +5,10 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { UniformBlockWriter } from '../uniform-layout.js';
 import { createAttributeBuffers, type ElementsBuffer, type AttributeBuffers } from './buffer.js';
 import type { AttributeKind } from '../buffer.js';
-import { createTextures } from './texture.js';
+import { createTextures, type GLTexture } from './texture.js';
 import type { Texture } from '../texture.js';
 import {
   ComputeRenderVariants,
@@ -17,12 +18,14 @@ import {
   type GraphicsRenderVariant,
   type GlobalBindings,
   type MultiDrawBaseData,
+  type ProgramItem,
   type RenderItem,
   type Transparency,
 } from '../render-item.js';
 import type { WebGLContext } from './context.js';
 import type { ShaderCode, DefineValues } from '../shader-code.js';
 import { getContextDefineLookup } from './shader-code.js';
+import { getRenderPassTargetHeight } from './render-pass-target.js';
 import type { Program, Programs } from './program.js';
 import {
   type RenderableSchema,
@@ -128,6 +131,38 @@ function getRenderVariant(variant: string, transparency: Transparency | undefine
   return variant;
 }
 
+const getNextProgramItemId = idFactory();
+
+/**
+ * Programs of a render item without its data, see `GraphicsContext.createProgramItem`: created as render items create
+ * theirs (the same cache), linked by `resources.preparePipelines`; WebGL programs don't read linear filtering
+ */
+export function createWebGLProgramItem(
+  ctx: WebGLContext,
+  shaderCode: ShaderCode,
+  schema: RenderableSchema,
+  defineValues: DefineValues,
+  transparency: Transparency,
+): ProgramItem {
+  const programs = new Map<GraphicsRenderVariant, Program>();
+  const getProgram = (variant: GraphicsRenderVariant) => {
+    let program = programs.get(variant);
+    if (!program) {
+      program = createProgramVariant(ctx, getRenderVariant(variant, transparency), defineValues, shaderCode, schema);
+      programs.set(variant, program);
+    }
+    return program;
+  };
+  return {
+    id: getNextProgramItemId(),
+    getProgram,
+    destroy: () => {
+      for (const program of programs.values()) program.destroy();
+      programs.clear();
+    },
+  };
+}
+
 export function createGraphicsRenderItem(
   ctx: WebGLContext,
   drawMode: DrawMode,
@@ -151,6 +186,18 @@ export function createComputeRenderItem(
   return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariants, undefined);
 }
 
+/** Loop bounds (`UniformSpec.loopBound`) as number defines: WebGL1 loops need constant bounds */
+function getWebGL1Schema(schema: RenderableSchema): RenderableSchema {
+  let adapted: { [k: string]: RenderableSchema[string] } | undefined;
+  for (const k of Object.keys(schema)) {
+    const spec = schema[k];
+    if (spec.type !== 'uniform' || !(spec as UniformSpec<UniformKind>).loopBound) continue;
+    adapted ??= { ...schema };
+    adapted[k] = DefineSpec('number');
+  }
+  return adapted ?? schema;
+}
+
 /**
  * Creates a render item
  *
@@ -168,6 +215,7 @@ export function createRenderItem<T extends string>(
 ): WebGLRenderItem<T> {
   const id = getNextRenderItemId();
   const { stats, state, resources } = ctx;
+  if (!ctx.isWebGL2) schema = getWebGL1Schema(schema);
   const {
     instancedArrays,
     vertexArrayObject,
@@ -201,10 +249,14 @@ export function createRenderItem<T extends string>(
     uniformValues,
     materialUniformValues,
     bufferedUniformValues,
-  } = splitValues(schema, values);
+    // the projections mapped to the context's clip depth, window rectangles flipped to GL's bottom-left origin
+  } = splitValues(schema, values, {
+    depthRange: ctx.depthRangeConversion,
+    targetHeight: () => getRenderPassTargetHeight(ctx),
+  });
 
   // on WebGL2, uniforms assigned to a block are backed by uniform buffers
-  const useUniformBuffers = ctx.isWebGL2;
+  const useUniformBuffers = ctx.uniformBlocks;
   const getBlock = (k: string) => {
     const { block } = schema[k] as UniformSpec<UniformKind>;
     return !useUniformBuffers || block === 'draw' ? undefined : block;
@@ -246,14 +298,14 @@ export function createRenderItem<T extends string>(
   const defineValueEntries = Object.entries(defineValues);
 
   // created whenever the program declares the block, members without values stay zero
-  let objectUniforms: { buffer: UniformBuffer; write: () => void } | undefined;
+  let objectUniforms: { buffer: UniformBuffer; write: UniformBlockWriter } | undefined;
   const objectLayout = useUniformBuffers ? getUniformBlockLayout('object', schema) : undefined;
   if (objectLayout) {
     const buffer = resources.uniformBuffer(objectLayout);
     objectUniforms = { buffer, write: buffer.createWriter(objectBlockValueEntries) };
     objectUniforms.write();
   }
-  let materialUniforms: { buffer: UniformBuffer; write: () => void } | undefined;
+  let materialUniforms: { buffer: UniformBuffer; write: UniformBlockWriter } | undefined;
   const materialLayout = useUniformBuffers ? getUniformBlockLayout('material', schema) : undefined;
   if (materialLayout) {
     const buffer = resources.materialUniformBuffer(materialId, materialLayout);
@@ -322,6 +374,13 @@ export function createRenderItem<T extends string>(
       return count;
     },
     getProgram: (variant: T) => programs[variant],
+    getLinearTextures: () => {
+      const names: string[] = [];
+      for (const list of [textures, materialTextures]) {
+        for (const [name, texture] of list) if ((texture as GLTexture).filter === ctx.gl.LINEAR) names.push(name);
+      }
+      return names;
+    },
     setTransparency: (value: Transparency) => {
       if (value === transparency) return;
 
@@ -338,7 +397,6 @@ export function createRenderItem<T extends string>(
 
       const program = programs[variant];
       if (globals) asWebGLGlobalBindings(globals).apply(program);
-      const sharedTexturesCount = globals ? globals.textures.length : 0;
       if (program.id === currentProgramId && state.currentRenderItemId === id) {
         program.setUniforms(uniformValueEntries);
         if (objectUniforms) {
@@ -346,7 +404,7 @@ export function createRenderItem<T extends string>(
           objectUniforms.buffer.sync();
           objectUniforms.buffer.bind();
         }
-        program.bindTextures(textures, sharedTexturesCount);
+        program.bindTextures(textures);
       } else {
         if (
           program.id !== state.currentProgramId ||
@@ -362,7 +420,7 @@ export function createRenderItem<T extends string>(
             materialUniforms.buffer.sync();
             materialUniforms.buffer.bind();
           }
-          program.bindTextures(materialTextures, sharedTexturesCount + textures.length);
+          program.bindTextures(materialTextures);
           state.currentMaterialId = materialId;
           currentProgramId = program.id;
         }
@@ -373,7 +431,7 @@ export function createRenderItem<T extends string>(
           objectUniforms.buffer.sync();
           objectUniforms.buffer.bind();
         }
-        program.bindTextures(textures, sharedTexturesCount);
+        program.bindTextures(textures);
         if (vertexArray) {
           vertexArray.bind();
           // need to bind elements buffer explicitly since it is not always recorded in the VAO
@@ -675,8 +733,14 @@ export function createRenderItem<T extends string>(
         });
         attributeBuffers.forEach(([_, buffer]) => buffer.destroy());
         if (elementsBuffer) elementsBuffer.destroy();
-        if (objectUniforms) objectUniforms.buffer.destroy();
-        if (materialUniforms) materialUniforms.buffer.destroy();
+        if (objectUniforms) {
+          objectUniforms.write.dispose();
+          objectUniforms.buffer.destroy();
+        }
+        if (materialUniforms) {
+          materialUniforms.write.dispose();
+          materialUniforms.buffer.destroy();
+        }
 
         stats.drawCount -= drawCount;
         stats.instanceCount -= instanceCount;

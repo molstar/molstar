@@ -18,7 +18,7 @@ import {
 } from '@molstar/plugin/state/transforms/structure/selection';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { StructureFocusRepresentationName } from './structure-focus-representation/id.js';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import { UniformSizeThemeProvider } from '@molstar/graphics/theme/size/uniform';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';

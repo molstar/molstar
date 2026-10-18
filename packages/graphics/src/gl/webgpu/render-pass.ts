@@ -4,23 +4,44 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { isTimingMode } from '@molstar/core/util/debug';
+import { now } from '@molstar/core/util/now';
+import type { TargetDescriptor } from '../context.js';
 import type { ClearValues } from '../render-state.js';
 import { ShaderStage } from './constants.js';
 import { notSupported } from './errors.js';
 import { createUniformSnapshot, type UniformRing } from './uniform-ring.js';
 
-/** Attachments of a render pass */
-export type PassTarget = {
-  /** formats of the attachments, for pipeline caches */
-  readonly key: string;
-  readonly colorViews: readonly GPUTextureView[];
+/** The attachment formats of a render pass target, what its pipelines depend on */
+export interface WebGPUTargetDescriptor extends TargetDescriptor {
   readonly colorFormats: readonly GPUTextureFormat[];
-  readonly depthView?: GPUTextureView;
   readonly depthFormat?: GPUTextureFormat;
   readonly hasStencil: boolean;
+}
+
+/** The pipeline cache key of the attachment formats */
+export function getTargetKey(colorFormats: readonly GPUTextureFormat[], depthFormat?: GPUTextureFormat) {
+  return `${colorFormats.join(',')}|${depthFormat ?? ''}`;
+}
+
+/**
+ * `target` with its depth (and stencil) attachment read-only: its own pipelines (key), whose depth and stencil writes
+ * are masked; a target without depth attachment stays as it is
+ */
+export function withDepthReadOnly<T extends WebGPUTargetDescriptor>(target: T): T {
+  if (!target.depthFormat || target.depthReadOnly) return target;
+  return { ...target, key: `${target.key}|depth-read-only`, depthReadOnly: true };
+}
+
+/** Attachments of a render pass */
+export interface PassTarget extends WebGPUTargetDescriptor {
+  readonly colorViews: readonly GPUTextureView[];
+  /** the slices rendered into, for attachments of 3d textures */
+  readonly colorDepthSlices?: readonly (number | undefined)[];
+  readonly depthView?: GPUTextureView;
   readonly width: number;
   readonly height: number;
-};
+}
 
 function getClearModule(colorCount: number) {
   const outputs = Array.from({ length: colorCount }, (_, i) => `    @location(${i}) c${i}: vec4<f32>,`);
@@ -102,6 +123,7 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing) {
         depthFailOp: 'keep',
         passOp: hasStencil ? 'replace' : 'keep',
       };
+      const start = isTimingMode ? now() : 0;
       pipeline = device.createRenderPipeline({
         label: `clear ${key}`,
         layout: pipelineLayout,
@@ -131,13 +153,14 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing) {
             }
           : undefined,
       });
+      if (isTimingMode) console.log(`Created pipeline clear ${key} synchronously in ${(now() - start).toFixed(2)} ms`);
       pipelines.set(key, pipeline);
     }
     return pipeline;
   }
 
   return (pass: GPURenderPassEncoder, target: PassTarget, values: ClearValues) => {
-    const { color, depth = 1, stencil = 0 } = values;
+    const { color, depth = 0, stencil = 0 } = values;
     data[0] = color?.[0] ?? 0;
     data[1] = color?.[1] ?? 0;
     data[2] = color?.[2] ?? 0;

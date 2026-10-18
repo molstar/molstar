@@ -14,6 +14,8 @@ const getNextFramebufferId = idFactory();
 export interface WebGPUAttachment {
   readonly format: GPUTextureFormat;
   readonly hasStencil: boolean;
+  /** the slice of a 3d texture rendered into */
+  readonly depthSlice?: number;
   getAttachmentView: () => GPUTextureView | undefined;
   getGPUTexture: () => GPUTexture | undefined;
   getWidth: () => number;
@@ -77,7 +79,6 @@ export function createWebGPUFramebuffer(): WebGPUFramebuffer {
     },
     getColorAttachment: (index) => colors[index],
     getDepthAttachment: () => depth,
-    reset: () => {},
     destroy: () => {
       colors.length = 0;
       depth = undefined;

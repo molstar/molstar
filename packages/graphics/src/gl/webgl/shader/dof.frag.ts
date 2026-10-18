@@ -37,11 +37,11 @@ float getDepthTransparent(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 float getDepth(const in vec2 coords) {
-    return min(getDepthOpaque(coords), getDepthTransparent(coords));
+    return max(getDepthOpaque(coords), getDepthTransparent(coords));
 }
 
 float getCOC(vec2 uv) {

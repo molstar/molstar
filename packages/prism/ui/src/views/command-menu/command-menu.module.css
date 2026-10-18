@@ -1,0 +1,484 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Over the whole shell; the canvas stays visible (previews draw in 3D), a light scrim says the command menu has the keys. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msp-z-dialog);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh var(--msp-space-4) var(--msp-space-4);
+  background: color-mix(in oklab, var(--msp-color-bg), transparent 75%);
+  animation: menu-fade var(--msp-motion-fast) var(--msp-ease);
+}
+
+@keyframes menu-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(480px, 76vh);
+  overflow: hidden;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 12px 32px rgb(0 0 0 / 0.12);
+  /* The app's density: 12px text, rows like the panels' (28px). */
+  font-size: var(--msp-font-size-sm);
+  animation: menu-in var(--msp-motion-base) var(--msp-ease);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  /* As tall as a panel's header. */
+  height: 40px;
+  padding: 0 var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+}
+
+.headIcon {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--msp-color-text);
+  font: inherit;
+  /* What is typed reads a step larger than the rows. */
+  font-size: var(--msp-font-size-md);
+  outline: none;
+
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* The command being filled in, before the input. */
+.command {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 85%);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+.message,
+.error {
+  margin: 0;
+  padding: var(--msp-space-2) var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}
+
+.error {
+  color: var(--msp-color-danger);
+}
+
+.hint {
+  color: var(--msp-color-text-muted);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+
+  &:has(.listContent:empty) {
+    display: none;
+  }
+}
+
+.listContent {
+  padding: var(--msp-space-2);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--msp-space-5) var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  text-align: center;
+}
+
+/* The rows not rendered yet: their height, so the scroll bar is the whole list's. */
+.rest {
+  pointer-events: none;
+}
+
+.caption {
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+  cursor: default;
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+
+  /* On the highlight's fill, the meta takes the muted text (the subtle one is for the panel). */
+  &[aria-selected="true"] .rowMeta {
+    color: var(--msp-color-text-muted);
+  }
+
+  &[aria-disabled="true"] {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.rowIcon {
+  display: grid;
+  place-items: center;
+  color: var(--msp-color-text-muted);
+}
+
+.rowTitle {
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+
+  & mark {
+    background: none;
+    color: var(--msp-color-accent-strong);
+    font-weight: 600;
+  }
+}
+
+.tail {
+  margin-left: var(--msp-space-2);
+  color: var(--msp-color-text-muted);
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+/* The arguments as a sentence: quiet before-words, values as tokens; the active one is being typed. */
+.sentence {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-3) var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+}
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.before {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.value {
+  height: 26px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-empty] {
+    color: var(--msp-color-text-subtle);
+  }
+
+  &[data-missing] {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-danger), transparent 50%);
+  }
+
+  &[data-active] {
+    box-shadow: inset 0 0 0 1.5px var(--msp-color-accent);
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Where the command lives in the UI: quiet, before Run. */
+.view {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 28px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.run {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-accent);
+  color: var(--msp-color-on-accent);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+
+  & kbd {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-on-accent), transparent 50%);
+    color: inherit;
+  }
+}
+
+.more {
+  margin: 0;
+  padding: var(--msp-space-2) var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.footer {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-2) var(--msp-space-4);
+  padding: var(--msp-space-2) var(--msp-space-4);
+  border-top: 1px solid var(--msp-glass-edge);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  & > span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--msp-space-1);
+  }
+}
+
+/* A keycap: the key's glyph on a small raised cap (a hairline and a bottom edge), mono-spaced, centered. */
+.footer kbd,
+.keys,
+.run kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--msp-glass-edge),
+    inset 0 -1px 0 var(--msp-glass-edge);
+  color: var(--msp-color-text-muted);
+  font: inherit;
+  font-family: var(--msp-font-mono);
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* The group being browsed, as a breadcrumb before the input; a click goes back to that level. */
+.crumb {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 24px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.rowChevron {
+  color: var(--msp-color-text-subtle);
+}
+
+/* The assistant under the list: always there, in the accent's soft wash; the default (↵) when no command matches. */
+.ask {
+  /* Quiet, as a row of the list (the commands are the menu's point): its icon and gap as theirs, no fill. */
+  flex: none;
+  display: grid;
+  grid-template-columns: 16px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-height: 32px;
+  margin: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  /* The Enter target (nothing else matches): as a highlighted row. */
+  &:hover,
+  &[data-default] {
+    background: var(--msp-color-hover);
+  }
+
+  /* Not set up: a way to the setup, quieter still. */
+  &[data-setup] {
+    grid-template-columns: 16px minmax(0, 1fr);
+    color: var(--msp-color-text-muted);
+
+    & .askIcon {
+      color: var(--msp-color-text-subtle);
+    }
+  }
+}
+
+.askIcon {
+  justify-self: center;
+  color: var(--msp-color-accent);
+}
+
+.askLabel {
+  color: var(--msp-color-text);
+  font-weight: 500;
+}
+
+.askText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  color: var(--msp-color-text-muted);
+  white-space: nowrap;
+}
+
+.askKeys {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  font-family: inherit;
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Over a sentence the assistant proposed: where it came from, in the assistant's tint. */
+.proposed {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin: var(--msp-space-2) var(--msp-space-2) 0;
+  padding: var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Read by screen readers only: what a search found (a polite status, accessibility.md). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A group's shared argument (Select's mode): quiet toggles under the input, the current one in the accent. */
+.shared {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-4);
+  border-bottom: 1px solid var(--msp-glass-edge);
+  font-size: var(--msp-font-size-xs);
+}
+
+.sharedTitle {
+  margin-right: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+}
+
+.sharedOption {
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-accent);
+  }
+}

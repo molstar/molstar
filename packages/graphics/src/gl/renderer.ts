@@ -8,13 +8,15 @@
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import type { ICamera } from '@molstar/graphics/canvas3d/camera';
 import type { Scene } from './scene.js';
-import type { GraphicsContext } from './context.js';
+import type { GraphicsContext, PipelineRequest, TargetDescriptor } from './context.js';
 import { Mat4, Vec3, Vec4, Vec2 } from '@molstar/core/math/linear-algebra';
 import { type GraphicsRenderable, type Frame, createFrame } from './renderable.js';
 import { Color } from '@molstar/core/util/color';
 import { ValueCell, deepEqual } from '@molstar/core/util';
 import { GlobalUniformSchema, type GlobalUniformValues, MaxLightCount } from './renderable/schema.js';
-import type { GraphicsRenderVariant } from './render-item.js';
+import type { GraphicsRenderVariant, ProgramItem } from './render-item.js';
+import type { ObjectSignature } from './precompile.js';
+import { getRenderableProgramSource } from './render-object.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { degToRad } from '@molstar/core/math/misc';
 import type { Texture, Textures } from './texture.js';
@@ -99,6 +101,29 @@ interface Renderer {
     depthTexture: Texture,
     dpoitTextures: { depth: Texture; frontColor: Texture; backColor: Texture },
   ) => void;
+
+  /**
+   * The pipelines `pass` draws the objects of `group` with into a target like `target`, for
+   * `resources.preparePipelines`: every object the pass would draw regardless of visibility and culling, and with `all`
+   * also those that the objects' current state leaves out (e.g. unmarked objects for the marking passes)
+   */
+  collect: (
+    pass: Renderer.Pass,
+    group: Scene.Group,
+    target: TargetDescriptor,
+    options?: { all?: boolean },
+  ) => PipelineRequest[];
+  /**
+   * The pipelines `pass` draws objects of the signatures with, through their program items
+   * (`createSignatureProgramItem`): what drawing those objects would request, without them, for each way they may draw
+   * (`ObjectSignature.opaque`, ...); `all` as for `collect`
+   */
+  collectSignatures: (
+    pass: Renderer.Pass,
+    items: readonly { readonly signature: ObjectSignature; readonly item: ProgramItem }[],
+    target: TargetDescriptor,
+    options?: { all?: boolean },
+  ) => PipelineRequest[];
 
   setProps: (props: Partial<RendererProps>) => void;
   setViewport: (x: number, y: number, width: number, height: number) => void;
@@ -216,19 +241,20 @@ namespace Renderer {
     Transparent = 2,
   }
 
-  const DepthLess: DepthState = { compare: 'less', write: true };
-  const DepthLessReadOnly: DepthState = { compare: 'less', write: false };
+  // depth is reversed (near 1, far 0, see `DepthRangeTag`): nearer is greater
+  const DepthNearer: DepthState = { compare: 'greater', write: true };
+  const DepthNearerReadOnly: DepthState = { compare: 'greater', write: false };
 
-  const OpaqueState: RenderState = { depth: DepthLess };
-  const OpaqueBackState: RenderState = { depth: { compare: 'greater', write: true } };
-  /** test against caller-attached opaque depth, read-only + less-equal so an emitter at its own depth still passes */
-  const EmissiveOccludedState: RenderState = { depth: { compare: 'less-equal', write: false } };
+  const OpaqueState: RenderState = { depth: DepthNearer };
+  const OpaqueBackState: RenderState = { depth: { compare: 'less', write: true } };
+  /** test against caller-attached opaque depth, read-only + greater-equal (nearer or equal) so an emitter at its own depth still passes */
+  const EmissiveOccludedState: RenderState = { depth: { compare: 'greater-equal', write: false } };
   /** max blending so overlapping faces don't accumulate */
-  const EmissiveTransparentState: RenderState = { blend: BlendState.Max, depth: DepthLessReadOnly };
-  const BlendedTransparentState: RenderState = { blend: BlendState.Alpha, depth: DepthLessReadOnly };
+  const EmissiveTransparentState: RenderState = { blend: BlendState.Max, depth: DepthNearerReadOnly };
+  const BlendedTransparentState: RenderState = { blend: BlendState.Alpha, depth: DepthNearerReadOnly };
   const BlendedTransparentBackgroundState: RenderState = {
     blend: BlendState.Premultiplied,
-    depth: DepthLessReadOnly,
+    depth: DepthNearerReadOnly,
   };
   /** depth test done manually in shader against `depthTexture` */
   const VolumeState: RenderState = RenderState.Premultiplied;
@@ -276,13 +302,301 @@ namespace Renderer {
     return (states[i] ??= { ...base, cull, frontFace });
   }
 
+  /**
+   * The render state of a draw of an object: the pass state with the object's cull and front face; `undefined` where
+   * the object isn't drawn (direct volumes outside the `color` variant)
+   */
+  function getObjectState(
+    values: GraphicsRenderable['values'],
+    variant: GraphicsRenderVariant,
+    flag: Flag,
+    passState: RenderState,
+  ): RenderState | undefined {
+    const flipSided = !!values.dFlipSided?.ref.value;
+    let cull: CullMode;
+    let frontFace: FrontFace = flipSided ? 'cw' : 'ccw';
+    if (values.dGeometryType.ref.value === 'directVolume') {
+      if (variant !== 'color') {
+        return; // only color supported
+      }
+
+      // culling done in fragment shader
+      cull = 'none';
+      frontFace = 'ccw';
+    } else if (flag === Flag.BlendedFront) {
+      cull = flipSided ? 'front' : 'back';
+    } else if (
+      flag === Flag.DepthBack ||
+      flag === Flag.SolidInteriorMark ||
+      (flag === Flag.SolidInteriorFill && values.hasReflection.ref.value)
+    ) {
+      // reflected instances flip the winding, so their exit faces are not back-facing
+      cull = 'none';
+    } else if (flag === Flag.BlendedBack || flag === Flag.SolidInteriorFill) {
+      cull = flipSided ? 'back' : 'front';
+    } else if (values.uDoubleSided && !values.uDoubleSided.ref.value && !values.hasReflection.ref.value) {
+      cull = flipSided ? 'front' : 'back';
+    } else {
+      cull = 'none';
+    }
+    return getFaceState(passState, cull, frontFace);
+  }
+
+  /** marks the interior of a solid object in the stencil buffer, per pass state */
+  const SolidInteriorMarkStates = new WeakMap<RenderState, RenderState>();
+  function getSolidInteriorMarkState(passState: RenderState) {
+    let state = SolidInteriorMarkStates.get(passState);
+    if (!state) {
+      state = { ...passState, colorWrite: NoColorWrite, depth: undefined, stencil: SolidInteriorMarkStencil };
+      SolidInteriorMarkStates.set(passState, state);
+    }
+    return state;
+  }
+
+  type SolidInteriorFillStates = { readonly resolve?: RenderState; readonly fill: RenderState };
+  /** fills the marked interior (`oit` resolves the nearest back face first), per pass state and mode */
+  const SolidInteriorFillStatesCache = new WeakMap<RenderState, Map<SolidInteriorMode, SolidInteriorFillStates>>();
+  function getSolidInteriorFillStates(passState: RenderState, mode: SolidInteriorMode): SolidInteriorFillStates {
+    let cache = SolidInteriorFillStatesCache.get(passState);
+    if (!cache) SolidInteriorFillStatesCache.set(passState, (cache = new Map()));
+    let states = cache.get(mode);
+    if (!states) {
+      const writeDepth = mode === 'opaque' || mode === 'back';
+      let resolve: RenderState | undefined;
+      let depth: DepthState;
+      if (mode === 'oit') {
+        resolve = {
+          ...passState,
+          colorWrite: NoColorWrite,
+          depth: { compare: 'greater-equal', write: true },
+          stencil: SolidInteriorFillStencilKeep,
+        };
+        depth = { compare: 'equal', write: false };
+      } else {
+        depth = { compare: mode === 'back' ? 'less-equal' : 'greater-equal', write: writeDepth };
+      }
+      const fill: RenderState = {
+        ...passState,
+        depth,
+        stencil: writeDepth ? SolidInteriorFillStencilKeep : SolidInteriorFillStencilZero,
+      };
+      states = { resolve, fill };
+      cache.set(mode, states);
+    }
+    return states;
+  }
+
+  function getAlpha(r: GraphicsRenderable) {
+    // uAlpha is updated in `r.render` so we need to recompute it here
+    return clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+  }
+
+  function isXrayShaded(r: GraphicsRenderable) {
+    return r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+  }
+
+  function isDirectVolume(r: GraphicsRenderable) {
+    return r.values.dGeometryType.ref.value === 'directVolume';
+  }
+
+  function checkOpaque(r: GraphicsRenderable) {
+    return (
+      (getAlpha(r) === 1 &&
+        r.values.transparencyAverage.ref.value !== 1 &&
+        !isDirectVolume(r) &&
+        r.values.dPointStyle?.ref.value !== 'fuzzy' &&
+        !isXrayShaded(r)) ||
+      r.values.dTransparentBackfaces?.ref.value === 'opaque'
+    );
+  }
+
+  function checkTransparent(r: GraphicsRenderable) {
+    const alpha = getAlpha(r);
+    return (
+      alpha !== 0 &&
+      (alpha < 1 ||
+        r.values.transparencyAverage.ref.value > 0 ||
+        isDirectVolume(r) ||
+        r.values.dPointStyle?.ref.value === 'fuzzy' ||
+        r.values.dGeometryType.ref.value === 'text' ||
+        r.values.dGeometryType.ref.value === 'image' ||
+        isXrayShaded(r))
+    );
+  }
+
+  function checkPickable(r: GraphicsRenderable) {
+    return !r.state.colorOnly;
+  }
+
+  function checkMarkingDepth(r: GraphicsRenderable) {
+    return getAlpha(r) !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1;
+  }
+
+  function checkMarkingMask(r: GraphicsRenderable) {
+    return r.values.markerAverage.ref.value > 0;
+  }
+
+  function checkEmissive(r: GraphicsRenderable) {
+    return r.values.emissiveAverage.ref.value + r.values.uEmissive.ref.value > 0;
+  }
+
+  /** caps are drawn from back faces, which transparent passes discard when `transparentBackfaces` is 'off' */
+  function checkTransparentCap(r: GraphicsRenderable) {
+    return checkTransparent(r) && r.values.dTransparentBackfaces?.ref.value !== 'off';
+  }
+
+  const checkAll = () => true;
+
+  /** A draw of an object in a pass */
+  type ObjectDraw = { readonly flag: Flag; readonly passState: RenderState };
+
+  /** The draws of a renderer pass, shared by drawing (`renderPass`) and collecting its pipeline requests (`collect`) */
+  interface PassDraws {
+    readonly variant: GraphicsRenderVariant;
+    /** objects the pass is for (by geometry), all if not given */
+    readonly select?: (r: GraphicsRenderable) => boolean;
+    /** objects the pass draws in their current state (opacity, markers, emission, ...) */
+    readonly check: (r: GraphicsRenderable) => boolean;
+    /** the draws of an object, in order */
+    readonly draws: (r: GraphicsRenderable) => readonly ObjectDraw[];
+    /** solid interior caps of the objects passing `check`, `inline` right after each object, else after all objects */
+    readonly caps?: {
+      readonly check: (r: GraphicsRenderable) => boolean;
+      readonly mode: SolidInteriorMode;
+      readonly passState: RenderState;
+      readonly inline?: boolean;
+    };
+  }
+
+  function singleDraw(passState: RenderState, flag = Flag.None): (r: GraphicsRenderable) => readonly ObjectDraw[] {
+    const draws: readonly ObjectDraw[] = [{ flag, passState }];
+    return () => draws;
+  }
+
+  /** draws objects of `check` with `passState`, caps of the same objects */
+  function simplePassDraws(
+    variant: GraphicsRenderVariant,
+    check: (r: GraphicsRenderable) => boolean,
+    passState: RenderState,
+    caps: { check?: (r: GraphicsRenderable) => boolean; mode: SolidInteriorMode },
+  ): PassDraws {
+    return {
+      variant,
+      check,
+      draws: singleDraw(passState),
+      caps: { check: caps.check ?? check, mode: caps.mode, passState },
+    };
+  }
+
+  function createEmissiveOpaquePassDraws(occludeWithOpaqueDepth: boolean): PassDraws {
+    // without occluding opaque depth (packed depth): build own occluding depth from all opaque geometry
+    const passState = occludeWithOpaqueDepth ? EmissiveOccludedState : OpaqueState;
+    const check = (r: GraphicsRenderable) => checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r));
+    return simplePassDraws('emissive', check, passState, { mode: occludeWithOpaqueDepth ? 'blended' : 'opaque' });
+  }
+
+  function createBlendedTransparentPassDraws(transparentBackground: boolean): PassDraws {
+    const passState = transparentBackground ? BlendedTransparentBackgroundState : BlendedTransparentState;
+    const backAndFront: readonly ObjectDraw[] = [
+      { flag: Flag.BlendedBack, passState },
+      { flag: Flag.BlendedFront, passState },
+    ];
+    const front: readonly ObjectDraw[] = [{ flag: Flag.BlendedFront, passState }];
+    const single: readonly ObjectDraw[] = [{ flag: Flag.None, passState }];
+    return {
+      variant: 'color',
+      check: checkTransparent,
+      // render frontfaces and backfaces separately to avoid artefacts
+      draws: (r) => {
+        if (!r.values.uDoubleSided?.ref.value) return single;
+        return r.values.dTransparentBackfaces?.ref.value !== 'opaque' ? backAndFront : front;
+      },
+      caps: { check: checkTransparentCap, mode: 'blended', passState, inline: true },
+    };
+  }
+
+  const PassDraws = {
+    pick: simplePassDraws('pick', checkPickable, OpaqueState, { mode: 'opaque' }),
+    pickDepth: simplePassDraws('depth', checkPickable, OpaqueState, { mode: 'opaque' }),
+    depth: simplePassDraws('depth', checkAll, OpaqueState, { mode: 'opaque' }),
+    depthOpaque: simplePassDraws('depth', checkOpaque, OpaqueState, { mode: 'opaque' }),
+    depthOpaqueBack: {
+      variant: 'depth',
+      check: checkOpaque,
+      draws: singleDraw(OpaqueBackState, Flag.DepthBack),
+      caps: { check: checkOpaque, mode: 'back', passState: OpaqueBackState },
+    },
+    depthTransparent: simplePassDraws('depth', checkTransparent, OpaqueState, {
+      check: checkTransparentCap,
+      mode: 'opaque',
+    }),
+    markingDepth: simplePassDraws('marking', checkMarkingDepth, OpaqueState, { mode: 'opaque' }),
+    markingMask: simplePassDraws('marking', checkMarkingMask, OpaqueState, { mode: 'opaque' }),
+    emissiveOpaque: createEmissiveOpaquePassDraws(false),
+    emissiveOpaqueOccluded: createEmissiveOpaquePassDraws(true),
+    emissiveTransparent: {
+      ...simplePassDraws('emissive', (r) => checkTransparent(r) && checkEmissive(r), EmissiveTransparentState, {
+        check: (r) => checkTransparentCap(r) && checkEmissive(r),
+        mode: 'blended',
+      }),
+      select: (r) => !isDirectVolume(r),
+    },
+    tracing: simplePassDraws('tracing', checkOpaque, OpaqueState, { mode: 'opaque' }),
+    opaque: simplePassDraws('color', checkOpaque, OpaqueState, { mode: 'opaque' }),
+    blendedTransparent: createBlendedTransparentPassDraws(false),
+    blendedTransparentBackground: createBlendedTransparentPassDraws(true),
+    volume: { variant: 'color', select: isDirectVolume, check: checkAll, draws: singleDraw(VolumeState) },
+    wboitTransparent: simplePassDraws('color', checkTransparent, WboitState, {
+      check: checkTransparentCap,
+      mode: 'oit',
+    }),
+    dpoitTransparent: simplePassDraws('color', checkTransparent, DpoitState, {
+      check: checkTransparentCap,
+      mode: 'oit',
+    }),
+  } satisfies Record<string, PassDraws>;
+
+  /** A pass of the renderer, as its `render*` methods draw it (`renderBlended` is `opaque` and `blendedTransparent`) */
+  export type Pass =
+    | { readonly name: 'pick'; readonly variant: 'pick' | 'depth' }
+    | { readonly name: 'emissiveOpaque'; readonly occludeWithOpaqueDepth: boolean }
+    | {
+        readonly name:
+          | 'depth'
+          | 'depthOpaque'
+          | 'depthOpaqueBack'
+          | 'depthTransparent'
+          | 'markingDepth'
+          | 'markingMask'
+          | 'emissiveTransparent'
+          | 'tracing'
+          | 'opaque'
+          | 'blendedTransparent'
+          | 'volume'
+          | 'wboitTransparent'
+          | 'dpoitTransparent';
+      };
+
+  function getPassDraws(pass: Pass, transparentBackground: boolean): PassDraws {
+    switch (pass.name) {
+      case 'pick':
+        return pass.variant === 'pick' ? PassDraws.pick : PassDraws.pickDepth;
+      case 'emissiveOpaque':
+        return pass.occludeWithOpaqueDepth ? PassDraws.emissiveOpaqueOccluded : PassDraws.emissiveOpaque;
+      case 'blendedTransparent':
+        return transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent;
+      default:
+        return PassDraws[pass.name];
+    }
+  }
+
   /** 1x1 depth texture cleared to the far plane */
   function createFarDepthTexture(ctx: GraphicsContext) {
     const texture = ctx.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
     texture.define(1, 1);
     const framebuffer = ctx.resources.framebuffer();
     texture.attachFramebuffer(framebuffer, 'depth');
-    ctx.beginRenderPass(framebuffer, { clear: { depth: 1 } });
+    ctx.beginRenderPass(framebuffer, { clear: { depth: 0 } });
     ctx.endRenderPass();
     texture.detachFramebuffer(framebuffer, 'depth');
     framebuffer.destroy();
@@ -302,10 +616,10 @@ namespace Renderer {
     let transparentBackground = false;
     let isOccluded: ((s: Sphere3D) => boolean) | null = null;
 
-    // placeholders at the far plane, packed values of 1 decode to (almost) 1
+    // placeholders at the far plane (depth is reversed: 0, packed as zeros)
     const emptyDepthAlphaTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     emptyDepthAlphaTexture.define(1, 1);
-    emptyDepthAlphaTexture.load({ array: new Uint8Array([255, 255, 255, 255]), width: 1, height: 1 });
+    emptyDepthAlphaTexture.load({ array: new Uint8Array([0, 0, 0, 0]), width: 1, height: 1 });
     const emptyDepthTexture = ctx.capabilities.depthTexture ? createFarDepthTexture(ctx) : emptyDepthAlphaTexture;
     const sharedTexturesList: Textures = [
       ['tDepth', emptyDepthTexture],
@@ -461,34 +775,9 @@ namespace Renderer {
         }
       }
 
-      const flipSided = !!r.values.dFlipSided?.ref.value;
-      let cull: CullMode;
-      let frontFace: FrontFace = flipSided ? 'cw' : 'ccw';
-      if (r.values.dGeometryType.ref.value === 'directVolume') {
-        if (variant !== 'color') {
-          return; // only color supported
-        }
-
-        // culling done in fragment shader
-        cull = 'none';
-        frontFace = 'ccw';
-      } else if (flag === Flag.BlendedFront) {
-        cull = flipSided ? 'front' : 'back';
-      } else if (
-        flag === Flag.DepthBack ||
-        flag === Flag.SolidInteriorMark ||
-        (flag === Flag.SolidInteriorFill && r.values.hasReflection.ref.value)
-      ) {
-        // reflected instances flip the winding, so their exit faces are not back-facing
-        cull = 'none';
-      } else if (flag === Flag.BlendedBack || flag === Flag.SolidInteriorFill) {
-        cull = flipSided ? 'back' : 'front';
-      } else if (r.values.uDoubleSided && !r.values.uDoubleSided.ref.value && !r.values.hasReflection.ref.value) {
-        cull = flipSided ? 'front' : 'back';
-      } else {
-        cull = 'none';
-      }
-      ctx.setRenderState(getFaceState(passState, cull, frontFace));
+      const state = getObjectState(r.values, variant, flag, passState);
+      if (!state) return;
+      ctx.setRenderState(state);
 
       r.render(variant, globals);
     };
@@ -529,13 +818,7 @@ namespace Renderer {
     ) => {
       ctx.clear({ stencil: 0 });
       setSolidInteriorPass(2, clipIndex);
-      const markState: RenderState = {
-        ...passState,
-        colorWrite: NoColorWrite,
-        depth: undefined,
-        stencil: SolidInteriorMarkStencil,
-      };
-      drawObject(r, variant, Flag.SolidInteriorMark, markState);
+      drawObject(r, variant, Flag.SolidInteriorMark, getSolidInteriorMarkState(passState));
     };
 
     const renderSolidInteriorFill = (
@@ -545,29 +828,14 @@ namespace Renderer {
       clipIndex: number,
       passState: RenderState,
     ) => {
-      const writeDepth = mode === 'opaque' || mode === 'back';
       setSolidInteriorPass(1, clipIndex);
-      let depth: DepthState;
-      if (mode === 'oit') {
+      const { resolve, fill } = getSolidInteriorFillStates(passState, mode);
+      if (resolve) {
         // the OIT depth attachment is otherwise unused: resolve the nearest back face, then only draw that one
-        ctx.clear({ depth: 1 });
-        const resolveState: RenderState = {
-          ...passState,
-          colorWrite: NoColorWrite,
-          depth: { compare: 'less-equal', write: true },
-          stencil: SolidInteriorFillStencilKeep,
-        };
-        drawObject(r, variant, Flag.SolidInteriorFill, resolveState);
-        depth = { compare: 'equal', write: false };
-      } else {
-        depth = { compare: mode === 'back' ? 'greater-equal' : 'less-equal', write: writeDepth };
+        ctx.clear({ depth: 0 });
+        drawObject(r, variant, Flag.SolidInteriorFill, resolve);
       }
-      const fillState: RenderState = {
-        ...passState,
-        depth,
-        stencil: writeDepth ? SolidInteriorFillStencilKeep : SolidInteriorFillStencilZero,
-      };
-      drawObject(r, variant, Flag.SolidInteriorFill, fillState);
+      drawObject(r, variant, Flag.SolidInteriorFill, fill);
     };
 
     const solidInteriorEye = Vec3();
@@ -727,149 +995,148 @@ namespace Renderer {
       globals.invalidate();
     };
 
-    const checkOpaque = function (r: GraphicsRenderable) {
-      // uAlpha is updated in `r.render` so we need to recompute it here
-      const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-      const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-      return (
-        (alpha === 1 &&
-          r.values.transparencyAverage.ref.value !== 1 &&
-          r.values.dGeometryType.ref.value !== 'directVolume' &&
-          r.values.dPointStyle?.ref.value !== 'fuzzy' &&
-          !xrayShaded) ||
-        r.values.dTransparentBackfaces?.ref.value === 'opaque'
-      );
+    /** draws the objects of `group` as `pass` describes */
+    const renderPass = (pass: PassDraws, group: Scene.Group) => {
+      const { variant, select, check, draws, caps } = pass;
+      const inlineCaps = !!caps?.inline && canRenderSolidInteriorCaps();
+      const { renderables } = group;
+      for (let i = 0, il = renderables.length; i < il; ++i) {
+        const r = renderables[i];
+        if ((select && !select(r)) || !check(r)) continue;
+        const objectDraws = draws(r);
+        for (let j = 0, jl = objectDraws.length; j < jl; ++j) {
+          renderObject(r, variant, objectDraws[j].flag, objectDraws[j].passState);
+        }
+        if (inlineCaps && hasSolidInteriorCap(r) && caps!.check(r)) {
+          renderSolidInteriorCap(r, variant, caps!.mode, caps!.passState);
+        }
+      }
+      if (caps && !caps.inline) renderSolidInteriorCaps(renderables, caps.check, variant, caps.mode, caps.passState);
     };
 
-    const checkTransparent = function (r: GraphicsRenderable) {
-      // uAlpha is updated in `r.render` so we need to recompute it here
-      const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-      const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-      return (
-        alpha !== 0 &&
-        (alpha < 1 ||
-          r.values.transparencyAverage.ref.value > 0 ||
-          r.values.dGeometryType.ref.value === 'directVolume' ||
-          r.values.dPointStyle?.ref.value === 'fuzzy' ||
-          r.values.dGeometryType.ref.value === 'text' ||
-          r.values.dGeometryType.ref.value === 'image' ||
-          xrayShaded)
-      );
+    const collect = (pass: Pass, group: Scene.Group, target: TargetDescriptor, options?: { all?: boolean }) => {
+      return collectFrom(pass, group.renderables, target, !!options?.all);
     };
 
-    const checkPickable = function (r: GraphicsRenderable) {
-      return !r.state.colorOnly;
+    /**
+     * stand-ins of the signatures' objects, with the values the pass draws and object states read and those the passes
+     * check (alpha, transparency, emission): one per way the object may draw (`ObjectSignature.opaque`, ...), so that the
+     * passes' own checks select what to request
+     */
+    const signatureStandIns = new WeakMap<ProgramItem, Map<string, GraphicsRenderable[]>>();
+    const getSignatureStandIns = (signature: ObjectSignature, item: ProgramItem) => {
+      const { opaque, transparent, emissive } = signature;
+      const flags = `${opaque}|${transparent}|${emissive}`;
+      let cache = signatureStandIns.get(item);
+      if (!cache) signatureStandIns.set(item, (cache = new Map()));
+      let standIns = cache.get(flags);
+      if (!standIns) {
+        const { defines } = signature;
+        const fixed: { [k: string]: unknown } = {
+          dGeometryType: defines.dGeometryType,
+          dSolidInterior: !!defines.dSolidInterior,
+          dFlipSided: !!defines.dFlipSided,
+          dTransparentBackfaces: defines.dTransparentBackfaces,
+          dXrayShaded: defines.dXrayShaded,
+          dPointStyle: defines.dPointStyle,
+          uDoubleSided: signature.doubleSided,
+          hasReflection: signature.hasReflection,
+          transparencyAverage: 0,
+          markerAverage: 0,
+          emissiveAverage: 0,
+          uEmissive: emissive ? 1 : 0,
+        };
+        // only the values of the kind: the object state reads a missing one apart from a false one (`uDoubleSided`)
+        const schema = getRenderableProgramSource(signature)?.schema;
+        const alphas = [...(opaque ? [1] : []), ...(transparent ? [0.5] : [])];
+        standIns = (alphas.length ? alphas : [0]).map((alpha) => {
+          const values: { [k: string]: ValueCell<unknown> } = { alpha: ValueCell.create(alpha) };
+          for (const k of Object.keys(fixed)) if (!schema || schema[k]) values[k] = ValueCell.create(fixed[k]);
+          return {
+            values,
+            renderItem: item,
+            state: { disposed: false, alphaFactor: 1, colorOnly: false },
+          } as unknown as GraphicsRenderable;
+        });
+        cache.set(flags, standIns);
+      }
+      return standIns;
     };
 
-    const checkMarkingDepth = function (r: GraphicsRenderable) {
-      const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-      return alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1;
+    const collectSignatures = (
+      pass: Pass,
+      items: readonly { readonly signature: ObjectSignature; readonly item: ProgramItem }[],
+      target: TargetDescriptor,
+      options?: { all?: boolean },
+    ) => {
+      const standIns = items.flatMap(({ signature, item }) => getSignatureStandIns(signature, item));
+      return collectFrom(pass, standIns, target, !!options?.all);
     };
 
-    const checkMarkingMask = function (r: GraphicsRenderable) {
-      return r.values.markerAverage.ref.value > 0;
-    };
-
-    const checkEmissive = function (r: GraphicsRenderable) {
-      return r.values.emissiveAverage.ref.value + r.values.uEmissive.ref.value > 0;
-    };
-
-    /** caps are drawn from back faces, which transparent passes discard when `transparentBackfaces` is 'off' */
-    const checkTransparentCap = function (r: GraphicsRenderable) {
-      return checkTransparent(r) && r.values.dTransparentBackfaces?.ref.value !== 'off';
+    const collectFrom = (
+      pass: Pass,
+      renderables: readonly GraphicsRenderable[],
+      target: TargetDescriptor,
+      all: boolean,
+    ) => {
+      const requests: PipelineRequest[] = [];
+      const { variant, select, check, draws, caps } = getPassDraws(pass, transparentBackground);
+      const capsDrawn = solidInteriorCapSupported && target.hasStencil;
+      const request = (r: GraphicsRenderable, flag: Flag, passState: RenderState) => {
+        const state = getObjectState(r.values, variant, flag, passState);
+        if (state) requests.push({ item: r.renderItem, variant, state, target });
+      };
+      for (const r of renderables) {
+        if (r.state.disposed || (select && !select(r)) || (!all && !check(r))) continue;
+        for (const { flag, passState } of draws(r)) request(r, flag, passState);
+        if (caps && capsDrawn && hasSolidInteriorCap(r) && (all || caps.check(r))) {
+          request(r, Flag.SolidInteriorMark, getSolidInteriorMarkState(caps.passState));
+          const { resolve, fill } = getSolidInteriorFillStates(caps.passState, caps.mode);
+          if (resolve) request(r, Flag.SolidInteriorFill, resolve);
+          request(r, Flag.SolidInteriorFill, fill);
+        }
+      }
+      return requests;
     };
 
     const renderPick = (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => {
       updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uPickType, pickType);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkPickable(r)) {
-          renderObject(r, variant, Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkPickable, variant, 'opaque', OpaqueState);
+      renderPass(variant === 'pick' ? PassDraws.pick : PassDraws.pickDepth, group);
     };
 
     const renderDepth = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.All, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        renderObject(renderables[i], 'depth', Flag.None, OpaqueState);
-      }
-      renderSolidInteriorCaps(renderables, () => true, 'depth', 'opaque', OpaqueState);
+      renderPass(PassDraws.depth, group);
     };
 
     const renderDepthOpaque = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkOpaque(r)) {
-          renderObject(r, 'depth', Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'opaque', OpaqueState);
+      renderPass(PassDraws.depthOpaque, group);
     };
 
     const renderDepthOpaqueBack = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
       ValueCell.updateIfChanged(globalUniforms.uDepthBack, true);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkOpaque(r)) {
-          renderObject(r, 'depth', Flag.DepthBack, OpaqueBackState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'back', OpaqueBackState);
+      renderPass(PassDraws.depthOpaqueBack, group);
       ValueCell.updateIfChanged(globalUniforms.uDepthBack, false);
     };
 
     const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkTransparent(r)) {
-          renderObject(r, 'depth', Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkTransparentCap, 'depth', 'opaque', OpaqueState);
+      renderPass(PassDraws.depthTransparent, group);
     };
 
     const renderMarkingDepth = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkMarkingDepth(r)) {
-          renderObject(r, 'marking', Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkMarkingDepth, 'marking', 'opaque', OpaqueState);
+      renderPass(PassDraws.markingDepth, group);
     };
 
     const renderMarkingMask = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
       updateInternal(group, camera, null, depthTexture, Mask.All, !!depthTexture);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Mask);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkMarkingMask(r)) {
-          renderObject(r, 'marking', Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkMarkingMask, 'marking', 'opaque', OpaqueState);
+      renderPass(PassDraws.markingMask, group);
     };
 
     const renderEmissiveOpaque = (
@@ -878,59 +1145,20 @@ namespace Renderer {
       depthTexture: Texture,
       occludeWithOpaqueDepth: boolean,
     ) => {
-      // without occluding opaque depth (packed depth): build own occluding depth from all opaque geometry
-      const passState = occludeWithOpaqueDepth ? EmissiveOccludedState : OpaqueState;
-
       // tDepthAlpha = front transparent depth+alpha; emissive shader dims emitters behind it
       updateInternal(group, camera, null, depthTexture, Mask.Opaque, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r))) {
-          renderObject(r, 'emissive', Flag.None, passState);
-        }
-      }
-      renderSolidInteriorCaps(
-        renderables,
-        (r) => checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r)),
-        'emissive',
-        occludeWithOpaqueDepth ? 'blended' : 'opaque',
-        passState,
-      );
+      renderPass(occludeWithOpaqueDepth ? PassDraws.emissiveOpaqueOccluded : PassDraws.emissiveOpaque, group);
     };
 
     const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
       // tDepthAlpha = front transparent depth+alpha; emissive shader dims emitters behind it
       updateInternal(group, camera, null, depthTexture, Mask.Transparent, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkTransparent(r) && r.values.dGeometryType.ref.value !== 'directVolume' && checkEmissive(r)) {
-          renderObject(r, 'emissive', Flag.None, EmissiveTransparentState);
-        }
-      }
-      renderSolidInteriorCaps(
-        renderables,
-        (r) => checkTransparentCap(r) && checkEmissive(r),
-        'emissive',
-        'blended',
-        EmissiveTransparentState,
-      );
+      renderPass(PassDraws.emissiveTransparent, group);
     };
 
     const renderTracing = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkOpaque(r)) {
-          renderObject(r, 'tracing', Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'tracing', 'opaque', OpaqueState);
+      renderPass(PassDraws.tracing, group);
     };
 
     const renderBlended = (scene: Scene, camera: ICamera) => {
@@ -944,65 +1172,22 @@ namespace Renderer {
 
     const renderOpaque = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkOpaque(r)) {
-          renderObject(r, 'color', Flag.None, OpaqueState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'color', 'opaque', OpaqueState);
+      renderPass(PassDraws.opaque, group);
     };
 
     const renderBlendedTransparent = (group: Scene.Group, camera: ICamera) => {
-      const passState = transparentBackground ? BlendedTransparentBackgroundState : BlendedTransparentState;
       updateInternal(group, camera, null, null, Mask.Transparent, false);
-
-      const renderCaps = canRenderSolidInteriorCaps();
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkTransparent(r)) {
-          if (r.values.uDoubleSided?.ref.value) {
-            // render frontfaces and backfaces separately to avoid artefacts
-            if (r.values.dTransparentBackfaces?.ref.value !== 'opaque') {
-              renderObject(r, 'color', Flag.BlendedBack, passState);
-            }
-            renderObject(r, 'color', Flag.BlendedFront, passState);
-          } else {
-            renderObject(r, 'color', Flag.None, passState);
-          }
-          if (renderCaps && hasSolidInteriorCap(r) && checkTransparentCap(r)) {
-            renderSolidInteriorCap(r, 'color', 'blended', passState);
-          }
-        }
-      }
+      renderPass(transparentBackground ? PassDraws.blendedTransparentBackground : PassDraws.blendedTransparent, group);
     };
 
     const renderVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (r.values.dGeometryType.ref.value === 'directVolume') {
-          renderObject(r, 'color', Flag.None, VolumeState);
-        }
-      }
+      renderPass(PassDraws.volume, group);
     };
 
     const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
-
-      const { renderables } = group;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkTransparent(r)) {
-          renderObject(r, 'color', Flag.None, WboitState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit', WboitState);
+      renderPass(PassDraws.wboitTransparent, group);
     };
 
     const renderDpoitTransparent = (
@@ -1016,35 +1201,27 @@ namespace Renderer {
       arrayMapUpsert(sharedTexturesList, 'tDpoitBackColor', dpoitTextures.backColor);
 
       updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
-
-      const { renderables } = group;
-
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        const r = renderables[i];
-        if (checkTransparent(r)) {
-          renderObject(r, 'color', Flag.None, DpoitState);
-        }
-      }
-      renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit', DpoitState);
+      renderPass(PassDraws.dpoitTransparent, group);
     };
 
     return {
       clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => {
         ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
         if (forceToTransparency || (transparentBackground && !ignoreTransparentBackground)) {
-          ctx.clear({ color: [0, 0, 0, 0], depth: 1 });
+          ctx.clear({ color: [0, 0, 0, 0], depth: 0 });
         } else if (toBackgroundColor) {
-          ctx.clear({ color: [bgColor[0], bgColor[1], bgColor[2], 1], depth: 1 });
+          ctx.clear({ color: [bgColor[0], bgColor[1], bgColor[2], 1], depth: 0 });
         } else {
-          ctx.clear({ color: [1, 1, 1, 1], depth: 1 });
+          ctx.clear({ color: [1, 1, 1, 1], depth: 0 });
         }
       },
       clearDepth: (packed = false) => {
         ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
+        // the far plane: depth 0, packed as zeros
         if (packed) {
-          ctx.clear({ color: [1, 1, 1, 1], depth: 1 });
+          ctx.clear({ color: [0, 0, 0, 0], depth: 0 });
         } else {
-          ctx.clear({ depth: 1 });
+          ctx.clear({ depth: 0 });
         }
       },
       update,
@@ -1065,6 +1242,9 @@ namespace Renderer {
       renderVolume,
       renderWboitTransparent,
       renderDpoitTransparent,
+
+      collect,
+      collectSignatures,
 
       setTime: (time: number) => {
         ValueCell.updateIfChanged(globalUniforms.uTime, time);

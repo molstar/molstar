@@ -1,0 +1,68 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// The kernel entries' hit case, for its heap guard and its quick twin (renderer-entries.heap.ts,
+// renderer-entries.quick.ts): four documents opened on the kernel's renderers (letters `of` another polymer, ranges in
+// lanes, pairs' arcs and ends over hundreds of pairs, a matrix's state bands), a grid of points over each, and the step,
+// a hit test at the next point, as a pointer move runs it.
+
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { case14 } from '../../core/_test/format/cases.js';
+import { Hit, HoverKind, KernelRenderers } from '../src/index.js';
+import { opened } from './layout-fixtures.js';
+import { allTypes, rangesDoc } from './prepare-fixtures.js';
+
+let sink = 0;
+
+function matrixDoc() {
+  const b = createSeqViewSpec({ title: 'Matrix' });
+  const a = b.data.sequence({ ref: 'a', label: 'A', value: 'MKTAYIAKQR'.repeat(10) });
+  const index = Array.from({ length: 100 }, (_, i) => i);
+  const value = { index, value: index.map((i) => [i % 3, (i * 7) % 5, 1]) };
+  const m = b.data.annotation({ ref: 'm', geometry: 'matrix', target: a, states: ['x', 'y', 'z'], value } as never);
+  b.view({ ref: 'v', label: 'V' }).block({ sequence: a }).track({ label: 'M' }).matrix({ data: m });
+  return b.getDocument();
+}
+
+/** The step, a hit test a call over the documents' points, and what the points hit (items, matrix states) once each. */
+export async function entryHits() {
+  const docs = [
+    allTypes({ length: 2000 }),
+    case14(),
+    rangesDoc([
+      [10, 30],
+      [15, 20],
+      [12, 40],
+    ]),
+    matrixDoc(),
+  ];
+  const opens = await Promise.all(docs.map((d) => opened(d, { renderers: [...KernelRenderers] })));
+  const points: [(typeof opens)[number], number, number, number][] = [];
+  for (const t of opens) {
+    const s = t.ctx.viewports.sections.value[0];
+    t.vp(s).setView(4, 0, 'api');
+    const l = t.layout(s);
+    const i = t.ctx.layout.sectionIndex(s);
+    for (let y = l.navHeight; y < Math.min(l.height, l.scrolledTop + 400); y += 3)
+      for (let x = l.dataLeft + 1; x < l.dataRight; x += 37) points.push([t, i, x, y]);
+  }
+  const hit = Hit.create();
+  let items = 0;
+  let states = 0;
+  for (const p of points) {
+    p[0].ctx.layout.hitTest(p[1], p[2], p[3], hit);
+    if (hit.kind === HoverKind.item) items++;
+    if (hit.state >= 0) states++;
+  }
+  const step = (k: number) => {
+    const p = points[k % points.length];
+    p[0].ctx.layout.hitTest(p[1], p[2], p[3], hit);
+    sink = (sink + hit.kind + hit.item + hit.state) & 0xffff;
+  };
+  return { step, items, states };
+}

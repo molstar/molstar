@@ -29,6 +29,7 @@ import {
 } from './util/blob-surface.js';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import { getSurfaceSignatureDefines } from '@molstar/graphics/repr/signatures';
 
 export const BlobSurfaceMeshParams = {
   ...UnitsMeshParams,
@@ -84,6 +85,7 @@ export function BlobSurfaceMeshVisual(materialId: number): UnitsVisual<BlobSurfa
   return UnitsMeshVisual<BlobSurfaceMeshParams>(
     {
       defaultProps: PD.getDefaultValues(BlobSurfaceMeshParams),
+      signatureDefines: getSurfaceSignatureDefines,
       createGeometry: createBlobSurfaceMesh,
       createLocationIterator: ElementIterator.fromGroup,
       getLoci: getElementLoci,
@@ -140,6 +142,7 @@ export function StructureBlobSurfaceMeshVisual(materialId: number): ComplexVisua
   return ComplexMeshVisual<StructureBlobSurfaceMeshParams>(
     {
       defaultProps: PD.getDefaultValues(StructureBlobSurfaceMeshParams),
+      signatureDefines: getSurfaceSignatureDefines,
       createGeometry: createStructureBlobSurfaceMesh,
       createLocationIterator: ElementIterator.fromStructure,
       getLoci: getSerialElementLoci,

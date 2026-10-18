@@ -8,7 +8,7 @@ import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
 /**
  * Fast approximate anti-aliasing (FXAA 3.11 by Timothy Lottes, as explained in
- * http://blog.simonrodriguez.fr/articles/2016/07/implementing_fxaa.html), in GL window space; thresholds, iterations
+ * http://blog.simonrodriguez.fr/articles/2016/07/implementing_fxaa.html); thresholds, iterations
  * and subpixel quality are override constants
  */
 export const fxaa_wgsl = /* wgsl */ `
@@ -48,7 +48,7 @@ fn sampleLumaOffset(uv: vec2<f32>, offsetX: f32, offsetY: f32) -> f32 {
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let inverseScreenSize = uObject.uTexSizeInv;
-    let coords = glCoords(in.position, 1.0 / inverseScreenSize);
+    let coords = fragmentUv(in.position, 1.0 / inverseScreenSize);
 
     let colorCenter = read_tColor(coords);
 

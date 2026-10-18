@@ -2,11 +2,12 @@
 
 ## Status
 
+- **Current**: done, phases 0–3; phase 4 continued as [attribute-bindings.md](attribute-bindings.md).
 - Reconstituted from the original `plans/uniform-buffers.md` (lost when the repo was restructured into the v6
   workspace). Paths are updated to the new layout (`src/mol-gl/` → `packages/graphics/src/gl/`, `src/mol-canvas3d/` →
   `packages/graphics/src/canvas3d/`, `src/mol-util/` → `packages/core/src/util/`, `src/tests/visual/` →
   `tests/src/visual/`).
-- Phases 0-3 done (uncommitted). Follow-up plans: [texture-bindings.md](texture-bindings.md),
+- Phases 0-3 done. Follow-up plans: [texture-bindings.md](texture-bindings.md),
   [attribute-bindings.md](attribute-bindings.md) (Phase 4, incl. an evaluation for WebGL + WebGPU).
 - Items lost in the restructure are restored: `webgpu/uniform-declarations.ts`, `getBindingLayout` in
   `uniform-layout.ts`, unit tests `packages/graphics/src/gl/_test/uniform-buffer.test.ts` + `shader-uniforms.test.ts`,
@@ -14,6 +15,14 @@
 - Rule: backend-specific code (GLSL, WGSL, GL/GPU calls) lives only in `webgl/` and `webgpu/`; `uniform-layout.ts` stays
   backend-neutral.
 - Rule: backend targets and minimum specs, see [minimum-capabilities.md](minimum-capabilities.md).
+
+- Measured (render benchmark, `render/boxes-*`, see [backend-selection.md](backend-selection.md#default-backend)):
+  WebGL2 with uniform buffers against WebGL2 with all uniforms set one by one
+  (`createWebGLBackend('webgl2', { uniformBlocks: false })`, a `WebGLContextProps` option kept for such comparisons) and
+  WebGL1. At 1000 draw calls the CPU time to issue a frame drops from about 6.1 to 4.4 ms (−28%), the frame time from
+  about 6.1 to 5.5 ms (−10%; part of the saving reappears as driver work, ANGLE's buffer updates); at 100 draw calls
+  about −45% CPU time. Scenes of up to about 25 draw calls (most structure views) show no difference. WebGL1 is on par
+  with WebGL2 without uniform buffers.
 
 ## TL;DR
 

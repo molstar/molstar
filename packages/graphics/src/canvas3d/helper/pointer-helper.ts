@@ -126,6 +126,10 @@ export class PointerHelper {
     this.renderObject = createMeshRenderObject(this.shape, this.props);
     this.scene.add(this.renderObject);
   }
+
+  setContext(graphics: GraphicsContext) {
+    this.scene.setContext(graphics);
+  }
 }
 
 type PointerData = {

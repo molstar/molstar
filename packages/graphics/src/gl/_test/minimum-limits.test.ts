@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { getAttributeLayout } from '../attribute-layout.js';
 import {
   GlobalDefineSchema,
@@ -106,22 +107,19 @@ const FeatureDefines: { [k: string]: string | boolean | number } = {
   dColorMarker: true,
   dClipObjectCount: 1,
   dClipVariant: 'pixel',
-  dColorType: 'groupInstance',
+  dColorType: 'texture',
   dUsePalette: true,
-  dSizeType: 'groupInstance',
-  dMarkerType: 'groupInstance',
+  dSizeType: 'texture',
   dOverpaint: true,
-  dOverpaintType: 'groupInstance',
+  dOverpaintType: 'texture',
   dTransparency: true,
-  dTransparencyType: 'groupInstance',
+  dTransparencyType: 'texture',
   dEmissive: true,
-  dEmissiveType: 'groupInstance',
+  dEmissiveType: 'texture',
   dSubstance: true,
-  dSubstanceType: 'groupInstance',
+  dSubstanceType: 'texture',
   dClipping: true,
-  dClippingType: 'groupInstance',
   dWiggle: true,
-  dWiggleType: 'groupInstance',
   dSegmented: true,
   dXrayShaded: 'on',
   dTransparentBackfaces: 'on',
@@ -226,9 +224,8 @@ describe('minimum limits: per program', () => {
     const values = {
       dRenderVariant: 'colorBlended',
       dGeometryType: 'mesh',
-      dColorType: 'group',
+      dColorType: 'texture',
       dColorMarker: true,
-      dMarkerType: 'groupInstance',
       dLightCount: 1,
       dClipObjectCount: 0,
     };

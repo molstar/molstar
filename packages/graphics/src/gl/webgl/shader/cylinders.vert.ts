@@ -76,20 +76,23 @@ void main() {
     vViewPosition = mvPosition.xyz;
     gl_Position = uProjection * mvPosition;
 
-    if (gl_Position.z < -gl_Position.w) {
-        mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
-        gl_Position.z = (uProjection * mvPosition).z;
+    // in front of the near plane (clip z is reversed): onto it, to avoid clipping the box; the fragment depth is the
+    // impostor's
+    if (gl_Position.z > gl_Position.w) {
+        gl_Position.z = gl_Position.w;
     }
 
-    #if defined(dDualColor) && defined(dRenderVariant_color) && (defined(dColorType_group) || defined(dColorType_groupInstance))
-        // dual-color mixing
+    #if defined(dDualColor) && defined(dRenderVariant_color) && defined(dColorType_texture)
+        // dual-color mixing (group color types)
         // - for aColorMode between 0 and 1 use aColorMode to interpolate
         // - for aColorMode == 2 do nothing, i.e., use vColor
         // - for aColorMode == 3 use position on cylinder axis to interpolate
-        if (aColorMode <= 1.0){
-            vColor.rgb = mix(vColor.rgb, color2.rgb, aColorMode);
-        } else if (aColorMode == 3.0) {
-            vColor.rgb = mix(vColor.rgb, color2.rgb, mix(-0.25, 1.25, f / 1.5));
+        if (dualColor) {
+            if (aColorMode <= 1.0) {
+                vColor.rgb = mix(vColor.rgb, color2.rgb, aColorMode);
+            } else if (aColorMode == 3.0) {
+                vColor.rgb = mix(vColor.rgb, color2.rgb, mix(-0.25, 1.25, f / 1.5));
+            }
         }
     #endif
 

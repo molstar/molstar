@@ -23,6 +23,7 @@ import { Subject } from 'rxjs';
 import { Task } from '@molstar/core/task';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ParticleVisual, ParticleParams } from './visual.js';
+import { getFactorySignatures, getQualitySignatures, type SignatureContext } from '../signatures.js';
 
 export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> {}
 
@@ -53,7 +54,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
   getLoci: (particles: ParticleList, props: PD.Values<P>) => ModelLoci,
 ): ParticleRepresentation<P> {
   let version = 0;
-  const { graphics } = ctx;
+  let { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const materialId = getNextMaterialId();
@@ -180,6 +181,19 @@ export function ParticleRepresentation<P extends ParticleParams>(
     mark: (loci: ModelLoci, action: MarkerAction) => {
       return visual?.mark(loci, action) ?? false;
     },
+    setGraphics: (value: GraphicsContext) => {
+      graphics = value;
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
+      getQualitySignatures(props, (props) =>
+        getFactorySignatures(
+          visualCtor,
+          // without particles: factories that read them name their visuals
+          () => visualCtor(materialId, undefined as unknown as ParticleList, props, ctx.graphics),
+          props,
+          ctx,
+        ),
+      ),
     destroy,
   };
 }

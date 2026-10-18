@@ -9,25 +9,25 @@ export const color_vert_params = `
     #endif
 
     #ifdef dOverpaint
-        #if defined(dOverpaintType_instance) || defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance) || defined(dOverpaintType_volumeInstance)
+        #if defined(dOverpaintType_texture) || defined(dOverpaintType_vertexInstance) || defined(dOverpaintType_volumeInstance)
             varying vec4 vOverpaint;
         #endif
     #endif
 
     #ifdef dEmissive
-        #if defined(dEmissiveType_instance) || defined(dEmissiveType_groupInstance) || defined(dEmissiveType_vertexInstance) || defined(dEmissiveType_volumeInstance)
+        #if defined(dEmissiveType_texture) || defined(dEmissiveType_vertexInstance) || defined(dEmissiveType_volumeInstance)
             varying float vEmissive;
         #endif
     #endif
 
     #ifdef dSubstance
-        #if defined(dSubstanceType_instance) || defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance) || defined(dSubstanceType_volumeInstance)
+        #if defined(dSubstanceType_texture) || defined(dSubstanceType_vertexInstance) || defined(dSubstanceType_volumeInstance)
             varying vec4 vSubstance;
         #endif
     #endif
 #elif defined(dRenderVariant_emissive)
     #ifdef dEmissive
-        #if defined(dEmissiveType_instance) || defined(dEmissiveType_groupInstance) || defined(dEmissiveType_vertexInstance) || defined(dEmissiveType_volumeInstance)
+        #if defined(dEmissiveType_texture) || defined(dEmissiveType_vertexInstance) || defined(dEmissiveType_volumeInstance)
             varying float vEmissive;
         #endif
     #endif
@@ -52,7 +52,7 @@ export const color_vert_params = `
 #endif
 
 #ifdef dTransparency
-    #if defined(dTransparencyType_instance) || defined(dTransparencyType_groupInstance) || defined(dTransparencyType_vertexInstance) || defined(dTransparencyType_volumeInstance)
+    #if defined(dTransparencyType_texture) || defined(dTransparencyType_vertexInstance) || defined(dTransparencyType_volumeInstance)
         varying float vTransparency;
     #endif
 #endif

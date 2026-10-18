@@ -4,6 +4,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
@@ -32,7 +33,7 @@ import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-qu
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
-import { Expression } from '@molstar/model/script/language/expression';
+import { Expression } from '@molstar/query-language/language/expression';
 import { StateObject, StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { round } from '@molstar/core/util';
@@ -43,8 +44,10 @@ import { Color } from '@molstar/core/util/color';
 import { MarkerActions } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { capitalize } from '@molstar/core/util/string';
-import { rowsToExpression, rowToExpression } from '@molstar/mvs/helpers/selections';
-import { collectMVSReferences, decodeColor, isDefined } from '@molstar/mvs/helpers/utils';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
+import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
+import { isDefined } from '@molstar/core/util/object';
+import { collectMVSReferences, decodeColor } from '@molstar/mvs/helpers/utils';
 import { addParamDefaults } from '@molstar/mvs-builder/tree/generic/params-schema';
 import { treeValidationIssues } from '@molstar/mvs-builder/tree/generic/tree-validation';
 import type { MolstarNode, MolstarNodeParams, MolstarSubtree } from '@molstar/mvs/tree/molstar/molstar-tree';
@@ -57,6 +60,11 @@ import {
   PrimitivePositionT,
 } from '@molstar/mvs-builder/tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component.js';
+import {
+  getShapeSignatures,
+  registerShapeGeometry,
+  registerTransformSignatures,
+} from '@molstar/plugin/state/precompile';
 
 type PrimitivesParams = MolstarNode<'primitives'>['params'];
 
@@ -341,6 +349,13 @@ export const MVSShapeRepresentation3D = MVSTransform({
   },
 });
 
+registerShapeGeometry(MVSBuildPrimitiveShape, (params: { kind: 'mesh' | 'labels' | 'lines' }) => [
+  params.kind === 'labels' ? Text.Utils : params.kind === 'lines' ? Lines.Utils : Mesh.Utils,
+]);
+registerTransformSignatures(MVSShapeRepresentation3D, (params, ctx) =>
+  getShapeSignatures(ctx.tree.transforms.get(ctx.transform.parent), params, ctx),
+);
+
 const SnapshotKey = PD.Text('', {
   isEssential: true,
   disableInteractiveUpdates: true,
@@ -594,6 +609,7 @@ function resolvePosition(
   targetBox: Box3D | undefined,
 ): boolean {
   let expr: Expression | undefined;
+  let rows: readonly MVSAnnotationRow[] | undefined;
   let pivotRef: string | undefined;
 
   if (isVector3(position)) {
@@ -604,17 +620,16 @@ function resolvePosition(
   }
 
   if (isPrimitiveComponentExpression(position)) {
-    // TODO: take schema into account for possible optimization
-    expr = position.expressions ? rowsToExpression(position.expressions) : rowToExpression(position);
+    rows = position.expressions ?? [position];
     pivotRef = position.structure_ref;
   } else if (isPrimitiveMolQLExpression(position)) {
     expr = position.molql as Expression;
     pivotRef = position.structure_ref;
   } else if (isComponentExpression(position)) {
-    expr = rowToExpression(position);
+    rows = [position];
   }
 
-  if (!expr) {
+  if (!expr && !rows) {
     console.error('Invalid expression', position);
     throw new Error('Invalid primitive potition expression, see console for details.');
   }
@@ -633,7 +648,10 @@ function resolvePosition(
     return isDefined;
   }
 
-  const { selection } = StructureQueryHelper.createAndRun(pivot, expr);
+  // (rows are resolved through the model indices, not by running a MolScript query on every atom)
+  const selection = rows
+    ? StructureSelection.Singletons(pivot, substructureFromRows(pivot, rows))
+    : StructureQueryHelper.createAndRun(pivot, expr!).selection;
 
   let box: Box3D;
   let sphere: Sphere3D;

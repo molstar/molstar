@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { exclusionErrors, findExcluded, globToRegExp, loadExclusions } from '../slim-exclusions.mjs';
 
 const matches = (glob, file) => globToRegExp(glob).test(file);
@@ -85,9 +85,9 @@ test('the checked-in exclusions pin the spec §12 table', () => {
       'packages/plugin/core/src/state/builder/structure/hierarchy-presets/supercell.ts',
       'packages/plugin/core/src/state/builder/structure/hierarchy-presets/catalog.ts',
       'packages/plugin/core/src/state/queries/structure/catalog.ts',
-      'packages/model/src/script/transpilers/all.ts',
-      'packages/model/src/script/transpilers/pymol/parser.ts',
-      'extensions/mp4-export/src/index.ts',
+      'packages/query-language/src/transpilers/all.ts',
+      'packages/query-language/src/transpilers/pymol/parser.ts',
+      'extensions/video-export/src/index.ts',
       'packages/graphics/src/theme/color/catalog.ts',
       'packages/plugin/core/src/default-spec.ts',
       'packages/plugin/core/src/default-registry.ts',

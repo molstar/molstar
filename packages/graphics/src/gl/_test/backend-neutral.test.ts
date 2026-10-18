@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -17,13 +18,7 @@ const MemberPatterns = [
 const DestructurePatterns = [/\bextensions\s*:\s*\{/, /\{[^}]*\bextensions\b[^}]*\}\s*=/];
 
 /** Files still using WebGL specifics outside `gl/webgl/` */
-const Allowlist: { [file: string]: string } = {
-  'packages/graphics/src/canvas3d/passes/hi-z.ts': 'fences, readback',
-  'packages/graphics/src/canvas3d/passes/pick.ts': 'async readback',
-  'packages/graphics/src/gl/compute/grid3d.ts': 'GLSL 100 schema',
-  'packages/graphics/src/gl/renderable/direct-volume.ts': 'GLSL 100 loop bounds',
-  'extensions/geo-export/src/mesh-exporter.ts': 'readback types',
-};
+const Allowlist: { [file: string]: string } = {};
 
 function getSourceFiles(dir: string, files: string[] = []) {
   if (!fs.existsSync(dir)) return files;
@@ -72,44 +67,59 @@ describe('backend-neutral feature checks', () => {
   });
 });
 
-/** `gl/webgl/<module>` imports, also of nested paths (e.g. GLSL sources in `shader/`), the first segment as module */
-const WebGLImportPattern =
-  /from '(?:@molstar\/graphics\/gl|\.{1,2}(?:\/\.\.)*)\/webgl\/([\w-]+)(?:\/[\w./-]+)?(?:\.js)?'/;
+/** Import specifiers: `from '…'` (also of `export … from`), side-effect `import '…'` and dynamic `import('…')` */
+const ImportPattern = /(?:\bfrom\s*|\bimport\s*\(?\s*)'([^']+)'/g;
 
-/** `gl/webgl/` modules that neutral code may still import */
+const GraphicsSource = 'packages/graphics/src';
+
+/**
+ * The backend and module (`webgl/context`, also for nested paths, e.g. GLSL sources in `webgl/shader/`) an import of
+ * `file` resolves to, by path: relative imports from the file's folder, `@molstar/graphics/…` from the graphics sources
+ */
+function getBackendModule(file: string, specifier: string): string | undefined {
+  let resolved: string;
+  if (specifier.startsWith('@molstar/graphics/')) {
+    resolved = `${GraphicsSource}/${specifier.slice('@molstar/graphics/'.length)}`;
+  } else if (specifier.startsWith('.')) {
+    resolved = path.posix.join(path.posix.dirname(file), specifier);
+  } else {
+    return;
+  }
+  const m = resolved.match(/^packages\/graphics\/src\/gl\/(webgl|webgpu)\/([\w-]+)/);
+  return m ? `${m[1]}/${m[2].replace(/\.js$/, '')}` : undefined;
+}
+
+/** Backend modules that neutral code may import */
 const PendingModules: { [module: string]: string } = {
-  compat: 'isWebGL2, see the feature check allowlist',
-  backend: 'backend descriptors, consumers select the backends they ship',
+  'webgl/compat': 'isWebGL2, see the feature check allowlist',
+  'webgl/backend': 'backend descriptors, consumers select the backends they ship',
+  'webgpu/backend': 'backend descriptors, consumers select the backends they ship',
 };
 
-/** Other `gl/webgl/` imports outside the backend */
+/** Other backend imports outside the backends: creating contexts */
 const ImportAllowlist: { [file: string]: string } = {
-  // readback, fences and sync
-  'packages/graphics/src/canvas3d/passes/hi-z.ts': 'WebGLContext and PixelPackBuffer: fences, readback',
-  'packages/graphics/src/canvas3d/passes/pick.ts': 'WebGLContext and PixelPackBuffer: fences, readback',
-  'packages/graphics/src/gl/compute/util.ts': 'WebGLContext and asGLTexture: readback',
-  'packages/graphics/src/gl/compute/histogram-pyramid/reduction.ts': 'WebGLContext: gl.finish, sum readback',
-  'packages/graphics/src/gl/compute/histogram-pyramid/sum.ts': 'WebGLContext: gl.finish, readPixels',
-  'packages/graphics/src/gl/compute/marching-cubes/active-voxels.ts': 'WebGLContext: gl.finish',
-  'packages/graphics/src/gl/compute/marching-cubes/isosurface.ts': 'WebGLContext: gl.finish',
-  'packages/graphics/src/gl/compute/grid3d.ts': 'WebGLContext: readPixels, sync; GLSL 100 schema',
-  'packages/graphics/src/geo/gaussian-density/gpu.ts': 'WebGLContext: readPixels, sync',
-  'packages/graphics/src/geo/geometry/texture-mesh/texture-mesh.ts': 'WebGLContext: readPixels',
-  'extensions/geo-export/src/mesh-exporter.ts': 'WebGLContext: texture readback',
-  'extensions/alpha-orbitals/src/gpu/compute.ts': 'WebGLContext: grid3d GPU compute',
-  // pass the WebGLContext on to the WebGL-only functions above
-  'packages/graphics/src/geo/gaussian-density.ts': 'WebGLContext for GPU gaussian density',
-  'packages/graphics/src/repr/structure/visual/util/gaussian.ts': 'WebGLContext for GPU gaussian density',
-  // WebGL-only GPU paths, narrowed with isWebGLContext
-  'packages/graphics/src/repr/structure/visual/gaussian-density-volume.ts': 'isWebGLContext: GPU gaussian density',
-  'packages/graphics/src/repr/structure/visual/gaussian-surface-mesh.ts': 'isWebGLContext: GPU gaussian surface',
-  'packages/graphics/src/repr/volume/isosurface.ts': 'isWebGLContext: GPU isosurface',
-  'packages/graphics/src/repr/volume/segment.ts': 'isWebGLContext: GPU isosurface',
-  // context creation and other
-  'packages/graphics/src/canvas3d/canvas3d.ts': 'createContext, getGLContext, WebGLContext; pixel pack buffers',
-  'packages/plugin/headless/src/screenshot.ts': 'createContext for the headless gl package (WebGL-only by design)',
-  'packages/graphics/src/gl/renderable/direct-volume.ts': 'isWebGLContext: GLSL 100 loop bounds',
+  'packages/graphics/src/canvas3d/webgl.ts': 'createContext, getGLContext: `createWebGLCanvas3DContext` (WebGL)',
+  'packages/plugin/headless/src/screenshot.ts': 'the contexts of the headless gl package and of Dawn (Node.js)',
 };
+
+describe('backend import resolution', () => {
+  it('resolves relative and package imports by path', () => {
+    const file = `${GraphicsSource}/canvas3d/webgl.ts`;
+    expect(getBackendModule(file, '../gl/webgl/context.js')).toBe('webgl/context');
+    expect(getBackendModule(file, '@molstar/graphics/gl/webgpu/backend')).toBe('webgpu/backend');
+    expect(getBackendModule(`${GraphicsSource}/gl/backends/webgl.ts`, '../webgl/shader/mesh.vert.js')).toBe(
+      'webgl/shader',
+    );
+    expect(getBackendModule(file, './canvas3d.js')).toBeUndefined();
+    expect(getBackendModule(file, '../gl/context.js')).toBeUndefined();
+    expect(getBackendModule(file, 'webgl-utils')).toBeUndefined();
+    expect(
+      [..."import { a } from '../gl/webgl/context.js'; import '../gl/webgpu/x.js';".matchAll(ImportPattern)].map(
+        (m) => m[1],
+      ),
+    ).toEqual(['../gl/webgl/context.js', '../gl/webgpu/x.js']);
+  });
+});
 
 describe('backend-neutral imports', () => {
   const imports = new Map<string, string[]>();
@@ -117,21 +127,45 @@ describe('backend-neutral imports', () => {
     for (const file of getSourceFiles(root)) {
       const lines = fs.readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, i) => {
-        const m = line.match(WebGLImportPattern);
-        if (!m || PendingModules[m[1]]) return;
-        if (!imports.has(file)) imports.set(file, []);
-        imports.get(file)!.push(`${file}:${i + 1}: ${line.trim()}`);
+        for (const [, specifier] of line.matchAll(ImportPattern)) {
+          const module = getBackendModule(file, specifier);
+          if (!module || PendingModules[module]) continue;
+          if (!imports.has(file)) imports.set(file, []);
+          imports.get(file)!.push(`${file}:${i + 1}: ${line.trim()}`);
+        }
       });
     }
   }
 
-  it('no gl/webgl/ imports outside the backend', () => {
+  it('no gl/webgl/ or gl/webgpu/ imports outside the backends', () => {
     const violations = [...imports].filter(([file]) => !ImportAllowlist[file]).flatMap(([, lines]) => lines);
     expect(violations).toEqual([]);
   });
 
   it('import allowlist has no stale entries', () => {
     expect(Object.keys(ImportAllowlist).filter((file) => !imports.has(file))).toEqual([]);
+  });
+});
+
+/**
+ * Narrowing to a backend; decide by `capabilities` or services (e.g. `graphics.compute`, registered implementations),
+ * or move the code into the backend
+ */
+const NarrowingPatterns = [/\bis(WebGL|WebGPU)Context\(/, /\bas (WebGL|WebGPU)Context\b/];
+
+describe('backend narrowing', () => {
+  it('no narrowing to a backend outside gl/webgl/ and gl/webgpu/', () => {
+    const violations: string[] = [];
+    for (const root of getSourceRoots(['packages/plugin', 'extensions', 'apps'])) {
+      for (const file of getSourceFiles(root)) {
+        fs.readFileSync(file, 'utf8')
+          .split('\n')
+          .forEach((line, i) => {
+            if (NarrowingPatterns.some((p) => p.test(line))) violations.push(`${file}:${i + 1}: ${line.trim()}`);
+          });
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });
 
@@ -185,13 +219,8 @@ const TargetBindPatterns = [
 
 /** Files binding targets for WebGL readback */
 const TargetBindAllowlist: { [file: string]: string } = {
-  'packages/graphics/src/canvas3d/passes/pick.ts': 'readPixels, pixel pack buffers',
-  'packages/graphics/src/geo/gaussian-density/gpu.ts': 'readPixels',
-  'packages/graphics/src/geo/geometry/texture-mesh/texture-mesh.ts': 'readPixels',
-  'packages/graphics/src/gl/compute/util.ts': 'readPixels',
   'packages/graphics/src/gl/render-target.ts':
     '`RenderTarget.bind` implementation (binds its framebuffer for readPixels)',
-  'extensions/geo-export/src/mesh-exporter.ts': 'readPixels',
 };
 
 describe('backend-neutral render state', () => {

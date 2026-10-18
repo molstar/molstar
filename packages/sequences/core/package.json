@@ -1,0 +1,122 @@
+{
+  "name": "@molstar/seq-core",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Seq*'s platform-free core, no dependencies: the data model and its query runtime, SeqQL, the aligners and search, translation, the SeqViewSpec format and its builder, command links and the stream providers.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "sideEffects": false,
+  "exports": {
+    "./model": {
+      "molstar-src": "./src/model/index.ts",
+      "types": "./lib/model/index.d.ts",
+      "import": "./lib/model/index.js"
+    },
+    "./model/query": {
+      "molstar-src": "./src/model/query/index.ts",
+      "types": "./lib/model/query/index.d.ts",
+      "import": "./lib/model/query/index.js"
+    },
+    "./query": {
+      "molstar-src": "./src/query/index.ts",
+      "types": "./lib/query/index.d.ts",
+      "import": "./lib/query/index.js"
+    },
+    "./algorithms": {
+      "molstar-src": "./src/algorithms/index.ts",
+      "types": "./lib/algorithms/index.d.ts",
+      "import": "./lib/algorithms/index.js"
+    },
+    "./algorithms/search": {
+      "molstar-src": "./src/algorithms/search/index.ts",
+      "types": "./lib/algorithms/search/index.d.ts",
+      "import": "./lib/algorithms/search/index.js"
+    },
+    "./translate": {
+      "molstar-src": "./src/translate/index.ts",
+      "types": "./lib/translate/index.d.ts",
+      "import": "./lib/translate/index.js"
+    },
+    "./format": {
+      "molstar-src": "./src/format/index.ts",
+      "types": "./lib/format/index.d.ts",
+      "import": "./lib/format/index.js"
+    },
+    "./builder": {
+      "molstar-src": "./src/builder/index.ts",
+      "types": "./lib/builder/index.d.ts",
+      "import": "./lib/builder/index.js"
+    },
+    "./builder/svsx": {
+      "molstar-src": "./src/builder/svsx.ts",
+      "types": "./lib/builder/svsx.d.ts",
+      "import": "./lib/builder/svsx.js"
+    },
+    "./links": {
+      "molstar-src": "./src/links/index.ts",
+      "types": "./lib/links/index.d.ts",
+      "import": "./lib/links/index.js"
+    },
+    "./links/remark": {
+      "molstar-src": "./src/links/remark.ts",
+      "types": "./lib/links/remark.d.ts",
+      "import": "./lib/links/remark.js"
+    },
+    "./stream/tiles": {
+      "molstar-src": "./src/stream/tiles/index.ts",
+      "types": "./lib/stream/tiles/index.d.ts",
+      "import": "./lib/stream/tiles/index.js"
+    },
+    "./stream/tiles/server": {
+      "molstar-src": "./src/stream/tiles/server.ts",
+      "types": "./lib/stream/tiles/server.d.ts",
+      "import": "./lib/stream/tiles/server.js"
+    },
+    "./stream/gmod": {
+      "molstar-src": "./src/stream/gmod/index.ts",
+      "types": "./lib/stream/gmod/index.d.ts",
+      "import": "./lib/stream/gmod/index.js"
+    },
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
+  ],
+  "bin": {
+    "svs-validate": "./lib/format/cli/svs-validate.js",
+    "svs-convert": "./lib/format/cli/svs-convert.js",
+    "svs-print-schema": "./lib/format/cli/svs-print-schema.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test:slow": "tsc -b && vitest run --config vitest.slow.config.ts",
+    "test:full": "pnpm -w test:unit packages/sequences/core && pnpm test:slow && pnpm test:perf && pnpm test:heap",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
+    "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json && tsc -p tsconfig.query.json"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "rehype-sanitize": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "typescript": "catalog:",
+    "unified": "^11.0.5",
+    "vitest": "catalog:"
+  }
+}

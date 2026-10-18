@@ -8,7 +8,7 @@ import { depth_wgsl } from './chunks/depth.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
-/** Marking mask edges, in GL window space as in GLSL */
+/** Marking mask edges */
 export const edge_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
 ${texture_read_wgsl('tMaskTexture')}
@@ -21,7 +21,7 @@ fn getMask(coords: vec2<f32>) -> vec4<f32> {
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let texSizeInv = uObject.uTexSizeInv;
-    let coords = glCoords(in.position, 1.0 / texSizeInv);
+    let coords = fragmentUv(in.position, 1.0 / texSizeInv);
     let edgeScale = uObject.uEdgeScale;
     let offset = vec4<f32>(edgeScale, 0.0, 0.0, edgeScale) * vec4<f32>(texSizeInv, texSizeInv);
 
@@ -53,7 +53,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 `;
 
-/** Coverage of the visible unmarked geometry, in GL window space as in GLSL */
+/** Coverage of the visible unmarked geometry */
 export const dim_wgsl = /* wgsl */ `
 ${depth_wgsl}
 ${packing_wgsl}
@@ -63,11 +63,11 @@ ${texture_read_wgsl('tMaskTexture')}
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, 1.0 / uObject.uTexSizeInv);
+    let coords = fragmentUv(in.position, 1.0 / uObject.uTexSizeInv);
 
-    // depth of the front-most unmarked fragment, cleared to 1.0 in every channel where there is none
+    // depth of the front-most unmarked fragment, cleared to 0.0 (the far plane) in every channel where there is none
     let packedDepth = read_tDepthTexture(coords);
-    if (all(packedDepth == vec4<f32>(1.0))) {
+    if (all(packedDepth == vec4<f32>(0.0))) {
         discard;
     }
 
@@ -85,15 +85,27 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 `;
 
-/** Marking edges, fill and dimming of one sample, in GL window space as in GLSL */
+/** Marking edges, fill and dimming of one sample */
 export const overlay_wgsl = /* wgsl */ `
+${depth_wgsl}
 ${packing_wgsl}
 ${quad_vert_wgsl}
 ${texture_read_wgsl('tEdgeTexture')}
 ${texture_read_wgsl('tMaskTexture')}
 ${texture_read_wgsl('tDimTexture')}
 ${texture_read_wgsl('tSsaoDepth')}
+${texture_read_wgsl('tDepth')}
 ${texture_read_wgsl('tBase')}
+
+/** occlusion at \`coords\`, depth-aware upsampled from a lower SSAO resolution with the scene's opaque depth */
+fn getOcclusion(coords: vec2<f32>) -> f32 {
+    #if defined(dOcclusionUpsample)
+        let viewZ = depthToViewZ(uObject.uIsOrtho, read_tDepth(coords).r, uObject.uNear, uObject.uFar);
+        return getSsaoUpsampled(tSsaoDepth, coords + uObject.uOcclusionOffset, viewZ, uObject.uNear, uObject.uFar);
+    #else
+        return unpackSsao(read_tSsaoDepth(coords + uObject.uOcclusionOffset));
+    #endif
+}
 ${texture_read_wgsl('tShaded')}
 
 fn unpackMarkingOpacity(g: f32) -> f32 {
@@ -127,7 +139,7 @@ fn getTracedShading(baseLuminance: f32, shadedLuminance: f32, fogAlpha: f32) -> 
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, 1.0 / uObject.uTexSizeInv);
+    let coords = fragmentUv(in.position, 1.0 / uObject.uTexSizeInv);
 
     // coverage of the visible unmarked geometry, see dim
     var dimAlpha = 0.0;
@@ -161,7 +173,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     var dimRgb = uObject.uDimColor;
     #if defined(dMarkingShading_ssao)
         if (dimAlpha > 0.0 || fillAlpha > 0.0) {
-            let occlusion = unpackSsao(read_tSsaoDepth(coords + uObject.uOcclusionOffset));
+            let occlusion = getOcclusion(coords);
             dimRgb = applyOcclusion(dimRgb, occlusion, dimFogAlpha);
             fillRgb = applyOcclusion(fillRgb, occlusion, fillFogAlpha);
         }

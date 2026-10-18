@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
@@ -37,7 +38,7 @@ describe('StructureComponentManager option handlers', () => {
   it('calls a registered handler when its option changes and not when it is unchanged', async () => {
     const plugin = await createPlugin();
     const manager = plugin.managers.structure.component;
-    const handler = jest.fn();
+    const handler = vi.fn();
     manager.registerOptionHandler('interactions', handler);
 
     const next = changedInteractions(plugin);
@@ -53,7 +54,7 @@ describe('StructureComponentManager option handlers', () => {
   it('removes the handler with the returned undo', async () => {
     const plugin = await createPlugin();
     const manager = plugin.managers.structure.component;
-    const handler = jest.fn();
+    const handler = vi.fn();
     const undo = manager.registerOptionHandler('interactions', handler);
     undo();
     undo();
@@ -66,8 +67,8 @@ describe('StructureComponentManager option handlers', () => {
   it('keeps other handlers when one is removed', async () => {
     const plugin = await createPlugin();
     const manager = plugin.managers.structure.component;
-    const a = jest.fn();
-    const b = jest.fn();
+    const a = vi.fn();
+    const b = vi.fn();
     const undoA = manager.registerOptionHandler('interactions', a);
     manager.registerOptionHandler('interactions', b);
     undoA();

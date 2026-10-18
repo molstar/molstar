@@ -9,7 +9,7 @@ import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
 /**
- * Screen space shadows (ray marched towards each light through the depth), in GL window space, bounded by the
+ * Screen space shadows (ray marched towards each light through the depth), bounded by the
  * \`oSteps\` and \`oLightCount\` override constants. Depth textures are always available on WebGPU.
  */
 export const shadows_wgsl = /* wgsl */ `
@@ -34,7 +34,7 @@ fn boundsCoordsToFullCoords(boundsCoords: vec2<f32>) -> vec2<f32> {
 }
 
 fn isBackground(depth: f32) -> bool {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 fn outsideBounds(p: vec2<f32>) -> bool {
@@ -71,8 +71,8 @@ fn screenSpaceShadow(position: vec3<f32>, lightDirection: vec3<f32>, lightColor:
         rayPos += rayStep;
 
         var rayCoords = uObject.uProjection * vec4<f32>(rayPos, 1.0);
-        let ndc = (rayCoords.xyz / rayCoords.w) * 0.5 + 0.5;
-        let coords = boundsCoordsToFullCoords(ndc.xy);
+        let ndc = (rayCoords.xy / rayCoords.w) * vec2<f32>(0.5, -0.5) + 0.5;
+        let coords = boundsCoordsToFullCoords(ndc);
 
         if (outsideBounds(coords)) {
             return lightColor;
@@ -93,7 +93,7 @@ fn screenSpaceShadow(position: vec3<f32>, lightDirection: vec3<f32>, lightColor:
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let selfCoords = glCoords(in.position, uObject.uTexSize);
+    let selfCoords = fragmentUv(in.position, uObject.uTexSize);
     let selfDepth = getDepth(selfCoords);
 
     if (isBackground(selfDepth)) {

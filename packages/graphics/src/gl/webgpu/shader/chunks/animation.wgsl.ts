@@ -6,11 +6,11 @@
 
 /** Wiggle (per position or group) and tumble (per instance) animations; expects `fbm` */
 export const animation_wgsl = /* wgsl */ `
-fn applyWiggle(pos: vec3<f32>, groupId: f32) -> vec3<f32> {
+fn applyWiggle(pos: vec3<f32>, groupId: f32, wiggle: f32) -> vec3<f32> {
     if (uGlobal.uEnableAnimation == 0u) {
         return pos;
     }
-    let amplitude = uMaterial.uWiggleAmplitude;
+    let amplitude = uMaterial.uWiggleAmplitude + wiggle;
     if (amplitude > 0.0 && uMaterial.uWiggleSpeed > 0.0 && uMaterial.uWiggleFrequency > 0.0) {
         let t = uGlobal.uTime * uMaterial.uWiggleSpeed;
         var s: vec3<f32>;
@@ -35,12 +35,11 @@ fn applyWiggle(pos: vec3<f32>, groupId: f32) -> vec3<f32> {
     return pos;
 }
 
-fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32) -> mat4x4<f32> {
+fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32, sphere: vec4<f32>) -> mat4x4<f32> {
     if (uGlobal.uEnableAnimation == 0u) {
         return transform;
     }
     if (uMaterial.uTumbleAmplitude > 0.0 && uMaterial.uTumbleSpeed > 0.0 && uMaterial.uTumbleFrequency > 0.0) {
-        let sphere = uObject.uInvariantBoundingSphere;
         // scale amplitude inversely with bounding-sphere radius (Stokes-Einstein: D ~ 1/r)
         let amplitude = uMaterial.uTumbleAmplitude / max(sphere.w, 1.0);
         let t = uGlobal.uTime * uMaterial.uTumbleSpeed;
@@ -82,4 +81,22 @@ fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32) -> mat
     }
     return transform;
 }
+`;
+
+/**
+ * \`wiggle\`, the amplitude of the wiggle data (\`tWiggle\`, per instance or group instance, offset per segment of merged
+ * items) for \`applyWiggle\`; expects \`in.aInstance\` and \`group\`
+ */
+export const assign_wiggle_wgsl = /* wgsl */ `
+    #if defined(dWiggle)
+        #if defined(dSegmented)
+            let wiggleGroupInstance = i32(in.aSegment.y + in.aInstance * in.aSegment.x + group);
+        #else
+            let wiggleGroupInstance = i32(in.aInstance * f32(uObject.uGroupCount) + group);
+        #endif
+        let wiggleIndex = select(wiggleGroupInstance, i32(in.aInstance), uObject.uInstanceGranularity != 0u);
+        let wiggle = readFromTexture(tWiggle, wiggleIndex).r * uMaterial.uWiggleStrength;
+    #else
+        let wiggle = 0.0;
+    #endif
 `;

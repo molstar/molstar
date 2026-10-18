@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { fft1d, fft3d, fft3dHermitian, nextPow2, FftArray } from '../fft.js';
 
 // Small deterministic PRNG so the tests are reproducible.

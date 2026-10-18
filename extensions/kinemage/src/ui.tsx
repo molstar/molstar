@@ -14,15 +14,14 @@
 import * as React from 'react';
 import { type CollapsableState, CollapsableControls } from '@molstar/plugin-ui/controls/collapsable';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
-import { applyViewSnapshot } from '@molstar/kinemage-extension/behavior';
 import type { Kinemage } from '@molstar/kinemage-extension/reader/schema';
-import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import {
-  KinemageShapePointsProvider,
-  KinemageShapeLinesProvider,
-  KinemageShapeMeshProvider,
-  KinemageShapeSpheresProvider,
-} from '@molstar/kinemage-extension/behavior';
+  animateKinemage,
+  applyViewSnapshot,
+  getLoadedKinemages,
+  isKinemageVisible,
+  setKinemageVisibility,
+} from '@molstar/kinemage-extension/model';
 
 interface KinemageControlState extends CollapsableState {
   isBusy: boolean;
@@ -72,45 +71,7 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
   }
 
   private getKinemageList(): Array<{ kinData: Kinemage; ref: string; visControllerRef: string }> {
-    const result: Array<{ kinData: Kinemage; ref: string; visControllerRef: string }> = [];
-
-    try {
-      const cells = (this.plugin.state.data as any).cells as Map<string, any>;
-      for (const [ref, entry] of cells) {
-        const obj = (entry as any).obj;
-        // Look for Format.Json nodes that contain kinData and visibilityState (visibility controller)
-        if (obj && obj.data && (obj.data as any).kinData && (obj.data as any).visibilityState) {
-          result.push({
-            kinData: (obj.data as any).kinData,
-            ref,
-            visControllerRef: ref,
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to enumerate kinemage nodes', e);
-    }
-
-    return result;
-  }
-
-  private getAllDescendants(nodeRef: string): string[] {
-    const result: string[] = [];
-    const tree = this.plugin.state.data.tree;
-    const queue = [nodeRef];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      const children = tree.children.get(current);
-      if (children) {
-        for (const childRef of children.values()) {
-          result.push(childRef);
-          queue.push(childRef);
-        }
-      }
-    }
-
-    return result;
+    return getLoadedKinemages(this.plugin).map((k) => ({ ...k, visControllerRef: k.ref }));
   }
 
   private async applyView(kinData: Kinemage, viewKey: string) {
@@ -120,84 +81,13 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
     }
   }
 
-  private async rebuildShapes(visControllerRef: string, kinData: Kinemage) {
-    const update = this.plugin.state.data.build();
-
-    // Delete all descendants (shape providers and representations)
-    const descendants = this.getAllDescendants(visControllerRef);
-    for (const nodeRef of descendants) {
-      update.delete(nodeRef);
-    }
-
-    await update.commit();
-
-    // Recreate shapes
-    const rebuildUpdate = this.plugin.state.data.build();
-
-    // Generate all shape types that have data, each as child of the visibility controller
-    if (kinData.dotLists.length > 0) {
-      rebuildUpdate
-        .to(visControllerRef)
-        .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
-        .apply(ShapeRepresentation3D);
-    }
-    if (kinData.vectorLists.length > 0) {
-      rebuildUpdate
-        .to(visControllerRef)
-        .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
-        .apply(ShapeRepresentation3D);
-    }
-    if (kinData.ribbonLists.length > 0) {
-      rebuildUpdate
-        .to(visControllerRef)
-        .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
-        .apply(ShapeRepresentation3D, { doubleSided: true });
-    }
-    if (kinData.ballLists.length > 0) {
-      rebuildUpdate
-        .to(visControllerRef)
-        .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
-        .apply(ShapeRepresentation3D);
-    }
-
-    await rebuildUpdate.commit();
-  }
-
   private async toggleVisibility(
     visControllerRef: string,
     kinData: Kinemage,
     target: { type: 'group' | 'subgroup' | 'master'; key: string },
   ) {
     try {
-      const cell = this.plugin.state.data.cells.get(visControllerRef);
-      if (!cell || !cell.transform || !cell.transform.params) return;
-
-      const currentParams = cell.transform.params;
-      const newGroupVisibility = { ...currentParams.groupVisibility };
-      const newSubgroupVisibility = { ...currentParams.subgroupVisibility };
-      const newMasterVisibility = { ...currentParams.masterVisibility };
-
-      if (target.type === 'group') {
-        newGroupVisibility[target.key] = !newGroupVisibility[target.key];
-      } else if (target.type === 'subgroup') {
-        newSubgroupVisibility[target.key] = !newSubgroupVisibility[target.key];
-      } else {
-        newMasterVisibility[target.key] = !newMasterVisibility[target.key];
-      }
-
-      const update = this.plugin.state.data.build();
-
-      // Update the visibility controller
-      update.to(visControllerRef).update({
-        groupVisibility: newGroupVisibility,
-        subgroupVisibility: newSubgroupVisibility,
-        masterVisibility: newMasterVisibility,
-      });
-
-      await update.commit();
-
-      // Rebuild all shapes to reflect new visibility
-      await this.rebuildShapes(visControllerRef, kinData);
+      await setKinemageVisibility(this.plugin, visControllerRef, kinData, target);
     } catch (e) {
       console.error('Failed to toggle kinemage visibility', e);
     }
@@ -205,80 +95,14 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
 
   private async triggerAnimateForKin(visControllerRef: string, kinData: Kinemage, mode: 'animate' | '2animate') {
     try {
-      const cell = this.plugin.state.data.cells.get(visControllerRef);
-      if (!cell || !cell.transform || !cell.transform.params) return;
-
-      const currentParams = cell.transform.params;
-      const animateGroups = mode === 'animate' ? kinData.groupsAnimate : kinData.groupsAnimate2;
-      const currentActive = mode === 'animate' ? currentParams.activeAnimateGroup : currentParams.activeAnimateGroup2;
-      const nextActive = (currentActive + 1) % Math.max(1, animateGroups.length);
-
-      // IMPORTANT: Read the CURRENT visibility state from the controller node's data (not params)
-      // to preserve any changes made through UI interactions
-      const controllerCell = this.plugin.state.data.cells.get(visControllerRef);
-      const currentVisibilityState = controllerCell?.obj?.data
-        ? (controllerCell.obj.data as any).visibilityState
-        : null;
-
-      // Start with current actual visibility state
-      const newGroupVisibility = currentVisibilityState
-        ? Object.fromEntries(currentVisibilityState.groupVisibility)
-        : { ...currentParams.groupVisibility };
-
-      // Only update the animate groups - leave everything else as-is
-      for (let i = 0; i < animateGroups.length; i++) {
-        newGroupVisibility[animateGroups[i]] = i === nextActive;
-      }
-
-      const update = this.plugin.state.data.build();
-
-      // Update the visibility controller with current visibility PLUS animate changes
-      const updateParams: any = {
-        groupVisibility: newGroupVisibility,
-      };
-
-      if (mode === 'animate') {
-        updateParams.activeAnimateGroup = nextActive;
-      } else {
-        updateParams.activeAnimateGroup2 = nextActive;
-      }
-
-      // Also preserve other visibility states
-      if (currentVisibilityState) {
-        updateParams.subgroupVisibility = Object.fromEntries(currentVisibilityState.subgroupVisibility);
-        updateParams.masterVisibility = Object.fromEntries(currentVisibilityState.masterVisibility);
-      } else {
-        updateParams.subgroupVisibility = currentParams.subgroupVisibility;
-        updateParams.masterVisibility = currentParams.masterVisibility;
-      }
-
-      update.to(visControllerRef).update(updateParams);
-
-      await update.commit();
-
-      // Rebuild all shapes to reflect new visibility
-      await this.rebuildShapes(visControllerRef, kinData);
+      await animateKinemage(this.plugin, visControllerRef, kinData, mode);
     } catch (e) {
       console.error('Failed to trigger animate', e);
     }
   }
 
   private isVisible(visControllerRef: string, target: { type: 'group' | 'subgroup' | 'master'; key: string }): boolean {
-    try {
-      const cell = this.plugin.state.data.cells.get(visControllerRef);
-      if (!cell || !cell.transform || !cell.transform.params) return true;
-
-      const params = cell.transform.params;
-      if (target.type === 'group') {
-        return params.groupVisibility[target.key] !== false;
-      } else if (target.type === 'subgroup') {
-        return params.subgroupVisibility[target.key] !== false;
-      } else {
-        return params.masterVisibility[target.key] !== false;
-      }
-    } catch (e) {
-      return true;
-    }
+    return isKinemageVisible(this.plugin, visControllerRef, target);
   }
 
   renderControls() {

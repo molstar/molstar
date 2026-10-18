@@ -1,0 +1,314 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.add {
+  display: grid;
+  /* A grid track is as wide as its widest content unless told: long labels would push the section sideways. */
+  grid-template-columns: minmax(0, 1fr);
+  font-size: var(--msp-font-size-sm);
+  gap: var(--msp-space-2);
+}
+
+.caption {
+  margin: var(--msp-space-1) 0 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+/* The points: numbered rows in the well, the order they are used in. */
+.points {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  /* In a section's well: a step back toward the panel, so the list reads as one. */
+  background: var(--msp-color-panel);
+}
+
+.hint,
+.more {
+  margin: 0;
+  padding: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}
+
+.more {
+  padding: var(--msp-space-1) var(--msp-space-2);
+}
+
+.point {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+/* The number and the drag handle share a slot: the handle on hover. */
+.slot {
+  flex: none;
+  display: grid;
+  place-items: center start;
+  min-width: 1.5ch;
+
+  & > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.grip {
+  display: grid;
+  place-items: center;
+  height: 22px;
+  color: var(--msp-color-text-subtle);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  .point:hover &,
+  [data-dragging] & {
+    opacity: 1;
+  }
+}
+
+.point:hover .index,
+.point[data-dragging] .index {
+  visibility: hidden;
+}
+
+/* While dragging: the point being moved fades, a line shows where it lands. */
+.point[data-dragging] {
+  opacity: 0.5;
+}
+
+.point[data-drop="before"] {
+  box-shadow: 0 -2px 0 var(--msp-color-text-muted);
+}
+
+.point[data-drop="after"] {
+  box-shadow: 0 2px 0 var(--msp-color-text-muted);
+}
+
+.index {
+  flex: none;
+  min-width: 1.5ch;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.pointLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-weight: 500;
+  text-align: left;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.pointActions {
+  flex: none;
+  display: flex;
+  gap: 1px;
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .point:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+/* What can be measured: rows like a menu's; the ones without enough points quiet and disabled. */
+.kinds {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:disabled {
+    color: var(--msp-color-text-subtle);
+    cursor: default;
+
+    & .kindTitle {
+      color: var(--msp-color-text-subtle);
+    }
+  }
+}
+
+.kindTitle {
+  flex: none;
+  color: var(--msp-color-text);
+  font-weight: 500;
+}
+
+.kindHint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  text-align: right;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.optionsToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 28px;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+}
+
+.chevron {
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+/* The measurements made: rows like the points', each opening its style under it. */
+.added {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+}
+
+.addedItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.addedRow {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-hidden] .pointLabel,
+  &[data-hidden] .addedIcon {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.addedIcon {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.addedValue {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Show/hide stays visible while hidden (as in the tree); style and remove on hover. */
+.addedAction {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .addedRow:hover &,
+  [data-hidden] > .pointActions > &:first-child,
+  &[aria-expanded="true"],
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+.style {
+  margin: var(--msp-space-1) 0 var(--msp-space-1) calc(var(--msp-space-2) + var(--msp-icon-md) + var(--msp-space-2));
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}

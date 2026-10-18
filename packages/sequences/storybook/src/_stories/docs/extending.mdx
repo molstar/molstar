@@ -1,0 +1,187 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { STARS } from "./snippets";
+import { Code } from "./live";
+
+<Meta title="Seq*/Docs/Extending" />
+
+# Extending Seq\*
+
+Everything a viewer draws or knows comes from registry entries: plain objects grouped by kind, as a
+Mol\* v6 plugin spec is. An extension ships entries and nothing else; the built-ins are entries
+too, with no private access. The terms (renderer, theme, preset, field, layer) are explained in
+[Concepts](?path=/docs/seq-docs-concepts--docs). A host passes the entries in the viewer spec's `registry` (the spec is what a
+viewer is made of: entries, behaviors, config), and its I/O in `ports`: take `DefaultSeqViewerSpec()` from `@molstar/seq-viewer`, append an entry (`{ svs, renderers, themes, … }`, a
+`SeqViewerRegistryEntry`) to its `registry`, and pass the spec to `<SeqViewer spec={spec} />`, set it as
+`element.spec`, or give it to `createSeqViewer(spec, ports)`.
+
+A `SeqViewerRegistryEntry` has the viewer's kinds (`nodeKinds`, `renderers`, `columns`, `themes`,
+`navigators`, `presets`, `labels`, `commands`, `actions`) and, under `svs`, the format's half (an
+`SvsRegistryEntry`: `formats`, `services`, `complexProviders`, `providers`, `nodeProviders`, `fields`, `aligners`,
+`layerTypes`, `themes`, `letterMaps`, `colorSchemes`, `custom`, `issueCodes`). Names outside the kernel are namespaced,
+`<ns>:<name>`, outside the reserved `svs`, `seqv` and `mvs`. A conflict throws one error listing
+every conflict, and nothing is registered.
+
+The worked example is **`org.example:stars`** (`@molstar/seq-viewer/testing`,
+`src/testing/examples/stars.ts`, about 130 lines): a layer type, its renderer and a field provider.
+The interactions extension is the full-size one: `InteractionsViewerRegistry` from
+`@molstar/seq-viewer/interactions/viewer`, the fingerprint renderer and the `interactions:kind` theme
+([case 6](?path=/story/seq-cases-viewer--case-6)).
+
+## A renderer
+
+A [renderer](?path=/docs/seq-docs-concepts--docs#track-layer-and-renderer) draws one layer type, as a Mol\* representation draws one kind of geometry. It has two
+halves in one module: `prepare`, `hit`, `legend` and `label` are headless (the root entry's API);
+`draw`, `tiny`, `overlay` and the rest use the renderer API from `@molstar/seq-viewer/draw`, which is
+DOM-free, so a renderer prepares, hits and draws in Node.
+
+1. **The format half**, a `LayerTypeEntry` under `svs.layerTypes`: its `options` (a params table),
+   the data it `accepts`, its `layouts` and `axes`, its `sizing`, its `channels`, and a kernel
+   `fallback` that a viewer without the renderer draws (`svs.render.fallback`).
+2. **The renderer**, a `LayerRenderer` of the same name: `geometries` (`circular` too when its batches hold on rings:
+   the engine maps a linear draw onto the circle; one that draws images leaves it out and is drawn as bars there),
+   `stable`, `minHeight`, then
+   `prepare(input, rc)` (once per input change: typed arrays over the data and block coordinate
+   systems, never over pixels), `draw(v, s, p)` through batches (lists of rectangles, glyphs, paths or text handed to a
+   backend: Canvas2D, SVG or a recorder) and the placement helpers
+   (`placeRun`, `band`, `mark`), which make a draw geometry-neutral and direction-proof, `hit`
+   (fills locations, never renderer-local numbers; with `hitsPastEnd`, also asked just past a block's end, with no
+   position, for a glyph that overhangs it), `legend`, `label`. What batches cannot express
+   is drawn as pixels (`images.fromPixels`); there is no raw Canvas2D entry.
+3. **Conformance.** `rendererConformance(entry, fixtures)` from `@molstar/seq-viewer/testing` draws the
+   layer at three zooms in each declared geometry (on rings, once, through the ring map; without `circular`, the bars
+   and their one warning) and checks that the recording and SVG backends get
+   the same batches, that a frame allocates nothing after warm-up, that every drawn element hits
+   back to itself (an item that covers the position hit), that the legend lists what the data has, that a context without the entry draws
+   the fallback with one issue, that each zoom draws something (unless the fixtures name it in `empty`) and each
+   layer at one zoom at least, with reversed fixtures that a reversed draw mirrors the forward one, and with `edges`
+   that every layer draws and hits back in the edge geometries (`edgeDocument`: reversed, from a cyclic origin,
+   stacked, filtered, as copies; reversed, the forward draw mirrored), each of which must apply to the fixture's
+   document unless `edgesSkipped` names it with a reason. Every built-in
+   runs it, and so do the fingerprint and the stars.
+4. **Hover emphasis.** An `overlay(v, s, p)` draws on the overlay pass, from what the channels light (`v.marks`). To
+   emphasize the element under the pointer as the built-ins do, find it (`v.marks.item(v.layer)` with
+   `itemAnnotation` for an item, `v.marks.element(v.layer, out)` for a position or a cell) and call `outlineItem(v,
+   color, x, y, w, h)` for a box or `ringItem(v, color, glyph, cx, cy, r, half)` for a glyph: the outline is drawn
+   inside the item's own pixels in an ink derived from its color for the current skin (darker on light, lighter on
+   dark), and nothing is drawn where the section sets `hover_emphasis: false`.
+   A `rowHover(v, s, p, h, out)` gives the row band a hover on its track's data lights (device rows into `out`, or
+   false for none), as the matrix lights its hovered band; without it, the track's box.
+   [Hover](?path=/story/seq-interaction-hover--emphasis).
+
+<Code code={STARS} />
+
+## A field provider
+
+Often a [field](?path=/docs/seq-docs-concepts--docs#fields) makes a renderer unneeded: a `FieldProviderEntry` (under `svs.fields`) computes a
+value per row of an annotation it `applies` to, and any layer colors or sizes by it through a theme
+(`field_palette`, `field_scale` with `field: "org.example:affinity"`). The stars' `AffinityField`
+reads a `kd_nm` column as pKd on annotations that carry `custom["org.example"]`.
+
+## A theme
+
+A [theme](?path=/docs/seq-docs-concepts--docs#theme-preset-and-style) maps the data under a layer to one channel's values: `color`, `size` or `glyph`; one
+provider serves every kind it lists. Two halves of one name:
+
+- **The format's** `ThemeEntry` (under `svs.themes`): its params per channel kind and a `fallback`,
+  a kernel theme a viewer without it uses.
+- **The viewer's** `ThemeProvider` (under `themes`): `name`, `label`, `category`, `kinds`,
+  `granularity`, `isApplicable(tc, kind, params)` and `create(tc, params, channel)`, which builds
+  tables once in the graph's theme stage and returns a `Theme` whose `value(loc)` reads them,
+  allocating nothing; `reduction` says how zoomed-out cells reduce it (`classes` or `mean`).
+
+The example is `interactions:kind`: an interaction's kind through one vocabulary's colors and
+glyph shapes (`@molstar/seq-viewer/interactions`, `src/interactions/viewer/themes.ts`).
+
+## A color scheme
+
+Often a theme is not needed: a **color scheme** is data a kernel theme already draws. A
+`ColorSchemeEntry` under `svs.colorSchemes` has a `name` (`<ns>:<name>`), a `label`, a
+`description`, its `provenance`, a `colorblind` flag and the `scheme`: letters (a dict or labeled
+groups over its `alphabets`, a `default`), a `sequential` or `diverging` ramp, `categorical` colors,
+or (registered only) a `theme` such as a `rules` table; each with an optional `dark` variant. The
+legend's picker lists it where it fits and documents name it
+(`{"theme": "scheme", "params": {"name": "org.example:brand"}}`). Page and examples: [Color schemes](?path=/docs/seq-docs-color-schemes--docs).
+
+## A host preset
+
+A [preset](?path=/docs/seq-docs-concepts--docs#theme-preset-and-style) is how a section is drawn: a geometry, render props over `ctx.renderProps`, a navigator,
+and behaviors switched off or given params. Register a `PresetEntry` under `presets`, and a
+document names it in a section's `style` (`"style": "org.example:dense"`, or inline,
+`{ "preset": "org.example:dense", "row_height": 14 }`). The config item `Presets.Alias` maps a style
+name to a preset, and `Presets.Default` picks one by layout and axis when the document names none.
+The built-ins are `DefaultPresets` (`tracks`, `msa`, `strip`, `wrapped`, `compact`; `presets.ts`). A preset's navigator is a
+name registered under `navigators`, such as `ideogramNavigator(bands)`: a chromosome's cytobands drawn as its strip
+under the window, from the host's bands (`CytoBands`, UCSC's cytoBandIdeo rows;
+[the ideogram story](?path=/story/seq-views-and-layouts-navigators--karyotype)).
+Stories: [Section style](?path=/story/seq-views-and-layouts-section-style--column-heads). A `PresetEntry` is a few
+fields (`name`, `geometry`, `render`, `navigator`, `behaviors`), registered as `{ presets: [Dense] }`.
+
+## A SeqQL symbol
+
+[SeqQL](?path=/docs/seq-docs-query-language--docs) is the query language. A host's language is the base table plus its extensions' symbols, assembled per call with no module
+state. A symbol is `defineSymbol(spec)`: a full name under the extension's namespace, an optional
+short name (`alias`; `null` for the full name only), its kind, typed arguments, result, signature,
+one-line doc, examples and error hints. `createLanguage([{ symbols }])` returns the language and
+the registration issues (`seqql.symbol.namespace`, `.duplicate`, `seqql.alias.reserved`,
+`.collision`: a refused alias leaves the symbol reachable by its full name). A **macro** has
+`expand`, replaced at bind time; it needs no runtime, and the JSON keeps it as written. Stories'
+`chain` is one, in `core/_test/query/bind.test.ts` (a macro whose `expand` returns a `Q` expression; see the
+[Query language](?path=/docs/seq-docs-query-language--docs) page for `Q`).
+
+A symbol that evaluates also needs a runtime: a `QueryExtension` (`namespace`, `symbols`,
+`runtimes`, letter-class tables) for `@molstar/seq-core/model/query`. The viewer has no registry kind for query
+extensions yet: a host passes its own `QueryExtension` to the query environment it runs queries with.
+The Mol\* adapter's `molstarQueryExtension` (`@molstar/prism-viewer/sequence/molstar`) is one: `(molql "resn ZN around 3")` runs a Mol\*
+selection on the linked structure, and the host passes Mol\*'s own selection as `(input structure)`
+(the Mol\* story's query panel).
+
+## A stream provider
+
+Streamed data (a genome, a lazy alignment, BigWig-like values) comes by region through the host's
+loaders: `loaders.stream(source)` returns a `StreamProvider` for a source by its `stream` id or its
+`protocol`, or `null` (`svs.provider.unavailable`). Its one method, `fetch(request, signal)`,
+answers each `StreamRequest` (the manifest first: the coordinate systems, the levels, the shape)
+with a `DataPatch` (`manifest`, `items`, `bins`, `letters` or `rows`); a resource it does not serve
+rejects with `StreamNotServed`, reported once and never retried. Which regions to ask for, in what
+order, and the cache under `Stream.CacheBytes` are the viewer's. The host's `Loaders` carry it as
+`stream: (source) => provider | null`; the [Streaming](?path=/docs/seq-docs-streaming--docs#the-provider) page shows the
+contract.
+
+The examples: the scripted provider behind the hg38 bench (`core/_test/format/stream-provider.ts`),
+and `@molstar/seq-core/stream/tiles`' `tilesStream()`, which maps every `seqstar-tiles/1` source (a
+`protocol` and a `uri`) to a provider over the tile client. The [Streaming](?path=/docs/seq-docs-streaming--docs) page covers the
+protocol, what the viewer does with it, and a provider written and run live.
+
+## The chrome
+
+The viewer's chrome (the view tabs, a section's header and its switches, the legend, the player, export,
+the issue badge, search, the states) is a set of components, the same names in `@molstar/seq-viewer/react`
+and `@molstar/seq-viewer/dom`. A host places any of them itself, against the viewer's context, and sets its
+slot to `"none"` (or picks `chrome: "clean"`) so the viewer does not place it too:
+
+```tsx
+<SeqViewerProvider context={ctx} ui={{ chrome: "clean" }}>
+  <header>
+    <ViewTabs context={ctx} />
+    <SectionSwitches context={ctx} section="main" />
+    <Export context={ctx} />
+  </header>
+  <SeqViewerLayout />
+  <Legend context={ctx} />
+</SeqViewerProvider>
+```
+
+`Export` shows only when the context registers the SVG export (`SeqViewer` and the element do it for the
+context they make; a host's own context registers `browserExportAction` from `@molstar/seq-viewer/dom`).
+
+In the DOM a part is a function that mounts into an element and returns its `dispose`:
+`const tabs = ViewTabs(header, ctx, { ui })`, with `ui` the mounted UI (`mountSeqViewer(...).ui`, the
+element's `mountedUI`, or `createDomUI(ctx)`) or none (the default hints and menus). The element replaces
+its `mountedUI` when it remounts (a new `chrome`, `ui`, `slots` or `spec`) and says so with `seq-ui`: a host
+mounts its parts again on it. A host's own composition starts from the root: `SeqViewerRoot` with
+`ViewSurface` (React), `mountSeqViewerRoot` with `createDomUI` and `ViewSurface` (DOM); `chrome: "clean"`
+(the default) and `"full"` are the viewer's two (`ChromeCompositions`). The look is
+`@molstar/seq-viewer/skin.css`: map the `--seq-*` tokens (and the chrome's optional ones, `--seq-chrome`,
+`--seq-radius`, …) on any ancestor, and call `refreshSkin(ctx)` (`@molstar/seq-viewer/canvas`) after changing
+them inline; [the chrome placed by the host](?path=/story/seq-cases-default-uis--composed) maps them
+onto Mol\* Prism's.

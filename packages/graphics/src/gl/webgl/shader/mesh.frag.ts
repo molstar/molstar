@@ -64,7 +64,8 @@ void main() {
                 viewPosition = mix(nearPosition, vViewPosition, s);
                 modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
                 fragmentDepth = mix(calcDepth(viewPosition), gl_FragCoord.z, 0.0001);
-                if (fragmentDepth > 1.0) discard;
+                // beyond the far plane (depth is reversed)
+                if (fragmentDepth < 0.0) discard;
             }
             gl_FragDepthEXT = fragmentDepth;
         #endif

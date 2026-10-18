@@ -19,8 +19,51 @@ export type SizeData = {
   uSize: ValueCell<number>;
   tSize: ValueCell<TextureImage<Uint8Array>>;
   uSizeTexDim: ValueCell<Vec2>;
+  /** the index of `tSize` by the size type (`SizeTypeIndex`) */
+  uSizeIndexType: ValueCell<number>;
+  /** the size type's define (`getSizeTypeDefine`) */
   dSizeType: ValueCell<string>;
+  /** the size type (`SizeType`) */
+  sizeType: ValueCell<string>;
 };
+
+/**
+ * How the size types read from `tSize` by index select it (`uSizeIndexType`): they share the define value 'texture',
+ * one program, the shaders select at runtime
+ */
+export const SizeTypeIndex: { readonly [T in SizeType]?: number } = {
+  instance: 0,
+  group: 1,
+  groupInstance: 2,
+  vertex: 3,
+  vertexInstance: 4,
+};
+
+/** The define value of the size type `type`: the types read from `tSize` by index share 'texture' */
+export function getSizeTypeDefine(type: SizeType | string): string {
+  return type === 'uniform' ? 'uniform' : 'texture';
+}
+
+/** Sets the size type `type`, its define and index (`SizeTypeIndex`) of `values` */
+export function setSizeType(values: Pick<SizeData, 'sizeType' | 'dSizeType' | 'uSizeIndexType'>, type: SizeType) {
+  ValueCell.updateIfChanged(values.sizeType, type);
+  ValueCell.updateIfChanged(values.dSizeType, getSizeTypeDefine(type));
+  ValueCell.updateIfChanged(values.uSizeIndexType, SizeTypeIndex[type] ?? 0);
+}
+
+/** The values of the size type `type` (its define and index, see `setSizeType`) */
+function createSizeType(type: SizeType) {
+  return {
+    uSizeIndexType: ValueCell.create(SizeTypeIndex[type] ?? 0),
+    dSizeType: ValueCell.create(getSizeTypeDefine(type)),
+    sizeType: ValueCell.create<string>(type),
+  };
+}
+
+/** Whether sizes of `type` are sampled at vertex positions (the position iterator of `createSizes`) */
+export function isPositionSizeType(type: SizeType) {
+  return type === 'vertex' || type === 'vertexInstance';
+}
 
 export function createSizes(
   locationIt: LocationIterator,
@@ -47,7 +90,7 @@ export function createSizes(
 export const sizeDataFactor = 100; // NOTE same factor is set in shaders
 
 export function getMaxSize(sizeData: SizeData): number {
-  const type = sizeData.dSizeType.ref.value as SizeType;
+  const type = sizeData.sizeType.ref.value as SizeType;
   switch (type) {
     case 'uniform':
       return sizeData.uSize.ref.value;
@@ -79,13 +122,13 @@ function createEmptySizeTexture() {
 export function createValueSize(value: number, sizeData?: SizeData): SizeData {
   if (sizeData) {
     ValueCell.update(sizeData.uSize, value);
-    ValueCell.updateIfChanged(sizeData.dSizeType, 'uniform');
+    setSizeType(sizeData, 'uniform');
     return sizeData;
   } else {
     return {
       uSize: ValueCell.create(value),
       ...createEmptySizeTexture(),
-      dSizeType: ValueCell.create('uniform'),
+      ...createSizeType('uniform'),
     };
   }
 }
@@ -101,14 +144,14 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
   if (sizeData) {
     ValueCell.update(sizeData.tSize, sizes);
     ValueCell.update(sizeData.uSizeTexDim, Vec2.create(sizes.width, sizes.height));
-    ValueCell.updateIfChanged(sizeData.dSizeType, type);
+    setSizeType(sizeData, type);
     return sizeData;
   } else {
     return {
       uSize: ValueCell.create(0),
       tSize: ValueCell.create(sizes),
       uSizeTexDim: ValueCell.create(Vec2.create(sizes.width, sizes.height)),
-      dSizeType: ValueCell.create(type),
+      ...createSizeType(type),
     };
   }
 }

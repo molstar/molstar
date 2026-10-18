@@ -224,6 +224,15 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
 }
 
 /**
+ * See https://registry.khronos.org/webgl/extensions/EXT_float_blend/
+ */
+export interface COMPAT_float_blend {}
+
+export function getFloatBlend(gl: GLRenderingContext): COMPAT_float_blend | null {
+  return gl.getExtension('EXT_float_blend') === null ? null : {};
+}
+
+/**
  * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_half_float/
  */
 export interface COMPAT_color_buffer_half_float {

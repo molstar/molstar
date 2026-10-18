@@ -4,6 +4,7 @@
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { ElementIndex } from '../../../model.js';
 import { BondType } from '../../../model/types.js';

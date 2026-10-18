@@ -38,7 +38,6 @@ export interface VertexArray {
 
   bind: () => void;
   update: () => void;
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -52,8 +51,8 @@ export function createVertexArray(
   elementsBuffer?: ElementsBuffer,
 ): VertexArray {
   const id = getNextVertexArrayId();
-  let vertexArray = getVertexArray(extensions);
-  let vertexArrayObject = getVertexArrayObject(extensions);
+  const vertexArray = getVertexArray(extensions);
+  const vertexArrayObject = getVertexArrayObject(extensions);
 
   function update() {
     vertexArrayObject.bindVertexArray(vertexArray);
@@ -73,11 +72,6 @@ export function createVertexArray(
       vertexArrayObject.bindVertexArray(vertexArray);
     },
     update,
-    reset: () => {
-      vertexArray = getVertexArray(extensions);
-      vertexArrayObject = getVertexArrayObject(extensions);
-      isReady = false;
-    },
     destroy: () => {
       if (destroyed) return;
       if (elementsBuffer) {

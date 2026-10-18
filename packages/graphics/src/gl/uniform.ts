@@ -8,6 +8,7 @@ import type { Mat3, Mat4, Quat, Vec2, Vec3, Vec4 } from '@molstar/core/math/line
 import { ValueCell } from '@molstar/core/util';
 import type { ValueOf } from '@molstar/core/util/type-helpers';
 import { deepClone } from '@molstar/core/util/object';
+import type { UniformBlockWriter } from './uniform-layout.js';
 
 export type UniformKindValue = {
   b: boolean;
@@ -76,12 +77,11 @@ export interface UniformBuffer {
    * data. Each call to the writer only copies values whose version changed.
    * Cell instances are resolved once, keep using the same writer for them.
    */
-  createWriter: (uniformValues: UniformsList) => () => void;
+  createWriter: (uniformValues: UniformsList) => UniformBlockWriter;
   /** upload CPU-side changes */
   sync: () => void;
   /** bind the buffer at its block's fixed binding index */
   bind: () => void;
 
-  reset: () => void;
   destroy: () => void;
 }

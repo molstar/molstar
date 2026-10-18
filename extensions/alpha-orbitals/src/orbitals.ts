@@ -7,7 +7,6 @@
  */
 
 import { sortArray } from '@molstar/core/data/util';
-import { canComputeGrid3dOnGPU } from '@molstar/graphics/gl/compute/grid3d';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Task } from '@molstar/core/task';
 import { isTimingMode } from '@molstar/core/util/debug';
@@ -19,7 +18,10 @@ import {
   type CubeGridComputationParams,
   initCubeGrid,
 } from '@molstar/alpha-orbitals-extension/data-model';
-import { gpuComputeAlphaOrbitalsGridValues } from '@molstar/alpha-orbitals-extension/gpu/compute';
+import {
+  canComputeAlphaOrbitalsOnGPU,
+  gpuComputeAlphaOrbitalsGridValues,
+} from '@molstar/alpha-orbitals-extension/gpu/compute';
 
 export function createSphericalCollocationGrid(
   params: CubeGridComputationParams,
@@ -30,7 +32,7 @@ export function createSphericalCollocationGrid(
     const cubeGrid = initCubeGrid(params);
 
     let matrix: Float32Array;
-    if (canComputeGrid3dOnGPU(graphics)) {
+    if (canComputeAlphaOrbitalsOnGPU(graphics)) {
       if (isTimingMode) graphics.timer.group('createSphericalCollocationGrid');
       matrix = await gpuComputeAlphaOrbitalsGridValues(ctx, graphics, cubeGrid, orbital);
       if (isTimingMode) graphics.timer.groupEnd('createSphericalCollocationGrid');

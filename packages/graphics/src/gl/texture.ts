@@ -8,6 +8,7 @@ import { ValueCell } from '@molstar/core/util';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { ValueOf } from '@molstar/core/util/type-helpers';
 import type { Framebuffer } from './framebuffer.js';
+import type { GraphicsContext } from './context.js';
 import type { TextureImage, TextureVolume } from './renderable/util.js';
 
 /** shared by all backends, texture ids are used as cache keys */
@@ -74,8 +75,9 @@ export interface Texture {
   attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) => void;
   detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void;
   /**
-   * Copies a region of the first color attachment of `framebuffer` to `dstX`, `dstY` of this 2D texture,
-   * both must have the same format (a blit on WebGL2), not affected by scissor, write masks or blending
+   * Copies a region of the first color attachment of `framebuffer` to `dstX`, `dstY` of this 2D texture (rectangles
+   * with a top-left origin), both must have the same format (a blit on WebGL2), not affected by scissor, write masks
+   * or blending
    */
   copyFromFramebuffer: (
     framebuffer: Framebuffer,
@@ -87,8 +89,36 @@ export interface Texture {
     dstY: number,
   ) => void;
 
-  reset: () => void;
+  /** How the texture was created and the data of its last `load`, see `transferTexture` */
+  getSource?: () => TextureSource;
+
   destroy: () => void;
+}
+
+/**
+ * The creation arguments of a texture and the data of its last full `load` (undefined where the contents were rendered
+ * or computed, or loaded in part)
+ */
+export interface TextureSource {
+  readonly kind: TextureKind;
+  readonly format: TextureFormat;
+  readonly type: TextureType;
+  readonly filter: TextureFilter;
+  readonly data: TextureImage<any> | TextureVolume<any> | HTMLImageElement | undefined;
+  readonly mipmap: boolean;
+}
+
+/**
+ * A texture of `graphics` with the contents of `texture` (of another context, e.g. after a backend switch) where they
+ * were loaded from data, undefined where they were rendered or computed
+ */
+export function transferTexture(texture: Texture, graphics: GraphicsContext): Texture | undefined {
+  const source = texture.getSource?.();
+  if (!source?.data) return;
+  const t = graphics.resources.texture(source.kind, source.format, source.type, source.filter);
+  t.load(source.data);
+  if (source.mipmap) t.mipmap();
+  return t;
 }
 
 export type TextureValues = { [k: string]: ValueCell<TextureValueType> };
@@ -163,7 +193,6 @@ export function createNullTexture(): Texture {
       throw new Error('cannot copy to null-texture');
     },
 
-    reset: () => {},
     destroy: () => {},
   };
   NullTextures.add(texture);

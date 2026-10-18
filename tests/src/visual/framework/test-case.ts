@@ -54,8 +54,23 @@ export interface VisualTestCase {
   readonly isolate?: boolean;
   /** Canvas3D frames drawn before the capture, for passes that only run interactively (e.g. hi-z) */
   readonly frames?: number;
+  /**
+   * The context released before the capture (`Canvas3DContext.release`), checked to stay lost, then restored
+   * (`restore`): the capture is of the scene built again on the new context; needs `releaseContext`
+   */
+  readonly releaseContext?: boolean;
+  /**
+   * `image-pass` (default): an image pass renders the scene at the full size; `canvas`: a Canvas3D frame read from its
+   * drawing buffer, for what only Canvas3D draws (viewports other than the canvas, stereo, Hi-Z culling)
+   */
+  readonly capture?: 'image-pass' | 'canvas';
   /** Called once per backend; GPU resources are per context */
   readonly scene: (ctx: SceneContext) => Promise<Representation.Any[]>;
+  /**
+   * A check without an image (e.g. compute kernels against CPU results): run on the target backend only, the case
+   * passes if it returns no errors; `requires` applies to the target only and `scene` is not rendered
+   */
+  readonly check?: (graphics: GraphicsContext) => Promise<string[]>;
 }
 
 export const DefaultTestSize = { width: 256, height: 256 };

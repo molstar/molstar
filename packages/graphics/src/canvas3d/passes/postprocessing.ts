@@ -7,6 +7,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { TextureSpec, type Values, UniformSpec, DefineSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
@@ -33,7 +34,7 @@ import { DofPass, DofParams } from './dof.js';
 import { BloomParams, BloomPass } from './bloom.js';
 import { OutlinePass, type OutlineProps, OutlineParams } from './outline.js';
 import { ShadowPass, type ShadowProps, ShadowParams } from './shadow.js';
-import { SsaoPass, type SsaoProps, SsaoParams } from './ssao.js';
+import { SsaoPass, type SsaoProps, SsaoParams, updateOcclusionUpsample } from './ssao.js';
 
 export const PostprocessingSchema = {
   ...QuadSchema,
@@ -64,7 +65,10 @@ export const PostprocessingSchema = {
   dOcclusionSingleDepth: DefineSpec('boolean'),
   dOcclusionIncludeOpacity: DefineSpec('boolean'),
   dOcclusionIncludeTransparency: DefineSpec('boolean'),
-  uOcclusionOffset: UniformSpec('v2'),
+  uOcclusionOffset: { ...UniformSpec('v2'), windowRect: 'offset' as const },
+  /** the SSAO targets have a lower resolution, see `getSsaoUpsampled` */
+  dOcclusionUpsample: DefineSpec('boolean'),
+  uOcclusionTexSize: UniformSpec('v2'),
 
   dShadowEnable: DefineSpec('boolean'),
 
@@ -118,6 +122,8 @@ function getPostprocessingRenderable(
     dOcclusionIncludeOpacity: ValueCell.create(true),
     dOcclusionIncludeTransparency: ValueCell.create(false),
     uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
+    dOcclusionUpsample: ValueCell.create(false),
+    uOcclusionTexSize: ValueCell.create(Vec2()),
 
     dShadowEnable: ValueCell.create(false),
 
@@ -326,10 +332,6 @@ export class PostprocessingPass {
     this.background.setSize(width, height);
   }
 
-  reset() {
-    this.ssao.reset();
-  }
-
   updateState(
     camera: ICamera,
     scene: Scene,
@@ -353,6 +355,10 @@ export class PostprocessingPass {
       if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
         needsUpdateMain = true;
         ValueCell.update(this.renderable.values.dOcclusionIncludeTransparency, includeTransparency);
+      }
+      const [width, height] = this.renderable.values.uTexSize.ref.value;
+      if (updateOcclusionUpsample(this.renderable.values, this.ssao.ssaoDepthTexture, width, height)) {
+        needsUpdateMain = true;
       }
       ValueCell.update(
         this.renderable.values.uOcclusionColor,
@@ -425,11 +431,10 @@ export class PostprocessingPass {
     if (needsUpdateMain) {
       this.renderable.update();
     }
-
-    this.graphics.setRenderState(RenderState.Default);
   }
 
   private occlusionOffset: [x: number, y: number] = [0, 0];
+  /** shift in uv (top-left origin) of the occlusion rendered without jitter to the jittered image */
   setOcclusionOffset(x: number, y: number) {
     this.occlusionOffset[0] = x;
     this.occlusionOffset[1] = y;
@@ -445,6 +450,7 @@ export class PostprocessingPass {
   }
 
   render(
+    b: PassBuilder,
     camera: ICamera,
     scene: Scene,
     toDrawingBuffer: boolean,
@@ -455,7 +461,8 @@ export class PostprocessingPass {
     ambientColor: Vec3,
     bloomEnable: boolean = false,
   ) {
-    if (isTimingMode) this.graphics.timer.group('PostprocessingPass.render');
+    const timing = isTimingMode && b.drawing;
+    if (timing) this.graphics.timer.group('PostprocessingPass.render');
     this.updateState(camera, scene, transparentBackground, backgroundColor, props, light, ambientColor);
 
     if (this.renderable.values.dBloomEnable.ref.value !== bloomEnable) {
@@ -472,29 +479,30 @@ export class PostprocessingPass {
     // don't render occlusion if offset is given,
     // which will reuse the existing occlusion
     if (props.occlusion.name === 'on' && this.occlusionOffset[0] === 0 && this.occlusionOffset[1] === 0) {
-      this.ssao.render(camera);
+      this.ssao.render(b, camera);
     }
 
-    this.graphics.setViewport(x, y, width, height);
-    this.graphics.setScissor(x, y, width, height);
+    if (b.drawing) {
+      this.graphics.setViewport(x, y, width, height);
+      this.graphics.setScissor(x, y, width, height);
+    }
 
     if (props.outline.name === 'on') {
-      this.outline.render();
+      this.outline.render(b);
     }
 
     if (props.shadow.name === 'on') {
-      this.shadow.render();
+      this.shadow.render(b);
     }
 
-    this.graphics.beginRenderPass(toDrawingBuffer ? 'drawing-buffer' : this.target, { label: 'postprocessing' });
+    b.begin(toDrawingBuffer ? 'drawing-buffer' : this.target, { label: 'postprocessing' });
 
     this.background.update(camera, props.background);
-    this.background.clear(props.background, this.transparentBackground, backgroundColor);
-    this.background.render(props.background);
+    if (b.drawing) this.background.clear(props.background, this.transparentBackground, backgroundColor);
+    this.background.render(b, props.background);
 
-    this.graphics.setRenderState(compositeBackground ? RenderState.Premultiplied : RenderState.Default);
-    this.renderable.render();
-    if (isTimingMode) this.graphics.timer.groupEnd('PostprocessingPass.render');
+    b.quad(this.renderable, compositeBackground ? RenderState.Premultiplied : RenderState.Default);
+    if (timing) this.graphics.timer.groupEnd('PostprocessingPass.render');
   }
 }
 
@@ -536,51 +544,82 @@ export class AntialiasingPass {
     }
   }
 
-  private _renderFxaa(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
+  private _renderFxaa(
+    b: PassBuilder,
+    camera: ICamera,
+    input: Texture,
+    target: RenderTarget | undefined,
+    props: PostprocessingProps,
+  ) {
     if (props.antialiasing.name !== 'fxaa') return;
 
     this.fxaa.update(input, props.antialiasing.params);
-    this.fxaa.render(camera.viewport, target);
+    this.fxaa.render(b, camera.viewport, target);
   }
 
-  private _renderSmaa(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
+  private _renderSmaa(
+    b: PassBuilder,
+    camera: ICamera,
+    input: Texture,
+    target: RenderTarget | undefined,
+    props: PostprocessingProps,
+  ) {
     if (props.antialiasing.name !== 'smaa') return;
 
     this.smaa.update(input, props.antialiasing.params);
-    this.smaa.render(camera.viewport, target);
+    this.smaa.render(b, camera.viewport, target);
   }
 
   private _renderAntialiasing(
+    b: PassBuilder,
     camera: ICamera,
     input: Texture,
     target: RenderTarget | undefined,
     props: PostprocessingProps,
   ) {
     if (props.antialiasing.name === 'fxaa') {
-      this._renderFxaa(camera, input, target, props);
+      this._renderFxaa(b, camera, input, target, props);
     } else if (props.antialiasing.name === 'smaa') {
-      this._renderSmaa(camera, input, target, props);
+      this._renderSmaa(b, camera, input, target, props);
     }
   }
 
-  private _renderCas(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
+  private _renderCas(
+    b: PassBuilder,
+    camera: ICamera,
+    input: Texture,
+    target: RenderTarget | undefined,
+    props: PostprocessingProps,
+  ) {
     if (props.sharpening.name !== 'on') return;
 
     if (props.antialiasing.name !== 'off') input = this.internalTarget.texture;
     this.cas.update(input, props.sharpening.params);
-    this.cas.render(camera.viewport, target);
+    this.cas.render(b, camera.viewport, target);
   }
 
   /** Antialiasing without sharpening, returns false if nothing was rendered. */
-  renderAntialiasingOnly(camera: ICamera, input: Texture, target: RenderTarget, props: PostprocessingProps): boolean {
+  renderAntialiasingOnly(
+    b: PassBuilder,
+    camera: ICamera,
+    input: Texture,
+    target: RenderTarget,
+    props: PostprocessingProps,
+  ): boolean {
     if (props.antialiasing.name === 'off') return false;
     if (props.antialiasing.name === 'smaa' && !this.smaa.supported) return false;
 
-    this._renderAntialiasing(camera, input, target, props);
+    this._renderAntialiasing(b, camera, input, target, props);
     return true;
   }
 
-  render(camera: ICamera, input: Texture, toDrawingBuffer: boolean | RenderTarget, props: PostprocessingProps) {
+  render(
+    b: PassBuilder,
+    camera: ICamera,
+    input: Texture,
+    toDrawingBuffer: boolean | RenderTarget,
+    props: PostprocessingProps,
+  ) {
     if (props.antialiasing.name === 'off' && props.sharpening.name === 'off') return;
 
     if (props.antialiasing.name === 'smaa' && !this.smaa.supported) {
@@ -590,12 +629,12 @@ export class AntialiasingPass {
 
     const target = toDrawingBuffer === true ? undefined : toDrawingBuffer === false ? this.target : toDrawingBuffer;
     if (props.sharpening.name === 'off') {
-      this._renderAntialiasing(camera, input, target, props);
+      this._renderAntialiasing(b, camera, input, target, props);
     } else if (props.antialiasing.name === 'off') {
-      this._renderCas(camera, input, target, props);
+      this._renderCas(b, camera, input, target, props);
     } else {
-      this._renderAntialiasing(camera, input, this.internalTarget, props);
-      this._renderCas(camera, input, target, props);
+      this._renderAntialiasing(b, camera, input, this.internalTarget, props);
+      this._renderCas(b, camera, input, target, props);
     }
   }
 }

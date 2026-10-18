@@ -2,15 +2,11 @@
 
 ## Status
 
-- Direction decided (see Decisions); steps 1-6 done, step 7 in progress (spheres, points, the copy quad and SSAO done:
-  `ssao`, `ssao_blur` and the occlusion and transparency-blend parts of `postprocessing`, 31 `webgpu` cases pass,
-  half-resolution SSAO within a documented tolerance; the second WebGPU milestone of
-  [backend-split.md](backend-split.md) is reached, the `webgpu` visual profile renders through `Canvas3D`), step 8 not
-  started. Skipped `webgpu` cases by missing program (before SSAO): ssao 5, postprocessing 2, outlines 2, dof 2,
-  background 2, mesh clipping 4, wboit/dpoit (12 by capability), trace, text, lines, cylinders, smaa, shadows, fxaa,
-  cas, bloom, compose, marking variant, cube textures; 11 cases build GPU data with the WebGL context. Gates the first
-  WebGPU milestone of [backend-split.md](backend-split.md) (`webgpu` visual test profile rendering
-  `geometry/mesh/primitives`).
+- **Current**: steps 1–7 done: every graphics, pass and compute program has WGSL, the `webgpu` visual profile passes all
+  cases without skips. Step 8 (reversed-Z) done, see [depth-conventions.md](depth-conventions.md).
+- Direction decided (see Decisions). Step 7 went program by program (spheres, points, the copy quad and SSAO first, then
+  the coverage of [webgpu-viewer.md](webgpu-viewer.md)); it first gated the first WebGPU milestone of
+  [backend-split.md](backend-split.md) (`webgpu` visual test profile rendering `geometry/mesh/primitives`).
 - Rules: [minimum-capabilities.md](minimum-capabilities.md) (WebGPU core, default limits, WebGL1/2 stay supported);
   backend-specific code only in `webgl/` and `webgpu/`.
 - WebGL peculiarities are worked around in WebGL, not in WebGPU: [neutral-conventions.md](neutral-conventions.md) (`rgb`

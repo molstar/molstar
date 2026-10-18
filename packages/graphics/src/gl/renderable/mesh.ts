@@ -54,6 +54,15 @@ export const MeshSchema = {
 export type MeshSchema = typeof MeshSchema;
 export type MeshValues = Values<MeshSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const MeshRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...MeshSchema,
+};
+
 export function MeshRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -63,13 +72,7 @@ export function MeshRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<MeshValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...MeshSchema,
-  };
+  const schema = MeshRenderableSchema;
   const renderValues: MeshValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

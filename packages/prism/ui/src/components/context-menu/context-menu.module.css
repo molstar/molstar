@@ -1,0 +1,53 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A menu opened at a point (a right-click): the floating panel's surface, a hairline, no filter. Placed by a transform
+   once, when it opens. */
+.menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  min-width: 180px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 15px 1fr auto;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+  }
+}
+
+/* A command's key, quiet at the row's end. */
+.keys {
+  color: var(--msp-color-text-subtle);
+  font-family: inherit;
+  font-size: var(--msp-font-size-xs);
+}

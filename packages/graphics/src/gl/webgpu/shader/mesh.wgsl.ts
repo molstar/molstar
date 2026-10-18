@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { animation_wgsl } from './chunks/animation.wgsl.js';
+import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import { light_wgsl } from './chunks/light.wgsl.js';
 import {
@@ -27,9 +28,10 @@ import {
   tracing_output_wgsl,
   wboit_output_wgsl,
 } from './chunks/output.wgsl.js';
+import { IsosurfaceChunkSize } from '../../compute/marching-cubes/chunk-size.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { read_from_texture_wgsl } from './chunks/read-from-texture.wgsl.js';
-import { assign_varyings_wgsl, vertex_output_wgsl } from './chunks/varyings.wgsl.js';
+import { assign_varyings_wgsl, grid_functions_wgsl, vertex_output_wgsl } from './chunks/varyings.wgsl.js';
 
 export const mesh_wgsl = /* wgsl */ `
 ${common_wgsl}
@@ -37,20 +39,39 @@ ${read_from_texture_wgsl}
 ${animation_wgsl}
 ${light_wgsl}
 ${material_functions_wgsl}
+${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
+${grid_functions_wgsl}
 
 ${vertex_output_wgsl('    @location(9) vNormal: vec3<f32>,')}
 ${fragment_output_wgsl(`#if defined(dSolidInterior)
     @builtin(frag_depth) fragDepth: f32,
 #endif`)}
 
+#if defined(dGeometryType_textureMesh) && defined(dIsoChunks)
+/** The slot of vertex \`i\` in the vertex arena, through the page table (see \`computeChunkedIsosurface\`) */
+fn isoSlot(i: u32) -> u32 {
+    return sIsoTable[4u + i / ${IsosurfaceChunkSize}u] * ${IsosurfaceChunkSize}u + i % ${IsosurfaceChunkSize}u;
+}
+#endif
+
 @vertex
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
     let vertexId = i32(in.vertexIndex);
-    #if defined(dGeometryType_textureMesh)
+    #if defined(dGeometryType_textureMesh) && defined(dIsoChunks)
+        // unindexed, the vertex data in pages of the vertex arena; vertices beyond the drawn count (the page table's
+        // fourth word, e.g. of draws of the CPU's upper bound) are left out below
+        let isDrawn = in.vertexIndex < sIsoTable[3u];
+        let slot = select(0u, isoSlot(in.vertexIndex), isDrawn);
+        let positionGroup = sIsoPositions[slot];
+        let packedNormal = sIsoNormals[slot];
+        let group = unpackRGBToInt(unpack4x8unorm(bitcast<u32>(positionGroup.w)).rgb);
+        let basePosition = positionGroup.xyz;
+        let baseNormal = vec3<f32>(unpack2x16snorm(packedNormal.x), unpack2x16snorm(packedNormal.y).x);
+    #elif defined(dGeometryType_textureMesh)
         // unindexed, the vertex data in textures (e.g. computed on the GPU)
         let group = unpackRGBToInt(readFromTexture(tGroup, vertexId).rgb);
         let basePosition = readFromTexture(tPosition, vertexId).xyz;
@@ -60,17 +81,27 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         let basePosition = in.aPosition;
         let baseNormal = in.aNormal;
     #endif
-    ${assign_varyings_wgsl}
 
     let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId));
+    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
     let model = uGlobal.uModel * transform;
     let modelView = uGlobal.uView * model;
-    let position4 = vec4<f32>(applyWiggle(basePosition, group), 1.0);
+    ${assign_wiggle_wgsl}
+    let position4 = vec4<f32>(applyWiggle(basePosition, group, wiggle), 1.0);
     out.vModelPosition = (model * position4).xyz;
     let mvPosition = modelView * position4;
     out.vViewPosition = mvPosition.xyz;
     out.position = uGlobal.uProjection * mvPosition;
+    #if defined(dGeometryType_textureMesh) && defined(dIsoChunks)
+        if (!isDrawn) {
+            // outside the clip volume: whole triangles (the drawn count is a multiple of 3) are clipped
+            out.position = vec4<f32>(0.0, 0.0, 2.0, 1.0);
+        }
+    #endif
+
+    // after the positions: grid data (smoothed colors) is read at the vertex position
+    let gridPosition = basePosition;
+    ${assign_varyings_wgsl}
 
     var normal = normalize(adjoint(modelView) * normalize(baseNormal));
     #if defined(dFlipSided)
@@ -83,7 +114,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #if defined(dSolidInterior)
         if (uDraw.uSolidInteriorPass != 0) {
             // keep the back faces of the cap passes in front of the far plane
-            out.position.z = min(out.position.z, out.position.w * 0.9999);
+            // in front of the far plane (clip z is reversed)
+            out.position.z = max(out.position.z, out.position.w * 0.0001);
         }
     #endif
     ${clip_instance_wgsl}
@@ -132,7 +164,8 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
             viewPosition = mix(nearPosition, in.vViewPosition, s);
             modelPosition = (uGlobal.uInvView * vec4<f32>(viewPosition, 1.0)).xyz;
             fragmentDepth = mix(calcDepth(viewPosition), in.position.z, 0.0001);
-            if (fragmentDepth > 1.0) {
+            // beyond the far plane (depth is reversed)
+            if (fragmentDepth < 0.0) {
                 discard;
             }
         }

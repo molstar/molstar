@@ -31,55 +31,75 @@ const run = (name, commandArgs, cwd = root) =>
     );
   });
 
-async function requireSetup() {
+const isInstalled = async (name) => {
   try {
-    await fs.access(path.join(nativeDir, 'node_modules/gl/package.json'));
+    await fs.access(path.join(nativeDir, 'node_modules', name, 'package.json'));
+    return true;
   } catch {
-    throw new Error(
-      'Native rendering dependencies are not installed. Run pnpm native:install first (add -- --canvas for the rendering CLI).',
-    );
+    return false;
   }
+};
+
+async function requireSetup() {
+  if ((await isInstalled('gl')) || (await isInstalled('webgpu'))) return;
+  throw new Error(
+    'Native rendering dependencies are not installed. Run pnpm native:install first (add -- --canvas for the rendering CLI, --webgpu for the headless WebGPU backend).',
+  );
 }
 
 async function main() {
   const help = args[0] === '--help';
   if (help || !['install', 'test', 'run'].includes(action)) {
-    console.log('pnpm native:install [-- --canvas]  Install gl (and optionally canvas) in .cache/native');
-    console.log('pnpm test:native                  Run Jest with the installed native GL backend');
+    console.log(
+      'pnpm native:install [-- --canvas] [--webgpu]  Install gl (and optionally canvas, webgpu) in .cache/native',
+    );
+    console.log('pnpm test:native                  Run the unit tests (Vitest) with the installed native GL backend');
     console.log('pnpm native:run -- <command>      Run a command with the native modules available');
     if (!help) process.exitCode = 2;
     return;
   }
   if (action === 'install') {
-    if (args.some((arg) => arg !== '--canvas')) throw new Error('native:install accepts only --canvas or --help.');
+    if (args.some((arg) => arg !== '--canvas' && arg !== '--webgpu'))
+      throw new Error('native:install accepts only --canvas, --webgpu or --help.');
     let previous;
     try {
-      previous = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+      const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+      previous = { dependencies: { ...manifest.dependencies, ...manifest.optionalDependencies } };
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }
     const dependencies = { gl: '8.1.6' };
     if (args.includes('--canvas') || previous?.dependencies?.canvas) dependencies.canvas = '2.11.2';
+    // Dawn's Node.js bindings (prebuilt), for the headless WebGPU backend
+    if (args.includes('--webgpu') || previous?.dependencies?.webgpu) dependencies.webgpu = '0.6.2';
     await fs.mkdir(nativeDir, { recursive: true });
+    // optional, so that one module failing to build (e.g. gl without prebuilt binaries for the Node version) doesn't
+    // keep the others from installing
     await fs.writeFile(
       manifestPath,
-      JSON.stringify({ name: 'molstar-native-tools', private: true, dependencies }, null, 2) + '\n',
+      JSON.stringify({ name: 'molstar-native-tools', private: true, optionalDependencies: dependencies }, null, 2) +
+        '\n',
     );
     console.log(
       `Installing opt-in native modules in ${path.relative(root, nativeDir)}; workspace manifests and lockfile stay untouched.`,
     );
     await run(command('npm'), ['install', '--prefix', nativeDir, '--no-audit', '--no-fund'], nativeDir);
+    for (const name of Object.keys(dependencies)) {
+      if (!(await isInstalled(name))) console.warn(`${name} could not be installed (see the npm output above).`);
+    }
     return;
   }
   await requireSetup();
   if (action === 'test') {
-    if (args.length) throw new Error('Use pnpm native:run -- pnpm jest <args> for focused native tests.');
-    const gl = require('gl');
-    const context = gl(1, 1);
-    if (!context)
-      throw new Error('Native gl is installed but could not create a WebGL context. On Linux, run under Xvfb.');
-    context.getExtension('STACKGL_destroy_context')?.destroy();
-    await run(command('pnpm'), ['jest']);
+    if (args.length) throw new Error('Use pnpm native:run -- pnpm test:unit <args> for focused native tests.');
+    if (await isInstalled('gl')) {
+      const gl = require('gl');
+      const context = gl(1, 1);
+      if (!context)
+        throw new Error('Native gl is installed but could not create a WebGL context. On Linux, run under Xvfb.');
+      context.getExtension('STACKGL_destroy_context')?.destroy();
+    }
+    await run(command('pnpm'), ['test:unit']);
   } else {
     if (!args.length)
       throw new Error(

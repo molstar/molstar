@@ -1,0 +1,71 @@
+{
+  "name": "@molstar/prism-viewer-app",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* Prism viewer: the app (page, URL options, the extension list), built as ESM with chunks",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null
+  },
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs apps/prism-viewer --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs apps/prism-viewer --dev"
+  },
+  "dependencies": {
+    "@molstar/anvil-extension": "workspace:*",
+    "@molstar/assembly-symmetry-extension": "workspace:*",
+    "@molstar/backgrounds-extension": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/dnatco-extension": "workspace:*",
+    "@molstar/g3d-extension": "workspace:*",
+    "@molstar/geo-export-extension": "workspace:*",
+    "@molstar/kinemage-extension": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/model-archive-extension": "workspace:*",
+    "@molstar/model-export-extension": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*",
+    "@molstar/pdbe-extension": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/plugin-extension": "workspace:*",
+    "@molstar/prism-assistant": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/query-language": "workspace:*",
+    "@molstar/rcsb-extension": "workspace:*",
+    "@molstar/sb-ncbr-extension": "workspace:*",
+    "@molstar/video-export-extension": "workspace:*",
+    "@molstar/wwpdb-extension": "workspace:*",
+    "@molstar/zenodo-extension": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@molstar/prism-ui": "workspace:*",
+    "@storybook/web-components-vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "typescript": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "filename": "index.js",
+    "single": {
+      "entry": "src/single.ts",
+      "filename": "prism-viewer.js"
+    },
+    "budgets": {
+      "index.js": 3200000,
+      "prism-viewer.js": 8000000
+    }
+  }
+}

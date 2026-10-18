@@ -2,8 +2,22 @@
 
 ## Status
 
-- Planned. The infrastructure for running WGSL compute shaders on the WebGPU backend: kernels, storage buffers and
-  storage textures, compute passes, timing, readback, limits and tests. The algorithm ports built on it (marching cubes,
+- **Current**: done, steps 1–6; step 6 (indirect draws) in [indirect-draws.md](indirect-draws.md).
+- Steps 1–5 done: neutral `gl/compute.ts` (`KernelCode`, `KernelSchema` with uniforms, sampled textures, defines,
+  `StorageBufferSpec` and `StorageTextureSpec`, `StorageBuffer`, `ComputeKernel`, `ComputeContext`), the `compute`
+  capability and `GraphicsContext.compute` (WebGPU only); `gl/webgpu/compute.ts` (storage buffers with write, clear,
+  copy and `readAsync`, kernels with declarations and bind group layouts from the schema in group 0, uniforms through
+  the uniform ring so that dispatches in one submission keep their values, `dispatch` and `dispatchIndirect`); compute
+  passes in the context (`beginComputePass`/`endComputePass`, ended by render passes, timed like render passes; copies
+  end only the pass encoder, the next dispatch continues the pass); kernel registry (`gl/webgpu/shader/kernels.ts`); the
+  exclusive prefix sum (`gl/compute/prefix-sum.ts`, block scan plus block sums, 2d dispatches beyond the per-dimension
+  limit). Visual harness check cases (`check`, no image, target only) and the `compute/*` cases: storage buffers,
+  dispatches with per-dispatch uniforms and indirect dispatch, atomics, prefix sum (up to 300000 elements, 1d and 2d),
+  storage texture. Deviations from the design below: textures of formats with storage support always get the storage
+  usage (no flag at creation); kernel pipelines are created synchronously (kernels are one-shot work, their dispatches
+  must not be skipped).
+- The infrastructure for running WGSL compute shaders on the WebGPU backend: kernels, storage buffers and storage
+  textures, compute passes, timing, readback, limits and tests. The algorithm ports built on it (marching cubes,
   Gaussian density, color smoothing, grid3d) are in [webgpu-compute.md](webgpu-compute.md). Related:
   [core-gpu-compute.md](core-gpu-compute.md) (a later, core-level kernel interface),
   [storage-buffers.md](storage-buffers.md) (data arrays of render programs), [gpu-timer.md](gpu-timer.md),
@@ -104,13 +118,10 @@
 4. Compute passes on the context (`beginComputePass`, interplay with render passes, `encode` and `submit`) and timestamp
    writes; timer unit tests.
 5. Limits tests and the `compute/*` conformance cases (fill, scan, atomics, storage texture).
-6. Optional: indirect draws for render items (`drawCount` from a storage buffer).
+6. Indirect draws for render items (`drawCount` from a storage buffer), after the readback path works.
 
-## Decisions (open)
+## Decisions
 
-1. Placement of the API: `GraphicsContext.compute` (neutral, optional, WGSL by kernel name in `gl/webgpu/`), or a
-   WebGPU-only module that the algorithms import behind `isWebGPUContext` (breaks the backend-neutral rule for the
-   algorithm files).
-2. Pass grouping: explicit `beginComputePass({ label })` grouping dispatches (as render passes, one timestamp pair per
-   pass), or one compute pass per dispatch (simpler, more passes and timestamps).
-3. GPU-produced counts: read back first and indirect draws later, or indirect draws from the start.
+Recorded with the algorithm decisions in [webgpu-compute.md](webgpu-compute.md): the neutral optional
+`GraphicsContext.compute` (decision 2), explicit compute passes (3), and counts read back first with indirect draws as a
+wanted follow-up (5), so step 6 below is not optional.

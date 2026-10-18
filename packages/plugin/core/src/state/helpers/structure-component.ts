@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { Expression } from '@molstar/model/script/language/expression';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import {
   StructureElement,
   Structure,
@@ -70,10 +70,19 @@ export const StructureComponentParams = () => ({
 });
 export type StructureComponentParams = PD.ValuesFor<ReturnType<typeof StructureComponentParams>>;
 
+/** What `StructureComponent` keeps between its calls */
+export interface StructureComponentCache {
+  /** The structure which the component was made from */
+  source: Structure;
+  entry?: StructureQueryHelper.CacheEntry;
+  /** The component is the source structure itself (e.g. every element is selected), so its properties are not its own and it must not dispose them */
+  isSource?: boolean;
+}
+
 export function createStructureComponent(
   a: Structure,
   params: StructureComponentParams,
-  cache: { source: Structure; entry?: StructureQueryHelper.CacheEntry },
+  cache: StructureComponentCache,
 ) {
   cache.source = a;
 
@@ -160,6 +169,7 @@ export function createStructureComponent(
     label: `${params.label || label || 'Component'}`,
     description: Structure.elementDescription(component),
   };
+  cache.isSource = component === a;
   return new SO.Molecule.Structure(component, props);
 }
 
@@ -168,7 +178,7 @@ export function updateStructureComponent(
   b: SO.Molecule.Structure,
   oldParams: StructureComponentParams,
   newParams: StructureComponentParams,
-  cache: { source: Structure; entry?: StructureQueryHelper.CacheEntry },
+  cache: StructureComponentCache,
 ) {
   if (oldParams.type.name !== newParams.type.name) return StateTransformer.UpdateResult.Recreate;
 
@@ -182,12 +192,14 @@ export function updateStructureComponent(
       if (!Structure.areEquivalent(a, cache.source)) {
         return StateTransformer.UpdateResult.Recreate;
       }
-      if (b.data.model === a.model) return StateTransformer.UpdateResult.Unchanged;
-      if (!b.data.model) return StateTransformer.UpdateResult.Unchanged; // .model can be undefined, when a substructure is empty -> doesn't need remapping
+      // The same model, or none (an empty substructure): nothing to remap, but the label may have changed (below).
+      if (b.data.model === a.model || !b.data.model) break;
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
       b.data = b.data.remapModel(a.model);
-      return StateTransformer.UpdateResult.Updated;
+      cache.isSource = false; // (a copy)
+      updated = true;
+      break;
     }
     case 'script':
       if (!Script.areEqual(oldParams.type.params as Script, newParams.type.params)) {
@@ -205,6 +217,7 @@ export function updateStructureComponent(
       const selection = StructureQueryHelper.updateStructure(entry, a);
       cache.source = a;
       b.data = Sel.unionStructure(selection);
+      cache.isSource = b.data === a;
       StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
       updated = true;
       break;
@@ -225,6 +238,7 @@ export function updateStructureComponent(
         updated = true;
         b.data = StructureElement.Bundle.toStructure(newParams.type.params, a);
       }
+      cache.isSource = b.data === a;
       break;
     }
   }

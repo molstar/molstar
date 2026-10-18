@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { Asset } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginConfig } from '@molstar/plugin/config';
@@ -138,11 +139,9 @@ describe('DownloadStructure presets', () => {
   async function createDownloadPlugin() {
     const plugin = await createPlugin(Pdb, EmptyPresetEntry);
     plugin.register({ structure: { presets: { hierarchy: [hierarchy], representation: [representation] } } });
-    jest
-      .spyOn(plugin.builders.data, 'download')
-      .mockImplementation(() =>
-        plugin.builders.data.rawData({ data: pdb, label: 'a.pdb' }, { state: { isGhost: true } }),
-      );
+    vi.spyOn(plugin.builders.data, 'download').mockImplementation(() =>
+      plugin.builders.data.rawData({ data: pdb, label: 'a.pdb' }, { state: { isGhost: true } }),
+    );
     applied.hierarchy.length = 0;
     return plugin;
   }
@@ -180,7 +179,7 @@ describe('DownloadStructure presets', () => {
     const plugin = await createDownloadPlugin();
     plugin.config.set(PluginConfig.Structure.DefaultHierarchyPreset, 'not-registered');
     // the action's transaction reverts and logs the error
-    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     await run(plugin);
     expect(error.mock.calls.map((c) => String(c[0]))).toEqual([
       "Error: Preset 'not-registered' is not registered in this plugin",
@@ -193,7 +192,7 @@ describe('DownloadStructure presets', () => {
 
   it('uses the default hierarchy preset of the registry by default', async () => {
     const plugin = await createDownloadPlugin();
-    const spy = jest.spyOn(plugin.builders.structure.hierarchy, 'applyPreset').mockResolvedValue({} as any);
+    const spy = vi.spyOn(plugin.builders.structure.hierarchy, 'applyPreset').mockResolvedValue({} as any);
     await run(plugin);
     expect(spy).toHaveBeenCalledWith(expect.anything(), 'preset-trajectory-default', expect.anything());
   });

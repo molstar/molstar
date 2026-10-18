@@ -58,10 +58,7 @@ export interface DirectVolume {
   setBoundingSphere(boundingSphere: Sphere3D): void;
   hasBoundingSphere(): boolean;
 
-  readonly meta: {
-    /** Called to restore when a webgl context is lost */
-    reset?: () => void;
-  };
+  readonly meta: { [k: string]: unknown };
 }
 
 export namespace DirectVolume {

@@ -42,6 +42,15 @@ export const PointsSchema = {
 export type PointsSchema = typeof PointsSchema;
 export type PointsValues = Values<PointsSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const PointsRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...PointsSchema,
+};
+
 export function PointsRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -51,13 +60,7 @@ export function PointsRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<PointsValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...PointsSchema,
-  };
+  const schema = PointsRenderableSchema;
   const renderValues: PointsValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

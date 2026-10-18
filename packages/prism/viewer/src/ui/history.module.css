@@ -1,0 +1,290 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.history {
+  contain: content;
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  font-size: var(--msp-font-size-sm);
+}
+
+/* The rows: a new one, or the bar's count changing, lays out this box only (styling.md §5 containment). */
+.list {
+  contain: content;
+  display: grid;
+  gap: var(--msp-space-2);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+}
+
+.count {
+  margin-left: auto;
+  padding-inline: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* As the Snapshots tab's empty list. */
+.empty {
+  margin: 0;
+  padding: var(--msp-space-3) var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.5;
+
+  & strong {
+    color: var(--msp-color-text-muted);
+    font-weight: 600;
+  }
+}
+
+/*
+ * The rows: one off screen is neither laid out nor painted (styling.md §5), so a long History costs what it shows; its
+ * last size is remembered (`auto`), so the scroll height holds.
+ */
+.step,
+.turn,
+.separator {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2.25rem;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-1) var(--msp-space-3);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  /* A step Undo cannot restore: kept in the list, dimmed. */
+  &[data-unsafe] .label {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.origin {
+  align-self: center;
+  color: var(--msp-color-text-subtle);
+}
+
+.label {
+  overflow-wrap: anywhere;
+}
+
+.time {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Under the label: what else the step holds, why it cannot be undone, the turn's button. */
+.detail {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* What a run was pointed at and changed: one quiet line, fading where it does not fit. */
+.meta {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.unsafe {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  opacity: 0.8;
+}
+
+.caption {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Keeping one more than the bound: the question and its two answers, wrapping when narrow. */
+.ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) 0;
+}
+
+/* A kept record opened from Home: its title and when, Forget, and the way back to this session's history. */
+.kept {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.keptText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.keptTitle {
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+}
+
+/* A session event: a quiet line between the rows. */
+.separator {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.separatorText {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* An agent's turn: a group; its head opens it. */
+.turn {
+  display: grid;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.turnHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reply,
+.replyFull,
+.prompt {
+  margin: 0;
+  color: var(--msp-color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.reply {
+  max-height: 1.5em;
+  overflow: hidden;
+}
+
+.replyFull,
+.prompt {
+  white-space: pre-wrap;
+}
+
+.turnBody {
+  display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-2);
+}
+
+.runs {
+  display: grid;
+  gap: var(--msp-space-1);
+  padding-left: var(--msp-space-3);
+}
+
+/* The undone are struck and dim; a failure reads in the danger color. */
+.step[data-undone] .label,
+.turn[data-undone] .label {
+  color: var(--msp-color-text-muted);
+  text-decoration: line-through;
+}
+
+.step[data-failed] .origin {
+  color: var(--msp-color-danger);
+}
+
+.step[data-nested] {
+  padding-inline: 0;
+}
+
+/* History and the log, split: two halves of the panel, each its title and its own scroll. */
+.split {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--msp-space-3);
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.half {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.halfTitle {
+  margin: 0;
+  padding: var(--msp-space-2) var(--msp-panel-inset);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+}
+
+.halfBody {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Compact: Steps or Log, one at a time. */
+.tabs {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding-inline: var(--msp-panel-inset);
+}

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { ValueCell } from '@molstar/core/util';
+import { ValueCell } from '@molstar/core/util';
 import {
   type DefineLookup,
   getTextureDimension,
@@ -339,12 +339,15 @@ function getMemberWriter(m: UniformBlockMember, { f32, i32 }: UniformBlockData):
  * Each call only copies values whose version changed and calls `onWrite` if anything was written.
  * Cell instances are resolved once, keep using the same writer for them.
  */
+/** Writes the changed values into the block data; `dispose` stops observing the cells */
+export type UniformBlockWriter = (() => void) & { dispose: () => void };
+
 export function createUniformBlockWriter(
   layout: UniformBlockLayout,
   data: UniformBlockData,
   uniformValues: UniformsList,
   onWrite: () => void,
-): () => void {
+): UniformBlockWriter {
   const memberByName = new Map<string, UniformBlockMember>();
   for (const m of layout.members) memberByName.set(m.name, m);
 
@@ -363,7 +366,13 @@ export function createUniformBlockWriter(
   const count = cells.length;
   // -1 forces the initial write, cell versions are non-negative
   const versions = new Int32Array(count).fill(-1);
-  return () => {
+  // the versions are checked only after a cell changed (most draws have none), or every time with volatile cells
+  const observer: ValueCell.Observer = { changed: true };
+  for (const cell of cells) ValueCell.observe(cell, observer);
+  const volatile = cells.some((c) => c.volatile);
+  const write = () => {
+    if (!observer.changed && !volatile) return;
+    observer.changed = false;
     let written = false;
     for (let i = 0; i < count; ++i) {
       const ref = cells[i].ref;
@@ -375,4 +384,9 @@ export function createUniformBlockWriter(
     }
     if (written) onWrite();
   };
+  return Object.assign(write, {
+    dispose: () => {
+      for (const cell of cells) ValueCell.unobserve(cell, observer);
+    },
+  });
 }

@@ -10,7 +10,7 @@ import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
 /**
  * Depth of field: the color blurred by the circle of confusion of the nearest depth, planar or spherical around the
- * focus, in GL window space; bounded by the \`oBlurSize\` override constant. Depth textures are always available on
+ * focus; bounded by the \`oBlurSize\` override constant. Depth textures are always available on
  * WebGPU.
  */
 export const dof_wgsl = /* wgsl */ `
@@ -34,7 +34,7 @@ fn getViewZ(depth: f32) -> f32 {
 fn getDepth(coords: vec2<f32>) -> f32 {
     let opaque = read_tDepthOpaque(coords).r;
     let transparent = unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords)).x;
-    return min(opaque, transparent);
+    return max(opaque, transparent); // the nearer (depth is reversed)
 }
 
 /** circle of confusion */
@@ -62,7 +62,8 @@ fn getBlurredImage(coords: vec2<f32>) -> vec3<f32> {
     var count = 0.0;
     for (var x = 0; x < oBlurSize; x++) {
         for (var y = 0; y < oBlurSize; y++) {
-            let offset = vec2<f32>(f32(x) - blurSize / 2.0, f32(y) - blurSize / 2.0);
+            // y up, the samples of the GLSL program
+            let offset = vec2<f32>(f32(x) - blurSize / 2.0, blurSize / 2.0 - f32(y));
             let uvPixel = coords + offset * texelSize * uObject.uBlurSpread;
             let coc = smoothstep(0.0, 1.0, abs(getCOC(uvPixel)));
             blurColor += read_tColor(uvPixel).rgb * coc;
@@ -75,7 +76,7 @@ fn getBlurredImage(coords: vec2<f32>) -> vec3<f32> {
 // simplification from https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let uv = glCoords(in.position, uObject.uTexSize);
+    let uv = fragmentUv(in.position, uObject.uTexSize);
     let color = read_tColor(uv);
     let blurColor = getBlurredImage(uv);
     let coc = getCOC(uv);

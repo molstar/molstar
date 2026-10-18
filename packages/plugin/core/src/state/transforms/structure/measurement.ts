@@ -20,6 +20,7 @@ import {
   type OrientationData,
 } from '@molstar/graphics/repr/shape/loci/orientation';
 import { PlaneParams, PlaneRepresentation, type PlaneData } from '@molstar/graphics/repr/shape/loci/plane';
+import { getShapeRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { StructureSelectionsDistance3D };
 type StructureSelectionsDistance3D = typeof StructureSelectionsDistance3D;
@@ -292,3 +293,22 @@ export function getPlaneDataFromStructureSelections(
 ): PlaneData {
   return { locis: s.map((v) => v.loci) };
 }
+
+registerTransformSignatures(StructureSelectionsDistance3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => DistanceRepresentation(c, () => DistanceParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsAngle3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => AngleRepresentation(c, () => AngleParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsDihedral3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => DihedralRepresentation(c, () => DihedralParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsLabel3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => LabelRepresentation(c, () => LabelParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsOrientation3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => OrientationRepresentation(c, () => OrientationParams), params, ctx),
+);
+registerTransformSignatures(StructureSelectionsPlane3D, (params, ctx) =>
+  getShapeRepresentationSignatures((c) => PlaneRepresentation(c, () => PlaneParams), params, ctx),
+);

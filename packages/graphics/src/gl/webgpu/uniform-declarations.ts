@@ -4,7 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { RenderableSchema, UniformBlock } from '../renderable/schema.js';
+import {
+  type DefineLookup,
+  GlobalTextureSchema,
+  isUsed,
+  type RenderableSchema,
+  type UniformBlock,
+} from '../renderable/schema.js';
 import {
   getElementKind,
   getStd140Members,
@@ -60,7 +66,7 @@ function getWgslElementType(kind: UniformKind): string {
  * components are padded to 4-component vectors (uniform arrays need a 16-byte stride),
  * e.g. `f[]` becomes `array<vec4<f32>, N>` and element `i` is read as `a[i].x`.
  */
-function getWgslType(m: UniformBlockMember): string {
+export function getWgslType(m: UniformBlockMember): string {
   if (!m.length) return getWgslElementType(m.kind);
   const kind = getElementKind(m.kind);
   switch (kind) {
@@ -91,8 +97,39 @@ export function getWgslUniformBlockDeclaration(layout: UniformBlockLayout, bindi
   return lines.join('\n');
 }
 
-/** Bind group of the per-draw uniforms (`Draw` struct, bound with a dynamic offset) */
-export const WgslDrawGroup = 3;
+/**
+ * Binding of the per-draw uniforms (`Draw` struct, bound with a dynamic offset) in the object's bind group: after its
+ * uniform block (binding 0) and all its textures (the ones a program uses are a subset)
+ */
+export function getWgslDrawBinding(schema: RenderableSchema) {
+  // the object textures of `getBindingLayout`, without resolving their dimensions
+  let count = 0;
+  for (const k of Object.keys(schema)) {
+    const spec = schema[k];
+    if (spec.type !== 'texture' || (GlobalTextureSchema as RenderableSchema)[k] === spec) continue;
+    if (spec.variant !== 'material') count += 1;
+  }
+  return count + 1;
+}
+
+export type WgslStorageBinding = { readonly name: string; readonly binding: number; readonly element: string };
+
+/**
+ * Storage buffers of `schema` in the object's bind group (read-only), after the draw uniforms: numbered by their order
+ * in the schema, so the bindings are the same for every set of defines; those `defines` leave out are skipped
+ */
+export function getWgslStorageBindings(schema: RenderableSchema, defines: DefineLookup): WgslStorageBinding[] {
+  const bindings: WgslStorageBinding[] = [];
+  let binding = getWgslDrawBinding(schema) + 1;
+  for (const k of Object.keys(schema)) {
+    const spec = schema[k];
+    if (spec.type !== 'storage-buffer') continue;
+    if (spec.access !== 'read') throw new Error(`storage buffer '${k}' of a render schema must be read-only`);
+    if (isUsed(spec, defines)) bindings.push({ name: k, binding, element: spec.element });
+    binding += 1;
+  }
+  return bindings;
+}
 
 /** std140 layout of the 'draw' uniforms of `schema`, written per draw */
 export function getWgslDrawLayout(schema: RenderableSchema) {
@@ -108,7 +145,9 @@ export function getWgslDrawDeclaration(schema: RenderableSchema) {
     lines.push(`    ${m.name}: ${getWgslType(m)},`);
   }
   lines.push('};');
-  lines.push(`@group(${WgslDrawGroup}) @binding(0) var<uniform> uDraw: Draw;`);
+  lines.push(
+    `@group(${UniformBlockInfo.object.bindingIndex}) @binding(${getWgslDrawBinding(schema)}) var<uniform> uDraw: Draw;`,
+  );
   return lines.join('\n');
 }
 

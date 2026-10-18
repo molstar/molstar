@@ -58,8 +58,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     out.vTransform3 = in.aTransform3;
 
     out.position = uGlobal.uProjection * mvPosition;
-    // close to the far plane (but not too close to get precision issues), the window depth of WebGL's \`w - 0.01\`
-    out.position.z = out.position.w - 0.005;
+    // close to the far plane (but not too close to get precision issues), the window depth of WebGL's \`-w + 0.01\` (depth is reversed)
+    out.position.z = 0.005;
     return out;
 }
 
@@ -220,7 +220,7 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, rayDir: vec3<f32>, fragCoord: 
         }
 
         let mvPosition = modelViewTransform * vec4<f32>(unitPos * gridDim, 1.0);
-        if (calcDepth(mvPosition.xyz) > opaqueDepth) {
+        if (calcDepth(mvPosition.xyz) < opaqueDepth) { // behind the opaque depth (depth is reversed)
             break;
         }
 
@@ -256,6 +256,8 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, rayDir: vec3<f32>, fragCoord: 
                 let group = g.x + g.y * gridDim.x + g.z * gridDim.x * gridDim.y; // 012
             #endif
         #endif
+        // the marker and layer data per instance or group instance
+        let dataIndex = select(i32(instance * groupCount + group), i32(instance), uObject.uInstanceGranularity != 0u);
 
         #if defined(dColorType_direct) && defined(dUsePalette)
             let domain = uObject.uPaletteDomain;
@@ -263,21 +265,22 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, rayDir: vec3<f32>, fragCoord: 
             material = vec4<f32>(sample_tPalette(vec2<f32>(clamp(paletteValue, 0.0, 1.0), 0.0)).rgb, material.a);
         #elif defined(dColorType_uniform)
             material = vec4<f32>(uMaterial.uColor, material.a);
-        #elif defined(dColorType_instance)
-            material = vec4<f32>(readFromTexture(tColor, i32(instance)).rgb, material.a);
-        #elif defined(dColorType_group)
-            material = vec4<f32>(readFromTexture(tColor, i32(group)).rgb, material.a);
-        #elif defined(dColorType_groupInstance)
-            material = vec4<f32>(readFromTexture(tColor, i32(instance * groupCount + group)).rgb, material.a);
-        #elif defined(dColorType_vertex)
-            material = vec4<f32>(texture3dFrom1dTrilinear(tColor, unitPos, gridDim, 0.0).rgb, material.a);
-        #elif defined(dColorType_vertexInstance)
-            material = vec4<f32>(texture3dFrom1dTrilinear(tColor, unitPos, gridDim, instance * f32(uObject.uVertexCount)).rgb, material.a);
+        #elif defined(dColorType_texture)
+            // by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex, vertexInstance
+            switch uObject.uColorIndexType {
+                case 1: { material = vec4<f32>(readFromTexture(tColor, i32(group)).rgb, material.a); }
+                case 2: { material = vec4<f32>(readFromTexture(tColor, i32(instance * groupCount + group)).rgb, material.a); }
+                case 3: { material = vec4<f32>(texture3dFrom1dTrilinear(tColor, unitPos, gridDim, 0.0).rgb, material.a); }
+                case 4: {
+                    material = vec4<f32>(texture3dFrom1dTrilinear(tColor, unitPos, gridDim, instance * f32(uObject.uVertexCount)).rgb, material.a);
+                }
+                default: { material = vec4<f32>(readFromTexture(tColor, i32(instance)).rgb, material.a); }
+            }
         #endif
 
         #if defined(dOverpaint)
-            #if defined(dOverpaintType_groupInstance)
-                let overpaint = readFromTexture(tOverpaint, i32(instance * groupCount + group));
+            #if defined(dOverpaintType_texture)
+                let overpaint = readFromTexture(tOverpaint, dataIndex);
             #elif defined(dOverpaintType_vertexInstance)
                 let overpaint = texture3dFrom1dTrilinear(tOverpaint, unitPos, gridDim, instance * f32(uObject.uVertexCount));
             #else
@@ -310,7 +313,7 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, rayDir: vec3<f32>, fragCoord: 
         #if defined(dColorMarker)
             var marker = uObject.uMarker;
             if (uObject.uMarker == -1.0) {
-                marker = readFromTexture(tMarker, i32(instance * groupCount + group)).r;
+                marker = readFromTexture(tMarker, dataIndex).r;
                 marker = floor(marker * 255.0 + 0.5);
             }
             if (marker > 0.0) {

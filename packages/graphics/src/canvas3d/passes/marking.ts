@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
 import {
   type CopyRenderable,
   createCopyRenderable,
@@ -32,6 +33,7 @@ import type { RendererProps } from '@molstar/graphics/gl/renderer';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { clearJitter, setJitter } from './jitter.js';
 import type { RenderContext as BaseRenderContext } from '../util.js';
+import { updateOcclusionUpsample } from './ssao.js';
 
 export const MarkingParams = {
   enabled: PD.Boolean(true),
@@ -81,10 +83,13 @@ export type MarkingPresentOptions = {
   samples: number;
   /** how the base image was shaded, kept on tinted and dimmed objects */
   shading: MarkingShading | null;
+  /** draw as if all objects were marked, to prepare the pipelines of marking ahead (see `DrawPass.plan`) */
+  asIfMarked?: boolean;
 };
 
 export type MarkingShading =
-  | { name: 'ssao'; ssao: Texture }
+  /** the SSAO targets, upsampled depth-aware with the scene's opaque `depth` (packed without depth textures) */
+  | { name: 'ssao'; ssao: Texture; depth: Texture; packedDepth: boolean }
   /** the (denoised) base image relative to the direct `shaded` color gives the path traced occlusion and shadows */
   | { name: 'traced'; shaded: Texture };
 
@@ -125,22 +130,25 @@ export class MarkingPass {
   /** shading of `base` */
   private baseShading: MarkingShading | null = null;
 
+  private readonly renderBuilder: PassBuilder;
+
   constructor(
     private graphics: GraphicsContext,
     width: number,
     height: number,
   ) {
-    const { floatRenderTarget, halfFloatRenderTarget } = graphics.capabilities;
+    const { floatBlend, halfFloatRenderTarget } = graphics.capabilities;
     this.depthTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
     // linear so that it can be used as antialiasing input
     this.maskTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
     this.edgesTarget = graphics.createRenderTarget(width, height);
-    const layerType = halfFloatRenderTarget ? 'fp16' : floatRenderTarget ? 'float32' : 'uint8';
+    const layerType = halfFloatRenderTarget ? 'fp16' : floatBlend ? 'float32' : 'uint8';
     this.layerTarget = graphics.createRenderTarget(width, height, 'none', layerType);
 
     this.edge = getEdgeRenderable(graphics, this.maskTarget.texture);
     this.overlay = getOverlayRenderable(graphics, this.edgesTarget.texture, this.maskTarget.texture);
     this.composite = createCopyRenderable(graphics, this.layerTarget.texture);
+    this.renderBuilder = createRenderBuilder(graphics);
   }
 
   getByteCount() {
@@ -210,6 +218,7 @@ export class MarkingPass {
     depthTest: boolean,
     shading: MarkingShading | null,
     base: Texture,
+    camera: ICamera,
   ) {
     const {
       highlightEdgeColor,
@@ -278,9 +287,23 @@ export class MarkingPass {
       ValueCell.update(overlayValues.dMarkingShading, markingShading);
       needsUpdate = true;
     }
-    if (shading?.name === 'ssao' && overlayValues.tSsaoDepth.ref.value !== shading.ssao) {
-      ValueCell.update(overlayValues.tSsaoDepth, shading.ssao);
-      needsUpdate = true;
+    if (shading?.name === 'ssao') {
+      if (overlayValues.tSsaoDepth.ref.value !== shading.ssao || overlayValues.tDepth.ref.value !== shading.depth) {
+        ValueCell.update(overlayValues.tSsaoDepth, shading.ssao);
+        ValueCell.update(overlayValues.tDepth, shading.depth);
+        needsUpdate = true;
+      }
+      if (overlayValues.dPackedDepth.ref.value !== shading.packedDepth) {
+        ValueCell.update(overlayValues.dPackedDepth, shading.packedDepth);
+        needsUpdate = true;
+      }
+      const width = 1 / overlayValues.uTexSizeInv.ref.value[0];
+      const height = 1 / overlayValues.uTexSizeInv.ref.value[1];
+      if (updateOcclusionUpsample(overlayValues, shading.ssao, Math.round(width), Math.round(height)))
+        needsUpdate = true;
+      ValueCell.updateIfChanged(overlayValues.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
+      ValueCell.updateIfChanged(overlayValues.uNear, camera.near);
+      ValueCell.updateIfChanged(overlayValues.uFar, camera.far);
     }
     if (
       shading?.name === 'traced' &&
@@ -321,17 +344,18 @@ export class MarkingPass {
   /**
    * Adds up to `samples` jittered samples to the marking layer (starting over if `restart`)
    * and blends it over `base`, either into the drawing buffer (remembering `base` for redraws)
-   * or in place.
+   * or in place. Preparing (`b.drawing` false) leaves the layer and the remembered base as they are.
    */
-  present(ctx: RenderContext, props: Props, options: MarkingPresentOptions) {
+  present(b: PassBuilder, ctx: RenderContext, props: Props, options: MarkingPresentOptions) {
     const { base, toDrawingBuffer, shading } = options;
     const { viewport } = ctx.camera;
-    const hasMarking = this.updateLayer(ctx, props, options);
+    const hasMarking = this.updateLayer(b, ctx, props, options);
 
-    if (toDrawingBuffer) this.copyToDrawingBuffer(base, viewport);
-    else if (hasMarking) this.graphics.beginRenderPass(base, { label: 'marking composite' });
-    if (hasMarking) this.compositeLayer(viewport);
+    if (toDrawingBuffer) this.copyToDrawingBuffer(b, base, viewport);
+    else if (hasMarking) b.begin(base, { label: 'marking composite' });
+    if (hasMarking) this.compositeLayer(b, viewport);
 
+    if (!b.drawing) return;
     if (toDrawingBuffer && !(ctx.camera instanceof StereoCamera)) {
       this.base = base;
       this.baseShading = shading;
@@ -348,7 +372,7 @@ export class MarkingPass {
     if (!this.base) return false;
 
     if (isTimingMode) this.graphics.timer.group('MarkingPass.redraw');
-    this.present(ctx, props, {
+    this.present(this.renderBuilder, ctx, props, {
       base: this.base,
       toDrawingBuffer: true,
       offsets,
@@ -362,16 +386,12 @@ export class MarkingPass {
   }
 
   /** Returns false if there is no marking. */
-  private updateLayer(ctx: RenderContext, props: Props, options: MarkingPresentOptions): boolean {
-    const { base, offsets, restart, samples, shading } = options;
+  private updateLayer(b: PassBuilder, ctx: RenderContext, props: Props, options: MarkingPresentOptions): boolean {
+    const { base, offsets, restart, samples, shading, asIfMarked } = options;
     const { renderer, camera, scene, frame } = ctx;
-    if (camera instanceof StereoCamera || camera.disabled || !MarkingPass.hasMarking(scene, props)) {
-      this.sampleCount = 0;
+    if (camera instanceof StereoCamera || camera.disabled || !(asIfMarked || MarkingPass.hasMarking(scene, props))) {
+      if (b.drawing) this.sampleCount = 0;
       return false;
-    }
-    if (restart || offsets !== this.offsets) {
-      this.offsets = offsets;
-      this.sampleCount = 0;
     }
 
     const { colorMarker, dimStrength } = renderer.props;
@@ -380,12 +400,24 @@ export class MarkingPass {
     // dimming needs to know where marked objects are visible
     const depthTest = props.marking.ghostEdgeStrength < 1 || dim;
 
+    if (!b.drawing) {
+      // the samples draw alike, one is enough to request their pipelines
+      this.update(props, renderer.props, dim, depthTest, shading, base.texture, camera);
+      this.planSample(b, ctx, props, depthTest, dim, !!asIfMarked, 1);
+      return true;
+    }
+
+    if (restart || offsets !== this.offsets) {
+      this.offsets = offsets;
+      this.sampleCount = 0;
+    }
+
     const end = Math.min(this.sampleCount + samples, offsets.length);
     if (this.sampleCount >= end) {
       // traced shading comes from the base image, which keeps converging; the textures of a single sample are still there
       if (shading?.name === 'traced' && offsets.length === 1) {
-        this.update(props, renderer.props, dim, depthTest, shading, base.texture);
-        this.renderOverlay(ctx.camera.viewport, 1);
+        this.update(props, renderer.props, dim, depthTest, shading, base.texture, camera);
+        this.renderOverlay(b, ctx.camera.viewport, 1);
       }
       return true;
     }
@@ -397,23 +429,12 @@ export class MarkingPass {
     renderer.setDrawingBufferSize(this.maskTarget.getWidth(), this.maskTarget.getHeight());
     renderer.setPixelRatio(this.graphics.pixelRatio);
     renderer.setViewport(x, y, width, height);
-    this.update(props, renderer.props, dim, depthTest, shading, base.texture);
+    this.update(props, renderer.props, dim, depthTest, shading, base.texture, camera);
 
     for (; this.sampleCount < end; ++this.sampleCount) {
       const offset = offsets[this.sampleCount];
       if (jitter) setJitter(camera, offset);
       renderer.update(camera, scene, frame);
-
-      if (depthTest) {
-        this.graphics.beginRenderPass(this.depthTarget, { label: 'marking depth' });
-        renderer.clear(false, true);
-        // when everything is marked there is nothing to occlude with, but the cleared depth is still needed
-        if (scene.markerAverage !== 1) renderer.renderMarkingDepth(scene.primitives, camera);
-      }
-
-      this.graphics.beginRenderPass(this.maskTarget, { label: 'marking mask' });
-      renderer.clear(false, true);
-      renderer.renderMarkingMask(scene.primitives, camera, depthTest ? this.depthTarget.texture : null);
 
       // the scene SSAO is computed without jitter, see `MultiSamplePass`
       ValueCell.update(
@@ -421,15 +442,54 @@ export class MarkingPass {
         Vec2.set(
           this.overlay.values.uOcclusionOffset.ref.value,
           jitter ? offset[0] / width : 0,
-          jitter ? offset[1] / height : 0,
+          jitter ? -offset[1] / height : 0,
         ),
       );
-      this.renderSample(camera, props.postprocessing, 1 / (this.sampleCount + 1), dim);
+      this.planSample(b, ctx, props, depthTest, dim, !!asIfMarked, 1 / (this.sampleCount + 1));
     }
 
     if (jitter) clearJitter(camera);
     if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.updateLayer');
     return true;
+  }
+
+  /** The depth and mask of a sample and its marking blended into the layer (`asIfMarked`: all objects) */
+  private planSample(
+    b: PassBuilder,
+    ctx: RenderContext,
+    props: Props,
+    depthTest: boolean,
+    dim: boolean,
+    asIfMarked: boolean,
+    weight: number,
+  ) {
+    const { renderer, scene } = ctx;
+    const camera = ctx.camera as ICamera;
+    if (depthTest) {
+      b.begin(this.depthTarget, { label: 'marking depth' });
+      if (b.drawing) renderer.clearDepth(true);
+      // when everything is marked there is nothing to occlude with, but the cleared depth is still needed
+      if (asIfMarked || scene.markerAverage !== 1) {
+        b.renderer(
+          { name: 'markingDepth' },
+          scene.primitives,
+          () => renderer.renderMarkingDepth(scene.primitives, camera),
+          asIfMarked,
+        );
+      }
+    }
+
+    b.begin(this.maskTarget, { label: 'marking mask' });
+    if (b.drawing) renderer.clear(false, true);
+    // the mask draws marked objects only: as if marked, all objects
+    b.renderer(
+      { name: 'markingMask' },
+      scene.primitives,
+      () => renderer.renderMarkingMask(scene.primitives, camera, depthTest ? this.depthTarget.texture : null),
+      asIfMarked,
+    );
+
+    this.renderSample(b, camera, props.postprocessing, weight, dim);
   }
 
   private getAntialiasing(props: PostprocessingProps): AntialiasingPass | null {
@@ -449,9 +509,15 @@ export class MarkingPass {
   }
 
   /** Antialiases `input` into `output`, returns the texture to use. */
-  private antialias(camera: ICamera, props: PostprocessingProps, input: RenderTarget, output: RenderTarget): Texture {
+  private antialias(
+    b: PassBuilder,
+    camera: ICamera,
+    props: PostprocessingProps,
+    input: RenderTarget,
+    output: RenderTarget,
+  ): Texture {
     const aa = this.getAntialiasing(props);
-    return aa?.renderAntialiasingOnly(camera, input.texture, output, props) ? output.texture : input.texture;
+    return aa?.renderAntialiasingOnly(b, camera, input.texture, output, props) ? output.texture : input.texture;
   }
 
   private getDim() {
@@ -469,7 +535,7 @@ export class MarkingPass {
   }
 
   /** Renders the antialiased coverage of the visible unmarked geometry, from the depth and raw mask of the current sample. */
-  private renderDim(camera: ICamera, postprocessingProps: PostprocessingProps): Texture {
+  private renderDim(b: PassBuilder, camera: ICamera, postprocessingProps: PostprocessingProps): Texture {
     const { target, aaTarget, renderable } = this.getDim();
     const { values } = renderable;
     ValueCell.updateIfChanged(values.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
@@ -478,23 +544,32 @@ export class MarkingPass {
     ValueCell.updateIfChanged(values.uFogNear, camera.fogNear);
     ValueCell.updateIfChanged(values.uFogFar, camera.fogFar);
 
-    this.graphics.beginRenderPass(target, { label: 'marking dim' });
-    this.setViewport(camera.viewport);
-    this.graphics.setRenderState(RenderState.Default);
-    this.graphics.clear({ color: [0, 0, 0, 0] });
-    renderable.render();
+    b.begin(target, { label: 'marking dim' });
+    if (b.drawing) {
+      this.setViewport(camera.viewport);
+      this.graphics.setRenderState(RenderState.Default);
+      this.graphics.clear({ color: [0, 0, 0, 0] });
+    }
+    b.quad(renderable, RenderState.Default);
 
-    return this.antialias(camera, postprocessingProps, target, aaTarget);
+    return this.antialias(b, camera, postprocessingProps, target, aaTarget);
   }
 
   /** Blends the marking of the current mask into the layer, with `weight` for the new sample. */
-  private renderSample(camera: ICamera, postprocessingProps: PostprocessingProps, weight: number, dim: boolean) {
-    if (isTimingMode) this.graphics.timer.group('MarkingPass.renderSample');
+  private renderSample(
+    b: PassBuilder,
+    camera: ICamera,
+    postprocessingProps: PostprocessingProps,
+    weight: number,
+    dim: boolean,
+  ) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) this.graphics.timer.group('MarkingPass.renderSample');
 
-    const dimTexture = dim ? this.renderDim(camera, postprocessingProps) : this.maskTarget.texture;
+    const dimTexture = dim ? this.renderDim(b, camera, postprocessingProps) : this.maskTarget.texture;
     const aa = this.getAntialiasing(postprocessingProps);
     const maskTexture = aa
-      ? this.antialias(camera, postprocessingProps, this.maskTarget, aa.target)
+      ? this.antialias(b, camera, postprocessingProps, this.maskTarget, aa.target)
       : this.maskTarget.texture;
 
     if (this.edge.values.tMaskTexture.ref.value !== maskTexture) {
@@ -509,37 +584,36 @@ export class MarkingPass {
     }
 
     const viewport = camera.viewport;
-    this.graphics.beginRenderPass(this.edgesTarget, { label: 'marking edges' });
-    this.setEdgeState(viewport);
-    this.edge.render();
+    b.begin(this.edgesTarget, { label: 'marking edges' });
+    if (b.drawing) this.setEdgeState(viewport);
+    b.quad(this.edge, RenderState.Additive);
 
-    this.renderOverlay(viewport, weight);
-    if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.renderSample');
+    this.renderOverlay(b, viewport, weight);
+    if (timing) this.graphics.timer.groupEnd('MarkingPass.renderSample');
   }
 
   /** Blends the overlay of the current sample's textures into the layer, with `weight` for the new sample. */
-  private renderOverlay(viewport: Viewport, weight: number) {
-    this.graphics.beginRenderPass(this.layerTarget, { label: 'marking overlay' });
-    this.setViewport(viewport);
-    // running average: the first sample (weight 1) replaces the previous content
-    this.graphics.setBlendConstant(weight, weight, weight, weight);
-    this.graphics.setRenderState(RenderState.Constant);
-    this.overlay.render();
+  private renderOverlay(b: PassBuilder, viewport: Viewport, weight: number) {
+    b.begin(this.layerTarget, { label: 'marking overlay' });
+    if (b.drawing) {
+      this.setViewport(viewport);
+      // running average: the first sample (weight 1) replaces the previous content
+      this.graphics.setBlendConstant(weight, weight, weight, weight);
+    }
+    b.quad(this.overlay, RenderState.Constant);
   }
 
   /** Blends the layer over the currently bound framebuffer. */
-  private compositeLayer(viewport: Viewport) {
-    this.graphics.setRenderState(RenderState.Premultiplied);
-    this.setViewport(viewport);
-    this.composite.render();
+  private compositeLayer(b: PassBuilder, viewport: Viewport) {
+    if (b.drawing) this.setViewport(viewport);
+    b.quad(this.composite, RenderState.Premultiplied);
   }
 
-  private copyToDrawingBuffer(src: RenderTarget, viewport: Viewport) {
+  private copyToDrawingBuffer(b: PassBuilder, src: RenderTarget, viewport: Viewport) {
     const copy = getSharedCopyRenderable(this.graphics, src.texture);
-    this.graphics.beginRenderPass('drawing-buffer', { label: 'copy' });
-    this.graphics.setRenderState(RenderState.Default);
-    this.setViewport(viewport);
-    copy.render();
+    b.begin('drawing-buffer', { label: 'copy' });
+    if (b.drawing) this.setViewport(viewport);
+    b.quad(copy, RenderState.Default);
   }
 }
 
@@ -634,7 +708,15 @@ export const OverlaySchema = {
   uOcclusionColor: UniformSpec('v3'),
   uFogColor: UniformSpec('v3'),
   uTransparentBackground: UniformSpec('b'),
-  uOcclusionOffset: UniformSpec('v2'),
+  uOcclusionOffset: { ...UniformSpec('v2'), windowRect: 'offset' as const },
+  /** the SSAO targets have a lower resolution, see `getSsaoUpsampled`; with the scene's opaque depth */
+  dOcclusionUpsample: DefineSpec('boolean'),
+  uOcclusionTexSize: UniformSpec('v2'),
+  tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  dPackedDepth: DefineSpec('boolean'),
+  uIsOrtho: UniformSpec('f'),
+  uNear: UniformSpec('f'),
+  uFar: UniformSpec('f'),
   tBase: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   dMarkingShading: DefineSpec('string', ['off', 'ssao', 'traced']),
@@ -672,6 +754,13 @@ function getOverlayRenderable(ctx: GraphicsContext, edgeTexture: Texture, maskTe
     uFogColor: ValueCell.create(Vec3()),
     uTransparentBackground: ValueCell.create(false),
     uOcclusionOffset: ValueCell.create(Vec2()),
+    dOcclusionUpsample: ValueCell.create(false),
+    uOcclusionTexSize: ValueCell.create(Vec2()),
+    tDepth: ValueCell.create(maskTexture),
+    dPackedDepth: ValueCell.create(false),
+    uIsOrtho: ValueCell.create(0),
+    uNear: ValueCell.create(1),
+    uFar: ValueCell.create(10000),
     tBase: ValueCell.create(maskTexture),
     tShaded: ValueCell.create(maskTexture),
     dMarkingShading: ValueCell.create('off'),

@@ -1,0 +1,36 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * The Seq* Storybook's page defaults on prism-ui's tokens (`@molstar/prism-ui/styles/base`): what a story page (PrismPage) sets on the document.
+ * Added with it and removed after.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--msp-color-bg);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 2px;
+}

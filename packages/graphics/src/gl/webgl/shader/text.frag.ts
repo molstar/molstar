@@ -71,9 +71,9 @@ void main(){
             if (uBorderWidth > 0.0 && rawSdf < 0.5) {
                 material.xyz = uBorderColor;
             } else {
-                // push text fragments forward in depth so they render in front of border
+                // push text fragments forward in depth so they render in front of border (depth is reversed)
                 #ifdef enabledFragDepth
-                    gl_FragDepthEXT = fragmentDepth - 0.0001;
+                    gl_FragDepthEXT = fragmentDepth + 0.0001;
                 #endif
             }
         #endif

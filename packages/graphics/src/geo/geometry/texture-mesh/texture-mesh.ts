@@ -27,7 +27,17 @@ import { createEmptyClipping } from '../clipping-data.js';
 import { NullLocation } from '@molstar/model/model/location';
 import { createEmptySubstance } from '../substance-data.js';
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GeometryRequest } from '../request.js';
+import type { ComputeContext, DrawIndirect, StorageBuffer } from '@molstar/graphics/gl/compute';
+import {
+  type ChunkedSurface,
+  destroyChunkedSurface,
+  releaseRetiredTables,
+  getVertexArena,
+  onVertexArenaGrow,
+  readChunkedVertices,
+} from '@molstar/graphics/gl/compute/marching-cubes/chunks';
 import { createEmptyEmissive } from '../emissive-data.js';
 import { createEmptyWiggle } from '../wiggle-data.js';
 import { createInteriorValues, getInteriorParam, updateInteriorValues } from '../interior.js';
@@ -36,7 +46,7 @@ import { getAnimationParam, createAnimationValues, updateAnimationValues } from 
 export interface TextureMesh {
   readonly kind: 'texture-mesh';
 
-  /** Number of vertices in the texture-mesh */
+  /** Number of vertices in the texture-mesh, an upper bound with `drawIndirect` */
   vertexCount: number;
   /** Number of groups in the texture-mesh */
   groupCount: number;
@@ -47,13 +57,32 @@ export interface TextureMesh {
   readonly normalTexture: ValueCell<Texture>;
   readonly varyingGroup: ValueCell<boolean>;
   readonly doubleBuffer: TextureMesh.DoubleBuffer;
+  /** `vertexCount`, shared with the render values (`drawCount`, `uVertexCount`) */
+  readonly vertexCountCell: ValueCell<number>;
+  /** The vertex count in a GPU buffer (WebGPU), the vertices beyond it up to `vertexCount` are not drawn */
+  readonly drawIndirect: ValueCell<DrawIndirect | undefined>;
+  /**
+   * Whether the vertices are in pages of the vertex arena (WebGPU, see `computeChunkedIsosurface`) instead of the
+   * textures: the page table of the surface and the arena's buffers
+   */
+  readonly isoChunks: ValueCell<boolean>;
+  readonly isoTable: ValueCell<StorageBuffer | undefined>;
+  readonly isoPositions: ValueCell<StorageBuffer | undefined>;
+  readonly isoNormals: ValueCell<StorageBuffer | undefined>;
 
   readonly boundingSphere: Sphere3D;
 
   readonly meta: {
-    webgl?: WebGLContext;
-    /** Called to restore when a webgl context is lost */
-    reset?: () => void;
+    /** The vertices and normals read back for the position iterator (`TextureMesh.Utils.prepare`) */
+    vertexData?: { vertices: Float32Array; normals: Float32Array };
+    /** Called after the vertices were extracted again (data derived from them, e.g. smoothing), by kind */
+    reextracted?: Map<string, () => void>;
+    /** The exact vertex count of indirectly drawn meshes, once read back (`vertexCount` is an upper bound) */
+    readVertexCount?: number;
+    /** Bytes of the pages and page table of a mesh in the vertex arena, once read back */
+    chunkByteCount?: number;
+    /** Settles once the vertices are final (indirectly drawn meshes: after the count check and any re-extraction) */
+    extracted?: Promise<void>;
     [k: string]: unknown;
   };
 }
@@ -62,8 +91,37 @@ export namespace TextureMesh {
   export class DoubleBuffer {
     private index = 0;
     private textures: ({ vertex: Texture; group: Texture; normal: Texture } | undefined)[] = [];
+    /** the surface in the vertex arena of a compute context (WebGPU), instead of the textures */
+    private chunks: { surface: ChunkedSurface; compute: ComputeContext; unsubscribe: () => void } | undefined;
 
-    get() {
+    /** The surface in the vertex arena of `graphics` to reuse; one of another context is dropped, not destroyed */
+    getChunks(graphics: GraphicsContext) {
+      if (this.chunks && this.chunks.compute !== graphics.compute) {
+        this.chunks.unsubscribe();
+        this.chunks = undefined;
+      }
+      return this.chunks?.surface;
+    }
+
+    /** `surface` in the arena of `compute`, `onGrow` called when the arena grew (its buffers replaced) */
+    setChunks(surface: ChunkedSurface, compute: ComputeContext, onGrow: () => void) {
+      if (this.chunks?.compute !== compute) {
+        this.chunks?.unsubscribe();
+        this.chunks = { surface, compute, unsubscribe: onVertexArenaGrow(compute, onGrow) };
+      } else {
+        this.chunks.surface = surface;
+      }
+    }
+
+    /**
+     * The textures to reuse (WebGL); textures of another graphics context than `graphics` (e.g. before a backend
+     * switch, or a restore that replaced the context) are not reused, nor destroyed (their context does it)
+     */
+    get(graphics: GraphicsContext) {
+      if (this.textures.some((t) => t && !graphics.resources.ownsTexture(t.vertex))) {
+        this.textures = [];
+        this.index = 0;
+      }
       return this.textures[this.index];
     }
 
@@ -82,6 +140,12 @@ export namespace TextureMesh {
         buffer!.group.destroy();
         buffer!.normal.destroy();
       }
+      if (this.chunks) {
+        // the pages back to the arena; the surface's draw arguments are destroyed with it
+        destroyChunkedSurface(this.chunks.compute, this.chunks.surface);
+        this.chunks.unsubscribe();
+        this.chunks = undefined;
+      }
     }
   }
 
@@ -93,12 +157,17 @@ export namespace TextureMesh {
     normalTexture: Texture,
     boundingSphere: Sphere3D,
     textureMesh?: TextureMesh,
+    drawIndirect?: DrawIndirect,
   ): TextureMesh {
     const width = vertexTexture.getWidth();
     const height = vertexTexture.getHeight();
     if (textureMesh) {
       textureMesh.vertexCount = vertexCount;
       textureMesh.groupCount = groupCount;
+      textureMesh.meta.vertexData = undefined;
+      textureMesh.meta.extracted = undefined;
+      ValueCell.updateIfChanged(textureMesh.vertexCountCell, vertexCount);
+      ValueCell.updateIfChanged(textureMesh.drawIndirect, drawIndirect);
       ValueCell.update(textureMesh.geoTextureDim, Vec2.set(textureMesh.geoTextureDim.ref.value, width, height));
       ValueCell.update(textureMesh.vertexTexture, vertexTexture);
       ValueCell.update(textureMesh.groupTexture, groupTexture);
@@ -117,10 +186,121 @@ export namespace TextureMesh {
         normalTexture: ValueCell.create(normalTexture),
         varyingGroup: ValueCell.create(false),
         doubleBuffer: new DoubleBuffer(),
+        vertexCountCell: ValueCell.create(vertexCount),
+        drawIndirect: ValueCell.create(drawIndirect),
+        isoChunks: ValueCell.create(false),
+        isoTable: ValueCell.create(undefined),
+        isoPositions: ValueCell.create(undefined),
+        isoNormals: ValueCell.create(undefined),
         boundingSphere: Sphere3D.clone(boundingSphere),
         meta: {},
       };
     }
+  }
+
+  /**
+   * The texture mesh of a surface in the vertex arena of `compute` (see `computeChunkedIsosurface`), drawn indirectly;
+   * `vertexCount` is an upper bound (for draws without the GPU count, e.g. multi-draw lists)
+   */
+  export function createChunked(
+    vertexCount: number,
+    groupCount: number,
+    surface: ChunkedSurface,
+    compute: ComputeContext,
+    boundingSphere: Sphere3D,
+    textureMesh?: TextureMesh,
+  ): TextureMesh {
+    const drawIndirect = { buffer: surface.drawArgs, byteOffset: 0 };
+    let mesh: TextureMesh;
+    if (textureMesh) {
+      mesh = textureMesh;
+      mesh.vertexCount = vertexCount;
+      mesh.groupCount = groupCount;
+      mesh.meta.vertexData = undefined;
+      mesh.meta.extracted = undefined;
+      ValueCell.updateIfChanged(mesh.vertexCountCell, vertexCount);
+      ValueCell.updateIfChanged(mesh.drawIndirect, drawIndirect);
+      Sphere3D.copy(mesh.boundingSphere, boundingSphere);
+    } else {
+      const nullTexture = createNullTexture();
+      mesh = create(
+        vertexCount,
+        groupCount,
+        nullTexture,
+        nullTexture,
+        nullTexture,
+        boundingSphere,
+        undefined,
+        drawIndirect,
+      );
+    }
+    const arena = getVertexArena(compute);
+    const bindArena = () => {
+      ValueCell.updateIfChanged(mesh.isoPositions, arena.positions.ref.value);
+      ValueCell.updateIfChanged(mesh.isoNormals, arena.normals.ref.value);
+    };
+    bindArena();
+    bindChunkedTable(mesh, surface);
+    ValueCell.updateIfChanged(mesh.isoChunks, true);
+    mesh.doubleBuffer.setChunks(surface, compute, bindArena);
+    return mesh;
+  }
+
+  /**
+   * Binds the current page table of `surface` (it grows with the arena, see `computeChunkedIsosurface`) and releases
+   * the tables it grew out of
+   */
+  export function bindChunkedTable(mesh: TextureMesh, surface: ChunkedSurface) {
+    ValueCell.updateIfChanged(mesh.isoTable, surface.table);
+    releaseRetiredTables(surface);
+  }
+
+  /** Sets the handler of `kind` called after the vertices were extracted again */
+  export function setReextractionHandler(meta: TextureMesh['meta'], kind: string, handler: () => void) {
+    if (!meta.reextracted) meta.reextracted = new Map();
+    meta.reextracted.set(kind, handler);
+  }
+
+  /**
+   * The vertices read back where the position iterator is used (see `createPositionIterator`), once they are final (an
+   * indirectly drawn mesh may be extracted again with the exact count)
+   */
+  function prepare(textureMesh: TextureMesh, request: GeometryRequest, graphics: GraphicsContext | undefined) {
+    if (!request.positions || !graphics || textureMesh.meta.vertexData) return;
+    const { extracted } = textureMesh.meta;
+    const read = () => readVertexData(textureMesh, graphics);
+    return extracted ? extracted.then(read) : read();
+  }
+
+  /** Reads the vertices and normals back into `meta.vertexData`, for the position iterator */
+  async function readVertexData(textureMesh: TextureMesh, graphics: GraphicsContext) {
+    const table = textureMesh.isoTable.ref.value;
+    if (textureMesh.isoChunks.ref.value && table && graphics.compute) {
+      const count = textureMesh.meta.readVertexCount ?? textureMesh.vertexCount;
+      const { vertices, normals } = await readChunkedVertices(graphics.compute, table, count);
+      textureMesh.meta.vertexData = { vertices, normals };
+      return;
+    }
+    const [vertices, normals] = await Promise.all([
+      graphics.readTextureData(textureMesh.vertexTexture.ref.value),
+      graphics.readTextureData(textureMesh.normalTexture.ref.value),
+    ]);
+    textureMesh.meta.vertexData = {
+      vertices: vertices.array as Float32Array,
+      normals: normals.array as Float32Array,
+    };
+  }
+
+  /** Updates the vertex count (an upper bound with `drawIndirect`) after the textures were resized */
+  export function setVertexCount(textureMesh: TextureMesh, vertexCount: number) {
+    const texture = textureMesh.vertexTexture.ref.value;
+    textureMesh.vertexCount = vertexCount;
+    textureMesh.meta.vertexData = undefined;
+    ValueCell.updateIfChanged(textureMesh.vertexCountCell, vertexCount);
+    ValueCell.update(
+      textureMesh.geoTextureDim,
+      Vec2.set(textureMesh.geoTextureDim.ref.value, texture.getWidth(), texture.getHeight()),
+    );
   }
 
   export function createEmpty(textureMesh?: TextureMesh): TextureMesh {
@@ -173,37 +353,16 @@ export namespace TextureMesh {
     createRenderableState,
     updateRenderableState,
     createPositionIterator,
+    prepare,
   };
 
-  const TextureMeshName = 'texture-mesh';
-
+  /**
+   * The position iterator reads the vertices from `meta.vertexData`, read back asynchronously before (`prepare`, for a
+   * request with `positions`); without them its locations are `NullLocation`
+   */
   function createPositionIterator(textureMesh: TextureMesh, transform: TransformData): LocationIterator {
-    const webgl = textureMesh.meta.webgl;
-    if (!webgl) return LocationIterator(1, 1, 1, () => NullLocation);
-
-    if (!webgl.namedFramebuffers[TextureMeshName]) {
-      webgl.namedFramebuffers[TextureMeshName] = webgl.resources.framebuffer();
-    }
-    const framebuffer = webgl.namedFramebuffers[TextureMeshName];
-    const [width, height] = textureMesh.geoTextureDim.ref.value;
-
-    let data: { vertices: Float32Array; normals: Float32Array } | undefined = undefined;
-    const getData = () => {
-      if (!data) {
-        const vertices = new Float32Array(width * height * 4);
-        framebuffer.bind();
-        textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer, 0);
-        webgl.readPixels(0, 0, width, height, vertices);
-
-        const normals = new Float32Array(width * height * 4);
-        framebuffer.bind();
-        textureMesh.normalTexture.ref.value.attachFramebuffer(framebuffer, 0);
-        webgl.readPixels(0, 0, width, height, normals);
-
-        data = { vertices, normals };
-      }
-      return data;
-    };
+    // looked up per call: the read back may follow the creation of the iterator (e.g. a new color theme)
+    const getData = () => textureMesh.meta.vertexData;
 
     const groupCount = textureMesh.vertexCount;
     const instanceCount = transform.instanceCount.ref.value;
@@ -212,7 +371,9 @@ export namespace TextureMesh {
     const n = location.normal;
     const m = transform.aTransform.ref.value;
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-      const { vertices, normals } = getData();
+      const data = getData();
+      if (!data) return NullLocation;
+      const { vertices, normals } = data;
       if (instanceIndex < 0) {
         Vec3.fromArray(p, vertices, groupIndex * 4);
         Vec3.fromArray(n, normals, groupIndex * 4);
@@ -285,6 +446,13 @@ export namespace TextureMesh {
       ...transform,
 
       ...BaseGeometry.createValues(props, counts),
+      drawCount: textureMesh.vertexCountCell,
+      uVertexCount: textureMesh.vertexCountCell,
+      drawIndirect: textureMesh.drawIndirect,
+      dIsoChunks: textureMesh.isoChunks,
+      sIsoTable: textureMesh.isoTable,
+      sIsoPositions: textureMesh.isoPositions,
+      sIsoNormals: textureMesh.isoNormals,
       uDoubleSided: ValueCell.create(props.doubleSided),
       dFlatShaded: ValueCell.create(props.flatShaded),
       dFlipSided: ValueCell.create(props.flipSided),

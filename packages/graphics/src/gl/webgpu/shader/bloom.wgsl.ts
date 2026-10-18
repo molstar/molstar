@@ -8,7 +8,7 @@ import { depth_wgsl } from './chunks/depth.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
-/** Bloom seed: bright parts of the composited scene (luminosity) or the emissive prepass, in GL window space */
+/** Bloom seed: bright parts of the composited scene (luminosity) or the emissive prepass */
 export const bloom_luminosity_wgsl = /* wgsl */ `
 ${depth_wgsl}
 ${packing_wgsl}
@@ -29,13 +29,13 @@ fn getDepthTransparent(coords: vec2<f32>) -> f32 {
 }
 
 fn isBackground(depth: f32) -> bool {
-    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32
-    return depth >= 0.99999994;
+    // the far plane (depth is reversed), packed or raw
+    return depth == 0.0;
 }
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, 1.0 / uObject.uTexSizeInv);
+    let coords = fragmentUv(in.position, 1.0 / uObject.uTexSizeInv);
     var opaqueTexel = read_tColorOpaque(coords);
     let transparentTexel = read_tColorTransparent(coords);
     // fog illumination's un-fogged opaque seed by the opaque depth, matching standard's per-layer fog
@@ -45,7 +45,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     // PMA OVER composite, matches postprocessing's final transparency blend
     let texel = transparentTexel + opaqueTexel * (1.0 - transparentTexel.a);
-    let depth = min(getDepthOpaque(coords), getDepthTransparent(coords));
+    let depth = max(getDepthOpaque(coords), getDepthTransparent(coords));
 
     if (isBackground(depth)) {
         return vec4<f32>(0.0);
@@ -64,7 +64,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 `;
 
-/** Separable gaussian blur, in GL window space */
+/** Separable gaussian blur */
 export const bloom_blur_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
 ${texture_read_wgsl('tInput')}
@@ -74,7 +74,7 @@ override oKernelRadius: i32 = 3;
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let texSizeInv = uObject.uTexSizeInv;
-    let coords = glCoords(in.position, 1.0 / texSizeInv);
+    let coords = fragmentUv(in.position, 1.0 / texSizeInv);
     var weightSum = uObject.uGaussianCoefficients[0].x;
     var diffuseSum = read_tInput(coords) * weightSum;
 
@@ -92,7 +92,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 `;
 
-/** Combines the blur levels, in GL window space */
+/** Combines the blur levels */
 export const bloom_composite_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
 ${texture_read_wgsl('tBlur1')}
@@ -112,7 +112,7 @@ fn level(i: i32) -> vec4<f32> {
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, 1.0 / uObject.uTexSizeInv);
+    let coords = fragmentUv(in.position, 1.0 / uObject.uTexSizeInv);
     return uObject.uBloomStrength * (
         level(0) * read_tBlur1(coords) +
         level(1) * read_tBlur2(coords) +

@@ -27,6 +27,8 @@ import type { RuntimeContext } from '@molstar/core/task';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import { printTimerResults } from '@molstar/graphics/gl/timer';
 import { ShaderManager } from '../helper/shader-manager.js';
+import type { RenderContext } from '../util.js';
+import { createPrepareBuilder, type PassBuilder } from './pass-builder.js';
 
 export const ImageParams = {
   transparentBackground: PD.Boolean(false),
@@ -40,6 +42,9 @@ export const ImageParams = {
   renderer: PD.Group(RendererParams),
 };
 export type ImageProps = PD.Values<typeof ImageParams>;
+
+/** Renders of `ImagePass.render` after the first one, while renders start pending work */
+const MaxRerenders = 3;
 
 export class ImagePass {
   private _width = 0;
@@ -55,12 +60,12 @@ export class ImagePass {
     return this._colorTarget;
   }
 
-  private readonly drawPass: DrawPass;
-  private readonly illuminationPass: IlluminationPass;
-  private readonly multiSamplePass: MultiSamplePass;
-  private readonly multiSampleHelper: MultiSampleHelper;
-  private readonly helper: Helper;
-  private readonly limitToSupported: (props: ImageProps) => void;
+  private drawPass!: DrawPass;
+  private illuminationPass!: IlluminationPass;
+  private multiSamplePass!: MultiSamplePass;
+  private multiSampleHelper!: MultiSampleHelper;
+  private helper!: Helper;
+  private limitToSupported!: (props: ImageProps) => void;
 
   get width() {
     return this._width;
@@ -71,7 +76,7 @@ export class ImagePass {
 
   constructor(
     private graphics: GraphicsContext,
-    assetManager: AssetManager,
+    private assetManager: AssetManager,
     private renderer: Renderer,
     private scene: Scene,
     private camera: Camera,
@@ -79,10 +84,16 @@ export class ImagePass {
     props: Partial<ImageProps>,
   ) {
     this.props = { ...PD.getDefaultValues(ImageParams), ...props };
+    this.init(helper);
+    this.setSize(1024, 768);
+  }
+
+  private init(helper: Helper) {
+    const { graphics } = this;
     this.limitToSupported = createSupportedPropsLimiter(graphics);
     this.limitToSupported(this.props);
 
-    this.drawPass = new DrawPass(graphics, assetManager, 128, 128, scene.transparency);
+    this.drawPass = new DrawPass(graphics, this.assetManager, 128, 128, this.scene.transparency);
     this.illuminationPass = new IlluminationPass(graphics, this.drawPass);
     this.multiSamplePass = new MultiSamplePass(graphics, this.drawPass);
     this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
@@ -93,20 +104,30 @@ export class ImagePass {
       handle: helper.handle,
       pointer: helper.pointer,
     };
+  }
 
-    this.setSize(1024, 768);
+  /**
+   * Renders with `graphics`, `renderer` and `helper` from now on, the passes are created again (the graphics context
+   * changed, see `Canvas3D.contextChanged`)
+   */
+  setContext(graphics: GraphicsContext, renderer: Renderer, helper: Helper) {
+    this.graphics = graphics;
+    this.renderer = renderer;
+    this.init(helper);
+    const [width, height] = [this._width, this._height];
+    this._width = 0;
+    this._height = 0;
+    this.setSize(width, height);
   }
 
   getByteCount() {
     return this.drawPass.getByteCount() + this.illuminationPass.getByteCount() + this.multiSamplePass.getByteCount();
   }
 
-  updateBackground() {
-    return new Promise<void>((resolve) => {
-      this.drawPass.postprocessing.background.update(this.camera, this.props.postprocessing.background, () => {
-        resolve();
-      });
-    });
+  /** Updates the background to the props and resolves when its images are loaded (pending work, see `render`) */
+  async updateBackground() {
+    this.drawPass.postprocessing.background.update(this.camera, this.props.postprocessing.background);
+    await this.graphics.resources.pending.whenReady();
   }
 
   setSize(width: number, height: number) {
@@ -127,38 +148,68 @@ export class ImagePass {
   }
 
   async render(runtime: RuntimeContext) {
-    // draws whose programs compile in the background (WebGPU pipelines) are skipped: render again if a render started
-    // such work (it may have settled during the render, e.g. between illumination iterations), so the image is complete
-    // and doesn't depend on timing. A render reaches all draws, so one more render suffices.
+    // `prepare` makes what the render draws with ready, so that no draw is skipped while a WebGPU pipeline compiles;
+    // should a render still start work (it may have settled during the render, e.g. between illumination
+    // iterations), render again, so that the image is complete and doesn't depend on timing
     const { pending } = this.graphics.resources;
-    const trackedCount = pending.trackedCount;
-    await this.renderOnce(runtime);
-    if (pending.trackedCount === trackedCount) return;
-    const retrackedCount = pending.trackedCount;
-    await this.renderOnce(runtime);
-    if (isDebugMode && pending.trackedCount !== retrackedCount) {
-      console.warn('ImagePass: rendering again started more work, the image may be incomplete');
+    for (let i = 0; i <= MaxRerenders; ++i) {
+      await this.prepare();
+      const trackedCount = pending.trackedCount;
+      await this.renderOnce(runtime);
+      if (pending.trackedCount === trackedCount) return;
+      if (isDebugMode) {
+        console.warn(
+          `ImagePass: the render started work 'prepare' missed: ${pending.trackedSince(trackedCount).join(', ')}`,
+        );
+      }
+    }
+    if (isDebugMode) console.warn('ImagePass: rendering again started more work, the image may be incomplete');
+  }
+
+  /**
+   * Makes the pipelines and resources `render` needs ready without drawing anything (see `PassBuilder`): the
+   * programs of the scene's variants, the images of the background and lookups, and the pipelines of every pass the
+   * props enable; resolves when they are
+   */
+  async prepare() {
+    this.drawPass.setTransparency(this.scene.transparency);
+    ShaderManager.ensureRequired(this.graphics, this.scene, this.props);
+    // the background is updated before the render: the draw pass chooses its clear from the background's state
+    // (`isEnabled`), which the postprocessing pass would only update during the render, and a loaded image enables
+    // its draws
+    await this.updateBackground();
+    const b = createPrepareBuilder(this.graphics, this.renderer);
+    this.plan(b, this.getRenderContext());
+    await b.whenReady();
+  }
+
+  private plan(b: PassBuilder, ctx: RenderContext<Camera>) {
+    if (this.illuminationPass.supported && this.props.illumination.enabled) {
+      this.illuminationPass.plan(b, ctx, this.props, false);
+    } else if (MultiSamplePass.isEnabled(this.props.multiSample)) {
+      this.multiSampleHelper.plan(b, ctx, this.props, false);
+    } else {
+      this.drawPass.plan(b, ctx, this.props, false);
     }
   }
 
-  private async renderOnce(runtime: RuntimeContext) {
-    this.drawPass.setTransparency(this.scene.transparency);
-    ShaderManager.ensureRequired(this.graphics, this.scene, this.props);
-    // e.g. images still loading into textures (SMAA lookups), so that the image doesn't depend on timing
-    await this.graphics.resources.pending.whenReady();
+  private getRenderContext(): RenderContext<Camera> {
     Camera.copySnapshot(this._camera.state, this.camera.state);
     Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
     this._camera.update();
     this.renderer.setOcclusionTest(null);
     this._frame = createFrame();
-
-    const ctx = {
+    return {
       renderer: this.renderer,
       camera: this._camera,
       scene: this.scene,
       helper: this.helper,
       frame: this._frame,
     };
+  }
+
+  private async renderOnce(runtime: RuntimeContext) {
+    const ctx = this.getRenderContext();
     if (this.illuminationPass.supported && this.props.illumination.enabled) {
       await runtime.update({
         message: 'Tracing...',
@@ -208,9 +259,8 @@ export class ImagePass {
 
     const w = viewport?.width ?? width,
       h = viewport?.height ?? height;
-    // `viewport` has a top-left origin, the read rectangle a bottom-left one
     const x = viewport?.x ?? 0;
-    const y = viewport ? height - viewport.y - viewport.height : 0;
+    const y = viewport?.y ?? 0;
     const array = await this.graphics.readRenderTarget(this.colorTarget, x, y, w, h);
     PixelData.divideByAlpha(PixelData.create(array, w, h));
     return new ImageData(new Uint8ClampedArray(array), w, h);

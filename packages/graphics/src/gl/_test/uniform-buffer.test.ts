@@ -4,11 +4,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat3, Mat4, Quat, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
+import { describe, expect, it } from 'vitest';
+import { Mat3, Mat4, Quat, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { getWindowRectCell } from '../window-rect.js';
 import { ValueCell } from '@molstar/core/util';
 import { GlobalTextureSchema, GlobalUniformSchema, TextureSpec, UniformSpec } from '../renderable/schema.js';
 import { stripUniformDeclarations } from '../webgl/shader-code.js';
-import { getBindingLayout, getUniformBlockLayout } from '../uniform-layout.js';
+import {
+  createUniformBlockData,
+  createUniformBlockWriter,
+  getBindingLayout,
+  getUniformBlockLayout,
+} from '../uniform-layout.js';
 import type { WebGLState } from '../webgl/state.js';
 import type { UniformsList } from '../uniform.js';
 import { createUniformArena, createUniformBuffer, createUniformRingBuffer } from '../webgl/uniform-buffer.js';
@@ -392,18 +399,6 @@ describe('uniform-buffer', () => {
     expect(arena.getByteCount()).toBe(64 * 1024);
   });
 
-  it('arena reset', () => {
-    const { arena, read } = createMockGl();
-    const layout = getUniformBlockLayout('object', TestSchema)!;
-    const buffer = createUniformBuffer(arena, layout);
-    buffer.createWriter([['a', ValueCell.create(7)]])();
-    buffer.sync();
-
-    arena.reset();
-    buffer.bind();
-    expect(read(ObjectIndex)[0]).toBe(7);
-  });
-
   it('ring buffer', () => {
     const { arena, bound, read } = createMockGl();
     const layout = getUniformBlockLayout('global', GlobalUniformSchema)!;
@@ -464,5 +459,65 @@ describe('uniform-buffer', () => {
     expect(layout.material.uniforms!.members.map((m) => m.name)).toEqual(['uAlpha']);
     expect(names('object')).toEqual(['tColor']);
     expect(layout.object.uniforms!.members.map((m) => m.name)).toEqual(['uObjectId']);
+  });
+});
+
+describe('uniform block writer', () => {
+  it('checks the cells only after one changed, until disposed', () => {
+    const layout = getUniformBlockLayout('global', GlobalUniformSchema)!;
+    const data = createUniformBlockData(new ArrayBuffer(layout.size), 0, layout.size);
+    const timeIndex = layout.members.find((m) => m.name === 'uTime')!.offset / 4;
+    const uTime = ValueCell.create(1);
+    let writes = 0;
+    const write = createUniformBlockWriter(layout, data, [['uTime', uTime]], () => writes++);
+
+    write();
+    expect(writes).toBe(1);
+    expect(data.f32[timeIndex]).toBe(1);
+
+    // nothing changed: no write
+    write();
+    expect(writes).toBe(1);
+
+    ValueCell.update(uTime, 2);
+    write();
+    expect(writes).toBe(2);
+    expect(data.f32[timeIndex]).toBe(2);
+
+    // the same value again: the cell changed, the data does not need writing but is checked
+    ValueCell.update(uTime, 2);
+    write();
+    expect(data.f32[timeIndex]).toBe(2);
+
+    write.dispose();
+    expect(uTime.observers?.size).toBe(0);
+  });
+
+  it('writes flipped window rectangles when their source or the target height changes', () => {
+    const schema = { uViewport: { ...UniformSpec('v4'), windowRect: 'pixels' as const } };
+    const layout = getUniformBlockLayout('object', schema)!;
+    const data = createUniformBlockData(new ArrayBuffer(layout.size), 0, layout.size);
+    const index = layout.members.find((m) => m.name === 'uViewport')!.offset / 4;
+    const viewport = () => Array.from(data.f32.subarray(index, index + 4));
+    const source = ValueCell.create(Vec4.create(0, 0, 10, 20));
+    let height = 100;
+    const flipped = getWindowRectCell(schema, 'uViewport', source, () => height);
+    const write = createUniformBlockWriter(layout, data, [['uViewport', flipped]], () => {});
+
+    write();
+    expect(viewport()).toEqual([0, 80, 10, 20]);
+
+    // the source is updated, the writer observes the flipped cell
+    ValueCell.update(source, Vec4.create(5, 0, 10, 20));
+    write();
+    expect(viewport()).toEqual([5, 80, 10, 20]);
+
+    // another target, without a notification
+    height = 50;
+    write();
+    expect(viewport()).toEqual([5, 30, 10, 20]);
+
+    write.dispose();
+    expect(source.observers?.size).toBe(0);
   });
 });

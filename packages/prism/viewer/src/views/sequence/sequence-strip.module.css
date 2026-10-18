@@ -1,0 +1,144 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  /* Fills a panel's body (a flex column) by flex; elsewhere, its parent's height. */
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+}
+
+.selector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 500;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[data-strong] {
+    color: var(--msp-color-text);
+    font-weight: 600;
+  }
+}
+
+/* A choice: its button, and the options under it, over the strip. */
+.choice {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.value {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.popover {
+  position: fixed;
+  z-index: var(--msp-z-overlay);
+  min-width: 180px;
+  max-width: 320px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 6px 16px rgb(0 0 0 / 0.12);
+}
+
+.info {
+  color: var(--msp-color-text-muted);
+  font-weight: 400;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.residues {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.residuesContent {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  padding: var(--msp-space-1) var(--msp-space-3);
+  font-family: var(--msp-font-mono);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.residue {
+  position: relative;
+  height: 28px;
+  padding: 13px 0 var(--msp-space-1); /* off-scale: the ruler's numbers take the top 13px */
+  width: 1ch;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--msp-color-accent);
+    background: var(--msp-color-hover);
+  }
+
+  &[data-number]::before {
+    content: attr(data-number);
+    position: absolute;
+    top: 2px;
+    left: 0;
+    font-family: var(--msp-font-sans);
+    font-size: 9px;
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.selected {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 75%);
+  color: var(--msp-color-accent-strong);
+}
+
+.gap {
+  width: 1ch;
+}

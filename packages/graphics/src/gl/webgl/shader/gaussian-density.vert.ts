@@ -20,8 +20,14 @@ void main() {
     #if defined(dCalcType_groupId)
         vGroup = aGroup;
     #endif
-    gl_PointSize = ceil(((aRadius * 3.0) / uResolution) + uResolution);
+    // a quad around the atom covering its splat, in pixels of the slice (uGridDim.xy)
+    float size = ceil(((aRadius * 3.0) / uResolution) + uResolution);
     vPosition = (aPosition - uBboxMin) / uResolution;
     gl_Position = vec4(((aPosition - uBboxMin) / uBboxSize) * 2.0 - 1.0, 1.0);
+    #ifdef clipZeroToOne
+        // z inside the clip depth range, as with [-1, 1]
+        gl_Position.z = gl_Position.z * 0.5 + 0.5;
+    #endif
+    gl_Position.xy += aMapping * size / uGridDim.xy;
 }
 `;

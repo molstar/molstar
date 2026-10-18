@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { ColorTypeLocation } from '@molstar/graphics/geo/geometry/color-data';
@@ -251,5 +252,25 @@ export function makeMultilayerColorThemeProvider(
     getParams: (ctx: ThemeDataContext) => makeMultilayerColorThemeParams(colorThemeRegistry, ctx),
     defaultValues: DefaultMultilayerColorThemeProps,
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && isMVSStructure(ctx.structure),
+    getSignatureGranularities: (props) => getSignatureGranularities(props, colorThemeRegistry),
   };
+}
+
+/**
+ * The granularities of the layers' themes (created without data) combined with those their selections may have:
+ * uniform for 'all', any for others (see `makeLayers`)
+ */
+function getSignatureGranularities(props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry) {
+  let themeFlags = 0;
+  let selections = false;
+  for (const layer of props.layers) {
+    const provider = colorThemeRegistry.get(layer.theme.name);
+    if (!provider) continue;
+    const { granularity } = provider.factory({}, layer.theme.params);
+    if (!(granularity in granularityFlagsFromName)) continue;
+    themeFlags |= granularityFlagsFromName[granularity as ColorTypeLocation];
+    if (!isSelectorAll(layer.selection)) selections = true;
+  }
+  const selectionFlags = selections ? [0, GRAN_INSTANCE, GRAN_GROUP, GRAN_GROUP | GRAN_INSTANCE] : [0];
+  return [...new Set(selectionFlags.map((f) => granularityNameFromFlags(themeFlags | f)))];
 }

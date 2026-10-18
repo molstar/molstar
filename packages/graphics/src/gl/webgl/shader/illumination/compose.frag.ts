@@ -26,21 +26,30 @@ float getDepthTransparent(const in vec2 coords) {
     #if defined(dTransparentOutline) || defined(dOcclusionEnable) || defined(dBloomEnable)
         return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
     #else
-        return 1.0;
+        return 0.0;
     #endif
 }
 
 bool isBackground(const in float depth) {
-    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32.
-    return depth >= 0.99999994;
+    // the far plane (depth is reversed), packed or raw
+    return depth == 0.0;
 }
 
-float getSsao(vec2 coords) {
-    return unpackSsao(texture2D(tSsaoDepth, coords));
+// occlusion at \`coords\` of a pixel at view z \`viewZ\`, depth-aware upsampled from a lower SSAO resolution
+float getSsao(vec2 coords, float viewZ) {
+    #ifdef dOcclusionUpsample
+        return getSsaoUpsampled(tSsaoDepth, uOcclusionTexSize, coords, viewZ, uNear, uFar);
+    #else
+        return unpackSsao(texture2D(tSsaoDepth, coords));
+    #endif
 }
 
-float getSsaoTransparent(vec2 coords) {
-    return unpackSsao(texture2D(tSsaoDepthTransparent, coords));
+float getSsaoTransparent(vec2 coords, float viewZ) {
+    #ifdef dOcclusionUpsample
+        return getSsaoUpsampled(tSsaoDepthTransparent, uOcclusionTexSize, coords, viewZ, uNear, uFar);
+    #else
+        return unpackSsao(texture2D(tSsaoDepthTransparent, coords));
+    #endif
 }
 
 //
@@ -121,8 +130,8 @@ void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparen
 
     hasOpaque = false;
     hasTransparent = false;
-    opaqueDepth = 1.0;
-    transparentDepth = 1.0;
+    opaqueDepth = 0.0;
+    transparentDepth = 0.0;
     alpha = 0.0;
     for (int y = -dOutlineScale; y <= dOutlineScale; y++) {
         for (int x = -dOutlineScale; x <= dOutlineScale; x++) {
@@ -141,13 +150,13 @@ void getOutline(const in vec2 coords, out bool hasOpaque, out bool hasTransparen
             float sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
 
             if ((sampleFlag > 0.20 && sampleFlag < 0.30) || (sampleFlag > 0.70 && sampleFlag < 0.80)) { // transparent || both
-                if (sampleOpaqueDepth < opaqueDepth) {
+                if (sampleOpaqueDepth > opaqueDepth) {
                     hasOpaque = true;
                     opaqueDepth = sampleOpaqueDepth;
                 }
             }
 
-            if ((((sampleFlag > 0.45 && sampleFlag < 0.55) || (sampleFlag > 0.70 && sampleFlag < 0.80))) && sampleTransparentDepth < transparentDepth) { // transparent || both
+            if ((((sampleFlag > 0.45 && sampleFlag < 0.55) || (sampleFlag > 0.70 && sampleFlag < 0.80))) && sampleTransparentDepth > transparentDepth) { // transparent || both
                 hasTransparent = true;
                 transparentDepth = sampleTransparentDepth;
                 alpha = sampleAlpha;
@@ -171,7 +180,7 @@ void main() {
     float fogFactor = smoothstep(uFogNear, uFogFar, abs(opaqueSelfViewZ));
     float fogAlpha = 1.0 - fogFactor;
 
-    float transparentDepth = 1.0;
+    float transparentDepth = 0.0;
     #ifdef dBlendTransparency
         bool blendTransparency = true;
         vec4 transparentColor = texture2D(tTransparentColor, coords);
@@ -191,7 +200,7 @@ void main() {
 
     #if defined(dOcclusionEnable)
         if (!isBackground(opaqueDepth)) {
-            float occlusionFactor = getSsao(coords);
+            float occlusionFactor = getSsao(coords, opaqueSelfViewZ);
 
             if (!uTransparentBackground) {
                 color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
@@ -203,7 +212,7 @@ void main() {
             if (!isBackground(transparentDepth)) {
                 float viewDist = abs(getViewZ(transparentDepth));
                 float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-                float occlusionFactor = getSsaoTransparent(coords);
+                float occlusionFactor = getSsaoTransparent(coords, getViewZ(transparentDepth));
                 transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
             }
         #endif
@@ -230,7 +239,7 @@ void main() {
 
         #ifdef dBlendTransparency
             if (hasTransparent) {
-                if (hasOpaque && outlineOpaqueDepth < outlineTransparentDepth) {
+                if (hasOpaque && outlineOpaqueDepth > outlineTransparentDepth) {
                     blendTransparency = false;
                 } else {
                     float finalOutlineAlpha = clamp(outlineAlpha * 2.0, 0.0, 1.0);

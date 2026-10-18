@@ -32,26 +32,32 @@ export class ShaderManager {
     private readonly scene: Scene,
   ) {}
 
-  updateRequired(p: ShaderManagerProps) {
-    this.required.length = 0;
-    this.required.push('color');
-    if (IlluminationPass.isEnabled(this.graphics, p.illumination)) {
-      this.required.push('tracing');
+  /** The variants frames with `p` draw the scene with (marking only while something is marked) */
+  static getRequired(graphics: GraphicsContext, scene: Scene, p: ShaderManagerProps): GraphicsRenderVariant[] {
+    const required: GraphicsRenderVariant[] = ['color'];
+    if (IlluminationPass.isEnabled(graphics, p.illumination)) {
+      required.push('tracing');
     }
-    if (MarkingPass.isEnabled(p.marking) && this.scene.markerAverage > 0) {
-      this.required.push('marking');
+    if (MarkingPass.isEnabled(p.marking) && scene.markerAverage > 0) {
+      required.push('marking');
     }
-    if (BloomPass.isEnabled(p.postprocessing) && this.scene.emissiveAverage > 0) {
-      this.required.push('emissive');
+    if (BloomPass.isEnabled(p.postprocessing) && scene.emissiveAverage > 0) {
+      required.push('emissive');
     }
     if (
-      (PostprocessingPass.isTransparentDepthRequired(this.scene, p.postprocessing) && this.scene.opacityAverage < 1) ||
-      !this.graphics.capabilities.multipleRenderTargets ||
-      !this.graphics.capabilities.depthTexture ||
-      IlluminationPass.isEnabled(this.graphics, p.illumination)
+      (PostprocessingPass.isTransparentDepthRequired(scene, p.postprocessing) && scene.opacityAverage < 1) ||
+      !graphics.capabilities.multipleRenderTargets ||
+      !graphics.capabilities.depthTexture ||
+      IlluminationPass.isEnabled(graphics, p.illumination)
     ) {
-      this.required.push('depth');
+      required.push('depth');
     }
+    return required;
+  }
+
+  updateRequired(p: ShaderManagerProps) {
+    this.required.length = 0;
+    this.required.push(...ShaderManager.getRequired(this.graphics, this.scene, p));
     this.graphics.resources.linkPrograms(this.required);
   }
 

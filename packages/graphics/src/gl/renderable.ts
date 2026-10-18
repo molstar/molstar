@@ -61,6 +61,8 @@ export type RenderableState = {
 export interface Renderable<T extends RenderableValues> {
   readonly id: number;
   readonly materialId: number;
+  /** For pipeline requests (`resources.preparePipelines`) */
+  readonly renderItem: GraphicsRenderItem;
   readonly values: T;
   readonly state: RenderableState;
 
@@ -474,6 +476,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(
   return {
     id,
     materialId: renderItem.materialId,
+    renderItem,
     values,
     state,
 
@@ -614,6 +617,8 @@ export function createClipInfoCache(values: BaseValues): ClipInfoCache {
 export interface ComputeRenderable<T extends RenderableValues> {
   readonly id: number;
   readonly values: T;
+  /** For pipeline requests (`resources.preparePipelines`) */
+  readonly renderItem: ComputeRenderItem;
 
   render: () => void;
   update: () => void;
@@ -627,6 +632,7 @@ export function createComputeRenderable<T extends Values<RenderableSchema>>(
   return {
     id: getNextRenderableId(),
     values,
+    renderItem,
 
     render: () => {
       renderItem.getProgram('compute').finalize(true);

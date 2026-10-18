@@ -8,9 +8,9 @@ ${common}
 void main() {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
 
-    // depth of the front-most unmarked fragment, cleared to 1.0 in every channel where there is none
+    // depth of the front-most unmarked fragment, cleared to 0.0 (the far plane) in every channel where there is none
     vec4 packedDepth = texture2D(tDepthTexture, coords);
-    if (packedDepth == vec4(1.0))
+    if (packedDepth == vec4(0.0))
         discard;
 
     // mask values are 0.0 where marked, green is 0.0 where the marked fragment is in front

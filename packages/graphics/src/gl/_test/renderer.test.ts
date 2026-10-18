@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createGl } from './gl.shim.js';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -36,9 +37,13 @@ describe('renderer', () => {
     expect(ctx.stats.resourceCounts.program).toBe(0);
     expect(ctx.stats.resourceCounts.shader).toBe(0);
 
+    // applied in render passes, flipped to GL's bottom-left origin
     renderer.setViewport(0, 0, 64, 48);
+    ctx.beginRenderPass('drawing-buffer');
+    expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[1]).toBe(32 - 48);
     expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[2]).toBe(64);
     expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[3]).toBe(48);
+    ctx.endRenderPass();
   });
 
   it('points', async () => {

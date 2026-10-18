@@ -9,8 +9,7 @@ import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { PluginConfig } from '@molstar/plugin/config';
-import { WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
-import { WebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
+import { getGraphicsBackends } from '@molstar/plugin/util/graphics-backends';
 import { ExtensionMap } from '@molstar/viewer/extensions';
 import { DefaultViewerOptions, type ViewerOptions } from '@molstar/viewer/options';
 import { NoPrimaryFocusLociBindings } from '@molstar/plugin/behavior/dynamic/camera';
@@ -87,11 +86,7 @@ export function createViewerSpec(options: Partial<ViewerOptions> = {}): PluginUI
       [PluginConfig.General.PixelScale, o.pixelScale],
       [PluginConfig.General.PickScale, o.pickScale],
       [PluginConfig.General.Transparency, o.transparency],
-      [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
-      [
-        PluginConfig.General.GraphicsBackends,
-        o.graphicsBackend === 'webgpu' ? [WebGPUBackend, WebGL2Backend, WebGLBackend] : undefined,
-      ],
+      [PluginConfig.General.GraphicsBackends, getGraphicsBackends(o.graphicsBackend)],
       [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
       [PluginConfig.General.PowerPreference, o.powerPreference],
       [PluginConfig.General.ResolutionMode, o.resolutionMode],

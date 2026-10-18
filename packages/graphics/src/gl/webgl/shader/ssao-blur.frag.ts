@@ -15,32 +15,33 @@ precision highp int;
 
 ${common}
 
+// the packed depth is linear and reversed (see the SSAO pass)
 float getViewZ(const in float depth) {
-    #if dOrthographic == 1
-        return orthographicDepthToViewZ(depth, uNear, uFar);
-    #else
-        return perspectiveDepthToViewZ(depth, uNear, uFar);
-    #endif
+    return depth * (uFar - uNear) - uFar;
 }
 
-// packUnitIntervalToRG(1.0) stores (0, 1) in the uint8 target and unpacks to 255/256,
-// never 1.0, so the packed bytes have to be tested instead
+// the background (far plane) at 0, packed as (0, 0); the near plane at 1, which
+// packUnitIntervalToRG stores as (0, 1) in the uint8 target and unpacks to 255/256, never 1.0, so the packed bytes
+// are tested
 bool isBackgroundPacked(const in vec2 packedDepth) {
-    return packedDepth.x == 0.0 && packedDepth.y == 1.0;
+    return packedDepth.x == 0.0 && packedDepth.y == 0.0;
 }
 
-bool isNearClip(const in float depth) {
-    return depth == 0.0;
+bool isNearClipPacked(const in vec2 packedDepth) {
+    return packedDepth.x == 0.0 && packedDepth.y == 1.0;
 }
 
 bool outsideBounds(const in vec2 p) {
     return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
 }
 
-float getPixelSize(const in vec2 coords, const in float depth) {
-    vec3 viewPos0 = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
-    vec3 viewPos1 = screenSpaceToViewSpace(vec3(coords + vec2(1.0, 0.0) / uTexSize, depth), uInvProjection);
-    return distance(viewPos0, viewPos1);
+// view space size of a pixel at view z
+float getPixelSize(const in float viewZ) {
+    #if dOrthographic == 1
+        return 2.0 * uInvProjection[0][0] / uTexSize.x;
+    #else
+        return 2.0 * uInvProjection[0][0] * -viewZ / uTexSize.x;
+    #endif
 }
 
 void main(void) {
@@ -55,13 +56,13 @@ void main(void) {
 
     float selfDepth = unpackRGToUnitInterval(packedDepth);
     // (if background and if second pass) or if near clip
-    if ((isBackgroundPacked(packedDepth) && uBlurDirectionY != 0.0) || isNearClip(selfDepth)) {
+    if ((isBackgroundPacked(packedDepth) && uBlurDirectionY != 0.0) || isNearClipPacked(packedDepth)) {
         gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
         return;
     }
 
     float selfViewZ = getViewZ(selfDepth);
-    float pixelSize = getPixelSize(coords, selfDepth);
+    float pixelSize = getPixelSize(selfViewZ);
 
     vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
 
@@ -80,7 +81,7 @@ void main(void) {
         vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
 
         float sampleDepth = unpackRGToUnitInterval(sampleSsaoDepth.zw);
-        if (isBackgroundPacked(sampleSsaoDepth.zw) || isNearClip(sampleDepth)) {
+        if (isBackgroundPacked(sampleSsaoDepth.zw) || isNearClipPacked(sampleSsaoDepth.zw)) {
             continue;
         }
 

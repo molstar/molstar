@@ -2,6 +2,8 @@
 
 ## Status
 
+- **Current**: not started beyond the groundwork below. Instanced quads and GPU-driven culling on WebGPU overlap with
+  [webgpu-draw-submission.md](webgpu-draw-submission.md) (paused).
 - Planning only. Related: [wgsl-strategy.md](wgsl-strategy.md) (points as quads, step 4),
   [storage-buffers.md](storage-buffers.md) (data arrays on WebGPU), [attribute-bindings.md](attribute-bindings.md)
   (vertex buffer limits, vertex pulling), [backend-split.md](backend-split.md),

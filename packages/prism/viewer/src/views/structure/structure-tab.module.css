@@ -1,0 +1,313 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  /* Fills a panel's body (a flex column) by flex; elsewhere, its parent's height. */
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+  /* The panel's content inset: 4px at the sides and bottom; boxes inside pad 8px, so text lines up with the header's
+     12px. */
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  font-size: var(--msp-font-size-sm);
+  container-type: inline-size;
+}
+
+/* The tree takes what the inspector leaves; its list scrolls (a virtualized tree fills it). */
+.tree {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 80px;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: var(--msp-space-1);
+  min-width: 0;
+}
+
+/* The header's buttons: an icon and a word while they fit; a narrow panel keeps the icons alone (the words go, still
+   read out), so nothing falls off the edge. */
+@container (width < 296px) {
+  .actions > button:has(.actionLabel) {
+    width: max(24px, var(--msp-touch-target, 0px));
+    padding: 0;
+  }
+
+  .actionLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.inspector {
+  /* Always there, at a fixed height: picking a node fills it rather than moving the tree. No box of its own (its edge
+     would stick out of the title's column): a hairline sets it apart from the tree. */
+  flex: none;
+  height: clamp(180px, 42%, 420px);
+  /* Against the tree, without the tab's gap (the tree's fading edge runs right up to the hairline), and to the tab's
+     edges at the sides. */
+  margin: calc(-1 * var(--msp-space-2)) calc(-1 * var(--msp-space-2)) 0;
+  border-top: 1px solid var(--msp-glass-edge);
+}
+
+/* At least the inspector's height: the hint (stretched) centers in it. */
+.inspectorContent {
+  display: grid;
+  /* One column, never wider than the panel (an auto column grows to a long title's width). */
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100%;
+}
+
+.inspection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--msp-space-2);
+  /* 12px at the sides: the title's column (the tab's 4px inset is undone above, the hairline runs edge to edge). */
+  padding: var(--msp-space-3) var(--msp-space-4) var(--msp-space-3);
+}
+
+.inspectorEmpty {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  text-align: center;
+}
+
+.inspectorHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 26px;
+}
+
+.inspectorTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.inspectorKind {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  text-transform: capitalize;
+}
+
+/* A component's title with its pencil; renaming, the field takes the title's room. */
+.renameTitle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-width: 0;
+
+  & .inspectorTitle {
+    flex: 0 1 auto;
+  }
+}
+
+.renameField {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The header's eye (show or hide, turn on or off): quiet at the end, the text color while hidden or off. */
+.inspectorEye {
+  flex: none;
+  margin: calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) calc(-1 * var(--msp-space-1)) auto;
+  color: var(--msp-color-text-muted);
+
+  &[aria-pressed="true"] {
+    color: var(--msp-color-text);
+  }
+}
+
+/* An item with nothing to set: a quiet line instead of an empty space. */
+.nothing {
+  margin: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}
+
+/* Things to do from here: plain rows, like a menu's. */
+.inspectorActions {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.inspectorAction {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: max(28px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+/* Facts flow as short label–value pairs, wrapping: a structure's size, a map's grid and σ, at a glance. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-1) var(--msp-space-4);
+  margin: 0;
+  font-size: var(--msp-font-size-xs);
+}
+
+.fact {
+  display: flex;
+  gap: var(--msp-space-2);
+
+  & dt {
+    color: var(--msp-color-text-subtle);
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="false"] > & {
+    transform: rotate(-90deg);
+  }
+}
+
+/* The options button sits at the end of the header row. */
+.searchButton {
+  margin-left: auto;
+}
+
+/* The tree's search, between the header and the tree. */
+.search {
+  display: grid;
+  padding: 0 var(--msp-space-2);
+}
+
+.optionsButton {
+  /* Level with the header's ✕ (8px from the panel's edge: the tab's 4px inset and 4px more). */
+  margin-right: var(--msp-space-2);
+}
+
+.options {
+  flex: none;
+  max-height: 50%;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.optionsContent {
+  padding: var(--msp-space-2) var(--msp-space-3);
+}
+
+/* A component's representations: rows to open them (their inspector), each with its eye. */
+.children {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.childrenTitle {
+  padding: 0 var(--msp-space-2) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.child {
+  display: flex;
+  align-items: center;
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.childHidden {
+  color: var(--msp-color-text-subtle);
+}
+
+.childOpen {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: max(30px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  text-align: left;
+}
+
+.childIcon {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.childLabel {
+  flex: none;
+  font-weight: 500;
+}
+
+.childDescription {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.childChevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.childEye {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}

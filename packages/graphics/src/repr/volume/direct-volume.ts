@@ -235,6 +235,8 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
     {
       defaultProps: PD.getDefaultValues(DirectVolumeParams),
       createGeometry: createDirectVolume,
+      // the volume's axis order
+      signatureDefines: () => ({ dAxisOrder: ['012', '021', '102', '120', '201', '210'] }),
       createLocationIterator: createVolumeCellLocationIterator,
       getLoci: getDirectVolumeLoci,
       eachLocation: eachDirectVolume,

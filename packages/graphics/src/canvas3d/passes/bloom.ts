@@ -7,6 +7,7 @@
  * Partially adapted from three.js, The MIT License, Copyright © 2010-2024 three.js authors
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -200,22 +201,27 @@ export class BloomPass {
   }
 
   /** Writes bloom to `compositeTarget`; caller blends it. */
-  render(viewport: Viewport) {
-    if (isTimingMode) this.graphics.timer.group('BloomPass.render');
+  render(b: PassBuilder, viewport: Viewport) {
     const { graphics } = this;
+    const timing = isTimingMode && b.drawing;
+    if (timing) graphics.timer.group('BloomPass.render');
     const { x, y, width, height } = viewport;
-    graphics.setViewport(x, y, width, height);
-    graphics.setScissor(x, y, width, height);
-    graphics.setRenderState(RenderState.Default);
+    const state = RenderState.Default;
+    if (b.drawing) {
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+    }
 
-    this.graphics.beginRenderPass(this.luminosityTarget, { label: 'bloom luminosity' });
-    this.luminosityRenderable.render();
+    b.begin(this.luminosityTarget, { label: 'bloom luminosity' });
+    b.quad(this.luminosityRenderable, state);
 
     for (let i = 0; i < MipCount; ++i) {
       const blurWidth = this.horizontalBlurTargets[i].getWidth();
       const blurHeight = this.horizontalBlurTargets[i].getHeight();
-      graphics.setViewport(0, 0, blurWidth, blurHeight);
-      graphics.setScissor(0, 0, blurWidth, blurHeight);
+      if (b.drawing) {
+        graphics.setViewport(0, 0, blurWidth, blurHeight);
+        graphics.setScissor(0, 0, blurWidth, blurHeight);
+      }
 
       ValueCell.update(this.blurRenderable.values.dKernelRadius, BlurKernelSizes[i]);
       ValueCell.update(this.blurRenderable.values.uGaussianCoefficients, getBlurCoefficients(BlurKernelSizes[i]));
@@ -224,30 +230,32 @@ export class BloomPass {
         Vec2.set(this.blurRenderable.values.uTexSizeInv.ref.value, 1 / blurWidth, 1 / blurHeight),
       );
 
-      this.graphics.beginRenderPass(this.horizontalBlurTargets[i], { label: 'bloom blur' });
+      b.begin(this.horizontalBlurTargets[i], { label: 'bloom blur' });
       ValueCell.update(
         this.blurRenderable.values.tInput,
         i === 0 ? this.luminosityTarget.texture : this.verticalBlurTargets[i - 1].texture,
       );
       ValueCell.update(this.blurRenderable.values.uDirection, BlurDirectionX);
       this.blurRenderable.update();
-      this.blurRenderable.render();
+      b.quad(this.blurRenderable, state);
 
-      this.graphics.beginRenderPass(this.verticalBlurTargets[i], { label: 'bloom blur' });
+      b.begin(this.verticalBlurTargets[i], { label: 'bloom blur' });
       ValueCell.update(this.blurRenderable.values.tInput, this.horizontalBlurTargets[i].texture);
       ValueCell.update(this.blurRenderable.values.uDirection, BlurDirectionY);
       this.blurRenderable.update();
-      this.blurRenderable.render();
+      b.quad(this.blurRenderable, state);
     }
 
-    graphics.setViewport(x, y, width, height);
-    graphics.setScissor(x, y, width, height);
+    if (b.drawing) {
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+    }
 
-    this.graphics.beginRenderPass(this.compositeTarget, { label: 'bloom composite' });
+    b.begin(this.compositeTarget, { label: 'bloom composite' });
     this.compositeRenderable.update();
-    this.compositeRenderable.render();
+    b.quad(this.compositeRenderable, state);
 
-    if (isTimingMode) this.graphics.timer.groupEnd('BloomPass.render');
+    if (timing) graphics.timer.groupEnd('BloomPass.render');
   }
 }
 

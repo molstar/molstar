@@ -10,22 +10,29 @@ import { RuntimeContext } from '@molstar/core/task';
 import { type GraphicsContext } from '@molstar/graphics/gl/context';
 import { Representation, type RepresentationProvider } from '@molstar/graphics/repr/representation';
 import { ColorTheme } from '@molstar/graphics/theme/color';
+import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
 import { SizeTheme } from '@molstar/graphics/theme/size';
+import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { createModels } from '@molstar/model/formats/structure/basic/parser';
 import { BasicSchema, createBasic } from '@molstar/model/formats/structure/basic/schema';
 import { ComponentBuilder } from '@molstar/model/formats/structure/common/component';
 import { EntityBuilder } from '@molstar/model/formats/structure/common/entity';
 import { Structure } from '@molstar/model/model/structure';
+import { CIF } from '@molstar/io/reader/cif';
+import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { MoleculeType } from '@molstar/model/model/structure/model/types';
 
 let themeRegistries: { colorThemeRegistry: ColorTheme.Registry; sizeThemeRegistry: SizeTheme.Registry } | undefined;
-function getThemeRegistries() {
+/** The built-in color and size themes */
+export function getThemeRegistries() {
   if (!themeRegistries) {
-    themeRegistries = {
-      colorThemeRegistry: ColorTheme.createRegistry(),
-      sizeThemeRegistry: SizeTheme.createRegistry(),
-    };
+    // registries start empty
+    const colorThemeRegistry = ColorTheme.createRegistry();
+    for (const p of Object.values(BuiltInColorThemes)) colorThemeRegistry.add(p as ColorTheme.Provider<any, any, any>);
+    const sizeThemeRegistry = SizeTheme.createRegistry();
+    for (const p of Object.values(BuiltInSizeThemes)) sizeThemeRegistry.add(p as SizeTheme.Provider<any, any>);
+    themeRegistries = { colorThemeRegistry, sizeThemeRegistry };
   }
   return themeRegistries;
 }
@@ -37,8 +44,7 @@ export async function helixStructure(atomsPerChain: number): Promise<Structure> 
   const x = new Float32Array(count),
     y = new Float32Array(count),
     z = new Float32Array(count);
-  const asymIds: string[] = [];
-  const seqIds: number[] = [];
+  const chainOf = new Int32Array(count);
   for (let c = 0; c < chains.length; ++c) {
     for (let i = 0; i < atomsPerChain; ++i) {
       const k = c * atomsPerChain + i;
@@ -46,9 +52,32 @@ export async function helixStructure(atomsPerChain: number): Promise<Structure> 
       x[k] = 4 * Math.cos(a);
       y[k] = 4 * Math.sin(a);
       z[k] = i * 0.5 - atomsPerChain * 0.25;
-      asymIds.push(chains[c]);
-      seqIds.push(i + 1);
+      chainOf[k] = c;
     }
+  }
+  return atomStructure('helices', x, y, z, chains, chainOf);
+}
+
+/**
+ * A structure of carbon atoms ('CA' of 'ALA' residues, one atom per residue) at the given coordinates, atom `i` in
+ * chain `chains[chainOf[i]]`; the atoms of a chain must be consecutive
+ */
+export async function atomStructure(
+  name: string,
+  x: Float32Array,
+  y: Float32Array,
+  z: Float32Array,
+  chains: readonly string[],
+  chainOf: Int32Array,
+): Promise<Structure> {
+  const count = x.length;
+  const asymIds: string[] = [];
+  const seqIds: number[] = [];
+  let seqId = 0;
+  for (let k = 0; k < count; ++k) {
+    if (k === 0 || chainOf[k] !== chainOf[k - 1]) seqId = 0;
+    asymIds.push(chains[chainOf[k]]);
+    seqIds.push(++seqId);
   }
 
   const auth_asym_id = Column.ofStringArray(asymIds);
@@ -90,7 +119,7 @@ export async function helixStructure(atomsPerChain: number): Promise<Structure> 
   });
   const trajectory = await createModels(
     basic,
-    { kind: 'visual-test', name: 'helices', data: undefined },
+    { kind: 'visual-test', name, data: undefined },
     RuntimeContext.Synchronous,
   );
   return Structure.ofModel(trajectory.representative);
@@ -120,4 +149,17 @@ export async function structureRepr<P extends PD.Params>(
   );
   await repr.createOrUpdate(props, structure).run();
   return repr as unknown as Representation.Any;
+}
+
+/**
+ * A PDB entry of `data/examples` (served with the repository), its first model: units per chain, as representations of
+ * entries have them (unlike the globules, chains have cavities inside, adding to their surfaces)
+ */
+export async function exampleStructure(file: string): Promise<Structure> {
+  const response = await fetch(`/data/examples/${file}`);
+  if (!response.ok) throw new Error(`failed to load '${file}': ${response.status}`);
+  const parsed = await CIF.parse(await response.text()).run();
+  if (parsed.isError) throw new Error(`failed to parse '${file}': ${parsed.message}`);
+  const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0]).run();
+  return Structure.ofModel(trajectory.representative);
 }

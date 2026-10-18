@@ -6,7 +6,7 @@
 
 import type { GraphicsBackendDescriptor, GraphicsContextAttribs } from '../backend.js';
 import type { GLRenderingContext } from './compat.js';
-import { createContext } from './context.js';
+import { createContext, type WebGLContextProps } from './context.js';
 
 /** Attributes the renderer requires of the drawing buffer */
 const RequiredAttribs: WebGLContextAttributes = {
@@ -16,7 +16,11 @@ const RequiredAttribs: WebGLContextAttributes = {
   premultipliedAlpha: true, // the renderer outputs PMA
 };
 
-function WebGLBackendDescriptor(id: 'webgl' | 'webgl2'): GraphicsBackendDescriptor {
+/** A WebGL backend; `options.uniformBlocks`: see `WebGLContextProps` */
+export function createWebGLBackend(
+  id: 'webgl' | 'webgl2',
+  options: Partial<Pick<WebGLContextProps, 'uniformBlocks'>> = {},
+): GraphicsBackendDescriptor {
   return {
     id,
     isAvailable: () =>
@@ -38,12 +42,12 @@ function WebGLBackendDescriptor(id: 'webgl' | 'webgl2'): GraphicsBackendDescript
       } catch {
         gl = null;
       }
-      return gl ? createContext(gl, { pixelScale }) : undefined;
+      return gl ? createContext(gl, { pixelScale, uniformBlocks: options.uniformBlocks }) : undefined;
     },
   };
 }
 
 /** WebGL 2 */
-export const WebGL2Backend = WebGLBackendDescriptor('webgl2');
+export const WebGL2Backend = createWebGLBackend('webgl2');
 /** WebGL 1 with extensions */
-export const WebGLBackend = WebGLBackendDescriptor('webgl');
+export const WebGLBackend = createWebGLBackend('webgl');

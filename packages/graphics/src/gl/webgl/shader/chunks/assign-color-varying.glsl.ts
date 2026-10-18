@@ -1,40 +1,35 @@
 export const assign_color_varying = `
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
-    #if defined(dColorType_instance)
-        vColor.rgb = readFromTexture(tColor, aInstance, uColorTexDim).rgb;
-    #elif defined(dColorType_group)
+    #if defined(dColorType_texture)
+        // the texture's index by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex,
+        // vertexInstance
+        float colorIndex = aInstance;
+        if (uColorIndexType == 1) {
+            colorIndex = groupIndex(group);
+        } else if (uColorIndexType == 2) {
+            colorIndex = groupInstanceIndex(aInstance, group);
+        } else if (uColorIndexType == 3) {
+            colorIndex = float(vertexId);
+        } else if (uColorIndexType == 4) {
+            colorIndex = float(int(aInstance) * uVertexCount + vertexId);
+        }
         #if defined(dDualColor)
+            // two colors per group, except for color mode 2 (cylinders)
+            bool dualColor = uColorIndexType == 1 || uColorIndexType == 2;
             vec4 color2;
-            if (aColorMode == 2.0) {
-                vColor.rgb = readFromTexture(tColor, groupIndex(group), uColorTexDim).rgb;
+            if (dualColor && aColorMode != 2.0) {
+                vColor.rgb = readFromTexture(tColor, colorIndex * 2.0, uColorTexDim).rgb;
+                color2.rgb = readFromTexture(tColor, colorIndex * 2.0 + 1.0, uColorTexDim).rgb;
             } else {
-                vColor.rgb = readFromTexture(tColor, groupIndex(group) * 2.0, uColorTexDim).rgb;
-                color2.rgb = readFromTexture(tColor, groupIndex(group) * 2.0 + 1.0, uColorTexDim).rgb;
+                vColor.rgb = readFromTexture(tColor, colorIndex, uColorTexDim).rgb;
             }
         #else
-            vColor.rgb = readFromTexture(tColor, groupIndex(group), uColorTexDim).rgb;
+            vColor.rgb = readFromTexture(tColor, colorIndex, uColorTexDim).rgb;
         #endif
-    #elif defined(dColorType_groupInstance)
-        #if defined(dDualColor)
-            vec4 color2;
-            if (aColorMode == 2.0) {
-                vColor.rgb = readFromTexture(tColor, groupInstanceIndex(aInstance, group), uColorTexDim).rgb;
-            } else {
-                vColor.rgb = readFromTexture(tColor, groupInstanceIndex(aInstance, group) * 2.0, uColorTexDim).rgb;
-                color2.rgb = readFromTexture(tColor, groupInstanceIndex(aInstance, group) * 2.0 + 1.0, uColorTexDim).rgb;
-            }
-        #else
-            vColor.rgb = readFromTexture(tColor, groupInstanceIndex(aInstance, group), uColorTexDim).rgb;
-        #endif
-    #elif defined(dColorType_vertex)
-        vColor.rgb = readFromTexture(tColor, vertexId, uColorTexDim).rgb;
-    #elif defined(dColorType_vertexInstance)
-        vColor.rgb = readFromTexture(tColor, int(aInstance) * uVertexCount + vertexId, uColorTexDim).rgb;
-    #elif defined(dColorType_volume)
-        vec3 cgridPos = (uColorGridTransform.w * (position - uColorGridTransform.xyz)) / uColorGridDim;
-        vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
-    #elif defined(dColorType_volumeInstance)
-        vec3 cgridPos = (uColorGridTransform.w * (vModelPosition / uModelScale - uColorGridTransform.xyz)) / uColorGridDim;
+    #elif defined(dColorType_grid)
+        // the local position (volume) or the model position (volumeInstance), see \`ColorTypeIndex\`
+        vec3 cgridSource = uColorIndexType == 1 ? vModelPosition / uModelScale : position;
+        vec3 cgridPos = (uColorGridTransform.w * (cgridSource - uColorGridTransform.xyz)) / uColorGridDim;
         vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
     #endif
 
@@ -43,10 +38,8 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dOverpaint
-        #if defined(dOverpaintType_instance)
-            vOverpaint = readFromTexture(tOverpaint, aInstance, uOverpaintTexDim);
-        #elif defined(dOverpaintType_groupInstance)
-            vOverpaint = readFromTexture(tOverpaint, groupInstanceIndex(aInstance, group), uOverpaintTexDim);
+        #if defined(dOverpaintType_texture)
+            vOverpaint = readFromTexture(tOverpaint, granularityIndex(aInstance, group), uOverpaintTexDim);
         #elif defined(dOverpaintType_vertexInstance)
             vOverpaint = readFromTexture(tOverpaint, int(aInstance) * uVertexCount + vertexId, uOverpaintTexDim);
         #elif defined(dOverpaintType_volumeInstance)
@@ -64,10 +57,8 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dEmissive
-        #if defined(dEmissiveType_instance)
-            vEmissive = readFromTexture(tEmissive, aInstance, uEmissiveTexDim).r;
-        #elif defined(dEmissiveType_groupInstance)
-            vEmissive = readFromTexture(tEmissive, groupInstanceIndex(aInstance, group), uEmissiveTexDim).r;
+        #if defined(dEmissiveType_texture)
+            vEmissive = readFromTexture(tEmissive, granularityIndex(aInstance, group), uEmissiveTexDim).r;
         #elif defined(dEmissiveType_vertexInstance)
             vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + vertexId, uEmissiveTexDim).r;
         #elif defined(dEmissiveType_volumeInstance)
@@ -78,10 +69,8 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dSubstance
-        #if defined(dSubstanceType_instance)
-            vSubstance = readFromTexture(tSubstance, aInstance, uSubstanceTexDim);
-        #elif defined(dSubstanceType_groupInstance)
-            vSubstance = readFromTexture(tSubstance, groupInstanceIndex(aInstance, group), uSubstanceTexDim);
+        #if defined(dSubstanceType_texture)
+            vSubstance = readFromTexture(tSubstance, granularityIndex(aInstance, group), uSubstanceTexDim);
         #elif defined(dSubstanceType_vertexInstance)
             vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + vertexId, uSubstanceTexDim);
         #elif defined(dSubstanceType_volumeInstance)
@@ -95,10 +84,8 @@ export const assign_color_varying = `
     #endif
 #elif defined(dRenderVariant_emissive)
     #ifdef dEmissive
-        #if defined(dEmissiveType_instance)
-            vEmissive = readFromTexture(tEmissive, aInstance, uEmissiveTexDim).r;
-        #elif defined(dEmissiveType_groupInstance)
-            vEmissive = readFromTexture(tEmissive, groupInstanceIndex(aInstance, group), uEmissiveTexDim).r;
+        #if defined(dEmissiveType_texture)
+            vEmissive = readFromTexture(tEmissive, granularityIndex(aInstance, group), uEmissiveTexDim).r;
         #elif defined(dEmissiveType_vertexInstance)
             vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + vertexId, uEmissiveTexDim).r;
         #elif defined(dEmissiveType_volumeInstance)
@@ -124,10 +111,8 @@ export const assign_color_varying = `
 #endif
 
 #ifdef dTransparency
-    #if defined(dTransparencyType_instance)
-        vTransparency = readFromTexture(tTransparency, aInstance, uTransparencyTexDim).r;
-    #elif defined(dTransparencyType_groupInstance)
-        vTransparency = readFromTexture(tTransparency, groupInstanceIndex(aInstance, group), uTransparencyTexDim).r;
+    #if defined(dTransparencyType_texture)
+        vTransparency = readFromTexture(tTransparency, granularityIndex(aInstance, group), uTransparencyTexDim).r;
     #elif defined(dTransparencyType_vertexInstance)
         vTransparency = readFromTexture(tTransparency, int(aInstance) * uVertexCount + vertexId, uTransparencyTexDim).r;
     #elif defined(dTransparencyType_volumeInstance)

@@ -1,7 +1,7 @@
 export const common_frag_params = `
 #if dClipObjectCount != 0
     #if defined(dClipping)
-        #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
+        #if __VERSION__ == 100 || !defined(dVaryingGroup)
             varying float vClipping;
         #else
             flat in float vClipping;
@@ -10,7 +10,7 @@ export const common_frag_params = `
 #endif
 
 #if defined(dNeedsMarker)
-    #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
+    #if __VERSION__ == 100 || !defined(dVaryingGroup)
         varying float vMarker;
     #else
         flat in float vMarker;
@@ -40,7 +40,7 @@ float getDepth(const in vec2 coords) {
 
 float calcDepth(const in vec3 pos) {
     vec2 clipZW = pos.z * uProjection[2].zw + uProjection[3].zw;
-    return 0.5 + 0.5 * clipZW.x / clipZW.y;
+    return clipZToDepth(clipZW.x / clipZW.y);
 }
 
 vec3 perturbNormal(in vec3 modelPosition, in vec3 viewPosition, in vec3 normal, in float frequency, in float scale) {

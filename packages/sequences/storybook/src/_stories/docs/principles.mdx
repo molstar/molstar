@@ -1,0 +1,124 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Seq*/Docs/Principles" />
+
+# Principles
+
+What holds in every Seq\* package. The page uses the words of [Concepts](?path=/docs/seq-docs-concepts--docs); read that first.
+
+**In short.** Everything is numbered: every position lives in one [coordinate
+system](?path=/docs/seq-docs-concepts--docs#coordinate-system), and [coordinate maps](?path=/docs/seq-docs-concepts--docs#coordinate-map-and-route) carry
+positions between systems, so a residue hovered in a chain lights its alignment column and its
+codon. The core knows numbers, tables and maps, never biology; the biology comes in as data and
+plug-ins. A document is plain data saying what to show, never how. Everything the viewer draws or
+knows is a registry entry, the built-ins included, as in Mol\*. The state lives in one headless
+context that runs in Node; drawing is a thin layer over it. Speed is a contract, checked by tests
+that fail when a frame allocates. And every name, schema and error is shaped so that a small model
+can use it.
+
+Each principle below says what holds and why.
+
+## Coordinate systems are the backbone
+
+1. **Every location lives in one coordinate system.** A [unit](?path=/docs/seq-docs-concepts--docs#unit)'s residues, a
+   [molecule](?path=/docs/seq-docs-concepts--docs#molecule)'s positions, an [alignment](?path=/docs/seq-docs-concepts--docs#alignment-rows-and-columns)'s
+   columns, each row's own residues: each is a coordinate system whose elements are numbered by
+   [index](?path=/docs/seq-docs-concepts--docs#position-and-index-label-and-numbering). A [section](?path=/docs/seq-docs-concepts--docs#view-section-and-block)
+   lays its axis out in one layout system; every [layer](?path=/docs/seq-docs-concepts--docs#track-layer-and-renderer) reads its
+   data in its own system and is placed through a coordinate map.
+2. **Alignments and codons are one model.** Both are coordinate maps, one with gaps, one with a span
+   of 3. **Projection** carries positions along a route as a plain union of runs;
+   [**closure**](?path=/docs/seq-docs-concepts--docs#closure-and-granularity) adds the positions of other systems that contain
+   one. Hover, selection and highlights all use this one mechanism, and each chooses whether to
+   close.
+3. **Indices are canonical, labels are for people.** Positions are 0-based and half-open
+   (`start`, `stop`); [labels in a numbering](?path=/docs/seq-docs-concepts--docs#position-and-index-label-and-numbering)
+   (`beg`, `end`, inclusive) are converted once, at load. SeqQL keeps the split: labels with `range`
+   and `[10-20]`, indices with `slice` and `@9:20`.
+
+## The core is domain-free
+
+4. **The core holds abstractions, the biology lives at application level.** The model, the format and the viewer hold
+   coordinate systems, runs, maps, tables, keys, measures and drawing batches; providers (code that
+   computes data), named data (letter classes, color rule tables), builder presets, an app's search
+   and Stories hold the biology. The test: an abstraction can be stated without a biological word. Reversing a [piece](?path=/docs/seq-docs-concepts--docs#piece) does not complement its letters;
+   complementing is a letter map, a code-to-code table given as named data.
+5. **A sequence viewer first.** Nothing in the kernel reads a structure. A
+   [complex](?path=/docs/seq-docs-concepts--docs#complex) is written by value or comes from a registered complex provider.
+
+## Documents are data
+
+6. **A document says what, never how.** Navigators, skins, sizes, draw functions and performance
+   settings are the viewer's; a parameter that is only a drawing preference is a hint. Interaction
+   state is never in the document.
+7. **Data only, in JSON's base types.** Every value is `null`, a boolean, a number, a string, an
+   array or an object; typed arrays only as table columns, where they are lossless. A document may
+   be JSON (`.svsj`) or MessagePack (`.svsm`) with the same data model.
+   No functions, no code: a story or an export carries data only.
+8. **Refs are identity.** Every node has a `ref`, a name unique in the document. Patches (small
+   changes to a document), snapshots (an ordered story of patches over one document), links and
+   commands address nodes by it, and a viewer redraws only what a change touched.
+9. **Never silent.** Every issue has a stable code (`svs.*`, `seqv.*`, `seqql.*`), a severity, a
+   path and a message that says what would be valid. Fallbacks and omissions are reported.
+
+## Everything is an extension
+
+10. **A viewer is registry entries, as a Mol\* v6 plugin is.** A registry entry is a plain object
+    grouped by kind. Node kinds, layer [renderers](?path=/docs/seq-docs-concepts--docs#track-layer-and-renderer), data columns,
+    [themes](?path=/docs/seq-docs-concepts--docs#theme-preset-and-style), navigators, label providers, presets, commands and actions are
+    `SeqViewerRegistryEntry` kinds; the format's half (formats, services, complex and field
+    providers, aligners, layer types, theme tables, issue codes) is `SvsRegistryEntry`.
+11. **Built-ins have no private access.** `letters`, `ranges`, `rows` and the rest are registry
+    entries on the same renderer API an extension gets, as Mol\*'s representations are; a host
+    replaces one by registering a copy of `DefaultRegistry`. Extensions name their entries
+    `<ns>:<name>` and ship nothing else.
+12. **[SeqQL](?path=/docs/seq-docs-query-language--docs), the query language, is extended the same
+    way.** A host's language is the base table plus its extensions'
+    symbols, assembled per call with no module state (`createLanguage(extensions)`); macros (symbols that
+    stand for a longer query, as `sel` or Stories' `chain`) expand before checking and need no
+    runtime.
+
+## Mol\*'s principles, carried over
+
+13. **Headless first.** All state lives in one `SeqViewerContext`, the analog of Mol\*'s
+    `PluginContext`; the engine reads it and draws, owning pixels and caches, never state. The root
+    entry, `/draw` and `/svg` touch no DOM global: every behavior test runs in Node, and `renderSvg`
+    and the `seqv-render` CLI draw a figure there.
+14. **Mechanism in the context, policy in behaviors.** The context gives base events and managers
+    with verbs (viewport, hover, highlight, selection, focus); what a hover or a drag does is a
+    behavior's decision, with params, added and removed at runtime.
+15. **A language over base symbols, selections to loci.** SeqQL is MolQL's design on sequences:
+    base symbols with full and short names, queries as functions of a context, the result a
+    sequence selection that converts to the model's [loci](?path=/docs/seq-docs-concepts--docs#loci-and-mol), which the viewer's
+    [selection and highlights](?path=/docs/seq-docs-concepts--docs#selection-highlight-and-focus) close and project as they
+    already do.
+16. **Everything is subscribable.** Every piece of state is an rxjs `Observable` with a synchronous
+    `value`, or a `Live` record with a version for pointer-rate values.
+
+## Performance is a contract
+
+17. **No allocation per frame, per pointer move or per lookup.** Typed
+    arrays, numbers as fake pointers, reused records and out-parameters, emission without
+    allocation; objects only at the edges. The APIs are shaped for it, not only the code.
+18. **Heap guards test it.** The `*.heap.ts` suites run a frame, a gesture or a lookup `n` and `4n`
+    times after a warm-up (`heapScaling`) and fail when the heap grows with the run's length;
+    `rendererConformance` puts every renderer, an extension's included, through the same guard.
+19. **A frame costs O(device columns + items drawn),** never O(positions in view). Reductions, never
+    sampling: segment tables and power-of-two pyramids built once when a layer's data is prepared, density
+    per device pixel column, the most common color class or the mean per column, one image draw per shown run.
+    A letter is one `drawImage` from the **glyph atlas**, a cell rasterized once, not a `fillText`.
+20. **Measured targets.** On the 3M-nucleotide genome story: a load under 1.5 s, a whole frame
+    under 16 ms, a hover step under 2 ms, no Ctrl+wheel frame over 33 ms, the heap under 400 MB;
+    all met. The streamed hg38 bench (GRCh38's 24 chromosomes at their real lengths) loads in 44 ms and
+    draws a whole frame in 1.4 ms.
+
+## Designed for a small agent
+
+21. **Ids, not expressions.** Commands, links and invocations (a command written as data, in a
+    description's link) name nodes by ref and [items](?path=/docs/seq-docs-concepts--docs#annotation-and-item) by id;
+    the agent writes refs it was given.
+22. **Flat schemas.** A command's params, a link's arguments and a SeqQL call are flat; SeqQL's
+    S-expression replaces a deep JSON schema in a tool definition, and its skill text is generated
+    from the symbol table, so it says exactly what the checker accepts.
+23. **Instructive errors.** Every issue says what is wrong and what to write instead: SeqQL's carry
+    a line and column, the symbol's signature and "did you mean"; the format's name the valid values.

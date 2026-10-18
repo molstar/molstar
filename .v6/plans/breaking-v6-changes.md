@@ -68,29 +68,48 @@ accessing geometry-specific fields.
 changing geometry group counts after creation must recreate the shape with the correct count instead of relying on the
 old getter. The model contract still marks `groupCount` readonly.
 
-## Temporary: standalone MolQL validation
+## Standalone MolQL validation
 
-The standalone builder and `mvs-validate` check MolQL expression structure but do not compile expressions. An unknown
-symbol can therefore pass CLI validation. The MVS runtime still performs compiler validation and rejects it when
-loading.
+The standalone builder and `mvs-validate` validate MolQL syntax, callable names, and argument names against
+`@molstar/query-language` symbol tables without loading the molecular query runtime. Unknown callable names fail
+standalone validation by default; custom definitions can be supplied to `MVSData.validationIssues`/`isValid` through
+`getMolQLSymbol`. Runtime validation also checks executable compilation.
 
-Full CLI validation will return after designing the mol-script import/integration. See the deferred validation item in
-[checklist.md](checklist.md).
+`@molstar/mvs-builder/molql` exposes `MolScriptBuilder` and `compileScript` for MolScript, PyMOL, VMD, and Jmol text.
+Language-only imports moved to `@molstar/query-language`; executable compiler/runtime functionality remains under
+`@molstar/model/script/...`. See [the detailed migration notes](#standalone-query-language-and-mvs-molql-validation) and
+the [validation design](../designs/architecture.md#72-molql-builder-and-validation-design).
 
-This also affects `MVSData.validationIssues`/`isValid` and schema decoding of MolQL selectors in the standalone builder.
-Runtime sanity checks invoke the compiler validation for both scene and animation trees, and selector loading still
-compiles expressions. A syntactically valid unknown symbol can pass standalone checks.
+The `@molstar/mvs/behavior-id` constants keep the existing `molviewspec` name and `ms-plugin.molviewspec` transformer
+ID; the loader checks that stable ID without importing the behavior module. Serialized snapshot identity is unchanged.
 
-The standalone `@molstar/mvs-builder/expression` module exposes JSON expression construction/shape checks only. Use
-`@molstar/model/script/...` for MolScript compiler/runtime functionality. New `@molstar/mvs/behavior-id` constants keep
-the existing `molviewspec` name and `ms-plugin.molviewspec` transformer ID; the loader now checks that stable ID without
-importing the behavior module. Serialized snapshot identity is unchanged.
+## Video export (breaking)
 
-## Headless MP4 integration
+The MP4 extension is renamed from `@molstar/mp4-export-extension` to `@molstar/video-export-extension`
+(`extensions/video-export`). Viewer and Mesoscale Explorer extension options use `video-export` instead of `mp4-export`.
+Public names change from `Mp4Export`, `Mp4Controls`, `Mp4EncoderUI`, `Mp4EncoderParams`, and `Mp4HeadlessPluginContext`
+to their `Video` equivalents. `Mp4AnimationParams` is replaced by backend-generated `PD.Params` exposed through
+`VideoControls.behaviors.paramsSchema`. The serialized behavior ID `ms-plugin.extension-mp4-export` is retained so
+existing snapshots remain loadable.
 
-`HeadlessPluginContext` now owns image rendering only. Its former `getAnimation` and `saveAnimation` methods live on
-`Mp4HeadlessPluginContext`, imported from `@molstar/mp4-export-extension/headless`. Register `Mp4Export` in the plugin
-spec when using those methods. Native GL remains opt-in rather than auto-installed.
+`encodeMp4Animation` becomes `encodeVideoAnimation`; it and headless `getAnimation` return
+`{ data, mimeType, extension }` rather than raw bytes. `fps` remains a shared option; codec settings live in
+`backendParams`. The renderer produces timestamped frames at the requested FPS without the former extra terminal frame.
+`saveAnimation` validates the filename extension and propagates filesystem errors.
+
+Mediabunny is the default backend. Codec/container choices and codec-specific parameters are generated for the current
+runtime, resolution and FPS. Discovery is shared across formats and includes quality fallbacks and explicitly selected
+codec settings. Quality/FPS presets preserve the selected format and codec; Automatic hardware selection remains the
+default. Programmatic exports reject invalid or unknown settings before normalization can substitute defaults.
+Unsupported settings fail before animation playback. ProRes encoding requires a registered custom/server encoder; it is
+not provided by browser WebCodecs. No native encoder dependencies are installed automatically.
+
+`HeadlessPluginContext` owns image rendering only. Use `VideoHeadlessPluginContext` from
+`@molstar/video-export-extension/headless` and register `VideoExport` for animation rendering. For Node environments
+without WebCodecs, explicitly import `H264WasmBackend` from `@molstar/video-export-extension/backends/h264-wasm` and
+pass `{ backend: H264WasmBackend, backendParams: { quantization: 18 } }` to `getAnimation`/`saveAnimation`. This
+replaces the former top-level `quantization`/`quantizationParameter` options. The MVS rendering CLI explicitly uses this
+backend for MP4 output. Browser entry points do not import the WASM encoder. Native GL remains opt-in.
 
 ## Shape bounds and graphics helpers
 
@@ -164,7 +183,7 @@ The neutral `Texture` has no WebGL fields (`target`, `format`, `internalFormat`,
 arguments.
 
 `RepresentationContext.webgl` and `VisualContext.webgl` are renamed to `graphics` and typed `GraphicsContext`, e.g.
-`provider.factory({ graphics: plugin.canvas3d?.webgl, ...themes }, getParams)`. Visual callbacks (`mustRecreate`,
+`provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, getParams)`. Visual callbacks (`mustRecreate`,
 `processValues`, `setOverpaint`/`setTransparency`/`setEmissive`/`setSubstance`/`setWiggle`), visual constructors
 (`visualCtor(materialId, data, props, graphics)`) and `applyMesh*Smoothing` take a `GraphicsContext`; use
 `isWebGLContext` from `@molstar/graphics/gl/webgl/context` for WebGL-only code paths.
@@ -180,8 +199,40 @@ a `GraphicsContext`.
 Extensions take a `GraphicsContext` named `graphics` instead of a `WebGLContext` named `webgl`: debug-helpers
 constructors (and `DebugRegistry.ctx`), sb-ncbr `TunnelShapeParams.graphics` (was `webgl`), alpha-orbitals
 `createSphericalCollocationGrid`/`createSphericalCollocationDensityGrid` and geo-export `RenderObjectExporter.add` and
-`AddMeshInput.graphics` (was `webgl`). `canComputeGrid3dOnGPU` accepts a `GraphicsContext` and narrows to
-`WebGLContext`; geo-export texture readback throws without a WebGL context.
+`AddMeshInput.graphics` (was `webgl`). `canComputeGrid3dOnGPU(graphics, computable)` accepts a `GraphicsContext` and the
+computable of `createGrid3dComputeRenderable` (true on WebGPU for specs with WGSL code, `wgsl`), and computables take a
+`GraphicsContext`; geo-export texture readback throws without a WebGL context.
+
+Texture readback is asynchronous and backend-neutral: `GraphicsContext.readTextureData(texture)` reads a whole 2d color
+texture (data order, four values per texel; ubyte, float and half float). `readTexture` and `readSingleChannelTexture`
+(`@molstar/graphics/gl/compute/util`, WebGL, synchronous) were removed; the geo-export `MeshExporter.getInterpolated*`
+helpers return promises. `TextureMesh.meta.webgl` was removed: the position iterator of texture meshes uses
+`meta.vertexData`, read back with `TextureMesh.readVertexData` (visuals do it before colors per vertex).
+
+The fragment-shader GPU compute is WebGL backend code: `gl/compute/histogram-pyramid/{reduction,sum}` and
+`gl/compute/marching-cubes/{active-voxels,isosurface,tables}` moved to `@molstar/graphics/gl/webgl/compute/…`, and
+`getGrid3dComputeFrag`/`getGrid3dComputeSchema` to `@molstar/graphics/gl/webgl/compute/grid3d`. Neutral code reaches
+them through `getAtlasIsosurfaceExtraction(graphics)` (`@molstar/graphics/gl/compute/marching-cubes/atlas`) and
+`createGrid3dComputeRenderable`, which use what the backend of the context registered. `canComputeGrid3dOnGPU(graphics)`
+without a computable reports whether fragment shaders are available (a backend registered grid3d). `KernelCode` takes
+optional `sources` (`wgsl`) for kernels generated at runtime.
+
+Picking and Hi-Z read their textures through `GraphicsContext.createTextureReader({ format })`
+(`@molstar/graphics/gl/texture-reader`, `rgba8` or `r32f`, a new member every context implements). `PickBuffers`
+(`canvas3d/passes/pick`) is a class over a `TextureReader` (with an `asynchronous` getter) instead of an interface with
+WebGL and WebGPU implementations; `checkAsyncPickingSupport` takes the `PickBuffers` instead of the context;
+`PickPass.bindObject`/`bindInstance`/`bindGroup`/`bindDepth` were removed (use `PickPass.getTextures()`). `HiZPass`
+works on WebGPU too; `HiZSchema` has a `uTexSize` uniform (the size of the level rendered).
+
+`GraphicsCapabilities.floatBlend` (new) is rendering into float32 color targets with blending (WebGL: `EXT_float_blend`,
+WebGPU: `float32-blendable`); `floatRenderTarget` is rendering without blending, always on WebGPU (it meant
+`float32-blendable` there). Wboit, dpoit and illumination need `floatBlend`, as do the float32 fallbacks of blended
+targets without half-float ones (multi-sample, marking, the Gaussian density). `requestWebGPUDevice` and
+`createWebGPUBackend` take `features` (`'optional'`, the default, or `'none'`).
+
+`GaussianDensityGPU` (`@molstar/graphics/geo/gaussian-density/gpu`, the WebGL density read back into a CPU field) was
+removed; it had no callers. Use `computeGaussianDensity` (`@molstar/core/math/geometry/gaussian-density`, CPU) for a
+field, or `computeGaussianDensityTexture` (`@molstar/graphics/geo/gaussian-density`) for a GPU texture.
 
 Fixed-function state goes through the context instead of `webgl.state` and `gl` calls: `ctx.setRenderState(state)` with
 a neutral `RenderState` (`@molstar/graphics/gl/render-state`: blend, color write mask, depth, stencil, cull, front face;
@@ -233,10 +284,21 @@ from `tDepth` switch to `tDepthAlpha`.
 `Canvas3DContext` has a `graphics: GraphicsContext` field (custom implementations of the interface add it) and an async
 `Canvas3DContext.create(canvas, assetManager, backends, attribs, props)` that takes the backends to try in order
 (`WebGL2Backend`, `WebGLBackend` from `@molstar/graphics/gl/webgl/backend`, `WebGPUBackend` from
-`@molstar/graphics/gl/webgpu/backend`); `fromCanvas` remains for WebGL.
+`@molstar/graphics/gl/webgpu/backend`). `Canvas3DContext.fromCanvas` moved to
+`createWebGLCanvas3DContext(canvas, assetManager, attribs, props)` in `@molstar/graphics/canvas3d/webgl`, so that
+importing `Canvas3D` doesn't bundle the WebGL backend;
+`Canvas3DContext.fromGraphics(canvas, graphics, assetManager, attribs, props)` wraps a context created otherwise. The
+plugin's default backends (without `PluginConfig.General.GraphicsBackends`) come from
+`@molstar/graphics/gl/backends/default` (the WebGL set); builds without WebGL alias that module to
+`@molstar/graphics/gl/backends/webgpu`.
 
-`Canvas3D` has a `graphics: GraphicsContext` field; `Canvas3D.webgl` and `Canvas3DContext.webgl` throw for other
-backends. The passes and pick helpers take a `GraphicsContext`; `PickBuffers` is an interface created with
+`Canvas3D` and `Canvas3DContext` have a `graphics: GraphicsContext` field; `Canvas3D.webgl` and `Canvas3DContext.webgl`
+were removed (narrow `graphics` with `isWebGLContext` from `@molstar/graphics/gl/webgl/context` where WebGL is
+required). The WebGL context handles the loss and restore events of its canvas itself; `GraphicsContext.recreate` is
+implemented by every backend (a new context replacing a lost one; on WebGL once the browser restored the context),
+`simulateContextLoss()` loses the context for debugging, `release()` loses it on purpose to free its GPU resources
+(WebGL `WEBGL_lose_context`, WebGPU the device destroyed; custom implementations add it), and `destroy` takes `GraphicsDestroyOptions` (`doNotForceWebGLContextLoss`). The passes and
+pick helpers take a `GraphicsContext`; `PickBuffers` is an interface created with
 `createPickBuffers(graphics, pickPass, maxAsyncReadLag?)`. `GraphicsContext` has `readRenderTarget` (async readback of
 render targets, rows top to bottom) and `waitForGpuCommandsComplete`.
 
@@ -257,16 +319,56 @@ backend looks the sources up by the program name, which must be unique. Custom G
 `addShaderDefines` returns the GLSL sources (`{ vert, frag }`). The program names `accumulate` are now
 `trace-accumulate` (tracing) and `color-smoothing-accumulate` (texture mesh color smoothing).
 
+## Color type define
+
+The `dColorType` define of renderables has the values `uniform`, `texture`, `grid` and `direct`: the color types read
+from `tColor` by index (instance, group, groupInstance, vertex, vertexInstance) share `texture`, the grid types (volume,
+volumeInstance) share `grid`, one program each, and the object uniform `uColorIndexType` selects the index or the grid
+position (`ColorTypeIndex` in `@molstar/graphics/geo/geometry/color-data`). The color type itself is the value `colorType` of `ColorData`. Code that
+set `dColorType` directly (custom geometry or renderables) sets the color type with `setColorType(values, type)`, which
+keeps the three in step; code that read the type from `dColorType` reads `colorType`. Custom shaders test
+`dColorType_texture` or `dColorType_grid` and branch on `uColorIndexType`.
+
+## Size type define
+
+As the color type: `dSizeType` has the values `uniform` and `texture`; the size types read from `tSize` by index
+(instance, group, groupInstance, vertex, vertexInstance) share `texture`, and the object uniform `uSizeIndexType`
+selects the index (`SizeTypeIndex` in `@molstar/graphics/geo/geometry/size-data`). The size type itself is the value
+`sizeType` of `SizeData`, set with `setSizeType(values, type)`; code that read the type from `dSizeType` reads
+`sizeType`. Custom shaders test `dSizeType_texture` and branch on `uSizeIndexType`.
+
+## Instance granularity
+
+The instance granularity is the object uniform `uInstanceGranularity` (was the value `instanceGranularity`): the marker
+and layer data are read per instance or per group instance by it at runtime, one program for both. The defines
+`dMarkerType`, `dClippingType` and `dWiggleType` are removed; `dOverpaintType`, `dTransparencyType`, `dEmissiveType`
+and `dSubstanceType` have the values `texture` (instance and groupInstance), `vertexInstance` and `volumeInstance`
+(`getLayerTypeDefine` in `@molstar/graphics/geo/geometry/layer-type`). The types themselves are the values
+`markerType`, `overpaintType`, `transparencyType`, `emissiveType`, `substanceType`, `clippingType` and `wiggleType`;
+code that set a layer's type define sets the type with `setOverpaintType(values, type)` (and the other layers' setters),
+code that read the type from the define reads the value. Custom shaders test `d…Type_texture` and select the index
+with `uInstanceGranularity`.
+
 ## Context loss and headless WebGPU
 
-`GraphicsContext` has a `contextLost` subject (emitted by `setContextLost`) and an optional `restore(extraResets?)` for
-backends that replace a lost context themselves (WebGPU: a new device, the resources recreated on it); custom
-implementations of the interface add `contextLost`. `Canvas3DContext.contextLost` forwards the context's losses, also on
-WebGL. `requestWebGPUDevice(powerPreference, gpu?)` takes the `GPU` to use (e.g. Dawn's in Node.js) and
+`GraphicsContext` has a `contextLost` subject (emitted by `setContextLost`), `recreate()` for a new context replacing a
+lost one (WebGPU: a new device) and `release()`; custom implementations of the interface add them.
+`Canvas3DContext.contextLost` forwards the context's losses, also on WebGL; a lost context is replaced and everything
+built again on it (`contextRestored`). `Canvas3DContext.release()` frees the GPU resources of a canvas on purpose (e.g.
+out of view), reported as a loss but not restored until `restore()`, on both backends (`isReleased`). `requestWebGPUDevice(powerPreference, gpu?)` takes the `GPU` to use (e.g. Dawn's in Node.js) and
 `WebGPUContextOptions.requestDevice` replaces lost devices. Headless: `ExternalModules.gl` is optional, `webgpu` (e.g.
 the `webgpu` package) enables the WebGPU backend with `HeadlessScreenshotHelperOptions.backend` and the async
 `HeadlessScreenshotHelper.create` / `HeadlessPluginContext.create`; images are read with `readRenderTarget` on both
 backends.
+
+## Picking results
+
+`Canvas3D.identify(target)` returns `PickResult`, i.e. `PickData | 'pending' | undefined` (was `PickData | undefined`):
+`'pending'` where the backend reads pick data asynchronously (WebGPU) and the read for the current scene and camera
+hasn't returned yet, so that it is no longer mistaken for "nothing at the target". Callers that use the result directly
+check for `'pending'`, or await `canvas3d.asyncIdentify(target)?.wait()`, which resolves with the pick data on every
+backend (`AsyncPickData` has a `wait()` next to `tryGet()`). On WebGL, which reads synchronously, `identify` never
+returns `'pending'`.
 
 ## GPU timer groups
 
@@ -275,6 +377,46 @@ sums the passes that begin inside it and lists them as leaves (`pass <label>`), 
 `beginRenderPass` (derived from the target otherwise). Groups must begin and end outside of passes (checked in debug
 mode); a group without passes reports its GPU time as `NaN` (printed as `n/a`). The `Renderer.*` timings and other
 timings inside passes were removed, and timings of a single pass became the label of that pass.
+
+## Reversed depth
+
+Depth is reversed on both backends: the near plane at depth 1, the far plane (and the background, the cleared depth) at
+0, so nearer fragments have greater depth. Camera projections stay GL projections; the backends convert the projection
+uniforms, which are tagged with `UniformSpec.depthRange` (`'projection'` or `'inverse'`, `@molstar/graphics/gl/depth-range`):
+custom renderable schemas holding a projection or its inverse add the tag. Custom shaders follow the new convention:
+background tests compare with 0 (was 1), depth compares and min/max of depths flip, packed depth of the far plane is
+zeros (was ones), and `perspectiveDepthToViewZ`/`orthographicDepthToViewZ` (GLSL and WGSL chunks) take reversed depth.
+Depth render states of custom passes use `greater`/`greater-equal` and clear depth to 0. `PickBuffers.getDepth` still
+returns GL window depth (near 0, far 1), for `cameraUnproject`. With `EXT_clip_control` WebGL clips depth to `[0, 1]`
+(GLSL defines `clipZeroToOne`): custom GLSL converts between clip z / w and window depth with `clipZToDepth` and
+`depthToClipZ` (common chunk) instead of `* 0.5 + 0.5` and `* 2.0 - 1.0`, and vertex shaders writing clip z keep it
+inside the context's range.
+
+## Top-left window origin
+
+Window positions and rectangles have a top-left origin (y down) everywhere outside the WebGL backend, as in the
+browser (CSS, pointer events, `ImageData`):
+- `Viewport` and `Camera.viewport`; `cameraProject`, `cameraUnproject`, `Camera.project`, `Camera.unproject` and
+  `getRay` take and return window coordinates with y down (consumers that converted with `height - y` drop it).
+- `GraphicsContext.setViewport`, `setScissor`, `readRenderTarget` and `readTextureAsync` (rows top to bottom, as
+  before), texture readers (rows now top to bottom, were bottom to top) and `Texture.copyFromFramebuffer`.
+- The `static-frame` and `relative-frame` viewport params of `Canvas3D` count `y` from the top.
+- Uniforms holding a window rectangle or uv offset are tagged with `UniformSpec.windowRect` (`bounds`, `rect`, `pixels`,
+  `offset`, `@molstar/graphics/gl/window-rect`) and flipped by WebGL where it binds them; custom passes tag theirs.
+  GLSL keeps GL's bottom-left `gl_FragCoord`; WGSL works top-left (`fragmentUv`, `read_<name>` without a flip,
+  `screenSpaceToViewSpace` with y down). The Hi-Z uniform `uOffset` became `uRect` (corner and extent).
+- `GraphicsXR` has `isPresenting()` and `getView(view, out)` (the view's viewport, top-left, and projection with GL's
+  clip depth); `StereoCamera.update` takes `{ pose, graphics }` (the context's `GraphicsXR`) instead of
+  `{ pose, layer }` (an `XRWebGLLayer`); custom implementations of the interface add both.
+- Data rendered into tiles of a texture by rectangles (Gaussian density, color smoothing atlases) is placed by texel
+  rows from the bottom, converted explicitly; the WebGL backend's own compute converts its texel rectangles internally.
+
+## SSAO at half resolution
+
+`SsaoParams.resolutionScale` defaults to 0.5 (was 1): the occlusion is computed at half the resolution of the drawing
+buffer and upsampled with the depth (postprocessing, illumination compose and the marking overlay). The scale is now at
+most that of CSS pixels (`min(resolutionScale, 1 / pixelRatio)`, was `resolutionScale / pixelRatio`), so that the
+default stays at half resolution on high pixel ratios. Set 1 for the previous full-resolution occlusion.
 
 ## External color themes
 
@@ -341,12 +483,12 @@ only want the default UI parts import `DefaultPluginUIComponents()` and `Default
 
 ### Script languages
 
-PyMOL, VMD, and Jmol are no longer enabled implicitly. Import `@molstar/model/script/transpilers/pymol`, `.../vmd`,
-`.../jmol`, or `@molstar/model/script/transpilers/all` to enable a language; the default plugin spec and the Viewer
+PyMOL, VMD, and Jmol are no longer enabled implicitly. Import `@molstar/query-language/transpilers/pymol`, `.../vmd`,
+`.../jmol`, or `@molstar/query-language/transpilers/all` to enable a language; the default plugin spec and the Viewer
 import `all`. Using a language that was not imported throws `Script language '<x>' is not available in this build`.
 `mol-script` is always available. `Script.getAvailableLanguages()` returns `mol-script` plus the registered languages,
 and the script-language select in the plugin UI lists only those. The `_transpiler` object exported by `transpilers/all`
-is removed; after enabling the language, call `parse(language, text)` from `@molstar/model/script/transpile` (or
+is removed; after enabling the language, call `parse(language, text)` from `@molstar/query-language/transpile` (or
 `Script.toExpression`), or import `transpiler` from `.../transpilers/<lang>/parser` directly.
 
 ### Data format providers
@@ -707,7 +849,7 @@ exports exclude tests and build caches.
 
 `molstar` now packages only browser distributions. Library/server/CLI consumers must install the owning `@molstar/*`
 packages instead of importing `molstar/lib/...` or `molstar/lib/commonjs/...`. There is no CommonJS build or `require`
-export condition. Published library modules and the browser ESM distribution target ES2022. All 43 public packages share
+export condition. Published library modules and the browser ESM distribution target ES2022. All 44 public packages share
 one release version.
 
 Native `gl`/`canvas` remain injected by headless callers and are optional peers. `@molstar/plugin-headless/native` adds
@@ -758,3 +900,140 @@ Under Node, platform `fetch` does not load `file://` assets. Callers can provide
 The old `setFSModule(fs)` core IO hook no longer controls standalone builder fetching. This explicit adapter contract
 keeps the builder independent of plugin/rendering code. Tests cover default and custom fetching, resolved file URIs,
 cache reuse, explicit assets, skipped external URIs, and HTTP errors.
+
+## Standalone query language and MVS MolQL validation
+
+Language modules (`language/*`, `script/*`, `transpile`, and `transpilers/*`) move from `@molstar/model/script` to the
+corresponding `@molstar/query-language` subpaths. Molecular `Script` operations and `runtime/query/*` remain in model.
+The text-only `@molstar/query-language/script` API provides `toExpression` and explicit language registration without
+molecular imports. Existing serialized symbol IDs are unchanged.
+
+The duplicated `@molstar/mvs-builder/expression` module is removed. Import the canonical `Expression` from
+`@molstar/query-language/language/expression`. MVS authoring gains `@molstar/mvs-builder/molql`, exporting
+`MolScriptBuilder` and `compileScript(language, source)` for MolScript, PyMOL, VMD, and Jmol. This facade requires no
+registration imports and does not modify the plugin's language registry.
+
+The MolScript parser now rejects repeated argument keys instead of keeping the last value. This includes collisions
+between positional arguments and numeric named arguments such as `:0`.
+
+`MVSData.validationIssues` and `isValid`, and the `mvs-validate` CLI, now reject malformed expressions, unknown callable
+symbols, and undeclared argument names. The schema codecs remain vocabulary-independent. Standalone callers validating
+custom symbols must provide `getMolQLSymbol(name)`, including fallback to the standard `SymbolMap` where needed. Runtime
+validation resolves registered custom-property symbols and retains executable compiler checks. Missing required
+arguments, argument/value types, and selection-result types remain outside standalone validation.
+
+`MolScriptBuilder.re(pattern)` omits the absent flags argument instead of including `undefined`, so the result remains a
+valid expression after JSON serialization. Passing flags explicitly preserves the previous array shape.
+
+## Planned: with the classic UI's retirement (Prism)
+
+Not made in v6: both remove public API, Prism ([its spec](../../packages/prism/viewer/_spec/README.md)) needs neither, and the
+UI-only maps are still filled and read by the classic UI and its extensions. They land when the classic UI is retired,
+each with a migration note.
+
+- **Dead interactivity commands.** `PluginCommands.Interactivity.Structure.Highlight` and `.Select` are removed (nothing
+  subscribes to them; `Interactivity.Object.Highlight` and `ClearHighlights` stay), and so is `customControl` on
+  `PluginSpec.Action` (`packages/plugin/core/src/spec.ts`), a React component slot that nothing reads.
+- **UI-only maps leave core `PluginContext`.** `customStructureControls`, `customImportControls` and
+  `genericRepresentationControls` (React component classes and UI callbacks in a non-UI package) move to the classic
+  UI's context, or go with it; Prism's contributions replace them. Extensions that fill them register with the UI they
+  target instead.
+- **No `molstar.Viewer` in the Prism viewer.** The Prism single file (`prism-viewer.js`) is an ES module exporting
+  `createPrismViewer`, `FullPrismViewerSpec()` and the `<prism-viewer>` element; it has no classic-script global, no
+  `Viewer.create(id, options)` and no `PluginExtensions` (a `Viewer` shim is not trivial: v5's options and `load*`
+  signatures do not map one to one). Scripts move to `viewer.api` (the operations) or keep the classic viewer, which
+  ships beside it for a major version (parity.md §9 maps each member).
+
+Compatible core follow-ups made alongside Prism (a registry-changed event, richer `cell.stateUpdated`, settings events,
+a running-task behavior, string ids for `PluginCommands`) are additive and are not listed here.
+
+## MVS selectors through model indices: the MolQL generator `element-schema`
+
+Tables of `StructureElement.SchemaItem` rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved
+through the indices of the model instead of a MolScript query on every atom for every row. The public changes:
+
+- **MolQL.** New symbols `structure.generator.element-schema` (`sel.atom.element-schema`; one set of the elements which
+  satisfy at least one row), `structure.type.schema-item` (`schema-item`; a row, or a table whose fields are lists, the
+  columns, with the other fields the same in every row) and `core.type.empty` (`empty-value`). `Expression.Literal`
+  includes `null` (a missing value) and lists of `string | number | boolean | null`, as an argument of an application;
+  the compiler passes a list through (it is the way a column of any size costs nothing), and
+  `expressionValidationIssues` accepts them there (not as an expression of their own) and only for an argument which can
+  be a list (declared as a list, or of any type): `atomGroups({ 'residue-test': [false] })` is still rejected.
+  `formatMolScript` writes them as `[a b c]` and `empty-value`. The arguments of `element-schema` have to be
+  `schema-item`.
+- **`StructureElement.Schema.toExpression` returns the generator** (a table of 10 or more rows by columns) instead of
+  the per-atom `atom-groups` expression, so `toLoci`, `toBundle`, `Loci.fromSchema` and `Bundle.fromSchema` use the
+  indices (about 17 ms for 1000 rows on 720k atoms, several seconds before) and take no `queryContext` (no code in the
+  repository passed one; `Loci.fromExpression` and `fromQuery` keep theirs, so a time limit is
+  `Loci.fromExpression(structure, Schema.toExpression(schema), queryContext)`, and the generator checks it). A table
+  given by columns (`items` as an object of arrays) has columns of the same length (they are rejected otherwise;
+  `toLoci` and `toStructure` are the same here; they used to take the length of the first), and no columns or no values
+  are no rows. `SchemaItem` has `beg_auth_ins_code` and `end_auth_ins_code`. New `Schema.toStructure` (the substructure,
+  the structure itself when every element is selected).
+- **Semantics differ from the previous expression of the same rows.** A residue without `label_seq_id` (ligands, waters
+  in many files) never satisfies a `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript read a
+  missing value as 0, so `{ end_label_seq_id: 50 }` selected them); criteria which only exist for atoms (`auth_*`,
+  `label_comp_id`, atom ids, ...) select nothing on coarse elements with a warning, as annotation rows always did (the
+  per-atom expression threw); a range with `beg > end` selects nothing, also on coarse elements (the expression selected
+  the elements which span the two bounds); the result is one set of the elements of all rows, and the structure itself
+  if all are selected. The values are matched as they are, with the type of their field: a number given as text
+  (`"10"`), an identifier given as a number, or a fractional residue number on a coarse element select nothing,
+  whichever criterion finds the candidates (JSON annotations convert their values when they are parsed); `null`,
+  `undefined` and `NaN` are missing values (not criteria) at every entry, and `null` for a bound is an open end. An
+  empty `pdbx_PDB_ins_code` means a residue without an insertion code, as in MolScript. `operator_name` (the unit
+  operator's name) and `instance_id` are honored. A range with `beg_auth_ins_code` or `end_auth_ins_code` is a range of
+  residues in the order of the input file, in each auth chain (the chains which share an `auth_asym_id`, e.g. a polymer
+  and its ligands): from the first residue with `beg_auth_seq_id` (and that code, `''` for none) to the last with
+  `end_auth_seq_id` (and its code); a bound without a code is the whole number, and it is looked for in the chains which
+  are not waters first (waters are numbered again from the start in many files), and in the waters only if no other
+  chain has it; a missing bound or a range which ends before it begins selects nothing from the auth chain, and so does
+  a code without its number. The chains which the row selects get the part of the range which is theirs (so the waters,
+  which come after the polymer, get none of a range between residues of the polymer).
+- **MVS.** `SelectorParams` (`@molstar/mvs/components/selector`) is unchanged, `componentPropsFromSelector`
+  (`@molstar/mvs/load-helpers`) returns a `Selector` instead of the `type` of `StructureComponentParams`, and rows and
+  arrays of rows are `{ name: 'expression', params: Schema.toExpression(...) }`, so a `component` node of MVS is the
+  plugin's own `StructureComponent` (the classic UI can modify it). `rowToExpression` and `rowsToExpression`
+  (`@molstar/mvs/helpers/selections`) are removed: use `StructureElement.Schema.toExpression`. `prettyNameFromSelector`
+  returns compact names (`A`, `A432`, `A:10-50`, `120 selections`) instead of `Custom Selection: {...}`. The dispose of
+  `StructureComponent` no longer disposes the properties of a structure which is not its own (a component which is the
+  source structure: the component keeps whether it is the source, as `MVSAnnotationStructureComponent` does).
+- **Selection helpers move to the model package.** The resolution of rows through model indices does not depend on MVS
+  and lives next to `StructureElement.Schema` in `@molstar/model/model/structure/structure/element/schema-selection/*`
+  (`element-ranges`, `indexing`, `selections`, `row-structure`, `fields`); they were `@molstar/mvs/helpers/*` modules,
+  which are not kept as re-exports. `IntBuffer`, `MultiMap`, `NumberMap` and `isDefined` are in `@molstar/core/util`
+  (`int-buffer`, `multi-map`, `number-map`, `object`). Rows are `StructureElement.SchemaItem` there.
+  `getAtomRangesForRow(s)`, `getSphereRangesForRow(s)` and `getGaussianRangesForRow(s)` take the unit's operator
+  (`{ instanceId, name }`) where they took an `instanceId` string; `getAtomRangesForRowInto` writes into reusable
+  buffers; `ElementRanges.union` is implemented by sorting the starts and the ends; `IndicesAndSortings.get` is shared
+  by the models of a trajectory (`HierarchyScope`); `Sorting.findIndexRange` replaces a linear scan;
+  `substructureFromRows` and `ElementRangesCache` are new. `MVSAnnotationRow` (annotation schema `all_atomic`) has
+  `operator_name`. Annotation values given as text for numbers (and numbers for identifiers) in JSON annotations are
+  converted to the type of the field.
+- The annotation color theme and the annotation tooltips already used these semantics for missing values before.
+
+## Prism UI: duplicates removed, strict command ids
+
+- `@molstar/prism-ui`: `StatusModel` is gone (use `NotificationsManager`, same class); `shell/status.ts` is removed.
+- `ShellModel.layout` and the `ShellLayout` type are gone; read `viewState.layout` (a `ViewLayout`) or save it with
+  `viewState.save()`/`restore()`, and `navigation.save()` for what is open. `ShellOptions.mode` and `setMode` take
+  `ViewLayout['mode']`.
+- `CommandManager.register` and `registerGroups` throw on an id that is already registered (or repeated in the call),
+  naming it, where the later command used to replace the earlier one silently. Override before registering.
+- The viewer's Structure tab has no inline preset or style lists: `StructureTab` loses `presets`, `quickStyles` and
+  `onAction`; Preset and Styles open the command menu through `openCommands`.
+
+## Prism UI: the shell's layout
+
+- `ViewLayout` has `hiddenTabs` (the tabs `ShellModel.hideTab` took out of view); a `ViewLayout` built by hand needs
+  it (`defaultViewLayout()` has it). A kept layout without it restores with none hidden.
+- The `embedded` mode is a layout of its own (shell.md §3): the compact rail, a floating right panel, nothing pinned,
+  and compact below `compactWidth` (it was the desktop layout under another name).
+
+## Seq\*: the system registry in core
+
+- `@molstar/seq-viewer` no longer exports `SystemRegistry`: the registry is core's (`@molstar/seq-core/translate`,
+  `SystemRegistry`, with no `version`); the viewer's `ctx.systems` is a `ViewerSystems` (core's registry plus the
+  reactive `version`, exported by the viewer). Code that named the viewer's class names `ViewerSystems`.
+- The `Coordinates` type is core's (`@molstar/seq-core/translate`); the viewer re-exports it and `isCoordinates` as
+  before.
+- Prism's saved sequence state (`prism-viewer.sequence`) is version 3 (adds `edits`); versions 1 and 2 still read.

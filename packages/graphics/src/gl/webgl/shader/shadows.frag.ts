@@ -24,7 +24,7 @@ vec2 boundsCoordsToFullCoords(vec2 boundsCoords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 bool outsideBounds(const in vec2 p) {

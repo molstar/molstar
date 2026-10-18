@@ -30,27 +30,28 @@ export interface KnownDifference {
  */
 export const KnownDifferences: KnownDifference[] = [
   {
+    profiles: ['webgpu*'],
+    tests: ['geometry/palette/*'],
+    reason:
+      'The palette coordinate is interpolated across triangles and looked up with nearest filtering: where it falls on ' +
+      'a texel boundary, rasterization rounding picks the neighboring palette color, a one-pixel line along the band edges.',
+    action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.008 } },
+  },
+  {
+    profiles: ['*'],
+    tests: ['transparency/*/solid-interior'],
+    reason:
+      'Not reproducible on GPUs: with ANGLE on D3D11, pages rendering in parallel sometimes compute slightly different ' +
+      'cap depths, which the exact depth comparisons of the peeling turn into a few hundred differing pixels; ' +
+      'sequential runs and software rendering are deterministic (see scripts/visual-tests.mjs).',
+    action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.005 } },
+  },
+  {
     profiles: ['webgl1*'],
     tests: ['renderer/illumination/**', 'fallback/illumination'],
     reason: 'WebGL1 trace shader uses a float hash instead of the uint-based RNG, so the noise pattern differs.',
     doc: 'illumination-rng',
     action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.03 } },
-  },
-  {
-    profiles: ['webgpu'],
-    tests: ['postprocessing/occlusion/multi-scale-half-resolution'],
-    reason:
-      'Half-resolution SSAO is upsampled with bilinear filtering of occlusion packed into two 8-bit channels; with ' +
-      'the flipped row order the sampler weights are mirrored and quantize differently, which the packing amplifies.',
-    action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.005 } },
-  },
-  {
-    profiles: ['webgpu'],
-    tests: ['geometry/cylinders/star'],
-    reason:
-      'All eight cylinders overlap at the shared origin, where the front surface is decided by nearly equal fragment ' +
-      'depths; the [0, 1] depth projection rounds them differently than the GL [-1, 1] one (subsets of the star match).',
-    action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.006 } },
   },
 ];
 

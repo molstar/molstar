@@ -3,6 +3,7 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author Russell Parker <russell@benchling.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * Implements some browser-only global variables for Node.js environment.
  * These workarounds will also work in browsers as usual.
@@ -12,11 +13,14 @@
 export const RUNNING_IN_NODEJS =
   typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 
-/** Like `File` but works also in Node.js */
+/**
+ * Like `File` but works also in Node.js: the native `File` wherever there is one (browsers, Node.js 20 and later), so a
+ * file a host or a test makes with `new File(...)` is the same class the asset manager checks for; a shim otherwise.
+ */
 export const File_ = getFile();
 
 function getFile(): typeof File {
-  if (typeof File === 'undefined' || RUNNING_IN_NODEJS) {
+  if (typeof File === 'undefined') {
     class File_NodeJs implements File {
       private readonly blob: Blob;
       // Blob fields

@@ -4,15 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { createGrid3dComputeRenderable } from '@molstar/graphics/gl/compute/grid3d';
+import { canComputeGrid3dOnGPU, createGrid3dComputeRenderable } from '@molstar/graphics/gl/compute/grid3d';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { TextureSpec, type UnboxedValues, UniformSpec } from '@molstar/graphics/gl/renderable/schema';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { RuntimeContext } from '@molstar/core/task';
 import { ValueCell } from '@molstar/core/util';
 import { arrayMin } from '@molstar/core/util/array';
 import type { AlphaOrbital, Basis, CubeGridInfo } from '@molstar/alpha-orbitals-extension/data-model';
 import { normalizeBasicOrder, type SphericalBasisOrder } from '@molstar/alpha-orbitals-extension/spherical-functions';
 import { MAIN, UTILS } from './shader.frag.js';
+import { MAIN_WGSL, UTILS_WGSL } from './shader.wgsl.js';
 
 const Schema = {
   tCenters: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
@@ -31,6 +32,7 @@ const Orbitals = createGrid3dComputeRenderable({
   mainCode: MAIN,
   utilCode: UTILS,
   returnCode: 'v',
+  wgsl: { utilCode: UTILS_WGSL, mainCode: MAIN_WGSL, returnCode: 'v' },
   values(params: { grid: CubeGridInfo; orbital: AlphaOrbital }) {
     return createTextureData(params.grid, params.orbital);
   },
@@ -45,6 +47,7 @@ const Density = createGrid3dComputeRenderable({
   mainCode: MAIN,
   utilCode: UTILS,
   returnCode: 'current + uOccupancy * v * v',
+  wgsl: { utilCode: UTILS_WGSL, mainCode: MAIN_WGSL, returnCode: 'current + uParams.uOccupancy * v * v' },
   values(params: { grid: CubeGridInfo; orbitals: AlphaOrbital[] }) {
     return {
       ...createTextureData(params.grid, params.orbitals[0]),
@@ -63,22 +66,27 @@ const Density = createGrid3dComputeRenderable({
   },
 });
 
+/** WebGL, or compute kernels (WebGPU) */
+export function canComputeAlphaOrbitalsOnGPU(graphics?: GraphicsContext): graphics is GraphicsContext {
+  return canComputeGrid3dOnGPU(graphics, Orbitals) && canComputeGrid3dOnGPU(graphics, Density);
+}
+
 export function gpuComputeAlphaOrbitalsGridValues(
   ctx: RuntimeContext,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   grid: CubeGridInfo,
   orbital: AlphaOrbital,
 ) {
-  return Orbitals(ctx, webgl, grid, { grid, orbital });
+  return Orbitals(ctx, graphics, grid, { grid, orbital });
 }
 
 export function gpuComputeAlphaOrbitalsDensityGridValues(
   ctx: RuntimeContext,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   grid: CubeGridInfo,
   orbitals: AlphaOrbital[],
 ) {
-  return Density(ctx, webgl, grid, { grid, orbitals });
+  return Density(ctx, graphics, grid, { grid, orbitals });
 }
 
 function getNormalizedAlpha(basis: Basis, alphaOrbitals: number[], sphericalOrder: SphericalBasisOrder) {

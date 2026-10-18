@@ -4,14 +4,13 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Structure, StructureSelection } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure } from '@molstar/model/model/structure';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { StateObject, StateTransformer } from '@molstar/core/state';
 import { deepEqual } from '@molstar/core/util';
 import { omitObjectKeys } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { rowsToExpression } from '@molstar/mvs/helpers/selections';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import { getMVSAnnotationForStructure } from './annotation-prop.js';
 
 /** Parameter definition for `MVSAnnotationStructureComponent` transformer */
@@ -55,8 +54,11 @@ export const MVSAnnotationStructureComponent = MVSTransform({
   update: ({ a, b, oldParams, newParams, cache }) => {
     return updateMVSAnnotationStructureComponent(a.data, b, oldParams, newParams, cache as MVSComponentCache);
   },
-  dispose({ b }) {
-    b?.data.customPropertyDescriptors.dispose();
+  dispose({ b, cache }) {
+    // (when everything is selected the component is the source structure, which has other users)
+    // (the empty structure is shared)
+    if (b && !(cache as MVSComponentCache | undefined)?.isSource && b.data !== Structure.Empty)
+      b.data.customPropertyDescriptors.dispose();
   },
 });
 
@@ -72,10 +74,7 @@ export function createMVSAnnotationSubstructure(
       const selectedValues = new Set<string | undefined>(params.fieldValues.params.map((obj) => obj.value));
       rows = rows.filter((row, i) => selectedValues.has(annotation.getValueForRow(i, params.fieldName)));
     }
-    const expression = rowsToExpression(rows);
-
-    const { selection } = StructureQueryHelper.createAndRun(structure, expression);
-    return StructureSelection.unionStructure(selection);
+    return substructureFromRows(structure, rows);
   } else {
     return Structure.Empty;
   }
@@ -83,6 +82,8 @@ export function createMVSAnnotationSubstructure(
 
 interface MVSComponentCache {
   source?: Structure;
+  /** The component is the source structure itself (everything is selected), so it must not be disposed with the component */
+  isSource?: boolean;
 }
 
 /** Create a substructure PSO based on `MVSAnnotationStructureComponentProps` */
@@ -93,6 +94,7 @@ export function createMVSAnnotationStructureComponent(
 ) {
   cache.source = structure;
   const component = createMVSAnnotationSubstructure(structure, params);
+  cache.isSource = component === structure;
 
   if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
 

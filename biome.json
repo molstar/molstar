@@ -14,11 +14,16 @@
       "!!**/build",
       "!!**/lib",
       "!!deploy",
-      "!!docs/site",
+      "!!apps/docs/dist",
+      "!!apps/docs/.astro",
       "!build.mjs",
       "!.v6/baselines",
       "!**/package-lock.json",
-      "!**/npm-shrinkwrap.json"
+      "!**/npm-shrinkwrap.json",
+      "!**/_generated/**",
+      "!packages/sequences/**/_test/**/*.json",
+      "!packages/prism/viewer/src/_stories/**/fixtures/**",
+      "!packages/prism/viewer/src/**/_test/fixtures/**"
     ]
   },
   "formatter": {
@@ -67,6 +72,839 @@
     },
     "includes": ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"]
   },
+  "overrides": [
+    {
+      "includes": [
+        "**/*.stories.ts",
+        "**/*.stories.tsx",
+        "**/.storybook/**",
+        "vitest.config.ts",
+        "vitest.live.config.ts",
+        "packages/sequences/**/vitest*.config.ts",
+        "packages/prism/viewer/vitest*.config.ts",
+        "packages/prism/ui/vitest*.config.ts",
+        "packages/prism/assistant/vitest*.config.ts",
+        "packages/ai/vitest*.config.ts",
+        "apps/docs/astro.config.ts",
+        "examples/minimal-prism-viewer/vite.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}", "!packages/ai/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/messages/**", "!packages/ai/src/messages/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/core/data/util/hash-functions"
+                    ],
+                    "message": "The AI package imports nothing of Mol* or Prism but core's one hash file (packages/ai/_spec/README.md, Decisions): Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/harness",
+                      "**/harness/**",
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "The messages import nothing of the other folders."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/harness/**", "!packages/ai/src/harness/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "!**/tools/journal.js",
+                      "!**/tools/plan.js",
+                      "!**/tools/step.js",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "The harness depends only on the messages."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/providers/**", "!packages/ai/src/providers/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/harness",
+                      "**/harness/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "Providers implement the messages' model port only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/tools/**", "!packages/ai/src/tools/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "Tools depend only on the messages and the harness."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/session/**", "!packages/ai/src/session/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "The session takes its providers from the host: it depends only on the messages, the harness and the tools."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/trace/**", "!packages/ai/src/trace/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "The trace reads the harness records (and the session's markers, which are in messages/) only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/threads/**", "!packages/ai/src/threads/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/harness",
+                      "**/harness/**",
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/testing",
+                      "**/testing/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "Threads import nothing of the other folders but messages (their JSON and clock): they need no harness."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/ai/src/testing/**",
+        "!packages/ai/src/testing/threads/**",
+        "!packages/ai/src/testing/**/_test/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/narration",
+                      "**/narration/**"
+                    ],
+                    "message": "The test doubles use the messages and the harness contracts only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  },
+                  {
+                    "group": ["vitest", "vitest/**"],
+                    "message": "The test doubles are no tests: `./testing` must not pull Vitest (the threads' suite, which does, is `./testing/threads`)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/testing/threads/**", "!packages/ai/src/testing/threads/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/narration",
+                      "**/narration/**",
+                      "**/harness",
+                      "**/harness/**",
+                      "**/testing/*.js"
+                    ],
+                    "message": "The threads' suite (`./testing/threads`, it imports Vitest) uses the messages and the threads only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/src/narration/**", "!packages/ai/src/narration/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["molstar", "molstar/**", "@molstar/*", "@molstar/*/**"],
+                    "message": "The AI package imports nothing of Mol* or Prism: Prism hosts it, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI package uses HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "**/messages",
+                      "**/messages/**",
+                      "**/harness",
+                      "**/harness/**",
+                      "**/providers",
+                      "**/providers/**",
+                      "**/tools",
+                      "**/tools/**",
+                      "**/session",
+                      "**/session/**",
+                      "**/trace",
+                      "**/trace/**",
+                      "**/threads",
+                      "**/threads/**",
+                      "**/testing",
+                      "**/testing/**"
+                    ],
+                    "message": "Narration needs nothing of the other folders."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: the folders run in browsers and Node."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the tools' and the providers' own (packages/ai/_spec/tools.md, Decisions): declare inputs as field shapes."
+                  },
+                  {
+                    "group": ["ai", "ai/**", "@ai-sdk/*", "@ai-sdk/**"],
+                    "message": "The AI SDK is the providers' own: the root entry must not pull it."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/sequences/**/src/**",
+        "!packages/sequences/core/src/**",
+        "!packages/sequences/storybook/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["@nightingale-elements/**"],
+                    "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["@nightingale-elements/**"],
+                    "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/nightingale/src/mount.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/links/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@molstar/**",
+                      "react",
+                      "react-dom",
+                      "react/**",
+                      "react-dom/**",
+                      "!@molstar/seq-core/format",
+                      "../**"
+                    ],
+                    "message": "links is platform-free and imports only view-spec, for types."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "links is platform-free and imports only view-spec, for types.",
+                  "window": "links is platform-free and imports only view-spec, for types.",
+                  "navigator": "links is platform-free and imports only view-spec, for types.",
+                  "HTMLElement": "links is platform-free and imports only view-spec, for types."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/query/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/**", "react", "react-dom", "react/**", "react-dom/**", "../**"],
+                    "message": "ql is the language definition: a leaf, platform-free."
+                  },
+                  {
+                    "group": ["zod", "zod/**"],
+                    "message": "zod is the AI package's own: declare tool inputs as field shapes (packages/ai/_spec/tools.md §2)."
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "ql is the language definition: a leaf, platform-free.",
+                  "window": "ql is the language definition: a leaf, platform-free.",
+                  "navigator": "ql is the language definition: a leaf, platform-free.",
+                  "Buffer": "ql is the language definition: a leaf, platform-free.",
+                  "process": "ql is the language definition: a leaf, platform-free."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/**/src/**"],
+      "plugins": ["./packages/sequences/layers.grit"]
+    },
+    {
+      "includes": [
+        "packages/sequences/viewer/src/index.ts",
+        "packages/sequences/viewer/src/draw/**",
+        "packages/sequences/viewer/src/svg/**",
+        "packages/sequences/viewer/src/renderers/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "DOM-free entries.",
+                  "navigator": "DOM-free entries.",
+                  "HTMLElement": "DOM-free entries.",
+                  "HTMLCanvasElement": "DOM-free entries.",
+                  "CanvasRenderingContext2D": "DOM-free entries.",
+                  "OffscreenCanvas": "DOM-free entries.",
+                  "Image": "DOM-free entries.",
+                  "ImageData": "DOM-free entries.",
+                  "requestAnimationFrame": "DOM-free entries.",
+                  "cancelAnimationFrame": "DOM-free entries.",
+                  "ResizeObserver": "DOM-free entries.",
+                  "getComputedStyle": "DOM-free entries.",
+                  "devicePixelRatio": "DOM-free entries.",
+                  "MouseEvent": "DOM-free entries.",
+                  "PointerEvent": "DOM-free entries.",
+                  "KeyboardEvent": "DOM-free entries.",
+                  "window": "DOM-free entries.",
+                  "Blob": "DOM-free entries: the host passes bytes.",
+                  "btoa": "Platform-free entries: no btoa.",
+                  "Buffer": "Platform-free entries: no Node globals.",
+                  "process": "Platform-free entries: no Node globals."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/builder/**", "!packages/sequences/core/src/builder/svsx.ts"],
+      "plugins": ["./packages/sequences/core/builder-imports.grit"]
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "single",

@@ -6,7 +6,7 @@
   "description": "Mol* mvs-stories-example",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -28,7 +28,8 @@
       "molstar-src": "./src/stories/index.ts",
       "types": "./lib/stories/index.d.ts",
       "import": "./lib/stories/index.js"
-    }
+    },
+    "./stories/_test/*": null
   },
   "files": [
     "lib",
@@ -50,13 +51,16 @@
     "@molstar/mvs-stories": "workspace:*",
     "@molstar/mvs-builder": "workspace:*",
     "@molstar/mvs": "workspace:*",
-    "@molstar/model": "workspace:*"
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "catalog:",
+    "@molstar/prism-ui": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
     "@types/webxr": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "react-dom": ">=16.14.0"

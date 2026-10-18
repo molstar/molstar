@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadPositions } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import {
@@ -399,15 +400,14 @@ export class BackgroundPass {
     }
   }
 
-  render(props: BackgroundProps) {
+  render(b: PassBuilder, props: BackgroundProps) {
     if (!this._isEnabled(props) || !this.isReady()) return;
 
     if (this.renderable.values.dVariant.ref.value === 'image') {
       this.updateImageScaling();
     }
 
-    this.graphics.setRenderState(RenderState.Alpha);
-    this.renderable.render();
+    b.quad(this.renderable, RenderState.Alpha);
   }
 
   dispose() {
@@ -527,23 +527,25 @@ function getImageTexture(
   }
 
   const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
-  const img = new Image();
-  img.onload = () => {
-    texture.load(img);
+  const load = async () => {
+    const { data } = await assetManager.resolve(asset, 'binary').run();
+    const url = URL.createObjectURL(new Blob([data]));
+    try {
+      await ctx.resources.loadImage(texture, url, undefined, 'background image');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
     texture.mipmap();
-    onload?.();
   };
-  img.onerror = () => {
-    onload?.(true);
-  };
-
-  assetManager
-    .resolve(asset, 'binary')
-    .run()
-    .then((a) => {
-      const blob = new Blob([a.data]);
-      img.src = URL.createObjectURL(blob);
-    });
+  // the asset, the decode, the mipmaps and `onload` (the pass marks the image loaded) as one piece of pending work, so
+  // that renders waiting for it draw the image
+  ctx.resources.pending.track(
+    load().then(
+      () => onload?.(),
+      () => onload?.(true),
+    ),
+    'background image',
+  );
   return { texture, asset };
 }
 
@@ -558,7 +560,7 @@ export const BackgroundSchema = {
   uImageScale: UniformSpec('v2'),
   uImageOffset: UniformSpec('v2'),
   uTexSize: UniformSpec('v2'),
-  uViewport: UniformSpec('v4'),
+  uViewport: { ...UniformSpec('v4'), windowRect: 'pixels' as const },
   uViewportAdjusted: UniformSpec('b'),
   uViewDirectionProjectionInverse: UniformSpec('m4'),
   uGradientColorA: UniformSpec('v3'),

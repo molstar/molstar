@@ -76,8 +76,8 @@ function _transitionLinearInternal(
 
 const _sourceDirection = Vec3();
 const _targetDirection = Vec3();
-const _rotUp = Quat.identity();
-const _rotDist = Quat.identity();
+const _sourceQ = Quat();
+const _targetQ = Quat();
 
 /** Interpolate camera direction and up, set camera distance from its target to `dist`. */
 function interpolateCameraRotation(
@@ -87,24 +87,35 @@ function interpolateCameraRotation(
   source: Camera.Snapshot,
   target: Camera.Snapshot,
 ): void {
-  // Rotate up
-  Quat.rotationTo(_rotUp, source.up, target.up);
-  Quat.slerp(_rotUp, Quat.Identity, _rotUp, t);
-  Vec3.transformQuat(out.up, source.up, _rotUp);
-
-  // Rotate between source and target direction
+  // Compute source and target rotation quaternion
   Vec3.sub(_sourceDirection, source.position, source.target);
-  Vec3.normalize(_sourceDirection, _sourceDirection);
-
   Vec3.sub(_targetDirection, target.position, target.target);
-  Vec3.normalize(_targetDirection, _targetDirection);
+  quatFromXY(_sourceQ, _sourceDirection, source.up);
+  quatFromXY(_targetQ, _targetDirection, target.up);
+  // Interpolate (reuse _targetQ)
+  Quat.slerp(_targetQ, _sourceQ, _targetQ, t);
+  // Convert result to snapshot (reuse _targetDirection)
+  quatToXY(_targetDirection, out.up, _targetQ);
+  Vec3.setMagnitude(_targetDirection, _targetDirection, dist);
+  Vec3.add(out.position, out.target, _targetDirection);
+}
 
-  Quat.rotationTo(_rotDist, _sourceDirection, _targetDirection);
-  Quat.slerp(_rotDist, Quat.Identity, _rotDist, t);
-  Vec3.transformQuat(_sourceDirection, _sourceDirection, _rotDist);
+const _x = Vec3();
+const _y = Vec3();
+const _z = Vec3();
 
-  Vec3.scale(_sourceDirection, _sourceDirection, dist);
-  Vec3.add(out.position, out.target, _sourceDirection);
+/** Return quaternion which would rotate [1,0,0] into `x` and [0,1,0] into `y` (orthonormalize `x`, `y` as necessary). */
+function quatFromXY(out: Quat, x: Vec3, y: Vec3) {
+  Vec3.normalize(_x, x);
+  Vec3.orthogonalize(_y, _x, y);
+  Vec3.cross(_z, _x, _y);
+  Quat.fromBasis(out, _x, _y, _z);
+}
+
+/** Inverse of `quatFromXY`. */
+function quatToXY(outX: Vec3, outY: Vec3, quat: Quat) {
+  Vec3.transformQuat(outX, Vec3.unitX, quat);
+  Vec3.transformQuat(outY, Vec3.unitY, quat);
 }
 
 /** "Leaping" camera transition with constant absolute speed.

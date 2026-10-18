@@ -6,7 +6,8 @@
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { TextureImage, TextureVolume } from '../renderable/util.js';
-import type { Texture, TextureFilter, TextureFormat, TextureKind, TextureType } from '../texture.js';
+import type { GraphicsStats } from '../stats.js';
+import type { Texture, TextureFilter, TextureFormat, TextureKind, TextureSource, TextureType } from '../texture.js';
 import { TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
 import { asWebGPUFramebuffer } from './framebuffer.js';
@@ -20,20 +21,59 @@ const getNextTextureId = idFactory();
  */
 export type Release = (resource: { destroy(): void }) => void;
 
-/** A resource recreated on the current device by `reset` when the context restores a lost device */
-export interface WebGPURestorable {
-  reset: () => void;
+/** What WebGPU resources need from their context */
+/** Bytes of the live resources of a context by kind, as `GraphicsResources.getByteCounts` reports them */
+export type WebGPUByteCounts = {
+  texture: number;
+  cubeTexture: number;
+  attribute: number;
+  elements: number;
+  pixelPack: number;
+  uniform: number;
+  renderbuffer: number;
+};
+
+export function createWebGPUByteCounts(): WebGPUByteCounts {
+  return { texture: 0, cubeTexture: 0, attribute: 0, elements: 0, pixelPack: 0, uniform: 0, renderbuffer: 0 };
 }
 
-/** What WebGPU resources need from their context */
+/**
+ * Keeps the bytes of one resource in `counts[kind]`: `set` replaces them (on allocation, 0 when released). Each
+ * resource accounts its own bytes, so that a total is the sum of what is live, as WebGL sums its resources.
+ */
+export function createByteAccount(counts: WebGPUByteCounts, kind: keyof WebGPUByteCounts) {
+  let bytes = 0;
+  return (next: number) => {
+    counts[kind] += next - bytes;
+    bytes = next;
+  };
+}
+
+/**
+ * Counts a resource in `stats.resourceCounts[name]` from now until the returned function is called (once, on destroy),
+ * as WebGL counts its live resources
+ */
+export function countResource(stats: GraphicsStats, name: keyof GraphicsStats['resourceCounts']) {
+  stats.resourceCounts[name] += 1;
+  let counted = true;
+  return () => {
+    if (!counted) return;
+    counted = false;
+    stats.resourceCounts[name] -= 1;
+  };
+}
+
 export interface WebGPUResourceEnv {
-  /** the current device, read it on use: it changes when the context restores a lost device */
   readonly device: GPUDevice;
-  /** resources reset after a device was restored, resources remove themselves when destroyed */
-  readonly restorables: Set<WebGPURestorable>;
+  /** counts of the live resources (`resourceCounts`) */
+  readonly stats: GraphicsStats;
+  /** bytes of the live resources, see `WebGPUByteCounts` */
+  readonly byteCounts: WebGPUByteCounts;
   readonly release: Release;
   /** Encodes commands outside of render passes (copies), ends the open pass */
   readonly encode: (commands: (encoder: GPUCommandEncoder) => void) => void;
+  /** Submits the recorded commands */
+  readonly flush: () => void;
   readonly generateMipmaps: MipmapGenerator;
 }
 
@@ -66,12 +106,19 @@ export function asWebGPUTexture(texture: Texture): WebGPUTexture {
   return texture;
 }
 
-export function getGPUTextureFormat(format: TextureFormat, type: TextureType): GPUTextureFormat {
+/** `features` of the device: `depth32float-stencil8` is optional, `depth24plus-stencil8` is used without it */
+export function getGPUTextureFormat(
+  format: TextureFormat,
+  type: TextureType,
+  features?: GPUSupportedFeatures,
+): GPUTextureFormat {
   switch (format) {
     case 'depth':
       return type === 'float' ? 'depth32float' : 'depth24plus';
     case 'depth-stencil':
-      return type === 'float-stencil' ? 'depth32float-stencil8' : 'depth24plus-stencil8';
+      return type === 'float-stencil' && features?.has('depth32float-stencil8')
+        ? 'depth32float-stencil8'
+        : 'depth24plus-stencil8';
   }
   const channels = format;
   switch (type) {
@@ -113,6 +160,17 @@ export function isLinearFiltered(device: GPUDevice, texture: WebGPUTexture) {
   return texture.filter === 'linear' && isFilterableFormat(device, texture.format);
 }
 
+/** Formats with storage texture support in core WebGPU */
+const StorageFormats = new Set<GPUTextureFormat>([
+  'rgba8unorm',
+  'rgba16float',
+  'rgba32float',
+  'r32float',
+  'r32sint',
+  'r32uint',
+  'rg32float',
+]);
+
 export function createWebGPUTexture(
   env: WebGPUResourceEnv,
   kind: TextureKind,
@@ -124,16 +182,20 @@ export function createWebGPUTexture(
   if (kind === 'texture') notSupported(`texture kind '${kind}'`);
 
   const dimension: GPUTextureDimension = kind.startsWith('volume-') ? '3d' : '2d';
-  const gpuFormat = getGPUTextureFormat(format, type);
+  const gpuFormat = getGPUTextureFormat(format, type, env.device.features);
   const isDepth = format === 'depth' || format === 'depth-stencil';
   const hasStencil = format === 'depth-stencil';
-  // all mapped color formats are renderable, 3d textures are not attachable as a whole
+  // all mapped color formats are renderable, 3d textures one slice at a time (`attachFramebuffer` with a layer); formats
+  // with storage support can be written by compute kernels
   const usage =
     TextureUsage.TEXTURE_BINDING |
     TextureUsage.COPY_DST |
     TextureUsage.COPY_SRC |
-    (dimension === '2d' ? TextureUsage.RENDER_ATTACHMENT : 0);
+    TextureUsage.RENDER_ATTACHMENT |
+    (StorageFormats.has(gpuFormat) ? TextureUsage.STORAGE_BINDING : 0);
   const bytesPerChannel = type === 'ubyte' ? 1 : type === 'fp16' ? 2 : 4;
+  const account = createByteAccount(env.byteCounts, 'texture');
+  const uncount = countResource(env.stats, 'texture');
 
   let texture: GPUTexture | undefined;
   let view: GPUTextureView | undefined;
@@ -152,6 +214,7 @@ export function createWebGPUTexture(
     width = w;
     height = h;
     depth = d;
+    account(Math.max(1, w) * Math.max(1, h) * Math.max(1, d) * channelsOf(format) * bytesPerChannel);
     texture = env.device.createTexture({
       size: { width: Math.max(1, w), height: Math.max(1, h), depthOrArrayLayers: Math.max(1, d) },
       format: gpuFormat,
@@ -161,6 +224,14 @@ export function createWebGPUTexture(
     attachmentView = texture.createView();
     view = hasStencil ? texture.createView({ aspect: 'depth-only' }) : attachmentView;
     version += 1;
+  }
+
+  /** `allocate` for a queue write */
+  function allocateForWrite(w: number, h: number, d = 1) {
+    // queue writes run before the commands recorded so far, which may still read the current contents (uploads are
+    // ordered on WebGL): submit them first
+    if (texture && w === width && h === height && d === depth) env.flush();
+    allocate(w, h, d);
   }
 
   /** without data, the contents are undefined until rendered into */
@@ -180,7 +251,7 @@ export function createWebGPUTexture(
       if (format !== 'rgba' || type !== 'ubyte') notSupported(`images in '${format}' '${type}' textures`);
       const w = isElement ? image.naturalWidth || image.width : image.width;
       const h = isElement ? image.naturalHeight || image.height : image.height;
-      allocate(w, h);
+      allocateForWrite(w, h);
       // rows top to bottom, as `texImage2D` uploads images without `UNPACK_FLIP_Y_WEBGL`
       device.queue.copyExternalImageToTexture({ source: image }, { texture: texture! }, { width: w, height: h });
       return;
@@ -189,7 +260,7 @@ export function createWebGPUTexture(
     const { array, width: w, height: h } = image as TextureImage<any>;
     const d = 'depth' in image ? (image as TextureVolume<any>).depth : 1;
     if (type === 'fp16') notSupported('loading fp16 textures');
-    allocate(w, h, d);
+    allocateForWrite(w, h, d);
 
     const channels = getChannelCount(format);
     const texelSize = channels * bytesPerChannel;
@@ -208,6 +279,7 @@ export function createWebGPUTexture(
     getView: () => view,
     getAttachmentView: () => attachmentView,
     getGPUTexture: () => texture,
+    getSource: () => ({ kind, format, type, filter, data: loaded as TextureSource['data'], mipmap: mipmapped }),
     hasStencil,
     filter,
     get version() {
@@ -250,8 +322,21 @@ export function createWebGPUTexture(
       version += 1;
     },
     attachFramebuffer: (framebuffer, attachment, layer) => {
-      if (layer !== undefined) notSupported('attaching texture layers');
-      asWebGPUFramebuffer(framebuffer).attach(attachment, t);
+      if (layer === undefined) {
+        asWebGPUFramebuffer(framebuffer).attach(attachment, t);
+        return;
+      }
+      if (dimension !== '3d') notSupported('attaching layers of 2d textures');
+      // a slice of the 3d view of level 0
+      asWebGPUFramebuffer(framebuffer).attach(attachment, {
+        format: gpuFormat,
+        hasStencil,
+        depthSlice: layer,
+        getAttachmentView: () => attachmentView,
+        getGPUTexture: () => texture,
+        getWidth: () => width,
+        getHeight: () => height,
+      });
     },
     detachFramebuffer: (framebuffer, attachment) => {
       asWebGPUFramebuffer(framebuffer).detach(attachment);
@@ -260,37 +345,26 @@ export function createWebGPUTexture(
       const src = asWebGPUFramebuffer(framebuffer).getColorAttachment(0);
       const srcTexture = src?.getGPUTexture();
       if (!srcTexture || !texture) throw new Error('copyFromFramebuffer needs a defined source and destination');
-      // rects have a bottom-left origin (GL convention of the neutral API), textures store the top row first
       env.encode((encoder) => {
         encoder.copyTextureToTexture(
-          { texture: srcTexture, origin: { x, y: src!.getHeight() - y - h } },
-          { texture: texture!, origin: { x: dstX, y: height - dstY - h } },
+          { texture: srcTexture, origin: { x, y } },
+          { texture: texture!, origin: { x: dstX, y: dstY } },
           { width: w, height: h },
         );
       });
     },
 
-    reset: () => {
-      if (texture) release(texture);
-      texture = undefined;
-      view = undefined;
-      attachmentView = undefined;
-      const wasMipmapped = mipmapped;
-      if (loaded) load(loaded);
-      else if (width > 0) allocate(width, height, depth);
-      if (wasMipmapped) t.mipmap();
-    },
     destroy: () => {
       if (texture) release(texture);
       texture = undefined;
       view = undefined;
       attachmentView = undefined;
       loaded = undefined;
-      env.restorables.delete(t);
+      account(0);
+      uncount();
     },
   };
   WebGPUTextures.add(t);
-  env.restorables.add(t);
   return t;
 }
 
@@ -332,19 +406,18 @@ export const CubeLayerSides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'] as const;
 export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean) {
   const { release } = env;
   const gpuFormat: GPUTextureFormat = 'rgba8unorm';
+  const account = createByteAccount(env.byteCounts, 'cubeTexture');
+  const uncount = countResource(env.stats, 'cubeTexture');
   let texture: GPUTexture | undefined;
   let view: GPUTextureView | undefined;
   let size = 0;
   let version = 0;
 
-  /** the faces, loaded again by `reset` */
-  let faces: ImageBitmap[] | undefined;
-
   function loadFaces(images: ImageBitmap[]) {
     const { device } = env;
-    faces = images;
     if (texture) release(texture);
     size = images[0].width;
+    account(size * size * 4 * 6);
     const mipLevelCount = mipmaps ? getMipLevelCount(size, size) : 1;
     texture = device.createTexture({
       size: { width: size, height: size, depthOrArrayLayers: 6 },
@@ -392,18 +465,14 @@ export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean
     detachFramebuffer: () => notSupported('detaching cube textures'),
     copyFromFramebuffer: () => notSupported('copying into cube textures'),
 
-    reset: () => {
-      if (faces) loadFaces(faces);
-    },
     destroy: () => {
       if (texture) release(texture);
       texture = undefined;
       view = undefined;
-      faces = undefined;
-      env.restorables.delete(t);
+      account(0);
+      uncount();
     },
   };
   WebGPUTextures.add(t);
-  env.restorables.add(t);
   return t;
 }

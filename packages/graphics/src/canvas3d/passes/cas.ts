@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -69,10 +70,10 @@ export class CasPass {
     }
   }
 
-  render(viewport: Viewport, target: RenderTarget | undefined) {
-    this.graphics.beginRenderPass(target ?? 'drawing-buffer', { label: 'cas' });
-    this.updateState(viewport);
-    this.renderable.render();
+  render(b: PassBuilder, viewport: Viewport, target: RenderTarget | undefined) {
+    b.begin(target ?? 'drawing-buffer', { label: 'cas' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 

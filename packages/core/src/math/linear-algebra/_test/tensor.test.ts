@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Tensor as T } from '../tensor.js';
 import { Mat4 } from '../3d/mat4.js';
 

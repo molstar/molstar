@@ -30,9 +30,70 @@ export type ColorData = {
   uColorTexDim: ValueCell<Vec2>;
   uColorGridDim: ValueCell<Vec3>;
   uColorGridTransform: ValueCell<Vec4>;
+  uColorIndexType: ValueCell<number>;
   dColorType: ValueCell<string>;
+  /** the `ColorType` */
+  colorType: ValueCell<string>;
   dUsePalette: ValueCell<boolean>;
 };
+
+/**
+ * How the color types that share a define read their data (`uColorIndexType`): one program for each of 'texture' (the
+ * index of `tColor`) and 'grid' (the position `tColorGrid` is sampled at), the shaders select at runtime
+ */
+export const ColorTypeIndex: { readonly [T in ColorType]?: number } = {
+  instance: 0,
+  group: 1,
+  groupInstance: 2,
+  vertex: 3,
+  vertexInstance: 4,
+  volume: 0,
+  volumeInstance: 1,
+};
+
+const ColorTypeDefines: { readonly [T in ColorType]: string } = {
+  uniform: 'uniform',
+  instance: 'texture',
+  group: 'texture',
+  groupInstance: 'texture',
+  vertex: 'texture',
+  vertexInstance: 'texture',
+  volume: 'grid',
+  volumeInstance: 'grid',
+  direct: 'direct',
+};
+
+/**
+ * The define value of the color type `type`: the types read from `tColor` by index share 'texture', the grid types
+ * share 'grid' (see `ColorTypeIndex`)
+ */
+export function getColorTypeDefine(type: ColorType | string): string {
+  return ColorTypeDefines[type as ColorType] ?? type;
+}
+
+/** Sets the color type `type` (a `ColorType`), its define and index (`ColorTypeIndex`) of `values` */
+export function setColorType(
+  values: Pick<ColorData, 'colorType' | 'dColorType' | 'uColorIndexType'>,
+  type: ColorType | string,
+) {
+  ValueCell.updateIfChanged(values.colorType, type);
+  ValueCell.updateIfChanged(values.dColorType, getColorTypeDefine(type));
+  ValueCell.updateIfChanged(values.uColorIndexType, ColorTypeIndex[type as ColorType] ?? 0);
+}
+
+/** The values of the color type `type` (its define and index, see `setColorType`) */
+function createColorType(type: ColorType) {
+  return {
+    uColorIndexType: ValueCell.create(ColorTypeIndex[type] ?? 0),
+    dColorType: ValueCell.create(getColorTypeDefine(type)),
+    colorType: ValueCell.create<string>(type),
+  };
+}
+
+/** Whether colors of `type` are sampled at vertex positions (the position iterator of `createColors`) */
+export function isPositionColorType(type: ColorType) {
+  return type === 'vertex' || type === 'vertexInstance';
+}
 
 export function createColors(
   locationIt: LocationIterator,
@@ -124,7 +185,7 @@ function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<Textu
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
   if (colorData) {
     ValueCell.update(colorData.uColor, Color.toVec3Normalized(colorData.uColor.ref.value, value));
-    ValueCell.updateIfChanged(colorData.dColorType, 'uniform');
+    setColorType(colorData, 'uniform');
     return colorData;
   } else {
     return {
@@ -137,7 +198,7 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
       uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
       uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dColorType: ValueCell.create('uniform'),
+      ...createColorType('uniform'),
       dUsePalette: ValueCell.create(false),
     };
   }
@@ -160,7 +221,7 @@ export function createTextureColor(
   if (colorData) {
     ValueCell.update(colorData.tColor, colors);
     ValueCell.update(colorData.uColorTexDim, Vec2.create(colors.width, colors.height));
-    ValueCell.updateIfChanged(colorData.dColorType, type);
+    setColorType(colorData, type);
     return colorData;
   } else {
     return {
@@ -173,7 +234,7 @@ export function createTextureColor(
       uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
       uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dColorType: ValueCell.create(type),
+      ...createColorType(type),
       dUsePalette: ValueCell.create(false),
     };
   }
@@ -293,7 +354,7 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
     ValueCell.update(colorData.uColorTexDim, Vec2.create(width, height));
     ValueCell.update(colorData.uColorGridDim, Vec3.clone(dimension));
     ValueCell.update(colorData.uColorGridTransform, Vec4.clone(transform));
-    ValueCell.updateIfChanged(colorData.dColorType, type);
+    setColorType(colorData, type);
     return colorData;
   } else {
     return {
@@ -306,7 +367,7 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
       uColorTexDim: ValueCell.create(Vec2.create(width, height)),
       uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
       uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
-      dColorType: ValueCell.create(type),
+      ...createColorType(type),
       dUsePalette: ValueCell.create(false),
     };
   }
@@ -317,7 +378,7 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
 /** Creates direct color */
 function createDirectColor(colorData?: ColorData): ColorData {
   if (colorData) {
-    ValueCell.updateIfChanged(colorData.dColorType, 'direct');
+    setColorType(colorData, 'direct');
     return colorData;
   } else {
     return {
@@ -330,7 +391,7 @@ function createDirectColor(colorData?: ColorData): ColorData {
       uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
       uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dColorType: ValueCell.create('direct'),
+      ...createColorType('direct'),
       dUsePalette: ValueCell.create(false),
     };
   }

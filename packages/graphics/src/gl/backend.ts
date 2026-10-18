@@ -39,8 +39,13 @@ export async function createGraphicsContext(
 ): Promise<{ context: GraphicsContext; backend: GraphicsBackendDescriptor } | undefined> {
   for (const backend of backends) {
     if (!backend.isAvailable()) continue;
-    const context = await backend.create(canvas, attribs);
-    if (context) return { context, backend };
+    try {
+      const context = await backend.create(canvas, attribs);
+      if (context) return { context, backend };
+    } catch (e) {
+      // the next backend; backends fail before they claim the canvas (e.g. a device request)
+      console.warn(`Graphics backend '${backend.id}' failed, trying the next one:`, e);
+    }
   }
   return undefined;
 }

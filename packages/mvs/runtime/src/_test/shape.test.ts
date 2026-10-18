@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseVtp } from '@molstar/io/reader/vtp/parser';
 import { shapeFromVtp } from '@molstar/graphics/formats/shape/vtp';
 import { Task } from '@molstar/core/task';

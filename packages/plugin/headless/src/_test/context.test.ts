@@ -4,10 +4,13 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { createRequire } from 'node:module';
+import { describe, expect, it } from 'vitest';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import type { ExternalModules } from '@molstar/plugin-headless/screenshot';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 
+const require = createRequire(import.meta.url);
 let hasGl = true;
 let glModule: typeof import('gl') | undefined;
 try {

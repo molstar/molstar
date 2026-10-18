@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Color } from '../color.js';
 import { distinctColors, getDistinctBaseColors, getDistinctGroupColors } from '../distinct.js';
 

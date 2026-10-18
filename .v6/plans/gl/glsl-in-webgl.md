@@ -2,6 +2,9 @@
 
 ## Status
 
+- **Current**: done, steps 1–7. Step 5 (the WebGL-only compute in `gl/webgl/compute/`) was done by
+  [backend-narrowing.md](backend-narrowing.md) step 3, step 7 (the bundle check) by
+  [backend-selection.md](backend-selection.md) step 4 (`pnpm check:backend-bundles`).
 - Steps 1–4 and 6 done: unique program names (`accumulate` split into `trace-accumulate` and
   `color-smoothing-accumulate`, test "program names are unique"); the GLSL assembly in `gl/webgl/shader-code.ts`;
   `ShaderCode` a descriptor without sources, GLSL looked up by name in `gl/webgl/programs.ts` (`registerGlslProgram` for

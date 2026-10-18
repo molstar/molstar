@@ -10,6 +10,13 @@ import { idFactory } from './id-factory.js';
 /** A mutable value reference. */
 interface ValueRef<T> {
   ref: T;
+  /** Flagged when the reference changes through `ValueCell.update` or `ValueCell.set`, see `ValueCell.observe` */
+  observers?: Set<ValueCell.Observer>;
+  /**
+   * For cells derived from other state (e.g. a value depending on the current render target): the value may change
+   * without notifying the observers, which then check the version every time
+   */
+  readonly volatile?: boolean;
 }
 
 namespace ValueRef {
@@ -55,13 +62,39 @@ namespace ValueCell {
     return ValueRef.create(ValueBox.create(value, metadata));
   }
 
+  /**
+   * Set to `changed` when an observed cell changes; lets the observer skip checking the versions of its cells while
+   * none changed (e.g. the uniform block writers, per draw)
+   */
+  export interface Observer {
+    changed: boolean;
+  }
+
+  /** `observer.changed` is set when `cell` changes, until `unobserve` */
+  export function observe(cell: ValueCell<any, any>, observer: Observer) {
+    (cell.observers ??= new Set()).add(observer);
+  }
+
+  export function unobserve(cell: ValueCell<any, any>, observer: Observer) {
+    cell.observers?.delete(observer);
+  }
+
+  function notify(cell: ValueCell<any, any>) {
+    const observers = cell.observers;
+    if (observers) for (const o of observers) o.changed = true;
+  }
+
   /** The box.metadata is carried over from the old box */
   export function update<T, D>(cell: ValueCell<T, D>, value: T): ValueCell<T, D> {
-    return ValueRef.set(cell, ValueBox.withValue(cell.ref, value));
+    ValueRef.set(cell, ValueBox.withValue(cell.ref, value));
+    notify(cell);
+    return cell;
   }
 
   export function set<T, D>(cell: ValueCell<T, D>, box: ValueBox<T, D>): ValueCell<T, D> {
-    return ValueRef.set(cell, box);
+    ValueRef.set(cell, box);
+    notify(cell);
+    return cell;
   }
 
   /** Updates the cell if the value is has changed, comparing by reference */

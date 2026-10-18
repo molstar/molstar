@@ -1,0 +1,216 @@
+# Plan: GPU surface buffers (WebGPU)
+
+## Status
+
+- **Current**: steps 1–3 done; decisions 1A, 2A, 4A (4 K vertex chunks) and 5A (one growable arena) made, 3
+  superseded by chunked storage. Step 4 postponed: multi-draw indirect only replaces the per-range draw loop of
+  render items with multi-draw lists (culling, level of detail of instanced structures), needs
+  `indirect-first-instance` for its fallback, and few adapters offer it (as `WEBGL_multi_draw` on WebGL, which still
+  helps real cases); to measure first (draws of multi-draw lists per frame in an assembly scene), exact GPU counts per
+  range for chunked surfaces being the part independent of the feature.
+- After step 3: the WebGPU texture output removed (`computeIsosurface`, the kernels `mc-count`, `mc-emit` and
+  `mc-finish`, the texture target of `computeTextureMeshIsosurface`, the draw arguments of `TextureMesh.DoubleBuffer`,
+  which keeps its textures for WebGL); compute color smoothing reads only the arena (its texture variant had no other
+  user); the benchmark's volume and Gaussian surface cases extract into the arena (until the count is read back), its
+  WebGPU color smoothing cases smooth a surface extracted into the arena from the GPU density (not timed; triangles as
+  the GPU extracts them); the Dawn test compares the count with the CPU marching cubes. The prefix sum (`gl/compute/prefix-sum.ts`) is no longer
+  used by marching cubes, kept as a general kernel. Stats: `ResourceByteCounts.storageBuffer` (WebGPU, the bytes of the
+  storage buffers created and not destroyed, `ComputeContext.getStorageBufferByteCount`; WebGPU still reports 0 for the
+  other resources), the byte count of a chunked texture mesh's renderable includes its pages and page table (read back,
+  `meta.chunkByteCount`), and the debug console stats show the arena (`getVertexArenaStats`: used and allocated pages).
+- Step 3 done: render schemas declare read-only storage buffers (`StorageBufferSpec` with `usedIf`, WebGL ignores
+  them; WebGPU numbers them after the draw uniforms of the object group, bound when referenced); the vertex arena
+  (`gl/compute/marching-cubes/chunks.ts`: one growable arena of 4 K vertex pages per context, positions with the
+  group's rgba bits in `w` and snorm16 normals, 24 B per vertex, a free page stack) with the kernels `mc-chunk-count`
+  (one atomic reservation per workgroup), `mc-chunk-allocate`, `mc-chunk-emit`, `mc-chunk-free` and `mc-chunk-push`;
+  texture meshes in the arena (`TextureMesh.createChunked`, `dIsoChunks`, the WGSL mesh program reading through the
+  page table, vertices beyond the drawn count clipped), the color smoothing kernel and the readback (position
+  iterator, geo export) reading through it. `computeTextureMeshIsosurface` extracts into the arena where the kernels
+  are supported (`IsosurfaceTarget`, `extractIsosurface`); the count read back afterwards raises the mesh's upper bound
+  (`vertexCount`, for draws without the GPU count and the samples of derived data, whose handlers then run again) and a
+  surface missing pages is extracted again after the arena grew. Tests on Dawn (`webgpu-isosurface-chunks.test.ts`:
+  count as the exact path, vertices on the surface, pages reused and returned, missing pages after growth); visual tests
+  (all profiles), smoke and unit tests pass. WebGPU, median of 25 runs, after step 2 → after step 3: 7qpd created 15 →
+  6.6 ms, updated 9.8 → 7.8 ms; globule-10k created 8.6 → 5.3 ms, updated 5.4 → 4.5 ms; blobs-128 created 8.7 → 6.0 ms
+  (no readback awaited for new volume surfaces), updated 3.4 ms (unchanged). Memory of 7qpd (7 polymer units, 3.69 M
+  vertices): 902 pages, 89 MB used (0.3% page slack), in an arena of 1520 pages (143 MB, grown ×1.5 from 64 pages); the
+  textures before were 28 B per vertex of a 1.25× capacity, about 130 MB, twice that after an update (double buffer).
+- Step 2 done: `getScratchBuffer` (`gl/compute/scratch.ts`) keeps a storage buffer per context and key, grown,
+  released after 3 s unused; the density scratch buffers use it (cleared per slab) and the marching cubes `counts` and
+  `offsets` with a capacity (without one, the count is awaited between the kernels, when another extraction could use
+  them); the shared density texture of the Gaussian surface only grows (`growTexture`, read by grid coordinates, reads
+  clamped to the grid). Keeping output textures up to 2× was dropped: no gain, as the double buffer already redefines
+  each set to the size it had. WebGPU, median of 25 runs: 7qpd update 34 → 9.8 ms, created about 40 → 15 ms,
+  globule-10k update unchanged, blobs-128 update 3.0 → 3.4–3.6 ms (outside the GPU passes, which got faster; not
+  explained). Visual tests (all profiles), smoke and unit tests pass.
+- Step 1 done: `pnpm benchmark --gpu-timing` times the passes of the representation cases (GPU time per pass label,
+  summed over the run); the GPU passes are a fraction of the wall time, the rest is resource creation in the GPU process
+  (see Measured), so the pool moved before the storage buffers (step 2).
+- Follows [indirect-draws.md](indirect-draws.md) (capacity, indirect draws,
+  overflow re-extraction); builds on [storage-buffers.md](storage-buffers.md) (WebGPU core, vertex pulling from storage
+  buffers) and shares multi-draw indirect with layer C of [webgpu-draw-submission.md](webgpu-draw-submission.md)
+  (step 8).
+
+## Question
+
+Marching cubes on WebGPU write their vertices into three textures (position `rgba32float`, normal `rgba16float`, group
+`rgba8unorm`) sized for a capacity: an estimate for new Gaussian surfaces, exact for new volume surfaces, 1.25× the last
+count on updates; the count goes into draw arguments and is read back without waiting, a count above the capacity
+extracts again. The output size varies with the surface (iso value, smoothness, resolution, the units of a structure).
+Should the output instead go into storage buffers allocated in chunks on the GPU, so that a surface never has to be
+extracted again for lack of space, never holds much more than it uses, and the CPU never waits for (or needs) its
+vertex count; drawn with multi-draw indirect where Chrome offers it?
+
+## Measured (7qpd, 21 Gaussian surface units, NVIDIA, Windows)
+
+- GPU passes are a fraction of the time: of the 32 ms update of 7qpd (7 polymer units extracted), the passes take 6.7
+  ms (density 1.8, count with the prefix sum 3.9, emit 0.9, finish 0.1); the main thread records all units in about 7
+  ms and is idle otherwise. The rest is spent in the GPU process, outside the timestamps and the page's CPU profile.
+- It is resource creation: each extraction creates large resources and drops them again (the density's three grid-sized
+  scratch buffers, the shared 3d density texture defined to each unit's grid, the `counts` and `offsets` of marching
+  cubes, 4 B per cell each, and output textures whenever the capacity changes). Kept and grown instead (an experiment),
+  in steps:
+
+  | Kept                                     | 7qpd update | 7qpd created | blobs-128 update | globule-10k update |
+  | ---------------------------------------- | ----------- | ------------ | ---------------- | ------------------ |
+  | none (today)                             | 32 ms       | 40 ms        | 3.0 ms           | 5.5 ms             |
+  | density scratch buffers                  | 23 ms       | 36 ms        |                  |                    |
+  | + marching cubes scratch, output ≤ 2×    | 15 ms       | 26 ms        | 4.0 ms           | 5.7 ms             |
+  | + shared density texture, grown only     | 12 ms       | 19 ms        | 4.0 ms           | 6.0 ms             |
+
+  Disabling Dawn's lazy clears (`--disable-dawn-features=lazy_clear_resource_on_first_use`) changed nothing, which points
+  at the allocation itself (D3D12 resources of tens of MB) rather than its zero-initialization (not verified that Chrome
+  applied the toggle). Single-surface cases gain nothing (blobs-128 slightly slower, to be checked: clears of larger
+  kept buffers). - Memory: capacities are 1.25× the count (13.8 M vertices for 11.1 M, at 28 B per vertex about 390 MB
+  of textures, 77 MB of it headroom); 3 of 21 units overflowed their estimate (small units), none of the updates.
+  Texture meshes keep two texture sets (`TextureMesh.DoubleBuffer`), so an updated surface holds about twice its size
+  (about 650 MB for 7qpd).
+
+What this plan can gain: time (resources kept instead of created per extraction), memory (packed vertices, one set
+instead of two, pooled capacity), one emit pass instead of count + prefix sum + emit (GPU time, the scratch buffers),
+and fewer draw calls with multi-draw indirect. Mol\* extracts on updates, not per frame, so a ring buffer of per-frame
+output does not fit: surfaces keep their vertices until the next update.
+
+## Design
+
+- **Vertex buffers on WebGPU**: the extraction writes storage buffers, read in the vertex stage by vertex id (as the
+  textures are read today). WebGL keeps its textures (no storage buffers); the texture mesh holds either, behind the
+  neutral geometry (`TextureMesh` with a buffer variant, or a separate GPU mesh kind, see decision 1).
+- **Layout**: position and group in one `vec4<f32>` (group bitcast into `w`) and the normal in 8 B
+  (`pack2x16snorm` × 2, or 4 B octahedral): 24 or 20 B per vertex instead of 28. One vertex buffer of 16 B entries at
+  the default `maxStorageBufferBindingSize` (128 MiB) holds 8.4 M vertices, the cap of the Gaussian estimate today;
+  larger surfaces request the adapter's limit and otherwise split (as the textures are limited by
+  `maxTextureDimension2D` today).
+- **Chunked vertex storage**: vertices live in fixed-size chunks (pages) of one arena of storage buffers per graphics
+  context (decision 5); a surface owns a page table (a small buffer: its vertex count, page count and page ids) and its
+  vertex `v` is at `page[v / ChunkSize] * ChunkSize + v % ChunkSize` of the arena. Growing replaces the arena's
+  buffers by larger ones with their contents (page ids stay valid), the meshes bind the new ones (arena listeners);
+  the arena is at most `maxStorageBufferBindingSize`. Waste per surface is less than one chunk; no capacity, no size
+  classes.
+- **Allocation on the GPU, without readback**: the arenas' free pages are a stack in a pool buffer (count and page ids).
+  An extraction runs three kernels in one submission:
+  1. **count**: per workgroup, the vertex count of its cells (workgroup memory), reserved with one `atomicAdd` on the
+     surface's vertex count; the workgroup's base is stored (4 B per workgroup, not per cell);
+  2. **allocate** (one workgroup): the pages the count needs, popped from the free stack into the page table (surplus
+     pages of the previous extraction pushed back, so updates reuse their pages); writes the draw arguments (the count,
+     clamped to the pages it got);
+  3. **emit**: per workgroup again, its vertices from its base, written through the page table.
+
+  The vertex order varies between runs (decision 2). Destroying a surface runs a free kernel pushing its pages back.
+  Kernels touching the free stack run in queue order (single workgroup), so it needs no locking.
+- **Pool growth, off the critical path**: the free page count is read back asynchronously after extractions (never
+  awaited); the CPU adds an arena (its pages pushed by a kernel) when the free pages fall below a headroom, and before
+  an extraction whose estimate (atoms and resolution for Gaussian surfaces, a fraction of the cells for volumes)
+  exceeds the free pages last known minus the estimates in flight. Should the stack still run dry during an
+  extraction, the allocate kernel clamps the count and sets a status word; read back asynchronously, it makes the CPU
+  grow the pool and extract that surface again: the only re-extraction left, a safety net rather than the path.
+- **Readbacks are bookkeeping**: the vertex count (stats, position iterator, export) and the pool's free count arrive
+  asynchronously; nothing waits for them, and no allocation size depends on them.
+- **Scratch resources**: the per-extraction buffers (density accumulation; marching cubes counts and offsets until the
+  chunked path replaces them) and the
+  shared 3d density texture are kept per context and grown, not created per call (shrunk when unused for a while); the
+  density texture only grows where its readers address it by the grid size (the marching cubes input), not where it is
+  sampled by texture coordinates (the density volume visual keeps an exact texture).
+- **One storage per surface on WebGPU**: an update writes after the frames that drew the previous vertices (queue
+  order), so the double buffer is not needed (WebGL keeps it).
+- **Multi-draw indirect** (`chromium-experimental-multi-draw-indirect`, optional, requested where the adapter has it):
+  draws the multi-draw lists (culled and level-of-detail ranges) from an arguments buffer with one `multiDrawIndirect`,
+  instead of one draw per range; the fallback is the loop of draws (core). For GPU surfaces in multi-draw lists the
+  per-range counts can then come from the GPU (decision 2B of indirect-draws.md, today the capacity is drawn). With all
+  GPU surfaces in the same arenas, surfaces sharing a pipeline could later be drawn by one call (per-draw data indexed
+  by draw). Not in the TypeScript DOM types: declared locally. Few adapters report it so far (web3dsurvey: about 0.25%
+  on Windows), so the core path stays the measured one.
+
+## Decisions
+
+### 1. Where the buffer variant lives
+
+- **A. `TextureMesh` with buffers on WebGPU**: the same geometry kind and visuals; values and shader chunk pick
+  textures or buffers by backend (a define). Consumers (color smoothing, the readback for the position iterator and
+  export) branch on the storage.
+- **B. A GPU mesh kind**: a new geometry for compute-produced vertices on WebGPU, `TextureMesh` stays WebGL's. Cleaner
+  types, but every visual creating texture meshes chooses between two geometries.
+
+Chosen: A (one geometry for GPU surfaces; the storage is a backend detail).
+
+### 2. Emission order
+
+- **A. Atomic counter**: one pass, no scratch buffers; the vertex order varies between runs (workgroups reserve in the
+  order they run). Images are the same where order does not matter (depth-tested opaque surfaces, order-independent
+  transparency, fixed-point color smoothing sums); blended transparency without OIT and exact z-fighting ties may
+  differ between runs.
+- **B. Count and prefix sum, into buffers**: today's order (deterministic), only the output changes.
+
+Chosen: A, directly (no prefix-sum step in between); blended transparency without OIT may look different between
+runs.
+
+### 3. Capacity classes
+
+Superseded by the chunked storage (earlier choice: ×1.5 steps).
+
+### 4. Chunk size
+
+- **A. 4 K vertices** (96 KB at 24 B): little waste for small units (waters, ligands), page tables of a few thousand
+  entries for the largest surfaces (11 M vertices: 2.7 K pages).
+- **B. 16 K vertices** (384 KB): smaller tables, up to 384 KB unused per surface (21 units of 7qpd: up to 8 MB).
+- **C. 64 K vertices** (1.5 MB): fewest pages, up to 1.5 MB unused per surface.
+
+Chosen: A (the table lookup per vertex is the same for all; small units are common).
+
+### 5. Arenas
+
+- **A. One growable arena**: one buffer per vertex attribute holding all pages; growing allocates larger buffers and
+  copies on the GPU (rare, off the critical path). Fewest bindings (page table and two arena buffers), simplest
+  shaders; the total is limited by the storage buffer binding size (8.4 M vertices at the 128 MiB default).
+- **B. Several fixed arenas**: growing adds a buffer without copying; shaders select the arena with a `switch` (no
+  binding arrays in WebGPU), two bindings per arena, about 3 arenas within the default 8 storage buffers per stage.
+
+Chosen: A (more arenas only if the binding size is ever reached).
+
+## Steps
+
+1. Measure the GPU passes of the extraction (density, count, prefix sum, emit, finish) per unit with timestamp
+   queries. Done (results in Measured).
+2. Keep the scratch resources: density scratch buffers and the marching cubes counts and offsets per context, grown;
+   the shared density texture grown only. Done (results in Status).
+3. Chunked vertex storage on WebGPU: the arena, the free stack and page tables; the count, allocate and emit kernels
+   (replacing the prefix sum and the marching cubes scratch) and the free kernel; the WGSL texture-mesh chunk reads
+   through the page table, color smoothing and the readback too; one storage per surface (no double buffer on WebGPU);
+   pool growth from asynchronous free counts and estimates, the status word as safety net. Visual tests, benchmark and
+   memory on 7qpd (blended transparency may differ between runs). Done (results in Status).
+4. Multi-draw indirect where available: multi-draw lists from an arguments buffer, the loop as fallback; GPU counts for
+   GPU surfaces in multi-draw lists. Benchmark on an instanced scene with culling (`render/*`).
+
+## Follow-ups
+
+- **Size estimates for volume isosurfaces**: the chunked extraction grows the arena beforehand from an estimate (the
+  Gaussian surfaces pass one, later extractions the last count); volume isosurfaces pass none, so the first extraction
+  of a larger surface gets few pages and is extracted again after the arena grew: `1tqn.ccp4` at its default level
+  missed 445 pages (timing mode: 0.08 ms, then 0.23 ms for the second extraction). That path bound a destroyed page
+  table, fixed (`TextureMesh.bindChunkedTable`). An estimate from the grid (the cells the iso level crosses, from the
+  histogram or a sampled count, times about two triangles per crossed cell) would extract once.
+- **CPU or GPU for small Gaussian surfaces**: the GPU path is chosen from props and limits (`getGpuFallbackReason`: a
+  resolution above 1 goes to the CPU as about as fast; the size limits of 2d and 3d textures), judged for the WebGL
+  histogram pyramid on integrated GPUs. With the compute extraction (chunked, nothing read back before drawing) the
+  trade-off for small surfaces (ligands, a few hundred atoms) and low resolutions is to measure again: time to the
+  first frame and CPU time, on both backends.

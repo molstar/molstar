@@ -10,7 +10,7 @@ if (uMarkingType == 1) {
     float depthTest = 1.0;
     if (uMarkingDepthTest) {
         float markingDepth = unpackRGBAToDepthWithAlpha(texture2D(tDepthAlpha, gl_FragCoord.xy / uDrawingBufferSize)).x;
-        depthTest = fragmentDepth >= markingDepth ? 1.0 : 0.0;
+        depthTest = fragmentDepth <= markingDepth ? 1.0 : 0.0;
     }
     bool isHighlight = (uMarkerPriority == 1 && marker != 2.0) || (uMarkerPriority != 1 && marker == 1.0);
     float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);

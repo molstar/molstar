@@ -1,7 +1,7 @@
 export const common_vert_params = `
 #if dClipObjectCount != 0
     #if defined(dClipping)
-        #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
+        #if __VERSION__ == 100 || !defined(dVaryingGroup)
             varying float vClipping;
         #else
             flat out float vClipping;
@@ -10,7 +10,7 @@ export const common_vert_params = `
 #endif
 
 #if defined(dNeedsMarker)
-    #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
+    #if __VERSION__ == 100 || !defined(dVaryingGroup)
         varying float vMarker;
     #else
         flat out float vMarker;
@@ -44,4 +44,6 @@ varying vec3 vViewPosition;
     #define groupIndex(grp) (grp)
     #define InvariantBoundingSphere uInvariantBoundingSphere
 #endif
+// the index of the marker and layer data, per instance or group instance (uInstanceGranularity)
+#define granularityIndex(inst, grp) (uInstanceGranularity ? (inst) : groupInstanceIndex(inst, grp))
 `;

@@ -44,7 +44,8 @@ export const assign_material_color = `
         material.a = calcXrayShadedAlpha(material.a, normal);
     #endif
 #elif defined(dRenderVariant_depth)
-    if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
+    // behind the opaque depth (depth is reversed)
+    if (fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
         discard;
     }
     vec4 material;
@@ -106,7 +107,7 @@ export const assign_material_color = `
     }
     // dim emitters behind a transparent blocker by its coverage (tDepthAlpha packs front depth+alpha)
     vec2 emissiveBlocker = unpackRGBAToDepthWithAlpha(texture2D(tDepthAlpha, gl_FragCoord.xy / uDrawingBufferSize));
-    if (fragmentDepth > emissiveBlocker.x + 0.0001) {
+    if (fragmentDepth < emissiveBlocker.x - 0.0001) {
         emissiveAlpha *= 1.0 - emissiveBlocker.y;
     }
     // glow with the object's own color so emissive isn't double-counted via the lit buffer

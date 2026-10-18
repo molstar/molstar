@@ -2,6 +2,19 @@
 
 ## Status
 
+- **Current**: done. T0–T2 and T4 done, T3.1 done, T3.2 dropped (decision 4), T3.3 not needed. T4 came with the WebGPU
+  programs: `getWgslTextureDeclarations` from the binding layout (`webgpu/wgsl-declarations.ts`), per-stage limits in
+  `_test/minimum-limits.test.ts`, read conventions in `webgpu/wgsl-conventions.md`.
+- T3.1 done: WebGL texture units are a running index over the active samplers in the global, material and object tiers
+  of `getBindingLayout` (decision 7, the order of the WebGPU bind groups; inactive samplers get no unit, so the units
+  stay as low as the samplers allow), fixed per program; the sampler uniforms are set once after linking (the current
+  program restored, the state cache untouched), `bindTextures` binds at the fixed units. WebGL images byte-identical on
+  all WebGL profiles (`--compare`; `geometry/direct-volume/blobs` on `webgl1-minimal` varies between full runs before
+  and after the change). Render benchmark: no measurable change (`render/boxes-1000` submit within the run-to-run
+  variation; ANGLE takes the per-draw `uniform1i` calls cheaply).
+- T3.3 not needed: `usedIf` on the remaining feature textures has no consumer. WebGPU declares and binds only the
+  textures a program references (`isReferenced` in `getWgslTextureDeclarations`), WebGL skips inactive samplers, and the
+  per-stage limits hold (`_test/minimum-limits.test.ts`).
 - Rule: must work on WebGL2 minimums and WebGPU default limits; anything needing more has a documented fallback (see
   [minimum-capabilities.md](minimum-capabilities.md)). Relevant here: 16 sampled textures per stage on both. Checked by
   `_test/minimum-limits.test.ts`: with worst-case feature defines every graphics program uses ≤ 16 per stage, and

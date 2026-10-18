@@ -19,6 +19,15 @@
     },
     {
       "path": "../../packages/graphics"
+    },
+    {
+      "path": "../../packages/query-language"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../packages/prism/ui"
     }
   ]
 }

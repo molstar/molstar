@@ -4,6 +4,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Vec3 } from '../../linear-algebra.js';
 import { Box3D } from '../primitives/box3d.js';
 import { Ray3D } from '../primitives/ray3d.js';

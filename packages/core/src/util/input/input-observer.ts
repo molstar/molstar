@@ -267,9 +267,15 @@ type PointerEvent = {
   movementX?: number;
   movementY?: number;
   target: EventTarget | null;
+  composedPath?: () => EventTarget[];
 
   preventDefault?: () => void;
 };
+
+/** The innermost target of an event; inside a shadow root `event.target` is retargeted to the host. */
+function originalTarget(ev: { target: EventTarget | null; composedPath?: () => EventTarget[] }): EventTarget | null {
+  return ev.composedPath?.()[0] ?? ev.target;
+}
 
 type GestureEvent = {
   scale: number;
@@ -308,6 +314,8 @@ interface InputObserver {
   updateScreenTouches: (screenTouches: ScreenTouchInput[]) => void;
   requestPointerLock: (viewport: Viewport) => void;
   exitPointerLock: () => void;
+  /** Moves the listeners to `element` (e.g. a canvas replacing the observed one), the subjects stay the same */
+  setElement: (element: Element) => void;
   dispose: () => void;
 }
 
@@ -353,11 +361,13 @@ namespace InputObserver {
       updateScreenTouches: noop,
       requestPointerLock: noop,
       exitPointerLock: noop,
+      setElement: noop,
       dispose: noop,
     };
   }
 
-  export function fromElement(element: Element, props: InputObserverProps = {}): InputObserver {
+  export function fromElement(_element: Element, props: InputObserverProps = {}): InputObserver {
+    let element = _element;
     let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom, noTextSelect, mask, pixelScale, preventGestures } =
       { ...DefaultInputObserverProps, ...props };
 
@@ -394,7 +404,8 @@ namespace InputObserver {
     }
 
     function getKeyOnElement(event: Event): boolean {
-      return event.target === document.body || event.target === element;
+      const target = originalTarget(event);
+      return target === document.body || target === element;
     }
 
     let dragging: DraggingState = DraggingState.Stopped;
@@ -432,23 +443,12 @@ namespace InputObserver {
     attach();
 
     function attach() {
-      element.addEventListener('contextmenu', onContextMenu as any, false);
-
-      element.addEventListener('wheel', onMouseWheel as any, false);
-      element.addEventListener('mousedown', onMouseDown as any, false);
+      attachElement();
 
       // for dragging to work outside canvas bounds,
       // mouse move/up events have to be added to a parent, i.e. window
       window.addEventListener('mousemove', onMouseMove as any, false);
       window.addEventListener('mouseup', onMouseUp as any, false);
-
-      element.addEventListener('touchstart', onTouchStart as any, false);
-      element.addEventListener('touchmove', onTouchMove as any, false);
-      element.addEventListener('touchend', onTouchEnd as any, false);
-
-      element.addEventListener('gesturechange', onGestureChange as any, false);
-      element.addEventListener('gesturestart', onGestureStart as any, false);
-      element.addEventListener('gestureend', onGestureEnd as any, false);
 
       // reset buttons and modifier keys state when browser window looses focus
       window.addEventListener('blur', handleBlur);
@@ -459,23 +459,33 @@ namespace InputObserver {
       document.addEventListener('pointerlockchange', onPointerLockChange, false);
       document.addEventListener('pointerlockerror', onPointerLockError, false);
 
-      if (resizeObserver != null) {
-        resizeObserver.observe(element.parentElement!);
-      } else {
+      if (resizeObserver == null) {
         window.addEventListener('resize', onResize, false);
       }
     }
 
-    function dispose() {
-      if (disposed) return;
-      disposed = true;
+    function attachElement() {
+      element.addEventListener('contextmenu', onContextMenu as any, false);
 
+      element.addEventListener('wheel', onMouseWheel as any, false);
+      element.addEventListener('mousedown', onMouseDown as any, false);
+
+      element.addEventListener('touchstart', onTouchStart as any, false);
+      element.addEventListener('touchmove', onTouchMove as any, false);
+      element.addEventListener('touchend', onTouchEnd as any, false);
+
+      element.addEventListener('gesturechange', onGestureChange as any, false);
+      element.addEventListener('gesturestart', onGestureStart as any, false);
+      element.addEventListener('gestureend', onGestureEnd as any, false);
+
+      resizeObserver?.observe(element.parentElement!);
+    }
+
+    function detachElement() {
       element.removeEventListener('contextmenu', onContextMenu as any, false);
 
       element.removeEventListener('wheel', onMouseWheel as any, false);
       element.removeEventListener('mousedown', onMouseDown as any, false);
-      window.removeEventListener('mousemove', onMouseMove as any, false);
-      window.removeEventListener('mouseup', onMouseUp as any, false);
 
       element.removeEventListener('touchstart', onTouchStart as any, false);
       element.removeEventListener('touchmove', onTouchMove as any, false);
@@ -484,6 +494,24 @@ namespace InputObserver {
       element.removeEventListener('gesturechange', onGestureChange as any, false);
       element.removeEventListener('gesturestart', onGestureStart as any, false);
       element.removeEventListener('gestureend', onGestureEnd as any, false);
+
+      if (element.parentElement) resizeObserver?.unobserve(element.parentElement);
+    }
+
+    function setElement(e: Element) {
+      if (disposed || e === element) return;
+      detachElement();
+      element = e;
+      attachElement();
+    }
+
+    function dispose() {
+      if (disposed) return;
+      disposed = true;
+
+      detachElement();
+      window.removeEventListener('mousemove', onMouseMove as any, false);
+      window.removeEventListener('mouseup', onMouseUp as any, false);
 
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('keyup', handleKeyUp as EventListener, false);
@@ -496,7 +524,6 @@ namespace InputObserver {
       cross.remove();
 
       if (resizeObserver != null) {
-        resizeObserver.unobserve(element.parentElement!);
         resizeObserver.disconnect();
       } else {
         window.removeEventListener('resize', onResize, false);
@@ -1107,7 +1134,7 @@ namespace InputObserver {
         button,
         modifiers: getModifierKeys(),
         inside,
-        onElement: ev.target === element,
+        onElement: originalTarget(ev) === element,
       });
 
       if (dragging === DraggingState.Stopped) return;
@@ -1350,6 +1377,7 @@ namespace InputObserver {
           element.ownerDocument.exitPointerLock();
         }
       },
+      setElement,
       dispose,
     };
   }

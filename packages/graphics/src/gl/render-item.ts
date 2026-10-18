@@ -69,6 +69,11 @@ export interface RenderItem<T extends string> {
   readonly materialId: number;
   getByteCount(): number;
   getProgram: (variant: T) => GraphicsProgram;
+  /**
+   * Names of the bound textures with linear filtering (WebGPU programs read them filtered, `dLinear_*`), for the
+   * signature of the item's object (`ObjectSignature`)
+   */
+  getLinearTextures?: () => readonly string[];
   setTransparency: (transparency: Transparency) => void;
 
   render: (variant: T, globals?: GlobalBindings, mdbDataList?: MultiDrawBaseData[]) => void;
@@ -77,4 +82,16 @@ export interface RenderItem<T extends string> {
 }
 
 export type GraphicsRenderItem = RenderItem<GraphicsRenderVariant>;
+
+/**
+ * The programs of a render object without its data (e.g. from an `ObjectSignature`), for preparing pipelines: requests
+ * (`PipelineRequest`) take it in place of a render item; its programs come from the same caches as render items'
+ * (`GraphicsContext.createProgramItem`)
+ */
+export interface ProgramItem {
+  readonly id: number;
+  getProgram: (variant: GraphicsRenderVariant) => GraphicsProgram;
+  /** releases its programs (render items using them keep them) */
+  destroy: () => void;
+}
 export type ComputeRenderItem = RenderItem<ComputeRenderVariant>;

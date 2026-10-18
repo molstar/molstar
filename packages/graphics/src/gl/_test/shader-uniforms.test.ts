@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { getGrid3dComputeFrag, getGrid3dComputeSchema } from '../compute/grid3d.js';
+import { describe, expect, it } from 'vitest';
+import { getGrid3dComputeFrag, getGrid3dComputeSchema } from '../webgl/compute/grid3d.js';
 import {
   AttributeSpec,
   BaseSchema,
@@ -28,9 +29,9 @@ import { quad_vert } from '../webgl/shader/quad.vert.js';
 import { getUniformBlockLayout, UniformBlockInfo, UniformBlocks } from '../uniform-layout.js';
 import { getShaderDeclarations } from '../webgl/shader-declarations.js';
 import {
+  getWgslDrawBinding,
   getWgslDrawLayout,
   getWgslUniformDeclarations,
-  WgslDrawGroup,
   WgslUniformBlockInstance,
 } from '../webgpu/uniform-declarations.js';
 import { ComputeShaders, getComputeDefineVariants } from './compute-shaders.js';
@@ -380,6 +381,6 @@ describe('wgsl uniforms', () => {
       'uLodLevel',
     ]);
     expect(getWgslOffsets(code, 'Draw')).toEqual(layout.members.map((m) => [m.name, m.offset]));
-    expect(code).toContain(`@group(${WgslDrawGroup}) @binding(0) var<uniform> uDraw: Draw;`);
+    expect(code).toContain(`@group(2) @binding(${getWgslDrawBinding(schema)}) var<uniform> uDraw: Draw;`);
   });
 });

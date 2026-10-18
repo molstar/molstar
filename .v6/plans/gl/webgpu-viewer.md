@@ -2,6 +2,17 @@
 
 ## Status
 
+- **Current**: done, milestones 1–4. Every feature WebGL renders is ported; the WebGPU visual profile passes all cases
+  without skips, the Viewer smoke test passes on Chrome and Edge, and the Viewer defaults to `graphics-backend=auto`
+  ([backend-selection.md](backend-selection.md)).
+- The features the WebGPU programs reported unsupported are ported where WebGL renders them: palettes (`dUsePalette`,
+  e.g. `volume-value` colors; `vPaletteV` per vertex, `tPalette` in the material and emissive colors) and wiggle data
+  (`tWiggle`, per instance or group instance, `assign_wiggle_wgsl`) in all geometry programs, merged render items
+  ([webgpu-draw-overhead.md](webgpu-draw-overhead.md)). Visual cases `geometry/palette/*` (an isosurface colored by a
+  gradient volume; one-pixel band edges differ, a known difference) and `renderer/wiggle/*` (rendered at time 0 with
+  animation on; they fail with the wiggle data ignored). What `getUnsupported` still reports is not produced or not
+  rendered on WebGL either: grid data outside meshes (color smoothing is for meshes), solid interiors of lines, points
+  and text, 2d grid textures of direct volumes (WebGPU has 3d textures).
 - Milestone 1 steps 1–4 done; step 5 done: `pnpm test:viewer-smoke` (`scripts/viewer-smoke.mjs`) builds the Viewer and
   checks per backend that a local structure renders, that there are no console errors (WebGPU errors are printed in
   debug mode), and that the hover labels of a 5 × 5 grid agree between WebGL and WebGPU; WebGPU is skipped where
@@ -140,4 +151,5 @@ handling (done).
 
 ## Open questions
 
-- Default backend of the Viewer once milestone 3 is reached: `auto` (WebGPU where available) or keep WebGL?
+- Default backend of the Viewer once milestone 3 is reached: `auto` (WebGPU where available) or keep WebGL? See
+  [backend-selection.md](backend-selection.md), Default backend: staged, once its blockers are done.

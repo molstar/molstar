@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ComputeShaders, ShaderModules } from './compute-shaders.js';
@@ -12,7 +13,7 @@ import { GraphicsShaders } from './graphics-shaders.js';
 const SourceRoot = 'packages/graphics/src';
 
 /** schema and shader code are generated per call, see the 'grid3d compute' tests */
-const Dynamic = new Set(['gl/compute/grid3d.ts']);
+const Dynamic = new Set(['gl/webgl/compute/grid3d.ts']);
 
 function getSourceFiles(dir: string, files: string[] = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

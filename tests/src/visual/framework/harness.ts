@@ -22,6 +22,7 @@ import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
 import { type BackendInstance } from './backend.js';
 import { DefaultTestSize, type SceneContext, type VisualTestCase } from './test-case.js';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 
 /** Deterministic baseline; tests opt into effects explicitly */
 export const BaseCanvasProps: PartialCanvas3DProps = {
@@ -136,7 +137,7 @@ function fitCamera(camera: Camera, renderObjects: readonly GraphicsRenderObject[
 /** Scene context of non-WebGL backends: cases that build GPU data with the WebGL context are not supported */
 function getSceneContext(instance: BackendInstance): SceneContext {
   const { context, canvas3d } = instance;
-  if (instance.kind === 'webgl') return { graphics: context.graphics, webgl: context.webgl, canvas3d };
+  if (isWebGLContext(context.graphics)) return { graphics: context.graphics, webgl: context.graphics, canvas3d };
   return {
     graphics: context.graphics,
     get webgl(): never {
@@ -144,6 +145,49 @@ function getSceneContext(instance: BackendInstance): SceneContext {
     },
     canvas3d,
   };
+}
+
+/** The image of `canvas` (its drawing buffer, or the current texture of a WebGPU canvas) */
+function readCanvas(canvas: HTMLCanvasElement): ImageData {
+  const copy = document.createElement('canvas');
+  copy.width = canvas.width;
+  copy.height = canvas.height;
+  const ctx = copy.getContext('2d')!;
+  ctx.drawImage(canvas, 0, 0);
+  return ctx.getImageData(0, 0, copy.width, copy.height);
+}
+
+/**
+ * Releases the context of `instance` and restores it (`Canvas3DContext.release`, `restore`): the release is reported
+ * as a loss and not restored on its own, the restore gives a new live context that Canvas3D rebuilds the scene on
+ */
+async function releaseAndRestore(instance: BackendInstance): Promise<string[]> {
+  const { context, canvas3d } = instance;
+  const released = context.graphics;
+  const objectCount = canvas3d.getRenderObjects().length;
+  const lost = new Promise<void>((resolve) => {
+    const sub = context.contextLost!.subscribe(() => {
+      sub.unsubscribe();
+      resolve();
+    });
+  });
+  if (!context.release?.()) return ['release refused'];
+  await lost;
+  const errors: string[] = [];
+  if (!context.isReleased) errors.push('not released once the loss was reported');
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  if (context.graphics !== released || !released.isContextLost) errors.push('restored without restore');
+  if (!(await context.restore!())) return [...errors, 'not restored'];
+  if (context.graphics === released || context.graphics.isContextLost) errors.push('no new live context');
+  // the representations update on the new context asynchronously, then are added again
+  const deadline = performance.now() + 10_000;
+  while (canvas3d.getRenderObjects().length < objectCount && performance.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  canvas3d.commit(true);
+  if (canvas3d.getRenderObjects().length < objectCount) errors.push('scene not rebuilt on the restored context');
+  await context.graphics.resources.pending.whenReady();
+  return errors;
 }
 
 export async function renderTest(instance: BackendInstance, test: VisualTestCase): Promise<RenderOutput> {
@@ -174,6 +218,7 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
     illumination: p.illumination,
     hiZ: p.hiZ,
     renderer: p.renderer,
+    viewport: p.viewport,
   });
 
   instance.takeErrors();
@@ -191,6 +236,23 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
       await context.graphics.waitForGpuCommandsComplete();
     }
 
+    const releaseErrors = test.releaseContext ? await releaseAndRestore(instance) : [];
+
+    if (test.capture === 'canvas') {
+      await context.graphics.resources.pending.whenReady();
+      canvas3d.requestDraw();
+      canvas3d.tick(now(), { isSynchronous: true });
+      // in the task of the frame: a WebGPU canvas keeps its image only until it is presented
+      const image = readCanvas(canvas);
+      await context.graphics.waitForGpuCommandsComplete();
+      return {
+        image,
+        errors: [...releaseErrors, ...instance.takeErrors(), ...log.errors],
+        warnings: log.warnings,
+        timeMs: performance.now() - start,
+      };
+    }
+
     imagePass.setProps({
       transparentBackground: p.transparentBackground,
       dpoitIterations: p.dpoitIterations,
@@ -201,14 +263,14 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
       renderer: p.renderer,
       cameraHelper: { axes: { name: 'off', params: {} } },
     });
-    await imagePass.updateBackground();
+    // no `updateBackground`: the render waits for the background images itself (pending work)
 
     const image = await imagePass.getImageData(SyncRuntimeContext, width, height);
     await context.graphics.waitForGpuCommandsComplete();
 
     return {
       image,
-      errors: [...instance.takeErrors(), ...log.errors],
+      errors: [...releaseErrors, ...instance.takeErrors(), ...log.errors],
       warnings: log.warnings,
       timeMs: performance.now() - start,
     };

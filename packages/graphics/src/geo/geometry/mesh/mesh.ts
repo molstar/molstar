@@ -17,6 +17,7 @@ import {
   createGroupMapping,
 } from '../../util.js';
 import type { GeometryUtils } from '../geometry.js';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createMarkers } from '../marker-data.js';
 import type { TransformData } from '../transform-data.js';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
@@ -744,7 +745,21 @@ export namespace Mesh {
     createRenderableState,
     updateRenderableState,
     createPositionIterator,
+    isCompatible,
+    makeCompatible,
   };
+
+  /** Groups varying across a triangle need flat interpolation (missing on WebGL1) */
+  function isCompatible(mesh: Mesh, graphics: GraphicsContext) {
+    return !mesh.varyingGroup.ref.value || graphics.capabilities.flatInterpolation;
+  }
+
+  /** A group per triangle (`uniformTriangleGroup`, triangles split at group borders) where groups may not vary */
+  function makeCompatible(mesh: Mesh, graphics: GraphicsContext) {
+    if (isCompatible(mesh, graphics)) return;
+    uniformTriangleGroup(mesh);
+    ValueCell.updateIfChanged(mesh.varyingGroup, false);
+  }
 
   function createPositionIterator(mesh: Mesh, transform: TransformData): LocationIterator {
     const groupCount = mesh.vertexCount;

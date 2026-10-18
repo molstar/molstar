@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { OrderedSet } from '../ordered-set.js';
 import { Interval } from '../interval.js';
 import { SortedArray } from '../sorted-array.js';

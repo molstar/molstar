@@ -7,6 +7,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { TextureSpec, type Values, UniformSpec, DefineSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
@@ -106,10 +107,9 @@ export class OutlinePass {
     return { transparentOutline, outlineScale };
   }
 
-  render() {
-    this.graphics.beginRenderPass(this.target, { label: 'outlines' });
-    this.graphics.setRenderState(RenderState.Default);
-    this.renderable.render();
+  render(b: PassBuilder) {
+    b.begin(this.target, { label: 'outlines' });
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 
@@ -122,7 +122,7 @@ export const OutlinesSchema = {
   dOrthographic: DefineSpec('number'),
   uNear: UniformSpec('f'),
   uFar: UniformSpec('f'),
-  uInvProjection: UniformSpec('m4'),
+  uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
 
   uOutlineThreshold: UniformSpec('f'),
   dTransparentOutline: DefineSpec('boolean'),

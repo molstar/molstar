@@ -23,7 +23,6 @@ export interface RenderTarget {
   /** binds framebuffer */
   bind: () => void;
   setSize: (width: number, height: number) => void;
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -85,9 +84,6 @@ export function createRenderTargetFromResources(
       _height = height;
       targetTexture.define(_width, _height);
       if (depthRenderbuffer) depthRenderbuffer.setSize(_width, _height);
-    },
-    reset: () => {
-      init();
     },
     destroy: () => {
       if (destroyed) return;

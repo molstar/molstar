@@ -1,0 +1,153 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Seq-star Search story's panel: a row of modes, the box with its count and steppers, the hits as chips. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-4);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-6);
+}
+
+.group {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-4);
+}
+.caption {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-4);
+}
+
+.input {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 420px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-md);
+  letter-spacing: 0.04em;
+}
+.input:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.count {
+  min-width: 7em;
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+}
+
+.edits {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-muted);
+}
+
+.hits {
+  max-height: 84px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: var(--msp-radius-md);
+}
+.hitsViewport {
+  padding: var(--msp-space-3);
+}
+.hitList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-3);
+}
+
+.hit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  cursor: pointer;
+}
+.hit:hover {
+  background: var(--msp-color-hover);
+}
+.hit[aria-current="true"] {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+  color: var(--msp-color-accent);
+}
+.at {
+  color: var(--msp-color-text-subtle);
+}
+.letters {
+  letter-spacing: 0.04em;
+}
+.more {
+  align-self: center;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}
+
+/* The Search part story: the suggested searches, and the part placed outside the bar. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-3);
+}
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: 999px;
+  background: var(--msp-color-panel);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  cursor: pointer;
+}
+.chip:hover {
+  background: var(--msp-color-hover);
+}
+.chip:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 1px;
+}
+.outside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-5);
+}
+.current {
+  min-height: 24px;
+}

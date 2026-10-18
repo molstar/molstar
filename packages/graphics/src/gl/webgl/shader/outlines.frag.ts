@@ -35,12 +35,13 @@ vec2 getDepthTransparentWithAlpha(const in vec2 coords) {
     #ifdef dTransparentOutline
         return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords));
     #else
-        return vec2(1.0, 0.0);
+        return vec2(0.0, 0.0);
     #endif
 }
 
+// depth is reversed: the background (far plane) at 0, nearer is greater
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 float getPixelSize(const in vec2 coords, const in float depth) {
@@ -64,8 +65,8 @@ void main(void) {
     float selfViewZTransparent = isBackground(selfDepthTransparent) ? backgroundViewZ : getViewZ(selfDepthTransparent);
     float pixelSizeTransparent = getPixelSize(coords, selfDepthTransparent) * uOutlineThreshold;
 
-    float bestOpaqueDepth = 1.0;
-    float bestTransparentDepth = 1.0;
+    float bestOpaqueDepth = 0.0;
+    float bestTransparentDepth = 0.0;
     float bestTransparentAlpha = 0.0;
 
     float opaqueOutlineFlag = 0.0;
@@ -78,7 +79,7 @@ void main(void) {
             // Opaque
             float sampleDepthOpaque = getDepthOpaque(sampleCoords);
             float sampleViewZOpaque = isBackground(sampleDepthOpaque) ? backgroundViewZ : getViewZ(sampleDepthOpaque);
-            if (abs(selfViewZOpaque - sampleViewZOpaque) > pixelSizeOpaque && selfDepthOpaque > sampleDepthOpaque && sampleDepthOpaque <= bestOpaqueDepth) {
+            if (abs(selfViewZOpaque - sampleViewZOpaque) > pixelSizeOpaque && selfDepthOpaque < sampleDepthOpaque && sampleDepthOpaque >= bestOpaqueDepth) {
                 bestOpaqueDepth = sampleDepthOpaque;
                 opaqueOutlineFlag = 1.0;
             }
@@ -88,7 +89,7 @@ void main(void) {
             float sampleDepthTransparent = sampleDepthTransparentWithAlpha.x;
             float sampleAlphaTransparent = sampleDepthTransparentWithAlpha.y;
             float sampleViewZTransparent = isBackground(sampleDepthTransparent) ? backgroundViewZ : getViewZ(sampleDepthTransparent);
-            if (abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent > sampleDepthTransparent && sampleDepthTransparent <= bestTransparentDepth) {
+            if (abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent < sampleDepthTransparent && sampleDepthTransparent >= bestTransparentDepth) {
                 bestTransparentDepth = sampleDepthTransparent;
                 bestTransparentAlpha = sampleAlphaTransparent;
                 transparentOutlineFlag = 1.0;
@@ -122,7 +123,7 @@ void main(void) {
 
         if (curvOpaque < pixelSizeOpaque * kCurvatureGate) {
             opaqueOutlineFlag = 0.0;
-            bestOpaqueDepth = 1.0;
+            bestOpaqueDepth = 0.0;
         }
     }
 
@@ -148,7 +149,7 @@ void main(void) {
 
         if (curvTransparent < pixelSizeTransparent * kCurvatureGate) {
             transparentOutlineFlag = 0.0;
-            bestTransparentDepth = 1.0;
+            bestTransparentDepth = 0.0;
             bestTransparentAlpha = 0.0;
         }
     }

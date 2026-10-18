@@ -12,8 +12,20 @@
 **/build/
 **/lib/
 deploy/
-docs/site/
+apps/docs/dist/
+apps/docs/.astro/
 coverage/
 .cache/
 .pnpm-store/
 **/pnpm-lock.yaml
+
+# The v6 designs, plans and notes are not formatted.
+.v6/
+
+# Seq*: the spec's tables are generated as test snapshots; the Storybook's MDX pages hold JSX that Prettier's MDX
+# support can break; vendored code keeps its origin's text.
+packages/sequences/_spec/reference/
+packages/sequences/**/*.mdx
+packages/sequences/core/src/algorithms/biomsa/
+# Generated from the code (src/_test/operations-spec.test.ts)
+packages/prism/viewer/_spec/operations.md

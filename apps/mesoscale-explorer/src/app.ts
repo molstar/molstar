@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mp4Export } from '@molstar/mp4-export-extension';
+import { VideoExport } from '@molstar/video-export-extension';
 import { Mmcif } from '@molstar/plugin/state/formats/trajectory/mmcif';
 import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
 import { UniformColorThemeProvider } from '@molstar/graphics/theme/color/uniform';
@@ -16,6 +16,7 @@ import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { DefaultPluginUIComponents, DefaultPluginUICustomParamEditors } from '@molstar/plugin-ui/default-ui';
 import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 import { PluginConfig } from '@molstar/plugin/config';
+import { type GraphicsBackendChoice, getGraphicsBackends } from '@molstar/plugin/util/graphics-backends';
 import type { PluginLayoutControlsDisplay } from '@molstar/plugin/layout';
 import { PluginSpec, type PluginRegistryEntry } from '@molstar/plugin/spec';
 import '@molstar/core/util/polyfill';
@@ -91,7 +92,7 @@ function createRegistry(customFormats: [string, DataFormatProvider.Unnamed][] | 
 
 const Extensions = {
   backgrounds: PluginSpec.Behavior(Backgrounds),
-  'mp4-export': PluginSpec.Behavior(Mp4Export),
+  'video-export': PluginSpec.Behavior(VideoExport),
 };
 
 const DefaultMesoscaleExplorerOptions = {
@@ -110,7 +111,8 @@ const DefaultMesoscaleExplorerOptions = {
   pixelScale: PluginConfig.General.PixelScale.defaultValue,
   pickScale: PluginConfig.General.PickScale.defaultValue,
   transparency: 'blended' as Transparency,
-  preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
+  /** see `GraphicsBackendChoice` */
+  graphicsBackend: 'auto' as GraphicsBackendChoice,
   allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
   powerPreference: PluginConfig.General.PowerPreference.defaultValue,
   resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
@@ -220,7 +222,7 @@ export class MesoscaleExplorer {
         [PluginConfig.General.PixelScale, o.pixelScale],
         [PluginConfig.General.PickScale, o.pickScale],
         [PluginConfig.General.Transparency, o.transparency],
-        [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
+        [PluginConfig.General.GraphicsBackends, getGraphicsBackends(o.graphicsBackend)],
         [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
         [PluginConfig.General.PowerPreference, o.powerPreference],
         [PluginConfig.General.ResolutionMode, o.resolutionMode],

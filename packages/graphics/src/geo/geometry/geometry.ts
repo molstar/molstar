@@ -19,6 +19,8 @@ import { Spheres } from './spheres/spheres.js';
 import { arrayMax } from '@molstar/core/util/array';
 import type { TransformData } from './transform-data.js';
 import type { Theme } from '@molstar/graphics/theme/theme';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GeometryRequest } from './request.js';
 import type { RenderObjectValues } from '@molstar/graphics/gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh.js';
 import { Image } from './image/image.js';
@@ -102,6 +104,19 @@ export interface GeometryUtils<
   createRenderableState(props: PD.Values<P>): RenderableState;
   updateRenderableState(state: RenderableState, props: PD.Values<P>): void;
   createPositionIterator(geometry: G, transform: TransformData): LocationIterator;
+  /**
+   * Readies data of `geometry` that creating or updating values needs (`request`, e.g. GPU data read back for the
+   * position iterator); undefined when there is nothing to do, so that updates stay synchronous (kinds whose data is on
+   * the CPU omit it)
+   */
+  prepare?(geometry: G, request: GeometryRequest, graphics: GraphicsContext | undefined): Promise<void> | undefined;
+  /**
+   * False where `geometry` relies on what `graphics` lacks (e.g. a mesh with varying groups without flat
+   * interpolation), see `makeCompatible`; kinds without such dependencies omit it
+   */
+  isCompatible?(geometry: G, graphics: GraphicsContext): boolean;
+  /** Changes `geometry` in place so that it draws correctly with `graphics` (where `isCompatible` is false) */
+  makeCompatible?(geometry: G, graphics: GraphicsContext): void;
 }
 
 export namespace Geometry {

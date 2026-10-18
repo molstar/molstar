@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import '@molstar/plugin/state/transforms/catalog';
 import { StateTransformer } from '@molstar/core/state';
 import { PluginContext } from '@molstar/plugin/context';

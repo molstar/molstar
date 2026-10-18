@@ -12,12 +12,13 @@ export const wboit_write = `
             discard;
         }
     } else if (uRenderMask == MaskTransparent) {
-        if (preFogAlpha != 1.0 && fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
+        if (preFogAlpha != 1.0 && fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
             #ifdef dTransparentBackfaces_off
                 if (interior) discard;
             #endif
             float alpha = gl_FragColor.a;
-            float wboitWeight = alpha * clamp(pow(1.0 - fragmentDepth, 2.0), 0.01, 1.0);
+            // depth is reversed: larger in front
+            float wboitWeight = alpha * clamp(pow(fragmentDepth, 2.0), 0.01, 1.0);
             gl_FragColor = vec4(gl_FragColor.rgb * alpha * wboitWeight, alpha);
             // extra alpha is to handle pre-multiplied alpha
             #ifndef dGeometryType_directVolume

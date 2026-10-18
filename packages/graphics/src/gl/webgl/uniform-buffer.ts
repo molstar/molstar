@@ -52,7 +52,6 @@ export interface UniformArena {
   bind: (index: number, slab: UniformSlab, offset: number, size: number) => void;
 
   getByteCount: () => number;
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -144,14 +143,6 @@ export function createUniformArena(gl: WebGL2RenderingContext, state: WebGLState
       slabs.forEach((s) => (count += s.data.byteLength));
       return count;
     },
-    reset: () => {
-      slabs.forEach((slab) => {
-        slab.buffer = getGlBuffer(slab.data.byteLength);
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Uint8Array(slab.data));
-        slab.dirtyStart = slab.data.byteLength;
-        slab.dirtyEnd = 0;
-      });
-    },
     destroy: () => {
       slabs.forEach((slab) => gl.deleteBuffer(slab.buffer));
       slabs.clear();
@@ -182,9 +173,6 @@ export function createUniformBuffer(arena: UniformArena, layout: UniformBlockLay
     sync: () => arena.flush(slab),
     bind: () => arena.bind(bindingIndex, slab, offset, slice.size),
 
-    reset: () => {
-      // data is restored by `arena.reset`
-    },
     destroy: () => {
       if (destroyed) return;
       arena.free(slice);
@@ -243,9 +231,6 @@ export function createUniformRingBuffer(
       arena.bind(bindingIndex, slab, slot * slotSize, slotSize);
     },
 
-    reset: () => {
-      // data is restored by `arena.reset`
-    },
     destroy: () => {
       if (destroyed) return;
       arena.releaseSlab(slab);

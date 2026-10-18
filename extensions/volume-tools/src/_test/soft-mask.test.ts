@@ -4,6 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { padGridBox, softMaskFromBinary, softValue, voxelBBox } from '@molstar/volume-tools-extension/soft-mask';
 import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from './test-volume.js';

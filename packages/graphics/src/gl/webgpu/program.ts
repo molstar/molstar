@@ -18,7 +18,12 @@ import {
   UniformBlocks,
 } from '../uniform-layout.js';
 import { ShaderStage } from './constants.js';
-import { getWgslDrawLayout, WgslDrawGroup } from './uniform-declarations.js';
+import {
+  getWgslDrawBinding,
+  getWgslDrawLayout,
+  getWgslStorageBindings,
+  type WgslStorageBinding,
+} from './uniform-declarations.js';
 import {
   getWgslDeclarations,
   getWgslGroup,
@@ -45,14 +50,72 @@ export function getWgslDefineLookup(defines: ReadonlyMap<string, string>): Defin
   return (name) => defines.has(name);
 }
 
-/** Override constants declared by `source` (`override oX`), with the values of the number defines `dX` */
-export function getOverrideConstants(source: string, defineValues: DefineValues) {
+/**
+ * Override constants declared by `source` (`override oX`), with the values of the number defines `dX`; with
+ * `entryPoint`, only those the entry point reaches (WebKit rejects constants for overrides a stage does not use)
+ */
+export function getOverrideConstants(source: string, defineValues: DefineValues, entryPoint?: string) {
+  const reached = entryPoint !== undefined ? getReachedDeclarations(source, entryPoint) : undefined;
   const constants: Record<string, number> = {};
   for (const m of source.matchAll(/\boverride\s+(o\w+)/g)) {
+    if (reached && !reached.has(m[1])) continue;
     const value = defineValues[`d${m[1].slice(1)}`]?.ref.value as unknown;
     if (typeof value === 'number') constants[m[1]] = value;
   }
   return constants;
+}
+
+/** Module-scope declarations of `source` by name (functions, structs, constants, variables, overrides, aliases) */
+function getModuleDeclarations(source: string) {
+  const code = source.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, ' ');
+  const declarations = new Map<string, string>();
+  const keyword = /(fn|struct|const|var|override|alias)\b(?:\s*<[^>]*>)?\s+(\w+)/y;
+  let depth = 0;
+  for (let i = 0; i < code.length; ++i) {
+    const c = code[i];
+    if (c === '{') ++depth;
+    else if (c === '}') --depth;
+    if (depth > 0 || (i > 0 && /\w/.test(code[i - 1]))) continue;
+    keyword.lastIndex = i;
+    const m = keyword.exec(code);
+    if (!m) continue;
+    const start = keyword.lastIndex;
+    let end =
+      m[1] === 'fn' || m[1] === 'struct' ? getBlockEnd(code, code.indexOf('{', start)) : code.indexOf(';', start);
+    if (end < 0) end = code.length;
+    declarations.set(m[2], code.slice(start, end + 1));
+    i = end;
+  }
+  return declarations;
+}
+
+/** Index of the brace closing the block that opens at `open` */
+function getBlockEnd(code: string, open: number) {
+  if (open < 0) return -1;
+  let depth = 0;
+  for (let i = open; i < code.length; ++i) {
+    if (code[i] === '{') ++depth;
+    else if (code[i] === '}' && --depth === 0) return i;
+  }
+  return -1;
+}
+
+/** Names of the module-scope declarations that `entryPoint` uses, directly or through other declarations */
+function getReachedDeclarations(source: string, entryPoint: string) {
+  const declarations = getModuleDeclarations(source);
+  const reached = new Set([entryPoint]);
+  const queue = [entryPoint];
+  while (queue.length > 0) {
+    const text = declarations.get(queue.pop()!);
+    if (!text) continue;
+    for (const [name] of text.matchAll(/\b[A-Za-z_]\w*\b/g)) {
+      if (declarations.has(name) && !reached.has(name)) {
+        reached.add(name);
+        queue.push(name);
+      }
+    }
+  }
+  return reached;
 }
 
 /**
@@ -154,20 +217,28 @@ export interface WebGPUProgram {
   readonly id: number;
   /** the name of the `ShaderCode`, for labels */
   readonly name: string;
+  /** the render variant (`dRenderVariant`), e.g. `colorBlended` or `compute`, for labels */
+  readonly variant: string;
   readonly module: GPUShaderModule;
   readonly code: string;
   readonly pipelineLayout: GPUPipelineLayout;
   /** one per group, empty where a group has no bindings */
   readonly bindGroupLayouts: readonly GPUBindGroupLayout[];
   readonly bindingLayout: BindingLayout;
-  /** textures and samplers in the bind group layouts */
+  /** textures, samplers and storage buffers in the bind group layouts */
   readonly referenced: ReadonlySet<string>;
+  /** the storage buffers the program reads, in the object's bind group */
+  readonly storageBindings: readonly WgslStorageBinding[];
   readonly drawLayout: { members: UniformBlockMember[]; size: number } | undefined;
+  /** binding of the draw uniforms in the object's bind group, see `getWgslDrawBinding` */
+  readonly drawBinding: number;
   readonly attributes: readonly AttributeLayoutEntry[];
   /** the attributes per vertex buffer, see `getVertexBufferSlots` */
   readonly vertexBufferSlots: readonly VertexBufferSlot[];
   readonly vertexBuffers: readonly GPUVertexBufferLayout[];
-  readonly constants: Record<string, number>;
+  /** override constants of the vertex and fragment stage, each only those the stage uses */
+  readonly vertexConstants: Record<string, number>;
+  readonly fragmentConstants: Record<string, number>;
   readonly pipelines: Map<string, GPURenderPipeline>;
 }
 
@@ -203,7 +274,7 @@ export function createWebGPUProgram(
   });
 
   const referenced = new Set<string>();
-  const groups: GPUBindGroupLayoutEntry[][] = [[], [], [], []];
+  const groups: GPUBindGroupLayoutEntry[][] = [[], [], []];
   for (const block of UniformBlocks) {
     const tier = bindingLayout[block];
     const entries = groups[getWgslGroup(block)];
@@ -234,11 +305,21 @@ export function createWebGPUProgram(
     groups[0].push({ binding: samplerBinding + i, visibility: Visibility, sampler: { type: 'filtering' } });
   }
   const drawLayout = getWgslDrawLayout(schema);
+  const drawBinding = getWgslDrawBinding(schema);
   if (drawLayout) {
-    groups[WgslDrawGroup].push({
-      binding: 0,
+    groups[getWgslGroup('object')].push({
+      binding: drawBinding,
       visibility: Visibility,
       buffer: { type: 'uniform', hasDynamicOffset: true, minBindingSize: drawLayout.size },
+    });
+  }
+  const storageBindings = getWgslStorageBindings(schema, lookup).filter((b) => isReferenced(b.name));
+  for (const b of storageBindings) {
+    referenced.add(b.name);
+    groups[getWgslGroup('object')].push({
+      binding: b.binding,
+      visibility: Visibility,
+      buffer: { type: 'read-only-storage' },
     });
   }
 
@@ -253,17 +334,21 @@ export function createWebGPUProgram(
   return {
     id: getNextProgramId(),
     name,
+    variant: String(defineValues.dRenderVariant?.ref.value ?? ''),
     module,
     code,
     pipelineLayout,
     bindGroupLayouts,
     bindingLayout,
     referenced,
+    storageBindings,
     drawLayout,
+    drawBinding,
     attributes,
     vertexBufferSlots: vertexBuffers.slots,
     vertexBuffers: vertexBuffers.layouts,
-    constants: getOverrideConstants(body, defineValues),
+    vertexConstants: getOverrideConstants(body, defineValues, 'vertexMain'),
+    fragmentConstants: getOverrideConstants(body, defineValues, 'fragmentMain'),
     pipelines: new Map(),
   };
 }
@@ -280,6 +365,10 @@ function getSchemaKey(schema: RenderableSchema) {
     parts.push(draw ? draw.members.map((m) => `${m.name}:${m.kind}`).join(',') : '');
     for (const k of Object.keys(schema)) {
       const spec = schema[k];
+      if (spec.type === 'storage-buffer') {
+        parts.push(`${k}:storage:${spec.element}:${spec.usedIf?.join('|') ?? ''}`);
+        continue;
+      }
       if (spec.type !== 'texture') continue;
       const dimension = typeof spec.dimension === 'string' ? spec.dimension : spec.dimension.define;
       parts.push(`${k}:${dimension}:${spec.sampleType}:${spec.variant ?? ''}:${spec.usedIf?.join('|') ?? ''}`);
@@ -294,9 +383,8 @@ function getSchemaKey(schema: RenderableSchema) {
  * Programs (shader modules, layouts and their pipelines) shared by the render items of a context, by program
  * name, defines and schema shape
  */
-/** `ref.device` is read when a program is created, it changes when the context restores a lost device */
 export function createWebGPUProgramCache(
-  ref: { readonly device: GPUDevice },
+  device: GPUDevice,
   onError: (message: string) => void,
   onCreate?: (program: WebGPUProgram) => void,
 ) {
@@ -307,7 +395,7 @@ export function createWebGPUProgramCache(
       const key = `${name}|${defines.join(',')}|${getSchemaKey(schema)}`;
       let program = programs.get(key);
       if (!program) {
-        program = createWebGPUProgram(ref.device, name, source, defineValues, schema, onError);
+        program = createWebGPUProgram(device, name, source, defineValues, schema, onError);
         programs.set(key, program);
         onCreate?.(program);
       }

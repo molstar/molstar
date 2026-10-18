@@ -136,3 +136,33 @@ export namespace RenderState {
   export const Alpha: RenderState = { blend: BlendState.Alpha };
   export const Constant: RenderState = { blend: BlendState.Constant };
 }
+
+export interface TargetRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * The part of a scissor rectangle (bottom-left origin) inside a target of `targetWidth` x `targetHeight`, empty where
+ * they do not overlap: WebGPU requires scissors within the target, GL clips them to it. Viewports need no clamping,
+ * both backends crop a viewport partly outside the target
+ */
+export function intersectTargetRect(
+  out: TargetRect,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  targetWidth: number,
+  targetHeight: number,
+): TargetRect {
+  const x0 = Math.min(Math.max(x, 0), targetWidth);
+  const y0 = Math.min(Math.max(y, 0), targetHeight);
+  out.x = x0;
+  out.y = y0;
+  out.width = Math.max(0, Math.min(x + width, targetWidth) - x0);
+  out.height = Math.max(0, Math.min(y + height, targetHeight) - y0);
+  return out;
+}

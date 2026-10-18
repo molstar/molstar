@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { Asset } from '@molstar/core/util/assets';
 import { Coordinates, Time } from '@molstar/model/model/structure';
 import { PluginConfig } from '@molstar/plugin/config';
@@ -98,11 +99,9 @@ async function createPlugin() {
       structure: { presets: { hierarchy: [hierarchy], representation: [representation] } },
     },
   ]);
-  jest
-    .spyOn(plugin.builders.data, 'download')
-    .mockImplementation(({ label }) =>
-      plugin.builders.data.rawData({ data: label === 'cube' ? cube : pdb, label }, { state: { isGhost: true } }),
-    );
+  vi.spyOn(plugin.builders.data, 'download').mockImplementation(({ label }) =>
+    plugin.builders.data.rawData({ data: label === 'cube' ? cube : pdb, label }, { state: { isGhost: true } }),
+  );
   applied.hierarchy.length = 0;
   applied.representation.length = 0;
   return plugin;
@@ -110,7 +109,7 @@ async function createPlugin() {
 
 /** Runs `f` with the transaction error log captured. */
 async function captureErrors(f: () => Promise<unknown>) {
-  const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
   try {
     await f();
     return error.mock.calls.map((c) => String(c[0]));
@@ -144,7 +143,7 @@ describe('trajectory format visuals', () => {
     const plugin = await createPlugin();
     const data = await plugin.builders.data.download({ url: 'a.pdb' } as any);
     const parsed = await PdbProvider.parse(plugin, data);
-    const spy = jest.spyOn(plugin.builders.structure.hierarchy, 'applyPreset').mockResolvedValue({} as any);
+    const spy = vi.spyOn(plugin.builders.structure.hierarchy, 'applyPreset').mockResolvedValue({} as any);
     await PdbProvider.visuals!(plugin, parsed);
     expect(spy).toHaveBeenCalledWith(expect.anything(), 'preset-trajectory-default');
   });

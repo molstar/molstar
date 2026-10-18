@@ -19,10 +19,13 @@ export type RenderContext<C extends ICamera | StereoCamera = Camera | StereoCame
   frame: Frame;
 };
 
-/** Set canvas size taking `devicePixelRatio` into account */
+/**
+ * Set canvas size taking `devicePixelRatio` into account; the drawing buffer is at least 1×1 (e.g. while the container
+ * is hidden or not laid out): Firefox's WebGPU rejects zero-sized canvases when it reconfigures them on resize
+ */
 export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: number, scale = 1) {
-  canvas.width = Math.round(window.devicePixelRatio * scale * width);
-  canvas.height = Math.round(window.devicePixelRatio * scale * height);
+  canvas.width = Math.max(1, Math.round(window.devicePixelRatio * scale * width));
+  canvas.height = Math.max(1, Math.round(window.devicePixelRatio * scale * height));
   Object.assign(canvas.style, { width: `${width}px`, height: `${height}px` });
 }
 

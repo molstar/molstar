@@ -2,6 +2,8 @@
 
 ## Status
 
+- **Current**: not started. Layer B of [webgpu-draw-submission.md](webgpu-draw-submission.md) (paused) builds on it,
+  shared per context in pages.
 - Not started; planning only. Part of the WebGPU work in [backend-split.md](backend-split.md); rules in
   [minimum-capabilities.md](minimum-capabilities.md).
 

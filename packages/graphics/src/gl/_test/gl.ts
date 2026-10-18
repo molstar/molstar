@@ -4,7 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { createRequire } from 'node:module';
 import { createContext } from '../webgl/context.js';
+
+const require = createRequire(import.meta.url);
 
 export function getGLContext(width: number, height: number) {
   const gl = require('gl')(width, height, {

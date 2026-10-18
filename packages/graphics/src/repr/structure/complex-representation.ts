@@ -30,6 +30,7 @@ import { Substance } from '@molstar/graphics/theme/substance';
 import type { LocationCallback } from '../util.js';
 import { Emissive } from '@molstar/graphics/theme/emissive';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
+import { getFactorySignatures, type SignatureContext } from '../signatures.js';
 
 export function ComplexRepresentation<P extends StructureParams>(
   label: string,
@@ -43,7 +44,7 @@ export function ComplexRepresentation<P extends StructureParams>(
   ) => ComplexVisual<P>,
 ): StructureRepresentation<P> {
   let version = 0;
-  const { graphics } = ctx;
+  let { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const materialId = getNextMaterialId();
@@ -206,6 +207,17 @@ export function ComplexRepresentation<P extends StructureParams>(
     getAllLoci,
     eachLocation,
     mark,
+    setGraphics: (value: GraphicsContext) => {
+      graphics = value;
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
+      getFactorySignatures(
+        visualCtor,
+        // without a structure: factories that read it name their visuals
+        () => visualCtor(materialId, undefined as unknown as Structure, props, ctx.graphics),
+        props,
+        ctx,
+      ),
     destroy,
   };
 }

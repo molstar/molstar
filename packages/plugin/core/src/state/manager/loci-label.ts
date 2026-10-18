@@ -68,6 +68,16 @@ export class LociLabelManager {
     this.showLabels();
   }
 
+  /**
+   * Labels the current highlights again: for a provider whose label depends on more than the loci (what a linked view
+   * hovers over the same residue) when that changed and the highlight did not. Nothing highlighted: nothing sent.
+   */
+  refresh() {
+    if (this.locis.length === 0) return;
+    this.isDirty = true;
+    this.showLabels();
+  }
+
   private locis: Representation.Loci[] = [];
 
   private mark(loci: Representation.Loci, action: MarkerAction) {

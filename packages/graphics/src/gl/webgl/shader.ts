@@ -23,7 +23,6 @@ export type ShaderProps = { type: ShaderType; source: string };
 export interface Shader {
   readonly id: number;
   attach: (program: WebGLProgram) => void;
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -46,7 +45,7 @@ export function getShader(gl: GLRenderingContext, props: ShaderProps) {
 }
 
 export function createShader(gl: GLRenderingContext, props: ShaderProps): Shader {
-  let shader = getShader(gl, props);
+  const shader = getShader(gl, props);
 
   return {
     id: getNextShaderId(),
@@ -54,9 +53,6 @@ export function createShader(gl: GLRenderingContext, props: ShaderProps): Shader
       gl.attachShader(program, shader);
     },
 
-    reset: () => {
-      shader = getShader(gl, props);
-    },
     destroy: () => {
       gl.deleteShader(shader);
     },

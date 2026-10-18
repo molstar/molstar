@@ -6,18 +6,24 @@
 
 import { depth_wgsl } from './depth.wgsl.js';
 
+/** `packIntToRGB`: an integer (e.g. a group id) packed into 8-bit rgb, as on WebGL */
+export const pack_int_wgsl = /* wgsl */ `
+fn packIntToRGB(v: f32) -> vec3<f32> {
+    var value = clamp(round(v), 0.0, 16777216.0 - 1.0) + 1.0;
+    var c = vec3<f32>(0.0);
+    c.b = value % 256.0;
+    value = floor(value / 256.0);
+    c.g = value % 256.0;
+    value = floor(value / 256.0);
+    c.r = value % 256.0;
+    return c / 255.0;
+}
+`;
+
 /** Derived switches, constants and helpers used by most programs */
 export const common_wgsl = /* wgsl */ `
 #if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit) || defined(dRenderVariant_colorDpoit)
     #define dRenderVariant_color
-#endif
-
-#if defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance) || defined(dColorType_vertex) || defined(dColorType_vertexInstance)
-    #define dColorType_texture
-#endif
-
-#if defined(dColorType_volume) || defined(dColorType_volumeInstance)
-    #define dColorType_grid
 #endif
 
 #if defined(dColorType_texture) || defined(dColorType_grid)
@@ -52,16 +58,7 @@ fn luminance(c: vec3<f32>) -> f32 {
 
 ${depth_wgsl}
 
-fn packIntToRGB(v: f32) -> vec3<f32> {
-    var value = clamp(round(v), 0.0, 16777216.0 - 1.0) + 1.0;
-    var c = vec3<f32>(0.0);
-    c.b = value % 256.0;
-    value = floor(value / 256.0);
-    c.g = value % 256.0;
-    value = floor(value / 256.0);
-    c.r = value % 256.0;
-    return c / 255.0;
-}
+${pack_int_wgsl}
 
 fn packMarkingMask(hidden: f32, highlight: bool, fogAlpha: f32, opacity: f32) -> vec4<f32> {
     let g = hidden + (1.0 - 2.0 * hidden) * (1.0 - opacity) * 0.25;

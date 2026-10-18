@@ -131,15 +131,16 @@ export type ShaderDeclarations = {
 /**
  * GLSL declarations of the schema's uniforms (see `getShaderUniformDeclarations`), samplers and
  * attributes (vertex shader only; with fixed locations, see `getAttributeLayout`).
- * Define-dependent sampler dimensions are resolved with `defines`.
+ * Define-dependent sampler dimensions are resolved with `defines`. Uniform blocks with `useBlocks` (WebGL2 only).
  */
 export function getShaderDeclarations(
   schema: RenderableSchema,
   isWebGL2: boolean,
   defines: DefineLookup,
+  useBlocks = isWebGL2,
 ): ShaderDeclarations {
   const samplers: [name: string, type: string, handWritten: string[]][] = [];
-  let key = `${isWebGL2}`;
+  let key = `${isWebGL2}|${useBlocks}`;
   for (const k of Object.keys(schema)) {
     const spec = schema[k];
     if (spec.type !== 'texture') continue;
@@ -170,7 +171,7 @@ export function getShaderDeclarations(
   const cached = cache.get(key);
   if (cached) return cached;
 
-  const uniforms = getShaderUniformDeclarations(schema, isWebGL2);
+  const uniforms = getShaderUniformDeclarations(schema, isWebGL2 && useBlocks);
   const shared = uniforms ? [uniforms.code] : [];
   const samplerTypes = new Map<string, readonly string[]>();
   for (const [name, type, handWritten] of samplers) {

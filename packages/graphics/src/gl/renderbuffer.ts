@@ -27,6 +27,5 @@ export interface Renderbuffer {
   attachFramebuffer: (framebuffer: Framebuffer) => void;
   detachFramebuffer: (framebuffer: Framebuffer) => void;
   setSize: (width: number, height: number) => void;
-  reset: () => void;
   destroy: () => void;
 }

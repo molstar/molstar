@@ -1,0 +1,755 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
+import type { Structure } from '@molstar/model/model/structure';
+import {
+  archiveLoaders,
+  type DocNode,
+  type FormatResult,
+  type Loaders,
+  type Op,
+  type SeqViewSpecDoc,
+} from '@molstar/seq-core/format';
+import { STRUCTURE_FORMATS, type StructureSource } from './molstar/source.js';
+import {
+  createSeqViewer,
+  type Scheduler,
+  type GraphResult,
+  type SeqViewerContext,
+  rafScheduler,
+  type TextMeasurer,
+} from '@molstar/seq-viewer';
+import {
+  ComplexRef,
+  DataRef,
+  LettersRef,
+  SecondaryTrack,
+  DefaultSequenceTheme,
+  hostFileOf,
+  SectionRef,
+  type SequenceTheme,
+  sequenceDocument,
+  svsDocument,
+} from './document.js';
+import type { SequenceBehavior, SequenceOffer, SequenceShown, SequenceTrackMenuItem } from './behaviors.js';
+import { legendOf, type SequenceLegend, withTracks } from './legend.js';
+import { PrismSequenceSpec } from './spec.js';
+import { DefaultTracksRail, TextPreset, type TracksRail, TracksPreset, tracksPreset } from './presets.js';
+import { type SequenceFonts, skinFor, plainCellHex } from './skin.js';
+import { cancelFrameCallback, requestFrameCallback } from '@molstar/prism-ui/reactive/frame-state';
+
+// The sequence model (sequence.md §1): owns the Seq* contexts, one per id ('default' only for now), and keeps
+// each in step with what the viewer follows: the canvas ink (its skin), the structure the 3D view shows (its
+// document), and the person's choices (the style, the color theme). Plain arguments, no DOM and no plugin: testable
+// headless.
+
+export type SequenceStyle = 'compact' | 'tracks';
+export type { SequenceTheme };
+
+/** A structure the host (the 3D view) shows and has parsed. */
+export interface HostStructure {
+  /** Tells one structure from another: a new key rebuilds the view. */
+  readonly key: string;
+  /** The structure's state ref (a loaded SeqViewSpec names the one it maps onto by it); absent: none. */
+  readonly ref?: string;
+  /** What the person calls it ("1TQN"). */
+  readonly title: string;
+  /** The host's parse (`StructureSource.of(trajectory, format)`): shared with the 3D view, never read again. */
+  readonly source: StructureSource;
+  /** The structure the 3D view draws: what the link maps. */
+  readonly structure: Structure;
+  /** The ligands the 3D view draws, by chemical component id; absent: every ligand. The sequence lists the same ones. */
+  readonly ligands?: readonly string[];
+}
+
+/**
+ * A SeqViewSpec document shown instead of the one the model builds (`load.svs`, sequence.md §6; David, 2026-10-15):
+ * while the followed structure is the one it maps its first `molstar:structure` complex onto. Saved with the sequence's
+ * state (§7.1); the viewer ends it when the person focuses or loads another structure.
+ */
+export interface SequenceOverride {
+  readonly document: SeqViewSpecDoc;
+  /** The loaded structure (its state ref) the document's first `molstar:structure` complex maps onto. */
+  readonly structure: string;
+  /** Where it came from (its address); absent: given as data. */
+  readonly url?: string;
+  /**
+   * The `.svsx` it came from (`addArchive`'s id): its relative URIs resolve inside it. The files stay in memory for the
+   * page's life, out of the saved state; after a reload the document's archived data does not load.
+   */
+  readonly archive?: string;
+}
+
+/** An `.svsx`'s files and its main file's directory (relative URIs resolve against it). */
+export interface SequenceArchive {
+  readonly files: ReadonlyMap<string, Uint8Array>;
+  readonly base: string;
+}
+
+/** A track of the section the band shows, for the Visible tracks menu and the gutter's hint (sequence.md §8). */
+export interface SequenceTrack {
+  readonly ref: string;
+  /** Its name for people: the document's label, else the viewer's or the behavior's name for it, else its ref. */
+  readonly label: string;
+  readonly hidden: boolean;
+}
+
+/**
+ * The person's edits over the document shown, by track ref (sequence.md §7.1): saved with the sequence's state and
+ * applied to every document the model builds (another structure and back, a reload, Undo). An entry is a change from
+ * the document's own value (a loaded SeqViewSpec may hide a track itself); a ref not shown now is kept for later.
+ */
+export interface SequenceEdits {
+  readonly tracks?: Readonly<Record<string, { readonly hidden: boolean }>>;
+}
+
+/** A data cell the plugin holds for an address, and its parse (state refs). */
+export interface DataByUrlEntry {
+  /** A Download's URL, or a read file's name. */
+  readonly address: string;
+  /** The data cell. */
+  readonly data: string;
+  /** The trajectory parsed from it; absent: not parsed (or not a structure). */
+  readonly parse?: string;
+}
+
+/**
+ * The parse cache (sequence.md §2): the plugin's data cells by address with their parses, so a document's file the
+ * plugin holds is read from it, and a structure it parsed is shared, never parsed again.
+ */
+export interface DataByUrl {
+  entry(address: string): DataByUrlEntry | undefined;
+  /** The bytes the plugin holds for an address (a string cell encoded); undefined: none. */
+  bytes(address: string): Uint8Array | undefined;
+  /** The structure the plugin parsed from an address, as the adapter's source over its trajectory; undefined: none. */
+  structure(address: string): StructureSource | undefined;
+}
+
+/** What a viewer shows, once its document is in: the link's input. */
+export interface SequenceStructure {
+  readonly title: string;
+  readonly structure: Structure;
+  /** The Seq* complex made from it. */
+  readonly complex: string;
+  /** The section the band shows: the built document's, or a loaded SeqViewSpec's first with tracks (sequence.md §6). */
+  readonly section: string;
+}
+
+/**
+ * How the 3D view colors the polymer: a color theme's name (`secondary-structure`, an extension's `plddt-confidence`),
+ * `default` for the viewer's default coloring.
+ */
+export type StructureColoring = string;
+
+/** What the sequence view may ask of the 3D view (the host implements it over its plugin, `sources/`). */
+export interface HostActions {
+  colorStructure(coloring: StructureColoring): void | Promise<void>;
+  /** How the 3D view's polymer is colored now (read from the plugin's state, so a change made elsewhere shows); undefined: no one theme. */
+  coloring?(): StructureColoring | undefined;
+}
+
+/** An action a track offers in its context menu. */
+export interface TrackAction {
+  readonly id: string;
+  readonly label: string;
+  readonly icon?: IconName;
+  run(): void;
+}
+
+/** The coloring a track's icon in the gutter stands for (the track's first action), and whether the 3D view has it now. */
+export interface TrackColoring extends TrackAction {
+  readonly coloring: StructureColoring;
+  /** The 3D polymer is colored this way now (read from the host when asked). */
+  active(): boolean;
+}
+
+/**
+ * What the viewer's own tracks offer, by ref: the model's decision, as it set the tracks and their colors (sequence.md
+ * §10); behaviors offer their tracks' (`SequenceOffer.menus`). The 3D coloring each track stands for: its own track
+ * colors the structure the same way.
+ */
+const TrackMenus: Readonly<Record<string, readonly SequenceTrackMenuItem[]>> = {
+  [LettersRef]: [{ id: 'color-default', label: 'Apply default coloring', icon: 'paintbrush', theme: 'default' }],
+  [SecondaryTrack]: [
+    { id: 'color-secondary', label: 'Color by secondary structure', icon: 'paintbrush', theme: 'secondary-structure' },
+  ],
+};
+
+/** The viewer's own tracks' names (their document labels are empty: the band shows none). */
+const TrackLabels: Readonly<Record<string, string>> = {
+  ruler: 'Ruler',
+  [LettersRef]: 'Residues',
+  [SecondaryTrack]: 'Secondary structure',
+};
+
+/** The origin of the edits' patches on the document's base. */
+const EditsOrigin = 'host:prism-viewer.sequence.edits';
+
+/** Every track node under `node` (a section, a group, an inserted subtree), in document order. */
+function tracksUnder(node: DocNode, out: DocNode[] = []): DocNode[] {
+  if (node.kind === 'track') out.push(node);
+  for (const c of node.children ?? []) tracksUnder(c, out);
+  return out;
+}
+function findNode(node: DocNode, ref: string): DocNode | undefined {
+  if (node.ref === ref) return node;
+  for (const c of node.children ?? []) {
+    const n = findNode(c, ref);
+    if (n) return n;
+  }
+  return undefined;
+}
+const hiddenIn = (n: DocNode) => n.params?.hidden === true;
+
+export interface SequenceViewer {
+  readonly id: string;
+  readonly seq: SeqViewerContext;
+  readonly style: ReadonlyState<SequenceStyle>;
+  /** UI state only (`ctx.ui.setStyle`): the document does not change. */
+  setStyle(style: SequenceStyle): void;
+  /** What it shows, once the document is in; undefined: nothing (no structure, or the document is being made). */
+  readonly structure: ReadonlyState<SequenceStructure | undefined>;
+  readonly theme: ReadonlyState<SequenceTheme>;
+  /** Written into the document the model builds. */
+  setTheme(theme: SequenceTheme): void;
+  /** What the theme's colors mean, for the ink's theme. */
+  readonly legend: ReadonlyState<SequenceLegend>;
+  /** The tracks version's rail: which navigator, how tall (the model registers the preset again). */
+  readonly rail: ReadonlyState<TracksRail>;
+  setRail(rail: TracksRail): void;
+  /**
+   * The context menu of a track (by its ref): its actions on the 3D view; none: the track has no menu.
+   */
+  trackActions(track: string): readonly TrackAction[];
+  /** The coloring icon of a track (by its ref); none: the track has none, or the host offers no actions. */
+  trackColoring(track: string): TrackColoring | undefined;
+  /** The host's fonts (the control reads its `--msp-font-*` once): part of the skin, not of the ink. */
+  setFonts(fonts: SequenceFonts): void;
+  /** What the document shows, for behaviors: a new value per document. */
+  readonly shown: ReadonlyState<SequenceShown | undefined>;
+  /** Attaches a behavior (an extension's, sequence.md §3); returns its removal. An id taken throws. */
+  addBehavior(behavior: SequenceBehavior): () => void;
+  /** The loaded SeqViewSpec shown instead of the built document; undefined: none. */
+  readonly override: ReadonlyState<SequenceOverride | undefined>;
+  /**
+   * Shows a loaded SeqViewSpec over its structure (when that is the followed one), or the built document again
+   * (undefined); resolves with what Seq* made of the document shown (an override not shown yet: ok).
+   */
+  setOverride(override: SequenceOverride | undefined): Promise<GraphResult>;
+  /** Keeps an `.svsx`'s files for an override that names it (`archive`); returns its id. */
+  addArchive(archive: SequenceArchive): string;
+  /** The tracks of the section the band shows, in order, hidden ones included; empty while a document is made. */
+  readonly tracks: ReadonlyState<readonly SequenceTrack[]>;
+  /** The person's edits over the document (sequence.md §7.1). */
+  readonly edits: ReadonlyState<SequenceEdits>;
+  /** Replaces the edits (a saved state applied); resolves once the document shown has them. */
+  setEdits(edits: SequenceEdits): Promise<void>;
+  /**
+   * Hides or shows a track of the section shown, by ref; resolves false when no such track is shown, or it is already
+   * so (nothing changes).
+   */
+  setTrackHidden(track: string, hidden: boolean): Promise<boolean>;
+  /**
+   * Hides or shows several tracks in one edit (one patch, one update of the document); resolves how many changed (the
+   * unknown and the already so are left).
+   */
+  setTracksHidden(tracks: readonly string[], hidden: boolean): Promise<number>;
+}
+
+export interface SequenceViewers {
+  /** The viewers by id; the first slice creates only 'default'. */
+  get(id?: string): SequenceViewer;
+  readonly ids: ReadonlyState<readonly string[]>;
+  /** Disposes every viewer's context. */
+  dispose(): void;
+}
+
+export interface SequenceViewersDeps {
+  /** The canvas ink: each viewer's skin follows it. */
+  ink: ReadonlyState<CanvasInk>;
+  /** The structure the 3D view shows (the structure source, §3); undefined: none. */
+  structure: ReadonlyState<HostStructure | undefined>;
+  /** Frames and time; default the window's (`requestAnimationFrame`): a headless host passes its own. */
+  scheduler?: Scheduler;
+  /** The text version's longest line, px: its lines wrap there, centered in the band (default 0: the whole width). */
+  textWidth?: number;
+  /** What the sequence view may ask of the 3D view: the tracks' menus run through it; none: no track has a menu. */
+  actions?: HostActions;
+  /** Canvas widths; default Seq*'s monospace estimate (a surface mounted on the context measures with its canvas). */
+  text?: TextMeasurer;
+  /** Behaviors attached to each viewer from the start (sequence.md §3); more come with `addBehavior`. */
+  behaviors?: readonly SequenceBehavior[];
+  /** The plugin's data cells and parses by address (sequence.md §2); none: a document's files are refused. */
+  dataByUrl?: DataByUrl;
+}
+
+/** The letters' size until the host's tokens are read (`setFonts`): Prism's panel text size, `--msp-font-size-sm`. */
+
+const windowFrames = (): Scheduler =>
+  rafScheduler({
+    requestAnimationFrame: (cb) => requestFrameCallback(cb),
+    cancelAnimationFrame: (id) => cancelFrameCallback(id),
+    setTimeout: (cb, ms) => setTimeout(cb, ms) as unknown as number,
+    clearTimeout: (id) => clearTimeout(id),
+    now: () => performance.now(),
+  });
+
+const presetOf = (style: SequenceStyle) => (style === 'tracks' ? TracksPreset : TextPreset);
+
+class Viewer implements SequenceViewer {
+  readonly seq: SeqViewerContext;
+  private readonly styleState = observableState<SequenceStyle>('tracks');
+  private readonly themeState = observableState<SequenceTheme>(DefaultSequenceTheme);
+  // Each document is its own value (identity): the 3D link is made again for it, though the structure and the complex
+  // ref are the same, as its Seq* set is not.
+  private readonly structureState = observableState<SequenceStructure | undefined>(undefined, {
+    compare: (a, b) => a === b,
+  });
+  private readonly legendState = observableState<SequenceLegend>(legendOf(DefaultSequenceTheme.letters, false));
+  readonly style = this.styleState.asReadonly;
+  readonly theme = this.themeState.asReadonly;
+  readonly structure = this.structureState.asReadonly;
+  readonly legend = this.legendState.asReadonly;
+  private readonly railState = observableState<TracksRail>(DefaultTracksRail);
+  readonly rail = this.railState.asReadonly;
+  private readonly shownState = observableState<SequenceShown | undefined>(undefined);
+  readonly shown = this.shownState.asReadonly;
+  private readonly overrideState = observableState<SequenceOverride | undefined>(undefined, {
+    compare: (a, b) => a === b || (!!a && !!b && a.document === b.document && a.structure === b.structure),
+  });
+  readonly override = this.overrideState.asReadonly;
+  private readonly tracksState = observableState<readonly SequenceTrack[]>([], {
+    compare: (a, b) =>
+      a.length === b.length &&
+      a.every((t, i) => t.ref === b[i].ref && t.label === b[i].label && t.hidden === b[i].hidden),
+  });
+  readonly tracks = this.tracksState.asReadonly;
+  private readonly editsState = observableState<SequenceEdits>({}, { compare: (a, b) => a === b });
+  readonly edits = this.editsState.asReadonly;
+  /** The sections of the document shown: the person's style applies to each. */
+  private sections: readonly string[] = [SectionRef];
+  /** The behaviors attached, by id: their dispose and their offer. */
+  private readonly behaviors = new Map<string, { dispose: () => void; title: string; offer?: SequenceOffer }>();
+  private dropPreset: (() => void) | undefined;
+  private fonts: SequenceFonts | undefined;
+  private builds = 0;
+  private disposed = false;
+  /** The `.svsx` files overrides name (`archive`), for the page's life. */
+  private readonly archives = new Map<string, SequenceArchive>();
+  private archiveIds = 0;
+  private readonly subs: { unsubscribe(): void }[] = [];
+
+  constructor(
+    readonly id: string,
+    private readonly deps: SequenceViewersDeps,
+  ) {
+    const refuse = (r: { uri: string | null; hostFile?: string | null }) =>
+      Promise.reject(
+        new Error(`the sequence view fetches no files; load ${r.uri ?? r.hostFile ?? 'it'} in the viewer first`),
+      );
+    /** A request's address: a URI resolved against the loaded document's own, else the host file. */
+    const addressOf = (r: { uri: string | null; hostFile?: string | null }) => {
+      const base = this.overrideState.value?.url;
+      if (r.uri === null) return r.hostFile ?? undefined;
+      try {
+        return base ? new URL(r.uri, base).href : r.uri;
+      } catch {
+        return r.uri;
+      }
+    };
+    // What the plugin holds (sequence.md §2): its bytes, else refused; nothing is fetched.
+    const held = (r: { uri: string | null; hostFile?: string | null }): Promise<Uint8Array> => {
+      const address = addressOf(r);
+      const bytes = address === undefined ? undefined : deps.dataByUrl?.bytes(address);
+      return bytes ? Promise.resolve(bytes) : refuse(r);
+    };
+    const loaders: Loaders = {
+      // The structure comes from the host (`parsed`); a file the plugin holds is read from it; an `.svsx`'s relative
+      // URIs from the archive; nothing is fetched.
+      load: (r, signal) => {
+        const id = this.overrideState.value?.archive;
+        const archive = id ? this.archives.get(id) : undefined;
+        if (!archive) return held(r);
+        return archiveLoaders(archive.files, { load: (q) => held(q) }, archive.base).load(r, signal);
+      },
+      parsed: async (r, format): Promise<FormatResult | null> => {
+        const host = deps.structure.value;
+        if (host && r.hostFile === hostFileOf(host.key)) return { kind: 'object', value: host.source };
+        // Another structure the plugin parsed (a document's second complex, a file named by URL): shared, not read again.
+        if (!(STRUCTURE_FORMATS as readonly string[]).includes(format)) return null;
+        const address = addressOf(r);
+        const source = address === undefined ? undefined : deps.dataByUrl?.structure(address);
+        return source ? { kind: 'object', value: source } : null;
+      },
+    };
+    this.seq = createSeqViewer(PrismSequenceSpec({ textWidth: deps.textWidth }), {
+      loaders,
+      scheduler: deps.scheduler ?? windowFrames(),
+      ...(deps.text ? { text: deps.text } : {}),
+    });
+    this.dropPreset = this.seq.register({ presets: [tracksPreset(DefaultTracksRail, !!this.deps.actions)] });
+    this.applySkin(deps.ink.value);
+    this.subs.push(
+      deps.ink.subscribe((ink) => {
+        this.applySkin(ink);
+        this.refreshLegend();
+        // No colors: the letters' cells are the surface's color, which changed.
+        if (this.themeState.value.letters === null) void this.build();
+      }),
+      deps.structure.subscribe(() => void this.build()),
+      // The tracks the band shows, for the Visible tracks menu: read from the document shown (behaviors' patches included).
+      this.seq.document.shown.subscribe(() => this.refreshTracks()),
+      this.structure.subscribe(() => this.refreshTracks()),
+    );
+    for (const b of deps.behaviors ?? []) this.addBehavior(b);
+  }
+
+  addBehavior(behavior: SequenceBehavior): () => void {
+    if (this.behaviors.has(behavior.id)) throw new Error(`A sequence behavior '${behavior.id}' is attached already`);
+    const entry: { dispose: () => void; title: string; offer?: SequenceOffer } = {
+      dispose: () => {},
+      title: behavior.title,
+    };
+    this.behaviors.set(behavior.id, entry);
+    let attached = true;
+    entry.dispose = behavior.attach({
+      shown: this.shown,
+      patch: async (shown, ops) => {
+        // Only onto the document it was made for: a later one has none of the nodes it refers to.
+        if (!attached || this.disposed || shown !== this.shownState.value) return false;
+        // The person's edits over the tracks it adds (sequence.md §7.1): hidden from the start, no flash.
+        const r = await this.seq.applyPatch(
+          { format: 'seq_view_spec_patch', ops: ops.map((op) => this.withEdits(op)) },
+          { layer: 'base', origin: `host:${behavior.id}` as never },
+        );
+        return r.ok;
+      },
+      offer: (offer) => {
+        if (!attached) return;
+        entry.offer = offer;
+        this.refreshLegend();
+      },
+    });
+    return () => {
+      if (!attached) return;
+      attached = false;
+      this.behaviors.delete(behavior.id);
+      entry.dispose();
+      this.refreshLegend();
+    };
+  }
+
+  /** A track's menu: the viewer's own, or a behavior's offer. */
+  private menuOf(track: string): readonly SequenceTrackMenuItem[] {
+    const own = TrackMenus[track];
+    if (own) return own;
+    for (const { offer } of this.behaviors.values()) {
+      const menu = offer?.menus?.[track];
+      if (menu) return menu;
+    }
+    return [];
+  }
+
+  /** A track's name for people: the document's label, the viewer's own, a behavior's offer or title, else its ref. */
+  private labelOf(node: DocNode): string {
+    const ref = node.ref ?? '';
+    const own = typeof node.params?.label === 'string' ? node.params.label.trim() : '';
+    if (own) return own;
+    if (TrackLabels[ref]) return TrackLabels[ref];
+    for (const [id, { offer, title }] of this.behaviors) {
+      const offered = offer?.labels?.[ref];
+      if (offered) return offered;
+      if (ref.startsWith(id)) return title;
+    }
+    return ref;
+  }
+
+  /** The loaded SeqViewSpec shown hides this track itself (its own value, under the person's edits). */
+  private sourceHidden(ref: string): boolean {
+    const o = this.overrideState.value;
+    const host = this.deps.structure.value;
+    if (!o || !host || host.ref !== o.structure) return false;
+    // The override's hidden tracks, by ref, once an override (a tree walk a track was tracks × nodes).
+    if (this.hiddenOf?.document !== o.document) {
+      const refs = new Set<string>();
+      for (const t of tracksUnder(o.document.root)) if (t.ref && hiddenIn(t)) refs.add(t.ref);
+      this.hiddenOf = { document: o.document, refs };
+    }
+    return this.hiddenOf.refs.has(ref);
+  }
+  private hiddenOf: { document: unknown; refs: ReadonlySet<string> } | undefined;
+
+  /** The edits written into a document's tracks (a fresh copy the model owns: written in place). */
+  private applyEdits(root: DocNode): void {
+    const tracks = this.editsState.value.tracks;
+    if (!tracks) return;
+    for (const t of tracksUnder(root)) {
+      const entry = t.ref ? tracks[t.ref] : undefined;
+      if (!entry) continue;
+      const { hidden: _, ...rest } = t.params ?? {};
+      t.params = entry.hidden ? { ...rest, hidden: true } : rest;
+    }
+  }
+
+  /** A behavior's insert with the person's edits over the tracks it adds. */
+  private withEdits(op: Op): Op {
+    if (op.op !== 'insert' || !this.editsState.value.tracks) return op;
+    const node = structuredClone(op.node);
+    this.applyEdits(node);
+    return { ...op, node };
+  }
+
+  /** The document's tracks brought to the edits: one base patch for what differs (nothing while one is made). */
+  private async syncEdits(): Promise<void> {
+    const base = this.seq.document.base.value;
+    if (!base || !this.shownState.value || this.disposed) return;
+    // The override's hidden tracks read afresh for this sync (once, not once a track).
+    this.hiddenOf = undefined;
+    const ops: Op[] = [];
+    for (const t of tracksUnder(base.root)) {
+      if (!t.ref) continue;
+      const entry = this.editsState.value.tracks?.[t.ref];
+      const want = entry ? entry.hidden : this.sourceHidden(t.ref);
+      if (want !== hiddenIn(t)) ops.push({ op: 'set', ref: t.ref, params: { hidden: want ? true : null } });
+    }
+    if (!ops.length) return;
+    await this.seq.applyPatch({ format: 'seq_view_spec_patch', ops }, { layer: 'base', origin: EditsOrigin as never });
+  }
+
+  /** The tracks of the section shown, from the document shown. */
+  private refreshTracks() {
+    const doc = this.seq.document.shown.value;
+    const section = this.structureState.value?.section;
+    const node = doc && section ? findNode(doc.root, section) : undefined;
+    const list = node
+      ? tracksUnder(node).flatMap((t) => (t.ref ? [{ ref: t.ref, label: this.labelOf(t), hidden: hiddenIn(t) }] : []))
+      : [];
+    this.tracksState.set(list);
+  }
+
+  setEdits(edits: SequenceEdits): Promise<void> {
+    this.editsState.set(edits);
+    return this.syncEdits();
+  }
+
+  async setTrackHidden(track: string, hidden: boolean): Promise<boolean> {
+    return (await this.setTracksHidden([track], hidden)) > 0;
+  }
+
+  async setTracksHidden(refs: readonly string[], hidden: boolean): Promise<number> {
+    const shown = new Map(this.tracksState.value.map((t) => [t.ref, t.hidden]));
+    const tracks = { ...this.editsState.value.tracks };
+    let changed = 0;
+    for (const ref of new Set(refs)) {
+      if (!shown.has(ref) || shown.get(ref) === hidden) continue;
+      changed++;
+      // Only a change from the document's own value is an edit: showing a track the person hid drops its entry.
+      if (hidden === this.sourceHidden(ref)) delete tracks[ref];
+      else tracks[ref] = { hidden };
+    }
+    if (!changed) return 0;
+    await this.setEdits(Object.keys(tracks).length ? { tracks } : {});
+    return changed;
+  }
+
+  /** What the colors mean: the letters' scheme, the secondary structure, and the behaviors' blocks (a pLDDT track's bands). */
+  private refreshLegend() {
+    const dark = this.deps.ink.value.theme === 'dark';
+    const letters = legendOf(this.themeState.value.letters, dark);
+    if (!this.deps.structure.value) {
+      this.legendState.set(letters);
+      return;
+    }
+    const offered = [...this.behaviors.values()].flatMap(({ offer }) => offer?.legend ?? []);
+    this.legendState.set(withTracks(letters, offered));
+  }
+
+  private applySkin(ink: CanvasInk) {
+    if (!this.disposed) this.seq.setSkin(skinFor(ink, this.fonts));
+  }
+
+  trackActions(track: string, o?: { unapplied?: boolean }): readonly TrackAction[] {
+    const host = this.deps.actions;
+    if (!host) return [];
+    const now = o?.unapplied ? host.coloring?.() : undefined;
+    return this.menuOf(track)
+      .filter((a) => a.theme !== now)
+      .map((a) => ({
+        id: a.id,
+        label: a.label,
+        icon: a.icon,
+        run: () => void host.colorStructure(a.theme),
+      }));
+  }
+
+  trackColoring(track: string): TrackColoring | undefined {
+    const host = this.deps.actions;
+    const a = this.menuOf(track)[0];
+    if (!host || !a) return undefined;
+    const active = () => host.coloring?.() === a.theme;
+    // Applying the coloring the 3D view has is nothing to do: the icon marks it, a click leaves it.
+    return {
+      id: a.id,
+      label: a.label,
+      icon: a.icon,
+      coloring: a.theme,
+      active,
+      run: () => active() || void host.colorStructure(a.theme),
+    };
+  }
+
+  setFonts(fonts: SequenceFonts) {
+    this.fonts = fonts;
+    if (fonts.size) this.seq.setRenderProps({ wrappedFontPx: fonts.size, maxLetterPx: fonts.size });
+    this.applySkin(this.deps.ink.value);
+  }
+
+  setStyle(style: SequenceStyle) {
+    // Only the preset (and with it the render props) changes: one document serves both styles, so the link survives.
+    this.styleState.set(style);
+    for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(style));
+  }
+
+  setRail(rail: TracksRail) {
+    const now = this.railState.value;
+    if (now.navigator === rail.navigator && now.height === rail.height) return;
+    this.railState.set(rail);
+    this.dropPreset?.();
+    this.dropPreset = this.seq.register({ presets: [tracksPreset(rail, !!this.deps.actions)] });
+    // The section takes the preset again (the layout reads it when the style is set).
+    for (const s of this.sections) {
+      this.seq.ui.setStyle(s, null);
+      this.seq.ui.setStyle(s, presetOf(this.styleState.value));
+    }
+  }
+
+  setTheme(theme: SequenceTheme) {
+    if (theme.letters === this.themeState.value.letters) return;
+    this.themeState.set(theme);
+    // Text mode: the letters in the scheme's colors, or plain text.
+    this.seq.setRenderProps({ wrappedColors: theme.letters !== null });
+    this.refreshLegend();
+    void this.build();
+  }
+
+  addArchive(archive: SequenceArchive): string {
+    const id = `svsx-${++this.archiveIds}`;
+    this.archives.set(id, archive);
+    return id;
+  }
+
+  setOverride(override: SequenceOverride | undefined): Promise<GraphResult> {
+    const now = this.overrideState.value;
+    this.overrideState.set(override);
+    // Only a change to what the followed structure shows rebuilds.
+    const host = this.deps.structure.value;
+    const applies = (o: SequenceOverride | undefined) => !!o && !!host && host.ref === o.structure;
+    if (this.overrideState.value === now || (!applies(now) && !applies(override)))
+      return Promise.resolve({ ok: true, issues: [] });
+    return this.build();
+  }
+
+  /** The document for what the host shows now; the latest build wins, an earlier one is dropped when it ends. */
+  private async build(): Promise<GraphResult> {
+    const host = this.deps.structure.value;
+    const build = ++this.builds;
+    // A document is being made: what the behaviors patch for the last one is dropped meanwhile (`patch` checks it).
+    if (this.shownState.value) this.shownState.set(undefined);
+    this.refreshLegend();
+    if (!host) {
+      this.structureState.set(undefined);
+      this.shownState.set(undefined);
+      return { ok: true, issues: [] };
+    }
+    // A loaded SeqViewSpec over its structure (sequence.md §6), else the document built for the structure.
+    const override = this.overrideState.value;
+    const svs =
+      override && host.ref === override.structure
+        ? svsDocument(override.document, {
+            key: host.key,
+            format: host.source.format,
+            theme: this.themeState.value,
+            plain: plainCellHex(this.deps.ink.value),
+          })
+        : undefined;
+    const doc =
+      svs?.doc ??
+      sequenceDocument({
+        title: host.title,
+        key: host.key,
+        format: host.source.format,
+        theme: this.themeState.value,
+        plain: plainCellHex(this.deps.ink.value),
+        ligands: host.ligands,
+      });
+    // The person's edits (sequence.md §7.1): written into every document built, so a rebuild keeps them.
+    this.applyEdits(doc.root);
+    // A new structure is not shown as the old one while its document is made.
+    if (this.structureState.value && this.structureState.value.structure !== host.structure)
+      this.structureState.set(undefined);
+    const result = await this.seq.setDocument(doc);
+    if (this.disposed || build !== this.builds) return result;
+    // The person's style over the document's sections (a loaded SeqViewSpec's presets too).
+    this.sections = svs?.sections ?? [SectionRef];
+    for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(this.styleState.value));
+    const complex = svs?.complex ?? ComplexRef;
+    const section = svs?.section ?? SectionRef;
+    this.structureState.set({ title: host.title, structure: host.structure, complex, section });
+    // The behaviors add theirs to this document (sequence.md §3).
+    this.shownState.set({
+      key: host.key,
+      title: host.title,
+      structure: host.structure,
+      complex,
+      data: svs?.data ?? DataRef,
+      section,
+      after: svs?.after ?? SecondaryTrack,
+    });
+    // Edits changed while the document was made: brought to them now.
+    await this.syncEdits();
+    return result;
+  }
+
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.builds++;
+    for (const { dispose } of [...this.behaviors.values()]) dispose();
+    this.behaviors.clear();
+    this.dropPreset?.();
+    for (const s of this.subs) s.unsubscribe();
+    this.subs.length = 0;
+    this.seq.dispose();
+  }
+}
+
+export function createSequenceViewers(deps: SequenceViewersDeps): SequenceViewers {
+  const viewers = new Map<string, Viewer>();
+  const ids = observableState<readonly string[]>([]);
+  const make = (id: string) => {
+    const v = new Viewer(id, deps);
+    viewers.set(id, v);
+    ids.set([...viewers.keys()]);
+    return v;
+  };
+  make('default');
+  return {
+    get(id = 'default') {
+      const v = viewers.get(id);
+      if (!v) throw new Error(`no sequence viewer "${id}"`);
+      return v;
+    },
+    ids: ids.asReadonly,
+    dispose() {
+      for (const v of viewers.values()) v.dispose();
+      viewers.clear();
+      ids.set([]);
+    },
+  };
+}

@@ -1,0 +1,97 @@
+data_INS1
+#
+_entry.id INS1
+#
+loop_
+_entity.id
+_entity.type
+_entity.pdbx_description
+1 polymer 'Heavy chain fragment'
+#
+_entity_poly.entity_id 1
+_entity_poly.type 'polypeptide(L)'
+_entity_poly.pdbx_seq_one_letter_code_can WVARIYPTN
+#
+loop_
+_entity_poly_seq.entity_id
+_entity_poly_seq.num
+_entity_poly_seq.mon_id
+_entity_poly_seq.hetero
+1 1 TRP n
+1 2 VAL n
+1 3 ALA n
+1 4 ARG n
+1 5 ILE n
+1 6 TYR n
+1 7 PRO n
+1 8 THR n
+1 9 ASN n
+#
+_struct_asym.id A
+_struct_asym.entity_id 1
+#
+loop_
+_pdbx_poly_seq_scheme.asym_id
+_pdbx_poly_seq_scheme.entity_id
+_pdbx_poly_seq_scheme.seq_id
+_pdbx_poly_seq_scheme.mon_id
+_pdbx_poly_seq_scheme.ndb_seq_num
+_pdbx_poly_seq_scheme.pdb_seq_num
+_pdbx_poly_seq_scheme.pdb_ins_code
+_pdbx_poly_seq_scheme.pdb_strand_id
+_pdbx_poly_seq_scheme.pdb_mon_id
+_pdbx_poly_seq_scheme.auth_seq_num
+A 1 1 TRP 50 50 ? H TRP 50
+A 1 2 VAL 51 51 ? H VAL 51
+A 1 3 ALA 52 52 ? H ALA 52
+A 1 4 ARG 52 52 A H ARG 52
+A 1 5 ILE 52 52 B H ILE 52
+A 1 6 TYR 53 53 ? H TYR 53
+A 1 7 PRO 54 54 ? H PRO 54
+A 1 8 THR 55 55 ? H THR 55
+A 1 9 ASN 55 55 A H ASN ?
+#
+loop_
+_pdbx_sifts_unp_segments.entity_id
+_pdbx_sifts_unp_segments.asym_id
+_pdbx_sifts_unp_segments.unp_acc
+_pdbx_sifts_unp_segments.segment_id
+_pdbx_sifts_unp_segments.instance_id
+_pdbx_sifts_unp_segments.unp_start
+_pdbx_sifts_unp_segments.unp_end
+_pdbx_sifts_unp_segments.seq_id_start
+_pdbx_sifts_unp_segments.seq_id_end
+_pdbx_sifts_unp_segments.best_mapping
+_pdbx_sifts_unp_segments.identity
+1 A Q0INS1 1 1 70 78 1 9 y 1.0
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.auth_atom_id
+_atom_site.pdbx_PDB_model_num
+ATOM 1 C CA . TRP A 1 1 ? 0.000 0.000 0.000 1.00 10.00 50 TRP H CA 1
+ATOM 2 C CA . VAL A 1 2 ? 3.800 0.000 0.000 1.00 20.00 51 VAL H CA 1
+ATOM 3 C CA . ALA A 1 3 ? 7.600 0.000 0.000 1.00 30.00 52 ALA H CA 1
+ATOM 4 C CA . ARG A 1 4 A 11.400 0.000 0.000 1.00 40.00 52 ARG H CA 1
+ATOM 5 C CA . ILE A 1 5 B 15.200 0.000 0.000 1.00 50.00 52 ILE H CA 1
+ATOM 6 C CA . TYR A 1 6 ? 19.000 0.000 0.000 1.00 60.00 53 TYR H CA 1
+ATOM 7 C CA . PRO A 1 7 ? 22.800 0.000 0.000 1.00 70.00 54 PRO H CA 1
+ATOM 8 C CA . THR A 1 8 ? 26.600 0.000 0.000 1.00 80.00 55 THR H CA 1
+#

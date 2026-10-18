@@ -160,7 +160,8 @@ void main(void){
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 
-    if (gl_Position.z < -gl_Position.w) {
+    // in front of the near plane (clip z is reversed)
+    if (gl_Position.z > gl_Position.w) {
         mvPosition.z -= 2.0 * vRadius; // avoid clipping
         gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
     }

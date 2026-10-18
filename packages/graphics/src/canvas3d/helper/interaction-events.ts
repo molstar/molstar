@@ -89,7 +89,7 @@ export class Canvas3dInteractionHelper {
     if (this.ray) {
       return this.ray;
     } else if (this.props.convertCoordsToRay) {
-      return this.camera.getRay(Ray3D(), this.endX, this.input.height - this.endY);
+      return this.camera.getRay(Ray3D(), this.endX, this.endY);
     } else {
       return Vec2.create(this.endX, this.endY);
     }
@@ -106,16 +106,18 @@ export class Canvas3dInteractionHelper {
   }
 
   private handleClick() {
-    if (!this.synchronousIdentify) {
-      const pickData = this.canvasAsyncIdentify(this.getTarget());
-      if (pickData) {
-        const { buttons, button, modifiers, endX: x, endY: y } = this;
-        this.pendingClick = { pickData, buttons, button, modifiers, x, y };
+    const target = this.getTarget();
+    const { buttons, button, modifiers, endX: x, endY: y } = this;
+    // without synchronous reads the click waits for the read
+    const pickData = this.synchronousIdentify ? this.canvasIdentify(target) : 'pending';
+    if (pickData === 'pending') {
+      const pending = this.canvasAsyncIdentify(target);
+      if (pending) {
+        this.pendingClick = { pickData: pending, buttons, button, modifiers, x, y };
         return;
       }
     }
-    const pickData = this.canvasIdentify(this.getTarget());
-    this.emitClick(pickData, this.buttons, this.button, this.modifiers, this.endX, this.endY);
+    this.emitClick(pickData === 'pending' ? undefined : pickData, buttons, button, modifiers, x, y);
   }
 
   private emitClick(
@@ -164,6 +166,18 @@ export class Canvas3dInteractionHelper {
       this.startX = this.endX;
       this.startY = this.endY;
     }
+  }
+
+  /**
+   * Work the next tick does: a click's pick being read (also after leaving), a hover pick under way, a move or drag not
+   * handled yet (it is throttled to `maxFps`).
+   */
+  get isPending() {
+    if (this.pendingClick) return true;
+    if (!this.inside) return false;
+    return (
+      this.pickData !== undefined || this.startX !== this.endX || this.startY !== this.endY || this.input.pointerLock
+    );
   }
 
   tick(t: number) {
@@ -278,12 +292,7 @@ export class Canvas3dInteractionHelper {
     } = this;
     x *= input.pixelRatio;
     y *= input.pixelRatio;
-    return (
-      x > viewport.x + viewport.width ||
-      input.height - y > viewport.y + viewport.height ||
-      x < viewport.x ||
-      input.height - y < viewport.y
-    );
+    return x > viewport.x + viewport.width || y > viewport.y + viewport.height || x < viewport.x || y < viewport.y;
   }
 
   private getLoci(pickingId: PickingId | undefined, position: Vec3 | undefined) {
@@ -313,6 +322,21 @@ export class Canvas3dInteractionHelper {
 
   dispose() {
     this.ev.dispose();
+  }
+
+  /**
+   * After the graphics context changed: `synchronousIdentify` of the new pick helpers, pending reads of the previous
+   * ones (which resolve to nothing) are requested again
+   */
+  resetPicks(synchronousIdentify: boolean) {
+    this.synchronousIdentify = synchronousIdentify;
+    if (this.pickData) this.pickData = this.canvasAsyncIdentify(this.getTarget());
+    if (this.pendingClick) {
+      const { x, y } = this.pendingClick;
+      const target = this.props.convertCoordsToRay ? this.camera.getRay(Ray3D(), x, y) : Vec2.create(x, y);
+      const pickData = this.ray ? this.canvasAsyncIdentify(this.ray) : this.canvasAsyncIdentify(target);
+      if (pickData) this.pendingClick.pickData = pickData;
+    }
   }
 
   constructor(

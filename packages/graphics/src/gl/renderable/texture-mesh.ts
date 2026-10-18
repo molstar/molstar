@@ -26,6 +26,7 @@ import {
   AnimationSchema,
 } from './schema.js';
 import { MeshShaderCode } from '../shader-code.js';
+import { StorageBufferSpec } from '../compute.js';
 import { ValueCell } from '@molstar/core/util';
 
 export const TextureMeshSchema = {
@@ -34,6 +35,11 @@ export const TextureMeshSchema = {
   tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
   tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
   tNormal: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  /** vertices in pages of the vertex arena instead of the textures (WebGPU), see `computeChunkedIsosurface` */
+  dIsoChunks: DefineSpec('boolean'),
+  sIsoTable: StorageBufferSpec('u32', 'read', ['dIsoChunks']),
+  sIsoPositions: StorageBufferSpec('vec4<f32>', 'read', ['dIsoChunks']),
+  sIsoNormals: StorageBufferSpec('vec2<u32>', 'read', ['dIsoChunks']),
   dVaryingGroup: DefineSpec('boolean'),
   dFlatShaded: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),
@@ -53,6 +59,15 @@ export const TextureMeshSchema = {
 export type TextureMeshSchema = typeof TextureMeshSchema;
 export type TextureMeshValues = Values<TextureMeshSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const TextureMeshRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...TextureMeshSchema,
+};
+
 export function TextureMeshRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -62,13 +77,7 @@ export function TextureMeshRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<TextureMeshValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...TextureMeshSchema,
-  };
+  const schema = TextureMeshRenderableSchema;
   const renderValues: TextureMeshValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),
@@ -85,5 +94,13 @@ export function TextureMeshRenderable(
     transparency,
   );
 
-  return createRenderable(renderItem, renderValues, state);
+  const renderable = createRenderable(renderItem, renderValues, state);
+  const getItemByteCount = renderable.getByteCount;
+  // with its pages of the shared vertex arena (see `computeChunkedIsosurface`), known once read back
+  return Object.assign(renderable, {
+    getByteCount: () => {
+      const meta = values.meta.ref.value as { chunkByteCount?: number } | undefined;
+      return getItemByteCount() + (values.dIsoChunks.ref.value ? (meta?.chunkByteCount ?? 0) : 0);
+    },
+  });
 }

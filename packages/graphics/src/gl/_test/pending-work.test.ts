@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { createPendingWork } from '../pending-work.js';
 
 function deferred() {
@@ -61,7 +62,7 @@ describe('pending work', () => {
   });
 
   it('reports rejections and keeps going', async () => {
-    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const pending = createPendingWork();
     const a = deferred();
     pending.track(a.promise, 'a').catch(() => {});

@@ -44,7 +44,12 @@ void main(){
 
     #ifdef dSolidInterior
         if (uSolidInteriorPass != 0) {
-            gl_Position.z = min(gl_Position.z, gl_Position.w * 0.9999);
+            // in front of the far plane (clip z is reversed)
+            #ifdef clipZeroToOne
+                gl_Position.z = max(gl_Position.z, gl_Position.w * 0.00005);
+            #else
+                gl_Position.z = max(gl_Position.z, -gl_Position.w * 0.9999);
+            #endif
         }
     #endif
 

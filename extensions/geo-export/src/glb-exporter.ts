@@ -223,9 +223,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
     const t = Mat4();
 
-    const colorType = values.dColorType.ref.value;
-    const overpaintType = values.dOverpaintType.ref.value;
-    const transparencyType = values.dTransparencyType.ref.value;
+    const colorType = values.colorType.ref.value;
+    const overpaintType = values.overpaintType.ref.value;
+    const transparencyType = values.transparencyType.ref.value;
     const dTransparency = values.dTransparency.ref.value;
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
@@ -240,7 +240,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     let interpolatedColors: Uint8Array | undefined;
     if (graphics && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedColors = GlbExporter.getInterpolatedColors(graphics, {
+      interpolatedColors = await GlbExporter.getInterpolatedColors(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -252,7 +252,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     let interpolatedOverpaint: Uint8Array | undefined;
     if (graphics && mesh && overpaintType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(graphics, {
+      interpolatedOverpaint = await GlbExporter.getInterpolatedOverpaint(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -264,7 +264,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     let interpolatedTransparency: Uint8Array | undefined;
     if (graphics && mesh && transparencyType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedTransparency = GlbExporter.getInterpolatedTransparency(graphics, {
+      interpolatedTransparency = await GlbExporter.getInterpolatedTransparency(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,

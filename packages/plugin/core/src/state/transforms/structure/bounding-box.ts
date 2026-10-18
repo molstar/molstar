@@ -16,7 +16,26 @@ import type { Box3D } from '@molstar/core/math/geometry';
 import type { Color } from '@molstar/core/util/color';
 import { getBoxMesh } from '@molstar/plugin/state/transforms/shape/box';
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
+import type { Shape } from '@molstar/model/model/shape';
 import { StateTransformer } from '@molstar/core/state';
+import { getShapeRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
+
+function getBoundingBoxShape(
+  _: unknown,
+  data: { box: Box3D; radius: number; color: Color },
+  __: unknown,
+  shape?: Shape<Mesh>,
+) {
+  const mesh = getBoxMesh(data.box, data.radius, shape?.geometry);
+  return ShapeUtils.create(
+    'Bouding Box',
+    data,
+    mesh,
+    () => data.color,
+    () => 1,
+    () => 'Bounding Box',
+  );
+}
 
 export { StructureBoundingBox3D };
 type StructureBoundingBox3D = typeof StructureBoundingBox3D;
@@ -36,17 +55,7 @@ const StructureBoundingBox3D = PluginStateTransform.BuiltIn({
   },
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Bounding Box', async (ctx) => {
-      const repr = ShapeRepresentation((_, data: { box: Box3D; radius: number; color: Color }, __, shape) => {
-        const mesh = getBoxMesh(data.box, data.radius, shape?.geometry);
-        return ShapeUtils.create(
-          'Bouding Box',
-          data,
-          mesh,
-          () => data.color,
-          () => 1,
-          () => 'Bounding Box',
-        );
-      }, Mesh.Utils);
+      const repr = ShapeRepresentation(getBoundingBoxShape, Mesh.Utils);
       await repr
         .createOrUpdate(params, { box: a.data.boundary.box, radius: params.radius, color: params.color })
         .runInContext(ctx);
@@ -63,3 +72,7 @@ const StructureBoundingBox3D = PluginStateTransform.BuiltIn({
     });
   },
 });
+
+registerTransformSignatures(StructureBoundingBox3D, (params, ctx) =>
+  getShapeRepresentationSignatures(() => ShapeRepresentation(getBoundingBoxShape, Mesh.Utils), params, ctx),
+);

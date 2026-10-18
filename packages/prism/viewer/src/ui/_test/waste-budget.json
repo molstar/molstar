@@ -1,0 +1,34 @@
+{
+  "prism/ui/managers/navigation.ts": {
+    "noDom": 0,
+    "sameDerives": 29
+  },
+  "prism/ui/managers/notifications.ts": {
+    "noDom": 0,
+    "sameDerives": 3
+  },
+  "prism/ui/shell/shell.ts": {
+    "noDom": 0,
+    "sameDerives": 8
+  },
+  "prism/ui/shell/theme.ts": {
+    "noDom": 0,
+    "sameDerives": 0
+  },
+  "prism/viewer/journal/history-model.ts": {
+    "noDom": 0,
+    "sameDerives": 0
+  },
+  "prism/viewer/sequence/model.ts": {
+    "noDom": 0,
+    "sameDerives": 7
+  },
+  "prism/viewer/sources/scene.ts": {
+    "noDom": 0,
+    "sameDerives": 0
+  },
+  "prism/viewer/sources/watched.ts": {
+    "noDom": 7,
+    "sameDerives": 7
+  }
+}

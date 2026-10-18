@@ -13,15 +13,16 @@ fn readFromTexture(t: texture_2d<f32>, i: i32) -> vec4<f32> {
 `;
 
 /**
- * Index of the item of the data texture `type` (a define like `dOverpaintType`) as `name`, for
- * the per-instance types; expects `instanceIndex`, `groupInstanceIndex` and `vertexInstanceIndex`
+ * Index of the item of the data texture `type` (a define like `dOverpaintType`, or none: the marker, clipping) as
+ * `name`, for the per-instance types: 'texture' per instance or group instance (`uInstanceGranularity`),
+ * 'vertexInstance'; expects `instanceIndex`, `groupInstanceIndex` and `vertexInstanceIndex`
  */
-export function assign_data_index_wgsl(type: string, name: string) {
+export function assign_data_index_wgsl(type: string | undefined, name: string) {
+  const granularity = `let ${name} = select(groupInstanceIndex, instanceIndex, uObject.uInstanceGranularity != 0u);`;
+  if (!type) return granularity;
   return /* wgsl */ `
-#if defined(${type}_instance)
-    let ${name} = instanceIndex;
-#elif defined(${type}_groupInstance)
-    let ${name} = groupInstanceIndex;
+#if defined(${type}_texture)
+    ${granularity}
 #elif defined(${type}_vertexInstance)
     let ${name} = vertexInstanceIndex;
 #endif

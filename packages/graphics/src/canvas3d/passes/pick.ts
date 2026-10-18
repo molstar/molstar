@@ -5,18 +5,17 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { PickType, type Renderer } from '@molstar/graphics/gl/renderer';
 import type { Frame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { PixelPackBuffer } from '@molstar/graphics/gl/webgl/buffer';
-import { isWebGL2 } from '@molstar/graphics/gl/webgl/compat';
-import { isWebGLContext, type WebGLContext } from '@molstar/graphics/gl/webgl/context';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 import type { Texture } from '@molstar/graphics/gl/texture';
+import type { TextureReader } from '@molstar/graphics/gl/texture-reader';
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import { now } from '@molstar/core/util/now';
@@ -27,9 +26,32 @@ import type { Helper } from '../helper/helper.js';
 
 export type PickData = { id: PickingId; position: Vec3 };
 
+/** Pick data at a target: `undefined` if nothing is there, `'pending'` while its asynchronous read hasn't returned */
+export type PickResult = PickData | 'pending' | undefined;
+
+/** Pick data being read: poll it with `tryGet` (e.g. per frame, as hover and clicks do) or await `wait` */
 export type AsyncPickData = {
-  tryGet: () => 'pending' | PickData | undefined;
+  tryGet: () => PickResult;
+  /** the pick data once read, polling `tryGet` per animation frame */
+  wait: () => Promise<PickData | undefined>;
 };
+
+export function createAsyncPickData(tryGet: AsyncPickData['tryGet']): AsyncPickData {
+  return {
+    tryGet,
+    wait: async () => {
+      for (;;) {
+        const data = tryGet();
+        if (data !== 'pending') return data;
+        await new Promise<void>((resolve) =>
+          typeof requestAnimationFrame !== 'undefined'
+            ? requestAnimationFrame(() => resolve())
+            : setTimeout(resolve, 16),
+        );
+      }
+    },
+  };
+}
 
 export const DefaultPickOptions = {
   pickPadding: 1,
@@ -173,42 +195,6 @@ export class PickPass {
     this.setSize(this.width, this.height);
   }
 
-  bindObject() {
-    if (this.graphics.capabilities.multipleRenderTargets) {
-      this.objectPickFramebuffer.bind();
-    } else {
-      this.objectPickTarget.bind();
-    }
-  }
-
-  bindInstance() {
-    if (this.graphics.capabilities.multipleRenderTargets) {
-      this.instancePickFramebuffer.bind();
-    } else {
-      this.instancePickTarget.bind();
-    }
-  }
-
-  bindGroup() {
-    if (this.graphics.capabilities.multipleRenderTargets) {
-      this.groupPickFramebuffer.bind();
-    } else {
-      this.groupPickTarget.bind();
-    }
-  }
-
-  bindDepth() {
-    if (this.graphics.capabilities.multipleRenderTargets) {
-      this.depthPickFramebuffer.bind();
-    } else {
-      this.depthPickTarget.bind();
-    }
-  }
-
-  get drawingBufferHeight() {
-    return this.height;
-  }
-
   /** The object, instance, group and depth pick textures */
   getTextures(): [Texture, Texture, Texture, Texture] {
     if (this.graphics.capabilities.multipleRenderTargets) {
@@ -251,23 +237,8 @@ export class PickPass {
     }
   }
 
-  reset() {
-    if (this.graphics.capabilities.multipleRenderTargets) {
-      this.objectPickTexture.attachFramebuffer(this.framebuffer, 'color0');
-      this.instancePickTexture.attachFramebuffer(this.framebuffer, 'color1');
-      this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
-      this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
-
-      this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
-
-      this.objectPickTexture.attachFramebuffer(this.objectPickFramebuffer, 'color0');
-      this.instancePickTexture.attachFramebuffer(this.instancePickFramebuffer, 'color0');
-      this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
-      this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
-    }
-  }
-
   private renderVariant(
+    b: PassBuilder,
     renderer: Renderer,
     camera: ICamera,
     scene: Scene,
@@ -276,54 +247,61 @@ export class PickPass {
     pickType: number,
     frame: Frame,
   ) {
-    renderer.clear(false);
-    renderer.update(camera, scene, frame);
-    renderer.renderPick(scene.primitives, camera, variant, pickType);
+    if (b.drawing) {
+      renderer.clear(false);
+      renderer.update(camera, scene, frame);
+    }
+    const pass = { name: 'pick', variant } as const;
+    b.renderer(pass, scene.primitives, () => renderer.renderPick(scene.primitives, camera, variant, pickType));
 
     if (helper.handle.isEnabled) {
-      renderer.renderPick(helper.handle.scene, camera, variant, pickType);
+      b.renderer(pass, helper.handle.scene, () => renderer.renderPick(helper.handle.scene, camera, variant, pickType));
     }
 
     if (helper.camera.isEnabled) {
-      helper.camera.update(camera);
-      renderer.update(helper.camera.camera, helper.camera.scene, frame);
-      renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, pickType);
+      if (b.drawing) {
+        helper.camera.update(camera);
+        renderer.update(helper.camera.camera, helper.camera.scene, frame);
+      }
+      b.renderer(pass, helper.camera.scene, () =>
+        renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, pickType),
+      );
     }
   }
 
-  render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, frame: Frame) {
+  /** Draws the pick buffers (`b`, see `PassBuilder`) */
+  render(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, frame: Frame) {
     if (this.graphics.capabilities.multipleRenderTargets) {
-      this.graphics.beginRenderPass(this.framebuffer, { label: 'pick' });
-      this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None, frame);
+      b.begin(this.framebuffer, { label: 'pick' });
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.None, frame);
       // if (this.pickWidth < 256) {
       //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
       // }
     } else {
-      this.graphics.beginRenderPass(this.objectPickTarget, { label: 'pick object' });
-      this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object, frame);
+      b.begin(this.objectPickTarget, { label: 'pick object' });
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Object, frame);
 
-      this.graphics.beginRenderPass(this.instancePickTarget, { label: 'pick instance' });
-      this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance, frame);
+      b.begin(this.instancePickTarget, { label: 'pick instance' });
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Instance, frame);
 
-      this.graphics.beginRenderPass(this.groupPickTarget, { label: 'pick group' });
-      this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group, frame);
+      b.begin(this.groupPickTarget, { label: 'pick group' });
+      this.renderVariant(b, renderer, camera, scene, helper, 'pick', PickType.Group, frame);
       // printTextureImage(readTexture(this.webgl, this.groupPickTarget.texture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
 
-      this.graphics.beginRenderPass(this.depthPickTarget, { label: 'pick depth' });
-      this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None, frame);
+      b.begin(this.depthPickTarget, { label: 'pick depth' });
+      this.renderVariant(b, renderer, camera, scene, helper, 'depth', PickType.None, frame);
     }
   }
 }
 
 let AsyncPickingWarningShown = false;
 
-export function checkAsyncPickingSupport(graphics: GraphicsContext): boolean {
-  // other backends read the pick targets with `readTextureAsync`, see `createPickBuffers`
-  if (!isWebGLContext(graphics)) return true;
-  if (graphics.isWebGL2) return true;
+/** Whether `buffers` read asynchronously, otherwise picking falls back to synchronous reads */
+export function checkAsyncPickingSupport(buffers: PickBuffers): boolean {
+  if (buffers.asynchronous) return true;
 
   if (isDebugMode && !AsyncPickingWarningShown) {
-    console.log('WebGL2 required for async picking. Falling back to synchronous picking.');
+    console.log('No asynchronous texture reads (WebGL2 required). Falling back to synchronous picking.');
     AsyncPickingWarningShown = true;
   }
   return false;
@@ -335,83 +313,98 @@ export enum AsyncPickStatus {
   Failed,
 }
 
-/** CPU-side copies of the pick targets, read synchronously or asynchronously */
-export interface PickBuffers {
-  /** false where reading the pick targets isn't implemented */
-  readonly supported: boolean;
-  /** false if `read` only starts an asynchronous read, whose result `check` reports */
-  readonly synchronous: boolean;
-  setViewport(x: number, y: number, width: number, height: number): void;
-  read(): void;
-  asyncRead(): void;
-  check(): AsyncPickStatus;
-  getDepth(x: number, y: number): number;
-  getPickingId(x: number, y: number): PickingId | undefined;
-  reset(): void;
-  dispose(): void;
-}
+const ReadStatus = {
+  pending: AsyncPickStatus.Pending,
+  resolved: AsyncPickStatus.Resolved,
+  failed: AsyncPickStatus.Failed,
+} as const;
 
-/** Reads the pick textures with `readTextureAsync`; without synchronous reads, `read` starts an asynchronous one */
-class AsyncPickBuffers implements PickBuffers {
+/** CPU-side copies of the pick targets, read synchronously or asynchronously (see `TextureReader`) */
+export class PickBuffers {
   readonly supported = true;
-  readonly synchronous = false;
 
-  private object: Uint8Array;
-  private instance: Uint8Array;
-  private group: Uint8Array;
-  private depth: Uint8Array;
-
+  private readonly arrays: [Uint8Array, Uint8Array, Uint8Array, Uint8Array] = [
+    new Uint8Array(0),
+    new Uint8Array(0),
+    new Uint8Array(0),
+    new Uint8Array(0),
+  ];
   private viewport = Viewport.create(0, 0, 0, 0);
-  private status = AsyncPickStatus.Failed;
-  /** results of earlier reads are dropped */
-  private readId = 0;
+  private ready = false;
+  /** pending checks of the started read, and when it started */
+  private lag = 0;
+  private readTimestamp = 0;
+
+  /** false if `read` only starts an asynchronous read, whose result `check` reports */
+  get synchronous() {
+    return this.reader.synchronous;
+  }
+
+  /** whether `asyncRead` reads asynchronously */
+  get asynchronous() {
+    return this.reader.asynchronous;
+  }
 
   setViewport(x: number, y: number, width: number, height: number) {
     Viewport.set(this.viewport, x, y, width, height);
+    const size = width * height * 4;
+    if (this.arrays[0].length !== size) {
+      for (let i = 0; i < 4; ++i) this.arrays[i] = new Uint8Array(size);
+    }
     this.reset();
   }
 
   read() {
-    this.asyncRead();
+    if (!this.reader.synchronous) {
+      this.asyncRead();
+      return;
+    }
+    if (isTimingMode) this.graphics.timer.group('PickBuffers.read');
+    const { x, y, width, height } = this.viewport;
+    this.reader.read(this.pickPass.getTextures(), x, y, width, height, this.arrays);
+    this.ready = true;
+    if (isTimingMode) this.graphics.timer.groupEnd('PickBuffers.read');
   }
 
   asyncRead() {
-    const readId = ++this.readId;
+    if (!this.reader.asynchronous) return;
+    if (isTimingMode) this.graphics.timer.group('PickBuffers.asyncRead');
     const { x, y, width, height } = this.viewport;
-    this.status = AsyncPickStatus.Pending;
-    Promise.all(this.pickPass.getTextures().map((t) => this.graphics.readTextureAsync(t, x, y, width, height))).then(
-      ([object, instance, group, depth]) => {
-        if (readId !== this.readId) return;
-        this.object = object;
-        this.instance = instance;
-        this.group = group;
-        this.depth = depth;
-        this.status = AsyncPickStatus.Resolved;
-      },
-      (e) => {
-        if (readId !== this.readId) return;
-        if (isDebugMode) console.error(e);
-        this.status = AsyncPickStatus.Failed;
-      },
-    );
+    this.reader.start(this.pickPass.getTextures(), x, y, width, height);
+    this.ready = false;
+    this.lag = 0;
+    this.readTimestamp = now();
+    if (isTimingMode) this.graphics.timer.groupEnd('PickBuffers.asyncRead');
   }
 
-  check() {
-    return this.status;
+  check(): AsyncPickStatus {
+    if (this.ready) return AsyncPickStatus.Resolved;
+    const status = ReadStatus[this.reader.check(this.arrays)];
+    if (status === AsyncPickStatus.Pending) {
+      // given up after `maxAsyncReadLag` pending checks, but not within a frame
+      if (this.lag >= this.maxAsyncReadLag && now() - this.readTimestamp >= 1000 / 60) {
+        this.reset();
+        return AsyncPickStatus.Failed;
+      }
+      this.lag += 1;
+    }
+    this.ready = status === AsyncPickStatus.Resolved;
+    return status;
   }
 
-  /** the rows are read top to bottom */
+  /** the rows are top to bottom */
   private getIdx(x: number, y: number): number {
-    const { width, height } = this.viewport;
-    return ((height - 1 - y) * width + x) * 4;
+    return (y * this.viewport.width + x) * 4;
   }
 
+  /** window depth of the camera's GL projections (near 0, far 1), for `cameraUnproject` */
   getDepth(x: number, y: number): number {
-    if (this.status !== AsyncPickStatus.Resolved) return -1;
+    if (!this.ready) return -1;
 
     const idx = this.getIdx(x, y);
-    const b = this.depth;
-    return unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
+    const b = this.arrays[3];
+    // rendered depth is reversed (near 1, far 0)
+    return 1 - unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
   }
 
   private getId(x: number, y: number, buffer: Uint8Array) {
@@ -420,32 +413,37 @@ class AsyncPickBuffers implements PickBuffers {
   }
 
   getPickingId(x: number, y: number): PickingId | undefined {
-    if (this.status !== AsyncPickStatus.Resolved) return;
+    if (!this.ready) return;
+    const [object, instance, group] = this.arrays;
 
-    const objectId = this.getId(x, y, this.object);
+    const objectId = this.getId(x, y, object);
     if (objectId === -1 || objectId === PickingId.Null) return;
 
-    const instanceId = this.getId(x, y, this.instance);
+    const instanceId = this.getId(x, y, instance);
     if (instanceId === -1 || instanceId === PickingId.Null) return;
 
-    const groupId = this.getId(x, y, this.group);
+    const groupId = this.getId(x, y, group);
     if (groupId === -1) return;
 
     return { objectId, instanceId, groupId };
   }
 
   reset() {
-    this.readId += 1;
-    this.status = AsyncPickStatus.Failed;
+    this.reader.reset();
+    this.ready = false;
+    this.lag = 0;
   }
 
   dispose() {
-    this.reset();
+    this.reader.dispose();
+    this.ready = false;
   }
 
   constructor(
     private graphics: GraphicsContext,
     private pickPass: PickPass,
+    private reader: TextureReader,
+    public maxAsyncReadLag = DefaultPickOptions.maxAsyncReadLag,
   ) {}
 }
 
@@ -454,218 +452,5 @@ export function createPickBuffers(
   pickPass: PickPass,
   maxAsyncReadLag?: number,
 ): PickBuffers {
-  return isWebGLContext(graphics)
-    ? new WebGLPickBuffers(graphics, pickPass, maxAsyncReadLag)
-    : new AsyncPickBuffers(graphics, pickPass);
-}
-
-/** Reads with `readPixels`, asynchronously through pixel pack buffers and fences on WebGL2 */
-class WebGLPickBuffers implements PickBuffers {
-  readonly supported = true;
-  readonly synchronous = true;
-  private object: Uint8Array;
-  private instance: Uint8Array;
-  private group: Uint8Array;
-  private depth: Uint8Array;
-
-  private objectBuffer: PixelPackBuffer;
-  private instanceBuffer: PixelPackBuffer;
-  private groupBuffer: PixelPackBuffer;
-  private depthBuffer: PixelPackBuffer;
-
-  private viewport = Viewport.create(0, 0, 0, 0);
-
-  private setup() {
-    const size = this.viewport.width * this.viewport.height * 4;
-    if (!this.object || this.object.length !== size) {
-      this.object = new Uint8Array(size);
-      this.instance = new Uint8Array(size);
-      this.group = new Uint8Array(size);
-      this.depth = new Uint8Array(size);
-    }
-  }
-
-  setViewport(x: number, y: number, width: number, height: number) {
-    Viewport.set(this.viewport, x, y, width, height);
-    this.setup();
-  }
-
-  read() {
-    if (isTimingMode) this.webgl.timer.group('PickBuffers.read');
-    const { x, y, width, height } = this.viewport;
-
-    this.pickPass.bindObject();
-    this.webgl.readPixels(x, y, width, height, this.object);
-
-    this.pickPass.bindInstance();
-    this.webgl.readPixels(x, y, width, height, this.instance);
-
-    this.pickPass.bindGroup();
-    this.webgl.readPixels(x, y, width, height, this.group);
-
-    this.pickPass.bindDepth();
-    this.webgl.readPixels(x, y, width, height, this.depth);
-
-    this.ready = true;
-    if (isTimingMode) this.webgl.timer.groupEnd('PickBuffers.read');
-  }
-
-  private fenceSync: WebGLSync | null = null;
-  private fenceTimestamp: number = 0;
-
-  private ready = false;
-  private lag = 0;
-
-  asyncRead() {
-    const { gl } = this.webgl;
-    if (!isWebGL2(gl)) return;
-
-    if (isTimingMode) this.webgl.timer.group('PickBuffers.asyncRead');
-    if (this.fenceSync !== null) {
-      gl.deleteSync(this.fenceSync);
-    }
-    const { x, y, width, height } = this.viewport;
-
-    this.pickPass.bindObject();
-    this.objectBuffer.read(x, y, width, height);
-
-    this.pickPass.bindInstance();
-    this.instanceBuffer.read(x, y, width, height);
-
-    this.pickPass.bindGroup();
-    this.groupBuffer.read(x, y, width, height);
-
-    this.pickPass.bindDepth();
-    this.depthBuffer.read(x, y, width, height);
-
-    this.fenceTimestamp = now();
-    this.fenceSync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-    gl.flush();
-
-    this.ready = false;
-    if (isTimingMode) this.webgl.timer.groupEnd('PickBuffers.asyncRead');
-  }
-
-  check(): AsyncPickStatus {
-    if (this.ready) return AsyncPickStatus.Resolved;
-    if (this.fenceSync === null) return AsyncPickStatus.Failed;
-
-    const { gl } = this.webgl;
-    if (!isWebGL2(gl)) return AsyncPickStatus.Failed;
-
-    const res = gl.clientWaitSync(this.fenceSync, 0, 0);
-    if (res === gl.WAIT_FAILED || this.lag >= this.maxAsyncReadLag) {
-      // console.log(`failed to get buffer data after ${this.lag + 1} checks`);
-      if (res !== gl.WAIT_FAILED && now() - this.fenceTimestamp < 1000 / 60) {
-        this.lag += 1;
-        return AsyncPickStatus.Pending;
-      }
-      gl.deleteSync(this.fenceSync);
-      this.fenceSync = null;
-      this.lag = 0;
-      this.ready = false;
-      return AsyncPickStatus.Failed;
-    } else if (res === gl.TIMEOUT_EXPIRED) {
-      this.lag += 1;
-      // console.log(`waiting for buffer data for ${this.lag} checks`);
-      return AsyncPickStatus.Pending;
-    } else {
-      this.objectBuffer.getSubData(this.object);
-      this.instanceBuffer.getSubData(this.instance);
-      this.groupBuffer.getSubData(this.group);
-      this.depthBuffer.getSubData(this.depth);
-
-      // console.log(`got buffer data after ${this.lag + 1} checks`);
-      gl.deleteSync(this.fenceSync);
-      this.fenceSync = null;
-      this.lag = 0;
-      this.ready = true;
-
-      return AsyncPickStatus.Resolved;
-    }
-  }
-
-  private getIdx(x: number, y: number): number {
-    return (y * this.viewport.width + x) * 4;
-  }
-
-  getDepth(x: number, y: number): number {
-    if (!this.ready) return -1;
-
-    const idx = this.getIdx(x, y);
-    const b = this.depth;
-    return unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
-  }
-
-  private getId(x: number, y: number, buffer: Uint8Array) {
-    if (!this.ready) return -1;
-
-    const idx = this.getIdx(x, y);
-    return unpackRGBToInt(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
-  }
-
-  getObjectId(x: number, y: number) {
-    return this.getId(x, y, this.object);
-  }
-
-  getInstanceId(x: number, y: number) {
-    return this.getId(x, y, this.instance);
-  }
-
-  getGroupId(x: number, y: number) {
-    return this.getId(x, y, this.group);
-  }
-
-  getPickingId(x: number, y: number): PickingId | undefined {
-    const objectId = this.getObjectId(x, y);
-    // console.log('objectId', objectId);
-    if (objectId === -1 || objectId === PickingId.Null) return;
-
-    const instanceId = this.getInstanceId(x, y);
-    // console.log('instanceId', instanceId);
-    if (instanceId === -1 || instanceId === PickingId.Null) return;
-
-    const groupId = this.getGroupId(x, y);
-    // console.log('groupId', groupId);
-    if (groupId === -1) return;
-
-    return { objectId, instanceId, groupId };
-  }
-
-  reset() {
-    this.fenceSync = null;
-    this.ready = false;
-    this.lag = 0;
-    this.fenceTimestamp = 0;
-  }
-
-  dispose() {
-    const { gl } = this.webgl;
-    if (!isWebGL2(gl)) return;
-
-    this.objectBuffer.destroy();
-    this.instanceBuffer.destroy();
-    this.groupBuffer.destroy();
-    this.depthBuffer.destroy();
-
-    if (this.fenceSync !== null) {
-      gl.deleteSync(this.fenceSync);
-      this.fenceSync = null;
-    }
-  }
-
-  constructor(
-    private webgl: WebGLContext,
-    private pickPass: PickPass,
-    public maxAsyncReadLag = 5,
-  ) {
-    if (webgl.isWebGL2) {
-      this.objectBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
-      this.instanceBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
-      this.groupBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
-      this.depthBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
-    }
-
-    this.setup();
-  }
+  return new PickBuffers(graphics, pickPass, graphics.createTextureReader(), maxAsyncReadLag);
 }

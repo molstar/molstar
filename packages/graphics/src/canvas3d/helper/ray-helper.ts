@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { createRenderBuilder, type PassBuilder } from '../passes/pass-builder.js';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import { createFrame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
@@ -18,9 +19,11 @@ import { Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
 import {
   type AsyncPickData,
+  createAsyncPickData,
   createPickBuffers,
   type PickBuffers,
   type PickData,
+  type PickResult,
   PickPass,
   type PickOptions,
   checkAsyncPickingSupport,
@@ -67,7 +70,7 @@ export class RayHelper {
     renderer.setViewport(0, 0, this.size, this.size);
     // this camera is synthetic (ray-aligned), never the main camera - always a fresh,
     // never-reused frame token, so it can never share/collide with the main draw's frame
-    this.pickPass.render(renderer, camera, scene, helper, createFrame());
+    this.pickPass.render(this.renderBuilder, renderer, camera, scene, helper, createFrame());
 
     if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.render');
   }
@@ -119,10 +122,15 @@ export class RayHelper {
     return Ray3D.isInsideSphere3D(ray, this.sphere) || Ray3D.isIntersectingSphere3D(ray, this.sphere);
   }
 
-  identify(ray: Ray3D, cam: Camera): PickData | undefined {
+  /**
+   * The pick data along `ray`; `'pending'` without synchronous reads (every call renders and reads anew, so the data is
+   * only available through `asyncIdentify`)
+   */
+  identify(ray: Ray3D, cam: Camera): PickResult {
     // the backend can't read the pick targets (and render the pick variant) yet
     if (!this.buffers.supported) return;
     if (!this.intersectsScene(ray, cam.scale)) return;
+    if (!this.buffers.synchronous) return 'pending';
 
     this.prepare(ray, cam);
 
@@ -145,27 +153,27 @@ export class RayHelper {
     this.buffers.asyncRead();
     if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.asyncIdentify');
 
-    return {
-      tryGet: () => {
-        const status = this.buffers.check();
-        if (status === AsyncPickStatus.Resolved) {
-          return this.getPickData();
-        } else if (status === AsyncPickStatus.Pending) {
-          return 'pending';
-        }
-      },
-    };
+    return createAsyncPickData(() => {
+      // nothing once disposed (e.g. the graphics context changed), the scene may hold another context's renderables
+      if (this.disposed) return undefined;
+      const status = this.buffers.check();
+      if (status === AsyncPickStatus.Resolved) {
+        return this.getPickData();
+      } else if (status === AsyncPickStatus.Pending) {
+        return 'pending';
+      }
+    });
   }
 
-  reset() {
-    this.buffers.reset();
-    this.pickPass.reset();
-  }
+  private disposed = false;
 
   dispose() {
+    this.disposed = true;
     this.buffers.dispose();
     this.pickPass.dispose();
   }
+
+  private readonly renderBuilder: PassBuilder;
 
   constructor(
     private graphics: GraphicsContext,
@@ -174,6 +182,7 @@ export class RayHelper {
     private helper: Helper,
     options: PickOptions,
   ) {
+    this.renderBuilder = createRenderBuilder(graphics);
     const size = options.pickPadding * 2 + 1;
 
     this.camera = new Camera();
@@ -183,10 +192,9 @@ export class RayHelper {
 
     this.update();
 
-    if (!checkAsyncPickingSupport(graphics)) {
-      this.asyncIdentify = (ray, cam) => ({
-        tryGet: () => this.identify(ray, cam),
-      });
+    if (!checkAsyncPickingSupport(this.buffers)) {
+      this.asyncIdentify = (ray, cam) =>
+        createAsyncPickData(() => (this.disposed ? undefined : this.identify(ray, cam)));
     }
   }
 }

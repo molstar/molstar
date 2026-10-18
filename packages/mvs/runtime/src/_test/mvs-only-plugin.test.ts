@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import { setFSModule } from '@molstar/core/util/data-source';
 import { PluginContext } from '@molstar/plugin/context';
@@ -82,8 +83,8 @@ function createLocalDocument() {
 async function load(registry: PluginRegistryEntry[]) {
   const plugin = new PluginContext({ registry, behaviors: [PluginSpec.Behavior(MolViewSpec)] });
   await plugin.init();
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-  const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
   let consoleWarnings: unknown[][] = [];
   let consoleErrors: unknown[][] = [];
   try {

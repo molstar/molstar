@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Structure } from '@molstar/model/model/structure';
 import { Volume } from '@molstar/model/model/volume';

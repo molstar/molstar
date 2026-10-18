@@ -6,7 +6,7 @@
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import { checkFramebufferStatus } from './framebuffer.js';
+import { checkFramebufferStatus, setFramebufferHeight } from './framebuffer.js';
 import type { Framebuffer } from '../framebuffer.js';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
 import { isDebugMode } from '@molstar/core/util/debug';
@@ -104,7 +104,7 @@ export function createRenderbuffer(
   _height: number,
   state: WebGLState,
 ): Renderbuffer {
-  let _renderbuffer = getRenderbuffer(gl);
+  const _renderbuffer = getRenderbuffer(gl);
   format = getSupportedFormat(gl, format);
 
   const bind = () => gl.bindRenderbuffer(gl.RENDERBUFFER, _renderbuffer);
@@ -130,6 +130,7 @@ export function createRenderbuffer(
       framebuffer.bind();
       bind();
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, _renderbuffer);
+      setFramebufferHeight(framebuffer, () => _height);
       if (isDebugMode) checkFramebufferStatus(gl);
     },
     detachFramebuffer: (framebuffer: Framebuffer) => {
@@ -142,10 +143,6 @@ export function createRenderbuffer(
     setSize: (width: number, height: number) => {
       _width = width;
       _height = height;
-      init();
-    },
-    reset: () => {
-      _renderbuffer = getRenderbuffer(gl);
       init();
     },
     destroy: () => {

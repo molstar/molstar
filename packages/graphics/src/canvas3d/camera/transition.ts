@@ -81,8 +81,16 @@ class CameraTransitionManager {
   }
 
   tick(t: number) {
+    // The clock may start again (the plugin's animation loop restarts at 0, e.g. after drawing an image): a transition
+    // under way keeps the time it has run, rather than extrapolating far past its source.
+    if (t < this.t) this.start += t - this.t;
     this.t = t;
     this.update();
+  }
+
+  /** Ends a transition under way at its target (a cut: what `apply` with no duration does when none is under way). */
+  complete() {
+    if (this.inTransition) this.finish(this._target);
   }
 
   private finish(to: Partial<Camera.Snapshot>) {
@@ -93,7 +101,7 @@ class CameraTransitionManager {
   private update() {
     if (!this.inTransition) return;
 
-    const normalized = Math.min((this.t - this.start) / this.durationMs, 1);
+    const normalized = Math.max(0, Math.min((this.t - this.start) / this.durationMs, 1));
     if (normalized === 1) {
       this.finish(this._target!);
       return;

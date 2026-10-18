@@ -12,6 +12,7 @@ import { Clipping } from '@molstar/graphics/theme/clipping';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
+import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
 export { ClippingStructureRepresentation3DFromScript };
 type ClippingStructureRepresentation3DFromScript = typeof ClippingStructureRepresentation3DFromScript;
@@ -137,3 +138,6 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     return StateTransformer.UpdateResult.Updated;
   },
 });
+
+registerTransformLayer(ClippingStructureRepresentation3DFromScript, 'clipping');
+registerTransformLayer(ClippingStructureRepresentation3DFromBundle, 'clipping');

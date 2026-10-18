@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { animation_wgsl } from './chunks/animation.wgsl.js';
+import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import {
   apply_fog_wgsl,
@@ -39,6 +40,7 @@ ${common_wgsl}
 ${read_from_texture_wgsl}
 ${animation_wgsl}
 ${material_functions_wgsl}
+${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 
@@ -53,10 +55,11 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_varyings_wgsl}
 
     let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId));
+    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
     let model = uGlobal.uModel * transform;
     let modelView = uGlobal.uView * model;
-    position = applyWiggle(position, group);
+    ${assign_wiggle_wgsl}
+    position = applyWiggle(position, group, wiggle);
     let position4 = vec4<f32>(position, 1.0);
     out.vModelPosition = (model * position4).xyz;
     let mvPosition = modelView * position4;

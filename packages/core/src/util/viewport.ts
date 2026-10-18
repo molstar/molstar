@@ -8,6 +8,7 @@ import type { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 
 export { Viewport };
 
+/** A rectangle in window pixels with a top-left origin (y down), as in the browser (CSS, pointer events, `ImageData`) */
 type Viewport = {
   x: number;
   y: number;

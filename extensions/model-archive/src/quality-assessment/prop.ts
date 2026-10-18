@@ -15,8 +15,8 @@ import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 import { Unit } from '@molstar/model/model/structure';
 import { Model, type ResidueIndex } from '@molstar/model/model/structure/model';
 import { AtomicIndex } from '@molstar/model/model/structure/model/properties/atomic';
-import { CustomPropSymbol } from '@molstar/model/script/language/symbol';
-import { Type } from '@molstar/model/script/language/type';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
 import { QuerySymbolRuntime } from '@molstar/model/script/runtime/query/compiler';
 import { ParamDefinition, ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
@@ -96,11 +96,16 @@ namespace QualityAssessment {
   }
 
   export async function obtain(
-    ctx: CustomProperty.Context,
+    _ctx: CustomProperty.Context,
     model: Model,
-    props: QualityAssessmentProps,
+    _props: QualityAssessmentProps,
   ): Promise<CustomProperty.Data<QualityAssessment>> {
-    if (!model || !MmcifFormat.is(model.sourceData)) return Empty;
+    return { value: fromModel(model) };
+  }
+
+  /** The model's local metrics read from its ModelCIF at once (what `obtain` gives), for a reader with no task. */
+  export function fromModel(model: Model): QualityAssessment {
+    if (!model || !MmcifFormat.is(model.sourceData)) return Empty.value;
     const { ma_qa_metric, ma_qa_metric_local } = model.sourceData.data.db;
     const { model_id, label_asym_id, label_seq_id, metric_id, metric_value } = ma_qa_metric_local;
     const { index } = model.atomicHierarchy;
@@ -183,14 +188,12 @@ namespace QualityAssessment {
     }
 
     return {
-      value: {
-        local: Array.from(localMetrics.values()),
-        localMap: localMetrics,
-        pLDDT: locals.find((m) => m.kind === 'pLDDT')?.values,
-        qmean: locals.find((m) => m.kind === 'qmean')?.values,
+      local: Array.from(localMetrics.values()),
+      localMap: localMetrics,
+      pLDDT: locals.find((m) => m.kind === 'pLDDT')?.values,
+      qmean: locals.find((m) => m.kind === 'qmean')?.values,
 
-        localMetrics: localMetricValues,
-      },
+      localMetrics: localMetricValues,
     };
   }
 
@@ -212,6 +215,16 @@ namespace QualityAssessment {
       result.push({ id, name });
     }
     return result;
+  }
+
+  /** How many rows the pairwise table has and how many pairwise metrics share them (no row is read). */
+  export function pairwiseSize(frame: CifFrame): { rows: number; metrics: number } {
+    const { ma_qa_metric, ma_qa_metric_local_pairwise } = toDatabase(PairwiseSchema, frame);
+    let metrics = 0;
+    for (let i = 0, il = ma_qa_metric._rowCount; i < il; i++) {
+      if (ma_qa_metric.mode.value(i) === 'local-pairwise') metrics++;
+    }
+    return { rows: ma_qa_metric_local_pairwise._rowCount, metrics };
   }
 
   export function pairwiseMetricFromModelArchiveCIF(
@@ -273,7 +286,7 @@ namespace QualityAssessment {
       residueKey.label_seq_id = label_seq_id_2.value(i);
 
       const rI_2 = index.findResidueLabel(residueKey);
-      if (rI_1 < 0) continue;
+      if (rI_2 < 0) continue;
 
       let r1 = values[rI_1];
       if (!r1) {

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { MonadicParser as P } from '../monadic-parser.js';
 
 describe('parser', () => {

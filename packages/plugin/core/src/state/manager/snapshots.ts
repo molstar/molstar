@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,6 +8,7 @@
 import { List } from 'immutable';
 import { UUID } from '@molstar/core/util';
 import { PluginState } from '@molstar/plugin/state';
+import { precompileSnapshots } from '@molstar/plugin/state/precompile';
 import { StatefulPluginComponent } from '../component.js';
 import type { PluginContext } from '@molstar/plugin/context';
 import { utf8ByteCount, utf8Write } from '@molstar/core/util/utf8';
@@ -248,6 +249,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         : PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs,
     });
     this.events.changed.next(void 0);
+    // what the other snapshots draw, prepared in the background so that playing them compiles nothing
+    precompileSnapshots(
+      this.plugin,
+      snapshot.entries.map((e) => e.snapshot),
+    );
     if (!current) return;
     const entry = this.getEntry(current);
     const next = entry && entry.snapshot;
@@ -295,15 +301,50 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     this.defaultSnapshotId = snapshot.id;
   }
 
+  /** What `syncCurrent` would make the list, on a copy (the manager's entries untouched; `keepList`). */
+  private async syncedCopy(options?: {
+    name?: string;
+    description?: string;
+    descriptionFormat?: PluginStateSnapshotManager.DescriptionFormat;
+    params?: PluginState.SnapshotParams;
+  }): Promise<{ entries: PluginStateSnapshotManager.Entry[]; current: UUID | undefined }> {
+    const entries = this.state.entries.valueSeq().toArray();
+    const isEmpty = entries.length === 0;
+    const canReplace =
+      entries.length === 1 &&
+      this.state.current &&
+      this.defaultSnapshotId !== undefined &&
+      this.state.current === this.defaultSnapshotId;
+    if (!isEmpty && !canReplace) return { entries, current: this.state.current };
+    const snapshot = this.plugin.state.getSnapshot(options?.params);
+    const entry = PluginStateSnapshotManager.Entry(snapshot, {
+      name: options?.name,
+      description: options?.description,
+      descriptionFormat: options?.descriptionFormat,
+    });
+    return { entries: [entry], current: entry.snapshot.id };
+  }
+
   async getStateSnapshot(options?: {
     name?: string;
     description?: string;
     playOnLoad?: boolean;
     params?: PluginState.SnapshotParams;
+    /**
+     * Leaves the list as it is: the current scene is added to (or replaces the automatic entry of) the returned
+     * snapshot only, not the manager's entries (a host whose list is the person's own).
+     */
+    keepList?: boolean;
   }): Promise<PluginStateSnapshotManager.StateSnapshot> {
-    await this.syncCurrent(options);
-
-    const entries = this.state.entries.valueSeq().toArray();
+    let entries: PluginStateSnapshotManager.Entry[];
+    let current = this.state.current;
+    if (options?.keepList) {
+      ({ entries, current } = await this.syncedCopy(options));
+    } else {
+      await this.syncCurrent(options);
+      entries = this.state.entries.valueSeq().toArray();
+      current = this.state.current;
+    }
     for (let i = 0; i < entries.length; i++) {
       if (!entries[i]._transientData) continue;
 
@@ -318,7 +359,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
       version: PLUGIN_VERSION,
       name: options && options.name,
       description: options && options.description,
-      current: this.state.current,
+      current,
       playback: {
         isPlaying: !!(options && options.playOnLoad),
         nextSnapshotDelayInMs: this.state.nextSnapshotDelayInMs,
@@ -327,8 +368,24 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     };
   }
 
-  async serialize(options?: { type: 'json' | 'molj' | 'zip' | 'molx'; params?: PluginState.SnapshotParams }) {
-    const json = JSON.stringify(await this.getStateSnapshot({ params: options?.params }), null, 2);
+  async serialize(options?: {
+    type: 'json' | 'molj' | 'zip' | 'molx';
+    params?: PluginState.SnapshotParams;
+    /** See `getStateSnapshot`. */
+    keepList?: boolean;
+    /**
+     * What a host keeps beside the state: files in a zip (`.molx`, beside `state.json`), top-level fields in a JSON
+     * state (`.molj`). `open` hands them back.
+     */
+    extra?: PluginStateSnapshotManager.Extra;
+  }) {
+    const snapshot = await this.getStateSnapshot({ params: options?.params, keepList: options?.keepList });
+    const isJson = !options?.type || options.type === 'json' || options.type === 'molj';
+    const json = JSON.stringify(
+      isJson && options?.extra?.fields ? { ...options.extra.fields, ...snapshot } : snapshot,
+      null,
+      2,
+    );
 
     if (!options?.type || options.type === 'json' || options.type === 'molj') {
       return new Blob([json], { type: 'application/json;charset=utf-8' });
@@ -355,17 +412,25 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         zipDataObj['assets.json'] = data;
       }
 
+      for (const [name, data] of Object.entries(options?.extra?.files ?? {})) {
+        if (name === 'state.json' || name === 'assets.json' || name.startsWith('assets/')) continue;
+        zipDataObj[name] = data as Uint8Array<ArrayBuffer>;
+      }
+
       const zipFile = await this.plugin.runTask(Zip(zipDataObj));
       return new Blob([zipFile], { type: 'application/zip' });
     }
   }
 
-  async open(file: File) {
+  /** Opens a state or a session file; what a host kept beside the state (`serialize`'s `extra`) comes back. */
+  async open(file: File): Promise<PluginStateSnapshotManager.Extra | undefined> {
+    let extra: PluginStateSnapshotManager.Extra | undefined;
     try {
       const fn = file.name.toLowerCase();
       if (fn.endsWith('json') || fn.endsWith('molj')) {
         const data = await this.plugin.runTask(readFromFile(file, 'string'));
         const snapshot = JSON.parse(StringLike.toString(data));
+        if (snapshot && typeof snapshot === 'object') extra = { fields: snapshot };
 
         if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
           await this.setStateSnapshot(snapshot);
@@ -378,11 +443,14 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         const data = await this.plugin.runTask(readFromFile(file, 'zip'));
         const assetData = Object.create(null);
 
+        const files: { [name: string]: Uint8Array } = {};
         objectForEach(data, (v, k) => {
           if (k === 'state.json' || k === 'assets.json') return;
+          if (!k.startsWith('assets/')) files[k] = v;
           const name = k.substring(k.indexOf('/') + 1);
           assetData[name] = v;
         });
+        if (Object.keys(files).length) extra = { files };
         const stateFile = new File([data['state.json']], 'state.json');
         const snapshot = await this.plugin.runTask(readFromFile(stateFile, 'json'));
 
@@ -398,9 +466,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         await this.setStateSnapshot(snapshot);
       }
       this.events.opened.next(void 0);
+      return extra;
     } catch (e) {
       console.error(e);
       this.plugin.log.error('Error reading state');
+      return undefined;
     }
   }
 
@@ -497,6 +567,14 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
 
 namespace PluginStateSnapshotManager {
   export type DescriptionFormat = 'markdown' | 'plaintext';
+
+  /** What a host keeps in a state or session file beside the state (`serialize`'s `extra`, `open`'s result). */
+  export interface Extra {
+    /** Files in a session's zip, beside `state.json` (not `assets/`). */
+    files?: { [name: string]: Uint8Array };
+    /** A JSON state's top-level fields (all of them, on open). */
+    fields?: { [name: string]: unknown };
+  }
 
   export interface EntryParams {
     key?: string;

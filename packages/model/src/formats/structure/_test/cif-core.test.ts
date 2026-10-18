@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { CIF } from '@molstar/io/reader/cif';
 
 const cifCoreString = `data_n1379

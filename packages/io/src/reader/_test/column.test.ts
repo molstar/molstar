@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { FixedColumnProvider as FixedColumn } from '../common/text/column/fixed.js';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
 import { Column, ColumnHelpers } from '@molstar/core/data/db';

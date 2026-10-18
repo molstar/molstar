@@ -75,22 +75,24 @@ function getStencilFaceState(face: StencilFaceState): GPUStencilFaceState {
 }
 
 /** A pass with a depth attachment needs a depth state; an unset depth state means no test and no write */
+/** With `readOnly` (a read-only depth attachment), depth and stencil writes are masked */
 export function getDepthStencilState(
   state: RenderState,
   format: GPUTextureFormat,
   hasStencil: boolean,
+  readOnly = false,
 ): GPUDepthStencilState {
   const { depth, stencil } = state;
   const result: GPUDepthStencilState = {
     format,
-    depthWriteEnabled: depth?.write ?? false,
+    depthWriteEnabled: !readOnly && (depth?.write ?? false),
     depthCompare: depth?.compare ?? 'always',
   };
   if (stencil && hasStencil) {
     result.stencilFront = getStencilFaceState(stencil.front);
     result.stencilBack = getStencilFaceState(stencil.back);
     result.stencilReadMask = stencil.readMask;
-    result.stencilWriteMask = stencil.writeMask;
+    result.stencilWriteMask = readOnly ? 0 : stencil.writeMask;
   }
   return result;
 }

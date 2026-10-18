@@ -58,6 +58,15 @@ export const CylindersSchema = {
 export type CylindersSchema = typeof CylindersSchema;
 export type CylindersValues = Values<CylindersSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const CylindersRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...CylindersSchema,
+};
+
 export function CylindersRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -67,13 +76,7 @@ export function CylindersRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<CylindersValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...CylindersSchema,
-  };
+  const schema = CylindersRenderableSchema;
   const renderValues: CylindersValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

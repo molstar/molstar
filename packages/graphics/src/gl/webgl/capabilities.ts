@@ -21,6 +21,7 @@ export function getWebGLCapabilities(gl: GLRenderingContext, extensions: WebGLEx
     halfFloatTexture: !!e.textureHalfFloat,
     halfFloatTextureLinear: !!e.textureHalfFloat && !!e.textureHalfFloatLinear,
     floatRenderTarget: !!e.colorBufferFloat,
+    floatBlend: !!e.colorBufferFloat && !!e.floatBlend,
     halfFloatRenderTarget: !!e.textureHalfFloat && !!e.colorBufferHalfFloat,
     depthTexture: !!e.depthTexture,
     fragDepth: !!e.fragDepth,
@@ -29,5 +30,6 @@ export function getWebGLCapabilities(gl: GLRenderingContext, extensions: WebGLEx
     multiDraw: !!e.multiDraw,
     clipControl: !!e.clipControl,
     depthClamp: !!e.depthClamp,
+    compute: false,
   };
 }

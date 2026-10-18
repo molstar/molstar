@@ -82,9 +82,24 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
     bool hasBit(const in int mask, const in int bit) {
         return bitwiseAnd(mask, bit) == 0;
     }
+
+    // bit of the clip object \`index\` in the clipping groups flag
+    int clipBit(const in int index) {
+        int bit = 1;
+        for (int i = 0; i < 16; ++i) {
+            if (i == index) break;
+            bit *= 2;
+        }
+        return bit;
+    }
 #else
     bool hasBit(const in int mask, const in int bit) {
         return (mask & bit) == 0;
+    }
+
+    // bit of the clip object \`index\` in the clipping groups flag
+    int clipBit(const in int index) {
+        return 1 << index;
     }
 #endif
 
@@ -92,14 +107,14 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
     bool clipIgnored(const in int index) {
         #if defined(dClipping)
             int flag = int(floor(vClipping * 255.0 + 0.5));
-            return flag != 0 && !hasBit(flag, index + 1);
+            return flag != 0 && !hasBit(flag, clipBit(index));
         #else
             return false;
         #endif
     }
 
     bool clipTest(const in vec3 center) {
-        // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
+        // flag is a bit-flag for clip-objects to ignore
         #if defined(dClipping)
             int flag = int(floor(vClipping * 255.0 + 0.5));
         #else
@@ -108,7 +123,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
 
         #pragma unroll_loop_start
         for (int i = 0; i < dClipObjectCount; ++i) {
-            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1))) {
+            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(UNROLLED_LOOP_INDEX)))) {
                 bool test = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]) <= 0.0;
                 if ((!uClipObjectInvert[i] && test) || (uClipObjectInvert[i] && !test)) {
                     return true;
@@ -129,7 +144,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         float d = 1.0e10;
         #pragma unroll_loop_start
         for (int i = 0; i < dClipObjectCount; ++i) {
-            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1))) {
+            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(UNROLLED_LOOP_INDEX)))) {
                 float sd = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]);
                 d = min(d, uClipObjectInvert[i] ? -sd : sd);
             }
@@ -227,7 +242,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
             float sNext = s;
             #pragma unroll_loop_start
             for (int i = 0; i < dClipObjectCount; ++i) {
-                if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1))) {
+                if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(UNROLLED_LOOP_INDEX)))) {
                     vec2 iv = clipObjectInterval(uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i], pFront, pBack);
                     if (uClipObjectInvert[i]) {
                         if (iv.x > iv.y || s > iv.y) sNext = 1.0e6;

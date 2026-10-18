@@ -2,9 +2,66 @@
 
 ## Status
 
-- Planning only; step 1 is part of the second WebGPU milestone of [backend-split.md](backend-split.md) (Order and
-  validation). Extends [backend-split.md](backend-split.md) step 6 (context creation and loss), which this plan details.
-  Related: [wgsl-strategy.md](wgsl-strategy.md), [neutral-conventions.md](neutral-conventions.md),
+- **Current**: Default backend decided and done for the Viewer (`graphics-backend=auto`, see Default backend); the
+  plugin default (`PluginConfig.General.GraphicsBackends`) follows after a release without regressions. Steps 1
+  (descriptors, async creation, the plugin config item), 2 (import hygiene: the guard test, per-backend program
+  registries of [glsl-in-webgl.md](glsl-in-webgl.md)), 3 (GPU compute behind the backends, chosen by capability:
+  [backend-narrowing.md](backend-narrowing.md) step 3) and 4 (backend sets, the bundle check and Viewer variants with
+  one backend, below) done. Steps 5–8 (runtime switching) done, see Runtime switching status.
+- **Runtime switching status**: `Canvas3DContext.setBackend(backends)` creates the context of the first backend that can
+  be created on a new canvas element (each backend on its own fresh canvas), which takes the place of the old one
+  (attributes and size copied, the input observer moves its listeners with `InputObserver.setElement`, its subjects
+  stay), replaces `graphics`, `canvas` and `passes`, emits `contextChanged` while the previous context is alive, then
+  destroys it; it refuses while presenting XR. `Canvas3D` keeps its identity and rebuilds on it: the scene, helpers,
+  camera, controls, interaction and XR manager stay (`Scene.setContext`, the helpers' and `XRManager.setContext`), the
+  renderer, Hi-Z, shader manager, pick, ray and multi-sample helpers are created again with their props. The render
+  objects stay (their values, markers included): textures loaded from data are created again on the new context from the
+  data of their last load (`Texture.getSource`, `transferTexture`, `transferTextures`); objects with rendered or
+  computed textures (GPU surfaces, GPU colors) are left out until their representation updated them: representations
+  continue with the new context (`Representation.setGraphics`), Canvas3D updates those with left-out objects, and
+  visuals whose render object holds textures of another context (`hasForeignTextures`, by `resources.ownsTexture`)
+  create their geometry again (the same render object); caches skip textures of another context (texture-mesh double
+  buffers with their draw arguments, color smoothing). Image passes created by `getImagePass` follow
+  (`ImagePass.setContext`). Nothing to do for apps: the plugin only offers `setGraphicsBackends` and a Graphics Backend
+  setting in the viewport settings where it was created with more than one backend (`graphicsBackends`). Context-keyed
+  caches: the named textures and framebuffers live on the context, the volume storage buffer is keyed by its compute
+  context, the GPU isosurface volume texture is now keyed by the context. Validation:
+  `pnpm test:viewer-smoke --backends auto --switch` switches WebGL2, WebGPU, WebGL, WebGL2 at runtime: each renders with
+  the coverage of the first render, hovering the grid gives the same labels, and switched to WebGL2 a second time the
+  context holds as many resources as after the first switch. Found on the way: WebGL2 uniform blocks missed the
+  per-frame updates of window rectangles (the flipped cells were observed instead of their sources), so passes drew with
+  the viewport of their creation until another member of the block changed; SMAA drew a blank image when the canvas was
+  not resized after the context was created (fixed: the flipped and depth-range cells forward observers to their
+  sources, `pixels` rectangles are volatile and checked on every write; unit test). And the SSAO pass created at its
+  final size kept the input sizes in its level copies and blur instead of those of its targets (striped occlusion after
+  a switch, until the next resize); its constructor ends with `setSize` now. Checked by rendering after a switch with
+  SSAO, SMAA, outlines, shadows, DOF and bloom, then again after resizing all passes and back: the same image on WebGL2,
+  WebGL and WebGPU. Pending pick reads across a switch (hovering while the camera moves, e.g. the rock animation): a
+  read started by the previous pick helper resolved through it, drawing the scene (already on the new context) with the
+  previous renderer, every frame; disposed pick and ray helpers now resolve their pending reads to nothing and the
+  interaction helper requests them again (`resetPicks`). Not done: context restore on top of the rebuild (the restore in
+  place stays), the visual-harness switching case (the smoke test covers it), automatic fallback on device loss; the
+  sb-ncbr tunnels keep the context in their transform params (computed with the previous context after a switch).
+- Step 4 done: the only import that put WebGL into bundles without it was `Canvas3DContext.fromCanvas`, now
+  `createWebGLCanvas3DContext` in `@molstar/graphics/canvas3d/webgl` (the Canvas3D layer's WebGL convenience; the `gl`
+  layer doesn't import `canvas3d`), with `Canvas3DContext.fromGraphics` public. Backend sets
+  `@molstar/graphics/gl/backends/{webgl,webgpu,all}` export `getDefaultGraphicsBackends`, `.../default` re-exports the
+  WebGL set and the plugin takes its default from it, so a lean build aliases one import (esbuild `alias`). No
+  `sideEffects` needed: esbuild drops the other backend without it. `pnpm check:backend-bundles`
+  (`scripts/check-backend-bundles.mjs`, not in CI) builds Canvas3D with each backend and the plugin with the default and
+  with it aliased to WebGPU, and fails on code of an excluded backend (GLSL and WGSL sources included), naming the
+  import: Canvas3D with WebGPU 1504 KiB (was 1865 KiB with 353 KiB of WebGL), with WebGL 1585 KiB, the plugin 2003 KiB
+  with WebGL and 1923 KiB aliased to WebGPU.
+- Viewer variants: the Viewer takes its backends from the backend sets (`graphics-backend`: `webgpu` the WebGPU and
+  WebGL sets, `auto` the `all` set, `webgl` the plugin default), and `molstar.variants` in its manifest (`webgl`,
+  `webgpu`) builds it with one backend (`node scripts/esbuild/app.mjs apps/viewer --variants` into `build/<variant>/`,
+  the other set modules aliased to the kept one, `scripts/esbuild/backend-sets.mjs`): 4.55 MB (WebGL) and 4.47 MB
+  (WebGPU) against 4.83 MB, no code of the other backend (`pnpm check:backend-bundles`);
+  `pnpm test:viewer-smoke --variant webgpu` checks one. The import guard resolves imports by path (relative ones through
+  `gl/` too, side effect and dynamic imports).
+- Started as the second WebGPU milestone of [backend-split.md](backend-split.md) (Order and validation). Extends
+  [backend-split.md](backend-split.md) step 6 (context creation and loss), which this plan details. Related:
+  [wgsl-strategy.md](wgsl-strategy.md), [neutral-conventions.md](neutral-conventions.md),
   [core-gpu-compute.md](core-gpu-compute.md).
 
 ## Goals
@@ -105,6 +162,115 @@ interface GraphicsBackend {
 - Optional automatic fallback: on WebGPU device loss, or when a scene needs a feature the active backend lacks, switch
   to the next backend of the list and notify.
 
+## Default backend
+
+Recommendation for the open question of the Viewer's default backend, now that WebGPU renders everything the visual
+tests cover.
+
+### Where WebGPU stands
+
+- **Rendering**: all 118 visual cases pass on WebGPU with none skipped (the WebGL profiles skip only the compute
+  checks), most with 0 differing pixels against WebGL; the Viewer smoke test passes on both backends, including a device
+  loss restored in place ([webgpu-viewer.md](webgpu-viewer.md)); headless rendering takes Dawn's Node.js bindings.
+- **GPU compute**: Gaussian density, marching cubes (drawn indirectly, no count round trip), color smoothing, volume
+  segments and grid3d (alpha orbitals) run as compute kernels ([webgpu-compute.md](webgpu-compute.md),
+  [indirect-draws.md](indirect-draws.md)); checks assert that the GPU paths are taken and match the CPU.
+- **Speed** ([marching-cubes-benchmark.md](marching-cubes-benchmark.md), median ms):
+
+  | Case                                                                      | WebGL | WebGPU |
+  | ------------------------------------------------------------------------- | ----- | ------ |
+  | Gaussian surface representation of 7qpd (11.5 k atoms, 7 chains), created | 35    | 39     |
+  | the same, updated                                                         | 31    | 29     |
+  | volume isosurface representation (128³), created                          | 17    | 9.2    |
+  | Gaussian surface (100 k atom globule at 0.5 Å)                            | 76    | 36     |
+
+  First runs (shader and pipeline compilation) are shorter on WebGPU (about 100–150 ms against 250–320 ms on WebGL).
+
+- **Rendering** (`render/*` cases of `pnpm benchmark`: 30 forced frames at 1280×720 issued back to back, then waited
+  for; frame time = total / 30, `submit` = the CPU time to issue a frame; RTX 4070 Ti, Chrome, ANGLE D3D11; median ms):
+
+  | Case                                                                                      | WebGL2  | WebGL2 without UBOs | WebGL1  | WebGPU            |
+  | ----------------------------------------------------------------------------------------- | ------- | ------------------- | ------- | ----------------- |
+  | 1000 boxes, each its own representation (draw-call bound), frame                          | 5.5     | 6.1                 | 6.1     | 7.3 (was 10.8)    |
+  | the same, submit (CPU)                                                                    | 4.4     | 6.1                 | 6.0     | 7.1 (was 10.5)    |
+  | 100 boxes, frame                                                                          | 0.5–0.7 | 1.0                 | 0.6–0.9 | 0.7 (was 1.0–1.1) |
+  | 300 k atoms, spacefill impostors (fragment bound)                                         | 4.3     | 4.3                 | 4.3     | 4.6               |
+  | 300 k atoms, spacefill meshes (vertex bound)                                              | 12.9    | 12.9                | 13.0    | 10.9              |
+  | 7qpd cartoon, ball-and-stick, spacefill, Gaussian surface; cartoon with SSAO and outlines | 0.3–0.9 | 0.2–0.8             | 0.2–0.7 | 0.3–0.9           |
+
+  Small scenes (up to about 25 draw calls) are within noise on all backends (sub-millisecond, run-to-run spread from GPU
+  clocks larger than the differences). GPU-bound frames are on par, WebGPU 16% faster for vertex-heavy meshes and 7%
+  slower for sphere impostors. The gap is the CPU cost per draw call: about 7 µs on WebGPU against about 4.4 µs on
+  WebGL2 (10.5 µs before [webgpu-draw-overhead.md](webgpu-draw-overhead.md)), so scenes of many separately drawn objects
+  render at about three quarters of WebGL2's frame rate on WebGPU.
+
+### Gaps that users would notice
+
+| Gap                                                                                                            | Effect on WebGPU                                                                                                                  | Fix                                                                                         |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Geometry export of GPU surfaces (`geo-export` reads texture meshes back with WebGL)                            | throws; a regression since GPU surfaces became the default on WebGPU (they were CPU meshes before)                                | async texture readback (`readTextureAsync`) in the exporter                                 |
+| Vertex-granularity colors on GPU surfaces (the position iterator of texture meshes reads them back with WebGL) | themes that sample at vertex positions (e.g. coloring a surface by an external volume) get no locations                           | the CPU surface when the theme needs positions, or async readback                           |
+| Device limits                                                                                                  | done: the adapter's maxima are requested (were the spec defaults: 2d textures of 8192, storage bindings of 128 MiB)               | [webgpu-device-limits.md](webgpu-device-limits.md)                                          |
+| Frame times                                                                                                    | on par for typical and GPU-bound scenes; about 1.6× the CPU time per draw call (scenes of hundreds of separately drawn objects)   | [webgpu-draw-overhead.md](webgpu-draw-overhead.md): done steps 1–4, candidates for the rest |
+| Runtime switching                                                                                              | done: `Canvas3DContext.setBackend`, `PluginContext.setGraphicsBackends`, the viewport setting; a lost device is replaced in place | Runtime switching status above                                                              |
+
+Synchronous readbacks are already handled: picking and screenshots are asynchronous on WebGPU (`identify` finds nothing
+until a read has finished).
+
+### Browsers
+
+WebGPU is enabled by default in Chrome and Edge (Windows, macOS, ChromeOS, Android) and in recent Safari (macOS, iOS);
+Firefox ships it on Windows first, Linux support varies by browser and driver. This changes quickly: check the current
+state when deciding, and run the Viewer smoke test on each browser available (`--channel`). Where `navigator.gpu` is
+missing or no adapter is returned, the descriptors fall back to WebGL2, then WebGL, at creation.
+
+### Options
+
+- **A. WebGL by default, WebGPU opt-in** (today: `graphics-backend=webgpu`): no risk, but WebGPU gets little use and its
+  advantages (compute surfaces, indirect draws) stay unused.
+- **B. WebGPU where available** (`[WebGPUBackend, WebGL2Backend, WebGLBackend]`), `graphics-backend=webgl` to opt out:
+  the faster compute paths for everyone with WebGPU; any WebGPU-only bug reaches all of them.
+- **C. Staged**: B in the Viewer first (an app, easy to override and to revert), the plugin and library default
+  (`PluginConfig.General.GraphicsBackends`) stays WebGL for a release, then follows; headless stays WebGL by default
+  (the `gl` package, Dawn optional).
+
+Recommendation: C, once the blockers below are done.
+
+### Blockers and steps
+
+1. **Export of GPU surfaces** (done, [backend-narrowing.md](backend-narrowing.md) step 2): geo-export reads with
+   `readTextureData`; `gpu-paths/export-gpu-surface` compares with the CPU surface on both backends.
+2. **Vertex-granularity colors** (done, same step): the vertices are read back before the colors
+   (`TextureMesh.withVertexData`); `gpu-paths/vertex-colors-gpu-surface`.
+3. **Render benchmark** (measured): frame times while the camera rotates 2° per frame (`render/*-rotating`, 1280×720,
+   RTX 4070 Ti, Chrome 154, median of 9 runs of 30 frames, two rounds), WebGL2 against WebGPU:
+
+   | Case                                                                        | WebGL2       | WebGPU                |
+   | --------------------------------------------------------------------------- | ------------ | --------------------- |
+   | 7qpd as cartoon, ball-and-stick, molecular (alpha 0.5) and Gaussian surface | 0.94–0.99 ms | 1.03–1.04 ms (+5–10%) |
+   | 60 instanced copies of 7qpd as cartoon                                      | 3.69 ms      | 3.86 ms (+5%)         |
+   | the same as spacefill                                                       | 0.98–0.99 ms | 1.15 ms (+17%)        |
+
+   The switch needs WebGPU within 10% or faster: met for the Viewer scene and cartoon, not for sphere impostors (the GPU
+   time of the sphere shader, which [webgpu-draw-overhead.md](webgpu-draw-overhead.md) traces to Chrome's WGSL
+   translation; the CPU part is 0.06 ms higher). GPU surface creation and updates are about 2× faster on WebGPU (Speed
+   above), which the frame times do not show. Decided: switch with the known sphere gap (the Viewer default is `auto`,
+   step 6). The switch makes the Viewer's `graphics-backend=auto` (`AutoWebGPUBackend`, then WebGL2 and WebGL) the
+   default: WebGPU only where the adapter can blend into float32 targets (`float32-blendable`; Firefox cannot yet, so it
+   stays on WebGL2, which has wboit, dpoit and illumination there); `graphics-backend=webgpu` asks for WebGPU
+   regardless.
+
+4. **Adapter limits** (done, [webgpu-device-limits.md](webgpu-device-limits.md)): devices request the adapter's maxima;
+   a `webgpu-core` visual profile keeps the minimum spec covered.
+5. **Browser matrix** (done on Windows): `pnpm test:viewer-smoke` (`--channel`, `--browser`) passes on Chrome 154,
+   Chrome Beta 156 and Edge 155 with both backends (same hover hits, context loss restored), and on Playwright's Firefox
+   155 and WebKit with WebGL, where a requested WebGPU backend falls back to WebGL (no adapter there) and works the
+   same; the visual suite (`webgl2`, `webgpu`, `webgpu-core`) passes on Chrome Beta and Edge. Not covered: Firefox's and
+   Safari's own WebGPU (Playwright's builds have no adapter), macOS/Metal, Linux, integrated GPUs.
+6. **Switch** (done for the Viewer): the Viewer's `graphics-backend` defaults to `auto` (WebGPU where the adapter has
+   `float32-blendable`, else WebGL2, then WebGL), `graphics-backend=webgl` to opt out, recorded in the v6 changelog; the
+   plugin default (`PluginConfig.General.GraphicsBackends`) follows after a release without regressions.
+
 ## Steps
 
 1. **Backend descriptors and async creation** (partly done: `GraphicsBackendDescriptor` and `createGraphicsContext` in
@@ -140,7 +306,8 @@ interface GraphicsBackend {
 ## Open questions
 
 - Default backend set of the Viewer bundle: all with WebGL preferred until WebGPU reaches parity, plus lean
-  single-backend builds?
+  single-backend builds? Recommended: staged, the Viewer on WebGPU where available once the blockers of Default backend
+  are done, the plugin default following a release later.
 - Automatic fallback on device loss or missing features, or only explicit switching?
 - Should the sync readback APIs (screenshots, `getImageData`) be async everywhere before switching lands (backend-split
   step 5), since WebGPU readback is async only?

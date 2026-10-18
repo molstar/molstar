@@ -178,6 +178,11 @@ export async function _inflate(
     const readChunk = async (): Promise<undefined> => {
       const { done, value } = await reader.read();
       if (done) return;
+      // Never past the buffer given (the declared size): stopped, not grown
+      if (buf && offset + value.length > buf.length) {
+        await reader.cancel();
+        throw new Error(`inflates past its declared ${buf.length} bytes`);
+      }
 
       if (runtime.shouldUpdate) {
         await runtime.update({ message: 'Inflating blocks...', current: offset, max: buf?.length });
@@ -199,7 +204,8 @@ export async function _inflate(
         j += chunks[i].length;
       }
     }
-    return buf;
+    // What was inflated, so a caller sees a stream shorter than the buffer
+    return offset < buf.length ? buf.subarray(0, offset) : buf;
   }
 
   const ctx = InflateContext(data, buf);

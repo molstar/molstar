@@ -18,6 +18,9 @@
       "path": "../../packages/model"
     },
     {
+      "path": "../../packages/query-language"
+    },
+    {
       "path": "../../packages/graphics"
     },
     {
@@ -25,6 +28,12 @@
     },
     {
       "path": "../../packages/io"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../packages/prism/ui"
     }
   ]
 }

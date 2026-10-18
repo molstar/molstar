@@ -4,6 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { PositionLocation } from '@molstar/graphics/geo/util/location-iterator';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Color } from '@molstar/core/util/color';
@@ -11,12 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { BodyLabels } from '../labels.js';
 import { BodyLabelColorTheme, BodyLabelColorThemeParams, BodyLabelColorThemeProvider } from '../theme.js';
 import { makeLabelAtPosition } from '@molstar/volume-tools-extension/voxel-labels';
-import {
-  CanonicalOrder,
-  SwappedOrder,
-  createTestVolume,
-  offsetOf,
-} from '@molstar/volume-tools-extension/_test/test-volume';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_test/test-volume.js';
 
 const props = PD.getDefaultValues(BodyLabelColorThemeParams);
 const Red = Color(0xff0000),

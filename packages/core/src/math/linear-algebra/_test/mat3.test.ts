@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Mat3 } from '../3d/mat3.js';
 import { Vec3 } from '../3d/vec3.js';
 

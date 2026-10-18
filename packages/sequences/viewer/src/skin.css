@@ -1,0 +1,1204 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * The default skin (seqspec:interaction#the-skin): the `--seq-*` tokens at zero specificity, light and dark (by the
+ * root's `data-theme`, else Mol* Prism's `data-msp-theme`, else the color scheme), and the parts' styles, sized by the
+ * same tokens. No reset. A host maps its own tokens onto `--seq-*` on any ancestor (or on
+ * the
+ * root through `ui.className`); the canvas engine's skin reader picks them up from a surface's computed style.
+ * One file, so the DOM entry (U2) ships the same class names and styles: `<seq-viewer>` adopts it in its shadow root
+ * and adopts the token rules below (those on `:root`) into the document, so `data-theme`, `prefers-color-scheme` and a
+ * host's `--seq-*` on any ancestor or the element reach its parts too.
+ */
+
+:where(:root) {
+  --seq-surface: rgb(255 255 255);
+  --seq-surface-alt: rgb(246 247 249);
+  --seq-ink: rgb(27 31 36);
+  --seq-ink-quiet: rgb(91 99 112);
+  --seq-ink-faint: rgb(196 200 207);
+  --seq-grid: rgb(229 231 235);
+  --seq-accent: rgb(181 69 44);
+  --seq-hover: rgb(43 127 255 / 0.14);
+  --seq-highlight: rgb(242 180 0 / 0.22);
+  --seq-selection: rgb(43 127 255 / 0.1);
+  --seq-selection-border: rgb(43 127 255 / 0.6);
+  --seq-unobserved: rgb(214 217 222);
+  --seq-pending: rgb(226 222 214);
+  --seq-grip: rgb(124 131 142);
+  --seq-grip-hover: rgb(27 31 36);
+  --seq-window: rgb(91 99 112 / 0.1);
+  --seq-conflict: rgb(192 38 45);
+  --seq-focus-ring: rgb(43 127 255);
+  --seq-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --seq-font-ui: ui-sans-serif, system-ui, sans-serif;
+}
+:where(:root[data-theme="dark"], :root:not([data-theme="light"]):is([data-msp-theme="dark"], [data-msp-theme="blue"])) {
+  --seq-surface: rgb(24 26 30);
+  --seq-surface-alt: rgb(34 37 43);
+  --seq-ink: rgb(230 232 235);
+  --seq-ink-quiet: rgb(156 163 175);
+  --seq-ink-faint: rgb(75 80 90);
+  --seq-grid: rgb(48 52 60);
+  --seq-accent: rgb(240 128 96);
+  --seq-hover: rgb(110 160 255 / 0.2);
+  --seq-highlight: rgb(250 204 21 / 0.28);
+  --seq-selection: rgb(110 160 255 / 0.14);
+  --seq-selection-border: rgb(110 160 255 / 0.7);
+  --seq-unobserved: rgb(60 64 72);
+  --seq-pending: rgb(56 53 48);
+  --seq-grip: rgb(140 147 158);
+  --seq-grip-hover: rgb(240 242 245);
+  --seq-window: rgb(156 163 175 / 0.12);
+  --seq-conflict: rgb(255 123 114);
+  --seq-focus-ring: rgb(110 160 255);
+  --seq-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --seq-font-ui: ui-sans-serif, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"], [data-msp-theme="light"])) {
+    --seq-surface: rgb(24 26 30);
+    --seq-surface-alt: rgb(34 37 43);
+    --seq-ink: rgb(230 232 235);
+    --seq-ink-quiet: rgb(156 163 175);
+    --seq-ink-faint: rgb(75 80 90);
+    --seq-grid: rgb(48 52 60);
+    --seq-accent: rgb(240 128 96);
+    --seq-hover: rgb(110 160 255 / 0.2);
+    --seq-highlight: rgb(250 204 21 / 0.28);
+    --seq-selection: rgb(110 160 255 / 0.14);
+    --seq-selection-border: rgb(110 160 255 / 0.7);
+    --seq-unobserved: rgb(60 64 72);
+    --seq-pending: rgb(56 53 48);
+    --seq-grip: rgb(140 147 158);
+    --seq-grip-hover: rgb(240 242 245);
+    --seq-window: rgb(156 163 175 / 0.12);
+    --seq-conflict: rgb(255 123 114);
+    --seq-focus-ring: rgb(110 160 255);
+    --seq-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --seq-font-ui: ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+/*
+ * The chrome's look (seqspec:interaction#the-skin), after Mol* Prism's canvas chrome: the viewer is a canvas, and what
+ * sits on it or opens over it is flat glass (a translucent tone of the surface, a blur, a hairline edge drawn as a spread
+ * shadow, no drop shadow); only what opens for a moment (a menu, the issue list) adds a soft shadow. No 1px borders: a
+ * picked item is an accent wash with accent ink, a control a tone of the ink. Optional tokens a host may set on any
+ * ancestor: `--seq-chrome` (glass), `--seq-chrome-panel` (glass to read), `--seq-chrome-filter`, `--seq-chrome-edge`
+ * (the hairline's color), `--seq-menu-shadow`, `--seq-control` (a control's tone), `--seq-selected` and
+ * `--seq-selected-ink` (a picked item), `--seq-font-size` (12px), `--seq-font-size-small` (11px, hints and captions),
+ * `--seq-radius` (8px, surfaces over the canvas), `--seq-radius-control` (4px), `--seq-canvas-edge` (8px: between the
+ * canvas's edge and a strip on it, on every side; the wrapped text's inset is the render prop `wrappedInset`, the
+ * layout reading no CSS: a host changing this sets that too), `--seq-chrome-gap` (8px: between a strip and the canvas's content,
+ * and between strips). Unset, each is derived here, on every
+ * part's root, from the surface tokens the host maps, so one mapping of those tints the chrome too.
+ */
+:where(
+  .seqv-root,
+  .seqv-bar,
+  .seqv-tabs,
+  .seqv-player,
+  .seqv-description,
+  .seqv-section-header,
+  .seqv-switches,
+  .seqv-chips,
+  .seqv-legend,
+  .seqv-export,
+  .seqv-issues,
+  .seqv-search,
+  .seqv-annotations,
+  .seqv-busy,
+  .seqv-state
+) {
+  --seqv-glass: var(--seq-chrome, color-mix(in oklab, var(--seq-surface-alt) 70%, transparent));
+  --seqv-glass-panel: var(--seq-chrome-panel, color-mix(in oklab, var(--seq-surface-alt) 95%, transparent));
+  --seqv-glass-filter: var(--seq-chrome-filter, blur(20px) saturate(1.4));
+  --seqv-hairline: 0 0 0 1px var(--seq-chrome-edge, color-mix(in oklab, var(--seq-ink) 12%, transparent));
+  --seqv-menu-shadow: var(--seq-menu-shadow, 0 8px 28px rgb(0 0 0 / 0.28));
+  --seqv-control: var(--seq-control, color-mix(in oklab, var(--seq-ink) 7%, transparent));
+  --seqv-control-hover: color-mix(in oklab, var(--seqv-control), var(--seq-ink) 6%);
+  /* The picked item's wash and ink: the ink a step from the accent toward the text, so 11-12px reads at AA on the wash. */
+  --seqv-selected: var(--seq-selected, color-mix(in oklab, var(--seq-accent) 14%, transparent));
+  --seqv-selected-ink: var(--seq-selected-ink, color-mix(in oklab, var(--seq-accent), var(--seq-ink) 30%));
+  --seqv-radius: var(--seq-radius, 8px);
+  --seqv-radius-control: var(--seq-radius-control, 4px);
+  --seqv-small: var(--seq-font-size-small, 11px);
+  --seqv-gap: var(--seq-chrome-gap, 8px);
+  --seqv-edge: var(--seq-canvas-edge, 8px);
+  /* Where the canvas starts a track's label (canvas/surface.ts: x 10): the chrome's text lines up with it. */
+  --seqv-label-x: 10px;
+  color: var(--seq-ink);
+  font: var(--seq-font-size, 12px) / 1.4 var(--seq-font-ui);
+}
+/* A part a host places outside the root reads as one inside it. */
+:where(
+  .seqv-root,
+  .seqv-bar,
+  .seqv-section-header,
+  .seqv-switches,
+  .seqv-legend,
+  .seqv-player,
+  .seqv-search,
+  .seqv-annotations
+) button {
+  font: inherit;
+  color: inherit;
+}
+:where(.seqv-root, .seqv-player, .seqv-switches, .seqv-chips) fieldset,
+fieldset:where(.seqv-player, .seqv-switch, .seqv-chips) {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+:where(
+    .seqv-root,
+    .seqv-bar,
+    .seqv-section-header,
+    .seqv-switches,
+    .seqv-legend,
+    .seqv-player,
+    .seqv-search,
+    .seqv-annotations
+  )
+  :focus-visible {
+  outline: 2px solid var(--seq-focus-ring);
+  outline-offset: 1px;
+}
+.seqv-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* A chrome strip and the canvas's content (a ruler's labels at its top) never touch. */
+  gap: var(--seqv-gap);
+  min-width: 0;
+  background: var(--seq-surface);
+}
+.seqv-spacer {
+  flex: 1;
+}
+.seqv-quiet {
+  color: var(--seq-ink-quiet);
+}
+.seqv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/*
+ * Cut-off text fades out over its last 20px, no ellipsis; only while it is cut (the animation runs on the element's own
+ * inline scroll timeline, active only when it overflows; without scroll timelines the text is clipped). The mask is the
+ * animated property itself, so no registered property is needed (none reaches a shadow root).
+ */
+.seqv-tab-label,
+.seqv-legend-name,
+.seqv-player-title,
+.seqv-annotation-label,
+.seqv-search-status {
+  overflow: hidden;
+  white-space: nowrap;
+  animation-name: seqv-fade;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+@keyframes seqv-fade {
+  from,
+  to {
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  }
+}
+
+/*
+ * The strips on the canvas (the bar, a section's header, the player): the glass's tone and edge, in flow (nothing of the
+ * canvas under them to blur), the canvas's edge in from its sides. The legend has no box: its text sits on the canvas.
+ */
+.seqv-bar,
+.seqv-section-header,
+.seqv-player {
+  border-radius: var(--seqv-radius);
+  background: var(--seqv-glass);
+  box-shadow: var(--seqv-hairline);
+}
+/* The bar: views, search, busy, export, issues. Empty (`clean`: nothing but its spacer), it is a 4px gap, no glass. */
+.seqv-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 4px;
+  /* off-scale: a control's text starts 8px into it. */
+  padding: 0 2px;
+  /* The bar's own width is what the search box sizes by (below). */
+  container-type: inline-size;
+}
+.seqv-bar:has(> :not(.seqv-spacer, slot, .seqv-busy)),
+.seqv-bar[data-seqv-filled] {
+  margin: var(--seqv-edge) var(--seqv-edge) 0;
+  padding-block: 2px;
+}
+.seqv-bar:not(:has(> :not(.seqv-spacer, slot, .seqv-busy)), [data-seqv-filled]) {
+  background: none;
+  box-shadow: none;
+}
+/* The tabs wrap in the bar (a phone's width holds a few), and a tab longer than the bar fades, never overflowing it. */
+.seqv-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+}
+/* A tab's label fades, not the tab: its focus ring and the selected wash stay whole. */
+.seqv-tab {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+.seqv-tab-label {
+  min-width: 0;
+}
+.seqv-tab,
+.seqv-choice,
+.seqv-switch-trigger,
+.seqv-chip,
+.seqv-badge,
+.seqv-icon,
+.seqv-dot,
+.seqv-menu-item {
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+.seqv-tab {
+  color: var(--seq-ink-quiet);
+}
+/* The picked item: an accent wash, accent ink (the tab shown, the choice in effect, the snapshot shown). */
+.seqv-tab[aria-selected="true"],
+.seqv-choice[aria-pressed="true"],
+.seqv-dot[aria-current] {
+  color: var(--seqv-selected-ink);
+  background: var(--seqv-selected);
+}
+.seqv-tab:hover:not([aria-selected="true"]),
+.seqv-choice:hover:not([aria-pressed="true"]),
+.seqv-switch-trigger:hover,
+.seqv-chip:hover,
+.seqv-badge:hover,
+.seqv-icon:hover:not(:disabled, [aria-disabled="true"]),
+.seqv-dot:hover:not(:disabled, [aria-disabled="true"], [aria-current]),
+.seqv-menu-item:hover {
+  background: var(--seqv-control-hover);
+}
+/* A trigger that opens a menu ends in a chevron, an icon drawn in its ink (never a text glyph). */
+.seqv-switch-trigger[aria-haspopup="menu"]::after {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 4px;
+  vertical-align: -1px;
+  background: currentColor;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+/* Takes no room: a bar with nothing else in it is 4 px, and the spinner (14 px with its border) would push the view down
+   when it shows and back up when it hides, so its vertical margins cancel what it is taller than the bar's minimum. */
+.seqv-busy {
+  flex: none;
+  margin: -5px 4px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--seq-ink-faint);
+  border-top-color: var(--seq-ink-quiet);
+  border-radius: 50%;
+  animation: seqv-spin 0.9s linear infinite;
+}
+@keyframes seqv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seqv-busy {
+    animation: none;
+  }
+}
+.seqv-issues {
+  position: relative;
+}
+.seqv-badge {
+  background: var(--seqv-control);
+  color: var(--seq-ink-quiet);
+}
+.seqv-badge[data-severity="error"] {
+  color: var(--seq-conflict);
+}
+/* Notes alone: quieter than issues, no fill. */
+.seqv-badge[data-severity="info"] {
+  background: none;
+  color: var(--seq-ink-quiet);
+}
+/* What opens for a moment over the canvas (a menu, the issue list): readable glass, a soft shadow to lift it. */
+.seqv-issue-list,
+.seqv-menu-list {
+  border-radius: var(--seqv-radius);
+  background: var(--seqv-glass-panel);
+  box-shadow: var(--seqv-hairline), var(--seqv-menu-shadow);
+  backdrop-filter: var(--seqv-glass-filter);
+}
+.seqv-issue-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 3;
+  width: min(520px, 80vw);
+  padding: 8px;
+}
+.seqv-issue-group + .seqv-issue-group {
+  margin-top: 8px;
+}
+.seqv-issue code {
+  font: var(--seqv-small) var(--seq-font-mono);
+  color: var(--seq-ink-quiet);
+}
+.seqv-issue[data-severity="error"] code {
+  color: var(--seq-conflict);
+}
+/* Notes come last, under their heading, in fainter ink. */
+.seqv-issue-notes {
+  margin-top: 8px;
+}
+.seqv-issue-heading {
+  font-weight: 600;
+  color: var(--seq-ink-quiet);
+}
+.seqv-issue[data-severity="info"] {
+  color: var(--seq-ink-quiet);
+}
+.seqv-issue[data-severity="info"] code {
+  color: var(--seq-ink-quiet);
+}
+
+/* Snapshots and the description. The player is a glass pill as wide as its controls. */
+.seqv-player {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--seqv-edge));
+  box-sizing: border-box;
+  margin: 0 var(--seqv-edge);
+  padding: 2px;
+}
+.seqv-icon {
+  min-width: 24px;
+  padding: 2px 4px;
+}
+/* A control that cannot act now stays focusable (seqspec:interaction#accessibility): `aria-disabled`, never `disabled`. */
+.seqv-icon:disabled,
+.seqv-dot:disabled,
+.seqv-icon[aria-disabled="true"],
+.seqv-dot[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+.seqv-player-title {
+  min-width: 0;
+  font-weight: 600;
+  margin: 0 4px;
+}
+.seqv-snapshots {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seqv-dot {
+  padding: 0 6px;
+  font-size: var(--seqv-small);
+  color: var(--seq-ink-quiet);
+}
+.seqv-dot[data-invalid] {
+  text-decoration: line-through;
+}
+.seqv-player > .seqv-quiet:last-child {
+  margin: 0 8px 0 4px;
+}
+.seqv-description {
+  padding: 0 var(--seqv-label-x);
+  max-width: 72ch;
+}
+.seqv-description p {
+  margin: 0 0 6px;
+}
+.seqv-state {
+  padding: 16px var(--seqv-label-x);
+  color: var(--seq-ink-quiet);
+}
+.seqv-error {
+  color: var(--seq-conflict);
+}
+
+/* Sections. */
+.seqv-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--seqv-gap);
+}
+.seqv-section-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 var(--seqv-edge) var(--seqv-gap);
+  /* off-scale: as the bar's, a control's text 8px into it. */
+  padding: 2px;
+}
+/* The hidden tracks' chips and the switches: in the header's row (the header's padding, not their own). */
+.seqv-chips,
+.seqv-switches {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.seqv-switches {
+  column-gap: 8px;
+}
+.seqv-section-label {
+  padding-left: 8px;
+  font-weight: 600;
+}
+.seqv-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.seqv-switch > .seqv-quiet {
+  margin: 0 2px 0 8px;
+}
+.seqv-choice {
+  padding: 2px 6px;
+  color: var(--seq-ink-quiet);
+}
+.seqv-chip {
+  background: var(--seqv-control);
+}
+.seqv-stage {
+  position: relative;
+}
+.seqv-surface {
+  height: 40px;
+  border-radius: 2px;
+}
+.seqv-surface[data-height="box"] {
+  max-height: var(--seq-section-max-height, 560px);
+}
+/* Keyboard focus only: set when focus came from Tab, never by a click or the keys that follow one. */
+.seqv-surface[data-focus-visible] {
+  outline: 2px solid var(--seq-focus-ring);
+  outline-offset: -2px;
+}
+.seqv-row-controls {
+  position: absolute;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.seqv-row-controls > div {
+  /* The vertical scroll, set by the UI as whole pages and the rest in quarter pixels (placeScroll: no string per frame). */
+  transform: translateY(calc(var(--seqv-scroll-page, 0px) + var(--seqv-scroll-y, 0px)));
+}
+.seqv-row-control {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+.seqv-track-actions {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  transform: translateX(-100%);
+}
+/* The ⋯ on a track's header line: a small glass button over the canvas. */
+.seqv-track-actions .seqv-icon {
+  padding: 0 4px;
+  line-height: 1;
+  background: var(--seqv-glass-panel);
+  box-shadow: var(--seqv-hairline);
+  backdrop-filter: var(--seqv-glass-filter);
+}
+
+/* Primitives: menu, hint, scroll region. */
+.seqv-menu {
+  position: relative;
+  display: inline-flex;
+}
+.seqv-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  padding: 4px;
+}
+.seqv-section-header .seqv-menu-list {
+  left: auto;
+  right: 0;
+}
+/* A menu in the top layer (`popover`'s `top`): placed at its trigger in viewport px (`placeMenu`), no ancestor clips it. */
+.seqv-menu-list[popover] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  overflow: visible;
+  border: 0;
+  color: var(--seq-ink);
+  font: inherit;
+}
+.seqv-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  white-space: nowrap;
+}
+/* A choice among items: a check icon in its column on the one in effect (never a text glyph), the others aligned. */
+.seqv-menu-item[role="menuitemradio"]::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-left: -2px;
+}
+.seqv-menu-item[aria-checked="true"]::before {
+  background: currentColor;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.seqv-menu-item[aria-checked="true"] {
+  color: var(--seqv-selected-ink);
+}
+.seqv-danger {
+  color: var(--seq-conflict);
+}
+.seqv-hint {
+  position: relative;
+  display: inline-flex;
+}
+/*
+ * A hint never blocks the pointer: it takes no pointer events, so the control under it gets the hover and the click.
+ * Shown by `data-open` (dom/shared.ts `hintBehavior`: after a rest, at once on keyboard focus), above its trigger or
+ * below (`data-side`), shifted along by `--seqv-hint-dx` to stay in the viewport. Ink on paper, small and opaque, as
+ * Prism's tooltip.
+ */
+.seqv-hint-bubble {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 5;
+  transform: translateX(calc(-50% + var(--seqv-hint-dx, 0px)));
+  padding: 4px 8px;
+  border-radius: var(--seqv-radius-control, 4px);
+  background: var(--seq-ink);
+  color: var(--seq-surface);
+  font-size: var(--seqv-small, 11px);
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  visibility: hidden;
+}
+.seqv-hint[data-side="bottom"] > .seqv-hint-bubble {
+  top: calc(100% + 4px);
+  bottom: auto;
+}
+.seqv-hint[data-open] > .seqv-hint-bubble {
+  visibility: visible;
+}
+.seqv-scroll {
+  min-width: 0;
+}
+.seqv-issue-scroll {
+  max-height: 300px;
+}
+/* The default region does not scroll (the DOM chrome never does); the list is capped instead. */
+.seqv-scroll.seqv-issue-scroll {
+  max-height: none;
+}
+
+/*
+ * The hover's label and its card: readable glass over the canvas, no drop shadow. The label is not blurred: it moves with
+ * every pointer frame, and at 95% the blur would hardly show.
+ */
+.seqv-tooltip,
+.seqv-hover-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: 320px;
+  padding: 4px 8px;
+  border-radius: var(--seqv-radius);
+  background: var(--seqv-glass-panel);
+  box-shadow: var(--seqv-hairline);
+}
+.seqv-hover-card {
+  backdrop-filter: var(--seqv-glass-filter);
+}
+.seqv-tooltip {
+  z-index: 6;
+  pointer-events: none;
+  /* Placed by `--seqv-x` and `--seqv-y` (dom/shared.ts `placeTooltip`): custom properties take cached strings. */
+  transform: translate(var(--seqv-x, 0px), var(--seqv-y, 0px));
+}
+.seqv-tooltip-title {
+  font-weight: 600;
+}
+/* A track header's legend (seqspec:interaction#the-legend): the legend's swatches and ramps, compact, a few then "+n more". */
+.seqv-tooltip-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+}
+.seqv-tooltip-legend .seqv-legend-item,
+.seqv-tooltip-legend .seqv-ramp {
+  min-height: 18px;
+}
+.seqv-tooltip-legend .seqv-ramp-bar {
+  width: 80px;
+}
+/* The pointer on a header's menu button: the hover's tooltip gives way to it. */
+.seqv-root:has(.seqv-track-actions:hover) .seqv-tooltip {
+  visibility: hidden;
+}
+/* The hover card (seqspec:interaction#the-hover-card): the tooltip's look, but it takes the pointer; the tooltip hides while it is open. */
+.seqv-hover-card {
+  z-index: 7;
+  padding: 8px;
+}
+.seqv-root:has(.seqv-hover-card) .seqv-tooltip {
+  visibility: hidden;
+}
+.seqv-hover-card-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.seqv-hover-card-action {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.seqv-hover-card-action:hover {
+  background: var(--seqv-control-hover);
+}
+.seqv-hover-card-action:focus-visible {
+  outline: 2px solid var(--seq-focus-ring, var(--seq-accent));
+  outline-offset: 1px;
+}
+/*
+ * The legend on the canvas's grid: a group's name in the label column (the track labels' left edge, font and ink), its
+ * items from the data area's left, wrapping within its width, a line per row height. `--seqv-data-left`,
+ * `--seqv-data-width`, `--seqv-row` and `--seqv-label-px` come from the section's layout (`legendGrid`). No box of its
+ * own (flat, set apart by spacing), so its grid is the canvas's and its names at the track labels' inset; the canvas's
+ * edge under it. A host that boxes it sets `--seqv-legend-x` to the box's inset.
+ */
+.seqv-legend {
+  margin-bottom: var(--seqv-edge);
+  font-size: var(--seqv-label-px, 12px);
+}
+.seqv-legend summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  min-height: var(--seqv-row, 22px);
+  margin-left: var(--seqv-label-x);
+  color: var(--seq-ink-quiet);
+  cursor: pointer;
+  list-style: none;
+}
+.seqv-legend summary::-webkit-details-marker {
+  display: none;
+}
+/* The disclosure after the title. */
+.seqv-legend summary > .seqv-chevron {
+  order: 1;
+}
+/* An 8 px chevron (about the label's x-height) drawn by two borders: pointing right, down when open. */
+.seqv-chevron {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+}
+.seqv-chevron::before {
+  content: "";
+  box-sizing: border-box;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateX(-1px) rotate(-45deg);
+  transition: transform 0.12s;
+}
+.seqv-legend[open] .seqv-chevron::before {
+  transform: translateY(-1px) rotate(45deg);
+}
+.seqv-legend-group {
+  display: grid;
+  /* The data area's width, at least 120 px where the canvas has squeezed it out. */
+  grid-template-columns:
+    calc(var(--seqv-data-left, 160px) - var(--seqv-legend-x, 0px))
+    minmax(0, max(var(--seqv-data-width, 0px), 120px));
+}
+.seqv-legend-track {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--seqv-row, 22px);
+  padding: 0 6px 0 var(--seqv-label-x);
+  overflow: hidden;
+  color: var(--seq-ink);
+  font: 400 var(--seqv-label-px, 12px) var(--seq-font-ui);
+  white-space: nowrap;
+}
+/*
+ * A group's title: its name in the track labels' look, with a hint (the full name) only when the name is cut
+ * (`legendGrid`'s `onCut`). A title that opens the group's color schemes (seqspec:interaction#color-schemes-at-runtime)
+ * has a quiet dotted underline at rest and a small palette icon on hover or focus, outside the name's width; its menu
+ * is in the top layer.
+ */
+.seqv-legend-track:has(> .seqv-hint),
+.seqv-legend-track:has(.seqv-legend-title) {
+  overflow: visible;
+}
+.seqv-legend-track:has(.seqv-legend-title) {
+  /* The button's own padding: its name starts where the track labels do. */
+  padding-left: calc(var(--seqv-label-x) - 4px);
+}
+.seqv-legend-track > .seqv-hint,
+.seqv-legend-track .seqv-menu {
+  min-width: 0;
+  max-width: 100%;
+}
+.seqv-legend-name {
+  min-width: 0;
+}
+.seqv-legend-title {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.seqv-legend-title > .seqv-legend-name {
+  /* Room for the underline below the baseline inside the name's clip (its fade). */
+  padding-bottom: 4px;
+  margin-bottom: -4px;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+}
+.seqv-legend-title:hover,
+.seqv-legend-title[aria-expanded="true"] {
+  background: var(--seqv-control-hover);
+}
+/* A 12 px palette, in the ink, past the button's end: shown on hover, focus or while the menu is open. */
+.seqv-legend-icon {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 2px);
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.seqv-legend-title:hover > .seqv-legend-icon,
+.seqv-legend-title:focus-visible > .seqv-legend-icon,
+.seqv-legend-title[aria-expanded="true"] > .seqv-legend-icon {
+  opacity: 0.8;
+}
+/* A name longer than the label column: on its own line at the label inset, the items under it at the data area's left. */
+.seqv-legend-group[data-seqv-long] .seqv-legend-track {
+  grid-column: 1 / -1;
+}
+.seqv-legend-group[data-seqv-long] .seqv-legend-items {
+  grid-column: 2;
+}
+/*
+ * No label column (wrapped, or too narrow; `legendGrid`): one row per group, the name from the data area's left and its
+ * items after it on the same line; more items wrap onto further rows under the first item, not under the name. The
+ * group ends where the data area does.
+ */
+.seqv-legend-group[data-seqv-stacked] {
+  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  align-items: start;
+  max-width: calc(var(--seqv-data-left, 0px) - var(--seqv-legend-x, 0px) + max(var(--seqv-data-width, 0px), 120px));
+}
+.seqv-legend-group[data-seqv-stacked] .seqv-legend-track {
+  grid-column: 1;
+  padding: 0 10px 0 max(var(--seqv-label-x), calc(var(--seqv-data-left, 0px) - var(--seqv-legend-x, 0px)));
+}
+.seqv-legend-group[data-seqv-stacked] .seqv-legend-track:has(.seqv-legend-title) {
+  /* The button's own padding: its name starts where the data area does. */
+  padding-left: max(4px, calc(var(--seqv-data-left, 0px) - var(--seqv-legend-x, 0px) - 4px));
+}
+.seqv-legend-group[data-seqv-stacked] .seqv-legend-items {
+  grid-column: 2;
+}
+.seqv-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  min-width: 0;
+}
+.seqv-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--seqv-row, 22px);
+}
+/* A swatch, a size sample and a ramp keep apart from a surface of their own tint by a hairline, no border. */
+.seqv-swatch {
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: var(--seqv-hairline, 0 0 0 1px var(--seq-ink-faint));
+}
+/* A legend's sample size, drawn as its channel draws it (`legendSizeStyle`): a stroke, a bar, a dot. */
+.seqv-size {
+  flex: none;
+  display: inline-block;
+  /* A pale sample (a ramp's light end) stays visible on the surface. */
+  box-shadow: var(--seqv-hairline, 0 0 0 0.5px var(--seq-ink-faint));
+}
+/* A kept highlight set: the swatch in its style's color (band: faint, highlight, accent), and a quiet ✕ to remove it. */
+.seqv-swatch-set {
+  background: var(--seq-highlight);
+}
+.seqv-swatch-set[data-style="accent"] {
+  background: color-mix(in srgb, var(--seq-accent) 35%, transparent);
+  box-shadow: inset 0 0 0 1px var(--seq-accent);
+}
+.seqv-swatch-set[data-style="highlight"] {
+  box-shadow: inset 0 0 0 1px var(--seq-highlight);
+}
+.seqv-legend-remove {
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  color: var(--seq-ink-quiet);
+  font-size: 0.85em;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.seqv-legend-remove:hover {
+  background: var(--seqv-control-hover);
+  color: var(--seq-ink);
+}
+/* A continuous palette: a gradient bar over the layer's domain with its two ends labeled, on one line (the bar
+   shrinks first; a caption wraps within itself). */
+.seqv-ramp {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 6px;
+  max-width: 100%;
+  min-height: var(--seqv-row, 22px);
+}
+/* The range editor: the ends are fields, the data's own span is marked under the bar (a range wider than the data
+   shows where the data sits). */
+.seqv-ramp-edit {
+  gap: 0 4px;
+}
+.seqv-ramp > :nth-child(4) {
+  min-width: 0;
+}
+.seqv-ramp-track {
+  position: relative;
+  display: flex;
+  flex: 0 1 120px;
+  min-width: 40px;
+  padding-bottom: 4px;
+}
+.seqv-ramp-track .seqv-ramp-bar {
+  flex: 1 1 auto;
+}
+.seqv-ramp-data {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  min-width: 2px;
+  border-radius: 1px;
+  background: var(--seq-ink);
+}
+.seqv-range-input {
+  box-sizing: border-box;
+  width: 5ch;
+  min-width: 0;
+  padding: 0 2px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  color: var(--seq-ink-quiet);
+  font: inherit;
+  text-align: center;
+}
+.seqv-range-input:hover,
+.seqv-range-input:focus {
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+}
+/* The bar shrinks to a minimum when the room is short; its labels wrap under it only past that. */
+.seqv-ramp-bar {
+  box-sizing: border-box;
+  flex: 0 1 120px;
+  min-width: 40px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: var(--seqv-hairline, 0 0 0 1px var(--seq-ink-faint));
+}
+/* A group's "+n more" and "fewer" control. */
+.seqv-legend-more {
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  padding: 0 6px;
+  color: var(--seq-ink-quiet);
+  cursor: pointer;
+}
+.seqv-legend-more:hover {
+  background: var(--seqv-control-hover);
+}
+
+/* The search box (seqspec:interaction#the-default-ui, LS2): in the bar, or anywhere given `search`. Nothing in it moves between states: the status
+   is a slot of a fixed width at the right end of the field (the longer text fades), and Save keeps its place. */
+.seqv-search {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+/* The field shrinks with its box (to room for the status slot and some text), so the box fits where it is put. */
+.seqv-search-field {
+  position: relative;
+  display: flex;
+  flex: 0 1 20em;
+  width: 20em;
+  min-width: 11em;
+}
+/* In the bar the field shrinks with it (the status slot stays), and below 480 px the box takes a row of its own. */
+@container (max-width: 480px) {
+  .seqv-bar .seqv-search {
+    flex: 1 1 100%;
+    order: 9;
+  }
+  .seqv-bar .seqv-search-field {
+    flex: 1;
+    width: auto;
+    max-width: 24em;
+  }
+}
+@container (min-width: 481px) {
+  .seqv-bar .seqv-search-field {
+    flex-basis: min(20em, 40cqw);
+    width: min(20em, 40cqw);
+  }
+}
+.seqv-search-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 7.5em 2px 8px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+  font: inherit;
+}
+.seqv-search-input::placeholder {
+  color: var(--seq-ink-quiet);
+}
+.seqv-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+.seqv-search-status {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 7em;
+  transform: translateY(-50%);
+  font-size: var(--seqv-small);
+  line-height: 1.2;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.seqv-keep {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.seqv-pin {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.seqv-search [data-idle] {
+  visibility: hidden;
+}
+.seqv-search-input:focus-visible {
+  outline: 2px solid var(--seq-focus-ring);
+  outline-offset: 1px;
+}
+
+/*
+ * The Annotations part: a label, a color and "Add from selection" in a row; the count; the annotations, each a button
+ * that reveals it (swatch, label, positions) and a delete.
+ */
+.seqv-annotations {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+/* Wraps where the panel is narrow: the place choice, then the color and the label, the button after them. */
+.seqv-annotations-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.seqv-annotations-place {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.seqv-annotations-label {
+  flex: 1 1 6em;
+  min-width: 0;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+  font: inherit;
+}
+.seqv-annotations-label::placeholder {
+  color: var(--seq-ink-quiet);
+}
+.seqv-annotations-status {
+  font-size: var(--seqv-small);
+}
+.seqv-annotations-color {
+  flex: none;
+  box-sizing: border-box;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  cursor: pointer;
+}
+.seqv-annotations-style {
+  flex: none;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: var(--seqv-control);
+  color: var(--seq-ink);
+  font: inherit;
+}
+.seqv-annotations-add {
+  flex: none;
+  background: var(--seqv-control);
+}
+.seqv-annotations-add[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+.seqv-annotation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seqv-annotation {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.seqv-annotation-go {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--seqv-radius-control);
+  background: none;
+  padding: 2px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.seqv-annotation-go:hover {
+  background: var(--seqv-control-hover);
+}
+.seqv-annotation-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}

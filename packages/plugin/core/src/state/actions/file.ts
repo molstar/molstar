@@ -33,7 +33,11 @@ async function processFile(file: Asset.File, plugin: PluginContext, format: stri
 }
 
 export const OpenFiles = StateAction.build({
-  display: { name: 'Open Files', description: 'Load one or more files and optionally create default visuals' },
+  display: {
+    name: 'Open Files',
+    description: 'Load one or more files and optionally create default visuals',
+    triggerLabel: 'Open',
+  },
   from: PluginStateObject.Root,
   params: (a, ctx: PluginContext) => {
     const { extensions, options } = ctx.dataFormats;
@@ -103,7 +107,7 @@ export function openDroppedFiles(files: File[], plugin: PluginContext) {
 }
 
 export const DownloadFile = StateAction.build({
-  display: { name: 'Download File', description: 'Load one or more file from an URL' },
+  display: { name: 'Download File', description: 'Load one or more file from an URL', triggerLabel: 'Download' },
   from: PluginStateObject.Root,
   params: (a, ctx: PluginContext) => {
     const options = [...ctx.dataFormats.options, ['zip', 'Zip'] as const, ['gzip', 'Gzip'] as const];

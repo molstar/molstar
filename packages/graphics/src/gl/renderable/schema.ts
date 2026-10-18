@@ -21,6 +21,9 @@ import type {
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
 import { Clip } from '@molstar/core/util/clip';
+import type { DrawIndirect, StorageBuffer, StorageBufferSpec } from '../compute.js';
+import { convertDepthRange, type DepthRangeConversion, type DepthRangeTag } from '../depth-range.js';
+import { flipWindowRects, type WindowRectTag } from '../window-rect.js';
 
 export type ValueKindType = {
   number: number;
@@ -34,6 +37,9 @@ export type ValueKindType = {
   uint32: Uint32Array;
   sphere: Sphere3D;
   instanceGrid: InstanceGrid;
+  drawIndirect: DrawIndirect | undefined;
+  /** storage buffers of render schemas (`StorageBufferSpec`), unset on backends without them */
+  'storage-buffer': StorageBuffer | undefined;
 };
 export type ValueKind = keyof ValueKindType;
 
@@ -44,7 +50,16 @@ export type KindValue = UniformKindValue & DataTypeArrayType & TextureKindValue 
 export type Values<S extends RenderableSchema> = { readonly [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> };
 export type UnboxedValues<S extends RenderableSchema> = { readonly [k in keyof S]: KindValue[S[k]['kind']] };
 
-export function splitValues(schema: RenderableSchema, values: RenderableValues) {
+/** How a backend maps tagged uniforms where it binds them */
+export interface UniformConversions {
+  /** the projections (`UniformSpec.depthRange`), see `DepthRangeTag` */
+  readonly depthRange?: DepthRangeConversion;
+  /** the height of the render pass target, to flip window rectangles (`UniformSpec.windowRect`), see `WindowRectTag` */
+  readonly targetHeight?: () => number;
+}
+
+/** The values by kind, the tagged uniforms mapped with `conversions` */
+export function splitValues(schema: RenderableSchema, values: RenderableValues, conversions: UniformConversions = {}) {
   const attributeValues: AttributeValues = {};
   const defineValues: DefineValues = {};
   const textureValues: TextureValues = {};
@@ -52,7 +67,9 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
   const uniformValues: UniformValues = {};
   const materialUniformValues: UniformValues = {};
   const bufferedUniformValues: UniformValues = {};
+  const storageBufferValues: { [k: string]: ValueCell<StorageBuffer | undefined> } = {};
   Object.keys(schema).forEach((k) => {
+    if (schema[k].type === 'storage-buffer' && values[k] !== undefined) storageBufferValues[k] = values[k];
     const spec = schema[k];
     if (spec.type === 'attribute') attributeValues[k] = values[k];
     if (spec.type === 'define') defineValues[k] = values[k];
@@ -73,10 +90,16 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     defineValues,
     textureValues,
     materialTextureValues,
-    uniformValues,
-    materialUniformValues,
-    bufferedUniformValues,
+    uniformValues: convertUniforms(schema, uniformValues, conversions),
+    materialUniformValues: convertUniforms(schema, materialUniformValues, conversions),
+    bufferedUniformValues: convertUniforms(schema, bufferedUniformValues, conversions),
+    storageBufferValues,
   };
+}
+
+function convertUniforms(schema: RenderableSchema, values: UniformValues, conversions: UniformConversions) {
+  const converted = convertDepthRange(schema, values, conversions.depthRange);
+  return flipWindowRects(schema, converted, conversions.targetHeight);
 }
 
 export type Versions<T extends RenderableValues> = { -readonly [k in keyof T]: number };
@@ -92,7 +115,7 @@ export function getValueVersions<T extends RenderableValues>(values: T) {
 
 /**
  * Condition for a texture or attribute to be used by a program: any of the given flattened
- * define names (as tested in shader code, e.g. 'dUsePalette', 'dColorType_volume',
+ * define names (as tested in shader code, e.g. 'dUsePalette', 'dColorType_grid',
  * 'emulateVertexId') is defined, a '!' prefix negates a name.
  * Must cover all uses in the shader code, a superset is fine.
  */
@@ -169,6 +192,12 @@ export type UniformSpec<K extends UniformKind> = {
   length?: number;
   /** number define with the classic (WebGL1) array size, `length` is the max. (block) size */
   lengthDefine?: string;
+  /** a loop bound: a number define on WebGL1, whose loops need constant bounds */
+  loopBound?: boolean;
+  /** a matrix holding the projection, mapped by each backend to its reversed clip depth, see `DepthRangeTag` */
+  depthRange?: DepthRangeTag;
+  /** a window rectangle (top-left origin), flipped by backends with a bottom-left origin, see `WindowRectTag` */
+  windowRect?: WindowRectTag;
 };
 /**
  * Unless given, `block` defaults to 'material' for the 'material' variant and to 'object' otherwise.
@@ -298,7 +327,8 @@ export type RenderableSchema = {
     | TextureSpec<TextureKind>
     | ValueSpec<ValueKind>
     | DefineSpec<DefineKind>
-    | ElementsSpec<ElementsKind>;
+    | ElementsSpec<ElementsKind>
+    | StorageBufferSpec;
 };
 export type RenderableValues = { readonly [k: string]: ValueCell<any> };
 
@@ -312,10 +342,10 @@ export const GlobalUniformSchema = {
   uInvView: GlobalUniformSpec('m4'),
   uModelView: GlobalUniformSpec('m4'),
   uInvModelView: GlobalUniformSpec('m4'),
-  uProjection: GlobalUniformSpec('m4'),
-  uInvProjection: GlobalUniformSpec('m4'),
-  uModelViewProjection: GlobalUniformSpec('m4'),
-  uInvModelViewProjection: GlobalUniformSpec('m4'),
+  uProjection: { ...GlobalUniformSpec('m4'), depthRange: 'projection' as const },
+  uInvProjection: { ...GlobalUniformSpec('m4'), depthRange: 'inverse' as const },
+  uModelViewProjection: { ...GlobalUniformSpec('m4'), depthRange: 'projection' as const },
+  uInvModelViewProjection: { ...GlobalUniformSpec('m4'), depthRange: 'inverse' as const },
   uHasHeadRotation: GlobalUniformSpec('b'),
   uInvHeadRotation: GlobalUniformSpec('m4'),
   uIsAsymmetricProjection: GlobalUniformSpec('b'),
@@ -435,6 +465,8 @@ export type SegmentValues = Values<SegmentSchema>;
 export const ColorSchema = {
   uColor: MaterialUniformSpec('v3'),
   uColorTexDim: ObjectUniformSpec('v2'),
+  /** the index of `tColor` the 'texture' color type reads, see `ColorTypeIndex` */
+  uColorIndexType: ObjectUniformSpec('i'),
   uColorGridDim: ObjectUniformSpec('v3'),
   uColorGridTransform: ObjectUniformSpec('v4'),
   uPaletteDomain: ObjectUniformSpec('v2'),
@@ -442,19 +474,15 @@ export const ColorSchema = {
   tColor: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
   tPalette: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest', undefined, { usedIf: ['dUsePalette'] }),
   tColorGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
-    usedIf: ['dColorType_volume', 'dColorType_volumeInstance'],
+    usedIf: ['dColorType_grid'],
   }),
-  dColorType: DefineSpec('string', [
-    'uniform',
-    'instance',
-    'group',
-    'groupInstance',
-    'vertex',
-    'vertexInstance',
-    'volume',
-    'volumeInstance',
-    'direct',
-  ]),
+  /**
+   * the color type's define (`getColorTypeDefine`): the texture types share 'texture', the grid types 'grid',
+   * `uColorIndexType` selects
+   */
+  dColorType: DefineSpec('string', ['uniform', 'texture', 'grid', 'direct']),
+  /** the color type (`ColorType`) */
+  colorType: ValueSpec('string'),
   dUsePalette: DefineSpec('boolean'),
 } as const;
 export type ColorSchema = typeof ColorSchema;
@@ -464,7 +492,12 @@ export const SizeSchema = {
   uSize: MaterialUniformSpec('f'),
   uSizeTexDim: ObjectUniformSpec('v2'),
   tSize: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
-  dSizeType: DefineSpec('string', ['uniform', 'instance', 'group', 'groupInstance']),
+  /** the index of `tSize` by the size type (`SizeTypeIndex`) */
+  uSizeIndexType: ObjectUniformSpec('i'),
+  /** the size type's define (`getSizeTypeDefine`): the texture types share 'texture', `uSizeIndexType` selects */
+  dSizeType: DefineSpec('string', ['uniform', 'texture']),
+  /** the size type (`SizeType`) */
+  sizeType: ValueSpec('string'),
   uSizeFactor: MaterialUniformSpec('f'),
 } as const;
 export type SizeSchema = typeof SizeSchema;
@@ -476,7 +509,8 @@ export const MarkerSchema = {
   tMarker: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   markerAverage: ValueSpec('number'),
   markerStatus: ValueSpec('number'),
-  dMarkerType: DefineSpec('string', ['instance', 'groupInstance']),
+  /** the marker type (`MarkerType`); `uInstanceGranularity` selects the index */
+  markerType: ValueSpec('string'),
 } as const;
 export type MarkerSchema = typeof MarkerSchema;
 export type MarkerValues = Values<MarkerSchema>;
@@ -491,7 +525,10 @@ export const OverpaintSchema = {
   tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
     usedIf: ['dOverpaintType_volumeInstance'],
   }),
-  dOverpaintType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+  /** the layer type (`LayerType`) */
+  overpaintType: ValueSpec('string'),
+  /** the layer type's define (`getLayerTypeDefine`): instance and groupInstance share 'texture' */
+  dOverpaintType: DefineSpec('string', ['texture', 'vertexInstance', 'volumeInstance']),
   uOverpaintStrength: MaterialUniformSpec('f'),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema;
@@ -509,7 +546,10 @@ export const TransparencySchema = {
   tTransparencyGrid: TextureSpec('texture', 'r', 'ubyte', 'linear', undefined, {
     usedIf: ['dTransparencyType_volumeInstance'],
   }),
-  dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+  /** the layer type (`LayerType`) */
+  transparencyType: ValueSpec('string'),
+  /** the layer type's define (`getLayerTypeDefine`): instance and groupInstance share 'texture' */
+  dTransparencyType: DefineSpec('string', ['texture', 'vertexInstance', 'volumeInstance']),
   uTransparencyStrength: MaterialUniformSpec('f'),
 } as const;
 export type TransparencySchema = typeof TransparencySchema;
@@ -526,7 +566,10 @@ export const EmissiveSchema = {
   tEmissiveGrid: TextureSpec('texture', 'r', 'ubyte', 'linear', undefined, {
     usedIf: ['dEmissiveType_volumeInstance'],
   }),
-  dEmissiveType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+  /** the layer type (`LayerType`) */
+  emissiveType: ValueSpec('string'),
+  /** the layer type's define (`getLayerTypeDefine`): instance and groupInstance share 'texture' */
+  dEmissiveType: DefineSpec('string', ['texture', 'vertexInstance', 'volumeInstance']),
   uEmissiveStrength: MaterialUniformSpec('f'),
 } as const;
 export type EmissiveSchema = typeof EmissiveSchema;
@@ -542,7 +585,10 @@ export const SubstanceSchema = {
   tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
     usedIf: ['dSubstanceType_volumeInstance'],
   }),
-  dSubstanceType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+  /** the layer type (`LayerType`) */
+  substanceType: ValueSpec('string'),
+  /** the layer type's define (`getLayerTypeDefine`): instance and groupInstance share 'texture' */
+  dSubstanceType: DefineSpec('string', ['texture', 'vertexInstance', 'volumeInstance']),
   uSubstanceStrength: MaterialUniformSpec('f'),
 } as const;
 export type SubstanceSchema = typeof SubstanceSchema;
@@ -552,7 +598,8 @@ export const ClippingSchema = {
   uClippingTexDim: ObjectUniformSpec('v2'),
   tClipping: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   dClipping: DefineSpec('boolean'),
-  dClippingType: DefineSpec('string', ['instance', 'groupInstance']),
+  /** the clipping type (`ClippingType`); `uInstanceGranularity` selects the index */
+  clippingType: ValueSpec('string'),
 } as const;
 export type ClippingSchema = typeof ClippingSchema;
 export type ClippingValues = Values<ClippingSchema>;
@@ -562,7 +609,8 @@ export const WiggleSchema = {
   tWiggle: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   dWiggle: DefineSpec('boolean'),
   wiggleAverage: ValueSpec('number'),
-  dWiggleType: DefineSpec('string', ['instance', 'groupInstance']),
+  /** the wiggle type (`WiggleType`); `uInstanceGranularity` selects the index */
+  wiggleType: ValueSpec('string'),
   uWiggleStrength: MaterialUniformSpec('f'),
 } as const;
 export type WiggleSchema = typeof WiggleSchema;
@@ -629,6 +677,11 @@ export const BaseSchema = {
 
   drawCount: ValueSpec('number'),
   instanceCount: ValueSpec('number'),
+  /**
+   * Vertex count from a GPU buffer (WebGPU), drawn instead of `drawCount` without multi-draws; `drawCount` is then an
+   * upper bound (multi-draws draw it, beyond the vertex count the geometry must not be drawn, e.g. clipped)
+   */
+  drawIndirect: ValueSpec('drawIndirect'),
 
   /** base alpha, see uAlpha  */
   alpha: ValueSpec('number'),
@@ -643,8 +696,11 @@ export const BaseSchema = {
   hasExtraTransform: ValueSpec('boolean'),
   /** denotes reflection in transform */
   hasReflection: ValueSpec('boolean'),
-  /** use instance granularity for marker, transparency, clipping, overpaint, substance */
-  instanceGranularity: ValueSpec('boolean'),
+  /**
+   * instance granularity: the marker and layer data per instance, else per group instance; selects their index at
+   * runtime, one program for both
+   */
+  uInstanceGranularity: ObjectUniformSpec('b'),
 
   /** bounding sphere taking aTransform into account and encompases all instances */
   boundingSphere: ValueSpec('sphere'),

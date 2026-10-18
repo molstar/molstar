@@ -43,8 +43,8 @@ fn getViewZ(depth: f32) -> f32 {
 }
 
 fn isBackground(depth: f32) -> bool {
-    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32
-    return depth >= 0.99999994;
+    // the far plane (depth is reversed), packed or raw
+    return depth == 0.0;
 }
 
 fn getFogFactor(depth: f32) -> f32 {
@@ -63,7 +63,7 @@ fn getOutline(coords: vec2<f32>) -> Outline {
     let invTexSize = 1.0 / uObject.uTexSize;
     let squaredOutlineScale = oOutlineScale * oOutlineScale;
 
-    var o = Outline(false, false, 1.0, 1.0, 0.0);
+    var o = Outline(false, false, 0.0, 0.0, 0.0);
     for (var y = -oOutlineScale; y <= oOutlineScale; y++) {
         for (var x = -oOutlineScale; x <= oOutlineScale; x++) {
             if (x * x + y * y > squaredOutlineScale) {
@@ -84,12 +84,12 @@ fn getOutline(coords: vec2<f32>) -> Outline {
             let isTransparent = sampleFlag > 0.45 && sampleFlag < 0.55;
             let isBoth = sampleFlag > 0.70 && sampleFlag < 0.80;
 
-            if ((isOpaque || isBoth) && sampleOpaqueDepth < o.opaqueDepth) {
+            if ((isOpaque || isBoth) && sampleOpaqueDepth > o.opaqueDepth) {
                 o.hasOpaque = true;
                 o.opaqueDepth = sampleOpaqueDepth;
             }
 
-            if ((isTransparent || isBoth) && sampleTransparentDepth < o.transparentDepth) {
+            if ((isTransparent || isBoth) && sampleTransparentDepth > o.transparentDepth) {
                 o.hasTransparent = true;
                 o.transparentDepth = sampleTransparentDepth;
                 o.alpha = sampleAlpha;
@@ -101,7 +101,7 @@ fn getOutline(coords: vec2<f32>) -> Outline {
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, uObject.uTexSize);
+    let coords = fragmentUv(in.position, uObject.uTexSize);
     var color = read_tColor(coords);
     let opaqueDepth = read_tDepthOpaque(coords).r;
     let transparentBackground = uObject.uTransparentBackground != 0u;
@@ -121,7 +121,11 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
     #if defined(dOcclusionEnable)
         if (!isOpaqueBackground) {
-            let occlusionFactor = unpackSsao(read_tSsaoDepth(coords + uObject.uOcclusionOffset));
+            #if defined(dOcclusionUpsample)
+                let occlusionFactor = getSsaoUpsampled(tSsaoDepth, coords + uObject.uOcclusionOffset, getViewZ(opaqueDepth), uObject.uNear, uObject.uFar);
+            #else
+                let occlusionFactor = unpackSsao(read_tSsaoDepth(coords + uObject.uOcclusionOffset));
+            #endif
             if (!transparentBackground) {
                 color = vec4<f32>(mix(mix(uObject.uOcclusionColor, uObject.uFogColor, fogFactor), color.rgb, occlusionFactor), color.a);
             } else {
@@ -131,7 +135,11 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         #if defined(dBlendTransparency) && defined(dOcclusionIncludeTransparency)
             if (!isBackground(transparentDepth)) {
                 let transparentFogFactor = getFogFactor(transparentDepth);
-                let occlusionFactor = unpackSsao(read_tSsaoDepthTransparent(coords + uObject.uOcclusionOffset));
+                #if defined(dOcclusionUpsample)
+                    let occlusionFactor = getSsaoUpsampled(tSsaoDepthTransparent, coords + uObject.uOcclusionOffset, getViewZ(transparentDepth), uObject.uNear, uObject.uFar);
+                #else
+                    let occlusionFactor = unpackSsao(read_tSsaoDepthTransparent(coords + uObject.uOcclusionOffset));
+                #endif
                 transparentColor = vec4<f32>(mix(uObject.uOcclusionColor * (1.0 - transparentFogFactor), transparentColor.rgb, occlusionFactor), transparentColor.a);
             }
         #endif
@@ -163,7 +171,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
         #if defined(dBlendTransparency)
             if (outline.hasTransparent) {
-                if (outline.hasOpaque && outline.opaqueDepth < outline.transparentDepth) {
+                if (outline.hasOpaque && outline.opaqueDepth > outline.transparentDepth) {
                     blendTransparency = false;
                 } else {
                     let finalOutlineAlpha = clamp(outline.alpha * 2.0, 0.0, 1.0);

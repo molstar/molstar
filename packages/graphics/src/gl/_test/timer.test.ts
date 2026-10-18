@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { isDebugMode, setDebugMode } from '@molstar/core/util/debug';
 import { createGraphicsStats } from '../stats.js';
 import { createGraphicsTimer, type TimerResult, type TimerSource } from '../timer.js';
@@ -53,11 +54,11 @@ function find(results: readonly TimerResult[], label: string): TimerResult | und
 
 describe('graphics timer', () => {
   let debugMode = false;
-  let warn: jest.SpyInstance;
+  let warn: MockInstance;
   beforeEach(() => {
     debugMode = isDebugMode;
     setDebugMode(true);
-    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => {
     setDebugMode(debugMode);
@@ -100,6 +101,26 @@ describe('graphics timer', () => {
     expect(b.children.map((c) => [c.label, c.gpuElapsed])).toEqual([
       ['pass Y', 10],
       ['pass Z', 10],
+    ]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('times compute passes like render passes', () => {
+    const { timer, draw } = setup();
+    timer.group('A');
+    timer.passBegin('compute', 'scan');
+    timer.passBegin('drawing-buffer', 'X');
+    draw();
+    timer.passBegin('compute');
+    timer.passEnd();
+    timer.groupEnd('A');
+
+    const a = timer.resolve()[0];
+    expect(a.gpuElapsed).toBe(30);
+    expect(a.children.map((c) => [c.label, c.gpuElapsed])).toEqual([
+      ['pass scan', 10],
+      ['pass X', 10],
+      ['pass compute', 10],
     ]);
     expect(warn).not.toHaveBeenCalled();
   });

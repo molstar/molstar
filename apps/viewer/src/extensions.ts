@@ -19,7 +19,7 @@ import {
   MAQualityAssessmentConfig,
 } from '@molstar/model-archive-extension/quality-assessment/behavior';
 import { ModelExport } from '@molstar/model-export-extension';
-import { Mp4Export } from '@molstar/mp4-export-extension';
+import { VideoExport } from '@molstar/video-export-extension';
 import { loadMVS } from '@molstar/mvs';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVSData } from '@molstar/mvs/components/formats';
@@ -43,7 +43,7 @@ export const ExtensionMap = {
   backgrounds: PluginSpec.Behavior(Backgrounds),
   'debug-helpers': PluginSpec.Behavior(DebugHelpers),
   'model-export': PluginSpec.Behavior(ModelExport),
-  'mp4-export': PluginSpec.Behavior(Mp4Export),
+  'video-export': PluginSpec.Behavior(VideoExport),
   'geo-export': PluginSpec.Behavior(GeometryExport),
   'zenodo-import': PluginSpec.Behavior(ZenodoImport),
   'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),

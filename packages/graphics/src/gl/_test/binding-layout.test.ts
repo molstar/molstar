@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { getAttributeLayout } from '../attribute-layout.js';
 import { CylindersSchema } from '../renderable/cylinders.js';
 import { DirectVolumeSchema } from '../renderable/direct-volume.js';

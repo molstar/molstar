@@ -5,7 +5,7 @@
   "description": "Mol* core",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -51,6 +51,7 @@
     "./math/linear-algebra/_test/*": null,
     "./state/_test/*": null,
     "./util/_test/*": null,
+    "./util/input/_test/*": null,
     "./util/color/_test/*": null
   },
   "files": [

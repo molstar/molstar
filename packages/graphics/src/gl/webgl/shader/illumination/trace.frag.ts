@@ -87,7 +87,7 @@ float getThickness(const in vec2 coords) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 float getViewZ(const in float depth) {
@@ -109,7 +109,8 @@ vec2 viewSpaceToScreenSpace(const vec3 position) {
 float getRayOffset(const vec3 position) {
     vec4 projectedCoord = uProjection * vec4(position, 1.0);
     projectedCoord.xyz /= projectedCoord.w;
-    projectedCoord.xyz = projectedCoord.xyz * 0.5 + 0.5;
+    projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
+    projectedCoord.z = clipZToDepth(projectedCoord.z);
     float viewportWidth = uTexSize.x * (uBounds.z - uBounds.x);
     vec3 adjacentPosition = screenSpaceToViewSpace(vec3(projectedCoord.xy + vec2(1.0 / viewportWidth, 0.0), projectedCoord.z), uInvProjection);
     return max(distance(position, adjacentPosition) * 0.1, 0.001);
@@ -122,7 +123,7 @@ vec2 binarySearch(inout vec3 dir, inout vec3 hitPos) {
     dir *= 0.5;
     hitPos -= dir;
 
-    for (int i = 0; i < dRefineSteps; i++) {
+    for (int i = 0; i < uRefineSteps; i++) {
         coords = viewSpaceToScreenSpace(hitPos);
         float depth = getDepth(coords);
         float z = getViewZ(depth);
@@ -152,9 +153,9 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
     float begin = getRayOffset(hitPos);
     dir *= begin;
     missed = false;
-    float gf = calculateGrowthFactor(begin, uRayDistance, float(dSteps));
+    float gf = calculateGrowthFactor(begin, uRayDistance, float(uSteps));
 
-    for (int i = 1; i < dSteps; i++) {
+    for (int i = 1; i < uSteps; i++) {
         hitPos += dir;
         float stepZ = abs(dir.z);
         dir *= gf;
@@ -175,7 +176,7 @@ vec2 rayMarch(in vec3 dir, in float thickness, inout vec3 hitPos, out bool misse
             }
 
             if (rayHitDepthDifference < max(t, stepZ)) {
-                if (dRefineSteps == 0) {
+                if (uRefineSteps == 0) {
                     return coords;
                 } else {
                     return binarySearch(dir, hitPos);
@@ -343,8 +344,8 @@ void main() {
 
     // raytrace for this pixel
     vec3 color = vec3(0.0, 0.0, 0.0);
-    for (int index = 0; index < int(dRendersPerFrame); ++index) {
-        color += colorForRay(cameraPos, rayDir, rngState) / float(dRendersPerFrame);
+    for (int index = 0; index < int(uRendersPerFrame); ++index) {
+        color += colorForRay(cameraPos, rayDir, rngState) / float(uRendersPerFrame);
     }
 
     // average the frames together

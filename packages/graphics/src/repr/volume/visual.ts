@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Visual, type VisualContext } from '../visual.js';
 import { Grid, Volume } from '@molstar/model/model/volume';
@@ -16,7 +17,7 @@ import {
   createTransform,
   type TransformData,
 } from '@molstar/graphics/geo/geometry/transform-data';
-import { createRenderObject, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { createRenderObject, type GraphicsRenderObject, hasForeignTextures } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
@@ -31,7 +32,6 @@ import type { Overpaint } from '@molstar/graphics/theme/overpaint';
 import type { Transparency } from '@molstar/graphics/theme/transparency';
 import type { SizeValues } from '@molstar/graphics/gl/renderable/schema';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
-import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import type { Substance } from '@molstar/graphics/theme/substance';
 import { createMarkers } from '@molstar/graphics/geo/geometry/marker-data';
 import type { Emissive } from '@molstar/graphics/theme/emissive';
@@ -39,6 +39,7 @@ import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import type { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { BaseGeometry, resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
+import { getGeometrySignatures, type SignatureContext, type SignatureDefines } from '@molstar/graphics/repr/signatures';
 
 export const VolumeParams = {
   ...BaseGeometry.Params,
@@ -81,6 +82,8 @@ function createVolumeRenderObject<G extends Geometry>(
 }
 
 interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
+  /** define values the visual decides (e.g. varying groups), for its signatures, see `getGeometrySignatures` */
+  signatureDefines?: (props: PD.Values<P>, graphics?: GraphicsContext) => SignatureDefines;
   defaultProps: PD.Values<P>;
   createGeometry(
     ctx: VisualContext,
@@ -153,7 +156,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
   let locationIt: LocationIterator;
   let positionIt: LocationIterator;
 
-  function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, volume: Volume, key: number) {
+  function prepareUpdate(
+    theme: Theme,
+    props: Partial<PD.Values<P>>,
+    volume: Volume,
+    key: number,
+    graphics?: GraphicsContext,
+  ) {
     if (!volume && !currentVolume) {
       throw new Error('missing volume');
     }
@@ -183,6 +192,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     }
 
     setUpdateState(updateState, newVolume, currentVolume, newProps, currentProps, newTheme, currentTheme);
+
+    // after a backend switch: textures of the previous context are rendered or computed again, geometry relying on what
+    // the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
+    if (graphics && renderObject && hasForeignTextures(renderObject, graphics)) updateState.createGeometry = true;
+    if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
+      updateState.createGeometry = true;
+    }
 
     if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
       updateState.updateColor = true;
@@ -382,13 +398,14 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
       return geometryVersion;
     },
     async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volumeKey?: VolumeKey) {
-      prepareUpdate(theme, props, volumeKey?.volume || currentVolume, volumeKey?.key || currentKey);
+      prepareUpdate(theme, props, volumeKey?.volume || currentVolume, volumeKey?.key || currentKey, ctx.graphics);
       if (updateState.createGeometry) {
         const newGeometry = createGeometry(ctx, newVolume, newKey, newTheme, newProps, geometry);
-        return isPromiseLike(newGeometry) ? newGeometry.then(update) : update(newGeometry);
-      } else {
-        update();
+        return Visual.withPreparedGeometry(newGeometry, builder.geometryUtils, newTheme, ctx.graphics, (g) =>
+          update(g),
+        );
       }
+      return Visual.withPreparedGeometry(geometry, builder.geometryUtils, newTheme, ctx.graphics, () => update());
     },
     getLoci(pickingId: PickingId) {
       if (!renderObject) return EmptyLoci;
@@ -457,6 +474,10 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         renderObject.state.disposed = true;
         renderObject = undefined;
       }
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
+      const p = { ...defaultProps, ...props };
+      return getGeometrySignatures(builder.geometryUtils, p, ctx, builder.signatureDefines?.(p, ctx.graphics));
     },
     mustRecreate,
   };

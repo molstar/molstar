@@ -21,6 +21,7 @@ import { cas_wgsl } from './cas.wgsl.js';
 import { direct_volume_wgsl } from './direct-volume.wgsl.js';
 import { dof_wgsl } from './dof.wgsl.js';
 import { illumination_compose_wgsl, trace_wgsl } from './illumination.wgsl.js';
+import { hi_z_wgsl } from './hi-z.wgsl.js';
 import { image_wgsl } from './image.wgsl.js';
 import { fxaa_wgsl } from './fxaa.wgsl.js';
 import { outlines_wgsl } from './outlines.wgsl.js';
@@ -48,14 +49,22 @@ function value(defines: DefineValues, name: string) {
 /** Render variants of the graphics programs, `color` with the transparency it is drawn with */
 const PortedVariants = ['colorBlended', 'colorWboit', 'colorDpoit', 'pick', 'depth', 'marking', 'emissive', 'tracing'];
 
-/** Data types other than these per-instance ones need volume or segment support */
-const InstanceTypes = new Set(['uniform', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']);
+/** Data types other than these per-instance ones need volume support (layers: 'texture', see `getLayerTypeDefine`) */
+const InstanceTypes = new Set(['texture', 'vertexInstance']);
+
+/** Color types (`dColorType`: the types read by index share 'texture', see `getColorTypeDefine`) */
+const ColorTypes = new Set(['uniform', 'texture']);
+/** The grid color types' define, read by the mesh programs */
+const GridColorType = 'grid';
+
+/** Grid data (smoothed colors etc.), read by the mesh programs */
+const GridTypes = new Set(['volume', 'volumeInstance']);
 
 /** Features the ported color variants share and don't implement yet */
 function getUnsupported(
   geometryTypes: string | string[],
   defines: DefineValues,
-  options: { solidInterior?: boolean } = {},
+  options: { solidInterior?: boolean; grid?: boolean } = {},
 ) {
   const variant = value(defines, 'dRenderVariant');
   if (!PortedVariants.includes(variant as string)) {
@@ -63,16 +72,14 @@ function getUnsupported(
   }
   const geometryType = value(defines, 'dGeometryType') as string;
   if (!([] as string[]).concat(geometryTypes).includes(geometryType)) return `geometry type '${geometryType}'`;
+  const isSupported = (t: string) => InstanceTypes.has(t) || (!!options.grid && GridTypes.has(t));
   const color = value(defines, 'dColorType') as string;
-  if (!InstanceTypes.has(color)) return `color type '${color}'`;
-  if (value(defines, 'dUsePalette')) return 'palettes';
-  for (const type of ['dOverpaintType', 'dTransparencyType', 'dEmissiveType', 'dSubstanceType', 'dMarkerType']) {
+  if (!ColorTypes.has(color) && !(options.grid && color === GridColorType)) return `color type '${color}'`;
+  for (const type of ['dOverpaintType', 'dTransparencyType', 'dEmissiveType', 'dSubstanceType']) {
     const v = value(defines, type) as string | undefined;
-    if (v !== undefined && !InstanceTypes.has(v)) return `${type} '${v}'`;
+    if (v !== undefined && !isSupported(v)) return `${type} '${v}'`;
   }
   if (value(defines, 'dSolidInterior') && !options.solidInterior) return 'solid interiors';
-  if (value(defines, 'dSegmented')) return 'merged render items';
-  if (value(defines, 'dWiggle')) return 'wiggle textures';
 }
 
 /** Features of images not implemented yet */
@@ -89,14 +96,14 @@ function getDirectVolumeUnsupported(defines: DefineValues) {
   if (!['colorBlended', 'colorWboit', 'colorDpoit'].includes(variant)) return `render variant '${variant}'`;
   if (value(defines, 'dGridTexType') !== '3d') return `grid texture type '${value(defines, 'dGridTexType')}'`;
   const color = value(defines, 'dColorType') as string;
-  if (!InstanceTypes.has(color) && color !== 'direct') return `color type '${color}'`;
+  if (!ColorTypes.has(color) && color !== 'direct') return `color type '${color}'`;
 }
 
 const Programs: { [name: string]: WgslProgram } = {
   mesh: {
     source: mesh_wgsl,
     variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
-    getUnsupported: (d) => getUnsupported(['mesh', 'textureMesh'], d, { solidInterior: true }),
+    getUnsupported: (d) => getUnsupported(['mesh', 'textureMesh'], d, { solidInterior: true, grid: true }),
   },
   spheres: {
     source: spheres_wgsl,
@@ -115,6 +122,7 @@ const Programs: { [name: string]: WgslProgram } = {
     getUnsupported: (d) => (value(d, 'dPackDepth') ? 'packed depth copies' : undefined),
   },
   ssao: { source: ssao_wgsl, variants: ['compute'] },
+  'hi-z': { source: hi_z_wgsl, variants: ['compute'] },
   edge: { source: edge_wgsl, variants: ['compute'] },
   'evaluate-wboit': { source: evaluate_wboit_wgsl, variants: ['compute'] },
   'Bloom Luminosity': { source: bloom_luminosity_wgsl, variants: ['compute'] },

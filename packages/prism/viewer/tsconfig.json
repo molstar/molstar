@@ -1,0 +1,47 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "jsxImportSource": "@molstar/prism-ui/dom",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
+  "references": [
+    {
+      "path": "../../core"
+    },
+    {
+      "path": "../../graphics"
+    },
+    {
+      "path": "../../model"
+    },
+    {
+      "path": "../../plugin/core"
+    },
+    {
+      "path": "../ui"
+    },
+    {
+      "path": "../../sequences/core"
+    },
+    {
+      "path": "../../sequences/viewer"
+    },
+    {
+      "path": "../../io"
+    },
+    {
+      "path": "../../mvs/runtime"
+    },
+    {
+      "path": "../../query-language"
+    },
+    {
+      "path": "../../ai"
+    }
+  ]
+}

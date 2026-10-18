@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
@@ -82,7 +83,7 @@ describe('parseTrajectory(blob)', () => {
   });
 
   it('the structure builder does not import the mmCIF module', () => {
-    const source = fs.readFileSync(path.resolve(__dirname, '../../builder/structure.ts'), 'utf8');
+    const source = fs.readFileSync(path.resolve(import.meta.dirname, '../../builder/structure.ts'), 'utf8');
     const imports = source.split('\n').filter((l) => l.startsWith('import ') && !l.startsWith('import type'));
     expect(imports.filter((l) => /formats\/(cif|trajectory)/.test(l))).toEqual([]);
   });

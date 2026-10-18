@@ -24,6 +24,7 @@ import { Subject } from 'rxjs';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VolumeVisual } from './visual.js';
+import { getFactorySignatures, getQualitySignatures, type SignatureContext } from '../signatures.js';
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> {}
 
@@ -61,7 +62,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
   getKeys: (props: PD.Values<P>, volume: Volume) => ArrayLike<number> = () => [-1],
 ): VolumeRepresentation<P> {
   let version = 0;
-  const { graphics } = ctx;
+  let { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const materialId = getNextMaterialId();
@@ -243,6 +244,19 @@ export function VolumeRepresentation<P extends VolumeParams>(
       });
     },
     mark,
+    setGraphics: (value: GraphicsContext) => {
+      graphics = value;
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
+      getQualitySignatures(props, (props) =>
+        getFactorySignatures(
+          visualCtor,
+          // without a volume: factories that read it name their visuals
+          () => visualCtor(materialId, undefined as unknown as Volume, -1, props, ctx.graphics),
+          props,
+          ctx,
+        ),
+      ),
     destroy,
   };
 }

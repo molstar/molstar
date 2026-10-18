@@ -89,7 +89,7 @@ async function main() {
   await plugin.runTask(
     Task.create('Export Geometry', async (ctx) => {
       for (let i = 0, il = meshes.length; i < il; ++i) {
-        await renderObjectExporter.add(meshes[i], plugin.canvas3d?.webgl!, ctx);
+        await renderObjectExporter.add(meshes[i], plugin.canvas3d!.graphics, ctx);
       }
 
       const blob = await renderObjectExporter.getBlob(ctx);

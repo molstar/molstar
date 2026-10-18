@@ -7,6 +7,7 @@
  * Adapted from https://github.com/tsherif/webgl2examples, The MIT License, Copyright © 2017 Tarek Sherif, Shuai Shao
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -62,6 +63,8 @@ function getEvaluateDpoitRenderable(ctx: GraphicsContext, dpoitFrontColorTexture
   return createComputeRenderable(renderItem, values);
 }
 
+const DpoitCapabilities = ['floatBlend', 'depthTexture', 'multipleRenderTargets'] as const;
+
 export class DpoitPass {
   private readonly DEPTH_CLEAR_VALUE = -99999.0; // NOTE same constant is set in shaders
   private readonly MAX_DEPTH = 1.0;
@@ -98,25 +101,25 @@ export class DpoitPass {
     );
   }
 
-  bind() {
+  bind(b: PassBuilder) {
     // initialize
     this.passCount = 0;
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[0], {
+    b.begin(this.depthFramebuffers[0], {
       label: 'dpoit clear',
       clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] },
     });
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[1], {
+    b.begin(this.depthFramebuffers[1], {
       label: 'dpoit clear',
       clear: { color: [-this.MIN_DEPTH, this.MAX_DEPTH, 0, 0] },
     });
 
-    this.graphics.beginRenderPass(this.colorFramebuffers[0], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
+    b.begin(this.colorFramebuffers[0], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
 
-    this.graphics.beginRenderPass(this.colorFramebuffers[1], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
+    b.begin(this.colorFramebuffers[1], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[0], { label: 'dpoit transparent' });
+    b.begin(this.depthFramebuffers[0], { label: 'dpoit transparent' });
 
     return {
       depth: this.depthTextures[1],
@@ -125,23 +128,23 @@ export class DpoitPass {
     };
   }
 
-  bindDualDepthPeeling() {
+  bindDualDepthPeeling(b: PassBuilder) {
     this.readId = this.passCount % 2;
     this.writeId = 1 - this.readId; // ping-pong: 0 or 1
 
     this.passCount += 1; // increment for next pass
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[this.writeId], {
+    b.begin(this.depthFramebuffers[this.writeId], {
       label: 'dpoit clear',
       clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] },
     });
 
-    this.graphics.beginRenderPass(this.colorFramebuffers[this.writeId], {
+    b.begin(this.colorFramebuffers[this.writeId], {
       label: 'dpoit clear',
       clear: { color: [0, 0, 0, 0] },
     });
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[this.writeId], { label: 'dpoit transparent' });
+    b.begin(this.depthFramebuffers[this.writeId], { label: 'dpoit transparent' });
 
     return {
       depth: this.depthTextures[this.readId],
@@ -150,22 +153,18 @@ export class DpoitPass {
     };
   }
 
-  renderBlendBack() {
-    this.graphics.setRenderState(RenderState.Alpha);
-
+  renderBlendBack(b: PassBuilder) {
     ValueCell.update(this.blendBackRenderable.values.tDpoitBackColor, this.colorBackTextures[this.writeId]);
 
     this.blendBackRenderable.update();
-    this.blendBackRenderable.render();
+    b.quad(this.blendBackRenderable, RenderState.Alpha);
   }
 
-  render() {
-    this.graphics.setRenderState(RenderState.Premultiplied);
-
+  render(b: PassBuilder) {
     ValueCell.update(this.renderable.values.tDpoitFrontColor, this.colorFrontTextures[this.writeId]);
 
     this.renderable.update();
-    this.renderable.render();
+    b.quad(this.renderable, RenderState.Premultiplied);
   }
 
   setSize(width: number, height: number) {
@@ -187,10 +186,6 @@ export class DpoitPass {
     }
   }
 
-  reset() {
-    if (this._supported) this._init();
-  }
-
   private _init() {
     for (let i = 0; i < 2; i++) {
       // depth
@@ -209,31 +204,26 @@ export class DpoitPass {
     }
   }
 
-  static isSupported(graphics: GraphicsContext) {
+  /** Why dpoit is not available, if it is not: programs or capabilities missing */
+  static getUnsupportedReason(graphics: GraphicsContext): string | undefined {
     if (
       !graphics.isProgramSupported(EvaluateDpoitShaderCode) ||
       !graphics.isProgramSupported(BlendBackDpoitShaderCode)
     ) {
-      if (isDebugMode) console.log(`Programs required for "dpoit" not supported`);
-      return false;
+      return 'programs not supported';
     }
-    const { floatRenderTarget, depthTexture, multipleRenderTargets } = graphics.capabilities;
-    if (!floatRenderTarget || !depthTexture || !multipleRenderTargets) {
-      if (isDebugMode) {
-        const missing: string[] = [];
-        if (!floatRenderTarget) missing.push('floatRenderTarget');
-        if (!depthTexture) missing.push('depthTexture');
-        if (!multipleRenderTargets) missing.push('multipleRenderTargets');
-        console.log(`Missing "${missing.join('", "')}" capabilities required for "dpoit"`);
-      }
-      return false;
-    } else {
-      return true;
-    }
+    const missing = DpoitCapabilities.filter((k) => !graphics.capabilities[k]);
+    if (missing.length) return `missing ${missing.join(', ')}`;
+  }
+
+  static isSupported(graphics: GraphicsContext) {
+    const reason = DpoitPass.getUnsupportedReason(graphics);
+    if (reason && isDebugMode) console.log(`"dpoit" not supported: ${reason}`);
+    return !reason;
   }
 
   constructor(
-    private graphics: GraphicsContext,
+    graphics: GraphicsContext,
     width: number,
     height: number,
     private stencil: Renderbuffer | null = null,

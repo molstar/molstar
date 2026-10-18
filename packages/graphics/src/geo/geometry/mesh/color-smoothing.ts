@@ -4,6 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { setColorType } from '../color-data.js';
+import { setEmissiveType } from '../emissive-data.js';
+import { setOverpaintType } from '../overpaint-data.js';
+import { setSubstanceType } from '../substance-data.js';
+import { setTransparencyType } from '../transparency-data.js';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -12,6 +17,7 @@ import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import { lerp } from '@molstar/core/math/interpolate';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
+import { getFittingResolution } from '../texture-mesh/color-smoothing.js';
 import { ValueCell } from '@molstar/core/util';
 
 interface ColorSmoothingInput {
@@ -40,12 +46,21 @@ export function calcMeshColorSmoothing(
   graphics?: GraphicsContext,
   texture?: Texture,
 ) {
+  // a texture of another context (e.g. before a backend switch) is not reused
+  if (texture && graphics && !graphics.resources.ownsTexture(texture)) texture = undefined;
   const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, transformBuffer, groupBuffer, itemSize } =
     input;
-  const { resolution, stride } = options;
+  const { stride } = options;
 
   const isInstanceType = colorType.endsWith('Instance');
   const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
+  // the grid is uploaded into a texture with a graphics context
+  const resolution = graphics
+    ? getFittingResolution(box, options.resolution, graphics.resources.limits.maxTextureSize, (gridDim) => {
+        const { width, height } = getVolumeTexture2dLayout(gridDim);
+        return Math.max(width, height);
+      })
+    : options.resolution;
   const pad = 1 + resolution;
   const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
 
@@ -302,7 +317,7 @@ export function applyMeshColorSmoothing(
   graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
-  if (!isSupportedColorType(values.dColorType.ref.value)) return;
+  if (!isSupportedColorType(values.colorType.ref.value)) return;
 
   const smoothingData = calcMeshColorSmoothing(
     {
@@ -314,7 +329,7 @@ export function applyMeshColorSmoothing(
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
       colorData: values.tColor.ref.value,
-      colorType: values.dColorType.ref.value,
+      colorType: values.colorType.ref.value,
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
@@ -325,13 +340,13 @@ export function applyMeshColorSmoothing(
   );
 
   if (smoothingData.kind === 'volume') {
-    ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
+    setColorType(values, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);
     ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
     ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
-    ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
+    setColorType(values, smoothingData.type);
     ValueCell.update(values.tColor, smoothingData.texture);
     ValueCell.update(values.uColorTexDim, smoothingData.texDim);
   }
@@ -347,7 +362,7 @@ export function applyMeshOverpaintSmoothing(
   graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
-  if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
+  if (!isSupportedOverpaintType(values.overpaintType.ref.value)) return;
 
   const smoothingData = calcMeshColorSmoothing(
     {
@@ -359,7 +374,7 @@ export function applyMeshOverpaintSmoothing(
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
       colorData: values.tOverpaint.ref.value,
-      colorType: values.dOverpaintType.ref.value,
+      colorType: values.overpaintType.ref.value,
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
@@ -369,13 +384,13 @@ export function applyMeshOverpaintSmoothing(
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
-    ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
+    setOverpaintType(values, smoothingData.type);
     ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
     ValueCell.update(values.uOverpaintTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uOverpaintGridDim, smoothingData.gridDim);
     ValueCell.update(values.uOverpaintGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
-    ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
+    setOverpaintType(values, smoothingData.type);
     ValueCell.update(values.tOverpaint, smoothingData.texture);
     ValueCell.update(values.uOverpaintTexDim, smoothingData.texDim);
   }
@@ -391,7 +406,7 @@ export function applyMeshTransparencySmoothing(
   graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
-  if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
+  if (!isSupportedTransparencyType(values.transparencyType.ref.value)) return;
 
   const smoothingData = calcMeshColorSmoothing(
     {
@@ -403,7 +418,7 @@ export function applyMeshTransparencySmoothing(
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
       colorData: values.tTransparency.ref.value,
-      colorType: values.dTransparencyType.ref.value,
+      colorType: values.transparencyType.ref.value,
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 1,
@@ -413,13 +428,13 @@ export function applyMeshTransparencySmoothing(
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
-    ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
+    setTransparencyType(values, smoothingData.type);
     ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
     ValueCell.update(values.uTransparencyTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
     ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
-    ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
+    setTransparencyType(values, smoothingData.type);
     ValueCell.update(values.tTransparency, smoothingData.texture);
     ValueCell.update(values.uTransparencyTexDim, smoothingData.texDim);
   }
@@ -435,7 +450,7 @@ export function applyMeshEmissiveSmoothing(
   graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
-  if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
+  if (!isSupportedEmissiveType(values.emissiveType.ref.value)) return;
 
   const smoothingData = calcMeshColorSmoothing(
     {
@@ -447,7 +462,7 @@ export function applyMeshEmissiveSmoothing(
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
       colorData: values.tEmissive.ref.value,
-      colorType: values.dEmissiveType.ref.value,
+      colorType: values.emissiveType.ref.value,
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 1,
@@ -457,13 +472,13 @@ export function applyMeshEmissiveSmoothing(
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
-    ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
+    setEmissiveType(values, smoothingData.type);
     ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
     ValueCell.update(values.uEmissiveTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uEmissiveGridDim, smoothingData.gridDim);
     ValueCell.update(values.uEmissiveGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
-    ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
+    setEmissiveType(values, smoothingData.type);
     ValueCell.update(values.tEmissive, smoothingData.texture);
     ValueCell.update(values.uEmissiveTexDim, smoothingData.texDim);
   }
@@ -479,7 +494,7 @@ export function applyMeshSubstanceSmoothing(
   graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
-  if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
+  if (!isSupportedSubstanceType(values.substanceType.ref.value)) return;
 
   const smoothingData = calcMeshColorSmoothing(
     {
@@ -491,7 +506,7 @@ export function applyMeshSubstanceSmoothing(
       positionBuffer: values.aPosition.ref.value,
       groupBuffer: values.aGroup.ref.value,
       colorData: values.tSubstance.ref.value,
-      colorType: values.dSubstanceType.ref.value,
+      colorType: values.substanceType.ref.value,
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
@@ -501,13 +516,13 @@ export function applyMeshSubstanceSmoothing(
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
-    ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
+    setSubstanceType(values, smoothingData.type);
     ValueCell.update(values.tSubstanceGrid, smoothingData.texture);
     ValueCell.update(values.uSubstanceTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uSubstanceGridDim, smoothingData.gridDim);
     ValueCell.update(values.uSubstanceGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
-    ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
+    setSubstanceType(values, smoothingData.type);
     ValueCell.update(values.tSubstance, smoothingData.texture);
     ValueCell.update(values.uSubstanceTexDim, smoothingData.texDim);
   }

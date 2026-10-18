@@ -2,14 +2,19 @@
 
 ## Status
 
-- Steps 1, 2 and 3 (3a-3f) done, step 4 done; steps 5-6 not started. Goal: code outside `gl/webgl/` (and later
-  `gl/webgpu/`) depends only on backend-neutral interfaces, so a WebGPU backend can be added next to WebGL1/2 (see
-  [minimum-capabilities.md](minimum-capabilities.md) for targets and the minimum-spec rule).
+- **Current**: done, steps 1–6. Step 5 (synchronization and readback) through
+  [backend-narrowing.md](backend-narrowing.md) steps 1–4 (`readTextureData`, texture readers, neutral picking and Hi-Z);
+  step 6 (context creation and loss) through [backend-selection.md](backend-selection.md) step 1 and backend-narrowing
+  step 5 (neutral loss and restore). WebGPU reads asynchronously only (synchronous reads dropped,
+  [webgpu-sync-readback.md](webgpu-sync-readback.md)). Open: lazy pass internals (optional).
+- Goal: code outside `gl/webgl/` (and later `gl/webgpu/`) depends only on backend-neutral interfaces, so a WebGPU
+  backend can be added next to WebGL1/2 (see [minimum-capabilities.md](minimum-capabilities.md) for targets and the
+  minimum-spec rule).
 - Already neutral: renderable schema, `uniform-layout.ts`, `attribute-layout.ts`, `getBindingLayout`, the shader/schema
   inventory (`_test/graphics-shaders.ts`, `_test/compute-shaders.ts`); all GLSL declarations are generated from the
   schema ([compute-shader-declarations.md](compute-shader-declarations.md)).
-- Still WebGL-specific: readback and fences (pick, hi-z, image, compute: step 5), `shader-code.ts` and GLSL 100
-  workarounds (WGSL strategy plan); guard test allowlists.
+- Backend-specific outside the backends: only context creation (`Canvas3DContext.fromCanvas`, headless), allowlisted in
+  the guard test.
 
 ## Step 1: backend-neutral capability object (done)
 

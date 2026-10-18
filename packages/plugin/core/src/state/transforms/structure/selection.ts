@@ -9,8 +9,8 @@
 
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
-import type { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import {
   StructureSelection as Sel,
@@ -33,6 +33,7 @@ import {
 import { nonStandardPolymer } from '@molstar/plugin/state/queries/structure/residue';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import {
+  type StructureComponentCache,
   StructureComponentParams,
   createStructureComponent,
   updateStructureComponent,
@@ -564,7 +565,10 @@ const StructureComponent = PluginStateTransform.BuiltIn({
   update: ({ a, b, oldParams, newParams, cache }) => {
     return updateStructureComponent(a.data, b, oldParams, newParams, cache as any);
   },
-  dispose({ b }) {
-    b?.data.customPropertyDescriptors.dispose();
+  dispose({ b, cache }) {
+    // A component which is the whole source structure (e.g. every element satisfies an `element-schema`) is not an own structure: its properties
+    // belong to the structure it was made from. (The empty structure is shared.)
+    if (!b || (cache as StructureComponentCache | undefined)?.isSource || b.data === Structure.Empty) return;
+    b.data.customPropertyDescriptors.dispose();
   },
 });

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { ColorTheme } from '../color.js';
 import { SizeTheme } from '../size.js';
 import { ThemeRegistry } from '../theme.js';
@@ -147,7 +148,7 @@ describe('ThemeRegistry', () => {
   });
 
   it('warns once per unregistered name outside production mode', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const r = ColorTheme.createRegistry();
       expect(r.get('chain-id')).toBe(ColorTheme.EmptyProvider);

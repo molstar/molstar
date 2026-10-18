@@ -6,7 +6,7 @@
   "description": "Mol* ligand-editor-example",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {

@@ -1,0 +1,30 @@
+{
+  "name": "@molstar/docs",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* documentation site (Astro Starlight): the v5 and v6 docs under /docs/v5 and /docs/v6",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "catalog:",
+    "@astrojs/starlight": "catalog:",
+    "astro": "catalog:",
+    "cookie": "catalog:",
+    "katex": "catalog:",
+    "rehype-katex": "catalog:",
+    "remark-math": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

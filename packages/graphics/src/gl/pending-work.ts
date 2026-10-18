@@ -17,6 +17,8 @@ export interface PendingWork {
    * draws for (e.g. a pipeline compiling), even if that work has settled since
    */
   readonly trackedCount: number;
+  /** Labels of the work tracked since `trackedCount` was `count` (the most recent ones, for diagnostics) */
+  trackedSince(count: number): string[];
   /** Resolves when nothing tracked is pending, including work tracked while waiting */
   whenReady(): Promise<void>;
   /** Emits when tracked work settles, e.g. to request a redraw */
@@ -25,11 +27,15 @@ export interface PendingWork {
   clear(): void;
 }
 
+const RecentLabelCount = 64;
+
 export function createPendingWork(): PendingWork {
   const pending = new Map<Promise<unknown>, string>();
   const settled = new Subject<void>();
   let waiters: (() => void)[] = [];
   let trackedCount = 0;
+  /** labels of the last tracked work, `recent[i]` tracked as number `trackedCount - recent.length + i` */
+  const recent: string[] = [];
 
   const release = () => {
     const w = waiters;
@@ -41,6 +47,8 @@ export function createPendingWork(): PendingWork {
     track: <T>(promise: Promise<T>, label: string) => {
       pending.set(promise, label);
       trackedCount += 1;
+      recent.push(label);
+      if (recent.length > RecentLabelCount) recent.shift();
       const done = () => {
         if (!pending.delete(promise)) return;
         settled.next();
@@ -56,6 +64,7 @@ export function createPendingWork(): PendingWork {
     get trackedCount() {
       return trackedCount;
     },
+    trackedSince: (count: number) => recent.slice(Math.max(0, recent.length - (trackedCount - count))),
     whenReady: () => (pending.size === 0 ? Promise.resolve() : new Promise<void>((resolve) => waiters.push(resolve))),
     settled,
     clear: () => {

@@ -2,7 +2,14 @@
 
 ## Status
 
-- Steps 1-5 done, steps 6-7 to consider. Related: [wgsl-strategy.md](wgsl-strategy.md) (decision 3 on depth range, step
+- **Current**: steps 1–7 done. 7 (depth range) with reversed-Z: window depth is reversed on both backends, the
+  camera's projections stay GL projections on the CPU and each backend converts the tagged projection uniforms to its
+  clip range. 6 (rect origin): top-left in the neutral API, WebGL flips at its boundary. Both in [depth-conventions.md](depth-conventions.md) (decided: the neutral
+  origin becomes top-left as in the browser, WebGL adapts). The readback API landed with bottom-left rects
+  ([backend-narrowing.md](backend-narrowing.md) step 4), so step 6 is no longer tied to it. Viewports partly outside the
+  target are cropped on both backends (current WebGPU spec), scissors intersected with the target
+  (`intersectTargetRect`).
+- Steps 1-7 done. Related: [wgsl-strategy.md](wgsl-strategy.md) (decision 3 on depth range, step
   6 prototype), [backend-split.md](backend-split.md) (step 5 readback API), [texture-bindings.md](texture-bindings.md)
   (decision 8, alpha textures), [minimum-capabilities.md](minimum-capabilities.md).
 

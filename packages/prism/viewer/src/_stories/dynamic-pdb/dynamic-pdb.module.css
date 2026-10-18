@@ -1,0 +1,33 @@
+/*
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Dynamic PDB card's mutation chips (ui.tsx): a residue to light and select, quiet until under the pointer. */
+.chip {
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  color: var(--msp-color-text);
+  padding: 1px var(--msp-space-2);
+  border: none;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-well);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--msp-color-hover);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.chip:disabled {
+  color: var(--msp-color-text-subtle);
+  cursor: default;
+}

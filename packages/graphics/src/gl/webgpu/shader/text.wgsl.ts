@@ -5,6 +5,7 @@
  */
 
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import {
   apply_fog_wgsl,
@@ -33,6 +34,7 @@ export const text_wgsl = /* wgsl */ `
 ${common_wgsl}
 ${read_from_texture_wgsl}
 ${material_functions_wgsl}
+${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 ${texture_sample_wgsl('tFont')}
@@ -157,8 +159,8 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
             if (uMaterial.uBorderWidth > 0.0 && rawSdf < 0.5) {
                 material = vec4<f32>(uMaterial.uBorderColor, material.a);
             } else {
-                // push text fragments forward in depth so they render in front of border
-                out.fragDepth = fragmentDepth - 0.0001;
+                // push text fragments forward in depth so they render in front of border (depth is reversed)
+                out.fragDepth = fragmentDepth + 0.0001;
             }
         #endif
     }

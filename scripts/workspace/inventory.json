@@ -7,6 +7,12 @@
       "private": true
     },
     {
+      "name": "@molstar/docs",
+      "path": "apps/docs",
+      "kind": "docs",
+      "private": true
+    },
+    {
       "name": "@molstar/mesoscale-explorer",
       "path": "apps/mesoscale-explorer",
       "kind": "app",
@@ -23,6 +29,12 @@
       "path": "apps/viewer",
       "kind": "app",
       "private": false
+    },
+    {
+      "name": "@molstar/prism-viewer-app",
+      "path": "apps/prism-viewer",
+      "kind": "app",
+      "private": true
     },
     {
       "name": "@molstar/chem-comp-dict-cli",
@@ -135,6 +147,12 @@
     {
       "name": "@molstar/lighting-example",
       "path": "examples/lighting",
+      "kind": "example",
+      "private": true
+    },
+    {
+      "name": "@molstar/minimal-prism-viewer-example",
+      "path": "examples/minimal-prism-viewer",
       "kind": "example",
       "private": true
     },
@@ -259,8 +277,8 @@
       "private": false
     },
     {
-      "name": "@molstar/mp4-export-extension",
-      "path": "extensions/mp4-export",
+      "name": "@molstar/video-export-extension",
+      "path": "extensions/video-export",
       "kind": "extension",
       "private": false
     },
@@ -355,6 +373,36 @@
       "private": false
     },
     {
+      "name": "@molstar/ai",
+      "path": "packages/ai",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-ui",
+      "path": "packages/prism/ui",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-assistant",
+      "path": "packages/prism/assistant",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-stories",
+      "path": "packages/prism/stories",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-viewer",
+      "path": "packages/prism/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/plugin-headless",
       "path": "packages/plugin/headless",
       "kind": "library",
@@ -415,10 +463,52 @@
       "private": true
     },
     {
+      "name": "@molstar/storybook",
+      "path": "storybook",
+      "kind": "storybook",
+      "private": true
+    },
+    {
       "name": "@molstar/volseg-api-extension",
       "path": "extensions/volseg-api",
       "kind": "extension",
       "private": false
+    },
+    {
+      "name": "@molstar/query-language",
+      "path": "packages/query-language",
+      "kind": "library",
+      "private": false
+    },
+    {
+      "name": "@molstar/seq-core",
+      "path": "packages/sequences/core",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-viewer",
+      "path": "packages/sequences/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-nightingale",
+      "path": "packages/sequences/nightingale",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-scripts",
+      "path": "packages/sequences/scripts",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-storybook",
+      "path": "packages/sequences/storybook",
+      "kind": "storybook",
+      "private": true
     }
   ]
 }

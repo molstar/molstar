@@ -5,18 +5,26 @@
  */
 
 import { type VisualTestCase } from '../framework/test-case.js';
+import { ComputeCases } from './compute.js';
 import { FallbackCases } from './fallback.js';
 import { GeometryCases } from './geometry.js';
+import { GpuPathCases } from './gpu-paths.js';
+import { MergedCases } from './merged.js';
 import { PostprocessingCases } from './postprocessing.js';
 import { RendererCases } from './renderer.js';
+import { ThemeDataCases } from './theme-data.js';
 import { TransparencyCases } from './transparency.js';
 
 export const AllCases: VisualTestCase[] = [
   ...GeometryCases,
+  ...MergedCases,
+  ...ThemeDataCases,
   ...TransparencyCases,
   ...PostprocessingCases,
   ...RendererCases,
   ...FallbackCases,
+  ...ComputeCases,
+  ...GpuPathCases,
 ];
 
 const ids = new Set<string>();

@@ -9,7 +9,7 @@ import type { WebGLContext } from './context.js';
 import type { TextureImage, TextureVolume } from '../renderable/util.js';
 import type { RenderableSchema } from '../renderable/schema.js';
 import type { Framebuffer } from '../framebuffer.js';
-import { setIntegerColorAttachment } from './framebuffer.js';
+import { getFramebufferHeight, setFramebufferHeight, setIntegerColorAttachment } from './framebuffer.js';
 import { endRenderPass } from './render-pass.js';
 import type { WebGLState } from './state.js';
 import { isWebGL2, type GLRenderingContext } from './compat.js';
@@ -286,7 +286,7 @@ export function createTexture(
   state: WebGLState,
 ): GLTexture {
   const id = getNextTextureId();
-  let texture = getTexture(gl);
+  const texture = getTexture(gl);
 
   // depth types are precision preferences, WebGL1 falls back to what `WEBGL_depth_texture` supports
   if (!isWebGL2(gl) && (_format === 'depth' || _format === 'depth-stencil')) {
@@ -339,8 +339,9 @@ export function createTexture(
   let width = 0,
     height = 0,
     depth = 0;
-  let loadedData: undefined | TextureImage<any> | TextureVolume<any> | HTMLImageElement;
   let hasMipmap = false;
+  /** the data of the last load covering the contents (not after a partial load or a later `define` of another size) */
+  let sourceData: undefined | TextureImage<any> | TextureVolume<any> | HTMLImageElement;
   let destroyed = false;
   /** draw framebuffer with this texture attached, for `copyFromFramebuffer` on WebGL2 */
   let blitFramebuffer: WebGLFramebuffer | null = null;
@@ -352,6 +353,7 @@ export function createTexture(
 
     if (width === _width && height === _height && depth === (_depth || 0)) return;
 
+    sourceData = undefined;
     (width = _width), (height = _height), (depth = _depth || 0);
     invalidateBindings();
     gl.bindTexture(target, texture);
@@ -408,7 +410,7 @@ export function createTexture(
       throw new Error('unknown texture target');
     }
     gl.bindTexture(target, null);
-    loadedData = data;
+    sourceData = sub ? undefined : data;
   }
 
   function mipmap() {
@@ -446,6 +448,7 @@ export function createTexture(
       throw new Error('unknown/unsupported texture target');
     }
     if (att === 0 || att === 'color0') setIntegerColorAttachment(gl, _type === 'int');
+    setFramebufferHeight(framebuffer, () => height);
   }
 
   return {
@@ -465,6 +468,7 @@ export function createTexture(
     define,
     load,
     mipmap,
+    getSource: () => ({ kind, format: _format, type: _type, filter: _filter, data: sourceData, mipmap: hasMipmap }),
     bind: (id: TextureId) => {
       gl.activeTexture(gl.TEXTURE0 + id);
       gl.bindTexture(target, texture);
@@ -490,13 +494,16 @@ export function createTexture(
     copyFromFramebuffer: (
       framebuffer: Framebuffer,
       x: number,
-      y: number,
-      width: number,
-      height: number,
+      srcY: number,
+      w: number,
+      h: number,
       dstX: number,
-      dstY: number,
+      dstTopY: number,
     ) => {
       if (target !== gl.TEXTURE_2D) throw new Error('copy only supported for 2d textures');
+      // rectangles have a top-left origin, GL's a bottom-left one
+      const y = getFramebufferHeight(framebuffer) - srcY - h;
+      const dstY = height - dstTopY - h;
       endRenderPass(state);
       framebuffer.bind();
       if (isWebGL2(gl)) {
@@ -511,39 +518,16 @@ export function createTexture(
         // blits are clipped by the scissor test, but not affected by write masks or blending
         const scissorTest = gl.isEnabled(gl.SCISSOR_TEST);
         if (scissorTest) gl.disable(gl.SCISSOR_TEST);
-        gl.blitFramebuffer(
-          x,
-          y,
-          x + width,
-          y + height,
-          dstX,
-          dstY,
-          dstX + width,
-          dstY + height,
-          gl.COLOR_BUFFER_BIT,
-          gl.NEAREST,
-        );
+        gl.blitFramebuffer(x, y, x + w, y + h, dstX, dstY, dstX + w, dstY + h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
         if (scissorTest) gl.enable(gl.SCISSOR_TEST);
         framebuffer.bind();
       } else {
         invalidateBindings();
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(target, texture);
-        gl.copyTexSubImage2D(target, 0, dstX, dstY, x, y, width, height);
+        gl.copyTexSubImage2D(target, 0, dstX, dstY, x, y, w, h);
         gl.bindTexture(target, null);
       }
-    },
-    reset: () => {
-      texture = getTexture(gl);
-      // recreated on the next copy
-      blitFramebuffer = null;
-      init();
-
-      const [_width, _height, _depth] = [width, height, depth];
-      (width = 0), (height = 0), (depth = 0); // set to zero to trigger resize
-      define(_width, _height, _depth);
-      if (loadedData) load(loadedData);
-      if (hasMipmap) mipmap();
     },
     destroy: () => {
       if (destroyed) return;
@@ -608,7 +592,7 @@ export function createCubeTexture(
 
   let size = 0;
 
-  let texture = gl.createTexture();
+  const texture = gl.createTexture();
   gl.bindTexture(target, texture);
 
   function load(cubeTarget: number, level: number, image: HTMLImageElement, isReset: boolean) {
@@ -702,15 +686,6 @@ export function createCubeTexture(
       throw new Error('copy not supported for cube textures');
     },
 
-    reset: () => {
-      texture = getTexture(gl);
-      gl.bindTexture(target, texture);
-
-      loadedCount = 0;
-      for (const { cubeTarget, level, image } of facesData) {
-        load(cubeTarget, level, image, true);
-      }
-    },
     destroy: () => {
       if (destroyed) return;
       gl.deleteTexture(texture);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,8 +8,9 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
+import { getLayerTypeDefine, type LayerType } from './layer-type.js';
 
-export type TransparencyType = 'instance' | 'groupInstance' | 'volumeInstance';
+export type TransparencyType = LayerType;
 
 export type TransparencyData = {
   tTransparency: ValueCell<TextureImage<Uint8Array>>;
@@ -21,6 +22,9 @@ export type TransparencyData = {
   tTransparencyGrid: ValueCell<Texture>;
   uTransparencyGridDim: ValueCell<Vec3>;
   uTransparencyGridTransform: ValueCell<Vec4>;
+  /** the layer type (`TransparencyType`) */
+  transparencyType: ValueCell<string>;
+  /** its define (`getLayerTypeDefine`) */
   dTransparencyType: ValueCell<string>;
   uTransparencyStrength: ValueCell<number>;
 };
@@ -55,6 +59,15 @@ export function clearTransparency(array: Uint8Array, start: number, end: number)
   array.fill(0, start, end);
 }
 
+/** Sets the layer type `type` and its define (`getLayerTypeDefine`) of `values` */
+export function setTransparencyType(
+  values: Pick<TransparencyData, 'transparencyType' | 'dTransparencyType'>,
+  type: TransparencyType | string,
+) {
+  ValueCell.updateIfChanged(values.transparencyType, type);
+  ValueCell.updateIfChanged(values.dTransparencyType, getLayerTypeDefine(type));
+}
+
 export function createTransparency(
   count: number,
   type: TransparencyType,
@@ -72,7 +85,7 @@ export function createTransparency(
     ValueCell.updateIfChanged(transparencyData.dTransparency, count > 0);
     ValueCell.updateIfChanged(transparencyData.transparencyAverage, getTransparencyAverage(transparency.array, count));
     ValueCell.updateIfChanged(transparencyData.transparencyMin, getTransparencyMin(transparency.array, count));
-    ValueCell.updateIfChanged(transparencyData.dTransparencyType, type);
+    setTransparencyType(transparencyData, type);
     return transparencyData;
   } else {
     return {
@@ -85,7 +98,8 @@ export function createTransparency(
       tTransparencyGrid: ValueCell.create(createNullTexture()),
       uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dTransparencyType: ValueCell.create(type),
+      transparencyType: ValueCell.create<string>(type),
+      dTransparencyType: ValueCell.create(getLayerTypeDefine(type)),
       uTransparencyStrength: ValueCell.create(1),
     };
   }
@@ -108,7 +122,8 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
       tTransparencyGrid: ValueCell.create(createNullTexture()),
       uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dTransparencyType: ValueCell.create('groupInstance'),
+      transparencyType: ValueCell.create<string>('groupInstance'),
+      dTransparencyType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uTransparencyStrength: ValueCell.create(1),
     };
   }

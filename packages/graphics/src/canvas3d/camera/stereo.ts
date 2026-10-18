@@ -12,6 +12,7 @@ import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Camera, type ICamera } from '../camera.js';
 import { cameraUnproject, Viewport } from './util.js';
+import type { GraphicsXR } from '../../gl/context.js';
 
 export const StereoCameraParams = {
   eyeSeparation: PD.Numeric(
@@ -51,7 +52,8 @@ class StereoCamera {
     Object.assign(this.props, props);
   }
 
-  update(xr?: { pose: XRViewerPose; layer: XRWebGLLayer }) {
+  /** the eyes from the stereo props, or from the views of an XR pose (rendered by `graphics`) */
+  update(xr?: { pose: XRViewerPose; graphics: GraphicsXR }) {
     this.parent.update();
     if (xr) {
       xrUpdate(this.parent, this.left, this.right, xr);
@@ -180,20 +182,22 @@ function update(camera: Camera, props: StereoCameraProps, left: EyeCamera, right
 
 //
 
-function xrUpdate(camera: Camera, left: EyeCamera, right: EyeCamera, xr: { pose: XRViewerPose; layer: XRWebGLLayer }) {
-  _xrUpdate(camera, left, xr.pose.views[0], xr.layer);
+function xrUpdate(camera: Camera, left: EyeCamera, right: EyeCamera, xr: { pose: XRViewerPose; graphics: GraphicsXR }) {
+  _xrUpdate(camera, left, xr.pose.views[0], xr.graphics);
   if (xr.pose.views.length === 1) {
     right.disabled = true;
   } else {
-    _xrUpdate(camera, right, xr.pose.views[1], xr.layer);
+    _xrUpdate(camera, right, xr.pose.views[1], xr.graphics);
   }
 }
 
-function _xrUpdate(camera: Camera, eye: EyeCamera, view: XRView, layer: XRWebGLLayer) {
+function _xrUpdate(camera: Camera, eye: EyeCamera, view: XRView, graphics: GraphicsXR) {
   copyStates(camera, eye);
-  const lvp = layer.getViewport(view)!;
-  Viewport.set(eye.viewport, lvp.x, lvp.y, lvp.width, lvp.height);
-  Mat4.fromArray(eye.projection, view.projectionMatrix, 0);
+  // viewport (top-left origin) and projection (GL clip depth) of the view
+  if (!graphics.getView(view, eye)) {
+    eye.disabled = true;
+    return;
+  }
   Mat4.fromArray(eye.view, view.transform.inverse.matrix, 0);
   Mat4.mul(eye.projectionView, eye.projection, eye.view);
   Mat4.invert(eye.inverseProjectionView, eye.projectionView);

@@ -89,6 +89,11 @@ export interface ThemeProvider<
   readonly getParams: (ctx: ThemeDataContext) => P;
   readonly defaultValues: PD.Values<P>;
   readonly isApplicable: (ctx: ThemeDataContext) => boolean;
+  /**
+   * The granularities themes of `props` may have, for themes whose data decides it (without, the granularity of a theme
+   * created without data is taken; see `getColorThemeSignature`)
+   */
+  readonly getSignatureGranularities?: (props: PD.Values<P>) => readonly G[];
   readonly ensureCustomProperties?: {
     attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => Promise<void>;
     detach: (data: ThemeDataContext) => void;

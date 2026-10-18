@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -12,7 +13,7 @@ import { presetSelectionComponent } from '../representation-presets/types.js';
 
 describe('presetSelectionComponent', () => {
   it('creates the component from the given query under the tag', async () => {
-    const tryCreateComponentFromSelection = jest.fn(async () => undefined);
+    const tryCreateComponentFromSelection = vi.fn(async () => undefined);
     const plugin = { builders: { structure: { tryCreateComponentFromSelection } } } as unknown as PluginContext;
     const params = { label: 'Protein', tags: ['x'] };
     const structure = {} as any;
@@ -26,7 +27,7 @@ describe('presetSelectionComponent', () => {
   });
 
   it('does not import the selection query catalog', () => {
-    const source = fs.readFileSync(path.resolve(__dirname, '../representation-presets/types.ts'), 'utf8');
+    const source = fs.readFileSync(path.resolve(import.meta.dirname, '../representation-presets/types.ts'), 'utf8');
     const imports = source.split('\n').filter((l) => l.startsWith('import ') && !l.startsWith('import type'));
     expect(imports.filter((l) => /queries\/structure\/catalog/.test(l))).toEqual([]);
   });

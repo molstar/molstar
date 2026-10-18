@@ -10,8 +10,8 @@ import { superpose, alignAndSuperpose } from '@molstar/model/model/structure/str
 import { tmAlign } from '@molstar/model/model/structure/structure/util/tm-align';
 import { PluginStateObject as PSO } from '@molstar/plugin/state/objects';
 import { PluginContext } from '@molstar/plugin/context';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
-import { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
+import { Expression } from '@molstar/query-language/language/expression';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { StateObjectRef } from '@molstar/core/state';
 import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';

@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    // The repository: the allocation and heap guards (src/**/_test/*.{quick,heap}.ts) run on Seq*'s harness
+    // (packages/sequences/core/_test/model).
+    "rootDir": "../../..",
+    "types": ["node"],
+    "jsxImportSource": "@molstar/prism-ui/dom"
+  },
+  "include": ["src/**/*"]
+}

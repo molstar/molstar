@@ -37,6 +37,8 @@ import { HashMap } from '@molstar/core/util/map';
 import { hash2 } from '@molstar/core/data/util';
 import type { RenderMergedValue } from '@molstar/graphics/geo/geometry/base';
 import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../merged.js';
+import { getFactorySignatures, type SignatureContext } from '../signatures.js';
+import { isMergeableType } from '@molstar/graphics/gl/renderable/merged';
 
 function createVisualsMap<P extends StructureParams>() {
   return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup; visual: UnitsVisual<P> }>(
@@ -59,7 +61,7 @@ export function UnitsRepresentation<P extends StructureParams>(
   ) => UnitsVisual<P>,
 ): StructureRepresentation<P> {
   let version = 0;
-  const { graphics } = ctx;
+  let { graphics } = ctx;
   const updated = new Subject<number>();
   const materialId = getNextMaterialId();
   const renderObjects: GraphicsRenderObject[] = [];
@@ -428,6 +430,24 @@ export function UnitsRepresentation<P extends StructureParams>(
     getAllLoci,
     eachLocation,
     mark,
+    setGraphics: (value: GraphicsContext) => {
+      graphics = value;
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
+      const signatures = getFactorySignatures(
+        visualCtor,
+        // without a structure: factories that read it name their visuals
+        () => visualCtor(materialId, undefined as unknown as Structure, props, ctx.graphics),
+        props,
+        ctx,
+      );
+      // render objects of the same type are merged by `renderMerged` (groups of one stay unmerged); 'auto' merges
+      // above `AutoRenderMergedThreshold` units, taken as unmerged: such objects compile while they build
+      const renderMerged = (props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
+      if (renderMerged !== true) return signatures;
+      const merged = signatures.filter((s) => isMergeableType(s.type)).map((s) => ({ ...s, merged: true }));
+      return [...signatures, ...merged];
+    },
     destroy,
   };
 }

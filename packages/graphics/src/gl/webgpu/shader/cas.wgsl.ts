@@ -8,7 +8,7 @@ import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
 /**
  * Robust contrast adaptive sharpening (RCAS of AMD FidelityFX FSR 1, MIT License, https://gpuopen.com/fsr), as
- * adapted for WebGL in https://www.shadertoy.com/view/stXSWB; in GL window space
+ * adapted for WebGL in https://www.shadertoy.com/view/stXSWB
  */
 export const cas_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
@@ -16,7 +16,7 @@ ${texture_read_wgsl('tColor')}
 
 const FsrRcasLimit = 0.25 - (1.0 / 16.0);
 
-/** pixel \`p\` in GL window space (bottom-left origin), at its center */
+/** pixel \`p\` (top-left origin), at its center */
 fn fsrRcasLoad(p: vec2<f32>) -> vec4<f32> {
     return read_tColor(p * uObject.uTexSizeInv);
 }
@@ -71,9 +71,7 @@ fn fsrRcas(sp: vec2<f32>, con: f32) -> vec3<f32> {
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     // sharpness in stops (0 is maximum) to linear
     let con = exp2(-uObject.uSharpness);
-    // gl_FragCoord.xy of WebGL
-    let size = 1.0 / uObject.uTexSizeInv;
-    let fragCoord = glCoords(in.position, size) * size;
+    let fragCoord = in.position.xy;
     let col = fsrRcas(fragCoord, con);
     return vec4<f32>(col, fsrRcasLoad(fragCoord).a);
 }

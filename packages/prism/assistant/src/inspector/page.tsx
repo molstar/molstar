@@ -1,0 +1,113 @@
+/** @jsxImportSource @molstar/prism-ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { TraceData } from '@molstar/ai/trace';
+import { domView, onCleanup, type ReadonlyState, type ShellPage, Show } from '@molstar/prism-ui';
+import { watch } from '@molstar/prism-ui/dom/scope';
+import { setAttr, setText } from '@molstar/prism-ui/dom/writes';
+import { derive } from '@molstar/prism-ui/reactive/state';
+import { InspectorPageId } from '../inspector-access.js';
+import { classes as layout } from './_generated/inspector.module.css.js';
+import { LimitsView } from './limits.js';
+import { type InspectorModel, type InspectorView, toolCounts } from './model.js';
+import { BudgetMeter, TextTabs } from './parts.js';
+import { ToolsView } from './tools.js';
+import { TraceView } from './trace.js';
+
+/**
+ * The Inspector as a page over the whole app (packages/ai/_spec/trace.md § The Inspector): it needs the room. Its
+ * header has the three views as words (Trace with its turns, Tools with its tools, Limits), then whether the agent
+ * works and its budget; a page focus (`trace`, `tools`, `limits`, `turn:<id>`, `step:<id>`, `tool:<name>`) opens it
+ * there.
+ */
+export function inspectorPage(model: InspectorModel): ShellPage {
+  return {
+    id: InspectorPageId,
+    title: 'Inspect assistant',
+    icon: 'sparkles',
+    header: domView(() => <InspectorHeader model={model} />),
+    render: domView(({ ctx }) => {
+      if (ctx.focus) model.focus(ctx.focus);
+      // Opened again at another focus while open (the Assistant tab's rows, a command): it stays, and moves there.
+      const opened = ctx.shell.page.subscribe((open) => {
+        if (open?.page.id === InspectorPageId && open.focus) model.focus(open.focus);
+      });
+      onCleanup(() => opened.unsubscribe());
+      return <InspectorBody model={model} />;
+    }),
+  };
+}
+
+type RunState = 'working' | 'waiting' | 'idle';
+
+function runState(trace: TraceData | undefined): RunState {
+  const status = trace?.turns.at(-1)?.status;
+  return status === 'waiting' ? 'waiting' : status === 'thinking' || status === 'working' ? 'working' : 'idle';
+}
+
+/** Whether the agent works, as a word with a dot (the dot's color follows the state). */
+function RunStateMark(props: { state: ReadonlyState<RunState> }) {
+  const { state } = props;
+  const word = document.createTextNode('');
+  const root = (
+    <span class={layout.state}>
+      <i class={layout.dot} />
+      {word}
+    </span>
+  ) as HTMLElement;
+  watch([state], () => {
+    setAttr(root, 'data-state', state.value);
+    setText(word, state.value);
+  });
+  return root;
+}
+
+export function InspectorHeader(props: { model: InspectorModel }) {
+  const { model } = props;
+  const state = derive(model.trace, runState);
+  const turns = derive(model.trace, (t) => (t?.turns.length ? t.turns.length : ''));
+  const tools = derive(model.tools, (t) => toolCounts(t).tools);
+  return (
+    <>
+      <TextTabs<InspectorView>
+        label="Inspector"
+        tabs={[
+          { id: 'trace', label: 'Trace', count: turns },
+          { id: 'tools', label: 'Tools', count: tools },
+          { id: 'limits', label: 'Limits' },
+        ]}
+        value={model.view}
+        onChange={(v) => model.setView(v)}
+      />
+      <span class={layout.spacer} />
+      <Show when={derive(model.trace, (t) => !!t)}>{() => <RunStateMark state={state} />}</Show>
+      <BudgetMeter budget={derive(model.trace, (t) => t?.budget)} />
+    </>
+  );
+}
+
+export function InspectorBody(props: { model: InspectorModel }) {
+  const { model } = props;
+  return (
+    <div class={layout.inspector}>
+      <Show when={model.view}>
+        {(view) =>
+          view === 'trace' ? (
+            <TraceView model={model} />
+          ) : view === 'tools' ? (
+            <ToolsView model={model} />
+          ) : (
+            <LimitsView model={model} />
+          )
+        }
+      </Show>
+    </div>
+  );
+}

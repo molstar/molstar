@@ -11,6 +11,7 @@ import { Script } from '@molstar/model/script/script';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
+import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
 export { WiggleStructureRepresentation3DFromScript };
 type WiggleStructureRepresentation3DFromScript = typeof WiggleStructureRepresentation3DFromScript;
@@ -134,3 +135,6 @@ const WiggleStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
     return StateTransformer.UpdateResult.Updated;
   },
 });
+
+registerTransformLayer(WiggleStructureRepresentation3DFromScript, 'wiggle');
+registerTransformLayer(WiggleStructureRepresentation3DFromBundle, 'wiggle');

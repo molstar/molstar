@@ -149,6 +149,11 @@ export class HandleHelper {
     this.scene = Scene.create(graphics, 'blended');
     this.setProps(props);
   }
+
+  setContext(graphics: GraphicsContext) {
+    this.graphics = graphics;
+    this.scene.setContext(graphics);
+  }
 }
 
 function createHandleMesh(scale: number, mesh?: Mesh) {

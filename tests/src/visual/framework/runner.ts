@@ -6,7 +6,7 @@
 
 import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
 import { type BackendInstance, type BackendProfile } from './backend.js';
-import { type CapabilityKey, type CapabilityReport, getMissingCapabilities } from './capabilities.js';
+import { type CapabilityReport, describeMissing, getMissingCapabilities } from './capabilities.js';
 import {
   type CompareMetrics,
   DefaultTolerance,
@@ -147,11 +147,25 @@ export class VisualTestRunner {
         return result;
       }
 
+      if (test.check) {
+        const lacks = getMissingCapabilities(target.capabilities, test.requires ?? []);
+        if (lacks.length > 0) {
+          result.reason = `Missing capabilities: ${describeMissing(target.capabilities, lacks).join(', ')}`;
+          return result;
+        }
+        result.errors.push(...(await test.check(target.context.graphics)));
+        result.status = result.errors.length > 0 ? 'fail' : 'pass';
+        return result;
+      }
+
       const requires = test.requires ?? [];
-      const missing = new Set<CapabilityKey>([
-        ...getMissingCapabilities(target.capabilities, requires),
-        ...getMissingCapabilities(reference.capabilities, requires),
-      ]);
+      // the reference's own reasons only where they differ (WebGL profiles are their own reference)
+      const targetMissing = describeMissing(target.capabilities, getMissingCapabilities(target.capabilities, requires));
+      const referenceMissing = describeMissing(
+        reference.capabilities,
+        getMissingCapabilities(reference.capabilities, requires),
+      ).filter((m) => !targetMissing.includes(m));
+      const missing = new Set<string>([...targetMissing, ...referenceMissing.map((m) => `${m} in the reference`)]);
       if (missing.size > 0) {
         result.reason = `Missing capabilities: ${Array.from(missing).join(', ')}`;
         return result;

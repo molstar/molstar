@@ -2,9 +2,26 @@
 
 ## Status
 
-- Planning. Follows [webgpu-viewer.md](webgpu-viewer.md) milestone 2 (picking with `readTextureAsync` and async
-  `PickBuffers`). Related: [backend-split.md](backend-split.md) (readback and sync),
-  [neutral-conventions.md](neutral-conventions.md).
+- **Current**: dropped after a working prototype; WebGPU keeps asynchronous picking reads. Clicks already wait for the
+  asynchronous read (the pending-click path of `Canvas3dInteractionHelper`, a frame or two), nothing in the packages,
+  apps or extensions calls `canvas3d.identify` outside `Canvas3D`, and the synchronous read cost a module of hidden
+  canvases, a GPU stall per click read and a dependence on browser canvas copies (fingerprinting protection can break
+  them). API callers await the pick data on every backend with `Canvas3D.asyncIdentify(target)?.wait()` (the read's
+  handle, polled per animation frame until it returned; hover and clicks poll `tryGet` per frame instead); the debug
+  occlusion click uses it. The Viewer smoke test identifies with it at each grid point and compares with hover and
+  across backends (with `identify` instead, WebGPU finds nothing at the first point).
+- Prototype findings, to redo it if a synchronous need appears:
+  - the canvas copy is synchronous and exact in Chrome 154 (D3D12) and Firefox 157 for all 2^24 rgb values (`drawImage`
+    of an `OffscreenCanvas` with a `webgpu` context in the task that submitted, then `getImageData`); alpha doesn't
+    survive (premultiplied canvases lose it, opaque ones read 255); a pick-sized read (300 × 200) takes about 0.7 ms in
+    Chrome and 1 ms in Firefox;
+  - the reads went into the WebGPU texture reader (the pick buffers take synchronous readers, as on WebGL2): each
+    texture drawn into two stacked slots of the canvas texture, its rgb and its alpha in red (a quad program with
+    `textureLoad`), exact for any rgba8 texture without the depth repack below, checked per device with a pattern of all
+    byte values; `identify` with a read took at most about 6.4 ms on WebGPU against 5.5 ms on WebGL (pick render
+    included).
+- Follows [webgpu-viewer.md](webgpu-viewer.md) milestone 2 (picking with `readTextureAsync` and async `PickBuffers`).
+  Related: [backend-split.md](backend-split.md) (readback and sync), [neutral-conventions.md](neutral-conventions.md).
 
 ## Goal
 

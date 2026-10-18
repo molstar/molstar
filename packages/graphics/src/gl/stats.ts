@@ -6,6 +6,11 @@
 
 export function createGraphicsStats() {
   return {
+    /**
+     * Live resources by kind; on WebGPU `attribute` and `elements` are vertex and index buffers, `pixelPack` the staging
+     * buffers of reads in flight, `uniform` the uniform buffers (ring chunks, one per arena), `shader` the shader
+     * modules (one per program and per kernel pipeline)
+     */
     resourceCounts: {
       attribute: 0,
       elements: 0,
@@ -17,7 +22,11 @@ export function createGraphicsStats() {
       shader: 0,
       texture: 0,
       cubeTexture: 0,
+      /** WebGL only */
       vertexArray: 0,
+      /** WebGPU only, as `kernel` (compute pipelines) */
+      storageBuffer: 0,
+      kernel: 0,
     },
 
     drawCount: 0,
@@ -53,4 +62,6 @@ export type ResourceByteCounts = {
   pixelPack: number;
   uniform: number;
   renderbuffer: number;
+  /** storage buffers of compute kernels and render items (WebGPU) */
+  storageBuffer: number;
 };

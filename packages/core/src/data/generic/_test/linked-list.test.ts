@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { LinkedList } from '../linked-list.js';
 
 describe('linked list', () => {

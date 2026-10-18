@@ -31,9 +31,6 @@ ${packing_wgsl}
 ${texture_sample_wgsl('tImageTex')}
 ${texture_sample_wgsl('tGroupTex')}
 ${texture_sample_wgsl('tValueTex')}
-#if defined(dUsePalette)
-    ${texture_sample_wgsl('tPalette')}
-#endif
 
 const PaletteScale = 16777214.0; // (1 << 24) - 2
 
@@ -168,13 +165,13 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     let group = select(unpackRGBToInt(packedGroup), -1.0, all(packedGroup == vec3<f32>(0.0)));
     let instance = in.vInstance;
     let groupCount = f32(uObject.uGroupCount);
+    // the marker and layer data per instance or group instance
+    let dataIndex = select(i32(instance * groupCount + group), i32(instance), uObject.uInstanceGranularity != 0u);
 
     // per-group transparency
     #if defined(dTransparency) && !defined(dRenderVariant_depth)
-        #if defined(dTransparencyType_instance)
-            var transparency = readFromTexture(tTransparency, i32(instance)).r;
-        #elif defined(dTransparencyType_groupInstance)
-            var transparency = readFromTexture(tTransparency, i32(instance * groupCount + group)).r;
+        #if defined(dTransparencyType_texture)
+            var transparency = readFromTexture(tTransparency, dataIndex).r;
         #else
             var transparency = 0.0;
         #endif
@@ -208,7 +205,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         if (group == -1.0) {
             marker = 0.0;
         } else if (uObject.uMarker == -1.0) {
-            marker = readFromTexture(tMarker, i32(instance * groupCount + group)).r;
+            marker = readFromTexture(tMarker, dataIndex).r;
             marker = floor(marker * 255.0 + 0.5);
         }
     #endif
@@ -219,10 +216,8 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
             emissive = 0.0;
         } else {
             #if defined(dEmissive)
-                #if defined(dEmissiveType_instance)
-                    emissive += readFromTexture(tEmissive, i32(instance)).r * uMaterial.uEmissiveStrength;
-                #elif defined(dEmissiveType_groupInstance)
-                    emissive += readFromTexture(tEmissive, i32(instance * groupCount + group)).r * uMaterial.uEmissiveStrength;
+                #if defined(dEmissiveType_texture)
+                    emissive += readFromTexture(tEmissive, dataIndex).r * uMaterial.uEmissiveStrength;
                 #endif
             #endif
         }
@@ -266,10 +261,8 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         #if defined(dOverpaint)
             var overpaint = vec4<f32>(0.0);
             if (group != -1.0) {
-                #if defined(dOverpaintType_instance)
-                    overpaint = readFromTexture(tOverpaint, i32(instance));
-                #elif defined(dOverpaintType_groupInstance)
-                    overpaint = readFromTexture(tOverpaint, i32(instance * groupCount + group));
+                #if defined(dOverpaintType_texture)
+                    overpaint = readFromTexture(tOverpaint, dataIndex);
                 #endif
                 overpaint *= uMaterial.uOverpaintStrength;
             }

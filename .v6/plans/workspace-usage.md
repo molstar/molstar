@@ -1,7 +1,9 @@
 # Working with the v6 workspace prototype
 
 The repository is a pnpm workspace. Use Node 22 or newer and the pnpm version recorded in the root `packageManager`
-field. Native headless backends may require an older supported Node ABI and platform build tools.
+field. Native headless backends may require an older supported Node ABI and platform build tools. With
+[mise](https://mise.jdx.dev), `mise install` sets up both from the root `mise.toml`, and `mise tasks` lists tasks that
+wrap the common `package.json` scripts (`mise run build`, `mise run dev:apps viewer`, ...).
 
 ```sh
 pnpm install
@@ -26,7 +28,8 @@ Viewer dev server. Each browser app/example also has its own `build` and `dev` s
 with `pnpm dev:examples -- basic-wrapper`. Both selectors accept `--port 1340` and `--help` to list available browser
 targets. Omit names to watch every browser app (`pnpm dev:apps`) or example (`pnpm dev:examples`). Supply multiple names
 to watch a subset, such as `pnpm dev:apps -- viewer mvs-stories`. All selected targets share one server, which prints
-each page URL. Node examples compile with TypeScript. The root `scripts/workspace/inventory.json` records package
+each page URL. Node examples compile with TypeScript. An example with its own builder (`"molstar": { "builder": "vite" }` in its
+manifest, as `examples/minimal-prism-viewer`) is left out of these selectors and runs its own `dev` and `build`. The root `scripts/workspace/inventory.json` records package
 ownership; explicit exports and dependencies live in each package's manifest. When adding/moving a source module, update
 those declarations and TypeScript references. The `scripts/refresh-workspace.mjs` helper regenerates the explicit
 inventories from production imports; review its result before committing. It preserves external and optional dependency
@@ -38,6 +41,7 @@ choices and is not a runtime resolver.
 | -------------------------- | -------------------------- | ---------------------------------------------------------- |
 | `packages/core`            | `@molstar/core`            | Utility, data, math, tasks, state                          |
 | `packages/io`              | `@molstar/io`              | Parsers and low-level writers                              |
+| `packages/query-language`  | `@molstar/query-language`  | MolQL builder, text translators, standalone validation     |
 | `packages/model`           | `@molstar/model`           | Models, format adapters, properties, queries               |
 | `packages/graphics`        | `@molstar/graphics`        | Existing GL, geometries, themes, representations, Canvas3D |
 | `packages/plugin/core`     | `@molstar/plugin`          | Plugin context, behavior, state, default catalogs          |
@@ -57,9 +61,12 @@ paths into another package's source.
 
 Data-only shapes belong to model; rendering shape factories/helpers belong to `@molstar/graphics/geo/shape/shape`. Model
 `Shape.create` takes an explicit group count; the graphics factory derives it from geometry. Model-aware
-molecular/volume writers live in model. GPU density helpers live in graphics. MP4 support is an explicit extension:
-`@molstar/mp4-export-extension/headless` provides `Mp4HeadlessPluginContext`, while the base headless package has no
-encoder import.
+molecular/volume writers live in model. GPU density helpers live in graphics. Video support is an explicit extension:
+`@molstar/video-export-extension/headless` provides `VideoHeadlessPluginContext`, while the base headless package has no
+encoder import. Mediabunny is the default video backend. In Node without WebCodecs, explicitly import `H264WasmBackend`
+from `@molstar/video-export-extension/backends/h264-wasm` and pass
+`{ backend: H264WasmBackend, backendParams: { quantization: 18 } }` to animation export methods. `getAnimation` returns
+`{ data, mimeType, extension }`; `saveAnimation` requires a matching filename extension.
 
 `CollapsableControls`, `CollapsableProps`, and `CollapsableState` now live at `@molstar/plugin-ui/controls/collapsable`;
 base React components stay at `@molstar/plugin-ui/base`. This split prevents initialization cycles between base
@@ -95,10 +102,51 @@ values for a different deployment. Embed the generated map before any module scr
 `molstar/build/viewer` and `molstar/build/mvs-stories`. Consumers need no build step; Mol* maintainers build the
 published artifacts once.
 
+## Standalone MolQL authoring and validation
+
+```ts
+import { MVSData } from '@molstar/mvs-builder';
+import { MolScriptBuilder as B, compileScript } from '@molstar/mvs-builder/molql';
+
+const builder = MVSData.createBuilder();
+const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+structure.component({ selector: { molql: compileScript('pymol', 'chain A') } }).representation({ type: 'cartoon' });
+structure.component({ selector: { molql: B.struct.generator.all() } }).representation({ type: 'ball_and_stick' });
+const issues = MVSData.validationIssues(builder.getState());
+```
+
+`compileScript` accepts `'mol-script'`, `'pymol'`, `'vmd'`, and `'jmol'`, returning a serializable expression after
+syntax/callable-name/argument-name validation. All languages work immediately through this authoring entry point. The
+builder's ordinary schema/serialization imports do not load text parsers or the molecular query runtime.
+
+For direct imports use `@molstar/query-language/language/builder`, `language/validation`, and `compile`. Individual
+`transpilers/<lang>/parser` modules provide translation without importing the other languages. Plugin language
+registration remains explicit through `@molstar/query-language/transpilers/<lang>` or `transpilers/all`.
+
+`MVSData.validationIssues(data, { getMolQLSymbol })` accepts a lookup of custom `MSymbol` definitions. The lookup
+replaces the default vocabulary; return `SymbolMap[name]` from `@molstar/query-language/language/symbol-table` for
+standard names. `expressionValidationIssues(expression, { getSymbol })` exposes the same pass directly. Validation does
+not check missing required arguments, argument types, selection-result types, or molecular execution support.
+`mvs-validate` uses the standard vocabulary and exits with status 1 if any file fails. Molecular compilation stays in
+model.
+
+## Deploying the apps (GitHub Pages)
+
+`pnpm deploy:local` builds the workspace (`pnpm build`) and prepares the Git-ignored `deploy/data` folder as
+[molstar.github.io](https://github.com/molstar/molstar.github.io) serves it: `viewer/`, `prism/` (the Prism viewer app),
+`me/viewer/` (Mesoscale Explorer), `stories-viewer/v<version>/`, `demos/{lighting,alpha-orbitals,mvs-stories}/` and
+`ui-storybook/` (the static build of `storybook/`). Every entry uses relative paths, so a static server checks it
+(`npx http-server deploy/data`, then `/prism/` and `/ui-storybook/`). `pnpm deploy:remote` does the same, then commits
+the folder into a clone in `deploy/molstar.github.io` and pushes it (maintainers only); `node scripts/deploy.js
+--dry-run` prepares the folder from the existing builds and prints what it would push. `--<app>-prefix <folder>` puts an
+app elsewhere (`viewer`, `prism`, `storybook`, `mesoscale`, `stories`, `demos`): `pnpm deploy:remote -- --prism-prefix
+prism-preview` serves the Prism viewer at `/prism-preview/`; `--help` lists the defaults. The script is
+`pnpm deploy:remote`, not `deploy`, because `pnpm deploy` is a pnpm command.
+
 ## Versions and checks
 
-Colocated unit tests use `_test/<name>.test.ts`. Jest discovers `.test.ts` files; package builds and tarballs exclude
-`_test/` directories, including their helpers.
+Colocated unit tests use `_test/<name>.test.ts`. Vitest discovers `.test.ts`, `.test.tsx` and `.test.mjs` files; package
+builds and tarballs exclude `_test/` directories, including their helpers.
 
 All public packages release together. Change `version.json`, run `pnpm version:sync`, and update the lockfile. Workspace
 ranges are `workspace:*`; `pnpm pack` replaces them with the exact release version. `pnpm version:check` detects drift.
@@ -124,19 +172,23 @@ CLI packages expose checked-in `bin/*.mjs` launchers, so a clean install can lin
 `pnpm build:lib` before using those commands in a source checkout; installed tarballs already contain their compiled
 implementations.
 
-Native `gl` and `canvas` are optional peers. Workspace peer auto-installation is disabled; all ordinary dependencies
+Native `gl`, `canvas` and `webgpu` (Dawn's Node.js bindings, the headless WebGPU backend) are optional peers. Workspace peer auto-installation is disabled; all ordinary dependencies
 remain declared explicitly. Normal installation and `pnpm test` do not install them. Opt in explicitly:
 
 ```sh
 pnpm native:install                    # gl only, for native tests/capture
 pnpm test:native                       # requires the installed backend
 pnpm native:install -- --canvas        # gl + canvas, for the rendering CLI
+pnpm native:install -- --webgpu        # gl + webgpu, for the headless WebGPU tests
 pnpm native:run -- node cli/mvs-render/lib/mvs-render.js --help
 pnpm native:run -- pnpm --dir smoke smoke:headless
 ```
 
-Native modules and their separate npm lockfile live in ignored `.cache/native/`. The setup command leaves workspace
-manifests and `pnpm-lock.yaml` unchanged. `native:run` exposes them to Node commands through `NODE_PATH`. Applications
+Native modules and their separate npm lockfile live in ignored `.cache/native/`. They are optional dependencies there:
+a module that fails to build (e.g. `gl` without prebuilt binaries for the Node version) doesn't keep the others from
+installing. Tests of a backend that is not installed show as skipped. The setup command leaves workspace
+manifests and `pnpm-lock.yaml` unchanged. `native:run` exposes them to Node commands through `NODE_PATH` (ES modules such as `webgpu`, which `import` doesn't
+find there, are resolved with `require.resolve` first). Applications
 using installed packages can instead install the optional peers themselves and continue to inject native modules into
 the headless context. CI explicitly installs `gl` and runs native unit tests under Xvfb. Consumer smoke checks run
 locally.

@@ -6,15 +6,17 @@
 
 import './index.html';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
-import { Canvas3DParams, Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
+import { Canvas3DParams, Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
+import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { type PositionData, Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { OrderedSet } from '@molstar/core/data/int';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { computeGaussianDensity } from '@molstar/core/math/geometry/gaussian-density';
-import { calcActiveVoxels } from '@molstar/graphics/gl/compute/marching-cubes/active-voxels';
-import { createHistogramPyramid } from '@molstar/graphics/gl/compute/histogram-pyramid/reduction';
-import { createIsosurfaceBuffers } from '@molstar/graphics/gl/compute/marching-cubes/isosurface';
+import { calcActiveVoxels } from '@molstar/graphics/gl/webgl/compute/marching-cubes/active-voxels';
+import { createHistogramPyramid } from '@molstar/graphics/gl/webgl/compute/histogram-pyramid/reduction';
+import { createIsosurfaceBuffers } from '@molstar/graphics/gl/webgl/compute/marching-cubes/isosurface';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import { Color } from '@molstar/core/util/color';
 import { createRenderObject } from '@molstar/graphics/gl/render-object';
@@ -34,7 +36,7 @@ parent.appendChild(canvas);
 
 const assetManager = new AssetManager();
 
-const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(
   canvas3dContext,
   PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
@@ -54,7 +56,8 @@ canvas3d.input.resize.subscribe(() => {
 });
 
 async function init() {
-  const { webgl } = canvas3d;
+  const webgl = canvas3d.graphics;
+  if (!isWebGLContext(webgl)) throw new Error('the fragment-shader marching cubes need WebGL');
 
   const position: PositionData = {
     x: [0, 2],

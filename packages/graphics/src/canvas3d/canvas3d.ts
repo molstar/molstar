@@ -8,16 +8,30 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { BehaviorSubject, Subject, type Subscription, debounceTime, merge } from 'rxjs';
+import { BehaviorSubject, type Observable, Subject, type Subscription, debounceTime, merge } from 'rxjs';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
-import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, hasForeignTextures } from '@molstar/graphics/gl/render-object';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
 import { Renderer, RendererParams, type RendererStats } from '@molstar/graphics/gl/renderer';
 import { MaxLightCount } from '@molstar/graphics/gl/renderable/schema';
+import { getVertexArenaStats } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
 import { Scene } from '@molstar/graphics/gl/scene';
-import { type WebGLContext, createContext, getGLContext, isWebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createGraphicsContext, type GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
-import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import {
+  createSignatureProgramItem,
+  getSignatureKey,
+  type ObjectSignature,
+  type PrecompileList,
+  PrecompileRecorder,
+} from '@molstar/graphics/gl/precompile';
+import type { ProgramItem } from '@molstar/graphics/gl/render-item';
+import type { GlobalDefines } from '@molstar/graphics/gl/renderable/schema';
+import { Object3D } from '@molstar/graphics/gl/object3d';
+import {
+  createGraphicsContext,
+  type GraphicsBackendDescriptor,
+  type GraphicsContextAttribs,
+} from '@molstar/graphics/gl/backend';
+import type { GraphicsContext, GraphicsDestroyOptions } from '@molstar/graphics/gl/context';
 import { type EasingFunction, EasingParamDefinition } from '@molstar/core/math/easing';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import type { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
@@ -61,12 +75,14 @@ import { DefaultXRManagerAttribs, XRManager, XRManagerParams } from './helper/xr
 import { HiZParams, HiZPass } from './passes/hi-z.js';
 import { IlluminationParams } from './passes/illumination.js';
 import { ImagePass, type ImageProps } from './passes/image.js';
-import { isMaterialColorMarker, MarkingParams, SingleSample } from './passes/marking.js';
+import { isMaterialColorMarker, MarkingParams, MarkingPass, SingleSample } from './passes/marking.js';
+import { createPrepareBuilder, type PrepareCollect } from './passes/pass-builder.js';
+import type { TransparencyMode } from './passes/draw.js';
 import { createSupportedPropsLimiter } from './passes/supported-props.js';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample.js';
 import { getJitterOffsets, getTemporalSamplesPerFrame } from './passes/jitter.js';
 import { Passes } from './passes/passes.js';
-import { type AsyncPickData, DefaultPickOptions, type PickData } from './passes/pick.js';
+import { type AsyncPickData, DefaultPickOptions, type PickResult } from './passes/pick.js';
 import { PostprocessingParams } from './passes/postprocessing.js';
 
 export const CameraFogParams = {
@@ -175,9 +191,24 @@ export type PartialCanvas3DProps = {
     : Partial<Canvas3DProps[K]>;
 };
 
+export type Canvas3DPrepareOptions = {
+  /** props other than the current ones, e.g. before setting them */
+  props?: Partial<Canvas3DProps>;
+  /** also what the first interaction draws: picking, and marking as if objects were marked */
+  interaction?: boolean;
+};
+
+/** Props of frames `Canvas3D.precompile` prepares for, with the context's transparency mode (the current by default) */
+export type Canvas3DPrecompileProps = Partial<Canvas3DProps> & { transparency?: TransparencyMode };
+
 export const DefaultCanvas3DAttribs = {
   trackball: DefaultTrackballControlsAttribs,
   xr: DefaultXRManagerAttribs,
+  /**
+   * prepare the frame and the first interaction (picking, marking) in idle time after the scene changed, so that the
+   * first hover doesn't wait for compiling (`Canvas3D.prepare`)
+   */
+  warmUp: true,
 };
 export type Canvas3DAttribs = typeof DefaultCanvas3DAttribs;
 export type PartialCanvas3DAttribs = {
@@ -188,32 +219,51 @@ export type PartialCanvas3DAttribs = {
 
 export { Canvas3DContext };
 
-function asWebGLContext(graphics: GraphicsContext): WebGLContext {
-  if (!isWebGLContext(graphics)) {
-    throw new Error(`not a WebGL context but '${graphics.capabilities.backend}', use 'graphics'`);
-  }
-  return graphics;
-}
-
 /** Can be used to create multiple Canvas3D objects */
 interface Canvas3DContext {
+  /** replaced by `setBackend` */
   readonly canvas?: HTMLCanvasElement;
+  /** replaced by `setBackend` */
   readonly graphics: GraphicsContext;
-  /** The WebGL context, throws for other backends (use `graphics`) */
-  readonly webgl: WebGLContext;
   readonly input: InputObserver;
+  /** replaced by `setBackend` */
   readonly passes: Passes;
   readonly attribs: Readonly<Canvas3DContext.Attribs>;
   readonly props: Readonly<Canvas3DContext.Props>;
   readonly contextLost?: Subject<now.Timestamp>;
   readonly contextRestored?: Subject<now.Timestamp>;
+  /**
+   * After `setBackend` replaced `graphics`, `canvas` and `passes`, while the previous context is still alive (it is
+   * destroyed once the observers returned): consumers release what they created with it and create it again
+   */
+  readonly contextChanged?: Subject<Canvas3DContext.ContextChange>;
   readonly assetManager: AssetManager;
   readonly changed?: BehaviorSubject<undefined>;
   readonly pixelScale: number;
 
   syncPixelScale(): void;
   setProps: (props?: Partial<Canvas3DContext.Props>) => void;
-  dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void;
+  /**
+   * Replaces the graphics context with that of the first of `backends` that can be created, on a new canvas element
+   * taking the place of the current one (a canvas keeps the context type it gave out first), see `contextChanged`.
+   * Resolves to false, keeping the current context, if none can be created, while presenting XR, without a canvas in
+   * a document or while another change is in progress.
+   */
+  setBackend?: (backends: readonly GraphicsBackendDescriptor[]) => Promise<boolean>;
+  /**
+   * Releases the graphics context on purpose, freeing its GPU resources (`GraphicsContext.release`, e.g. a canvas out of
+   * view): reported as a loss (`contextLost`), but not restored until `restore`. False where it can't (see
+   * `GraphicsContext.release`), while presenting XR or changing the backend.
+   */
+  release?: () => boolean;
+  /**
+   * Restores a released context (`release`) as after a loss, once the loss was reported (`contextLost`): resolves to
+   * whether it was restored (`contextRestored`)
+   */
+  restore?: () => Promise<boolean>;
+  /** Released (`release`) and not restored yet */
+  readonly isReleased?: boolean;
+  dispose: (options?: GraphicsDestroyOptions) => void;
 }
 
 namespace Canvas3DContext {
@@ -225,6 +275,12 @@ namespace Canvas3DContext {
     /** true to support multiple Canvas3D objects with a single context */
     preserveDrawingBuffer: true,
     preferWebGl1: false,
+    /**
+     * Falls back to the next of the backends the context was created from when the context is lost for good (not
+     * restored within `ContextRestoreTimeoutMs` while the page is visible, a restore that failed, or more than
+     * `MaxContextLosses` losses within `ContextLossWindowMs`); each backend at most once, never back up the list
+     */
+    contextFallback: true,
 
     handleResize: () => {},
   };
@@ -243,12 +299,77 @@ namespace Canvas3DContext {
   export const DefaultProps = PD.getDefaultValues(Params);
   export type Props = PD.Values<typeof Params>;
 
-  function getPixelScale(p: Props) {
+  export interface ContextChange {
+    readonly previous: GraphicsContext;
+    /**
+     * `switch`: `setBackend`; `fallback`: the previous context was lost for good (see `Attribs.contextFallback`);
+     * `restore`: the previous context was lost and is replaced by a new one on the same canvas (`GraphicsContext.recreate`)
+     */
+    readonly reason: 'switch' | 'fallback' | 'restore';
+  }
+
+  /** time a lost context has to be restored while the page is visible, before falling back */
+  export const ContextRestoreTimeoutMs = 3000;
+  /** losses within `ContextLossWindowMs` beyond which the context counts as lost for good, even if restored */
+  export const MaxContextLosses = 3;
+  export const ContextLossWindowMs = 60_000;
+
+  /** Calls `onTimeout` after `ms` of visible page (paused while hidden: browsers delay restores of background tabs) */
+  function visibleTimeout(ms: number, onTimeout: () => void) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let remaining = ms;
+    let started = 0;
+    const hasDocument = typeof document !== 'undefined';
+    const run = () => {
+      if (timer !== undefined || (hasDocument && document.hidden)) return;
+      started = Date.now();
+      timer = setTimeout(() => {
+        cancel();
+        onTimeout();
+      }, remaining);
+    };
+    const pause = () => {
+      if (timer === undefined) return;
+      clearTimeout(timer);
+      timer = undefined;
+      remaining = Math.max(0, remaining - (Date.now() - started));
+    };
+    const onVisibility = () => (document.hidden ? pause() : run());
+    const cancel = () => {
+      pause();
+      if (hasDocument) document.removeEventListener('visibilitychange', onVisibility);
+    };
+    if (hasDocument) document.addEventListener('visibilitychange', onVisibility);
+    run();
+    return { cancel };
+  }
+
+  /** The pixel scale of the drawing buffer for `p`, see `resolutionMode` */
+  export function getPixelScale(p: Props) {
     const scaled = p.pixelScale / (typeof window !== 'undefined' ? window?.devicePixelRatio || 1 : 1);
     if (p.resolutionMode === 'auto') {
       return isMobileBrowser() ? scaled : p.pixelScale;
     }
     return p.resolutionMode === 'native' ? p.pixelScale : scaled;
+  }
+
+  function getContextAttribs(a: Attribs, p: Props): GraphicsContextAttribs {
+    return {
+      powerPreference: a.powerPreference ?? 'default',
+      failIfMajorPerformanceCaveat: a.failIfMajorPerformanceCaveat,
+      antialias: a.antialias,
+      preserveDrawingBuffer: a.preserveDrawingBuffer,
+      pixelScale: getPixelScale(p),
+    };
+  }
+
+  /** A canvas element to take the place of `canvas`, with its attributes (id, class, style) and size */
+  function cloneCanvas(canvas: HTMLCanvasElement) {
+    const next = canvas.ownerDocument.createElement('canvas');
+    for (const { name, value } of Array.from(canvas.attributes)) next.setAttribute(name, value);
+    next.width = canvas.width;
+    next.height = canvas.height;
+    return next;
   }
 
   /**
@@ -264,138 +385,234 @@ namespace Canvas3DContext {
   ): Promise<Canvas3DContext> {
     const a = { ...DefaultAttribs, ...attribs };
     const p = { ...DefaultProps, ...props };
-    const created = await createGraphicsContext(canvas, backends, {
-      powerPreference: a.powerPreference ?? 'default',
-      failIfMajorPerformanceCaveat: a.failIfMajorPerformanceCaveat,
-      antialias: a.antialias,
-      preserveDrawingBuffer: a.preserveDrawingBuffer,
-      pixelScale: getPixelScale(p),
-    });
+    const created = await createGraphicsContext(canvas, backends, getContextAttribs(a, p));
     if (!created) {
       throw new Error(`Could not create a graphics context with any of: ${backends.map((b) => b.id).join(', ')}`);
     }
-    return fromGraphics(canvas, created.context, assetManager, a, p);
+    return fromGraphics(canvas, created.context, assetManager, a, p, backends);
   }
 
-  /** Creates a WebGL context (WebGL2 unless `attribs.preferWebGl1` or unavailable) */
-  export function fromCanvas(
-    canvas: HTMLCanvasElement,
+  /**
+   * The context for `graphics`, a context created on `canvas` (e.g. by a backend descriptor, see `create`, or the WebGL
+   * convenience `createWebGLCanvas3DContext` of `@molstar/graphics/canvas3d/webgl`); `backends`, the list it was
+   * created from, for falling back when it is lost for good (see `Attribs.contextFallback`)
+   */
+  export function fromGraphics(
+    _canvas: HTMLCanvasElement,
+    _graphics: GraphicsContext,
     assetManager: AssetManager,
     attribs: Partial<Attribs> = {},
     props: Partial<Props> = {},
+    backends: readonly GraphicsBackendDescriptor[] = [],
   ): Canvas3DContext {
     const a = { ...DefaultAttribs, ...attribs };
     const p = { ...DefaultProps, ...props };
-
-    const { powerPreference, failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, preferWebGl1 } = a;
-    const gl = getGLContext(canvas, {
-      powerPreference,
-      failIfMajorPerformanceCaveat,
-      antialias,
-      preserveDrawingBuffer,
-      alpha: true, // the renderer requires an alpha channel
-      depth: true, // the renderer requires a depth buffer
-      stencil: true, // the renderer requires a stencil buffer
-      premultipliedAlpha: true, // the renderer outputs PMA
-      preferWebGl1,
-    });
-    if (gl === null) throw new Error('Could not create a WebGL rendering context');
-    return fromGraphics(canvas, createContext(gl, { pixelScale: getPixelScale(p) }), assetManager, a, p);
-  }
-
-  function fromGraphics(
-    canvas: HTMLCanvasElement,
-    graphics: GraphicsContext,
-    assetManager: AssetManager,
-    a: Attribs,
-    p: Props,
-  ): Canvas3DContext {
+    let canvas = _canvas;
+    let graphics = _graphics;
     const syncPixelScale = () => {
       const pixelScale = getPixelScale(p);
       input.setPixelScale(pixelScale);
       graphics.setPixelScale(pixelScale);
     };
 
-    const { pickScale, transparency } = p;
     const pixelScale = getPixelScale(p);
     const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
-    const passes = new Passes(graphics, assetManager, { pickScale, transparency });
+    const createPasses = () =>
+      new Passes(graphics, assetManager, { pickScale: p.pickScale, transparency: p.transparency });
+    let passes = createPasses();
 
-    if (isDebugMode && isWebGLContext(graphics)) {
-      const loseContextExt = graphics.gl.getExtension('WEBGL_lose_context');
-      if (loseContextExt) {
-        // Hold down shift+ctrl+alt and press any mouse button to call `loseContext`.
-        // After 1 second `restoreContext` will be called.
-        canvas.addEventListener(
-          'mousedown',
-          (e) => {
-            if (graphics.isContextLost) return;
-            if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
+    // debugging: hold down shift+ctrl+alt and press any mouse button to lose the context, which is then restored
+    const simulateContextLoss = (e: MouseEvent) => {
+      if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
+      if (graphics.simulateContextLoss()) console.log('lose context');
+    };
+    if (isDebugMode) canvas.addEventListener('mousedown', simulateContextLoss, false);
 
-            if (isDebugMode) console.log('lose context');
-            loseContextExt.loseContext();
-
-            setTimeout(() => {
-              if (!graphics.isContextLost) return;
-              if (isDebugMode) console.log('restore context');
-              loseContextExt.restoreContext();
-            }, 1000);
-          },
-          false,
-        );
-      }
-    }
-
-    // https://www.khronos.org/webgl/wiki/HandlingContextLost
-
-    // the losses the context reports (`setContextLost`), on WebGL from the canvas events below
+    // the losses the context reports (on WebGL from the events of the canvas); a lost context is replaced by a new one
+    // on the same canvas once that can be created, and everything is built again on it as after a backend switch
+    // (`contextChanged` with `restore`)
     const contextLost = new Subject<now.Timestamp>();
-    const resetPasses = () => {
-      passes.draw.reset();
-      passes.pick.reset();
-      passes.illumination.reset();
-    };
-    const contextLostSub = graphics.contextLost.subscribe((t) => {
-      if (isDebugMode) console.log('context lost');
-      contextLost.next(t);
-      // backends replacing the context themselves (WebGPU devices) restore right away
-      graphics.restore?.(resetPasses).then((restored) => {
-        if (isDebugMode) console.log(restored ? 'context restored' : 'context not restored');
+    const contextRestored = new Subject<now.Timestamp>();
+    // fallback: the backend in use, those lost for good or that couldn't be created (never tried again), the times
+    // of recent losses
+    let current = backends.find((b) => b.id === _graphics.capabilities.backend);
+    const failed = new Set<GraphicsBackendDescriptor>();
+    let losses: number[] = [];
+    let pendingRestore: { cancel: () => void } | undefined;
+    /** lost on purpose (`release`): restored by `restore`, not on the loss */
+    let released = false;
+
+    const fallback = (why: string) => {
+      if (!a.contextFallback || changing) return;
+      if (current) failed.add(current);
+      // only further down the list, each backend once: no loop back to a lost one
+      const start = current ? backends.indexOf(current) + 1 : 0;
+      const candidates = backends.slice(start).filter((b) => !failed.has(b));
+      if (candidates.length === 0) {
+        console.error(`Graphics context ${why}, no backend left to fall back to`);
+        return;
+      }
+      console.warn(`Graphics context ${why}, falling back to ${candidates.map((b) => b.id).join(', ')}`);
+      changeBackend(candidates, 'fallback').then((ok) => {
+        if (!ok) console.error(`Graphics context ${why}, falling back failed`);
       });
-    });
-
-    const handleWebglContextLost = (e: Event) => {
-      graphics.setContextLost();
-      e.preventDefault();
     };
 
-    const handlewWebglContextRestored = () => {
-      if (!graphics.isContextLost) return;
-      graphics.handleContextRestored(resetPasses);
-      if (isDebugMode) console.log('context restored');
+    const onContextLost = (t: now.Timestamp) => {
+      if (isDebugMode) console.log(released ? 'context released' : 'context lost');
+      contextLost.next(t);
+      pendingRestore?.cancel();
+      if (released) return;
+      const time = Date.now();
+      losses = losses.filter((l) => time - l < ContextLossWindowMs);
+      losses.push(time);
+      if (losses.length > MaxContextLosses) {
+        fallback(`lost ${losses.length} times within ${ContextLossWindowMs / 1000} s`);
+        return;
+      }
+      recreateLost();
     };
 
-    if (isWebGLContext(graphics)) {
-      canvas.addEventListener('webglcontextlost', handleWebglContextLost, false);
-      canvas.addEventListener('webglcontextrestored', handlewWebglContextRestored, false);
-    }
+    /**
+     * Replaces the lost context with a new one on the same canvas, falling back when that fails or takes too long; a
+     * released context (`restore`) stays released instead, to be restored later
+     */
+    const recreateLost = (wasReleased = false): Promise<boolean> => {
+      let settled = false;
+      let done!: (restored: boolean) => void;
+      const result = new Promise<boolean>((resolve) => {
+        done = resolve;
+      });
+      const failed = (why: string) => {
+        if (wasReleased) released = true;
+        else fallback(why);
+        done(false);
+      };
+      const timeout = visibleTimeout(ContextRestoreTimeoutMs, () => {
+        if (settled) return;
+        settled = true;
+        failed(`not restored within ${ContextRestoreTimeoutMs / 1000} s`);
+      });
+      pendingRestore = {
+        cancel: () => {
+          // also by `replaceContext` once restored (settled then)
+          if (!settled) done(false);
+          settled = true;
+          timeout.cancel();
+        },
+      };
+      const lost = graphics;
+      graphics.recreate().then((next) => {
+        if (settled || lost !== graphics || !next) {
+          next?.destroy({ doNotForceWebGLContextLoss: true });
+          if (!settled && lost === graphics) {
+            settled = true;
+            timeout.cancel();
+            failed('not restored');
+          }
+          done(false);
+          return;
+        }
+        settled = true;
+        timeout.cancel();
+        const restored = replaceContext({ canvas, graphics: next, backend: current }, 'restore');
+        if (isDebugMode) console.log(restored ? 'context restored' : 'context not restored');
+        if (restored) contextRestored.next(now());
+        else failed('not restored');
+        done(restored);
+      });
+      return result;
+    };
+
+    const subscribeContext = () => [graphics.contextLost.subscribe(onContextLost)];
+    let contextSubs = subscribeContext();
 
     const changed = new BehaviorSubject<undefined>(undefined);
+    const contextChanged = new Subject<ContextChange>();
+
+    let changing = false;
+    type NextContext = { canvas: HTMLCanvasElement; graphics: GraphicsContext; backend?: GraphicsBackendDescriptor };
+
+    /**
+     * Puts `next` in place of the current context and notifies `contextChanged`, then destroys the previous one (a
+     * restore keeps the canvas: the lost context is dropped without GPU calls)
+     */
+    const replaceContext = (next: NextContext, reason: ContextChange['reason']): boolean => {
+      if (!canvas.parentNode || graphics.xr.isPresenting()) {
+        next.graphics.destroy(reason === 'restore' ? { doNotForceWebGLContextLoss: true } : undefined);
+        return false;
+      }
+      const previous = graphics;
+      for (const s of contextSubs) s.unsubscribe();
+      canvas.removeEventListener('mousedown', simulateContextLoss, false);
+      if (next.canvas !== canvas) canvas.replaceWith(next.canvas);
+
+      canvas = next.canvas;
+      graphics = next.graphics;
+      input.setElement(canvas);
+      if (isDebugMode) canvas.addEventListener('mousedown', simulateContextLoss, false);
+      contextSubs = subscribeContext();
+      passes = createPasses();
+      syncPixelScale();
+      pendingRestore?.cancel();
+      pendingRestore = undefined;
+      released = false;
+      // a new backend starts without losses, a restore keeps counting them
+      if (reason !== 'restore') losses = [];
+      if (next.backend) {
+        const { backend } = next;
+        current = backends.includes(backend) ? backend : backends.find((b) => b.id === backend.id);
+      }
+
+      contextChanged.next({ previous, reason });
+      previous.destroy(reason === 'restore' ? { lost: true } : undefined);
+      return true;
+    };
+
+    const changeBackend = async (
+      candidates: readonly GraphicsBackendDescriptor[],
+      reason: ContextChange['reason'],
+    ): Promise<boolean> => {
+      if (changing || !canvas.parentNode || graphics.xr.isPresenting()) return false;
+      changing = true;
+      try {
+        // each backend on a fresh canvas: a failed backend may leave its context type on the canvas
+        let next: NextContext | undefined;
+        for (const backend of candidates) {
+          const nextCanvas = cloneCanvas(canvas);
+          const created = await createGraphicsContext(nextCanvas, [backend], getContextAttribs(a, p));
+          if (created) {
+            next = { canvas: nextCanvas, graphics: created.context, backend };
+            break;
+          }
+          // not tried again by a fallback
+          if (reason === 'fallback') failed.add(backend);
+        }
+        return next ? replaceContext(next, reason) : false;
+      } finally {
+        changing = false;
+      }
+    };
+    const setBackend = (candidates: readonly GraphicsBackendDescriptor[]) => changeBackend(candidates, 'switch');
 
     return {
-      canvas,
-      graphics,
-      get webgl() {
-        return asWebGLContext(graphics);
+      get canvas() {
+        return canvas;
+      },
+      get graphics() {
+        return graphics;
       },
       input,
-      passes,
+      get passes() {
+        return passes;
+      },
       attribs: a,
       get props() {
         return { ...p };
       },
       contextLost,
-      contextRestored: graphics.contextRestored,
+      contextRestored,
+      contextChanged,
       assetManager,
       changed,
       get pixelScale() {
@@ -439,16 +656,33 @@ namespace Canvas3DContext {
 
         if (hasChanged) changed.next(undefined);
       },
-      dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
+      setBackend,
+      release: () => {
+        if (released || changing || graphics.isContextLost || graphics.xr.isPresenting()) return false;
+        released = true;
+        if (graphics.release()) return true;
+        released = false;
+        return false;
+      },
+      restore: async () => {
+        if (!released || changing || !graphics.isContextLost) return false;
+        released = false;
+        return recreateLost(true);
+      },
+      get isReleased() {
+        return released;
+      },
+      dispose: (options?: GraphicsDestroyOptions) => {
         input.dispose();
 
-        canvas.removeEventListener('webglcontextlost', handleWebglContextLost, false);
-        canvas.removeEventListener('webglcontextrestored', handlewWebglContextRestored, false);
-        contextLostSub.unsubscribe();
-        if (isWebGLContext(graphics)) graphics.destroy(options);
-        else graphics.destroy();
+        canvas.removeEventListener('mousedown', simulateContextLoss, false);
+        for (const s of contextSubs) s.unsubscribe();
+        pendingRestore?.cancel();
+        graphics.destroy(options);
 
         contextLost.complete();
+        contextRestored.complete();
+        contextChanged.complete();
         changed.complete();
       },
     };
@@ -466,9 +700,17 @@ export interface Canvas3DCameraResetOptions {
 }
 
 interface Canvas3D {
+  /** replaced when the context's backend changes, see `contextChanged` */
   readonly graphics: GraphicsContext;
-  /** The WebGL context, throws for other backends (use `graphics`) */
-  readonly webgl: WebGLContext;
+  /**
+   * After the graphics context changed (`Canvas3DContext.setBackend`) and the scene was rebuilt on it: render objects
+   * are drawn again as they are (textures loaded from data transferred), representations create and update visuals
+   * with the new context (`Representation.setGraphics`) and are updated, which creates again what was rendered or
+   * computed with the previous context (e.g. GPU surfaces) and geometry relying on what the new context lacks; image
+   * passes (`getImagePass`) follow. Render objects of no representation that hold such textures are not drawn anymore
+   * (`dropped`).
+   */
+  readonly contextChanged: Subject<Canvas3D.ContextChange>;
 
   add(repr: Representation.Any): void;
   remove(repr: Representation.Any): void;
@@ -489,6 +731,30 @@ interface Canvas3D {
   syncVisibility(): void;
 
   requestDraw(): void;
+  /**
+   * Makes the pipelines and resources frames with the props draw ready without drawing anything (see `PassBuilder`);
+   * resolves when they are
+   */
+  prepare(options?: Canvas3DPrepareOptions): Promise<void>;
+  /**
+   * Makes the programs and pipelines ready that frames with each of `props` (the current ones by default) draw the
+   * objects of `list` with, before the objects exist (e.g. the snapshots of a state, before they are applied), including
+   * the first interaction; as this device draws them (e.g. blended transparency where the props' mode is not supported).
+   * The programs are kept until the next call; entries of unknown kinds are skipped. Resolves when they are ready
+   */
+  precompile(list: PrecompileList, props?: readonly Canvas3DPrecompileProps[]): Promise<void>;
+  /** The objects drawn since the last reset (`resetPrecompileList`), as signatures, see `precompile` */
+  getPrecompileList(): PrecompileList;
+  resetPrecompileList(): void;
+  /**
+   * Whether the last tick found nothing to do: nothing drawn or committed, and nothing under way that needs the next
+   * tick (a camera transition, the controls' animation or keys, an interaction, a hover pick, a hi-Z readback). A loop
+   * may stop asking for frames while it stays idle (`PluginAnimationLoop`, `PluginConfig.General.PauseLoopWhenIdle`)
+   * and ask again on `wake`. Code that changes the scene or the camera past this API must call `requestDraw`.
+   */
+  readonly isIdle: boolean;
+  /** Fires once after an idle tick when something gives the next tick work: a draw requested, input, a scene, camera or props change. */
+  readonly wake: Observable<void>;
 
   /** Reset the timers, used by "animate" */
   resetTime(t: number): void;
@@ -504,7 +770,16 @@ interface Canvas3D {
   requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number;
   cancelAnimationFrame(handle: number): void;
 
-  identify(target: Vec2 | Ray3D): PickData | undefined;
+  /**
+   * The pick data at `target`, `undefined` if nothing is there. Read in the same call where the backend reads
+   * synchronously (WebGL); elsewhere (WebGPU) `'pending'` until a read started for the current scene and camera has
+   * returned: `asyncIdentify(target)?.wait()` resolves then
+   */
+  identify(target: Vec2 | Ray3D): PickResult;
+  /**
+   * Starts reading the pick data at `target`, on every backend: poll the result with `tryGet` (e.g. per frame, as hover
+   * and clicks do) or await it with `wait`
+   */
   asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined;
   mark(loci: Representation.Loci, action: MarkerAction): void;
   getLoci(pickingId: PickingId | undefined): Representation.Loci;
@@ -561,6 +836,9 @@ const cancelAnimationFrame =
     ? window.cancelAnimationFrame
     : (handle: number) => clearImmediate(handle as unknown as NodeJS.Immediate);
 
+/** Longest time frames wait for the work a props change started, see `holdFramesUntilPrepared` */
+const MaxFrameHoldMs = 1000;
+
 function syncCanvasBackground(canvas: HTMLCanvasElement | undefined, canvasProps: Canvas3DProps) {
   // A HeadlessPluginContext has no HTML canvas to style.
   if (!canvas) return;
@@ -581,6 +859,12 @@ function syncCanvasBackground(canvas: HTMLCanvasElement | undefined, canvasProps
 }
 
 namespace Canvas3D {
+  export interface ContextChange {
+    readonly dropped: readonly GraphicsRenderObject[];
+    /** `switch` (`Canvas3DContext.setBackend`) or `fallback` (the previous context was lost for good) */
+    readonly reason: Canvas3DContext.ContextChange['reason'];
+  }
+
   export interface HoverEvent {
     current: Representation.Loci;
     buttons: ButtonsType;
@@ -611,9 +895,10 @@ namespace Canvas3D {
     props: Partial<Canvas3DProps> = {},
     attribs: Partial<Canvas3DAttribs> = {},
   ): Canvas3D {
-    const { graphics, input, passes, assetManager, canvas, contextLost } = ctx;
+    const { input, assetManager, contextLost } = ctx;
+    let { graphics, passes, canvas } = ctx;
     const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
-    const limitToSupported = createSupportedPropsLimiter(graphics);
+    let limitToSupported = createSupportedPropsLimiter(graphics);
     limitToSupported(p);
     const a = { ...deepClone(DefaultCanvas3DAttribs), ...deepClone(attribs) };
 
@@ -627,8 +912,6 @@ namespace Canvas3D {
     const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
     const commitQueueSize = new BehaviorSubject<number>(0);
 
-    const { contextRestored } = graphics;
-
     let x = 0;
     let y = 0;
     let width = 128;
@@ -636,6 +919,17 @@ namespace Canvas3D {
 
     let forceNextRender = false;
     let currentTime = 0;
+
+    // The idle state (`isIdle`): set by a tick that found nothing to do, cleared, with one `wake`, by whatever gives the
+    // next tick work.
+    let idle = false;
+    let drewInTick = false;
+    const wake = new Subject<void>();
+    function busy() {
+      if (!idle) return;
+      idle = false;
+      wake.next();
+    }
     // bumped once per render() call; spans stereo eyes and multi-sample jitter
     // sub-renders of that call, so their cull results can be safely reused
     let frame: Frame = createFrame();
@@ -644,7 +938,8 @@ namespace Canvas3D {
     updateViewport();
     const scene = Scene.create(graphics, passes.draw.transparency, {
       dColorMarker: isMaterialColorMarker(p.renderer, p.marking),
-      dLightCount: Math.min(p.renderer.light.length, MaxLightCount),
+      // `props.renderer` may be partial (shallow merge above); the renderer fills in its defaults
+      dLightCount: Math.min(p.renderer.light?.length ?? RendererParams.light.defaultValue.length, MaxLightCount),
     });
 
     function getSceneRadius() {
@@ -666,19 +961,19 @@ namespace Canvas3D {
 
     const controls = TrackballControls.create(input, camera, scene, p.trackball, a.trackball);
     const helper = new Helper(graphics, scene, p);
-    const hiZ = new HiZPass(graphics, passes.draw, canvas, p.hiZ);
+    let hiZ = new HiZPass(graphics, passes.draw, canvas, p.hiZ);
 
-    const renderer = Renderer.create(graphics, p.renderer);
+    let renderer = Renderer.create(graphics, p.renderer);
     renderer.setOcclusionTest(hiZ.isOccluded);
 
-    const shaderManager = new ShaderManager(graphics, scene);
+    let shaderManager = new ShaderManager(graphics, scene);
     shaderManager.updateRequired(p);
 
     const pickOptions = {
       pickPadding: p.pickPadding,
       maxAsyncReadLag: DefaultPickOptions.maxAsyncReadLag,
     };
-    const pickHelper = new PickHelper(
+    let pickHelper = new PickHelper(
       graphics,
       renderer,
       scene,
@@ -687,7 +982,7 @@ namespace Canvas3D {
       { x, y, width, height },
       pickOptions,
     );
-    const rayHelper = new RayHelper(graphics, renderer, scene, helper, pickOptions);
+    let rayHelper = new RayHelper(graphics, renderer, scene, helper, pickOptions);
     const interactionHelper = new Canvas3dInteractionHelper(
       identify,
       asyncIdentify,
@@ -698,7 +993,7 @@ namespace Canvas3D {
       p.interaction,
       pickHelper.synchronous,
     );
-    const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
+    let multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
     passes.draw.postprocessing.background.update(camera, p.postprocessing.background, (changed) => {
       if (changed) requestDraw();
@@ -796,6 +1091,7 @@ namespace Canvas3D {
           loadNonXRProps();
         }
         resume();
+        busy();
         xr.isPresenting.next(!!xrManager.session);
       }),
     ];
@@ -834,6 +1130,7 @@ namespace Canvas3D {
       //       same loci. Tho this might end up being more expensive (and error prone)
       //       then just applying everything "naively".
       markBuffer.push([reprLoci, action]);
+      busy();
     }
 
     /** helpers are rendered into the scene color, so their marking can't be redrawn on its own */
@@ -1018,19 +1315,49 @@ namespace Canvas3D {
     let drawPaused = false;
     let isContextLost = false;
 
+    /** prepares of new props that frames wait for, see `holdFramesUntilPrepared` */
+    let propsPreparing = 0;
+    /**
+     * Frames with the current props wait until what they draw with is ready, when that is not the case yet (e.g.
+     * WebGPU pipelines of illumination compiling, whose draws would be skipped): the last frame stays shown meanwhile,
+     * instead of frames missing those draws (e.g. only the background); for at most `MaxFrameHoldMs`, so that work
+     * that does not settle doesn't freeze the canvas
+     */
+    function holdFramesUntilPrepared() {
+      if (isContextLost || graphics.isContextLost) return;
+      const { pending } = graphics.resources;
+      const trackedCount = pending.trackedCount;
+      const ready = prepare();
+      if (pending.trackedCount === trackedCount) return;
+      propsPreparing += 1;
+      let held = true;
+      const release = () => {
+        if (!held) return;
+        held = false;
+        clearTimeout(limit);
+        propsPreparing -= 1;
+        requestDraw();
+      };
+      // cleared once ready, so it only outlives the hold when the work never settles
+      const limit = setTimeout(release, MaxFrameHoldMs);
+      ready.then(release);
+    }
+
     function draw(options?: { force?: boolean; isSynchronous?: boolean; xrFrame?: XRFrame }) {
       if (drawPaused || isContextLost) return;
-      if (!shaderManager.finalizeRequired(options?.isSynchronous)) {
+      if (propsPreparing > 0 || !shaderManager.finalizeRequired(options?.isSynchronous)) {
         forceNextRender = true;
         return;
       }
-      if (render(!!options?.force, options?.xrFrame) && notifyDidDraw) {
-        didDraw.next((now() - startTime) as now.Timestamp);
+      if (render(!!options?.force, options?.xrFrame)) {
+        drewInTick = true;
+        if (notifyDidDraw) didDraw.next((now() - startTime) as now.Timestamp);
       }
     }
 
     function requestDraw() {
       forceNextRender = true;
+      busy();
     }
 
     let animationFrameHandle = 0;
@@ -1042,6 +1369,8 @@ namespace Canvas3D {
       if (isContextLost) return;
       if (graphics.xr.session && !options?.xrFrame) return;
 
+      drewInTick = false;
+      idle = false;
       currentTime = t;
       renderer.setTime((currentTime - startTime) / 1000);
       commit(options?.isSynchronous);
@@ -1062,6 +1391,21 @@ namespace Canvas3D {
       if (!camera.transition.inTransition && !graphics.isContextLost) {
         interactionHelper.tick(currentTime);
       }
+      idle =
+        !drewInTick &&
+        !forceNextRender &&
+        !forceDrawAfterAllCommited &&
+        !cameraResetRequested &&
+        !resizeRequested &&
+        markBuffer.length === 0 &&
+        !scene.needsCommit &&
+        !camera.transition.inTransition &&
+        !controls.isAnimating &&
+        !controls.isMoving &&
+        !isActivelyInteracting &&
+        !hiZ.isPending &&
+        !interactionHelper.isPending &&
+        !graphics.xr.session;
     }
 
     let animationFrameCB: FrameRequestCallback | XRFrameRequestCallback | undefined = undefined;
@@ -1110,7 +1454,7 @@ namespace Canvas3D {
       if (animationFrameCB) _requestAnimationFrame(animationFrameCB);
     }
 
-    function identify(target: Vec2 | Ray3D): PickData | undefined {
+    function identify(target: Vec2 | Ray3D): PickResult {
       if (graphics.isContextLost) return undefined;
       shaderManager.finalize(['pick'], true);
 
@@ -1132,6 +1476,156 @@ namespace Canvas3D {
         const cam = p.camera.stereo.name === 'on' ? stereoCamera : camera;
         return pickHelper.asyncIdentify(target[0], target[1], cam, frame);
       }
+    }
+
+    function prepare(options?: Canvas3DPrepareOptions): Promise<void> {
+      if (isContextLost || graphics.isContextLost) return Promise.resolve();
+      const props: Canvas3DProps = options?.props ? { ...p, ...options.props } : p;
+      // the variants the props require are linked for every render item when set (`ShaderManager.updateRequired`)
+      graphics.resources.linkPrograms(ShaderManager.getRequired(graphics, scene, props));
+      const b = createPrepareBuilder(graphics, renderer);
+      const cam = props.camera.stereo.name === 'on' ? stereoCamera : camera;
+      const ctx = { renderer, camera: cam, scene, helper, frame };
+      // as `render` chooses its passes (without XR)
+      const illuminationEnabled = passes.illumination.supported && props.illumination.enabled;
+      if (illuminationEnabled) {
+        passes.illumination.plan(b, { ...ctx, camera }, props, true);
+      } else {
+        if (MultiSamplePass.isEnabled(props.multiSample)) {
+          multiSampleHelper.plan(b, ctx, props, true);
+        } else {
+          passes.draw.plan(b, ctx, props, true);
+        }
+        hiZ.plan(b, camera);
+      }
+      if (options?.interaction) {
+        // hover: picking, and marking, which draws only marked objects; the first marking also links the marking
+        // variant of every render item (see `ShaderManager.updateRequired`)
+        const marking = MarkingPass.isEnabled(props.marking);
+        graphics.resources.linkPrograms(marking ? ['pick', 'marking'] : ['pick']);
+        pickHelper.plan(b, cam, frame);
+        if (marking) passes.draw.plan(b, ctx, props, true, false, true);
+      }
+      return b.whenReady();
+    }
+
+    const precompileRecorder = new PrecompileRecorder();
+    /** the program items of the last `precompile`, by transparency, globals and signature */
+    let precompileItems = new Map<string, ProgramItem>();
+    function destroyPrecompileItems() {
+      for (const item of precompileItems.values()) item.destroy();
+      precompileItems.clear();
+    }
+
+    /** the scene's globals with `props` (as `setProps` sets them) */
+    function getGlobals(props: Canvas3DProps): GlobalDefines {
+      return {
+        dColorMarker: isMaterialColorMarker(
+          { colorMarker: props.renderer?.colorMarker ?? renderer.props.colorMarker },
+          props.marking,
+        ),
+        dLightCount: Math.min(props.renderer?.light?.length ?? renderer.props.light.length, MaxLightCount),
+      };
+    }
+
+    function precompile(list: PrecompileList, propsList: readonly Canvas3DPrecompileProps[] = [{}]): Promise<void> {
+      if (isContextLost || graphics.isContextLost) return Promise.resolve();
+      const previous = precompileItems;
+      precompileItems = new Map();
+      // the passes plan against scenes of the list's objects: groups with their counts (the requests come from the
+      // signatures, see `collect`) and averages that take every branch drawing objects (opaque and transparent or
+      // only opaque, emissive or not); marking as for the first interaction
+      const group = (n: number): Scene.Group => ({ ...Object3D.create(), renderables: new Array(n) });
+      for (const { transparency: mode, ...options } of propsList) {
+        const props: Canvas3DProps = { ...p, ...options };
+        const transparency = passes.draw.resolveTransparency(mode ?? passes.draw.transparency);
+        const globals = getGlobals(props);
+        const primitives: { signature: ObjectSignature; item: ProgramItem }[] = [];
+        const volumes: { signature: ObjectSignature; item: ProgramItem }[] = [];
+        for (const signature of list.objects) {
+          const key = `${transparency}|${globals.dLightCount}|${globals.dColorMarker}|${getSignatureKey(signature)}`;
+          let item = precompileItems.get(key) ?? previous.get(key);
+          if (!item) {
+            try {
+              item = createSignatureProgramItem(graphics, signature, transparency, globals);
+            } catch (e) {
+              if (isDebugMode) console.warn('Skipped a precompile list entry', signature, e);
+            }
+            if (!item) continue;
+          }
+          precompileItems.set(key, item);
+          (signature.type === 'direct-volume' ? volumes : primitives).push({ signature, item });
+        }
+
+        const listPrimitives = group(primitives.length);
+        const listVolumes = group(volumes.length);
+        // the averages decide between exclusive branches (e.g. bloom composites the background over emissive objects
+        // only, postprocessing blends transparency only with transparent objects): planned with none and some
+        const listScenes: Scene[] = [];
+        for (const opacityAverage of [1, 0.5]) {
+          for (const emissiveAverage of [0, 0.5]) {
+            listScenes.push(
+              Object.create(scene, {
+                primitives: { value: listPrimitives },
+                volumes: { value: listVolumes },
+                hasOpaque: { value: true },
+                opacityAverage: { value: opacityAverage },
+                transparencyMin: { value: 0 },
+                emissiveAverage: { value: emissiveAverage },
+                markerAverage: { value: 0 },
+              }),
+            );
+          }
+        }
+        const allItems = [...primitives, ...volumes];
+        const collect: PrepareCollect = (pass, g, target, all) => {
+          // the scene's own groups too: the pick helper plans with them
+          const items =
+            g === listPrimitives || g === scene.primitives
+              ? primitives
+              : g === listVolumes || g === scene.volumes
+                ? volumes
+                : g === scene || listScenes.includes(g as Scene)
+                  ? allItems
+                  : undefined;
+          return items && renderer.collectSignatures(pass, items, target, { all });
+        };
+
+        const b = createPrepareBuilder(graphics, renderer, collect);
+        const cam = props.camera.stereo.name === 'on' ? stereoCamera : camera;
+        passes.draw.withTransparency(transparency, () => {
+          for (const listScene of listScenes) {
+            const ctx = { renderer, camera: cam, scene: listScene, helper, frame };
+            // as `prepare` with the interaction
+            if (passes.illumination.supported && props.illumination.enabled) {
+              passes.illumination.plan(b, { ...ctx, camera }, props, true);
+            } else if (MultiSamplePass.isEnabled(props.multiSample)) {
+              multiSampleHelper.plan(b, ctx, props, true);
+            } else {
+              passes.draw.plan(b, ctx, props, true);
+            }
+            if (MarkingPass.isEnabled(props.marking)) passes.draw.plan(b, ctx, props, true, false, true);
+          }
+          pickHelper.plan(b, cam, frame);
+        });
+      }
+      for (const [key, item] of previous) {
+        if (!precompileItems.has(key)) item.destroy();
+      }
+      return graphics.resources.pending.whenReady();
+    }
+
+    let warmUpScheduled = false;
+    /** prepares the frame and the first interaction in idle time, after the scene changed */
+    function scheduleWarmUp() {
+      if (warmUpScheduled || !a.warmUp) return;
+      warmUpScheduled = true;
+      const warmUp = () => {
+        warmUpScheduled = false;
+        prepare({ interaction: true });
+      };
+      if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(warmUp, { timeout: 1000 });
+      else setTimeout(warmUp, 0);
     }
 
     function commit(isSynchronous: boolean = false) {
@@ -1243,6 +1737,8 @@ namespace Canvas3D {
         return false;
       }
       commitQueueSize.next(0);
+      precompileRecorder.record(scene.renderables);
+      scheduleWarmUp();
 
       if (helper.debug.isEnabled) helper.debug.update();
       if (!p.camera.manualReset && (reprCount.value === 0 || shouldResetCamera())) {
@@ -1279,7 +1775,9 @@ namespace Canvas3D {
       }
       console.log(JSON.stringify(graphics.stats, undefined, 4));
 
-      const { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer } = graphics.resources.getByteCounts();
+      const { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer, storageBuffer } =
+        graphics.resources.getByteCounts();
+      const arena = graphics.compute ? getVertexArenaStats(graphics.compute) : undefined;
       console.log(
         JSON.stringify(
           {
@@ -1289,6 +1787,12 @@ namespace Canvas3D {
             elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
             pixelPack: `${(pixelPack / 1024 / 1024).toFixed(3)} MiB`,
             renderbuffer: `${(renderbuffer / 1024 / 1024).toFixed(3)} MiB`,
+            storageBuffer: `${(storageBuffer / 1024 / 1024).toFixed(3)} MiB`,
+            ...(arena
+              ? {
+                  vertexArena: `${(arena.usedByteCount / 1024 / 1024).toFixed(3)} of ${(arena.byteCount / 1024 / 1024).toFixed(3)} MiB used (${arena.usedPages} of ${arena.pages} pages)`,
+                }
+              : {}),
           },
           undefined,
           4,
@@ -1344,8 +1848,12 @@ namespace Canvas3D {
       console.groupEnd();
     }
 
+    /** render objects left out of the scene by a context change until their representation updated them */
+    const droppedRenderObjects = new Set<GraphicsRenderObject>();
+
     function add(repr: Representation.Any) {
       registerAutoUpdate(repr);
+      busy();
 
       const oldRO = reprRenderObjects.get(repr);
       const newRO = new Set<GraphicsRenderObject>();
@@ -1360,6 +1868,17 @@ namespace Canvas3D {
             if (!newRO.has(o)) scene.remove(o);
           });
         }
+        if (droppedRenderObjects.size > 0) {
+          oldRO.forEach((o) => {
+            if (!droppedRenderObjects.has(o)) return;
+            if (!newRO.has(o)) {
+              droppedRenderObjects.delete(o);
+            } else if (!hasForeignTextures(o, graphics)) {
+              droppedRenderObjects.delete(o);
+              scene.add(o);
+            }
+          });
+        }
       } else {
         repr.renderObjects.forEach((o) => scene.add(o));
       }
@@ -1372,10 +1891,14 @@ namespace Canvas3D {
 
     function remove(repr: Representation.Any) {
       unregisterAutoUpdate(repr);
+      busy();
 
       const renderObjects = reprRenderObjects.get(repr);
       if (renderObjects) {
-        renderObjects.forEach((o) => scene.remove(o));
+        renderObjects.forEach((o) => {
+          scene.remove(o);
+          droppedRenderObjects.delete(o);
+        });
         reprRenderObjects.delete(repr);
         forceDrawAfterAllCommited = true;
         if (isDebugMode) consoleStats();
@@ -1454,30 +1977,10 @@ namespace Canvas3D {
       pickHelper.dirty = true;
     });
 
-    const contextRestoredSub = contextRestored.subscribe(() => {
-      pickHelper.reset();
-      rayHelper.reset();
-      hiZ.reset();
-
-      scene.forEach((r) => {
-        if (r.values.meta?.ref.value.reset) {
-          r.values.meta.ref.value.reset();
-          r.update();
-        }
-      });
-
-      isContextLost = false;
-
-      draw({ force: true });
-      // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
-      // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
-      // context loss so it is unclear if it behaves the same.
-      draw({ force: true });
-    });
-
     const resized = new BehaviorSubject<any>(0);
 
     function handleResize(draw = true) {
+      busy();
       passes.updateSize();
       updateViewport();
       syncViewport();
@@ -1493,9 +1996,101 @@ namespace Canvas3D {
     });
 
     // e.g. images loaded into textures: drawn with placeholders until then
-    const pendingSettledSub = graphics.resources.pending.settled.subscribe(() => {
+    const onPendingSettled = () => requestDraw();
+    const subscribeContext = () => [graphics.resources.pending.settled.subscribe(onPendingSettled)];
+    let contextSubs = subscribeContext();
+
+    const contextChanged = new Subject<Canvas3D.ContextChange>();
+    const imagePasses = new Set<WeakRef<ImagePass>>();
+
+    /**
+     * Rebuilds what is bound to the graphics context on the context of `ctx` (after `ctx.setBackend`): the renderer,
+     * passes and helpers are created again with their props; the scene and helpers keep their render objects except
+     * those holding resources of the previous context, which their owners create again (see `contextChanged`)
+     */
+    function setContext(change: Canvas3DContext.ContextChange) {
+      const { renderer: rendererProps, hiZ: hiZProps } = getProps();
+      destroyPrecompileItems();
+      renderer.dispose();
+      hiZ.dispose();
+      pickHelper.dispose();
+      rayHelper.dispose();
+      for (const s of contextSubs) s.unsubscribe();
+
+      graphics = ctx.graphics;
+      passes = ctx.passes;
+      canvas = ctx.canvas;
+
+      const dropped = scene.setContext(graphics);
+      for (const o of dropped) droppedRenderObjects.add(o);
+      helper.debug.setContext(graphics);
+      helper.camera.setContext(graphics);
+      helper.handle.setContext(graphics);
+      helper.pointer.setContext(graphics);
+      xrManager.setContext(graphics);
+      limitToSupported = createSupportedPropsLimiter(graphics);
+      limitToSupported(p);
+
+      hiZ = new HiZPass(graphics, passes.draw, canvas, hiZProps);
+      renderer = Renderer.create(graphics, rendererProps);
+      renderer.setOcclusionTest(hiZ.isOccluded);
+      shaderManager = new ShaderManager(graphics, scene);
+      pickHelper = new PickHelper(
+        graphics,
+        renderer,
+        scene,
+        helper,
+        passes.pick,
+        { x, y, width, height },
+        { ...pickOptions, pickPadding: p.pickPadding },
+      );
+      rayHelper = new RayHelper(graphics, renderer, scene, helper, { ...pickOptions, pickPadding: p.pickPadding });
+      multiSampleHelper = new MultiSampleHelper(passes.multiSample);
+      interactionHelper.resetPicks(pickHelper.synchronous);
+      passes.draw.postprocessing.background.update(camera, p.postprocessing.background, (changed) => {
+        if (changed) requestDraw();
+      });
+      scene.setTransparency(passes.draw.transparency);
+      contextSubs = subscribeContext();
+
+      isContextLost = false;
+      syncCanvasBackground(canvas, p);
+      handleResize(false);
+      shaderManager.updateRequired(p);
+      forceDrawAfterAllCommited = true;
       requestDraw();
-    });
+
+      for (const ref of [...imagePasses]) {
+        const pass = ref.deref();
+        if (pass) pass.setContext(graphics, renderer, helper);
+        else imagePasses.delete(ref);
+      }
+
+      // representations continue with the new context and update: visuals create again what was rendered or computed
+      // with the previous context and geometry relying on what the new one lacks (see `GeometryUtils.isCompatible`),
+      // the others change nothing
+      for (const repr of reprRenderObjects.keys()) {
+        repr.setGraphics?.(graphics);
+        repr
+          .createOrUpdate()
+          .run()
+          .then(() => {
+            if (reprRenderObjects.has(repr)) add(repr);
+          })
+          .catch((e) => console.error('Updating a representation for the new graphics context failed', e));
+      }
+
+      const unowned = dropped.filter((o) => droppedRenderObjects.has(o) && !isOwnedByRepr(o));
+      contextChanged.next({ dropped: unowned, reason: change.reason });
+    }
+
+    function isOwnedByRepr(o: GraphicsRenderObject) {
+      for (const renderObjects of reprRenderObjects.values()) {
+        if (renderObjects.has(o)) return true;
+      }
+      return false;
+    }
+    const ctxContextChangedSub = ctx.contextChanged?.subscribe(setContext);
 
     // Monitor user interactions
     let isDragging = false;
@@ -1517,7 +2112,28 @@ namespace Canvas3D {
         // no requestDraw here: it would force a full illumination restart (flash) even
         // though the next animation frame already resumes accumulation on its own
         isActivelyInteracting = isDragging;
+        busy();
       }),
+      // any input may give the next tick work (controls, hover, picking): an idle loop asks for frames again
+      merge(
+        input.move,
+        input.drag,
+        input.interactionEnd,
+        input.wheel,
+        input.pinch,
+        input.gesture,
+        input.click,
+        input.leave,
+        input.enter,
+        input.resize,
+        input.modifiers,
+        input.key,
+        input.keyDown,
+        input.keyUp,
+        input.lock,
+        input.trackedPointers,
+      ).subscribe(busy),
+      camera.stateChanged.subscribe(busy),
     ];
 
     //
@@ -1530,10 +2146,10 @@ namespace Canvas3D {
         hiZ.debugOcclusion(s);
       };
 
-      input.click.subscribe((e) => {
+      input.click.subscribe(async (e) => {
         if (!e.modifiers.control || e.button !== 2) return;
 
-        const p = identify(Vec2.create(e.x, e.y));
+        const p = await asyncIdentify(Vec2.create(e.x, e.y))?.wait();
         if (!p) {
           occlusionLoci = undefined;
           printOcclusion(occlusionLoci);
@@ -1555,10 +2171,10 @@ namespace Canvas3D {
     //
 
     return {
-      graphics,
-      get webgl() {
-        return ctx.webgl;
+      get graphics() {
+        return graphics;
       },
+      contextChanged,
 
       add,
       remove,
@@ -1570,7 +2186,11 @@ namespace Canvas3D {
         } else {
           scene.update(void 0, !!keepSphere);
         }
+        // updated values may have changed defines
+        precompileRecorder.invalidate();
+        precompileRecorder.record(scene.renderables);
         forceDrawAfterAllCommited = true;
+        busy();
       },
       clear: () => {
         reprUpdatedSubscriptions.forEach((v) => v.unsubscribe());
@@ -1594,6 +2214,10 @@ namespace Canvas3D {
       },
 
       requestDraw,
+      prepare,
+      precompile,
+      getPrecompileList: () => precompileRecorder.getList(),
+      resetPrecompileList: () => precompileRecorder.reset(),
       tick,
       animate,
       resetTime,
@@ -1611,10 +2235,12 @@ namespace Canvas3D {
       handleResize,
       requestResize: () => {
         resizeRequested = true;
+        busy();
       },
       requestCameraReset: (options) => {
         Object.assign(nextCameraResetOptions, options);
         cameraResetRequested = true;
+        busy();
       },
       camera,
       boundingSphere: scene.boundingSphere,
@@ -1625,6 +2251,10 @@ namespace Canvas3D {
       set notifyDidDraw(v: boolean) {
         notifyDidDraw = v;
       },
+      get isIdle() {
+        return idle;
+      },
+      wake,
       didDraw,
       commited,
       commitQueueSize,
@@ -1633,6 +2263,7 @@ namespace Canvas3D {
       setProps: (properties, doNotRequestDraw = false) => {
         const props: PartialCanvas3DProps =
           typeof properties === 'function' ? produce(getProps(), properties as any) : properties;
+        busy();
 
         if (props.sceneRadiusFactor !== undefined) {
           p.sceneRadiusFactor = props.sceneRadiusFactor;
@@ -1741,16 +2372,21 @@ namespace Canvas3D {
         }
 
         shaderManager.updateRequired(p);
+        holdFramesUntilPrepared();
         if (!doNotRequestDraw) {
           requestDraw();
         }
       },
       setAttribs: (attribs: PartialCanvas3DAttribs) => {
+        busy();
         if (attribs.trackball) controls.setAttribs(attribs.trackball);
         if (attribs.xr) xrManager.setAttribs(attribs.xr);
+        if (attribs.warmUp !== undefined) a.warmUp = attribs.warmUp;
       },
       getImagePass: (props: Partial<ImageProps> = {}) => {
-        return new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props);
+        const pass = new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props);
+        imagePasses.add(new WeakRef(pass));
+        return pass;
       },
       getRenderObjects(): GraphicsRenderObject[] {
         const renderObjects: GraphicsRenderObject[] = [];
@@ -1765,6 +2401,7 @@ namespace Canvas3D {
         return {
           trackball: controls.attribs,
           xr: xrManager.attribs,
+          warmUp: a.warmUp,
         };
       },
       get input() {
@@ -1780,9 +2417,9 @@ namespace Canvas3D {
       xr,
       dispose: () => {
         contextLostSub?.unsubscribe();
-        contextRestoredSub.unsubscribe();
         ctxChangedSub?.unsubscribe();
-        pendingSettledSub.unsubscribe();
+        ctxContextChangedSub?.unsubscribe();
+        for (const s of contextSubs) s.unsubscribe();
 
         for (const s of xrSubs) s.unsubscribe();
         xrSubs.length = 0;
@@ -1797,6 +2434,7 @@ namespace Canvas3D {
 
         scene.clear();
         helper.debug.clear();
+        destroyPrecompileItems();
         controls.dispose();
         renderer.dispose();
         interactionHelper.dispose();
@@ -1808,12 +2446,14 @@ namespace Canvas3D {
         reprCount.complete();
         interactionEvent.complete();
         didDraw.complete();
+        wake.complete();
         resized.complete();
         commited.complete();
         commitQueueSize.complete();
         xr.isPresenting.complete();
         xr.isSupported.complete();
         xr.requestFailed.complete();
+        contextChanged.complete();
 
         removeConsoleStatsProvider(consoleStats);
       },
@@ -1834,12 +2474,12 @@ namespace Canvas3D {
       } else if (p.viewport.name === 'static-frame') {
         x = p.viewport.params.x * graphics.pixelRatio;
         height = p.viewport.params.height * graphics.pixelRatio;
-        y = drs.height - height - p.viewport.params.y * graphics.pixelRatio;
+        y = p.viewport.params.y * graphics.pixelRatio;
         width = p.viewport.params.width * graphics.pixelRatio;
       } else if (p.viewport.name === 'relative-frame') {
         x = Math.round(p.viewport.params.x * drs.width);
         height = Math.round(p.viewport.params.height * drs.height);
-        y = Math.round(drs.height - height - p.viewport.params.y * drs.height);
+        y = Math.round(p.viewport.params.y * drs.height);
         width = Math.round(p.viewport.params.width * drs.width);
       }
 

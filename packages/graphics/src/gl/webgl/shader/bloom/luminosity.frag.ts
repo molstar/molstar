@@ -19,12 +19,12 @@ float getDepthTransparent(const in vec2 coords) {
 }
 
 float getDepth(const in vec2 coords) {
-    return min(getDepthOpaque(coords), getDepthTransparent(coords));
+    return max(getDepthOpaque(coords), getDepthTransparent(coords));
 }
 
 bool isBackground(const in float depth) {
-    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32.
-    return depth >= 0.99999994;
+    // the far plane (depth is reversed), packed or raw
+    return depth == 0.0;
 }
 
 void main(void) {

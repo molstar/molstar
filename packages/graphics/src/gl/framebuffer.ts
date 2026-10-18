@@ -8,8 +8,7 @@ export interface Framebuffer {
   readonly id: number;
 
   bind: () => void;
-  /** Number of color attachments written by draws, kept on reset; default 1 */
+  /** Number of color attachments written by draws; default 1 */
   setDrawBuffers: (count: number) => void;
-  reset: () => void;
   destroy: () => void;
 }

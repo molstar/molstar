@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { animation_wgsl } from './chunks/animation.wgsl.js';
+import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import { light_wgsl } from './chunks/light.wgsl.js';
 import {
@@ -43,6 +44,7 @@ ${read_from_texture_wgsl}
 ${animation_wgsl}
 ${light_wgsl}
 ${material_functions_wgsl}
+${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 
@@ -124,9 +126,10 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
     ${assign_quad_position_group_wgsl}
-    position = applyWiggle(position, group);
+    ${assign_wiggle_wgsl}
+    position = applyWiggle(position, group, wiggle);
     let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId));
+    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
 
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
@@ -141,7 +144,12 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let hasLod = lod.w != 0.0 && (lod.x != 0.0 || lod.y != 0.0);
     var d = 0.0;
     if (hasLod) {
-        let lodScale = lod.w;
+        #if defined(dSegmented)
+            // members of a merged item can have different scales for the same lod level (sphere-count dependent)
+            let lodScale = in.aSegmentLod[clamp(uDraw.uLodLevel, 0, 3)];
+        #else
+            let lodScale = lod.w;
+        #endif
         if (modelScale != 1.0) {
             radius *= lodScale;
         } else {
@@ -173,7 +181,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     out.vPoint = point4.xyz / point4.w;
     out.vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 
-    if (out.position.z < 0.0) {
+    // in front of the near plane (clip z is reversed)
+    if (out.position.z > out.position.w) {
         mvPosition.z -= 2.0 * radius; // avoid clipping
         out.position.z = (uGlobal.uProjection * vec4<f32>(mvPosition.xyz, 1.0)).z;
     }
@@ -253,7 +262,7 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
                 }
             #endif
             h.depth = calcDepth(h.viewPosition);
-            h.hit = h.depth > 0.0;
+            h.hit = h.depth < 1.0;
             return h;
         }
     #endif
@@ -265,10 +274,10 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
     let frontModelPosition = h.modelPosition;
     #if defined(dClipSphere)
         if (clipTest(h.modelPosition / uGlobal.uModelScale, clipFlag)) {
-            h.depth = -1.0;
+            h.depth = 2.0; // clipped, beyond the near plane (depth is reversed)
         }
     #endif
-    if (h.depth > 0.0) {
+    if (h.depth < 1.0) {
         h.normal = normalize(h.viewPosition - cameraSpherePos);
         h.interior = false;
         h.hit = true;
@@ -286,11 +295,11 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
         h.depth = calcDepth(h.viewPosition);
         h.normal = -normalize(h.viewPosition - cameraSpherePos);
         h.interior = true;
-        h.hit = h.depth > 0.0;
+        h.hit = h.depth < 1.0;
         #if defined(dSolidInterior)
             if (h.hit) {
                 let nearT = -(uGlobal.uNear + rayOrigin.z) / rayDirection.z;
-                let sNear = select(clamp((nearT - negT) / (posT - negT), 0.0, 1.0), 0.0, frontDepth > 0.0);
+                let sNear = select(clamp((nearT - negT) / (posT - negT), 0.0, 1.0), 0.0, frontDepth < 1.0);
                 #if defined(dClipSphere)
                     // the first point along the ray inside the sphere that no clip object removes
                     let sCap = clipExit(frontModelPosition / uGlobal.uModelScale, h.modelPosition / uGlobal.uModelScale, sNear, clipFlag);
@@ -301,9 +310,9 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
                 #else
                     let sCap = sNear;
                 #endif
-                if (sCap == sNear && frontDepth <= 0.0) {
+                if (sCap == sNear && frontDepth >= 1.0) {
                     // the front is clipped by the near plane: cap at the near plane
-                    h.depth = 0.0000001 / radius;
+                    h.depth = 1.0 - (0.0000001 / radius);
                     h.normal = -mix(normalize(point), vec3<f32>(0.0, 0.0, -1.0), isOrtho);
                     h.viewPosition = rayDirection * nearT + rayOrigin;
                     h.modelPosition = (uGlobal.uInvView * vec4<f32>(h.viewPosition, 1.0)).xyz;
@@ -313,7 +322,7 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
                         // cap on the clip object surface
                         h.viewPosition = rayDirection * mix(negT, posT, sCap) + rayOrigin;
                         h.modelPosition = (uGlobal.uInvView * vec4<f32>(h.viewPosition, 1.0)).xyz;
-                        h.depth = calcDepth(h.viewPosition) + (0.0000001 / radius);
+                        h.depth = calcDepth(h.viewPosition) - (0.0000001 / radius);
                         let invView = uGlobal.uInvView;
                         let invView3 = mat3x3<f32>(invView[0].xyz, invView[1].xyz, invView[2].xyz);
                         h.normal = -normalize(clipNormal(h.modelPosition / uGlobal.uModelScale, clipFlag) * invView3);

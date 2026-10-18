@@ -1,0 +1,38 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { afterAll, vi } from 'vitest';
+import 'fake-indexeddb/auto';
+import { runThreadConformance } from '@molstar/ai/testing/threads';
+import { createThreadHost, type ThreadTable } from '@molstar/ai';
+import { createIndexedDbRows } from '../indexeddb-rows.js';
+
+// The threads conformance against IndexedDB (fake-indexeddb in Node), one fresh database per case. A restart is a
+// second handle to the same database, as a second tab is.
+vi.setConfig({ testTimeout: 30_000 });
+let n = 0;
+const opened: { close(): void }[] = [];
+afterAll(() => {
+  for (const rows of opened) rows.close();
+});
+runThreadConformance({
+  name: 'indexeddb',
+  durable: true,
+  create: ({ clock }) => {
+    const name = `threads-case-${++n}`;
+    const open = () => {
+      const rows = createIndexedDbRows<ThreadTable>(name);
+      opened.push(rows);
+      return rows;
+    };
+    return {
+      threads: createThreadHost({ rows: open(), clock }),
+      reopen: () => createThreadHost({ rows: open(), clock }),
+    };
+  },
+});

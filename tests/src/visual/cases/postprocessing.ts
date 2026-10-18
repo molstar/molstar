@@ -95,9 +95,9 @@ export const PostprocessingCases: VisualTestCase[] = [
   pp('none/primitives', {}),
   pp('occlusion/default', { occlusion: { name: 'on', params: ssao } }, primitivesScene, { tags: ['smoke'] }),
   pp('occlusion/multi-scale', { occlusion: { name: 'on', params: { ...ssao, multiScale } } }),
-  // downsampled depth copies, packed without float render targets
-  pp('occlusion/multi-scale-half-resolution', {
-    occlusion: { name: 'on', params: { ...ssao, multiScale, resolutionScale: 0.5 } },
+  // half resolution by default, upsampled with the depth
+  pp('occlusion/multi-scale-full-resolution', {
+    occlusion: { name: 'on', params: { ...ssao, multiScale, resolutionScale: 1 } },
   }),
   pp('occlusion/transparent', { occlusion: { name: 'on', params: ssao } }, transparentScene, { requires: Impostor }),
   pp('shadow/default', { shadow: { name: 'on', params: { ...shadow, steps: 4 } } }),

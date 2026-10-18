@@ -10,6 +10,7 @@ import { G3dProvider } from '@molstar/g3d-extension/format';
 import type { SaccharideCompIdMapType } from '@molstar/model/model/structure/structure/carbohydrates/constants';
 import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { PluginConfig, PluginConfigItem } from '@molstar/plugin/config';
+import type { GraphicsBackendChoice } from '@molstar/plugin/util/graphics-backends';
 import type { PluginLayoutControlsDisplay } from '@molstar/plugin/layout';
 import '@molstar/core/util/polyfill';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
@@ -34,9 +35,8 @@ export const DefaultViewerOptions = {
   pixelScale: PluginConfig.General.PixelScale.defaultValue,
   pickScale: PluginConfig.General.PickScale.defaultValue,
   transparency: PluginConfig.General.Transparency.defaultValue,
-  preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
-  /** `webgpu` falls back to WebGL where WebGPU is not available */
-  graphicsBackend: 'webgl' as 'webgl' | 'webgpu',
+  /** see `GraphicsBackendChoice` */
+  graphicsBackend: 'auto' as GraphicsBackendChoice,
   allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
   powerPreference: PluginConfig.General.PowerPreference.defaultValue,
   resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,

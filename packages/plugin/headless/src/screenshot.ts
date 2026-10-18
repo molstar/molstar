@@ -22,12 +22,14 @@ import type { ImagePass, ImageProps } from '@molstar/graphics/canvas3d/passes/im
 import { Passes } from '@molstar/graphics/canvas3d/passes/passes';
 import { PostprocessingParams, type PostprocessingProps } from '@molstar/graphics/canvas3d/passes/postprocessing';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { createContext, isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { createContext } from '@molstar/graphics/gl/webgl/context';
 import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
 import { AssetManager } from '@molstar/core/util/assets';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { PixelData } from '@molstar/core/util/image';
 import { InputObserver } from '@molstar/core/util/input/input-observer';
+import { now } from '@molstar/core/util/now';
+import { Subject } from 'rxjs';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
 import type { RuntimeContext } from '@molstar/core/task';
 
@@ -61,55 +63,107 @@ export type RawImageData = {
   height: number;
 };
 
+/** The contexts of the headless `Canvas3D`s, see `HeadlessScreenshotHelper.canvas3dContext` */
+const HeadlessContexts = new WeakMap<Canvas3D, Canvas3DContext>();
+
 /** `Canvas3D` without canvas and input, rendering with `graphics` */
 function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScreenshotHelperOptions) {
   const input = InputObserver.create();
   const attribs = { ...Canvas3DContext.DefaultAttribs };
   const props = { ...Canvas3DContext.DefaultProps };
   const assetManager = new AssetManager();
-  const passes = new Passes(graphics, assetManager, props);
+  let current = graphics;
+  let passes = new Passes(current, assetManager, props);
   const pixelScale = 1;
   const syncPixelScale = () => {};
   const setProps = () => {};
-  // backends replacing a lost context themselves (WebGPU devices) restore right away
-  const contextLostSub = graphics.contextLost.subscribe(() => {
-    graphics.restore?.(() => {
-      passes.draw.reset();
-      passes.pick.reset();
-      passes.illumination.reset();
+  // a lost context is replaced by a new one where the backend can create it without a canvas (WebGPU devices), and
+  // Canvas3D is built again on it (`contextChanged` with `restore`); a released one (`release`) only on `restore`
+  const contextLost = new Subject<now.Timestamp>();
+  const contextRestored = new Subject<now.Timestamp>();
+  const contextChanged = new Subject<Canvas3DContext.ContextChange>();
+  let released = false;
+  const replace = (lost: GraphicsContext) =>
+    lost.recreate().then((next) => {
+      if (!next || lost !== current) {
+        next?.destroy({ lost: true });
+        return false;
+      }
+      contextLostSub.unsubscribe();
+      current = next;
+      passes = new Passes(current, assetManager, props);
+      contextLostSub = watch(current);
+      contextChanged.next({ previous: lost, reason: 'restore' });
+      lost.destroy({ lost: true });
+      contextRestored.next(now());
+      return true;
     });
-  });
+  const watch = (lost: GraphicsContext) =>
+    lost.contextLost.subscribe((t) => {
+      contextLost.next(t);
+      if (!released) replace(lost);
+    });
+  let contextLostSub = watch(current);
+  const release = () => {
+    if (released || current.isContextLost) return false;
+    released = true;
+    if (current.release()) return true;
+    released = false;
+    return false;
+  };
+  const restore = async () => {
+    if (!released || !current.isContextLost) return false;
+    released = false;
+    const restored = await replace(current);
+    if (!restored) released = true;
+    return restored;
+  };
   const dispose = () => {
     contextLostSub.unsubscribe();
     input.dispose();
-    graphics.destroy();
+    current.destroy();
+    contextLost.complete();
+    contextRestored.complete();
+    contextChanged.complete();
   };
   const context: Canvas3DContext = {
-    graphics,
-    get webgl() {
-      if (!isWebGLContext(graphics))
-        throw new Error(`not a WebGL context but '${graphics.capabilities.backend}', use 'graphics'`);
-      return graphics;
+    get graphics() {
+      return current;
     },
     input,
-    passes,
+    get passes() {
+      return passes;
+    },
     attribs,
     props,
-    contextLost: graphics.contextLost,
-    contextRestored: graphics.contextRestored,
+    contextLost,
+    contextRestored,
+    contextChanged,
     assetManager,
     pixelScale,
     syncPixelScale,
     setProps,
+    release,
+    restore,
+    get isReleased() {
+      return released;
+    },
     dispose,
   };
-  return Canvas3D.create(context, options?.canvas ?? defaultCanvas3DParams());
+  const canvas3d = Canvas3D.create(context, options?.canvas ?? defaultCanvas3DParams());
+  HeadlessContexts.set(canvas3d, context);
+  return canvas3d;
 }
 
 /** To render Canvas3D when running in Node.js (without DOM) */
 export class HeadlessScreenshotHelper {
   readonly canvas3d: Canvas3D;
   readonly imagePass: ImagePass;
+
+  /** The context of `canvas3d` when the helper made it (losses, `release` and `restore`) */
+  get canvas3dContext(): Canvas3DContext | undefined {
+    return HeadlessContexts.get(this.canvas3d);
+  }
 
   constructor(
     readonly externalModules: ExternalModules,

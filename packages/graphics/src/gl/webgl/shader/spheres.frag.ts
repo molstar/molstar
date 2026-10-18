@@ -82,7 +82,8 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                 }
             #endif
             fragmentDepth = calcDepth(cameraPos);
-            return fragmentDepth > 0.0;
+            // depth is reversed: in front of the near plane above 1
+            return fragmentDepth < 1.0;
         }
     #endif
 
@@ -97,11 +98,11 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         if (clipTest(modelPos / uModelScale)) {
             objectClipped = true;
-            fragmentDepth = -1.0;
+            fragmentDepth = 2.0;
         }
     #endif
 
-    if (fragmentDepth > 0.0) {
+    if (fragmentDepth < 1.0) {
         cameraNormal = normalize(cameraPos - cameraSpherePos);
         interior = false;
         return true;
@@ -111,18 +112,18 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
         fragmentDepth = calcDepth(cameraPos);
         cameraNormal = -normalize(cameraPos - cameraSpherePos);
         interior = true;
-        if (fragmentDepth > 0.0) {
+        if (fragmentDepth < 1.0) {
             #ifdef dSolidInterior
                 float nearT = - (uNear + rayOrigin.z) / rayDirection.z;
-                float sNear = frontDepth > 0.0 ? 0.0 : clamp((nearT - negT) / (posT - negT), 0.0, 1.0);
+                float sNear = frontDepth < 1.0 ? 0.0 : clamp((nearT - negT) / (posT - negT), 0.0, 1.0);
                 #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
                     float sCap = clipExit(frontModelPos / uModelScale, modelPos / uModelScale, sNear);
                     if (sCap < 0.0) return false;
                 #else
                     float sCap = sNear;
                 #endif
-                if (sCap == sNear && frontDepth <= 0.0) {
-                    fragmentDepth = 0.0 + (0.0000001 / vRadius);
+                if (sCap == sNear && frontDepth >= 1.0) {
+                    fragmentDepth = 1.0 - (0.0000001 / vRadius);
                     cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, -1.0), uIsOrtho);
                     cameraPos = rayDirection * nearT + rayOrigin;
                     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
@@ -131,7 +132,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                     else {
                         cameraPos = rayDirection * mix(negT, posT, sCap) + rayOrigin;
                         modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
-                        fragmentDepth = calcDepth(cameraPos) + (0.0000001 / vRadius);
+                        fragmentDepth = calcDepth(cameraPos) - (0.0000001 / vRadius);
                         cameraNormal = -normalize(clipNormal(modelPos / uModelScale) * mat3(uInvView));
                         isCap = true;
                     }

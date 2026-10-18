@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,8 +9,9 @@ import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
 import { Color } from '@molstar/core/util/color';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
+import { getLayerTypeDefine, type LayerType } from './layer-type.js';
 
-export type OverpaintType = 'instance' | 'groupInstance' | 'volumeInstance';
+export type OverpaintType = LayerType;
 
 export type OverpaintData = {
   tOverpaint: ValueCell<TextureImage<Uint8Array>>;
@@ -20,6 +21,9 @@ export type OverpaintData = {
   tOverpaintGrid: ValueCell<Texture>;
   uOverpaintGridDim: ValueCell<Vec3>;
   uOverpaintGridTransform: ValueCell<Vec4>;
+  /** the layer type (`OverpaintType`) */
+  overpaintType: ValueCell<string>;
+  /** its define (`getLayerTypeDefine`) */
   dOverpaintType: ValueCell<string>;
   uOverpaintStrength: ValueCell<number>;
 };
@@ -37,6 +41,15 @@ export function clearOverpaint(array: Uint8Array, start: number, end: number) {
   return true;
 }
 
+/** Sets the layer type `type` and its define (`getLayerTypeDefine`) of `values` */
+export function setOverpaintType(
+  values: Pick<OverpaintData, 'overpaintType' | 'dOverpaintType'>,
+  type: OverpaintType | string,
+) {
+  ValueCell.updateIfChanged(values.overpaintType, type);
+  ValueCell.updateIfChanged(values.dOverpaintType, getLayerTypeDefine(type));
+}
+
 export function createOverpaint(count: number, type: OverpaintType, overpaintData?: OverpaintData): OverpaintData {
   const overpaint = createTextureImage(
     Math.max(1, count),
@@ -48,7 +61,7 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
     ValueCell.update(overpaintData.tOverpaint, overpaint);
     ValueCell.update(overpaintData.uOverpaintTexDim, Vec2.create(overpaint.width, overpaint.height));
     ValueCell.updateIfChanged(overpaintData.dOverpaint, count > 0);
-    ValueCell.updateIfChanged(overpaintData.dOverpaintType, type);
+    setOverpaintType(overpaintData, type);
     return overpaintData;
   } else {
     return {
@@ -59,7 +72,8 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
       tOverpaintGrid: ValueCell.create(createNullTexture()),
       uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dOverpaintType: ValueCell.create(type),
+      overpaintType: ValueCell.create<string>(type),
+      dOverpaintType: ValueCell.create(getLayerTypeDefine(type)),
       uOverpaintStrength: ValueCell.create(1),
     };
   }
@@ -80,7 +94,8 @@ export function createEmptyOverpaint(overpaintData?: OverpaintData): OverpaintDa
       tOverpaintGrid: ValueCell.create(createNullTexture()),
       uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
       uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-      dOverpaintType: ValueCell.create('groupInstance'),
+      overpaintType: ValueCell.create<string>('groupInstance'),
+      dOverpaintType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uOverpaintStrength: ValueCell.create(1),
     };
   }

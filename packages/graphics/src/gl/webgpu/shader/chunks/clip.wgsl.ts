@@ -78,8 +78,7 @@ fn getSignedDistance(center: vec3<f32>, i: i32) -> f32 {
 }
 
 fn isClipObjectActive(i: i32, flag: i32) -> bool {
-    // tests the mask \`i + 1\` (not the bit \`1 << i\`), as the GLSL programs do
-    return i != uDraw.uSolidInteriorClip && (flag == 0 || (flag & (i + 1)) == 0);
+    return i != uDraw.uSolidInteriorClip && (flag == 0 || (flag & (1 << u32(i))) == 0);
 }
 
 fn isClipObjectInverted(i: i32) -> bool {
@@ -239,8 +238,7 @@ fn clipExit(pFront: vec3<f32>, pBack: vec3<f32>, sStart: f32, flag: i32) -> f32 
 
 /** Whether the clip object \`index\` doesn't cut the fragment (its group is exempt) */
 fn clipIgnored(index: i32, flag: i32) -> bool {
-    // tests the mask \`index + 1\` (not the bit \`1 << index\`), as the GLSL programs do
-    return flag != 0 && (flag & (index + 1)) != 0;
+    return flag != 0 && (flag & (1 << u32(index))) != 0;
 }
 
 fn isSolidInteriorClip(i: i32) -> bool {
@@ -297,7 +295,7 @@ export function clip_flag_wgsl(clipping: string) {
 /** Instance clipping in the vertex stage: moves the vertex out of the clip volume; expects \`aTransform\` and \`clipFlag\` */
 export const clip_instance_wgsl = /* wgsl */ `
 #if defined(dClipVariant_instance) && dClipObjectCount != 0
-    let clipCenter = (uGlobal.uModel * aTransform * vec4<f32>(uObject.uInvariantBoundingSphere.xyz, 1.0)).xyz;
+    let clipCenter = (uGlobal.uModel * aTransform * vec4<f32>(invariantBoundingSphere(in).xyz, 1.0)).xyz;
     if (clipTest(clipCenter / uGlobal.uModelScale, clipFlag)) {
         // move out of [0, w] to 'discard' in the vertex stage
         out.position.z = 2.0 * out.position.w;

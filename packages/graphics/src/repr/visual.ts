@@ -39,7 +39,9 @@ import type { Clipping } from '@molstar/graphics/theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import { getMarkersAverage } from '@molstar/graphics/geo/geometry/marker-data';
 import type { Texture } from '@molstar/graphics/gl/texture';
-import type { Geometry } from '@molstar/graphics/geo/geometry/geometry';
+import type { Geometry, GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
+import { GeometryRequest } from '@molstar/graphics/geo/geometry/request';
+import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import { getColorSmoothingProps, hasColorSmoothingProp } from '@molstar/graphics/geo/geometry/base';
 import {
   applyMeshEmissiveSmoothing,
@@ -56,6 +58,8 @@ import {
 import type { Substance } from '@molstar/graphics/theme/substance';
 import { applySubstanceMaterial, clearSubstance, createSubstance } from '@molstar/graphics/geo/geometry/substance-data';
 import type { LocationCallback } from './util.js';
+import type { SignatureContext } from './signatures.js';
+import type { ObjectSignature } from '@molstar/graphics/gl/precompile';
 import type { Emissive } from '@molstar/graphics/theme/emissive';
 import {
   applyEmissiveValue,
@@ -106,8 +110,33 @@ interface Visual<D, P extends PD.Params> {
   }) => void;
   destroy: () => void;
   mustRecreate?: (data: D, props: PD.Values<P>, graphics?: GraphicsContext) => boolean;
+  /**
+   * The signatures of the objects the visual may create with `props` in `ctx`, without data (see
+   * `getGeometrySignatures`)
+   */
+  getSignatures?(props: PD.Values<P>, ctx: SignatureContext): ObjectSignature[];
 }
 namespace Visual {
+  /**
+   * Runs `update` with `geometry` (created, possibly asynchronously, or kept) once it is prepared for `theme`
+   * (`GeometryUtils.prepare`, e.g. GPU data read back for the position iterator); synchronous where creating and
+   * preparing are
+   */
+  export function withPreparedGeometry<G extends Geometry>(
+    geometry: G | Promise<G>,
+    utils: GeometryUtils<G>,
+    theme: Theme,
+    graphics: GraphicsContext | undefined,
+    update: (geometry: G) => void,
+  ): Promise<void> | void {
+    const prepared = (g: G): Promise<void> | void => {
+      const preparing = utils.prepare?.(g, GeometryRequest.fromTheme(theme), graphics);
+      if (preparing) return preparing.then(() => update(g));
+      update(g);
+    };
+    return isPromiseLike(geometry) ? geometry.then(prepared) : prepared(geometry);
+  }
+
   export type LociApply = (loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) => boolean;
 
   export function setVisibility(renderObject: GraphicsRenderObject | undefined, visible: boolean) {
@@ -144,7 +173,7 @@ namespace Visual {
       markerStatus,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -239,11 +268,10 @@ namespace Visual {
 
     const {
       tOverpaint,
-      dOverpaintType,
       dOverpaint,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -267,7 +295,6 @@ namespace Visual {
       lociApply(loci, apply, false);
     }
     ValueCell.update(tOverpaint, tOverpaint.ref.value);
-    ValueCell.updateIfChanged(dOverpaintType, type);
     ValueCell.updateIfChanged(dOverpaint, overpaint.layers.length > 0);
 
     if (overpaint.layers.length === 0) return;
@@ -304,13 +331,12 @@ namespace Visual {
 
     const {
       tTransparency,
-      dTransparencyType,
       transparencyAverage,
       transparencyMin,
       dTransparency,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -336,7 +362,6 @@ namespace Visual {
     ValueCell.update(tTransparency, tTransparency.ref.value);
     ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
     ValueCell.updateIfChanged(transparencyMin, getTransparencyMin(array, count));
-    ValueCell.updateIfChanged(dTransparencyType, type);
     ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
 
     if (transparency.layers.length === 0) return;
@@ -373,12 +398,11 @@ namespace Visual {
 
     const {
       tEmissive,
-      dEmissiveType,
       emissiveAverage,
       dEmissive,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -403,7 +427,6 @@ namespace Visual {
     }
     ValueCell.update(tEmissive, tEmissive.ref.value);
     ValueCell.updateIfChanged(emissiveAverage, getEmissiveAverage(array, count));
-    ValueCell.updateIfChanged(dEmissiveType, type);
     ValueCell.updateIfChanged(dEmissive, emissive.layers.length > 0);
 
     if (emissive.layers.length === 0) return;
@@ -440,11 +463,10 @@ namespace Visual {
 
     const {
       tSubstance,
-      dSubstanceType,
       dSubstance,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -468,7 +490,6 @@ namespace Visual {
       lociApply(loci, apply, false);
     }
     ValueCell.update(tSubstance, tSubstance.ref.value);
-    ValueCell.updateIfChanged(dSubstanceType, type);
     ValueCell.updateIfChanged(dSubstance, substance.layers.length > 0);
 
     if (substance.layers.length === 0) return;
@@ -504,11 +525,10 @@ namespace Visual {
 
     const {
       tClipping,
-      dClippingType,
       dClipping,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -533,7 +553,6 @@ namespace Visual {
       lociApply(loci, apply, false);
     }
     ValueCell.update(tClipping, tClipping.ref.value);
-    ValueCell.updateIfChanged(dClippingType, type);
     ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
   }
 
@@ -547,12 +566,11 @@ namespace Visual {
 
     const {
       tWiggle,
-      dWiggleType,
       wiggleAverage,
       dWiggle,
       uGroupCount,
       instanceCount,
-      instanceGranularity: instanceGranularity,
+      uInstanceGranularity: instanceGranularity,
     } = renderObject.values;
     const count = instanceGranularity.ref.value
       ? instanceCount.ref.value
@@ -577,7 +595,6 @@ namespace Visual {
     }
     ValueCell.update(tWiggle, tWiggle.ref.value);
     ValueCell.updateIfChanged(wiggleAverage, getWiggleAverage(array, count));
-    ValueCell.updateIfChanged(dWiggleType, type);
     ValueCell.updateIfChanged(dWiggle, wiggle.layers.length > 0);
   }
 

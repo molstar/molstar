@@ -32,9 +32,15 @@ ${common_animation}
 
 void trimSegment(const in vec4 start, inout vec4 end) {
     // trim end segment so it terminates between the camera plane and the near plane
-    // conservative estimate of the near plane
-    float a = uProjection[2][2];  // 3rd entry in 3rd column
-    float b = uProjection[3][2];  // 3rd entry in 4th column
+    // conservative estimate of the near plane, from the z row of the GL projection (the sign of the reversed rows
+    // cancels in the ratio)
+    #ifdef clipZeroToOne
+        float a = 2.0 * uProjection[2][2] + 1.0;
+        float b = 2.0 * uProjection[3][2];
+    #else
+        float a = uProjection[2][2];  // 3rd entry in 3rd column
+        float b = uProjection[3][2];  // 3rd entry in 4th column
+    #endif
     float nearEstimate = -0.5 * b / a;
     float alpha = (nearEstimate - start.z) / (end.z - start.z);
     end.xyz = mix(start.xyz, end.xyz, alpha);

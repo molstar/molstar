@@ -6,7 +6,8 @@
 
 import './index.html';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
-import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
+import { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
+import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
 import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { Color } from '@molstar/core/util/color';
@@ -24,7 +25,7 @@ parent.appendChild(canvas);
 
 const assetManager = new AssetManager();
 
-const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);
 resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
 canvas3dContext.syncPixelScale();

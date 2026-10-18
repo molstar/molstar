@@ -27,7 +27,11 @@ void main() {
 
     gl_Position = uProjection * mvPosition;
 
-    // move z position to near clip plane (but not too close to get precision issues)
-    gl_Position.z = gl_Position.w - 0.01;
+    // move z position to the far clip plane (but not too close to get precision issues; clip z is reversed)
+    #ifdef clipZeroToOne
+        gl_Position.z = 0.005;
+    #else
+        gl_Position.z = -gl_Position.w + 0.01;
+    #endif
 }
 `;

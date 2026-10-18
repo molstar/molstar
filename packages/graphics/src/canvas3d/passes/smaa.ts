@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -131,20 +132,21 @@ export class SmaaPass {
     }
   }
 
-  render(viewport: Viewport, target: RenderTarget | undefined) {
-    if (isTimingMode) this.graphics.timer.group('SmaaPass.render');
-    this.graphics.beginRenderPass(this.edgesTarget, { label: 'smaa edges' });
-    this.updateState(viewport);
-    this.edgesRenderable.render();
+  render(b: PassBuilder, viewport: Viewport, target: RenderTarget | undefined) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) this.graphics.timer.group('SmaaPass.render');
+    b.begin(this.edgesTarget, { label: 'smaa edges' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.edgesRenderable, RenderState.Default);
 
-    this.graphics.beginRenderPass(this.weightsTarget, { label: 'smaa weights' });
-    this.updateState(viewport);
-    this.weightsRenderable.render();
+    b.begin(this.weightsTarget, { label: 'smaa weights' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.weightsRenderable, RenderState.Default);
 
-    this.graphics.beginRenderPass(target ?? 'drawing-buffer', { label: 'smaa blend' });
-    this.updateState(viewport);
-    this.blendRenderable.render();
-    if (isTimingMode) this.graphics.timer.groupEnd('SmaaPass.render');
+    b.begin(target ?? 'drawing-buffer', { label: 'smaa blend' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.blendRenderable, RenderState.Default);
+    if (timing) this.graphics.timer.groupEnd('SmaaPass.render');
   }
 }
 
@@ -154,7 +156,7 @@ export const EdgesSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
-  uViewport: UniformSpec('v4'),
+  uViewport: { ...UniformSpec('v4'), windowRect: 'pixels' as const },
 
   dEdgeThreshold: DefineSpec('number'),
 };
@@ -188,7 +190,7 @@ export const WeightsSchema = {
   tArea: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tSearch: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSizeInv: UniformSpec('v2'),
-  uViewport: UniformSpec('v4'),
+  uViewport: { ...UniformSpec('v4'), windowRect: 'pixels' as const },
 
   dMaxSearchSteps: DefineSpec('number'),
 };
@@ -230,7 +232,7 @@ export const BlendSchema = {
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tWeights: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
-  uViewport: UniformSpec('v4'),
+  uViewport: { ...UniformSpec('v4'), windowRect: 'pixels' as const },
 };
 export const BlendShaderCode = ShaderCode('smaa-blend');
 type BlendRenderable = ComputeRenderable<Values<typeof BlendSchema>>;

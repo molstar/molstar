@@ -1,0 +1,80 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A page over the canvas (ShellPage): a card like the others, only full size, beside the rail and the open panel. Opaque,
+   not glass: dense content would read over the canvas and the panels behind it. What is drawn in the background color
+   inside it (sticky headers, hatches) takes the card's surface. */
+.page {
+  position: absolute;
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  bottom: var(--msp-canvas-edge);
+  left: var(--msp-canvas-edge);
+  z-index: var(--msp-z-dialog);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--msp-radius-lg);
+  overflow: hidden;
+  --msp-color-bg: var(--msp-color-panel);
+  background: var(--msp-color-bg);
+  box-shadow: var(--msp-glass-shadow);
+  color: var(--msp-color-text);
+  animation: page-in var(--msp-motion-base) var(--msp-ease-reveal);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-4);
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-5);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  flex: none;
+  font-weight: 600;
+}
+
+/* The page's own header content (its tabs, its facts): the room between the title and the close button. */
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-4);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Compact: the panel docks under the canvas, nothing on its right. */
+:where([data-mode="compact"]) .page {
+  right: var(--msp-canvas-edge);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    animation: none;
+  }
+}

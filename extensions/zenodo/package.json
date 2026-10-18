@@ -5,7 +5,7 @@
   "description": "Mol* zenodo-extension",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./index": {
@@ -22,7 +22,18 @@
       "molstar-src": "./src/ui.tsx",
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
-    }
+    },
+    "./prism-viewer": {
+      "molstar-src": "./src/prism-viewer.ts",
+      "types": "./lib/prism-viewer.d.ts",
+      "import": "./lib/prism-viewer.js"
+    },
+    "./prism-viewer-stub": {
+      "molstar-src": "./src/prism-viewer-stub.ts",
+      "types": "./lib/prism-viewer-stub.d.ts",
+      "import": "./lib/prism-viewer-stub.js"
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -38,7 +49,9 @@
     "tslib": "catalog:",
     "@molstar/plugin": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
-    "@molstar/core": "workspace:*"
+    "@molstar/core": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/prism-ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -4,30 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
-import type { ExternalModules } from '@molstar/plugin-headless/screenshot';
 import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
-import { DefaultPluginSpec } from '@molstar/plugin/spec';
-
-/**
- * The optional `webgpu` package (Dawn's Node.js bindings), with a usable adapter. It is an ES module, so Jest needs
- * `--experimental-vm-modules` to load it.
- */
-async function getWebGPUModule(): Promise<ExternalModules['webgpu'] | undefined> {
-  let module: ExternalModules['webgpu'];
-  try {
-    module = (await import('webgpu' as string)) as ExternalModules['webgpu'];
-  } catch (e) {
-    console.warn(`Skipping headless WebGPU test: optional package "webgpu" is unavailable (${(e as Error).message}).`);
-    return;
-  }
-  const adapter = await module!.create([]).requestAdapter();
-  if (!adapter) {
-    console.warn('Skipping headless WebGPU test: no WebGPU adapter.');
-    return;
-  }
-  return module;
-}
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
 ATOM      2  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C
@@ -41,10 +22,9 @@ ATOM      9  O   GLY A   2       4.570   1.610   0.000  1.00  0.00           O
 END
 `;
 
-describe('HeadlessPluginContext on WebGPU', () => {
+describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
   it('renders a structure', async () => {
-    const webgpu = await getWebGPUModule();
-    if (!webgpu) return;
+    const webgpu = WebGPU.module!;
 
     const plugin = await HeadlessPluginContext.create(
       { webgpu },
@@ -71,16 +51,53 @@ describe('HeadlessPluginContext on WebGPU', () => {
       expect(differing).toBeGreaterThan(64);
       expect(differing).toBeLessThan(64 * 64);
 
-      // device loss: the context replaces the device and recreates its resources, the image is the same
+      // device loss: a new context with a new device replaces the lost one, Canvas3D is built again on it, the image
+      // is the same
       const graphics = plugin.canvas3d!.graphics as WebGPUContext;
       const lostDevice = graphics.device;
-      const restored = new Promise<void>((resolve) => graphics.contextRestored.subscribe(() => resolve()));
+      const restored = new Promise<void>((resolve) =>
+        plugin.canvas3d!.contextChanged.subscribe(({ reason }) => {
+          if (reason === 'restore') resolve();
+        }),
+      );
       lostDevice.destroy();
       await restored;
-      expect(graphics.device).not.toBe(lostDevice);
-      expect(graphics.isContextLost).toBe(false);
+      const next = plugin.canvas3d!.graphics as WebGPUContext;
+      expect(next).not.toBe(graphics);
+      expect(next.device).not.toBe(lostDevice);
+      expect(next.isContextLost).toBe(false);
       const restoredImage = await plugin.getImageRaw({ width: 64, height: 64 });
       expect(restoredImage.data).toEqual(image.data);
+
+      // release on purpose (e.g. a canvas out of view): the device is destroyed and the loss reported, but the context
+      // stays lost until `restore`, which builds everything again on a new device, the image the same
+      const context = plugin.renderer.canvas3dContext!;
+      const lost = new Promise<void>((resolve) => context.contextLost!.subscribe(() => resolve()));
+      let restores = 0;
+      const sub = plugin.canvas3d!.contextChanged.subscribe(({ reason }) => {
+        if (reason === 'restore') restores += 1;
+      });
+      expect(await context.restore!()).toBe(false);
+      expect(context.release!()).toBe(true);
+      expect(context.release!()).toBe(false);
+      await lost;
+      expect(context.isReleased).toBe(true);
+      expect(context.graphics).toBe(next);
+      expect(next.isContextLost).toBe(true);
+      // not restored on its own
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(restores).toBe(0);
+      expect(context.graphics).toBe(next);
+
+      expect(await context.restore!()).toBe(true);
+      sub.unsubscribe();
+      expect(restores).toBe(1);
+      expect(context.isReleased).toBe(false);
+      const reacquired = plugin.canvas3d!.graphics as WebGPUContext;
+      expect(reacquired).not.toBe(next);
+      expect(reacquired.isContextLost).toBe(false);
+      const reacquiredImage = await plugin.getImageRaw({ width: 64, height: 64 });
+      expect(reacquiredImage.data).toEqual(image.data);
     } finally {
       plugin.dispose();
     }

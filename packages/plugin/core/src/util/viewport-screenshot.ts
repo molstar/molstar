@@ -478,6 +478,17 @@ export class ViewportScreenshotHelper extends PluginComponent {
     );
   }
 
+  /** The image as bytes, in the format and with the quality the values say (what the download writes). */
+  getImageBlob() {
+    return this.plugin.runTask(
+      Task.create('Generate Image', async (ctx) => {
+        await this.draw(ctx);
+        await ctx.update('Converting image...');
+        return canvasToBlob(this.canvas, this.mimeType, this.quality);
+      }),
+    );
+  }
+
   copyToClipboard() {
     const task = this.copyToClipboardTask();
     if (!task) return;

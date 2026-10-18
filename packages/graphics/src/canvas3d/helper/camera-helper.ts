@@ -99,6 +99,11 @@ export class CameraHelper {
     this.setProps(props);
   }
 
+  setContext(graphics: GraphicsContext) {
+    this.graphics = graphics;
+    this.scene.setContext(graphics);
+  }
+
   setProps(props: Partial<CameraHelperProps>) {
     this.props = produce(this.props, (p) => {
       if (props.axes !== undefined) {

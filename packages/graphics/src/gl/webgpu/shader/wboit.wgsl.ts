@@ -6,7 +6,7 @@
 
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
 
-/** Resolves the weighted blended transparency accumulation, in GL window space as in GLSL */
+/** Resolves the weighted blended transparency accumulation */
 export const evaluate_wboit_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
 ${texture_read_wgsl('tWboitA')}
@@ -14,7 +14,7 @@ ${texture_read_wgsl('tWboitB')}
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, uObject.uTexSize);
+    let coords = fragmentUv(in.position, uObject.uTexSize);
 
     let accum = read_tWboitA(coords);
     let r = 1.0 - accum.a;

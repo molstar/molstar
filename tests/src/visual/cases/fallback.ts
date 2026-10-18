@@ -56,8 +56,8 @@ export const FallbackCases: VisualTestCase[] = [
     fallback: {
       requires: ['floatRenderTarget', 'multipleRenderTargets'],
       overrides: {
-        scene: async ({ webgl }) => [
-          await volumeRepr(webgl, IsosurfaceRepresentationProvider, blobVolume(32), {
+        scene: async ({ graphics }) => [
+          await volumeRepr(graphics, IsosurfaceRepresentationProvider, blobVolume(32), {
             isoValue: Volume.IsoValue.absolute(0.5),
             tryUseGpu: false,
           }),
@@ -65,8 +65,8 @@ export const FallbackCases: VisualTestCase[] = [
       },
     },
     view: ObliqueView,
-    scene: async ({ webgl }) => [
-      await volumeRepr(webgl, IsosurfaceRepresentationProvider, blobVolume(32), {
+    scene: async ({ graphics }) => [
+      await volumeRepr(graphics, IsosurfaceRepresentationProvider, blobVolume(32), {
         isoValue: Volume.IsoValue.absolute(0.5),
         tryUseGpu: true,
       }),
@@ -75,10 +75,10 @@ export const FallbackCases: VisualTestCase[] = [
   {
     id: 'fallback/gaussian-surface-gpu',
     fallback: {
-      requires: ['floatTextureLinear', 'floatRenderTarget', 'multipleRenderTargets'],
+      requires: ['gaussianSurfaceGpu'],
       overrides: {
-        scene: async ({ webgl }) => [
-          await structureRepr(webgl, GaussianSurfaceRepresentationProvider, await helixStructure(24), {
+        scene: async ({ graphics }) => [
+          await structureRepr(graphics, GaussianSurfaceRepresentationProvider, await helixStructure(24), {
             resolution: 0.5,
             tryUseGpu: false,
           }),
@@ -86,8 +86,8 @@ export const FallbackCases: VisualTestCase[] = [
       },
     },
     view: ObliqueView,
-    scene: async ({ webgl }) => [
-      await structureRepr(webgl, GaussianSurfaceRepresentationProvider, await helixStructure(24), {
+    scene: async ({ graphics }) => [
+      await structureRepr(graphics, GaussianSurfaceRepresentationProvider, await helixStructure(24), {
         resolution: 0.5,
         tryUseGpu: true,
       }),

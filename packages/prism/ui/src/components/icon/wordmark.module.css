@@ -1,0 +1,132 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* At its drawn size (70 × 20 and a 1 px margin, on the pixel grid): scaled, its lines would blur unevenly. */
+.wordmark {
+  position: relative;
+  display: block;
+  flex: none;
+  width: calc(var(--msp-wordmark-width, 72) * 1px * var(--msp-wordmark-scale, 1));
+  height: calc(22px * var(--msp-wordmark-scale, 1));
+
+  & svg {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    /* In drawing units: 1.5 at its size; larger, relatively thinner (0.87 at 3×: a 2.6 px line). */
+    stroke-width: calc(1.5 / sqrt(var(--msp-wordmark-scale, 1)));
+  }
+}
+
+/* Prism's core: the inner triangle in a thicker line (1.6 times the outline's). */
+.core {
+  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
+}
+
+/* The outline itself, in the text color. */
+.outline {
+  color: inherit;
+}
+
+/* The flash: the outline in the logo's colors, seen through a band that sweeps left to right (2.8 s), again and again:
+   every 14 s in a heading (`often`: every 7 s); `reveal` wipes the colors in once and keeps them (the empty canvas);
+   hover runs it at once (a different animation name restarts it). */
+.flash {
+  mask-image: linear-gradient(100deg, transparent 0 38%, #000 47% 53%, transparent 62% 100%);
+  mask-size: 300% 100%;
+  mask-repeat: no-repeat;
+  mask-position: 100% 0;
+  animation: flash-rare 14s ease-in-out 0.3s infinite both;
+
+  [data-flash="often"] > & {
+    animation: flash-often 7s ease-in-out 0.3s infinite both;
+  }
+
+  /* Once, as it fades in (the empty canvas, 900 ms): a wipe that leaves it in the logo's colors, under way from the
+     start so the colors come with the fade, not after it. */
+  [data-flash="reveal"] > & {
+    mask-image: linear-gradient(100deg, #000 0 42%, transparent 58% 100%);
+    animation: flash-reveal 1.4s ease-out both;
+  }
+
+  /* Hover replays a flash (not a reveal, whose colors stay; not a live one, which answers the pointer instead). */
+  .wordmark:not([data-flash="reveal"], [data-live]):hover & {
+    animation: flash-hover 2.8s ease-in-out both;
+  }
+}
+
+/* The sweep takes the first 2.8 s of the cycle, then the band waits off to the right. */
+@keyframes flash-rare {
+  0% {
+    mask-position: 100% 0;
+  }
+  20%,
+  100% {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes flash-often {
+  0% {
+    mask-position: 100% 0;
+  }
+  40%,
+  100% {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes flash-reveal {
+  from {
+    mask-position: 100% 0;
+  }
+  to {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes flash-hover {
+  from {
+    mask-position: 100% 0;
+  }
+  to {
+    mask-position: 0 0;
+  }
+}
+
+/* Live (the empty canvas, Home's heading): it takes the pointer (the canvas around it does not); a vertical strip at the cursor, the
+   colors running across it (only the color changes, the line stays); in on enter, back out on leave. */
+.wordmark[data-live] {
+  pointer-events: auto;
+}
+
+.live {
+  opacity: 0;
+  /* A vertical strip at the cursor, full height, soft at its sides; as wide as the wordmark is large. */
+  --msp-wordmark-strip: calc(14px * var(--msp-wordmark-scale, 1));
+
+  mask-image: linear-gradient(
+    90deg,
+    transparent calc(var(--msp-wordmark-x, 50%) - var(--msp-wordmark-strip)),
+    #000 calc(var(--msp-wordmark-x, 50%) - var(--msp-wordmark-strip) / 3),
+    #000 calc(var(--msp-wordmark-x, 50%) + var(--msp-wordmark-strip) / 3),
+    transparent calc(var(--msp-wordmark-x, 50%) + var(--msp-wordmark-strip))
+  );
+  transition: opacity 600ms var(--msp-ease);
+
+  .wordmark:hover > & {
+    opacity: 1;
+    transition-duration: 200ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+  }
+}

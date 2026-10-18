@@ -12,7 +12,7 @@ export const dpoit_write = `
         }
     } else if (uRenderMask == MaskTransparent) {
         vec2 coords = gl_FragCoord.xy / uDrawingBufferSize;
-        if (preFogAlpha != 1.0 && fragmentDepth < getDepth(coords)) {
+        if (preFogAlpha != 1.0 && fragmentDepth > getDepth(coords)) {
             #ifdef dTransparentBackfaces_off
                 if (interior) discard;
             #endif
@@ -20,6 +20,8 @@ export const dpoit_write = `
             // adapted from https://github.com/tsherif/webgl2examples
             // The MIT License, Copyright 2017 Tarek Sherif, Shuai Shao
 
+            // peeling works with depth increasing away from the camera (depth is reversed)
+            float peelDepth = 1.0 - fragmentDepth;
             vec2 lastDepth = texture2D(tDpoitDepth, coords).rg;
             vec4 lastFrontColor = texture2D(tDpoitFrontColor, coords);
 
@@ -40,21 +42,21 @@ export const dpoit_write = `
             float furthestDepth = lastDepth.y;
             float alphaMultiplier = 1.0 - lastFrontColor.a;
 
-            if (fragmentDepth < nearestDepth || fragmentDepth > furthestDepth) {
+            if (peelDepth < nearestDepth || peelDepth > furthestDepth) {
                 // Skip this depth since it's been peeled.
                 return;
             }
 
-            if (fragmentDepth > nearestDepth && fragmentDepth < furthestDepth) {
+            if (peelDepth > nearestDepth && peelDepth < furthestDepth) {
                 // This needs to be peeled.
                 // The ones remaining after MAX blended for
                 // all need-to-peel will be peeled next pass.
-                gl_FragData[2].rg = vec2(-fragmentDepth, fragmentDepth);
+                gl_FragData[2].rg = vec2(-peelDepth, peelDepth);
                 return;
             }
 
             // write to back and front color buffer
-            if (fragmentDepth == nearestDepth) {
+            if (peelDepth == nearestDepth) {
                 gl_FragColor.rgb += fragColor.rgb * fragColor.a * alphaMultiplier;
                 gl_FragColor.a = 1.0 - alphaMultiplier * (1.0 - fragColor.a);
             } else {

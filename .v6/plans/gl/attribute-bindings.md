@@ -2,6 +2,9 @@
 
 ## Status
 
+- **Current**: done, steps 1–6. Step 6 (WebGPU generation) came with the WebGPU programs: vertex inputs and
+  `GPUVertexBufferLayout`s from the attribute layout (`getVertexBufferSlots`, `getVertexBufferLayout` in
+  `webgpu/program.ts`), checked by the WebGPU visual profiles.
 - Rule: must work on WebGL2 minimums and WebGPU default limits; anything needing more has a documented fallback (see
   [minimum-capabilities.md](minimum-capabilities.md)). Relevant here: 16 vertex attributes on both, 8 vertex buffers on
   WebGPU.

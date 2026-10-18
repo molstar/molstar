@@ -103,7 +103,7 @@ function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | und
   const boundingSphere = getPluginBoundingSphere(plugin);
   const offset = Vec3.distance(cameraTarget, boundingSphere.center);
   const sceneRadiusFactor = boundingSphere.radius > 0 ? (boundingSphere.radius + offset) / boundingSphere.radius : 1;
-  plugin.canvas3d?.setProps({ sceneRadiusFactor });
+  plugin.setCanvas3DProps({ sceneRadiusFactor });
 }
 
 /** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */
@@ -231,7 +231,7 @@ export function modifyCanvasProps(
 
 export function resetCanvasProps(plugin: PluginContext) {
   const old = plugin.canvas3d?.props;
-  plugin.canvas3d?.setProps({
+  plugin.setCanvas3DProps({
     ...old,
     postprocessing: {
       ...old,

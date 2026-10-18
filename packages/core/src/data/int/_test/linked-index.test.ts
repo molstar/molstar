@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { LinkedIndex } from '../linked-index.js';
 
 describe('linked-index', () => {

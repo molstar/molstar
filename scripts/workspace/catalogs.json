@@ -2,6 +2,7 @@
   "layers": [
     "@molstar/core",
     "@molstar/io",
+    "@molstar/query-language",
     "@molstar/model",
     "@molstar/graphics",
     "@molstar/plugin",
@@ -13,7 +14,7 @@
     "packages/graphics/src/repr/volume/catalog.ts",
     "packages/graphics/src/theme/color/catalog.ts",
     "packages/graphics/src/theme/size/catalog.ts",
-    "packages/model/src/script/transpilers/all.ts",
+    "packages/query-language/src/transpilers/all.ts",
     "packages/mvs/runtime/src/registry.ts",
     "packages/plugin/core/src/behavior.ts",
     "packages/plugin/core/src/behavior/dynamic/custom-props.ts",
@@ -33,7 +34,10 @@
   "defaultComposition": [
     "packages/plugin/core/src/default-registry.ts",
     "packages/plugin/core/src/default-spec.ts",
-    "packages/plugin/ui/src/default-spec.ts"
+    "packages/plugin/ui/src/default-spec.ts",
+    "packages/sequences/storybook/src/_stories/support/seqstar-molstar-plugin.ts",
+    "packages/prism/viewer/src/sequence/molstar/query.ts",
+    "packages/prism/viewer/src/sources/base.ts"
   ],
   "pendingDefaultComposition": [],
   "baseEntryPoints": [

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PresetTrajectoryHierarchy } from '../hierarchy-presets/catalog.js';

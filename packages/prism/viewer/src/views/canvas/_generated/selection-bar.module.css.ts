@@ -1,0 +1,64 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// Generated from selection-bar.module.css by scripts/css.mjs; do not edit.
+
+import { defineStyles } from '@molstar/prism-ui/styles/registry';
+
+export const classes = {
+  'action': 'msp-viewer-selection-bar-action',
+  'bar': 'msp-viewer-selection-bar-bar',
+  'bar-in': 'msp-viewer-selection-bar-bar-in',
+  'summary': 'msp-viewer-selection-bar-summary',
+} as const;
+
+defineStyles('viewer/views/canvas/selection-bar.module.css', `@layer msp.components {
+.msp-viewer-selection-bar-bar {
+  height: max(34px, var(--msp-touch-target, 0px));
+  padding: 0 0 0 var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  animation: msp-viewer-selection-bar-bar-in var(--msp-motion-base) var(--msp-ease);
+  align-items: center;
+  display: flex;
+  overflow: hidden;
+}
+
+@keyframes msp-viewer-selection-bar-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.msp-viewer-selection-bar-summary {
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin-right: var(--msp-space-3);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+  display: flex;
+}
+
+.msp-viewer-selection-bar-action {
+  width: max(34px, var(--msp-touch-target, 0px));
+  height: 100%;
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+}
+`);

@@ -22,7 +22,11 @@ export const GraphicsFeatures = [
   'floatTextureLinear',
   'halfFloatTexture',
   'halfFloatTextureLinear',
+  /** rendering into float32 color targets, without blending */
   'floatRenderTarget',
+  /** rendering into float32 color targets with blending (e.g. accumulation, min/max) */
+  'floatBlend',
+  /** rendering into float16 color targets, with blending */
   'halfFloatRenderTarget',
   'depthTexture',
   'fragDepth',
@@ -31,6 +35,8 @@ export const GraphicsFeatures = [
   'multiDraw',
   'clipControl',
   'depthClamp',
+  /** compute shaders (`GraphicsContext.compute`): kernels, storage buffers and storage textures */
+  'compute',
 ] as const;
 export type GraphicsFeature = (typeof GraphicsFeatures)[number];
 

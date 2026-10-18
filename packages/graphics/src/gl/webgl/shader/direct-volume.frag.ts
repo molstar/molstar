@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -56,7 +56,7 @@ varying mat4 vTransform;
 
 float calcDepth(const in vec3 pos) {
     vec2 clipZW = pos.z * uProjection[2].zw + uProjection[3].zw;
-    return 0.5 + 0.5 * clipZW.x / clipZW.y;
+    return clipZToDepth(clipZW.x / clipZW.y);
 }
 
 float transferFunction(float value) {
@@ -148,7 +148,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         }
 
         vec4 mvPosition = modelViewTransform * vec4(unitPos * uGridDim, 1.0);
-        if (calcDepth(mvPosition.xyz) > getDepth(gl_FragCoord.xy / uDrawingBufferSize))
+        // behind the opaque depth (depth is reversed)
+        if (calcDepth(mvPosition.xyz) < getDepth(gl_FragCoord.xy / uDrawingBufferSize))
             break;
 
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
@@ -188,21 +189,24 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             material.rgb = texture2D(tPalette, vec2(clamp(paletteValue, 0.0, 1.0), 0.0)).rgb;
         #elif defined(dColorType_uniform)
             material.rgb = uColor;
-        #elif defined(dColorType_instance)
-            material.rgb = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
-        #elif defined(dColorType_group)
-            material.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
-        #elif defined(dColorType_groupInstance)
-            material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
-        #elif defined(dColorType_vertex)
-            material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, 0.0).rgb;
-        #elif defined(dColorType_vertexInstance)
-            material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+        #elif defined(dColorType_texture)
+            // by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex, vertexInstance
+            if (uColorIndexType == 0) {
+                material.rgb = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
+            } else if (uColorIndexType == 1) {
+                material.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+            } else if (uColorIndexType == 2) {
+                material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+            } else if (uColorIndexType == 3) {
+                material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, 0.0).rgb;
+            } else {
+                material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+            }
         #endif
 
         #ifdef dOverpaint
-            #if defined(dOverpaintType_groupInstance)
-                overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+            #if defined(dOverpaintType_texture)
+                overpaint = readFromTexture(tOverpaint, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uOverpaintTexDim);
             #elif defined(dOverpaintType_vertexInstance)
                 overpaint = texture3dFrom1dTrilinear(tOverpaint, unitPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
             #endif
@@ -234,7 +238,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #if defined(dColorMarker)
             float marker = uMarker;
             if (uMarker == -1.0) {
-                marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).r;
+                marker = readFromTexture(tMarker, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uMarkerTexDim).r;
                 marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
             }
         #endif

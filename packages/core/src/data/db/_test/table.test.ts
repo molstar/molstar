@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as ColumnHelpers from '../column-helpers.js';
 import { Column } from '../column.js';
 import { Table } from '../table.js';

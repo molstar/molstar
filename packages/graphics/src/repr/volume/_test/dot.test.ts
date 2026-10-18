@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { describe, expect, it } from 'vitest';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Grid, Volume } from '@molstar/model/model/volume';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';

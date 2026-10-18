@@ -11,13 +11,13 @@ jobs:
     name: Formatting and lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -26,16 +26,37 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+  prism:
+    name: Prism generated files and stories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check the generated styles (and the spacing scale) and icons
+        run: pnpm --filter "./packages/prism/*" run styles:check && pnpm --filter @molstar/prism-ui run icons:check
+      - name: Type-check the stories and tests
+        run: pnpm --filter "./packages/prism/*" run typecheck:storybook
+
   test:
     name: Native tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
+          # The opt-in native GL backend (`gl`) has no prebuilt binaries for Node 24 and fails to build from source;
+          # this job stays on Node 22 until it has. The other jobs run on Node 24.
           node-version: 22
           cache: pnpm
       - name: Install workspace dependencies
@@ -51,13 +72,13 @@ jobs:
     name: Full declaration check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -67,13 +88,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -87,3 +108,7 @@ jobs:
         run: pnpm check:workspace && pnpm version:check
       - name: Pack public packages
         run: pnpm pack:workspace
+      - name: Install the smoke browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser smoke (the packed distribution's Viewer, MVS Stories and Prism single file)
+        run: node smoke/run.mjs browser

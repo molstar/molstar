@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { animation_wgsl } from './chunks/animation.wgsl.js';
+import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import {
   apply_fog_wgsl,
@@ -34,6 +35,7 @@ ${common_wgsl}
 ${read_from_texture_wgsl}
 ${animation_wgsl}
 ${material_functions_wgsl}
+${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 
@@ -42,7 +44,8 @@ ${fragment_output_wgsl()}
 
 /**
  * Trims the end of a segment so it terminates between the camera plane and the near plane, with the conservative near
- * plane estimate of the GL projection (z row of the [-1, 1] projection: 2 * [0, 1] row - w row)
+ * plane estimate of the GL projection (z row of the [-1, 1] projection: -(2 * reversed [0, 1] row + w row), the sign
+ * cancels in the ratio)
  */
 fn trimSegment(start: vec4<f32>, end: vec4<f32>) -> vec4<f32> {
     let a = 2.0 * uGlobal.uProjection[2][2] + 1.0;
@@ -64,9 +67,10 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId));
-    let wigStart = applyWiggle(in.aStart, group);
-    let wigEnd = applyWiggle(in.aEnd, group);
+    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    ${assign_wiggle_wgsl}
+    let wigStart = applyWiggle(in.aStart, group, wiggle);
+    let wigEnd = applyWiggle(in.aEnd, group, wiggle);
     let modelView = uGlobal.uView * uGlobal.uModel * transform;
 
     // camera space

@@ -13,6 +13,25 @@ import { Volume } from '@molstar/model/model/volume';
 import type { Location } from '@molstar/model/model/location';
 import { isStandaloneHmd } from '@molstar/core/util/browser';
 import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+import { isDebugMode } from '@molstar/core/util/debug';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GraphicsFeature } from '@molstar/graphics/gl/capabilities';
+
+/** The capabilities of `keys` that `graphics` lacks */
+export function missingCapabilities(graphics: GraphicsContext, keys: readonly GraphicsFeature[]) {
+  return keys.filter((k) => !graphics.capabilities[k]);
+}
+
+const loggedGpuFallbacks = new Set<string>();
+
+/** In debug mode, logs why the GPU path of `name` is not used, once per reason */
+export function logGpuFallback(name: string, reason: string) {
+  if (!isDebugMode) return;
+  const message = `${name}: computed on the CPU, not the GPU: ${reason}`;
+  if (loggedGpuFallbacks.has(message)) return;
+  loggedGpuFallbacks.add(message);
+  console.log(message);
+}
 
 export interface VisualUpdateState {
   updateTransform: boolean;

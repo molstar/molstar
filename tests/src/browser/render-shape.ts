@@ -8,7 +8,8 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 import './index.html';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
 import { Representation } from '@molstar/graphics/repr/representation';
-import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
+import { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
+import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
 import { lociLabel } from '@molstar/model/model/label';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { EveryLoci } from '@molstar/model/model/loci';
@@ -35,7 +36,7 @@ resizeCanvas(canvas, parent);
 
 const assetManager = new AssetManager();
 
-const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);
 resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
 canvas3dContext.syncPixelScale();
@@ -52,8 +53,9 @@ info.style.color = 'white';
 parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
-canvas3d.input.move.subscribe(({ x, y }) => {
-  const pickingId = canvas3d.identify(Vec2.create(x, y))?.id;
+canvas3d.input.move.subscribe(async ({ x, y }) => {
+  // the pick data once read (asynchronously on WebGPU)
+  const pickingId = (await canvas3d.asyncIdentify(Vec2.create(x, y))?.wait())?.id;
   let label = '';
   if (pickingId) {
     const reprLoci = canvas3d.getLoci(pickingId);

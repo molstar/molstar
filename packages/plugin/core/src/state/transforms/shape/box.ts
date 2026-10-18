@@ -16,6 +16,7 @@ import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { BoxCage } from '@molstar/graphics/geo/primitive/box';
+import { registerShapeGeometry } from '@molstar/plugin/state/precompile';
 
 export { BoxShape3D };
 type BoxShape3D = typeof BoxShape3D;
@@ -79,3 +80,5 @@ export function getBoxMesh(box: Box3D, radius: number, oldMesh?: Mesh) {
 
   return mesh;
 }
+
+registerShapeGeometry(BoxShape3D, () => [Mesh.Utils]);

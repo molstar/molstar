@@ -16,7 +16,9 @@ import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-
 import type { BaseValues, SizeValues } from '@molstar/graphics/gl/renderable/schema';
 import type { TextureImage } from '@molstar/graphics/gl/renderable/util';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { isWebGLContext, type WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
+import { readChunkedVertices } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
 import { getTrilinearlyInterpolated } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -31,7 +33,6 @@ import type {
   RenderObjectExporter,
   RenderObjectExportData,
 } from '@molstar/geo-export-extension/render-object-exporter';
-import { readSingleChannelTexture, readTexture } from '@molstar/graphics/gl/compute/util';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { ColorTheme } from '@molstar/graphics/theme/color';
@@ -39,17 +40,17 @@ import { computeFrenetFrames } from '@molstar/core/math/linear-algebra/3d/frenet
 import { addTube } from '@molstar/graphics/geo/geometry/mesh/builder/tube';
 import { arrayCopyOffset } from '@molstar/core/util/array';
 
-const GeoExportName = 'geo-export';
-
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
 const v3sub = Vec3.sub;
 const v3dot = Vec3.dot;
 const v3unitY = Vec3.unitY;
 
-function getReadbackContext(graphics: GraphicsContext): WebGLContext {
-  if (!isWebGLContext(graphics)) throw new Error('Texture readback requires a WebGL context.');
-  return graphics;
+/** The bytes of a texture (the color, overpaint and transparency grids of smoothed colors are rgba8 or r8) */
+async function readTextureBytes(graphics: GraphicsContext, texture: Texture) {
+  const { array } = await graphics.readTextureData(texture);
+  if (!(array instanceof Uint8Array)) throw new Error('expected a ubyte texture');
+  return array;
 }
 
 type MeshMode = 'points' | 'lines' | 'triangles';
@@ -110,7 +111,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   ): number {
     const tSize = values.tSize.ref.value;
     let size = 0;
-    switch (values.dSizeType.ref.value) {
+    switch (values.sizeType.ref.value) {
       case 'uniform':
         size = values.uSize.ref.value;
         break;
@@ -146,7 +147,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     return unpackRGBToInt(r, g, b);
   }
 
-  protected static getInterpolatedColors(
+  protected static async getInterpolatedColors(
     graphics: GraphicsContext,
     input: {
       vertices: Float32Array;
@@ -163,7 +164,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
-    const colorGrid = readTexture(getReadbackContext(graphics), values.tColorGrid.ref.value).array;
+    const colorGrid = await readTextureBytes(graphics, values.tColorGrid.ref.value);
     const interpolated = getTrilinearlyInterpolated({
       vertexCount,
       instanceCount,
@@ -181,7 +182,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     return interpolated.array;
   }
 
-  protected static getInterpolatedOverpaint(
+  protected static async getInterpolatedOverpaint(
     graphics: GraphicsContext,
     input: {
       vertices: Float32Array;
@@ -198,7 +199,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
-    const overpaintGrid = readTexture(getReadbackContext(graphics), values.tOverpaintGrid.ref.value).array;
+    const overpaintGrid = await readTextureBytes(graphics, values.tOverpaintGrid.ref.value);
     const interpolated = getTrilinearlyInterpolated({
       vertexCount,
       instanceCount,
@@ -216,7 +217,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     return interpolated.array;
   }
 
-  protected static getInterpolatedTransparency(
+  protected static async getInterpolatedTransparency(
     graphics: GraphicsContext,
     input: {
       vertices: Float32Array;
@@ -233,10 +234,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
-    const transparencyGrid = readSingleChannelTexture(
-      getReadbackContext(graphics),
-      values.tTransparencyGrid.ref.value,
-    ).array;
+    const transparencyGrid = await readTextureBytes(graphics, values.tTransparencyGrid.ref.value);
     const interpolated = getTrilinearlyInterpolated({
       vertexCount,
       instanceCount,
@@ -346,10 +344,10 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   ): Color {
     const { values, groups, instanceIndex, isGeoTexture, mode } = geoData;
     const groupCount = values.uGroupCount.ref.value;
-    const colorType = values.dColorType.ref.value;
+    const colorType = values.colorType.ref.value;
     const uColor = values.uColor.ref.value;
     const tColor = values.tColor.ref.value.array;
-    const overpaintType = values.dOverpaintType.ref.value;
+    const overpaintType = values.overpaintType.ref.value;
     const dOverpaint = values.dOverpaint.ref.value;
     const tOverpaint = values.tOverpaint.ref.value.array;
     const usePalette = values.dUsePalette.ref.value;
@@ -464,7 +462,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const groupCount = values.uGroupCount.ref.value;
     const dTransparency = values.dTransparency.ref.value;
     const tTransparency = values.tTransparency.ref.value.array;
-    const transparencyType = values.dTransparencyType.ref.value;
+    const transparencyType = values.transparencyType.ref.value;
 
     let vertexCount = geoData.vertexCount;
     if (geoData.vertexMapping) {
@@ -984,27 +982,42 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   }
 
   private async addTextureMesh(values: TextureMeshValues, graphics: GraphicsContext, ctx: RuntimeContext) {
-    const webgl = getReadbackContext(graphics);
-    if (!webgl.namedFramebuffers[GeoExportName]) {
-      webgl.namedFramebuffers[GeoExportName] = webgl.resources.framebuffer();
+    const table = values.sIsoTable.ref.value;
+    if (values.dIsoChunks.ref.value && table && graphics.compute) {
+      // in pages of the vertex arena (WebGPU): the count read back, the vertices gathered from the pages
+      await graphics.resources.pending.whenReady();
+      const meta = values.meta.ref.value as TextureMesh['meta'];
+      const count = meta.readVertexCount ?? values.drawCount.ref.value;
+      const { vertices, normals, groups, vertexCount } = await readChunkedVertices(graphics.compute, table, count);
+      await this.addMeshWithColors({
+        mesh: { vertices, normals, indices: undefined, groups, vertexCount, drawCount: vertexCount },
+        meshes: undefined,
+        values,
+        isGeoTexture: true,
+        mode: 'triangles',
+        graphics,
+        ctx,
+      });
+      return;
     }
-    const framebuffer = webgl.namedFramebuffers[GeoExportName];
+    const [position, normal, group] = await Promise.all([
+      graphics.readTextureData(values.tPosition.ref.value),
+      graphics.readTextureData(values.tNormal.ref.value),
+      graphics.readTextureData(values.tGroup.ref.value),
+    ]);
+    // positions and normals are float textures, groups rgba8 or float
+    const vertices = position.array as Float32Array;
+    const normals = normal.array as Float32Array;
+    const groups = group.array;
 
-    const [width, height] = values.uGeoTexDim.ref.value;
-    const vertices = new Float32Array(width * height * 4);
-    const normals = new Float32Array(width * height * 4);
-    const groups = webgl.isWebGL2 ? new Uint8Array(width * height * 4) : new Float32Array(width * height * 4);
-
-    framebuffer.bind();
-    values.tPosition.ref.value.attachFramebuffer(framebuffer, 0);
-    webgl.readPixels(0, 0, width, height, vertices);
-    values.tNormal.ref.value.attachFramebuffer(framebuffer, 0);
-    webgl.readPixels(0, 0, width, height, normals);
-    values.tGroup.ref.value.attachFramebuffer(framebuffer, 0);
-    webgl.readPixels(0, 0, width, height, groups);
-
-    const vertexCount = values.uVertexCount.ref.value;
-    const drawCount = values.drawCount.ref.value;
+    let vertexCount = values.uVertexCount.ref.value;
+    let drawCount = values.drawCount.ref.value;
+    if (values.drawIndirect.ref.value) {
+      // indirectly drawn: the counts are the capacity, the vertex count is read back asynchronously
+      await graphics.resources.pending.whenReady();
+      const meta = values.meta.ref.value as TextureMesh['meta'];
+      if (meta.readVertexCount !== undefined) vertexCount = drawCount = meta.readVertexCount;
+    }
 
     await this.addMeshWithColors({
       mesh: { vertices, normals, indices: undefined, groups, vertexCount, drawCount },
@@ -1012,7 +1025,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       values,
       isGeoTexture: true,
       mode: 'triangles',
-      graphics: webgl,
+      graphics,
       ctx,
     });
   }

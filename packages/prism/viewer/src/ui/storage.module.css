@@ -1,0 +1,158 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Storage section of Settings: folded, a row; open, in the well (as the Settings groups). */
+.section {
+  border-radius: var(--msp-radius-md);
+
+  &:has(.toggle[aria-expanded="true"]) {
+    background: var(--msp-color-well);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--msp-space-2);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+.title {
+  flex: 1;
+  color: var(--msp-color-text);
+  font-weight: 600;
+}
+
+.chevron {
+  color: var(--msp-color-text-subtle);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="false"] > & {
+    transform: rotate(-90deg);
+  }
+}
+
+.body {
+  display: grid;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
+}
+
+.where,
+.none,
+.error {
+  margin: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  color: var(--msp-color-danger);
+}
+
+.source {
+  display: grid;
+  gap: var(--msp-space-1);
+}
+
+.sourceHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+}
+
+.sourceTitle {
+  font-weight: 600;
+}
+
+.meta {
+  margin-left: auto;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* A thing kept: its name, its size, Forget; what else to say under it. */
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0 var(--msp-space-2);
+  padding: var(--msp-space-1) 0 var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  /* Offered for removal (older than the setting): the note reads in the warning color. */
+  &[data-stale] .detail {
+    color: var(--msp-color-warning);
+  }
+}
+
+.label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.size {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  grid-column: 1 / -1;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.confirmText {
+  font-size: var(--msp-font-size-xs);
+}
+
+.caption {
+  margin-left: auto;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}

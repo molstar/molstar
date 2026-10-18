@@ -67,14 +67,15 @@ export const wboit_output_wgsl = /* wgsl */ `
             }
         } else if (uGlobal.uRenderMask == MaskTransparent) {
             let opaqueDepth = ${fragment_texel_wgsl('tDepth')};
-            if (preFogAlpha != 1.0 && fragmentDepth < opaqueDepth) {
+            if (preFogAlpha != 1.0 && fragmentDepth > opaqueDepth) {
                 #if defined(dTransparentBackfaces_off)
                     if (interior) {
                         discard;
                     }
                 #endif
                 let alpha = color.a;
-                let wboitWeight = alpha * clamp(pow(1.0 - fragmentDepth, 2.0), 0.01, 1.0);
+                // depth is reversed: larger in front
+                let wboitWeight = alpha * clamp(pow(fragmentDepth, 2.0), 0.01, 1.0);
                 color = vec4<f32>(color.rgb * alpha * wboitWeight, alpha);
                 // extra alpha is to handle pre-multiplied alpha
                 let backgroundAlpha = select(1.0, alpha, uGlobal.uTransparentBackground != 0u);
@@ -102,12 +103,14 @@ export const dpoit_output_wgsl = /* wgsl */ `
             }
         } else if (uGlobal.uRenderMask == MaskTransparent) {
             let dpoitCoord = vec2<i32>(in.position.xy);
-            if (preFogAlpha != 1.0 && fragmentDepth < ${fragment_texel_wgsl('tDepth', 'dpoitCoord')}) {
+            if (preFogAlpha != 1.0 && fragmentDepth > ${fragment_texel_wgsl('tDepth', 'dpoitCoord')}) {
                 #if defined(dTransparentBackfaces_off)
                     if (interior) {
                         discard;
                     }
                 #endif
+                // peeling works with depth increasing away from the camera (depth is reversed)
+                let peelDepth = 1.0 - fragmentDepth;
                 let lastDepth = textureLoad(tDpoitDepth, dpoitCoord, 0).rg;
                 let lastFrontColor = textureLoad(tDpoitFrontColor, dpoitCoord, 0);
                 let fragColor = color;
@@ -123,13 +126,13 @@ export const dpoit_output_wgsl = /* wgsl */ `
                 let furthestDepth = lastDepth.y;
                 let alphaMultiplier = 1.0 - lastFrontColor.a;
 
-                if (fragmentDepth < nearestDepth || fragmentDepth > furthestDepth) {
+                if (peelDepth < nearestDepth || peelDepth > furthestDepth) {
                     // skip this depth since it's been peeled
-                } else if (fragmentDepth > nearestDepth && fragmentDepth < furthestDepth) {
+                } else if (peelDepth > nearestDepth && peelDepth < furthestDepth) {
                     // this needs to be peeled, the ones remaining after MAX blended for all need-to-peel will be
                     // peeled next pass
-                    out.dpoitDepth = vec4<f32>(-fragmentDepth, fragmentDepth, 0.0, 0.0);
-                } else if (fragmentDepth == nearestDepth) {
+                    out.dpoitDepth = vec4<f32>(-peelDepth, peelDepth, 0.0, 0.0);
+                } else if (peelDepth == nearestDepth) {
                     // write to front color buffer
                     color = vec4<f32>(color.rgb + fragColor.rgb * fragColor.a * alphaMultiplier, 1.0 - alphaMultiplier * (1.0 - fragColor.a));
                 } else {
@@ -151,7 +154,8 @@ export const dpoit_output_wgsl = /* wgsl */ `
  */
 export function depth_output_wgsl(materialOpacity = '1.0') {
   return /* wgsl */ `
-    if (fragmentDepth > ${fragment_texel_wgsl('tDepth')}) {
+    // behind the opaque depth (depth is reversed)
+    if (fragmentDepth < ${fragment_texel_wgsl('tDepth')}) {
         discard;
     }
     let depthAlpha = uMaterial.uAlpha * ${materialOpacity};
@@ -215,11 +219,13 @@ export const emissive_output_wgsl = /* wgsl */ `
     }
     // dim emitters behind a transparent blocker by its coverage (tDepthAlpha packs front depth+alpha)
     let emissiveBlocker = unpackRGBAToDepthWithAlpha(${fragment_texel_wgsl('tDepthAlpha')});
-    if (fragmentDepth > emissiveBlocker.x + 0.0001) {
+    if (fragmentDepth < emissiveBlocker.x - 0.0001) {
         emissiveAlpha *= 1.0 - emissiveBlocker.y;
     }
     // glow with the object's own color so emissive isn't double-counted via the lit buffer
-    #if defined(dColorType_uniform)
+    #if defined(dUsePalette)
+        var emissiveColor = sample_tPalette(vec2<f32>(in.vPaletteV, 0.5)).rgb;
+    #elif defined(dColorType_uniform)
         var emissiveColor = uMaterial.uColor;
     #elif defined(dColorType_varying)
         var emissiveColor = in.vColor.rgb;
@@ -259,7 +265,7 @@ export const marking_output_wgsl = /* wgsl */ `
         var depthTest = 1.0;
         if (uGlobal.uMarkingDepthTest != 0u) {
             let markingDepth = unpackRGBAToDepthWithAlpha(${fragment_texel_wgsl('tDepthAlpha')}).x;
-            depthTest = select(0.0, 1.0, fragmentDepth >= markingDepth);
+            depthTest = select(0.0, 1.0, fragmentDepth <= markingDepth);
         }
         let priority = uGlobal.uMarkerPriority;
         let isHighlight = (priority == 1 && marker != 2.0) || (priority != 1 && marker == 1.0);

@@ -13,6 +13,6 @@ ${texture_read_wgsl('tColor')}
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    return read_tColor(glCoords(in.position, uObject.uTexSize));
+    return read_tColor(fragmentUv(in.position, uObject.uTexSize));
 }
 `;

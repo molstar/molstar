@@ -32,8 +32,8 @@ setFSModule(fs);
 const spec = DefaultPluginSpec();
 const packageNames = JSON.parse(process.env.MOLSTAR_SMOKE_INTERNAL_PACKAGES ?? '[]');
 assert(
-  !packageNames.includes('@molstar/mp4-export-extension'),
-  'Headless dependency closure must not include the MP4 export extension',
+  !packageNames.includes('@molstar/video-export-extension'),
+  'Headless dependency closure must not include the video export extension',
 );
 const registryEntries = [spec.registry ?? []].flat();
 const defaultExtensionNames = [
@@ -47,7 +47,7 @@ const defaultExtensionNames = [
     .map((animation) => animation?.id ?? animation?.name ?? animation?.constructor?.name ?? ''),
 ];
 for (const name of defaultExtensionNames) {
-  assert(!/mp4|h264/i.test(String(name)), `MP4/H264 extension was added to the base plugin spec: ${name}`);
+  assert(!/mp4|h264|video-export/i.test(String(name)), `MP4/H264 extension was added to the base plugin spec: ${name}`);
 }
 
 let plugin;

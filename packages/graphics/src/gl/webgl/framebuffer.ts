@@ -53,6 +53,19 @@ function getFramebuffer(gl: GLRenderingContext) {
   return framebuffer;
 }
 
+/** The height of the attachments of framebuffers, to flip rectangles to GL's bottom-left origin */
+const AttachmentHeights = new WeakMap<Framebuffer, () => number>();
+
+/** Records the height of an attachment of `framebuffer` (all attachments have the same size) */
+export function setFramebufferHeight(framebuffer: Framebuffer, getHeight: () => number) {
+  AttachmentHeights.set(framebuffer, getHeight);
+}
+
+/** The height of the attachments of `framebuffer`, 0 without attachments */
+export function getFramebufferHeight(framebuffer: Framebuffer) {
+  return AttachmentHeights.get(framebuffer)?.() ?? 0;
+}
+
 /** GL framebuffers with an integer texture as first color attachment, cleared with `clearBufferiv` */
 const IntegerColorFramebuffers = new WeakSet<WebGLFramebuffer>();
 
@@ -82,8 +95,7 @@ function setDrawBuffers(extensions: WebGLExtensions, count: number) {
 }
 
 export function createFramebuffer(gl: GLRenderingContext, extensions: WebGLExtensions, state: WebGLState): Framebuffer {
-  let _framebuffer = getFramebuffer(gl);
-  let drawBufferCount = 1;
+  const _framebuffer = getFramebuffer(gl);
 
   let destroyed = false;
 
@@ -95,14 +107,6 @@ export function createFramebuffer(gl: GLRenderingContext, extensions: WebGLExten
       endRenderPass(state);
       gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer);
       setDrawBuffers(extensions, count);
-      drawBufferCount = count;
-    },
-    reset: () => {
-      _framebuffer = getFramebuffer(gl);
-      if (drawBufferCount !== 1) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer);
-        setDrawBuffers(extensions, drawBufferCount);
-      }
     },
     destroy: () => {
       if (destroyed) return;
@@ -120,7 +124,6 @@ export function createNullFramebuffer(): Framebuffer {
 
     bind: () => {},
     setDrawBuffers: () => {},
-    reset: () => {},
     destroy: () => {},
   };
 }

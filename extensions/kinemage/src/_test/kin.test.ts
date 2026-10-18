@@ -4,6 +4,7 @@
  * @author ReliaSolve <russ@reliasolve.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseKin } from '@molstar/kinemage-extension/reader/parser';
 
 const kinString = `@kinemage 1
@@ -88,10 +89,10 @@ describe('kin reader', () => {
     const parsed = await parseKin(kinString).run();
     if (parsed.isError) {
       console.error('Parse error:', parsed);
-      fail('Parse should not error');
+      expect.unreachable('Parse should not error');
     }
     if (parsed.result.length !== 1) {
-      fail(`Expected 1 kinemage, got ${parsed.result.length}`);
+      expect.unreachable(`Expected 1 kinemage, got ${parsed.result.length}`);
     }
     const kinemage = parsed.result[0];
 
@@ -114,7 +115,7 @@ describe('kin reader', () => {
   it('complex', async () => {
     const parsed = await parseKin(kinComplexString).run();
     if (parsed.isError) {
-      fail('Parse should not error');
+      expect.unreachable('Parse should not error');
     }
 
     expect(parsed.result.length).toBeGreaterThan(0);

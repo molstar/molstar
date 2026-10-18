@@ -4,12 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
+import { MarkerAction } from '@molstar/core/util/marker-action';
+import { DataLoci } from '@molstar/model/model/loci';
 import { LociLabelManager, type LociLabelProvider } from '../loci-label.js';
 
 function create() {
-  const next = jest.fn();
-  const addProvider = jest.fn();
+  const next = vi.fn();
+  const addProvider = vi.fn();
   const plugin = {
     behaviors: { labels: { highlight: { next } } },
     managers: { interactivity: { lociHighlights: { addProvider } } },
@@ -89,5 +92,30 @@ describe('LociLabelManager', () => {
     manager.addProvider(p);
     manager.removeProvider(p);
     expect(manager.providers).toEqual([]);
+  });
+
+  it('labels the current highlights again on refresh, and sends nothing with none', () => {
+    const next = vi.fn();
+    let mark: ((loci: unknown, action: number, noRender?: boolean) => void) | undefined;
+    const plugin = {
+      behaviors: { labels: { highlight: { next } } },
+      managers: { interactivity: { lociHighlights: { addProvider: (fn: typeof mark) => (mark = fn) } } },
+    } as unknown as PluginContext;
+    const manager = new LociLabelManager(plugin);
+    let text = 'a';
+    manager.addProvider({ label: () => text });
+    next.mockClear();
+    manager.refresh();
+    expect(next).not.toHaveBeenCalled();
+
+    const loci = DataLoci('t', {}, [0], undefined, () => 'a');
+    mark!({ loci }, MarkerAction.Highlight);
+    expect(next).toHaveBeenLastCalledWith({ labels: ['a'] });
+    // The label depends on more than the loci: unchanged until refreshed.
+    text = 'b';
+    mark!({ loci }, MarkerAction.Highlight);
+    expect(next).toHaveBeenLastCalledWith({ labels: ['a'] });
+    manager.refresh();
+    expect(next).toHaveBeenLastCalledWith({ labels: ['b'] });
   });
 });

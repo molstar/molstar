@@ -1,0 +1,33 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // _test and scripts (no emit).
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "webxr", "vite/client"]
+  },
+  "include": ["_test", "scripts"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../viewer" },
+    { "path": "../nightingale" },
+    { "path": "../../core" },
+    { "path": "../../io" },
+    { "path": "../../model" },
+    { "path": "../../query-language" },
+    { "path": "../../plugin/core" },
+    { "path": "../../mvs/builder" },
+    { "path": "../../mvs/runtime" },
+    { "path": "../../prism/ui" },
+    { "path": "../../prism/viewer" }
+  ]
+}

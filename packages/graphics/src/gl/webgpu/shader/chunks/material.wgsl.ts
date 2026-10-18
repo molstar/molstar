@@ -4,8 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { texture_sample_wgsl } from './quad.wgsl.js';
+
 /** Functions of the fragment chunks below */
 export const material_functions_wgsl = /* wgsl */ `
+#if defined(dUsePalette)
+    ${texture_sample_wgsl('tPalette')}
+#endif
 #if defined(dXrayShaded)
     fn calcXrayShadedAlpha(alpha: f32, normal: vec3<f32>) -> f32 {
         let d = abs(dot(normal, vec3<f32>(0.0, 0.0, 1.0)));
@@ -52,7 +57,9 @@ export const assign_material_wgsl = /* wgsl */ `
         }
     #endif
 
-    #if defined(dColorType_uniform)
+    #if defined(dUsePalette)
+        var material = vec4<f32>(sample_tPalette(vec2<f32>(in.vPaletteV, 0.5)).rgb, uMaterial.uAlpha);
+    #elif defined(dColorType_uniform)
         var material = vec4<f32>(uMaterial.uColor, uMaterial.uAlpha);
     #else
         var material = vec4<f32>(in.vColor.rgb, uMaterial.uAlpha);

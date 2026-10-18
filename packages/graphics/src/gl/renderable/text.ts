@@ -51,6 +51,15 @@ export const TextSchema = {
 export type TextSchema = typeof TextSchema;
 export type TextValues = Values<TextSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const TextRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...TextSchema,
+};
+
 export function TextRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -60,13 +69,7 @@ export function TextRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<TextValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...TextSchema,
-  };
+  const schema = TextRenderableSchema;
   const renderValues: TextValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

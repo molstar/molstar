@@ -6,6 +6,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -48,6 +49,8 @@ function getEvaluateWboitRenderable(
 
 //
 
+const WboitCapabilities = ['floatBlend', 'depthTexture', 'multipleRenderTargets'] as const;
+
 export class WboitPass {
   private readonly renderable: EvaluateWboitRenderable;
 
@@ -66,15 +69,13 @@ export class WboitPass {
     return this.textureA.getByteCount() + this.textureB.getByteCount() + this.depthRenderbuffer.getByteCount();
   }
 
-  bind() {
-    this.graphics.beginRenderPass(this.framebuffer, { label: 'wboit transparent', clear: { color: [0, 0, 0, 1] } });
+  bind(b: PassBuilder) {
+    b.begin(this.framebuffer, { label: 'wboit transparent', clear: { color: [0, 0, 0, 1] } });
   }
 
-  render() {
-    this.graphics.setRenderState(RenderState.Alpha);
-
+  render(b: PassBuilder) {
     this.renderable.update();
-    this.renderable.render();
+    b.quad(this.renderable, RenderState.Alpha);
   }
 
   setSize(width: number, height: number) {
@@ -90,10 +91,6 @@ export class WboitPass {
     }
   }
 
-  reset() {
-    if (this._supported) this._init();
-  }
-
   private _init() {
     this.framebuffer.setDrawBuffers(2);
 
@@ -103,31 +100,20 @@ export class WboitPass {
     this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
   }
 
-  static isSupported(graphics: GraphicsContext) {
-    if (!graphics.isProgramSupported(EvaluateWboitShaderCode)) {
-      if (isDebugMode) console.log(`Programs required for "wboit" not supported`);
-      return false;
-    }
-    const { floatRenderTarget, depthTexture, multipleRenderTargets } = graphics.capabilities;
-    if (!floatRenderTarget || !depthTexture || !multipleRenderTargets) {
-      if (isDebugMode) {
-        const missing: string[] = [];
-        if (!floatRenderTarget) missing.push('floatRenderTarget');
-        if (!depthTexture) missing.push('depthTexture');
-        if (!multipleRenderTargets) missing.push('multipleRenderTargets');
-        console.log(`Missing "${missing.join('", "')}" capabilities required for "wboit"`);
-      }
-      return false;
-    } else {
-      return true;
-    }
+  /** Why wboit is not available, if it is not: programs or capabilities missing */
+  static getUnsupportedReason(graphics: GraphicsContext): string | undefined {
+    if (!graphics.isProgramSupported(EvaluateWboitShaderCode)) return 'programs not supported';
+    const missing = WboitCapabilities.filter((k) => !graphics.capabilities[k]);
+    if (missing.length) return `missing ${missing.join(', ')}`;
   }
 
-  constructor(
-    private graphics: GraphicsContext,
-    width: number,
-    height: number,
-  ) {
+  static isSupported(graphics: GraphicsContext) {
+    const reason = WboitPass.getUnsupportedReason(graphics);
+    if (reason && isDebugMode) console.log(`"wboit" not supported: ${reason}`);
+    return !reason;
+  }
+
+  constructor(graphics: GraphicsContext, width: number, height: number) {
     if (!WboitPass.isSupported(graphics)) return;
 
     const { resources } = graphics;

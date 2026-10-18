@@ -1,7 +1,8 @@
 build/
 deploy/
 lib/
-docs/site/
+apps/docs/dist/
+apps/docs/.astro/
 
 node_modules/
 .pnpm-store/
@@ -16,6 +17,7 @@ tsconfig.commonjs.tsbuildinfo
 .DS_Store
 tmp/
 coverage/
+.vitest/
 
 dev.pem
 dev-key.pem
@@ -29,3 +31,12 @@ data/sym/syminfo.lib
 
 # Opt-in native rendering dependencies
 .cache/
+
+# Storybook
+storybook-static/
+
+# mise local overrides
+mise.local.toml
+
+# Local environment
+.env.local

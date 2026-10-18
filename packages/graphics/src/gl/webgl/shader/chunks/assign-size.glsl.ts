@@ -1,19 +1,19 @@
 export const assign_size = `
 #if defined(dSizeType_uniform)
     float size = uSize;
-#elif defined(dSizeType_instance)
-    float size = unpackRGBToInt(readFromTexture(tSize, aInstance, uSizeTexDim).rgb);
-#elif defined(dSizeType_group)
-    float size = unpackRGBToInt(readFromTexture(tSize, groupIndex(group), uSizeTexDim).rgb);
-#elif defined(dSizeType_groupInstance)
-    float size = unpackRGBToInt(readFromTexture(tSize, groupInstanceIndex(aInstance, group), uSizeTexDim).rgb);
-#elif defined(dSizeType_vertex)
-    float size = unpackRGBToInt(readFromTexture(tSize, vertexId, uSizeTexDim).rgb);
-#elif defined(dSizeType_vertexInstance)
-    float size = unpackRGBToInt(readFromTexture(tSize, int(aInstance) * uVertexCount + vertexId, uSizeTexDim).rgb);
-#endif
-
-#if defined(dSizeType_instance) || defined(dSizeType_group) || defined(dSizeType_groupInstance) || defined(dSizeType_vertex) || defined(dSizeType_vertexInstance)
+#elif defined(dSizeType_texture)
+    // the texture's index by the size type (SizeTypeIndex): instance, group, groupInstance, vertex, vertexInstance
+    float sizeIndex = aInstance;
+    if (uSizeIndexType == 1) {
+        sizeIndex = groupIndex(group);
+    } else if (uSizeIndexType == 2) {
+        sizeIndex = groupInstanceIndex(aInstance, group);
+    } else if (uSizeIndexType == 3) {
+        sizeIndex = float(vertexId);
+    } else if (uSizeIndexType == 4) {
+        sizeIndex = float(int(aInstance) * uVertexCount + vertexId);
+    }
+    float size = unpackRGBToInt(readFromTexture(tSize, sizeIndex, uSizeTexDim).rgb);
     size /= 100.0; // NOTE factor also set in TypeScript
 #endif
 

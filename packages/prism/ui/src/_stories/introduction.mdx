@@ -1,0 +1,103 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Overview/Introduction" />
+
+# Prism
+
+**Prism is the new user interface of Mol\* v6**: a molecular viewer app, and the library it is built from. It runs on
+the same Mol\* engine as the classic UI (the plugin with its state tree, the readers, the representations and the
+canvas); what is new is everything between that engine and the person using it.
+
+The classic UI is a React layer over the plugin, with the logic spread across its components. Prism moves the logic out
+of the views: one API that every surface calls, state sources the views read, a history that records what was done. The
+views on top of that are thin, so the same viewer can be driven by a person, a page script, a URL or an AI assistant,
+and the result is the same.
+
+## What it gives you
+
+- **Canvas first.** The structure fills the window; a panel floats over it on the right, with a rail of tabs (Home,
+  Structure, Selection, the history, settings) and cards for the scene's tools (animation, export, canvas settings, the
+  PAE plot). The chrome is quiet and follows the canvas: light, dark or a colored background.
+- **One API.** Every action is an operation: `viewer.api.select.set({ target: 'A:120-130' })`,
+  `viewer.api.representation.color({ target: 'ligand', color: 'orange' })`. The panels, the command menu, URL options,
+  page scripts and the assistant all call the same operations. Each run knows who asked for it, says what it did in a
+  sentence, and lands in the history as one step that undoes as one.
+- **Targets as people say them.** What an operation acts on is written the way you would say it: a keyword (`ligand`,
+  `water`, `polymer`), an address list (`A:120-130, B:45`), a PyMOL, VMD or Jmol selection, or MolScript. They become
+  MolQL underneath, and a target that cannot be read fails with a hint.
+- **The command menu.** Every operation is a command with the names people would type (`⌘K`); it teaches the rest of the
+  UI.
+- **Sequence.** Seq\*, the sequence viewer, is linked to the 3D view: hover and selection travel both ways, tracks show
+  annotations (pLDDT, secondary structure), and what another view marks (the PAE plot's ranges) lights both.
+- **Composable.** A viewer is a `PrismViewerSpec`: the engine's registry and behaviors, the features (loaders,
+  snapshots, animation, export, measurements, …), Mol\*'s extensions, the sequence viewer and the assistant. Leave out
+  what you do not need and it is not in the bundle (`examples/minimal-prism-viewer` is the smallest one).
+- **An optional assistant.** `@molstar/prism-assistant` adds an AI agent whose tools are the same operations, so what it
+  does is attributed, shown and undone like anything else. Nothing of it is loaded unless the spec asks for it.
+- **Headless too.** The viewer runs without a canvas in Node (`createPrismViewerHeadless`), for tests and for scripts.
+
+## Using it
+
+```ts
+import { createPrismViewer, DefaultPrismViewerSpec } from '@molstar/prism-viewer';
+
+const viewer = await createPrismViewer({ target: document.getElementById('app')!, spec: DefaultPrismViewerSpec() });
+await viewer.api.load.entry({ source: 'pdb', id: '1cbs' });
+await viewer.api.select.set({ target: 'ligand' });
+```
+
+`apps/prism-viewer` is the app as it ships: the default spec plus Mol\*'s extensions (`FullPrismViewerSpec`), with URL
+options (`?pdb=1cbs`) and a single-file build (`prism-viewer.js`).
+
+## The packages
+
+| Package                         | What it holds                                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `@molstar/prism-ui`             | the parts: the shell (panel, rail, cards, canvas chrome), components, the command menu, the tokens and themes, and a small DOM runtime |
+| `@molstar/prism-viewer`         | the viewer on a Mol\* plugin: the API and its operations, the state sources, the views, the history, the sequence link, the spec       |
+| `@molstar/prism-assistant`      | the optional assistant: the agent's UI on the viewer's operations                                                                      |
+| `apps/prism-viewer`             | the app: the full spec, URL options, the builds                                                                                        |
+| `examples/minimal-prism-viewer` | the smallest composition, a Vite app: cartoon and ball-and-stick, nothing else                                                         |
+
+The views are written in TSX on Prism's own runtime (`@molstar/prism-ui/dom`): fine-grained bindings from state to the
+DOM, no virtual DOM, no framework in the bundle. A contribution can still be written in React or Preact through a
+framework-neutral view contract.
+
+## Where to look
+
+- **Overview**: this page; **Foundations**: the tokens (surfaces, text, states, brand colors), how surfaces layer, the
+  themes, type and spacing.
+- **Viewer**: the real viewer over the repository's example files or the network (each story says which):
+  - **Shell**: the whole app: loaded, the command menu, the canvas background, the pinned panel, the compact layout,
+    expand and fullscreen, Help, a card opened at a section.
+  - **Home**, **Structure panel**, **Volumes**, **Playback**, **Assistant**: a panel or a card at what it shows (the
+    tree and the inspector, a map's levels and transfer function, the playback card and the Story, the agent).
+  - **Data**: one story per kind of data (structures, models, assemblies, maps, particles, shapes, MolViewSpec).
+  - **MVS stories**: the MolViewSpec stories example, played in the viewer.
+  - **With extensions**: the viewer as the app composes it, with Mol\*'s extensions: a predicted structure colored by
+    pLDDT, and the PAE plot of a single chain and of a complex.
+- **Components**: the parts over stand-in models, state by state: buttons, icons, selects, the **Params form** (every
+  parameter control in its states), the playback card's rows, tooltips.
+- **Internals**: the DOM runtime (bindings, keyed lists, conditionals), React and Preact views, and performance checks,
+  for working on Prism itself.
+
+Switch the theme (light, dark, blue, system) in Storybook's toolbar; the chrome over the canvas follows the canvas
+background on its own.
+
+## Principles
+
+- **Canvas first, quiet chrome.** Flat surfaces separated by tone and spacing, few lines; glass over the canvas.
+- **One accent, for actions and the picked item.** Settings, switches and sliders are neutral.
+- **Icons where they say something words do not**: icon-only controls, state, top-level tree rows, the command menu; not
+  next to labels.
+- **One text size in panels** (12 px), every control in one column, at the same text inset.
+- **The command menu teaches the rest**: every action is a command, with the names people would type.
+- **Mol\*'s ideas, restyled**: its interaction patterns stay (action footers, presets, the state tree); the look is new.
+
+## Read more
+
+The specs live beside the code, in each package's `_spec/`. The viewer's (`packages/prism/viewer/_spec/`, start with its
+`README.md` and its decisions): `viewer-spec.md` (composing a viewer), `api.md` and `operations.md` (the API and every
+operation), `targets.md` (how targets are read), `state.md` and `journal.md` (the history and the record),
+`sequence.md`, `agent.md`, `marks.md`, and `parity.md` (against the classic UI). prism-ui's
+(`packages/prism/ui/_spec/`): `styling.md`, `shell.md`, `commands.md`, `rendering.md`, `accessibility.md`.

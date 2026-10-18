@@ -19,7 +19,7 @@ export interface DebugHelper<T extends {} = {}> {
 }
 
 export class DebugRegistry {
-  readonly ctx: GraphicsContext;
+  ctx: GraphicsContext;
   readonly parent: Scene;
 
   private readonly entries = new Map<string, DebugHelper>();
@@ -27,6 +27,11 @@ export class DebugRegistry {
   constructor(ctx: GraphicsContext, parent: Scene) {
     this.ctx = ctx;
     this.parent = parent;
+  }
+
+  /** the render objects of the entries are in the parent scene, which changes its context itself */
+  setContext(ctx: GraphicsContext) {
+    this.ctx = ctx;
   }
 
   register<T extends {}>(name: string, entry: DebugHelper<T>) {

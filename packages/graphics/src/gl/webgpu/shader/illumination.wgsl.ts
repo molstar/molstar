@@ -13,8 +13,8 @@ import { pack_2x4_wgsl } from './outlines.wgsl.js';
 const TraceTextures = ['tColor', 'tNormal', 'tShaded', 'tThickness', 'tAccumulate', 'tDepth'];
 
 /**
- * Screen space path tracing of the opaque scene, averaged with the previous frames (`tAccumulate`), in GL window space
- * as in GLSL; the random numbers are seeded with the GL fragment coordinates, so that the noise matches WebGL
+ * Screen space path tracing of the opaque scene, averaged with the previous frames (`tAccumulate`); the random numbers
+ * are seeded with the GL fragment coordinates, so that the noise matches WebGL
  *
  * parts adapted from
  * - https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/
@@ -27,10 +27,7 @@ ${quad_vert_wgsl}
 ${TraceTextures.map(texture_read_wgsl).join('\n')}
 
 override oLightCount: i32 = 0;
-override oRendersPerFrame: i32 = 1;
 override oBounces: i32 = 4;
-override oSteps: i32 = 32;
-override oRefineSteps: i32 = 4;
 
 const TWO_PI = 6.28318530718;
 
@@ -84,7 +81,7 @@ fn getThickness(coords: vec2<f32>) -> f32 {
 }
 
 fn isBackground(depth: f32) -> bool {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 fn getViewZ(depth: f32) -> f32 {
@@ -97,13 +94,14 @@ fn getViewZ(depth: f32) -> f32 {
 
 fn viewSpaceToScreenSpace(position: vec3<f32>) -> vec2<f32> {
     let projectedCoord = uObject.uProjection * vec4<f32>(position, 1.0);
-    // [-1, 1] --> [0, 1] (NDC to screen position)
-    return (projectedCoord.xy / projectedCoord.w) * 0.5 + 0.5;
+    // NDC to window uv (top-left origin)
+    return (projectedCoord.xy / projectedCoord.w) * vec2<f32>(0.5, -0.5) + 0.5;
 }
 
 fn getRayOffset(position: vec3<f32>) -> f32 {
     let projectedCoord = uObject.uProjection * vec4<f32>(position, 1.0);
-    let screenCoord = (projectedCoord.xyz / projectedCoord.w) * 0.5 + 0.5;
+    // window coordinates (depth already in [0, 1])
+    let screenCoord = vec3<f32>((projectedCoord.xy / projectedCoord.w) * vec2<f32>(0.5, -0.5) + 0.5, projectedCoord.z / projectedCoord.w);
     let viewportWidth = uObject.uTexSize.x * (uObject.uBounds.z - uObject.uBounds.x);
     let adjacentPosition = screenSpaceToViewSpace(vec3<f32>(screenCoord.xy + vec2<f32>(1.0 / viewportWidth, 0.0), screenCoord.z), uObject.uInvProjection);
     return max(distance(position, adjacentPosition) * 0.1, 0.001);
@@ -113,7 +111,7 @@ fn binarySearch(dir: ptr<function, vec3<f32>>, hitPos: ptr<function, vec3<f32>>)
     *dir *= 0.5;
     *hitPos -= *dir;
 
-    for (var i = 0; i < oRefineSteps; i++) {
+    for (var i = 0; i < uObject.uRefineSteps; i++) {
         let coords = viewSpaceToScreenSpace(*hitPos);
         let z = getViewZ(getDepth(coords));
         let rayHitDepthDifference = z - (*hitPos).z;
@@ -139,9 +137,9 @@ fn rayMarch(dirIn: vec3<f32>, thickness: f32, hitPos: ptr<function, vec3<f32>>, 
     let begin = getRayOffset(*hitPos);
     var dir = dirIn * begin;
     *missed = false;
-    let gf = calculateGrowthFactor(begin, uObject.uRayDistance, f32(oSteps));
+    let gf = calculateGrowthFactor(begin, uObject.uRayDistance, f32(uObject.uSteps));
 
-    for (var i = 1; i < oSteps; i++) {
+    for (var i = 1; i < uObject.uSteps; i++) {
         *hitPos += dir;
         let stepZ = abs(dir.z);
         dir *= gf;
@@ -161,7 +159,7 @@ fn rayMarch(dirIn: vec3<f32>, thickness: f32, hitPos: ptr<function, vec3<f32>>, 
             }
 
             if (rayHitDepthDifference < max(t, stepZ)) {
-                if (oRefineSteps == 0) {
+                if (uObject.uRefineSteps == 0) {
                     return coords;
                 } else {
                     return binarySearch(&dir, hitPos);
@@ -196,7 +194,7 @@ fn trace(rayPos: vec3<f32>, rayDir: vec3<f32>) -> RayHitInfo {
 }
 
 var<private> viewPos: vec3<f32>;
-/** gl_FragCoord.xy / uTexSize */
+/** uv of the fragment (top-left origin) */
 var<private> fragCoords: vec2<f32>;
 
 fn colorForRay(startRayPos: vec3<f32>, startRayDir: vec3<f32>, rngState: ptr<function, u32>) -> vec3<f32> {
@@ -303,16 +301,17 @@ fn colorForRay(startRayPos: vec3<f32>, startRayDir: vec3<f32>, rngState: ptr<fun
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     // the target is as large as uTexSize
-    let fragCoord = vec2<f32>(in.position.x, uObject.uTexSize.y - in.position.y);
-    fragCoords = fragCoord / uObject.uTexSize;
+    fragCoords = in.position.xy / uObject.uTexSize;
     let depth = getDepth(fragCoords);
 
     if (isBackground(depth)) {
         return read_tColor(fragCoords);
     }
 
-    // initialize a random number state based on gl_FragCoord and uFrameNo
-    var rngState = (u32(fragCoord.x) * 1973u + u32(fragCoord.y) * 9277u + u32(uObject.uFrameNo) * 26699u) | 1u;
+    // initialize a random number state based on the pixel and uFrameNo, the pixel with a bottom-left origin as the
+    // GLSL program's \`gl_FragCoord\` (the same random sequences)
+    let glFragCoord = vec2<f32>(in.position.x, uObject.uTexSize.y - in.position.y);
+    var rngState = (u32(glFragCoord.x) * 1973u + u32(glFragCoord.y) * 9277u + u32(uObject.uFrameNo) * 26699u) | 1u;
 
     let cameraPos = vec3<f32>(0.0);
     viewPos = screenSpaceToViewSpace(vec3<f32>(fragCoords, depth), uObject.uInvProjection);
@@ -320,8 +319,8 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // raytrace for this pixel
     var color = vec3<f32>(0.0);
-    for (var index = 0; index < oRendersPerFrame; index++) {
-        color += colorForRay(cameraPos, rayDir, &rngState) / f32(oRendersPerFrame);
+    for (var index = 0; index < uObject.uRendersPerFrame; index++) {
+        color += colorForRay(cameraPos, rayDir, &rngState) / f32(uObject.uRendersPerFrame);
     }
 
     // average the frames together
@@ -347,8 +346,8 @@ const ComposeTextures = [
 ];
 
 /**
- * Denoises the traced image and composes fog, occlusion, outlines, blended transparency and bloom onto it, in GL window
- * space as in GLSL. Depth textures are always available on WebGPU, so the opaque depth is never packed.
+ * Denoises the traced image and composes fog, occlusion, outlines, blended transparency and bloom onto it. Depth
+ * textures are always available on WebGPU, so the opaque depth is never packed.
  */
 export const illumination_compose_wgsl = /* wgsl */ `
 ${depth_wgsl}
@@ -373,13 +372,13 @@ fn getDepthTransparent(coords: vec2<f32>) -> f32 {
     #if defined(dTransparentOutline) || defined(dOcclusionEnable) || defined(dBloomEnable)
         return unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords)).x;
     #else
-        return 1.0;
+        return 0.0;
     #endif
 }
 
 fn isBackground(depth: f32) -> bool {
-    // (2^24 - 1) / 2^24, max of 24-bit packed depth; also passes raw fp32
-    return depth >= 0.99999994;
+    // the far plane (depth is reversed), packed or raw
+    return depth == 0.0;
 }
 
 //
@@ -451,7 +450,7 @@ fn getOutline(coords: vec2<f32>) -> Outline {
     let invTexSize = 1.0 / uObject.uTexSize;
     let squaredOutlineScale = oOutlineScale * oOutlineScale;
 
-    var o = Outline(false, false, 1.0, 1.0, 0.0);
+    var o = Outline(false, false, 0.0, 0.0, 0.0);
     for (var y = -oOutlineScale; y <= oOutlineScale; y++) {
         for (var x = -oOutlineScale; x <= oOutlineScale; x++) {
             if (x * x + y * y > squaredOutlineScale) {
@@ -472,12 +471,12 @@ fn getOutline(coords: vec2<f32>) -> Outline {
             let isTransparent = sampleFlag > 0.45 && sampleFlag < 0.55;
             let isBoth = sampleFlag > 0.70 && sampleFlag < 0.80;
 
-            if ((isOpaque || isBoth) && sampleOpaqueDepth < o.opaqueDepth) {
+            if ((isOpaque || isBoth) && sampleOpaqueDepth > o.opaqueDepth) {
                 o.hasOpaque = true;
                 o.opaqueDepth = sampleOpaqueDepth;
             }
 
-            if ((isTransparent || isBoth) && sampleTransparentDepth < o.transparentDepth) {
+            if ((isTransparent || isBoth) && sampleTransparentDepth > o.transparentDepth) {
                 o.hasTransparent = true;
                 o.transparentDepth = sampleTransparentDepth;
                 o.alpha = sampleAlpha;
@@ -489,7 +488,7 @@ fn getOutline(coords: vec2<f32>) -> Outline {
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, uObject.uTexSize);
+    let coords = fragmentUv(in.position, uObject.uTexSize);
     let transparentBackground = uObject.uTransparentBackground != 0u;
 
     #if defined(dDenoise)
@@ -522,7 +521,11 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
     #if defined(dOcclusionEnable)
         if (!isBackground(opaqueDepth)) {
-            let occlusionFactor = unpackSsao(read_tSsaoDepth(coords));
+            #if defined(dOcclusionUpsample)
+                let occlusionFactor = getSsaoUpsampled(tSsaoDepth, coords, opaqueSelfViewZ, uObject.uNear, uObject.uFar);
+            #else
+                let occlusionFactor = unpackSsao(read_tSsaoDepth(coords));
+            #endif
             if (!transparentBackground) {
                 color = vec4<f32>(mix(mix(uObject.uOcclusionColor, uObject.uFogColor, fogFactor), color.rgb, occlusionFactor), color.a);
             } else {
@@ -532,7 +535,11 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         #if defined(dBlendTransparency)
             if (!isBackground(transparentDepth)) {
                 let transparentFogFactor = smoothstep(uObject.uFogNear, uObject.uFogFar, abs(getViewZ(transparentDepth)));
-                let occlusionFactor = unpackSsao(read_tSsaoDepthTransparent(coords));
+                #if defined(dOcclusionUpsample)
+                    let occlusionFactor = getSsaoUpsampled(tSsaoDepthTransparent, coords, getViewZ(transparentDepth), uObject.uNear, uObject.uFar);
+                #else
+                    let occlusionFactor = unpackSsao(read_tSsaoDepthTransparent(coords));
+                #endif
                 transparentColor = vec4<f32>(mix(uObject.uOcclusionColor * (1.0 - transparentFogFactor), transparentColor.rgb, occlusionFactor), transparentColor.a);
             }
         #endif
@@ -553,7 +560,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
         #if defined(dBlendTransparency)
             if (outline.hasTransparent) {
-                if (outline.hasOpaque && outline.opaqueDepth < outline.transparentDepth) {
+                if (outline.hasOpaque && outline.opaqueDepth > outline.transparentDepth) {
                     blendTransparency = false;
                 } else {
                     let finalOutlineAlpha = clamp(outline.alpha * 2.0, 0.0, 1.0);

@@ -5,6 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
 import { type CopyRenderable, QuadSchema, QuadValues, createCopyRenderable } from '@molstar/graphics/gl/compute/util';
 import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import type { Texture } from '@molstar/graphics/gl/texture';
@@ -30,35 +31,31 @@ import { TraceShaderCode, TracingParams, TracingPass } from './tracing.js';
 import { getJitterOffsets, setJitter, clearJitter } from './jitter.js';
 import type { MultiSampleProps } from './multi-sample.js';
 import { clamp, lerp } from '@molstar/core/math/interpolate';
-import type { SsaoProps } from './ssao.js';
+import { type SsaoProps, updateOcclusionUpsample } from './ssao.js';
 import { OutlinePass } from './outline.js';
 import { BloomPass } from './bloom.js';
 import type { RenderContext } from '../util.js';
 
 let IlluminationWarningShown = false;
 
-function checkIlluminationSupport(graphics: GraphicsContext) {
+const IlluminationCapabilities = ['floatBlend', 'depthTexture', 'multipleRenderTargets'] as const;
+
+/** Why illumination is not available, if it is not: programs or capabilities missing */
+function getIlluminationUnsupportedReason(graphics: GraphicsContext): string | undefined {
   if (!graphics.isProgramSupported(TraceShaderCode) || !graphics.isProgramSupported(ComposeShaderCode)) {
-    if (isDebugMode && !IlluminationWarningShown) {
-      console.log('Programs required for "illumination" not supported');
-      IlluminationWarningShown = true;
-    }
-    return false;
+    return 'programs not supported';
   }
-  const { floatRenderTarget, depthTexture, multipleRenderTargets } = graphics.capabilities;
-  if (!floatRenderTarget || !depthTexture || !multipleRenderTargets) {
-    if (isDebugMode && !IlluminationWarningShown) {
-      const missing: string[] = [];
-      if (!floatRenderTarget) missing.push('floatRenderTarget');
-      if (!depthTexture) missing.push('depthTexture');
-      if (!multipleRenderTargets) missing.push('multipleRenderTargets');
-      console.log(`Missing "${missing.join('", "')}" capabilities required for "illumination"`);
-      IlluminationWarningShown = true;
-    }
-    return false;
-  } else {
-    return true;
+  const missing = IlluminationCapabilities.filter((k) => !graphics.capabilities[k]);
+  if (missing.length) return `missing ${missing.join(', ')}`;
+}
+
+function checkIlluminationSupport(graphics: GraphicsContext) {
+  const reason = getIlluminationUnsupportedReason(graphics);
+  if (reason && isDebugMode && !IlluminationWarningShown) {
+    console.log(`"illumination" not supported: ${reason}`);
+    IlluminationWarningShown = true;
   }
+  return !reason;
 }
 
 type Props = {
@@ -109,6 +106,7 @@ export class IlluminationPass {
   private multiSampleHoldTarget: RenderTarget;
   private multiSampleAccumulateTarget: RenderTarget;
   private multiSampleCompose: MultiSampleComposeRenderable;
+  private readonly renderBuilder: PassBuilder;
 
   private _iteration = 0;
   get iteration() {
@@ -141,6 +139,10 @@ export class IlluminationPass {
 
   getMaxIterations(props: IlluminationProps) {
     return Math.pow(2, props.maxIterations);
+  }
+
+  static getUnsupportedReason(graphics: GraphicsContext) {
+    return getIlluminationUnsupportedReason(graphics);
   }
 
   static isSupported(graphics: GraphicsContext) {
@@ -189,15 +191,18 @@ export class IlluminationPass {
     this.multiSampleAccumulateTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
     this.multiSampleCompose = getMultiSampleComposeRenderable(graphics, this.outputTarget.texture);
 
+    this.renderBuilder = createRenderBuilder(graphics);
     this._supported = true;
   }
 
-  private renderInput(renderer: Renderer, camera: ICamera, scene: Scene, props: Props) {
-    if (isTimingMode) this.graphics.timer.group('IlluminationPass.renderInput');
+  private renderInput(b: PassBuilder, renderer: Renderer, camera: ICamera, scene: Scene, props: Props) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) this.graphics.timer.group('IlluminationPass.renderInput');
 
     const hasTransparent = scene.opacityAverage < 1 || scene.volumes.renderables.length > 0;
+    const depthOpaque = this.drawPass.depthTextureOpaque;
 
-    this.graphics.beginRenderPass(this.transparentTarget, {
+    b.begin(this.transparentTarget, {
       label: 'transparent clear',
       clear: { color: [0, 0, 0, 0] },
     });
@@ -208,61 +213,80 @@ export class IlluminationPass {
     const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
     const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
 
-    if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
-      this.graphics.beginRenderPass(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
+    if ((outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) && b.drawing) {
+      b.begin(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
       renderer.clearDepth(true);
     }
 
     if (hasTransparent) {
       if (this.drawPass.transparency === 'wboit') {
-        this.drawPass.wboit.bind();
-        renderer.renderWboitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
+        this.drawPass.wboit.bind(b);
+        b.renderer({ name: 'wboitTransparent' }, scene.primitives, () =>
+          renderer.renderWboitTransparent(scene.primitives, camera, depthOpaque),
+        );
 
         if (scene.volumes.renderables.length > 0) {
-          renderer.renderWboitTransparent(scene.volumes, camera, this.drawPass.depthTextureOpaque);
+          b.renderer({ name: 'wboitTransparent' }, scene.volumes, () =>
+            renderer.renderWboitTransparent(scene.volumes, camera, depthOpaque),
+          );
         }
 
-        this.graphics.beginRenderPass(this.transparentTarget, { label: 'wboit evaluate' });
-        this.drawPass.wboit.render();
+        b.begin(this.transparentTarget, { label: 'wboit evaluate' });
+        this.drawPass.wboit.render(b);
       } else if (this.drawPass.transparency === 'dpoit') {
-        const dpoitTextures = this.drawPass.dpoit.bind();
-        renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
+        const dpoitTextures = this.drawPass.dpoit.bind(b);
+        b.renderer({ name: 'dpoitTransparent' }, scene.primitives, () =>
+          renderer.renderDpoitTransparent(scene.primitives, camera, depthOpaque, dpoitTextures),
+        );
 
-        for (let i = 0, iterations = props.dpoitIterations; i < iterations; i++) {
-          if (isTimingMode) this.graphics.timer.group('DpoitPass.layer');
-          const dpoitTextures = this.drawPass.dpoit.bindDualDepthPeeling();
-          renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
+        // preparing: one peeling layer draws as all of them
+        const iterations = props.dpoitIterations;
+        const layers = b.drawing ? iterations : Math.min(iterations, 1);
+        for (let i = 0; i < layers; i++) {
+          if (timing) this.graphics.timer.group('DpoitPass.layer');
+          const dpoitTextures = this.drawPass.dpoit.bindDualDepthPeeling(b);
+          b.renderer({ name: 'dpoitTransparent' }, scene.primitives, () =>
+            renderer.renderDpoitTransparent(scene.primitives, camera, depthOpaque, dpoitTextures),
+          );
 
           if (iterations > 1) {
-            this.graphics.beginRenderPass(this.transparentTarget, { label: 'dpoit blend back' });
-            this.drawPass.dpoit.renderBlendBack();
+            b.begin(this.transparentTarget, { label: 'dpoit blend back' });
+            this.drawPass.dpoit.renderBlendBack(b);
           }
-          if (isTimingMode) this.graphics.timer.groupEnd('DpoitPass.layer');
+          if (timing) this.graphics.timer.groupEnd('DpoitPass.layer');
         }
 
         // evaluate dpoit
-        this.graphics.beginRenderPass(this.transparentTarget, { label: 'dpoit evaluate' });
-        this.drawPass.dpoit.render();
+        b.begin(this.transparentTarget, { label: 'dpoit evaluate' });
+        this.drawPass.dpoit.render(b);
 
         if (scene.volumes.renderables.length > 0) {
-          renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
+          b.renderer({ name: 'volume' }, scene.volumes, () =>
+            renderer.renderVolume(scene.volumes, camera, depthOpaque),
+          );
         }
       } else {
-        this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
-        this.graphics.beginRenderPass(this.transparentTarget, { label: 'transparent' });
-        renderer.renderBlendedTransparent(scene.primitives, camera);
-        this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+        depthOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+        b.begin(this.transparentTarget, { label: 'transparent' });
+        b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
+          renderer.renderBlendedTransparent(scene.primitives, camera),
+        );
+        depthOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
 
         if (scene.volumes.renderables.length > 0) {
-          this.graphics.beginRenderPass(this.transparentTarget, { label: 'volume' });
-          renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
+          b.begin(this.transparentTarget, { label: 'volume' });
+          b.renderer({ name: 'volume' }, scene.volumes, () =>
+            renderer.renderVolume(scene.volumes, camera, depthOpaque),
+          );
         }
       }
 
       if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
-        this.graphics.beginRenderPass(this.drawPass.depthTargetTransparent, { label: 'transparent depth' });
+        b.begin(this.drawPass.depthTargetTransparent, { label: 'transparent depth' });
         if (scene.opacityAverage < 1) {
-          renderer.renderDepthTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
+          b.renderer({ name: 'depthTransparent' }, scene.primitives, () =>
+            renderer.renderDepthTransparent(scene.primitives, camera, depthOpaque),
+          );
         }
       }
 
@@ -273,50 +297,54 @@ export class IlluminationPass {
           props.postprocessing.occlusion.params as SsaoProps,
           true,
         );
-        this.drawPass.postprocessing.ssao.render(camera);
+        this.drawPass.postprocessing.ssao.render(b, camera);
       }
     }
 
     //
 
-    this.graphics.beginRenderPass(this.tracing.composeTarget, {
+    b.begin(this.tracing.composeTarget, {
       label: 'compose clear',
       clear: { color: [0, 0, 0, 0] },
     });
-    if (isTimingMode) this.graphics.timer.groupEnd('IlluminationPass.renderInput');
+    if (timing) this.graphics.timer.groupEnd('IlluminationPass.renderInput');
   }
 
   private hasHelpers(helper: RenderContext<Camera>['helper']) {
     return helper.debug.isEnabled || helper.pointer.isEnabled || helper.handle.isEnabled || helper.camera.isEnabled;
   }
 
-  private renderHelpers(ctx: RenderContext<Camera>) {
+  private renderHelpers(b: PassBuilder, ctx: RenderContext<Camera>) {
     const { renderer, camera, helper, frame } = ctx;
-    this.graphics.beginRenderPass(this.transparentTarget, { label: 'helpers' });
+    b.begin(this.transparentTarget, { label: 'helpers' });
     if (helper.debug.isEnabled || helper.pointer.isEnabled) {
       this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
-      this.graphics.beginRenderPass(this.transparentTarget, { label: 'helpers' });
+      b.begin(this.transparentTarget, { label: 'helpers' });
       if (helper.debug.isEnabled) {
-        helper.debug.syncVisibility();
+        if (b.drawing) helper.debug.syncVisibility();
         for (const scene of helper.debug.scenes) {
-          renderer.renderBlended(scene, camera);
+          this.drawPass.renderBlended(b, renderer, scene, camera);
         }
       }
       if (helper.pointer.isEnabled) {
-        helper.pointer.setCamera(camera);
-        renderer.update(helper.pointer.camera, helper.pointer.scene, frame);
-        renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
+        if (b.drawing) {
+          helper.pointer.setCamera(camera);
+          renderer.update(helper.pointer.camera, helper.pointer.scene, frame);
+        }
+        this.drawPass.renderBlended(b, renderer, helper.pointer.scene, helper.pointer.camera);
       }
       this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
-      this.graphics.beginRenderPass(this.transparentTarget, { label: 'helpers' });
+      b.begin(this.transparentTarget, { label: 'helpers' });
     }
     if (helper.handle.isEnabled) {
-      renderer.renderBlended(helper.handle.scene, camera);
+      this.drawPass.renderBlended(b, renderer, helper.handle.scene, camera);
     }
     if (helper.camera.isEnabled) {
-      helper.camera.update(camera);
-      renderer.update(helper.camera.camera, helper.camera.scene, frame);
-      renderer.renderBlended(helper.camera.scene, helper.camera.camera);
+      if (b.drawing) {
+        helper.camera.update(camera);
+        renderer.update(helper.camera.camera, helper.camera.scene, frame);
+      }
+      this.drawPass.renderBlended(b, renderer, helper.camera.scene, helper.camera.camera);
     }
   }
 
@@ -357,14 +385,6 @@ export class IlluminationPass {
     this.drawPass.setSize(width, height);
   }
 
-  reset() {
-    if (!this._supported) return;
-
-    this.tracing.reset();
-    this._iteration = 0;
-    this.prevSampleIndex = -1;
-  }
-
   restart(clearAdjustedProps = false) {
     if (!this._supported) return;
 
@@ -374,24 +394,28 @@ export class IlluminationPass {
   }
 
   private renderInternal(
+    b: PassBuilder,
     ctx: RenderContext<Camera>,
     props: Props,
     toDrawingBuffer: boolean,
     forceRenderInput: boolean,
+    iteration: number,
   ) {
-    if (!this.shouldRender(props.illumination)) return;
+    if (b.drawing && !this.shouldRender(props.illumination)) return;
 
-    if (isTimingMode) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) {
       this.graphics.timer.group('IlluminationPass.render', {
-        note: `iteration ${this._iteration + 1} of ${this.getMaxIterations(props.illumination)}`,
+        note: `iteration ${iteration + 1} of ${this.getMaxIterations(props.illumination)}`,
       });
     }
 
-    this.tracing.render(ctx, props.transparentBackground, props.illumination, this._iteration, forceRenderInput);
-    this.compose(ctx, props, toDrawingBuffer, this._iteration === 0 || forceRenderInput);
+    this.tracing.render(b, ctx, props.transparentBackground, props.illumination, iteration, forceRenderInput);
+    this.compose(b, ctx, props, toDrawingBuffer, iteration === 0 || forceRenderInput);
 
+    if (!b.drawing) return;
     this._iteration += 1;
-    if (isTimingMode) this.graphics.timer.groupEnd('IlluminationPass.render');
+    if (timing) this.graphics.timer.groupEnd('IlluminationPass.render');
 
     this.graphics.flush();
   }
@@ -406,20 +430,29 @@ export class IlluminationPass {
     renderer.update(camera, scene, frame);
   }
 
-  private compose(ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean, forceRenderInput: boolean) {
+  private compose(
+    b: PassBuilder,
+    ctx: RenderContext<Camera>,
+    props: Props,
+    toDrawingBuffer: boolean,
+    forceRenderInput: boolean,
+  ) {
     const { renderer, camera, scene, frame } = ctx;
     const { x, y, width, height } = camera.viewport;
 
     if (forceRenderInput) {
       // render color & depth
-      this.setupRenderer(ctx, props);
-      this.renderInput(renderer, camera, scene, props);
-      this.renderHelpers(ctx);
+      if (b.drawing) this.setupRenderer(ctx, props);
+      else renderer.setTransparentBackground(props.transparentBackground);
+      this.renderInput(b, renderer, camera, scene, props);
+      this.renderHelpers(b, ctx);
     }
 
-    this.graphics.setRenderState(RenderState.Default);
-    this.graphics.setViewport(x, y, width, height);
-    this.graphics.setScissor(x, y, width, height);
+    if (b.drawing) {
+      this.graphics.setRenderState(RenderState.Default);
+      this.graphics.setViewport(x, y, width, height);
+      this.graphics.setScissor(x, y, width, height);
+    }
 
     const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
@@ -445,7 +478,7 @@ export class IlluminationPass {
         this.drawPass.depthTargetTransparent.texture,
         this.drawPass.depthTextureOpaque,
       );
-      this.drawPass.postprocessing.outline.render();
+      this.drawPass.postprocessing.outline.render(b);
 
       ValueCell.update(
         this.composeRenderable.values.uOutlineColor,
@@ -468,6 +501,12 @@ export class IlluminationPass {
     if (this.composeRenderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) {
       needsUpdateCompose = true;
       ValueCell.update(this.composeRenderable.values.dOcclusionEnable, occlusionEnabled);
+    }
+
+    if (occlusionEnabled) {
+      const [width, height] = this.composeRenderable.values.uTexSize.ref.value;
+      const ssaoTexture = this.drawPass.postprocessing.ssao.ssaoDepthTexture;
+      if (updateOcclusionUpsample(this.composeRenderable.values, ssaoTexture, width, height)) needsUpdateCompose = true;
     }
 
     if (occlusionEnabled && props.postprocessing.occlusion.name === 'on') {
@@ -502,10 +541,12 @@ export class IlluminationPass {
 
     // bloom composite — compose applies it inline below
 
-    renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
-    renderer.setPixelRatio(this.graphics.pixelRatio);
-    renderer.setViewport(x, y, width, height);
-    renderer.update(camera, scene, frame);
+    if (b.drawing) {
+      renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
+      renderer.setPixelRatio(this.graphics.pixelRatio);
+      renderer.setViewport(x, y, width, height);
+      renderer.update(camera, scene, frame);
+    }
 
     let bloomActive = false;
     if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
@@ -516,11 +557,11 @@ export class IlluminationPass {
 
       if (!skip) {
         if (emissiveBloom) {
-          this.drawPass.renderEmissiveBloom(renderer, camera, scene, params.transparency);
+          this.drawPass.renderEmissiveBloom(b, renderer, camera, scene, params.transparency);
         }
         // transparent color is already cleared in renderInput and may hold helpers, so only reset depth
-        if (scene.opacityAverage >= 1) {
-          this.graphics.beginRenderPass(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
+        if (scene.opacityAverage >= 1 && b.drawing) {
+          b.begin(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
           renderer.clearDepth(true);
         }
         // seed luminosity bloom from the shaded (lit) color, like the standard path's colorTarget
@@ -534,7 +575,7 @@ export class IlluminationPass {
           camera,
           false,
         );
-        bloom.render(camera.viewport);
+        bloom.render(b, camera.viewport);
         bloomActive = true;
       }
     }
@@ -546,16 +587,18 @@ export class IlluminationPass {
     // background
 
     // the image is always kept offscreen, so that marking can be redrawn over it without restarting
-    this.graphics.beginRenderPass(this.tracing.composeTarget, { label: 'compose' });
+    b.begin(this.tracing.composeTarget, { label: 'compose' });
     this._colorTarget = this.tracing.composeTarget;
 
     this.drawPass.postprocessing.background.update(camera, props.postprocessing.background);
-    this.drawPass.postprocessing.background.clear(
-      props.postprocessing.background,
-      props.transparentBackground,
-      renderer.props.backgroundColor,
-    );
-    this.drawPass.postprocessing.background.render(props.postprocessing.background);
+    if (b.drawing) {
+      this.drawPass.postprocessing.background.clear(
+        props.postprocessing.background,
+        props.transparentBackground,
+        renderer.props.backgroundColor,
+      );
+    }
+    this.drawPass.postprocessing.background.render(b, props.postprocessing.background);
 
     // compose
 
@@ -581,8 +624,7 @@ export class IlluminationPass {
           );
     ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
     if (needsUpdateCompose) this.composeRenderable.update();
-    this.graphics.setRenderState(compositeBackground ? RenderState.Premultiplied : RenderState.Default);
-    this.composeRenderable.render();
+    b.quad(this.composeRenderable, compositeBackground ? RenderState.Premultiplied : RenderState.Default);
 
     //
 
@@ -590,6 +632,7 @@ export class IlluminationPass {
 
     if (antialiasingEnabled) {
       this.drawPass.antialiasing.render(
+        b,
         camera,
         this.tracing.composeTarget.texture,
         this.outputTarget,
@@ -608,7 +651,7 @@ export class IlluminationPass {
         props.postprocessing.dof.params,
         scene.boundingSphereVisible,
       );
-      this.drawPass.dof.render(camera.viewport, swapTarget);
+      this.drawPass.dof.render(b, camera.viewport, swapTarget);
       this._colorTarget = swapTarget;
     }
 
@@ -617,7 +660,7 @@ export class IlluminationPass {
     // in 'on' mode, marking is blended over the accumulated samples instead
     if (props.multiSample.mode === 'on' && !toDrawingBuffer) return;
 
-    this.drawPass.marking.present(ctx, props, {
+    this.drawPass.marking.present(b, ctx, props, {
       base: this._colorTarget,
       toDrawingBuffer,
       offsets: SingleSample,
@@ -629,7 +672,13 @@ export class IlluminationPass {
 
   private prevSampleIndex = -1;
 
-  private renderMultiSample(ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean) {
+  private renderMultiSample(
+    b: PassBuilder,
+    ctx: RenderContext<Camera>,
+    props: Props,
+    toDrawingBuffer: boolean,
+    currentIteration: number,
+  ) {
     const { camera } = ctx;
     const { multiSampleCompose, multiSampleComposeTarget, multiSampleHoldTarget, graphics } = this;
 
@@ -641,11 +690,12 @@ export class IlluminationPass {
     const offsetList = getJitterOffsets(props.multiSample.sampleLevel);
 
     const maxIterations = this.getMaxIterations(props.illumination);
-    const iteration = Math.min(this._iteration, maxIterations);
+    const iteration = Math.min(currentIteration, maxIterations);
 
     const sampleIndex = Math.floor((iteration / maxIterations) * offsetList.length);
 
-    if (isTimingMode) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) {
       graphics.timer.group('IlluminationPass.renderMultiSample', {
         note: `sampleIndex ${sampleIndex + 1} of ${offsetList.length}`,
       });
@@ -655,16 +705,18 @@ export class IlluminationPass {
     const sampleWeight = 1.0 / maxIterations;
 
     if (iteration === 0) {
-      this.renderInternal(ctx, props, false, true);
+      this.renderInternal(b, ctx, props, false, true, iteration);
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
       ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
       multiSampleCompose.update();
 
-      graphics.beginRenderPass(multiSampleHoldTarget, { label: 'multi-sample hold' });
-      graphics.setRenderState(RenderState.Default);
-      graphics.setViewport(x, y, width, height);
-      graphics.setScissor(x, y, width, height);
-      multiSampleCompose.render();
+      b.begin(multiSampleHoldTarget, { label: 'multi-sample hold' });
+      if (b.drawing) {
+        graphics.setRenderState(RenderState.Default);
+        graphics.setViewport(x, y, width, height);
+        graphics.setScissor(x, y, width, height);
+      }
+      b.quad(multiSampleCompose, RenderState.Default);
     } else {
       ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
       ValueCell.update(multiSampleCompose.values.uWeight, sampleWeight);
@@ -672,58 +724,59 @@ export class IlluminationPass {
 
       // render the scene multiple times, each slightly jitter offset
       // from the last and accumulate the results.
-      setJitter(camera, offsetList[sampleIndex]);
+      if (b.drawing) setJitter(camera, offsetList[sampleIndex]);
 
       // render scene
-      this.renderInternal(ctx, props, false, this.prevSampleIndex !== sampleIndex);
+      this.renderInternal(b, ctx, props, false, !b.drawing || this.prevSampleIndex !== sampleIndex, iteration);
 
       // compose rendered scene with compose target
-      graphics.beginRenderPass(multiSampleComposeTarget, { label: 'multi-sample compose' });
-      graphics.setRenderState(RenderState.Additive);
-      graphics.setViewport(x, y, width, height);
-      graphics.setScissor(x, y, width, height);
-      if (iteration === 1) graphics.clear({ color: [0, 0, 0, 0] });
-      multiSampleCompose.render();
+      b.begin(multiSampleComposeTarget, { label: 'multi-sample compose' });
+      if (b.drawing) {
+        graphics.setRenderState(RenderState.Additive);
+        graphics.setViewport(x, y, width, height);
+        graphics.setScissor(x, y, width, height);
+        if (iteration === 1) graphics.clear({ color: [0, 0, 0, 0] });
+      }
+      b.quad(multiSampleCompose, RenderState.Additive);
     }
 
-    this.prevSampleIndex = sampleIndex;
+    if (b.drawing) this.prevSampleIndex = sampleIndex;
 
-    this.graphics.beginRenderPass(this.multiSampleAccumulateTarget, { label: 'multi-sample accumulate' });
-    graphics.setViewport(x, y, width, height);
-    graphics.setScissor(x, y, width, height);
+    b.begin(this.multiSampleAccumulateTarget, { label: 'multi-sample accumulate' });
+    if (b.drawing) {
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+    }
 
     const accumulationWeight = iteration * sampleWeight;
     if (accumulationWeight > 0) {
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
       ValueCell.update(multiSampleCompose.values.tColor, multiSampleComposeTarget.texture);
       multiSampleCompose.update();
-      graphics.setRenderState(RenderState.Default);
-      multiSampleCompose.render();
+      b.quad(multiSampleCompose, RenderState.Default);
     }
     if (accumulationWeight < 1.0) {
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0 - accumulationWeight);
       ValueCell.update(multiSampleCompose.values.tColor, multiSampleHoldTarget.texture);
       multiSampleCompose.update();
-      graphics.setRenderState(accumulationWeight === 0 ? RenderState.Default : RenderState.Additive);
-      multiSampleCompose.render();
+      b.quad(multiSampleCompose, accumulationWeight === 0 ? RenderState.Default : RenderState.Additive);
     }
 
     if (!toDrawingBuffer) {
-      graphics.setRenderState(RenderState.Default);
-      this.graphics.beginRenderPass(this.colorTarget, { label: 'multi-sample output' });
+      b.begin(this.colorTarget, { label: 'multi-sample output' });
       if (this.copyRenderable.values.tColor.ref.value !== this.multiSampleAccumulateTarget.texture) {
         ValueCell.update(this.copyRenderable.values.tColor, this.multiSampleAccumulateTarget.texture);
         this.copyRenderable.update();
       }
-      this.copyRenderable.render();
+      b.quad(this.copyRenderable, RenderState.Default);
     }
 
-    clearJitter(camera);
+    if (b.drawing) clearJitter(camera);
 
     const base = toDrawingBuffer ? this.multiSampleAccumulateTarget : this._colorTarget;
     // a single sample on the first iteration, which is also the one rendered while the camera moves
     const samples = iteration === 0 ? 1 : Math.ceil(offsetList.length / maxIterations);
-    this.drawPass.marking.present(ctx, props, {
+    this.drawPass.marking.present(b, ctx, props, {
       base,
       toDrawingBuffer,
       offsets: offsetList,
@@ -731,17 +784,38 @@ export class IlluminationPass {
       samples,
       shading: this.markingShading,
     });
-    if (isTimingMode) graphics.timer.groupEnd('IlluminationPass.renderMultiSample');
+    if (timing) graphics.timer.groupEnd('IlluminationPass.renderMultiSample');
   }
 
   render(ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean) {
+    this.plan(this.renderBuilder, ctx, props, toDrawingBuffer);
+  }
+
+  /**
+   * What `render` draws, see `PassBuilder`; preparing covers the first and the following iterations (the input is
+   * drawn on the first and when a multi-sample offset changes) and keeps the iteration and the output target
+   */
+  plan(b: PassBuilder, ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean) {
     if (!this._supported) return;
 
-    if (props.multiSample.mode === 'on') {
-      this.renderMultiSample(ctx, props, toDrawingBuffer);
-    } else {
-      this.renderInternal(ctx, props, toDrawingBuffer, false);
+    if (b.drawing) {
+      if (props.multiSample.mode === 'on') {
+        this.renderMultiSample(b, ctx, props, toDrawingBuffer, this._iteration);
+      } else {
+        this.renderInternal(b, ctx, props, toDrawingBuffer, false, this._iteration);
+      }
+      return;
     }
+
+    const colorTarget = this._colorTarget;
+    for (const iteration of [0, 1]) {
+      if (props.multiSample.mode === 'on') {
+        this.renderMultiSample(b, ctx, props, toDrawingBuffer, iteration);
+      } else {
+        this.renderInternal(b, ctx, props, toDrawingBuffer, iteration === 0, iteration);
+      }
+    }
+    this._colorTarget = colorTarget;
   }
 }
 
@@ -756,6 +830,9 @@ export const ComposeSchema = {
   dBlendTransparency: DefineSpec('boolean'),
   tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  /** the SSAO targets have a lower resolution, see `getSsaoUpsampled` */
+  dOcclusionUpsample: DefineSpec('boolean'),
+  uOcclusionTexSize: UniformSpec('v2'),
   tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -807,6 +884,8 @@ function getComposeRenderable(
     dBlendTransparency: ValueCell.create(true),
     tSsaoDepth: ValueCell.create(ssaoDepthOpaqueTexture),
     tSsaoDepthTransparent: ValueCell.create(ssaoDepthTransparentTexture),
+    dOcclusionUpsample: ValueCell.create(false),
+    uOcclusionTexSize: ValueCell.create(Vec2()),
     tDepthOpaque: ValueCell.create(depthTextureOpaque),
     tDepthTransparent: ValueCell.create(depthTextureTransparent),
     tOutlines: ValueCell.create(outlinesTexture),

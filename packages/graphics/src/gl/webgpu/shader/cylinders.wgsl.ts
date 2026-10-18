@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { animation_wgsl } from './chunks/animation.wgsl.js';
+import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import { light_wgsl } from './chunks/light.wgsl.js';
 import {
@@ -38,6 +39,7 @@ ${read_from_texture_wgsl}
 ${animation_wgsl}
 ${light_wgsl}
 ${material_functions_wgsl}
+${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 
@@ -58,9 +60,10 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_size_wgsl}
 
     let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId));
-    let wigStart = applyWiggle(in.aStart, group);
-    let wigEnd = applyWiggle(in.aEnd, group);
+    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    ${assign_wiggle_wgsl}
+    let wigStart = applyWiggle(in.aStart, group, wiggle);
+    let wigEnd = applyWiggle(in.aEnd, group, wiggle);
     let modelTransform = uGlobal.uModel * transform;
 
     let start = (modelTransform * vec4<f32>(wigStart, 1.0)).xyz;
@@ -90,24 +93,27 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     modelPosition += in.aMapping.x * dir + in.aMapping.y * left + in.aMapping.z * up;
     out.vModelPosition = modelPosition;
 
-    var mvPosition = uGlobal.uView * vec4<f32>(modelPosition, 1.0);
+    let mvPosition = uGlobal.uView * vec4<f32>(modelPosition, 1.0);
     out.vViewPosition = mvPosition.xyz;
     out.position = uGlobal.uProjection * mvPosition;
 
-    if (out.position.z < 0.0) {
-        mvPosition.z -= 2.0 * (length(end - start) + vSize); // avoid clipping
-        out.position.z = (uGlobal.uProjection * mvPosition).z;
+    // in front of the near plane (clip z is reversed): onto it, to avoid clipping the box; the fragment depth is the
+    // impostor's
+    if (out.position.z > out.position.w) {
+        out.position.z = out.position.w;
     }
 
-    #if defined(dDualColor) && defined(dRenderVariant_color) && (defined(dColorType_group) || defined(dColorType_groupInstance))
-        // dual-color mixing
+    #if defined(dDualColor) && defined(dRenderVariant_color) && defined(dColorType_texture)
+        // dual-color mixing (group color types)
         // - for aColorMode between 0 and 1 use aColorMode to interpolate
         // - for aColorMode == 2 do nothing, i.e., use vColor
         // - for aColorMode == 3 use position on cylinder axis to interpolate
-        if (in.aColorMode <= 1.0) {
-            out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, in.aColorMode), out.vColor.a);
-        } else if (in.aColorMode == 3.0) {
-            out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, mix(-0.25, 1.25, f / 1.5)), out.vColor.a);
+        if (dualColor) {
+            if (in.aColorMode <= 1.0) {
+                out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, in.aColorMode), out.vColor.a);
+            } else if (in.aColorMode == 3.0) {
+                out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, mix(-0.25, 1.25, f / 1.5)), out.vColor.a);
+            }
         }
     #endif
     ${clip_instance_wgsl}
@@ -136,7 +142,7 @@ fn cylinderHitAt(rayOrigin: vec3<f32>, rayDir: vec3<f32>, t: f32, cameraNormal: 
     h.modelPosition = rayOrigin + t * rayDir;
     h.viewPosition = (uGlobal.uView * vec4<f32>(h.modelPosition, 1.0)).xyz;
     h.depth = calcDepth(h.viewPosition);
-    h.hit = h.depth > 0.0;
+    h.hit = h.depth < 1.0;
     h.isCap = false;
     return h;
 }
@@ -169,10 +175,10 @@ fn isFrontClipped(modelPosition: vec3<f32>, clipFlag: i32) -> bool {
         let cameraRayOrigin = (uGlobal.uView * vec4<f32>(rayOrigin, 1.0)).xyz;
         let cameraRayDir = (uGlobal.uView * vec4<f32>(rayDir, 0.0)).xyz;
         let nearT = -(uGlobal.uNear + cameraRayOrigin.z) / cameraRayDir.z;
-        let sNear = select(clamp((nearT - front.t) / (t - front.t), 0.0, 1.0), 0.0, front.depth > 0.0);
+        let sNear = select(clamp((nearT - front.t) / (t - front.t), 0.0, 1.0), 0.0, front.depth < 1.0);
         #if defined(dClipCylinder)
             var sCap = sNear;
-            if (front.clipped || front.depth <= 0.0) {
+            if (front.clipped || front.depth >= 1.0) {
                 sCap = clipExit(front.modelPosition / uGlobal.uModelScale, h.modelPosition / uGlobal.uModelScale, sNear, clipFlag);
             }
             if (sCap < 0.0) {
@@ -182,17 +188,17 @@ fn isFrontClipped(modelPosition: vec3<f32>, clipFlag: i32) -> bool {
         #else
             let sCap = sNear;
         #endif
-        if (sCap == sNear && front.depth <= 0.0) {
-            h.depth = 0.0 + (0.0000002 / radius);
+        if (sCap == sNear && front.depth >= 1.0) {
+            h.depth = 1.0 - (0.0000002 / radius);
             h.cameraNormal = -rayDir;
             h.viewPosition = cameraRayOrigin + nearT * cameraRayDir;
             h.modelPosition = (uGlobal.uInvView * vec4<f32>(h.viewPosition, 1.0)).xyz;
         }
         #if defined(dClipCylinder)
-            else if (front.clipped || front.depth <= 0.0) {
+            else if (front.clipped || front.depth >= 1.0) {
                 h.modelPosition = mix(front.modelPosition, h.modelPosition, sCap);
                 h.viewPosition = (uGlobal.uView * vec4<f32>(h.modelPosition, 1.0)).xyz;
-                h.depth = calcDepth(h.viewPosition) + (0.0000002 / radius);
+                h.depth = calcDepth(h.viewPosition) - (0.0000002 / radius);
                 h.cameraNormal = -clipNormal(h.modelPosition / uGlobal.uModelScale, clipFlag);
                 h.isCap = true;
             }
@@ -243,7 +249,8 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
     #endif
 
     var clipped = false;
-    var front = CylinderFront(0.0, 1.0, rayOrigin, false);
+    // no front yet: at the far plane (depth is reversed)
+    var front = CylinderFront(0.0, 0.0, rayOrigin, false);
 
     // body outside
     h = sqrt(h);
@@ -253,7 +260,7 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
         r = cylinderHitAt(rayOrigin, rayDir, t, (oc + t * rayDir - ba * y / baba) / radius, false);
         front = CylinderFront(t, r.depth, r.modelPosition, isFrontClipped(r.modelPosition, clipFlag));
         if (front.clipped) {
-            r.depth = -1.0;
+            r.depth = 2.0;
             r.hit = false;
         }
         if (r.hit) {
@@ -284,7 +291,7 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
             r = cylinderHitAt(rayOrigin, rayDir, capT, capNormal, capInterior);
             front = CylinderFront(capT, r.depth, r.modelPosition, isFrontClipped(r.modelPosition, clipFlag));
             if (front.clipped) {
-                r.depth = -1.0;
+                r.depth = 2.0;
                 r.hit = false;
             }
             if (r.hit) {

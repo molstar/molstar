@@ -1,0 +1,725 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { describe, expect, it } from 'vitest';
+import type { Message } from '../../messages/index.js';
+import type { HarnessReader } from '../../harness/index.js';
+import { declareTools, settle, toolDefinition, user } from '../../testing/index.js';
+import {
+  createTraceCache,
+  defaultRequestOf,
+  defaultWindowPart,
+  formatUsage,
+  LABELS,
+  type ModelStepView,
+  readTrace,
+  type ToolStepView,
+  type TraceCache,
+  type TurnView,
+} from '../index.js';
+import { adapterState, configured, createSession, first, request, turn, until, with_ } from './helpers.js';
+
+const models = (t: TurnView) => t.steps.filter((s): s is ModelStepView => s.kind === 'model');
+const tools = (t: TurnView) => t.steps.filter((s): s is ToolStepView => s.kind === 'tool');
+const shape = (t: TurnView) => t.steps.map((s) => (s.kind === 'tool' ? s.name : 'model'));
+
+/** echo succeeds, boom fails: a model that calls both, then answers. */
+async function basic() {
+  const s = createSession({
+    declare: [],
+    tools: {
+      echo: () => ({ text: 'echoed' }),
+      boom: () => ({ status: 'failed', text: 'it broke', effect: 'none' }),
+    },
+    model: [
+      {
+        calls: [
+          { tool: 'echo', arguments: { a: 1 } },
+          { tool: 'boom', arguments: {} },
+        ],
+        usage: { inputTokens: 1000, outputTokens: 20, cacheReadInputTokens: 800, reasoningOutputTokens: 5 },
+      },
+      {
+        text: 'Done.',
+        usage: { inputTokens: 1200, outputTokens: 4, cacheReadInputTokens: 1000, cacheWriteInputTokens: 100 },
+        waitMs: 2000,
+      },
+    ],
+  });
+  await turn(s, first(s, request('Make it red', { state: 'Counter at 0.', focus: 'the display' })));
+  return s;
+}
+
+describe('readTrace: a turn over the harness (harness.md §3, §11, §13)', () => {
+  it('reads the turn, its status, request and focus, and its calls in the order they began', async () => {
+    const s = await basic();
+    const trace = await readTrace(s.harness);
+    expect(trace.harnessId).toBe(s.harnessId);
+    expect(trace.turns).toHaveLength(1);
+    const [t] = trace.turns as [TurnView];
+    expect(t.status).toBe('done');
+    expect(t.prompt).toBe('Make it red');
+    expect(t.focus).toBe('the display');
+    expect(shape(t)).toEqual(['model', 'echo', 'boom', 'model']);
+    expect(t.failure).toBeUndefined();
+    expect(trace.execution.parked).toBeUndefined();
+    expect(trace.execution.pendingStep).toBeUndefined();
+  });
+
+  it('shows a tool call with its arguments and result, and a failed one with its failure', async () => {
+    const s = await basic();
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    const [echo, boom] = tools(t) as [ToolStepView, ToolStepView];
+    expect(echo).toMatchObject({ toolId: 'echo', args: { a: 1 }, status: 'succeeded', result: 'echoed' });
+    expect(echo.attempts).toHaveLength(1);
+    expect(echo.attempts[0]?.status).toBe('succeeded');
+    expect(boom).toMatchObject({ toolId: 'boom', status: 'failed', result: 'it broke' });
+    expect(boom.attempts[0]).toMatchObject({ ordinal: 1, status: 'failed', failure: 'it broke' });
+  });
+
+  it('shows what each model call asked for, how it ended (finish), and its usage', async () => {
+    const s = await basic();
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    const [a, b] = models(t) as [ModelStepView, ModelStepView];
+    expect(a.model).toBe('scripted-1');
+    expect(a.toolCalls).toEqual(['echo(a=1)', 'boom()']);
+    expect(a.reply).toBeUndefined();
+    expect(a.finish).toBe('tool-calls');
+    expect(a.tokens).toEqual({ input: 1000, output: 20, cached: 800, reasoning: 5 });
+    expect(b.reply).toBe('Done.');
+    expect(b.toolCalls).toBeUndefined();
+    expect(b.finish).toBe('complete');
+    expect(b.tokens).toEqual({ input: 1200, output: 4, cached: 1000, written: 100 });
+  });
+
+  it('sums the turn’s tokens, with the cached share, and formats them in one line', async () => {
+    const s = await basic();
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    // Uncached 200 + 100, cache reads 1800, cache writes 100.
+    expect(t.tokens).toMatchObject({ input: 2200, output: 24, cached: 1800, written: 100, reasoning: 5 });
+    expect(formatUsage(t.tokens)).toBe('2.2k in (82% cached, 100 written) · 24 out');
+  });
+
+  it('measures times in ms from the first step event, and a wait shows in the attempt', async () => {
+    const s = await basic();
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    const last = models(t)[1] as ModelStepView;
+    const attempt = last.attempts[0];
+    expect((attempt?.end ?? 0) - (attempt?.start ?? 0)).toBe(2000);
+    expect(t.start).toBeGreaterThanOrEqual(0);
+    expect(t.end ?? 0).toBeGreaterThanOrEqual(attempt?.end ?? 0);
+    expect(t.milestones.length).toBeGreaterThan(1);
+    expect(t.milestones[0]?.kind).toBe('begin settled');
+  });
+
+  it('marks a count the provider did not report as estimated', async () => {
+    const s = createSession({ declare: [], model: [{ text: 'Hi.', usage: null }] });
+    await turn(s, first(s, request('Hello')));
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    const m = models(t)[0] as ModelStepView;
+    expect(m.tokens?.estimated).toBe(true);
+    expect(m.tokens?.input).toBeGreaterThan(0);
+    expect(formatUsage(m.tokens as never)).toMatch(/^~/);
+    expect(t.tokens.estimated).toBe(true);
+  });
+});
+
+describe('readTrace: retries', () => {
+  it('shows a retried model call as attempts: the failed one, the wait, the one that succeeded', async () => {
+    const s = createSession({
+      declare: [],
+      model: [
+        { fail: { transient: true, message: 'rate limited' } },
+        { text: 'ok', usage: { inputTokens: 10, outputTokens: 2 } },
+      ],
+    });
+    await turn(s, first(s, request('Hi')));
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    expect(t.status).toBe('done');
+    const [m] = models(t) as [ModelStepView];
+    expect(m.attempts.map((a) => a.status)).toEqual(['failed', 'succeeded']);
+    expect(m.attempts[0]?.failure).toBe('rate limited');
+    expect(m.attempts[0]?.waitBefore).toBeUndefined();
+    expect(m.attempts[1]?.waitBefore).toEqual({ reason: 'retry back-off', ms: 500 });
+    // The call’s tokens are its last attempt’s.
+    expect(m.tokens).toEqual({ input: 10, output: 2 });
+    expect(m.reply).toBe('ok');
+  });
+
+  it('a turn that failed says why', async () => {
+    const s = createSession({ declare: [], model: [{ fail: { message: 'bad key' } }] });
+    await turn(s, first(s, request('Hi')));
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    expect(t.status).toBe('failed');
+    expect(t.failure).toBe('bad key');
+    expect(models(t)[0]?.attempts[0]).toMatchObject({ status: 'failed', failure: 'bad key' });
+    expect(models(t)[0]?.reply).toBeUndefined();
+    expect(models(t)[0]?.finish).toBeUndefined();
+  });
+});
+
+describe('readTrace: nested runs', () => {
+  it('records a nested run’s calls under the call that ran it, after it', async () => {
+    const s = createSession({
+      declare: [],
+      tools: {
+        helper: async (context) => {
+          const result = await context.run({
+            input: [user('work on this')],
+            tools: { enabled: ['inner'], preauthorized: ['inner'], definitions: [toolDefinition('inner')] },
+            model: { target: { provider: 'scripted', model: 'scripted-1' }, parameters: {} },
+            limits: {},
+          });
+          return { text: `helper ${result.status}` };
+        },
+        inner: () => ({ text: 'inner done' }),
+      },
+      model: [
+        { calls: [{ tool: 'helper', arguments: {} }] },
+        { calls: [{ tool: 'inner', arguments: {} }] },
+        { text: 'nested done' },
+        { text: 'final' },
+      ],
+    });
+    await turn(s, first(s, request('Use the helper')));
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    expect(shape(t)).toEqual(['model', 'helper', 'model', 'inner', 'model', 'model']);
+    const helper = t.steps[1] as ToolStepView;
+    expect(helper.result).toBe('helper completed');
+    expect(t.steps.map((x) => x.under)).toEqual([
+      undefined,
+      undefined,
+      helper.callId,
+      helper.callId,
+      helper.callId,
+      undefined,
+    ]);
+    // The turn’s tokens include the nested run’s.
+    const total = models(t).reduce((n, m) => n + (m.tokens?.output ?? 0), 0);
+    expect(t.tokens.output).toBe(total);
+  });
+});
+
+describe('readTrace: what each model call saw (harness.md §2)', () => {
+  it('lists the window in its parts, and marks what is new since the run’s previous call', async () => {
+    const s = await basic();
+    const [t] = (await readTrace(s.harness)).turns as [TurnView];
+    const [a, b] = models(t) as [ModelStepView, ModelStepView];
+    const roles = (m: ModelStepView) => m.window?.entries.map((e) => `${e.role}:${e.part}`);
+    expect(roles(a)).toEqual(['system:guidance', 'tools:tools', 'user:state']);
+    expect(a.window?.entries.every((e) => e.fresh)).toBe(true);
+    expect(roles(b)).toEqual([
+      'system:guidance',
+      'tools:tools',
+      'user:state',
+      'assistant:conversation',
+      'tool:conversation',
+    ]);
+    expect(b.window?.entries.filter((e) => e.fresh).map((e) => e.role)).toEqual(['assistant', 'tool']);
+    expect(b.window?.entries.map((e) => e.title)).toEqual([
+      'Guidance',
+      'echo, boom',
+      'State + request',
+      'Tool calls',
+      'tool results',
+    ]);
+    const results = b.window?.entries[4];
+    expect(results?.failed).toBe(true);
+    expect(results?.text).toContain('echoed');
+    expect(results?.tokens).toBeGreaterThan(0);
+    expect(b.window?.limit).toBeUndefined();
+  });
+
+  it('marks as new, in a later turn, only what was appended since the last call', async () => {
+    const s = await basic();
+    s.model.push({ text: 'Again.' });
+    await turn(s, 'Request: once more');
+    const trace = await readTrace(s.harness, { window: 200_000 });
+    expect(trace.turns).toHaveLength(2);
+    const [, second] = trace.turns as [TurnView, TurnView];
+    const m = models(second)[0] as ModelStepView;
+    expect(m.window?.limit).toBe(200_000);
+    expect(m.window?.entries.filter((e) => e.fresh).map((e) => e.title)).toEqual(['Reply', 'Request']);
+    expect(m.window?.entries.map((e) => e.part).slice(-2)).toEqual(['conversation', 'conversation']);
+    expect(second.prompt).toBe('once more');
+  });
+
+  it('reads the preamble from the first call, and the tools loaded from the start', async () => {
+    const s = await basic();
+    const trace = await readTrace(s.harness);
+    expect(trace.preamble.guidance).toBe('Be brief.');
+    expect(trace.preamble.guidanceTokens).toBeGreaterThan(0);
+    expect(trace.preamble.tools.map((t) => t.id)).toEqual(['echo', 'boom']);
+    expect(trace.preamble.toolsTokens).toBeGreaterThan(0);
+    expect(trace.loaded).toEqual([
+      { id: 'echo', name: 'echo' },
+      { id: 'boom', name: 'boom' },
+    ]);
+    expect(trace.declared).toEqual([]);
+  });
+
+  it('gives the turn a tool was first seen loaded in, and what is declared but not loaded', async () => {
+    const s = createSession({
+      declare: [],
+      tools: {
+        echo: () => ({ text: 'echoed' }),
+        disclose: () => ({ text: 'ok', contributions: [declareTools([toolDefinition('late')])] }),
+        late: () => ({ text: 'late' }),
+      },
+      model: [
+        { text: 'one' },
+        { calls: [{ tool: 'disclose', arguments: {} }] },
+        { calls: [{ tool: 'late', arguments: {} }] },
+        { text: 'two' },
+      ],
+    });
+    await turn(s, first(s, request('first'), { deferred: ['late'] }));
+    const before = await readTrace(s.harness);
+    expect(before.declared).toEqual(['late']);
+    expect(before.loaded.map((t) => t.id)).toEqual(['echo', 'disclose']);
+    await turn(s, request('second'));
+    const after = await readTrace(s.harness);
+    expect(after.declared).toEqual([]);
+    expect(after.loaded.map((t) => [t.id, t.turn])).toEqual([
+      ['echo', undefined],
+      ['disclose', undefined],
+      ['late', 2],
+    ]);
+    // The window shows a declared tool by name.
+    const firstCall = models(after.turns[0] as TurnView)[0] as ModelStepView;
+    const definitions = firstCall.window?.entries.find((e) => e.role === 'tools');
+    expect(definitions?.title).toBe('2 tool definition messages');
+    expect(definitions?.text).toContain('late');
+  });
+});
+
+describe('readTrace: where the provider’s cache breaks (harness.md §11)', () => {
+  const breaks = (t: TurnView) => models(t).map((m) => m.prefixBreak?.reason);
+
+  it('says nothing for requests that extend each other, whatever the provider reports', async () => {
+    const s = await basic();
+    s.model.push({ text: 'Again.' });
+    await turn(s, 'Request: again');
+    const trace = await readTrace(s.harness);
+    expect(trace.turns.flatMap(breaks)).toEqual([undefined, undefined, undefined]);
+    // Without a request prefix from the provider there is nothing to compare.
+    const t = createSession({ declare: [], model: [{ text: 'a' }, { text: 'b' }] });
+    await t.send(first(t, request('one')));
+    await t.send('Request: two');
+    expect((await readTrace(t.harness)).turns.flatMap((x) => models(x).map((m) => m.prefixBreak))).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('a changed tool list breaks it at the tools', async () => {
+    const s = createSession({
+      declare: [],
+      tools: {
+        disclose: () => ({ text: 'ok', contributions: [declareTools([toolDefinition('late')])] }),
+        late: () => ({ text: 'late' }),
+      },
+      model: [{ calls: [{ tool: 'disclose', arguments: {} }] }, { text: 'one' }, { text: 'two' }],
+    });
+    await turn(s, first(s, request('first'), { deferred: ['late'] }));
+    await turn(s, request('second'));
+    const [t1, t2] = (await readTrace(s.harness)).turns as [TurnView, TurnView];
+    expect(breaks(t1)).toEqual([undefined, 'its tools changed']);
+    expect(models(t1)[1]?.prefixBreak).toMatchObject({ kept: 0, of: 3 });
+    expect(breaks(t2)).toEqual([undefined]);
+  });
+
+  it('a changed system text breaks it after the tools', async () => {
+    adapterState.systemVersion = 0;
+    const s = createSession({ declare: [], model: [{ text: 'one' }, { text: 'two' }] });
+    await turn(s, first(s, request('first')));
+    adapterState.systemVersion = 1;
+    await turn(s, 'Request: second');
+    adapterState.systemVersion = 0;
+    const [t1, t2] = (await readTrace(s.harness)).turns as [TurnView, TurnView];
+    expect(breaks(t1)).toEqual([undefined]);
+    expect(breaks(t2)).toEqual(['its system text changed']);
+    expect(models(t2)[0]?.prefixBreak).toMatchObject({ kept: 1, of: 3 });
+  });
+
+  it('an edit to the conversation (a compaction) breaks it at the first message that changed', async () => {
+    const s = createSession({
+      declare: [],
+      model: [{ text: 'one' }, { text: 'two' }],
+      drive: with_({
+        'turn-start': ({ payload }, ctx) =>
+          payload.size.inputTokens > 0
+            ? { compact: { entries: [...ctx.head.entries.slice(0, 2), user('Summary of the work so far.')] } }
+            : 'pass',
+      }),
+    });
+    await turn(s, first(s, request('first')));
+    await turn(s, 'Request: second');
+    const trace = await readTrace(s.harness);
+    const [t1, t2] = trace.turns as [TurnView, TurnView];
+    expect(breaks(t1)).toEqual([undefined]);
+    // Guidance and tools kept; the first message after them (the request) was replaced by a summary.
+    expect(breaks(t2)).toEqual(['the conversation changed at message 1 (an edit or a compaction)']);
+    expect(models(t2)[0]?.prefixBreak).toMatchObject({ kept: 2 });
+    expect(t2.milestones.some((m) => m.detail?.startsWith('compacted main'))).toBe(true);
+  });
+
+  it('a changed model or setting breaks it whole', async () => {
+    const s = createSession({
+      declare: [],
+      model: [{ text: 'one' }, { text: 'two' }, { text: 'three' }],
+    });
+    await turn(s, first(s, request('first')));
+    await turn(s, 'Request: second', configured(s, { parameters: { temperature: 0.2 } }));
+    await turn(s, 'Request: third', configured(s, { target: { provider: 'scripted', model: 'scripted-2' } }));
+    const trace = await readTrace(s.harness);
+    expect(trace.turns.flatMap(breaks)).toEqual([
+      undefined,
+      "the model's settings changed",
+      'another model (scripted-2)',
+    ]);
+    expect(models(trace.turns[2] as TurnView)[0]).toMatchObject({
+      model: 'scripted-2',
+      prefixBreak: { kept: 0, of: 5 },
+    });
+  });
+});
+
+describe('readTrace: a turn that is still going (harness.md §4, §6)', () => {
+  it('is thinking while a model step is pending, and working while its tools run', async () => {
+    const s = createSession({
+      declare: [],
+      tools: {
+        slow: (context) =>
+          context.signal.aborted
+            ? { text: 'x' }
+            : s.clock.sleep(60_000, context.signal).then(() => ({ text: 'slow done' })),
+      },
+      model: [{ calls: [{ tool: 'slow', arguments: {} }] }, { text: 'wait', waitMs: 60_000 }, { text: 'end' }],
+    });
+    const { handle } = await s.send(first(s, request('go')), { wait: false });
+    await until(() => s.model.invocations.length === 1 && s.tools.callsOf('slow').length === 1);
+    const working = await readTrace(s.harness);
+    expect(working.turns[0]?.status).toBe('working');
+    expect(working.execution).toMatchObject({ pendingStep: 'tools' });
+    expect(working.turns[0]?.steps.map((x) => x.kind)).toEqual(['model']);
+    s.clock.advance(60_000).catch(() => undefined);
+    await until(() => s.model.invocations.length === 2);
+    const thinking = await readTrace(s.harness);
+    expect(thinking.turns[0]?.status).toBe('thinking');
+    expect(thinking.execution.pendingStep).toBe('model');
+    expect(thinking.turns[0]?.end).toBeUndefined();
+    expect(thinking.turns[0]?.steps.map((x) => x.kind)).toEqual(['model', 'tool']);
+    await s.run(handle);
+    expect((await readTrace(s.harness)).turns[0]?.status).toBe('done');
+  });
+
+  it('is waiting when it is parked for an answer', async () => {
+    const s = createSession({
+      declare: [],
+      tools: { ask: () => ({ text: 'asked' }) },
+      model: [{ calls: [{ tool: 'ask', arguments: {} }] }],
+      configuration: { tools: { enabled: ['ask'], preauthorized: [] } },
+      drive: with_({ permission: () => ({ park: {} }) }),
+    });
+    await turn(s, first(s, request('go')));
+    const trace = await readTrace(s.harness);
+    expect(trace.turns[0]?.status).toBe('waiting');
+    expect(trace.execution).toMatchObject({ parked: true, pendingStep: 'tools' });
+  });
+
+  it('is stopped when it was stopped', async () => {
+    const s = createSession({ declare: [], model: [{ text: 'slow', waitMs: 600_000 }] });
+    const { handle } = await s.send(first(s, request('go')), { wait: false });
+    await until(() => s.model.invocations.length === 1);
+    s.harness.stop();
+    await s.run(handle);
+    const trace = await readTrace(s.harness);
+    expect(trace.turns[0]?.status).toBe('stopped');
+    expect(trace.turns[0]?.failure).toBeUndefined();
+  });
+});
+
+describe('readTrace: the budget (harness.md §11)', () => {
+  it('shows the kind of count nearest its ceiling, from the profile or from the limits the turn ran under', async () => {
+    const s = await basic();
+    const named = await readTrace(s.harness, { ceilings: { uncachedInput: 1000, output: 30 } });
+    // 300 of 1000 uncached input, 24 of 30 output.
+    expect(named.budget).toEqual({
+      kind: 'output',
+      consumed: 24,
+      ceiling: 30,
+      dimension: 'output',
+      scope: 'latest turn',
+    });
+    const unlimited = await readTrace(s.harness);
+    expect(unlimited.budget).toEqual({
+      kind: 'uncachedInput',
+      consumed: 0,
+      ceiling: 0,
+      dimension: 'uncached input',
+      scope: 'latest turn',
+    });
+
+    const limited = createSession({
+      declare: [],
+      model: [{ text: 'ok', usage: { inputTokens: 500, outputTokens: 10 } }],
+      configuration: {
+        model: { target: { provider: 'scripted', model: 'scripted-1' }, parameters: {} },
+        tools: { enabled: [], preauthorized: [] },
+        limits: { uncachedInput: 1000, output: 100, modelCalls: 10 },
+      },
+    });
+    await turn(limited, first(limited, request('hi')));
+    expect((await readTrace(limited.harness)).budget).toMatchObject({
+      kind: 'uncachedInput',
+      consumed: 500,
+      ceiling: 1000,
+    });
+  });
+});
+
+describe('readTrace: the profile (the host’s part)', () => {
+  it('reads the request with the host’s own marker', async () => {
+    const s = createSession({ declare: [], model: [{ text: 'ok' }] });
+    await turn(s, first(s, 'Question: why?\nWhere: here'));
+    const trace = await readTrace(s.harness, {
+      requestOf: (m) => {
+        const text = m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
+        return { prompt: /Question: (.*)/.exec(text)?.[1] ?? '', focus: /Where: (.*)/.exec(text)?.[1] ?? '' };
+      },
+    });
+    expect(trace.turns[0]).toMatchObject({ prompt: 'why?', focus: 'here' });
+  });
+
+  it('classifies the window with the host’s own parts', async () => {
+    const s = await basic();
+    const trace = await readTrace(s.harness, { windowPart: (m) => (m.role === 'user' ? 'state' : 'guidance') });
+    const last = models(trace.turns[0] as TurnView)[1] as ModelStepView;
+    expect(last.window?.entries.map((e) => e.part)).toEqual(['guidance', 'guidance', 'state', 'guidance', 'state']);
+  });
+
+  it('takes a tool call’s title, whether it read, and what it changed from the host', async () => {
+    const s = await basic();
+    const seen: string[] = [];
+    const trace = await readTrace(s.harness, {
+      toolNames: new Map([['echo', 'Echo']]),
+      toolCall: (call) => {
+        seen.push(`${call.toolId}:${call.name}:${call.status}:${call.text}`);
+        return call.toolId === 'echo'
+          ? { title: 'Echo a', read: true, changed: [{ id: 'scene-1', label: '§1' }] }
+          : undefined;
+      },
+    });
+    expect(seen).toEqual(['echo:Echo:succeeded:echoed', 'boom:boom:failed:it broke']);
+    const [echo, boom] = tools(trace.turns[0] as TurnView) as [ToolStepView, ToolStepView];
+    expect(echo).toMatchObject({
+      name: 'Echo',
+      title: 'Echo a',
+      read: true,
+      changed: [{ id: 'scene-1', label: '§1' }],
+    });
+    expect(boom.title).toBeUndefined();
+    expect(boom.read).toBeUndefined();
+    expect(boom.changed).toBeUndefined();
+    expect(models(trace.turns[0] as TurnView)[0]?.toolCalls).toEqual(['Echo(a=1)', 'boom()']);
+  });
+
+  it('prices model calls with the host’s credits, and sums them for the turn and the budget', async () => {
+    const s = await basic();
+    const trace = await readTrace(s.harness, {
+      credits: (model, usage) =>
+        model === 'scripted-1' ? (usage.uncachedInput + usage.cacheRead * 0.1) / 100 : undefined,
+      ceilings: { output: 100 },
+    });
+    const [t] = trace.turns as [TurnView];
+    const [a, b] = models(t) as [ModelStepView, ModelStepView];
+    expect(a.tokens?.credits).toBeCloseTo(2.8);
+    expect(b.tokens?.credits).toBeCloseTo(2);
+    expect(t.tokens.credits).toBeCloseTo(4.8);
+    expect(trace.budget.credits).toBeCloseTo(4.8);
+    expect(formatUsage(t.tokens)).toBe('2.2k in (82% cached, 100 written) · 24 out · 4.8 credits');
+    const unpriced = await readTrace(s.harness);
+    expect(unpriced.turns[0]?.tokens.credits).toBeUndefined();
+  });
+
+  it('keeps what it read in a cache, so a re-read fetches only what is new', async () => {
+    const s = await basic();
+    const counts = { entries: 0, heads: 0, blobs: 0, events: 0 };
+    const reader: HarnessReader = {
+      ...s.harness,
+      entries: (ids) => (counts.entries++, s.harness.entries(ids)),
+      heads: (ids) => (counts.heads++, s.harness.heads(ids)),
+      blobs: (refs) => (counts.blobs++, s.harness.blobs(refs)),
+      events: async (input) => {
+        const got = await s.harness.events(input);
+        counts.events += got.length;
+        return got;
+      },
+    };
+    const cache: TraceCache = createTraceCache();
+    const one = await readTrace(reader, { cache });
+    const fetched = { ...counts };
+    expect(fetched.entries).toBeGreaterThan(0);
+    expect(fetched.events).toBeGreaterThan(0);
+    const two = await readTrace(reader, { cache });
+    expect(counts).toEqual(fetched);
+    expect(two).toEqual(one);
+    // A later turn: only its events are read, and the trace is the one a fresh read gives.
+    await turn(s, 'Again');
+    const three = await readTrace(reader, { cache });
+    expect(three.turns).toHaveLength(2);
+    expect(counts.events - fetched.events).toBe(cache.log!.events.length - fetched.events);
+    expect(three).toEqual(await readTrace(s.harness));
+  });
+});
+
+describe('readTrace: incremental reads (trace.md, Incremental reads)', () => {
+  it('reads the same trace as a fresh read at every step of a conversation, and keeps the views that did not change', async () => {
+    const s = await basic();
+    const cache = createTraceCache();
+    const one = await readTrace(s.harness, { cache });
+    expect(one).toEqual(await readTrace(s.harness));
+    const again = await readTrace(s.harness, { cache });
+    // Nothing happened: the same views.
+    expect(again.turns[0]).toBe(one.turns[0]);
+    expect(again.loaded).toBe(one.loaded);
+    expect(again.declared).toBe(one.declared);
+    await turn(s, 'Again');
+    const two = await readTrace(s.harness, { cache });
+    expect(two).toEqual(await readTrace(s.harness));
+    expect(two.turns).toHaveLength(2);
+    // The turn that ended is the view it was, with its steps.
+    expect(two.turns[0]).toBe(one.turns[0]);
+    await turn(s, 'And again');
+    const three = await readTrace(s.harness, { cache });
+    expect(three).toEqual(await readTrace(s.harness));
+    expect(three.turns[0]).toBe(one.turns[0]);
+    expect(three.turns[1]).toBe(two.turns[1]);
+    expect(three.turns[1]?.steps[0]).toBe(two.turns[1]?.steps[0]);
+  });
+
+  it('reads a running turn as it grows: its earlier calls keep their views, the read equals a fresh one', async () => {
+    // Each echo waits to be released, so the turn is read between its calls.
+    const release: (() => void)[] = [];
+    const s = createSession({
+      declare: [],
+      tools: {
+        echo: () =>
+          new Promise<{ text: string }>((resolve) => {
+            release.push(() => resolve({ text: 'echoed' }));
+          }),
+      },
+      model: [
+        { calls: [{ tool: 'echo', arguments: { n: 1 } }] },
+        { calls: [{ tool: 'echo', arguments: { n: 2 } }] },
+        { calls: [{ tool: 'echo', arguments: { n: 3 } }] },
+        { text: 'Done.' },
+      ],
+    });
+    const cache = createTraceCache();
+    const { handle } = await turn(s, first(s, request('Go')), { wait: false });
+    let before: TurnView | undefined;
+    const seen: number[] = [];
+    for (let call = 0; call < 3; call += 1) {
+      await until(() => release.length > 0);
+      const trace = await readTrace(s.harness, { cache });
+      expect(trace).toEqual(await readTrace(s.harness));
+      const t = trace.turns[0] as TurnView;
+      expect(t.status).not.toBe('done');
+      // The calls the last read had are the same views in this one.
+      if (before)
+        for (const [k, step] of before.steps.entries()) if (step.kind === 'model') expect(t.steps[k]).toBe(step);
+      before = t;
+      seen.push(t.steps.length);
+      (release.shift() as () => void)();
+    }
+    await s.run(handle);
+    const done = await readTrace(s.harness, { cache });
+    expect(done).toEqual(await readTrace(s.harness));
+    expect(done.turns[0]?.status).toBe('done');
+    expect(shape(done.turns[0] as TurnView)).toEqual(['model', 'echo', 'model', 'echo', 'model', 'echo', 'model']);
+    // Reading a turn that ended again changes nothing.
+    expect((await readTrace(s.harness, { cache })).turns[0]).toBe(done.turns[0]);
+    // The loop saw the turn grow, not only its start and end.
+    expect(seen).toEqual([...seen].sort((a, b) => a - b));
+    expect(new Set(seen).size).toBe(3);
+  });
+
+  it('maps a window once: a re-read of a long conversation touches no entry it has read', async () => {
+    const s = createSession({
+      declare: [],
+      tools: { echo: () => ({ text: 'echoed' }) },
+      model: [
+        ...Array.from({ length: 6 }, (_, n) => ({ calls: [{ tool: 'echo', arguments: { n } }] })),
+        { text: 'Done.' },
+      ],
+    });
+    await turn(s, first(s, request('Go')));
+    const counts = { entries: 0, heads: 0, blobs: 0 };
+    const reader: HarnessReader = {
+      ...s.harness,
+      entries: (ids) => (counts.entries++, s.harness.entries(ids)),
+      heads: (ids) => (counts.heads++, s.harness.heads(ids)),
+      blobs: (refs) => (counts.blobs++, s.harness.blobs(refs)),
+    };
+    const cache = createTraceCache();
+    await readTrace(reader, { cache });
+    const fetched = { ...counts };
+    // Hostile to a re-read that maps again: the entries of a window are looked up in the cache, never the reader.
+    const entries = cache.entries;
+    const reads: string[] = [];
+    const watched = new Proxy(entries, {
+      get(target, prop) {
+        if (prop === 'get') return (id: string) => (reads.push(id), target.get(id));
+        const value = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    await readTrace(reader, { cache: { ...cache, entries: watched } });
+    expect(counts).toEqual(fetched);
+    // No window message was looked up again: the views of the calls are the ones kept.
+    expect(reads).toHaveLength(0);
+  });
+});
+
+describe('the default profile reads labels (a session’s and a toolkit’s)', () => {
+  const text = (role: 'system' | 'user', body: string, label?: Message['label']): Message =>
+    ({ role, parts: [{ kind: 'text', text: body }], ...(label ? { label } : {}) }) as Message;
+
+  it('takes the request’s words and focus from its label, whatever its text', () => {
+    const labelled = text('user', 'State.\n\nRequest: a prompt that says\n\nRequest: twice', {
+      kind: LABELS.request,
+      data: { prompt: 'a prompt that says\n\nRequest: twice', focus: 'A:45' },
+    });
+    expect(defaultRequestOf(labelled)).toEqual({ prompt: 'a prompt that says\n\nRequest: twice', focus: 'A:45' });
+    // Without the label no request is read from the text.
+    expect(defaultRequestOf(text('user', 'State.\n\nFocus: A:45\n\nRequest: go'))).toEqual({
+      prompt: '(no request recorded)',
+    });
+  });
+
+  it('places guidance, its updates and definitions by their labels', () => {
+    const update = text('user', 'Updated guidance (it replaces the earlier version):\n\nBe brief.', {
+      kind: LABELS.guidanceUpdate,
+      key: 'k',
+    });
+    expect(defaultWindowPart(update)).toBe('guidance');
+    expect(defaultWindowPart(text('system', 'Be brief.', { kind: LABELS.guidance, key: 'k' }))).toBe('guidance');
+    expect(defaultWindowPart({ ...declareTools([toolDefinition('a')]), label: { kind: LABELS.definitions } })).toBe(
+      'tools',
+    );
+    // Unlabelled, a user message is conversation, whatever its text.
+    expect(defaultWindowPart(text('user', 'Updated guidance:\n\nBe brief.'))).toBe('conversation');
+    expect(defaultWindowPart(text('user', 'State.\n\nRequest: go'))).toBe('conversation');
+    // A request entry with something before its request is the state.
+    const request = (body: string) => text('user', body, { kind: LABELS.request, data: { prompt: 'go' } });
+    expect(defaultWindowPart(request('State.\n\nRequest: go'))).toBe('state');
+    expect(defaultWindowPart(request('Request: go'))).toBe('conversation');
+  });
+});

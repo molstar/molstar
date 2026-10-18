@@ -53,6 +53,15 @@ export const ImageSchema = {
 export type ImageSchema = typeof ImageSchema;
 export type ImageValues = Values<ImageSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const ImageRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...ImageSchema,
+};
+
 export function ImageRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -62,13 +71,7 @@ export function ImageRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<ImageValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...ImageSchema,
-  };
+  const schema = ImageRenderableSchema;
   const renderValues: ImageValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

@@ -647,7 +647,7 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
         // meaning of each index. Stale markers make `getMarkersAverage` read out of bounds
         // (NaN `markerAverage`), which silently drops the visual from the marking pass.
         const instanceCount = OrderedSet.size(particleIndices);
-        const type = renderObject.values.dMarkerType.ref.value as 'instance' | 'groupInstance';
+        const type = renderObject.values.markerType.ref.value as 'instance' | 'groupInstance';
         createMarkers(instanceCount, type, renderObject.values as unknown as MarkerData);
       }
 

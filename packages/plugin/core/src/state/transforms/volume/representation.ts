@@ -19,6 +19,7 @@ import {
   hasColorThemes,
   hasSizeThemes,
 } from '../../helpers/representation-registry.js';
+import { getRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { VolumeRepresentation3D };
 type VolumeRepresentation3D = typeof VolumeRepresentation3D;
@@ -144,4 +145,9 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     if (provider.ensureCustomProperties) provider.ensureCustomProperties.detach(volume);
     Theme.releaseDependencies(plugin.representation.volume.themes, { volume }, params);
   },
+});
+
+registerTransformSignatures(VolumeRepresentation3D, (params, ctx) => {
+  const { registry, themes } = ctx.plugin.representation.volume;
+  return getRepresentationSignatures(registry.get(params.type.name), themes, params, ctx);
 });

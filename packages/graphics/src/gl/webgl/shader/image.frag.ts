@@ -27,7 +27,7 @@ ${common_clip}
 
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
     #ifdef dOverpaint
-        #if defined(dOverpaintType_instance) || defined(dOverpaintType_groupInstance)
+        #if defined(dOverpaintType_texture)
             varying vec4 vOverpaint;
         #endif
     #endif
@@ -35,14 +35,14 @@ ${common_clip}
 
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
     #ifdef dEmissive
-        #if defined(dEmissiveType_instance) || defined(dEmissiveType_groupInstance)
+        #if defined(dEmissiveType_texture)
             varying float vEmissive;
         #endif
     #endif
 #endif
 
 #ifdef dTransparency
-    #if defined(dTransparencyType_instance) || defined(dTransparencyType_groupInstance)
+    #if defined(dTransparencyType_texture)
         varying float vTransparency;
     #endif
 #endif
@@ -153,10 +153,8 @@ void main() {
     // apply per-group transparency
     #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking))
         float transparency = 0.0;
-        #if defined(dTransparencyType_instance)
-            transparency = readFromTexture(tTransparency, vInstance, uTransparencyTexDim).r;
-        #elif defined(dTransparencyType_groupInstance)
-            transparency = readFromTexture(tTransparency, vInstance * float(uGroupCount) + group, uTransparencyTexDim).r;
+        #if defined(dTransparencyType_texture)
+            transparency = readFromTexture(tTransparency, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uTransparencyTexDim).r;
         #endif
         transparency *= uTransparencyStrength;
 
@@ -185,7 +183,7 @@ void main() {
         if (group == -1.0) {
             marker = 0.0;
         } else if (uMarker == -1.0) {
-            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).r;
+            marker = readFromTexture(tMarker, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uMarkerTexDim).r;
             marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
         }
     #endif
@@ -196,10 +194,8 @@ void main() {
             emissive = 0.0;
         } else {
             #ifdef dEmissive
-                #if defined(dEmissiveType_instance)
-                    emissive += readFromTexture(tEmissive, vInstance, uEmissiveTexDim).r * uEmissiveStrength;
-                #elif defined(dEmissiveType_groupInstance)
-                    emissive += readFromTexture(tEmissive, vInstance * float(uGroupCount) + group, uEmissiveTexDim).r * uEmissiveStrength;
+                #if defined(dEmissiveType_texture)
+                    emissive += readFromTexture(tEmissive, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uEmissiveTexDim).r * uEmissiveStrength;
                 #endif
             #endif
         }
@@ -248,10 +244,8 @@ void main() {
         #if defined(dOverpaint)
             vec4 overpaint = vec4(0.0);
             if (group != -1.0) {
-                #if defined(dOverpaintType_instance)
-                    overpaint = readFromTexture(tOverpaint, vInstance, uOverpaintTexDim);
-                #elif defined(dOverpaintType_groupInstance)
-                    overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+                #if defined(dOverpaintType_texture)
+                    overpaint = readFromTexture(tOverpaint, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uOverpaintTexDim);
                 #endif
                 overpaint *= uOverpaintStrength;
             }

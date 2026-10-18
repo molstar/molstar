@@ -82,7 +82,6 @@ export const TunnelShapeProvider = Transform({
                 color: data.params.colorTheme,
                 resolution: data.params.visual.params.resolution,
                 sampleRate: data.params.samplingRate,
-                graphics: data.params.graphics,
                 prev: mesh,
               });
             }

@@ -45,8 +45,8 @@ export const PluginConfig = {
       PluginFeatureDetection.defaultTransparency,
     ),
     /**
-     * Graphics backends tried in order, e.g. `[WebGPUBackend, WebGL2Backend, WebGLBackend]`; WebGL by default
-     * (WebGL1 only with `PreferWebGl1`)
+     * Graphics backends tried in order, e.g. `[WebGPUBackend, WebGL2Backend, WebGLBackend]`; by default those of
+     * `@molstar/graphics/gl/backends/default` (WebGL, WebGL1 only with `PreferWebGl1`; builds may alias the module)
      */
     GraphicsBackends: item<readonly GraphicsBackendDescriptor[] | undefined>(
       'plugin-config.graphics-backends',
@@ -61,6 +61,12 @@ export const PluginConfig = {
       'high-performance',
     ),
     ResolutionMode: item<'auto' | 'scaled' | 'native'>('plugin-config.resolution-mode', 'auto'),
+    /**
+     * The animation loop stops asking for frames while the canvas is idle (`Canvas3D.isIdle`) and starts again on its
+     * `wake` or a state animation. Off by default: code that changes the scene or the camera past Canvas3D's API without
+     * `requestDraw` would not be drawn.
+     */
+    PauseLoopWhenIdle: item('plugin-config.pause-loop-when-idle', false),
   },
   State: {
     DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),

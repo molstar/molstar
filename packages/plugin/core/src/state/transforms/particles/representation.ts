@@ -17,6 +17,7 @@ import {
   hasColorThemes,
   hasSizeThemes,
 } from '../../helpers/representation-registry.js';
+import { getRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
 export { ParticlesRepresentation3D };
 type ParticlesRepresentation3D = typeof ParticlesRepresentation3D;
@@ -129,4 +130,9 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       return StateTransformer.UpdateResult.Updated;
     });
   },
+});
+
+registerTransformSignatures(ParticlesRepresentation3D, (params, ctx) => {
+  const { registry, themes } = ctx.plugin.representation.particles;
+  return getRepresentationSignatures(registry.get(params.type.name), themes, params, ctx);
 });

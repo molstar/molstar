@@ -7,7 +7,7 @@
 import { type AttributeLayoutEntry, getAttributeLayout } from '../attribute-layout.js';
 import { type DefineLookup, isUsed, type RenderableSchema, type UniformBlock } from '../renderable/schema.js';
 import { type BindingLayout, type TextureBinding, UniformBlockInfo, UniformBlocks } from '../uniform-layout.js';
-import { getWgslUniformDeclarations } from './uniform-declarations.js';
+import { getWgslStorageBindings, getWgslUniformDeclarations } from './uniform-declarations.js';
 
 /** Shared immutable samplers of group 0, all clamp-to-edge */
 export const WgslSamplers = ['sNearest', 'sLinear', 'sLinearMipmap'] as const;
@@ -112,9 +112,26 @@ export function getWgslDeclarations(
   const code = [
     uniforms.code,
     getWgslTextureDeclarations(layout, isReferenced),
+    getWgslStorageDeclarations(schema, defines, isReferenced),
     getWgslVertexInputDeclaration(schema, defines),
   ].filter((c) => c.length > 0);
   return { code: code.join('\n\n'), unsupported: uniforms.unsupported };
+}
+
+/**
+ * Read-only storage buffer declarations of `schema` (see `getWgslStorageBindings`), with `isReferenced` only the
+ * referenced ones
+ */
+export function getWgslStorageDeclarations(
+  schema: RenderableSchema,
+  defines: DefineLookup,
+  isReferenced?: (name: string) => boolean,
+) {
+  const group = getWgslGroup('object');
+  return getWgslStorageBindings(schema, defines)
+    .filter((b) => !isReferenced || isReferenced(b.name))
+    .map((b) => `@group(${group}) @binding(${b.binding}) var<storage, read> ${b.name}: array<${b.element}>;`)
+    .join('\n');
 }
 
 /** Bind group index of a tier */

@@ -10,7 +10,8 @@
     "smoke:source": "node ./run.mjs source",
     "smoke:slim": "node ./run.mjs slim",
     "smoke:cli": "node ./run.mjs cli",
-    "smoke:headless": "node ./run.mjs headless"
+    "smoke:headless": "node ./run.mjs headless",
+    "smoke:video": "node ./video/run.mjs"
   },
   "dependencies": {
     "@molstar/core": "workspace:*",

@@ -2,10 +2,40 @@
 
 ## Status
 
+- **Current**: steps 1–4 done; open: 5 (optional). `ImagePass` rendering once moved to
+  [pipeline-readiness.md](pipeline-readiness.md) (prepare from params without rendering; a dry run of the passes in
+  collect mode reached it, 63 of 142 WebGPU visual cases rendering again to none, but was not kept).
+- `ImagePass` updates the background before rendering (`updateBackground`): `DrawPass` chose a transparent clear from
+  the background of the previous render (`background.isEnabled` reads the loaded skybox or image, which the
+  postprocessing pass updated only later in the render), so an image after one with a skybox lost its opaque background
+  (35 WebGL images across profiles in full visual runs, which matched their isolated runs). The warm-up is to be revisited
+  for better coverage: it prepares hover marking only, while first uses of other features still compile on first draw
+  (the first selection's programs, illumination, transparency modes, postprocessing; see
+  [program-switch-frames.md](program-switch-frames.md)).
+- Steps 3 and 4 (the rest): collect mode and the marking warm-up. `resources.preparePrograms(run)` runs `run` with draws
+  only requesting their pipelines (WebGPU: no draws, no clears, no timer passes, the drawing buffer's formats without
+  taking the canvas texture) and resolves when the pending work settled; `run` is synchronous (the mode holds for the
+  whole context). Canvas3D's idle warm-up prepares the draw pass as if objects were marked (`DrawPass.prepareMarking`:
+  the scene offscreen, the marking depth and mask passes over all objects, the edge, overlay, composite and copy quads),
+  so on WebGPU the first hover compiled 7 pipelines and showed its highlight about 200 ms after the move (160 ms
+  compiling), and compiles none now; the Viewer smoke test checks that hovering compiles no pipelines (fails without the
+  warm-up). The first selection still compiles the pipelines of the programs its define changes create, which their
+  families' known configurations start at creation (4b); the structure stays drawn. WebGL tracks the links
+  `linkPrograms` starts as pending work until they finished (`KHR_parallel_shader_compile` `COMPLETION_STATUS`, polled),
+  so `pending.whenReady()` covers program compilation on both backends; frames behave as before (WebGL skips frames
+  until the required programs are linked). `ImagePass.render` keeps rendering again while a render started work: it
+  renders asynchronously (waits for pending work and the GPU between illumination iterations), which a synchronous
+  collect mode can't run.
+- Step 2 done: the skybox (cube textures on both backends) and the background image (`resources.loadImage`, the same
+  decode on both backends; the asset, the upload and the mipmaps) are pending work with their `onload` as part of it, so
+  that work waiting for them sees the background marked loaded. `ImagePass.render` renders again while a render started
+  work, up to three more times (a finished load enables draws whose pipelines then compile);
+  `ImagePass.updateBackground` updates and waits for the pending work. The visual harness no longer calls it: without
+  the tracking, the background cases render blank on both backends.
 - Step 1 done: `resources.pending` (`gl/pending-work.ts`) and `resources.loadImage` on both backends (WebGPU decodes
   with `createImageBitmap` without color space conversion), `loadImageTexture` removed, SMAA lookups loaded through it,
   `ImagePass.render` waits for `whenReady`, `Canvas3D` redraws on `settled`. The isolated SMAA visual case now matches
-  full runs (SMAA applied on WebGL, WebGPU identical). Next: step 2 (background loads).
+  full runs (SMAA applied on WebGL, WebGPU identical).
 - Prompted by the SMAA lookup textures (area, search) that load asynchronously from images: renders before they load run
   SMAA with empty lookups (no effect), on both backends; isolated visual test runs of the SMAA case hit this. Related:
   [webgpu-viewer.md](webgpu-viewer.md) (milestone 3), [backend-selection.md](backend-selection.md),
@@ -105,26 +135,31 @@ content-based render state ids (states built per draw, e.g. the solid interior s
 per draw). `ImagePass.render` renders a second time when the first one started work (`pending.trackedCount` changed),
 also when that work settled before the render ended (e.g. between illumination iterations).
 
+Done next (4b, key reuse): `linkPrograms` creates the WebGPU programs (shader modules) of the registered render items
+for the variants (`ShaderManager` links the required ones at each commit), ahead of their first draws; every pipeline
+configuration (render state, target formats, draw mode) drawn with is remembered per program family (program name and
+render variant), and a new program of a family starts compiling all of them when it is created. Programs recreated after
+device loss do the same. `ImagePass` waits for this pending work before rendering, so over the WebGPU visual profile its
+second renders went from 42 to 26 of 90 cases; the rest use configurations their family has not drawn with yet. Key reuse
+was removed later, when preparing covered what it did and it only added compiles
+([pipeline-readiness.md](pipeline-readiness.md), 6g).
+
 Open: `ShaderManager.ensureRequired` means "everything is ready" on WebGL (programs linked synchronously); on WebGPU it
-covers neither shader modules nor pipelines, and the second render is a workaround. Pipelines are keyed by render state,
-target formats and draw mode, which are only known when a pass draws, so readiness needs the passes' draw sequence:
+covers the configurations seen before (key reuse), not new ones, and the second render remains for those. Pipelines are
+keyed by render state, target formats and draw mode, which are only known when a pass draws, so full readiness needs the
+passes' draw sequence:
 
-- **Collect mode**: `resources.preparePrograms(run)` runs `run` (the draws of a pass sequence) with draws only
-  requesting their pipelines (no commands recorded), then resolves when the requested modules and pipelines are
-  compiled. `ShaderManager.ensureRequired` becomes async and, on WebGPU, prepares the `ImagePass` render for the
+- **Collect mode** (option B, planned): `resources.preparePrograms(run)` runs `run` (the draws of a pass sequence) with
+  draws only requesting their pipelines (no commands recorded), then resolves when the requested modules and pipelines
+  are compiled. `ShaderManager.ensureRequired` becomes async and, on WebGPU, prepares the `ImagePass` render for the
   required variants; `ImagePass.render` then renders once. WebGL resolves right after linking, unchanged.
-- **Interactive warm-up**: after the scene settles, `Canvas3D` prepares the passes of variants not drawn yet but likely
-  next (pick, marking; emissive, depth when enabled) in collect mode, in idle time, so the first hover or feature toggle
-  draws completely in its first frame.
-- **Key reuse**: pipeline keys seen per program name and variant are compiled for new programs of the same name and
-  variant (new defines, new representations) as soon as they are created (`linkPrograms`), so new representations don't
-  skip draws either.
-- **Shader modules**: created in `linkPrograms` for the required variants, `getCompilationInfo` tracked and reported
-  with WGSL locations.
-
-Decisions (open): collect mode (exact, needs a dry run of the pass sequence) and key reuse (cheap, covers repeats only)
-together or one of them; `ensureRequired` async (internal to `ImagePass`, `Canvas3D` keeps the non-blocking
-`finalizeRequired`).
+- **Interactive warm-up** (picking done): after a scene change, `Canvas3D` links the pick and marking variants and
+  renders the pick pass without reading it, in idle time (`ShaderManager.warmUp`, `PickHelper.warmUp`; attrib `warmUp`,
+  off in the visual test harness, where it slowed the runs by a third). The first hover in the Viewer starts 8 pipeline
+  compiles instead of 13. The rest are the marking pass (the `marking` variant, `edge`, `overlay`, `copy`), which draws
+  only marked objects, so preparing it needs collect mode; likewise emissive and depth when enabled.
+- **Shader compilation info**: `getCompilationInfo` of the modules created in `linkPrograms` tracked and reported with
+  WGSL locations.
 
 ### Consumers
 
@@ -151,7 +186,7 @@ together or one of them; `ensureRequired` async (internal to `ImagePass`, `Canva
    background cases unchanged.
 3. **WebGL programs through the tracker**: link promises; `ShaderManager` unchanged in policy; WebGL visual profiles
    byte-identical, Viewer behavior unchanged (frames skipped while compiling).
-4. **WebGPU program readiness** (4a done, see WebGPU pipelines; the rest planned there):
+4. **WebGPU program readiness** (4a and 4b done, see WebGPU pipelines; the rest planned there):
    - modules created in `linkPrograms`, compilation info tracked and reported;
    - async pipelines for known keys, skipped draws while compiling, synchronous fallback;
    - `finalizePrograms` real.

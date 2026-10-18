@@ -2,8 +2,11 @@
 
 ## Status
 
-- Planning; replaces the earlier WebGPU timer plan (in-pass timestamps, marks charged by their draws). From that plan,
-  steps 0 and 1 are done:
+- **Current**: done, steps 1–5. Step 5 came with the compute passes of
+  [webgpu-compute-shaders.md](webgpu-compute-shaders.md): `timestampWrites` on compute pass descriptors, timed like
+  render passes. Open: the optional quantization note.
+- Replaces the earlier WebGPU timer plan (in-pass timestamps, marks charged by their draws). From that plan, steps 0 and
+  1 were done:
   - the mark audit (table below);
   - the shared timer core `createGraphicsTimer` (`gl/timer.ts`) with a WebGL time-query source;
   - pass boundaries from the contexts, and the `label` option of `beginRenderPass`.

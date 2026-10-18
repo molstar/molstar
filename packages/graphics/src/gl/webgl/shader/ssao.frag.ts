@@ -21,21 +21,26 @@ float smootherstep(float edge0, float edge1, float x) {
     return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
 }
 
-float noise(const in vec2 coords) {
-    float a = 12.9898;
-    float b = 78.233;
-    float c = 43758.5453;
-    float dt = dot(coords, vec2(a,b));
-    float sn = mod(dt, PI);
-    return abs(fract(sin(sn) * c)); // is abs necessary?
+// ordered dither of a 2x2 and a 4x4 block (values k / 4 and k / 16), \`pixel\` in whole pixels
+float bayer2(vec2 pixel) {
+    pixel = floor(pixel);
+    return fract(dot(pixel, vec2(0.5, pixel.y * 0.75)));
 }
 
-vec2 getNoiseVec2(const in vec2 coords) {
-    return vec2(noise(coords), noise(coords + vec2(PI, 2.71828)));
+float bayer4(const in vec2 pixel) {
+    return bayer2(0.5 * pixel) * 0.25 + bayer2(pixel);
 }
 
+// rotation of the sample kernel at \`pixel\`: the 16 angles of a 4x4 block in ordered dither, so that the blur
+// (wider than a block) averages all of them
+vec2 getKernelRotation(const in vec2 pixel) {
+    float angle = 2.0 * PI * (bayer4(pixel) + 0.5 / 16.0);
+    return vec2(cos(angle), sin(angle));
+}
+
+// depth is reversed: the background (far plane) at 0
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 // inset by half a texel to avoid sampling texels outside the viewport
@@ -49,7 +54,7 @@ float getDepth(const in vec2 coords, const in int transparentFlag) {
         #if defined(dIncludeTransparent)
             return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
         #else
-            return 1.0;
+            return 0.0;
         #endif
     } else {
         #ifdef dPackedDepth
@@ -164,17 +169,18 @@ void main(void) {
     vec2 invTexSize = 1.0 / uTexSize;
     vec2 selfCoords = gl_FragCoord.xy * invTexSize;
     float selfDepth = getDepth(selfCoords, uTransparencyFlag);
-    vec2 selfPackedDepth = packUnitIntervalToRG(selfDepth);
-
     if (isBackground(selfDepth)) {
-        gl_FragColor = vec4(packUnitIntervalToRG(1.0), selfPackedDepth);
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), packUnitIntervalToRG(0.0));
         return;
     }
 
     vec3 selfViewNormal = viewNormalAtPixelPositionAccurate(selfCoords, uTransparencyFlag);
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
+    // linear depth for the blur, reversed (the near plane at 1, the far plane and the background at 0): 16-bit fixed
+    // point keeps a constant view z precision, unlike the window depth
+    vec2 selfPackedDepth = packUnitIntervalToRG(clamp((uFar + selfViewPos.z) / (uFar - uNear), 0.0, 1.0));
 
-    vec3 randomVec = normalize(vec3(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
+    vec3 randomVec = vec3(getKernelRotation(gl_FragCoord.xy), 0.0);
     vec3 tangent = normalize(randomVec - selfViewNormal * dot(randomVec, selfViewNormal));
     vec3 bitangent = cross(selfViewNormal, tangent);
     mat3 TBN = mat3(tangent, bitangent, selfViewNormal);

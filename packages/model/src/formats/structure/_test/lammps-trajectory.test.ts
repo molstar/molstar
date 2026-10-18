@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Column } from '@molstar/core/data/db';
 import { getCanonicalOrder } from '../lammps-trajectory.js';
 

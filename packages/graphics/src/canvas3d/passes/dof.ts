@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { PassBuilder } from './pass-builder.js';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
@@ -147,10 +148,10 @@ export class DofPass {
     }
   }
 
-  render(viewport: Viewport, target: undefined | RenderTarget) {
-    this.graphics.beginRenderPass(target ?? 'drawing-buffer', { label: 'dof' });
-    this.updateState(viewport);
-    this.renderable.render();
+  render(b: PassBuilder, viewport: Viewport, target: undefined | RenderTarget) {
+    b.begin(target ?? 'drawing-buffer', { label: 'dof' });
+    if (b.drawing) this.updateState(viewport);
+    b.quad(this.renderable, RenderState.Default);
   }
 }
 
@@ -163,9 +164,9 @@ export const DofSchema = {
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
 
-  uProjection: UniformSpec('m4'),
-  uInvProjection: UniformSpec('m4'),
-  uBounds: UniformSpec('v4'),
+  uProjection: { ...UniformSpec('m4'), depthRange: 'projection' as const },
+  uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
+  uBounds: { ...UniformSpec('v4'), windowRect: 'bounds' as const },
   uCenter: UniformSpec('v3'),
   uMode: UniformSpec('i'),
 

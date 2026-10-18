@@ -12,6 +12,7 @@ import { Transparency } from '@molstar/graphics/theme/transparency';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
 import { hasColorSmoothingProp } from '@molstar/graphics/geo/geometry/base';
+import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
 export { TransparencyStructureRepresentation3DFromScript };
 type TransparencyStructureRepresentation3DFromScript = typeof TransparencyStructureRepresentation3DFromScript;
@@ -145,3 +146,6 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
     return StateTransformer.UpdateResult.Updated;
   },
 });
+
+registerTransformLayer(TransparencyStructureRepresentation3DFromScript, 'transparency');
+registerTransformLayer(TransparencyStructureRepresentation3DFromBundle, 'transparency');

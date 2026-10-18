@@ -1,0 +1,591 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.form {
+  display: grid;
+  gap: var(--msp-space-1);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--msp-label-width) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-height: 24px;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* A row's label: its text (giving way first, fading out at its end) and, when the param has help, a ? after it. */
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.input,
+.number,
+.textarea {
+  width: 100%;
+  height: 24px;
+  padding: 0 var(--msp-inset);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  /* Inside the field, as the other fields' (a field at a scrolling panel's edge would have its ring cut off). */
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* Several lines: the same field, taller, resized by hand; its row's label at the first line. */
+.textarea {
+  height: auto;
+  min-height: 56px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  font-family: inherit;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.row:has(.textarea) {
+  align-items: start;
+
+  & .label {
+    padding-top: var(--msp-space-2);
+  }
+}
+
+.select {
+  width: 100%;
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+}
+
+/* A quiet slider, like the trajectory scrubber: a thin track, its filled part in muted text, a small knob in the text
+   color (no accent: a slider is not the action). */
+.range {
+  /* As light as the other controls: the filled part a soft muted tone, the rest the switch's off color. */
+  --msp-range-fill: color-mix(in oklab, var(--msp-color-text-muted), transparent 45%);
+
+  /* Starts where a dropdown's or a text field's text does (their 8px inset), so the column reads as one. */
+  width: calc(100% - var(--msp-space-3));
+  height: 16px;
+  margin: 0 0 0 var(--msp-space-3);
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 1.5px;
+    background: linear-gradient(
+      to right,
+      var(--msp-range-fill) var(--msp-progress, 0%),
+      var(--msp-color-pressed) var(--msp-progress, 0%)
+    );
+  }
+
+  &::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    margin-top: -3.5px; /* off-scale: the thumb centred on the track */
+    border-radius: 50%;
+    background: var(--msp-color-text-muted);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: transform var(--msp-motion-fast) var(--msp-ease);
+  }
+
+  &:hover::-webkit-slider-thumb,
+  &:active::-webkit-slider-thumb {
+    transform: scale(1.25);
+  }
+
+  &::-moz-range-track {
+    height: 3px;
+    border-radius: 1.5px;
+    background: var(--msp-color-pressed);
+  }
+
+  &::-moz-range-progress {
+    height: 3px;
+    border-radius: 1.5px;
+    background: var(--msp-range-fill);
+  }
+
+  &::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--msp-color-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--msp-radius-sm);
+  }
+}
+
+.number {
+  padding: 0 var(--msp-space-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  /* Sized to the 12px text, and inset like a dropdown's text. */
+  width: 24px;
+  height: 14px;
+  margin-left: var(--msp-space-3);
+  border-radius: 7px;
+  background: var(--msp-color-pressed);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+
+  /* On is a neutral mid-grey, like a slider's filled part: settings are not the action, so no accent. */
+  &[aria-checked="true"] {
+    background: var(--msp-color-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--msp-color-bg);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-checked="true"] > & {
+    transform: translateX(10px);
+  }
+}
+
+.color {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  width: 100%;
+  height: 24px;
+  min-width: 0;
+  /* The swatch where a dropdown's text starts, the channels after it like a dropdown's label. */
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+}
+
+.channels {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.unsupported {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.mapped {
+  display: grid;
+  gap: var(--msp-space-1);
+}
+
+/* A group's rows: the form's spacing, whether flat (more rows at the same level) or nested under its choice. */
+.fields,
+.nested {
+  display: grid;
+  gap: var(--msp-space-1);
+}
+
+/* Nested params (a choice's own, a group's): their labels and group headers step in, their controls stay in the
+   form's column. */
+.nested :is(.label, .collapsibleHeader) {
+  padding-left: var(--msp-space-3);
+}
+
+.nested .nested :is(.label, .collapsibleHeader) {
+  padding-left: calc(2 * var(--msp-space-3));
+}
+
+.nested .nested .nested :is(.label, .collapsibleHeader) {
+  padding-left: calc(3 * var(--msp-space-3));
+}
+
+.collapsible {
+  display: grid;
+}
+
+/* The header and what sits at its end (a group's Presets). */
+.collapsibleBar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+}
+
+/* A group's or Advanced's header: a quiet row like a label (as Mol*'s "Options"), not a title. */
+.collapsibleHeader {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-width: 0;
+  height: 24px;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+/* The preset the group's values match, after the chevron: quieter than the name, fading when long. */
+.collapsibleMeta {
+  min-width: 0;
+  margin-left: var(--msp-space-1);
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* Presets (a group's, an object list's, a curve's): a quiet word with its mark, like Mol*'s, never a filled button. */
+.presets {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-1);
+  /* Inside the 24px header with room above and below: highlighted, it does not touch the field under it. */
+  height: 20px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+/* The presets' list: under where it opened, as a select's options, clear of the open button (their corners would
+   touch). A block, not a grid: while it is revealed (growing from nothing), the list keeps its own height and is
+   clipped, instead of being squeezed to the growing height and showing a scrollbar. */
+.presetsList {
+  display: block;
+  margin: var(--msp-space-1) 0;
+
+  /* The reveal is its one animation (as a group's body): not the list's own fade on top of it. */
+  & > * {
+    animation: none;
+  }
+}
+
+/* An on/off setting's own settings: a small sliders button after the switch; expanded, under the row on a quiet
+   surface like an open choice. */
+.settings {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+/* A choice's params button (v5's sliders after a mapped param's select): right after the select, not pushed away. */
+.afterSelect {
+  flex: none;
+  margin-left: var(--msp-space-1);
+}
+
+.subSettings {
+  /* A little wider than the form (4 px each side), its own padding the same: its controls stay in the form's column
+     and clear of its edge; its labels step in like nested ones. */
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+
+  & .label {
+    padding-left: var(--msp-space-3);
+  }
+}
+
+/* Files: a field like a dropdown's (the 8px text inset), the names once chosen, ✕ to clear; a drop target too. */
+.file {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[data-dragging] {
+    background: var(--msp-color-hover);
+    outline: 1.5px dashed var(--msp-color-border-strong);
+    outline-offset: -1.5px;
+  }
+}
+
+.filePick {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--msp-inset);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+    border-radius: var(--msp-radius-md);
+  }
+}
+
+.fileNames {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+
+  &[data-empty] {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.fileClear {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+/* An object list: the count in its row; the items in one quiet list under it (the same surface as what opens under a
+   row), as wide as the form plus 4 px each side so the forms inside keep the form's control column. */
+.count {
+  flex: 1;
+  padding-left: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.items {
+  display: grid;
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.item {
+  display: grid;
+}
+
+.itemRow {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 26px;
+  margin: 0 calc(-1 * var(--msp-space-1));
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
+  border-radius: var(--msp-radius-sm);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  /* Edit and remove on hover, or while the item is open (as the tree's rows). */
+  & .settings {
+    width: 22px;
+    height: 22px;
+    opacity: 0;
+  }
+
+  &:hover .settings,
+  & .settings:focus-visible,
+  [data-open] > & .settings {
+    opacity: 1;
+  }
+}
+
+.itemLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+/* An item's form: inside the list, its labels stepped in under the item's. */
+.itemForm {
+  padding: var(--msp-space-1) 0 var(--msp-space-2);
+
+  & .label {
+    padding-left: calc(2 * var(--msp-space-3));
+  }
+}
+
+/* Add: the list's last row, quiet. */
+/* Add, and Presets at the end when the list has them. */
+.itemActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+}
+
+.itemAdd {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  margin: 0 calc(-1 * var(--msp-space-1));
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}

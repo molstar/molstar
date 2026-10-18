@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { createRenderBuilder, type PassBuilder } from '../passes/pass-builder.js';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
@@ -19,8 +20,10 @@ import {
   type AsyncPickData,
   AsyncPickStatus,
   checkAsyncPickingSupport,
+  createAsyncPickData,
   createPickBuffers,
   type PickData,
+  type PickResult,
   type PickOptions,
   type PickPass,
 } from '../passes/pick.js';
@@ -76,7 +79,13 @@ export class PickHelper {
   }
 
   private render(camera: Camera | StereoCamera, frame?: Frame) {
-    if (isTimingMode) this.graphics.timer.group('PickHelper.render', { captureStats: true });
+    this.plan(this.renderBuilder, camera, frame);
+  }
+
+  /** What `identify` draws before reading, see `PassBuilder` */
+  plan(b: PassBuilder, camera: Camera | StereoCamera, frame?: Frame) {
+    const timing = isTimingMode && b.drawing;
+    if (timing) this.graphics.timer.group('PickHelper.render', { captureStats: true });
     const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
     const { renderer, scene, helper } = this;
 
@@ -85,22 +94,32 @@ export class PickHelper {
     const f = frame ?? createFrame();
 
     renderer.setTransparentBackground(false);
-    renderer.setDrawingBufferSize(pickWidth, pickHeight);
-    renderer.setPixelRatio(this.pickRatio);
-
-    if (StereoCamera.is(camera)) {
-      renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
-      this.pickPass.render(renderer, camera.left, scene, helper, f);
-
-      renderer.setViewport(pickX + halfPickWidth, pickY, pickWidth - halfPickWidth, pickHeight);
-      this.pickPass.render(renderer, camera.right, scene, helper, f);
-    } else {
-      renderer.setViewport(pickX, pickY, pickWidth, pickHeight);
-      this.pickPass.render(renderer, camera, scene, helper, f);
+    if (b.drawing) {
+      renderer.setDrawingBufferSize(pickWidth, pickHeight);
+      renderer.setPixelRatio(this.pickRatio);
     }
 
-    this.dirty = false;
-    if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.render');
+    if (StereoCamera.is(camera)) {
+      if (b.drawing) renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
+      this.pickPass.render(b, renderer, camera.left, scene, helper, f);
+
+      // preparing: the right eye draws as the left one
+      if (b.drawing) {
+        renderer.setViewport(pickX + halfPickWidth, pickY, pickWidth - halfPickWidth, pickHeight);
+        this.pickPass.render(b, renderer, camera.right, scene, helper, f);
+      }
+    } else {
+      if (b.drawing) renderer.setViewport(pickX, pickY, pickWidth, pickHeight);
+      this.pickPass.render(b, renderer, camera, scene, helper, f);
+    }
+
+    if (b.drawing) this.dirty = false;
+    if (timing) this.graphics.timer.groupEnd('PickHelper.render');
+  }
+
+  /** Whether `identify` can read pick buffers */
+  get supported() {
+    return this.buffers.supported;
   }
 
   private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
@@ -109,9 +128,9 @@ export class PickHelper {
     const { graphics, pickRatio } = this;
     if (graphics.isContextLost) return;
 
+    // window pixels, top-left origin as the pointer coordinates
     x *= graphics.pixelRatio;
     y *= graphics.pixelRatio;
-    y = this.pickPass.drawingBufferHeight - y; // flip y
 
     const { viewport } = this;
 
@@ -158,8 +177,11 @@ export class PickHelper {
     }
   }
 
-  /** Without synchronous reads, finds nothing until the read started for a changed scene or camera has finished */
-  identify(x: number, y: number, camera: Camera | StereoCamera, frame?: Frame): PickData | undefined {
+  /**
+   * The pick data at (x, y); without synchronous reads `'pending'` until the read started for the current scene and
+   * camera has returned (see `asyncIdentify`)
+   */
+  identify(x: number, y: number, camera: Camera | StereoCamera, frame?: Frame): PickResult {
     if (!this.buffers.supported) return;
     this.prepare();
 
@@ -171,6 +193,15 @@ export class PickHelper {
       if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.identify');
     }
 
+    if (!this.buffers.synchronous) {
+      const status = this.buffers.check();
+      if (status === AsyncPickStatus.Pending) return 'pending';
+      if (status === AsyncPickStatus.Failed) {
+        // read again on the next call
+        this.dirty = true;
+        return 'pending';
+      }
+    }
     return this.getPickData(x, y, camera);
   }
 
@@ -185,18 +216,18 @@ export class PickHelper {
       if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.asyncIdentify');
     }
 
-    return {
-      tryGet: () => {
-        const status = this.buffers.check();
-        if (status === AsyncPickStatus.Resolved) {
-          return this.getPickData(x, y, camera);
-        } else if (status === AsyncPickStatus.Pending) {
-          return 'pending';
-        } else if (status === AsyncPickStatus.Failed) {
-          this.dirty = true;
-        }
-      },
-    };
+    return createAsyncPickData(() => {
+      // nothing once disposed (e.g. the graphics context changed), the scene may hold another context's renderables
+      if (this.disposed) return undefined;
+      const status = this.buffers.check();
+      if (status === AsyncPickStatus.Resolved) {
+        return this.getPickData(x, y, camera);
+      } else if (status === AsyncPickStatus.Pending) {
+        return 'pending';
+      } else if (status === AsyncPickStatus.Failed) {
+        this.dirty = true;
+      }
+    });
   }
 
   /** Whether `identify` reads the pick data synchronously */
@@ -204,14 +235,14 @@ export class PickHelper {
     return this.buffers.synchronous;
   }
 
-  reset() {
-    this.buffers.reset();
-    this.dirty = true;
-  }
+  private disposed = false;
 
   dispose() {
+    this.disposed = true;
     this.buffers.dispose();
   }
+
+  private readonly renderBuilder: PassBuilder;
 
   constructor(
     private graphics: GraphicsContext,
@@ -222,13 +253,13 @@ export class PickHelper {
     viewport: Viewport,
     options: PickOptions,
   ) {
+    this.renderBuilder = createRenderBuilder(graphics);
     this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     this.pickPadding = options.pickPadding;
 
-    if (!checkAsyncPickingSupport(graphics)) {
-      this.asyncIdentify = (x, y, camera, frame) => ({
-        tryGet: () => this.identify(x, y, camera, frame),
-      });
+    if (!checkAsyncPickingSupport(this.buffers)) {
+      this.asyncIdentify = (x, y, camera, frame) =>
+        createAsyncPickData(() => (this.disposed ? undefined : this.identify(x, y, camera, frame)));
     }
   }
 }

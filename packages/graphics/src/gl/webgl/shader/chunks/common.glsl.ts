@@ -5,14 +5,6 @@ export const common = `
     #define dRenderVariant_color
 #endif
 
-#if defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance) || defined(dColorType_vertex) || defined(dColorType_vertexInstance)
-    #define dColorType_texture
-#endif
-
-#if defined(dColorType_volume) || defined(dColorType_volumeInstance)
-    #define dColorType_grid
-#endif
-
 #if defined(dColorType_texture) || defined(dColorType_grid)
     #define dColorType_varying
 #endif
@@ -90,6 +82,32 @@ float unpackSsao(const in vec4 v) {
     return ssao > 0.001 && ssao <= 0.999 ? ssao : 1.0;
 }
 
+// one texel of a packed SSAO target for \`getSsaoUpsampled\`: its occlusion times its weight, the weight added to
+// \`weightSum\` (bilinear, and by how close its linear depth in \`zw\` is to \`viewZ\`)
+float ssaoUpsampleTexel(const in sampler2D tex, const in vec2 size, vec2 texel, const in float bilinear, const in float viewZ, const in float near, const in float far, inout float weightSum) {
+    texel = clamp(texel, vec2(0.0), size - 1.0);
+    vec4 v = texture2D(tex, (texel + 0.5) / size);
+    float texelViewZ = unpackRGToUnitInterval(v.zw) * (far - near) - far;
+    float weight = bilinear / (0.001 + abs(texelViewZ - viewZ));
+    weightSum += weight;
+    return unpackSsao(v) * weight;
+}
+
+// occlusion of a packed SSAO target of a lower resolution (\`size\` texels) at \`coords\`, for a pixel at view z
+// \`viewZ\`: the four nearest texels weighted bilinearly and by their depth, so that occlusion does not bleed across
+// depth edges
+float getSsaoUpsampled(const in sampler2D tex, const in vec2 size, const in vec2 coords, const in float viewZ, const in float near, const in float far) {
+    vec2 p = coords * size - 0.5;
+    vec2 i = floor(p);
+    vec2 f = p - i;
+    float weightSum = 0.0;
+    float sum = ssaoUpsampleTexel(tex, size, i, (1.0 - f.x) * (1.0 - f.y), viewZ, near, far, weightSum);
+    sum += ssaoUpsampleTexel(tex, size, i + vec2(1.0, 0.0), f.x * (1.0 - f.y), viewZ, near, far, weightSum);
+    sum += ssaoUpsampleTexel(tex, size, i + vec2(0.0, 1.0), (1.0 - f.x) * f.y, viewZ, near, far, weightSum);
+    sum += ssaoUpsampleTexel(tex, size, i + vec2(1.0, 1.0), f.x * f.y, viewZ, near, far, weightSum);
+    return weightSum > 0.0 ? sum / weightSum : 1.0;
+}
+
 float pack2x4(vec2 v) {
     vec2 clamped_v = clamp(v, 0.0, 1.0);
     vec2 scaled_v = floor(clamped_v * 15.0 + 0.5); // round to 0–15
@@ -104,8 +122,25 @@ vec2 unpack2x4(float f) {
     return vec2(lo, hi) / 15.0;
 }
 
+// window depth of a clip z / w, and back: the clip depth range is [0, 1] with \`clipZeroToOne\`, [-1, 1] otherwise
+float clipZToDepth(const in float z) {
+    #ifdef clipZeroToOne
+        return z;
+    #else
+        return 0.5 + 0.5 * z;
+    #endif
+}
+
+float depthToClipZ(const in float depth) {
+    #ifdef clipZeroToOne
+        return depth;
+    #else
+        return depth * 2.0 - 1.0;
+    #endif
+}
+
 vec3 screenSpaceToViewSpace(const in vec3 ssPos, const in mat4 invProjection) {
-    vec4 p = vec4(ssPos * 2.0 - 1.0, 1.0);
+    vec4 p = vec4(ssPos.xy * 2.0 - 1.0, depthToClipZ(ssPos.z), 1.0);
     p = invProjection * p;
     return p.xyz / p.w;
 }
@@ -158,15 +193,16 @@ float luminance(vec3 c) {
 }
 
 float linearizeDepth(const in float depth, const in float near, const in float far) {
-    return (2.0 * near) / (far + near - depth * (far - near));
+    return (2.0 * near) / (2.0 * near + depth * (far - near));
 }
 
-float perspectiveDepthToViewZ(const in float invClipZ, const in float near, const in float far) {
-    return (near * far) / ((far - near) * invClipZ - far);
+// window depth is reversed (near 1, far 0, see \`DepthRangeTag\`), which keeps the precision of small (far) depths
+float perspectiveDepthToViewZ(const in float depth, const in float near, const in float far) {
+    return -(near * far) / (near + (far - near) * depth);
 }
 
-float orthographicDepthToViewZ(const in float linearClipZ, const in float near, const in float far) {
-    return linearClipZ * (near - far) - near;
+float orthographicDepthToViewZ(const in float depth, const in float near, const in float far) {
+    return depth * (far - near) - far;
 }
 
 float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in float near, const in float far) {

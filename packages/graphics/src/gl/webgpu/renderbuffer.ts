@@ -8,7 +8,7 @@ import { idFactory } from '@molstar/core/util/id-factory';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
 import { TextureUsage } from './constants.js';
 import { asWebGPUFramebuffer, type WebGPUAttachment } from './framebuffer.js';
-import type { WebGPUResourceEnv } from './texture.js';
+import { countResource, createByteAccount, type WebGPUResourceEnv } from './texture.js';
 
 const getNextRenderbufferId = idFactory();
 
@@ -64,9 +64,12 @@ export function createWebGPURenderbuffer(
   let height = _height;
   let texture: GPUTexture | undefined;
   let view: GPUTextureView | undefined;
+  const account = createByteAccount(env.byteCounts, 'renderbuffer');
+  const uncount = countResource(env.stats, 'renderbuffer');
 
   function init() {
     if (texture) release(texture);
+    account(Math.max(1, width) * Math.max(1, height) * getBytesPerTexel(gpuFormat));
     texture = env.device.createTexture({
       size: { width: Math.max(1, width), height: Math.max(1, height) },
       format: gpuFormat,
@@ -100,14 +103,13 @@ export function createWebGPURenderbuffer(
       height = h;
       init();
     },
-    reset: () => init(),
     destroy: () => {
       if (texture) release(texture);
       texture = undefined;
       view = undefined;
-      env.restorables.delete(renderbuffer);
+      account(0);
+      uncount();
     },
   };
-  env.restorables.add(renderbuffer);
   return renderbuffer;
 }

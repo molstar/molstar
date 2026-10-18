@@ -7,13 +7,13 @@
 import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import { ImagePass } from '@molstar/graphics/canvas3d/passes/image';
 import { AssetManager } from '@molstar/core/util/assets';
-import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import { isWebGPUContext, type WebGPUFeatures, type WebGPULimits } from '@molstar/graphics/gl/webgpu/context';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
-import { WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
+import { createWebGLBackend } from '@molstar/graphics/gl/webgl/backend';
 import { type Capabilities, type CapabilityReport, getCapabilities, getWebGLCapabilityReport } from './capabilities.js';
 
 /** Unported features throw, so that their cases are skipped instead of rendering without them */
-const StrictWebGPUBackend = createWebGPUBackend({ strict: true });
 
 export interface BackendProfile {
   readonly id: string;
@@ -138,7 +138,9 @@ function WebGLProfile(
   type: 'webgl' | 'webgl2',
   description: string,
   mask: ContextMask = {},
+  options: { uniformBlocks?: boolean } = {},
 ): BackendProfile {
+  const backend = createWebGLBackend(type, options);
   const profile: BackendProfile = {
     id,
     kind: 'webgl',
@@ -165,7 +167,7 @@ function WebGLProfile(
       const context = await Canvas3DContext.create(
         canvas,
         assetManager,
-        [type === 'webgl2' ? WebGL2Backend : WebGLBackend],
+        [backend],
         {
           powerPreference: ContextAttribs.powerPreference,
           failIfMajorPerformanceCaveat: ContextAttribs.failIfMajorPerformanceCaveat,
@@ -177,11 +179,14 @@ function WebGLProfile(
           resolutionMode: 'native',
         },
       );
-      const canvas3d = Canvas3D.create(context);
+      // no idle-time picking warm-up: cases don't hover, and it slows the runs
+      const canvas3d = Canvas3D.create(context, {}, { warmUp: false });
       canvas3d.handleResize();
       const imagePass = canvas3d.getImagePass({});
 
-      const { gl } = context.webgl;
+      const webgl = context.graphics;
+      if (!isWebGLContext(webgl)) throw new Error('expected a WebGL context');
+      const { gl } = webgl;
       const takeErrors = () => {
         const errors: string[] = [];
         for (let i = 0; i < 16; ++i) {
@@ -189,7 +194,8 @@ function WebGLProfile(
           if (e === gl.NO_ERROR) break;
           errors.push(`GL error 0x${e.toString(16)}`);
         }
-        if (context.webgl.isContextLost) errors.push('context lost');
+        // the current context: a restore replaces it (on the same `gl`)
+        if (context.graphics.isContextLost) errors.push('context lost');
         return errors;
       };
 
@@ -200,8 +206,8 @@ function WebGLProfile(
         context,
         canvas3d,
         imagePass,
-        capabilities: getCapabilities(context.webgl),
-        report: getWebGLCapabilityReport(context.webgl),
+        capabilities: getCapabilities(webgl),
+        report: getWebGLCapabilityReport(webgl),
         takeErrors,
         dispose: () => {
           canvas3d.dispose();
@@ -215,13 +221,19 @@ function WebGLProfile(
   return profile;
 }
 
-function WebGPUProfile(id: string, description: string): BackendProfile {
+function WebGPUProfile(
+  id: string,
+  description: string,
+  limits: WebGPULimits,
+  features: WebGPUFeatures = 'optional',
+): BackendProfile {
+  const backend = createWebGPUBackend({ strict: true, limits, features });
   const profile: BackendProfile = {
     id,
     kind: 'webgpu',
     description,
     create: async ({ width, height }) => {
-      if (!StrictWebGPUBackend.isAvailable()) return undefined;
+      if (!backend.isAvailable()) return undefined;
       const { canvas, host } = createHostedCanvas(width, height);
       const assetManager = new AssetManager();
       let context: Canvas3DContext;
@@ -229,7 +241,7 @@ function WebGPUProfile(id: string, description: string): BackendProfile {
         context = await Canvas3DContext.create(
           canvas,
           assetManager,
-          [StrictWebGPUBackend],
+          [backend],
           {
             powerPreference: ContextAttribs.powerPreference,
             failIfMajorPerformanceCaveat: ContextAttribs.failIfMajorPerformanceCaveat,
@@ -245,7 +257,8 @@ function WebGPUProfile(id: string, description: string): BackendProfile {
       const { graphics } = context;
       if (!isWebGPUContext(graphics)) throw new Error('expected a WebGPU context');
       const { device } = graphics;
-      const canvas3d = Canvas3D.create(context);
+      // no idle-time picking warm-up: cases don't hover, and it slows the runs
+      const canvas3d = Canvas3D.create(context, {}, { warmUp: false });
       canvas3d.handleResize();
       const imagePass = canvas3d.getImagePass({});
 
@@ -278,7 +291,11 @@ function WebGPUProfile(id: string, description: string): BackendProfile {
         imagePass,
         capabilities,
         report,
-        takeErrors: () => graphics.takeErrors(),
+        // the current context: a restore replaces it
+        takeErrors: () => {
+          const current = context.graphics;
+          return isWebGPUContext(current) ? current.takeErrors() : [];
+        },
         dispose: () => {
           canvas3d.dispose();
           context.dispose();
@@ -295,6 +312,9 @@ function WebGPUProfile(id: string, description: string): BackendProfile {
 export const BackendProfiles: BackendProfile[] = [
   WebGLProfile('webgl2', 'webgl2', 'WebGL2 with all available extensions (reference)'),
   WebGLProfile('webgl1', 'webgl', 'WebGL1 with all available extensions'),
+  // not run by default (`scripts/visual-tests.mjs --profiles webgl2-no-ubo`): the `uniformBlocks` option of the render
+  // benchmark, uniforms set one by one as on WebGL1
+  WebGLProfile('webgl2-no-ubo', 'webgl2', 'WebGL2 without uniform buffers', {}, { uniformBlocks: false }),
   WebGLProfile(
     'webgl2-no-float',
     'webgl2',
@@ -329,7 +349,13 @@ export const BackendProfiles: BackendProfile[] = [
       'EXT_sRGB',
     ],
   }),
-  WebGPUProfile('webgpu', 'WebGPU (prototype: color pass of the ported programs, no postprocessing)'),
+  WebGPUProfile('webgpu', 'WebGPU with the limits of the adapter', 'adapter'),
+  WebGPUProfile(
+    'webgpu-core',
+    'WebGPU with the core limits of the spec and no optional features (the minimum spec)',
+    'core',
+    'none',
+  ),
 ];
 
 export const ReferenceProfileId = 'webgl2';

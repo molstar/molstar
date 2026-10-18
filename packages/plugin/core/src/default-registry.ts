@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import '@molstar/model/script/transpilers/all';
+import '@molstar/query-language/transpilers/all';
 import '@molstar/plugin/state/transforms/catalog';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';

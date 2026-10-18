@@ -79,6 +79,10 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
       throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
     }
   }
+  if (extensions.clipControl) {
+    // clip depth in [0, 1] (`EXT_clip_control`), see `WebGLContext.depthRangeConversion`
+    prefix.push('#define clipZeroToOne');
+  }
   return prefix.join('\n') + '\n';
 }
 
@@ -111,6 +115,10 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
   }
   if (extensions.depthTexture) {
     prefix.push('#define depthTextureSupport');
+  }
+  if (extensions.clipControl) {
+    // clip depth in [0, 1] (`EXT_clip_control`), see `WebGLContext.depthRangeConversion`
+    prefix.push('#define clipZeroToOne');
   }
   return prefix.join('\n') + '\n';
 }
@@ -155,14 +163,6 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
       throw new Error(`required 'GL_ANGLE_clip_cull_distance' extension not available`);
     }
   }
-  if (shaderExtensions.conservativeDepth) {
-    if (extensions.conservativeDepth) {
-      prefix.push('#extension GL_EXT_conservative_depth : enable');
-      prefix.push('#define enabledConservativeDepth');
-    } else if (shaderExtensions.conservativeDepth === 'required') {
-      throw new Error(`required 'GL_EXT_conservative_depth' extension not available`);
-    }
-  }
   if (shaderExtensions.multiview2) {
     if (extensions.multiview2) {
       prefix.push('#extension GL_OVR_multiview2 : require');
@@ -175,13 +175,21 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     // `gl_VertexID` is unusable, emulated with the `aVertex` attribute
     prefix.push('#define emulateVertexId');
   }
+  if (extensions.clipControl) {
+    // clip depth in [0, 1] (`EXT_clip_control`), see `WebGLContext.depthRangeConversion`
+    prefix.push('#define clipZeroToOne');
+  }
   prefix.push(glsl300VertPrefixCommon);
   return prefix.join('\n') + '\n';
 }
 
 /** prefix defines that are the same for all programs of a context, `undefined` for all other defines */
 export function getContextDefineLookup(extensions: WebGLExtensions): DefineLookup {
-  return (name) => (name === 'emulateVertexId' ? !extensions.noNonInstancedActiveAttribs : undefined);
+  return (name) => {
+    if (name === 'emulateVertexId') return !extensions.noNonInstancedActiveAttribs;
+    if (name === 'clipZeroToOne') return !!extensions.clipControl;
+    return undefined;
+  };
 }
 
 function getGlsl300FragPrefix(
@@ -190,7 +198,17 @@ function getGlsl300FragPrefix(
   shaderExtensions: ShaderExtensions,
   outTypes: FragOutTypes,
 ) {
-  const prefix = ['#version 300 es', `layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`];
+  const prefix = ['#version 300 es'];
+  // extension directives come before any declaration
+  if (shaderExtensions.conservativeDepth) {
+    if (extensions.conservativeDepth) {
+      prefix.push('#extension GL_EXT_conservative_depth : enable');
+      prefix.push('#define enabledConservativeDepth');
+    } else if (shaderExtensions.conservativeDepth === 'required') {
+      throw new Error(`required 'GL_EXT_conservative_depth' extension not available`);
+    }
+  }
+  prefix.push(`layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`);
   if (shaderExtensions.fragDepth) {
     if (extensions.fragDepth) {
       prefix.push('#define enabledFragDepth');
@@ -211,6 +229,10 @@ function getGlsl300FragPrefix(
   }
   if (extensions.depthTexture) {
     prefix.push('#define depthTextureSupport');
+  }
+  if (extensions.clipControl) {
+    // clip depth in [0, 1] (`EXT_clip_control`), see `WebGLContext.depthRangeConversion`
+    prefix.push('#define clipZeroToOne');
   }
   prefix.push(glsl300FragPrefixCommon);
   return prefix.join('\n') + '\n';

@@ -13,6 +13,7 @@ import { Substance } from '@molstar/graphics/theme/substance';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
 import { hasColorSmoothingProp } from '@molstar/graphics/geo/geometry/base';
+import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
 export { SubstanceStructureRepresentation3DFromScript };
 type SubstanceStructureRepresentation3DFromScript = typeof SubstanceStructureRepresentation3DFromScript;
@@ -150,3 +151,6 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     return StateTransformer.UpdateResult.Updated;
   },
 });
+
+registerTransformLayer(SubstanceStructureRepresentation3DFromScript, 'substance');
+registerTransformLayer(SubstanceStructureRepresentation3DFromBundle, 'substance');

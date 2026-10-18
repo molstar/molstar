@@ -14,6 +14,9 @@
       "path": "./apps/viewer"
     },
     {
+      "path": "./apps/prism-viewer"
+    },
+    {
       "path": "./cli/chem-comp-dict"
     },
     {
@@ -69,6 +72,9 @@
     },
     {
       "path": "./examples/lighting"
+    },
+    {
+      "path": "./examples/minimal-prism-viewer"
     },
     {
       "path": "./examples/mvs-stories"
@@ -131,7 +137,7 @@
       "path": "./extensions/model-export"
     },
     {
-      "path": "./extensions/mp4-export"
+      "path": "./extensions/video-export"
     },
     {
       "path": "./packages/mvs/runtime"
@@ -179,6 +185,21 @@
       "path": "./packages/plugin/ui"
     },
     {
+      "path": "./packages/ai"
+    },
+    {
+      "path": "./packages/prism/ui"
+    },
+    {
+      "path": "./packages/prism/assistant"
+    },
+    {
+      "path": "./packages/prism/stories"
+    },
+    {
+      "path": "./packages/prism/viewer"
+    },
+    {
       "path": "./packages/plugin/headless"
     },
     {
@@ -204,6 +225,18 @@
     },
     {
       "path": "./extensions/volseg-api"
+    },
+    {
+      "path": "./packages/query-language"
+    },
+    {
+      "path": "./packages/sequences/core"
+    },
+    {
+      "path": "./packages/sequences/viewer"
+    },
+    {
+      "path": "./packages/sequences/nightingale"
     }
   ]
 }

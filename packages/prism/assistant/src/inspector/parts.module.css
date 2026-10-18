@@ -1,0 +1,242 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Tabs as words: the current one in the text color on the control surface (as History's Commands and Messages). */
+.tabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+}
+
+.tab {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  height: 24px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  line-height: 24px;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-text);
+  }
+}
+
+.count {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+
+  &:empty {
+    display: none;
+  }
+}
+
+/* A detail's kind and id: quiet mono, the way roles read in the rows. */
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  min-width: 0;
+}
+
+.kind {
+  flex: none;
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.where {
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.facts {
+  display: grid;
+  gap: var(--msp-space-1);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--msp-space-3);
+  line-height: 1.45;
+
+  & dt {
+    color: var(--msp-color-text-subtle);
+  }
+
+  & dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Code and what the model read: a well, mono, wrapped. */
+.code {
+  margin: 0;
+  padding: var(--msp-space-3) var(--msp-space-4);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  &[data-failed] {
+    color: var(--msp-color-danger);
+  }
+}
+
+.json {
+  tab-size: 2;
+}
+
+.jKey {
+  color: var(--msp-color-text-muted);
+}
+
+.jStr {
+  color: color-mix(in oklab, var(--msp-color-success), var(--msp-color-text) 35%);
+}
+
+.jLit {
+  color: color-mix(in oklab, var(--msp-color-info), var(--msp-color-text) 25%);
+}
+
+.usage {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A thin bar: what is used of what is allowed, in a neutral step (never a hue). */
+.meter {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--msp-color-control);
+}
+
+.meterFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--msp-color-text-subtle);
+
+  .meter[data-danger] & {
+    background: var(--msp-color-danger);
+  }
+}
+
+/* The header's budget: the bar and the counts, giving way (fading) before anything else in the header. */
+.budget {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.budgetBar {
+  flex: none;
+  width: 64px;
+
+  /* A narrow page keeps the counts, not the bar. */
+  @container (max-width: 640px) {
+    display: none;
+  }
+}
+
+.budgetText {
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Words under a heading: what a number means, what happens next. */
+.note {
+  margin: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.5;
+}
+
+/* A heading inside a detail. */
+.h {
+  margin: var(--msp-space-2) 0 0;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+}
+
+/* What people and the model wrote. */
+.prose {
+  margin: 0;
+  font-size: var(--msp-font-size-md);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* A word that goes somewhere (a tool in Tools, a turn's trace): quiet, underlined on hover. */
+.link {
+  padding: 0;
+  color: var(--msp-color-accent-strong);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.mono {
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+}
+
+.dim {
+  color: var(--msp-color-text-subtle);
+}

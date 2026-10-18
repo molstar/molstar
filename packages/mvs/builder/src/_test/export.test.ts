@@ -1,3 +1,4 @@
+import { afterEach, expect, test, vi } from 'vitest';
 import { unzipSync } from 'fflate';
 import { createMVSX } from '../export.js';
 import { MVSData } from '../mvs-data.js';
@@ -8,18 +9,18 @@ function dataWithAsset(url: string) {
   return builder.getState();
 }
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => vi.restoreAllMocks());
 
 test('toMVSX defaults to platform fetch when options are omitted', async () => {
-  const fetchAsset = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('asset content'));
+  const fetchAsset = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('asset content'));
   const files = unzipSync(await MVSData.toMVSX(dataWithAsset('https://example.org/asset.txt')));
   expect(fetchAsset).toHaveBeenCalledWith('https://example.org/asset.txt');
   expect(new TextDecoder().decode(files['./assets/0-asset.txt'])).toBe('asset content');
 });
 
 test('toMVSX uses custom fetch with resolved URIs and reuses cached assets', async () => {
-  const platformFetch = jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unexpected platform fetch'));
-  const fetchAsset = jest.fn(async () => new Response('local asset'));
+  const platformFetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('unexpected platform fetch'));
+  const fetchAsset = vi.fn(async () => new Response('local asset'));
   const cache = {};
   const data = dataWithAsset('asset.txt');
   const options = { baseUri: 'file:///data/scene.mvsj', fetch: fetchAsset, cache };
@@ -36,7 +37,7 @@ test('toMVSX uses custom fetch with resolved URIs and reuses cached assets', asy
 });
 
 test('toMVSX treats empty cached content as a cache hit', async () => {
-  const fetchAsset = jest.fn(async () => {
+  const fetchAsset = vi.fn(async () => {
     throw new Error('unexpected fetch');
   });
   const url = 'https://example.org/empty.txt';
@@ -46,7 +47,7 @@ test('toMVSX treats empty cached content as a cache hit', async () => {
 });
 
 test('toMVSX bypasses fetching for explicit assets and skipped external URIs', async () => {
-  const fetchAsset = jest.fn(async () => {
+  const fetchAsset = vi.fn(async () => {
     throw new Error('unexpected fetch');
   });
   const url = 'https://example.org/asset.txt';
@@ -59,7 +60,7 @@ test('toMVSX bypasses fetching for explicit assets and skipped external URIs', a
 });
 
 test('toMVSX reports failed responses without caching them', async () => {
-  const fetchAsset = jest.fn(async () => new Response(null, { status: 404, statusText: 'Not Found' }));
+  const fetchAsset = vi.fn(async () => new Response(null, { status: 404, statusText: 'Not Found' }));
   const cache = {};
   const url = 'https://example.org/missing.txt';
   await expect(MVSData.toMVSX(dataWithAsset(url), { fetch: fetchAsset, cache })).rejects.toThrow(
@@ -69,36 +70,36 @@ test('toMVSX reports failed responses without caching them', async () => {
 });
 
 test('MVSX output is deterministic across different clock times with explicit mtime', async () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   try {
     const data = MVSData.createBuilder().getState();
     const assets = [{ name: 'asset.txt', content: 'archive asset' }];
     // ZIP stores local date fields; use matching fields for reproducibility across time zones.
     const options = { zip: { mtime: new Date(1980, 0, 1), level: 0 as const } };
-    jest.setSystemTime(new Date('2025-01-01T12:00:00Z'));
+    vi.setSystemTime(new Date('2025-01-01T12:00:00Z'));
     const first = await createMVSX(data, assets, options);
-    jest.setSystemTime(new Date('2026-10-04T18:00:00Z'));
+    vi.setSystemTime(new Date('2026-10-04T18:00:00Z'));
     const second = await createMVSX(data, assets, options);
     expect(second).toEqual(first);
     const files = unzipSync(first);
     expect(new TextDecoder().decode(files['asset.txt'])).toBe('archive asset');
     expect(JSON.parse(new TextDecoder().decode(files['index.mvsj']))).toEqual(data);
   } finally {
-    jest.useRealTimers();
+    vi.useRealTimers();
   }
 });
 
 test('MVSX output uses the current time when ZIP options are omitted', async () => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   try {
     const data = MVSData.createBuilder().getState();
-    jest.setSystemTime(new Date('2025-01-01T12:00:00Z'));
+    vi.setSystemTime(new Date('2025-01-01T12:00:00Z'));
     const first = await createMVSX(data, []);
-    jest.setSystemTime(new Date('2026-10-04T18:00:00Z'));
+    vi.setSystemTime(new Date('2026-10-04T18:00:00Z'));
     const second = await createMVSX(data, []);
     expect(second).not.toEqual(first);
     expect(unzipSync(second)).toEqual(unzipSync(first));
   } finally {
-    jest.useRealTimers();
+    vi.useRealTimers();
   }
 });

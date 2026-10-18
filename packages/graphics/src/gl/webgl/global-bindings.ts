@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { getDepthRangeCell } from '../depth-range.js';
+import type { UniformBlockWriter } from '../uniform-layout.js';
 import type { GlobalBindings } from '../render-item.js';
 import type { RenderableSchema } from '../renderable/schema.js';
 import type { Textures } from '../texture.js';
@@ -39,11 +41,13 @@ export function createGlobalBindings(
   textures: Textures,
 ): WebGLGlobalBindings {
   const { state, resources } = ctx;
+  // the projections mapped to the context's clip depth
+  uniforms = uniforms.map(([k, v]) => [k, getDepthRangeCell(schema, k, v, ctx.depthRangeConversion)]);
 
   // on WebGL2 most global uniforms are backed by a uniform buffer,
   // the rest (arrays, uDrawId) are still set as classic uniforms
-  const layout = ctx.isWebGL2 ? getUniformBlockLayout('global', schema) : undefined;
-  let block: { buffer: UniformBuffer; write: () => void } | undefined;
+  const layout = ctx.uniformBlocks ? getUniformBlockLayout('global', schema) : undefined;
+  let block: { buffer: UniformBuffer; write: UniformBlockWriter } | undefined;
   if (layout) {
     const buffer = resources.uniformRingBuffer(layout);
     block = { buffer, write: buffer.createWriter(uniforms) };
@@ -77,10 +81,11 @@ export function createGlobalBindings(
         block.buffer.bind();
       }
       program.setUniforms(classicUniforms);
-      program.bindTextures(textures, 0);
+      program.bindTextures(textures);
       needsUpdate = false;
     },
     destroy: () => {
+      block?.write.dispose();
       block?.buffer.destroy();
     },
   };

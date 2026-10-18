@@ -1,0 +1,389 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The overview strip: a column per turn, a block per step. No hues: model calls are taller blocks on the upper lane,
+   tool calls short pills on the lower one; a failure in the danger color, a retry hatched, a running step pulsing, the
+   selected block outlined in the accent. */
+.overview {
+  flex: none;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--msp-space-4);
+  padding: var(--msp-space-4) var(--msp-space-5);
+}
+
+.lanes {
+  display: grid;
+  grid-template-rows: 12px 8px;
+  row-gap: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: 10px;
+  line-height: 1;
+  text-align: right;
+
+  & span:last-child {
+    align-self: end;
+  }
+}
+
+.track {
+  display: flex;
+  gap: var(--msp-space-4);
+  min-width: 0;
+}
+
+.column {
+  display: flex;
+  align-items: stretch;
+  gap: var(--msp-space-1);
+  flex-basis: 0;
+  min-width: 0;
+  height: 22px;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+
+  &[data-selected] {
+    background: var(--msp-color-control);
+  }
+}
+
+.block {
+  flex-basis: 0;
+  min-width: 3px;
+  padding: 0;
+  border-radius: var(--msp-radius-sm);
+  transition: opacity var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  &[data-kind="request"] {
+    flex: 0 0 3px;
+    height: 100%;
+    background: var(--msp-color-text-subtle);
+  }
+
+  &[data-kind="model"] {
+    align-self: flex-start;
+    height: 12px;
+    background: var(--msp-color-text-muted);
+  }
+
+  &[data-kind="tool"] {
+    align-self: flex-end;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--msp-color-border-strong);
+  }
+
+  /* A nested run's step: lighter, its parent's lane. */
+  &[data-nested] {
+    opacity: 0.55;
+  }
+
+  &[data-failed] {
+    background: var(--msp-color-danger);
+  }
+
+  &[data-retried] {
+    background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--msp-color-bg) 2px 4px);
+  }
+
+  &[data-running] {
+    animation: pulse 1.2s var(--msp-ease) infinite;
+  }
+
+  &[aria-pressed="true"] {
+    outline: 1.5px solid var(--msp-color-accent);
+    outline-offset: 1.5px;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Input size per model call: a bar each, the growth a long turn costs. */
+.bars {
+  display: grid;
+  gap: var(--msp-space-2);
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+
+  & > :last-child {
+    text-align: right;
+  }
+}
+
+.milestones {
+  display: grid;
+  gap: var(--msp-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--msp-font-size-xs);
+}
+
+.at {
+  display: inline-block;
+  min-width: 56px;
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* What a model call saw: the window's makeup in neutral steps, then its entries. */
+.window {
+  display: grid;
+  gap: var(--msp-space-3);
+}
+
+.makeup {
+  display: flex;
+  gap: 1px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--msp-radius-sm);
+}
+
+.part {
+  flex-basis: 0;
+  min-width: 2px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+}
+
+.part,
+.swatch {
+  &[data-part="guidance"] {
+    background: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 78%);
+  }
+
+  &[data-part="tools"] {
+    background: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 64%);
+  }
+
+  &[data-part="state"] {
+    background: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 48%);
+  }
+
+  &[data-part="conversation"] {
+    background: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 28%);
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-2) var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}
+
+.entries {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 10px 64px minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  width: 100%;
+  padding: var(--msp-space-2) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-expanded="true"] {
+    background: var(--msp-color-control);
+  }
+}
+
+/* New since the previous call: a dot before it. */
+.fresh {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  align-self: center;
+
+  .entry[data-fresh] & {
+    background: var(--msp-color-text-muted);
+  }
+}
+
+.entryRole {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  .entry[data-failed] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+.entryTitle {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.entryText {
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.entryTokens {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.entryBody {
+  margin: var(--msp-space-1) 0 var(--msp-space-3);
+}
+
+/* Timing: a waterfall per attempt; waits hatched, until the first output light, the output darker. */
+.timing {
+  display: grid;
+  gap: var(--msp-space-3);
+}
+
+.attempt {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-1) var(--msp-space-3);
+}
+
+.ordinal {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+}
+
+.lane {
+  position: relative;
+  height: 10px;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+}
+
+.segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  border-radius: var(--msp-radius-sm);
+}
+
+.segment,
+.key i {
+  &[data-kind="wait"] {
+    background: repeating-linear-gradient(135deg, var(--msp-color-border-strong) 0 2px, transparent 2px 5px);
+  }
+
+  &[data-kind="pre"] {
+    background: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 64%);
+  }
+
+  &[data-kind="out"] {
+    background: var(--msp-color-text-muted);
+  }
+
+  &[data-kind="failed"] {
+    background: var(--msp-color-danger);
+  }
+
+  &[data-kind="running"] {
+    background: color-mix(in oklab, var(--msp-color-text), var(--msp-color-bg) 64%);
+    animation: pulse 1.2s var(--msp-ease) infinite;
+  }
+}
+
+.attemptText {
+  grid-column: 2;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+
+  &[data-failed] {
+    color: var(--msp-color-danger);
+  }
+}
+
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-2) var(--msp-space-4);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  & i {
+    display: inline-block;
+    width: 14px;
+    height: 8px;
+    margin-right: var(--msp-space-2);
+    border-radius: var(--msp-radius-sm);
+  }
+}
+
+@container inspector (max-width: 760px) {
+  .overview {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: var(--msp-space-4);
+  }
+
+  .lanes {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block,
+  .segment {
+    animation: none !important;
+  }
+}

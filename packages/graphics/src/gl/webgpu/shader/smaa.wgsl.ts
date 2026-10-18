@@ -11,15 +11,39 @@
  * https://github.com/iryoku/smaa/releases/tag/v2.8
  */
 
-import { quad_vert_wgsl, texture_read_wgsl, texture_sample_wgsl } from './chunks/quad.wgsl.js';
+import { quad_vert_wgsl, texture_sample_wgsl } from './chunks/quad.wgsl.js';
 
-// The quads cover the whole target, so the GLSL vertex stage uv (`vUv`) is `gl_FragCoord.xy * uTexSizeInv`; uvs and
-// their offsets are in GL window space as in GLSL (`read_<name>` flips at the reads of rendered textures, the area and
-// search textures are read in upload order).
+// The quads cover the whole target, so the GLSL vertex stage uv (`vUv`) is `gl_FragCoord.xy * uTexSizeInv`. SMAA's
+// searches and area lookups are oriented, so its programs keep GL's window space (bottom-left origin) of the GLSL port:
+// uvs from `glCoords`, `read_<name>` flips at the reads of rendered textures, the area and search textures are read in
+// upload order.
+
+/** uv of the fragment with a bottom-left origin (`gl_FragCoord.xy / size` of WebGL) */
+const gl_coords_wgsl = /* wgsl */ `
+fn glCoords(position: vec4<f32>, size: vec2<f32>) -> vec2<f32> {
+    return vec2<f32>(position.x / size.x, 1.0 - position.y / size.y);
+}
+`;
+
+/** `read_<name>(uv)`: texel of a rendered texture at a uv with a bottom-left origin, the nearest or filtered */
+function texture_read_wgsl(name: string) {
+  return /* wgsl */ `
+fn read_${name}(uv: vec2<f32>) -> vec4<f32> {
+    let st = vec2<f32>(uv.x, 1.0 - uv.y);
+    #if defined(dLinear_${name})
+        return textureSampleLevel(${name}, sLinear, st, 0.0);
+    #else
+        let size = vec2<i32>(textureDimensions(${name}));
+        return textureLoad(${name}, clamp(vec2<i32>(floor(st * vec2<f32>(size))), vec2<i32>(0), size - 1), 0);
+    #endif
+}
+`;
+}
 
 /** Color edge detection */
 export const smaa_edges_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
+${gl_coords_wgsl}
 ${texture_read_wgsl('tColor')}
 
 override oEdgeThreshold: f32 = 0.1;
@@ -77,6 +101,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 /** Blending weight calculation */
 export const smaa_weights_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
+${gl_coords_wgsl}
 ${texture_read_wgsl('tEdges')}
 ${texture_sample_wgsl('tArea')}
 ${texture_sample_wgsl('tSearch')}
@@ -249,6 +274,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 /** Neighborhood blending */
 export const smaa_blend_wgsl = /* wgsl */ `
 ${quad_vert_wgsl}
+${gl_coords_wgsl}
 ${texture_read_wgsl('tColor')}
 ${texture_read_wgsl('tWeights')}
 

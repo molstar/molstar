@@ -5,7 +5,7 @@
   "description": "Mol* pdbe-extension",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -35,7 +35,8 @@
     "@molstar/io": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/plugin": "workspace:*",
-    "@molstar/graphics": "workspace:*"
+    "@molstar/graphics": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

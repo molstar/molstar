@@ -7,15 +7,23 @@
 import { DpoitPass } from '@molstar/graphics/canvas3d/passes/dpoit';
 import { IlluminationPass } from '@molstar/graphics/canvas3d/passes/illumination';
 import { WboitPass } from '@molstar/graphics/canvas3d/passes/wboit';
+import { getGaussianSurfaceGpuUnsupportedReason } from '@molstar/graphics/repr/structure/visual/gaussian-surface-mesh';
 import { GraphicsFeatures } from '@molstar/graphics/gl/capabilities';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { type WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext, type WebGLContext } from '@molstar/graphics/gl/webgl/context';
 
 /**
  * Backend-neutral capability keys: the graphics features plus derived rendering features.
  * Features required by Mol* (e.g. float textures, min/max blending) are not listed.
  */
-export const CapabilityKeys = [...GraphicsFeatures, 'wboit', 'dpoit', 'illumination'] as const;
+export const CapabilityKeys = [
+  ...GraphicsFeatures,
+  'wboit',
+  'dpoit',
+  'illumination',
+  'gaussianSurfaceGpu',
+  'releaseContext',
+] as const;
 export type CapabilityKey = (typeof CapabilityKeys)[number];
 
 export type Capabilities = { [K in CapabilityKey]: boolean };
@@ -31,13 +39,34 @@ export interface CapabilityReport {
   extensions: string[];
 }
 
+/** Why derived capabilities are missing, per capabilities object of `getCapabilities` */
+const MissingReasons = new WeakMap<Capabilities, { [K in CapabilityKey]?: string }>();
+
 export function getCapabilities(graphics: GraphicsContext): Capabilities {
   const capabilities = {} as Capabilities;
   for (const k of GraphicsFeatures) capabilities[k] = graphics.capabilities[k];
-  capabilities.wboit = WboitPass.isSupported(graphics);
-  capabilities.dpoit = DpoitPass.isSupported(graphics);
-  capabilities.illumination = IlluminationPass.isSupported(graphics);
+  const reasons: { [K in CapabilityKey]?: string } = {
+    wboit: WboitPass.getUnsupportedReason(graphics),
+    dpoit: DpoitPass.getUnsupportedReason(graphics),
+    illumination: IlluminationPass.getUnsupportedReason(graphics),
+    gaussianSurfaceGpu: getGaussianSurfaceGpuUnsupportedReason(graphics),
+    // probed without releasing: WebGPU destroys its device, WebGL needs the extension
+    releaseContext:
+      isWebGLContext(graphics) && !graphics.gl.getExtension('WEBGL_lose_context') ? 'no WEBGL_lose_context' : undefined,
+  };
+  capabilities.wboit = !reasons.wboit;
+  capabilities.dpoit = !reasons.dpoit;
+  capabilities.illumination = !reasons.illumination;
+  capabilities.gaussianSurfaceGpu = !reasons.gaussianSurfaceGpu;
+  capabilities.releaseContext = !reasons.releaseContext;
+  MissingReasons.set(capabilities, reasons);
   return capabilities;
+}
+
+/** `keys` with the reasons of derived capabilities, e.g. `dpoit (missing floatBlend)` */
+export function describeMissing(capabilities: Capabilities, keys: readonly CapabilityKey[]) {
+  const reasons = MissingReasons.get(capabilities);
+  return keys.map((k) => (reasons?.[k] ? `${k} (${reasons[k]})` : k));
 }
 
 export function getWebGLCapabilityReport(webgl: WebGLContext): CapabilityReport {

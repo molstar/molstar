@@ -1,0 +1,344 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-1);
+  font-size: var(--msp-font-size-sm);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+}
+
+.title {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+}
+
+/* Small text actions: Remove. */
+.tool {
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  line-height: 20px;
+  white-space: nowrap;
+  flex: none;
+
+  &:hover:not(:disabled) {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-expanded="true"] {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+.units {
+  display: flex;
+  gap: var(--msp-space-1);
+}
+
+.unit {
+  min-width: 3ch;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 18px;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-checked="true"] {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+/* The map's values, the opacity curve and the colors under it. */
+.plot {
+  position: relative;
+  height: 64px;
+  overflow: hidden;
+  border-radius: var(--msp-radius-sm) var(--msp-radius-sm) 0 0;
+  background: var(--msp-color-well);
+  cursor: crosshair;
+  touch-action: none;
+  contain: strict;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bars {
+  fill: color-mix(in oklab, var(--msp-color-text-muted), transparent 72%);
+}
+
+.area {
+  opacity: 0.7;
+}
+
+/* No colors on the axis (another theme): the area in the text's tone. */
+.uncolored {
+  fill: color-mix(in oklab, var(--msp-color-text-muted), transparent 50%);
+}
+
+.curve {
+  fill: none;
+  stroke: var(--msp-color-text);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+/* A point's track spans the plot and is moved with transform; the point sits at its top left. */
+.track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.point {
+  position: absolute;
+  top: -6px; /* off-scale: a 12px hit area centred on the point */
+  left: -6px; /* off-scale */
+  width: 12px;
+  height: 12px;
+  pointer-events: auto;
+  cursor: grab;
+  outline: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 2px; /* off-scale */
+    border-radius: 50%;
+    background: var(--msp-color-bg);
+    box-shadow: inset 0 0 0 1.5px var(--msp-color-text);
+    transition: transform var(--msp-motion-fast) var(--msp-ease);
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    transform: scale(1.25);
+  }
+}
+
+.on::after {
+  background: var(--msp-color-accent);
+  box-shadow: inset 0 0 0 1.5px var(--msp-color-accent);
+}
+
+/* The colors as the renderer paints them along the axis; its stops under it. */
+.strip {
+  position: relative;
+  height: 10px;
+  border-radius: 0 0 var(--msp-radius-sm) var(--msp-radius-sm);
+  cursor: copy;
+  touch-action: none;
+}
+
+/* Another theme: not on the axis. */
+.themed {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--msp-color-well) 0 4px,
+    color-mix(in oklab, var(--msp-color-text-muted), transparent 70%) 4px 8px
+  );
+  cursor: default;
+}
+
+.stopTrack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* A stop: a small tab in its color hanging under the strip. */
+.stop {
+  position: absolute;
+  top: 2px; /* off-scale */
+  left: -4.5px; /* off-scale: centred on the stop */
+  width: 9px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--msp-stop);
+  box-shadow:
+    0 0 0 1.5px var(--msp-color-bg),
+    0 0 0 2.5px color-mix(in oklab, var(--msp-color-text), transparent 60%);
+  pointer-events: auto;
+  cursor: ew-resize;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow:
+      0 0 0 1.5px var(--msp-color-bg),
+      0 0 0 2.5px var(--msp-color-focus-ring);
+  }
+
+  &.on {
+    box-shadow:
+      0 0 0 1.5px var(--msp-color-bg),
+      0 0 0 3px var(--msp-color-accent);
+  }
+
+  &::after {
+    content: none;
+  }
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An icon action in the header (Colors at peaks). */
+.iconTool {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+
+  &:hover:not(:disabled) {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+/* What is picked: one row (a point's value; a stop's color, its picker behind the chevron). */
+.picked {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
+}
+
+.pickedText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.colorRow {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 85%);
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-muted);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+}
+
+.colorRow[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/* Colors at peaks: a popover list, each palette its swatches and its name. */
+.palettes {
+  display: grid;
+  min-width: 200px;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-overlay);
+}
+
+.palette {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    outline: none;
+  }
+}
+
+.paletteSwatches {
+  display: flex;
+  flex: none;
+  width: 72px;
+  overflow: hidden;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+}
+
+.paletteSwatch {
+  flex: 1;
+  height: 14px;
+}
+
+.paletteLabel {
+  font-size: var(--msp-font-size-sm);
+}

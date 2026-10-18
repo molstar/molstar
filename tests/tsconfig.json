@@ -22,6 +22,12 @@
     },
     {
       "path": "../extensions/anvil"
+    },
+    {
+      "path": "../extensions/alpha-orbitals"
+    },
+    {
+      "path": "../extensions/geo-export"
     }
   ]
 }

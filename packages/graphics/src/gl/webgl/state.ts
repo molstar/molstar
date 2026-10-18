@@ -107,26 +107,24 @@ export type WebGLState = {
    * with `ext` being `EXT_clip_control`
    */
   clipControl?: (origin: number, depth: number) => void;
-
-  reset: () => void;
 };
 
 export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLState {
-  let enabledCapabilities: Record<number, boolean> = {};
+  const enabledCapabilities: Record<number, boolean> = {};
 
   let currentFrontFace = gl.getParameter(gl.FRONT_FACE);
   let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE);
   let currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
   let currentClearDepth = gl.getParameter(gl.DEPTH_CLEAR_VALUE);
   let currentDepthFunc = gl.getParameter(gl.DEPTH_FUNC);
-  let currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK);
-  let currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+  const currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK);
+  const currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
 
   let currentBlendSrcRGB = gl.getParameter(gl.BLEND_SRC_RGB);
   let currentBlendDstRGB = gl.getParameter(gl.BLEND_DST_RGB);
   let currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA);
   let currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA);
-  let currentBlendColor = gl.getParameter(gl.BLEND_COLOR);
+  const currentBlendColor = gl.getParameter(gl.BLEND_COLOR);
   let currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB);
   let currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
 
@@ -146,14 +144,14 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
   let currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
   let currentClearStencil = gl.getParameter(gl.STENCIL_CLEAR_VALUE);
 
-  let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+  const maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
   const vertexAttribsState: number[] = [];
 
   const boundUniformBuffers: number[] = [];
   const boundUniformOffsets: number[] = [];
 
-  let currentViewport: [number, number, number, number] = gl.getParameter(gl.VIEWPORT);
-  let currentScissor: [number, number, number, number] = gl.getParameter(gl.SCISSOR_BOX);
+  const currentViewport: [number, number, number, number] = gl.getParameter(gl.VIEWPORT);
+  const currentScissor: [number, number, number, number] = gl.getParameter(gl.SCISSOR_BOX);
 
   let currentClipOrigin = e.clipControl ? gl.getParameter(e.clipControl.CLIP_ORIGIN) : -1;
   let currentClipDepthMode = e.clipControl ? gl.getParameter(e.clipControl.CLIP_DEPTH_MODE) : -1;
@@ -508,56 +506,5 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
           }
         }
       : undefined,
-
-    reset: () => {
-      enabledCapabilities = {};
-
-      currentFrontFace = gl.getParameter(gl.FRONT_FACE);
-      currentCullFace = gl.getParameter(gl.CULL_FACE_MODE);
-      currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
-      currentClearDepth = gl.getParameter(gl.DEPTH_CLEAR_VALUE);
-      currentDepthFunc = gl.getParameter(gl.DEPTH_FUNC);
-      currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK);
-      currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
-
-      currentBlendSrcRGB = gl.getParameter(gl.BLEND_SRC_RGB);
-      currentBlendDstRGB = gl.getParameter(gl.BLEND_DST_RGB);
-      currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA);
-      currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA);
-      currentBlendColor = gl.getParameter(gl.BLEND_COLOR);
-      currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB);
-      currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
-
-      currentStencilFunc = gl.getParameter(gl.STENCIL_FUNC);
-      currentStencilValueMask = gl.getParameter(gl.STENCIL_VALUE_MASK);
-      currentStencilRef = gl.getParameter(gl.STENCIL_REF);
-      currentStencilBackFunc = gl.getParameter(gl.STENCIL_BACK_FUNC);
-      currentStencilBackValueMask = gl.getParameter(gl.STENCIL_BACK_VALUE_MASK);
-      currentStencilBackRef = gl.getParameter(gl.STENCIL_BACK_REF);
-      currentStencilWriteMask = gl.getParameter(gl.STENCIL_WRITEMASK);
-      currentStencilBackWriteMask = gl.getParameter(gl.STENCIL_BACK_WRITEMASK);
-      currentStencilFail = gl.getParameter(gl.STENCIL_FAIL);
-      currentStencilPassDepthPass = gl.getParameter(gl.STENCIL_PASS_DEPTH_PASS);
-      currentStencilPassDepthFail = gl.getParameter(gl.STENCIL_PASS_DEPTH_FAIL);
-      currentStencilBackFail = gl.getParameter(gl.STENCIL_BACK_FAIL);
-      currentStencilBackPassDepthPass = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_PASS);
-      currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
-      currentClearStencil = gl.getParameter(gl.STENCIL_CLEAR_VALUE);
-
-      maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
-      vertexAttribsState.length = 0;
-      for (let i = 0; i < maxVertexAttribs; ++i) {
-        vertexAttribsState[i] = 0;
-      }
-
-      boundUniformBuffers.length = 0;
-      boundUniformOffsets.length = 0;
-
-      currentViewport = gl.getParameter(gl.VIEWPORT);
-      currentScissor = gl.getParameter(gl.SCISSOR_BOX);
-
-      currentClipOrigin = e.clipControl ? gl.getParameter(e.clipControl.CLIP_ORIGIN) : -1;
-      currentClipDepthMode = e.clipControl ? gl.getParameter(e.clipControl.CLIP_DEPTH_MODE) : -1;
-    },
   };
 }

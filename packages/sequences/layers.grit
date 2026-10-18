@@ -1,0 +1,69 @@
+// The Seq* layering, by the file an import is in. Biome's noRestrictedImports takes one list per file, so the folder
+// rules that differ live here.
+//   - core: the model imports the query language and the matchers from its query/ folder only. The rest of the core's
+//     folder graph is core/_test/layers.test.ts's.
+//   - viewer: the headless entries (., /draw, /svg, /renderers/*) import no canvas, dom or react folder and no React;
+//     /canvas no dom or react folder; /dom no React; no viewer file outside src/interactions imports it.
+//   - renderer modules (viewer/src/renderers, viewer/src/testing/examples, viewer/src/interactions/viewer): through the
+//     renderer API only: ../draw/api.js and the viewer's /draw and /testing entries, never the composer, the surface,
+//     the layout manager, MarkSet internals, the region cache or the graph (F1). A sibling `./x.ts` is ok.
+language js
+
+or {
+  JsImport(),
+  JsExport(),
+  JsImportCallExpression()
+} as $imp where {
+  or {
+    and {
+      $filename <: r".*/packages/sequences/core/src/model/.*",
+      $imp <: r"(?s).*[\"']@molstar/seq-[^\"']*[\"'].*",
+      not $imp <: r"(?s).*[\"']@molstar/seq-core/(?:query|algorithms/search)[\"'].*",
+      register_diagnostic(span=$imp, message="The model imports nothing else of Seq*: only @molstar/seq-core/query and @molstar/seq-core/algorithms/search, from src/model/query/.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/core/src/model/.*",
+      not $filename <: r".*/packages/sequences/core/src/model/query/.*",
+      $imp <: r"(?s).*[\"']@molstar/seq-core/(?:query|algorithms/search)[\"'].*",
+      register_diagnostic(span=$imp, message="Only the model's src/model/query/ imports @molstar/seq-core/query and @molstar/seq-core/algorithms/search.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/.*",
+      not $filename <: r".*/packages/sequences/viewer/src/interactions/.*",
+      $imp <: r"(?s).*[\"'](?:@molstar/seq-viewer/interactions|(?:\.\./)+interactions)(?:/[^\"']*)?[\"'].*",
+      register_diagnostic(span=$imp, message="The viewer imports no interactions: they import the viewer.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/(?:index\.ts|draw/.*|svg/.*|renderers/.*)",
+      $imp <: r"(?s).*[\"'](?:\.\./|\./)?(?:canvas|dom|react)(?:/[^\"']*)?[\"'].*|(?s).*[\"'](?:react|react-dom)(?:/[^\"']*)?[\"'].*|(?s).*[\"']@molstar/seq-viewer/(?:canvas|dom|react)[\"'].*",
+      register_diagnostic(span=$imp, message="/draw, /svg and the renderers are headless: no canvas, dom or react entry, no React.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/svg/.*",
+      $imp <: r"(?s).*[\"'](?:node:[^\"']*|(?:fs|path|zlib|buffer|os|crypto|stream|util|url|http|https|net|child_process|worker_threads|module|process|playwright)(?:/[^\"']*)?)[\"'].*",
+      register_diagnostic(span=$imp, message="/svg is platform-free: no Node module and no browser driver; the host passes bytes and compression.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/canvas/.*",
+      $imp <: r"(?s).*[\"'](?:\.\./)(?:dom|react)(?:/[^\"']*)?[\"'].*|(?s).*[\"'](?:react|react-dom)(?:/[^\"']*)?[\"'].*|(?s).*[\"']@molstar/seq-viewer/(?:dom|react)[\"'].*",
+      register_diagnostic(span=$imp, message="/canvas imports no React and no UI entry.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/dom/.*",
+      $imp <: r"(?s).*[\"'](?:\.\./react(?:/[^\"']*)?|react|react-dom|react/[^\"']*|react-dom/[^\"']*|@molstar/seq-viewer/react)[\"'].*",
+      register_diagnostic(span=$imp, message="/dom imports no React.")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/(?:renderers|testing/examples|interactions/viewer)/.*",
+      $imp <: r"(?s).*[\"']@molstar/seq-viewer(?:/[^\"']*)?[\"'].*",
+      not $imp <: r"(?s).*[\"']@molstar/seq-viewer/(?:draw|testing)[\"'].*",
+      register_diagnostic(span=$imp, message="Renderer modules import the viewer through /draw and /testing only (the renderer API).")
+    },
+    and {
+      $filename <: r".*/packages/sequences/viewer/src/(?:renderers|testing/examples)/.*",
+      $imp <: r"(?s).*[\"']\.\.?/[^\"']*[\"'].*",
+      not $imp <: r"(?s).*[\"'](?:\./[^/\"']*|(?:\.\./)+draw/api\.js|(?:\.\./)+testing/index\.js)[\"'].*",
+      register_diagnostic(span=$imp, message="Renderer modules import the renderer API (draw/api) and siblings only.")
+    }
+  }
+}

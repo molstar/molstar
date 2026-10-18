@@ -126,14 +126,15 @@ async function exists(p) {
     return false;
   }
 }
-async function copyTree(source, target) {
+async function copyTree(source, target, keep = () => true) {
   if (!(await exists(source)))
     throw new Error(`Missing app build output ${path.relative(root, source)}. Build app packages first.`);
   await fs.mkdir(target, { recursive: true });
   for (const entry of await fs.readdir(source, { withFileTypes: true })) {
+    if (!keep(entry.name)) continue;
     const from = path.join(source, entry.name),
       to = path.join(target, entry.name);
-    if (entry.isDirectory()) await copyTree(from, to);
+    if (entry.isDirectory()) await copyTree(from, to, keep);
     else await fs.copyFile(from, to);
   }
 }
@@ -181,6 +182,23 @@ for (const app of appDirs) {
   const source = path.join(root, app.package, 'build');
   await copyTree(source, path.join(destination, app.target));
 }
+// The Prism viewer (app.md §1, §2): the app as GitHub Pages serves it (its page, its script and lazy chunks, its images)
+// and the single file beside it, from a production build; no source maps or metafiles.
+const prismBuild = path.join(root, 'apps/prism-viewer/build');
+const prismParts = ['index.html', 'index.js', 'favicon.ico', 'chunks', 'images', 'prism-viewer.js'];
+for (const part of ['index.html', 'index.js', 'prism-viewer.js']) {
+  if (!(await exists(path.join(prismBuild, part))))
+    throw new Error(`Missing apps/prism-viewer/build/${part}: build the app first (production)`);
+}
+await fs.rm(path.join(destination, 'prism-viewer'), { recursive: true, force: true });
+await fs.mkdir(path.join(destination, 'prism-viewer'), { recursive: true });
+for (const part of prismParts) {
+  const from = path.join(prismBuild, part);
+  if (!(await exists(from))) continue;
+  const to = path.join(destination, 'prism-viewer', part);
+  if ((await fs.stat(from)).isDirectory()) await copyTree(from, to, (name) => !name.endsWith('.map'));
+  else await fs.copyFile(from, to);
+}
 
 const viewerEntry = path.join(root, 'apps/viewer/src/app.ts');
 const viewerEntryTsx = viewerEntry + 'x';
@@ -207,7 +225,6 @@ await esbuild.build({
   assetNames: 'assets/[name]-[hash]',
   tsconfig: path.join(root, 'tsconfig.base.json'),
   minify: true,
-  minifyIdentifiers: false,
   sourcemap: false,
   external: ['crypto', 'fs', 'path', 'stream'],
   loader: {

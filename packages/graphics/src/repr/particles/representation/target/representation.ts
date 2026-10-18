@@ -17,6 +17,7 @@ import {
   type ParticleTarget,
   getParticleTargetGroups,
 } from '@molstar/model/model/particles/particle-list';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { type GraphicsRenderObject, getNextMaterialId } from '@molstar/graphics/gl/render-object';
 import { Subject } from 'rxjs';
@@ -52,7 +53,7 @@ export function ParticleTargetRepresentation(
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<ParticleList, ParticleTargetRepresentationParams>,
 ): ParticleTargetRepresentation {
-  const { graphics } = ctx;
+  let { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const renderObjects: GraphicsRenderObject[] = [];
@@ -266,6 +267,9 @@ export function ParticleTargetRepresentation(
     getAllLoci,
     eachLocation,
     mark,
+    setGraphics: (value: GraphicsContext) => {
+      graphics = value;
+    },
     destroy,
   };
 }

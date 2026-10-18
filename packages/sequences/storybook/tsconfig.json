@@ -1,0 +1,33 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Never built: its content is the stories and their support code (src/_stories), checked here (no emit). Imports Mol* directly (the Mol* demo's plugin and MVS support) and the Mol* adapter through @molstar/prism-viewer/sequence/molstar. Its references are the packages it imports, as built `lib` declarations (`tsc -b ../nightingale ../../prism/ui ../../prism/viewer ../../mvs/builder` first: the `typecheck` script); the stories' Storybook types are local (`src/_stories/support/seqstar-story.ts`).
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "webxr", "vite/client"]
+  },
+  "include": ["src", "vite.ts"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../viewer" },
+    { "path": "../nightingale" },
+    { "path": "../../core" },
+    { "path": "../../io" },
+    { "path": "../../model" },
+    { "path": "../../query-language" },
+    { "path": "../../plugin/core" },
+    { "path": "../../mvs/builder" },
+    { "path": "../../mvs/runtime" },
+    { "path": "../../prism/ui" },
+    { "path": "../../prism/viewer" }
+  ]
+}

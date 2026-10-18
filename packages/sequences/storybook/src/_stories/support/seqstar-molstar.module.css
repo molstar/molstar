@@ -1,0 +1,89 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Seq* and Mol* demo: the Mol* canvas beside the Seq* viewer, a structure switch above. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(480px, 1.5fr);
+  gap: var(--msp-space-5);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-3);
+}
+
+.chooser {
+  display: flex;
+  gap: var(--msp-space-3);
+  align-items: baseline;
+  color: var(--msp-color-text-muted);
+}
+
+/* The system's select in a control's shape (Prism's Select is not ported): its tone, no border, its text 8px in. */
+.chooser select {
+  height: var(--msp-control-height);
+  padding: 0 var(--msp-inset);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font: inherit;
+  font-size: var(--msp-font-size-sm);
+}
+
+.canvas {
+  position: relative;
+  height: 560px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: var(--msp-radius-lg);
+  overflow: hidden;
+  background: var(--msp-color-panel);
+}
+
+.switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-3);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--msp-space-3) var(--msp-space-4);
+  border: 0;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice:hover {
+  background: var(--msp-color-hover);
+}
+
+/* The picked one: the accent's wash (Prism's Choices). */
+.choice[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+}
+
+.choice span {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Spacegroup, SpacegroupCell } from '../spacegroup/construction.js';
 import { Cell } from '../spacegroup/cell.js';
 import { operatorsForEntry, orderForEntry, SpacegroupData } from '../spacegroup/tables.js';

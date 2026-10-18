@@ -1,0 +1,335 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The tree's list (a `VirtualList`: rows of one height, only the window rendered; view-models.md §3). */
+.tree {
+  /* One level's indent; a deep tree (the state tree) sets less. */
+  --msp-tree-indent: 14px;
+}
+
+.empty {
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}
+
+/* A tree item: one row, focusable by the keyboard (dom/tree-keys.ts, roving); its row shows the focus. Rows never get
+   wider than the panel: the label and description give way, the actions stay in view. */
+.item {
+  min-width: 0;
+  outline: none;
+}
+
+.item:focus-visible > .row,
+.item:focus-visible > .more,
+.item:focus-visible > .loading {
+  box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  /* Every row of a tree is this tall (the list is virtualized: rows of one height, measured). */
+  height: max(26px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-1) 0
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
+  border-radius: var(--msp-radius-md);
+  cursor: default;
+  user-select: none;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.picked {
+  background: var(--msp-color-control);
+
+  & .label {
+    color: var(--msp-color-accent);
+  }
+}
+
+.expander {
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* 24px at least (WCAG 2.5.8), 44px on touch. */
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > .row > & {
+    transform: rotate(90deg);
+  }
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+.leaf {
+  visibility: hidden;
+}
+
+.kind {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.label {
+  flex: 0 1 auto;
+  min-width: 3ch;
+  max-width: 60%;
+  overflow: hidden;
+  font-weight: 500;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.description {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+/* A row's color (a volume's isosurface), before its description; a theme's colors: a split swatch. */
+.swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--msp-accent-red) 0 25%,
+    var(--msp-accent-orange) 0 50%,
+    var(--msp-accent-green) 0 75%,
+    var(--msp-accent-blue) 0
+  );
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 1px;
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: max(24px, var(--msp-touch-target, 0px));
+  height: max(24px, var(--msp-touch-target, 0px));
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .row:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+.actionSlot {
+  display: grid;
+  place-items: center;
+  width: max(24px, var(--msp-touch-target, 0px));
+}
+
+/* A hidden node keeps its eye visible: the state is worth seeing at a glance. */
+.keep {
+  opacity: 1;
+}
+
+.hidden {
+  & .label,
+  & .kind {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* A row's menu: inline under the row, indented with it, a quiet surface holding it together. */
+.menu {
+  display: grid;
+  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+
+  /* In a `MenuPopover` (a row's ⋯): its frame is the popover's. */
+  &[data-popover] {
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  /* In the inspector (a node's actions): plain rows on the panel, no well and no inset. */
+  &[data-flat] {
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+}
+
+.menuItem {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: max(26px, var(--msp-touch-target, 0px));
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.subChevron {
+  justify-self: center;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+.subItems {
+  display: grid;
+  padding-left: calc(var(--msp-icon-sm) + var(--msp-space-3));
+}
+
+.subMenu {
+  display: grid;
+}
+
+/* Show all: a quiet row where the rest would be, at the children's depth. */
+.more {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  width: 100%;
+  height: max(26px, var(--msp-touch-target, 0px));
+  padding-left: calc(
+    var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    22px
+  ); /* off-scale: past the chevron */
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  line-height: max(26px, var(--msp-touch-target, 0px));
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.loading {
+  height: max(26px, var(--msp-touch-target, 0px));
+  padding-left: calc(
+    var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    40px
+  ); /* off-scale: past the chevron and the kind icon */
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: max(26px, var(--msp-touch-target, 0px));
+}
+
+/* Destructive (Remove): in the danger color, set apart by a hairline from what comes before it (alone, no line). */
+/* An entry with its choices as icons at its end (Modify by selection): not a button itself, no hover of its own. */
+.inlineItem {
+  grid-template-columns: 14px 1fr auto;
+  cursor: default;
+
+  &:hover {
+    background: none;
+  }
+}
+
+.inlineIcons {
+  display: flex;
+  gap: 2px; /* off-scale: icon buttons side by side */
+}
+
+.menuItem[data-danger] {
+  color: var(--msp-color-danger);
+
+  &:not(:first-child) {
+    margin-top: var(--msp-space-1);
+    box-shadow: 0 -1px 0 var(--msp-glass-edge);
+    border-radius: 0 0 var(--msp-radius-sm) var(--msp-radius-sm);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
+    color: var(--msp-color-danger);
+  }
+}
+
+/* An extension's row's controls (scene-row.tsx): under the row, aligned with its label. */
+.rowBody {
+  display: grid;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+}
+
+/* A row's own controls (SceneRow `inline`: a trajectory's scrubber): after a short description, taking the rest. */
+.description.short {
+  flex: none;
+}
+
+.inline {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px; /* off-scale: the row's small buttons side by side, as the row's own actions */
+  min-width: 0;
+  margin-inline-start: var(--msp-space-2);
+}

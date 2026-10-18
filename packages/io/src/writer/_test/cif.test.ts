@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import * as Data from '@molstar/io/reader/cif/data-model';
 import { CifWriter } from '../cif.js';
 import { decodeMsgPack } from '@molstar/io/common/msgpack/decode';

@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { describe, expect, it } from 'vitest';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { StructureSelectionQuery } from '../query.js';
 import { StructureSelectionQueryRegistry } from '../registry.js';
 import { StructureSelectionQueries } from '../catalog.js';

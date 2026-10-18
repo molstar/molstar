@@ -1,0 +1,101 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Code, ExampleNightingale, ExamplePlugin, ExampleViewer, MinimalExample } from "./live";
+import source from "./minimal-example.tsx?raw";
+
+<Meta title="Seq*/Docs/Introduction" />
+
+# Seq\*
+
+**Seq\*** is a library for viewing sequences in their biological context, from a single protein to a whole genome. It is built on
+one coordinate model: positions, and the maps between them (a protein's residues onto its gene's codons across introns,
+an alignment's rows onto its columns, a design onto its wild type, a chain onto its structure), so data placed on any of
+these shows on the others. A view is a document in **SeqViewSpec**, Seq\*'s format, as MolViewSpec is for Mol\*'s 3D
+views; the Seq\* viewer renders it, and so does Nightingale. Here is one document, rendered live by the Seq\* viewer
+(hover a residue or a domain):
+
+<ExampleViewer />
+
+The very same document rendered by Nightingale, EBI's components, the format's second renderer
+(`@molstar/seq-nightingale`): the document is resolved for what Nightingale draws, materialized as its components and
+mounted; what it cannot draw, it reports.
+
+<ExampleNightingale />
+
+The two are linked, by this page's own code and the public APIs of both (Nightingale is a host of the viewer, as the
+Mol\* view is in the 3D stories): hover or select in one and the same positions light in the other, and zoom or pan
+one and the other shows the same range (every position either touches; the viewer does not zoom in past its largest
+cell).
+
+**Linked to 3D.** Prism, the next version of the Mol\* viewer, shows AlphaFill's model of CYP3A4 with its ligands; the
+sequence above the structure is a Seq\* view of it. Hover or select residues in either and the other follows. Hover a
+track and click the paintbrush at its left to color the structure by it (pLDDT, secondary structure; the residue track
+restores the default coloring), or right-click the track. A preview, still under development; the model loads from
+AlphaFill.
+
+<ExamplePlugin />
+
+The document, built with the builder, and the ways it is shown (one file, run on this page):
+
+<Code code={source} />
+
+Neither UI needs more than the document: the viewer spec (its registry entries, behaviors and config) defaults to
+`DefaultSeqViewerSpec()`, and a document whose data is all by value needs no loaders (the host's I/O, passed in
+`ports`). The same file also mounts the DOM UI and draws the document headless as an SVG string:
+
+<MinimalExample />
+
+Hover a track's name: its tooltip shows the track's legend, and the full text where the name is cut.
+The whole legend sits collapsed under the tracks ("Legend"): a UI's `legend` option (`"collapsed"`,
+`"expanded"` or `"hidden"`, also the element's `legend` attribute), the `view.legend` action or the
+`seqv:legend` command (`{"open": true | false | "toggle"}`) opens it.
+
+In a real host the spec adds registry entries (an extension's, `{ svs: … }` for the format's
+providers) and the ports add loaders for sources by URI or host file; the
+[DOM UI](?path=/story/seq-cases-default-uis--description-links) and
+[React UI](?path=/story/seq-cases-default-uis--case-10) stories show both.
+
+## What Seq\* is
+
+Seq\* is the spec first, with a data model, a query language (SeqQL) and a typed builder around it. A
+**SeqViewSpec** document says what to show: sequences, alignments, trees, numberings and
+annotations as data, and views of sections, tracks and layers over them
+([Concepts](?path=/docs/seq-docs-concepts--docs) defines each); it never says how a viewer draws it. The Seq\* viewer,
+the reference renderer, decides how: layouts, navigators, sizes, levels of detail, gestures and the skin; Nightingale
+is a second renderer of the same documents. Stories Untold is its first host (a sequence panel beside each scene's 3D state); the Mol\* adapter
+(Mol\*'s, in the Prism viewer: `@molstar/prism-viewer/sequence/molstar`) links a viewer to a Mol\* canvas.
+
+Seq\* is a set of packages under `packages/sequences/`. These pages are for a developer who embeds it or
+extends it: [**Concepts**](?path=/docs/seq-docs-concepts--docs) explains the vocabulary (molecules, units, coordinate systems,
+sections, layers and the rest), **Principles** says what holds everywhere, **Features** lists what is built with a
+story for each, **Format** and **Query language** introduce the two languages, and **Extending**
+shows where new renderers, themes, presets, symbols and stream providers plug in.
+
+## The packages
+
+Two packages, `@molstar/seq-core` (platform-free; of other packages only Mol\*'s MessagePack, zip and synchronous task context) and `@molstar/seq-viewer`, and two adapters. Each
+folder is an entry; a bundle keeps only what it imports.
+
+| Entry | What it holds |
+|---|---|
+| `@molstar/seq-core/model` | The data model: molecules, numberings, alignments, annotations as typed tables, coordinate systems and the maps between them, extents, loci, MessagePack. No DOM. |
+| `@molstar/seq-core/format` | SeqViewSpec 1.0: the parameter tables, `validate` and its issue codes, readers for the data formats, load and resolve, patches, the generated reference, MessagePack; the CLIs `svs-validate`, `svs-convert`, `svs-print-schema`. |
+| `@molstar/seq-core/builder` | The typed builder (`createSeqViewSpec`) and its helpers (`translate`, `basePairs`, `b.preset.*`); imports the format by type only. |
+| `@molstar/seq-viewer` | The headless context (`createSeqViewer`): the document graph, managers, layout, hit testing, input, behaviors, commands, the registry and `DefaultRegistry`. |
+| `@molstar/seq-viewer/draw` | The composer and the renderer API: batches, placement helpers, density helpers. DOM-free. |
+| `@molstar/seq-viewer/canvas` | The Canvas2D surface (`mountSection`), DOM input, the glyph atlas, `windowScheduler`. |
+| `@molstar/seq-viewer/svg` | The platform-free SVG backend, `renderSvg`, PNG, the committed text metrics; the `seqv-render` CLI. |
+| `@molstar/seq-viewer/dom` | The default UI without a framework: the `<seq-viewer>` element (`defineSeqViewer`), `mountSeqViewer`, its parts and slots. |
+| `@molstar/seq-viewer/react` | The same UI in React: `SeqViewer`, the provider, hooks, parts and slots. Both UIs share `@molstar/seq-viewer/skin.css`. |
+| `@molstar/seq-nightingale` | A second viewer for the format: a resolved view materialized as EBI's Nightingale components, with what it cannot draw reported. |
+| `@molstar/seq-viewer/interactions` | An extension: interaction pairs and the fingerprint, a format half and a viewer half (`/viewer`). |
+| `@molstar/seq-core/links` | Command links for a host's markdown: the codec, the runner and a remark adapter (`/remark`). |
+| `@molstar/seq-core/translate` | Maps between coordinate systems, a host's own (Mol\*'s chain residues) and Seq\*'s (units, molecules, rows): the `Translator`, a registry of systems and the routes between them, and the `SystemRegistry` over a sequence set, which maps between a structure, the set and an alignment's columns with no viewer (`map`). The viewer's `ctx.systems` is one. |
+| `@molstar/seq-core/algorithms` | Aligners behind one interface (biomsa, Needleman–Wunsch, Myers) and the search matchers (`/search`). No DOM. |
+| `@molstar/seq-core/stream/gmod` | Stream providers for indexed genome files read by byte range: 2bit (letters), BigWig (values), BigBed and tabix VCF (items). |
+| `@molstar/prism-viewer/sequence/molstar` | The Mol\* adapter (Mol\*'s, in the Prism viewer): the `molstar:structure` complex provider, structure formats, and the maps between Mol\* loci and Seq\* runs. |
+| `@molstar/seq-core/stream/tiles` | The reference stream provider, `seqstar-tiles/1`: the tile client, `tilesStream` (a provider for the host's `loaders.stream`) and the procedural tile server. |
+| `@molstar/seq-core/query` | SeqQL, the query language: the symbol table, the reader, binder and printer, the builder `Q`. Imports nothing. |
+
+The arrows point one way: `model` ← `format` ← `viewer` ← `/draw` ← `/svg`, `/canvas` ←
+`/react`, `/dom`. The core (`@molstar/seq-core`) depends on nothing but Mol\*'s MessagePack, zip and task context (`@molstar/io`, `@molstar/core`); the viewer's root, `/draw` and `/svg` touch
+no DOM global, so they run in Node.

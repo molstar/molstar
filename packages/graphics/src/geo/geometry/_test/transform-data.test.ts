@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { fillIdentityTransform } from '@molstar/core/math/linear-algebra/3d/transform-array';
 import { ValueCell } from '@molstar/core/util';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';

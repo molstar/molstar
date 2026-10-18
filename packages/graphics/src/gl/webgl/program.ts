@@ -10,7 +10,13 @@ import type { WebGLState } from './state.js';
 import type { WebGLExtensions } from './extensions.js';
 import { getUniformSetters, getUniformType, type UniformSetters } from './uniform.js';
 import { isArrayUniform, type UniformsList, type UniformType } from '../uniform.js';
-import { getUniformBlockLayout, UniformBlockInfo, UniformBlocks, getUniformBlock } from '../uniform-layout.js';
+import {
+  getBindingLayout,
+  getUniformBlockLayout,
+  UniformBlockInfo,
+  UniformBlocks,
+  getUniformBlock,
+} from '../uniform-layout.js';
 import { getShaderDeclarations } from './shader-declarations.js';
 import { type AttributeBuffers, bindAttributeBuffers, getAttribType } from './buffer.js';
 import { type AttributeLayout, getAttributeLayout } from '../attribute-layout.js';
@@ -35,14 +41,19 @@ import type { GraphicsProgram, ProgramVariant } from '../render-item.js';
 const getNextProgramId = idFactory();
 
 export interface Program extends GraphicsProgram {
+  /**
+   * Whether linking started by `link` has finished, without blocking (`KHR_parallel_shader_compile`); true without the
+   * extension (linking then blocks in `finalize`) and once destroyed
+   */
+  isCompiled: () => boolean;
   use: () => void;
   setUniforms: (uniformValues: UniformsList) => void;
   uniform: (k: string, v: UniformType) => void;
   bindAttributes: (attribueBuffers: AttributeBuffers) => void;
   offsetAttributes: (attributeBuffers: AttributeBuffers, offset: number) => void;
-  bindTextures: (textures: Textures, startingTargetUnit: number) => void;
+  /** Binds `textures` at their units, fixed per program (see `getTextureUnits`) */
+  bindTextures: (textures: Textures) => void;
 
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -208,6 +219,27 @@ function getDimensionTarget(gl: GLRenderingContext, dimension: TextureDimension)
 }
 
 /** all `#define`d names, including local ones, approximates the defines a program was compiled with */
+/**
+ * Texture units of a program: a running index over the active samplers in the global, material and object tiers of
+ * the binding layout (the order of the WebGPU bind groups), so units are fixed per program, its sampler uniforms are set
+ * once, and the units stay as low as the samplers allow (devices may have only 8)
+ */
+function getTextureUnits(schema: RenderableSchema, defines: DefineLookup, isActive: (name: string) => boolean) {
+  const layout = getBindingLayout(schema, defines);
+  const units: { [k: string]: TextureId } = {};
+  let unit = 0;
+  for (const tier of UniformBlocks) {
+    for (const { name } of layout[tier].textures) {
+      if (isActive(name)) units[name] = unit++ as TextureId;
+    }
+  }
+  // active samplers the layout leaves out (none unless a `usedIf` is wrong, see `checkActiveUniforms`) after it
+  for (const k of Object.keys(schema)) {
+    if (schema[k].type === 'texture' && isActive(k) && units[k] === undefined) units[k] = unit++ as TextureId;
+  }
+  return units;
+}
+
 function getShaderDefineLookup(shaderCode: GlslSources): DefineLookup {
   const names = `${shaderCode.vert}\n${shaderCode.frag}`.matchAll(/^[ \t]*#define[ \t]+(\w+)/gm);
   return getDefineLookup(Array.from(names, (m) => m[1]));
@@ -359,21 +391,21 @@ export function createProgram(
   parameters: WebGLParameters,
   getShader: ShaderGetter,
   props: ProgramProps,
+  useBlocks: boolean,
 ): Program {
   const { defineValues, shaderCode: _shaderCode, schema } = props;
 
-  let program = getProgram(gl);
+  const program = getProgram(gl);
   const programId = getNextProgramId();
   const variant = normalizeVariant(defineValues.dRenderVariant.ref.value);
 
-  const useBlocks = isWebGL2(gl);
   const shaderCode = addShaderDefines(
     gl,
     extensions,
     parameters,
     defineValues,
     _shaderCode,
-    getShaderDeclarations(schema, useBlocks, getDefineValuesLookup(defineValues)),
+    getShaderDeclarations(schema, isWebGL2(gl), getDefineValuesLookup(defineValues), useBlocks),
   );
   const vertShader = getShader('vert', shaderCode.vert);
   const fragShader = getShader('frag', shaderCode.frag);
@@ -387,6 +419,7 @@ export function createProgram(
 
   let locations: Locations;
   let uniformSetters: UniformSetters;
+  let textureUnits: { [k: string]: TextureId };
   /** only set in debug mode */
   let samplerTypes: { [k: string]: number } | undefined;
 
@@ -408,9 +441,20 @@ export function createProgram(
   }
   if (variant === 'compute') link();
 
+  /** Assigns the texture units and sets the sampler uniforms to them, leaving the current program as it was */
+  function setTextureUnits(defines: DefineLookup) {
+    // textures of inactive samplers get no unit and are not bound
+    textureUnits = getTextureUnits(schema, defines, (k) => locations[k] !== null && locations[k] !== undefined);
+    const current = gl.getParameter(gl.CURRENT_PROGRAM) as WebGLProgram | null;
+    gl.useProgram(program);
+    for (const k of Object.keys(textureUnits)) gl.uniform1i(locations[k], textureUnits[k]);
+    gl.useProgram(current);
+  }
+
   function finalize() {
     locations = getLocations(gl, program, schema, useBlocks);
     uniformSetters = getUniformSetters(schema);
+    setTextureUnits(getShaderDefineLookup(shaderCode));
     if (useBlocks && isWebGL2(gl)) {
       for (const block of UniformBlocks) {
         const info = UniformBlockInfo[block];
@@ -440,6 +484,10 @@ export function createProgram(
 
     isReady: () => {
       return finalized;
+    },
+    isCompiled: () => {
+      if (finalized || destroyed || !extensions.parallelShaderCompile) return true;
+      return linked && !!gl.getProgramParameter(program, extensions.parallelShaderCompile.COMPLETION_STATUS);
     },
     link: () => {
       if (!linked) link();
@@ -493,12 +541,11 @@ export function createProgram(
         buffer.changeOffset(attributeLayout.byName[k].location, offset);
       }
     },
-    bindTextures: (textures: Textures, startingTargetUnit: number) => {
+    bindTextures: (textures: Textures) => {
       for (let i = 0, il = textures.length; i < il; ++i) {
         const [k, texture] = textures[i];
-        const l = locations[k];
-        if (l !== null && l !== undefined) {
-          const unit = (i + startingTargetUnit) as TextureId;
+        const unit = textureUnits[k];
+        if (unit !== undefined) {
           if (isNullTexture(texture)) {
             gl.activeTexture(gl.TEXTURE0 + unit);
             gl.bindTexture(gl.TEXTURE_2D, null);
@@ -507,16 +554,10 @@ export function createProgram(
             if (samplerTypes?.[k] !== undefined) checkTextureBinding(gl, k, glTexture, samplerTypes[k]);
             glTexture.bind(unit);
           }
-          uniformSetters[k](gl, l, unit);
         }
       }
     },
 
-    reset: () => {
-      program = getProgram(gl);
-      if (linked) link();
-      if (finalized) finalize();
-    },
     destroy: () => {
       if (destroyed) return;
       vertShader.destroy();

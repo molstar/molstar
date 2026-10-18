@@ -6,7 +6,7 @@
 
 /**
  * Background at the far plane: skybox (cube texture), image, or horizontal and radial gradients. Fragment coordinates
- * in GL window space (bottom-left origin) as on WebGL; images and cube faces sampled in upload order.
+ * with a top-left origin as the viewport; images and cube faces sampled in upload order.
  */
 export const background_wgsl = /* wgsl */ `
 struct VertexOutput {
@@ -44,8 +44,8 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let texSize = uObject.uTexSize;
     let viewport = uObject.uViewport;
     let viewportAdjusted = uObject.uViewportAdjusted != 0u;
-    // gl_FragCoord.xy of WebGL
-    let fragCoord = vec2<f32>(in.position.x, texSize.y - in.position.y);
+    // window coordinates, top-left origin as the viewport
+    let fragCoord = in.position.xy;
 
     #if defined(dVariant_skybox)
         let t = uObject.uViewDirectionProjectionInverse * in.vPosition;
@@ -58,14 +58,15 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         } else {
             coords = (fragCoord / uObject.uImageScale) + uObject.uImageOffset;
         }
-        let color = textureSampleLevel(tImage, sLinearMipmap, vec2<f32>(coords.x, 1.0 - coords.y), uObject.uBlur * 8.0);
+        let color = textureSampleLevel(tImage, sLinearMipmap, coords, uObject.uBlur * 8.0);
         return vec4<f32>(lightenColor(saturateColor(color.rgb, uObject.uSaturation), uObject.uLightness), uObject.uOpacity);
     #elif defined(dVariant_horizontalGradient)
         var d: f32;
+        // from the bottom
         if (viewportAdjusted) {
-            d = ((fragCoord.y - viewport.y) * (texSize.y / viewport.w) / texSize.y) + 1.0 - (uObject.uGradientRatio * 2.0);
+            d = 2.0 - ((fragCoord.y - viewport.y) / viewport.w) - (uObject.uGradientRatio * 2.0);
         } else {
-            d = (fragCoord.y / texSize.y) + 1.0 - (uObject.uGradientRatio * 2.0);
+            d = 2.0 - (fragCoord.y / texSize.y) - (uObject.uGradientRatio * 2.0);
         }
         let color = mix(uObject.uGradientColorB, uObject.uGradientColorA, clamp(d, 0.0, 1.0));
         return vec4<f32>(color + screenSpaceDither(fragCoord), 1.0);

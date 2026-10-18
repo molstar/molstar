@@ -1,0 +1,83 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Side docks run the full height; top and bottom docks (sequence, log) span the canvas only. */
+  grid-template-areas:
+    "left top right"
+    "left viewport right"
+    "left bottom right";
+  overflow: hidden;
+  background: var(--msp-color-bg);
+  /* Panels size against the shell, not the window. */
+  container-type: size;
+
+  &[data-mode="compact"] {
+    /* Touch targets of at least 44px (accessibility.md, WCAG 2.5.5 on touch): rows and controls grow; the rest
+       follows. */
+    --msp-row-height: 44px;
+    --msp-control-height: 40px;
+    /* What fixed-size targets grow to (`max(<their size>, var(--msp-touch-target, 0px))`). */
+    --msp-touch-target: 44px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "top"
+      "viewport"
+      "bottom"
+      "right";
+  }
+}
+
+.viewport {
+  grid-area: viewport;
+  /* Canvas chrome lays out against the canvas width. */
+  container: canvas / inline-size;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas {
+  position: absolute;
+  /* The rail and a pinned panel sit beside the canvas: it ends where they begin (the rail alone, while the panel floats). */
+  inset: 0 var(--msp-canvas-end, var(--msp-canvas-pinned, 0px)) 0 0;
+  /* Quiet under the empty canvas's mark and splash, back in gradually when something loads (the viewport behind it is
+     the canvas's own color). */
+  transition: opacity var(--msp-motion-reveal) var(--msp-ease);
+
+  &[data-quiet] {
+    opacity: 0;
+  }
+}
+
+/* Items floating over the canvas: two layers, the view's chrome (canvas-themed) and the application's (UI-themed).
+   Neither blocks the canvas outside its own boxes. */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Its theme sets the text color too. */
+  color: var(--msp-color-text);
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+/* The view's chrome follows the canvas: pinned, it lays out against the narrower canvas. */
+.canvasLayer {
+  right: var(--msp-canvas-pinned, 0px);
+}

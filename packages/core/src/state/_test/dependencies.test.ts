@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import {
   State,
   StateObject,
@@ -352,7 +353,7 @@ describe('State dependencies - deferred resolution', () => {
     builder.toRoot<Root>().apply(Boom as any, {}, { ref: 'boom' });
     builder.toRoot<Root>().apply(B as any, {}, { ref: 'leaf-b', dependsOn: ['boom'] });
     // The state surfaces transform errors via console.error; suppress the noise.
-    const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
       await state.runTask(state.updateTree(builder));
     } finally {

@@ -4,14 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-/** View space z of window depth values, depth in [0, 1] as the fragment stage's position.z and depth textures */
+/**
+ * View space z of window depth values, depth in [0, 1] as the fragment stage's position.z and depth textures; depth is
+ * reversed (near 1, far 0, see `DepthRangeTag`), which keeps the precision of small (far) depths
+ */
 export const depth_wgsl = /* wgsl */ `
 fn perspectiveDepthToViewZ(depth: f32, near: f32, far: f32) -> f32 {
-    return (near * far) / ((far - near) * depth - far);
+    return -(near * far) / (near + (far - near) * depth);
 }
 
 fn orthographicDepthToViewZ(depth: f32, near: f32, far: f32) -> f32 {
-    return depth * (near - far) - near;
+    return depth * (far - near) - far;
 }
 
 fn depthToViewZ(isOrtho: f32, depth: f32, near: f32, far: f32) -> f32 {

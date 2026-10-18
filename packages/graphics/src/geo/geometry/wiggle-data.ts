@@ -15,7 +15,8 @@ export type WiggleData = {
   uWiggleTexDim: ValueCell<Vec2>;
   dWiggle: ValueCell<boolean>;
   wiggleAverage: ValueCell<number>;
-  dWiggleType: ValueCell<string>;
+  /** the type (`WiggleType`); the object uniform `uInstanceGranularity` selects the index */
+  wiggleType: ValueCell<string>;
   uWiggleStrength: ValueCell<number>;
 };
 
@@ -51,7 +52,7 @@ export function createWiggle(count: number, type: WiggleType, wiggleData?: Wiggl
     ValueCell.update(wiggleData.uWiggleTexDim, Vec2.create(wiggle.width, wiggle.height));
     ValueCell.updateIfChanged(wiggleData.dWiggle, count > 0);
     ValueCell.updateIfChanged(wiggleData.wiggleAverage, getWiggleAverage(wiggle.array, count));
-    ValueCell.updateIfChanged(wiggleData.dWiggleType, type);
+    ValueCell.updateIfChanged(wiggleData.wiggleType, type);
     return wiggleData;
   } else {
     return {
@@ -59,7 +60,7 @@ export function createWiggle(count: number, type: WiggleType, wiggleData?: Wiggl
       uWiggleTexDim: ValueCell.create(Vec2.create(wiggle.width, wiggle.height)),
       dWiggle: ValueCell.create(count > 0),
       wiggleAverage: ValueCell.create(0),
-      dWiggleType: ValueCell.create(type),
+      wiggleType: ValueCell.create<string>(type),
       uWiggleStrength: ValueCell.create(1),
     };
   }
@@ -77,7 +78,7 @@ export function createEmptyWiggle(wiggleData?: WiggleData): WiggleData {
       uWiggleTexDim: ValueCell.create(Vec2.create(1, 1)),
       dWiggle: ValueCell.create(false),
       wiggleAverage: ValueCell.create(0),
-      dWiggleType: ValueCell.create('groupInstance'),
+      wiggleType: ValueCell.create<string>('groupInstance'),
       uWiggleStrength: ValueCell.create(1),
     };
   }

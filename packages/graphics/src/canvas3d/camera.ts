@@ -166,6 +166,13 @@ export class Camera implements ICamera {
     return Camera.copySnapshot(Camera.createDefaultSnapshot(), this.state);
   }
 
+  /** The view the camera comes to: the target of a transition under way, else where it is (what a saved state keeps). */
+  getSettledSnapshot() {
+    return this.transition.inTransition
+      ? Camera.copySnapshot(Camera.createDefaultSnapshot(), this.transition.target)
+      : this.getSnapshot();
+  }
+
   getTargetDistance(radius: number) {
     return Math.max(
       this.minTargetDistance / this.scale,
@@ -236,14 +243,14 @@ export class Camera implements ICamera {
     this.setState(this.getCenter(target), durationMs);
   }
 
-  /** Transform point into 2D window coordinates. */
+  /** Transform point into 2D window coordinates (top-left origin, y down). */
   project(out: Vec4, point: Vec3) {
     return cameraProject(out, point, this.viewport, this.projectionView);
   }
 
   /**
    * Transform point from screen space to 3D coordinates.
-   * The point must have `x` and `y` set to 2D window coordinates
+   * The point must have `x` and `y` set to 2D window coordinates (top-left origin, y down)
    * and `z` between 0 (near) and 1 (far); the optional `w` is not used.
    */
   unproject(out: Vec3, point: Vec3 | Vec4) {
@@ -259,6 +266,7 @@ export class Camera implements ICamera {
     return 2 / w / (rx * Math.abs(P00));
   }
 
+  /** The ray through window coordinates `x`, `y` (top-left origin, y down) */
   getRay(out: Ray3D, x: number, y: number) {
     if (this.state.mode === 'orthographic') {
       Vec3.set(out.origin, x, y, 0);

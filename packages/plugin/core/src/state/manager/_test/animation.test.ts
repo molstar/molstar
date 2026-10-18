@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
 import { BehaviorSubject } from 'rxjs';
 import type { PluginStateAnimation } from '../../animation/model.js';
@@ -132,7 +133,7 @@ describe('PluginAnimationManager registration', () => {
 
   it('stops and tears down a playing current animation when it is removed', async () => {
     const manager = create();
-    const teardown = jest.fn();
+    const teardown = vi.fn();
     const a = animation('a', { teardown });
     const b = animation('b');
     manager.register(a);
@@ -210,5 +211,32 @@ describe('PluginAnimationManager current and snapshots', () => {
     expect(manager.current?.paramValues).toBe(before);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("'missing'");
+  });
+});
+
+describe('PluginAnimationManager.stop', () => {
+  it('waits for a frame under way, so what comes after it (a snapshot) is not overwritten', async () => {
+    const manager = create();
+    const order: string[] = [];
+    let release!: () => void;
+    const slow = animation('slow', {
+      apply: async () => {
+        order.push('frame begun');
+        await new Promise<void>((r) => (release = r));
+        order.push('frame applied');
+        return { kind: 'next', state: {} };
+      },
+    });
+    await manager.play(slow, {});
+    // A tick starts a frame asynchronously (the loop does not wait for it).
+    await manager.tick(16);
+    expect(order).toEqual(['frame begun']);
+    const stopped = manager.stop().then(() => order.push('stopped'));
+    await Promise.resolve();
+    expect(order).toEqual(['frame begun']);
+    release();
+    await stopped;
+    expect(order).toEqual(['frame begun', 'frame applied', 'stopped']);
+    expect(manager.isAnimating).toBe(false);
   });
 });

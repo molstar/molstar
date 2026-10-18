@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Expression } from '@molstar/model/script/language/expression';
+import type { Expression } from '@molstar/query-language/language/expression';
 import { type QueryFn, Structure, StructureSelection as Sel, QueryContext } from '@molstar/model/model/structure';
 import { Script } from '@molstar/model/script/script';
 import { compile } from '@molstar/model/script/runtime/query/compiler';

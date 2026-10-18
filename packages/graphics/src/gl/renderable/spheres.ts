@@ -58,6 +58,15 @@ export const SpheresSchema = {
 export type SpheresSchema = typeof SpheresSchema;
 export type SpheresValues = Values<SpheresSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const SpheresRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...SpheresSchema,
+};
+
 export function SpheresRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -67,13 +76,7 @@ export function SpheresRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<SpheresValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...SpheresSchema,
-  };
+  const schema = SpheresRenderableSchema;
   const renderValues: SpheresValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

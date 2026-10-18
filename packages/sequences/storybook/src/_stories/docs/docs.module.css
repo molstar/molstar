@@ -1,0 +1,86 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Seq* docs pages' live parts in Mol* Prism's rules: cards (a panel's tone, no border) holding a canvas, code that
+   wraps (nothing here scrolls). */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-5);
+  margin: var(--msp-space-5) 0 var(--msp-space-6);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  color: var(--msp-color-text);
+}
+
+/* The card's title row: its text 8px in, the one text column. */
+.label {
+  display: flex;
+  align-items: center;
+  min-height: var(--msp-row-height);
+  padding: 0 var(--msp-inset);
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+}
+
+.svg svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.code {
+  margin: var(--msp-space-4) 0 var(--msp-space-6);
+  padding: var(--msp-space-4);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  padding: var(--msp-space-3) var(--msp-inset);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+}
+
+.details {
+  margin: var(--msp-space-4) 0 var(--msp-space-6);
+}
+
+.details > summary {
+  cursor: pointer;
+  color: var(--msp-color-text-muted);
+}
+
+/* A story of another package in a frame: 75% of the content width, centered like a figure beside the full-width cards
+   above it, an app's aspect (16:10) so the 3D is never squashed, a card's corners. */
+.embed {
+  display: block;
+  width: 75%;
+  min-width: min(100%, 480px);
+  margin: 0 auto;
+  aspect-ratio: 16 / 10;
+  min-height: 420px;
+  border: 0;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+}

@@ -600,12 +600,7 @@ namespace TrackballControls {
     function outsideViewport(x: number, y: number) {
       x *= input.pixelRatio;
       y *= input.pixelRatio;
-      return (
-        x > viewport.x + viewport.width ||
-        input.height - y > viewport.y + viewport.height ||
-        x < viewport.x ||
-        input.height - y < viewport.y
-      );
+      return x > viewport.x + viewport.width || y > viewport.y + viewport.height || x < viewport.x || y < viewport.y;
     }
 
     let lastUpdated = -1;
@@ -685,7 +680,7 @@ namespace TrackballControls {
 
       const pr = input.pixelRatio;
       const vx = (x * pr - viewport.width / 2 - viewport.x) / viewport.width;
-      const vy = -(input.height - y * pr - viewport.height / 2 - viewport.y) / viewport.height;
+      const vy = (y * pr - viewport.height / 2 - viewport.y) / viewport.height;
 
       if (isStart) {
         if (dragRotate) {

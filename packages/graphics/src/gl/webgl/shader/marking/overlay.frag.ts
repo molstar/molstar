@@ -5,6 +5,21 @@ precision highp float;
 
 ${common}
 
+// occlusion at \`coords\`, depth-aware upsampled from a lower SSAO resolution with the scene's opaque depth
+float getOcclusion(const in vec2 coords) {
+    #ifdef dOcclusionUpsample
+        #ifdef dPackedDepth
+            float depth = unpackRGBAToDepth(texture2D(tDepth, coords));
+        #else
+            float depth = texture2D(tDepth, coords).r;
+        #endif
+        float viewZ = depthToViewZ(uIsOrtho, depth, uNear, uFar);
+        return getSsaoUpsampled(tSsaoDepth, uOcclusionTexSize, coords + uOcclusionOffset, viewZ, uNear, uFar);
+    #else
+        return unpackSsao(texture2D(tSsaoDepth, coords + uOcclusionOffset));
+    #endif
+}
+
 // mixes toward the SSAO occlusion color, like the postprocessing pass
 vec3 applyOcclusion(const in vec3 color, const in float occlusion, const in float fogAlpha) {
     vec3 occlusionColor = uTransparentBackground ? uOcclusionColor * fogAlpha : mix(uFogColor, uOcclusionColor, fogAlpha);
@@ -54,7 +69,7 @@ void main() {
     vec3 dimRgb = uDimColor;
     if (dimAlpha > 0.0 || fillAlpha > 0.0) {
         #if defined(dMarkingShading_ssao)
-            float occlusion = unpackSsao(texture2D(tSsaoDepth, coords + uOcclusionOffset));
+            float occlusion = getOcclusion(coords);
             dimRgb = applyOcclusion(dimRgb, occlusion, dimFogAlpha);
             fillRgb = applyOcclusion(fillRgb, occlusion, fillFogAlpha);
         #elif defined(dMarkingShading_traced)

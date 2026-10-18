@@ -80,7 +80,6 @@ export async function buildEntry({ root = repoRoot, entry, mode }) {
     metafile: true,
     tsconfig: path.join(packageDir, 'tsconfig.json'),
     minify: true,
-    minifyIdentifiers: false,
     conditions: ['molstar-src', 'import', 'default'],
     external: ['crypto', 'fs', 'path', 'stream'],
     loader: AssetLoaders,

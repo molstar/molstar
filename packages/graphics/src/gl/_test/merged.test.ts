@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createRenderObject, createMergedRenderObject, canMergeRenderObjects } from '../render-object.js';
 import { Scene } from '../scene.js';
 import { getGLContext, tryGetGLContext } from './gl.js';

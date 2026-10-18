@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -79,16 +79,16 @@ export class ObjExporter extends MeshExporter<ObjData> {
     const tmpV = Vec3();
     const stride = isGeoTexture ? 4 : 3;
 
-    const colorType = values.dColorType.ref.value;
-    const overpaintType = values.dOverpaintType.ref.value;
-    const transparencyType = values.dTransparencyType.ref.value;
+    const colorType = values.colorType.ref.value;
+    const overpaintType = values.overpaintType.ref.value;
+    const transparencyType = values.transparencyType.ref.value;
     const uAlpha = values.uAlpha.ref.value;
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
     let interpolatedColors: Uint8Array | undefined;
     if (graphics && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
-      interpolatedColors = ObjExporter.getInterpolatedColors(graphics, {
+      interpolatedColors = await ObjExporter.getInterpolatedColors(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -99,7 +99,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
 
     let interpolatedOverpaint: Uint8Array | undefined;
     if (graphics && mesh && overpaintType === 'volumeInstance') {
-      interpolatedOverpaint = ObjExporter.getInterpolatedOverpaint(graphics, {
+      interpolatedOverpaint = await ObjExporter.getInterpolatedOverpaint(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -111,7 +111,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
     let interpolatedTransparency: Uint8Array | undefined;
     if (graphics && mesh && transparencyType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedTransparency = ObjExporter.getInterpolatedTransparency(graphics, {
+      interpolatedTransparency = await ObjExporter.getInterpolatedTransparency(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,

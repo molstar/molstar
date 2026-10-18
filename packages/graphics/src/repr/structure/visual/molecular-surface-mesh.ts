@@ -34,6 +34,7 @@ import { ColorSmoothingParams, getColorSmoothingProps } from '@molstar/graphics/
 import { ValueCell } from '@molstar/core/util';
 import { ComplexMeshVisual, type ComplexVisual } from '../complex-visual.js';
 import { Tensor } from '@molstar/core/math/linear-algebra/tensor';
+import { getSurfaceSignatureDefines } from '@molstar/graphics/repr/signatures';
 
 export const MolecularSurfaceMeshParams = {
   ...UnitsMeshParams,
@@ -98,6 +99,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
   return UnitsMeshVisual<MolecularSurfaceMeshParams>(
     {
       defaultProps: PD.getDefaultValues(MolecularSurfaceMeshParams),
+      signatureDefines: getSurfaceSignatureDefines,
       createGeometry: createMolecularSurfaceMesh,
       createLocationIterator: ElementIterator.fromGroup,
       getLoci: getElementLoci,
@@ -195,6 +197,7 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
   return ComplexMeshVisual<MolecularSurfaceMeshParams>(
     {
       defaultProps: PD.getDefaultValues(MolecularSurfaceMeshParams),
+      signatureDefines: getSurfaceSignatureDefines,
       createGeometry: createStructureMolecularSurfaceMesh,
       createLocationIterator: ElementIterator.fromStructure,
       getLoci: getSerialElementLoci,

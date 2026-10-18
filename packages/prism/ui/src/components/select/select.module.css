@@ -1,0 +1,208 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.select {
+  display: grid;
+  gap: var(--msp-space-1);
+  min-width: 0;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  min-width: 0;
+  height: var(--msp-control-height);
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  /* Its edge where contrast matters (theme.css, --msp-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &[data-size="sm"] {
+    height: 24px;
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+  }
+
+  /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-muted);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* The options, inline under what opened them (Mol*'s action menu): a quiet surface with a hairline edge, the current
+   one checked. */
+.list {
+  max-height: 240px;
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  /* A hairline, as the panels' edges: in a block of the same tone it would blend in otherwise. */
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  animation: list-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.listContent {
+  display: grid;
+  padding: var(--msp-space-1);
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+  min-height: 26px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+
+  &[aria-selected="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+.group {
+  display: grid;
+}
+
+/* A group's fold: its name, a chevron turned while it is open (Mol*'s categories, as v5 lists them). */
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+}
+
+.groupChevron {
+  flex: none;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+/* Its options, set in under the fold. */
+.groupBody {
+  display: grid;
+  padding-left: var(--msp-space-3);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.check {
+  flex: none;
+  visibility: hidden;
+
+  [aria-selected="true"] > & {
+    visibility: visible;
+  }
+}
+
+/* Floating options (Select's `over`): a popover in the top layer, placed by the script; its list opaque, above. */
+.floating {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  color: inherit;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+
+  & .option {
+    min-height: 24px;
+    white-space: nowrap;
+  }
+
+  & > .list {
+    background: var(--msp-color-raised);
+    box-shadow:
+      inset 0 0 0 1px var(--msp-glass-edge),
+      var(--msp-shadow-overlay);
+  }
+}
+
+/* A menu in a popover (`MenuPopover`): raised, as the options of a select. */
+.menuPopover {
+  display: grid;
+  min-width: 180px;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-overlay);
+  font-size: var(--msp-font-size-sm);
+  animation: list-in var(--msp-motion-fast) var(--msp-ease);
+}

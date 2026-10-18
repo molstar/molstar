@@ -1,0 +1,226 @@
+{
+  "name": "@molstar/prism-viewer",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* Prism: the viewer mode (Mol*'s own UI: the scene and state trees, structure tools, snapshots, export); opt-in",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./page": {
+      "molstar-src": "./src/page.ts",
+      "types": "./lib/page.d.ts",
+      "import": "./lib/page.js"
+    },
+    "./headless": {
+      "molstar-src": "./src/headless.ts",
+      "types": "./lib/headless.d.ts",
+      "import": "./lib/headless.js"
+    },
+    "./viewer": {
+      "molstar-src": "./src/viewer.ts",
+      "types": "./lib/viewer.d.ts",
+      "import": "./lib/viewer.js"
+    },
+    "./spec": {
+      "molstar-src": "./src/spec.ts",
+      "types": "./lib/spec.d.ts",
+      "import": "./lib/spec.js"
+    },
+    "./default-spec": {
+      "molstar-src": "./src/default-spec.ts",
+      "types": "./lib/default-spec.d.ts",
+      "import": "./lib/default-spec.js"
+    },
+    "./spec-check": {
+      "molstar-src": "./src/spec-check.ts",
+      "types": "./lib/spec-check.d.ts",
+      "import": "./lib/spec-check.js"
+    },
+    "./options": {
+      "molstar-src": "./src/options.ts",
+      "types": "./lib/options.d.ts",
+      "import": "./lib/options.js"
+    },
+    "./element": {
+      "molstar-src": "./src/element.ts",
+      "types": "./lib/element.d.ts",
+      "import": "./lib/element.js"
+    },
+    "./api": {
+      "molstar-src": "./src/api.ts",
+      "types": "./lib/api.d.ts",
+      "import": "./lib/api.js"
+    },
+    "./api/area": {
+      "molstar-src": "./src/api/area.ts",
+      "types": "./lib/api/area.d.ts",
+      "import": "./lib/api/area.js"
+    },
+    "./api/params": {
+      "molstar-src": "./src/api/params.ts",
+      "types": "./lib/api/params.d.ts",
+      "import": "./lib/api/params.js"
+    },
+    "./api/scope": {
+      "molstar-src": "./src/api/scope.ts",
+      "types": "./lib/api/scope.d.ts",
+      "import": "./lib/api/scope.js"
+    },
+    "./api/run": {
+      "molstar-src": "./src/api/run.ts",
+      "types": "./lib/api/run.d.ts",
+      "import": "./lib/api/run.js"
+    },
+    "./api/annotations": {
+      "molstar-src": "./src/api/annotations.ts",
+      "types": "./lib/api/annotations.d.ts",
+      "import": "./lib/api/annotations.js"
+    },
+    "./commands/operations": {
+      "molstar-src": "./src/commands/operations.ts",
+      "types": "./lib/commands/operations.d.ts",
+      "import": "./lib/commands/operations.js"
+    },
+    "./ui/download": {
+      "molstar-src": "./src/ui/download.ts",
+      "types": "./lib/ui/download.d.ts",
+      "import": "./lib/ui/download.js"
+    },
+    "./storage/model": {
+      "molstar-src": "./src/storage/model.ts",
+      "types": "./lib/storage/model.d.ts",
+      "import": "./lib/storage/model.js"
+    },
+    "./sources/watched": {
+      "molstar-src": "./src/sources/watched.ts",
+      "types": "./lib/sources/watched.d.ts",
+      "import": "./lib/sources/watched.js"
+    },
+    "./sources/canvas-presence": {
+      "molstar-src": "./src/sources/canvas-presence.ts",
+      "types": "./lib/sources/canvas-presence.d.ts",
+      "import": "./lib/sources/canvas-presence.js"
+    },
+    "./sequence/index": {
+      "molstar-src": "./src/sequence/index.ts",
+      "types": "./lib/sequence/index.d.ts",
+      "import": "./lib/sequence/index.js"
+    },
+    "./sequence/molstar": {
+      "molstar-src": "./src/sequence/molstar/index.ts",
+      "types": "./lib/sequence/molstar/index.d.ts",
+      "import": "./lib/sequence/molstar/index.js"
+    },
+    "./sequence/runtime": {
+      "molstar-src": "./src/sequence/runtime.ts",
+      "types": "./lib/sequence/runtime.d.ts",
+      "import": "./lib/sequence/runtime.js"
+    },
+    "./persist/stores": {
+      "molstar-src": "./src/persist/stores.ts",
+      "types": "./lib/persist/stores.d.ts",
+      "import": "./lib/persist/stores.js"
+    },
+    "./model/scene": {
+      "molstar-src": "./src/model/scene.ts",
+      "types": "./lib/model/scene.d.ts",
+      "import": "./lib/model/scene.js"
+    },
+    "./journal/history-model": {
+      "molstar-src": "./src/journal/history-model.ts",
+      "types": "./lib/journal/history-model.d.ts",
+      "import": "./lib/journal/history-model.js"
+    },
+    "./testing/real-viewer": {
+      "molstar-src": "./src/testing/real-viewer.ts",
+      "types": "./lib/testing/real-viewer.d.ts",
+      "import": "./lib/testing/real-viewer.js"
+    },
+    "./agent/account": {
+      "molstar-src": "./src/agent/account.ts",
+      "types": "./lib/agent/account.d.ts",
+      "import": "./lib/agent/account.js"
+    },
+    "./agent/eval": {
+      "molstar-src": "./src/agent/eval.ts",
+      "types": "./lib/agent/eval.d.ts",
+      "import": "./lib/agent/eval.js"
+    },
+    "./agent/policies": {
+      "molstar-src": "./src/agent/policies.ts",
+      "types": "./lib/agent/policies.d.ts",
+      "import": "./lib/agent/policies.js"
+    },
+    "./agent/session": {
+      "molstar-src": "./src/agent/session.ts",
+      "types": "./lib/agent/session.d.ts",
+      "import": "./lib/agent/session.js"
+    },
+    "./agent/skills": {
+      "molstar-src": "./src/agent/skills.ts",
+      "types": "./lib/agent/skills.d.ts",
+      "import": "./lib/agent/skills.js"
+    },
+    "./features/*": {
+      "molstar-src": "./src/features/*/index.ts",
+      "types": "./lib/features/*/index.d.ts",
+      "import": "./lib/features/*/index.js"
+    },
+    "./views/structure/scene-row": {
+      "molstar-src": "./src/views/structure/scene-row.tsx",
+      "types": "./lib/views/structure/scene-row.d.ts",
+      "import": "./lib/views/structure/scene-row.js"
+    },
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "typecheck:storybook": "tsc -p tsconfig.storybook.json",
+    "test:perf": "vitest run --config vitest.perf.config.ts",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:scaling": "vitest run --config vitest.scaling.config.ts",
+    "styles": "node ../ui/scripts/css.mjs --root . --prefix viewer",
+    "styles:check": "node ../ui/scripts/css.mjs --root . --prefix viewer --check"
+  },
+  "dependencies": {
+    "@molstar/ai": "workspace:*",
+    "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/prism-ui": "workspace:*",
+    "@molstar/query-language": "workspace:*",
+    "@molstar/seq-core": "workspace:*",
+    "@molstar/seq-viewer": "workspace:*",
+    "rxjs": "catalog:",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@storybook/web-components-vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "fake-indexeddb": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

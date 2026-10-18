@@ -47,9 +47,34 @@ fn unpackSsao(v: vec4<f32>) -> f32 {
     return select(1.0, ssao, ssao > 0.001 && ssao <= 0.999);
 }
 
-/** GL window coordinates (x, y bottom-up in [0, 1], depth in [0, 1]) to view space with a GL inverse projection */
+/** one texel of a packed SSAO target for \`getSsaoUpsampled\`, its occlusion and weight */
+fn ssaoUpsampleTexel(tex: texture_2d<f32>, size: vec2<i32>, texel: vec2<i32>, bilinear: f32, viewZ: f32, near: f32, far: f32) -> vec2<f32> {
+    let v = textureLoad(tex, clamp(texel, vec2<i32>(0), size - 1), 0);
+    let texelViewZ = unpackRGToUnitInterval(v.zw) * (far - near) - far;
+    let weight = bilinear / (0.001 + abs(texelViewZ - viewZ));
+    return vec2<f32>(unpackSsao(v) * weight, weight);
+}
+
+/**
+ * occlusion of a packed SSAO target of a lower resolution at \`coords\` (top-left origin), for a pixel at view z
+ * \`viewZ\`: the four nearest texels weighted bilinearly and by their depth, so that occlusion does not bleed across
+ * depth edges
+ */
+fn getSsaoUpsampled(tex: texture_2d<f32>, coords: vec2<f32>, viewZ: f32, near: f32, far: f32) -> f32 {
+    let size = vec2<i32>(textureDimensions(tex));
+    let p = coords * vec2<f32>(size) - 0.5;
+    let i = vec2<i32>(floor(p));
+    let f = p - floor(p);
+    var s = ssaoUpsampleTexel(tex, size, i, (1.0 - f.x) * (1.0 - f.y), viewZ, near, far);
+    s += ssaoUpsampleTexel(tex, size, i + vec2<i32>(1, 0), f.x * (1.0 - f.y), viewZ, near, far);
+    s += ssaoUpsampleTexel(tex, size, i + vec2<i32>(0, 1), (1.0 - f.x) * f.y, viewZ, near, far);
+    s += ssaoUpsampleTexel(tex, size, i + vec2<i32>(1, 1), f.x * f.y, viewZ, near, far);
+    return select(1.0, s.x / s.y, s.y > 0.0);
+}
+
+/** Window coordinates (x, y in [0, 1] with a top-left origin, depth in [0, 1], reversed) to view space */
 fn screenSpaceToViewSpace(ssPos: vec3<f32>, invProjection: mat4x4<f32>) -> vec3<f32> {
-    let p = invProjection * vec4<f32>(ssPos * 2.0 - 1.0, 1.0);
+    let p = invProjection * vec4<f32>(ssPos.x * 2.0 - 1.0, 1.0 - ssPos.y * 2.0, ssPos.z, 1.0);
     return p.xyz / p.w;
 }
 `;

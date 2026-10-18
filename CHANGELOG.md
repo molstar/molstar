@@ -10,13 +10,45 @@ here.
 
 ## [Unreleased]
 
+- Fix the help panel's click-toggle binding (`clickToggle`), the Kinemage extension's registration of controls on
+  nonexistent registries, and the Zenodo import extension's display name
+- Fix `murmurHash3_128`, which was not MurmurHash3_x86_128 (one lane rotated by 13 instead of 18), and hash strings as
+  their UTF-8 bytes in `murmurHash3_32`, `murmurHash3_128`, `hashMurmur32o` and `hashMurmur128o` (they hashed each
+  UTF-16 code unit's low byte, so texts differing in characters above U+00FF could collide, e.g. in state transform
+  versions). MVSX archive ids and transform versions change; add `murmurHash3_32_fromBytes`
+- Snapshot manager: `getStateSnapshot` and `serialize` take `keepList` to save the current scene without adding to or
+  replacing the list's entries
+- Add the `element-schema` generator to MolQL (`sel.atom.element-schema` in MolScript, with `schema-item` and
+  `empty-value`): it selects the elements of tables of fields (`label_asym_id`, `auth_seq_id`, ranges, ...) through
+  per-model indices instead of testing every atom for every row (1000 rows on 720k atoms: seconds to ~17 ms).
+  `StructureElement.Schema.toExpression`/`toLoci`/`toBundle` use it, and so does MVS for the selectors of components,
+  tooltips and color layers given as rows (annotations, labels and primitives resolve rows through the same indices).
+  Rows can use `operator_name`, `beg_auth_ins_code` and `end_auth_ins_code`, and residues without `label_seq_id` no
+  longer match `label_seq_id` criteria (MolScript read them as 0)
+- MolQL expressions can have `null` and lists of values as literal arguments (the columns of a table), which the
+  compiler passes through
+- Remove the `queryContext` argument of `StructureElement.Schema.toLoci`/`toBundle` (`Loci.fromSchema`,
+  `Bundle.fromSchema`), which no code in the repository passed; use
+  `Loci.fromExpression(structure, Schema.toExpression(schema), queryContext)`
+- `ScratchMemory.release(...contexts)` (`@molstar/core/util/int-buffer`) frees the buffers which code keeps between
+  calls; MVS calls it when a load is done
 - Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
   the custom structure property registry instead of the custom model property registry they register with
+- Fix interpolation of camera rotation
 - Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
   registered theme
 - Fix the `state-docs` CLI crashing on parameters that need data, and create its output folder
+- Fix UTF-8 encoding of characters outside the Basic Multilingual Plane (`utf8Write`, `utf8ByteCount`): a surrogate pair
+  is written as one 4-byte sequence, not two 3-byte ones
+- Harden zip reading against damaged and malicious archives: the end record is searched only in the last 64 KB, sizes
+  and CRC-32 come from the central directory (also fixes archives written with a data descriptor), entries are checked
+  against their declared size and CRC-32, and a local entry listed twice is refused; `unzip` takes optional
+  `UnzipLimits`
+- MessagePack: extension types, JSON's rules for non-finite numbers (nil), large integers (float 64) and `undefined`
+  object values (left out, so BinaryCIF files no longer carry a nil `mask` key), and checks of the lengths in untrusted
+  input
 
 ## [v5.13.1] - 2026-10-08
 

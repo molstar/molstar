@@ -1,0 +1,160 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Glass for what opens above the stack (the stack's frame carries its own). */
+.levels {
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+/* The top section of the canvas stack's frame: edge-to-edge buttons, like the tools below. */
+.switch {
+  display: flex;
+  flex-direction: row;
+}
+
+.segment {
+  display: grid;
+  place-items: center;
+  width: var(--msp-stack-row, 40px);
+  height: var(--msp-stack-row, 40px);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-control);
+    /* Marked by more than a shade where contrast matters (theme.css, --msp-selected-edge). */
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
+    color: var(--msp-color-text);
+  }
+}
+
+/* Selecting is the mode that changes what a click does: the accent says so. */
+.switch[data-canvas-mode="select"] .segment[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+  color: var(--msp-color-accent);
+}
+
+.level {
+  /* Above the stack, over Select (its second button, after Interact). Its bottom padding bridges the gap to the stack,
+     so the pointer can travel from Select to it without leaving either. */
+  position: absolute;
+  bottom: 100%;
+  left: var(--msp-stack-row, 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-bottom: var(--msp-space-3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition:
+    opacity var(--msp-motion-fast) var(--msp-ease),
+    transform var(--msp-motion-fast) var(--msp-ease),
+    visibility 0s linear 160ms;
+}
+
+/* Shown while the pointer is on Select or on it, Select has keyboard focus, or its list is open. */
+:where(:has(> * .select:hover, > * .select:focus-visible)) > .level,
+.level:hover,
+/* The keyboard's focus keeps it open; a click's does not (the pointer leaving closes it). */
+.level:has(:focus-visible),
+.level:has([aria-expanded="true"]) {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+/* No hover on touch screens: a tap on Select opens it (Select takes the focus), a tap elsewhere closes it; it opens
+   toward the left, so it stays on the screen. */
+@media (hover: none) {
+  .level {
+    right: 0;
+    left: auto;
+  }
+
+  :where(:has(> * .select:focus)) > .level {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
+  }
+}
+
+/* The picking level on Select, bottom right: what a click picks. */
+.select {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  opacity: 0.8;
+}
+
+/* The levels: a short list under the button, icon and label per row; the chosen one in the accent. */
+.levels {
+  /* In the flyout, which is above the stack, over Select. */
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  min-width: 168px;
+  padding: var(--msp-space-2);
+  background: var(--msp-glass-panel-bg);
+  animation: level-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.group {
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.levelRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-checked="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+/* Touch targets (compact mode's 44px) only where the pointer is a finger: with a mouse the list stays tight. */
+@media (pointer: coarse) {
+  .levelRow {
+    height: max(28px, var(--msp-touch-target, 0px));
+  }
+}
+
+/* A narrow shell: the level's caption goes. */
+:where([data-mode="compact"]) .levelCaption {
+  display: none;
+}

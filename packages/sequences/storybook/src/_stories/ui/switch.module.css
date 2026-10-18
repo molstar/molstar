@@ -1,0 +1,59 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Prism's params switch: a setting, not an action, so on is the muted text color, never the accent; its label in the
+   12px panel text. */
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  cursor: pointer;
+  user-select: none;
+}
+.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.track {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 24px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: var(--msp-color-pressed);
+  cursor: inherit;
+  transition: background-color var(--msp-motion-fast) var(--msp-ease);
+}
+.track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--msp-color-bg);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+}
+.track:focus-visible {
+  outline: 2px solid var(--msp-color-focus-ring);
+  outline-offset: 2px;
+}
+.track:checked {
+  background: var(--msp-color-text-muted);
+}
+.track:checked::after {
+  transform: translateX(10px);
+}

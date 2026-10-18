@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Viewport, cameraProject, cameraUnproject } from '../camera/util.js';
@@ -33,5 +34,15 @@ describe('camera', () => {
     cameraProject(c, pi, vp, proj);
     cameraUnproject(po, c, vp, invProj);
     expect(Vec3.equals(po, pi)).toBe(true);
+  });
+
+  it('window coordinates have a top-left origin', () => {
+    const proj = Mat4.ortho(Mat4(), -1, 1, 1, -1, 1, 100);
+    const vp = Viewport.create(10, 20, 100, 100);
+    const c = Vec4();
+    // up in view space is up on screen, i.e. a smaller window y
+    cameraProject(c, Vec3.create(0, 0.5, -10), vp, proj);
+    expect(c[0]).toBeCloseTo(60);
+    expect(c[1]).toBeCloseTo(45);
   });
 });

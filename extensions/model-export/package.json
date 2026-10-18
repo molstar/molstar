@@ -5,7 +5,7 @@
   "description": "Mol* model-export-extension",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -22,7 +22,9 @@
       "molstar-src": "./src/ui.tsx",
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
-    }
+    },
+    "./_test/*": null,
+    "./prism-viewer-ui": null
   },
   "files": [
     "lib",
@@ -40,7 +42,9 @@
     "@molstar/core": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/plugin": "workspace:*",
-    "@molstar/plugin-ui": "workspace:*"
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/prism-ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

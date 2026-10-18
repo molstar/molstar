@@ -22,6 +22,8 @@ import {
   getFragDepth,
   type COMPAT_frag_depth,
   type COMPAT_color_buffer_float,
+  type COMPAT_float_blend,
+  getFloatBlend,
   getColorBufferFloat,
   type COMPAT_draw_buffers,
   getDrawBuffers,
@@ -75,7 +77,6 @@ import {
   getMultiview2,
 } from './compat.js';
 import { isDebugMode } from '@molstar/core/util/debug';
-import { objectForEach } from '@molstar/core/util/object';
 
 export type WebGLExtensions = {
   instancedArrays: COMPAT_instanced_arrays;
@@ -91,6 +92,7 @@ export type WebGLExtensions = {
   vertexArrayObject: COMPAT_vertex_array_object | null;
   fragDepth: COMPAT_frag_depth | null;
   colorBufferFloat: COMPAT_color_buffer_float | null;
+  floatBlend: COMPAT_float_blend | null;
   colorBufferHalfFloat: COMPAT_color_buffer_half_float | null;
   drawBuffers: COMPAT_draw_buffers | null;
   drawBuffersIndexed: COMPAT_draw_buffers_indexed | null;
@@ -169,6 +171,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
   const colorBufferFloat = getColorBufferFloat(gl);
   if (isDebugMode && colorBufferFloat === null) {
     console.log('Could not find support for "color_buffer_float"');
+  }
+  const floatBlend = getFloatBlend(gl);
+  if (isDebugMode && floatBlend === null) {
+    console.log('Could not find support for "float_blend"');
   }
   const colorBufferHalfFloat = getColorBufferHalfFloat(gl);
   if (isDebugMode && colorBufferHalfFloat === null) {
@@ -271,6 +277,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     vertexArrayObject,
     fragDepth,
     colorBufferFloat,
+    floatBlend,
     colorBufferHalfFloat,
     drawBuffers,
     drawBuffersIndexed,
@@ -295,20 +302,4 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
 
     noNonInstancedActiveAttribs,
   };
-}
-
-export function resetExtensions(gl: GLRenderingContext, extensions: WebGLExtensions) {
-  const e = createExtensions(gl);
-
-  objectForEach(extensions, (v, k) => {
-    if (k === 'noNonInstancedActiveAttribs') {
-      extensions.noNonInstancedActiveAttribs = e.noNonInstancedActiveAttribs;
-    } else if (v !== null) {
-      if (e[k] === null) {
-        extensions[k] = null as any;
-      } else {
-        Object.assign(v, e[k]);
-      }
-    }
-  });
 }

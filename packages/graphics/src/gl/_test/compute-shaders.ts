@@ -22,11 +22,11 @@ import * as tracing from '../../canvas3d/passes/tracing.js';
 import * as wboit from '../../canvas3d/passes/wboit.js';
 import * as gaussianDensity from '../../geo/gaussian-density/gpu.js';
 import * as colorSmoothing from '../../geo/geometry/texture-mesh/color-smoothing.js';
-import * as histogramReduction from '../compute/histogram-pyramid/reduction.js';
-import * as histogramSum from '../compute/histogram-pyramid/sum.js';
+import * as histogramReduction from '../webgl/compute/histogram-pyramid/reduction.js';
+import * as histogramSum from '../webgl/compute/histogram-pyramid/sum.js';
 import * as hiZ from '../compute/hi-z.js';
-import * as activeVoxels from '../compute/marching-cubes/active-voxels.js';
-import * as isosurface from '../compute/marching-cubes/isosurface.js';
+import * as activeVoxels from '../webgl/compute/marching-cubes/active-voxels.js';
+import * as isosurface from '../webgl/compute/marching-cubes/isosurface.js';
 import * as computeUtil from '../compute/util.js';
 import type { RenderableSchema } from '../renderable/schema.js';
 import * as graphicsShaderCode from '../shader-code.js';
@@ -100,11 +100,11 @@ export const ShaderModules: { [path: string]: object } = {
   'canvas3d/passes/wboit.ts': wboit,
   'geo/gaussian-density/gpu.ts': gaussianDensity,
   'geo/geometry/texture-mesh/color-smoothing.ts': colorSmoothing,
-  'gl/compute/histogram-pyramid/reduction.ts': histogramReduction,
-  'gl/compute/histogram-pyramid/sum.ts': histogramSum,
+  'gl/webgl/compute/histogram-pyramid/reduction.ts': histogramReduction,
+  'gl/webgl/compute/histogram-pyramid/sum.ts': histogramSum,
   'gl/compute/hi-z.ts': hiZ,
-  'gl/compute/marching-cubes/active-voxels.ts': activeVoxels,
-  'gl/compute/marching-cubes/isosurface.ts': isosurface,
+  'gl/webgl/compute/marching-cubes/active-voxels.ts': activeVoxels,
+  'gl/webgl/compute/marching-cubes/isosurface.ts': isosurface,
   'gl/compute/util.ts': computeUtil,
   'gl/shader-code.ts': graphicsShaderCode,
 };

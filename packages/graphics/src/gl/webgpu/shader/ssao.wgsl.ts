@@ -18,7 +18,7 @@ const DepthTextures = [
 
 /**
  * Screen space ambient occlusion (StarCraft II AO, Filion and McNaughton 2008) into packed occlusion (rg) and depth
- * (ba). The math is in GL window space with the GL projection of the pass uniforms, as in GLSL.
+ * (ba).
  */
 export const ssao_wgsl = /* wgsl */ `
 ${packing_wgsl}
@@ -37,18 +37,27 @@ fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-fn noise(coords: vec2<f32>) -> f32 {
-    let dt = dot(coords, vec2<f32>(12.9898, 78.233));
-    let sn = dt - PI * floor(dt / PI); // GLSL mod
-    return abs(fract(sin(sn) * 43758.5453));
+/** ordered dither of a 2x2 and a 4x4 block (values k / 4 and k / 16), \`pixel\` in whole pixels */
+fn bayer2(p: vec2<f32>) -> f32 {
+    let pixel = floor(p);
+    return fract(dot(pixel, vec2<f32>(0.5, pixel.y * 0.75)));
 }
 
-fn getNoiseVec2(coords: vec2<f32>) -> vec2<f32> {
-    return vec2<f32>(noise(coords), noise(coords + vec2<f32>(PI, 2.71828)));
+fn bayer4(pixel: vec2<f32>) -> f32 {
+    return bayer2(0.5 * pixel) * 0.25 + bayer2(pixel);
+}
+
+/**
+ * rotation of the sample kernel at \`pixel\`: the 16 angles of a 4x4 block in ordered dither, so that the blur (wider
+ * than a block) averages all of them
+ */
+fn getKernelRotation(pixel: vec2<f32>) -> vec2<f32> {
+    let angle = 2.0 * PI * (bayer4(pixel) + 0.5 / 16.0);
+    return vec2<f32>(cos(angle), sin(angle));
 }
 
 fn isBackground(depth: f32) -> bool {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 // inset by half a texel to avoid sampling texels outside the viewport
@@ -62,7 +71,7 @@ fn getDepth(coords: vec2<f32>, transparentFlag: i32) -> f32 {
         #if defined(dIncludeTransparent)
             return unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords)).x;
         #else
-            return 1.0;
+            return 0.0;
         #endif
     }
     #if defined(dPackedDepth)
@@ -114,7 +123,8 @@ fn viewPos(coords: vec2<f32>, depth: f32) -> vec3<f32> {
 fn viewNormalAtPixelPositionAccurate(vpos: vec2<f32>, transparentFlag: i32) -> vec3<f32> {
     let texel = 1.0 / uObject.uTexSize;
     let dx = vec2<f32>(texel.x, 0.0);
-    let dy = vec2<f32>(0.0, texel.y);
+    // up, as in the GLSL program (uv has a top-left origin)
+    let dy = vec2<f32>(0.0, -texel.y);
 
     // current pixel's depth and view space position
     let c = getDepth(vpos, transparentFlag);
@@ -162,10 +172,10 @@ fn getPixelSize(coords: vec2<f32>, depth: f32) -> f32 {
     return distance(viewPos0, viewPos1);
 }
 
-/** GL window space of a view space position */
+/** Window uv (top-left origin) of a view space position */
 fn projectToWindow(p: vec3<f32>) -> vec2<f32> {
     let offset = uObject.uProjection * vec4<f32>(p, 1.0);
-    return clampToBounds((offset.xy / offset.w) * 0.5 + 0.5);
+    return clampToBounds((offset.xy / offset.w) * vec2<f32>(0.5, -0.5) + 0.5);
 }
 
 /** occlusion of a sample, from opaque and (with dIncludeTransparent) transparent depth */
@@ -195,18 +205,20 @@ fn sampleOcclusion(sampleViewPos: vec3<f32>, coords: vec2<f32>, selfCoords: vec2
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let selfCoords = glCoords(in.position, uObject.uTexSize);
+    let selfCoords = fragmentUv(in.position, uObject.uTexSize);
     let selfDepth = getDepth(selfCoords, uObject.uTransparencyFlag);
-    let selfPackedDepth = packUnitIntervalToRG(selfDepth);
-
     if (isBackground(selfDepth)) {
-        return vec4<f32>(packUnitIntervalToRG(1.0), selfPackedDepth);
+        return vec4<f32>(packUnitIntervalToRG(1.0), packUnitIntervalToRG(0.0));
     }
 
     let selfViewNormal = viewNormalAtPixelPositionAccurate(selfCoords, uObject.uTransparencyFlag);
     let selfViewPos = viewPos(selfCoords, selfDepth);
+    // linear depth for the blur, reversed (the near plane at 1, the far plane and the background at 0): 16-bit fixed
+    // point keeps a constant view z precision, unlike the window depth
+    let selfPackedDepth = packUnitIntervalToRG(clamp((uObject.uFar + selfViewPos.z) / (uObject.uFar - uObject.uNear), 0.0, 1.0));
 
-    let randomVec = normalize(vec3<f32>(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
+    // the pattern of the GLSL program, from pixels with a bottom-left origin
+    let randomVec = vec3<f32>(getKernelRotation(vec2<f32>(in.position.x, uObject.uTexSize.y - in.position.y)), 0.0);
     let tangent = normalize(randomVec - selfViewNormal * dot(randomVec, selfViewNormal));
     let bitangent = cross(selfViewNormal, tangent);
     let TBN = mat3x3<f32>(tangent, bitangent, selfViewNormal);

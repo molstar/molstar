@@ -1,0 +1,344 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Inspector's page body: a list and its detail side by side (Trace, Tools), or one column (Limits). Flat on the
+   app's background; the detail pane set apart by the panel's shade, not a line. */
+.inspector {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  font-size: var(--msp-font-size-sm);
+  container: inspector / inline-size;
+}
+
+.view {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.split {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  min-height: 0;
+}
+
+.list {
+  min-height: 0;
+  height: 100%;
+}
+
+.listContent {
+  padding-bottom: var(--msp-space-6);
+}
+
+.detail {
+  min-height: 0;
+  height: 100%;
+  /* The page is the panel color too: a rule keeps the list and the detail apart. */
+  border-left: 1px solid var(--msp-color-border);
+}
+
+.detailContent {
+  display: grid;
+  /* One column no wider than its box: long lines fade or wrap in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--msp-space-4);
+  min-width: 0;
+  padding: var(--msp-space-5) var(--msp-space-5) var(--msp-space-6);
+}
+
+/* A group's header in the list (a turn, a group of tools): sticky while its rows scroll under it. */
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  width: 100%;
+  min-width: 0;
+  padding: var(--msp-space-4) var(--msp-space-5) var(--msp-space-2);
+  background: var(--msp-color-bg);
+  text-align: left;
+
+  &:hover .headTitle {
+    text-decoration: underline;
+    text-decoration-color: var(--msp-color-border-strong);
+    text-underline-offset: 3px;
+  }
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-control);
+  }
+}
+
+.headTitle {
+  flex: none;
+  font-weight: 600;
+}
+
+.headMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* A state in words: quiet, the danger color for a failure, the accent while it waits for the person. */
+.status {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  &[data-status="failed"] {
+    color: var(--msp-color-danger);
+  }
+
+  &[data-status="waiting"] {
+    color: var(--msp-color-accent);
+  }
+
+  &:is([data-status="thinking"], [data-status="working"]) {
+    color: var(--msp-color-text-muted);
+    animation: pulse 1.4s var(--msp-ease) infinite;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* A row: its role in quiet mono, what it is, and its numbers at the end. */
+.row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  width: 100%;
+  min-height: 28px;
+  padding: var(--msp-space-2) var(--msp-space-5);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-control);
+  }
+
+  &[data-off] {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.role {
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  .row[data-failed] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+.body {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+
+  & > * {
+    flex: none;
+  }
+
+  /* A nested run's step, under the call that ran it. */
+  .row[data-nested] & {
+    padding-left: var(--msp-space-5);
+  }
+}
+
+.nest {
+  color: var(--msp-color-text-subtle);
+}
+
+.meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The meta's numbers in columns of their own, so they line up from row to row. */
+.time {
+  min-width: 52px;
+  text-align: right;
+}
+
+.tokens {
+  min-width: 80px;
+  text-align: right;
+}
+
+/* A word in the meta that says something happened (retried, a new prefix, unavailable): quiet, not alarming. */
+.flag {
+  color: var(--msp-color-text-muted);
+}
+
+.name {
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+}
+
+.args {
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+}
+
+.result {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+
+  .row[data-failed] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+.focus {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* What a call changed: its labels, in small quiet marks. */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-2);
+}
+
+.chip {
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--msp-space-6) var(--msp-space-5);
+  color: var(--msp-color-text-subtle);
+}
+
+/* The page header's own part: working or idle, then the budget. */
+.spacer {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--msp-color-border-strong);
+
+  .state[data-state="working"] & {
+    background: var(--msp-color-text-muted);
+    animation: pulse 1.4s var(--msp-ease) infinite;
+  }
+
+  .state[data-state="waiting"] & {
+    background: var(--msp-color-accent);
+  }
+}
+
+@container (max-width: 640px) {
+  .state {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status,
+  .dot {
+    animation: none !important;
+  }
+}
+
+/* Narrow: the detail under the list. */
+@container inspector (max-width: 760px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 46%);
+  }
+
+  .detail {
+    border-left: none;
+    border-top: 1px solid var(--msp-color-border);
+  }
+
+  .row {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    padding-inline: var(--msp-space-4);
+  }
+
+  .head {
+    padding-inline: var(--msp-space-4);
+  }
+
+  .detailContent {
+    padding: var(--msp-space-4);
+  }
+}

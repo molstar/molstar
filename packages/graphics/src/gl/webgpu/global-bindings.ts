@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { ValueCell } from '@molstar/core/util';
-import { Mat4 } from '@molstar/core/math/linear-algebra';
 import type { GlobalBindings } from '../render-item.js';
 import type { RenderableSchema, TextureDimension, TextureSampleType, UniformSpec } from '../renderable/schema.js';
 import type { Textures } from '../texture.js';
@@ -17,36 +15,11 @@ import {
   type TextureBinding,
 } from '../uniform-layout.js';
 import { TextureUsage } from './constants.js';
+import { getDepthRangeCell, ReversedZeroToOne } from '../depth-range.js';
 import type { WebGPUProgram } from './program.js';
 import { asWebGPUTexture, type Release } from './texture.js';
 import { createUniformSnapshot, type UniformRing, type UniformSnapshot } from './uniform-ring.js';
 import { WgslSamplers, type WgslSampler } from './wgsl-declarations.js';
-
-/** clip z to `[0, 1]`: `z' = (z + w) / 2` */
-const DepthRange = Mat4.fromArray(Mat4(), [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 1], 0);
-const InvDepthRange = Mat4.invert(Mat4(), DepthRange);
-
-/** Matrices that include the projection, for WebGPU mapped to the `[0, 1]` depth range */
-const ProjectionConversions: { [k: string]: (out: Mat4, m: Mat4) => Mat4 } = {
-  uProjection: (out, m) => Mat4.mul(out, DepthRange, m),
-  uModelViewProjection: (out, m) => Mat4.mul(out, DepthRange, m),
-  uInvProjection: (out, m) => Mat4.mul(out, m, InvDepthRange),
-  uInvModelViewProjection: (out, m) => Mat4.mul(out, m, InvDepthRange),
-};
-
-/** A cell with the converted value of `cell`, recomputed when its version changes */
-function convertedCell(cell: ValueCell<Mat4>, convert: (out: Mat4, m: Mat4) => Mat4): ValueCell<Mat4> {
-  const ref = { version: -1, value: Mat4() };
-  return {
-    get ref() {
-      if (cell.ref.version !== ref.version) {
-        convert(ref.value, cell.ref.value);
-        ref.version = cell.ref.version;
-      }
-      return ref;
-    },
-  } as unknown as ValueCell<Mat4>;
-}
 
 export interface WebGPUBindingContext {
   readonly device: GPUDevice;
@@ -151,8 +124,8 @@ export function createWebGPUGlobalBindings(
     const spec = schema[k] as UniformSpec<UniformKind> | undefined;
     if (spec?.block === 'draw') drawUniforms.push([k, v]);
     else if (spec?.block === 'global') {
-      const convert = ProjectionConversions[k];
-      blockUniforms.push([k, convert ? convertedCell(v as ValueCell<Mat4>, convert) : v]);
+      // the projections mapped to reversed `[0, 1]` depth
+      blockUniforms.push([k, getDepthRangeCell(schema, k, v, ReversedZeroToOne)]);
     }
   }
 
@@ -198,6 +171,7 @@ export function createWebGPUGlobalBindings(
       return { group: cached.group, offset: slot.offset };
     },
     destroy: () => {
+      write.dispose();
       groups.clear();
     },
   };

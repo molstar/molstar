@@ -119,7 +119,6 @@ export interface Buffer {
   updateData: (array: ArrayType) => void;
   updateSubData: (array: ArrayType, offset: number, count: number) => void;
 
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -132,7 +131,7 @@ export function getBuffer(gl: GLRenderingContext) {
 }
 
 function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
-  let _buffer = getBuffer(gl);
+  const _buffer = getBuffer(gl);
 
   const _usageHint = getUsageHint(gl, usageHint);
   const _bufferType = getBufferType(gl, bufferType);
@@ -174,10 +173,6 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
       }
     },
 
-    reset: () => {
-      _buffer = getBuffer(gl);
-      updateData(array);
-    },
     destroy: () => {
       if (destroyed) return;
       gl.deleteBuffer(_buffer);
@@ -333,7 +328,6 @@ export interface PixelPackBuffer {
   read: (x: number, y: number, width: number, height: number) => void;
   getSubData: (array: ArrayType) => void;
 
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -343,7 +337,7 @@ export function createPixelPackBuffer(
   format: TextureFormat,
   type: TextureType,
 ): PixelPackBuffer {
-  let _buffer = getBuffer(gl);
+  const _buffer = getBuffer(gl);
 
   const _type = getType(gl, extensions, type);
   const _format = getFormat(gl, format, type);
@@ -383,9 +377,6 @@ export function createPixelPackBuffer(
     read,
     getSubData,
 
-    reset: () => {
-      _buffer = getBuffer(gl);
-    },
     destroy: () => {
       if (destroyed) return;
       gl.deleteBuffer(_buffer);

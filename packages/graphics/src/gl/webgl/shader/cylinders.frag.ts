@@ -58,24 +58,24 @@ bool isCap = false;
         vec3 cameraRayOrigin = (uView * vec4(rayOrigin, 1.0)).xyz;
         vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
         float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
-        float sNear = frontDepth > 0.0 ? 0.0 : clamp((nearT - frontT) / (t - frontT), 0.0, 1.0);
+        float sNear = frontDepth < 1.0 ? 0.0 : clamp((nearT - frontT) / (t - frontT), 0.0, 1.0);
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            float sCap = objectClipped || frontDepth <= 0.0 ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
+            float sCap = objectClipped || frontDepth >= 1.0 ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
             if (sCap < 0.0) return false;
         #else
             float sCap = sNear;
         #endif
-        if (sCap == sNear && frontDepth <= 0.0) {
-            fragmentDepth = 0.0 + (0.0000002 / vSize);
+        if (sCap == sNear && frontDepth >= 1.0) {
+            fragmentDepth = 1.0 - (0.0000002 / vSize);
             cameraNormal = -rayDir;
             viewPosition = cameraRayOrigin + nearT * cameraRayDir;
             modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
         }
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            else if (objectClipped || frontDepth <= 0.0) {
+            else if (objectClipped || frontDepth >= 1.0) {
                 modelPosition = mix(frontModelPosition, modelPosition, sCap);
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
-                fragmentDepth = calcDepth(viewPosition) + (0.0000002 / vSize);
+                fragmentDepth = calcDepth(viewPosition) - (0.0000002 / vSize);
                 cameraNormal = -clipNormal(modelPosition / uModelScale);
                 isCap = true;
             }
@@ -96,7 +96,7 @@ bool isCap = false;
                 isCap = true;
             }
         #endif
-        return fragmentDepth > 0.0;
+        return fragmentDepth < 1.0;
     }
 #endif
 
@@ -138,7 +138,8 @@ bool CylinderImpostor(
     bool clipped = false;
     bool objectClipped = false;
     float frontT = 0.0;
-    float frontDepth = 1.0;
+    // no front yet: at the far plane (depth is reversed)
+    float frontDepth = 0.0;
     vec3 frontModelPosition = rayOrigin;
 
     #if defined(dRenderVariant_depth)
@@ -168,10 +169,10 @@ bool CylinderImpostor(
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
             if (clipTest(modelPosition / uModelScale)) {
                 objectClipped = true;
-                fragmentDepth = -1.0;
+                fragmentDepth = 2.0;
             }
         #endif
-        if (fragmentDepth > 0.0) return true;
+        if (fragmentDepth < 1.0) return true;
         clipped = true;
     }
 
@@ -191,10 +192,10 @@ bool CylinderImpostor(
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
                     if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
-                        fragmentDepth = -1.0;
+                        fragmentDepth = 2.0;
                     }
                 #endif
-                if (fragmentDepth > 0.0) {
+                if (fragmentDepth < 1.0) {
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
@@ -220,10 +221,10 @@ bool CylinderImpostor(
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
                     if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
-                        fragmentDepth = -1.0;
+                        fragmentDepth = 2.0;
                     }
                 #endif
-                if (fragmentDepth > 0.0) {
+                if (fragmentDepth < 1.0) {
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
@@ -248,7 +249,7 @@ bool CylinderImpostor(
             modelPosition = rayOrigin + t * rayDir;
             viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
-            if (fragmentDepth > 0.0) {
+            if (fragmentDepth < 1.0) {
                 #ifdef dSolidInterior
                     if (depthBack) {
                         if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
@@ -267,7 +268,7 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth > 0.0) {
+                if (fragmentDepth < 1.0) {
                     #ifdef dSolidInterior
                         if (depthBack) {
                             if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
@@ -285,7 +286,7 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth > 0.0) {
+                if (fragmentDepth < 1.0) {
                     #ifdef dSolidInterior
                         if (depthBack) {
                             if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;

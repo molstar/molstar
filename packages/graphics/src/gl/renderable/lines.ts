@@ -47,6 +47,15 @@ export const LinesSchema = {
 export type LinesSchema = typeof LinesSchema;
 export type LinesValues = Values<LinesSchema>;
 
+/** The schema of the renderable: the object's with the global and internal ones (one object, shared by the items) */
+export const LinesRenderableSchema = {
+  ...GlobalUniformSchema,
+  ...GlobalTextureSchema,
+  ...GlobalDefineSchema,
+  ...InternalSchema,
+  ...LinesSchema,
+};
+
 export function LinesRenderable(
   ctx: GraphicsContext,
   id: number,
@@ -56,13 +65,7 @@ export function LinesRenderable(
   transparency: Transparency,
   globals: GlobalDefines,
 ): Renderable<LinesValues> {
-  const schema = {
-    ...GlobalUniformSchema,
-    ...GlobalTextureSchema,
-    ...GlobalDefineSchema,
-    ...InternalSchema,
-    ...LinesSchema,
-  };
+  const schema = LinesRenderableSchema;
   const renderValues: LinesValues & InternalValues & GlobalDefineValues = {
     ...values,
     uObjectId: ValueCell.create(id),

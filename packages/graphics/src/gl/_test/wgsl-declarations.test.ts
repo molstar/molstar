@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ValueCell } from '@molstar/core/util';
 import { getAttributeLayout } from '../attribute-layout.js';
 import { MeshSchema } from '../renderable/mesh.js';
@@ -56,8 +57,11 @@ import {
   getWgslSamplerBinding,
   getWgslTextureDeclarations,
   getWgslTextureType,
+  getWgslStorageDeclarations,
   getWgslVertexInputDeclaration,
 } from '../webgpu/wgsl-declarations.js';
+import { getWgslDrawBinding, getWgslStorageBindings } from '../webgpu/uniform-declarations.js';
+import { StorageBufferSpec } from '../compute.js';
 
 const MeshFullSchema = {
   ...GlobalUniformSchema,
@@ -137,14 +141,31 @@ describe('wgsl defines', () => {
     const source = 'override oLightCount: i32 = 1;\noverride oOther: f32;';
     expect(getOverrideConstants(source, defineValues({ dLightCount: 2 }))).toEqual({ oLightCount: 2 });
   });
+
+  it('override constants per entry point', () => {
+    const source = [
+      'override oLightCount: i32 = 1;',
+      'override oSteps: i32 = 4;',
+      'override oClipObjectCount: i32 = 1;',
+      'const kSteps = oSteps * 2; // oClipObjectCount',
+      'struct Light { count: i32 }',
+      'fn light() -> i32 { if (true) { return oLightCount; } return 0; }',
+      'fn steps() -> i32 { return kSteps; }',
+      '@vertex fn vertexMain() -> @builtin(position) vec4f { let n = steps(); return vec4f(f32(n)); }',
+      '@fragment fn fragmentMain() -> @location(0) vec4f { let l = Light(light()); return vec4f(f32(l.count)); }',
+    ].join('\n');
+    const values = defineValues({ dLightCount: 2, dSteps: 8, dClipObjectCount: 3 });
+    expect(getOverrideConstants(source, values, 'vertexMain')).toEqual({ oSteps: 8 });
+    expect(getOverrideConstants(source, values, 'fragmentMain')).toEqual({ oLightCount: 2 });
+    expect(getOverrideConstants(source, values)).toEqual({ oLightCount: 2, oSteps: 8, oClipObjectCount: 3 });
+  });
 });
 
 describe('mesh wgsl', () => {
   const base = {
     dRenderVariant: 'colorBlended',
     dGeometryType: 'mesh',
-    dColorType: 'group',
-    dMarkerType: 'groupInstance',
+    dColorType: 'texture',
     dLightCount: 1,
     dClipObjectCount: 0,
     dColorMarker: true,
@@ -152,28 +173,41 @@ describe('mesh wgsl', () => {
   const cases: { [k: string]: string | number | boolean }[] = [
     base,
     { ...base, dColorType: 'uniform', dFlatShaded: true, dIgnoreLight: true },
-    { ...base, dColorType: 'vertexInstance', dCelShaded: true, dXrayShaded: 'inverted' },
+    { ...base, dColorType: 'texture', dCelShaded: true, dXrayShaded: 'inverted' },
+    { ...base, dColorType: 'grid' },
+    {
+      ...base,
+      dColorType: 'grid',
+      dOverpaint: true,
+      dOverpaintType: 'volumeInstance',
+      dTransparency: true,
+      dTransparencyType: 'volumeInstance',
+      dEmissive: true,
+      dEmissiveType: 'volumeInstance',
+      dSubstance: true,
+      dSubstanceType: 'volumeInstance',
+    },
     {
       ...base,
       dOverpaint: true,
-      dOverpaintType: 'instance',
+      dOverpaintType: 'texture',
       dTransparency: true,
-      dTransparencyType: 'groupInstance',
+      dTransparencyType: 'texture',
       dEmissive: true,
       dEmissiveType: 'vertexInstance',
       dSubstance: true,
-      dSubstanceType: 'instance',
+      dSubstanceType: 'texture',
       dTransparentBackfaces: 'opaque',
       dFlipSided: true,
     },
     { ...base, dColorMarker: false, dTransparentBackfaces: 'off', dXrayShaded: 'on' },
-    { ...base, dRenderVariant: 'pick', dTransparency: true, dTransparencyType: 'groupInstance', dXrayShaded: 'on' },
+    { ...base, dRenderVariant: 'pick', dTransparency: true, dTransparencyType: 'texture', dXrayShaded: 'on' },
     {
       ...base,
       dRenderVariant: 'marking',
       dTransparentBackfaces: 'off',
       dTransparency: true,
-      dTransparencyType: 'group',
+      dTransparencyType: 'texture',
     },
     { ...base, dRenderVariant: 'colorWboit', dTransparentBackfaces: 'off' },
     { ...base, dRenderVariant: 'colorDpoit', dTransparentBackfaces: 'off', dXrayShaded: 'on' },
@@ -181,19 +215,19 @@ describe('mesh wgsl', () => {
       ...base,
       dRenderVariant: 'emissive',
       dEmissive: true,
-      dEmissiveType: 'group',
+      dEmissiveType: 'texture',
       dOverpaint: true,
-      dOverpaintType: 'groupInstance',
+      dOverpaintType: 'texture',
       dTransparency: true,
-      dTransparencyType: 'group',
+      dTransparencyType: 'texture',
       dXrayShaded: 'on',
     },
     { ...base, dRenderVariant: 'emissive', dColorType: 'uniform' },
-    { ...base, dRenderVariant: 'tracing', dTransparentBackfaces: 'opaque', dEmissive: true, dEmissiveType: 'group' },
+    { ...base, dRenderVariant: 'tracing', dTransparentBackfaces: 'opaque', dEmissive: true, dEmissiveType: 'texture' },
     { ...base, dRenderVariant: 'tracing', dSolidInterior: true, dIgnoreLight: true },
     { ...base, dGeometryType: 'textureMesh', dVaryingGroup: true },
     { ...base, dGeometryType: 'textureMesh', dRenderVariant: 'pick', dFlatShaded: true },
-    { ...base, dRenderVariant: 'depth', dTransparency: true, dTransparencyType: 'group', dVaryingGroup: true },
+    { ...base, dRenderVariant: 'depth', dTransparency: true, dTransparencyType: 'texture', dVaryingGroup: true },
     { ...base, dRenderVariant: 'depth', dTransparentBackfaces: 'off', dXrayShaded: 'on' },
     { ...base, dSolidInterior: true, dFlatShaded: true },
     {
@@ -203,11 +237,10 @@ describe('mesh wgsl', () => {
       dClipObjectCount: 2,
       dClipVariant: 'pixel',
       dClipping: true,
-      dClippingType: 'groupInstance',
     },
     { ...base, dRenderVariant: 'depth', dSolidInterior: true, dClipObjectCount: 1, dClipVariant: 'pixel' },
-    { ...base, dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true, dClippingType: 'groupInstance' },
-    { ...base, dClipObjectCount: 1, dClipVariant: 'instance', dClipping: true, dClippingType: 'instance' },
+    { ...base, dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true },
+    { ...base, dClipObjectCount: 1, dClipVariant: 'instance', dClipping: true },
     {
       ...base,
       dRenderVariant: 'pick',
@@ -215,7 +248,6 @@ describe('mesh wgsl', () => {
       dClipVariant: 'pixel',
       dVaryingGroup: true,
       dClipping: true,
-      dClippingType: 'groupInstance',
     },
   ];
 
@@ -232,7 +264,13 @@ describe('mesh wgsl', () => {
 
   it('reports unsupported features', () => {
     const { getUnsupported } = getWgslProgram('mesh')!;
-    expect(getUnsupported!(defineValues({ ...base, dColorType: 'volume' }))).toBe("color type 'volume'");
+    expect(getUnsupported!(defineValues({ ...base, dUsePalette: true }))).toBeUndefined();
+    expect(getUnsupported!(defineValues({ ...base, dWiggle: true }))).toBeUndefined();
+    // grid data is read by the mesh programs only
+    const spheres = getWgslProgram('spheres')!;
+    expect(spheres.getUnsupported!(defineValues({ ...base, dGeometryType: 'spheres', dColorType: 'grid' }))).toBe(
+      "color type 'grid'",
+    );
   });
 
   it('reports unsupported direct volume features', () => {
@@ -244,11 +282,10 @@ describe('mesh wgsl', () => {
 });
 
 describe('quad wgsl', () => {
-  const clip = { dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true, dClippingType: 'groupInstance' };
+  const clip = { dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true };
   const base = {
     dRenderVariant: 'colorBlended',
-    dColorType: 'group',
-    dMarkerType: 'groupInstance',
+    dColorType: 'texture',
     dSizeType: 'uniform',
     dLightCount: 1,
     dClipObjectCount: 0,
@@ -256,17 +293,17 @@ describe('quad wgsl', () => {
   };
   const cases: [string, string, { [k: string]: string | number | boolean }][] = [
     ['spheres', spheres_wgsl, { ...base, dGeometryType: 'spheres', dSolidInterior: true }],
-    ['spheres', spheres_wgsl, { ...base, dGeometryType: 'spheres', dApproximate: true, dSizeType: 'groupInstance' }],
+    ['spheres', spheres_wgsl, { ...base, dGeometryType: 'spheres', dApproximate: true, dSizeType: 'texture' }],
     [
       'spheres',
       spheres_wgsl,
-      { ...base, dGeometryType: 'spheres', dColorType: 'vertex', dSizeType: 'vertexInstance', dXrayShaded: 'on' },
+      { ...base, dGeometryType: 'spheres', dColorType: 'texture', dSizeType: 'texture', dXrayShaded: 'on' },
     ],
-    ['points', points_wgsl, { ...base, dGeometryType: 'points', dPointStyle: 'circle', dSizeType: 'group' }],
+    ['points', points_wgsl, { ...base, dGeometryType: 'points', dPointStyle: 'circle', dSizeType: 'texture' }],
     [
       'points',
       points_wgsl,
-      { ...base, dGeometryType: 'points', dPointStyle: 'fuzzy', dPointSizeAttenuation: true, dSizeType: 'instance' },
+      { ...base, dGeometryType: 'points', dPointStyle: 'fuzzy', dPointSizeAttenuation: true, dSizeType: 'texture' },
     ],
     ['spheres', spheres_wgsl, { ...base, dGeometryType: 'spheres', dRenderVariant: 'pick' }],
     ['points', points_wgsl, { ...base, dGeometryType: 'points', dRenderVariant: 'pick', dPointStyle: 'circle' }],
@@ -274,7 +311,7 @@ describe('quad wgsl', () => {
     [
       'cylinders',
       cylinders_wgsl,
-      { ...base, dGeometryType: 'cylinders', dColorType: 'groupInstance', dDualColor: true, dSizeType: 'instance' },
+      { ...base, dGeometryType: 'cylinders', dColorType: 'texture', dDualColor: true, dSizeType: 'texture' },
     ],
     ['cylinders', cylinders_wgsl, { ...base, dGeometryType: 'cylinders', dRenderVariant: 'pick', dXrayShaded: 'on' }],
     [
@@ -335,7 +372,7 @@ describe('quad wgsl', () => {
         dInterpolation: 'mitchell',
         dUsePalette: true,
         dOverpaint: true,
-        dOverpaintType: 'groupInstance',
+        dOverpaintType: 'texture',
       },
     ],
     [
@@ -347,7 +384,7 @@ describe('quad wgsl', () => {
         dInterpolation: 'bspline',
         dRenderVariant: 'pick',
         dTransparency: true,
-        dTransparencyType: 'instance',
+        dTransparencyType: 'texture',
       },
     ],
     ['image', image_wgsl, { ...base, dGeometryType: 'image', dInterpolation: 'catmulrom', dRenderVariant: 'marking' }],
@@ -372,7 +409,7 @@ describe('quad wgsl', () => {
         ...base,
         dGeometryType: 'directVolume',
         dGridTexType: '3d',
-        dColorType: 'vertexInstance',
+        dColorType: 'texture',
         dPackedGroup: true,
         dRenderVariant: 'colorWboit',
         dOverpaint: true,
@@ -519,5 +556,38 @@ describe('wgsl texture sample types', () => {
     expect(getTextureSampleType('float', true)).toBe('float');
     expect(getTextureSampleType('depth', false)).toBe('depth');
     expect(getTextureSampleType('sint', false)).toBe('sint');
+  });
+});
+
+describe('wgsl storage buffers of render schemas', () => {
+  const schema = {
+    ...MeshFullSchema,
+    sA: StorageBufferSpec('vec4<f32>', 'read', ['dUseA']),
+    sB: StorageBufferSpec('u32'),
+  };
+
+  it('numbers them after the draw uniforms, the same with and without the define', () => {
+    const draw = getWgslDrawBinding(schema);
+    const withA = getWgslStorageBindings(schema, (n) => n === 'dUseA');
+    const withoutA = getWgslStorageBindings(schema, () => false);
+    expect(withA).toEqual([
+      { name: 'sA', binding: draw + 1, element: 'vec4<f32>' },
+      { name: 'sB', binding: draw + 2, element: 'u32' },
+    ]);
+    expect(withoutA).toEqual([{ name: 'sB', binding: draw + 2, element: 'u32' }]);
+  });
+
+  it('declares referenced ones as read-only arrays in the object group', () => {
+    const code = getWgslStorageDeclarations(
+      schema,
+      () => true,
+      (n) => n === 'sB',
+    );
+    expect(code).toBe(`@group(2) @binding(${getWgslDrawBinding(schema) + 2}) var<storage, read> sB: array<u32>;`);
+  });
+
+  it('rejects writable storage buffers', () => {
+    const writable = { ...MeshFullSchema, sC: StorageBufferSpec('u32', 'read-write') };
+    expect(() => getWgslStorageBindings(writable, () => true)).toThrow(/read-only/);
   });
 });

@@ -5,9 +5,14 @@
  */
 
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
+import { createClipping } from '@molstar/graphics/geo/geometry/clipping-data';
+import type { Representation } from '@molstar/graphics/repr/representation';
+import { Clipping } from '@molstar/graphics/theme/clipping';
+import { ValueCell } from '@molstar/core/util';
 import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
 import { EveryLoci } from '@molstar/model/model/loci';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Clip } from '@molstar/core/util/clip';
 import { Color } from '@molstar/core/util/color';
@@ -24,6 +29,7 @@ import {
   shapeRepr,
   sphereGrid,
 } from '../scenes/primitives.js';
+import { helixStructure, structureRepr } from '../scenes/structure.js';
 import { Impostor, ObliqueView } from './geometry.js';
 
 async function primitivesScene() {
@@ -38,6 +44,18 @@ async function illuminationScene() {
 }
 
 export const RendererCases: VisualTestCase[] = [
+  {
+    id: 'renderer/context/release-restore',
+    description: 'the context released on purpose (a canvas out of view) and restored: the scene is built again on it',
+    requires: ['releaseContext', ...Impostor],
+    isolate: true,
+    releaseContext: true,
+    view: ObliqueView,
+    scene: async ({ graphics }) => [
+      await shapeRepr('mesh', meshPrimitives()),
+      await structureRepr(graphics, SpacefillRepresentationProvider, await helixStructure(12), {}),
+    ],
+  },
   {
     id: 'renderer/camera/orthographic',
     canvasProps: { camera: { mode: 'orthographic' } },
@@ -117,6 +135,36 @@ export const RendererCases: VisualTestCase[] = [
       return [highlighted, selected];
     },
   },
+  ...[1, 0.5].map(
+    (resolutionScale): VisualTestCase => ({
+      id: `renderer/marking/dim-occlusion${resolutionScale === 1 ? '' : '-half-resolution'}`,
+      description:
+        'Selection fill and dimming of a dense block of spheres behind, shaded with the multi-scale SSAO occlusion' +
+        (resolutionScale === 1 ? '.' : ', computed at half resolution and upsampled with the depth.'),
+      requires: Impostor,
+      view: ObliqueView,
+      canvasProps: {
+        renderer: { dimStrength: 0.7 },
+        postprocessing: {
+          occlusion: {
+            name: 'on',
+            params: {
+              ...PD.getDefaultValues(SsaoParams),
+              multiScale: { name: 'on', params: SsaoParams.multiScale.map('on').defaultValue },
+              resolutionScale,
+            },
+          },
+        },
+      },
+      scene: async () => {
+        const primitives = await shapeRepr('mesh', meshPrimitives());
+        primitives.mark(EveryLoci, MarkerAction.Select);
+        const behind = Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, -6));
+        const block = await shapeRepr('spheres', sphereGrid(6, 1.8), { transforms: [behind] });
+        return [primitives, block];
+      },
+    }),
+  ),
   {
     id: 'renderer/marking/alpha-thickness',
     description:
@@ -227,7 +275,7 @@ export const RendererCases: VisualTestCase[] = [
   {
     id: 'renderer/hi-z/occlusion',
     description:
-      'Hi-Z occlusion culling (WebGL2 only) runs in the interactive frames before the capture; the captured image is not culled.',
+      'Hi-Z occlusion culling (WebGL2, WebGPU) runs in the interactive frames before the capture; the captured image is not culled.',
     requires: ['floatRenderTarget'],
     canvasProps: { hiZ: { enabled: true, minLevel: 1 } },
     frames: 4,
@@ -236,6 +284,55 @@ export const RendererCases: VisualTestCase[] = [
       await shapeRepr('mesh', meshTorus(1), { transforms: rowTransforms(5, 3) }),
       await shapeRepr('backdrop', meshBackdrop(12, 2), { colors: [Color(0xcccccc)] }),
     ],
+  },
+  {
+    id: 'renderer/hi-z/viewport',
+    description:
+      'Hi-Z occlusion culling in a frame of the canvas (top-left offset); captured from the canvas, so culled objects are missing from the image where the Hi-Z offset is wrong.',
+    requires: ['floatRenderTarget'],
+    capture: 'canvas',
+    canvasProps: {
+      hiZ: { enabled: true, minLevel: 1 },
+      viewport: { name: 'relative-frame', params: { x: 0.1, y: 0.25, width: 0.75, height: 0.6 } },
+    },
+    frames: 4,
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshTorus(1), { transforms: rowTransforms(5, 3) }),
+      await shapeRepr('backdrop', meshBackdrop(12, 2), { colors: [Color(0xcccccc)] }),
+    ],
+  },
+  {
+    id: 'renderer/viewport/canvas',
+    description: 'Captured from the canvas (Canvas3D frame) instead of an image pass, the whole canvas.',
+    capture: 'canvas',
+    view: ObliqueView,
+    scene: primitivesScene,
+  },
+  {
+    id: 'renderer/viewport/relative-frame',
+    description: 'Drawn into a frame relative to the canvas: 10% from the left, 20% from the top (top-left origin).',
+    capture: 'canvas',
+    canvasProps: { viewport: { name: 'relative-frame', params: { x: 0.1, y: 0.2, width: 0.6, height: 0.5 } } },
+    view: ObliqueView,
+    scene: primitivesScene,
+  },
+  {
+    id: 'renderer/viewport/static-frame',
+    description: 'Drawn into a frame of 160x112 CSS pixels at 24, 120 from the top-left corner of the canvas.',
+    capture: 'canvas',
+    canvasProps: { viewport: { name: 'static-frame', params: { x: 24, y: 120, width: 160, height: 112 } } },
+    view: ObliqueView,
+    scene: primitivesScene,
+  },
+  {
+    id: 'renderer/camera/stereo',
+    description: 'Side-by-side stereo: the left eye in the left half, the right eye in the right half.',
+    capture: 'canvas',
+    size: { width: 384, height: 192 },
+    canvasProps: { camera: { stereo: { name: 'on', params: { eyeSeparation: 0.062, focus: 10 } } } },
+    view: ObliqueView,
+    scene: primitivesScene,
   },
   {
     id: 'renderer/clipping/pixel',
@@ -279,6 +376,19 @@ export const RendererCases: VisualTestCase[] = [
     ],
   },
   {
+    id: 'renderer/clipping/groups',
+    description:
+      'Per group clipping flags exempting groups from clip objects, from the third object on: the sphere is exempt ' +
+      'from the third object (a plane), the box from the first and second, the torus from the second and third.',
+    view: ObliqueView,
+    scene: async () => {
+      const repr = await shapeRepr('mesh', meshPrimitives(), { props: { clip: clipProps('pixel', true) } });
+      const { One, Two, Three, None } = Clipping.Groups.Flag;
+      setClippingGroups(repr, [Three, One | Two, Two | Three, None]);
+      return [repr];
+    },
+  },
+  {
     id: 'renderer/clipping/instance',
     view: ObliqueView,
     scene: async () => [
@@ -290,27 +400,43 @@ export const RendererCases: VisualTestCase[] = [
   },
 ];
 
-/** a tilted plane and a sphere, exercises clip object arrays */
-function clipProps(variant: Clip.Variant): Clip.Props {
-  return {
-    variant,
-    objects: [
-      {
-        type: 'plane',
-        invert: false,
-        position: Vec3.create(0, 0, 0),
-        rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
-        scale: Vec3.create(1, 1, 1),
-        transform: Mat4.identity(),
-      },
-      {
-        type: 'sphere',
-        invert: false,
-        position: Vec3.create(-2, -2, 0),
-        rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
-        scale: Vec3.create(3, 3, 3),
-        transform: Mat4.identity(),
-      },
-    ],
-  };
+/** Clipping flags per group of the single instance of `repr`, as `Visual.setClipping` writes them */
+function setClippingGroups(repr: Representation.Any, flags: Clipping.Groups[]) {
+  const { values } = repr.renderObjects[0];
+  createClipping(flags.length, 'groupInstance', values);
+  values.tClipping.ref.value.array.set(flags);
+  ValueCell.update(values.tClipping, values.tClipping.ref.value);
+}
+
+/** a tilted plane and a sphere (and a horizontal plane with `third`), exercises clip object arrays */
+function clipProps(variant: Clip.Variant, third = false): Clip.Props {
+  const objects: Clip.Props['objects'] = [
+    {
+      type: 'plane',
+      invert: false,
+      position: Vec3.create(0, 0, 0),
+      rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
+      scale: Vec3.create(1, 1, 1),
+      transform: Mat4.identity(),
+    },
+    {
+      type: 'sphere',
+      invert: false,
+      position: Vec3.create(-2, -2, 0),
+      rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+      scale: Vec3.create(3, 3, 3),
+      transform: Mat4.identity(),
+    },
+  ];
+  if (third) {
+    objects.push({
+      type: 'plane',
+      invert: false,
+      position: Vec3.create(0, 1, 0),
+      rotation: { axis: Vec3.create(1, 0, 0), angle: 90 },
+      scale: Vec3.create(1, 1, 1),
+      transform: Mat4.identity(),
+    });
+  }
+  return { variant, objects };
 }

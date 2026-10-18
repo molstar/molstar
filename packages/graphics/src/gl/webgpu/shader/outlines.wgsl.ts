@@ -24,7 +24,7 @@ fn unpack2x4(f: f32) -> vec2<f32> {
 `;
 
 /**
- * Outline edges of the opaque and transparent depth, in GL window space: packed outline type and transparent alpha
+ * Outline edges of the opaque and transparent depth: packed outline type and transparent alpha
  * (r), the packed opaque or transparent edge depth (gb) and the transparent edge depth (a). Depth textures are always
  * available on WebGPU, so the opaque depth is never packed.
  */
@@ -52,12 +52,13 @@ fn getDepthTransparentWithAlpha(coords: vec2<f32>) -> vec2<f32> {
     #if defined(dTransparentOutline)
         return unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords));
     #else
-        return vec2<f32>(1.0, 0.0);
+        return vec2<f32>(0.0, 0.0);
     #endif
 }
 
+// depth is reversed: the background (far plane) at 0, nearer is greater
 fn isBackground(depth: f32) -> bool {
-    return depth == 1.0;
+    return depth == 0.0;
 }
 
 fn getViewZOrBackground(depth: f32) -> f32 {
@@ -79,7 +80,7 @@ fn getCurvature(left: f32, right: f32, up: f32, down: f32, selfViewZ: f32) -> f3
 
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let coords = glCoords(in.position, uObject.uTexSize);
+    let coords = fragmentUv(in.position, uObject.uTexSize);
     let invTexSize = 1.0 / uObject.uTexSize;
     let threshold = uObject.uOutlineThreshold;
 
@@ -92,8 +93,8 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let selfViewZTransparent = getViewZOrBackground(selfDepthTransparent);
     let pixelSizeTransparent = getPixelSize(coords, selfDepthTransparent) * threshold;
 
-    var bestOpaqueDepth = 1.0;
-    var bestTransparentDepth = 1.0;
+    var bestOpaqueDepth = 0.0;
+    var bestTransparentDepth = 0.0;
     var bestTransparentAlpha = 0.0;
 
     var opaqueOutlineFlag = 0.0;
@@ -106,7 +107,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
             // opaque
             let sampleDepthOpaque = getDepthOpaque(sampleCoords);
             let sampleViewZOpaque = getViewZOrBackground(sampleDepthOpaque);
-            if (abs(selfViewZOpaque - sampleViewZOpaque) > pixelSizeOpaque && selfDepthOpaque > sampleDepthOpaque && sampleDepthOpaque <= bestOpaqueDepth) {
+            if (abs(selfViewZOpaque - sampleViewZOpaque) > pixelSizeOpaque && selfDepthOpaque < sampleDepthOpaque && sampleDepthOpaque >= bestOpaqueDepth) {
                 bestOpaqueDepth = sampleDepthOpaque;
                 opaqueOutlineFlag = 1.0;
             }
@@ -115,7 +116,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
             let sampleDepthTransparentWithAlpha = getDepthTransparentWithAlpha(sampleCoords);
             let sampleDepthTransparent = sampleDepthTransparentWithAlpha.x;
             let sampleViewZTransparent = getViewZOrBackground(sampleDepthTransparent);
-            if (abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent > sampleDepthTransparent && sampleDepthTransparent <= bestTransparentDepth) {
+            if (abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent < sampleDepthTransparent && sampleDepthTransparent >= bestTransparentDepth) {
                 bestTransparentDepth = sampleDepthTransparent;
                 bestTransparentAlpha = sampleDepthTransparentWithAlpha.y;
                 transparentOutlineFlag = 1.0;
@@ -141,7 +142,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         );
         if (curvOpaque < pixelSizeOpaque * curvatureGate) {
             opaqueOutlineFlag = 0.0;
-            bestOpaqueDepth = 1.0;
+            bestOpaqueDepth = 0.0;
         }
     }
 
@@ -153,7 +154,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         );
         if (curvTransparent < pixelSizeTransparent * curvatureGate) {
             transparentOutlineFlag = 0.0;
-            bestTransparentDepth = 1.0;
+            bestTransparentDepth = 0.0;
             bestTransparentAlpha = 0.0;
         }
     }

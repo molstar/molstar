@@ -1,0 +1,59 @@
+{
+  "_about": "Case 9's pixels (case9-pixels.test.ts): per user agent, the first 16 hex digits of the SHA-256 of each canvas's RGBA bytes per view/section@zoom/theme, DPR 1. Exact and the machine's: compare only on the same setup. Recorded with VITE_SEQ_PIXELS=record.",
+  "records": {
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36": {
+      "recorded": "2026-10-16",
+      "machine": "Apple M4, 16 GB, macOS 26.5, Chrome 155 headless",
+      "hashes": {
+        "msa/msa_main@fit/light": {
+          "main": "5a0473eced5568f7",
+          "overlay": "094a7b116ddb5d8b",
+          "nav": "fdabd5d1dec3adaf",
+          "navOverlay": "c6d4e9063ff68de0"
+        },
+        "msa/msa_chains@fit/light": {
+          "main": "fd9403ed086fcbf0",
+          "overlay": "705162d1202c2b33",
+          "nav": "7d589735bfd32f71",
+          "navOverlay": "4f6596c508756f8e"
+        },
+        "msa/msa_main@zoomed/light": {
+          "main": "48afa5be1477794f",
+          "overlay": "c6cf5ab257540f61",
+          "nav": "fdabd5d1dec3adaf",
+          "navOverlay": "a225935a80e7fd2e"
+        },
+        "msa/msa_chains@zoomed/light": {
+          "main": "02b8d2fce7d8680b",
+          "overlay": "705162d1202c2b33",
+          "nav": "7d589735bfd32f71",
+          "navOverlay": "3b62ef0d26f08195"
+        },
+        "msa/msa_main@fit/dark": {
+          "main": "fd2908d27e71358d",
+          "overlay": "63503b6c19d96065",
+          "nav": "fbf09a7d34ef162d",
+          "navOverlay": "7fbd4bba4c0cb6ea"
+        },
+        "msa/msa_chains@fit/dark": {
+          "main": "8ecc8c1bd12a4463",
+          "overlay": "705162d1202c2b33",
+          "nav": "81af1cf406c345ac",
+          "navOverlay": "ce5a7cd0b550aeea"
+        },
+        "msa/msa_main@zoomed/dark": {
+          "main": "60192a42286398ec",
+          "overlay": "bd8a493d28e63a7b",
+          "nav": "fbf09a7d34ef162d",
+          "navOverlay": "6fe8b45e82a6b961"
+        },
+        "msa/msa_chains@zoomed/dark": {
+          "main": "703f1f0553d5516a",
+          "overlay": "705162d1202c2b33",
+          "nav": "81af1cf406c345ac",
+          "navOverlay": "19049416f9346e57"
+        }
+      }
+    }
+  }
+}

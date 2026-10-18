@@ -4,6 +4,7 @@
  * @author Russell Parker <russell@benchling.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { getFileNameInfo } from '../file-info.js';
 
 describe('getFileNameInfo', () => {

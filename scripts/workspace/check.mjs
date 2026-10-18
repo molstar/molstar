@@ -32,9 +32,10 @@ for (const pkg of packages) {
 }
 function packageManifestPaths(dir, results = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    // `.claude`: Claude Code's worktrees, other checkouts of this repository.
     if (
       ent.isDirectory() &&
-      ['node_modules', '.git', '.pnpm-store', '.cache', 'build', 'lib', '.v6'].includes(ent.name)
+      ['node_modules', '.git', '.pnpm-store', '.cache', 'build', 'lib', '.v6', '.claude'].includes(ent.name)
     )
       continue;
     const abs = path.join(dir, ent.name);
@@ -151,7 +152,10 @@ const sourceFiles = new Map();
 function scan(dir, pkg) {
   if (!fs.existsSync(dir)) return;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name))
+    // `_stories` holds Seq*'s Storybook stories and their support code (a private package whose content they are, like
+    // `_test` not published source); Prism's `_stories` folders are checked like the rest of its source.
+    const skipped = /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name);
+    if (ent.isDirectory() && (skipped || (ent.name === '_stories' && pkg.path.startsWith('packages/sequences/'))))
       continue;
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) scan(abs, pkg);
@@ -204,7 +208,8 @@ for (const [file, pkg] of sourceFiles) {
         errors.push(`${pkg.name}: missing direct dependency on ${dependency.name} (${specifier} in ${rel})`);
       graph.get(pkg.name)?.add(dependency.name);
     } else if (!dependency && !specifier.startsWith('node:') && !ts.isExternalModuleNameRelative(specifier)) {
-      const name = packageName(specifier);
+      // Astro's virtual modules (`astro:content`, ...) come from the `astro` package.
+      const name = specifier.startsWith('astro:') ? 'astro' : packageName(specifier);
       if (builtinModules.includes(name) || builtinModules.includes(`node:${name}`) || name.startsWith('#')) continue;
       const manifest = manifestFor(pkg);
       if (name.startsWith('@molstar/'))

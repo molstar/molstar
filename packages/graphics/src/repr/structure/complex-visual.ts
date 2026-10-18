@@ -16,6 +16,7 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   type RenderObjectValues,
+  hasForeignTextures,
 } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
@@ -52,13 +53,13 @@ import {
 import type { Clipping } from '@molstar/graphics/theme/clipping';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import type { Substance } from '@molstar/graphics/theme/substance';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import type { Emissive } from '@molstar/graphics/theme/emissive';
 import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { Image } from '@molstar/graphics/geo/geometry/image/image';
+import { getGeometrySignatures, type SignatureContext, type SignatureDefines } from '@molstar/graphics/repr/signatures';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> {}
 
@@ -78,6 +79,8 @@ function createComplexRenderObject<G extends Geometry>(
 }
 
 interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
+  /** define values the visual decides (e.g. varying groups), for its signatures, see `getGeometrySignatures` */
+  signatureDefines?: (props: PD.Values<P>, graphics?: GraphicsContext) => SignatureDefines;
   defaultProps: PD.Values<P>;
   createGeometry(
     ctx: VisualContext,
@@ -148,7 +151,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
   let locationIt: LocationIterator;
   let positionIt: LocationIterator;
 
-  function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, structure: Structure) {
+  function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, structure: Structure, graphics?: GraphicsContext) {
     if (!structure && !currentStructure) {
       throw new Error('missing structure');
     }
@@ -166,6 +169,13 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     }
 
     setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+
+    // after a backend switch: textures of the previous context are rendered or computed again, geometry relying on what
+    // the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
+    if (graphics && renderObject && hasForeignTextures(renderObject, graphics)) updateState.createGeometry = true;
+    if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
+      updateState.createGeometry = true;
+    }
 
     if (!Structure.areEquivalent(newStructure, currentStructure)) {
       updateState.createGeometry = true;
@@ -331,20 +341,18 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
       return geometryVersion;
     },
     createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
-      prepareUpdate(theme, props, structure || currentStructure);
+      prepareUpdate(theme, props, structure || currentStructure, ctx.graphics);
       if (updateState.createGeometry) {
         const newGeometry = createGeometry(ctx, newStructure, newTheme, newProps, geometry);
-        if (isPromiseLike(newGeometry)) {
-          return newGeometry.then((g) => {
-            update(g);
-            finalize(ctx);
-          });
-        }
-        update(newGeometry);
-      } else {
-        update();
+        return Visual.withPreparedGeometry(newGeometry, builder.geometryUtils, newTheme, ctx.graphics, (g) => {
+          update(g);
+          finalize(ctx);
+        });
       }
-      finalize(ctx);
+      return Visual.withPreparedGeometry(geometry, builder.geometryUtils, newTheme, ctx.graphics, () => {
+        update();
+        finalize(ctx);
+      });
     },
     getLoci(pickingId: PickingId) {
       if (!renderObject) return EmptyLoci;
@@ -417,6 +425,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         renderObject.state.disposed = true;
         renderObject = undefined;
       }
+    },
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
+      const p = { ...defaultProps, ...props };
+      return getGeometrySignatures(builder.geometryUtils, p, ctx, builder.signatureDefines?.(p, ctx.graphics));
     },
     mustRecreate,
   };
