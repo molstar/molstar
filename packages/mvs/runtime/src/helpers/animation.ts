@@ -7,13 +7,15 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
+import { murmurHash3_128 } from '@molstar/core/data/util/hash-functions';
 import { EasingFunctions } from '@molstar/core/math/easing';
 import { clamp, lerp } from '@molstar/core/math/interpolate';
 import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
-import { deepEqual } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color';
-import { produce } from '@molstar/core/util/produce';
+import { deepEqual } from '@molstar/core/util';
+import { ObjectMutator } from '@molstar/core/util/object-mutator';
+import { areDistinctCanonical, CanonicalValues } from './canonical-values.js';
 import {
   makeContinuousPaletteCheckpoints,
   type MVSContinuousPaletteProps,
@@ -29,6 +31,7 @@ import { addDefaults } from '@molstar/mvs-builder/tree/generic/tree-utils';
 import type { MVSTree } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import { ColorT, EasingT } from '@molstar/mvs-builder/tree/mvs/param-types';
 
+/** Expand the animation of `snapshot` into MVS trees, one per distinct frame, each with its duration (`animation.md §1`). */
 export async function generateStateTransition(
   ctx: RuntimeContext,
   snapshot: Snapshot,
@@ -50,17 +53,16 @@ export async function generateStateTransition(
   const dt = tree.params?.frame_time_ms ?? 1000 / 60;
   const N = Math.ceil(duration / dt);
 
-  const nodeMap = makeNodeMap(snapshot.root, new Map(), []);
-  const cache = new Map<any, InterpolationCacheEntry>();
-
-  const transitionGroups = groupTranstions(transitions);
+  const { mutator, groups } = compileTransitions(snapshot.root, transitions);
 
   let prevRoot: MVSTree | undefined;
   for (let i = 0; i <= N; i++) {
     const t = i * dt;
-    const root = createSnapshot(snapshot.root, transitionGroups, t, cache, nodeMap);
+    for (const group of groups) evaluateGroup(group, t, mutator);
+    // (the mutator returns the previous frame's root when no value changed)
+    const root = mutator.commit();
 
-    if (root === prevRoot || (prevRoot && deepEqual(root, prevRoot))) {
+    if (root === prevRoot) {
       frames[frames.length - 1][1] += dt;
     } else {
       frames.push([root, dt]);
@@ -101,6 +103,9 @@ interface InterpolationCacheEntry {
   paletteFn?: PaletteFunction;
   startColors?: DecodedSplitColors;
   endColors?: DecodedSplitColors;
+  colorMap?: ColorMapPlan;
+  /** Shared by the transitions of the animation (`animation.md §4`): released with them after the expansion */
+  colorCaches: ColorCaches;
   rotation?: { axis: Vec3; angle: number; start: Quat; end: Quat };
 }
 
@@ -112,7 +117,7 @@ function getTransitionKey(transition: MVSAnimationNode<'interpolate'>) {
   return `${transition.params.target_ref}:${prop}`;
 }
 
-function groupTranstions(transitions: MVSAnimationNode<'interpolate'>[]) {
+function groupTransitions(transitions: MVSAnimationNode<'interpolate'>[]) {
   const map = new Map<string, MVSAnimationNode<'interpolate'>[]>();
   const groups: MVSAnimationNode<'interpolate'>[][] = [];
   for (const t of transitions) {
@@ -134,65 +139,75 @@ function groupTranstions(transitions: MVSAnimationNode<'interpolate'>[]) {
   return groups;
 }
 
-function createSnapshot(
-  tree: MVSTree,
-  transitionGroups: MVSAnimationNode<'interpolate'>[][],
-  time: number,
-  cache: Map<any, InterpolationCacheEntry>,
-  nodeMap: Map<string, (string | number)[]>,
-) {
-  let modified = false;
-  const ret = produce(tree, (draft) => {
-    for (const transitionGroup of transitionGroups) {
-      const pivot = transitionGroup[0];
-      const nodePath = nodeMap.get(pivot.params.target_ref);
-      if (!nodePath) continue;
+/** The transitions of one property of one node (same `target_ref` and `property`), sorted by start. */
+interface TransitionGroup {
+  /** Where the property is in the snapshot tree. */
+  slot: number;
+  /** The property's value in the frame being built. */
+  current: () => any;
+  transitions: MVSAnimationNode<'interpolate'>[];
+  startMs: number[];
+  caches: InterpolationCacheEntry[];
+}
 
-      const node = select(draft, nodePath, 0);
-      const target = pivot.params.property[0] === 'custom' ? node?.custom : node?.params;
-      if (!target) continue;
+/** Resolve each group's target once into a slot of an `ObjectMutator` over the snapshot tree. */
+function compileTransitions(root: MVSTree, transitions: MVSAnimationNode<'interpolate'>[]) {
+  const colorCaches = createColorCaches();
+  const nodeMap = makeNodeMap(root, new Map(), []);
+  const plan = ObjectMutator.plan(root);
+  const groups: TransitionGroup[] = [];
+  for (const transitionGroup of groupTransitions(transitions)) {
+    const pivot = transitionGroup[0];
+    const nodePath = nodeMap.get(pivot.params.target_ref);
+    if (!nodePath) continue;
 
-      const offset = pivot.params.property[0] === 'custom' ? 1 : 0;
+    const property = pivot.params.property;
+    const isCustom = property[0] === 'custom';
+    const node = select(root, nodePath, 0);
+    const target = isCustom ? node?.custom : node?.params;
+    // (a target missing in the snapshot tree: the group is skipped, as when it was resolved on every frame)
+    if (!target) continue;
 
-      let transition: MVSAnimationNode<'interpolate'> = pivot;
-      let previous: MVSAnimationNode<'interpolate'> | undefined;
+    plan.pushPrefix(...nodePath, isCustom ? 'custom' : 'params');
+    const slot = plan.slot(typeof property === 'string' ? property : property.slice(isCustom ? 1 : 0));
+    plan.popPrefix();
+    groups.push({
+      slot,
+      current: undefined as any,
+      transitions: transitionGroup,
+      startMs: transitionGroup.map((t) => t.params.start_ms ?? 0),
+      caches: transitionGroup.map(() => ({ colorCaches })),
+    });
+  }
+  // (color maps are made once per content: two different ones are different, `animation.md §5`)
+  const mutator = ObjectMutator.create(plan, { equals: (a, b) => !areDistinctCanonical(a, b) && deepEqual(a, b) });
+  for (const group of groups) group.current = () => mutator.get(group.slot);
+  return { mutator, groups };
+}
 
-      for (let i = transitionGroup.length - 1; i > 0; i--) {
-        const current = transitionGroup[i];
-        const currentStart = current.params.start_ms ?? 0;
-        if (time >= currentStart) {
-          transition = current;
-          previous = i > 0 ? transitionGroup[i - 1] : undefined;
-          break;
-        }
-      }
-
-      if (!cache.has(transition)) {
-        cache.set(transition, {});
-      }
-
-      const cacheEntry: InterpolationCacheEntry = cache.get(transition)!;
-
-      const startTime: number = transition.params.start_ms ?? 0;
-      const durationMs: number = transition.params.duration_ms ?? 0;
-      const t = (time - startTime) / durationMs;
-
-      let next: any;
-      if (transition.params.kind === 'transform_matrix') {
-        next = processTransformMatrix(transition, target, clamp(t, 0, 1), cacheEntry, offset, previous);
-      } else {
-        next = processScalarLike(transition, target, t, cacheEntry, offset, previous);
-      }
-
-      if (next === undefined) {
-        continue;
-      }
-
-      modified = true;
-      assign(target, transition.params.property, next, offset);
+/** Set the value of the group's property at `time`. */
+function evaluateGroup(group: TransitionGroup, time: number, mutator: ObjectMutator<MVSTree>) {
+  let index = 0;
+  for (let i = group.transitions.length - 1; i > 0; i--) {
+    if (time >= group.startMs[i]) {
+      index = i;
+      break;
     }
-  });
-  return modified ? ret : tree;
+  }
+  const transition = group.transitions[index];
+  const previous = index > 0 ? group.transitions[index - 1] : undefined;
+  const cacheEntry = group.caches[index];
+
+  const startTime = group.startMs[index];
+  const durationMs: number = transition.params.duration_ms ?? 0;
+  const t = (time - startTime) / durationMs;
+
+  const current = group.current;
+  const next =
+    transition.params.kind === 'transform_matrix'
+      ? processTransformMatrix(transition, current, clamp(t, 0, 1), cacheEntry, previous)
+      : processScalarLike(transition, current, t, cacheEntry, previous);
+  if (next !== undefined) mutator.set(group.slot, next);
 }
 
 function applyFrequency(t: number, frequency: number, alternate: boolean) {
@@ -218,17 +233,15 @@ function getPreviousScalarEnd(previous: MVSAnimationNode<'interpolate'> | undefi
 
 function processScalarLike(
   transition: MVSAnimationNode<'interpolate'>,
-  target: any,
+  current: () => any,
   time: number,
   cacheEntry: InterpolationCacheEntry,
-  offset: number,
   previous: MVSAnimationNode<'interpolate'> | undefined,
 ) {
   if (transition.params.kind === 'transform_matrix') return;
   if (previous && previous.params.kind === 'transform_matrix') return;
 
-  const startValue =
-    transition.params.start ?? getPreviousScalarEnd(previous) ?? select(target, transition.params.property, offset);
+  const startValue = transition.params.start ?? getPreviousScalarEnd(previous) ?? current();
   if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
     cacheEntry.paletteFn = makePaletteFunction(transition);
   }
@@ -268,7 +281,7 @@ function processScalarLike(
       return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
     }
 
-    const baseColors = typeof startValue === 'object' ? select(target, transition.params.property, offset) : undefined;
+    const baseColors = typeof startValue === 'object' ? current() : undefined;
     return interpolateColors(startValue, endValue, t, cacheEntry, baseColors);
   }
 }
@@ -292,16 +305,15 @@ const TransformState = {
 };
 function processTransformMatrix(
   transition: MVSAnimationNode<'interpolate'>,
-  target: any,
+  current: () => any,
   time: number,
   cache: InterpolationCacheEntry,
-  offset: number,
   previous: MVSAnimationNode<'interpolate'> | undefined,
 ) {
   if (transition.params.kind !== 'transform_matrix') return;
   if (previous && previous.params.kind !== 'transform_matrix') return;
 
-  const transform = select(target, transition.params.property, offset) ?? Mat4.identity();
+  const transform = current() ?? Mat4.identity();
 
   const startRotation =
     transition.params.rotation_start ??
@@ -544,6 +556,19 @@ type DecodedSplitColors =
   | { kind: 'dict'; dict: Record<string, [Color, Color]> }
   | { kind: 'value'; value: [Color, Color] };
 
+/** Decoded colors by string (color maps repeat a few colors many times); the same tuple for the same string. */
+const DecodedColors = new Map<unknown, [Color, Color]>();
+const DecodedColorsStrict = new Map<unknown, [Color, Color]>();
+function decodeCached(cache: Map<unknown, [Color, Color]>, decode: (c: any) => [Color, Color] | undefined, c: unknown) {
+  let decoded = cache.get(c);
+  if (!decoded) {
+    if (cache.size > 10_000) cache.clear();
+    decoded = decode(c) ?? _fallbackSplitColor;
+    cache.set(c, decoded);
+  }
+  return decoded;
+}
+
 function decodeSplitColors(
   color: ColorT | Record<number | string, ColorT> | undefined,
   baseColors: Record<number | string, ColorT> | undefined,
@@ -554,11 +579,11 @@ function decodeSplitColors(
     const ret: Record<number | string, [Color, Color]> = {};
     if (baseColors) {
       for (const key of Object.keys(baseColors)) {
-        ret[key] = SplitColor.decode(baseColors[key]) ?? _fallbackSplitColor;
+        ret[key] = decodeCached(DecodedColors, (c) => SplitColor.decode(c), baseColors[key]);
       }
     }
     for (const key of Object.keys(color)) {
-      ret[key] = SplitColor.decodeStrict(color[key]) ?? _fallbackSplitColor;
+      ret[key] = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), color[key]);
     }
     return { kind: 'dict', dict: ret };
   }
@@ -579,39 +604,21 @@ function interpolateColors(
     return PaletteFunction.getAsHexStyle(cacheEntry.paletteFn, t);
   }
 
+  const caches = cacheEntry.colorCaches;
+  if (cacheEntry.colorMap) return ColorMapPlan.at(caches, cacheEntry.colorMap, t, baseColors!);
+  if (isColorMap(start) && isColorMap(end) && isColorMap(baseColors)) {
+    const plan = ColorMapPlan.fromRaw(caches, baseColors, start, end);
+    if (plan) return ColorMapPlan.at(caches, (cacheEntry.colorMap = plan), t, baseColors);
+  }
+
   const startColors = (cacheEntry.startColors ??= decodeSplitColors(start, baseColors));
   const endColors = (cacheEntry.endColors ??= decodeSplitColors(end, undefined));
 
   if (startColors?.kind === 'dict') {
     if (baseColors === undefined || baseColors === null) throw new Error('Missing color value in the target node');
     if (typeof baseColors !== 'object') throw new Error('Cannot interpolate from scalar color to color mapping');
-
-    const ret: Record<number | string, ColorT> = Array.isArray(baseColors)
-      ? (baseColors.slice() as Record<number, ColorT>)
-      : { ...baseColors };
-
-    if (endColors?.kind === 'dict') {
-      for (const key of Object.keys(startColors.dict)) {
-        if (!(key in endColors.dict)) {
-          ret[key] = SplitColor.toHexStyle(...startColors.dict[key]);
-        } // else will be set in the next step
-      }
-      for (const key of Object.keys(endColors.dict)) {
-        ret[key] =
-          key in startColors.dict
-            ? interpolateSplitColor(startColors.dict[key], endColors.dict[key], t)
-            : SplitColor.toHexStyle(...endColors.dict[key]);
-      }
-    } else if (endColors?.kind === 'value') {
-      for (const key of Object.keys(startColors.dict)) {
-        ret[key] = interpolateSplitColor(startColors.dict[key], endColors.value, t);
-      }
-    } else {
-      for (const key of Object.keys(startColors.dict)) {
-        ret[key] = SplitColor.toHexStyle(...startColors.dict[key]);
-      }
-    }
-    return ret;
+    const plan = (cacheEntry.colorMap ??= ColorMapPlan.get(caches, baseColors, startColors.dict, endColors));
+    return ColorMapPlan.at(caches, plan, t, baseColors);
   } else if (startColors?.kind === 'value') {
     if (endColors?.kind === 'dict') {
       throw new Error('Cannot interpolate from scalar color to color mapping');
@@ -621,9 +628,280 @@ function interpolateColors(
       return start;
     }
   } else {
-    throw new Error('Missing start value for color interpolation');
+    // no start value (a key the target's color map does not have, no `start`): nothing to interpolate, the property is
+    // left as it is (as before split coloring, which made this an error and broke documents that relied on it)
+    return undefined;
   }
 }
+
+/**
+ * A color map transition (`animation.md §4`): the keys in the order they are set, each either a constant color or one of
+ * a few groups of keys that go from the same start to the same end color. Prepared once per content (base map object,
+ * start, end), so transitions with the same colors share it; the maps it returns are kept by their group colors, so
+ * equal maps are the same object (frame dedup, hashing, comparisons and memory by identity).
+ */
+interface ColorMapPlan {
+  base: Record<number | string, ColorT>;
+  keys: string[];
+  /** Hash of `keys` (their order) */
+  keysId: string;
+  /** Per key: its constant color, or undefined when it is in a group */
+  constants: (ColorT | undefined)[];
+  /** Per key: its group, or -1 */
+  group: Int32Array;
+  groups: { start: [Color, Color]; end: [Color, Color] }[];
+  maps: Map<string, Record<number | string, ColorT>>;
+}
+
+/** The color map caches of one animation, by base map (`animation.md §4`). */
+interface ColorCaches {
+  /** The plans made over a base map and its key orders */
+  plans: WeakMap<object, { plans: ColorMapPlan[]; keyOrders: string[][] }>;
+  /** The start and end maps a plan was made from */
+  raw: WeakMap<object, RawColorMapEntry[]>;
+  /** The maps made, by content: equal maps from different transitions are the same object */
+  byContent: WeakMap<object, Map<string, Record<number | string, ColorT>>>;
+}
+
+function createColorCaches(): ColorCaches {
+  return { plans: new WeakMap(), raw: new WeakMap(), byContent: new WeakMap() };
+}
+interface RawColorMapEntry {
+  start: Record<string, unknown>;
+  end: Record<string, unknown>;
+  startKeys: string[];
+  endKeys: string[];
+  plan: ColorMapPlan;
+}
+
+/** The same keys in the same order with the same values. */
+function rawMapsEqual(ka: string[], a: Record<string, unknown>, kb: string[], b: Record<string, unknown>): boolean {
+  if (a === b) return true;
+  if (ka.length !== kb.length) return false;
+  for (let i = 0; i < ka.length; i++) {
+    if (ka[i] !== kb[i] || a[ka[i]] !== b[kb[i]]) return false;
+  }
+  return true;
+}
+
+function arraysEqual<T>(a: ArrayLike<T>, b: ArrayLike<T>): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+function tupleEqual(a: [Color, Color], b: [Color, Color]) {
+  return a === b || (a[0] === b[0] && a[1] === b[1]);
+}
+
+function isColorMap(x: unknown): x is Record<number | string, ColorT> {
+  return typeof x === 'object' && x !== null;
+}
+
+type AddColorMapKey = (key: string, constant: ColorT | undefined, from?: [Color, Color], to?: [Color, Color]) => void;
+
+const ColorMapPlan = {
+  get(
+    caches: ColorCaches,
+    base: Record<number | string, ColorT>,
+    start: Record<string, [Color, Color]>,
+    end: DecodedSplitColors | undefined,
+  ): ColorMapPlan {
+    // the keys in the order the earlier loops set them: start keys not in an end map, then the end map's keys
+    return ColorMapPlan.make(caches, base, (add) => {
+      if (end?.kind === 'dict') {
+        for (const key of Object.keys(start)) {
+          if (!(key in end.dict)) add(key, SplitColor.toHexStyle(...start[key]));
+        }
+        for (const key of Object.keys(end.dict)) {
+          if (key in start) add(key, undefined, start[key], end.dict[key]);
+          else add(key, SplitColor.toHexStyle(...end.dict[key]));
+        }
+      } else if (end?.kind === 'value') {
+        for (const key of Object.keys(start)) add(key, undefined, start[key], end.value);
+      } else {
+        for (const key of Object.keys(start)) add(key, SplitColor.toHexStyle(...start[key]));
+      }
+    });
+  },
+  /**
+   * The plan for these start and end maps as written: the plan of an earlier transition with equal maps (same keys in
+   * the same order, equal values; documents repeat the same fades many times), else `fromSameKeys`.
+   */
+  fromRaw(
+    caches: ColorCaches,
+    base: Record<number | string, ColorT>,
+    start: Record<number | string, ColorT>,
+    end: Record<number | string, ColorT>,
+  ): ColorMapPlan | undefined {
+    let seen = caches.raw.get(base);
+    if (!seen) caches.raw.set(base, (seen = []));
+    const startKeys = Object.keys(start);
+    const endKeys = Object.keys(end);
+    for (let k = 0; k < seen.length; k++) {
+      const entry = seen[k];
+      if (
+        rawMapsEqual(entry.endKeys, entry.end, endKeys, end) &&
+        rawMapsEqual(entry.startKeys, entry.start, startKeys, start)
+      ) {
+        // (the most recent match first: fades repeat in runs)
+        if (k > 0) seen.unshift(...seen.splice(k, 1));
+        return entry.plan;
+      }
+    }
+    const plan = ColorMapPlan.fromSameKeys(caches, base, start, end);
+    if (plan) seen.unshift({ start, end, startKeys, endKeys, plan });
+    return plan;
+  },
+  /**
+   * `get` for start and end maps over the same keys, which the base's keys are among (a map fading as a whole): every key
+   * goes from its start to its end color, in the end map's key order, read in one pass from the maps as they are.
+   */
+  fromSameKeys(
+    caches: ColorCaches,
+    base: Record<number | string, ColorT>,
+    start: Record<number | string, ColorT>,
+    end: Record<number | string, ColorT>,
+  ): ColorMapPlan | undefined {
+    const endKeys = Object.keys(end);
+    let startCount = 0;
+    for (const key in start) if (Object.hasOwn(start, key)) startCount++;
+    if (startCount !== endKeys.length) return undefined;
+    const n = endKeys.length;
+    const start0 = n > 0 ? start[endKeys[0]] : undefined;
+    const end0 = n > 0 ? end[endKeys[0]] : undefined;
+    let uniform = n > 0;
+    for (const key of endKeys) {
+      if (!Object.hasOwn(start, key)) return undefined;
+      if (uniform && (start[key] !== start0 || end[key] !== end0)) uniform = false;
+    }
+    for (const key in base) if (Object.hasOwn(base, key) && !Object.hasOwn(end, key)) return undefined;
+    if (uniform) {
+      // (one start and one end color for every key: one group)
+      const from = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), start0);
+      const to = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), end0);
+      return ColorMapPlan.intern(caches, base, endKeys, new Array(n).fill(undefined), new Int32Array(n), [
+        { start: from, end: to },
+      ]);
+    }
+    return ColorMapPlan.make(caches, base, (add) => {
+      for (const key of endKeys) {
+        const from = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), start[key]);
+        const to = decodeCached(DecodedColorsStrict, (c) => SplitColor.decodeStrict(c), end[key]);
+        add(key, undefined, from, to);
+      }
+    });
+  },
+  make(
+    caches: ColorCaches,
+    base: Record<number | string, ColorT>,
+    entries: (add: AddColorMapKey) => void,
+  ): ColorMapPlan {
+    const keys: string[] = [];
+    const constants: (ColorT | undefined)[] = [];
+    const groupOf: number[] = [];
+    const groups: ColorMapPlan['groups'] = [];
+    // (by the decoded tuples, the same object per color string: `decodeCached`)
+    const groupIndex = new Map<[Color, Color], Map<[Color, Color], number>>();
+    const add = (key: string, constant: ColorT | undefined, from?: [Color, Color], to?: [Color, Color]) => {
+      keys.push(key);
+      constants.push(constant);
+      if (constant !== undefined) {
+        groupOf.push(-1);
+        return;
+      }
+      let byEnd = groupIndex.get(from!);
+      if (!byEnd) groupIndex.set(from!, (byEnd = new Map()));
+      let g = byEnd.get(to!);
+      if (g === undefined) {
+        g = groups.length;
+        groups.push({ start: from!, end: to! });
+        byEnd.set(to!, g);
+      }
+      groupOf.push(g);
+    };
+    entries(add);
+    return ColorMapPlan.intern(caches, base, keys, constants, Int32Array.from(groupOf), groups);
+  },
+  /** The plan of this content over `base`: an existing one when equal (compared as arrays, no strings built). */
+  intern(
+    caches: ColorCaches,
+    base: Record<number | string, ColorT>,
+    keys: string[],
+    constants: (ColorT | undefined)[],
+    group: Int32Array,
+    groups: ColorMapPlan['groups'],
+  ): ColorMapPlan {
+    let registry = caches.plans.get(base);
+    if (!registry) caches.plans.set(base, (registry = { plans: [], keyOrders: [] }));
+    let keysIndex = registry.keyOrders.findIndex((k) => arraysEqual(k, keys));
+    if (keysIndex < 0) keysIndex = registry.keyOrders.push(keys) - 1;
+    const keysId = `${keysIndex}`;
+    for (const plan of registry.plans) {
+      if (
+        plan.keysId === keysId &&
+        plan.groups.length === groups.length &&
+        plan.groups.every((g, i) => tupleEqual(g.start, groups[i].start) && tupleEqual(g.end, groups[i].end)) &&
+        arraysEqual(plan.group, group) &&
+        arraysEqual(plan.constants, constants)
+      ) {
+        return plan;
+      }
+    }
+    const plan: ColorMapPlan = { base, keys, keysId, constants, group, groups, maps: new Map() };
+    registry.plans.push(plan);
+    return plan;
+  },
+  /**
+   * The map at eased time `t`, over `base`: the plan's own base (a map kept by content), or another one when the base
+   * changes from step to step (a map slot inside another animated slot): a new map over it, as each step made before.
+   */
+  at(
+    caches: ColorCaches,
+    plan: ColorMapPlan,
+    t: number,
+    base: Record<number | string, ColorT>,
+  ): Record<number | string, ColorT> {
+    const colors = plan.groups.map((g) => interpolateSplitColor(g.start, g.end, t));
+    if (base !== plan.base) {
+      const map: Record<number | string, ColorT> = Array.isArray(base)
+        ? (base.slice() as Record<number, ColorT>)
+        : { ...base };
+      for (let i = 0; i < plan.keys.length; i++) {
+        map[plan.keys[i]] = plan.group[i] >= 0 ? colors[plan.group[i]] : plan.constants[i]!;
+      }
+      return map;
+    }
+    const id = colors.join('|');
+    let map = plan.maps.get(id);
+    if (map) return map;
+    // the content: the keys' order, and each key's color as an index into the distinct colors
+    const { keys, constants, group } = plan;
+    const values: ColorT[] = new Array(keys.length);
+    const distinct = new Map<ColorT, number>();
+    let content = '';
+    for (let i = 0; i < keys.length; i++) {
+      const value = group[i] >= 0 ? colors[group[i]] : constants[i]!;
+      values[i] = value;
+      let d = distinct.get(value);
+      if (d === undefined) distinct.set(value, (d = distinct.size));
+      content += d + ',';
+    }
+    const contentId = `${plan.keysId}|${Array.from(distinct.keys()).join(',')}|${murmurHash3_128(content, 42)}`;
+    let byContent = caches.byContent.get(plan.base);
+    if (!byContent) caches.byContent.set(plan.base, (byContent = new Map()));
+    map = byContent.get(contentId);
+    if (!map) {
+      map = Array.isArray(plan.base) ? (plan.base.slice() as Record<number, ColorT>) : { ...plan.base };
+      for (let i = 0; i < keys.length; i++) map[keys[i]] = values[i];
+      byContent.set(contentId, map);
+      CanonicalValues.add(map);
+    }
+    plan.maps.set(id, map);
+    return map;
+  },
+};
 
 function interpolateSplitColor(start: [Color, Color], end: [Color, Color], t: number): ColorT {
   const out0 = Color.interpolate(start[0], end[0], t);
@@ -647,25 +925,6 @@ function select(params: any, path: string | (string | number)[], offset: number)
   }
 
   return f;
-}
-
-function assign(params: any, path: string | (string | number)[], value: any, offset: number) {
-  if (!params) return;
-
-  if (typeof path === 'string') {
-    params[path] = value;
-    return;
-  }
-
-  let f = params;
-  for (let i = offset; i < path.length; i++) {
-    if (!f) break;
-    if (i === path.length - 1) {
-      f[path[i]] = value;
-    } else {
-      f = f[path[i]];
-    }
-  }
 }
 
 function makeNodeMap(tree: Tree, map: Map<string, (string | number)[]>, currentPath: (string | number)[]) {

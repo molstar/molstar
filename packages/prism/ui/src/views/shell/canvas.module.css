@@ -86,13 +86,14 @@
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
 
-  /* Over the open panel: swapped in without a transition (it replaces the panel's content; nothing new arrives). */
-  [data-right-panel="open"] > & {
+  /* Over the open panel: swapped in without a transition (it replaces the panel's content; nothing new arrives).
+     Descendant, not child: the card sits in a `display: contents` home (`OverlayCard`, it moves to the compact sheet). */
+  [data-right-panel="open"] & {
     animation: none;
   }
 
   /* Pinned: in the pinned panel's place, its look too (dock.module.css, `--msp-pinned-*`: one definition). */
-  [data-pinned] > & {
+  [data-pinned] & {
     top: 0;
     /* Right against the rail (its inset less the margin). */
     right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));

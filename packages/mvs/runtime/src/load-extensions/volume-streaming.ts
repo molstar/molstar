@@ -86,6 +86,7 @@ export type MolstarVolumeStreamingCustomProp =
 export const VolumeStreamingExtension: MolstarLoadingExtension<{}> = {
   id: 'wwpdb/volume-streaming',
   description: 'Allow turning on volume streaming for a structure',
+  local: true,
   createExtensionContext: () => ({}),
   action: (updateTarget, node, context, extContext) => {
     if (node.kind !== 'structure') return;

@@ -10,6 +10,9 @@ here.
 
 ## [Unreleased]
 
+- MVS: an animated color with no start value (no `start`, and no value at the target, e.g. a key its color map does not
+  have) leaves the property as it is again, instead of failing the load with "Missing start value for color
+  interpolation" (a regression of split coloring)
 - Fix the help panel's click-toggle binding (`clickToggle`), the Kinemage extension's registration of controls on
   nonexistent registries, and the Zenodo import extension's display name
 - Fix `murmurHash3_128`, which was not MurmurHash3_x86_128 (one lane rotated by 13 instead of 18), and hash strings as
