@@ -163,6 +163,10 @@ describe('ShellModel', () => {
     expect(viewState.layout.value.docks.right.pinned).toBe(true);
     shell.setCompactRail(false);
     expect(shell.dock('right').state.value.pinned).toBe(true);
+    // Docked (not floating), there is no compact rail to give way to: the pin stays.
+    viewState.setDock('right', { floating: false });
+    shell.setCompactRail(true);
+    expect(shell.dock('right').state.value.pinned).toBe(true);
   });
 
   it('hides a tab without unregistering it, and shows it again where it was', () => {

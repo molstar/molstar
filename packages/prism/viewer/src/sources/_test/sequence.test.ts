@@ -73,6 +73,57 @@ describe('the sequence', () => {
     expect(v.managers.history.steps.value).toHaveLength(1);
   });
 
+  it("adds the sequence's lines to Mol*'s label of what it lit, only then, and labels once a move", async () => {
+    const v = await headlessViewer({ files: [cbs(), crambin()] });
+    const seq = v.views.sequence!;
+    const records: RunRecord[] = [];
+    v.api.events.finished.subscribe((r) => records.push(r));
+    const structure = seq.source.structure.value!.structure;
+    const view = seq.source.view3d(structure);
+    let lines = 'value: 1';
+    const labels = v.plugin.managers.lociLabels;
+    const before = labels.providers.length;
+    const handle = view.annotateHover!(() => lines);
+    const provider = labels.providers.find((p) => p.priority === -1000)!;
+    expect(labels.providers).toHaveLength(before + 1);
+    // Last, after Mol*'s own.
+    expect(labels.providers.at(-1)).toBe(provider);
+    const residue = StructureElement.Loci.firstResidue(StructureElement.Loci.all(structure));
+    // Not lit from the sequence: nothing added.
+    expect(provider.label(residue)).toBeUndefined();
+
+    const landed = (n: number) => until(() => records.filter((r) => r.operation === 'highlight.set').length === n);
+    view.highlight(residue);
+    await landed(1);
+    expect(v.plugin.behaviors.labels.highlight.value.labels.at(-1)).toBe('value: 1');
+    // The next residue on its way: it labels itself with the new lines when it lands; a refresh meanwhile would label
+    // the last residue with them (and label twice), so it sends nothing.
+    let sent = 0;
+    const sub = v.plugin.behaviors.labels.highlight.subscribe(() => sent++);
+    sent = 0;
+    view.highlight(StructureElement.Loci.extendToWholeChains(residue));
+    lines = 'value: 2';
+    handle.refresh();
+    expect(sent).toBe(0);
+    await landed(2);
+    const shown = v.plugin.behaviors.labels.highlight.value.labels;
+    expect(shown.at(-1)).toBe('value: 2');
+    expect(shown.length).toBeGreaterThan(1);
+    // Landed: a new line over the same residue labels it again.
+    lines = 'value: 3';
+    handle.refresh();
+    expect(v.plugin.behaviors.labels.highlight.value.labels.at(-1)).toBe('value: 3');
+    // Another structure's residue is not what the sequence lit.
+    const other = v.plugin.managers.structure.hierarchy.current.structures
+      .map((s) => s.cell.obj?.data)
+      .find((s) => s && s.root !== structure.root)!;
+    expect(provider.label(StructureElement.Loci.firstResidue(StructureElement.Loci.all(other)))).toBeUndefined();
+
+    sub.unsubscribe();
+    handle.dispose();
+    expect(labels.providers).toHaveLength(before);
+  });
+
   it("colors the 3D view from a track's menu as a step", async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const seq = v.views.sequence!;

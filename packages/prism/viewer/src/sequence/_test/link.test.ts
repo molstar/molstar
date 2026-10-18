@@ -245,6 +245,16 @@ describe('linking the sequence to a 3D view', () => {
       track: 'Cα spread',
     });
     expect(read?.()).toBe('Cα spread: 0.037');
+    // On one line each (a line break would make the label Markdown); the copies differing here is kept.
+    labels.set({
+      title: 'A ALA 13',
+      lines: [
+        { key: 'copies', value: 'varies' },
+        { key: 'note', value: 'two\nlines' },
+      ],
+      from: ['copies', 'item'],
+    });
+    expect(read?.()).toBe('copies: varies<br/>note: two lines');
     // Only the residue's lines: nothing added, not even the track's name.
     labels.set({ title: 'A ALA 13', lines: [{ key: 'auth', value: '97' }], from: ['position'], track: 'Cα spread' });
     expect(read?.()).toBeUndefined();
@@ -252,7 +262,7 @@ describe('linking the sequence to a 3D view', () => {
     labels.set({ title: 'A ALA 13', lines: [] });
     expect(read?.()).toBeUndefined();
     labels.set(null);
-    expect(refresh).toHaveBeenCalledTimes(3);
+    expect(refresh).toHaveBeenCalledTimes(4);
     stop();
     expect(dispose).toHaveBeenCalledTimes(1);
     h.viewers.dispose();

@@ -255,9 +255,11 @@ The code is the truth for how.
   clears the 3D highlight, and with it `hoverMapped`). **What the sequence knows is added to it**: the link registers a
   Mol\* `LociLabelProvider` (`SequenceView3D.annotateHover`, priority −1000, so after every other) that, while the hover
   maps, adds the track's own lines (an annotation and its fields, a value; under the track's name, `HoverLabel.track`,
-  unless a line names it), escaped. Never Seq\*'s title or the residue's lines (providers `position` and `copies`:
-  numbers, copies, the stored letter): Mol\*'s label says those, and a hover with nothing else adds nothing; a new Seq\*
-  label over the same highlight labels it again (`LociLabelManager.refresh`). Any reader of `labels.highlight` gets
+  unless a line names it), escaped and on one line each. Never Seq\*'s title or the residue's lines (providers
+  `position` and `copies`: numbers, copies, the stored letter; but `copies: varies`, which Mol\*'s label of one residue
+  cannot say): Mol\*'s label says those, and a hover with nothing else adds nothing; a new Seq\* label over the same
+  highlight labels it again (`LociLabelManager.refresh`), unless a highlight write is on its way (it labels itself with
+  the new lines when it lands: no second label, no new lines on the last residue). Any reader of `labels.highlight` gets
   them, and Mol\*'s provider API is unchanged (`refresh` is new). The band's own Seq\* label (`seq.labels.current`, at
   most once a frame and only when its lines change) shows only for a hover that does not map (a gap, an annotation track
   with no counterpart in the structure). The shell's `HoverLabel` listens on the viewport (`data-msp-hover-source`), in

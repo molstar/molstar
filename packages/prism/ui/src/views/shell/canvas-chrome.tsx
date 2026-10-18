@@ -35,12 +35,12 @@ import {
   watch,
 } from '../../dom/scope.js';
 import { frame, on } from '../../dom/scoped.js';
-import { setAttr, setStyle, setText } from '../../dom/writes.js';
+import { setAttr, setClass, setStyle, setText } from '../../dom/writes.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { observableState } from '../../reactive/observable-state.js';
+import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive, isState, toState } from '../../reactive/state.js';
 import { classes } from './_generated/canvas.module.css.js';
@@ -931,20 +931,42 @@ export function BusyOverlay(props: { status: NotificationsManager }) {
   );
 }
 
+/** Per shell, the place the compact sheet offers a card (`CardSlot`); none: the card is over the canvas. */
+const CardSlots = new WeakMap<ShellModel, ObservableState<HTMLElement | undefined>>();
+function cardSlot(shell: ShellModel): ObservableState<HTMLElement | undefined> {
+  let slot = CardSlots.get(shell);
+  // By identity: elements are never shallowly the same.
+  if (!slot) CardSlots.set(shell, (slot = observableState<HTMLElement | undefined>(undefined, { compare: Object.is })));
+  return slot;
+}
+
+/**
+ * Where the compact sheet (the right `DockView`, compact) takes the card: in the panel's place, between the panel and
+ * the tab bar (shell.md, Compact). Offered while it is mounted; the card moves in and out (`OverlayCard`).
+ */
+export function CardSlot(props: { shell: ShellModel }) {
+  const slot = cardSlot(props.shell);
+  const el = (<div class={classes.cardSlot} />) as HTMLElement;
+  slot.set(el);
+  onCleanup(() => {
+    if (slot.value === el) slot.set(undefined);
+  });
+  return el;
+}
+
 /**
  * The open overlay as a card in the right panel's place (the panel steps aside while it is open). One card while any is
  * open: another one opened swaps its title and body, as a tab swaps a panel's content (no closing and opening again).
+ * Over the canvas, or in the compact sheet where one offers it (`CardSlot`): one card, moved between the two as the
+ * layout changes (never a second one made: its view and state stay, its focus too).
  */
-export function OverlayHost(props: { shell: ShellModel; docked?: boolean }) {
+export function OverlayHost(props: { shell: ShellModel }) {
   const { shell } = props;
-  // Compact, the card opens in the bottom sheet, in the panel's place (the right dock's `DockView` hosts it, `docked`);
-  // otherwise over the canvas. One host for each: each shows it only in its own layout.
-  const docked = !!props.docked;
-  const isOpen = derive([shell.overlay, shell.mode], (o, m) => !!o && (m === 'compact') === docked);
-  return <Show when={isOpen}>{() => <OverlayCard shell={shell} docked={docked} />}</Show>;
+  const isOpen = derive(shell.overlay, (o) => !!o);
+  return <Show when={isOpen}>{() => <OverlayCard shell={shell} />}</Show>;
 }
 
-function OverlayCard(props: { shell: ShellModel; docked: boolean }) {
+function OverlayCard(props: { shell: ShellModel }) {
   const { shell } = props;
   /** The overlay open now (the card lives while one is). */
   const current = () => shell.overlay.value as OpenOverlay;
@@ -957,9 +979,12 @@ function OverlayCard(props: { shell: ShellModel; docked: boolean }) {
   const pinnedState = derive(shell.dock('right').state, (s) => s.pinned);
   const title = document.createTextNode('');
   let cancelFocus: (() => void) | undefined;
+  const slot = cardSlot(shell);
+  /** In the compact sheet (a slot offered), not over the canvas. */
+  const docked = () => !!slot.value;
   const card = (
     <section
-      class={props.docked ? classes.cardDocked : classes.card}
+      class={classes.card}
       role="dialog"
       aria-labelledby={titleId}
       onKeyDown={(e) => {
@@ -1000,9 +1025,22 @@ function OverlayCard(props: { shell: ShellModel; docked: boolean }) {
       </Show>
     </section>
   ) as HTMLElement;
+  // Over the canvas (here, where the host put it) or in the sheet's slot: moved, with the focus kept where it was.
+  const home = (<div style="display: contents">{card}</div>) as HTMLElement;
+  watch([slot.asReadonly], () => {
+    const into = slot.value ?? home;
+    if (card.parentElement === into) return;
+    const focused = deepActiveElement();
+    const keep = focused && card.contains(focused) ? (focused as HTMLElement) : undefined;
+    into.append(card);
+    setClass(card, classes.card, !slot.value);
+    setClass(card, classes.cardDocked, !!slot.value);
+    keep?.focus({ preventScroll: true });
+  });
+  onCleanup(() => card.remove());
   // Modal while it floats; its title is the open overlay's (another one swaps it).
-  watch([pinnedState, shell.overlay], () => {
-    setAttr(card, 'aria-modal', String(!props.docked && !pinnedState.value));
+  watch([pinnedState, slot.asReadonly, shell.overlay], () => {
+    setAttr(card, 'aria-modal', String(!slot.value && !pinnedState.value));
     setText(title, shell.overlay.value?.overlay.title ?? '');
   });
   // Esc, or a pointer down outside the card and its button, closes it; not one on the canvas: the person turns and
@@ -1011,7 +1049,7 @@ function OverlayCard(props: { shell: ShellModel; docked: boolean }) {
   // beside the scene) is not closed by a click elsewhere either.
   const pinned = () => shell.dock('right').state.value.pinned;
   // Part of the layout, not a dialog over it: pinned, or in the compact sheet (Tab leaves it, as it leaves a panel).
-  const inPlace = () => props.docked || pinned();
+  const inPlace = () => docked() || pinned();
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || pinned() || !ownsKey(card, e)) return;
@@ -1034,7 +1072,7 @@ function OverlayCard(props: { shell: ShellModel; docked: boolean }) {
   on(doc, 'keydown', onKey);
   on(doc, 'pointerdown', onPointer, { capture: true });
   onCleanup(() => restore(card));
-  return card;
+  return home;
 }
 
 export const KindIcons: Record<MessageKind, IconName> = {

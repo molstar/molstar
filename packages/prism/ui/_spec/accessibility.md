@@ -15,9 +15,10 @@ practice (WCAG 2.2 AA, the WAI-ARIA patterns), checked per view in tests and Sto
   virtualized, so rows are flat siblings with `aria-level`, `aria-posinset`, `aria-setsize` and `aria-expanded` (a leaf
   none), and the keyboard moves by the rows' model: a move scrolls its row into view, then focuses it; a focused row
   scrolled away leaves the focus on the tree, which takes the keys until it is back; cards and dialogs trap and restore
-  focus (`dom/focus.ts`); a closed panel gives focus to its tab; menu buttons follow the menu button pattern; the rail's
-  tabs are a tab list. Keys can be remapped from the keyboard in Help (a recorder takes the next chord, Escape cancels;
-  the result is said politely: [commands.md](commands.md) §6).
+  focus (`dom/focus.ts`; a card in the layout, pinned or in the compact sheet, restores it but does not trap: Tab leaves
+  it, as it leaves a panel); a closed panel gives focus to its tab; menu buttons follow the menu button pattern; the
+  rail's tabs are a tab list. Keys can be remapped from the keyboard in Help (a recorder takes the next chord, Escape
+  cancels; the result is said politely: [commands.md](commands.md) §6).
 - **Every field has a name**: a params row's control is labelled by its label's id
   (`components/params/params-form.tsx`).
 - **The canvas without sight or pointer**: picking, measuring and focusing by target (select, measure, focus take

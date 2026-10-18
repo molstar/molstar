@@ -26,7 +26,7 @@ import { derive } from '../../reactive/state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
-import { faceOf, ItemIcon, OverlayHost, staticTitle, ToolMenuRows } from './canvas-chrome.js';
+import { CardSlot, faceOf, ItemIcon, staticTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout, RailSteps, railStep } from './rail.js';
 import { ViewHost } from './view-host.js';
 
@@ -87,6 +87,8 @@ export function DockView(props: {
   const horizontal = dock.id === 'top' || dock.id === 'bottom';
   const hasTabs = derive(dock.tabs, (tabs) => tabs.length > 0);
   const compact = derive(shell.mode, (m) => m === 'compact' && dock.id === 'right');
+  // A card in the compact sheet, in the panel's place.
+  const covered = derive([shell.overlay, compact], (o, c) => (c ? o : undefined));
   // Compact: only the tabs that ask for the bar (the rest are under More); elsewhere all of them.
   const compactTabs = derive([dock.tabs, compact], (tabs, c) =>
     c && tabs.some((t) => t.compactBar) ? tabs.filter((t) => t.compactBar) : tabs,
@@ -119,14 +121,15 @@ export function DockView(props: {
                   dock={dock}
                   tab={tab}
                   id={panelId}
-                  // A card opens in the right panel's place: the panel stays, paused and inert under it (compact: out of
-                  // the sheet, dock.module.css), and is back as it was when the card closes.
-                  {...(dock.id === 'right' ? { coveredBy: shell.overlay } : {})}
+                  // Compact, a card opens in the sheet in the panel's place: the panel stays, paused and inert (out of the
+                  // sheet, `data-covered`), and is back as it was when the card closes. Elsewhere a card floats over the
+                  // canvas and a docked panel beside it stays live (the floating one is `FloatingDock`'s).
+                  {...(dock.id === 'right' ? { coveredBy: covered } : {})}
                 />
               )}
             </Show>
-            {/* Compact, the card itself, in the sheet (shell.md, Compact); the host shows it only there. */}
-            {dock.id === 'right' ? <OverlayHost shell={shell} docked /> : null}
+            {/* Compact, the place for the card in the sheet (shell.md, Compact): the card moves in while it is offered. */}
+            <Show when={compact}>{() => <CardSlot shell={shell} />}</Show>
             <Show when={showStrip}>
               {() => {
                 let tablist!: HTMLElement;
@@ -158,8 +161,9 @@ export function DockView(props: {
           </div>
         ) as HTMLElement;
         // The dock as a function of its size and the compact layout.
-        watch([sizePx, compact], () => {
+        watch([sizePx, compact, covered], () => {
           setClass(root, classes.compact, compact.value);
+          setAttr(root, 'data-covered', !!covered.value);
           setStyle(root, '--msp-dock-size', sizePx.value);
         });
         return root;

@@ -156,13 +156,18 @@ function annotateHover(seq: SequenceViewer['seq'], annotate: NonNullable<Sequenc
   };
 }
 
-const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Escaped for Mol*'s label HTML, on one line: a line break would make the label Markdown to Prism (`hoverRich`). */
+const escapeHtml = (s: string) =>
+  s.replace(/\s+/g, ' ').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
  * Seq*'s providers that label the residue itself (its name and numbers, its copies, its stored letter): Mol*'s label
- * says that, so their lines are left out (sequence.md §10). What stays is the track's own: an annotation, a value.
+ * says that, so their lines are left out (sequence.md §10). What stays is the track's own: an annotation, a value; and
+ * `copies: varies` (the copies differ here), which Mol*'s label of one residue cannot say.
  */
 const ResidueProviders: ReadonlySet<string> = new Set(['position', 'copies']);
+const residueLine = (from: string | undefined, l: { readonly key: string; readonly value: string }) =>
+  !!from && ResidueProviders.has(from) && !(from === 'copies' && l.value === 'varies');
 
 /**
  * A Seq* label's track and its own lines as Mol*'s label HTML (`<b>track</b>`, then `key: value` a line): none of the
@@ -175,7 +180,7 @@ export function sequenceLabelHtml(label: HoverLabel): string | undefined {
   for (let i = 0; i < label.lines.length; i++) {
     const l = label.lines[i];
     const from = label.from?.[i];
-    if (from && ResidueProviders.has(from)) continue;
+    if (residueLine(from, l)) continue;
     if (label.track && l.key === label.track) named = true;
     lines.push(escapeHtml(l.value ? `${l.key}: ${l.value}` : l.key));
   }
