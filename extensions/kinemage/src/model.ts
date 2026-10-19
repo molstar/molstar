@@ -62,12 +62,7 @@ export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial
   if (!snapshot) return;
 
   // Set background color to black
-  plugin.setCanvas3DProps({
-    renderer: {
-      ...plugin.canvas3d?.props.renderer,
-      backgroundColor: Color(0x000000),
-    },
-  });
+  await setKinemageBackground(plugin);
 
   // If the snapshot provides a target, adjust the canvas `sceneRadiusFactor` so the scene isn't clipped
   // when we switch camera.
@@ -416,25 +411,25 @@ export async function createShapesForKinemage(
 
   // Generate all shape types that have data, each as child of the visibility controller
   if (kinData.dotLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D);
   }
   if (kinData.vectorLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D);
   }
   if (kinData.ribbonLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D, { doubleSided: true });
   }
   if (kinData.ballLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D);
@@ -461,6 +456,9 @@ export async function applyKinemageToState(plugin: PluginContext, data: string, 
     console.warn('No kinemages found in parsed data');
     return undefined;
   }
+
+  // Kinemages are traditionally displayed on a black background.
+  await setKinemageBackground(plugin);
 
   // Create a separate visibility controller and shapes for EACH kinemage
   const visControllerSelectors: StateObjectSelector<PluginStateObject.Format.Json>[] = [];
@@ -549,6 +547,9 @@ export const KINFormatProvider = DataFormatProvider({
         console.warn('No kinemages found in parsed data');
         return {};
       }
+
+      // Kinemages are traditionally displayed on a black background.
+      await setKinemageBackground(plugin);
 
       // Create visibility controllers for all kinemages
       const visControllers: StateObjectSelector<PluginStateObject.Format.Json>[] = [];
@@ -748,4 +749,14 @@ export async function animateKinemage(
   await update.commit();
   await rebuildKinemageShapes(plugin, visControllerRef, kinData);
   return animateGroups[nextActive];
+}
+
+/** Set the viewer background to black, keeping the plugin's settings UI in sync. */
+export async function setKinemageBackground(plugin: PluginContext) {
+  if (!plugin.canvas3d) return;
+  await PluginCommands.Canvas3D.SetSettings(plugin, {
+    settings: (props) => {
+      props.renderer.backgroundColor = Color(0x000000);
+    },
+  });
 }

@@ -105,6 +105,42 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
     return isKinemageVisible(this.plugin, visControllerRef, target);
   }
 
+  /**
+   * Collect the names of all masters that should get a checkbox: those referenced by at least one
+   * list or point in the kinemage, all pointmasters, and all masters of groups or subgroups.
+   */
+  private getUsedMasters(kinData: Kinemage): Set<string> {
+    const used = new Set<string>();
+
+    // Pointmasters are always kept.
+    for (const masterName of Object.values(kinData.pointmasterDict || {})) {
+      if (masterName) used.add(masterName);
+    }
+
+    // Masters of groups and subgroups are always kept.
+    for (const masterName of kinData.groupMasters || []) {
+      if (masterName) used.add(masterName);
+    }
+
+    const lists = [
+      ...(kinData.dotLists || []),
+      ...(kinData.vectorLists || []),
+      ...(kinData.ballLists || []),
+      ...(kinData.ribbonLists || []),
+    ];
+    for (const list of lists) {
+      for (const m of list.masterArray || []) {
+        if (m) used.add(String(m));
+      }
+      for (const pointMasters of list.pointmasterArray || []) {
+        for (const m of pointMasters || []) {
+          if (m) used.add(m);
+        }
+      }
+    }
+    return used;
+  }
+
   renderControls() {
     const kins = this.getKinemageList();
     if (kins.length === 0) return <div style={{ padding: '6px' }}>No Kinemage data</div>;
@@ -247,11 +283,17 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
         );
       }
 
-      // masters
-      for (const [masterKey] of Object.entries(kinData.masterDict || {})) {
+      // masters (only those referenced by at least one list or point)
+      const usedMasters = this.getUsedMasters(kinData);
+      for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict || {})) {
+        if (!usedMasters.has(masterKey)) continue;
         const visible = this.isVisible(visControllerRef, { type: 'master', key: masterKey });
+        const indent = !!masterInfo.indent;
         kinBlock.push(
-          <div key={'master-' + title + '-' + masterKey} style={{ padding: '2px 6px' }}>
+          <div
+            key={'master-' + title + '-' + masterKey}
+            style={{ padding: '2px 6px', paddingLeft: indent ? '24px' : '6px' }}
+          >
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
                 type="checkbox"
