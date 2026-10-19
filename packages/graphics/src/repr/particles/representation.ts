@@ -83,6 +83,8 @@ export function ParticleRepresentation<P extends ParticleParams>(
     if (state.themeStrength !== undefined) visual.setThemeStrength(state.themeStrength);
   }
 
+  /** updates one after another, see `Representation.createUpdateQueue` */
+  const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<PD.Values<P>> = {}, particles?: ParticleList) {
     if (particles && particles !== _particles) {
       _params = getParams(ctx, particles);
@@ -92,7 +94,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
     const qualityProps = getQualityProps(Object.assign({}, _props, props), _particles);
     Object.assign(_props, props, qualityProps);
 
-    return Task.create(`Creating or updating '${label}' representation`, async (runtime) => {
+    const task = Task.create(`Creating or updating '${label}' representation`, async (runtime) => {
       if (!visual) {
         visual = visualCtor(materialId, _particles, _props, graphics);
       } else if (visual.mustRecreate?.({ particles: _particles }, _props, graphics)) {
@@ -108,6 +110,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
       geometryState.snapshot();
       updated.next(version++);
     });
+    return serialize(task);
   }
 
   function setState(state: Partial<Representation.State>) {

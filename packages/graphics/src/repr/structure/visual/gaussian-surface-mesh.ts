@@ -116,19 +116,34 @@ function unsuitableForCompute(
   props: PD.Values<SharedParams>,
   graphics: GraphicsContext & { compute: ComputeContext },
 ) {
+  const { dim, cells } = getComputeDensityGrid(structure, props);
+  const max3d = graphics.resources.limits.max3dTextureSize;
+  const n = Math.max(dim[0], dim[1], dim[2]);
+  if (n > max3d) return `the density grid has ${n} cells along an axis, 3d textures at most ${max3d}`;
+  const maxCells = getComputeDensityMaxCells(graphics.compute);
+  if (cells > maxCells) return `the density grid has ${cells} cells, at most ${maxCells}`;
+  if (cells < SmallSurfaceCells && structure.elementCount < SmallSurfaceAtoms) {
+    return `small (${cells} density cells, ${structure.elementCount} atoms): faster on the CPU`;
+  }
+}
+
+/** The cells of the compute path's 3d density of `structure` */
+function getComputeDensityGrid(structure: Structure, props: PD.Values<SharedParams>) {
   // the padding of the density: twice the largest radius (3 Å bounds it) and four cells
   const pad = 2 * 3 + 4 * props.resolution;
   const size = Box3D.size(Vec3(), structure.boundary.box);
-  const max3d = graphics.resources.limits.max3dTextureSize;
-  let cells = 1;
-  for (let i = 0; i < 3; ++i) {
-    const n = Math.ceil((size[i] + 2 * pad) / props.resolution);
-    if (n > max3d) return `the density grid has ${n} cells along an axis, 3d textures at most ${max3d}`;
-    cells *= n;
-  }
-  const maxCells = getComputeDensityMaxCells(graphics.compute);
-  if (cells > maxCells) return `the density grid has ${cells} cells, at most ${maxCells}`;
+  const dim = [0, 1, 2].map((i) => Math.ceil((size[i] + 2 * pad) / props.resolution));
+  return { dim, cells: dim[0] * dim[1] * dim[2] };
 }
+
+/**
+ * Below both, the compute path's surfaces are computed on the CPU: it takes 1–6 ms there, less than the compute path's
+ * dispatches and readback (about 6–7 ms whatever the size); above, the compute path is faster at any resolution, on a
+ * weak integrated GPU too (AMD Radeon of a Ryzen 7900X: 30k atoms at resolution 2 in 11 ms against 30 ms on the CPU).
+ * The atoms bound the CPU's density work on coarse grids (10k atoms at resolution 3: 43k cells, 10 ms).
+ */
+const SmallSurfaceCells = 100_000;
+const SmallSurfaceAtoms = 5000;
 
 /** Compute marching cubes on the GPU gaussian density (WebGPU) */
 function computeSupport(graphics: GraphicsContext): graphics is GraphicsContext & { compute: ComputeContext } {
@@ -159,13 +174,23 @@ function getPropsGpuFallbackReason(props: PD.Values<SharedParams>, graphics?: Gr
   if (!graphics) return 'no graphics context';
   if (props.includeParent) return 'includeParent is on';
   if (props.floodfill !== 'off') return `floodfill is '${props.floodfill}'`;
-  // lower resolutions are about as fast on CPU vs integrated GPU,
-  // very low resolutions have artifacts when calculated on GPU
-  if (props.resolution > 1) return `the resolution ${props.resolution} is above 1 (about as fast on the CPU)`;
+  // the compute path decides by the size of the surface instead (`unsuitableForCompute`)
   if (computeSupport(graphics)) return;
+  // WebGL: lower resolutions are about as fast on the CPU as with the histogram pyramid on integrated GPUs, and very
+  // low resolutions have artifacts there
+  if (props.resolution > 1) return `the resolution ${props.resolution} is above 1 (about as fast on the CPU)`;
   if (!getAtlasIsosurfaceExtraction(graphics)) return 'no compute kernels or fragment-shader marching cubes';
   const missing = missingCapabilities(graphics, GpuCapabilities);
   if (missing.length) return `missing ${missing.join(', ')}`;
+}
+
+/** Why the Gaussian surface of `structure` is computed on the CPU, if it is (the props, the context, the size) */
+export function getGaussianSurfaceGpuFallbackReason(
+  structure: Structure,
+  props: PD.Values<SharedParams>,
+  graphics?: GraphicsContext,
+) {
+  return getGpuFallbackReason(structure, props, graphics);
 }
 
 function getGpuFallbackReason(structure: Structure, props: PD.Values<SharedParams>, graphics?: GraphicsContext) {

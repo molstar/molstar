@@ -410,6 +410,22 @@ export class BackgroundPass {
     b.quad(this.renderable, RenderState.Alpha);
   }
 
+  /**
+   * What `render` draws for `props`, without changing the background (prepare mode, with props that may never be set):
+   * the program of the props' variant, no images loaded or freed
+   */
+  prepare(b: PassBuilder, props: BackgroundProps) {
+    const { name } = props.variant;
+    if (name === 'off') return;
+    const variant = this.renderable.values.dVariant;
+    const current = variant.ref.value;
+    ValueCell.updateIfChanged(variant, name);
+    this.renderable.update();
+    b.quad(this.renderable, RenderState.Alpha);
+    ValueCell.updateIfChanged(variant, current);
+    this.renderable.update();
+  }
+
   dispose() {
     this.clearSkybox();
     this.clearImage();

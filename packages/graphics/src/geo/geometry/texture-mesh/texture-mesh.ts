@@ -21,7 +21,7 @@ import { createEmptyOverpaint } from '../overpaint-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
+import { createNullTexture, isNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data.js';
 import { NullLocation } from '@molstar/model/model/location';
@@ -125,6 +125,12 @@ export namespace TextureMesh {
       return this.textures[this.index];
     }
 
+    /** Forgets the textures (the mesh filled into the vertex arena instead): of the previous context, not destroyed */
+    dropTextures() {
+      this.textures = [];
+      this.index = 0;
+    }
+
     set(vertex: Texture, group: Texture, normal: Texture) {
       this.textures[this.index] = Object.assign(this.textures[this.index] || {}, {
         vertex,
@@ -173,6 +179,14 @@ export namespace TextureMesh {
       ValueCell.update(textureMesh.groupTexture, groupTexture);
       ValueCell.update(textureMesh.normalTexture, normalTexture);
       textureMesh.doubleBuffer.set(vertexTexture, groupTexture, normalTexture);
+      // last filled into the vertex arena (before a switch to WebGL, or emptied): the textures now; a surface kept in
+      // the arena is reused (`getChunks`) or destroyed with the mesh
+      if (textureMesh.isoChunks.ref.value) {
+        ValueCell.update(textureMesh.isoChunks, false);
+        ValueCell.update(textureMesh.isoTable, undefined);
+        ValueCell.update(textureMesh.isoPositions, undefined);
+        ValueCell.update(textureMesh.isoNormals, undefined);
+      }
       Sphere3D.copy(textureMesh.boundingSphere, boundingSphere);
       return textureMesh;
     } else {
@@ -221,6 +235,14 @@ export namespace TextureMesh {
       ValueCell.updateIfChanged(mesh.vertexCountCell, vertexCount);
       ValueCell.updateIfChanged(mesh.drawIndirect, drawIndirect);
       Sphere3D.copy(mesh.boundingSphere, boundingSphere);
+      // last filled into textures (before a switch from WebGL): of the previous context, not destroyed (it does it)
+      if (!isNullTexture(mesh.vertexTexture.ref.value)) {
+        const nullTexture = createNullTexture();
+        ValueCell.update(mesh.vertexTexture, nullTexture);
+        ValueCell.update(mesh.groupTexture, nullTexture);
+        ValueCell.update(mesh.normalTexture, nullTexture);
+        mesh.doubleBuffer.dropTextures();
+      }
     } else {
       const nullTexture = createNullTexture();
       mesh = create(

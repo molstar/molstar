@@ -129,15 +129,20 @@ export function getDefineLookup(names: Iterable<string>): DefineLookup {
   return (name) => set.has(name);
 }
 
-/** Flattened names of the schema defines, like `#define`d by the shader header (string `dX: 'v'` → `dX_v`) */
-export function getDefineValuesLookup(defineValues: DefineValues): DefineLookup {
+/** Flattened names of the defined schema defines, like `#define`d by the shader header (string `dX: 'v'` → `dX_v`) */
+export function getDefineValueNames(defineValues: DefineValues): string[] {
   const names: string[] = [];
   for (const k of Object.keys(defineValues)) {
     const v = defineValues[k].ref.value;
     if (typeof v === 'string') names.push(`${k}_${v}`);
     else if (v !== false && v !== undefined) names.push(k);
   }
-  return getDefineLookup(names);
+  return names;
+}
+
+/** Lookup of the flattened names of the schema defines, see `getDefineValueNames` */
+export function getDefineValuesLookup(defineValues: DefineValues): DefineLookup {
+  return getDefineLookup(getDefineValueNames(defineValues));
 }
 
 /** `false` only if `spec` is known to be unused, i.e. no `usedIf` condition can hold */

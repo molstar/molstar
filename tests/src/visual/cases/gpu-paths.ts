@@ -476,8 +476,12 @@ async function checkZeroSizeCanvas(graphics: GraphicsContext) {
     ctx.clear({ color });
     ctx.flush();
   };
+  const formats = new Set<GPUTextureFormat>();
   GPUCanvasContext.prototype.configure = function (this: GPUCanvasContext, config: GPUCanvasConfiguration) {
-    if (this.canvas === canvas) configured.push(`${canvas.width}×${canvas.height}`);
+    if (this.canvas === canvas) {
+      configured.push(`${canvas.width}×${canvas.height}`);
+      formats.add(config.format);
+    }
     return configure.call(this, config);
   };
   try {
@@ -491,6 +495,10 @@ async function checkZeroSizeCanvas(graphics: GraphicsContext) {
   if (configured.some((size) => size.startsWith('0×') || size.endsWith('×0'))) {
     errors.push(`configured at the sizes ${configured.join(', ')}`);
   }
+  // the browser's preferred format (no copy per frame), read back as rgba
+  const preferred = navigator.gpu.getPreferredCanvasFormat();
+  if ([...formats].some((f) => f !== preferred))
+    errors.push(`configured as ${[...formats].join(', ')}, not ${preferred}`);
   // read in the task that rendered the frame
   const image = await ctx.readDrawingBuffer();
   if (image.width !== 16 || image.height !== 16) errors.push(`drawing buffer of ${image.width}×${image.height}`);

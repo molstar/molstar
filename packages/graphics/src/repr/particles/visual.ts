@@ -15,7 +15,7 @@ import {
   createIdentityTransform,
   type TransformData,
 } from '@molstar/graphics/geo/geometry/transform-data';
-import { createRenderObject, type GraphicsRenderObject, hasForeignTextures } from '@molstar/graphics/gl/render-object';
+import { createRenderObject, type GraphicsRenderObject, hasForeignResources } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
@@ -192,9 +192,9 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
 
     setUpdateState(updateState, newParticles, currentParticles, newProps, currentProps, newTheme, currentTheme);
 
-    // after a backend switch: textures of the previous context are rendered or computed again, geometry relying on what
-    // the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
-    if (graphics && renderObject && hasForeignTextures(renderObject, graphics)) updateState.createGeometry = true;
+    // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
+    // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
+    if (graphics && renderObject && hasForeignResources(renderObject, graphics)) updateState.createGeometry = true;
     if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
       updateState.createGeometry = true;
     }

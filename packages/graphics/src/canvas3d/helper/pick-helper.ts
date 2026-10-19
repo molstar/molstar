@@ -31,6 +31,17 @@ import {
 export class PickHelper {
   dirty = true;
 
+  /**
+   * The last render skipped draws (pipelines compiling, e.g. right after a restore or load): its read is not reported
+   * (`'pending'`), the pick is rendered again when tracked work has settled since
+   */
+  private incomplete = false;
+  private settledCount = 0;
+  private renderSettledCount = 0;
+  private readonly settledSub = this.graphics.resources.pending.settled.subscribe(() => {
+    this.settledCount += 1;
+  });
+
   private pickPadding: number;
   private buffers = createPickBuffers(this.graphics, this.pickPass);
   private viewport = Viewport();
@@ -86,6 +97,8 @@ export class PickHelper {
   plan(b: PassBuilder, camera: Camera | StereoCamera, frame?: Frame) {
     const timing = isTimingMode && b.drawing;
     if (timing) this.graphics.timer.group('PickHelper.render', { captureStats: true });
+    const { stats } = this.graphics;
+    const skippedDraws = stats.skippedDraws;
     const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
     const { renderer, scene, helper } = this;
 
@@ -113,7 +126,11 @@ export class PickHelper {
       this.pickPass.render(b, renderer, camera, scene, helper, f);
     }
 
-    if (b.drawing) this.dirty = false;
+    if (b.drawing) {
+      this.dirty = false;
+      this.incomplete = stats.skippedDraws !== skippedDraws;
+      this.renderSettledCount = this.settledCount;
+    }
     if (timing) this.graphics.timer.groupEnd('PickHelper.render');
   }
 
@@ -170,6 +187,11 @@ export class PickHelper {
     }
   }
 
+  /** Whether the pick is drawn again: changed since its render, or that render was incomplete and work settled since */
+  private get needsRender() {
+    return this.dirty || (this.incomplete && this.settledCount !== this.renderSettledCount);
+  }
+
   private getPickData(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
     for (const d of this.spiral) {
       const pickData = this.identifyInternal(x + d[0], y + d[1], camera);
@@ -185,7 +207,7 @@ export class PickHelper {
     if (!this.buffers.supported) return;
     this.prepare();
 
-    if (this.dirty) {
+    if (this.needsRender) {
       if (isTimingMode) this.graphics.timer.group('PickHelper.identify');
       this.graphics.resources.finalizePrograms(['pick'], true);
       this.render(camera, frame);
@@ -202,6 +224,7 @@ export class PickHelper {
         return 'pending';
       }
     }
+    if (this.incomplete) return 'pending';
     return this.getPickData(x, y, camera);
   }
 
@@ -209,25 +232,29 @@ export class PickHelper {
     if (!this.buffers.supported) return;
     this.prepare();
 
-    if (this.dirty) {
-      if (isTimingMode) this.graphics.timer.group('PickHelper.asyncIdentify');
-      this.render(camera, frame);
-      this.buffers.asyncRead();
-      if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.asyncIdentify');
-    }
+    if (this.needsRender) this.asyncRender(camera, frame);
 
     return createAsyncPickData(() => {
       // nothing once disposed (e.g. the graphics context changed), the scene may hold another context's renderables
       if (this.disposed) return undefined;
+      // not when only `dirty` (frames drawn since the call): the read of the call is reported
+      if (this.incomplete && this.settledCount !== this.renderSettledCount) this.asyncRender(camera);
       const status = this.buffers.check();
       if (status === AsyncPickStatus.Resolved) {
-        return this.getPickData(x, y, camera);
-      } else if (status === AsyncPickStatus.Pending) {
-        return 'pending';
+        return this.incomplete ? 'pending' : this.getPickData(x, y, camera);
       } else if (status === AsyncPickStatus.Failed) {
-        this.dirty = true;
+        // read again (slow under GPU load, e.g. illumination accumulating): a click must not resolve to nothing
+        this.asyncRender(camera);
       }
+      return 'pending';
     });
+  }
+
+  private asyncRender(camera: Camera | StereoCamera, frame?: Frame) {
+    if (isTimingMode) this.graphics.timer.group('PickHelper.asyncIdentify');
+    this.render(camera, frame);
+    this.buffers.asyncRead();
+    if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.asyncIdentify');
   }
 
   /** Whether `identify` reads the pick data synchronously */
@@ -239,6 +266,7 @@ export class PickHelper {
 
   dispose() {
     this.disposed = true;
+    this.settledSub.unsubscribe();
     this.buffers.dispose();
   }
 
@@ -254,8 +282,9 @@ export class PickHelper {
     options: PickOptions,
   ) {
     this.renderBuilder = createRenderBuilder(graphics);
-    this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+    // before the viewport: it sets the spiral of pixels searched around the pick
     this.pickPadding = options.pickPadding;
+    this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
     if (!checkAsyncPickingSupport(this.buffers)) {
       this.asyncIdentify = (x, y, camera, frame) =>

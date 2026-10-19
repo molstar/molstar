@@ -9,7 +9,8 @@
  * the global bind group of a pass, the viewport). Commands recorded into the encoder directly must `invalidate` it.
  */
 export interface PassState {
-  readonly encoder: GPURenderPassEncoder;
+  /** the render pass, or a render bundle being recorded (`createBundlePassState`) */
+  readonly encoder: GPURenderPassEncoder | GPURenderBundleEncoder;
   setPipeline: (pipeline: GPURenderPipeline) => void;
   /** `offsets` are compared by value (callers may reuse the array) */
   setBindGroup: (index: number, group: GPUBindGroup, offsets?: readonly number[]) => void;
@@ -24,7 +25,51 @@ export interface PassState {
 
 const NoOffsets: readonly number[] = [];
 
-export function createPassState(encoder: GPURenderPassEncoder): PassState {
+/**
+ * The state of a render bundle being recorded for the pass of `pass`: pipelines, bind groups and buffers go into the
+ * bundle; viewport, scissor and stencil reference are the pass's (a bundle has none, `executeBundles` keeps the pass's),
+ * set on `pass` once; a different value later in the recording calls `onConflict` (the bundle can't replay it)
+ */
+export function createBundlePassState(
+  encoder: GPURenderBundleEncoder,
+  pass: PassState,
+  onConflict: (what: string) => void,
+): PassState {
+  const state = createPassState(encoder);
+  const viewport = [NaN, NaN, NaN, NaN];
+  const scissor = [NaN, NaN, NaN, NaN];
+  let stencilReference = NaN;
+  const fixed = (rect: number[], x: number, y: number, width: number, height: number, what: string) => {
+    if (Number.isNaN(rect[0])) {
+      rect[0] = x;
+      rect[1] = y;
+      rect[2] = width;
+      rect[3] = height;
+      return true;
+    }
+    if (rect[0] !== x || rect[1] !== y || rect[2] !== width || rect[3] !== height) onConflict(what);
+    return false;
+  };
+  return {
+    ...state,
+    encoder,
+    setViewport: (x, y, width, height) => {
+      if (fixed(viewport, x, y, width, height, 'viewport')) pass.setViewport(x, y, width, height);
+    },
+    setScissorRect: (x, y, width, height) => {
+      if (fixed(scissor, x, y, width, height, 'scissor')) pass.setScissorRect(x, y, width, height);
+    },
+    setStencilReference: (reference) => {
+      if (Number.isNaN(stencilReference)) {
+        stencilReference = reference;
+        pass.setStencilReference(reference);
+      } else if (reference !== stencilReference) onConflict('stencil reference');
+    },
+  };
+}
+
+/** The state of a pass, or of a bundle (whose viewport, scissor and stencil `createBundlePassState` replaces) */
+export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleEncoder): PassState {
   let pipeline: GPURenderPipeline | undefined;
   const groups: (GPUBindGroup | undefined)[] = [];
   const groupOffsets: number[][] = [];
@@ -81,17 +126,17 @@ export function createPassState(encoder: GPURenderPassEncoder): PassState {
     setViewport: (x, y, width, height) => {
       if (sameRect(viewport, x, y, width, height)) return;
       setRect(viewport, x, y, width, height);
-      encoder.setViewport(x, y, width, height, 0, 1);
+      (encoder as GPURenderPassEncoder).setViewport(x, y, width, height, 0, 1);
     },
     setScissorRect: (x, y, width, height) => {
       if (sameRect(scissor, x, y, width, height)) return;
       setRect(scissor, x, y, width, height);
-      encoder.setScissorRect(x, y, width, height);
+      (encoder as GPURenderPassEncoder).setScissorRect(x, y, width, height);
     },
     setStencilReference: (reference) => {
       if (reference === stencilReference) return;
       stencilReference = reference;
-      encoder.setStencilReference(reference);
+      (encoder as GPURenderPassEncoder).setStencilReference(reference);
     },
     invalidate: () => {
       pipeline = undefined;

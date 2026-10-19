@@ -54,7 +54,7 @@ export const PluginConfig = {
     ),
     // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
     // TODO: check back in a few weeks to see if it was fixed
-    PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),
+    PreferWebGl1: item('plugin-config.prefer-webgl1', false),
     AllowMajorPerformanceCaveat: item('plugin-config.allow-major-performance-caveat', false),
     PowerPreference: item<WebGLContextAttributes['powerPreference']>(
       'plugin-config.power-preference',

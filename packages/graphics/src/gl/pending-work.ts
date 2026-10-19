@@ -55,7 +55,8 @@ export function createPendingWork(): PendingWork {
         if (pending.size === 0) release();
       };
       promise.then(done, (e) => {
-        console.error(`'${label}' failed`, e);
+        // not when forgotten (`clear`): failing with the context, e.g. reads of a released device
+        if (pending.has(promise)) console.error(`'${label}' failed`, e);
         done();
       });
       return promise;

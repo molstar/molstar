@@ -29,6 +29,12 @@ export function createGraphicsStats() {
       kernel: 0,
     },
 
+    /**
+     * Draws skipped while their pipeline compiles (WebGPU, in the background), counted since the context was made: a
+     * pass that skipped draws compares it before and after
+     */
+    skippedDraws: 0,
+
     drawCount: 0,
     instanceCount: 0,
     instancedDrawCount: 0,

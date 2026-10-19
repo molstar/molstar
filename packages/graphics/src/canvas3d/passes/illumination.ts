@@ -590,15 +590,15 @@ export class IlluminationPass {
     b.begin(this.tracing.composeTarget, { label: 'compose' });
     this._colorTarget = this.tracing.composeTarget;
 
-    this.drawPass.postprocessing.background.update(camera, props.postprocessing.background);
+    const { background } = this.drawPass.postprocessing;
     if (b.drawing) {
-      this.drawPass.postprocessing.background.clear(
-        props.postprocessing.background,
-        props.transparentBackground,
-        renderer.props.backgroundColor,
-      );
+      background.update(camera, props.postprocessing.background);
+      background.clear(props.postprocessing.background, props.transparentBackground, renderer.props.backgroundColor);
+      background.render(b, props.postprocessing.background);
+    } else {
+      // the props may be hypothetical (`Canvas3D.prepare`): the live background stays
+      background.prepare(b, props.postprocessing.background);
     }
-    this.drawPass.postprocessing.background.render(b, props.postprocessing.background);
 
     // compose
 

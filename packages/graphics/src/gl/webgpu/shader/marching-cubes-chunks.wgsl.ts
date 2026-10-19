@@ -117,6 +117,9 @@ ${mc_chunk_common_wgsl}
 
 var<workgroup> wgOffset: atomic<u32>;
 
+/** the alpha of packed groups: 0x3f in the top byte */
+const GroupAlpha = 63.0 / 255.0;
+
 @compute @workgroup_size(WorkgroupSizeX, WorkgroupSizeY, WorkgroupSizeZ)
 fn main(
     @builtin(global_invocation_id) id: vec3<u32>,
@@ -136,13 +139,14 @@ fn main(
     let base = bases[workgroupIndex(wid, workgroups)] + atomicAdd(&wgOffset, count);
     let drawn = table[TableDrawn];
 
-    // a group per cell, so triangles have a constant group
+    // a group per cell, so triangles have a constant group; packed with the top byte 0x3f, the f32 it is stored as is
+    // normal (exponent 126 or 127: never NaN, infinite or subnormal, which implementations may assume away or flush)
     #if defined(dInput_buffer)
-        let group = vec4<f32>(packGroup(u32(dot(c, uParams.uStrides))), 1.0);
+        let group = vec4<f32>(packGroup(u32(dot(c, uParams.uStrides))), GroupAlpha);
     #elif defined(dPackedGroup)
-        let group = vec4<f32>(textureLoad(tVolume, c, 0).rgb, 1.0);
+        let group = vec4<f32>(textureLoad(tVolume, c, 0).rgb, GroupAlpha);
     #else
-        let group = vec4<f32>(packGroup(cellIndex(id, cells)), 1.0);
+        let group = vec4<f32>(packGroup(cellIndex(id, cells)), GroupAlpha);
     #endif
     let groupBits = bitcast<f32>(pack4x8unorm(group));
 

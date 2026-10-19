@@ -27,7 +27,7 @@ import {
 } from '../scenes/primitives.js';
 import { blobVolume, gpuBlobVolume, negatedVolume, segmentedBlobVolume, volumeRepr } from '../scenes/volume.js';
 import { SegmentRepresentationProvider } from '@molstar/graphics/repr/volume/segment';
-import { helixStructure, structureRepr } from '../scenes/structure.js';
+import { globuleStructure, helixStructure, structureRepr } from '../scenes/structure.js';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { GaussianVolumeRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-volume';
 import { OrderedSet } from '@molstar/core/data/int';
@@ -418,6 +418,20 @@ export const GeometryCases: VisualTestCase[] = [
       }),
     ],
   },
+  ...[2, 3].map(
+    (resolution): VisualTestCase => ({
+      id: `geometry/texture-mesh/gaussian-surface-gpu-res${resolution}`,
+      description: `A Gaussian surface at a coarse resolution (${resolution} Å) of a ball of 6k atoms: on the GPU with compute kernels (WebGPU), on the CPU with WebGL (resolutions above 1): the GPU surface against the CPU's.`,
+      requires: ['gaussianSurfaceGpu'],
+      view: ObliqueView,
+      scene: async ({ graphics }) => [
+        await structureRepr(graphics, GaussianSurfaceRepresentationProvider, await globuleStructure(6000), {
+          resolution,
+          tryUseGpu: true,
+        }),
+      ],
+    }),
+  ),
   {
     id: 'geometry/texture-mesh/gaussian-surface-gpu-smooth-colors',
     description:

@@ -77,8 +77,12 @@ export const wboit_output_wgsl = /* wgsl */ `
                 // depth is reversed: larger in front
                 let wboitWeight = alpha * clamp(pow(fragmentDepth, 2.0), 0.01, 1.0);
                 color = vec4<f32>(color.rgb * alpha * wboitWeight, alpha);
-                // extra alpha is to handle pre-multiplied alpha
-                let backgroundAlpha = select(1.0, alpha, uGlobal.uTransparentBackground != 0u);
+                // extra alpha is to handle pre-multiplied alpha (direct volumes: always, their color is premultiplied)
+                #if defined(dGeometryType_directVolume)
+                    let backgroundAlpha = alpha;
+                #else
+                    let backgroundAlpha = select(1.0, alpha, uGlobal.uTransparentBackground != 0u);
+                #endif
                 out.wboit = vec4<f32>(backgroundAlpha * alpha * wboitWeight);
             } else {
                 discard;

@@ -19,7 +19,8 @@
   data of their last load (`Texture.getSource`, `transferTexture`, `transferTextures`); objects with rendered or
   computed textures (GPU surfaces, GPU colors) are left out until their representation updated them: representations
   continue with the new context (`Representation.setGraphics`), Canvas3D updates those with left-out objects, and
-  visuals whose render object holds textures of another context (`hasForeignTextures`, by `resources.ownsTexture`)
+  visuals whose render object holds textures or storage buffers of another context (`hasForeignResources`, by
+  `resources.ownsTexture` and `compute.ownsBuffer`)
   create their geometry again (the same render object); caches skip textures of another context (texture-mesh double
   buffers with their draw arguments, color smoothing). Image passes created by `getImagePass` follow
   (`ImagePass.setContext`). Nothing to do for apps: the plugin only offers `setGraphicsBackends` and a Graphics Backend

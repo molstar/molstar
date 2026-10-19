@@ -25,6 +25,12 @@ export interface WebGPUBindingContext {
   readonly device: GPUDevice;
   readonly release: Release;
   readonly ring: UniformRing;
+  /**
+   * The ring of the global blocks only: their snapshots of a submission take offsets in the order the frame's passes
+   * change the globals, so a frame of the same passes binds the same offsets (what a recorded pass relies on), whatever
+   * other blocks and compute kernels write in between
+   */
+  readonly globalRing: UniformRing;
   readonly samplers: { readonly [k in WgslSampler]: GPUSampler };
 }
 
@@ -129,7 +135,7 @@ export function createWebGPUGlobalBindings(
     }
   }
 
-  const snapshot: UniformSnapshot = createUniformSnapshot(ctx.ring, layout.size);
+  const snapshot: UniformSnapshot = createUniformSnapshot(ctx.globalRing, layout.size);
   const data = createUniformBlockData(snapshot.bytes.buffer as ArrayBuffer, 0, layout.size);
   const write = createUniformBlockWriter(layout, data, blockUniforms, snapshot.markChanged);
   write();

@@ -64,8 +64,9 @@ Open follow-ups from the review of the WebGPU branch (correctness, memory, one d
   their derivation from a state's params, prepared when a state or story is loaded, done and measured (WebGPU stories play
   without compiling); fewer variants per signature done (kinase story: 24 signatures, 1.6 s on WebGPU); WebGL's first draws into several
   targets (an ANGLE compile once per browser) accepted.
-- [fewer-defines.md](fewer-defines.md): planned: shader defines that select small branches as uniforms, fewer programs
-  per object for drawing and precompiling (split from pipeline-readiness 6g).
+- [fewer-defines.md](fewer-defines.md): paused, good enough for now: the color, size and instance-granularity types
+  as runtime selectors (kinase story 24 to 18 precompiled signatures); the clip object count and shading switches
+  open.
 - [sphere-impostors.md](sphere-impostors.md): analysed, paused: sphere impostors are fragment-bound and get no early-Z
   (depth writes); conservative depth without gain on NVIDIA; WebGPU's WGSL shading costs 3.8 ms more at 2560x1440
   (generated code).

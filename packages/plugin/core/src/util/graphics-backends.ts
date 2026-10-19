@@ -11,8 +11,8 @@ import type { GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
 
 /**
  * `auto`: WebGPU where it has the features of WebGL2 (blending into float32 targets, missing in older browsers), else
- * WebGL2, then WebGL1; `webgpu`: WebGPU, else WebGL; `webgl`: WebGL2, else WebGL1 (WebGL1 first where the plugin's
- * feature detection prefers it, `PluginConfig.General.PreferWebGl1`); `webgl2` and `webgl1`: only that version
+ * WebGL2, then WebGL1; `webgpu`: WebGPU, else WebGL; `webgl`: WebGL2, else WebGL1 (WebGL1 only with
+ * `PluginConfig.General.PreferWebGl1`); `webgl2` and `webgl1`: only that version
  */
 export type GraphicsBackendChoice = 'auto' | 'webgpu' | 'webgl' | 'webgl2' | 'webgl1';
 

@@ -16,24 +16,43 @@
 // ignores differences of one level, and reports changes of the cases in `VariableCases` (solid interiors, and
 // illumination, which amplifies single pixel differences) separately, without failing.
 //
-// usage: node scripts/visual-tests.mjs [--profiles webgl2,webgpu] [--changed] [--filter 'geometry/**'] [--tags smoke]
+// usage: node scripts/visual-tests.mjs [--profiles webgl2,webgpu] [--all] [--changed] [--filter 'geometry/**'] [--tags smoke]
 //                                      [--shards 8] [--concurrency 32] [--save <dir>] [--compare <dir>]
 //                                      [--images <dir>] [--no-build] [--no-debug] [--channel chrome] [--headed]
 //                                      [--angle d3d11] [--browser chromium] [--firefox <path>] [--headless]
 //
-//   --changed      profiles affected by the uncommitted changes: only the WebGPU profiles when only WebGPU code
-//                  changed, only the WebGL profiles when only WebGL code changed, all otherwise
+//   --changed      what the uncommitted changes can affect: only the WebGPU profiles when only WebGPU code changed,
+//                  only the WebGL profiles when only WebGL code changed, all otherwise; and the cases of the changed
+//                  paths (`ChangedCases`: a pass, a group's case file), all cases when a path is not narrowed;
+//                  nothing for changes the harness doesn't import (docs, other packages)
 //   --save <dir>   stores the images of the WebGL profiles; --compare <dir> reports images that differ from them
+//   --compare-head compares with the images of the commit checked out (`HEAD`): a run without uncommitted changes the
+//                  harness imports stores its WebGL images as that commit's baseline (`tests/build/visual-baselines/`,
+//                  the last few commits kept), so comparing a change needs no run of the commit before it
 //   --images <dir> writes target, reference and diff PNGs of failed cases (of all cases with --all-images)
 //   --skipped      lists the skipped cases with the reason
+//   --dry-run      prints the profiles and the case filter of the run (e.g. what --changed selects) and exits
+//   --timing       the time per profile (page loads, renders of target and reference, the slowest shard) and the
+//                  slowest cases; a short summary is always printed
 //   --angle <name> ANGLE backend (`--use-angle`), default `d3d11` on Windows
 //   --browser      `chromium` (Playwright, default) or `firefox`: the installed Firefox (Playwright's build has no
 //                  WebGPU), driven over WebDriver BiDi, one window per page; `--firefox <path>` (or `FIREFOX`) names
 //                  the executable. Firefox runs headed, as headless Firefox provides no WebGPU adapter; `--headless`
 //                  runs it headless anyway (WebGL profiles only)
 //
-// Profiles run by default: `AllProfiles`; others only when named with --profiles (`webgl2-no-ubo`: WebGL2 with uniforms
-// set one by one, the `uniformBlocks` option the render benchmark compares). Benchmarks run separately:
+// Profiles run by default: `DefaultProfiles` (WebGL2, WebGL1, WebGPU); `--all` runs `AllProfiles`, adding the reduced
+// profiles (no float targets, minimum limits, WebGL1 without extensions, WebGPU core limits), which check the fallbacks;
+// others only when named with --profiles (`webgl2-no-ubo`: WebGL2 with uniforms set one by one, the `uniformBlocks`
+// option the render benchmark compares).
+//
+// Shards take every n-th case. Assigning them by earlier times (heaviest first, to the least loaded shard) was measured
+// slower (250 s against 174 s for the default profiles): every page then starts with a GPU surface case, whose
+// synchronous readbacks wait for the other pages' work, so these cases are best spread over the run as the index does.
+//
+// The WebGPU profiles compare with `webgl2`: where `webgl2` runs too, its pages write their images (shard by shard)
+// and the WebGPU pages of the same shard load them instead of rendering the reference again, except where a fallback
+// makes their reference differ. Pages share the GPU process: WebGL commands of all pages run in order, so readbacks
+// of one page wait for the others' frames; past about 12 pages at once, runs get slower, not faster (`--concurrency`). Benchmarks run separately:
 // `pnpm benchmark` (scripts/benchmark.mjs).
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -55,15 +74,28 @@ const value = (name, fallback) => {
 const WebGLProfiles = ['webgl2', 'webgl1', 'webgl2-no-float', 'webgl2-minimum', 'webgl1-minimal'];
 const WebGPUProfiles = ['webgpu', 'webgpu-core'];
 const AllProfiles = [...WebGLProfiles, ...WebGPUProfiles];
+const DefaultProfiles = ['webgl2', 'webgl1', 'webgpu'];
+/** The reference of the WebGPU profiles, see `runShard` */
+const SharedReference = 'webgl2';
+
+const git = (a) =>
+  spawnSync('git', a, { cwd: root, encoding: 'utf8' })
+    .stdout.split('\n')
+    .filter((l) => l);
+
+/** The uncommitted source files the visual tests import (the packages of the harness and the harness) */
+function getChangedSources() {
+  const files = [...git(['diff', '--name-only', 'HEAD']), ...git(['ls-files', '--others', '--exclude-standard'])];
+  return files.filter(
+    (f) =>
+      /\.(ts|tsx|mjs|js)$/.test(f) &&
+      !/(^|\/)_(test|stories|spec)\//.test(f) &&
+      /^(packages\/(core|io|model|graphics)\/|extensions\/(alpha-orbitals|geo-export)\/|tests\/src\/visual\/)/.test(f),
+  );
+}
 
 /** Profiles that uncommitted changes can affect */
-function getChangedProfiles() {
-  const git = (a) =>
-    spawnSync('git', a, { cwd: root, encoding: 'utf8' })
-      .stdout.split('\n')
-      .filter((l) => l);
-  const files = [...git(['diff', '--name-only', 'HEAD']), ...git(['ls-files', '--others', '--exclude-standard'])];
-  const sources = files.filter((f) => /\.(ts|tsx|mjs|js)$/.test(f) && !f.startsWith('.v6/'));
+function getChangedProfiles(sources) {
   if (sources.length === 0) return [];
   const isWebGPU = (f) => f.includes('/gl/webgpu/') || /webgpu|wgsl/.test(path.basename(f));
   const isWebGL = (f) => f.includes('/gl/webgl/') && !isWebGPU(f);
@@ -72,18 +104,66 @@ function getChangedProfiles() {
   return AllProfiles;
 }
 
-const profiles = args.includes('--changed')
-  ? getChangedProfiles()
-  : value('--profiles', AllProfiles.join(',')).split(',');
-const filter = value('--filter');
+/**
+ * The cases changes of a path can affect, where narrower than all: passes with their own cases, the cases files of a
+ * group. Conservative: a path not listed (shader chunks, schemas, the renderer, representations) affects all cases.
+ */
+const ChangedCases = [
+  [
+    /^tests\/src\/visual\/cases\/(compute|fallback|geometry|gpu-paths|postprocessing|renderer|transparency)\.ts$/,
+    (m) => [`${m[1]}/**`],
+  ],
+  [/^tests\/src\/visual\/cases\/merged\.ts$/, () => ['geometry/merged/**']],
+  [
+    /\/canvas3d\/passes\/(postprocessing|ssao|outline|shadow|bloom|dof|fxaa|smaa|cas|background|fog)[^/]*\.ts$/,
+    () => ['postprocessing/**'],
+  ],
+  [/\/canvas3d\/passes\/(dpoit|wboit|transparency)[^/]*\.ts$/, () => ['transparency/**', 'fallback/transparency/**']],
+  [/\/canvas3d\/passes\/(illumination|tracing)[^/]*\.ts$/, () => ['renderer/illumination/**', 'fallback/illumination']],
+  [/\/canvas3d\/passes\/hi-z[^/]*\.ts$/, () => ['renderer/hi-z/**', 'gpu-paths/hi-z-occlusion']],
+  [/\/canvas3d\/passes\/marking[^/]*\.ts$/, () => ['renderer/marking/**']],
+  [/\/canvas3d\/passes\/multi-sample[^/]*\.ts$/, () => ['renderer/multisample/**']],
+  [/\/gl\/(webgpu\/)?compute\//, () => ['compute/**', 'gpu-paths/**', 'fallback/**']],
+];
+
+/** The case filters for `sources`, undefined for all cases */
+function getChangedFilters(sources) {
+  const filters = new Set();
+  for (const f of sources) {
+    const rule = ChangedCases.find(([r]) => r.test(f));
+    if (!rule) return undefined;
+    for (const filter of rule[1](f.match(rule[0]))) filters.add(filter);
+  }
+  return [...filters].join(',');
+}
+
+const changed = args.includes('--changed') ? getChangedSources() : undefined;
+const profiles = changed
+  ? getChangedProfiles(changed).filter((p) => args.includes('--all') || DefaultProfiles.includes(p))
+  : value('--profiles', (args.includes('--all') ? AllProfiles : DefaultProfiles).join(',')).split(',');
+const filter = value('--filter') ?? (changed && getChangedFilters(changed));
 const tags = value('--tags');
 const shards = Number(value('--shards', '8'));
-const concurrency = Number(value('--concurrency', String(Math.max(2, Math.min(32, os.cpus().length)))));
-const saveDir = value('--save');
-const compareDir = value('--compare');
+const concurrency = Number(value('--concurrency', String(Math.max(2, Math.min(12, os.cpus().length)))));
+const BaselineRoot = path.join(root, 'tests', 'build', 'visual-baselines');
+const MaxBaselines = 5;
+const head = git(['rev-parse', 'HEAD'])[0];
+/** Whether the WebGPU pages load the images of `SharedReference` instead of rendering it */
+const sharesReference = profiles.includes(SharedReference) && profiles.some((p) => WebGPUProfiles.includes(p));
+/** The baseline of `HEAD`: stored by runs without uncommitted changes, read by `--compare-head` */
+const headBaseline = head && path.join(BaselineRoot, head);
+const storesBaseline =
+  !!headBaseline &&
+  !value('--save') &&
+  !value('--compare') &&
+  !args.includes('--compare-head') &&
+  getChangedSources().length === 0;
+const saveDir = value('--save') ?? (storesBaseline ? headBaseline : undefined);
+const compareDir = value('--compare') ?? (args.includes('--compare-head') ? headBaseline : undefined);
 const imagesDir = value('--images');
 const allImages = args.includes('--all-images');
 const listSkipped = args.includes('--skipped');
+const timing = args.includes('--timing');
 const channel = value('--channel', 'chrome');
 const browserName = value('--browser', 'chromium');
 const angle = value('--angle', process.platform === 'win32' ? 'd3d11' : undefined);
@@ -136,6 +216,34 @@ function differs(a, b) {
  * page (both JSON-serializable), `consoleErrors` collects the console errors and uncaught exceptions
  */
 
+/** A page without a new result for this long has stalled (a case that never finishes) */
+const StallMs = 5 * 60 * 1000;
+
+/**
+ * The results of a page once its cases are done; a page stalled in a case (`StallMs` without a new result) gives the
+ * results so far and the case it stalled in (`stalled`)
+ */
+async function waitForResults(evaluate) {
+  let count = -1;
+  let since = Date.now();
+  for (;;) {
+    const state = await evaluate(() => ({
+      done: !!window.__visualTestResults?.done,
+      count: window.__visualTestResults?.results.length ?? 0,
+      current: window.__visualTestCurrent,
+    }));
+    if (state.done) return evaluate(() => window.__visualTestResults);
+    if (state.count !== count) {
+      count = state.count;
+      since = Date.now();
+    } else if (Date.now() - since > StallMs) {
+      const partial = (await evaluate(() => window.__visualTestResults)) ?? { results: [] };
+      return { ...partial, stalled: state.current ?? '(loading the page)' };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
+
 /** Pages of Playwright's Chromium */
 async function launchChromium() {
   const browser = await chromium.launch({
@@ -159,13 +267,7 @@ async function launchChromium() {
       return {
         consoleErrors,
         goto: (url) => page.goto(url, { timeout: 5 * 60 * 1000 }),
-        results: async () => {
-          await page.waitForFunction(() => window.__visualTestResults?.done, null, {
-            timeout: 60 * 60 * 1000,
-            polling: 500,
-          });
-          return page.evaluate(() => window.__visualTestResults);
-        },
+        results: () => waitForResults((fn, arg) => page.evaluate(fn, arg)),
         evaluate: (fn, arg) => page.evaluate(fn, arg),
         close: () => page.close(),
       };
@@ -265,14 +367,7 @@ async function launchFirefox() {
       return {
         consoleErrors,
         goto: (url) => send('browsingContext.navigate', { context, url, wait: 'complete' }),
-        results: async () => {
-          const start = Date.now();
-          while (!(await evaluate(() => !!window.__visualTestResults?.done))) {
-            if (Date.now() - start > 60 * 60 * 1000) throw new Error('timeout waiting for the results');
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
-          return evaluate(() => window.__visualTestResults);
-        },
+        results: () => waitForResults(evaluate),
         evaluate,
         close: async () => {
           contextErrors.delete(context);
@@ -300,28 +395,66 @@ async function launchFirefox() {
   };
 }
 
-/** Runs one shard of a profile in its own page */
-async function runShard(browser, origin, profile, shard) {
+/** Where the images of the shared reference are written for a run, served with the repository */
+const sharedDir = path.join(root, 'tests', 'build', 'visual-shared', String(process.pid));
+const sharedUrl = (origin) => `${origin}/${path.relative(root, sharedDir).replaceAll(path.sep, '/')}/`;
+
+/**
+ * Runs one shard of a profile in its own page; the shard of the shared reference writes its images to `sharedDir`, a
+ * shard of a profile comparing with it waits for them (`referenceShard`, the same shard of the reference) and loads them
+ */
+async function runShard(browser, origin, profile, shard, referenceShard) {
+  const reference = WebGPUProfiles.includes(profile) ? SharedReference : profile;
+  const shared =
+    referenceShard &&
+    (await referenceShard.then(
+      () => true,
+      () => false,
+    ));
   const page = await browser.newPage();
   const { consoleErrors } = page;
-  const reference = WebGPUProfiles.includes(profile) ? 'webgl2' : profile;
   const q = new URLSearchParams({ target: profile, reference, shard: `${shard}/${shards}` });
+  if (shared) q.set('shared', sharedUrl(origin));
   if (!args.includes('--no-debug')) q.set('debug', '1');
   if (filter) q.set('filter', filter);
   if (tags) q.set('tags', tags);
+  const pageStart = Date.now();
   // many pages load at once
   await page.goto(`${origin}/tests/build/visual/index.html?${q}`);
+  const loadMs = Date.now() - pageStart;
   const results = await page.results();
+  if (results.stalled) {
+    results.results.push({
+      id: results.stalled,
+      status: 'error',
+      errors: [`stalled: no result within ${StallMs / 60000} min, the shard's later cases not run`],
+    });
+  }
 
   const rows = [];
   for (const r of results.results) {
-    const row = { id: r.id, status: r.status, errors: r.errors, reason: r.reason, metrics: r.metrics };
+    const row = {
+      id: r.id,
+      status: r.status,
+      errors: r.errors,
+      reason: r.reason,
+      metrics: r.metrics,
+      timeMs: r.timeMs,
+    };
     if (r.status !== 'skipped') {
       const image = (kind) => page.evaluate(([id, k]) => window.__visualTestImage(id, k), [r.id, kind]);
       // check cases have no image
-      const target = (saveDir || compareDir) && !WebGPUProfiles.includes(profile) ? await image('target') : undefined;
-      if (target) {
-        const file = path.join(saveDir ?? compareDir, profile, `${fileName(r.id)}.txt`);
+      const file = (saveDir || compareDir) && path.join(saveDir ?? compareDir, profile, `${fileName(r.id)}.txt`);
+      // a baseline keeps the images it has (of the same commit)
+      const stored = storesBaseline && file && fs.existsSync(file);
+      const writesShared = profile === SharedReference && sharesReference && r.status !== 'error';
+      const target =
+        (file && !stored && !WebGPUProfiles.includes(profile)) || writesShared ? await image('target') : undefined;
+      if (target && writesShared) {
+        fs.mkdirSync(sharedDir, { recursive: true });
+        fs.writeFileSync(path.join(sharedDir, `${fileName(r.id)}.png`), Buffer.from(target.split(',')[1], 'base64'));
+      }
+      if (target && file && !stored) {
         if (saveDir) {
           fs.mkdirSync(path.dirname(file), { recursive: true });
           fs.writeFileSync(file, target);
@@ -342,8 +475,45 @@ async function runShard(browser, origin, profile, shard) {
     }
     rows.push(row);
   }
+  const totalMs = Date.now() - pageStart;
   await page.close();
-  return { rows, consoleErrors };
+  return { rows, consoleErrors, loadMs, totalMs };
+}
+
+const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
+
+/** Where the time of the run went: per profile, and the slowest cases (target and reference renders) */
+function printTiming(jobs, shardResults) {
+  const cases = [];
+  for (const profile of new Set(jobs.map((j) => j.profile))) {
+    const parts = shardResults.filter((_, i) => jobs[i].profile === profile);
+    const rows = parts.flatMap((p) => p.rows);
+    const target = rows.reduce((s, r) => s + (r.timeMs?.target ?? 0), 0);
+    const reference = rows.reduce((s, r) => s + (r.timeMs?.reference ?? 0), 0);
+    const load = parts.reduce((s, p) => s + p.loadMs, 0);
+    const slowest = Math.max(...parts.map((p) => p.totalMs));
+    const run = rows.filter((r) => r.status !== 'skipped').length;
+    console.log(
+      `  ${profile}: ${run} cases, renders ${seconds(target)} target + ${seconds(reference)} reference, page loads ${seconds(load)}, slowest shard ${seconds(slowest)}`,
+    );
+    for (const r of rows) {
+      const ms = (r.timeMs?.target ?? 0) + (r.timeMs?.reference ?? 0);
+      if (ms > 0) cases.push({ id: r.id, profile, ms });
+    }
+  }
+  cases.sort((a, b) => b.ms - a.ms);
+  console.log('  slowest cases (target + reference):');
+  for (const c of cases.slice(0, timing ? 25 : 8)) console.log(`    ${seconds(c.ms)}  ${c.profile}  ${c.id}`);
+  if (timing) {
+    // the cases' renders summed over the profiles: what a case costs a run
+    const byCase = new Map();
+    for (const c of cases) byCase.set(c.id, (byCase.get(c.id) ?? 0) + c.ms);
+    const total = [...byCase.values()].reduce((s, ms) => s + ms, 0);
+    console.log(`  cases summed over the profiles (${seconds(total)} in all):`);
+    for (const [id, ms] of [...byCase].sort((a, b) => b[1] - a[1]).slice(0, 25)) {
+      console.log(`    ${seconds(ms)}  ${((100 * ms) / total).toFixed(1)}%  ${id}`);
+    }
+  }
 }
 
 /** Runs `tasks` with at most `limit` at a time */
@@ -360,10 +530,40 @@ async function pool(tasks, limit) {
   return results;
 }
 
+/** Keeps the baselines of the last `MaxBaselines` commits run */
+function pruneBaselines() {
+  if (!fs.existsSync(BaselineRoot)) return;
+  const dirs = fs
+    .readdirSync(BaselineRoot)
+    .map((name) => ({ name, time: fs.statSync(path.join(BaselineRoot, name)).mtimeMs }))
+    .sort((a, b) => b.time - a.time);
+  for (const d of dirs.slice(MaxBaselines))
+    fs.rmSync(path.join(BaselineRoot, d.name), { recursive: true, force: true });
+}
+
 async function main() {
+  if (args.includes('--dry-run')) {
+    console.log(`profiles: ${profiles.join(', ') || 'none'}`);
+    console.log(`cases: ${filter || 'all'}${tags ? ` (tags ${tags})` : ''}`);
+    if (changed) {
+      console.log('changed sources the harness imports:');
+      for (const f of changed) console.log(`  ${f}`);
+    }
+    return;
+  }
   if (profiles.length === 0) {
     console.log('no source changes, nothing to run');
     return;
+  }
+  if (args.includes('--compare-head') && !fs.existsSync(headBaseline)) {
+    console.log(`no baseline of HEAD (${head.slice(0, 9)}): run the cases once without uncommitted changes first`);
+    process.exit(1);
+  }
+  if (storesBaseline) {
+    fs.mkdirSync(headBaseline, { recursive: true });
+    // the commit run last is kept longest
+    fs.utimesSync(headBaseline, new Date(), new Date());
+    pruneBaselines();
   }
   if (!args.includes('--no-build')) {
     console.log('building the visual tests ...');
@@ -380,20 +580,31 @@ async function main() {
   const browser = browserName === 'firefox' ? await launchFirefox() : await launchChromium();
 
   const start = Date.now();
-  const jobs = profiles.flatMap((profile) => Array.from({ length: shards }, (_, shard) => ({ profile, shard })));
+  // the shared reference first, then the other WebGL profiles: the WebGPU shards wait for its images
+  const order = (p) => (p === SharedReference ? 0 : WebGPUProfiles.includes(p) ? 2 : 1);
+  const ordered = [...profiles].sort((a, b) => order(a) - order(b));
+  const jobs = ordered.flatMap((profile) => Array.from({ length: shards }, (_, shard) => ({ profile, shard })));
+  const referenceShards = new Map();
   let shardResults;
   try {
     shardResults = await pool(
-      jobs.map((j) => () => runShard(browser, origin, j.profile, j.shard)),
+      jobs.map((j) => () => {
+        const referenceShard =
+          sharesReference && WebGPUProfiles.includes(j.profile) ? referenceShards.get(j.shard) : undefined;
+        const run = runShard(browser, origin, j.profile, j.shard, referenceShard);
+        if (sharesReference && j.profile === SharedReference) referenceShards.set(j.shard, run);
+        return run;
+      }),
       concurrency,
     );
   } finally {
     await browser.close();
     server.close();
+    fs.rmSync(sharedDir, { recursive: true, force: true });
   }
 
   let failed = false;
-  for (const profile of profiles) {
+  for (const profile of ordered) {
     const parts = shardResults.filter((_, i) => jobs[i].profile === profile);
     const rows = parts.flatMap((p) => p.rows);
     const counts = {};
@@ -415,8 +626,11 @@ async function main() {
       const m = r.metrics ? ` (${r.metrics.diffPixels} px differ)` : '';
       console.log(`  ${r.status} ${r.id}${m}${r.errors?.length ? `: ${r.errors.join(' | ').slice(0, 300)}` : ''}`);
     }
-    if (compareDir) {
-      console.log(`  changed vs ${compareDir}: ${changed.length ? changed.map((r) => r.id).join(', ') : 'none'}`);
+    // only the WebGL profiles' images are stored and compared
+    if (compareDir && !WebGPUProfiles.includes(profile)) {
+      console.log(
+        `  changed vs ${compareDir === headBaseline ? `HEAD (${head.slice(0, 9)})` : compareDir}: ${changed.length ? changed.map((r) => r.id).join(', ') : 'none'}`,
+      );
       if (varied.length) console.log(`  changed, may vary between runs: ${varied.map((r) => r.id).join(', ')}`);
       if (added.length) console.log(`  new (not in ${compareDir}): ${added.map((r) => r.id).join(', ')}`);
     }
@@ -425,6 +639,8 @@ async function main() {
     );
     for (const e of consoleErrors.slice(0, 10)) console.log(`  console: ${e.slice(0, 300)}`);
   }
+  console.log('timing:');
+  printTiming(jobs, shardResults);
   console.log(
     `${jobs.length} pages (${profiles.length} profiles x ${shards} shards) in ${((Date.now() - start) / 1000).toFixed(0)} s`,
   );

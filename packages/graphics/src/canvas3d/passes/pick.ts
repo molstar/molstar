@@ -331,9 +331,9 @@ export class PickBuffers {
   ];
   private viewport = Viewport.create(0, 0, 0, 0);
   private ready = false;
-  /** pending checks of the started read, and when it started */
+  /** frames the started read has been pending (checks less than a frame apart count once), and the last counted */
   private lag = 0;
-  private readTimestamp = 0;
+  private lagTimestamp = 0;
 
   /** false if `read` only starts an asynchronous read, whose result `check` reports */
   get synchronous() {
@@ -373,7 +373,7 @@ export class PickBuffers {
     this.reader.start(this.pickPass.getTextures(), x, y, width, height);
     this.ready = false;
     this.lag = 0;
-    this.readTimestamp = now();
+    this.lagTimestamp = now();
     if (isTimingMode) this.graphics.timer.groupEnd('PickBuffers.asyncRead');
   }
 
@@ -381,12 +381,16 @@ export class PickBuffers {
     if (this.ready) return AsyncPickStatus.Resolved;
     const status = ReadStatus[this.reader.check(this.arrays)];
     if (status === AsyncPickStatus.Pending) {
-      // given up after `maxAsyncReadLag` pending checks, but not within a frame
-      if (this.lag >= this.maxAsyncReadLag && now() - this.readTimestamp >= 1000 / 60) {
+      // given up after `maxAsyncReadLag` frames; a click and the hover polling the same read count a frame once
+      const t = now();
+      if (t - this.lagTimestamp >= 1000 / 60) {
+        this.lag += 1;
+        this.lagTimestamp = t;
+      }
+      if (this.lag > this.maxAsyncReadLag) {
         this.reset();
         return AsyncPickStatus.Failed;
       }
-      this.lag += 1;
     }
     this.ready = status === AsyncPickStatus.Resolved;
     return status;

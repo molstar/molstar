@@ -210,6 +210,7 @@ export class HeadlessScreenshotHelper {
       height: canvasSize.height,
       // also keeps `gpu` alive with the context, collecting it while its device is in use crashes Dawn's Node.js bindings
       requestDevice: () => requestWebGPUDevice('default', gpu),
+      ownsDevice: true,
     });
     return new HeadlessScreenshotHelper(
       externalModules,

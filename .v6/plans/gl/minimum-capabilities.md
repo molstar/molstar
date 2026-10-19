@@ -26,7 +26,9 @@ capabilities or bigger limits must have a fallback, and both are documented (tab
 WebGL1 is supported with the extensions Mol* requires (visual profile `webgl1-minimal`): `ANGLE_instanced_arrays`,
 `OES_element_index_uint`, `OES_standard_derivatives`, `OES_texture_float`, `EXT_blend_minmax` (all core in WebGL2 and
 WebGPU, all supported by headless-gl; context creation fails without them, see `createExtensions`). The minimum-limit
-guarantee is defined for WebGL2 and WebGPU.
+guarantee is defined for WebGL2 and WebGPU. A known WebGL1 limit: the emulated vertex id (`aVertex`, a float attribute)
+is exact up to 2^24 vertices, e.g. about 2.8M points; larger draws warn and get wrong ids (not worth a wider attribute
+for WebGL1).
 
 ## Minimum capabilities
 

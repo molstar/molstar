@@ -68,6 +68,8 @@ export interface RenderOutput {
   errors: string[];
   warnings: string[];
   timeMs: number;
+  /** Loaded from the reference profile's own run, not rendered (see `RunOptions.sharedReferencesUrl`) */
+  shared?: boolean;
 }
 
 function captureConsole() {

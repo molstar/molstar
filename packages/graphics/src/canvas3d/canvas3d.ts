@@ -10,7 +10,7 @@
 
 import { BehaviorSubject, type Observable, Subject, type Subscription, debounceTime, merge } from 'rxjs';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
-import { type GraphicsRenderObject, hasForeignTextures } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, hasForeignResources } from '@molstar/graphics/gl/render-object';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
 import { Renderer, RendererParams, type RendererStats } from '@molstar/graphics/gl/renderer';
 import { MaxLightCount } from '@molstar/graphics/gl/renderable/schema';
@@ -247,7 +247,8 @@ interface Canvas3DContext {
    * Replaces the graphics context with that of the first of `backends` that can be created, on a new canvas element
    * taking the place of the current one (a canvas keeps the context type it gave out first), see `contextChanged`.
    * Resolves to false, keeping the current context, if none can be created, while presenting XR, without a canvas in
-   * a document or while another change is in progress.
+   * a document or while another change is in progress. While released (`release`), the backends are kept for `restore`,
+   * which creates the context from them (resolves to true then, the canvas stays released).
    */
   setBackend?: (backends: readonly GraphicsBackendDescriptor[]) => Promise<boolean>;
   /**
@@ -441,6 +442,8 @@ namespace Canvas3DContext {
     let pendingRestore: { cancel: () => void } | undefined;
     /** lost on purpose (`release`): restored by `restore`, not on the loss */
     let released = false;
+    /** backends set while released (`setBackend`), for `restore` */
+    let backendsOnRestore: readonly GraphicsBackendDescriptor[] | undefined;
 
     const fallback = (why: string) => {
       if (!a.contextFallback || changing) return;
@@ -538,7 +541,8 @@ namespace Canvas3DContext {
      * restore keeps the canvas: the lost context is dropped without GPU calls)
      */
     const replaceContext = (next: NextContext, reason: ContextChange['reason']): boolean => {
-      if (!canvas.parentNode || graphics.xr.isPresenting()) {
+      // a new canvas takes the place of the current one in the document; a restore keeps the canvas (no parent needed)
+      if ((next.canvas !== canvas && !canvas.parentNode) || graphics.xr.isPresenting()) {
         next.graphics.destroy(reason === 'restore' ? { doNotForceWebGLContextLoss: true } : undefined);
         return false;
       }
@@ -565,15 +569,19 @@ namespace Canvas3DContext {
       }
 
       contextChanged.next({ previous, reason });
-      previous.destroy(reason === 'restore' ? { lost: true } : undefined);
+      // also a released context replaced by `restore` with other backends
+      previous.destroy(reason === 'restore' || previous.isContextLost ? { lost: true } : undefined);
       return true;
     };
+
+    /** set by `dispose`: a backend change finishing afterwards frees what it made and changes nothing */
+    let disposed = false;
 
     const changeBackend = async (
       candidates: readonly GraphicsBackendDescriptor[],
       reason: ContextChange['reason'],
     ): Promise<boolean> => {
-      if (changing || !canvas.parentNode || graphics.xr.isPresenting()) return false;
+      if (disposed || changing || !canvas.parentNode || graphics.xr.isPresenting()) return false;
       changing = true;
       try {
         // each backend on a fresh canvas: a failed backend may leave its context type on the canvas
@@ -581,6 +589,10 @@ namespace Canvas3DContext {
         for (const backend of candidates) {
           const nextCanvas = cloneCanvas(canvas);
           const created = await createGraphicsContext(nextCanvas, [backend], getContextAttribs(a, p));
+          if (disposed) {
+            created?.context.destroy();
+            return false;
+          }
           if (created) {
             next = { canvas: nextCanvas, graphics: created.context, backend };
             break;
@@ -593,7 +605,14 @@ namespace Canvas3DContext {
         changing = false;
       }
     };
-    const setBackend = (candidates: readonly GraphicsBackendDescriptor[]) => changeBackend(candidates, 'switch');
+    const setBackend = async (candidates: readonly GraphicsBackendDescriptor[]) => {
+      // a released canvas (e.g. out of view) gets no live context before `restore`
+      if (released && !changing) {
+        backendsOnRestore = candidates;
+        return true;
+      }
+      return changeBackend(candidates, 'switch');
+    };
 
     return {
       get canvas() {
@@ -666,6 +685,16 @@ namespace Canvas3DContext {
       },
       restore: async () => {
         if (!released || changing || !graphics.isContextLost) return false;
+        const backends = backendsOnRestore;
+        backendsOnRestore = undefined;
+        if (backends) {
+          // the backends set while released; the current one restored if none of them can be created
+          if (await changeBackend(backends, 'switch')) {
+            contextRestored.next(now());
+            return true;
+          }
+          if (!released || changing || !graphics.isContextLost) return false;
+        }
         released = false;
         return recreateLost(true);
       },
@@ -673,6 +702,7 @@ namespace Canvas3DContext {
         return released;
       },
       dispose: (options?: GraphicsDestroyOptions) => {
+        disposed = true;
         input.dispose();
 
         canvas.removeEventListener('mousedown', simulateContextLoss, false);
@@ -1873,7 +1903,7 @@ namespace Canvas3D {
             if (!droppedRenderObjects.has(o)) return;
             if (!newRO.has(o)) {
               droppedRenderObjects.delete(o);
-            } else if (!hasForeignTextures(o, graphics)) {
+            } else if (!hasForeignResources(o, graphics)) {
               droppedRenderObjects.delete(o);
               scene.add(o);
             }

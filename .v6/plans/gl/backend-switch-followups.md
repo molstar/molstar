@@ -83,7 +83,8 @@
 ## Where things stand
 
 - **Switching** keeps the render objects. Textures loaded from data are transferred. Visuals whose render object holds
-  textures of another context create their geometry again (`hasForeignTextures`), and Canvas3D updates their
+  textures or storage buffers (GPU surfaces in the vertex arena) of another context create their geometry again
+  (`hasForeignResources`), and Canvas3D updates their
   representations. Everything else is drawn again as it is.
 - **Geometry that depends on capabilities is not caught.** CPU surface visuals (molecular, CPU Gaussian, blob,
   isosurface and segment meshes, the particle blob surface) set `varyingGroup` when the context has `flatInterpolation`

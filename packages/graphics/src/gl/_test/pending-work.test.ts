@@ -73,6 +73,19 @@ describe('pending work', () => {
     error.mockRestore();
   });
 
+  it('does not report rejections of forgotten work', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const pending = createPendingWork();
+    const a = deferred();
+    const tracked = pending.track(a.promise, 'a').catch(() => {});
+    // e.g. reads failing with a released device
+    pending.clear();
+    a.reject(new Error('failed'));
+    await tracked;
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
   it('counts tracked work, also after it settled', async () => {
     const pending = createPendingWork();
     expect(pending.trackedCount).toBe(0);

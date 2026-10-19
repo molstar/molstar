@@ -73,6 +73,8 @@ export function ParticleTargetRepresentation(
 
   let mergedByType = new Map<string, MergedEntry<TargetVisual>>();
 
+  /** updates one after another, see `Representation.createUpdateQueue` */
+  const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<ParticleTargetRepresentationProps> = {}, input?: ParticleList) {
     if (input) {
       _particles = input;
@@ -83,7 +85,7 @@ export function ParticleTargetRepresentation(
     // since each target has its own data and its own geometry params.
     Object.assign(_props, props);
 
-    return Task.create('ParticleTargetRepresentation', async (runtime) => {
+    const task = Task.create('ParticleTargetRepresentation', async (runtime) => {
       if (!_particles) return;
 
       const particles = _particles;
@@ -141,6 +143,7 @@ export function ParticleTargetRepresentation(
       geometryState.snapshot();
       updated.next(version++);
     });
+    return serialize(task);
   }
 
   function updateRenderObjectList(entries: { visual: TargetVisual; renderObject: GraphicsRenderObject }[]) {

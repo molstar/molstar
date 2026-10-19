@@ -16,7 +16,7 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   type RenderObjectValues,
-  hasForeignTextures,
+  hasForeignResources,
 } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
@@ -170,9 +170,9 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
 
-    // after a backend switch: textures of the previous context are rendered or computed again, geometry relying on what
-    // the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
-    if (graphics && renderObject && hasForeignTextures(renderObject, graphics)) updateState.createGeometry = true;
+    // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
+    // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
+    if (graphics && renderObject && hasForeignResources(renderObject, graphics)) updateState.createGeometry = true;
     if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
       updateState.createGeometry = true;
     }

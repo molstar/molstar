@@ -36,6 +36,7 @@ export function createWebGPUBackend(
         strict: options.strict,
         // a lost device is replaced by one of the same adapter preference
         requestDevice: () => request(attribs.powerPreference),
+        ownsDevice: true,
       });
     },
   };

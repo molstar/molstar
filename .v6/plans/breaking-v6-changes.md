@@ -367,6 +367,8 @@ The `preferWebgl1` option and the `prefer-webgl1` URL parameter of the Viewer an
 `graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`) asks for WebGL1. The default is `graphicsBackend: 'auto'`
 (WebGPU where it has the features of WebGL2, else WebGL2, then WebGL1), which does not read
 `PluginConfig.General.PreferWebGl1`. The Prism viewer keeps `prefer-webgl1` as `graphics-backend=webgl1`.
+`PluginFeatureDetection.preferWebGl1` is removed (iOS and Safari 15.1–15.3 no longer default to WebGL1);
+`PluginConfig.General.PreferWebGl1` is off by default and still selects WebGL1 (the `webgl` set) when set.
 
 ## Picking results
 

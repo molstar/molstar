@@ -146,9 +146,10 @@ function gaussianCase(
   description: string,
   structure: () => Promise<Structure>,
   resolution: number,
+  group = 'mc/gaussian',
 ): BenchmarkCase<GaussianInput> {
   return {
-    id: `mc/gaussian/${name}-res${resolution}`,
+    id: `${group}/${name}-res${resolution}`,
     description: `Gaussian surface of ${description} at a resolution of ${resolution} Å.`,
     setup: async () => {
       const s = await structure();
@@ -159,10 +160,10 @@ function gaussianCase(
   };
 }
 
-function globuleCase(atoms: number, resolution: number) {
+function globuleCase(atoms: number, resolution: number, group?: string) {
   const label = atoms >= 1000 ? `${atoms / 1000}k` : `${atoms}`;
   const description = `a protein-like ball of ${atoms} atoms`;
-  return gaussianCase(`globule-${label}`, description, () => globuleStructure(atoms), resolution);
+  return gaussianCase(`globule-${label}`, description, () => globuleStructure(atoms), resolution, group);
 }
 
 function entryCase(entry: string, file: string, description: string, resolution: number) {
@@ -181,3 +182,11 @@ export const GaussianSurfaceCases: BenchmarkCase<any>[] = [
     entryCase('7qpd', '7qpd.fw2.cif', 'about 11.5 k atoms in 7 chains', resolution),
   ]),
 ];
+
+/**
+ * Where the CPU and the GPU paths cross (`getGpuFallbackReason`): small structures to large ones, at resolutions on both
+ * sides of the CPU cutoff; not in the default runs (`--filter 'mc/gaussian-cutoff/*'`)
+ */
+export const GaussianSurfaceCutoffCases: BenchmarkCase<any>[] = [100, 300, 1000, 3000, 10000, 30000].flatMap((atoms) =>
+  [0.5, 1, 1.5, 2, 3].map((resolution) => globuleCase(atoms, resolution, 'mc/gaussian-cutoff')),
+);

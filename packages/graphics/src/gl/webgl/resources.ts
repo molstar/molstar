@@ -51,7 +51,7 @@ import type { UniformBuffer } from '../uniform.js';
 import type { UniformBlockLayout } from '../uniform-layout.js';
 import type { AttributeLayout } from '../attribute-layout.js';
 import { getShaderDeclarations } from './shader-declarations.js';
-import { getDefineValuesLookup } from '../renderable/schema.js';
+import { getDefineLookup, getDefineValueNames } from '../renderable/schema.js';
 import { now } from '@molstar/core/util/now';
 import type { ProgramVariant, RenderItem } from '../render-item.js';
 import { isTimingMode } from '@molstar/core/util/debug';
@@ -179,6 +179,25 @@ export function createResources(
     compiled?.();
     compiled = undefined;
   }
+  /**
+   * Hashes of the generated declarations per schema and defined defines: generating them is most of a program lookup,
+   * which render items do per variant (cache hits too)
+   */
+  const declarationHashes = new WeakMap<RenderableSchema, Map<string, readonly [number, number]>>();
+  function getDeclarationHashes(schema: RenderableSchema, defineValues: DefineValues) {
+    let bySchema = declarationHashes.get(schema);
+    if (!bySchema) declarationHashes.set(schema, (bySchema = new Map()));
+    const names = getDefineValueNames(defineValues);
+    const key = names.join(' ');
+    let hashes = bySchema.get(key);
+    if (!hashes) {
+      const declarations = getShaderDeclarations(schema, isWebGL2(gl), getDefineLookup(names), uniformBlocks);
+      hashes = [hashString(declarations.vert), hashString(declarations.frag)];
+      bySchema.set(key, hashes);
+    }
+    return hashes;
+  }
+
   const programCache = createReferenceCache(
     (props: ProgramProps) => {
       const array = [props.shaderCode.id];
@@ -188,14 +207,9 @@ export function createResources(
           array.push(hashString(k), defineValueHash(props.defineValues[k].ref.value));
         }
       });
-      // generated declarations (incl. attribute locations) depend on the schema
-      const declarations = getShaderDeclarations(
-        props.schema,
-        isWebGL2(gl),
-        getDefineValuesLookup(props.defineValues),
-        uniformBlocks,
-      );
-      array.push(hashString(declarations.vert), hashString(declarations.frag));
+      // generated declarations (incl. attribute locations) depend on the schema and the defines
+      const [vert, frag] = getDeclarationHashes(props.schema, props.defineValues);
+      array.push(vert, frag);
       return hashFnv32a(array).toString();
     },
     (props: ProgramProps) => {

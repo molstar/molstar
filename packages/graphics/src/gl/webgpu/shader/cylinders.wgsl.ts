@@ -205,8 +205,33 @@ fn isFrontClipped(modelPosition: vec3<f32>, clipFlag: i32) -> bool {
         #endif
         return h;
     }
+
+    /** The back-depth pass's far hit, its exit point moved towards the entry until a clip object no longer removes it */
+    fn solidInteriorBackCap(hit: CylinderHit, entryPosition: vec3<f32>, clipFlag: i32) -> CylinderHit {
+        var h = hit;
+        #if defined(dClipCylinder)
+            let s = clipExit(h.modelPosition / uGlobal.uModelScale, entryPosition / uGlobal.uModelScale, 0.0, clipFlag);
+            if (s < 0.0) {
+                h.hit = false;
+                return h;
+            }
+            if (s > 0.0) {
+                h.modelPosition = mix(h.modelPosition, entryPosition, s);
+                h.viewPosition = (uGlobal.uView * vec4<f32>(h.modelPosition, 1.0)).xyz;
+                h.depth = calcDepth(h.viewPosition);
+                h.cameraNormal = -clipNormal(h.modelPosition / uGlobal.uModelScale, clipFlag);
+                h.isCap = true;
+            }
+        #endif
+        h.hit = h.depth < 1.0;
+        return h;
+    }
 #else
     fn solidInteriorCap(hit: CylinderHit, rayOrigin: vec3<f32>, rayDir: vec3<f32>, t: f32, front: CylinderFront, radius: f32, clipFlag: i32) -> CylinderHit {
+        return hit;
+    }
+
+    fn solidInteriorBackCap(hit: CylinderHit, entryPosition: vec3<f32>, clipFlag: i32) -> CylinderHit {
         return hit;
     }
 #endif
@@ -252,11 +277,21 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
     // no front yet: at the far plane (depth is reversed)
     var front = CylinderFront(0.0, 0.0, rayOrigin, false);
 
+    #if defined(dRenderVariant_depth)
+        // the back-depth pass wants the farthest intersection
+        let depthBack = uGlobal.uDepthBack != 0u;
+    #else
+        let depthBack = false;
+    #endif
+
     // body outside
     h = sqrt(h);
     var t = (-k1 - h) / k2;
     var y = baoc + t * bard;
-    if (y > 0.0 && y < baba) {
+    // entry into the closed cylinder: the body entry clamped to the end-cap slab (for back caps of solid interiors)
+    let entryT = select(t, max(t, min(-baoc / bard, (baba - baoc) / bard)), abs(bard) > 0.0);
+    let entryPosition = rayOrigin + entryT * rayDir;
+    if (!depthBack && y > 0.0 && y < baba) {
         r = cylinderHitAt(rayOrigin, rayDir, t, (oc + t * rayDir - ba * y / baba) / radius, false);
         front = CylinderFront(t, r.depth, r.modelPosition, isFrontClipped(r.modelPosition, clipFlag));
         if (front.clipped) {
@@ -269,7 +304,7 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
         clipped = true;
     }
 
-    if (!clipped) {
+    if (!clipped && !depthBack) {
         var capT = 0.0;
         var capNormal = vec3<f32>(0.0);
         var capInterior = false;
@@ -309,7 +344,7 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
         }
     }
 
-    if (uMaterial.uDoubleSided != 0u || solidInterior) {
+    if (uMaterial.uDoubleSided != 0u || solidInterior || depthBack) {
         // body inside
         h = -h;
         t = (-k1 - h) / k2;
@@ -317,6 +352,9 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
         if (y > 0.0 && y < baba) {
             r = cylinderHitAt(rayOrigin, rayDir, t, -(oc + t * rayDir - ba * y / baba) / radius, true);
             if (r.hit) {
+                if (depthBack) {
+                    return solidInteriorBackCap(r, entryPosition, clipFlag);
+                }
                 return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
             }
         }
@@ -327,6 +365,9 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
             if (abs(k1 + k2 * t) < -h) {
                 r = cylinderHitAt(rayOrigin, rayDir, t, ba / baba, true);
                 if (r.hit) {
+                    if (depthBack) {
+                        return solidInteriorBackCap(r, entryPosition, clipFlag);
+                    }
                     return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
                 }
             }
@@ -336,6 +377,9 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
             if (abs(k1 + k2 * t) < -h) {
                 r = cylinderHitAt(rayOrigin, rayDir, t, -ba / baba, true);
                 if (r.hit) {
+                    if (depthBack) {
+                        return solidInteriorBackCap(r, entryPosition, clipFlag);
+                    }
                     return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
                 }
             }

@@ -59,6 +59,38 @@ export async function helixStructure(atomsPerChain: number): Promise<Structure> 
 }
 
 /**
+ * `count` carbon atoms packed in a ball at protein density (11 Å³ per atom) on a grid with a deterministic offset per
+ * atom, two chains split at z = 0: a compact structure of any size
+ */
+export async function globuleStructure(count: number): Promise<Structure> {
+  const spacing = Math.cbrt(11);
+  const radius = Math.cbrt((3 * count * 11) / (4 * Math.PI)) + spacing;
+  const n = Math.ceil((2 * radius) / spacing);
+  const points: [number, number, number][] = [];
+  for (let i = 0; i < n; ++i) {
+    for (let j = 0; j < n; ++j) {
+      for (let k = 0; k < n; ++k) {
+        const offset = 0.3 * Math.sin(i * 12.9898 + j * 78.233 + k * 37.719);
+        const p: [number, number, number] = [
+          (i + 0.5) * spacing - radius + offset,
+          (j + 0.5) * spacing - radius - offset,
+          (k + 0.5) * spacing - radius + offset,
+        ];
+        points.push(p);
+      }
+    }
+  }
+  // the innermost `count` points, chain A below z = 0 and chain B above
+  points.sort((a, b) => Math.hypot(...a) - Math.hypot(...b));
+  const atoms = points.slice(0, count).sort((a, b) => a[2] - b[2]);
+  const x = Float32Array.from(atoms, (p) => p[0]);
+  const y = Float32Array.from(atoms, (p) => p[1]);
+  const z = Float32Array.from(atoms, (p) => p[2]);
+  const chainOf = Int32Array.from(atoms, (p) => (p[2] < 0 ? 0 : 1));
+  return atomStructure('globule', x, y, z, ['A', 'B'], chainOf);
+}
+
+/**
  * A structure of carbon atoms ('CA' of 'ALA' residues, one atom per residue) at the given coordinates, atom `i` in
  * chain `chains[chainOf[i]]`; the atoms of a chain must be consecutive
  */

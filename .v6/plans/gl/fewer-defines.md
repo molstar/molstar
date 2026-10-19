@@ -2,9 +2,9 @@
 
 ## Status
 
-- **Current**: the color type, the instance granularity and the size type converted (step 2, below); proposed
-  next: the clip object count (candidates, 6: simple, varies most in the visual suite), then the shading switches one
-  at a time (4).
+- **Current**: paused, good enough for now: the color type, the instance granularity and the size type converted
+  (step 2, below). Open, in the order to take them up: the clip object count (candidates, 6: simple, varies most in
+  the visual suite), the shading switches one at a time (4), the layers' presence (5) last if at all.
 - Step 2 done for the size type, as the color type: `dSizeType` has `uniform` and `texture`, the object uniform
   `uSizeIndexType` selects the index (`SizeTypeIndex`: instance, group, groupInstance, vertex, vertexInstance; a
   `switch` in WGSL, an `if` chain in GLSL), the type itself is the value `sizeType` (`setSizeType`; read by merged

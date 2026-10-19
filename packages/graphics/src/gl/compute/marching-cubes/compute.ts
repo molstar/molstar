@@ -41,6 +41,8 @@ const InputUniforms = {
 export const McBufferInput = {
   ...InputUniforms,
   uStrides: UniformSpec('iv3'),
+  /** points of the data per axis: grid positions past them wrap (periodic volumes, the grid one point larger) */
+  uDataDim: UniformSpec('iv3'),
   volume: StorageBufferSpec('f32', 'read'),
   dInput: DefineSpec('string', ['buffer', 'texture']),
 };
@@ -96,6 +98,8 @@ export type IsosurfaceInput =
       readonly volume: StorageBuffer;
       /** data offset per axis step */
       readonly strides: Vec3;
+      /** the data's points per axis where the grid wraps around them (one point more per axis); the grid's by default */
+      readonly dataDim?: Vec3;
     }
   | {
       readonly kind: 'texture';
@@ -167,6 +171,7 @@ export function getInputValues(input: IsosurfaceInput, gridDim: Vec3, isoValue: 
       values: {
         ...common,
         uStrides: ValueCell.create(Vec3.clone(input.strides)),
+        uDataDim: ValueCell.create(Vec3.clone(input.dataDim ?? gridDim)),
         volume: ValueCell.create(input.volume),
         ...defineValues,
       },

@@ -64,6 +64,9 @@ the [API change ledger](breaking-v6-changes.md).
   (`renderer.graphicsBackend`, `graphics-backend`, `auto` by default) and keeps v5's `prefer-webgl1` (`webgl1`)
 - [Breaking] The `preferWebgl1` option and `prefer-webgl1` URL parameter of the Viewer and the Mesoscale Explorer are
   removed: `graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`)
+- [Breaking] `PluginFeatureDetection.preferWebGl1` is removed: iOS and Safari 15.1–15.3 no longer default to WebGL1
+  (WebGL2 works there in current versions); `PluginConfig.General.PreferWebGl1` is off by default and still selects
+  WebGL1 when set
 - Graphics backend switching at runtime, keeping the scene (render objects, markers, camera, props):
   `Canvas3DContext.setBackend` (a new canvas element takes the place of the old one), `Canvas3D.contextChanged`,
   `Representation.setGraphics`; in the plugin `PluginContext.setGraphicsBackends` and a Graphics Backend setting in the
@@ -77,6 +80,9 @@ the [API change ledger](breaking-v6-changes.md).
   types another, and the instance granularity selects the marker and layer data's index at runtime (the object uniform
   `uInstanceGranularity`), so changing it compiles nothing; custom renderables and shaders follow, see the
   [API change ledger](breaking-v6-changes.md)
+- Gaussian surfaces on WebGPU choose the GPU or the CPU by their size instead of the resolution: large structures are
+  computed on the GPU at coarse resolutions too (on an integrated GPU 30k atoms at 2 Å in 11 ms instead of 30 ms),
+  small ones on the CPU, where they are faster; WebGL keeps the resolution cutoff
 - Fix images and direct volumes with instance granularity: markers were read per group instance, and direct volumes
   ignored overpaint
 

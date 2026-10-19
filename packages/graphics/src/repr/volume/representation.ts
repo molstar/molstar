@@ -89,6 +89,8 @@ export function VolumeRepresentation<P extends VolumeParams>(
     return visual.createOrUpdate({ graphics, runtime }, _theme, _props, { volume: _volume, key });
   }
 
+  /** updates one after another, see `Representation.createUpdateQueue` */
+  const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: Volume) {
     if (volume && volume !== _volume) {
       _params = getParams(ctx, volume);
@@ -99,7 +101,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
     Object.assign(_props, props, qualityProps);
     _keys = getKeys(_props, _volume);
 
-    return Task.create('Creating or updating VolumeRepresentation', async (runtime) => {
+    const task = Task.create('Creating or updating VolumeRepresentation', async (runtime) => {
       const toDelete = new Set(visuals.keys());
       for (let i = 0, il = _keys.length; i < il; ++i) {
         const key = _keys[i];
@@ -123,6 +125,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
       // increment version
       updated.next(version++);
     });
+    return serialize(task);
   }
 
   function mark(loci: Loci, action: MarkerAction) {

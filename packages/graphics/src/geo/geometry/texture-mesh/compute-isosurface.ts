@@ -75,7 +75,8 @@ const toCapacity = (vertexCount: number) => Math.max(MinCapacity, Math.ceil(vert
  * iterator's data right; a surface that did not get all its pages (the arena's free pages ran out) is extracted again
  * after the arena grew. The re-extraction handlers of the mesh (`TextureMesh.setReextractionHandler`) run after either
  * changed the vertices data derived from them saw. The expected count, which grows the arena beforehand, is the last
- * count of `textureMesh` (with headroom), else `estimate`.
+ * count of `textureMesh` (with headroom), else `estimate` (a function: called only then, e.g. a pass over the grid,
+ * `estimateIsosurfaceVertexCount`).
  */
 export async function computeTextureMeshIsosurface(
   graphics: GraphicsContext & { compute: ComputeContext },
@@ -83,12 +84,12 @@ export async function computeTextureMeshIsosurface(
   groupCount: number,
   boundingSphere: Sphere3D,
   textureMesh?: TextureMesh,
-  estimate?: number,
+  estimate?: number | (() => number),
 ): Promise<TextureMesh> {
   const { compute } = graphics;
   const surface = textureMesh?.doubleBuffer.getChunks(graphics);
   const last = textureMesh && lastCounts.get(textureMesh);
-  const expected = last !== undefined ? last * Headroom : estimate;
+  const expected = last !== undefined ? last * Headroom : typeof estimate === 'function' ? estimate() : estimate;
   const result = await extract({ surface, estimate: expected });
   const mesh = TextureMesh.createChunked(
     toCapacity(expected ?? 0),

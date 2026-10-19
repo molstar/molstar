@@ -497,9 +497,14 @@ export class PostprocessingPass {
 
     b.begin(toDrawingBuffer ? 'drawing-buffer' : this.target, { label: 'postprocessing' });
 
-    this.background.update(camera, props.background);
-    if (b.drawing) this.background.clear(props.background, this.transparentBackground, backgroundColor);
-    this.background.render(b, props.background);
+    if (b.drawing) {
+      this.background.update(camera, props.background);
+      this.background.clear(props.background, this.transparentBackground, backgroundColor);
+      this.background.render(b, props.background);
+    } else {
+      // the props may be hypothetical (`Canvas3D.prepare`): the live background stays
+      this.background.prepare(b, props.background);
+    }
 
     b.quad(this.renderable, compositeBackground ? RenderState.Premultiplied : RenderState.Default);
     if (timing) this.graphics.timer.groupEnd('PostprocessingPass.render');

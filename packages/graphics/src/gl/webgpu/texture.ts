@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { toHalfFloat } from '@molstar/core/util/number-conversion';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { TextureImage, TextureVolume } from '../renderable/util.js';
 import type { GraphicsStats } from '../stats.js';
@@ -207,6 +208,8 @@ export function createWebGPUTexture(
   /** the data of the last `load` and whether it was mipmapped, uploaded again by `reset` */
   let loaded: Parameters<WebGPUTexture['load']>[0] | undefined;
   let mipmapped = false;
+  /** a destroyed texture allocates nothing again (e.g. an image decoded after the background changed) */
+  let destroyed = false;
 
   function allocate(w: number, h: number, d = 1) {
     if (texture && w === width && h === height && d === depth) return;
@@ -236,12 +239,14 @@ export function createWebGPUTexture(
 
   /** without data, the contents are undefined until rendered into */
   function define(w: number, h: number, d = 1) {
+    if (destroyed) return;
     loaded = undefined;
     mipmapped = false;
     allocate(w, h, d);
   }
 
   function load(image: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap) {
+    if (destroyed) return;
     loaded = image;
     mipmapped = false;
     const { device } = env;
@@ -257,9 +262,11 @@ export function createWebGPUTexture(
       return;
     }
     if (isDepth) notSupported('loading depth textures');
-    const { array, width: w, height: h } = image as TextureImage<any>;
+    const { width: w, height: h } = image as TextureImage<any>;
+    let { array } = image as TextureImage<any>;
     const d = 'depth' in image ? (image as TextureVolume<any>).depth : 1;
-    if (type === 'fp16') notSupported('loading fp16 textures');
+    // half floats as their bits (`Uint16Array`, as WebGL's `HALF_FLOAT` takes them); floats are converted
+    if (type === 'fp16' && array instanceof Float32Array) array = Uint16Array.from(array, toHalfFloat);
     allocateForWrite(w, h, d);
 
     const channels = getChannelCount(format);
@@ -355,6 +362,8 @@ export function createWebGPUTexture(
     },
 
     destroy: () => {
+      if (destroyed) return;
+      destroyed = true;
       if (texture) release(texture);
       texture = undefined;
       view = undefined;
@@ -412,8 +421,11 @@ export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean
   let view: GPUTextureView | undefined;
   let size = 0;
   let version = 0;
+  /** a destroyed texture allocates nothing again (faces decoded after the background changed) */
+  let destroyed = false;
 
   function loadFaces(images: ImageBitmap[]) {
+    if (destroyed) return;
     const { device } = env;
     if (texture) release(texture);
     size = images[0].width;
@@ -466,6 +478,8 @@ export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean
     copyFromFramebuffer: () => notSupported('copying into cube textures'),
 
     destroy: () => {
+      if (destroyed) return;
+      destroyed = true;
       if (texture) release(texture);
       texture = undefined;
       view = undefined;

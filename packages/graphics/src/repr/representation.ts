@@ -229,6 +229,29 @@ interface Representation<D, P extends PD.Params = PD.Params, S extends Represent
   destroy: () => void;
 }
 namespace Representation {
+  /**
+   * Runs the update tasks it wraps (`createOrUpdate`) one after another: a representation is also updated outside the
+   * state system (by `Canvas3D` after a backend switch or restore), which would interleave with an update in progress
+   * (e.g. trajectory playback) and its visual updates
+   */
+  export function createUpdateQueue() {
+    let last: Promise<void> = Promise.resolve();
+    return <T>(task: Task<T>): Task<T> =>
+      Task.create(task.name, async (runtime) => {
+        const previous = last;
+        let release!: () => void;
+        last = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        try {
+          await previous;
+          return await task.runInContext(runtime);
+        } finally {
+          release();
+        }
+      });
+  }
+
   export interface Loci<T extends ModelLoci = ModelLoci> {
     loci: T;
     repr?: Representation.Any;
@@ -378,6 +401,8 @@ namespace Representation {
     let version = 0;
     const updated = new Subject<number>();
     const geometryState = new GeometryState();
+    /** updates one after another, see `createUpdateQueue` */
+    const serialize = createUpdateQueue();
     const currentState = stateBuilder.create();
     let currentTheme = Theme.createEmpty();
 
@@ -439,7 +464,7 @@ namespace Representation {
         Object.assign(currentProps, props, qualityProps);
 
         const { visuals } = currentProps;
-        return Task.create(`Creating or updating '${label}' representation`, async (runtime) => {
+        const task = Task.create(`Creating or updating '${label}' representation`, async (runtime) => {
           for (let i = 0, il = reprList.length; i < il; ++i) {
             if (!visuals || visuals.includes(reprMap[i])) {
               await reprList[i].createOrUpdate(currentProps, currentData).runInContext(runtime);
@@ -449,6 +474,7 @@ namespace Representation {
           geometryState.snapshot();
           updated.next(version++);
         });
+        return serialize(task);
       },
       get state() {
         return currentState;

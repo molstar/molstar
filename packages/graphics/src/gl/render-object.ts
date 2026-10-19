@@ -39,6 +39,7 @@ import {
 } from './shader-code.js';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { isNullTexture, type Texture, transferTexture } from './texture.js';
+import type { StorageBuffer } from './compute.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import {
   canMergeValues,
@@ -170,35 +171,70 @@ function isTexture(x: unknown): x is Texture {
   return typeof x === 'object' && x !== null && typeof (x as Texture).attachFramebuffer === 'function';
 }
 
-/** The value cells of `o` (and of its members) holding textures not owned by `graphics` */
-function getForeignTextureCells(o: GraphicsRenderObject, graphics: GraphicsContext): ValueCell<Texture>[] {
-  const cells: ValueCell<Texture>[] = [];
+function isStorageBuffer(x: unknown): x is StorageBuffer {
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    typeof (x as StorageBuffer).copyTo === 'function' &&
+    typeof (x as StorageBuffer).readAsync === 'function'
+  );
+}
+
+/** The storage buffer of a value: a buffer, or the buffer of draw arguments (`DrawIndirect`) */
+function getStorageBuffer(v: unknown): StorageBuffer | undefined {
+  if (isStorageBuffer(v)) return v;
+  if (typeof v === 'object' && v !== null && 'buffer' in v && isStorageBuffer(v.buffer)) return v.buffer;
+}
+
+/** Calls `f` with the value cells of `o` and of its members */
+function forEachCell(o: GraphicsRenderObject, f: (cell: ValueCell<unknown>) => void) {
   const add = (values: object) => {
     for (const k in values) {
       const cell = (values as Record<string, ValueCell<unknown> | undefined>)[k];
-      const v = cell?.ref?.value;
-      if (isTexture(v) && !isNullTexture(v) && !graphics.resources.ownsTexture(v)) {
-        if (!cells.includes(cell as ValueCell<Texture>)) cells.push(cell as ValueCell<Texture>);
-      }
+      if (cell?.ref) f(cell);
     }
   };
   if (isMergedRenderObject(o)) for (const m of o.members) add(m.values);
   add(o.values);
+}
+
+/** The value cells of `o` (and of its members) holding textures not owned by `graphics` */
+function getForeignTextureCells(o: GraphicsRenderObject, graphics: GraphicsContext): ValueCell<Texture>[] {
+  const cells: ValueCell<Texture>[] = [];
+  forEachCell(o, (cell) => {
+    const v = cell.ref.value;
+    if (isTexture(v) && !isNullTexture(v) && !graphics.resources.ownsTexture(v)) {
+      if (!cells.includes(cell as ValueCell<Texture>)) cells.push(cell as ValueCell<Texture>);
+    }
+  });
   return cells;
 }
 
-/** Whether values of `o` hold textures of another graphics context than `graphics` */
-export function hasForeignTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
-  return getForeignTextureCells(o, graphics).length > 0;
+/**
+ * Whether values of `o` hold storage buffers not created by the compute context of `graphics` (e.g. GPU surfaces in the
+ * vertex arena of the previous context); computed, never transferred
+ */
+function hasForeignBuffers(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
+  let foreign = false;
+  forEachCell(o, (cell) => {
+    const buffer = getStorageBuffer(cell.ref.value);
+    if (buffer && !graphics.compute?.ownsBuffer(buffer)) foreign = true;
+  });
+  return foreign;
+}
+
+/** Whether values of `o` hold textures or storage buffers of another graphics context than `graphics` */
+export function hasForeignResources(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
+  return getForeignTextureCells(o, graphics).length > 0 || hasForeignBuffers(o, graphics);
 }
 
 /**
  * Replaces textures of another context in the values of `o` by textures of `graphics` with the same contents, where
- * they were loaded from data (see `transferTexture`); false if some were rendered or computed (e.g. GPU surfaces),
- * which their producers create again
+ * they were loaded from data (see `transferTexture`); false if some were rendered or computed (e.g. GPU surfaces), or
+ * storage buffers are of another context, which their producers create again
  */
 export function transferTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
-  let complete = true;
+  let complete = !hasForeignBuffers(o, graphics);
   for (const cell of getForeignTextureCells(o, graphics)) {
     const texture = transferTexture(cell.ref.value, graphics);
     if (texture) ValueCell.update(cell, texture);

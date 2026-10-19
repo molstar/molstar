@@ -41,6 +41,7 @@ import { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { type VolumeKey, VolumeVisual } from './visual.js';
+import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
 
 export const VolumeSegmentParams = {
   segments: PD.Converted(
@@ -342,6 +343,7 @@ function createVolumeSegmentComputeMesh(
     volume.grid.cells.data.length,
     boundingSphere,
     textureMesh,
+    () => estimateIsosurfaceVertexCount(values, gridDim, strides, 128),
   );
 }
 

@@ -55,6 +55,11 @@ export interface RunOptions {
   snapshots: boolean;
   snapshotTolerance: Tolerance;
   referencesUrl: string;
+  /**
+   * Images the reference profile rendered in its own run (`<id>.png`), loaded instead of rendering the reference where
+   * it renders the same (no fallback for the target only); cases without an image render it
+   */
+  sharedReferencesUrl?: string;
 }
 
 /** Loose by default: snapshots come from a different GPU/driver/browser */
@@ -113,6 +118,15 @@ export class VisualTestRunner {
     const { metrics, diff } = compareImages(image, reference.image, this.options.snapshotTolerance.threshold);
     const status = isWithinTolerance(metrics, this.options.snapshotTolerance) ? 'match' : 'mismatch';
     return { status, image, diff, metrics };
+  }
+
+  /** The reference's image from its own run, unless the reference renders the fallback here (`withFallback`) */
+  private async loadSharedReference(test: VisualTestCase, rendersFallback: boolean): Promise<RenderOutput | undefined> {
+    const url = this.options.sharedReferencesUrl;
+    if (!url || rendersFallback) return undefined;
+    // the file names the runner script writes (`<id with dots>.png`)
+    const image = await loadPng(`${url}${testIdToFileName(test.id)}`);
+    return image && { image, errors: [], warnings: [], timeMs: 0, shared: true };
   }
 
   async runTest(test: VisualTestCase): Promise<TestResult> {
@@ -180,17 +194,21 @@ export class VisualTestRunner {
         result.reason = `Compared against the fallback for missing ${fallback.requires.join(', ')}`;
       }
 
-      result.reference = await renderTest(reference, withFallback(referenceLacks));
+      // a profile that is its own reference (the WebGL profiles) renders once: a second render on the same instance
+      // only repeats the first (sequential renders are deterministic)
+      const self = reference === target;
       result.target = await renderTest(target, withFallback(targetLacks));
-      result.errors.push(
-        ...result.reference.errors.map((e) => `[reference] ${e}`),
-        ...result.target.errors.map((e) => `[target] ${e}`),
-      );
-      result.warnings.push(
-        ...result.reference.warnings.map((e) => `[reference] ${e}`),
-        ...result.target.warnings.map((e) => `[target] ${e}`),
-      );
-      if (isUniform(result.reference.image)) result.errors.push('[reference] blank render (uniform image)');
+      result.reference = self
+        ? result.target
+        : ((await this.loadSharedReference(test, !!fallback && targetLacks && !referenceLacks)) ??
+          (await renderTest(reference, withFallback(referenceLacks))));
+      if (!self) {
+        result.errors.push(...result.reference.errors.map((e) => `[reference] ${e}`));
+        result.warnings.push(...result.reference.warnings.map((e) => `[reference] ${e}`));
+        if (isUniform(result.reference.image)) result.errors.push('[reference] blank render (uniform image)');
+      }
+      result.errors.push(...result.target.errors.map((e) => `[target] ${e}`));
+      result.warnings.push(...result.target.warnings.map((e) => `[target] ${e}`));
       if (isUniform(result.target.image)) result.errors.push('[target] blank render (uniform image)');
 
       const { metrics, diff } = compareImages(result.reference.image, result.target.image, tolerance.threshold);
@@ -222,8 +240,13 @@ export class VisualTestRunner {
     return result;
   }
 
-  async run(tests: readonly VisualTestCase[], onResult?: (result: TestResult) => void) {
+  async run(
+    tests: readonly VisualTestCase[],
+    onResult?: (result: TestResult) => void,
+    onStart?: (test: VisualTestCase) => void,
+  ) {
     for (const test of tests) {
+      onStart?.(test);
       const result = await this.runTest(test);
       this.summary.results.push(result);
       this.summary.counts[result.status] += 1;
@@ -270,7 +293,13 @@ export function summaryToJson(summary: RunSummary) {
       tolerance: r.tolerance,
       metrics: r.metrics,
       snapshot: { status: r.snapshot.status, metrics: r.snapshot.metrics },
-      timeMs: { reference: r.reference?.timeMs, target: r.target?.timeMs },
+      // no reference time where the target's render is the reference (a profile that is its own reference) or it
+      // was loaded (`sharedReferencesUrl`)
+      timeMs: {
+        reference: r.reference !== r.target && !r.reference?.shared ? r.reference?.timeMs : undefined,
+        target: r.target?.timeMs,
+      },
+      sharedReference: !!r.reference?.shared,
       errors: r.errors,
       warnings: r.warnings,
     })),

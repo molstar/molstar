@@ -161,6 +161,8 @@ export interface ComputeContext {
    */
   hasKernels: (requests: Iterable<KernelRequest>) => boolean;
   createBuffer: (byteLength: number, label?: string) => StorageBuffer;
+  /** Whether `buffer` was created by this context (not by one it replaced, e.g. before a restore or backend switch) */
+  ownsBuffer: (buffer: StorageBuffer) => boolean;
   /**
    * Ends an open render or compute pass and begins a compute pass with `label` (timed like render passes); dispatches
    * go into it until `endComputePass`, a render pass, a copy or a submit ends it

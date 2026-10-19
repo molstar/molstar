@@ -203,14 +203,22 @@ Chosen: A (more arenas only if the binding size is ever reached).
 
 ## Follow-ups
 
-- **Size estimates for volume isosurfaces**: the chunked extraction grows the arena beforehand from an estimate (the
-  Gaussian surfaces pass one, later extractions the last count); volume isosurfaces pass none, so the first extraction
-  of a larger surface gets few pages and is extracted again after the arena grew: `1tqn.ccp4` at its default level
-  missed 445 pages (timing mode: 0.08 ms, then 0.23 ms for the second extraction). That path bound a destroyed page
-  table, fixed (`TextureMesh.bindChunkedTable`). An estimate from the grid (the cells the iso level crosses, from the
-  histogram or a sampled count, times about two triangles per crossed cell) would extract once.
-- **CPU or GPU for small Gaussian surfaces**: the GPU path is chosen from props and limits (`getGpuFallbackReason`: a
-  resolution above 1 goes to the CPU as about as fast; the size limits of 2d and 3d textures), judged for the WebGL
-  histogram pyramid on integrated GPUs. With the compute extraction (chunked, nothing read back before drawing) the
-  trade-off for small surfaces (ligands, a few hundred atoms) and low resolutions is to measure again: time to the
-  first frame and CPU time, on both backends.
+- **Size estimates for volume isosurfaces** (done): volume isosurfaces and segments pass an estimate from the grid
+  (`estimateIsosurfaceVertexCount`): the triangles of the cells by `TriTable`, classified as the compute kernels'
+  `cubeCase`, so exact where the grid is visited whole (up to 2^20 cells, about 6 ms; 12.5 ms at 2^21), larger grids by
+  every n-th z-slice, scaled, with 20% headroom; computed only for a mesh without a last count. `1tqn.ccp4` (80x100x144)
+  at its default level: before, the first extraction missed 204 pages (445 in the browser) and was extracted again;
+  with the estimate, once. Earlier, that path bound a destroyed page table, fixed (`TextureMesh.bindChunkedTable`).
+  Tests: the estimate against the CPU marching cubes (exact, strided, sampled), on Dawn the two spheres that missed
+  pages without an estimate get all with it.
+- **CPU or GPU for small Gaussian surfaces** (done): measured (`mc/gaussian-cutoff/*`, globules of 100 to 30k atoms at
+  resolutions 0.5 to 3; CPU, WebGL and WebGPU paths) on an RTX 4070 Ti and on the integrated AMD Radeon of a Ryzen
+  7900X (2 CUs, `--browser-arg --force_low_power_gpu`). WebGL: the cutoff at resolution 1 holds on the integrated GPU
+  (above it, the histogram pyramid is about as fast as the CPU or slower: 30k atoms at 1.5 in 70 ms, the CPU 55 ms), kept.
+  WebGPU: about 6–7 ms whatever the size (dispatches, the count's readback), faster than the CPU from about 100k
+  density cells at any resolution, on the integrated GPU too (30k atoms at resolution 2: 11 ms, the CPU 30 ms; at 1:
+  21 ms, the CPU 124 ms); below, the CPU takes 1–6 ms. So the compute path decides by size instead of the resolution:
+  the CPU for density grids under 100k cells of structures under 5000 atoms (the atoms bound the CPU's density work on
+  coarse grids: 10k atoms at resolution 3, 43k cells, 10 ms). The surfaces of both paths have the same triangles
+  within 0.1% at all resolutions; the visual cases `gaussian-surface-gpu-res2` and `-res3` compare WebGPU's GPU surface
+  of a 6k-atom ball with WebGL's CPU surface.

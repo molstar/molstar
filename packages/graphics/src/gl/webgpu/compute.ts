@@ -504,6 +504,7 @@ export function createWebGPUComputeContext(env: WebGPUComputeEnv): ComputeContex
   /** pipelines compiling in the background, by the same key */
   const compiling = new Map<string, Promise<void>>();
   const { limits } = env.device;
+  const ownBuffers = new WeakSet<StorageBuffer>();
   return {
     maxStorageBufferSize: Math.min(limits.maxStorageBufferBindingSize, limits.maxBufferSize),
     getStorageBufferByteCount: () => env.storageBufferBytes,
@@ -514,7 +515,12 @@ export function createWebGPUComputeContext(env: WebGPUComputeEnv): ComputeContex
       for (const r of requests) if (!pipelines.has(getKernelRequestKey(r).key)) return false;
       return true;
     },
-    createBuffer: (byteLength, label) => createStorageBuffer(env, byteLength, label),
+    createBuffer: (byteLength, label) => {
+      const buffer = createStorageBuffer(env, byteLength, label);
+      ownBuffers.add(buffer);
+      return buffer;
+    },
+    ownsBuffer: (buffer) => ownBuffers.has(buffer),
     beginComputePass: (options) => env.beginComputePass(options),
     endComputePass: () => env.endComputePass(),
   };

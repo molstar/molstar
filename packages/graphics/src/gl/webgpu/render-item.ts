@@ -658,7 +658,10 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
 
       const pipeline = ctx.getPipeline(program, drawMode);
       // compiling in the background, drawn once ready
-      if (!pipeline) return;
+      if (!pipeline) {
+        stats.skippedDraws += 1;
+        return;
+      }
       const state = ctx.getPassState();
       const pass = state.encoder;
       state.setPipeline(pipeline);

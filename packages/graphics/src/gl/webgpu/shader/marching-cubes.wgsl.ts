@@ -17,11 +17,12 @@ const EdgeCorners = array<vec2<u32>, 12>(
     vec2<u32>(0u, 4u), vec2<u32>(1u, 5u), vec2<u32>(2u, 6u), vec2<u32>(3u, 7u)
 );
 
-/** the value at grid position \`p\`, clamped to the grid */
+/** the value at grid position \`p\`, clamped to the grid (buffers: wrapped into the data, at most one point larger) */
 fn value(p: vec3<i32>) -> f32 {
     let q = clamp(p, vec3<i32>(0), uParams.uGridDim - 1);
     #if defined(dInput_buffer)
-        return volume[dot(q, uParams.uStrides)];
+        let d = uParams.uDataDim;
+        return volume[dot(select(q, q - d, q >= d), uParams.uStrides)];
     #else
         let v = textureLoad(tVolume, q, 0);
         #if defined(dChannel_red)

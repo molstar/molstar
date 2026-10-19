@@ -186,8 +186,19 @@ export function createComputeRenderItem(
   return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariants, undefined);
 }
 
+/**
+ * Vertices whose emulated vertex id (`aVertex`, a float attribute where `gl_VertexID` is missing: WebGL1) is exact:
+ * 2^24, e.g. about 2.8M points (6 vertices each); a known limit of WebGL1
+ */
+const MaxEmulatedVertexCount = 2 ** 24;
+
+/** The WebGL1 schemas of schemas, one per schema: the program cache keys declarations by the schema object */
+const webGL1Schemas = new WeakMap<RenderableSchema, RenderableSchema>();
+
 /** Loop bounds (`UniformSpec.loopBound`) as number defines: WebGL1 loops need constant bounds */
 function getWebGL1Schema(schema: RenderableSchema): RenderableSchema {
+  const cached = webGL1Schemas.get(schema);
+  if (cached) return cached;
   let adapted: { [k: string]: RenderableSchema[string] } | undefined;
   for (const k of Object.keys(schema)) {
     const spec = schema[k];
@@ -195,7 +206,9 @@ function getWebGL1Schema(schema: RenderableSchema): RenderableSchema {
     adapted ??= { ...schema };
     adapted[k] = DefineSpec('number');
   }
-  return adapted ?? schema;
+  const result = adapted ?? schema;
+  webGL1Schemas.set(schema, result);
+  return result;
 }
 
 /**
@@ -237,9 +250,17 @@ export function createRenderItem<T extends string>(
     schema.elements
       ? values.uVertexCount.ref.value
       : Math.max(values.uVertexCount.ref.value, values.drawCount.ref.value);
-  if (emulateVertexId && values.aVertex.ref.value.length < getEmulatedVertexCount()) {
-    ValueCell.update(values.aVertex, fillSerial(new Float32Array(getEmulatedVertexCount())));
-  }
+  /** The serial vertex ids of `aVertex` for at least `vertexCount` vertices, see `MaxEmulatedVertexCount` */
+  const ensureVertexIds = (vertexCount: number) => {
+    if (values.aVertex.ref.value.length >= vertexCount) return;
+    if (vertexCount > MaxEmulatedVertexCount) {
+      console.warn(
+        `${vertexCount} vertices with an emulated vertex id (WebGL1): ids above ${MaxEmulatedVertexCount} are not exact`,
+      );
+    }
+    ValueCell.update(values.aVertex, fillSerial(new Float32Array(vertexCount)));
+  };
+  if (emulateVertexId) ensureVertexIds(getEmulatedVertexCount());
 
   const {
     attributeValues,
@@ -592,12 +613,7 @@ export function createRenderItem<T extends string>(
       // (attributes, elements, textures, front-buffer and material uniforms)
       currentProgramId = -1;
 
-      if (emulateVertexId) {
-        const vertexCount = getEmulatedVertexCount();
-        if (values.aVertex.ref.value.length < vertexCount) {
-          ValueCell.update(values.aVertex, fillSerial(new Float32Array(vertexCount)));
-        }
-      }
+      if (emulateVertexId) ensureVertexIds(getEmulatedVertexCount());
 
       for (let i = 0, il = defineValueEntries.length; i < il; ++i) {
         const [k, value] = defineValueEntries[i];

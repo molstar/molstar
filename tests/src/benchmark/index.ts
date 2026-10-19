@@ -15,9 +15,9 @@ import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
 import { matchesAny } from '../visual/framework/test-case.js';
 import { ColorSmoothingCases } from './color-smoothing.js';
 import { type BenchmarkCase, BenchmarkEnv, type BenchmarkPath, type PathResult, runPath } from './framework.js';
-import { GaussianSurfaceCases } from './gaussian-surface.js';
+import { GaussianSurfaceCases, GaussianSurfaceCutoffCases } from './gaussian-surface.js';
 import { MarchingCubesCases } from './marching-cubes.js';
-import { RenderCases, disposeScene } from './render.js';
+import { RenderBundleCases, RenderCases, disposeScene } from './render.js';
 import { RepresentationCases } from './representations.js';
 
 /**
@@ -32,6 +32,9 @@ const AllCases: BenchmarkCase<any>[] = [
   ...ColorSmoothingCases,
   ...RenderCases,
 ];
+
+/** Cases run only when a filter selects them (measurements for a decision, not the default run) */
+const OnDemandCases: BenchmarkCase<any>[] = [...GaussianSurfaceCutoffCases, ...RenderBundleCases];
 
 const BackendPaths: { [backend: string]: BenchmarkPath[] } = {
   webgl2: ['cpu', 'webgl'],
@@ -104,7 +107,7 @@ async function run() {
   state.info.userAgent = navigator.userAgent;
   log(`${backend}: ${state.info.renderer}`);
 
-  for (const c of AllCases) {
+  for (const c of filter.length > 0 ? [...AllCases, ...OnDemandCases] : AllCases) {
     if (filter.length > 0 && !matchesAny(c.id, filter)) continue;
     const casePaths = paths.filter((p) => c.paths[p]);
     if (casePaths.length === 0) continue;

@@ -22,6 +22,8 @@ export interface PathRun {
   readonly drawCalls?: number;
   /** GPU time per frame of the timed pass groups (`--gpu-timing`), by path of group labels, ms */
   readonly gpuPasses?: { readonly [path: string]: number };
+  /** what a case measured besides the times, printed with them */
+  readonly notes?: readonly string[];
 }
 
 /** The context of the page, for cases that render with a `Canvas3D`; `gpuTiming` with timing mode on */
@@ -125,6 +127,7 @@ export interface PathResult {
   readonly bytes?: number;
   readonly drawCalls?: number;
   readonly gpuPasses?: { readonly [path: string]: number };
+  readonly notes?: readonly string[];
 }
 
 function median(values: number[]) {
@@ -171,6 +174,7 @@ export async function runPath(
       bytes: first.bytes,
       drawCalls: first.drawCalls,
       gpuPasses: runs[runs.length - 1]?.gpuPasses,
+      notes: runs[runs.length - 1]?.notes,
     };
   } catch (e) {
     return { id: c.id, path, status: 'error', reason: e instanceof Error ? e.message : String(e) };

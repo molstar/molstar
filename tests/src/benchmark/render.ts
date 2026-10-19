@@ -16,6 +16,9 @@ import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/st
 import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
+import { Renderer } from '@molstar/graphics/gl/renderer';
+import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
@@ -41,7 +44,57 @@ type RenderInput = {
   readonly rotate?: boolean;
   /** drawing buffer, `Size` by default (larger for full-screen passes, so that their GPU times stand out of the noise) */
   readonly size?: { readonly width: number; readonly height: number };
+  /** moves the camera towards the target, to this fraction of its distance, after the reset */
+  readonly zoom?: number;
+  /** measurements for render bundles (WebGPU), see `RenderBundleCases` */
+  readonly bundles?: {
+    /** the opaque pass recorded into a render bundle and replayed, every frame (the recording cost) */
+    readonly record?: boolean;
+    /** the visible set (the objects in the frustum) per frame: its CPU time, and how often it changed */
+    readonly visibility?: boolean;
+    /** no object culling (the frustum test passes every object) */
+    readonly noCulling?: boolean;
+  };
 };
+
+/** Render bundle recording of the opaque pass (`RenderInput.bundles.record`): recorded and failed recordings */
+const bundleStats = { recorded: 0, failed: 0 };
+
+/** `Renderer.create` with the opaque pass recorded into a render bundle and replayed, where the context records */
+function withBundleRecording<T>(graphics: GraphicsContext, create: () => T): T {
+  if (!isWebGPUContext(graphics)) return create();
+  const original = Renderer.create;
+  Renderer.create = (...args: Parameters<typeof Renderer.create>) => {
+    const renderer = original(...args);
+    const renderOpaque = renderer.renderOpaque;
+    renderer.renderOpaque = (group, camera) => {
+      const bundle = graphics.recordRenderBundle(() => renderOpaque(group, camera));
+      if (bundle) {
+        bundleStats.recorded += 1;
+        graphics.executeRenderBundles([bundle]);
+      } else {
+        bundleStats.failed += 1;
+        renderOpaque(group, camera);
+      }
+    };
+    return renderer;
+  };
+  try {
+    return create();
+  } finally {
+    Renderer.create = original;
+  }
+}
+
+/** The objects in the camera's frustum, as a key (one character per render object) */
+function getVisibleSet(canvas3d: Canvas3D, frustum: Frustum3D) {
+  Frustum3D.fromProjectionMatrix(frustum, canvas3d.camera.projectionView);
+  let key = '';
+  for (const o of canvas3d.getRenderObjects()) {
+    key += o.state.visible && Frustum3D.intersectsSphere3D(frustum, o.values.boundingSphere.ref.value) ? '1' : '0';
+  }
+  return key;
+}
 
 /** Drawing buffer of cases timing full-screen passes */
 const LargeSize = { width: 2560, height: 1440 };
@@ -63,17 +116,25 @@ async function getScene(id: string, graphics: GraphicsContext, input: RenderInpu
   canvas.style.height = `${height}px`;
 
   // progressive multi-sampling would make frames differ, picking warm-up would run in between
-  const canvas3d = Canvas3D.create(
-    context,
-    { ...input.props, multiSample: { ...PD.getDefaultValues(Canvas3DParams).multiSample, mode: 'off' } },
-    { warmUp: false },
-  );
+  const create = () =>
+    Canvas3D.create(
+      context,
+      { ...input.props, multiSample: { ...PD.getDefaultValues(Canvas3DParams).multiSample, mode: 'off' } },
+      { warmUp: false },
+    );
+  const canvas3d = input.bundles?.record ? withBundleRecording(graphics, create) : create();
   canvas3d.handleResize();
   const reprs = await input.scene(graphics);
   for (const r of reprs) canvas3d.add(r);
   canvas3d.commit(true);
   canvas3d.requestCameraReset({ durationMs: 0 });
   canvas3d.tick(now(), { isSynchronous: true });
+  if (input.zoom) {
+    const { position, target } = canvas3d.camera.getSnapshot();
+    const offset = Vec3.scale(Vec3(), Vec3.sub(Vec3(), position, target), input.zoom);
+    canvas3d.camera.setState({ position: Vec3.add(Vec3(), target, offset) }, 0);
+    canvas3d.tick(now(), { isSynchronous: true });
+  }
   current = { id, canvas3d, reprs };
   return canvas3d;
 }
@@ -114,19 +175,45 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
   canvas3d.notifyDidDraw = true;
   const sub = canvas3d.didDraw.subscribe(() => drawn++);
   drawn = 0;
+  bundleStats.recorded = bundleStats.failed = 0;
+  const frustum = Frustum3D();
+  let visibilityMs = 0;
+  let visibleKey: string | undefined;
+  let visibleChanges = 0;
+  const intersects = Frustum3D.intersectsSphere3D;
+  if (input.bundles?.noCulling) Frustum3D.intersectsSphere3D = () => true;
   const start = performance.now();
-  for (let i = 0; i < Frames; ++i) {
-    if (input.rotate) rotateCamera(canvas3d);
-    resetDrawCalls(graphics);
-    const t0 = performance.now();
-    canvas3d.requestDraw();
-    canvas3d.tick(now(), { isSynchronous: true });
-    submit += performance.now() - t0;
-    calls = drawCalls(graphics);
+  try {
+    for (let i = 0; i < Frames; ++i) {
+      if (input.rotate) rotateCamera(canvas3d);
+      resetDrawCalls(graphics);
+      const t0 = performance.now();
+      canvas3d.requestDraw();
+      canvas3d.tick(now(), { isSynchronous: true });
+      submit += performance.now() - t0;
+      calls = drawCalls(graphics);
+      if (input.bundles?.visibility) {
+        const t1 = performance.now();
+        const key = getVisibleSet(canvas3d, frustum);
+        visibilityMs += performance.now() - t1;
+        if (visibleKey !== undefined && key !== visibleKey) visibleChanges += 1;
+        visibleKey = key;
+      }
+    }
+  } finally {
+    Frustum3D.intersectsSphere3D = intersects;
   }
   await waitForGpu(graphics);
   const total = performance.now() - start;
   sub.unsubscribe();
+  const notes: string[] = [];
+  if (input.bundles?.record) notes.push(`opaque pass recorded ${bundleStats.recorded}, failed ${bundleStats.failed}`);
+  if (input.bundles?.visibility) {
+    const visible = visibleKey?.split('').filter((v) => v === '1').length ?? 0;
+    notes.push(
+      `visible set: ${(visibilityMs / Frames).toFixed(3)} ms per frame, changed in ${visibleChanges} of ${Frames - 1} frames, ${visible} of ${visibleKey?.length ?? 0} objects visible at the end`,
+    );
+  }
   if (drawn !== Frames) throw new Error(`${drawn} of ${Frames} frames drawn`);
   const gpuPasses = BenchmarkEnv.gpuTiming ? await getGpuPasses(graphics) : undefined;
   return {
@@ -137,6 +224,7 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
     triangles: 0,
     drawCalls: calls,
     gpuPasses,
+    notes: notes.length ? notes : undefined,
   };
 }
 
@@ -395,4 +483,57 @@ export const RenderCases: BenchmarkCase<any>[] = [
       },
     };
   }),
+];
+
+/**
+ * Measurements for render bundles (WebGPU), not in the default runs (`--filter 'render-bundles/*'`): the recording cost
+ * of the opaque pass against the direct cases (`render/boxes-1000`, `render/units-1000-spacefill-unmerged`), how often
+ * the visible set changes while rotating or zoomed in, and the GPU time of drawing what culling skips (`--gpu-timing`)
+ */
+export const RenderBundleCases: BenchmarkCase<any>[] = [
+  renderCase(
+    'render-bundles/boxes-1000-record',
+    '`render/boxes-1000`, the opaque pass recorded every frame',
+    async () => ({
+      scene: () => boxes(1000),
+      bundles: { record: true },
+    }),
+  ),
+  renderCase(
+    'render-bundles/units-1000-unmerged-record',
+    '`render/units-1000-spacefill-unmerged`, the opaque pass recorded every frame',
+    async () => {
+      const s = await chainGrid(1000);
+      return {
+        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { renderMerged: false })]),
+        bundles: { record: true },
+      };
+    },
+  ),
+  renderCase(
+    'render-bundles/boxes-1000-rotating',
+    '`render/boxes-1000` rotating: the visible set per frame',
+    async () => ({
+      scene: () => boxes(1000),
+      rotate: true,
+      bundles: { visibility: true },
+    }),
+  ),
+  ...[0.3, 0.1].flatMap((zoom) => [
+    renderCase(
+      `render-bundles/boxes-1000-zoom${zoom}-rotating`,
+      `\`render/boxes-1000\` zoomed to ${zoom} of the distance, rotating: the visible set per frame`,
+      async () => ({ scene: () => boxes(1000), zoom, rotate: true, bundles: { visibility: true } }),
+    ),
+    renderCase(
+      `render-bundles/boxes-1000-zoom${zoom}-unculled`,
+      `\`render/boxes-1000\` zoomed to ${zoom} of the distance, without object culling`,
+      async () => ({ scene: () => boxes(1000), zoom, bundles: { noCulling: true, visibility: true } }),
+    ),
+    renderCase(
+      `render-bundles/boxes-1000-zoom${zoom}-culled`,
+      `\`render/boxes-1000\` zoomed to ${zoom} of the distance, with object culling`,
+      async () => ({ scene: () => boxes(1000), zoom, bundles: { visibility: true } }),
+    ),
+  ]),
 ];

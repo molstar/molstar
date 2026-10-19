@@ -47,7 +47,9 @@ function createGaussianDensityVolume(
   const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
   const create = (directVolume?: DirectVolume) => {
-    const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
+    // not one of the previous context (a backend switch or restore), which destroys it
+    const previous = directVolume?.gridTexture.ref.value;
+    const oldTexture = previous && graphics.resources.ownsTexture(previous) ? previous : undefined;
     const densityTextureData = computeStructureGaussianDensityTexture(
       structure,
       theme.size,
@@ -141,7 +143,9 @@ function createUnitsGaussianDensityVolume(
   const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
   const create = (directVolume?: DirectVolume) => {
-    const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
+    // not one of the previous context (a backend switch or restore), which destroys it
+    const previous = directVolume?.gridTexture.ref.value;
+    const oldTexture = previous && graphics.resources.ownsTexture(previous) ? previous : undefined;
     const densityTextureData = computeUnitGaussianDensityTexture(
       structure,
       unit,

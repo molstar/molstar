@@ -358,7 +358,9 @@ export async function readChunkedVertices(compute: ComputeContext, table: Storag
       vertices[i * 4 + 1] = position[i * 4 + 1];
       vertices[i * 4 + 2] = position[i * 4 + 2];
       vertices[i * 4 + 3] = 1;
-      for (let k = 0; k < 4; ++k) groups[i * 4 + k] = groupBits[i * 16 + 12 + k];
+      for (let k = 0; k < 3; ++k) groups[i * 4 + k] = groupBits[i * 16 + 12 + k];
+      // packed with another alpha in the arena (`mc-chunk-emit`), opaque as in group textures
+      groups[i * 4 + 3] = 255;
       const xy = normal[i * 2];
       const z = normal[i * 2 + 1];
       outNormals[i * 4] = snorm(xy & 0xffff);

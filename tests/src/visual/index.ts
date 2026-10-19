@@ -18,6 +18,8 @@ declare global {
     /** JSON summary for automation, updated after each test */
     __visualTestResults?: ReturnType<typeof summaryToJson>;
     __visualTestImage?: (id: string, kind: 'reference' | 'target' | 'diff') => Promise<string | undefined>;
+    /** The case running, for a runner that reports a stalled page */
+    __visualTestCurrent?: string;
   }
 }
 
@@ -59,6 +61,7 @@ async function main() {
     snapshots,
     snapshotTolerance: DefaultSnapshotTolerance,
     referencesUrl,
+    sharedReferencesUrl: params.get('shared') ?? undefined,
   });
 
   const rerun = (id: string) => runner.runTest(tests.find((t) => t.id === id)!);
@@ -82,11 +85,17 @@ async function main() {
     return image ? encodePngDataUrl(image) : undefined;
   };
 
-  await runner.run(tests, (result) => {
-    if (runner.summary.results.length === 1) gallery.setReports(runner.summary.reports);
-    gallery.addResult(result);
-    window.__visualTestResults = summaryToJson(runner.summary);
-  });
+  await runner.run(
+    tests,
+    (result) => {
+      if (runner.summary.results.length === 1) gallery.setReports(runner.summary.reports);
+      gallery.addResult(result);
+      window.__visualTestResults = summaryToJson(runner.summary);
+    },
+    (test) => {
+      window.__visualTestCurrent = test.id;
+    },
+  );
   gallery.setReports(runner.summary.reports);
   gallery.updateSummary();
   window.__visualTestResults = summaryToJson(runner.summary);

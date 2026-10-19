@@ -13,6 +13,7 @@ import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
 import { EveryLoci } from '@molstar/model/model/loci';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
+import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Clip } from '@molstar/core/util/clip';
 import { Color } from '@molstar/core/util/color';
@@ -54,6 +55,21 @@ export const RendererCases: VisualTestCase[] = [
     scene: async ({ graphics }) => [
       await shapeRepr('mesh', meshPrimitives()),
       await structureRepr(graphics, SpacefillRepresentationProvider, await helixStructure(12), {}),
+    ],
+  },
+  {
+    id: 'renderer/context/release-restore-gpu-surface',
+    description:
+      'the context released and restored with a GPU surface (compute kernels on WebGPU, the vertex arena of the previous device): the surface is computed again on the new context',
+    requires: ['releaseContext', 'gaussianSurfaceGpu'],
+    isolate: true,
+    releaseContext: true,
+    view: ObliqueView,
+    scene: async ({ graphics }) => [
+      await structureRepr(graphics, GaussianSurfaceRepresentationProvider, await helixStructure(24), {
+        resolution: 0.5,
+        tryUseGpu: true,
+      }),
     ],
   },
   {

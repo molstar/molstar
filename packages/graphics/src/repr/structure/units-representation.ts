@@ -77,6 +77,8 @@ export function UnitsRepresentation<P extends StructureParams>(
   let _props: PD.Values<P>;
   let _theme = Theme.createEmpty();
 
+  /** updates one after another, see `Representation.createUpdateQueue` */
+  const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
     if (structure && structure !== _structure) {
       _params = getParams(ctx, structure);
@@ -84,7 +86,7 @@ export function UnitsRepresentation<P extends StructureParams>(
     }
     _props = Object.assign({}, _props, props);
 
-    return Task.create('Creating or updating UnitsRepresentation', async (runtime) => {
+    const task = Task.create('Creating or updating UnitsRepresentation', async (runtime) => {
       if (!_structure && !structure) {
         throw new Error('missing structure');
       } else if (structure && !_structure) {
@@ -227,6 +229,7 @@ export function UnitsRepresentation<P extends StructureParams>(
       // increment version
       updated.next(version++);
     });
+    return serialize(task);
   }
 
   function updateRenderObjectList(entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[]) {

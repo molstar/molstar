@@ -48,6 +48,7 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { type VolumeKey, VolumeVisual } from './visual.js';
+import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
 import { withSignatureVisuals } from '@molstar/graphics/repr/signatures';
 
 export const VolumeIsosurfaceParams = {
@@ -327,24 +328,29 @@ async function createVolumeIsosurfaceComputeMesh(
   props: VolumeIsosurfaceTextureProps,
   textureMesh?: TextureMesh,
 ) {
-  if (shouldWrap(volume, props.wrap)) {
-    volume = createWrappedVolume(volume);
-  }
   const value = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
   const { space, data } = volume.grid.cells;
   const strides = Vec3.create(space.dataOffset(1, 0, 0), space.dataOffset(0, 1, 0), space.dataOffset(0, 0, 1));
-  const input = { kind: 'buffer', volume: VolumeIsosurfaceBuffer.get(volume, graphics.compute), strides } as const;
-  const gridDim = Vec3.clone(space.dimensions as Vec3);
+  const dataDim = Vec3.clone(space.dimensions as Vec3);
+  const buffer = VolumeIsosurfaceBuffer.get(volume, graphics.compute);
+  // periodic: the grid one point larger, wrapped into the data by the kernels
+  if (shouldWrap(volume, props.wrap)) {
+    volume = createWrappedVolume(volume);
+  }
+  const gridDim = Vec3.clone(volume.grid.cells.space.dimensions as Vec3);
+  const input = { kind: 'buffer', volume: buffer, strides, dataDim } as const;
   const transform = Grid.getGridToCartesianTransform(volume.grid);
   // getting isosurface bounding-sphere is too expensive here
   const boundingSphere = Grid.getBoundingSphere(volume.grid);
-  // sized exactly when created, drawn indirectly on updates
+  // sized exactly when created, drawn indirectly on updates; the arena grown for the surface beforehand, so that the
+  // first extraction gets all its pages
   return computeTextureMeshIsosurface(
     graphics,
     (target) => extractIsosurface(graphics, input, gridDim, value, transform, value < 0, target),
     data.length,
     boundingSphere,
     textureMesh,
+    () => estimateIsosurfaceVertexCount(data, gridDim, strides, value, dataDim),
   );
 }
 

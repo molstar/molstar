@@ -24,9 +24,9 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let x = load_tPreviousLevel(p, size);
     let y = load_tPreviousLevel(p + vec2<i32>(-1, 0), size);
-    // the texels left and below, as the GLSL reads
-    let z = load_tPreviousLevel(p + vec2<i32>(-1, 1), size);
-    let w = load_tPreviousLevel(p + vec2<i32>(0, 1), size);
+    // the 2x2 block this texel covers, as the GLSL reads it (rows p and p - 1: both store rows in the same order)
+    let z = load_tPreviousLevel(p + vec2<i32>(-1, -1), size);
+    let w = load_tPreviousLevel(p + vec2<i32>(0, -1), size);
 
     return vec4<f32>(min(min(x, y), min(z, w)));
 }

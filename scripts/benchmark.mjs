@@ -17,6 +17,7 @@
 //   --strict-math off  WebGPU shader modules without strict math (`strictMath: false` in their descriptors, a Chrome
 //                    developer option: launched with `--enable-webgpu-developer-features`), for comparisons with the
 //                    default (strict) run
+//   --browser-arg <flag>  an extra browser flag (repeatable), e.g. to choose the GPU of a machine with two
 //   --profile <dir>  records a V8 CPU profile of each backend's page (<dir>/<backend>.cpuprofile, open in the DevTools
 //                    Performance panel); profile a single case (--filter) for readable results
 
@@ -105,6 +106,7 @@ function report(results, previous) {
       console.log(
         `  ${label(r).padEnd(13)} median ${fmt(r.median).padStart(6)} ms, min ${fmt(r.min)}, first ${fmt(r.first)}${speedup}${change}`,
       );
+      for (const note of r.notes ?? []) console.log(`                ${note}`);
       if (r.gpuPasses) {
         for (const [path, ms] of Object.entries(r.gpuPasses)) console.log(`                gpu ${fmt(ms)} ms  ${path}`);
       }
@@ -137,6 +139,7 @@ async function main() {
       // garbage collection before each run, so earlier cases' garbage doesn't slow later CPU runs
       '--js-flags=--expose-gc',
       ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : []),
+      ...args.flatMap((a, i) => (args[i - 1] === '--browser-arg' ? [a] : [])),
     ],
   });
 

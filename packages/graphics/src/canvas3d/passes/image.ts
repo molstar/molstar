@@ -45,6 +45,8 @@ export type ImageProps = PD.Values<typeof ImageParams>;
 
 /** Renders of `ImagePass.render` after the first one, while renders start pending work */
 const MaxRerenders = 3;
+/** context changes (`setContext`) a render or read starts over for, before it gives up */
+const MaxContextChanges = 3;
 
 export class ImagePass {
   private _width = 0;
@@ -110,7 +112,11 @@ export class ImagePass {
    * Renders with `graphics`, `renderer` and `helper` from now on, the passes are created again (the graphics context
    * changed, see `Canvas3D.contextChanged`)
    */
+  /** advanced by `setContext`: a render or read awaited across it starts over on the new context */
+  private contextVersion = 0;
+
   setContext(graphics: GraphicsContext, renderer: Renderer, helper: Helper) {
+    this.contextVersion += 1;
     this.graphics = graphics;
     this.renderer = renderer;
     this.init(helper);
@@ -150,12 +156,23 @@ export class ImagePass {
   async render(runtime: RuntimeContext) {
     // `prepare` makes what the render draws with ready, so that no draw is skipped while a WebGPU pipeline compiles;
     // should a render still start work (it may have settled during the render, e.g. between illumination
-    // iterations), render again, so that the image is complete and doesn't depend on timing
-    const { pending } = this.graphics.resources;
+    // iterations), render again, so that the image is complete and doesn't depend on timing; the context changing
+    // during the render (`setContext`: a backend switch or restore) starts it over on the new one
+    let changes = 0;
     for (let i = 0; i <= MaxRerenders; ++i) {
+      const version = this.contextVersion;
       await this.prepare();
+      const { pending } = this.graphics.resources;
       const trackedCount = pending.trackedCount;
-      await this.renderOnce(runtime);
+      if (version === this.contextVersion) await this.renderOnce(runtime, version);
+      if (version !== this.contextVersion) {
+        if (++changes > MaxContextChanges) {
+          console.warn('ImagePass: the context kept changing during the render, the image may be incomplete');
+          return;
+        }
+        i -= 1;
+        continue;
+      }
       if (pending.trackedCount === trackedCount) return;
       if (isDebugMode) {
         console.warn(
@@ -208,7 +225,8 @@ export class ImagePass {
     };
   }
 
-  private async renderOnce(runtime: RuntimeContext) {
+  /** Renders on the context of `version`, returning early when it changed (`setContext`) */
+  private async renderOnce(runtime: RuntimeContext, version: number) {
     const ctx = this.getRenderContext();
     if (this.illuminationPass.supported && this.props.illumination.enabled) {
       await runtime.update({
@@ -223,8 +241,10 @@ export class ImagePass {
         if (isTimingMode) this.graphics.timer.groupEnd('ImagePass.render');
         if (runtime.shouldUpdate) {
           await runtime.update({ current: this.illuminationPass.iteration });
+          if (version !== this.contextVersion) return;
         }
         await this.graphics.waitForGpuCommandsComplete();
+        if (version !== this.contextVersion) return;
       }
       this._colorTarget = this.illuminationPass.colorTarget;
     } else {
@@ -254,15 +274,25 @@ export class ImagePass {
   }
 
   async getImageData(runtime: RuntimeContext, width: number, height: number, viewport?: Viewport) {
-    this.setSize(width, height);
-    await this.render(runtime);
-
     const w = viewport?.width ?? width,
       h = viewport?.height ?? height;
     const x = viewport?.x ?? 0;
     const y = viewport?.y ?? 0;
-    const array = await this.graphics.readRenderTarget(this.colorTarget, x, y, w, h);
-    PixelData.divideByAlpha(PixelData.create(array, w, h));
-    return new ImageData(new Uint8ClampedArray(array), w, h);
+    // a read in flight while the context changes (it may fail with the previous one) renders again on the new one
+    for (let changes = 0; ; ++changes) {
+      const version = this.contextVersion;
+      this.setSize(width, height);
+      await this.render(runtime);
+      let array: Uint8Array;
+      try {
+        array = await this.graphics.readRenderTarget(this.colorTarget, x, y, w, h);
+      } catch (e) {
+        if (version === this.contextVersion || changes >= MaxContextChanges) throw e;
+        continue;
+      }
+      if (version !== this.contextVersion && changes < MaxContextChanges) continue;
+      PixelData.divideByAlpha(PixelData.create(array, w, h));
+      return new ImageData(new Uint8ClampedArray(array), w, h);
+    }
   }
 }
