@@ -9,6 +9,7 @@ import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
+import { ModelFromTrajectory } from '../../../../state/transforms/structure/hierarchy.js';
 import { StructureInfo } from '../structure-info.js';
 
 const pdb = 'ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N  ';
@@ -49,6 +50,27 @@ describe('StructureInfo', () => {
     const d = await load(plugin, 'd');
     expect(Model.Index.get(d.model).value).toBe(2);
     expect(Model.MaxIndex.get(loaded[0].model).value).toBe(2);
+    plugin.dispose();
+  });
+
+  it('gives a model replaced in place (another frame) the max index at once', async () => {
+    const plugin = await createPlugin();
+    const twoModels = ['MODEL        1', pdb, 'ENDMDL', 'MODEL        2', pdb, 'ENDMDL'].join('\n');
+    const data = await plugin.builders.data.rawData({ data: twoModels, label: 'nmr' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const modelCell = await plugin.builders.structure.createModel(trajectory);
+    await plugin.builders.structure.createStructure(modelCell);
+    await load(plugin, 'b');
+    const first = modelCell.obj!.data;
+    expect(Model.MaxIndex.get(first).value).toBe(1);
+    await plugin
+      .build()
+      .to(modelCell.ref)
+      .update(ModelFromTrajectory, (old: any) => ({ ...old, modelIndex: 1 }))
+      .commit();
+    const model = plugin.state.data.cells.get(modelCell.ref)!.obj!.data as Model;
+    expect(model).not.toBe(first);
+    expect(Model.MaxIndex.get(model).value).toBe(1);
     plugin.dispose();
   });
 

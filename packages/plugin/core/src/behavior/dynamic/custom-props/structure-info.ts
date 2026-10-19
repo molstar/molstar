@@ -58,8 +58,12 @@ export const StructureInfo = PluginBehavior.create({
       return { auth, label };
     }
 
+    /** The max model index the last walk found: what a model or structure replaced in place (`updated`) is given. */
+    private maxIndex = -1;
+
     private setMaxIndices() {
       const value = this.maxModelIndex;
+      this.maxIndex = value;
       this.setModelMaxIndex(value);
       this.setStructureMaxIndex(value);
     }
@@ -87,6 +91,16 @@ export const StructureInfo = PluginBehavior.create({
             Structure.MaxIndex.set(s, { value }, value);
           }
         }
+      }
+    }
+
+    private setMaxIndexOf(obj: StateObject) {
+      const value = this.maxIndex;
+      if (value < 0) return;
+      if (PluginStateObject.Molecule.Model.is(obj)) {
+        if (Model.MaxIndex.get(obj.data).value !== value) Model.MaxIndex.set(obj.data, { value }, value);
+      } else if (PluginStateObject.Molecule.Structure.is(obj) && obj.data.parent === undefined) {
+        if (Structure.MaxIndex.get(obj.data).value !== value) Structure.MaxIndex.set(obj.data, { value }, value);
       }
     }
 
@@ -152,6 +166,9 @@ export const StructureInfo = PluginBehavior.create({
 
       this.subscribeObservable(this.ctx.state.data.events.object.updated, (o) => {
         this.handle(o.ref, o.obj, o.oldObj);
+        // A model or a structure made anew (a trajectory frame, other params) has the max at once, without a walk (before,
+        // the next created object of any kind set it).
+        if (o.action === 'recreate') this.setMaxIndexOf(o.obj);
       });
     }
 
