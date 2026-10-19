@@ -78,12 +78,12 @@ export namespace Tensor {
       dataOffset,
       getCoords,
     };
-    spaceStrides.set(space, layoutStrides(layout));
+    spaceStrides.set(space, { strides: layoutStrides(layout), get });
     return space;
   }
 
-  /** Strides of the spaces made by `Space`, keyed by the object so that a copy never has them (see `strides`) */
-  const spaceStrides = new WeakMap<Space, ReadonlyArray<number>>();
+  /** Strides of the spaces made by `Space`, keyed by the object so that a copy never has them, with their `get` */
+  const spaceStrides = new WeakMap<Space, { strides: ReadonlyArray<number>; get: Space['get'] }>();
 
   /**
    * The strides of a space whose `get` is a plain strided read, `get(data, c0, c1, …) === data[c0 * s[0] + c1 * s[1] + …]`,
@@ -91,15 +91,16 @@ export namespace Tensor {
    *
    * Only a space made by `Space` has strides. They are keyed by the object, not a property, because spaces are copied
    * with their accessors overridden (`{ ...space, get }`: `createFloodfilled`, wrapped and periodic volumes), and a copied
-   * property would make a direct read skip the override.
+   * property would make a direct read skip the override. A `get` replaced in place drops them too.
    */
   export function strides(space: Space): ReadonlyArray<number> | undefined {
-    return spaceStrides.get(space);
+    const entry = spaceStrides.get(space);
+    return entry && entry.get === space.get ? entry.strides : undefined;
   }
 
   function layoutStrides(layout: Layout): number[] {
     const { dimensions, axisOrderFastToSlow: ao } = layout;
-    const strides: number[] = [];
+    const strides: number[] = new Array(ao.length).fill(0);
     let stride = 1;
     for (let i = 0; i < ao.length; i++) {
       strides[ao[i]] = stride;

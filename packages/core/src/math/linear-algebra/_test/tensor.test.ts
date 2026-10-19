@@ -373,7 +373,11 @@ describe('tensor', () => {
     const space = T.Space([4, 3, 5], [0, 1, 2], Float32Array);
     const data = space.create();
     for (let i = 0; i < data.length; i++) data[i] = i % 7;
+    expect(T.strides(space)).toEqual([15, 5, 1]);
     expect(T.strides({ ...space })).toBeUndefined();
+    const replaced = T.Space([4, 3, 5], [0, 1, 2], Float32Array);
+    (replaced as { get: T.Space['get'] }).get = (d, i, j, k) => d[i];
+    expect(T.strides(replaced)).toBeUndefined();
     expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'inside').space)).toBeUndefined();
     expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'outside').space)).toBeUndefined();
   });

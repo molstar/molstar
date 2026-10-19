@@ -99,6 +99,7 @@ class MarchingCubesComputation {
   private slice(k: number) {
     this.edgeFilter |= 2;
     for (let j = this.minY; j < this.maxY; j++, this.edgeFilter &= ~2) {
+      // bit 1 is set for the first cell of the row only (`processRow` clears it)
       this.state.processRow(this.minX, this.maxX, j, k, this.edgeFilter | 1);
     }
     this.state.clearEdgeVertexIndexSlice(k);
@@ -154,8 +155,8 @@ class MarchingCubesState {
   c6 = 0;
   c7 = 0;
   /** Offsets of the two ends of each cube edge (`CubeEdges`) from corner 0, when strided */
-  edgeA: number[] = [];
-  edgeB: number[] = [];
+  edgeA: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  edgeB: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
   idStrided: boolean;
   idSx = 0;
@@ -288,7 +289,10 @@ class MarchingCubesState {
     this.scalarField = params.scalarField.data;
 
     const strides = Tensor.strides(params.scalarField.space);
-    this.strided = !!strides && strides.length === 3;
+    // the clamped central differences in `interpolate` match `get`'s only for cells inside the grid
+    const { bottomLeft: bl, topRight: tr } = params;
+    const inside = bl[0] >= 0 && bl[1] >= 0 && bl[2] >= 0 && tr[0] <= dims[0] && tr[1] <= dims[1] && tr[2] <= dims[2];
+    this.strided = !!strides && strides.length === 3 && inside;
     if (this.strided) {
       const [sx, sy, sz] = strides!;
       this.sx = sx;
@@ -308,6 +312,8 @@ class MarchingCubesState {
       }
     }
 
+    this.idField = undefined;
+    this.idFieldGet = undefined;
     this.idStrided = false;
     if (params.idField) {
       this.idField = params.idField.data;
@@ -323,35 +329,36 @@ class MarchingCubesState {
     this.verticesOnEdges = new Int32Array(3 * this.nX * this.nY * 2);
   }
 
-  /** The value at `(i, j, k)`, whose data offset is `o` when strided */
-  private value(i: number, j: number, k: number, o: number) {
-    return this.strided ? this.scalarField[o] : this.scalarFieldGet(this.scalarField, i, j, k);
-  }
-
   /**
    * The cells `(minX..maxX - 1, j, k)`. Each cell reads only the corners of its far face (i + 1) and takes those of its
    * near face from the previous cell; when strided, the data offset is carried along i.
    */
   processRow(minX: number, maxX: number, j: number, k: number, edgeFilter: number) {
+    if (minX >= maxX) return;
+    if (this.strided) this.stridedRow(minX, maxX, j, k, edgeFilter);
+    else this.getRow(minX, maxX, j, k, edgeFilter);
+  }
+
+  private stridedRow(minX: number, maxX: number, j: number, k: number, edgeFilter: number) {
     const iso = this.isoLevel;
-    const { c1, c2, c3, c4, c5, c6, c7 } = this;
-    let o = this.strided ? minX * this.sx + j * this.sy + k * this.sz : 0;
+    const sf = this.scalarField;
+    const { sx, c1, c2, c3, c4, c5, c6, c7 } = this;
+    let o = minX * sx + j * this.sy + k * this.sz;
 
     // corners 0, 3, 4, 7 (`CubeVertices`) of the first cell
     let near = 0;
-    if (this.value(minX, j, k, o) < iso) near |= 1;
-    if (this.value(minX, j + 1, k, o + c3) < iso) near |= 8;
-    if (this.value(minX, j, k + 1, o + c4) < iso) near |= 16;
-    if (this.value(minX, j + 1, k + 1, o + c7) < iso) near |= 128;
+    if (sf[o] < iso) near |= 1;
+    if (sf[o + c3] < iso) near |= 8;
+    if (sf[o + c4] < iso) near |= 16;
+    if (sf[o + c7] < iso) near |= 128;
 
-    for (let i = minX; i < maxX; i++, o += this.sx, edgeFilter &= ~1) {
+    for (let i = minX; i < maxX; i++, o += sx, edgeFilter &= ~1) {
       // corners 1, 2, 5, 6
-      const i1 = i + 1;
       let far = 0;
-      if (this.value(i1, j, k, o + c1) < iso) far |= 2;
-      if (this.value(i1, j + 1, k, o + c2) < iso) far |= 4;
-      if (this.value(i1, j, k + 1, o + c5) < iso) far |= 32;
-      if (this.value(i1, j + 1, k + 1, o + c6) < iso) far |= 64;
+      if (sf[o + c1] < iso) far |= 2;
+      if (sf[o + c2] < iso) far |= 4;
+      if (sf[o + c5] < iso) far |= 32;
+      if (sf[o + c6] < iso) far |= 64;
 
       const tableIndex = near | far;
       // the far face is the next cell's near face: corners 1 → 0, 2 → 3, 5 → 4, 6 → 7
@@ -359,6 +366,34 @@ class MarchingCubesState {
 
       if (tableIndex === 0 || tableIndex === 255) continue;
       this.processCell(i, j, k, o, tableIndex, edgeFilter);
+    }
+  }
+
+  /** As `stridedRow`, through `get` */
+  private getRow(minX: number, maxX: number, j: number, k: number, edgeFilter: number) {
+    const iso = this.isoLevel;
+    const sf = this.scalarField;
+    const get = this.scalarFieldGet;
+
+    let near = 0;
+    if (get(sf, minX, j, k) < iso) near |= 1;
+    if (get(sf, minX, j + 1, k) < iso) near |= 8;
+    if (get(sf, minX, j, k + 1) < iso) near |= 16;
+    if (get(sf, minX, j + 1, k + 1) < iso) near |= 128;
+
+    for (let i = minX; i < maxX; i++, edgeFilter &= ~1) {
+      const i1 = i + 1;
+      let far = 0;
+      if (get(sf, i1, j, k) < iso) far |= 2;
+      if (get(sf, i1, j + 1, k) < iso) far |= 4;
+      if (get(sf, i1, j, k + 1) < iso) far |= 32;
+      if (get(sf, i1, j + 1, k + 1) < iso) far |= 64;
+
+      const tableIndex = near | far;
+      near = ((far & 2) >> 1) | ((far & 4) << 1) | ((far & 32) >> 1) | ((far & 64) << 1);
+
+      if (tableIndex === 0 || tableIndex === 255) continue;
+      this.processCell(i, j, k, 0, tableIndex, edgeFilter);
     }
   }
 

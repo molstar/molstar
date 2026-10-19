@@ -38,6 +38,8 @@ function field(
   ctor: Tensor.ArrayCtor = Float32Array,
 ) {
   const space = Tensor.Space(Dims, order, ctor);
+  // these fields take the strided path
+  expect(Tensor.strides(space)).toBeDefined();
   const data = space.create();
   for (let k = 0; k < Dims[2]; k++) {
     for (let j = 0; j < Dims[1]; j++) {
@@ -120,7 +122,10 @@ describe('marching cubes', () => {
         "vertices": "826f3e3b",
       }
     `);
-    expect(await mesh({ isoLevel: Iso, scalarField: field([2, 1, 0], value, Float64Array) })).toEqual(reference);
+    for (const order of Orders) {
+      const scalarField = field(order, value, Float64Array);
+      expect(await mesh({ isoLevel: Iso, scalarField }), `order ${order}`).toEqual(reference);
+    }
   });
 
   it('flips normals and winding for a negative iso level', async () => {
@@ -181,6 +186,7 @@ describe('marching cubes', () => {
   });
 
   it('reads a wrapped tensor through its get', async () => {
+    expect(Tensor.strides(createWrappedTensor(field([0, 1, 2])).space)).toBeUndefined();
     const reference = await mesh({ isoLevel: Iso, scalarField: createWrappedTensor(field([0, 1, 2])) });
     expect(reference).toMatchInlineSnapshot(`
       {
@@ -286,5 +292,45 @@ describe('marching cubes', () => {
         ranged,
       );
     }
+  });
+
+  it('gives what get gives on random fields', async () => {
+    // a copy of the space has no strides, so the copy is read through `get`, as before strides
+    const viaGet = (t: Tensor) => Tensor.create({ ...t.space }, t.data);
+    let seed = 7;
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const special = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 0.5];
+    for (let n = 0; n < 60; n++) {
+      const dims = [1 + Math.floor(random() * 6), 1 + Math.floor(random() * 6), 1 + Math.floor(random() * 6)];
+      const order = Orders[n % Orders.length];
+      const space = Tensor.Space(dims, order, n % 2 ? Float64Array : Float32Array);
+      const data = space.create();
+      for (let i = 0; i < data.length; i++) {
+        data[i] = random() < 0.05 ? special[Math.floor(random() * special.length)] : random();
+      }
+      const ids = Tensor.Space(dims, Orders[(n + 2) % Orders.length], Int32Array);
+      const idData = ids.create();
+      for (let i = 0; i < idData.length; i++) idData[i] = Math.floor(random() * 6) - 2;
+      const scalarField = Tensor.create(space, data);
+      const idField = n % 3 ? Tensor.create(ids, idData) : undefined;
+      const isoLevel = n % 4 ? 0.5 : -0.5;
+      const range =
+        n % 5 === 0 ? { bottomLeft: [0, 0, 1], topRight: [dims[0], dims[1], Math.max(1, dims[2] - 1)] } : {};
+      const params = { isoLevel, scalarField, idField, ...range };
+      const label = `${n}: ${dims} ${order}`;
+      const expected = await mesh({ ...params, scalarField: viaGet(scalarField), idField: idField && viaGet(idField) });
+      expect(await mesh(params), label).toEqual(expected);
+      const expectedLines = await lines({ ...params, scalarField: viaGet(scalarField) });
+      expect(await lines(params), label).toEqual(expectedLines);
+    }
+  });
+
+  it('reads through get outside the grid', async () => {
+    // a range beyond the grid: `get`'s clamping of the central differences differs from the strided one there (with x
+    // fastest, reads past the x face land in the next row instead of past the data)
+    const scalarField = field([2, 1, 0]);
+    const params = { isoLevel: Iso, scalarField, bottomLeft: [0, 0, 0], topRight: [Dims[0] + 1, Dims[1], Dims[2]] };
+    const expected = await mesh({ ...params, scalarField: Tensor.create({ ...scalarField.space }, scalarField.data) });
+    expect(await mesh(params)).toEqual(expected);
   });
 });
