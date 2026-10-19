@@ -59,6 +59,11 @@ here.
 - Fix accessible surface area values on assemblies, symmetry mates and multi-model structures
 - Fix the vertex groups of volume isosurfaces with floodfill `inside`: the cell ids were read through the filled values,
   so ids below the iso value inside the surface became twice the iso value (wrong cell picked and colored)
+- Fix order-of-rendering issue with Kinemage reader to render objects described later in the file on top of earlier ones
+- Removing Kinemage GUI buttons for masters that have no object linked to them
+- Fixed Kinemage handling of files with multiple same-named subgroups so it behaves like KiNG
+- Sets the viewer background to black when loading a Kinemage, to match the default color scheme
+- Handle Kinemage triangle normals separately from ribbon normals so that each renders as expected
 
 ## [v5.13.1] - 2026-10-08
 
