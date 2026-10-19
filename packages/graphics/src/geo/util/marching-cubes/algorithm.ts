@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Task, type RuntimeContext } from '@molstar/core/task';
-import type { Tensor } from '@molstar/core/math/linear-algebra';
+import { Tensor } from '@molstar/core/math/linear-algebra';
 import type { Mesh } from '../../geometry/mesh/mesh.js';
 import { type Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables.js';
 import { defaults } from '@molstar/core/util';
@@ -99,10 +99,8 @@ class MarchingCubesComputation {
   private slice(k: number) {
     this.edgeFilter |= 2;
     for (let j = this.minY; j < this.maxY; j++, this.edgeFilter &= ~2) {
-      this.edgeFilter |= 1;
-      for (let i = this.minX; i < this.maxX; i++, this.edgeFilter &= ~1) {
-        this.state.processCell(i, j, k, this.edgeFilter);
-      }
+      // bit 1 is set for the first cell of the row only (`processRow` clears it)
+      this.state.processRow(this.minX, this.maxX, j, k, this.edgeFilter | 1);
     }
     this.state.clearEdgeVertexIndexSlice(k);
   }
@@ -139,12 +137,40 @@ class MarchingCubesState {
   idFieldGet?: Tensor.Space['get'];
   idField?: Tensor.Data;
 
+  /**
+   * Whether the scalar field is read directly at strided offsets (`Tensor.strides`) instead of through `get`.
+   * Both read the same element, so the output is the same; the direct read avoids a closure call per value, and the
+   * call site going polymorphic when fields of several layouts (or floodfilled ones) are meshed in one session.
+   */
+  strided: boolean;
+  sx = 0;
+  sy = 0;
+  sz = 0;
+  /** Offsets of the cube corners 1 to 7 (`CubeVertices`) from corner 0, when strided */
+  c1 = 0;
+  c2 = 0;
+  c3 = 0;
+  c4 = 0;
+  c5 = 0;
+  c6 = 0;
+  c7 = 0;
+  /** Offsets of the two ends of each cube edge (`CubeEdges`) from corner 0, when strided */
+  edgeA: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  edgeB: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+  idStrided: boolean;
+  idSx = 0;
+  idSy = 0;
+  idSz = 0;
+
   // two layers of vertex indices. Each vertex has 3 edges associated.
   verticesOnEdges: Int32Array;
   vertList: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   i: number = 0;
   j: number = 0;
   k: number = 0;
+  /** The data offset of the current cell, when strided */
+  o: number = 0;
 
   private get3dOffsetFromEdgeInfo(index: Index) {
     return this.nX * (((this.k + index.k) % 2) * this.nY + this.j + index.j) + this.i + index.i;
@@ -169,6 +195,7 @@ class MarchingCubesState {
 
     const sf = this.scalarField;
     const sfg = this.scalarFieldGet;
+    const strided = this.strided;
 
     const edge = CubeEdges[edgeNum];
     const a = edge.a,
@@ -179,13 +206,24 @@ class MarchingCubesState {
     const hi = b.i + this.i,
       hj = b.j + this.j,
       hk = b.k + this.k;
-    const v0 = sfg(sf, li, lj, lk);
-    const v1 = sfg(sf, hi, hj, hk);
+    // data offsets of the edge ends, when strided
+    const lo = this.o + this.edgeA[edgeNum];
+    const ho = this.o + this.edgeB[edgeNum];
+    const v0 = strided ? sf[lo] : sfg(sf, li, lj, lk);
+    const v1 = strided ? sf[ho] : sfg(sf, hi, hj, hk);
     const t = (this.isoLevel - v0) / (v0 - v1);
 
     if (this.idField) {
-      const u = this.idFieldGet!(this.idField, li, lj, lk);
-      const v = this.idFieldGet!(this.idField, hi, hj, hk);
+      const idf = this.idField;
+      let u: number, v: number;
+      if (this.idStrided) {
+        const { idSx, idSy, idSz } = this;
+        u = idf[li * idSx + lj * idSy + lk * idSz];
+        v = idf[hi * idSx + hj * idSy + hk * idSz];
+      } else {
+        u = this.idFieldGet!(idf, li, lj, lk);
+        v = this.idFieldGet!(idf, hi, hj, hk);
+      }
       let a = t < 0.5 ? u : v;
       // -1 means 'no id', check if the other cell has an id
       if (a === -1) a = t < 0.5 ? v : u;
@@ -201,13 +239,28 @@ class MarchingCubesState {
 
     // TODO cache scalarField differences for slices
     // TODO make calculation optional
-    const n0x = sfg(sf, Math.max(0, li - 1), lj, lk) - sfg(sf, Math.min(this.nX - 1, li + 1), lj, lk);
-    const n0y = sfg(sf, li, Math.max(0, lj - 1), lk) - sfg(sf, li, Math.min(this.nY - 1, lj + 1), lk);
-    const n0z = sfg(sf, li, lj, Math.max(0, lk - 1)) - sfg(sf, li, lj, Math.min(this.nZ - 1, lk + 1));
+    let n0x: number, n0y: number, n0z: number, n1x: number, n1y: number, n1z: number;
+    if (strided) {
+      // central differences, clamped at the faces as `Math.max(0, i - 1)` and `Math.min(nX - 1, i + 1)` below
+      const { sx, sy, sz } = this;
+      const mX = this.nX - 1,
+        mY = this.nY - 1,
+        mZ = this.nZ - 1;
+      n0x = sf[li > 0 ? lo - sx : lo] - sf[li < mX ? lo + sx : lo];
+      n0y = sf[lj > 0 ? lo - sy : lo] - sf[lj < mY ? lo + sy : lo];
+      n0z = sf[lk > 0 ? lo - sz : lo] - sf[lk < mZ ? lo + sz : lo];
+      n1x = sf[hi > 0 ? ho - sx : ho] - sf[hi < mX ? ho + sx : ho];
+      n1y = sf[hj > 0 ? ho - sy : ho] - sf[hj < mY ? ho + sy : ho];
+      n1z = sf[hk > 0 ? ho - sz : ho] - sf[hk < mZ ? ho + sz : ho];
+    } else {
+      n0x = sfg(sf, Math.max(0, li - 1), lj, lk) - sfg(sf, Math.min(this.nX - 1, li + 1), lj, lk);
+      n0y = sfg(sf, li, Math.max(0, lj - 1), lk) - sfg(sf, li, Math.min(this.nY - 1, lj + 1), lk);
+      n0z = sfg(sf, li, lj, Math.max(0, lk - 1)) - sfg(sf, li, lj, Math.min(this.nZ - 1, lk + 1));
 
-    const n1x = sfg(sf, Math.max(0, hi - 1), hj, hk) - sfg(sf, Math.min(this.nX - 1, hi + 1), hj, hk);
-    const n1y = sfg(sf, hi, Math.max(0, hj - 1), hk) - sfg(sf, hi, Math.min(this.nY - 1, hj + 1), hk);
-    const n1z = sfg(sf, hi, hj, Math.max(0, hk - 1)) - sfg(sf, hi, hj, Math.min(this.nZ - 1, hk + 1));
+      n1x = sfg(sf, Math.max(0, hi - 1), hj, hk) - sfg(sf, Math.min(this.nX - 1, hi + 1), hj, hk);
+      n1y = sfg(sf, hi, Math.max(0, hj - 1), hk) - sfg(sf, hi, Math.min(this.nY - 1, hj + 1), hk);
+      n1z = sfg(sf, hi, hj, Math.max(0, hk - 1)) - sfg(sf, hi, hj, Math.min(this.nZ - 1, hk + 1));
+    }
 
     const nx = n0x + t * (n0x - n1x);
     const ny = n0y + t * (n0y - n1y);
@@ -234,36 +287,121 @@ class MarchingCubesState {
     this.isoLevel = params.isoLevel;
     this.scalarFieldGet = params.scalarField.space.get;
     this.scalarField = params.scalarField.data;
+
+    const strides = Tensor.strides(params.scalarField.space);
+    // the clamped central differences in `interpolate` match `get`'s only for cells inside the grid
+    const { bottomLeft: bl, topRight: tr } = params;
+    const inside = bl[0] >= 0 && bl[1] >= 0 && bl[2] >= 0 && tr[0] <= dims[0] && tr[1] <= dims[1] && tr[2] <= dims[2];
+    this.strided = !!strides && strides.length === 3 && inside;
+    if (this.strided) {
+      const [sx, sy, sz] = strides!;
+      this.sx = sx;
+      this.sy = sy;
+      this.sz = sz;
+      this.c1 = sx;
+      this.c2 = sx + sy;
+      this.c3 = sy;
+      this.c4 = sz;
+      this.c5 = sx + sz;
+      this.c6 = sx + sy + sz;
+      this.c7 = sy + sz;
+      for (let e = 0; e < 12; e++) {
+        const { a, b } = CubeEdges[e];
+        this.edgeA[e] = a.i * sx + a.j * sy + a.k * sz;
+        this.edgeB[e] = b.i * sx + b.j * sy + b.k * sz;
+      }
+    }
+
+    this.idField = undefined;
+    this.idFieldGet = undefined;
+    this.idStrided = false;
     if (params.idField) {
       this.idField = params.idField.data;
       this.idFieldGet = params.idField.space.get;
+      const idStrides = Tensor.strides(params.idField.space);
+      if (idStrides && idStrides.length === 3) {
+        this.idStrided = true;
+        [this.idSx, this.idSy, this.idSz] = idStrides;
+      }
     }
 
     // two layers of vertex indices. Each vertex has 3 edges associated.
     this.verticesOnEdges = new Int32Array(3 * this.nX * this.nY * 2);
   }
 
-  get(i: number, j: number, k: number) {
-    return this.scalarFieldGet(this.scalarField, i, j, k);
+  /**
+   * The cells `(minX..maxX - 1, j, k)`. Each cell reads only the corners of its far face (i + 1) and takes those of its
+   * near face from the previous cell; when strided, the data offset is carried along i.
+   */
+  processRow(minX: number, maxX: number, j: number, k: number, edgeFilter: number) {
+    if (minX >= maxX) return;
+    if (this.strided) this.stridedRow(minX, maxX, j, k, edgeFilter);
+    else this.getRow(minX, maxX, j, k, edgeFilter);
   }
 
-  processCell(i: number, j: number, k: number, edgeFilter: number) {
-    let tableIndex = 0;
+  private stridedRow(minX: number, maxX: number, j: number, k: number, edgeFilter: number) {
+    const iso = this.isoLevel;
+    const sf = this.scalarField;
+    const { sx, c1, c2, c3, c4, c5, c6, c7 } = this;
+    let o = minX * sx + j * this.sy + k * this.sz;
 
-    if (this.get(i, j, k) < this.isoLevel) tableIndex |= 1;
-    if (this.get(i + 1, j, k) < this.isoLevel) tableIndex |= 2;
-    if (this.get(i + 1, j + 1, k) < this.isoLevel) tableIndex |= 4;
-    if (this.get(i, j + 1, k) < this.isoLevel) tableIndex |= 8;
-    if (this.get(i, j, k + 1) < this.isoLevel) tableIndex |= 16;
-    if (this.get(i + 1, j, k + 1) < this.isoLevel) tableIndex |= 32;
-    if (this.get(i + 1, j + 1, k + 1) < this.isoLevel) tableIndex |= 64;
-    if (this.get(i, j + 1, k + 1) < this.isoLevel) tableIndex |= 128;
+    // corners 0, 3, 4, 7 (`CubeVertices`) of the first cell
+    let near = 0;
+    if (sf[o] < iso) near |= 1;
+    if (sf[o + c3] < iso) near |= 8;
+    if (sf[o + c4] < iso) near |= 16;
+    if (sf[o + c7] < iso) near |= 128;
 
-    if (tableIndex === 0 || tableIndex === 255) return;
+    for (let i = minX; i < maxX; i++, o += sx, edgeFilter &= ~1) {
+      // corners 1, 2, 5, 6
+      let far = 0;
+      if (sf[o + c1] < iso) far |= 2;
+      if (sf[o + c2] < iso) far |= 4;
+      if (sf[o + c5] < iso) far |= 32;
+      if (sf[o + c6] < iso) far |= 64;
 
+      const tableIndex = near | far;
+      // the far face is the next cell's near face: corners 1 → 0, 2 → 3, 5 → 4, 6 → 7
+      near = ((far & 2) >> 1) | ((far & 4) << 1) | ((far & 32) >> 1) | ((far & 64) << 1);
+
+      if (tableIndex === 0 || tableIndex === 255) continue;
+      this.processCell(i, j, k, o, tableIndex, edgeFilter);
+    }
+  }
+
+  /** As `stridedRow`, through `get` */
+  private getRow(minX: number, maxX: number, j: number, k: number, edgeFilter: number) {
+    const iso = this.isoLevel;
+    const sf = this.scalarField;
+    const get = this.scalarFieldGet;
+
+    let near = 0;
+    if (get(sf, minX, j, k) < iso) near |= 1;
+    if (get(sf, minX, j + 1, k) < iso) near |= 8;
+    if (get(sf, minX, j, k + 1) < iso) near |= 16;
+    if (get(sf, minX, j + 1, k + 1) < iso) near |= 128;
+
+    for (let i = minX; i < maxX; i++, edgeFilter &= ~1) {
+      const i1 = i + 1;
+      let far = 0;
+      if (get(sf, i1, j, k) < iso) far |= 2;
+      if (get(sf, i1, j + 1, k) < iso) far |= 4;
+      if (get(sf, i1, j, k + 1) < iso) far |= 32;
+      if (get(sf, i1, j + 1, k + 1) < iso) far |= 64;
+
+      const tableIndex = near | far;
+      near = ((far & 2) >> 1) | ((far & 4) << 1) | ((far & 32) >> 1) | ((far & 64) << 1);
+
+      if (tableIndex === 0 || tableIndex === 255) continue;
+      this.processCell(i, j, k, 0, tableIndex, edgeFilter);
+    }
+  }
+
+  private processCell(i: number, j: number, k: number, o: number, tableIndex: number, edgeFilter: number) {
     this.i = i;
     this.j = j;
     this.k = k;
+    this.o = o;
     const edgeInfo = EdgeTable[tableIndex];
     if ((edgeInfo & 1) > 0) this.vertList[0] = this.interpolate(0); // 0 1
     if ((edgeInfo & 2) > 0) this.vertList[1] = this.interpolate(1); // 1 2

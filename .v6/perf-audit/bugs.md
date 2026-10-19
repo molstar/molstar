@@ -1,8 +1,8 @@
 # Performance audit: bugs
 
 Every bug found by the slice audits ([README.md](README.md)), confirmed or plausible after the verify pass, ranked by
-severity, then by reach (reachable in the apps before latent API defects). 76 entries, 75 distinct (01/B1 = 04/B1): 3
-high, 17 medium, 56 low; 3 plausible (05/B3, 06/B9, 07/N2). Ids are `slice/id`; the slice report's Bugs section has the
+severity, then by reach (reachable in the apps before latent API defects). 79 entries, 78 distinct (01/B1 = 04/B1): 3
+high, 18 medium, 58 low; 3 plausible (05/B3, 06/B9, 07/N2). Ids are `slice/id`; the slice report's Bugs section has the
 probe and the fix.
 
 ## High
@@ -33,6 +33,7 @@ probe and the fix.
 | 07/N1        | Segment mask reads wrapped or out-of-grid voxels at grid faces                          | [segment.ts:154](../../packages/graphics/src/repr/volume/segment.ts#L154)                                                                              | Segment touching a face (membrane in a tomogram): mesh spans x −2..25 on a 0..23 grid                                         | confirmed | [07](07-graphics-repr.md#bugs)                                  |
 | 09/B1        | Intra-unit interactions `includeParent` filter reads `members[offsets[i]]`              | [interactions-intra-unit-cylinder.ts:135](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L135)         | `includeParent` on a child: 67 of 1198 directed edges decided wrongly (1tup, even-residue child)                              | confirmed | [09](09-graphics-theme-props.md#bugs)                           |
 | 07/N2        | Smoothed layers on merged surfaces sample member 0's grid for all members (frozen root) | [visual.ts:303](../../packages/graphics/src/repr/visual.ts#L303)                                                                                       | Overpaint on any chain but the first of a merged smoothed surface (big-bcif gaussian) likely does not show; not rendered      | plausible | [07](07-graphics-repr.md#bugs)                                  |
+| 12/B3 | Periodic trilinear interpolation reads unwrapped indices | [grid.ts:203](../../packages/model/src/model/volume/grid.ts#L203) | `volume-value` / external-volume theme on an MTZ or structure-factor map: atoms outside the unit cell get the wrong voxel's value, or NaN (default color) below the origin | confirmed | [12](12-tensor-access.md#bugs) |
 
 ## Low
 
@@ -96,3 +97,5 @@ Reachable today first, then latent (no in-repo trigger).
 | 07/B6  | Disk link style in impostor and line builders uses a stale midpoint                          | [link.ts:555](../../packages/graphics/src/repr/structure/visual/util/link.ts#L555)                                                     | Disk style on impostors/lines: disks off-centre; no in-tree user                                             | confirmed (latent) | [07](07-graphics-repr.md#bugs)        |
 | 07/B7  | ComplexVisual and ShapeRepresentation build the position iterator from old geometry          | [complex-visual.ts:262](../../packages/graphics/src/repr/structure/complex-visual.ts#L262)                                             | Vertex-granular theme after a geometry swap or growth: stale positions                                       | confirmed (latent) | [07](07-graphics-repr.md#bugs)        |
 | 08/B5  | `computeGaussianDensityTexture3d` dispatches the '2d' path                                   | [gaussian-density.ts:60](../../packages/graphics/src/geo/gaussian-density.ts#L60)                                                      | Any call gets a 2d texture; no callers                                                                       | confirmed (latent) | [08](08-graphics-geo.md#bugs)         |
+| 12/B1 | Isosurface id field read through the floodfilled `get` | [isosurface.ts:88](../../packages/graphics/src/repr/volume/isosurface.ts#L88) | Floodfill `inside`: ids below the iso value inside the surface became `2 * isoLevel` (wrong groups); fixed in #1987 | fixed | [12](12-tensor-access.md#bugs) |
+| 12/B2 | `getCoords` of rank ≥ 4 writes a stray `undefined` key | [tensor.ts](../../packages/core/src/math/linear-algebra/tensor.ts) | Rank ≥ 4 spaces only; coordinates correct | confirmed | [12](12-tensor-access.md#bugs) |

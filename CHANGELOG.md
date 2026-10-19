@@ -57,6 +57,8 @@ here.
 - Fix models 2..N of multi-model mmCIF/PDB files having no assemblies, spacegroup or `_molstar_bond_site` bonds, and
   attaching a dynamic custom model property to one model disposing another model's assets
 - Fix accessible surface area values on assemblies, symmetry mates and multi-model structures
+- Fix the vertex groups of volume isosurfaces with floodfill `inside`: the cell ids were read through the filled values,
+  so ids below the iso value inside the surface became twice the iso value (wrong cell picked and colored)
 
 ## [v5.13.1] - 2026-10-08
 

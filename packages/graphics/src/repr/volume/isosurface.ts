@@ -81,6 +81,24 @@ const Padding = 1;
 
 /** GPU isosurfaces: the WebGL histogram pyramid, or compute kernels where available (WebGPU) */
 /** Why not on the GPU by the props and the context alone, see `getGpuFallbackReason` */
+/**
+ * The fields of the CPU marching cubes: the values, floodfilled and wrapped as the props say, and each cell's own index
+ * as its id, wrapped alike. The ids keep the unfilled space: a floodfilled `get` would fill them too.
+ */
+function getIsosurfaceFields(volume: Volume, isoLevel: number, props: VolumeIsosurfaceProps) {
+  const { cells } = volume.grid;
+  let scalarField = cells;
+  let idField = Tensor.create(cells.space, Tensor.Data1(fillSerial(new Int32Array(cells.data.length))));
+  if (props.floodfill !== 'off') {
+    scalarField = Tensor.createFloodfilled(scalarField, isoLevel, props.floodfill);
+  }
+  if (shouldWrap(volume, props.wrap)) {
+    scalarField = createWrappedTensor(scalarField);
+    idField = createWrappedTensor(idField);
+  }
+  return { scalarField, idField };
+}
+
 function getPropsGpuFallbackReason(props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) {
   if (!props.tryUseGpu) return 'tryUseGpu is off';
   if (!graphics) return 'no graphics context';
@@ -171,24 +189,8 @@ export async function createVolumeIsosurfaceMesh(
 
   const isoLevel = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
 
-  let scalarField = volume.grid.cells;
-  if (props.floodfill !== 'off') {
-    scalarField = Tensor.createFloodfilled(scalarField, isoLevel, props.floodfill);
-  }
-  if (shouldWrap(volume, props.wrap)) {
-    scalarField = createWrappedTensor(scalarField);
-  }
-
-  const ids = fillSerial(new Int32Array(volume.grid.cells.data.length));
-
-  const surface = await computeMarchingCubesMesh(
-    {
-      isoLevel,
-      scalarField: scalarField,
-      idField: Tensor.create(scalarField.space, Tensor.Data1(ids)),
-    },
-    mesh,
-  ).runAsChild(ctx.runtime);
+  const { scalarField, idField } = getIsosurfaceFields(volume, isoLevel, props);
+  const surface = await computeMarchingCubesMesh({ isoLevel, scalarField, idField }, mesh).runAsChild(ctx.runtime);
 
   const transform = Grid.getGridToCartesianTransform(volume.grid);
   Mesh.transform(surface, transform);
@@ -479,24 +481,8 @@ export async function createVolumeIsosurfaceWireframe(
 
   const isoLevel = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
 
-  let scalarField = volume.grid.cells;
-  if (props.floodfill !== 'off') {
-    scalarField = Tensor.createFloodfilled(scalarField, isoLevel, props.floodfill);
-  }
-  if (shouldWrap(volume, props.wrap)) {
-    scalarField = createWrappedTensor(scalarField);
-  }
-
-  const ids = fillSerial(new Int32Array(volume.grid.cells.data.length));
-
-  const wireframe = await computeMarchingCubesLines(
-    {
-      isoLevel,
-      scalarField,
-      idField: Tensor.create(scalarField.space, Tensor.Data1(ids)),
-    },
-    lines,
-  ).runAsChild(ctx.runtime);
+  const { scalarField, idField } = getIsosurfaceFields(volume, isoLevel, props);
+  const wireframe = await computeMarchingCubesLines({ isoLevel, scalarField, idField }, lines).runAsChild(ctx.runtime);
 
   const transform = Grid.getGridToCartesianTransform(volume.grid);
   Lines.transform(wireframe, transform);
