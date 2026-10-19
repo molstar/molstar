@@ -13,3 +13,5 @@
 - Plugin: `StructureInfo` walks the tree for the max model index only when a model or a structure is created or
   removed, not for every created object; a removed model lowers the max at once (100 structures: first overpaint over
   all 101 → 39 ms, transparency 79 → 16 ms)
+- Plugin: the measurement manager's sync, on every state change, searches the tree for the measurement group once per
+  tree instead of six walks (none when there is no group)

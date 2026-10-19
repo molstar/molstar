@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -420,32 +420,60 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
   }
 
   private _empty: any[] = [];
+  /** The measurement group's ref, found once per tree (its nodes and tags change only with a new transforms map). */
+  private group: { transforms: unknown; ref: StateTransform.Ref | undefined } | undefined;
+
+  private groupRef(): StateTransform.Ref | undefined {
+    const tree = this.plugin.state.data.tree;
+    if (this.group?.transforms !== tree.transforms) {
+      this.group = {
+        transforms: tree.transforms,
+        ref: StateSelection.findTagInSubtree(tree, StateTransform.RootRef, MeasurementGroupTag),
+      };
+    }
+    return this.group.ref;
+  }
+
   private getTransforms<
     T extends StateTransformer<A, B, any>,
     A extends PluginStateObject.Molecule.Structure.Selections,
     B extends StateObject,
-  >(transformer: T) {
-    const state = this.plugin.state.data;
-    const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
-    const ret = groupRef ? state.select(StateSelection.Generators.ofTransformer(transformer, groupRef)) : this._empty;
+  >(transformer: T, groupRef: StateTransform.Ref) {
+    const ret = this.plugin.state.data.select(StateSelection.Generators.ofTransformer(transformer, groupRef));
     if (ret.length === 0) return this._empty;
     return ret;
   }
 
   private sync() {
+    // On every state change: with no measurement group (the usual case), no walk of the tree at all; with one, a single
+    // search for it per tree, not one per kind (each visited every node when there was none).
+    const groupRef = this.groupRef();
+    if (!groupRef) {
+      const e = this._empty;
+      const updated = this.updateState({
+        labels: e,
+        distances: e,
+        angles: e,
+        dihedrals: e,
+        orientations: e,
+        planes: e,
+      });
+      if (updated) this.stateUpdated();
+      return;
+    }
     const labels = [];
-    for (const cell of this.getTransforms(StructureSelectionsLabel3D) as StructureMeasurementCell[]) {
+    for (const cell of this.getTransforms(StructureSelectionsLabel3D, groupRef) as StructureMeasurementCell[]) {
       const tags = (cell.obj as any)['tags'] as string[];
       if (!tags || !tags.includes(MeasurementOrderLabelTag)) labels.push(cell);
     }
 
     const updated = this.updateState({
       labels,
-      distances: this.getTransforms(StructureSelectionsDistance3D),
-      angles: this.getTransforms(StructureSelectionsAngle3D),
-      dihedrals: this.getTransforms(StructureSelectionsDihedral3D),
-      orientations: this.getTransforms(StructureSelectionsOrientation3D),
-      planes: this.getTransforms(StructureSelectionsPlane3D),
+      distances: this.getTransforms(StructureSelectionsDistance3D, groupRef),
+      angles: this.getTransforms(StructureSelectionsAngle3D, groupRef),
+      dihedrals: this.getTransforms(StructureSelectionsDihedral3D, groupRef),
+      orientations: this.getTransforms(StructureSelectionsOrientation3D, groupRef),
+      planes: this.getTransforms(StructureSelectionsPlane3D, groupRef),
     });
     if (updated) this.stateUpdated();
   }
