@@ -1,16 +1,18 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3, type Mat4, Mat3 } from '@molstar/core/math/linear-algebra';
-import type { NumberArray } from '@molstar/core/util/type-helpers';
+import { transformDirectionArray, transformPositionArray } from '../util.js';
 
+/** Typed arrays only: `MeshBuilder.addPrimitive` reads them per vertex, one array kind keeps those loads monomorphic */
 export interface Primitive {
-  vertices: ArrayLike<number>;
-  normals: ArrayLike<number>;
-  indices: ArrayLike<number>;
+  vertices: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
 }
 
 const a = Vec3(),
@@ -97,20 +99,13 @@ export function PrimitiveBuilder(triangleCount: number, vertexCount?: number): P
   };
 }
 
-const tmpV = Vec3();
 const tmpMat3 = Mat3();
 
 /** Transform primitive in-place */
 export function transformPrimitive(primitive: Primitive, t: Mat4) {
   const { vertices, normals } = primitive;
-  const n = Mat3.directionTransform(tmpMat3, t);
-  for (let i = 0, il = vertices.length; i < il; i += 3) {
-    // position
-    Vec3.transformMat4(tmpV, Vec3.fromArray(tmpV, vertices, i), t);
-    Vec3.toArray(tmpV, vertices as NumberArray, i);
-    // normal
-    Vec3.transformMat3(tmpV, Vec3.fromArray(tmpV, normals, i), n);
-    Vec3.toArray(tmpV, normals as NumberArray, i);
-  }
+  const count = vertices.length / 3;
+  transformPositionArray(t, vertices, 0, count);
+  transformDirectionArray(Mat3.directionTransform(tmpMat3, t), normals, 0, count);
   return primitive;
 }

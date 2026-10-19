@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3, type Mat4, type Mat3 } from '@molstar/core/math/linear-algebra';
@@ -23,19 +24,65 @@ export function normalizeVec3Array<T extends NumberArray>(a: T, count: number) {
 
 const tmpV3 = Vec3();
 
+// The transforms below read and write the array inline: `Vec3.fromArray`, `Vec3.toArray` and the `Vec3` transforms are
+// called app-wide with many array kinds, so their keyed loads and stores are megamorphic, also where V8 inlines them.
+
+/** In place, as `Vec3.transformMat4` (the w divide only for a non-affine `t`, where it is not exactly 1) */
 export function transformPositionArray(t: Mat4, array: NumberArray, offset: number, count: number) {
-  for (let i = 0, il = count * 3; i < il; i += 3) {
-    Vec3.fromArray(tmpV3, array, offset + i);
-    Vec3.transformMat4(tmpV3, tmpV3, t);
-    Vec3.toArray(tmpV3, array, offset + i);
+  const m0 = t[0],
+    m1 = t[1],
+    m2 = t[2],
+    m3 = t[3];
+  const m4 = t[4],
+    m5 = t[5],
+    m6 = t[6],
+    m7 = t[7];
+  const m8 = t[8],
+    m9 = t[9],
+    m10 = t[10],
+    m11 = t[11];
+  const m12 = t[12],
+    m13 = t[13],
+    m14 = t[14],
+    m15 = t[15];
+  const affine = m3 === 0 && m7 === 0 && m11 === 0 && m15 === 1;
+  for (let i = offset, il = offset + count * 3; i < il; i += 3) {
+    const x = array[i],
+      y = array[i + 1],
+      z = array[i + 2];
+    let px = m0 * x + m4 * y + m8 * z + m12;
+    let py = m1 * x + m5 * y + m9 * z + m13;
+    let pz = m2 * x + m6 * y + m10 * z + m14;
+    if (!affine) {
+      const w = 1 / (m3 * x + m7 * y + m11 * z + m15 || 1.0);
+      px *= w;
+      py *= w;
+      pz *= w;
+    }
+    array[i] = px;
+    array[i + 1] = py;
+    array[i + 2] = pz;
   }
 }
 
+/** In place, as `Vec3.transformMat3` */
 export function transformDirectionArray(n: Mat3, array: NumberArray, offset: number, count: number) {
-  for (let i = 0, il = count * 3; i < il; i += 3) {
-    Vec3.fromArray(tmpV3, array, offset + i);
-    Vec3.transformMat3(tmpV3, tmpV3, n);
-    Vec3.toArray(tmpV3, array, offset + i);
+  const n0 = n[0],
+    n1 = n[1],
+    n2 = n[2];
+  const n3 = n[3],
+    n4 = n[4],
+    n5 = n[5];
+  const n6 = n[6],
+    n7 = n[7],
+    n8 = n[8];
+  for (let i = offset, il = offset + count * 3; i < il; i += 3) {
+    const x = array[i],
+      y = array[i + 1],
+      z = array[i + 2];
+    array[i] = x * n0 + y * n3 + z * n6;
+    array[i + 1] = x * n1 + y * n4 + z * n7;
+    array[i + 2] = x * n2 + y * n5 + z * n8;
   }
 }
 

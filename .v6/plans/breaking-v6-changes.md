@@ -1073,3 +1073,9 @@ MVS-loaded transform versions (`VirtualStateBuilder`) are `jsonHash` of the para
 load is redone without `subtreeMemo`; `subtreeMemo` is used only with it (`MolstarLoadingContext.reset` for the MVS
 loader).
 
+## Mesh primitives are typed arrays
+
+`Primitive` (`@molstar/graphics/geo/primitive/primitive`) has `vertices: Float32Array`, `normals: Float32Array` and
+`indices: Uint32Array` instead of `ArrayLike<number>`, so `MeshBuilder.addPrimitive` reads one array kind per vertex.
+Every built-in producer (`PrimitiveBuilder`, `Polyhedron`, the shapes in `geo/primitive/`) already returned them; a
+primitive made of plain arrays wraps them (`new Float32Array(vertices)`, `new Uint32Array(indices)`).
