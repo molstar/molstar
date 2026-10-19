@@ -300,6 +300,49 @@ describe('HistoryManager', () => {
     expect(h.canUndo.value).toBe(false);
   });
 
+  it('past the hard limit, takes no snapshot for a while, then tries again; a clear lets it at once', async () => {
+    const s = store({ a: 0 });
+    let taken = 0;
+    let time = 0;
+    let big = true;
+    const port: HistoryPort<Record<string, number>> = {
+      ...s.port,
+      checkpoint: () => {
+        taken++;
+        return s.port.checkpoint();
+      },
+      size: () => (big ? 1e9 : 10),
+    };
+    const h = new HistoryManager(port, { hardLimit: { ms: 1e9, bytes: 1000 }, now: () => time });
+    const end = h.beginGroup('Turn', { kind: 'agent', turn: 't' });
+    for (let i = 0; i < 5; i++) await h.run(`call ${i}`, { kind: 'agent', turn: 't' }, async () => s.set('a', i));
+    end();
+    expect(taken).toBe(1);
+    expect(h.steps.value[0].unsafe).toMatch(/too large/);
+    time += 60_000;
+    await h.group('Later', script, async (ctx) => {
+      await h.run('x', script, async () => s.set('a', 9), { within: ctx });
+    });
+    expect(taken).toBe(2);
+    big = false;
+    h.clear();
+    await h.run('Small', script, async () => s.set('a', 10));
+    expect(taken).toBe(3);
+    expect(h.steps.value[0].unsafe).toBeUndefined();
+  });
+
+  it('counts the size pass in the time budget', async () => {
+    const s = store({ a: 0 });
+    const slowSize = () => {
+      const t0 = performance.now();
+      while (performance.now() - t0 < 3);
+      return 10;
+    };
+    const h = new HistoryManager({ ...s.port, size: slowSize }, { budget: { ms: 1, bytes: 1e9 } });
+    for (let i = 0; i < 3; i++) await h.run(`r${i}`, person, async () => s.set('a', i));
+    expect(h.checkpointing.value).toBe(false);
+  });
+
   it('releases the lock when taking a checkpoint throws', async () => {
     let fail = true;
     const s = store({ a: 0 });

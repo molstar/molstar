@@ -176,7 +176,13 @@ The code is the truth for how.
 
 ### 7.4 Large scenes
 
-- **Each checkpoint is measured**: time, and the JSON size without data payloads (`checkpointSize`).
+- **Each checkpoint is measured**: time, and the JSON size without data payloads; the time counts the size pass.
+- **A step costs what it changed, not the scene** (`SerializedTrees`, `sources/checkpoint.ts`): each transform is
+  serialized and measured once per transform object (a new version is a new object) and shared by every checkpoint
+  that holds it, its state flags compared on each read (the state's transient tree changes them in place). At 1401
+  cells: the size pass 16 → 0.2 ms a step, 100 checkpoints 14.8 → 1.6 MB. Shared parts are read-only.
+- **Over the hard limit, no checkpoint is even taken for 30 s** (or until a clear): each try is a full snapshot thrown
+  away, and an agent's turn tried on every call.
 - **Per-step checkpoints turn off** for the scene when one is over the size budget, or three in a row over the time
   budget (50 ms, 5 MB: a first guess); the status says once "This scene is large: undo is off. Settings turns it back
   on." (Settings › Undo each step).

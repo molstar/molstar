@@ -173,6 +173,12 @@ function stepWith(fields: StepFields, log: readonly string[], length: number): H
 /** Checkpoints over the time budget in a row that turn per-step checkpoints off (sequence.md §7.4). */
 const SlowCheckpointsToTurnOff = 3;
 
+/**
+ * After a checkpoint over the hard limit, how long checkpoints are not even taken (sequence.md §7.4): the scene stays
+ * that large until it is cleared, and each try costs a full snapshot that is thrown away.
+ */
+const OverHardLimitPauseMs = 30_000;
+
 export class HistoryManager<C = unknown> {
   readonly #port: HistoryPort<C>;
   readonly #options: Required<Omit<HistoryOptions, 'now'>> & { now: () => number };
@@ -183,6 +189,8 @@ export class HistoryManager<C = unknown> {
   readonly #checkpointing = observableState(true);
   /** Checkpoints in a row over the time budget. */
   #slow = 0;
+  /** When the last checkpoint over the hard limit was taken; none since a clear. */
+  #overHardLimitAt: number | undefined;
   readonly #undoBlocked = observableState<string | undefined>('Nothing to undo');
   readonly #canUndo = observableState(false);
   readonly #undone = new Subject<HistoryStep>();
@@ -496,6 +504,7 @@ export class HistoryManager<C = unknown> {
   clear(): void {
     this.#setRedo([]);
     this.#entries = [];
+    this.#overHardLimitAt = undefined;
     this.#checkpointing.set(true);
     this.#publish();
   }
@@ -609,15 +618,22 @@ export class HistoryManager<C = unknown> {
     if (!this.#checkpointing.value && !group) {
       return { value: undefined, unsafe: 'Undo is off for this large scene' };
     }
+    const { budget, hardLimit, now } = this.#options;
+    // Over the hard limit a moment ago: the snapshot would be thrown away again (a turn's every call paid for it).
+    if (this.#overHardLimitAt !== undefined && now() - this.#overHardLimitAt < OverHardLimitPauseMs) {
+      return { value: undefined, unsafe: 'This scene is too large to undo' };
+    }
+    // The size pass is part of the checkpoint's cost: the time budget counts it.
     const t0 = performance.now();
     const value = this.#port.checkpoint();
-    const ms = performance.now() - t0;
     const bytes = this.#port.size?.(value) ?? 0;
-    const { budget, hardLimit } = this.#options;
+    const ms = performance.now() - t0;
     if (ms > hardLimit.ms || bytes > hardLimit.bytes) {
+      this.#overHardLimitAt = now();
       this.#turnOff(ms, bytes);
       return { value: undefined, unsafe: 'This scene is too large to undo' };
     }
+    this.#overHardLimitAt = undefined;
     // Size is the scene's; time can be a one-off (a cold start, a pause): only a run of slow checkpoints counts.
     this.#slow = ms > budget.ms ? this.#slow + 1 : 0;
     if (bytes > budget.bytes || this.#slow >= SlowCheckpointsToTurnOff) this.#turnOff(ms, bytes);
