@@ -52,6 +52,8 @@ here.
 - MessagePack: extension types, JSON's rules for non-finite numbers (nil), large integers (float 64) and `undefined`
   object values (left out, so BinaryCIF files no longer carry a nil `mask` key), and checks of the lengths in untrusted
   input
+- Fix state flags (e.g. visibility) set while a state builder is outstanding being lost from the state tree, and so from
+  saved sessions, undo and `setSnapshot`; a builder can be edited again after `getTree()`
 
 ## [v5.13.1] - 2026-10-08
 

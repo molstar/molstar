@@ -73,6 +73,8 @@ Roots, then dependents, in order, one at a time (`updateSubtree`, awaited):
 ## 6. After the pass
 
 - Without a builder (a tree passed in), cells take the tree's state flags (`syncNewStates`, `cell.stateUpdated`).
+- With a builder, cells keep theirs; the tree took the flags written since `build()` (tree.md §4). A tree passed in
+  resets flags written after it was taken.
 - `object.created` / `object.updated` (`in-place`, `recreate`) in evaluation order.
 - The current object: the pass's candidate is the first error, else the last object created (not a ghost, not Null); it
   becomes current only with `doNotUpdateCurrent: false` (the default is `true`). Only when there is no candidate, a

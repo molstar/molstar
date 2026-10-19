@@ -91,7 +91,35 @@ class State {
   }
 
   build() {
-    return new StateBuilder.Root(this.tree, this);
+    const builder = new StateBuilder.Root(this.tree, this);
+    this.builderFlagMarks.set(builder.editInfo, this.flagWrites);
+    return builder;
+  }
+
+  /**
+   * Flag writes by `updateCellState`: ref → flag → the number of its latest write and the value written. A builder's
+   * tree is a snapshot of the tree it was made on, which keeps its identity across flag writes, so its commit carries
+   * the flags written later over (tree.md §4), and only those: a flag the builder set itself stays.
+   */
+  private flagWrites = 0;
+  private flagLog: FlagLog = new Map();
+  private builderFlagMarks = new WeakMap<StateBuilder.EditInfo, number>();
+
+  private carryFlagWrites(editInfo: StateBuilder.EditInfo, tree: TransientTree) {
+    const mark = this.builderFlagMarks.get(editInfo) ?? 0;
+    if (mark === this.flagWrites) return;
+    for (const [ref, writes] of this.flagLog) {
+      if (!tree.transforms.has(ref)) continue;
+      const state = tree.transforms.get(ref).state;
+      let update: Partial<StateTransform.State> | undefined;
+      for (const k of StateFlags) {
+        const w = writes[k];
+        if (!w || w.n <= mark || !!state[k] === !!w.value) continue;
+        if (!update) update = {};
+        update[k] = w.value;
+      }
+      if (update) tree.assignState(ref, update);
+    }
   }
 
   readonly cells: State.Cells = new Map();
@@ -184,8 +212,13 @@ class State {
 
     const update = typeof stateOrProvider === 'function' ? stateOrProvider(cell.state) : stateOrProvider;
 
+    const written = update && StateFlags.filter((k) => k in update && !!update[k] !== !!cell.state[k]);
     if (StateTransform.assignState(cell.state, update)) {
       cell.transform = this._tree.assignState(cell.transform.ref, update);
+      const n = ++this.flagWrites;
+      let writes = this.flagLog.get(ref);
+      if (!writes) this.flagLog.set(ref, (writes = {}));
+      for (const k of written!) writes[k] = { n, value: update![k] };
       this.events.cell.stateUpdated.next({ state: this, ref, cell });
     }
   }
@@ -425,6 +458,7 @@ class State {
     options: Partial<State.UpdateOptions> | undefined,
   ) {
     const _tree = (StateBuilder.is(tree) ? tree.getTree() : tree).asTransient();
+    if (StateBuilder.is(tree)) this.carryFlagWrites(tree.editInfo, _tree);
     const oldTree = this._tree;
     this._tree = _tree;
 
@@ -434,6 +468,7 @@ class State {
 
       errorFree: this.errorFree,
       dependencyWaiters: this.dependencyWaiters,
+      flagLog: this.flagLog,
       orphans: void 0,
       taskCtx,
       oldTree,
@@ -545,6 +580,8 @@ interface UpdateContext {
 
   errorFree: boolean;
   dependencyWaiters: DependencyWaiters;
+  /** `State.flagLog`: deleted cells leave it. */
+  flagLog: FlagLog;
   /** Cells whose dependency was deleted in this pass (`unlinkCell`): dependents, evaluated again. */
   orphans: StateObjectCell[] | undefined;
   taskCtx: RuntimeContext;
@@ -631,6 +668,7 @@ async function update(ctx: UpdateContext) {
       }
       const obj = cell && cell.obj;
       ctx.cells.delete(d);
+      ctx.flagLog.delete(d);
       deletedObjects.push(obj);
     }
 
@@ -783,6 +821,9 @@ function findDeletes(ctx: UpdateContext): Ref[] {
   StateTree.doPostOrder(ctx.oldTree, ctx.oldTree.root, deleteCtx, checkDeleteVisitor);
   return deleteCtx.deletes;
 }
+
+const StateFlags = ['isGhost', 'isLocked', 'isHidden', 'isCollapsed'] as const;
+type FlagLog = Map<Ref, { [K in (typeof StateFlags)[number]]?: { n: number; value: boolean | undefined } }>;
 
 function syncNewStatesVisitor(n: StateTransform, tree: StateTree, ctx: UpdateContext) {
   const cell = ctx.cells.get(n.ref);
