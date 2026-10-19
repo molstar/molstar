@@ -10,7 +10,7 @@ import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import type { StructureElement } from '../../element.js';
 import type { Structure } from '../../structure.js';
-import { InterUnitBonds, type InterUnitEdgeProps, type IntraUnitBonds } from './data.js';
+import { InterUnitBonds, type InterUnitEdgeProps, IntraUnitBonds } from './data.js';
 
 /**
  * Maps the UnitIndices of `parent` to those of `child`, whose elements must be a subset of the parent's:
@@ -31,15 +31,18 @@ function getUnitIndexMap(parent: ArrayLike<number>, child: ArrayLike<number>): I
  * The intra-unit bonds of a child unit with `elements`, restricted from `bonds` of its parent unit with
  * `parentElements` (05-model-structure P6); `undefined` if `elements` is not a subset of `parentElements`.
  *
- * Equals a recompute on the child: `computeIntraUnitBonds` decides per atom pair (struct_conn, the component
- * dictionary, the hydrogen fallback, alt-locs, thresholds, index pairs). The props (`canRemap`, `cacheable`) are the
- * parent's: a subset of bonds that survive remapping survives it too.
+ * The edges equal a recompute on the child: `computeIntraUnitBonds` decides per atom pair (struct_conn, the component
+ * dictionary, the hydrogen fallback, alt-locs, thresholds, index pairs). Their order is the parent's. The props
+ * (`canRemap`, `cacheable`) are the parent's: a parent that may remap its bonds has children that may too, while a
+ * child of one that may not could have been allowed (it then recomputes on a remap). As in the parent, bonds carried
+ * over from another frame (`remapModel`) are carried over to the child.
  */
 export function subsetIntraUnitBonds(
   bonds: IntraUnitBonds,
   parentElements: ArrayLike<number>,
   elements: ArrayLike<number>,
 ): IntraUnitBonds | undefined {
+  if (elements.length <= 1) return IntraUnitBonds.Empty;
   // the parent UnitIndex of every child element
   const vertices = new Int32Array(elements.length);
   for (let i = 0, j = 0, il = elements.length, jl = parentElements.length; i < il; i++) {
@@ -56,10 +59,14 @@ export function subsetIntraUnitBonds(
  * subset of `parent`'s unit with the same id, model and operator (05-model-structure P5). The caller checks that the
  * bond props (`dynamicBonds`, `interBondsValidUnit(Pair)`, `masterModel`) are the parent's.
  *
- * `computeInterUnitBonds` decides per atom pair (thresholds, struct_conn, index pairs, alt-locs), so this equals a
- * recompute on the child except where it decides from atoms the child may lack: an atom with a struct_conn bond to
- * another unit gets no distance-based bonds there, and water/ion units pair only through a common struct_conn record.
- * When those partners are outside the child, a recompute could differ; the subset keeps what the parent shows.
+ * `computeInterUnitBonds` decides mostly per atom pair (thresholds, struct_conn, index pairs, alt-locs), so this
+ * equals a recompute on the child except where it decides from atoms the child may lack or from unit sizes:
+ * - an atom of the iterated (smaller) unit with a struct_conn bond to the other gets no distance-based bonds there,
+ *   so a struct_conn partner outside the child, or a child that swaps which unit is smaller, can change them;
+ * - the default pair test classifies water/ion units by their first element, and pairs them only through a common
+ *   struct_conn record.
+ * In those cases the subset keeps what the parent shows, as it does for bonds the parent carried over from another
+ * frame (`remapModel` without `dynamicBonds`). The edge order follows the parent's units, not a recompute's.
  */
 export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, child: Structure) {
   // null: the child unit has every element of the parent unit
