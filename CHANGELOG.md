@@ -52,6 +52,11 @@ here.
 - MessagePack: extension types, JSON's rules for non-finite numbers (nil), large integers (float 64) and `undefined`
   object values (left out, so BinaryCIF files no longer carry a nil `mask` key), and checks of the lengths in untrusted
   input
+- Fix state flags (e.g. visibility) set while a state builder is outstanding being lost from the state tree, and so from
+  saved sessions, undo and `setSnapshot`; a builder can be edited again after `getTree()`
+- Fix models 2..N of multi-model mmCIF/PDB files having no assemblies, spacegroup or `_molstar_bond_site` bonds, and
+  attaching a dynamic custom model property to one model disposing another model's assets
+- Fix accessible surface area values on assemblies, symmetry mates and multi-model structures
 - Fix the vertex groups of volume isosurfaces with floodfill `inside`: the cell ids were read through the filled values,
   so ids below the iso value inside the surface became twice the iso value (wrong cell picked and colored)
 
