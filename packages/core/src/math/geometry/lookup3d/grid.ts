@@ -106,6 +106,8 @@ interface InputData {
   radius?: ArrayLike<number>;
 }
 
+type CoordinateArray = Float32Array | Float64Array;
+
 interface Grid3D {
   size: number[];
   min: number[];
@@ -114,7 +116,17 @@ interface Grid3D {
   bucketOffset: Uint32Array;
   bucketCounts: Int32Array;
   bucketArray: Int32Array;
-  data: InputData;
+  /**
+   * Positions (and radii, when given and some is > 0) copied in bucket order, so queries scan them linearly instead
+   * of dereferencing the OrderedSet and loading scattered coordinates per candidate. Same element type as the source
+   * when that is a Float32Array, Float64Array otherwise, so the values (and distances) are exact.
+   * Taken at build time: coordinates edited in place after the build are not seen.
+   */
+  bx: CoordinateArray;
+  by: CoordinateArray;
+  bz: CoordinateArray;
+  br: CoordinateArray | undefined;
+  elementCount: number;
   maxRadius: number;
   expandedBox: Box3D;
   boundingBox: Box3D;
@@ -206,10 +218,22 @@ function _build(state: BuildState): Grid3D {
 
   const bucketFill = new Int32Array(bucketCount);
   const bucketArray = new Int32Array(elementCount);
-  for (let i = 0; i < elementCount; i++) {
-    const k = grid[bucketIndex[i]] - 1;
-    bucketArray[bucketOffset[k] + bucketFill[k]] = i;
+  const bx = coordinateArray(px, elementCount);
+  const by = coordinateArray(py, elementCount);
+  const bz = coordinateArray(pz, elementCount);
+  // queries read radii only when maxRadius > 0
+  const br = radius && maxRadius > 0 ? coordinateArray(radius, elementCount) : undefined;
+  for (let t = 0; t < elementCount; t++) {
+    const k = grid[bucketIndex[t]] - 1;
+    const p = bucketOffset[k] + bucketFill[k];
+    bucketArray[p] = t;
     bucketFill[k] += 1;
+
+    const i = sortedIndices ? sortedIndices[t] : startIdx + t;
+    bx[p] = px[i];
+    by[p] = py[i];
+    bz[p] = pz[i];
+    if (br) br[p] = radius![i];
   }
 
   return {
@@ -220,12 +244,21 @@ function _build(state: BuildState): Grid3D {
     grid,
     delta,
     min: state.expandedBox.min,
-    data: state.data,
+    bx,
+    by,
+    bz,
+    br,
+    elementCount,
     maxRadius,
     expandedBox: state.expandedBox,
     boundingBox: state.boundingBox,
     boundingSphere: state.boundingSphere,
   };
+}
+
+/** Float32Array stays Float32Array, anything else is held exactly by a Float64Array. */
+function coordinateArray(source: ArrayLike<number>, count: number): CoordinateArray {
+  return source instanceof Float32Array ? new Float32Array(count) : new Float64Array(count);
 }
 
 const MaxVolume = 2 ** 24;
@@ -310,7 +343,10 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
     bucketCounts,
     bucketArray,
     grid,
-    data: { x: px, y: py, z: pz, indices, radius },
+    bx,
+    by,
+    bz,
+    br,
     delta,
     maxRadius,
   } = ctx.grid;
@@ -343,15 +379,13 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
         const end = offset + count;
 
         for (let i = offset; i < end; i++) {
-          const idx = OrderedSet.getAt(indices, bucketArray[i]);
-
-          const dx = px[idx] - x;
-          const dy = py[idx] - y;
-          const dz = pz[idx] - z;
+          const dx = bx[i] - x;
+          const dy = by[i] - y;
+          const dz = bz[i] - z;
           const distSq = dx * dx + dy * dy + dz * dz;
 
           if (distSq <= rSq) {
-            if (maxRadius > 0 && Math.sqrt(distSq) - radius![idx] > inputRadius) continue;
+            if (maxRadius > 0 && Math.sqrt(distSq) - br![i] > inputRadius) continue;
             if (isCheck) return true;
             Result.add(result, bucketArray[i], distSq);
           }
@@ -390,7 +424,9 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
     bucketCounts,
     bucketArray,
     grid,
-    data: { x: px, y: py, z: pz, indices },
+    bx,
+    by,
+    bz,
     delta,
   } = ctx.grid;
   const { radius, x, y, z } = ctx;
@@ -431,11 +467,9 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
 
     let minDistSq = Number.MAX_VALUE;
     for (let i = offset; i < end; i++) {
-      const idx = OrderedSet.getAt(indices, bucketArray[i]);
-
-      const dx = px[idx] - x;
-      const dy = py[idx] - y;
-      const dz = pz[idx] - z;
+      const dx = bx[i] - x;
+      const dy = by[i] - y;
+      const dz = bz[i] - z;
       const distSq = dx * dx + dy * dy + dz * dz;
 
       if (distSq <= rSq && distSq < minDistSq) {
@@ -466,12 +500,15 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
     bucketCounts,
     bucketArray,
     grid,
-    data: { x: px, y: py, z: pz, indices, radius },
+    bx,
+    by,
+    bz,
+    br,
+    elementCount: indicesCount,
     delta,
     maxRadius,
   } = ctx.grid;
   const { x, y, z, k, stopIf } = ctx;
-  const indicesCount = OrderedSet.size(indices);
   Result.reset(result);
   if (indicesCount === 0 || k <= 0) return false;
   let gX,
@@ -526,13 +563,12 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
           const end = offset + count;
           for (let i = offset; i < end; i++) {
             const bIdx = bucketArray[i];
-            const idx = OrderedSet.getAt(indices, bIdx);
-            const dx = px[idx] - x;
-            const dy = py[idx] - y;
-            const dz = pz[idx] - z;
+            const dx = bx[i] - x;
+            const dy = by[i] - y;
+            const dz = bz[i] - z;
             let distSq = dx * dx + dy * dy + dz * dz;
             if (maxRadius !== 0) {
-              const r = radius![idx];
+              const r = br![i];
               distSq -= r * r;
             }
             if (expandRange && distSq > maxRange) {

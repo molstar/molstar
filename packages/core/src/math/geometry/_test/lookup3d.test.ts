@@ -197,3 +197,145 @@ describe('GridLookup3d', () => {
     }
   });
 });
+
+// Pins the exact hit order and squared distances: intra-unit bonds, contacts and the molecular-surface torus loop
+// consume hits in the order the grid returns them, so a layout change must not reorder or round them.
+describe('GridLookup3d result order', () => {
+  function points(count: number, seed: number) {
+    const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const x = new Float64Array(count);
+    const y = new Float64Array(count);
+    const z = new Float64Array(count);
+    const r = new Float64Array(count);
+    for (let i = 0; i < count; ++i) {
+      x[i] = rand() * 30;
+      y[i] = rand() * 20;
+      z[i] = rand() * 25;
+      r[i] = 1 + rand();
+    }
+    return { x, y, z, r };
+  }
+
+  // FNV-1a over (index, float64 bits of the squared distance) of every hit, in order
+  const f64 = new Float64Array(1);
+  const u32 = new Uint32Array(f64.buffer);
+  function fold(h: number, v: number) {
+    return Math.imul(h ^ v, 16777619) >>> 0;
+  }
+  function foldResult(
+    h: number,
+    r: { count: number; indices: ArrayLike<number>; squaredDistances: ArrayLike<number> },
+  ) {
+    h = fold(h, r.count);
+    for (let i = 0; i < r.count; i++) {
+      f64[0] = r.squaredDistances[i];
+      h = fold(fold(fold(h, r.indices[i]), u32[0]), u32[1]);
+    }
+    return h;
+  }
+
+  const count = 2000;
+  const { x, y, z, r } = points(count, 7);
+  // every third element, so lookup indices differ from the element indices
+  const sorted = OrderedSet.ofSortedArray(Int32Array.from({ length: Math.ceil(count / 3) }, (_, i) => 3 * i));
+  const cases = {
+    'f64 interval': { x, y, z, indices: OrderedSet.ofBounds(0, count) },
+    'f32 interval': {
+      x: Float32Array.from(x),
+      y: Float32Array.from(y),
+      z: Float32Array.from(z),
+      indices: OrderedSet.ofBounds(0, count),
+    },
+    'array sorted': { x: Array.from(x), y: Array.from(y), z: Array.from(z), indices: sorted },
+    'f64 interval radii': { x, y, z, radius: r, indices: OrderedSet.ofBounds(0, count) },
+    'f32 sorted radii': {
+      x: Float32Array.from(x),
+      y: Float32Array.from(y),
+      z: Float32Array.from(z),
+      radius: Float32Array.from(r),
+      indices: sorted,
+    },
+  };
+
+  function fingerprint(position: (typeof cases)[keyof typeof cases], cell?: Vec3) {
+    const grid = GridLookup3D(position, getBoundary(position), cell);
+    let h = 0x811c9dc5;
+    let hits = 0;
+    for (let i = 0; i < 300; i++) {
+      // query points on a lattice that covers the box and its surroundings
+      const qx = -3 + (i % 7) * 6.1;
+      const qy = -3 + (Math.floor(i / 7) % 6) * 4.7;
+      const qz = -3 + Math.floor(i / 42) * 4.3;
+      for (const qr of [0.8, 2, 4, 6.4]) {
+        const f = grid.find(qx, qy, qz, qr);
+        hits += f.count;
+        h = foldResult(h, f);
+        h = foldResult(h, grid.approxNearest(qx, qy, qz, qr));
+        h = fold(h, +grid.check(qx, qy, qz, qr));
+      }
+      h = foldResult(h, grid.nearest(qx, qy, qz, 1));
+      h = foldResult(h, grid.nearest(qx, qy, qz, 6));
+    }
+    return `${hits} ${h.toString(16)}`;
+  }
+
+  it('find hits keep their order and distances', () => {
+    const position = {
+      x: x.subarray(0, 40),
+      y: y.subarray(0, 40),
+      z: z.subarray(0, 40),
+      indices: OrderedSet.ofBounds(0, 40),
+    };
+    const grid = GridLookup3D(position, getBoundary(position));
+    const f = grid.find(15, 10, 12, 8);
+    expect([
+      Array.from(f.indices.slice(0, f.count)),
+      Array.from(f.squaredDistances.slice(0, f.count)),
+    ]).toMatchInlineSnapshot(`
+      [
+        [
+          29,
+          39,
+          14,
+          27,
+          12,
+          0,
+          13,
+          15,
+        ],
+        [
+          63.09301965765512,
+          49.87555500551978,
+          48.0678555329588,
+          54.76454431533104,
+          28.444327327750038,
+          27.02092338930176,
+          52.993755782136034,
+          8.150830517972967,
+        ],
+      ]
+    `);
+  });
+
+  it('find, approxNearest, nearest and check fingerprints', () => {
+    const out: Record<string, string> = {};
+    for (const [name, position] of Object.entries(cases)) {
+      out[name] = fingerprint(position);
+      out[`${name}, 3 Å cells`] = fingerprint(position, Vec3.create(3, 3, 3));
+    }
+    expect(out).toMatchInlineSnapshot(`
+      {
+        "array sorted": "7261 a7ebbc96",
+        "array sorted, 3 Å cells": "7261 f422342b",
+        "f32 interval": "21810 8f0ec182",
+        "f32 interval, 3 Å cells": "21810 f2d63769",
+        "f32 sorted radii": "15459 57582975",
+        "f32 sorted radii, 3 Å cells": "15459 e98de59e",
+        "f64 interval": "21810 4aaf4dd2",
+        "f64 interval radii": "46167 e20a7f68",
+        "f64 interval radii, 3 Å cells": "46167 ffeeb7b2",
+        "f64 interval, 3 Å cells": "21810 4cb0bd5d",
+      }
+    `);
+  });
+});
