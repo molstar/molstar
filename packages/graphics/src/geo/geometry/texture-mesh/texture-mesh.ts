@@ -313,6 +313,18 @@ export namespace TextureMesh {
     };
   }
 
+  /**
+   * The vertex count of a mesh of the vertex arena, read back after its extraction, into its draw arguments: drawn
+   * directly with it from then on, until the next extraction draws indirectly again (`createChunked`). An indirect draw
+   * costs far more GPU time than a direct one in Chrome; with hundreds of surfaces, several passes a frame, they took
+   * most of it (3j3q, 1356 surfaces: 105–540 ms a frame against 25 ms drawn directly). `vertexCount` stays the upper
+   * bound (the stride of vertex-instance data).
+   */
+  export function setDrawnVertexCount(textureMesh: TextureMesh, count: number) {
+    const args = textureMesh.drawIndirect.ref.value;
+    if (args && args.count !== count) ValueCell.update(textureMesh.drawIndirect, { ...args, count });
+  }
+
   /** Updates the vertex count (an upper bound with `drawIndirect`) after the textures were resized */
   export function setVertexCount(textureMesh: TextureMesh, vertexCount: number) {
     const texture = textureMesh.vertexTexture.ref.value;

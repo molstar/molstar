@@ -71,8 +71,8 @@ const toCapacity = (vertexCount: number) => Math.max(MinCapacity, Math.ceil(vert
 
 /**
  * The isosurface in pages of the vertex arena, drawn indirectly with the count on the GPU: nothing is read back before
- * drawing. The count, read back afterwards, keeps the upper bound of the texture mesh (`vertexCount`) and the position
- * iterator's data right; a surface that did not get all its pages (the arena's free pages ran out) is extracted again
+ * drawing. The count, read back afterwards, is drawn directly from then on (`TextureMesh.setDrawnVertexCount`), and keeps
+ * the upper bound of the texture mesh (`vertexCount`) and the position iterator's data right; a surface that did not get all its pages (the arena's free pages ran out) is extracted again
  * after the arena grew. The re-extraction handlers of the mesh (`TextureMesh.setReextractionHandler`) run after either
  * changed the vertices data derived from them saw. The expected count, which grows the arena beforehand, is the last
  * count of `textureMesh` (with headroom), else `estimate` (a function: called only then, e.g. a pass over the grid,
@@ -129,6 +129,8 @@ export async function computeTextureMeshIsosurface(
     // smoothing, which then left out the vertices beyond it)
     const beyondBound = drawn > mesh.vertexCount;
     if (beyondBound) TextureMesh.setVertexCount(mesh, toCapacity(drawn));
+    // the count known: drawn directly, not with the count on the GPU
+    TextureMesh.setDrawnVertexCount(mesh, drawn);
     // data derived from incomplete vertices
     if (reextracted || beyondBound) for (const handler of mesh.meta.reextracted?.values() ?? []) handler();
   });
