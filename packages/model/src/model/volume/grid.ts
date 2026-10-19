@@ -318,6 +318,76 @@ namespace Grid {
   }
 
   function computeGradients(grid: Grid): Gradients {
+    const strides = Tensor.strides(grid.cells.space);
+    // read the data directly where the space allows it (same values as `get`), else through the accessors
+    return strides && strides.length === 3 ? computeGradientsStrided(grid, strides) : computeGradientsGet(grid);
+  }
+
+  function gradientStats(n: number, min: number, max: number, sum: number, sumSq: number) {
+    if (min === Infinity) min = 0;
+    if (max === -Infinity) max = 1;
+    min = Math.sqrt(min);
+    max = Math.sqrt(max);
+
+    const mean = sum / n;
+    const sigma = Math.sqrt(sumSq / n);
+
+    return { min, max, mean, sigma };
+  }
+
+  /** As `computeGradientsGet`, reading `data[i * sx + j * sy + k * sz]` */
+  function computeGradientsStrided(grid: Grid, strides: ReadonlyArray<number>): Gradients {
+    const { space, data } = grid.cells;
+    const [mi, mj, mk] = space.dimensions;
+    const [sx, sy, sz] = strides;
+
+    const n = mi * mj * mk;
+    const values = new Float32Array(n * 3);
+
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    let sumSq = 0;
+
+    for (let k = 0; k < mk; ++k) {
+      const km = Math.max(0, k - 1);
+      const kp = Math.min(mk - 1, k + 1);
+      const dzm = (km - k) * sz;
+      const dzp = (kp - k) * sz;
+      const dz = kp - km || 1;
+      for (let j = 0; j < mj; ++j) {
+        const jm = Math.max(0, j - 1);
+        const jp = Math.min(mj - 1, j + 1);
+        const dym = (jm - j) * sy;
+        const dyp = (jp - j) * sy;
+        const dy = jp - jm || 1;
+        let o = j * sy + k * sz;
+        for (let i = 0; i < mi; ++i, o += sx) {
+          const im = Math.max(0, i - 1);
+          const ip = Math.min(mi - 1, i + 1);
+
+          const gx = (data[o + (ip - i) * sx] - data[o + (im - i) * sx]) / (ip - im || 1);
+          const gy = (data[o + dyp] - data[o + dym]) / dy;
+          const gz = (data[o + dzp] - data[o + dzm]) / dz;
+
+          const idx = o * 3;
+          values[idx] = gx;
+          values[idx + 1] = gy;
+          values[idx + 2] = gz;
+
+          const mag = gx * gx + gy * gy + gz * gz;
+          if (mag < min) min = mag;
+          if (mag > max) max = mag;
+          sum += mag;
+          sumSq += mag * mag;
+        }
+      }
+    }
+
+    return { values, magnitude: gradientStats(n, min, max, sum, sumSq) };
+  }
+
+  function computeGradientsGet(grid: Grid): Gradients {
     const { dimensions, get, dataOffset } = grid.cells.space;
     const data = grid.cells.data;
     const [mi, mj, mk] = dimensions;
@@ -361,15 +431,7 @@ namespace Grid {
       }
     }
 
-    if (min === Infinity) min = 0;
-    if (max === -Infinity) max = 1;
-    min = Math.sqrt(min);
-    max = Math.sqrt(max);
-
-    const mean = sum / n;
-    const sigma = Math.sqrt(sumSq / n);
-
-    return { values, magnitude: { min, max, mean, sigma } };
+    return { values, magnitude: gradientStats(n, min, max, sum, sumSq) };
   }
 
   /**
@@ -378,15 +440,27 @@ namespace Grid {
    */
   export function makeGetInterpolatedGradient(grid: Grid) {
     const { values: g } = getGradients(grid);
-    const { dimensions, dataOffset } = grid.cells.space;
+    const { space } = grid.cells;
+    const { dimensions, dataOffset } = space;
     const [mi, mj, mk] = dimensions;
 
-    const getGradientVec3 = (i: number, j: number, k: number, out: Vec3) => {
-      const idx = dataOffset(i, j, k) * 3;
-      out[0] = g[idx];
-      out[1] = g[idx + 1];
-      out[2] = g[idx + 2];
-    };
+    // the gradients are laid out as the data, `dataOffset * 3`
+    const strides = Tensor.strides(space);
+    const strided = !!strides && strides.length === 3;
+    const [sx, sy, sz] = strided ? strides! : [0, 0, 0];
+    const getGradientVec3 = strided
+      ? (i: number, j: number, k: number, out: Vec3) => {
+          const idx = (i * sx + j * sy + k * sz) * 3;
+          out[0] = g[idx];
+          out[1] = g[idx + 1];
+          out[2] = g[idx + 2];
+        }
+      : (i: number, j: number, k: number, out: Vec3) => {
+          const idx = dataOffset(i, j, k) * 3;
+          out[0] = g[idx];
+          out[1] = g[idx + 1];
+          out[2] = g[idx + 2];
+        };
 
     return function getInterpolatedGradient(gridCoords: Vec3, out: Vec3): boolean {
       return trilinearlyInterpolateVec3(gridCoords, mi, mj, mk, getGradientVec3, out);

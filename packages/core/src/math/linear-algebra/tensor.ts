@@ -78,24 +78,29 @@ export namespace Tensor {
       dataOffset,
       getCoords,
     };
-    spaceStrides.set(space, { strides: layoutStrides(layout), get });
+    spaceStrides.set(space, { strides: layoutStrides(layout), get, dataOffset });
     return space;
   }
 
-  /** Strides of the spaces made by `Space`, keyed by the object so that a copy never has them, with their `get` */
-  const spaceStrides = new WeakMap<Space, { strides: ReadonlyArray<number>; get: Space['get'] }>();
+  /** Strides of the spaces made by `Space`, keyed by the object so that a copy never has them, with their accessors */
+  const spaceStrides = new WeakMap<
+    Space,
+    { strides: ReadonlyArray<number>; get: Space['get']; dataOffset: Space['dataOffset'] }
+  >();
 
   /**
-   * The strides of a space whose `get` is a plain strided read, `get(data, c0, c1, …) === data[c0 * s[0] + c1 * s[1] + …]`,
-   * for reading the data directly in hot loops; `undefined` for any other space, which must be read through `get`.
+   * The strides of a space whose `get` and `dataOffset` are plain strided reads,
+   * `dataOffset(c0, c1, …) === c0 * s[0] + c1 * s[1] + …` and `get(data, c0, c1, …) === data[dataOffset(c0, c1, …)]`,
+   * for reading the data directly in hot loops; `undefined` for any other space, which must be read through its
+   * accessors.
    *
    * Only a space made by `Space` has strides. They are keyed by the object, not a property, because spaces are copied
    * with their accessors overridden (`{ ...space, get }`: `createFloodfilled`, wrapped and periodic volumes), and a copied
-   * property would make a direct read skip the override. A `get` replaced in place drops them too.
+   * property would make a direct read skip the override. A `get` or `dataOffset` replaced in place drops them too.
    */
   export function strides(space: Space): ReadonlyArray<number> | undefined {
     const entry = spaceStrides.get(space);
-    return entry && entry.get === space.get ? entry.strides : undefined;
+    return entry && entry.get === space.get && entry.dataOffset === space.dataOffset ? entry.strides : undefined;
   }
 
   function layoutStrides(layout: Layout): number[] {

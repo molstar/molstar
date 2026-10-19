@@ -35,6 +35,7 @@ repeated. Bugs are listed in [bugs.md](bugs.md).
 | [09-graphics-theme-props](09-graphics-theme-props.md) | `packages/graphics/src/theme`, `packages/graphics/src/props`               |    6 / 4 |
 | [10-prism-viewer](10-prism-viewer.md)                 | `packages/prism/viewer/src` (plus two plugin hot spots on its paths)       |   11 / 3 |
 | [11-prism-ui-assistant](11-prism-ui-assistant.md)     | `packages/prism/ui/src`, `packages/prism/assistant/src`                    |    7 / 2 |
+| [12-tensor-access](12-tensor-access.md)               | every `Tensor` `get`/`dataOffset`/`getCoords` site; strides (#1987)         |    9 / 2 |
 
 Not audited: `packages/io` (profiled only: parse is cheap), `graphics/src/gl` and Canvas3D (frozen), `packages/plugin`
 (only 10/P4, 10/P5), `packages/mvs`, `query-language`, `sequences`, `ai`, extensions, apps, servers. Not measured:
