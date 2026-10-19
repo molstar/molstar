@@ -321,4 +321,60 @@ describe('tensor', () => {
       }
     }
   });
+
+  it('strides read what get reads, for every axis order', () => {
+    const rank3 = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ];
+    const cases: [number[], number[][]][] = [
+      [[5], [[0]]],
+      [
+        [4, 3],
+        [
+          [0, 1],
+          [1, 0],
+        ],
+      ],
+      [[4, 3, 5], rank3],
+      [
+        [3, 2, 4, 2],
+        [
+          [0, 1, 2, 3],
+          [3, 1, 0, 2],
+        ],
+      ],
+    ];
+    for (const [dims, orders] of cases) {
+      for (const ao of orders) {
+        const space = T.Space(dims, ao);
+        const data = space.create();
+        for (let i = 0; i < data.length; i++) data[i] = i;
+        const strides = T.strides(space)!;
+        expect(strides).toHaveLength(dims.length);
+        // every coordinate, last axis fastest
+        const c = dims.map(() => 0);
+        for (let n = 0; n < data.length; n++) {
+          let offset = 0;
+          for (let d = 0; d < dims.length; d++) offset += c[d] * strides[d];
+          expect(offset, `${dims} ${ao} ${c}`).toBe(space.dataOffset(...c));
+          expect(data[offset], `${dims} ${ao} ${c}`).toBe(space.get(data, ...c));
+          for (let d = dims.length - 1; d >= 0 && ++c[d] === dims[d]; d--) c[d] = 0;
+        }
+      }
+    }
+  });
+
+  it('gives no strides to a copied space', () => {
+    const space = T.Space([4, 3, 5], [0, 1, 2], Float32Array);
+    const data = space.create();
+    for (let i = 0; i < data.length; i++) data[i] = i % 7;
+    expect(T.strides({ ...space })).toBeUndefined();
+    expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'inside').space)).toBeUndefined();
+    expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'outside').space)).toBeUndefined();
+  });
 });

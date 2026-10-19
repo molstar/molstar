@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -67,7 +67,7 @@ export namespace Tensor {
   export function Space(dimensions: number[], axisOrderSlowToFast: number[], ctor?: ArrayCtor): Space {
     const layout = Layout(dimensions, axisOrderSlowToFast, ctor);
     const { get, set, add, dataOffset, getCoords } = accessors(layout);
-    return {
+    const space: Space = {
       rank: dimensions.length,
       dimensions,
       axisOrderSlowToFast,
@@ -78,6 +78,34 @@ export namespace Tensor {
       dataOffset,
       getCoords,
     };
+    spaceStrides.set(space, layoutStrides(layout));
+    return space;
+  }
+
+  /** Strides of the spaces made by `Space`, keyed by the object so that a copy never has them (see `strides`) */
+  const spaceStrides = new WeakMap<Space, ReadonlyArray<number>>();
+
+  /**
+   * The strides of a space whose `get` is a plain strided read, `get(data, c0, c1, …) === data[c0 * s[0] + c1 * s[1] + …]`,
+   * for reading the data directly in hot loops; `undefined` for any other space, which must be read through `get`.
+   *
+   * Only a space made by `Space` has strides. They are keyed by the object, not a property, because spaces are copied
+   * with their accessors overridden (`{ ...space, get }`: `createFloodfilled`, wrapped and periodic volumes), and a copied
+   * property would make a direct read skip the override.
+   */
+  export function strides(space: Space): ReadonlyArray<number> | undefined {
+    return spaceStrides.get(space);
+  }
+
+  function layoutStrides(layout: Layout): number[] {
+    const { dimensions, axisOrderFastToSlow: ao } = layout;
+    const strides: number[] = [];
+    let stride = 1;
+    for (let i = 0; i < ao.length; i++) {
+      strides[ao[i]] = stride;
+      stride *= dimensions[ao[i]];
+    }
+    return strides;
   }
 
   export function Data1(values: ArrayLike<number>): Data {
@@ -607,6 +635,7 @@ export namespace Tensor {
   export function createFloodfilled(tensor: Tensor, threshold: number, mode: 'inside' | 'outside'): Tensor {
     const visited = floodfill(tensor, threshold);
 
+    // a new object, so it has no `strides`: readers go through the filled `get`
     const newSpace: Tensor.Space = {
       ...tensor.space,
       get: floodfilledGet(mode, threshold, visited, tensor),
