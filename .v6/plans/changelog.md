@@ -85,6 +85,8 @@ the [API change ledger](breaking-v6-changes.md).
   small ones on the CPU, where they are faster; WebGL keeps the resolution cutoff
 - Fix images and direct volumes with instance granularity: markers were read per group instance, and direct volumes
   ignored overpaint
+- Molecular surfaces compute their field 1.6–2× faster (7qpd at 0.5 Å: 1.26 → 0.80 s), with the same output: the
+  occlusion tests scan compact neighbour lists, pruned per torus, and run only for voxels that would change
 
 ## MVS selectors through model indices
 
