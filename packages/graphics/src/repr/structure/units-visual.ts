@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -13,6 +14,7 @@ import { Geometry, type GeometryUtils } from '@molstar/graphics/geo/geometry/geo
 import type { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { createUnitsTransform, includesUnitKind, type StructureGroup } from './visual/util/common.js';
+import { getGroupLoci, isWholeStructureLoci } from './visual/util/loci-index.js';
 import {
   createRenderObject,
   type GraphicsRenderObject,
@@ -22,6 +24,7 @@ import {
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval } from '@molstar/core/data/int';
+import type { IntMap } from '@molstar/core/data/int/map';
 import { type LocationCallback, VisualUpdateState } from '../util.js';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { createMarkers } from '@molstar/graphics/geo/geometry/marker-data';
@@ -418,9 +421,26 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       StructureElement.Loci.is(loci) &&
       Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure)
     ) {
-      if (StructureElement.Loci.isWholeStructure(loci)) return true;
+      if (isWholeStructureLoci(loci)) return true;
     }
     return false;
+  }
+
+  /** the units of `currentStructureGroup.group` and its index, read once per group (see `getGroupLoci`) */
+  const lociGroup: { group?: Unit.SymmetryGroup; units: ReadonlyArray<Unit>; unitIndexMap?: IntMap<number> } = {
+    units: [],
+  };
+
+  /** `loci` on the units of this visual only, `undefined` when it has none of them (perf-audit 07 P3) */
+  function getVisualLoci(loci: Loci): Loci | undefined {
+    if (!StructureElement.Loci.is(loci)) return loci;
+    const { group } = currentStructureGroup;
+    if (lociGroup.group !== group) {
+      lociGroup.group = group;
+      lociGroup.units = group.units;
+      lociGroup.unitIndexMap = group.unitIndexMap;
+    }
+    return getGroupLoci(loci, lociGroup.units, lociGroup.unitIndexMap!);
   }
 
   function eachInstance(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
@@ -461,10 +481,12 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
       }
     } else {
+      const visualLoci = getVisualLoci(loci);
+      if (!visualLoci) return false;
       if (instanceGranularity) {
-        return eachInstance(loci, currentStructureGroup, apply);
+        return eachInstance(visualLoci, currentStructureGroup, apply);
       } else {
-        return eachLocation(loci, currentStructureGroup, apply, isMarking);
+        return eachLocation(visualLoci, currentStructureGroup, apply, isMarking);
       }
     }
   }
@@ -523,18 +545,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       }
     },
     mark(loci: Loci, action: MarkerAction) {
-      let hasInvariantId = true;
-      if (StructureElement.Loci.is(loci)) {
-        hasInvariantId = false;
-        const { invariantId } = currentStructureGroup.group.units[0];
-        for (const e of loci.elements) {
-          if (e.unit.invariantId === invariantId) {
-            hasInvariantId = true;
-            break;
-          }
-        }
-      }
-      return hasInvariantId ? Visual.mark(renderObject, loci, action, lociApply, previousMark) : false;
+      // on its own units only, so that `previousMark` compares (and keeps) just those; a loci of all of them stays as
+      // it is, and a whole-structure one arrives as `EveryLoci` (`UnitsRepresentation.mark`)
+      const visualLoci = getVisualLoci(loci);
+      return visualLoci ? Visual.mark(renderObject, visualLoci, action, lociApply, previousMark) : false;
     },
     setVisibility(visible: boolean) {
       Visual.setVisibility(renderObject, visible);
@@ -551,20 +565,20 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
       Visual.setTransform(renderObject, matrix, instanceMatrices);
     },
-    setOverpaint(overpaint: Overpaint, graphics?: GraphicsContext) {
-      const smoothing = { geometry, props: currentProps, graphics };
+    setOverpaint(overpaint: Overpaint, graphics?: GraphicsContext, smooth = true) {
+      const smoothing = smooth ? { geometry, props: currentProps, graphics } : undefined;
       Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
     },
-    setTransparency(transparency: Transparency, graphics?: GraphicsContext) {
-      const smoothing = { geometry, props: currentProps, graphics };
+    setTransparency(transparency: Transparency, graphics?: GraphicsContext, smooth = true) {
+      const smoothing = smooth ? { geometry, props: currentProps, graphics } : undefined;
       Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
     },
-    setEmissive(emissive: Emissive, graphics?: GraphicsContext) {
-      const smoothing = { geometry, props: currentProps, graphics };
+    setEmissive(emissive: Emissive, graphics?: GraphicsContext, smooth = true) {
+      const smoothing = smooth ? { geometry, props: currentProps, graphics } : undefined;
       Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
     },
-    setSubstance(substance: Substance, graphics?: GraphicsContext) {
-      const smoothing = { geometry, props: currentProps, graphics };
+    setSubstance(substance: Substance, graphics?: GraphicsContext, smooth = true) {
+      const smoothing = smooth ? { geometry, props: currentProps, graphics } : undefined;
       Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
     },
     setClipping(clipping: Clipping) {

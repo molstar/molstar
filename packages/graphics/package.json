@@ -24,6 +24,8 @@
     "./repr/_test/*": null,
     "./repr/particles/representation/_test/*": null,
     "./repr/shape/_test/*": null,
+    "./repr/structure/_test/*": null,
+    "./repr/structure/visual/util/_test/*": null,
     "./repr/structure/visual/util/polymer/_test/*": null,
     "./repr/volume/_test/*": null,
     "./theme/_test/*": null

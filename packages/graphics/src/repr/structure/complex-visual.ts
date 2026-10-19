@@ -60,6 +60,7 @@ import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { Image } from '@molstar/graphics/geo/geometry/image/image';
 import { getGeometrySignatures, type SignatureContext, type SignatureDefines } from '@molstar/graphics/repr/signatures';
+import { isWholeStructureLoci } from './visual/util/loci-index.js';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> {}
 
@@ -290,7 +291,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     if (isEveryLoci(loci)) return true;
     if (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructure)) return true;
     if (StructureElement.Loci.is(loci) && Structure.areRootsEquivalent(loci.structure, currentStructure)) {
-      if (StructureElement.Loci.isWholeStructure(loci)) return true;
+      if (isWholeStructureLoci(loci)) return true;
     }
     return false;
   }
