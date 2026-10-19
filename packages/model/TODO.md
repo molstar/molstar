@@ -10,6 +10,10 @@ decided or fixed. Spec: [\_spec](_spec/README.md). Performance items and bugs of
   children of whole residues; not shown for partial ones ([unit.md](_spec/unit.md) §4).
 - **The parent of a remapped unit.** `remapModel` drops it; once `Structure.remapModel` receives the remapped root (B1),
   pass the root's unit with the same id ([unit.md](_spec/unit.md) §3).
+- **Per-operator index-pair bonds and shared props.** Symmetry copies share `props`, so index-pair bonds listed per
+  operator (`molstar_bond_site` with operator ids) are computed by whichever copy asks first and then serve all of them,
+  though [unit.md](_spec/unit.md) §1 and §4 treat them as depending on the operator. No reader sets operator ids today
+  (05-model-structure P8); key the bonds by operator, or keep such copies from sharing props, once one does.
 - **`model/` imports `props/`** (`model.ts`, `structure.ts`, `properties.ts`, mmCIF export, SIFTS superposition) while
   `props/` imports `model/`: one layer or two?
 - **Format properties set by readers are not registered.** `FormatPropertyProvider.set` writes the bag but not

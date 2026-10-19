@@ -70,8 +70,20 @@ export function subsetIntraUnitBonds(
   if (n <= 1) return IntraUnitBonds.Empty;
   const vertices = getParentIndices(parentElements, elements);
   if (!vertices) return undefined;
-  // `IntraUnitBonds.Empty` has no offsets, whatever the size of its unit
-  if (bonds.edgeCount === 0) return IntraUnitBonds.Empty;
+  const { order, flags, key } = bonds.edgeProps;
+  // no edges: an empty graph of the child's size with the parent's props, as a recompute gives (the parent's graph
+  // may be the shared `IntraUnitBonds.Empty`, which has no offsets)
+  if (bonds.edgeCount === 0) {
+    const none = new Int32Array(0);
+    return IntAdjacencyGraph.create(
+      new Int32Array(n + 1),
+      none as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,
+      none as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,
+      0,
+      { order: arrayPickIndices(order, none), flags: arrayPickIndices(flags, none), key: arrayPickIndices(key, none) },
+      bonds.props,
+    );
+  }
 
   // the induced subgraph, visiting only the child's vertices and their parent edges (IntAdjacencyGraph
   // .induceByVertices visits every parent vertex)
@@ -103,7 +115,6 @@ export function subsetIntraUnitBonds(
     newOffset[i + 1] = eo;
   }
   const picked = edgeIndices.subarray(0, eo);
-  const { order, flags, key } = bonds.edgeProps;
   return IntAdjacencyGraph.create(
     newOffset,
     newA.slice(0, eo) as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,

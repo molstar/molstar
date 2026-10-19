@@ -60,10 +60,11 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
 - Inter-unit (`inter-compute.ts`): unit pairs from `eachUnitPair` (structure grid, `validUnit`, `validUnitPair`: same
   model or the master model; waters and ions skipped unless `dynamicBonds` or a common struct_conn record). Per pair,
   A's atoms near B come from A's grid (P4). Index pairs, else struct_conn, else distance.
-- A child's inter-unit bonds: empty if the root's are empty; else restricted from the root's (`subsetInterUnitBonds`,
-  `unit/bonds/subset.ts`) when the bond props and the units' operators are the root's; else computed. The restriction
-  keeps what the root shows where a recompute could differ (struct_conn partners outside the child, water and ion
-  pairing): a child shows a subset of its root.
+- A child's inter-unit bonds: empty if the root's are empty and `dynamicBonds` is the root's; else restricted from the
+  root's (`subsetInterUnitBonds`, `unit/bonds/subset.ts`) when the bond props and the units' operators are the root's;
+  else computed. The restriction keeps what the root shows where a recompute could differ (struct_conn partners outside
+  the child, which unit of a pair is iterated, water and ion pairing by a unit's first element) and for bonds the root
+  carried over from another frame: a child shows a subset of its root.
 - `IntraUnitBonds` store both directions (`edgeCount` undirected); `InterUnitBonds` list a pair under both units
   (`edgeCount` directed; `Structure.bondCount` halves it).
 

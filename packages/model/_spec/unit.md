@@ -91,4 +91,6 @@ the remapped root (05-model-structure B1), it can pass the root's unit with the 
 One pointer per unit. A child keeps its parent unit alive, static props and transient cache included. Child structures
 already keep their root structure (`Structure.parent`), whose units are these parents, so usually nothing more is
 retained. Units whose root is not their structure's root (§2: symmetry built from part of a unit) keep one unit of the
-discarded asymmetric unit alive each: at most one per unit, never a chain. Coarse units keep a parent they never use.
+discarded asymmetric unit alive each: at most one per unit, never a chain. `Loci.toStructure` of a root's loci makes a
+structure without `Structure.parent` whose units still keep the root's units (and their grids and bonds) alive; keeping
+such structures (e.g. per trajectory frame) keeps those. Coarse units keep a parent they never use.

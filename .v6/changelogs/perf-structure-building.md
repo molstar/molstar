@@ -10,14 +10,15 @@ Measured on 1tup expanded to 2×2×2 cell blocks (186k atoms): as 288 units in 9
   (lookups, bonds, boundary), as the subset builder's children do. Every second atom of the 288 units: 195 → 9 distinct
   props, child boundary 44 → 4 ms, intra-unit bonds of all child units 115 → 4 ms
 - Child structures (components, selections, focus) restrict the parent's inter-unit bonds when those exist instead of
-  computing them: polymer component 79 → 0.7 ms (288 units), 65 → 0.1 ms (416 units). The edges are a recompute's in
-  the order of the parent's; a child shows what its parent shows, so bonds a trajectory frame carried over from an
-  earlier one (`remapModel`) carry over to components created on that frame too
-- Structure and loci boundary spheres above 10k points (the unit spheres' extrema, or the selected elements) use 14
-  directions instead of 98; unit spheres and smaller structures and selections keep 98: structure sphere 14 → 2.6 ms,
-  loci sphere of every second atom 32 → 11 ms (416 units). The spheres are ~2 % tighter and enclose the atoms as
-  before; a sphere merged from several of them (the camera focusing several large loci) can miss atoms by up to ~2 Å
-  (0.6 Å before)
+  computing them: polymer component 79 → 0.7 ms (288 units), 65 → 0.1 ms (416 units). The edges are a recompute's on
+  every pinned fixture, in the order of the parent's. A child shows what its parent shows: where a recompute could
+  differ (a struct_conn partner outside the child, water and ion pairing decided by a unit's first element) and for
+  bonds a trajectory frame carried over from an earlier one (`remapModel`)
+- Structure and loci boundary spheres pick their EPOS directions by size: 98 up to 10k points (the unit spheres'
+  extrema, or the selected elements), 14 above; before, structures used 14 above 500 units and loci always 98. Unit
+  spheres keep 98. 416 units: structure sphere 14 → 2.6 ms, loci sphere of every second atom 32 → 11 ms. Radii move
+  by a few % either way (−4 % to +1 % on the fixtures) and enclose the atoms as before; a sphere merged from several
+  14-direction ones (the camera focusing several large loci) can miss atoms by up to ~2 Å (0.6 Å before)
 - `Mat4.isRigid`: whether a matrix keeps distances (orthonormal linear part, affine)
 - `Box3D.fromPositionArray` (interleaved xyz), `Box3D.intersect`, `Box3D.isEmpty`
 - [Breaking] `Cage.vertices` and the fan and strip vertices of `MeshBuilder` are `Float32Array`, see the

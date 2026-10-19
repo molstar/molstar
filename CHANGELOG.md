@@ -10,6 +10,9 @@ here.
 
 ## [Unreleased]
 
+- Fix highlighting and selecting cross-link restraints (`CrossLinkRestraint.isLoci` tested the tag of interactions)
+- Fix `Bond.remapLoci`, which kept the old structure on the remapped bond locations, and `Bond.areLocationsEqual`, which
+  compared structures by label
 - MVS: an animated color with no start value (no `start`, and no value at the target, e.g. a key its color map does not
   have) leaves the property as it is again, instead of failing the load with "Missing start value for color
   interpolation" (a regression of split coloring)

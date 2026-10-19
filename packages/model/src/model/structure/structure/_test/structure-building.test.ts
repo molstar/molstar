@@ -443,7 +443,22 @@ describe('structure building', async () => {
         props,
       );
       const child = root.getChild(everySecond(root)) as Unit.Atomic;
-      expect(child.bonds).toBe(IntraUnitBonds.Empty);
+      // an empty graph of the child's size, not the shared `Empty` (no offsets)
+      expect(child.bonds.edgeCount).toBe(0);
+      expect(child.bonds.vertexCount).toBe(child.elements.length);
+      expect(child.bonds.getVertexEdgeCount(0 as any)).toBe(0);
+    });
+
+    it('a child of a unit without bonds equals a recompute', () => {
+      // the waters of 1cbs: one unit, no intra-unit bonds
+      const u = Structure.ofModel(m1cbs).units.find(
+        (x) => x.elements.length > 2 && (x as Unit.Atomic).bonds.edgeCount === 0,
+      );
+      expect(u).toBeDefined();
+      const elements = everySecond(u!);
+      const child = u!.getChild(elements) as Unit.Atomic;
+      expect(IntAdjacencyGraph.areEqual(child.bonds, computed(u!, elements))).toBe(true);
+      expect(child.bonds.props).toEqual(computed(u!, elements).props);
     });
 
     it('copies and symmetry copies keep the parent and share the static props', () => {
