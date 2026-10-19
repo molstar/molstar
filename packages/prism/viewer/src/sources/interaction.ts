@@ -61,6 +61,10 @@ export function createInteractionSources(scope: SourceScope, plugin: PluginConte
     },
     plugin.managers.structure.focus.behaviors.current,
   );
+  // What each structure has picked, per selection loci (the selection manager keeps the object while it is unchanged):
+  // the list follows every state change (a renamed or removed structure), and a change elsewhere in the tree must not
+  // count a large selection again (4 ms a change for 186k atoms while Superpose shows it).
+  const pickedMemo = new WeakMap<StructureElement.Loci, PickedStructure>();
   const picked = watchedState(
     (): readonly PickedStructure[] => {
       const structures = plugin.managers.structure.hierarchy.current.structures;
@@ -72,7 +76,10 @@ export function createInteractionSources(scope: SourceScope, plugin: PluginConte
         const loci = plugin.managers.structure.selection.getLoci(data);
         if (!StructureElement.Loci.is(loci) || StructureElement.Loci.isEmpty(loci)) continue;
         const ref = s.cell.transform.ref;
-        out.push(pickedOf(ref, names.get(ref) ?? ref, loci));
+        const label = names.get(ref) ?? ref;
+        let p = pickedMemo.get(loci);
+        if (p?.ref !== ref || p.label !== label) pickedMemo.set(loci, (p = pickedOf(ref, label, loci)));
+        out.push(p);
       }
       return out;
     },

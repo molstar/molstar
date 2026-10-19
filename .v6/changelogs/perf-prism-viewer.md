@@ -17,3 +17,5 @@
   tree instead of six walks (none when there is no group)
 - Style layers (the Layers list) read all five kinds of a representation in one walk: 300 representations, a read with
   nothing changed 1.15 → 0.24 ms
+- Superpose's picked atoms are counted once per selection, not again on every state change (an all-atom selection of
+  186k atoms: ~4 ms a change while the section shows)
