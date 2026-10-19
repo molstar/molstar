@@ -52,17 +52,6 @@ const _bCenterInA = Vec3();
 const _candidateResult = Result.create<StructureElement.UnitIndex>();
 let _candidates = new Int32Array(1024);
 
-/** Whether the linear part of `m` is orthonormal within `eps` (a rigid transform keeps distances). */
-function isRigid(m: Mat4, eps: number) {
-  for (let i = 0; i < 3; i++) {
-    for (let j = i; j < 3; j++) {
-      const d = m[4 * i] * m[4 * j] + m[4 * i + 1] * m[4 * j + 1] + m[4 * i + 2] * m[4 * j + 2];
-      if (Math.abs(d - (i === j ? 1 : 0)) > eps) return false;
-    }
-  }
-  return true;
-}
-
 /** All of `unitA`'s elements, in order. */
 function allCandidates(unitA: Unit.Atomic) {
   const n = unitA.elements.length;
@@ -81,7 +70,7 @@ function allCandidates(unitA: Unit.Atomic) {
  */
 function getCandidates(unitA: Unit.Atomic, unitB: Unit.Atomic, radius: number) {
   Mat4.mul(_bToA, unitA.conformation.operator.inverse, unitB.conformation.operator.matrix);
-  if (!isRigid(_bToA, 1e-4)) return allCandidates(unitA);
+  if (!Mat4.isRigid(_bToA, 1e-4)) return allCandidates(unitA);
   Vec3.transformMat4(_bCenterInA, unitB.boundary.sphere.center, _bToA);
   const sphereA = unitA.boundary.sphere;
   if (Vec3.distance(_bCenterInA, sphereA.center) + sphereA.radius <= radius) return allCandidates(unitA);

@@ -200,17 +200,6 @@ const _bCenterInA = Vec3();
 const _candidateResult = Result.create<Features.FeatureIndex>();
 let _candidates = new Int32Array(1024);
 
-/** Whether the linear part of `m` is orthonormal within `eps` (a rigid transform keeps distances). */
-function isRigid(m: Mat4, eps: number) {
-  for (let i = 0; i < 3; i++) {
-    for (let j = i; j < 3; j++) {
-      const d = m[4 * i] * m[4 * j] + m[4 * i + 1] * m[4 * j + 1] + m[4 * i + 2] * m[4 * j + 2];
-      if (Math.abs(d - (i === j ? 1 : 0)) > eps) return false;
-    }
-  }
-  return true;
-}
-
 /** All features of `featuresA`, in order. */
 function allCandidates(featuresA: Features) {
   const n = featuresA.count;
@@ -230,7 +219,7 @@ function allCandidates(featuresA: Features) {
 function getCandidates(featuresA: Features, unitA: Unit, unitB: Unit, sphereB: Sphere3D, radius: number) {
   if (featuresA.count === 0) return _candidates.subarray(0, 0);
   Mat4.mul(_bToA, unitA.conformation.operator.inverse, unitB.conformation.operator.matrix);
-  if (!isRigid(_bToA, 1e-4)) return allCandidates(featuresA);
+  if (!Mat4.isRigid(_bToA, 1e-4)) return allCandidates(featuresA);
   Vec3.transformMat4(_bCenterInA, sphereB.center, _bToA);
   const sphereA = unitA.boundary.sphere;
   if (Vec3.distance(_bCenterInA, sphereA.center) + sphereA.radius <= radius) return allCandidates(featuresA);
