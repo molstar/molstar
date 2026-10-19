@@ -5,11 +5,12 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
+import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
+import { Mat4 } from '@molstar/core/math/linear-algebra';
 import type { StructureElement } from '../../element.js';
 import type { Structure } from '../../structure.js';
-import { Unit } from '../../unit.js';
-import { InterUnitBonds, type InterUnitEdgeProps } from './data.js';
+import { InterUnitBonds, type InterUnitEdgeProps, type IntraUnitBonds } from './data.js';
 
 /**
  * Maps the UnitIndices of `parent` to those of `child`, whose elements must be a subset of the parent's:
@@ -24,6 +25,30 @@ function getUnitIndexMap(parent: ArrayLike<number>, child: ArrayLike<number>): I
     map[j++] = i;
   }
   return map;
+}
+
+/**
+ * The intra-unit bonds of a child unit with `elements`, restricted from `bonds` of its parent unit with
+ * `parentElements` (05-model-structure P6); `undefined` if `elements` is not a subset of `parentElements`.
+ *
+ * Equals a recompute on the child: `computeIntraUnitBonds` decides per atom pair (struct_conn, the component
+ * dictionary, the hydrogen fallback, alt-locs, thresholds, index pairs). The props (`canRemap`, `cacheable`) are the
+ * parent's: a subset of bonds that survive remapping survives it too.
+ */
+export function subsetIntraUnitBonds(
+  bonds: IntraUnitBonds,
+  parentElements: ArrayLike<number>,
+  elements: ArrayLike<number>,
+): IntraUnitBonds | undefined {
+  // the parent UnitIndex of every child element
+  const vertices = new Int32Array(elements.length);
+  for (let i = 0, j = 0, il = elements.length, jl = parentElements.length; i < il; i++) {
+    const e = elements[i];
+    while (j < jl && parentElements[j] < e) j++;
+    if (j === jl || parentElements[j] !== e) return undefined;
+    vertices[i] = j++;
+  }
+  return IntAdjacencyGraph.induceByVertices(bonds, vertices, bonds.props) as IntraUnitBonds;
 }
 
 /**
@@ -43,7 +68,10 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
   for (const u of child.units) {
     const p = parent.unitMap.get(u.id);
     if (!p || p.kind !== u.kind || p.model !== u.model) return;
-    if (p.conformation.operator !== u.conformation.operator && !Unit.areOperatorsEqual(p, u)) return;
+    const opP = p.conformation.operator;
+    const opU = u.conformation.operator;
+    // as `Unit.areOperatorsEqual`, which this module cannot import (unit.ts imports it)
+    if (opP !== opU && !Mat4.areEqual(opP.matrix, opU.matrix, 1e-6)) return;
     if (p.elements === u.elements || p.elements.length === u.elements.length) {
       if (p.elements !== u.elements && !SortedArray.areEqual(p.elements, u.elements)) return;
       maps.set(u.id, null);

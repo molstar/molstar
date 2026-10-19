@@ -37,6 +37,7 @@ import { type Boundary, getBoundary, getFastBoundary } from '@molstar/core/math/
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache.js';
+import { subsetIntraUnitBonds } from './unit/bonds/subset.js';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { getResonance, type UnitResonance } from './unit/resonance.js';
 
@@ -304,6 +305,9 @@ namespace Unit {
 
     getChild(elements: StructureElement.Set): Unit {
       if (elements.length === this.elements.length) return this;
+      // the child's bonds are restricted from those of this unit, or of the ancestor this unit would take them from
+      const props = this.props;
+      const bondsParent = props.bonds || !props.bondsParent ? { elements: this.elements, props } : props.bondsParent;
       return new Atomic(
         this.id,
         this.invariantId,
@@ -312,7 +316,7 @@ namespace Unit {
         this.model,
         elements,
         this.conformation,
-        AtomicProperties(),
+        { bondsParent },
       );
     }
 
@@ -351,6 +355,7 @@ namespace Unit {
       if (!props) {
         props = {
           ...this.props,
+          bondsParent: undefined,
           bonds:
             dynamicBonds && !this.props.bonds?.props?.canRemap
               ? undefined
@@ -415,12 +420,19 @@ namespace Unit {
     get bonds() {
       if (this.props.bonds) return this.props.bonds;
 
-      const cache = ElementSetIntraBondCache.get(this.model);
-      let bonds = cache.get(this.elements);
+      // a child restricts its parent's bonds if they exist (05-model-structure P6), and drops the parent reference
+      const { bondsParent } = this.props;
+      this.props.bondsParent = undefined;
+      let bonds =
+        bondsParent?.props.bonds && subsetIntraUnitBonds(bondsParent.props.bonds, bondsParent.elements, this.elements);
       if (!bonds) {
-        bonds = computeIntraUnitBonds(this);
-        if (bonds.props?.cacheable) {
-          cache.set(this.elements, bonds);
+        const cache = ElementSetIntraBondCache.get(this.model);
+        bonds = cache.get(this.elements);
+        if (!bonds) {
+          bonds = computeIntraUnitBonds(this);
+          if (bonds.props?.cacheable) {
+            cache.set(this.elements, bonds);
+          }
         }
       }
       this.props.bonds = bonds;
@@ -515,6 +527,11 @@ namespace Unit {
 
   interface AtomicProperties extends BaseProperties {
     bonds?: IntraUnitBonds;
+    /**
+     * The elements and props of the unit a child was made from, whose bonds the child restricts if they exist when it
+     * needs its own; cleared then, so the parent's props are not kept.
+     */
+    bondsParent?: { readonly elements: StructureElement.Set; readonly props: AtomicProperties };
     rings?: UnitRings;
     resonance?: UnitResonance;
     nucleotideElements?: SortedArray<ElementIndex>;
