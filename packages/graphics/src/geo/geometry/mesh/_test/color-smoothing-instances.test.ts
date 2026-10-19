@@ -44,6 +44,7 @@ import {
   applyMeshSubstanceSmoothing,
   applyMeshTransparencySmoothing,
   type ColorSmoothingOptions,
+  calcMeshColorSmoothing,
 } from '../color-smoothing.js';
 import { Mesh } from '../mesh.js';
 
@@ -106,7 +107,14 @@ async function surfaceGeometry(structure: Structure) {
   return geometry;
 }
 
-type Geometry = Awaited<ReturnType<typeof surfaceGeometry>>;
+type Geometry = Awaited<ReturnType<typeof surfaceGeometry>> & {
+  /** `aInstance` (and `aTransform` in its order), as reordered by the instance grid */
+  permutation?: number[];
+  /** the layer type, `groupInstance` when not given; `group` for color only */
+  colorType?: 'group' | 'groupInstance';
+  /** scales the bounding sphere: below 1 some vertices fall outside its box, and the grid */
+  sphereScale?: number;
+};
 type Layer = 'color' | 'overpaint' | 'transparency' | 'emissive' | 'substance';
 
 const ItemSize: Record<Layer, 1 | 4> = { color: 4, overpaint: 4, transparency: 1, emissive: 1, substance: 4 };
@@ -117,7 +125,8 @@ function rng(seed: number) {
 
 /** a `groupInstance` layer, non-zero on the groups `reach(instance, group)` accepts, random values there */
 function layerImage(geometry: Geometry, itemSize: 1 | 4, reach: (instance: number, group: number) => boolean) {
-  const { groupCount, instanceCount } = geometry;
+  const { groupCount } = geometry;
+  const instanceCount = geometry.colorType === 'group' ? 1 : geometry.instanceCount;
   const image = createTextureImage(groupCount * instanceCount, itemSize, Uint8Array);
   const rnd = rng(31);
   for (let i = 0; i < instanceCount; ++i) {
@@ -142,14 +151,27 @@ function createValues(geometry: Geometry, layer: Layer, image: TextureImage<Uint
     vertexCount,
     0,
   );
-  mesh.setBoundingSphere(geometry.invariantBoundingSphere);
+  const sphere = geometry.invariantBoundingSphere;
+  // a scaled sphere has no extrema, so its box is the cube of the scaled radius
+  const { sphereScale } = geometry;
+  mesh.setBoundingSphere(sphereScale ? Sphere3D.create(sphere.center, sphere.radius * sphereScale) : sphere);
   const transform = createTransform(transforms.slice(), instanceCount, undefined, 0, 0);
   const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0x808080), 1, transform);
   ValueCell.update(values.uGroupCount, geometry.groupCount);
+  const { permutation } = geometry;
+  if (permutation) {
+    const aInstance = values.aInstance.ref.value;
+    const aTransform = values.aTransform.ref.value;
+    permutation.forEach((p, k) => {
+      aInstance[k] = p;
+      aTransform.set(transforms.subarray(p * 16, (p + 1) * 16), k * 16);
+    });
+  }
+  const type = geometry.colorType ?? 'groupInstance';
   switch (layer) {
     case 'color':
       ValueCell.update(values.tColor, image);
-      setColorType(values, 'groupInstance');
+      setColorType(values, type);
       break;
     case 'overpaint':
       ValueCell.update(values.tOverpaint, image);
@@ -213,11 +235,12 @@ function isZero(array: Uint8Array) {
   return true;
 }
 
-/** per instance: `0` when all clear, else the hash of its values */
+/** per instance (output row): `0` when all clear, else the hash of its values */
 function perInstance(array: Uint8Array, geometry: Geometry, itemSize: number) {
   const n = geometry.vertexCount * itemSize;
   const out: string[] = [];
-  for (let i = 0; i < geometry.instanceCount; ++i) {
+  const rows = geometry.colorType === 'group' ? 1 : geometry.instanceCount;
+  for (let i = 0; i < rows; ++i) {
     const row = array.subarray(i * n, (i + 1) * n);
     out.push(isZero(row) ? '0' : hash(row));
   }
@@ -242,6 +265,25 @@ function smoothed(geometry: Geometry, layer: Layer, image: TextureImage<Uint8Arr
     cpuZero: isZero(cpu.texture.array),
     gridZero: isZero(grid),
   };
+}
+
+/** two pairs of neighbours within the smoothing reach (0 and 1; 2 and the rotated 3), then 4 and 5 farther out */
+function spreadTransforms() {
+  const ms = [
+    Mat4.identity(),
+    Mat4.fromTranslation(Mat4(), Vec3.create(30, 0, 0)),
+    Mat4.fromTranslation(Mat4(), Vec3.create(0, 90, 0)),
+    Mat4.mul(
+      Mat4(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(25, 100, 5)),
+      Mat4.fromRotation(Mat4(), Math.PI / 2, Vec3.create(0, 0, 1)),
+    ),
+    Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, -90)),
+    Mat4.fromTranslation(Mat4(), Vec3.create(60, 50, -45)),
+  ];
+  const transforms = new Float32Array(ms.length * 16);
+  ms.forEach((m, i) => Mat4.toArray(m, transforms, i * 16));
+  return transforms;
 }
 
 const Options: ColorSmoothingOptions[] = [
@@ -289,22 +331,8 @@ describe('mesh layer smoothing on instances', async () => {
 
 describe('mesh layer smoothing on spread instances', async () => {
   const cells = await surfaceGeometry(await loadCells());
-  // pairs of neighbours (within the smoothing reach) and lone instances, a rotated one among them
-  const ms = [
-    Mat4.identity(),
-    Mat4.fromTranslation(Mat4(), Vec3.create(30, 0, 0)),
-    Mat4.fromTranslation(Mat4(), Vec3.create(0, 90, 0)),
-    Mat4.mul(
-      Mat4(),
-      Mat4.fromTranslation(Mat4(), Vec3.create(25, 100, 5)),
-      Mat4.fromRotation(Mat4(), Math.PI / 2, Vec3.create(0, 0, 1)),
-    ),
-    Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, -90)),
-    Mat4.fromTranslation(Mat4(), Vec3.create(60, 50, -45)),
-  ];
-  const transforms = new Float32Array(ms.length * 16);
-  ms.forEach((m, i) => Mat4.toArray(m, transforms, i * 16));
-  const geometry: Geometry = { ...cells, instanceCount: ms.length, transforms };
+  const transforms = spreadTransforms();
+  const geometry: Geometry = { ...cells, instanceCount: transforms.length / 16, transforms };
   const { groupCount } = geometry;
 
   const Reach: [string, (instance: number, group: number) => boolean, ColorSmoothingOptions[]][] = [
@@ -329,4 +357,80 @@ describe('mesh layer smoothing on spread instances', async () => {
       expect(result).toMatchSnapshot();
     });
   }
+});
+
+describe('mesh layer smoothing on reordered and clipped instances, odd groups', async () => {
+  const cells = await surfaceGeometry(await loadCells());
+  const transforms = spreadTransforms();
+  const spread: Geometry = { ...cells, instanceCount: transforms.length / 16, transforms };
+  const outOfRange = spread.groups.slice();
+  outOfRange[10] = spread.groupCount;
+  outOfRange[20] = spread.groupCount + 3;
+  const quarter = (g: number) => g >= spread.groupCount / 4 && g < spread.groupCount / 2;
+
+  const Cases: [string, Layer, Geometry, (instance: number, group: number) => boolean][] = [
+    // the GPU path reads the rows of `aInstance`, the CPU path the serial rows
+    ['reordered, a lone instance', 'overpaint', { ...spread, permutation: [3, 5, 0, 4, 1, 2] }, (i) => i === 4],
+    ['reordered, a pair', 'transparency', { ...spread, permutation: [3, 5, 0, 4, 1, 2] }, (i) => i === 0],
+    ['clipped sphere, a pair', 'overpaint', { ...spread, sphereScale: 0.5 }, (i) => i === 0],
+    ['clipped sphere, a lone instance', 'emissive', { ...spread, sphereScale: 0.5 }, (i) => i === 4],
+    ['groups out of range', 'overpaint', { ...spread, groups: outOfRange }, (i) => i === 4],
+    ['group type', 'color', { ...spread, colorType: 'group' }, (_, g) => quarter(g)],
+    ['group type, nothing', 'color', { ...spread, colorType: 'group' }, () => false],
+  ];
+
+  it('smooths as when every instance is splatted', () => {
+    const result: Record<string, ReturnType<typeof smoothed>> = {};
+    for (const [name, layer, geometry, reach] of Cases) {
+      result[name] = smoothed(geometry, layer, layerImage(geometry, ItemSize[layer], reach), Options[0]);
+    }
+    expect(result).toMatchSnapshot();
+  });
+});
+
+describe('mesh layer smoothing splats the reached instances and their neighbours', async () => {
+  const cells = await surfaceGeometry(await loadCells());
+  const transforms = spreadTransforms();
+  const spread: Geometry = { ...cells, instanceCount: transforms.length / 16, transforms };
+
+  /** the instances splatted for an overpaint reaching `instances`, without and with a graphics context */
+  function splatCounts(geometry: Geometry, instances: number[]) {
+    return [false, true].map((withGraphics) => {
+      const values = createValues(
+        geometry,
+        'overpaint',
+        layerImage(geometry, 4, (i) => instances.includes(i)),
+      );
+      const r = calcMeshColorSmoothing(
+        {
+          vertexCount: values.uVertexCount.ref.value,
+          instanceCount: values.uInstanceCount.ref.value,
+          groupCount: values.uGroupCount.ref.value,
+          transformBuffer: values.aTransform.ref.value,
+          instanceBuffer: values.aInstance.ref.value,
+          positionBuffer: values.aPosition.ref.value,
+          groupBuffer: values.aGroup.ref.value,
+          colorData: values.tOverpaint.ref.value,
+          colorType: 'groupInstance',
+          boundingSphere: values.boundingSphere.ref.value,
+          invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+          itemSize: 4,
+        },
+        Options[0],
+        withGraphics ? createGraphics().graphics : undefined,
+      );
+      return r.splatCount;
+    });
+  }
+
+  it('skips instances out of reach', () => {
+    expect(splatCounts(spread, [])).toEqual([0, 0]);
+    expect(splatCounts(spread, [4])).toEqual([1, 1]);
+    expect(splatCounts(spread, [0])).toEqual([2, 2]);
+    // two reached instances far apart: their neighbours, not every instance between them
+    expect(splatCounts(spread, [0, 4])).toEqual([3, 3]);
+    expect(splatCounts(spread, [0, 1, 2, 3, 4, 5])).toEqual([6, 6]);
+    // with a graphics context, rows are those of `aInstance`: instance 4 is drawn at index 3
+    expect(splatCounts({ ...spread, permutation: [3, 5, 0, 4, 1, 2] }, [4])).toEqual([2, 1]);
+  });
 });

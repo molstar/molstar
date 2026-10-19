@@ -235,6 +235,53 @@ exports[`mesh layer smoothing on instances > smooths transparency reaching some 
 }
 `;
 
+exports[`mesh layer smoothing on reordered and clipped instances, odd groups > smooths as when every instance is splatted 1`] = `
+{
+  "clipped sphere, a lone instance": {
+    "cpu": "vertexInstance 0 0 0 0 fb396324 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 92x112x110 2024x560 -13.2703,3.7135,-80.7086,0.8333 grid:732fb21e",
+    "gridZero": false,
+  },
+  "clipped sphere, a pair": {
+    "cpu": "vertexInstance 15e88a4a 60e2a00c 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 92x112x110 2024x560 -13.2703,3.7135,-80.7086,0.8333 grid:e02d314",
+    "gridZero": false,
+  },
+  "group type": {
+    "cpu": "vertex 85df43c4",
+    "cpuZero": false,
+    "gpu": "volume 41x36x49 492x180 -6.1001,-0.8494,-2.0006,0.8333 grid:41aaf511",
+    "gridZero": false,
+  },
+  "group type, nothing": {
+    "cpu": "vertex 0",
+    "cpuZero": true,
+    "gpu": "volume 41x36x49 492x180 -6.1001,-0.8494,-2.0006,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "groups out of range": {
+    "cpu": "vertexInstance 0 0 0 0 47e88ef 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:7fbbc924",
+    "gridZero": false,
+  },
+  "reordered, a lone instance": {
+    "cpu": "vertexInstance 0 0 aca00d1e 0 57c19ed2 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:7fbbc924",
+    "gridZero": false,
+  },
+  "reordered, a pair": {
+    "cpu": "vertexInstance 328902d1 0 0 0 0 276e0368",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:e224de9d",
+    "gridZero": false,
+  },
+}
+`;
+
 exports[`mesh layer smoothing on spread instances > smooths emissive reaching some instances as when every instance is splatted 1`] = `
 {
   "a lone instance, some groups 0.8/2": {

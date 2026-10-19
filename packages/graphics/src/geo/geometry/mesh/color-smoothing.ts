@@ -168,34 +168,59 @@ function hasGroupOutOfRange(groupBuffer: Float32Array, vertexCount: number, grou
   return false;
 }
 
-/** Whether any value of instance row `row` is non-zero; a row (partly) beyond `colors` counts as non-zero */
-function isRowReached(colors: Uint8Array, row: number, groupCount: number, itemSize: number) {
+/**
+ * Whether any value of instance row `row` is non-zero, read 4 bytes at a time through `words` (a view of `colors`)
+ * when given; a row (partly) beyond `colors` counts as non-zero
+ */
+function isRowReached(
+  colors: Uint8Array,
+  words: Uint32Array | undefined,
+  row: number,
+  groupCount: number,
+  itemSize: number,
+) {
   const start = row * groupCount * itemSize;
   const end = start + groupCount * itemSize;
   if (!(start >= 0 && end <= colors.length)) return true;
-  for (let k = start; k < end; ++k) if (colors[k] !== 0) return true;
+  let k = start;
+  if (words) {
+    for (; k < end && k % 4 !== 0; ++k) if (colors[k] !== 0) return true;
+    const wordEnd = end >> 2;
+    for (let w = k >> 2; w < wordEnd; ++w) if (words[w] !== 0) return true;
+    k = Math.max(k, wordEnd * 4);
+  }
+  for (; k < end; ++k) if (colors[k] !== 0) return true;
   return false;
 }
 
-function overlaps(cells: Float64Array, i: number, region: Float64Array) {
-  const o = i * 6;
+/** Whether the cells of instance `i` overlap the box at `o` of `boxes` (6 numbers per box, as `cells`) */
+function overlaps(cells: Float64Array, i: number, boxes: Float64Array, o: number) {
+  const c = i * 6;
   return (
-    cells[o] < region[3] &&
-    cells[o + 3] > region[0] &&
-    cells[o + 1] < region[4] &&
-    cells[o + 4] > region[1] &&
-    cells[o + 2] < region[5] &&
-    cells[o + 5] > region[2]
+    cells[c] < boxes[o + 3] &&
+    cells[c + 3] > boxes[o] &&
+    cells[c + 1] < boxes[o + 4] &&
+    cells[c + 4] > boxes[o + 1] &&
+    cells[c + 2] < boxes[o + 5] &&
+    cells[c + 5] > boxes[o + 2]
   );
 }
 
+/** Above this many reached instances, the others are tested against the region only, not each reached instance */
+const MaxReachedTests = 256;
+
 /**
- * The instances to splat (perf-audit 13/P1): the region is the cells of the instances whose layer is non-zero,
- * clamped to the grid, and an instance is splatted when its cells overlap the region. Only cells in the region can
- * become non-zero, and every vertex that contributes to one of them is splatted in the former order, so the region's
- * cells are bit-identical to splatting every instance; outside it every cell is 0, as before (zeros or nothing).
- * `read`: the instances the CPU path interpolates, those splatted and those not within the grid (they read cells
- * of other slices, as before).
+ * The instances to splat (perf-audit 13/P1, `.v6/perf-audit/13-large-scale.md`): an instance whose layer is non-zero
+ * ("reached"), and an instance whose cells overlap the cells of a reached one. The region, where the accumulators
+ * are, is the box of the reached instances' cells, clamped to the grid.
+ *
+ * Exact: only cells of reached instances can become non-zero, and every vertex that adds to such a cell is splatted
+ * in the former order, so these cells are bit-identical to splatting every instance; every other cell gets zeros or
+ * nothing, so it is 0, as before. A reached instance with non-finite cells (a degenerate transform) splats every
+ * instance over the whole grid, as before.
+ *
+ * `read` (the CPU path only): the instances to interpolate, those splatted and those whose vertices are not within the
+ * grid (they read cells of other slices, as before); the others read only cells of their own, which are 0.
  */
 function getSplatInstances(
   input: ColorSmoothingInput,
@@ -206,15 +231,34 @@ function getSplatInstances(
   gridDim: Vec3,
   min: Vec3,
   scaleFactor: number,
+  withRead: boolean,
 ) {
   const { groupCount, groupBuffer, vertexCount, itemSize } = input;
   const colors = input.colorData.array;
   const cells = getInstanceCells(input, vertexBox, instanceCount, isInstanceType, min, scaleFactor);
   const allReached = hasGroupOutOfRange(groupBuffer, vertexCount, groupCount);
+  const words =
+    colors.byteOffset % 4 === 0 ? new Uint32Array(colors.buffer, colors.byteOffset, colors.length >> 2) : undefined;
 
-  const region = new Float64Array([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
+  const splat = new Uint8Array(instanceCount);
+  const reached: number[] = [];
+  let finite = true;
   for (let i = 0; i < instanceCount; ++i) {
-    if (!allReached && !isRowReached(colors, instanceRow(i), groupCount, itemSize)) continue;
+    if (!allReached && !isRowReached(colors, words, instanceRow(i), groupCount, itemSize)) continue;
+    splat[i] = 1;
+    reached.push(i);
+    for (let k = 0; k < 6; ++k) if (!Number.isFinite(cells[i * 6 + k])) finite = false;
+  }
+
+  const region = new Float64Array([0, 0, 0, gridDim[0], gridDim[1], gridDim[2]]);
+  if (!finite) {
+    splat.fill(1);
+    return { region, splat, read: withRead ? splat : undefined };
+  }
+  if (reached.length === 0) return { region: undefined, splat, read: withRead ? splat : undefined };
+
+  region.set([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
+  for (const i of reached) {
     for (let k = 0; k < 3; ++k) {
       region[k] = Math.min(region[k], cells[i * 6 + k]);
       region[3 + k] = Math.max(region[3 + k], cells[i * 6 + 3 + k]);
@@ -225,11 +269,27 @@ function getSplatInstances(
     region[3 + k] = Math.min(gridDim[k], region[3 + k]);
   }
   const isEmpty = !(region[0] < region[3] && region[1] < region[4] && region[2] < region[5]);
+  if (isEmpty) return { region: undefined, splat: splat.fill(0), read: withRead ? splat : undefined };
 
-  const splat = new Uint8Array(instanceCount);
+  // the neighbours: the region first, then the reached instances (unless there are many, the region alone)
+  const testEach = reached.length <= MaxReachedTests;
+  for (let i = 0; i < instanceCount; ++i) {
+    if (splat[i] || !overlaps(cells, i, region, 0)) continue;
+    if (!testEach) {
+      splat[i] = 1;
+      continue;
+    }
+    for (const r of reached) {
+      if (overlaps(cells, i, cells, r * 6)) {
+        splat[i] = 1;
+        break;
+      }
+    }
+  }
+  if (!withRead) return { region, splat, read: undefined };
+
   const read = new Uint8Array(instanceCount);
   for (let i = 0; i < instanceCount; ++i) {
-    if (!isEmpty && overlaps(cells, i, region)) splat[i] = 1;
     // the cells read (the trilinear neighbours) are the instance's cells without the splat radius
     const o = i * 6;
     const r = SplatRadius;
@@ -242,7 +302,7 @@ function getSplatInstances(
       cells[o + 5] - r <= gridDim[2];
     read[i] = splat[i] || !inGrid ? 1 : 0;
   }
-  return { region: isEmpty ? undefined : region, splat, read };
+  return { region, splat, read };
 }
 
 interface SplatContext {
@@ -264,8 +324,9 @@ interface SplatContext {
 
 /**
  * Splats vertex `j` of instance `i` (colors of row `instanceIndex`) into the accumulators within the region. A
- * function of its own, called per vertex, so that V8 optimizes it early: the loops run once per smoothing, and as part
- * of the caller they ran in on-stack-replaced code that boxed their doubles (gigabytes on large assemblies)
+ * function of its own, called per vertex, so that V8 optimizes it early: as part of the caller, which runs once per
+ * smoothing, the loops ran on on-stack-replaced code (a cold one-chain overpaint on 1tup ×864 at `high`: 42 → 31 ms,
+ * 50 → 25 MB of JS heap allocated)
  */
 function splatVertex(ctx: SplatContext, i: number, instanceIndex: number, j: number) {
   const { colors, itemSize, region, data, count, v } = ctx;
@@ -390,9 +451,21 @@ export function calcMeshColorSmoothing(
   // - use serial index for access from CPU
   const instanceRow = (i: number) => (graphics && isInstanceType ? instanceBuffer[i] : i);
   const instances = vertexBox
-    ? getSplatInstances(input, vertexBox, instanceCount, isInstanceType, instanceRow, gridDim, min, scaleFactor)
+    ? getSplatInstances(
+        input,
+        vertexBox,
+        instanceCount,
+        isInstanceType,
+        instanceRow,
+        gridDim,
+        min,
+        scaleFactor,
+        !graphics,
+      )
     : undefined;
 
+  /** the instances splatted (perf-audit 13/P1) */
+  let splatCount = 0;
   if (instances?.region) {
     const { region, splat } = instances;
     // the accumulators span the region only, x fastest
@@ -420,6 +493,7 @@ export function calcMeshColorSmoothing(
     };
     for (let i = 0; i < instanceCount; ++i) {
       if (!splat[i]) continue;
+      splatCount += 1;
       const instanceIndex = instanceRow(i);
       for (let j = 0; j < vertexCount; j += stride) splatVertex(ctx, i, instanceIndex, j);
     }
@@ -471,7 +545,7 @@ export function calcMeshColorSmoothing(
     }
     texture.load(textureImage);
 
-    return { kind: 'volume' as const, texture, gridTexDim, gridDim, gridTransform, type };
+    return { kind: 'volume' as const, texture, gridTexDim, gridDim, gridTransform, type, splatCount };
   } else {
     const interpolated = getTrilinearlyInterpolated({
       vertexCount,
@@ -491,6 +565,7 @@ export function calcMeshColorSmoothing(
 
     return {
       kind: 'vertex' as const,
+      splatCount,
       texture: interpolated,
       texDim: Vec2.create(interpolated.width, interpolated.height),
       type: isInstanceType ? 'vertexInstance' : 'vertex',
