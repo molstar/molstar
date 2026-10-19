@@ -19,3 +19,4 @@ Measured on 1tup expanded to 2×2×2 cell blocks (186k atoms): as 288 units in 9
   before; a sphere merged from several of them (the camera focusing several large loci) can miss atoms by up to ~2 Å
   (0.6 Å before)
 - `Mat4.isRigid`: whether a matrix keeps distances (orthonormal linear part, affine)
+- `Box3D.fromPositionArray` (interleaved xyz), `Box3D.intersect`, `Box3D.isEmpty`
