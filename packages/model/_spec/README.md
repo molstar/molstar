@@ -41,12 +41,12 @@ use `UnitIndex`; hierarchies and conformations use `ElementIndex`.
    `chainAtomSegments`); `atomSourceIndex` maps back to file rows (model.md §2).
 2. `unit.elements` is a sorted, duplicate-free `SortedArray<ElementIndex>`; `structure.units` is sorted by `unit.id`.
 3. A unit keeps its `id` from the root structure to every child; loci, bundles, `remapModel` and the bond subsets key on
-   it. A child's unit is a subset of the root's unit with the same id.
-4. Static unit props are in invariant (model) coordinates and shared by all units with the same elements and model
-   (unit.md §1).
+   it. A child's unit is a subset of the root's unit with the same id. `Structure.instances` breaks this (TODO).
+4. Static unit props are in invariant (model) coordinates and shared by the copies of one unit (unit.md §1).
 5. `Structure` and `Model` are immutable: lazy data is computed once and never invalidated; a change is a new object
    (`remapModel`, a new frame).
-6. `structure.parent` is always the root (flattened at creation); so is `unit.parent` (unit.md §2).
+6. `structure.parent` is always the root (flattened at creation); `unit.parent` is the unit's root, flattened likewise
+   (unit.md §2).
 
 ## Decisions
 

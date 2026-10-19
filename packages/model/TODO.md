@@ -22,6 +22,9 @@ decided or fixed. Spec: [\_spec](_spec/README.md). Performance items and bugs of
 
 ## Defects
 
+- `Structure.instances` gives the copies new ids from 0 and keeps the original unit, with its id, for an identity
+  transform: ids collide (1cbs with `[I, T]`: `0 0 1 1 2 2`), and without an identity the copies' ids differ from their
+  parent structure's, which children and loci assume (README invariant 3). Reached from the plugin (`hierarchy.ts`).
 - `Model.getInvertedAtomSourceIndex` (`invertIndex`) sizes its array by the model's atom count but indexes it by
   `atomSourceIndex`, which holds absolute rows of the file's `atom_site` (`sortAtomSite`): for the second and later
   models of a file whose hierarchies differ, the writes fall past the end and the inverted index is zeros. Consumers:
