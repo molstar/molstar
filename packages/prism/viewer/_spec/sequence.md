@@ -34,7 +34,8 @@ The code is the truth for how.
   the plugin side (`sources/sequence.ts`); a spec without a sequence bundles none of it.
 - **One parse.** The document names its structure by host file `structure:<key>`; the loaders' `parsed` answers it with
   a `StructureSource` over the trajectory the 3D view drew, so `StructureLink` maps the very `Structure` the 3D view
-  draws. A new key rebuilds the view.
+  draws. One source per trajectory, with the CIF block it was parsed from (`cifFrameOf`: SIFTS numberings, a predicted
+  model's origin, the scheme's auth labels). A new key rebuilds the view.
 - **A frame keeps the document.** A trajectory step or the model-index animation makes a new `Structure` of the same
   atoms (unit ids, element indices and model hierarchies equal, same trajectory): it keeps the key, so no document is
   made and the band does not empty. Only `SequenceViewer.frame` changes; the link rebinds `StructureLink` to it (its

@@ -7,7 +7,7 @@
  */
 
 import { Representation } from '@molstar/graphics/repr/representation';
-import { Model, Structure, StructureElement } from '@molstar/model/model/structure';
+import { Model, Structure, StructureElement, type Trajectory } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -17,7 +17,7 @@ import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
 import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
-import { createDataByUrl } from './data-by-url.js';
+import { cifFrameOf, createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
 import { onceATask, type SourceScope } from './state.js';
 
@@ -117,6 +117,23 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     a.models.length === b.models.length &&
     a.models.every((m, i) => Model.areHierarchiesEqual(m, b.models[i]));
 
+  // The followed structure's parse, one per trajectory (its models and structures cached across keys), with the CIF
+  // block it came from: SIFTS numberings, a predicted model's origin and the scheme's auth labels read from it.
+  const sources = new WeakMap<Trajectory, StructureSource>();
+  const sourceOf = (s: StructureRef, trajectory: Trajectory, format: StructureFormat): StructureSource => {
+    const hit = sources.get(trajectory);
+    if (hit?.format === format) return hit;
+    const source: StructureSource = {
+      kind: 'molstar:structure-source',
+      format,
+      trajectory,
+      frame: cifFrameOf(plugin, s.model!.trajectory!.cell),
+      structures: new Map(),
+    };
+    sources.set(trajectory, source);
+    return source;
+  };
+
   const pick = (): StructureRef | undefined => {
     const list = plugin.managers.structure.hierarchy.current.structures.filter((s) => !!s.cell.obj?.data);
     if (!list.length) return undefined;
@@ -175,13 +192,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
       ref,
       title: structureNames(plugin.managers.structure.hierarchy.current.structures).get(ref) ?? ref,
       // Seq*'s source over the 3D view's parse (`StructureSource.of`, made here: Seq* is the sequence's own chunk).
-      source: {
-        kind: 'molstar:structure-source',
-        format,
-        trajectory,
-        frame: null,
-        structures: new Map(),
-      } satisfies StructureSource,
+      source: sourceOf(s, trajectory, format),
       structure: data,
     });
   };

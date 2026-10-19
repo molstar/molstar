@@ -24,3 +24,5 @@
 - The sequence's chain index lists water chains without indexing their atoms (nothing links them): 186k atoms with 12k
   waters, 1.3 → 0.85 ms per new structure
 - The sequence's link takes a 3D select over several structures once, not once per structure
+- Fix: the sequence of the followed structure reads its CIF block again: SIFTS numberings onto UniProt (mapping,
+  alignment), a predicted model's styling and the auth labels of unobserved residues were silently missing
