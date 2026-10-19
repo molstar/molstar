@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { ChunkedArray, hashFnv32a } from '@molstar/core/data/util';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { addTube } from '@molstar/graphics/geo/geometry/mesh/builder/tube';
 import { addSheet } from '@molstar/graphics/geo/geometry/mesh/builder/sheet';
 import { addRibbon } from '@molstar/graphics/geo/geometry/mesh/builder/ribbon';
-import {
-  type CurveSegmentControls,
-  createCurveSegmentState,
-  interpolateCurveSegment,
-  interpolateSizes,
-} from '../curve-segment.js';
+import type { CurveSegmentControls } from '../curve-segment.js';
+
+// `curve-segment.ts` keeps `Vec3.orthogonalize` in a module constant, so the spy goes in before it is loaded: it counts
+// the calls, two per segment (first and last normal) plus the in-loop fallbacks for a zero or parallel tangent
+const orthogonalize = vi.spyOn(Vec3, 'orthogonalize');
+const { createCurveSegmentState, interpolateCurveSegment, interpolateSizes } = await import('../curve-segment.js');
 
 // Pins the cartoon geometry bit for bit: the curve interpolation and the tube, sheet and ribbon builders, over a
 // jittered helix with all the profile, cap and arrow variants the polymer trace visual uses. A change to the hashes
@@ -193,7 +193,13 @@ describe('cartoon geometry', () => {
       out[name] =
         `${r.vertexCount}v ${r.triangleCount}t curve=${r.curve} v=${r.vertices} n=${r.normals} i=${r.indices} g=${r.groups}`;
     }
+    // 20 segments: 40 calls without the fallback
+    orthogonalize.mockClear();
+    build(cases[0][1], 8, 0.9, 0.5);
+    expect(orthogonalize).toHaveBeenCalledTimes(40);
+    orthogonalize.mockClear();
     const d = build(cases[0][1], 8, 0.9, 0.5, true);
+    expect(orthogonalize.mock.calls.length).toBeGreaterThan(40);
     out.degenerate = `${d.vertexCount}v ${d.triangleCount}t curve=${d.curve} v=${d.vertices} n=${d.normals} i=${d.indices} g=${d.groups}`;
     expect(out).toMatchInlineSnapshot(`
       {
