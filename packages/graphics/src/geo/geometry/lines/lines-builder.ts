@@ -29,7 +29,11 @@ export interface LinesBuilder {
 }
 
 export namespace LinesBuilder {
+  /** `initialCount` and `chunkSize` count lines (4 vertices each) */
   export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
+    // ChunkedArray sizes count elements, one per vertex (perf-audit 08/P8)
+    initialCount *= 4;
+    chunkSize *= 4;
     const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
     const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
     const ends = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.endBuffer.ref.value : initialCount);
@@ -155,6 +159,7 @@ export interface StripLinesBuilder {
 }
 
 export namespace StripLinesBuilder {
+  /** `initialCount` and `chunkSize` count vertices, unlike `LinesBuilder.create` (a strip's size depends on its points) */
   export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): StripLinesBuilder {
     const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
     const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);

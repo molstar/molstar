@@ -62,7 +62,11 @@ const caAdd = ChunkedArray.add;
 const caAdd3 = ChunkedArray.add3;
 
 export namespace CylindersBuilder {
+  /** `initialCount` and `chunkSize` count cylinders (6 vertices each) */
   export function create(initialCount = 2048, chunkSize = 1024, cylinders?: Cylinders): CylindersBuilder {
+    // ChunkedArray sizes count elements, one per vertex (perf-audit 08/P8)
+    initialCount *= 6;
+    chunkSize *= 6;
     const groups = ChunkedArray.create(
       Float32Array,
       1,
