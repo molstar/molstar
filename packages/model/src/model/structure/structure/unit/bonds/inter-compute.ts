@@ -63,21 +63,28 @@ function isRigid(m: Mat4, eps: number) {
   return true;
 }
 
+/** All of `unitA`'s elements, in order. */
+function allCandidates(unitA: Unit.Atomic) {
+  const n = unitA.elements.length;
+  if (_candidates.length < n) _candidates = new Int32Array(Math.max(n, 2 * _candidates.length));
+  for (let i = 0; i < n; i++) _candidates[i] = i;
+  return _candidates.subarray(0, n);
+}
+
 /**
  * The elements of `unitA` (sorted UnitIndices) that may lie within `radius` of `unitB`'s boundary sphere: fetched from
  * `unitA`'s grid around the sphere centre mapped into `unitA`'s frame, instead of transforming every element of `unitA`
- * (05-model-structure P4). The radius is padded so that the exact test in `unitB`'s frame still decides; operators that
- * do not keep distances (mmCIF allows them with a warning) get every element, as before.
+ * (05-model-structure P4). The radius is padded so that the exact test in `unitB`'s frame still decides. Every element
+ * is a candidate, without a grid query (or building `unitA`'s grid), when `unitA`'s sphere lies inside that radius,
+ * mostly ions and waters next to a chain, and for operators that do not keep distances (mmCIF allows them with a
+ * warning).
  */
 function getCandidates(unitA: Unit.Atomic, unitB: Unit.Atomic, radius: number) {
   Mat4.mul(_bToA, unitA.conformation.operator.inverse, unitB.conformation.operator.matrix);
-  if (!isRigid(_bToA, 1e-4)) {
-    const n = unitA.elements.length;
-    if (_candidates.length < n) _candidates = new Int32Array(Math.max(n, 2 * _candidates.length));
-    for (let i = 0; i < n; i++) _candidates[i] = i;
-    return _candidates.subarray(0, n);
-  }
+  if (!isRigid(_bToA, 1e-4)) return allCandidates(unitA);
   Vec3.transformMat4(_bCenterInA, unitB.boundary.sphere.center, _bToA);
+  const sphereA = unitA.boundary.sphere;
+  if (Vec3.distance(_bCenterInA, sphereA.center) + sphereA.radius <= radius) return allCandidates(unitA);
   const { indices, count } = unitA.lookup3d.find(
     _bCenterInA[0],
     _bCenterInA[1],
