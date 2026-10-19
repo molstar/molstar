@@ -101,11 +101,20 @@ const cases: [string, CylinderProps][] = [
     { radiusTop: 0, radiusBottom: 0.8, radialSegments: 7, heightSegments: 3, bottomCap: true },
   ],
   ['tapered, rotated start', { radiusTop: 0.5, radiusBottom: 1.2, radialSegments: 12, thetaStart: 0.4, topCap: true }],
+  [
+    '3 rows, both caps',
+    { radiusTop: 0.7, radiusBottom: 0.4, radialSegments: 10, heightSegments: 3, topCap: true, bottomCap: true },
+  ],
+  ...[1, 2, 3].map((r): [string, CylinderProps] => [
+    `${r} segments`,
+    { radialSegments: r, topCap: true, bottomCap: true },
+  ]),
 ];
 
 const open: [string, CylinderProps][] = [
   ['half, capped', { radialSegments: 9, thetaLength: Math.PI, topCap: true, bottomCap: true }],
   ['more than a full turn', { radialSegments: 9, thetaLength: Math.PI * 2.5, topCap: true }],
+  ['just off a full turn', { radialSegments: 9, thetaLength: Math.PI * 2 - 1e-12, topCap: true, bottomCap: true }],
 ];
 
 describe('Cylinder primitive', () => {
@@ -128,6 +137,15 @@ describe('Cylinder primitive', () => {
       expect(actual.normals).toEqual(expected.normals);
     });
   }
+
+  it('every vertex is used', () => {
+    for (const [, props] of [...cases, ...open]) {
+      const p = Cylinder(props);
+      const used = new Uint8Array(p.vertices.length / 3);
+      for (let i = 0; i < p.indices.length; ++i) used[p.indices[i]] = 1;
+      expect(used.every((u) => u === 1)).toBe(true);
+    }
+  });
 
   it('vertex counts: 16 capped segments 66 instead of 100, a half turn keeps its seam', () => {
     const capped = { radialSegments: 16, topCap: true, bottomCap: true };

@@ -69,7 +69,7 @@ export function Cylinder(props?: CylinderProps): Primitive {
     // this will be used to calculate the normal
     const slope = (radiusBottom - radiusTop) / height;
 
-    // generate vertices, normals and uvs
+    // generate vertices and normals
 
     for (let y = 0; y <= heightSegments; ++y) {
       const indexRow: number[] = [];

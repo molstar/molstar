@@ -121,6 +121,21 @@ describe('cartoon geometry', () => {
     expect(stateHash(state)).toBe('27435d87');
   });
 
+  it('addTube: odd segment counts, double round caps', () => {
+    const state = MeshBuilder.createState(16, 16);
+    for (const linearSegments of [1, 7, 9]) {
+      const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = curve(
+        linearSegments,
+        linearSegments,
+      );
+      state.currentGroup = linearSegments;
+      const args = [curvePoints, normalVectors, binormalVectors, linearSegments] as const;
+      addTube(state, ...args, 10, widthValues, heightValues, true, true, 'elliptical', true);
+      addTube(state, ...args, 6, widthValues, heightValues, true, true, 'rounded', true);
+    }
+    expect(stateHash(state)).toBe('b630c356');
+  });
+
   it('addSheet: with and without arrow, caps', () => {
     const state = MeshBuilder.createState(16, 16);
     for (let k = 0; k < 4; ++k) {

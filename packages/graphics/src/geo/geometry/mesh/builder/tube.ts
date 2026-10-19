@@ -30,7 +30,7 @@ function add3AndScale2(out: Vec3, a: Vec3, b: Vec3, c: Vec3, sa: number, sb: num
 }
 
 // `Vec3.fromArray` is called app-wide with many array kinds, so its loads are megamorphic, also where V8 inlines it;
-// this copy only sees this module's Float32 curve arrays
+// this copy only sees the Float32 curve arrays its callers pass
 function v3fromArray(out: Vec3, array: ArrayLike<number>, offset: number) {
   out[0] = array[offset];
   out[1] = array[offset + 1];

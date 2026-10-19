@@ -28,7 +28,7 @@ const p3 = Vec3();
 const p4 = Vec3();
 
 // `Vec3.fromArray` is called app-wide with many array kinds, so its loads are megamorphic, also where V8 inlines it;
-// this copy only sees this module's Float32 curve arrays
+// this copy only sees the Float32 curve arrays its callers pass
 function v3fromArray(out: Vec3, array: ArrayLike<number>, offset: number) {
   out[0] = array[offset];
   out[1] = array[offset + 1];

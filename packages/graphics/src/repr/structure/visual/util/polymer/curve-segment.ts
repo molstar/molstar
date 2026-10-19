@@ -10,7 +10,7 @@ import type { NumberArray } from '@molstar/core/util/type-helpers';
 import { lerp, smoothstep } from '@molstar/core/math/interpolate';
 
 // `Vec3.fromArray` and `Vec3.toArray` are called app-wide with many array kinds, so their loads and stores are
-// megamorphic, also where V8 inlines them; these copies only see this module's Float32 curve arrays
+// megamorphic, also where V8 inlines them; these copies only see the Float32 curve arrays the module's callers pass
 function v3fromArray(out: Vec3, array: ArrayLike<number>, offset: number) {
   out[0] = array[offset];
   out[1] = array[offset + 1];
