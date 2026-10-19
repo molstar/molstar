@@ -10,3 +10,6 @@
   no checkpoint: the steps before it stay undoable, and Undo brings back the snapshot that was current with the scene
 - The sequence keeps its document over a trajectory's frames: a frame step no longer rebuilds the Seq\* document,
   empties the band or re-registers the 3D link (20 steps of a 10-model ensemble: 40 rebuilds → 0)
+- Plugin: `StructureInfo` walks the tree for the max model index only when a model or a structure is created or
+  removed, not for every created object; a removed model lowers the max at once (100 structures: first overpaint over
+  all 101 → 39 ms, transparency 79 → 16 ms)
