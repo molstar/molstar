@@ -236,6 +236,8 @@ function getCandidates(featuresA: Features, unitA: Unit, unitB: Unit, sphereB: S
   return _candidates.subarray(0, count).sort();
 }
 
+const _pairCandidates = PairContactCandidates();
+
 /**
  * Add all inter-unit contacts, i.e. pairs of features
  */
@@ -249,11 +251,60 @@ export function addStructureContacts(
   testers: ReadonlyArray<ContactTester>,
   props: ContactsProps,
 ) {
+  findStructureContactCandidates(structure, unitA, featuresA, unitB, featuresB, testers, _pairCandidates);
+  addStructureContactCandidates(structure, unitA, featuresA, unitB, featuresB, _pairCandidates, builder, props);
+}
+
+/** The contacts of one unit pair before line of sight: feature pairs (i, j) and the first tester's type, in add order */
+export interface PairContactCandidates {
+  count: number;
+  a: Int32Array;
+  b: Int32Array;
+  type: Int8Array;
+}
+
+export function PairContactCandidates(): PairContactCandidates {
+  return { count: 0, a: new Int32Array(16), b: new Int32Array(16), type: new Int8Array(16) };
+}
+
+function pushCandidate(c: PairContactCandidates, i: number, j: number, type: InteractionType) {
+  if (c.count === c.a.length) {
+    const n = 2 * c.a.length;
+    const a = new Int32Array(n);
+    a.set(c.a);
+    c.a = a;
+    const b = new Int32Array(n);
+    b.set(c.b);
+    c.b = b;
+    const t = new Int8Array(n);
+    t.set(c.type);
+    c.type = t;
+  }
+  c.a[c.count] = i;
+  c.b[c.count] = j;
+  c.type[c.count] = type;
+  c.count++;
+}
+
+/**
+ * The candidates of `addStructureContacts`: the same search, `validPair` and testers, but each feature pair with a type
+ * is recorded instead of checked for line of sight and added. `addStructureContacts` adds a pair with the first
+ * tester's type iff its line of sight is free (line of sight does not depend on the type, so a later tester never
+ * adds it), so `addStructureContactCandidates` on these gives the same contacts in the same order.
+ */
+export function findStructureContactCandidates(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  featuresA: Features,
+  unitB: Unit.Atomic,
+  featuresB: Features,
+  testers: ReadonlyArray<ContactTester>,
+  out: PairContactCandidates,
+) {
+  out.count = 0;
   const { x: xA, y: yA, z: zA } = featuresA;
   const { lookup3d } = featuresB;
 
-  // the lookup queries need to happen in the "unitB space".
-  // that means imageA = inverseOperB(operA(i))
   const imageTransform = Mat4.mul(
     _imageTransform,
     unitB.conformation.operator.inverse,
@@ -266,12 +317,8 @@ export function addStructureContacts(
   const { center, radius } = lookup3d.boundary.sphere;
   const testDistanceSq = (radius + maxDistance) * (radius + maxDistance);
 
-  const distFactor = props.lineOfSightDistFactor;
-
   const infoA = Features.Info(structure, unitA, featuresA);
   const infoB = Features.Info(structure, unitB, featuresB);
-
-  builder.startUnitPair(unitA, unitB);
 
   const candidates = getCandidates(featuresA, unitA, unitB, lookup3d.boundary.sphere, radius + maxDistance);
   for (let ci = 0, cl = candidates.length; ci < cl; ++ci) {
@@ -294,14 +341,39 @@ export function addStructureContacts(
       for (const tester of testers) {
         if (distanceSq < tester.maxDistance * tester.maxDistance) {
           const type = tester.getType(structure, infoA, infoB, distanceSq);
-          if (type && checkLineOfSight(structure, infoA, infoB, distFactor)) {
-            builder.add(i, j, type);
+          if (type) {
+            pushCandidate(out, i, j, type);
             break;
           }
         }
       }
     }
   }
+}
 
+/** Adds the candidates of a unit pair (from `findStructureContactCandidates`) whose line of sight is free */
+export function addStructureContactCandidates(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  featuresA: Features,
+  unitB: Unit.Atomic,
+  featuresB: Features,
+  candidates: PairContactCandidates,
+  builder: InterContactsBuilder,
+  props: ContactsProps,
+) {
+  const distFactor = props.lineOfSightDistFactor;
+  const infoA = Features.Info(structure, unitA, featuresA);
+  const infoB = Features.Info(structure, unitB, featuresB);
+  const { a, b, type } = candidates;
+
+  builder.startUnitPair(unitA, unitB);
+  for (let k = 0, kl = candidates.count; k < kl; ++k) {
+    infoA.feature = a[k] as Features.FeatureIndex;
+    infoB.feature = b[k] as Features.FeatureIndex;
+    if (checkLineOfSight(structure, infoA, infoB, distFactor)) {
+      builder.add(infoA.feature, infoB.feature, type[k] as InteractionType);
+    }
+  }
   builder.finishUnitPair();
 }

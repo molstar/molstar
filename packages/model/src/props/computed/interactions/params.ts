@@ -184,6 +184,17 @@ export const BridgeProviderParams = getBridgeProviderParams([]);
 export const InteractionsParams = {
   providers: PD.Group(ContactProviderParams, { isFlat: true }),
   bridges: PD.Group(BridgeProviderParams, { isFlat: true }),
+  symmetry: PD.Select<'all' | 'per-pair-class'>(
+    'all',
+    [
+      ['all', 'Every unit pair'],
+      ['per-pair-class', 'Once per symmetry-equivalent unit pair'],
+    ],
+    {
+      description:
+        "Once per symmetry-equivalent unit pair searches inter-unit contacts once for each class of unit pairs with the same symmetry groups and relative operator, and reuses the result for the other pairs of the class, checking only line of sight per pair: much faster on large symmetric assemblies. Units bonded to other units, or whose atom geometries differ from their group's, are searched in full. The contacts equal Every unit pair's, except one whose distance or angle sits on a threshold to within the precision of the symmetry operators (about 1e-4 Å).",
+    },
+  ),
   contacts: PD.Group(ContactsParams, { label: 'Advanced Options' }),
 };
 export type InteractionsParams = typeof InteractionsParams;

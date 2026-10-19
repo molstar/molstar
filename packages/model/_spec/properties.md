@@ -37,7 +37,7 @@
 | `AccessibleSurfaceAreaProvider` | structure, root  | Shrake-Rupley per atom, summed per residue; neighbours prefiltered with `structure.lookup3d`                       |
 | `SecondaryStructureProvider`    | structure, root  | per symmetry group (`invariantId`): the model's (archive or present), else DSSP, else Zhang-Skolnick               |
 | `ValenceModelProvider`          | structure, local | charges, implicit H, geometry per unit; computed on the root's units for the whole topology; `unit.transientCache` |
-| `InteractionsProvider`          | structure, local | features per symmetry group (`unit.transientCache`), intra- and inter-unit contacts, refinement                    |
+| `InteractionsProvider`          | structure, local | features per symmetry group (`unit.transientCache`), intra- and inter-unit contacts (§2.1), refinement             |
 | `HelixOrientationProvider`      | model, dynamic   | helix centres per residue (GROMACS helixorient); used by cartoons                                                  |
 | `CrossLinkRestraintProvider`    | structure, local | pairs from `ihm_cross_link_restraint`                                                                              |
 | `SIFTSMapping.Provider`         | model, static    | UniProt mapping per residue from `atom_site.pdbx_sifts_xref_db_*`                                                  |
@@ -45,3 +45,17 @@
 
 `interactions/params.ts` has no computation, so state and UI code can describe the parameters without loading the
 providers.
+
+### 2.1 Interactions and symmetry
+
+- Features and intra-unit contacts are computed once per symmetry group, from its first unit, and shared.
+- Inter-unit contacts: `symmetry: 'all'` (the default) searches every close unit pair. `'per-pair-class'` searches once
+  per class (group of A, group of B, `opB⁻¹·opA` within 1e-7) and replays the `(i, j, type)` candidates on the others,
+  checking line of sight per pair (it sees third units). Edges keep the order of 'all'.
+- A pair is replayed only if both units have a rigid operator (testers measure world distances and angles), no covalent
+  inter-unit bond (`validPair` and the testers' bond walks read them), no operator-scoped `IndexPairBonds`, and the same
+  `idealGeometry` as their group's first such unit (the valence model is per unit, from the root's topology). Then every
+  input of the search is a function of the class, and the result equals 'all' except a contact on a distance or angle
+  threshold within the operators' precision.
+- The default stays 'all' until the maintainers decide; `computeInteractions(…, { stats })` counts pairs, classes and
+  replays.

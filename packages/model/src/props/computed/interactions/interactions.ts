@@ -19,7 +19,14 @@ import {
 } from './common.js';
 import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder.js';
 import { IntMap, OrderedSet } from '@molstar/core/data/int';
-import { addUnitContacts, type ContactTester, addStructureContacts } from './contacts.js';
+import {
+  addStructureContactCandidates,
+  addStructureContacts,
+  addUnitContacts,
+  type ContactTester,
+  findStructureContactCandidates,
+  PairContactCandidates,
+} from './contacts.js';
 import { BridgeProviderParams, InteractionsParams, type InteractionsProps, type ContactsProps } from './params.js';
 import { HalogenDonorProvider, HalogenAcceptorProvider, HalogenBondsProvider } from './halogen-bonds.js';
 import {
@@ -49,6 +56,10 @@ import type { Sphere3D } from '@molstar/core/math/geometry';
 import { DataLoci } from '@molstar/model/model/loci';
 import { bondLabel, bundleLabel, type LabelGranularity } from '@molstar/model/model/label';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
+import { Mat4 } from '@molstar/core/math/linear-algebra';
+import { arrayEqual } from '@molstar/core/util/array';
+import { BondType } from '@molstar/model/model/structure/model/types';
+import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 
 export { Interactions, Bridges };
 export type { BridgeContact, BridgeContacts };
@@ -344,6 +355,17 @@ type BridgeProviders = typeof BridgeProviders;
 export interface ComputeInterctionsOptions {
   skipIntraContacts?: boolean;
   unitPairTest?: (unitA: Unit, unitB: Unit) => boolean;
+  /** Filled with the unit pairs of the inter-unit search */
+  stats?: InterUnitContactsStats;
+}
+
+export interface InterUnitContactsStats {
+  /** close unit pairs */
+  pairs: number;
+  /** pairs searched as the first of their symmetry-equivalent class ('per-pair-class') */
+  classes: number;
+  /** pairs that reused their class's search ('per-pair-class'); the rest were searched in full */
+  replayed: number;
 }
 
 export async function computeInteractions(
@@ -353,7 +375,9 @@ export async function computeInteractions(
   options?: ComputeInterctionsOptions,
 ): Promise<Interactions> {
   const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
-  const cacheKey = JSON.stringify(p);
+  // features do not depend on how unit pairs are searched
+  const { symmetry: _, ...featureProps } = p;
+  const cacheKey = JSON.stringify(featureProps);
 
   await ValenceModelProvider.attach(ctx, structure);
 
@@ -395,7 +419,10 @@ export async function computeInteractions(
     }
   }
 
-  const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
+  const contacts =
+    p.symmetry === 'per-pair-class'
+      ? findInterUnitContactsPerPairClass(structure, unitsFeatures, contactTesters, p.contacts, options)
+      : findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
   const bridges = findBridges(structure, unitsFeatures, p.bridges);
   const interactions = { unitsFeatures, unitsContacts, contacts, bridges };
 
@@ -461,9 +488,11 @@ function findInterUnitContacts(
 ) {
   const builder = InterContactsBuilder.create();
 
+  const { stats } = options ?? {};
   Structure.eachUnitPair(
     structure,
     (unitA: Unit, unitB: Unit) => {
+      if (stats) stats.pairs++;
       const featuresA = unitsFeatures.get(unitA.id);
       const featuresB = unitsFeatures.get(unitB.id);
       addStructureContacts(
@@ -477,14 +506,141 @@ function findInterUnitContacts(
         props,
       );
     },
-    {
-      maxRadius: Math.max(...contactTesters.map((t) => t.maxDistance)),
-      validUnit: (unit: Unit) => Unit.isAtomic(unit),
-      validUnitPair: (unitA: Unit, unitB: Unit) => {
-        if (options?.unitPairTest) return options.unitPairTest(unitA, unitB);
-        return Structure.validUnitPair(structure, unitA, unitB);
-      },
+    unitPairOptions(structure, contactTesters, options),
+  );
+
+  return builder.getContacts(unitsFeatures);
+}
+
+function unitPairOptions(
+  structure: Structure,
+  contactTesters: ReadonlyArray<ContactTester>,
+  options?: ComputeInterctionsOptions,
+): Structure.EachUnitPairProps {
+  return {
+    maxRadius: Math.max(...contactTesters.map((t) => t.maxDistance)),
+    validUnit: (unit: Unit) => Unit.isAtomic(unit),
+    validUnitPair: (unitA: Unit, unitB: Unit) => {
+      if (options?.unitPairTest) return options.unitPairTest(unitA, unitB);
+      return Structure.validUnitPair(structure, unitA, unitB);
     },
+  };
+}
+
+/**
+ * Units whose inter-unit contacts are a function of their symmetry group and operator:
+ * - a rigid operator (the testers measure world distances and angles);
+ * - no covalent bond to another unit (`validPair` and the testers' bond walks read covalent inter-unit bonds);
+ * - intra-unit bonds not scoped by operator (`IndexPairBonds` with operators can bond units of one group differently);
+ * - the same ideal atom geometries as the group's first unit that has none of the above (the valence model is per
+ *   unit and comes from the root's topology, e.g. bonds a child structure does not have; the H-bond testers read it).
+ */
+function getPairClassUnits(structure: Structure) {
+  const eligible = new Set<number>();
+  const bonded = new Set<number>();
+  for (const e of structure.interUnitBonds.edges) {
+    if (BondType.isCovalent(e.props.flag)) {
+      bonded.add(e.unitA);
+      bonded.add(e.unitB);
+    }
+  }
+  const valenceModel = ValenceModelProvider.get(structure).value!;
+  for (const group of structure.unitSymmetryGroups) {
+    const u0 = group.units[0];
+    if (!Unit.isAtomic(u0) || IndexPairBonds.Provider.get(u0.model)?.hasOperators) continue;
+    let reference: ArrayLike<number> | undefined;
+    for (const u of group.units) {
+      if (bonded.has(u.id) || !Mat4.isRigid(u.conformation.operator.matrix, PairClassRigidEps)) continue;
+      const idealGeometry = valenceModel.get(u.id)?.idealGeometry;
+      if (!idealGeometry) continue;
+      reference ??= idealGeometry;
+      if (arrayEqual(idealGeometry, reference)) eligible.add(u.id);
+    }
+  }
+  return eligible;
+}
+
+interface PairClass {
+  /** unitB.operator⁻¹ · unitA.operator */
+  readonly transform: Mat4;
+  readonly candidates: PairContactCandidates;
+}
+
+const _pairTransform = Mat4();
+/**
+ * Entries of the relative operator rounded for the class key; classes are then told apart by `Mat4.areEqual`. Two
+ * equal operators rounded to different keys only make two classes (each searched once).
+ */
+const PairClassKeyScale = 1e3;
+const PairClassTransformEps = 1e-7;
+/** Operators printed with 6 decimals are rigid to about 1e-6 */
+const PairClassRigidEps = 1e-5;
+
+function pairClassKey(groupA: number, groupB: number, t: Mat4) {
+  let key = `${groupA} ${groupB}`;
+  for (let i = 0; i < 16; i++) key += ` ${Math.round(t[i] * PairClassKeyScale)}`;
+  return key;
+}
+
+/**
+ * Inter-unit contacts searched once per class of symmetry-equivalent unit pairs: the same two symmetry groups (so the
+ * same features) and the same relative operator (so the same distances and angles). The first pair of a class runs
+ * the search (`findStructureContactCandidates`) and the others reuse its candidates; line of sight, which sees third
+ * units, is checked per pair. Pairs with a unit outside `getPairClassUnits` are searched in full. Edges are added in
+ * the order of `findInterUnitContacts`.
+ */
+function findInterUnitContactsPerPairClass(
+  structure: Structure,
+  unitsFeatures: IntMap<Features>,
+  contactTesters: ReadonlyArray<ContactTester>,
+  props: ContactsProps,
+  options?: ComputeInterctionsOptions,
+) {
+  const builder = InterContactsBuilder.create();
+  const { stats } = options ?? {};
+  const eligible = getPairClassUnits(structure);
+  const groupIndex = structure.unitSymmetryGroupsIndexMap;
+  const classes = new Map<string, PairClass[]>();
+  const fullCandidates = PairContactCandidates();
+
+  Structure.eachUnitPair(
+    structure,
+    (unitA: Unit, unitB: Unit) => {
+      if (stats) stats.pairs++;
+      const uA = unitA as Unit.Atomic;
+      const uB = unitB as Unit.Atomic;
+      const featuresA = unitsFeatures.get(unitA.id);
+      const featuresB = unitsFeatures.get(unitB.id);
+
+      if (!eligible.has(unitA.id) || !eligible.has(unitB.id)) {
+        findStructureContactCandidates(structure, uA, featuresA, uB, featuresB, contactTesters, fullCandidates);
+        addStructureContactCandidates(structure, uA, featuresA, uB, featuresB, fullCandidates, builder, props);
+        return;
+      }
+
+      const t = Mat4.mul(_pairTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix);
+      const key = pairClassKey(groupIndex.get(unitA.id), groupIndex.get(unitB.id), t);
+      let bucket = classes.get(key);
+      if (!bucket) classes.set(key, (bucket = []));
+      let pairClass: PairClass | undefined;
+      for (const c of bucket) {
+        if (Mat4.areEqual(c.transform, t, PairClassTransformEps)) {
+          pairClass = c;
+          break;
+        }
+      }
+
+      if (pairClass) {
+        if (stats) stats.replayed++;
+      } else {
+        if (stats) stats.classes++;
+        pairClass = { transform: Mat4.copy(Mat4(), t), candidates: PairContactCandidates() };
+        bucket.push(pairClass);
+        findStructureContactCandidates(structure, uA, featuresA, uB, featuresB, contactTesters, pairClass.candidates);
+      }
+      addStructureContactCandidates(structure, uA, featuresA, uB, featuresB, pairClass.candidates, builder, props);
+    },
+    unitPairOptions(structure, contactTesters, options),
   );
 
   return builder.getContacts(unitsFeatures);
