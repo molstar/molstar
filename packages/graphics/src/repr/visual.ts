@@ -254,6 +254,58 @@ namespace Visual {
     return changed;
   }
 
+  type KnownClear = { readonly count: number; readonly type: string; readonly version: number };
+  type LayerName = 'overpaint' | 'transparency' | 'emissive' | 'substance';
+
+  /**
+   * Layers of a render object that the last layer change left all clear (it reached none of their groups), with the
+   * texture cell version and size they were cleared at: the next change that reaches none of them either needs no
+   * clearing and no texture upload, so a layer change costs the visuals it reaches (perf-audit 07 P1)
+   */
+  const KnownClearLayers = new WeakMap<GraphicsRenderObject, { [K in LayerName]?: KnownClear }>();
+
+  function isKnownClear(
+    renderObject: GraphicsRenderObject,
+    name: LayerName,
+    texture: ValueCell<unknown>,
+    count: number,
+    type: string,
+  ) {
+    const known = KnownClearLayers.get(renderObject)?.[name];
+    return !!known && known.count === count && known.type === type && known.version === texture.ref.version;
+  }
+
+  function setKnownClear(
+    renderObject: GraphicsRenderObject,
+    name: LayerName,
+    texture: ValueCell<unknown>,
+    count: number,
+    type: string,
+    isClear: boolean,
+  ) {
+    let layers = KnownClearLayers.get(renderObject);
+    if (!isClear) {
+      if (layers) layers[name] = undefined;
+      return;
+    }
+    if (!layers) {
+      layers = {};
+      KnownClearLayers.set(renderObject, layers);
+    }
+    layers[name] = { count, type, version: texture.ref.version };
+  }
+
+  /** whether any of `layers` reaches a group, applying nothing */
+  function reachesAny(layers: ReadonlyArray<{ readonly loci: Loci }>, lociApply: LociApply) {
+    let reached = false;
+    const probe = () => {
+      reached = true;
+      return true;
+    };
+    for (let i = 0, il = layers.length; i < il && !reached; ++i) lociApply(layers[i].loci, probe, false);
+    return reached;
+  }
+
   type SurfaceMeta = {
     resolution?: number;
     overpaintTexture?: Texture;
@@ -288,8 +340,18 @@ namespace Visual {
       ? instanceCount.ref.value
       : uGroupCount.ref.value * instanceCount.ref.value;
 
-    // ensure texture has right size and type
     const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+    if (
+      clear &&
+      overpaint.layers.length > 0 &&
+      dOverpaint.ref.value &&
+      isKnownClear(renderObject, 'overpaint', tOverpaint, count, type) &&
+      !reachesAny(overpaint.layers, lociApply)
+    ) {
+      return; // stays all clear
+    }
+
+    // ensure texture has right size and type
     createOverpaint(overpaint.layers.length ? count : 0, type, renderObject.values);
     const { array } = tOverpaint.ref.value;
 
@@ -309,6 +371,8 @@ namespace Visual {
     }
     ValueCell.update(tOverpaint, tOverpaint.ref.value);
     ValueCell.updateIfChanged(dOverpaint, overpaint.layers.length > 0);
+
+    setKnownClear(renderObject, 'overpaint', tOverpaint, count, type, clear && !touched && overpaint.layers.length > 0);
 
     if (overpaint.layers.length === 0) return;
     if (type === 'instance') return;
@@ -356,8 +420,18 @@ namespace Visual {
       ? instanceCount.ref.value
       : uGroupCount.ref.value * instanceCount.ref.value;
 
-    // ensure texture has right size and type
     const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+    if (
+      clear &&
+      transparency.layers.length > 0 &&
+      dTransparency.ref.value &&
+      isKnownClear(renderObject, 'transparency', tTransparency, count, type) &&
+      !reachesAny(transparency.layers, lociApply)
+    ) {
+      return; // stays all clear
+    }
+
+    // ensure texture has right size and type
     createTransparency(transparency.layers.length ? count : 0, type, renderObject.values);
     const { array } = tTransparency.ref.value;
 
@@ -379,6 +453,15 @@ namespace Visual {
     ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
     ValueCell.updateIfChanged(transparencyMin, getTransparencyMin(array, count));
     ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
+
+    setKnownClear(
+      renderObject,
+      'transparency',
+      tTransparency,
+      count,
+      type,
+      clear && !touched && transparency.layers.length > 0,
+    );
 
     if (transparency.layers.length === 0) return;
     if (type === 'instance') return;
@@ -425,8 +508,18 @@ namespace Visual {
       ? instanceCount.ref.value
       : uGroupCount.ref.value * instanceCount.ref.value;
 
-    // ensure texture has right size and type
     const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+    if (
+      clear &&
+      emissive.layers.length > 0 &&
+      dEmissive.ref.value &&
+      isKnownClear(renderObject, 'emissive', tEmissive, count, type) &&
+      !reachesAny(emissive.layers, lociApply)
+    ) {
+      return; // stays all clear
+    }
+
+    // ensure texture has right size and type
     createEmissive(emissive.layers.length ? count : 0, type, renderObject.values);
     const { array } = tEmissive.ref.value;
 
@@ -447,6 +540,8 @@ namespace Visual {
     ValueCell.update(tEmissive, tEmissive.ref.value);
     ValueCell.updateIfChanged(emissiveAverage, getEmissiveAverage(array, count));
     ValueCell.updateIfChanged(dEmissive, emissive.layers.length > 0);
+
+    setKnownClear(renderObject, 'emissive', tEmissive, count, type, clear && !touched && emissive.layers.length > 0);
 
     if (emissive.layers.length === 0) return;
     if (type === 'instance') return;
@@ -492,8 +587,18 @@ namespace Visual {
       ? instanceCount.ref.value
       : uGroupCount.ref.value * instanceCount.ref.value;
 
-    // ensure texture has right size and type
     const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+    if (
+      clear &&
+      substance.layers.length > 0 &&
+      dSubstance.ref.value &&
+      isKnownClear(renderObject, 'substance', tSubstance, count, type) &&
+      !reachesAny(substance.layers, lociApply)
+    ) {
+      return; // stays all clear
+    }
+
+    // ensure texture has right size and type
     createSubstance(substance.layers.length ? count : 0, type, renderObject.values);
     const { array } = tSubstance.ref.value;
 
@@ -513,6 +618,8 @@ namespace Visual {
     }
     ValueCell.update(tSubstance, tSubstance.ref.value);
     ValueCell.updateIfChanged(dSubstance, substance.layers.length > 0);
+
+    setKnownClear(renderObject, 'substance', tSubstance, count, type, clear && !touched && substance.layers.length > 0);
 
     if (substance.layers.length === 0) return;
     if (type === 'instance') return;

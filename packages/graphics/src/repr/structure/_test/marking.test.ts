@@ -325,4 +325,64 @@ describe('layers on surfaces', async () => {
     expect(isZero(merged.values.tOverpaint.ref.value.array)).toBe(false);
     repr.destroy();
   });
+
+  it('smooths the layers again when the surface is no longer merged', async () => {
+    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, { ...props, renderMerged: true });
+    repr.setState({ overpaint });
+    expect(layerTypes(repr).filter((t) => t === 'groupInstance set')).toHaveLength(1);
+    await repr.createOrUpdate({ renderMerged: false }).run();
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(false);
+    const types = layerTypes(repr);
+    expect(types.filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'vertexInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
+    repr.destroy();
+  });
+});
+
+describe('layer updates and picking', async () => {
+  const model = await load1cbs();
+  const units = model.units.filter((u) => Unit.isAtomic(u));
+  const unitLoci = (u: Unit) =>
+    StructureElement.Loci(model, [{ unit: u, indices: Interval.ofLength(u.elements.length) }]);
+
+  it('leaves the layer textures of visuals a layer change does not reach as they are', async () => {
+    const repr = await createRepr(BallAndStickRepresentationProvider, model);
+    const versions = () =>
+      members(repr).map((o) => [o.values.tOverpaint.ref.version, o.values.tTransparency.ref.version].join('/'));
+    const [a, b] = units;
+    const red = Color(0xff0000);
+    repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(a), color: red, clear: false }]) });
+    repr.setState({ transparency: Transparency('element-loci', [{ loci: unitLoci(a), value: 0.5 }]) });
+    const before = versions();
+    const op = overpaints(repr);
+    // the same layers again: only the visuals of `a` are set again
+    repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(a), color: red, clear: false }]) });
+    repr.setState({ transparency: Transparency('element-loci', [{ loci: unitLoci(a), value: 0.5 }]) });
+    const after = versions();
+    const reached = members(repr).map((o) => !isZero(o.values.tOverpaint.ref.value.array));
+    expect(reached.some((r) => r)).toBe(true);
+    expect(reached.some((r) => !r)).toBe(true);
+    for (let i = 0; i < before.length; ++i) {
+      if (reached[i]) expect(after[i]).not.toBe(before[i]);
+      else expect(after[i]).toBe(before[i]);
+    }
+    expect(overpaints(repr)).toEqual(op);
+    // a layer on `b`: the visuals of `a` are cleared, those of `b` set
+    repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(b), color: red, clear: false }]) });
+    const moved = members(repr).map((o) => !isZero(o.values.tOverpaint.ref.value.array));
+    expect(moved).not.toEqual(reached);
+    expect(moved.some((r) => r)).toBe(true);
+    repr.destroy();
+  });
+
+  it('resolves a pick by its render object', async () => {
+    const repr = await createRepr(BallAndStickRepresentationProvider, model);
+    for (const o of repr.renderObjects) {
+      const loci = repr.getLoci({ objectId: o.id, instanceId: 0, groupId: 0 });
+      expect(loci.kind).not.toBe('empty-loci');
+    }
+    const unknown = Math.max(...repr.renderObjects.map((o) => o.id)) + 1000;
+    expect(repr.getLoci({ objectId: unknown, instanceId: 0, groupId: 0 }).kind).toBe('empty-loci');
+    repr.destroy();
+  });
 });
