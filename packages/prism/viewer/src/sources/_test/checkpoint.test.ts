@@ -20,7 +20,8 @@ const fullSize = (value: unknown) =>
     .length;
 
 /** The data tree as JSON: what a restore must give back. */
-const treeOf = (v: Awaited<ReturnType<typeof headlessViewer>>) => JSON.stringify(StateTree.toJSON(v.plugin.state.data.tree));
+const treeOf = (v: Awaited<ReturnType<typeof headlessViewer>>) =>
+  JSON.stringify(StateTree.toJSON(v.plugin.state.data.tree));
 
 describe('checkpoints', () => {
   it('hold the data tree as the plugin serializes it, and follow each change', async () => {

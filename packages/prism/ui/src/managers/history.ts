@@ -63,8 +63,13 @@ export interface HistoryContext {
 export type UndoResult = { ok: true; step: HistoryStep } | { ok: false; reason: string; laterSteps?: number };
 
 export interface HistoryOptions {
-  /** Most entries kept; the oldest go first. */
+  /** Most entries listed; the oldest go first. */
   readonly capacity?: number;
+  /**
+   * The latest entries that keep their checkpoint (Undo goes back this many steps); older ones stay listed, unsafe
+   * ("too old"), their checkpoints let go (sequence.md §7.4).
+   */
+  readonly checkpoints?: number;
   /** Over either, per-step checkpoints turn off for the scene (sequence.md §7.4; a first guess). */
   readonly budget?: { readonly ms: number; readonly bytes: number };
   /** Over either, even a group's one checkpoint is not taken. */
@@ -212,6 +217,7 @@ export class HistoryManager<C = unknown> {
     this.#port = port;
     this.#options = {
       capacity: options.capacity ?? 100,
+      checkpoints: Math.max(1, Math.min(options.checkpoints ?? 10, options.capacity ?? 100)),
       budget: options.budget ?? { ms: 50, bytes: 5_000_000 },
       hardLimit: options.hardLimit ?? { ms: 500, bytes: 50_000_000 },
       now: options.now ?? (() => Date.now()),
@@ -428,7 +434,7 @@ export class HistoryManager<C = unknown> {
       const next = this.#redo[0];
       if (!next) return { ok: false, reason: 'Nothing to redo' };
       await this.#restore(next.after);
-      this.#entries = [next.entry, ...this.#entries].slice(0, this.#options.capacity);
+      this.#setEntries([next.entry, ...this.#entries]);
       this.#setRedo(this.#redo.slice(1));
       this.#publish();
       this.#redone.next(next.entry.step);
@@ -605,12 +611,26 @@ export class HistoryManager<C = unknown> {
       log,
       log.length,
     );
-    this.#entries = [
-      { step, checkpoint: checkpoint.value, openKey: group ? key : undefined, log },
-      ...this.#entries,
-    ].slice(0, this.#options.capacity);
+    this.#setEntries([{ step, checkpoint: checkpoint.value, openKey: group ? key : undefined, log }, ...this.#entries]);
     this.#publish();
     return step;
+  }
+
+  /** The entries, the oldest past the capacity dropped and those past the checkpoints' count without one. */
+  #setEntries(entries: Entry<C>[]) {
+    const { capacity, checkpoints } = this.#options;
+    if (entries.length > capacity) entries.length = capacity;
+    for (let i = checkpoints; i < entries.length; i++) {
+      const e = entries[i];
+      if (e.checkpoint === undefined) continue;
+      e.checkpoint = undefined;
+      e.openKey = undefined;
+      if (!e.step.unsafe) {
+        const unsafe = `Too old to undo: the last ${checkpoints} step${checkpoints === 1 ? '' : 's'} can be undone`;
+        e.step = stepWith({ ...fieldsOf(e.step), unsafe }, e.log, e.log.length);
+      }
+    }
+    this.#entries = entries;
   }
 
   /** Takes a checkpoint unless checkpoints are off (a group's, and a turn's run's, are taken below the hard limit). */

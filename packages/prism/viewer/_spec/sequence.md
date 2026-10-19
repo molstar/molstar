@@ -178,9 +178,9 @@ The code is the truth for how.
 
 - **Each checkpoint is measured**: time, and the JSON size without data payloads; the time counts the size pass.
 - **A step costs what it changed, not the scene** (`SerializedTrees`, `sources/checkpoint.ts`): each transform is
-  serialized and measured once per transform object (a new version is a new object) and shared by every checkpoint
-  that holds it, its state flags compared on each read (the state's transient tree changes them in place). At 1401
-  cells: the size pass 16 → 0.2 ms a step, 100 checkpoints 14.8 → 1.6 MB. Shared parts are read-only.
+  serialized and measured once per transform object (a new version is a new object) and shared by every checkpoint that
+  holds it, its state flags compared on each read (the state's transient tree changes them in place). At 1401 cells: the
+  size pass 16 → 0.2 ms a step, 100 checkpoints 14.8 → 1.6 MB. Shared parts are read-only.
 - **Over the hard limit, no checkpoint is even taken for 30 s** (or until a clear): each try is a full snapshot thrown
   away, and an agent's turn tried on every call.
 - **Per-step checkpoints turn off** for the scene when one is over the size budget, or three in a row over the time
@@ -189,6 +189,10 @@ The code is the truth for how.
 - **A group's one checkpoint** (an agent's turn) is still taken under the hard limit (500 ms, 50 MB). When a turn cannot
   be undone, its first changing call asks the person, once for the turn (`agent/policies.ts`).
 - **Clearing the scene** turns per-step undo back on (`session.clear`).
+- **Undo goes back the latest 10 steps** (`options.ui.undoSteps`, `HistoryOptions.checkpoints`): only they keep a
+  checkpoint; an older step stays in History (100 at most, `capacity`) as unsafe, "Too old to undo", its checkpoint let
+  go. The record still lists every run (journal.md). Ten because a step's checkpoint holds its whole scene: memory is
+  bounded by a few scenes, not a hundred (David, 2026-10-20).
 
 ## 8. The band and its menu
 

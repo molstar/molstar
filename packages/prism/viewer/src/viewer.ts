@@ -252,7 +252,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     // This viewer's own query languages: the page-wide defaults, then the spec's (targets.md §1; README decision 29).
     const languages = createQueryLanguages(spec.languages ?? []);
     const targetFormat = createTargetFormat(plugin, languages);
-    const history = new HistoryManager<ViewerCheckpoint>(createCheckpointPort(plugin));
+    const history = new HistoryManager<ViewerCheckpoint>(createCheckpointPort(plugin), {
+      checkpoints: options.ui.undoSteps,
+    });
     const notifications = new NotificationsManager();
     const { viewState, navigation } = layoutManagers(spec, options);
     const transactions = createUiTransactionCoordinator();

@@ -44,8 +44,9 @@ each app composes it in its own code. The code is the truth for how.
   root, so a host restyles through them. In compact mode, fixed-size targets grow to `--msp-touch-target` (44px).
 - **The history** (`managers/history.ts`) takes a checkpoint through a `HistoryPort` (the viewer's: the plugin's state
   without view state) before each step; three slow checkpoints in a row turn checkpoints off (undo off) until the scene
-  is cleared. An agent turn's runs join its entry in place (an append-only list; each published step reads its own
-  length of it, copied when first read), so a long turn is linear and a step once published never changes.
+  is cleared. Only the latest `checkpoints` entries (10) keep theirs; older ones stay listed (`capacity`, 100), too old
+  to undo. An agent turn's runs join its entry in place (an append-only list; each published step reads its own length
+  of it, copied when first read), so a long turn is linear and a step once published never changes.
 - **Commands** are `{ id, title, category, icon?, alias?, shortcut?, params?, run, … }`; shortcuts go to the viewer that
   has focus (`ownsKey`), never the window ([commands.md](commands.md)).
 - **DOM-free parts** (`reactive/`, `commands/`, `forms/`' model, `managers/`, `model/`, `shell/`) run in Node:

@@ -4,3 +4,5 @@
   pass 16 → 0.2 ms per undoable step, 100 checkpoints 14.8 → 1.6 MB
 - Past the hard size limit, the history stops snapshotting the scene for 30 s instead of on every agent call; the time
   budget counts the size pass
+- Undo takes back the latest 10 steps (`options.ui.undoSteps`, 1–100); older steps stay in History, too old to undo,
+  their checkpoints let go (`HistoryOptions.checkpoints`)

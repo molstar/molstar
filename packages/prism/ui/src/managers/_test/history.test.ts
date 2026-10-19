@@ -29,6 +29,8 @@ function store(initial: Record<string, number> = {}) {
 
 const person = { kind: 'person' };
 const script = { kind: 'script' };
+/** Asserts an undo or redo went. */
+const expectOk = (r: { ok: boolean }) => expect(r).toMatchObject({ ok: true });
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 /** A promise and its resolver. */
@@ -341,6 +343,27 @@ describe('HistoryManager', () => {
     const h = new HistoryManager({ ...s.port, size: slowSize }, { budget: { ms: 1, bytes: 1e9 } });
     for (let i = 0; i < 3; i++) await h.run(`r${i}`, person, async () => s.set('a', i));
     expect(h.checkpointing.value).toBe(false);
+  });
+
+  it('keeps checkpoints for the latest steps only; older ones stay listed, too old to undo', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryManager(s.port, { capacity: 6, checkpoints: 3 });
+    for (let i = 1; i <= 8; i++) await h.run(`Set a to ${i}`, person, async () => s.set('a', i));
+    expect(h.steps.value.map((x) => x.label)).toEqual([8, 7, 6, 5, 4, 3].map((i) => `Set a to ${i}`));
+    expect(h.steps.value.map((x) => !!x.unsafe)).toEqual([false, false, false, true, true, true]);
+    expect(h.steps.value[3].unsafe).toMatch(/Too old to undo: the last 3 steps/);
+    for (const a of [7, 6, 5]) {
+      expectOk(await h.undo());
+      expect(s.get().a).toBe(a);
+    }
+    expect(await h.undo()).toMatchObject({ ok: false, reason: expect.stringMatching(/Too old/) });
+    expect(s.get().a).toBe(5);
+    // Redo puts the three back, each undoable again.
+    for (const a of [6, 7, 8]) expectOk(await h.redo());
+    expect(s.get().a).toBe(8);
+    expect(h.steps.value.map((x) => !!x.unsafe)).toEqual([false, false, false, true, true, true]);
+    expectOk(await h.undo());
+    expect(s.get().a).toBe(7);
   });
 
   it('releases the lock when taking a checkpoint throws', async () => {
