@@ -185,6 +185,12 @@ The code is the truth for how.
   again with the scene it restores (when the list still has it; the list itself is not undone). Like any
   `history: false` run, a failed apply is not rolled back (`setSnapshot` checks the transformers before it changes
   anything).
+- **While an animation plays** (`isAnimating`: trajectory playback, the model-index and other animations, a snapshot's
+  transition), no checkpoint is taken for it (David, 2026-10-20): playing is no step, its frames are viewing, and the
+  history ignores the changes it makes. When it stops, nothing is recorded: Undo takes back the step before it, with the
+  frame left as shown (frames are view state). Pinned by `api/_test/trajectory.test.ts`. Not covered: a step someone
+  starts while it plays still takes its own checkpoint (of that moment's state; a restore keeps the frames), and Undo or
+  Redo stops the animation first (`setSnapshot` does) after checkpointing the state it leaves for Redo.
 - **One undo**: Mol\*'s state history is off (`PluginConfig.State.HistoryCapacity` 0, `sources/compose-plugin.ts`).
 - Every run and step is also in the session record ([journal.md](journal.md)).
 
