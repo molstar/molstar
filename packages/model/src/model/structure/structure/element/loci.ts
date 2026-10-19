@@ -635,9 +635,12 @@ export namespace Loci {
 
   //
 
-  // 14 directions (refined to 98 from their extrema): the radius pass visits every element, so the sphere still
-  // encloses them (05-model-structure P2)
-  const boundaryHelper = new BoundaryHelper('14');
+  // 98 directions up to 10k points (elements, or the extrema of whole units), as for unit spheres; above, 14 refined
+  // to 98 from their extrema: the radius pass visits every element, so the sphere still encloses them, but keeps only
+  // 14 distinct extrema for spheres merged from it (05-model-structure P2)
+  const boundaryHelperCoarse = new BoundaryHelper('14');
+  const boundaryHelperFine = new BoundaryHelper('98');
+  const FinePointCount = 10_000;
   const tempPosBoundary = Vec3();
   const tempSphereBoundary = Sphere3D();
 
@@ -661,6 +664,15 @@ export namespace Loci {
       return Sphere3D.copy(boundingSphere || Sphere3D(), getWholeUnitBoundarySphere(loci.elements[0].unit));
     }
 
+    let pointCount = 0;
+    for (const e of loci.elements) {
+      if (!isWholeUnit(e)) pointCount += OrderedSet.size(e.indices);
+      else {
+        const { extrema } = e.unit.boundary.sphere;
+        pointCount += extrema && extrema.length > 1 ? extrema.length : 1;
+      }
+    }
+    const boundaryHelper = pointCount > FinePointCount ? boundaryHelperCoarse : boundaryHelperFine;
     boundaryHelper.reset();
 
     for (const e of loci.elements) {

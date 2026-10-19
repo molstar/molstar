@@ -10,6 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { OrderedSet, SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Sphere3D } from '@molstar/core/math/geometry';
+import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { CIF } from '@molstar/io/reader/cif';
@@ -391,28 +393,56 @@ describe('structure building', async () => {
     const s = await root();
     // unit spheres: exact
     check(`${name}: unit spheres`, hash(s.units.flatMap((u) => sphereOf(u.boundary.sphere))), expected);
-    // structure box: exact; sphere: radius within 3 % of the recorded one, atoms outside by at most 0.05 Å, centre
-    // within 5 % of the radius (14 instead of 98 directions average other extrema: 3.7 % on these fixtures)
+    // structure box and sphere: exact (these fixtures stay under the 10k points of the 98-direction helper)
     const { box, sphere } = s.boundary;
     check(`${name}: box`, [...Array.from(box.min, (x) => round(x)), ...Array.from(box.max, (x) => round(x))], expected);
     const [cx, cy, cz, r] = sphereOf(sphere);
     if (PIN) pinned[`${name}: sphere`] = [cx, cy, cz, r];
-    else {
-      const [ex, ey, ez, er] = expected[`${name}: sphere`] as number[];
-      expect(Math.abs(r - er) / er).toBeLessThan(0.03);
-      expect(Vec3.distance(Vec3.create(cx, cy, cz), Vec3.create(ex, ey, ez)) / er).toBeLessThan(0.05);
-      expect(worstOutside(sphere, s)).toBeLessThan(0.05);
-    }
-    // loci sphere of every second element: within 3 %, encloses every selected element
+    else expect([cx, cy, cz, r]).toEqual(expected[`${name}: sphere`]);
+    // loci sphere of every second element: exact, encloses every selected element
     const loci = halfLoci(s);
     const ls = StructureElement.Loci.getBoundingSphere(loci);
     const lr = round(ls.radius);
     if (PIN) pinned[`${name}: half loci radius`] = lr;
     else {
-      const er = expected[`${name}: half loci radius`] as number;
-      expect(Math.abs(lr - er) / er).toBeLessThan(0.03);
+      expect(lr).toBe(expected[`${name}: half loci radius`]);
       expect(worstOutside(ls, StructureElement.Loci.toStructure(loci))).toBeLessThan(1e-3);
     }
+  });
+
+  // above 10k points the spheres use 14 directions: the box is the same, the radius within 3 % of the 98-direction one
+  // and the atoms are enclosed as closely; the centre may move (11 Å, 7 % of the radius here), as both are
+  // approximations of the smallest sphere (05-model-structure P2)
+  it('boundaries of a large structure', async () => {
+    const s = await StructureSymmetry.buildSymmetryRange(
+      Structure.ofModel(m1cbs),
+      Vec3.create(0, 0, 0),
+      Vec3.create(2, 2, 2),
+    ).run();
+    const reference = new BoundaryHelper('98');
+    const tmp = Sphere3D();
+    const unitSphere = (u: Unit) => Sphere3D.transform(tmp, u.boundary.sphere, u.conformation.operator.matrix);
+    reference.reset();
+    for (const u of s.units) reference.includeSphere(unitSphere(u));
+    reference.finishedIncludeStep();
+    for (const u of s.units) reference.radiusSphere(unitSphere(u));
+    const expectedSphere = reference.getSphere();
+
+    const { box, sphere } = s.boundary;
+    // the 14-direction path: at most 28 distinct extrema
+    expect(new Set(sphere.extrema!.map((e) => e.join())).size).toBeLessThanOrEqual(28);
+    const expectedBox = reference.getBox();
+    for (let i = 0; i < 3; i++) {
+      expect(box.min[i]).toBeCloseTo(expectedBox.min[i], 6);
+      expect(box.max[i]).toBeCloseTo(expectedBox.max[i], 6);
+    }
+    expect(Math.abs(sphere.radius - expectedSphere.radius) / expectedSphere.radius).toBeLessThan(0.03);
+    expect(worstOutside(sphere, s)).toBeLessThan(worstOutside(expectedSphere, s) + 0.01);
+
+    const loci = halfLoci(s);
+    expect(
+      worstOutside(StructureElement.Loci.getBoundingSphere(loci), StructureElement.Loci.toStructure(loci)),
+    ).toBeLessThan(1e-3);
   });
 
   if (PIN) {
