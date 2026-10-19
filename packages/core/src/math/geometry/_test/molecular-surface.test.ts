@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
+import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { RuntimeContext } from '@molstar/core/task';
 import { getBoundary } from '../boundary.js';
 import { calcMolecularSurface, type MolecularSurfaceCalculationProps } from '../molecular-surface.js';
@@ -123,12 +124,11 @@ function clashes(probeRadius: number) {
   return { position, boundary: getBoundary(position), maxRadius };
 }
 
-/** FNV-1a over the bytes of a typed array. */
-function hash(a: ArrayLike<number> & { buffer: ArrayBufferLike; byteOffset: number; byteLength: number }) {
-  const bytes = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < bytes.length; i++) h = Math.imul(h ^ bytes[i], 0x01000193);
-  return (h >>> 0).toString(16).padStart(8, '0');
+/** FNV-1a over the bytes (not the values) of a float array, so any bit change shows. */
+function hash(a: Float32Array) {
+  return hashFnv32a(new Uint8Array(a.buffer, a.byteOffset, a.byteLength))
+    .toString(16)
+    .padStart(8, '0');
 }
 
 type Case = {
