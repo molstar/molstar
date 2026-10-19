@@ -61,8 +61,10 @@ npx tsc -b                 # every project, by references
 - **Tests** live in `_test/` folders next to the code, run by Vitest
   (`import { describe, expect, it, vi } from 'vitest'`, no globals; DOM tests opt in with
   `// @vitest-environment jsdom`); they never reach the network.
-- **User-facing changes** go into the `[Unreleased]` section of `CHANGELOG.md` (v6 collects them in
-  `.v6/plans/changelog.md`); a v6 break of a public API is recorded in `.v6/plans/breaking-v6-changes.md`.
+- **User-facing changes** go into the `[Unreleased]` section of `CHANGELOG.md`. v6 collects them in
+  `.v6/plans/changelog.md`, but a branch never edits that file: it adds its own entry file to `.v6/changelogs/` (see
+  [its AGENTS.md](.v6/changelogs/AGENTS.md)), and the entries get folded into the draft from time to time. A v6 break of
+  a public API is recorded in `.v6/plans/breaking-v6-changes.md`.
 - **Keep the docs true**: a change that moves what a package's `_spec/` (or a `.v6` design or plan) says updates it in
   the same commit; code comments cite the spec section they follow (`harness.md §6`, `api.md §2`). Specs are for agents:
   terse, a rule and its reason, no history; open items go to the package's TODO.
