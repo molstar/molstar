@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <fred.ludlow@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * ported from NGL (https://github.com/arose/ngl), licensed under MIT
  */
@@ -74,47 +75,110 @@ export async function calcMolecularSurface(
   // Field generation method adapted from AstexViewer (Mike Hartshorn) by Fred Ludlow.
   // Other parts based heavily on NGL (Alexander Rose) EDT Surface class
 
+  // Occlusion only needs a yes/no, so it scans compact copies, not `neighbours` through `OrderedSet.getAt`
+  // and scattered loads. An atom that obscures a point on the sphere of atom `a` is within `r_a + r_c` of
+  // `a`, so in its `find` result (up to the last bit at exact tangency, where the old cross-atom `lastClip`
+  // could still test it); the scan order and the `lastClip` slot never change the outcome.
+
+  /** Neighbours of the current atom, without the atom itself: resolved index, ordinal, centre, radius, radius². */
+  let nbCapacity = 0;
+  let nbCount = 0;
+  let nbIndex = new Int32Array(0);
+  let nbOrdinal = new Int32Array(0);
+  let nbX = new Float64Array(0);
+  let nbY = new Float64Array(0);
+  let nbZ = new Float64Array(0);
+  let nbR = new Float64Array(0);
+  let nbRSq = new Float64Array(0);
+  /** Neighbours that can reach the probe circle of the current torus: centre, radius². */
+  let tCount = 0;
+  let tX = new Float64Array(0);
+  let tY = new Float64Array(0);
+  let tZ = new Float64Array(0);
+  let tRSq = new Float64Array(0);
+  /** Slot of the last obscuring atom in the list being scanned (very often the same in subsequent calls). */
   let lastClip = -1;
 
-  /**
-   * Is the point at x,y,z obscured by any of the atoms specifeid by indices in neighbours.
-   * Ignore indices a and b (these are the relevant atoms in projectPoints/Torii)
-   *
-   * Cache the last clipped atom (as very often the same one in subsequent calls)
-   *
-   * `a` and `b` must be resolved indices
-   */
-  function obscured(x: number, y: number, z: number, a: number, b: number) {
-    if (lastClip !== -1) {
-      const ai = lastClip;
-      if (ai !== a && ai !== b && singleAtomObscures(ai, x, y, z)) {
-        return ai;
-      } else {
-        lastClip = -1;
-      }
-    }
-
-    for (let j = 0, jl = neighbours.count; j < jl; ++j) {
-      const ai = OrderedSet.getAt(indices, neighbours.indices[j]);
-      if (ai !== a && ai !== b && singleAtomObscures(ai, x, y, z)) {
-        lastClip = ai;
-        return ai;
-      }
-    }
-
-    return -1;
+  function growNeighbours(count: number) {
+    nbCapacity = Math.max(64, 2 * count);
+    nbIndex = new Int32Array(nbCapacity);
+    nbOrdinal = new Int32Array(nbCapacity);
+    nbX = new Float64Array(nbCapacity);
+    nbY = new Float64Array(nbCapacity);
+    nbZ = new Float64Array(nbCapacity);
+    nbR = new Float64Array(nbCapacity);
+    nbRSq = new Float64Array(nbCapacity);
+    tX = new Float64Array(nbCapacity);
+    tY = new Float64Array(nbCapacity);
+    tZ = new Float64Array(nbCapacity);
+    tRSq = new Float64Array(nbCapacity);
   }
 
   /**
-   * `ai` must be a resolved index
+   * Copy the current `lookup3d.find` result, skipping the query atom `self` (a resolved index).
    */
-  function singleAtomObscures(ai: number, x: number, y: number, z: number) {
-    const r = radius[ai];
-    const dx = px[ai] - x;
-    const dy = py[ai] - y;
-    const dz = pz[ai] - z;
-    const dSq = dx * dx + dy * dy + dz * dz;
-    return dSq < r * r;
+  function loadNeighbours(self: number) {
+    const { count, indices: ordinals } = neighbours;
+    if (count > nbCapacity) growNeighbours(count);
+    let c = 0;
+    for (let j = 0; j < count; ++j) {
+      const o = ordinals[j];
+      const ai = OrderedSet.getAt(indices, o);
+      if (ai === self) continue;
+      const r = radius[ai];
+      nbIndex[c] = ai;
+      nbOrdinal[c] = o;
+      nbX[c] = px[ai];
+      nbY[c] = py[ai];
+      nbZ[c] = pz[ai];
+      nbR[c] = Math.abs(r); // the occlusion test squares r
+      nbRSq[c] = r * r;
+      ++c;
+    }
+    nbCount = c;
+    lastClip = -1;
+  }
+
+  /**
+   * Is the point at x,y,z inside any of the `count` spheres (centres `cx/cy/cz`, squared radii `cRSq`)?
+   */
+  function obscured(
+    x: number,
+    y: number,
+    z: number,
+    cx: Float64Array,
+    cy: Float64Array,
+    cz: Float64Array,
+    cRSq: Float64Array,
+    count: number,
+  ) {
+    if (lastClip !== -1) {
+      const j = lastClip;
+      const dx = cx[j] - x;
+      const dy = cy[j] - y;
+      const dz = cz[j] - z;
+      if (dx * dx + dy * dy + dz * dz < cRSq[j]) return true;
+      lastClip = -1;
+    }
+
+    for (let j = 0; j < count; ++j) {
+      const dx = cx[j] - x;
+      const dy = cy[j] - y;
+      const dz = cz[j] - z;
+      if (dx * dx + dy * dy + dz * dz < cRSq[j]) {
+        lastClip = j;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Is the projection `(dx, dy, dz) * ap + (vx, vy, vz)` onto the current atom's sphere obscured by a neighbour?
+   */
+  function projectionObscured(vx: number, vy: number, vz: number, dx: number, dy: number, dz: number, ap: number) {
+    return obscured(dx * ap + vx, dy * ap + vy, dz * ap + vz, nbX, nbY, nbZ, nbRSq, nbCount);
   }
 
   /**
@@ -122,10 +186,10 @@ export async function calcMolecularSurface(
    *     Iterate over a subsection of the grid, for each point:
    *         If current value < 0.0, unvisited, set positive
    *
-   *         In any case: Project this point onto surface of the atomic sphere
-   *         If this projected point is not obscured by any other atom
-   *             Calculate delta distance and set grid value to minimum of
-   *             itself and delta
+   *         If the delta distance would lower the grid value (raise it outside, in extended mode):
+   *             Project this point onto surface of the atomic sphere
+   *             If this projected point is not obscured by any other atom
+   *                 set grid value to delta
    */
   function projectPointsRange(begI: number, endI: number) {
     for (let i = begI; i < endI; ++i) {
@@ -138,6 +202,7 @@ export async function calcMolecularSurface(
       const extended = ngPoints > 0;
 
       lookup3d.find(vx, vy, vz, rad);
+      loadNeighbours(j);
 
       // Number of grid points, round this up...
       const ng = Math.ceil(rad * scaleFactor) + ngPoints;
@@ -170,34 +235,25 @@ export async function calcMolecularSurface(
             const dz = gridz[zi] - vz;
             const dSq = dxySq + dz * dz;
 
-            if (extended || dSq < rSq) {
+            if (dSq < rSq) {
               const idx = zi + xyIdx;
+              // if unvisited, make positive
+              if (data[idx] < 0.0) data[idx] *= -1;
 
-              // Project on to the surface of the sphere
+              // Occlusion is tested only when the voxel would change (the outcome is the same).
+              // Project on to the surface of the sphere:
               // sp is the projected point ( dx, dy, dz ) * ( ra / d )
               const d = Math.sqrt(dSq);
-              const ap = rad / d;
-              const spx = dx * ap + vx;
-              const spy = dy * ap + vy;
-              const spz = dz * ap + vz;
-
-              const obs = obscured(spx, spy, spz, j, -1);
-
-              if (dSq < rSq) {
-                // if unvisited, make positive
-                if (data[idx] < 0.0) data[idx] *= -1;
-
-                if (obs === -1) {
-                  const dd = rad - d;
-                  if (dd < data[idx]) {
-                    data[idx] = dd;
-                    idData[idx] = id[i];
-                  }
-                }
-              } else if (extended && obs === -1) {
-                const dd = rad - d;
-                if (dd > data[idx]) data[idx] = dd;
+              const dd = rad - d;
+              if (dd < data[idx] && !projectionObscured(vx, vy, vz, dx, dy, dz, rad / d)) {
+                data[idx] = dd;
+                idData[idx] = id[i];
               }
+            } else if (extended) {
+              const idx = zi + xyIdx;
+              const d = Math.sqrt(dSq);
+              const dd = rad - d;
+              if (dd > data[idx] && !projectionObscured(vx, vy, vz, dx, dy, dz, rad / d)) data[idx] = dd;
             }
           }
         }
@@ -221,9 +277,9 @@ export async function calcMolecularSurface(
   const n1 = Vec3();
   const n2 = Vec3();
   /**
-   * `a` and `b` must be resolved indices
+   * `a` and `b` must be resolved indices, `idA` and `idB` their ids; the neighbours of `a` are loaded
    */
-  function projectTorus(a: number, b: number) {
+  function projectTorus(a: number, b: number, idA: number, idB: number) {
     const rA = radius[a];
     const rB = radius[b];
     const dx = (atob[0] = px[b] - px[a]);
@@ -264,6 +320,28 @@ export async function calcMolecularSurface(
     mid[1] = atob[1] + py[a];
     mid[2] = atob[2] + pz[a];
 
+    // Probe positions lie on the circle (centre `mid`, radius `rInt`), so only neighbours with
+    // |c - mid| < rInt + r_c can obscure one. The margin covers rounding, mostly the Float32 cos/sin
+    // tables (|p - mid| <= rInt * (1 + 6e-8) + coordinate rounding). A NaN `rInt` (no intersection) keeps none, as before
+    // nothing is obscured and no voxel is written.
+    const mx = mid[0],
+      my = mid[1],
+      mz = mid[2];
+    tCount = 0;
+    for (let j = 0; j < nbCount; ++j) {
+      if (nbIndex[j] === b) continue;
+      const cdx = nbX[j] - mx;
+      const cdy = nbY[j] - my;
+      const cdz = nbZ[j] - mz;
+      const reach = rInt * (1 + 1e-6) + nbR[j] + 1e-4;
+      if (cdx * cdx + cdy * cdy + cdz * cdz < reach * reach) {
+        tX[tCount] = nbX[j];
+        tY[tCount] = nbY[j];
+        tZ[tCount] = nbZ[j];
+        tRSq[tCount] = nbRSq[j];
+        ++tCount;
+      }
+    }
     lastClip = -1;
 
     for (let i = 0; i < probePositions; ++i) {
@@ -274,7 +352,7 @@ export async function calcMolecularSurface(
       const py = mid[1] + cost * n1[1] + sint * n2[1];
       const pz = mid[2] + cost * n1[2] + sint * n2[2];
 
-      if (obscured(px, py, pz, a, b) === -1) {
+      if (!obscured(px, py, pz, tX, tY, tZ, tRSq, tCount)) {
         const iax = Math.floor(scaleFactor * (px - minX));
         const iay = Math.floor(scaleFactor * (py - minY));
         const iaz = Math.floor(scaleFactor * (pz - minZ));
@@ -308,7 +386,7 @@ export async function calcMolecularSurface(
                 // Is this grid point closer to a or b?
                 // Take dot product of atob and gridpoint->p (dx, dy, dz)
                 const dp = dx * atob[0] + dy * atob[1] + dz * atob[2];
-                idData[idx] = id[OrderedSet.indexOf(indices, dp < 0.0 ? b : a)];
+                idData[idx] = dp < 0.0 ? idB : idA;
               }
             }
           }
@@ -321,9 +399,11 @@ export async function calcMolecularSurface(
     for (let i = begI; i < endI; ++i) {
       const k = OrderedSet.getAt(indices, i);
       lookup3d.find(px[k], py[k], pz[k], radius[k]);
-      for (let j = 0, jl = neighbours.count; j < jl; ++j) {
-        const l = OrderedSet.getAt(indices, neighbours.indices[j]);
-        if (k < l) projectTorus(k, l);
+      loadNeighbours(k);
+      const idK = id[i];
+      for (let j = 0; j < nbCount; ++j) {
+        const l = nbIndex[j];
+        if (k < l) projectTorus(k, l, idK, id[nbOrdinal[j]]);
       }
     }
   }
