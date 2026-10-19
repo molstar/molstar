@@ -55,8 +55,10 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
 ## 5. Bonds
 
 - Intra-unit: unit.md §4 and `unit/bonds/intra-compute.ts`: index pairs if the model has them; else struct_conn, the
-  component dictionary per residue (not at microheterogeneity), then distance thresholds (`common.ts`) over the unit's
-  grid. Edge props `order`, `flags`, `key` (the struct_conn row, index-pair key or dictionary key; -1 computed).
+  component dictionary per residue (not at microheterogeneity; pairs within `maxRadius`, from the residue's atoms or,
+  above 256 atoms, the grid), then distance thresholds (`common.ts`) over the unit's grid, queried at 3.1 Å, above every
+  threshold (coarse-grained models: `maxRadius`). Edge order follows the grid. Edge props `order`, `flags`, `key` (the
+  struct_conn row, index-pair key or dictionary key; -1 computed).
 - Inter-unit (`inter-compute.ts`): unit pairs from `eachUnitPair` (structure grid, `validUnit`, `validUnitPair`: same
   model or the master model; waters and ions skipped unless `dynamicBonds` or a common struct_conn record). Per pair,
   A's atoms near B come from A's grid (P4). Index pairs, else struct_conn, else distance.

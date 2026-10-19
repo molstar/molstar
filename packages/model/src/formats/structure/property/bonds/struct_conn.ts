@@ -21,7 +21,10 @@ import { FormatPropertyProvider } from '../../common/property.js';
 export interface StructConn {
   readonly data: Table<mmCIF_Schema['struct_conn']>;
   readonly byAtomIndex: Map<ElementIndex, ReadonlyArray<StructConn.Entry>>;
-  /** Cantor pairs of residue indices that have a struct-conn record */
+  /**
+   * Cantor pairs of residue indices that have a struct-conn record: the residues of `entries`' partners, which
+   * intra-unit bond computation relies on (it skips residues of no entry)
+   */
   readonly residueCantorPairs: Set<number>;
   readonly entries: ReadonlyArray<StructConn.Entry>;
 }
