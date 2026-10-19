@@ -1,0 +1,75 @@
+# Models
+
+`Model` (`src/model/structure/model/model.ts`): one model of a file, read-only. Atoms are the integers `[0, atomCount)`
+(`ElementIndex`).
+
+## 1. Fields
+
+| Field                                         | What                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `id`, `entryId`, `label`, `entry`, `modelNum` | identity; `modelNum` is the file's model number, or the frame index for frames from coordinates    |
+| `sourceData: ModelFormat`                     | the parsed file (`kind` names the format, formats.md §1)                                           |
+| `atomicHierarchy`, `atomicConformation`       | who and where: §2                                                                                  |
+| `atomicRanges`                                | `polymerRanges`, `gapRanges` (atom ranges), `cyclicPolymerMap`                                     |
+| `atomicChainOperatorMappinng`                 | chain → operator for models written with operators applied (sic, the name is in use)               |
+| `coarseHierarchy`, `coarseConformation`       | spheres and gaussians of integrative models                                                        |
+| `entities`, `sequence`, `properties`          | entity table and subtypes; sequences per entity; missing residues, component maps, `structAsymMap` |
+| `customProperties`                            | descriptors, reference counts and assets of attached properties (properties.md §1)                 |
+| `_staticPropertyData`, `_dynamicPropertyData` | property bags: §3                                                                                  |
+| `parent`                                      | `Model.getRoot(m) = m.parent ?? m`; nothing in the repository sets it                              |
+
+## 2. Hierarchy and conformation
+
+- **Hierarchy** (`properties/atomic/hierarchy.ts`): `atoms`, `residues`, `chains` tables; `residueAtomSegments` and
+  `chainAtomSegments` (offsets plus a per-atom index); `index` (lookups by label/auth ids, -1 when absent); `derived`
+  (atomic numbers; per residue the trace, direction atoms, molecule and polymer type).
+- **Sorting**: atoms are sorted by entity, asym and seq id within chains that have `label_seq_id`, so residues and
+  chains are contiguous. `atomSourceIndex` (absolute rows of the file's `atom_site`) and `residueSourceIndex` map back;
+  export and index-pair bonds read through them.
+- **Segments**: a chain starts when entity or `label_asym_id` changes; a residue when seq id, auth seq id or insertion
+  code changes, not the component, so microheterogeneity stays one residue.
+- **Conformation** (`properties/atomic/conformation.ts`): `id`, `atomId`, `occupancy`, `B_iso_or_equiv`, `x/y/z`.
+  `atomId` lives here because mmCIF gives corresponding atoms different ids in different models. Read positions through
+  a unit's `conformation` (it applies the operator), not from `x/y/z`.
+- **Coarse**: `spheres` and `gaussians` (`CoarseElements`: entity, asym, seq ranges, chain segments, polymer and gap
+  ranges) with their own conformation and a lazy `CoarseIndex`.
+- **Ranges** (`utils/atomic-ranges.ts`): a gap where seq ids jump or backbone atoms are more than 3 Å apart (10 Å
+  coarse); computed from the first frame and shared by later ones.
+
+## 3. Frames and what they share
+
+A frame is `{ ...model, id, modelNum, atomicConformation, _dynamicPropertyData: fresh }`: from coordinates
+(`Model.trajectoryFromModelAndCoordinates`, `trajectoryFromTopologyAndCoordinates`) and from the next model of a file
+whose atom, residue and chain tables equal the previous one's (`createModels`).
+
+| Shared by frames                                                                                 | Per frame                                              |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| hierarchies, ranges, entities, sequence, `properties`, `customProperties`, `_staticPropertyData` | `id`, `modelNum`, conformation, `_dynamicPropertyData` |
+
+- **Static data** does not depend on coordinates; **dynamic data** does. Neither bag is read directly: providers and
+  `Model.*` helpers own their keys (`__AtomicRadii__`, `__Center__`, `TrajectoryInfo`, `CoordinatesHistory`, ...).
+- `Model.areHierarchiesEqual` is identity of the hierarchies: shared topology.
+- A frame must have the model's atom count (throws otherwise); frames in file order are reordered by `atomSourceIndex`,
+  in place on first use (`Coordinates.getAtomicConformation`).
+- `Model.CoordinatesHistory` (static, on the root model) answers whether two models have equal coordinates for a set of
+  elements; `Unit.isSameConformation` asks it before comparing coordinates.
+
+## 4. Trajectories, coordinates, topologies
+
+- `Trajectory`: `frameCount`, `duration`, `representative`, `getFrameAtIndex(i)` (a model or a task). `ArrayTrajectory`
+  holds models.
+- `Coordinates` (`coordinates/coordinates.ts`): frames of `x/y/z` with optional cell, velocities, forces and a time.
+- `Topology` (`topology/topology.ts`): `BasicData` plus bonds as index pairs; combined with coordinates into a
+  trajectory whose frames share one `IndexPairBonds`.
+
+## 5. Other models
+
+- **Volume** (`model/volume/`): a `Grid` (`Tensor` cells, a spacegroup or matrix transform, stats, periodicity) and
+  instances (transforms). Iso values absolute or relative (σ). Property bags `_propertyData` and `_localPropertyData`
+  (caches on `volume.parent ?? volume`).
+- **ParticleList** (`model/particles/`): packed coordinates, optional rotations, radii, fibers and attributes; targets
+  (a structure, shape or volume per particle); lazily derived transforms and target groups.
+- **Sequence** (`model/sequence/`): protein, DNA, RNA or generic sequences with seq ids and microheterogeneity;
+  alignment (`alignment/`).
+- **Shape** (`model/shape/`): structural only; graphics builds the renderable one.
+- **Location and Loci unions** (`location.ts`, `loci.ts`): every kind the plugin can pick, label and highlight.
