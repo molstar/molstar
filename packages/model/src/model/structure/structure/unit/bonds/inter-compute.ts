@@ -20,6 +20,7 @@ import {
 import { InterUnitBonds, type InterUnitEdgeProps } from './data.js';
 import { SortedArray } from '@molstar/core/data/int';
 import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
+import { Result } from '@molstar/core/math/geometry/lookup3d/common';
 import type { StructureElement } from '../../element.js';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { getInterBondOrderFromTable } from '../../../model/properties/atomic/bonds.js';
@@ -46,6 +47,49 @@ function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomi
 
 const _imageTransform = Mat4();
 const _imageA = Vec3();
+const _bToA = Mat4();
+const _bCenterInA = Vec3();
+const _candidateResult = Result.create<StructureElement.UnitIndex>();
+let _candidates = new Int32Array(1024);
+
+/** Whether the linear part of `m` is orthonormal within `eps` (a rigid transform keeps distances). */
+function isRigid(m: Mat4, eps: number) {
+  for (let i = 0; i < 3; i++) {
+    for (let j = i; j < 3; j++) {
+      const d = m[4 * i] * m[4 * j] + m[4 * i + 1] * m[4 * j + 1] + m[4 * i + 2] * m[4 * j + 2];
+      if (Math.abs(d - (i === j ? 1 : 0)) > eps) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The elements of `unitA` (sorted UnitIndices) that may lie within `radius` of `unitB`'s boundary sphere: fetched from
+ * `unitA`'s grid around the sphere centre mapped into `unitA`'s frame, instead of transforming every element of `unitA`
+ * (05-model-structure P4). The radius is padded so that the exact test in `unitB`'s frame still decides; operators that
+ * do not keep distances (mmCIF allows them with a warning) get every element, as before.
+ */
+function getCandidates(unitA: Unit.Atomic, unitB: Unit.Atomic, radius: number) {
+  Mat4.mul(_bToA, unitA.conformation.operator.inverse, unitB.conformation.operator.matrix);
+  if (!isRigid(_bToA, 1e-4)) {
+    const n = unitA.elements.length;
+    if (_candidates.length < n) _candidates = new Int32Array(Math.max(n, 2 * _candidates.length));
+    for (let i = 0; i < n; i++) _candidates[i] = i;
+    return _candidates.subarray(0, n);
+  }
+  Vec3.transformMat4(_bCenterInA, unitB.boundary.sphere.center, _bToA);
+  const { indices, count } = unitA.lookup3d.find(
+    _bCenterInA[0],
+    _bCenterInA[1],
+    _bCenterInA[2],
+    radius * (1 + 1e-3) + 1e-3,
+    _candidateResult,
+  );
+  if (_candidates.length < count) _candidates = new Int32Array(Math.max(count, 2 * _candidates.length));
+  for (let i = 0; i < count; i++) _candidates[i] = indices[i];
+  // ascending, as the scan was: keeps the edge insertion order
+  return _candidates.subarray(0, count).sort();
+}
 
 function findPairBonds(
   unitA: Unit.Atomic,
@@ -58,7 +102,6 @@ function findPairBonds(
   const { elements: atomsA, residueIndex: residueIndexA } = unitA;
   const { x: xA, y: yA, z: zA } = unitA.model.atomicConformation;
   const { elements: atomsB, residueIndex: residueIndexB } = unitB;
-  const atomCount = unitA.elements.length;
 
   const {
     type_symbol: type_symbolA,
@@ -102,7 +145,9 @@ function findPairBonds(
   const opKeyA = unitA.conformation.operator.key;
   const opKeyB = unitB.conformation.operator.key;
 
-  for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
+  const candidates = getCandidates(unitA, unitB, bRadius + maxRadius);
+  for (let ci = 0, cl = candidates.length; ci < cl; ci++) {
+    const _aI = candidates[ci] as StructureElement.UnitIndex;
     const aI = atomsA[_aI];
     v3set(_imageA, xA[aI], yA[aI], zA[aI]);
     if (isNotIdentity) v3transformMat4(_imageA, _imageA, imageTransform);
