@@ -11,7 +11,7 @@ import { Box3D } from '../primitives/box3d.js';
 import type { Sphere3D } from '../primitives/sphere3d.js';
 import type { PositionData } from '../common.js';
 import { Vec3 } from '../../linear-algebra.js';
-import { Interval, OrderedSet, type SortedArray } from '@molstar/core/data/int';
+import { Interval, OrderedSet, SortedArray } from '@molstar/core/data/int';
 import type { Boundary } from '../boundary.js';
 import { FibonacciHeap } from '@molstar/core/util/fibonacci-heap';
 import { memoize1 } from '@molstar/core/util/memoize';
@@ -114,6 +114,12 @@ interface Grid3D {
   bucketOffset: Uint32Array;
   bucketCounts: Int32Array;
   bucketArray: Int32Array;
+  /**
+   * `data.indices` resolved once: the element index of lookup index `i` is `sortedIndices[i]`, or `startIdx + i` for an
+   * interval or a contiguous SortedArray. Queries read it directly instead of dispatching through `OrderedSet.getAt` per candidate.
+   */
+  sortedIndices: SortedArray | undefined;
+  startIdx: number;
   data: InputData;
   maxRadius: number;
   expandedBox: Box3D;
@@ -144,10 +150,12 @@ function _build(state: BuildState): Grid3D {
     min: [minX, minY, minZ],
   } = expandedBox;
 
-  // resolve the OrderedSet union once instead of per-element getAt dispatch in the hot loops
+  // resolve the OrderedSet union once instead of per-element getAt dispatch in the hot loops;
+  // a contiguous SortedArray (e.g. the elements of most units) is a range too, so no indirection is needed
   let sortedIndices: SortedArray | undefined;
   let startIdx = 0;
   if (Interval.is(indices)) startIdx = Interval.start(indices);
+  else if (indices.length > 0 && SortedArray.isRange(indices)) startIdx = indices[0];
   else sortedIndices = indices;
 
   // multiply by reciprocals instead of dividing in the hot loop
@@ -220,6 +228,8 @@ function _build(state: BuildState): Grid3D {
     grid,
     delta,
     min: state.expandedBox.min,
+    sortedIndices,
+    startIdx,
     data: state.data,
     maxRadius,
     expandedBox: state.expandedBox,
@@ -310,7 +320,9 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
     bucketCounts,
     bucketArray,
     grid,
-    data: { x: px, y: py, z: pz, indices, radius },
+    sortedIndices,
+    startIdx,
+    data: { x: px, y: py, z: pz, radius },
     delta,
     maxRadius,
   } = ctx.grid;
@@ -342,18 +354,32 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
         const count = bucketCounts[k];
         const end = offset + count;
 
-        for (let i = offset; i < end; i++) {
-          const idx = OrderedSet.getAt(indices, bucketArray[i]);
-
-          const dx = px[idx] - x;
-          const dy = py[idx] - y;
-          const dz = pz[idx] - z;
-          const distSq = dx * dx + dy * dy + dz * dz;
-
-          if (distSq <= rSq) {
-            if (maxRadius > 0 && Math.sqrt(distSq) - radius![idx] > inputRadius) continue;
-            if (isCheck) return true;
-            Result.add(result, bucketArray[i], distSq);
+        // one loop per index kind: a branch inside the loop costs more than the indirection it saves
+        if (sortedIndices) {
+          for (let i = offset; i < end; i++) {
+            const idx = sortedIndices[bucketArray[i]];
+            const dx = px[idx] - x;
+            const dy = py[idx] - y;
+            const dz = pz[idx] - z;
+            const distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq <= rSq) {
+              if (maxRadius > 0 && Math.sqrt(distSq) - radius![idx] > inputRadius) continue;
+              if (isCheck) return true;
+              Result.add(result, bucketArray[i], distSq);
+            }
+          }
+        } else {
+          for (let i = offset; i < end; i++) {
+            const idx = startIdx + bucketArray[i];
+            const dx = px[idx] - x;
+            const dy = py[idx] - y;
+            const dz = pz[idx] - z;
+            const distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq <= rSq) {
+              if (maxRadius > 0 && Math.sqrt(distSq) - radius![idx] > inputRadius) continue;
+              if (isCheck) return true;
+              Result.add(result, bucketArray[i], distSq);
+            }
           }
         }
       }
@@ -390,7 +416,9 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
     bucketCounts,
     bucketArray,
     grid,
-    data: { x: px, y: py, z: pz, indices },
+    sortedIndices,
+    startIdx,
+    data: { x: px, y: py, z: pz },
     delta,
   } = ctx.grid;
   const { radius, x, y, z } = ctx;
@@ -430,17 +458,29 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
     const end = offset + count;
 
     let minDistSq = Number.MAX_VALUE;
-    for (let i = offset; i < end; i++) {
-      const idx = OrderedSet.getAt(indices, bucketArray[i]);
-
-      const dx = px[idx] - x;
-      const dy = py[idx] - y;
-      const dz = pz[idx] - z;
-      const distSq = dx * dx + dy * dy + dz * dz;
-
-      if (distSq <= rSq && distSq < minDistSq) {
-        Result.add(result, bucketArray[i], distSq);
-        minDistSq = distSq;
+    if (sortedIndices) {
+      for (let i = offset; i < end; i++) {
+        const idx = sortedIndices[bucketArray[i]];
+        const dx = px[idx] - x;
+        const dy = py[idx] - y;
+        const dz = pz[idx] - z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq <= rSq && distSq < minDistSq) {
+          Result.add(result, bucketArray[i], distSq);
+          minDistSq = distSq;
+        }
+      }
+    } else {
+      for (let i = offset; i < end; i++) {
+        const idx = startIdx + bucketArray[i];
+        const dx = px[idx] - x;
+        const dy = py[idx] - y;
+        const dz = pz[idx] - z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq <= rSq && distSq < minDistSq) {
+          Result.add(result, bucketArray[i], distSq);
+          minDistSq = distSq;
+        }
       }
     }
     if (minDistSq !== Number.MAX_VALUE) return true;
@@ -466,6 +506,8 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
     bucketCounts,
     bucketArray,
     grid,
+    sortedIndices,
+    startIdx,
     data: { x: px, y: py, z: pz, indices, radius },
     delta,
     maxRadius,
@@ -526,7 +568,7 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
           const end = offset + count;
           for (let i = offset; i < end; i++) {
             const bIdx = bucketArray[i];
-            const idx = OrderedSet.getAt(indices, bIdx);
+            const idx = sortedIndices ? sortedIndices[bIdx] : startIdx + bIdx;
             const dx = px[idx] - x;
             const dy = py[idx] - y;
             const dz = pz[idx] - z;

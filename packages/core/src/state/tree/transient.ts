@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
@@ -291,15 +291,34 @@ class TransientTree implements StateTree {
     return st;
   }
 
+  /**
+   * The result becomes this tree's new base (tree.md §2): `asImmutable()` freezes the mutable maps in place, so later
+   * writes start from fresh mutable copies, and flags merged in place (`_stateUpdates`) never reach the snapshot.
+   */
   asImmutable() {
-    if (!this.changedNodes && !this.changedChildren && !this._childMutations) return this.tree;
+    if (!this.changedNodes && !this.changedChildren && !this.changedDependencies && !this._childMutations) {
+      return this.tree;
+    }
     if (this._childMutations) this._childMutations.forEach(fixChildMutations, this.children);
     if (this._dependencyMutations) this._dependencyMutations.forEach(fixDependencyMutations as any, this.dependencies);
-    return StateTree.create(
+    const tree = StateTree.create(
       this.changedNodes ? this.transforms.asImmutable() : this.transforms,
       this.changedChildren ? this.children.asImmutable() : this.children,
       this.changedDependencies ? this.dependencies.asImmutable() : this.dependencies,
     );
+
+    this.tree = tree;
+    this.transforms = tree.transforms as StateTree.MutableTransforms;
+    this.children = tree.children as StateTree.MutableChildren;
+    this.dependencies = tree.dependencies as StateTree.MutableDependencies;
+    this.changedNodes = false;
+    this.changedChildren = false;
+    this.changedDependencies = false;
+    this._childMutations = void 0;
+    this._dependencyMutations = void 0;
+    this._stateUpdates = void 0;
+
+    return tree;
   }
 
   constructor(private tree: StateTree) {}

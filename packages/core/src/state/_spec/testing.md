@@ -10,6 +10,7 @@
 | `dependencies.test.ts`   | links from the three sources, relinking, cycles, deferral                              |
 | `cell-less.test.ts`      | cells below Null objects, waiters, deleted dependencies, stalls (dependencies.md §3-4) |
 | `action-manager.test.ts` | the action registry                                                                    |
+| `cell-state.test.ts`     | state flags in the tree with builders outstanding; `asImmutable` (tree.md §2, §4)      |
 
 ## How to test a change
 
