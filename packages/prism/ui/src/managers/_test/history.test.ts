@@ -302,7 +302,7 @@ describe('HistoryManager', () => {
     expect(h.canUndo.value).toBe(false);
   });
 
-  it('past the hard limit, takes no snapshot for a while, then tries again; a clear lets it at once', async () => {
+  it('past the hard limit, takes no snapshot for a while, then tries again; a clear or undo turned on lets it at once', async () => {
     const s = store({ a: 0 });
     let taken = 0;
     let time = 0;
@@ -326,10 +326,16 @@ describe('HistoryManager', () => {
       await h.run('x', script, async () => s.set('a', 9), { within: ctx });
     });
     expect(taken).toBe(2);
+    // Undo turned back on (Settings) tries again at once, as a clear does.
+    h.setCheckpointing(true);
+    await h.group('Again', script, async (ctx) => {
+      await h.run('y', script, async () => s.set('a', 8), { within: ctx });
+    });
+    expect(taken).toBe(3);
     big = false;
     h.clear();
     await h.run('Small', script, async () => s.set('a', 10));
-    expect(taken).toBe(3);
+    expect(taken).toBe(4);
     expect(h.steps.value[0].unsafe).toBeUndefined();
   });
 

@@ -284,6 +284,8 @@ export class HistoryManager<C = unknown> {
 
   /** Turns per-step checkpoints on or off (Settings: "Undo for large scenes"); on again after a clear. */
   setCheckpointing(on: boolean): void {
+    // Turned on by the person: try again at once, past the pause after a scene over the hard limit.
+    if (on) this.#overHardLimitAt = undefined;
     this.#checkpointing.set(on);
   }
 
