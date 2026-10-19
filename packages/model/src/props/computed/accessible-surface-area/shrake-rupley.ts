@@ -44,7 +44,7 @@ export const ShrakeRupleyComputationParams = {
     ],
     {
       description:
-        "Once per symmetry group computes one unit of each group of symmetry-equivalent units, the one nearest the structure's centre, against the whole structure, and gives its residue areas to the other units of the group: much faster on large assemblies, but approximate. A copy whose surroundings differ from the computed unit's gets that unit's areas: at the edges of a crystal-packing block, in an open or partial assembly. In a closed point-group assembly (a complete biological assembly, a capsid) every copy has the same surroundings, and the areas differ from Every unit only by the sampling noise of the sphere points, which do not rotate with a copy (as when the whole structure is rotated).",
+        "Once per symmetry group computes, for each group of symmetry-equivalent units, the unit nearest the structure's centre against the whole structure, and gives its residue areas to the other units of the group: much faster on large assemblies, but approximate. A copy whose surroundings differ from the computed unit's gets that unit's areas: at the edges of a crystal-packing block, in a helical segment, or in an assembly whose chains do not all share one closed group of operators. When every chain is under the same closed point group (a capsid, a symmetric homo-oligomer), every copy has the same surroundings, and the areas differ from Every unit only by the sphere points' sampling noise, which does not rotate with a copy: most residues change, by up to ~15 Å² at 92 points and ~5 Å² at 360.",
     },
   ),
 };

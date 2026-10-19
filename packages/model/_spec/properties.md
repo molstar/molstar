@@ -48,8 +48,10 @@ providers.
 
 ASA `symmetry`: `'all'` (default) computes every atom; `'per-group'` computes one unit per symmetry group, the one
 nearest the structure's centre, against the whole structure, and copies its residue areas to the group's other units
-element for element (equal elements, `areUnitsEquivalent`). Opt-in because it is approximate: a copy with other
-surroundings (crystal-block edges, open assemblies) gets the representative's areas. In a closed point group it equals
-`'all'` computed with the copy rotated into the representative's place; plain `'all'` differs between rotated copies by
-the sphere-point sampling noise, since the points do not rotate with a copy. The nearest-centre unit, not the first: in
-crystal blocks the first is at a corner (asm-864 translation copies: 10.4 → 3.3 % of residues changed).
+element for element (equal elements, `areUnitsEquivalent`). Groups choose independently, so the units of one copy can
+take their areas from different copies. Opt-in because it is approximate: a copy with other surroundings (crystal-block
+edges, helical segments, chains under different operator lists) gets the representative's areas. When every chain is
+under one closed point group, it equals, up to floating point, `'all'` computed with the copy rotated into the
+representative's place; plain `'all'` differs between rotated copies by the sphere-point sampling noise (most residues,
+up to ~15 Å² at 92 points), since the points do not rotate with a copy. The nearest-centre unit, not the first: in a
+crystal block the first is at a corner, and its edge areas would go to the interior copies.

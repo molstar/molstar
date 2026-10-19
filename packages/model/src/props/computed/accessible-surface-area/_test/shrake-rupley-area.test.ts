@@ -178,9 +178,10 @@ describe('Shrake-Rupley accessible surface area, once per symmetry group', async
 
   /**
    * The sphere points do not rotate with a copy, so 'all' differs between the copies of a closed assembly by the
-   * sampling noise (up to ~10 Å² per residue at 92 points). Rotating the whole assembly so that copy k sits in the
+   * sampling noise (most residues, up to ~15 Å² at 92 points). Rotating the whole assembly so that copy k sits in the
    * place of the representative gives copy k, under 'all', exactly the representative's surroundings and orientation:
-   * what 'per-group' gives every copy.
+   * what 'per-group' gives every copy. This holds because the group is closed (the rotated set is the same set); the
+   * open half below fails it.
    */
   it("gives each copy of a closed point-group assembly the areas 'all' gives it in the representative's place", async () => {
     const n = model.units.length;
