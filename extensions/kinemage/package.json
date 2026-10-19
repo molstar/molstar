@@ -18,6 +18,11 @@
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
     },
+    "./prism-panel": {
+      "molstar-src": "./src/prism-panel.tsx",
+      "types": "./lib/prism-panel.d.ts",
+      "import": "./lib/prism-panel.js"
+    },
     "./_test/*": null
   },
   "files": [
