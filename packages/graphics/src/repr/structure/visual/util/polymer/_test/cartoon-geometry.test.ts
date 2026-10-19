@@ -27,7 +27,7 @@ function rng(seed: number) {
 }
 
 /** a jittered alpha-helix-like trace (CA positions) and per-residue carbonyl-like directions */
-function createTrace(n: number) {
+function createTrace(n: number, degenerate: boolean) {
   const rnd = rng(11);
   const points: Vec3[] = [];
   const dirs: Vec3[] = [];
@@ -39,6 +39,11 @@ function createTrace(n: number) {
   // a zero and a tangent-parallel direction exercise the `orthogonalize` fallbacks
   dirs[5] = Vec3.create(0, 0, 0);
   dirs[9] = Vec3.sub(Vec3(), points[10], points[9]);
+  if (degenerate) {
+    // coincident points give zero tangents and the in-loop `orthogonalize` fallbacks
+    for (let i = 13; i < 18; ++i) points[i] = points[12];
+    dirs[14] = Vec3.create(0, 0, 0);
+  }
   return { points, dirs };
 }
 
@@ -65,8 +70,8 @@ type Kind =
   | { kind: 'sheet'; arrow: boolean }
   | { kind: 'ribbon'; arrow: boolean };
 
-function build(kind: Kind, linearSegments: number, tension: number, shift: number) {
-  const trace = createTrace(24);
+function build(kind: Kind, linearSegments: number, tension: number, shift: number, degenerate = false) {
+  const trace = createTrace(24, degenerate);
   const state = createCurveSegmentState(linearSegments);
   const builder = MeshBuilder.createState(64, 64);
   let curveHash = 0;
@@ -188,9 +193,12 @@ describe('cartoon geometry', () => {
       out[name] =
         `${r.vertexCount}v ${r.triangleCount}t curve=${r.curve} v=${r.vertices} n=${r.normals} i=${r.indices} g=${r.groups}`;
     }
+    const d = build(cases[0][1], 8, 0.9, 0.5, true);
+    out.degenerate = `${d.vertexCount}v ${d.triangleCount}t curve=${d.curve} v=${d.vertices} n=${d.normals} i=${d.indices} g=${d.groups}`;
     expect(out).toMatchInlineSnapshot(`
       {
         "coil tube": "3016v 5248t curve=22430911 v=607549172 n=1795098989 i=2528217029 g=3823400037",
+        "degenerate": "3016v 5248t curve=281995042 v=3482627721 n=3611377989 i=2528217029 g=3823400037",
         "helix elliptical": "3016v 5248t curve=3662355717 v=981845174 n=1525901127 i=2528217029 g=3823400037",
         "helix rounded": "2024v 3456t curve=3749712538 v=1711728876 n=1683080486 i=1912354837 g=2503719653",
         "nucleic tube": "896v 1488t curve=3214162229 v=3865116821 n=3567090349 i=2968838797 g=2020398021",

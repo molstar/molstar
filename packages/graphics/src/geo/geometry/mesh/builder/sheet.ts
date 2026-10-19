@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -17,10 +17,8 @@ const horizontalVector = Vec3();
 const verticalVector = Vec3();
 const verticalRightVector = Vec3();
 const verticalLeftVector = Vec3();
-const normalOffset = Vec3();
 const positionVector = Vec3();
 const normalVector = Vec3();
-const torsionVector = Vec3();
 
 const p1 = Vec3();
 const p2 = Vec3();
@@ -33,12 +31,9 @@ const v3scale = Vec3.scale;
 const v3add = Vec3.add;
 const v3sub = Vec3.sub;
 const v3magnitude = Vec3.magnitude;
-const v3negate = Vec3.negate;
 const v3copy = Vec3.copy;
 const v3cross = Vec3.cross;
-const v3set = Vec3.set;
 const caAdd3 = ChunkedArray.add3;
-const caAdd = ChunkedArray.add;
 
 function addCap(
   offset: number,
@@ -121,10 +116,13 @@ export function addSheet(
     v3fromArray(tA, controlPoints, 0);
     v3fromArray(tB, controlPoints, linearSegments * 3);
     offsetLength = arrowHeight / v3magnitude(v3sub(tV, tB, tA));
-  } else {
-    v3set(normalOffset, 0, 0, 0);
   }
 
+  // The per-vertex loop works on scalar locals instead of `Vec3` calls (megamorphic app-wide); each expression keeps
+  // the operation order of the call it replaces, so the output is bit-identical.
+  let ox = 0,
+    oy = 0,
+    oz = 0;
   for (let i = 0; i <= linearSegments; ++i) {
     const width = widthValues[i];
     const height = heightValues[i];
@@ -132,57 +130,72 @@ export function addSheet(
     const actualHeight = arrowHeight === 0 ? height : arrowHeight * (1 - i / linearSegments);
     const i3 = i * 3;
 
-    v3fromArray(verticalVector, normalVectors, i3);
-    v3scale(verticalVector, verticalVector, actualHeight);
+    // normal, torsion (binormal) and position
+    const nx = normalVectors[i3],
+      ny = normalVectors[i3 + 1],
+      nz = normalVectors[i3 + 2];
+    const tx = binormalVectors[i3],
+      ty = binormalVectors[i3 + 1],
+      tz = binormalVectors[i3 + 2];
+    const px = controlPoints[i3],
+      py = controlPoints[i3 + 1],
+      pz = controlPoints[i3 + 2];
 
-    v3fromArray(horizontalVector, binormalVectors, i3);
-    v3scale(horizontalVector, horizontalVector, width);
+    // vertical = normal * actualHeight, horizontal = binormal * width
+    const vx = nx * actualHeight,
+      vy = ny * actualHeight,
+      vz = nz * actualHeight;
+    const hx = tx * width,
+      hy = ty * width,
+      hz = tz * width;
 
     if (arrowHeight > 0) {
-      v3fromArray(tA, normalVectors, i3);
-      v3fromArray(tB, binormalVectors, i3);
-      v3scale(normalOffset, v3cross(normalOffset, tA, tB), offsetLength);
+      // `Vec3.scale(Vec3.cross(normal, binormal), offsetLength)`
+      ox = (ny * tz - nz * ty) * offsetLength;
+      oy = (nz * tx - nx * tz) * offsetLength;
+      oz = (nx * ty - ny * tx) * offsetLength;
     }
 
-    v3fromArray(positionVector, controlPoints, i3);
-    v3fromArray(normalVector, normalVectors, i3);
-    v3fromArray(torsionVector, binormalVectors, i3);
+    // `normal + normalOffset`
+    let bx = nx + ox,
+      by = ny + oy,
+      bz = nz + oz;
+    caAdd3(vertices, px + hx + vx, py + hy + vy, pz + hz + vz);
+    caAdd3(normals, bx, by, bz);
 
-    v3add(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
-    v3add(tB, normalVector, normalOffset);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    let ax = px - hx + vx,
+      ay = py - hy + vy,
+      az = pz - hz + vz;
+    caAdd3(vertices, ax, ay, az);
+    caAdd3(normals, bx, by, bz);
 
-    v3add(tA, v3sub(tA, positionVector, horizontalVector), verticalVector);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    caAdd3(vertices, ax, ay, az);
+    caAdd3(normals, -tx, -ty, -tz);
 
-    // v3add(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-    v3negate(tB, torsionVector);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    ax = px - hx - vx;
+    ay = py - hy - vy;
+    az = pz - hz - vz;
+    caAdd3(vertices, ax, ay, az);
+    caAdd3(normals, -tx, -ty, -tz);
 
-    v3sub(tA, v3sub(tA, positionVector, horizontalVector), verticalVector);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    // `-normal + normalOffset`
+    bx = -nx + ox;
+    by = -ny + oy;
+    bz = -nz + oz;
+    caAdd3(vertices, ax, ay, az);
+    caAdd3(normals, bx, by, bz);
 
-    // v3sub(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-    v3add(tB, v3negate(tB, normalVector), normalOffset);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    ax = px + hx - vx;
+    ay = py + hy - vy;
+    az = pz + hz - vz;
+    caAdd3(vertices, ax, ay, az);
+    caAdd3(normals, bx, by, bz);
 
-    v3sub(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    caAdd3(vertices, ax, ay, az);
+    caAdd3(normals, tx, ty, tz);
 
-    // v3sub(tA, v3add(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-    v3copy(tB, torsionVector);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
-
-    v3add(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
-    caAdd3(vertices, tA[0], tA[1], tA[2]);
-    caAdd3(normals, tB[0], tB[1], tB[2]);
+    caAdd3(vertices, px + hx + vx, py + hy + vy, pz + hz + vz);
+    caAdd3(normals, tx, ty, tz);
   }
 
   for (let i = 0; i < linearSegments; ++i) {
@@ -238,5 +251,5 @@ export function addSheet(
 
   const addedVertexCount =
     (linearSegments + 1) * 8 + (startCap ? 4 : arrowHeight > 0 ? 8 : 0) + (endCap && arrowHeight === 0 ? 4 : 0);
-  for (let i = 0, il = addedVertexCount; i < il; ++i) caAdd(groups, currentGroup);
+  ChunkedArray.addRepeat(groups, addedVertexCount, currentGroup);
 }

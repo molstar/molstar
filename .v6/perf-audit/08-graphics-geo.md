@@ -209,8 +209,13 @@ memory order.
   `tube.ts`, `sheet.ts`, `ribbon.ts`, bit-identical. Microbench after warming `Vec3.fromArray` with 6 array kinds: tube
   1482 → 1373 ms, sheet 402 → 327, ribbon 224 → 153, curve interpolation 525 → 387; unchanged when clean. Pipeline
   `repr:cartoon` big-bcif 183 → 179 ms, 7qpd unchanged. The cartoon's 62 ms of `vec3.ts` self time (of 185) is mostly
-  `normalize`, `cross`, `slerp`, `orthogonalize` (`interpolateNormals` 18 ms, `addSheet` 8, `addTube` 7); a follow-up
-  would have to show those are megamorphic in the app before inlining them.
+  `normalize`, `cross`, `slerp`, `orthogonalize` (`interpolateNormals` 18 ms, `addSheet` 8, `addTube` 7). Follow-up
+  done: the math itself on scalar locals (`curve-segment.ts`, `tube.ts`, `sheet.ts`, same operation order,
+  bit-identical on 5 fixtures) pays in the pipeline: big-bcif `repr:cartoon` 169 → 129 ms, allocation 341 → 212 MB
+  (`createPolymerTraceMesh` 90 → 52 ms). Not pursued: exact pre-sized cartoon buffers (`add3` is ~8 ms self after
+  that, and exact counts need a trace pre-pass; the iterator alone is 14 ms) and a cheaper cartoon bounding sphere (the
+  mesh already takes `unit.boundary`; the 10 ms of `includeSphere` is `merged.ts` `unionSpheres`, frozen). The cartoon
+  memory overshoot is P3's index reserve: 2.53M triangles reserved, 0.87M used on big-bcif (~20 MB retained).
 - Aside for the core slice (not counted here): `ChunkedArray._compact` copies a partial last chunk with a scalar loop
   over the whole chunk length instead of `set(lastChunk.subarray(0, currentIndex))`
   ([chunked-array.ts:148](../../packages/core/src/data/util/chunked-array.ts#L148)).
