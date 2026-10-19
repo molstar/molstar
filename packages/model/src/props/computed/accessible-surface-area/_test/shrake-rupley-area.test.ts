@@ -15,7 +15,10 @@ import { StructureSymmetry } from '@molstar/model/model/structure/structure/symm
 import { AccessibleSurfaceArea, type ShrakeRupleyComputationProps } from '../shrake-rupley.js';
 
 async function load1cbs() {
-  const data = fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../../data/examples/1cbs_updated.cif'), 'utf8');
+  const data = fs.readFileSync(
+    path.resolve(import.meta.dirname, '../../../../../../../data/examples/1cbs_updated.cif'),
+    'utf8',
+  );
   const parsed = await CIF.parse(data).run();
   if (parsed.isError) throw new Error(parsed.message);
   const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run();
