@@ -76,9 +76,9 @@ export async function calcMolecularSurface(
   // Other parts based heavily on NGL (Alexander Rose) EDT Surface class
 
   // Occlusion only needs a yes/no, so it scans compact copies, not `neighbours` through `OrderedSet.getAt`
-  // and scattered loads. Exact: an atom that obscures a point on the sphere of atom `a` is within
-  // `r_a + r_c` of `a`, so in its `find` result; the scan order and the `lastClip` slot never change the
-  // outcome. Per call, not module level: calculations interleaved at `ctx.update` share nothing.
+  // and scattered loads. An atom that obscures a point on the sphere of atom `a` is within `r_a + r_c` of
+  // `a`, so in its `find` result (up to the last bit at exact tangency, where the old cross-atom `lastClip`
+  // could still test it); the scan order and the `lastClip` slot never change the outcome.
 
   /** Neighbours of the current atom, without the atom itself: resolved index, ordinal, centre, radius, radius². */
   let nbCapacity = 0;
@@ -131,7 +131,7 @@ export async function calcMolecularSurface(
       nbX[c] = px[ai];
       nbY[c] = py[ai];
       nbZ[c] = pz[ai];
-      nbR[c] = r;
+      nbR[c] = Math.abs(r); // the occlusion test squares r
       nbRSq[c] = r * r;
       ++c;
     }
@@ -186,10 +186,10 @@ export async function calcMolecularSurface(
    *     Iterate over a subsection of the grid, for each point:
    *         If current value < 0.0, unvisited, set positive
    *
-   *         In any case: Project this point onto surface of the atomic sphere
-   *         If this projected point is not obscured by any other atom
-   *             Calculate delta distance and set grid value to minimum of
-   *             itself and delta
+   *         If the delta distance would lower the grid value (raise it outside, in extended mode):
+   *             Project this point onto surface of the atomic sphere
+   *             If this projected point is not obscured by any other atom
+   *                 set grid value to delta
    */
   function projectPointsRange(begI: number, endI: number) {
     for (let i = begI; i < endI; ++i) {
@@ -322,7 +322,7 @@ export async function calcMolecularSurface(
 
     // Probe positions lie on the circle (centre `mid`, radius `rInt`), so only neighbours with
     // |c - mid| < rInt + r_c can obscure one. The margin covers rounding, mostly the Float32 cos/sin
-    // tables (|p - mid| <= rInt * (1 + 1e-7)). A NaN `rInt` (no intersection) keeps none, as before
+    // tables (|p - mid| <= rInt * (1 + 6e-8) + coordinate rounding). A NaN `rInt` (no intersection) keeps none, as before
     // nothing is obscured and no voxel is written.
     const mx = mid[0],
       my = mid[1],
