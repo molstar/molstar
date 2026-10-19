@@ -52,6 +52,8 @@ here.
 - MessagePack: extension types, JSON's rules for non-finite numbers (nil), large integers (float 64) and `undefined`
   object values (left out, so BinaryCIF files no longer carry a nil `mask` key), and checks of the lengths in untrusted
   input
+- Fix the vertex groups of volume isosurfaces with floodfill `inside`: the cell ids were read through the filled values,
+  so ids below the iso value inside the surface became twice the iso value (wrong cell picked and colored)
 
 ## [v5.13.1] - 2026-10-08
 

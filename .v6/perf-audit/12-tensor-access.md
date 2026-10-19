@@ -55,7 +55,7 @@ G1 (the same 7-read central-difference stencil), not measured.
 
 Already strided by hand (no accessor calls): the WebGPU isosurface and segment kernels get
 `[dataOffset(1,0,0), dataOffset(0,1,0), dataOffset(0,0,1)]`
-([isosurface.ts:333](../../packages/graphics/src/repr/volume/isosurface.ts#L333),
+([isosurface.ts:335](../../packages/graphics/src/repr/volume/isosurface.ts#L335),
 [segment.ts:324](../../packages/graphics/src/repr/volume/segment.ts#L324)), taken before wrapping, so correct today;
 `Tensor.strides` says the same without relying on unit vectors through `dataOffset`.
 
@@ -78,7 +78,7 @@ the Tensor's to own: they should take their strides from `Tensor.strides(space)`
 | Id  | Title | File | Failure scenario | Verdict |
 | --- | ----- | ---- | ---------------- | ------- |
 | B3  | Periodic trilinear interpolation reads unwrapped indices | [grid.ts:203](../../packages/model/src/model/volume/grid.ts#L203) | `trilinearlyInterpolate` skips the bounds check when `isPeriodic` but passes `i`, `ii`… unwrapped to `get`; the `volume-value` color/size and external-volume themes use the raw grid, so on MTZ or structure-factor maps (`periodicity: 'xyz'`) atoms outside the unit cell read the wrong voxel, or `undefined` → NaN → default color for negative indices (probe: `(5.5, 1, 1)` and `(-1.5, 1, 1)` on 4³ give 8 out-of-range reads). The slice is unaffected (it reads a `createPeriodicVolume` copy). Fix: wrap the indices modulo the dimensions | confirmed |
-| B1  | The isosurface id field is read through the floodfilled `get` | [isosurface.ts:188](../../packages/graphics/src/repr/volume/isosurface.ts#L188), :496 (wireframe) | Floodfilled isosurface: the id field is built with `scalarField.space` after `createFloodfilled`, so the serial ids go through `floodfilledGet`: ids below `isoLevel` in filled cells become `2 * isoLevel`, wrong groups for picking and coloring there. Fix: build the id field from the unfilled (possibly wrapped) space | confirmed |
+| B1  | The isosurface id field is read through the floodfilled `get` | `isosurface.ts` mesh and wireframe, before #1987 (now [getIsosurfaceFields](../../packages/graphics/src/repr/volume/isosurface.ts#L88)) | Floodfill `inside`: the id field was built with the floodfilled `scalarField.space`, so `floodfilledGet` also ran on the ids: a cell inside the surface (never visited) whose id is below `isoLevel` read `2 * isoLevel`, a wrong group for picking and coloring; large absolute iso values reach many cells. `outside` is not observable (the surfaces left only touch unvisited cells). Fixed in #1987: the id field keeps the unfilled space and is wrapped alike (`getIsosurfaceFields`) | fixed |
 | B2  | `getCoords` of rank ≥ 4 writes a stray key | [tensor.ts](../../packages/core/src/math/linear-algebra/tensor.ts) `function getCoords` | Also writes `coords[ao[d + 1]]`, an index past the axis order (key `undefined`); the coordinates themselves are right | confirmed |
 
 Not a bug, but misleading: `Grid.getGradients().magnitude` has `min`/`max` of |g| but `mean` of |g|² and

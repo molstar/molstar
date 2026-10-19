@@ -6,3 +6,5 @@
   other down (519 → 61 ms); floodfilled fields (still read through `get`) 1.5–2× faster (#1987)
 - Volume gradients (`Grid.getGradients`, streamlines) read at the strides too: 160³ grid 39 → 27 ms, and 143 → 18 ms when
   a second layout was seen in the session; same gradients and streamlines (#1987)
+- Fix the vertex groups of volume isosurfaces with floodfill `inside`: cell ids below the iso value inside the
+  surface became twice the iso value (#1987)
