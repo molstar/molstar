@@ -205,6 +205,12 @@ memory order.
 - Nothing refuted. Corrections instead: P1 stage gain ~2.5–3× (the kernel is 91 % of it), not 3.6×; P3 ball-and-stick
   and spacefill numbers are the mesh fallback, not the browser default; P4 monomorphic gain 1.5× (fair bench), not 1.35×
   against a different workload; P11 is ≤ 1–2 ms, not "a few ms"; B2 does not reach MVS primitives.
+- Cartoon array reads, tried in #1990 and dropped: module-private `fromArray`/`toArray` in `curve-segment.ts`,
+  `tube.ts`, `sheet.ts`, `ribbon.ts`, bit-identical. Microbench after warming `Vec3.fromArray` with 6 array kinds: tube
+  1482 → 1373 ms, sheet 402 → 327, ribbon 224 → 153, curve interpolation 525 → 387; unchanged when clean. Pipeline
+  `repr:cartoon` big-bcif 183 → 179 ms, 7qpd unchanged. The cartoon's 62 ms of `vec3.ts` self time (of 185) is mostly
+  `normalize`, `cross`, `slerp`, `orthogonalize` (`interpolateNormals` 18 ms, `addSheet` 8, `addTube` 7); a follow-up
+  would have to show those are megamorphic in the app before inlining them.
 - Aside for the core slice (not counted here): `ChunkedArray._compact` copies a partial last chunk with a scalar loop
   over the whole chunk length instead of `set(lastChunk.subarray(0, currentIndex))`
   ([chunked-array.ts:148](../../packages/core/src/data/util/chunked-array.ts#L148)).

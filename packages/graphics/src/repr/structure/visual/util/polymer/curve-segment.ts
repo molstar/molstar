@@ -1,31 +1,16 @@
 /**
- * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { NumberArray } from '@molstar/core/util/type-helpers';
 import { lerp, smoothstep } from '@molstar/core/math/interpolate';
 
-// `Vec3.fromArray` and `Vec3.toArray` are called app-wide with many array kinds, so their loads and stores are
-// megamorphic, also where V8 inlines them; these copies only see the Float32 curve arrays the module's callers pass
-function v3fromArray(out: Vec3, array: ArrayLike<number>, offset: number) {
-  out[0] = array[offset];
-  out[1] = array[offset + 1];
-  out[2] = array[offset + 2];
-  return out;
-}
-
-function v3toArray(v: Vec3, out: NumberArray, offset: number) {
-  out[offset] = v[0];
-  out[offset + 1] = v[1];
-  out[offset + 2] = v[2];
-  return out;
-}
-
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3fromArray = Vec3.fromArray;
+const v3toArray = Vec3.toArray;
 const v3normalize = Vec3.normalize;
 const v3sub = Vec3.sub;
 const v3spline = Vec3.spline;

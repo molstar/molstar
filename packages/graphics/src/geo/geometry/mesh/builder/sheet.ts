@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -27,16 +27,8 @@ const p2 = Vec3();
 const p3 = Vec3();
 const p4 = Vec3();
 
-// `Vec3.fromArray` is called app-wide with many array kinds, so its loads are megamorphic, also where V8 inlines it;
-// this copy only sees the Float32 curve arrays its callers pass
-function v3fromArray(out: Vec3, array: ArrayLike<number>, offset: number) {
-  out[0] = array[offset];
-  out[1] = array[offset + 1];
-  out[2] = array[offset + 2];
-  return out;
-}
-
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3fromArray = Vec3.fromArray;
 const v3scale = Vec3.scale;
 const v3add = Vec3.add;
 const v3sub = Vec3.sub;
