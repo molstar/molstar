@@ -74,19 +74,33 @@ export function extensionUIPort(
     register(_owner, ui: ViewerExtensionUI) {
       const undo: (() => void)[] = [];
       if (ui.tabs?.length) {
-        undo.push(
-          shell.registerTabs(
-            ui.tabs.map((t) => ({
-              id: t.id,
-              title: t.title,
-              icon: t.icon,
-              ...(t.dock ? { dock: t.dock } : {}),
-              ...(t.order !== undefined ? { order: t.order } : {}),
-              ...(t.place ? { place: t.place } : {}),
-              render: t.render,
-            })),
-          ),
-        );
+        const tab = (t: (typeof ui.tabs)[number]) => ({
+          id: t.id,
+          title: t.title,
+          icon: t.icon,
+          ...(t.dock ? { dock: t.dock } : {}),
+          ...(t.order !== undefined ? { order: t.order } : {}),
+          ...(t.place ? { place: t.place } : {}),
+          render: t.render,
+        });
+        const always = ui.tabs.filter((t) => !t.visible);
+        if (always.length) undo.push(shell.registerTabs(always.map(tab)));
+        // A tab shown while its `visible` holds: registered then, taken off the rail otherwise.
+        for (const t of ui.tabs) {
+          if (!t.visible) continue;
+          let remove: (() => void) | undefined;
+          const sub = t.visible.subscribe((on) => {
+            if (on && !remove) remove = shell.registerTabs([tab(t)]);
+            else if (!on && remove) {
+              remove();
+              remove = undefined;
+            }
+          });
+          undo.push(() => {
+            sub.unsubscribe();
+            remove?.();
+          });
+        }
       }
       if (ui.overlays?.length) undo.push(shell.registerOverlays(ui.overlays.map((o) => ({ ...o }))));
       if (ui.pages?.length) undo.push(shell.registerPages(ui.pages.map((p) => ({ ...p }))));

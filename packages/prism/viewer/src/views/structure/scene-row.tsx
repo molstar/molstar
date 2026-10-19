@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Icon } from '@molstar/prism-ui/components/icon/icon';
+import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
@@ -70,6 +70,19 @@ export interface SceneRowProps {
    * click, with a panel glyph at its end.
    */
   onOpen?(): void;
+  /** Its kind's icon, before the label (a tree of its own: a kinemage, its masters). */
+  readonly icon?: IconName;
+  /**
+   * Rows under it, a level deeper, while it is expanded (its chevron and a click toggle them): a tree of its own outside
+   * the scene tree (the Kinemage card's groups and subgroups). Not in the scene tree, whose rows are flat.
+   */
+  readonly children?: () => Child;
+  /** Expanded at first (`children`). */
+  readonly expanded?: boolean;
+  /** Its level outside the scene tree (the tree's host sets it there): its indent. */
+  readonly depth?: number;
+  /** What its click does in place of picking it (a kinemage's view: applied): an action, not an item to inspect. */
+  onActivate?(): void;
 }
 
 /**
@@ -79,7 +92,7 @@ export interface SceneRowProps {
  * row's host); it acts only through what it is given, so the extension's view calls its operations.
  */
 export function SceneRow(props: SceneRowProps) {
-  const open = observableState(false);
+  const open = observableState(!!props.children && !!props.expanded);
   const hidden = derive(props.shown ?? Shown, (s) => !s);
   const labelId = uniqueId('msp-tree-label');
   let rowEl: HTMLElement | undefined;
@@ -102,6 +115,15 @@ export function SceneRow(props: SceneRowProps) {
   // with no host to take it (a row on its own, outside the tree), they open under it (a click on the row toggles them;
   // the eye only opens them: `reveal`).
   const pick = (reveal = false) => {
+    if (props.onActivate) {
+      props.onActivate();
+      return;
+    }
+    // A tree of its own: a click opens and folds its rows.
+    if (props.children) {
+      open.set(!open.value);
+      return;
+    }
     if (props.onOpen) {
       props.onOpen();
       return;
@@ -122,14 +144,15 @@ export function SceneRow(props: SceneRowProps) {
       else toggleOpen();
     }
   };
-  const toggleOpen = () => props.body && !inTree() && open.set(!open.value);
+  const toggleOpen = () => (props.children || (props.body && !inTree())) && open.set(!open.value);
   return (
     <div
       role="treeitem"
-      aria-expanded={props.body ? open.asReadonly : undefined}
+      aria-expanded={props.body || props.children ? open.asReadonly : undefined}
       aria-labelledby={`${labelId} ${labelId}-d`}
       tabIndex={-1}
       class={classes.item}
+      style={props.depth !== undefined ? `--msp-tree-depth: ${props.depth}` : undefined}
       ref={(el: HTMLElement) =>
         // In its host by then (a view may render a row after the host's mount): the host writes its tree ARIA on it.
         queueMicrotask(() => el.closest<SceneRowHost>('[data-scene-row]')?.sceneRowSettle?.())
@@ -148,8 +171,8 @@ export function SceneRow(props: SceneRowProps) {
         <button
           type="button"
           class={classes.expander}
-          // Its controls are in the inspector: nothing opens under it.
-          classList={{ [classes.leaf]: true }}
+          // Its controls are in the inspector: nothing opens under it; rows of its own do.
+          classList={{ [classes.leaf]: !props.children }}
           data-tree-toggle=""
           tabIndex={-1}
           aria-label="Expand"
@@ -160,6 +183,7 @@ export function SceneRow(props: SceneRowProps) {
         >
           <Icon name="chevron-right" size={14} />
         </button>
+        {props.icon ? <Icon name={props.icon} size={15} class={classes.kind} /> : null}
         <span class={classes.label} id={labelId} data-tip-part="">
           {props.label}
         </span>
@@ -208,6 +232,11 @@ export function SceneRow(props: SceneRowProps) {
           )}
         </span>
       </div>
+      {props.children ? (
+        <Show when={open.asReadonly} reveal>
+          {() => <div role="group">{props.children!()}</div>}
+        </Show>
+      ) : null}
       {props.body ? (
         <Show when={open.asReadonly} reveal>
           {() => (

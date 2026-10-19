@@ -28,6 +28,9 @@ export const MolecularIcons = {
   /** A row of residue blocks with a position ruler above. */
   sequence:
     '<rect x="2" y="9" width="5" height="8" rx="1"/><rect x="9.5" y="9" width="5" height="8" rx="1"/><rect x="17" y="9" width="5" height="8" rx="1"/><path d="M4.5 4v2M12 4v2M19.5 4v2"/>',
+  /** A kinemage: two atoms and the contact dots between them, as Probe writes them (the Kinemage tab). */
+  kinemage:
+    '<circle cx="6.5" cy="15.5" r="4"/><circle cx="17.5" cy="8.5" r="4"/><path d="M10 9h.01M12.5 11.5h.01M15 14h.01M9 12h.01M14.5 17h.01M11.5 15h.01"/>',
   /** An assembly: three subunits, overlapping (the Structure tab). */
   structure: '<circle cx="12" cy="8" r="5"/><circle cx="7.5" cy="15.5" r="5"/><circle cx="16.5" cy="15.5" r="5"/>',
   /** Overlapping, filled-looking spheres. */

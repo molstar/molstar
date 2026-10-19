@@ -7,6 +7,7 @@
  */
 
 import { KINFormatProvider } from '@molstar/kinemage-extension/model';
+import { ApiResult } from '@molstar/prism-viewer/api/area';
 import { operationCommand } from '@molstar/prism-viewer/commands/operations';
 import type { ViewerExtension, ViewerSkill } from '@molstar/prism-viewer/spec';
 import { KinemageApi } from './operations.js';
@@ -20,7 +21,11 @@ declare module '@molstar/prism-viewer/api' {
 
 // Kinemage (.kin, MolProbity's output) in the Prism viewer (parity.md §6, README decision 27): the plugin gets the
 // format, so `load.files` of a .kin shows it; what the v5 right-panel controls did (groups, masters, views, animate) is
-// operations with commands and tools. No view of its own: the controls were buttons and checkboxes over those.
+// operations with commands and tools, and the Kinemage panel (prism-panel.tsx, a chunk of its own, a tab beside Structure while a kinemage is loaded): tree rows with eyes and buttons
+// over those operations.
+
+/** The Kinemage tab's id (`prism-panel.tsx`), here so the commands do not load the views. */
+const KinemageTab = 'kinemage.tab.kinemage';
 
 export const KinemageSkill: ViewerSkill = {
   id: 'kinemage',
@@ -74,7 +79,22 @@ export const KinemageExtension: ViewerExtension = {
       }),
       operationCommand(api, k.view, { category: 'Kinemage', icon: 'camera', alias: ['kin view', 'molprobity view'] }),
       operationCommand(api, k.animate, { category: 'Kinemage', icon: 'play', alias: ['kin animate', 'frames'] }),
+      {
+        id: 'kinemage.show-panel',
+        title: 'Show the Kinemage panel',
+        category: 'Kinemage',
+        icon: 'shapes',
+        alias: ['kin', 'kinemage', 'molprobity', 'groups', 'masters'],
+        // Opens the panel: a view, not a change. On the rail only while a kinemage is loaded.
+        when: () => (k.list().length ? true : 'No kinemage is loaded.'),
+        async run() {
+          const r = await api.view.open({ tab: KinemageTab });
+          if (ApiResult.isFailure(r)) throw new Error(r.message);
+          return { message: 'Opened the Kinemage panel.', ops: `view.open({ tab: "${KinemageTab}" })` };
+        },
+      },
     ];
   },
   skills: [KinemageSkill],
+  ui: async (ctx) => (await import('./prism-panel.js')).kinemageUI(ctx),
 };

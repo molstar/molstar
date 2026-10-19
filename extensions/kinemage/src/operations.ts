@@ -18,6 +18,8 @@ import {
   setKinemageVisibility,
 } from '@molstar/kinemage-extension/model';
 import type { Kinemage } from '@molstar/kinemage-extension/reader/schema';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { State } from '@molstar/prism-ui/reactive/state';
 import { type ApiAreaContext, ApiArea, ApiResult, type ApiFailure } from '@molstar/prism-viewer/api/area';
 
 // The `kinemage` area (parity.md §6, README decision 27): what the v5 right-panel controls did, as operations. Which
@@ -142,6 +144,33 @@ function findKey(keys: string[], name: string, kind: KinemageVisibilityTarget['t
 
 export class KinemageApi extends ApiArea {
   readonly id = 'kinemage';
+
+  readonly #changed = new State(0);
+  readonly #subscription: { unsubscribe(): void };
+
+  /**
+   * Counts the state's changes, so a view asks `list` again (a load, a removal, a visibility step, its Undo): what is
+   * shown is the kinemage's state in the plugin, not a value of this area.
+   */
+  get changed(): ReadonlyState<number> {
+    return this.#changed.asReadonly;
+  }
+
+  constructor(ctx: ApiAreaContext) {
+    super(ctx);
+    this.#subscription = ctx.plugin.state.data.events.changed.subscribe(() =>
+      this.#changed.set(this.#changed.value + 1),
+    );
+  }
+
+  dispose(): void {
+    this.#subscription.unsubscribe();
+  }
+
+  /** The loaded kinemages as `kinemage.get` lists them, now: what the Kinemage panel shows. */
+  list(): readonly KinemageInfo[] {
+    return getLoadedKinemages(this.ctx.plugin).map((k, i) => describe(this.ctx, k, i + 1));
+  }
 
   readonly get = this.operation({
     id: 'kinemage.get',
