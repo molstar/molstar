@@ -185,4 +185,31 @@ describe('kin reader', () => {
 
     expect.assertions(38);
   });
+
+  it('groups: a group ends the previous subgroup; only later animate groups start off', async () => {
+    const parsed = await parseKin(`@kinemage 1
+@group {First} animate
+@subgroup {Sub} master={sub}
+@vectorlist {In sub} color=white
+{a}P 0,0,0 {b} 1,0,0
+@group {Second} animate
+@vectorlist {In second} color=pink
+{c}P 0,1,0 {d} 1,1,0
+@group {Third}
+@dotlist {Dots} color=gold
+{e} 0,0,1
+`).run();
+    if (parsed.isError) expect.unreachable('Parse should not error');
+    const kinemage = parsed.result[0];
+
+    const second = kinemage.vectorLists.find((v) => v.name === 'In second');
+    expect(second?.group).toEqual('Second');
+    expect(second?.subgroup).toEqual('');
+    expect(second?.masterArray).toEqual([]);
+    expect(kinemage.dotLists[0].subgroup).toEqual('');
+
+    expect(kinemage.groupDict['First'].off).toEqual(false);
+    expect(kinemage.groupDict['Second'].off).toEqual(true);
+    expect(kinemage.groupDict['Third'].off).toEqual(false);
+  });
 });
