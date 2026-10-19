@@ -71,7 +71,6 @@ export function calcMeshColorSmoothing(
   Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
   const { min } = expandedBox;
 
-  const [xn, yn] = gridDim;
   const { width, height } = getVolumeTexture2dLayout(gridDim);
 
   const data = new Float32Array(width * height * itemSize);
@@ -83,14 +82,10 @@ export function calcMeshColorSmoothing(
   const instanceCount = isInstanceType ? input.instanceCount : 1;
   const colors = input.colorData.array;
 
-  function getIndex(x: number, y: number, z: number) {
-    const column = Math.floor(((z * xn) % width) / xn);
-    const row = Math.floor((z * xn) / width);
-    const px = column * xn + x;
-    return itemSize * (row * yn * width + y * width + px);
-  }
+  const zOff = getSliceOffsets(gridDim, width);
 
   const p = 2;
+  const p2 = p * p;
   const [dimX, dimY, dimZ] = gridDim;
   const v = Vec3();
 
@@ -103,7 +98,9 @@ export function calcMeshColorSmoothing(
       if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
       Vec3.sub(v, v, min);
       Vec3.scale(v, v, scaleFactor);
-      const [vx, vy, vz] = v;
+      const vx = v[0];
+      const vy = v[1];
+      const vz = v[2];
 
       // vertex mapped to grid
       const x = Math.floor(vx);
@@ -112,6 +109,10 @@ export function calcMeshColorSmoothing(
 
       // group colors
       const ci = (instanceIndex * groupCount + groupBuffer[j]) * itemSize;
+      const c0 = colors[ci];
+      const c1 = itemSize === 4 ? colors[ci + 1] : 0;
+      const c2 = itemSize === 4 ? colors[ci + 2] : 0;
+      const c3 = itemSize === 4 ? colors[ci + 3] : 0;
 
       // Extents of grid to consider for this atom
       const begX = Math.max(0, x - p);
@@ -125,32 +126,55 @@ export function calcMeshColorSmoothing(
       const endY = Math.min(dimY, y + p + 2);
       const endZ = Math.min(dimZ, z + p + 2);
 
-      for (let xi = begX; xi < endX; ++xi) {
-        const dx = xi - vx;
+      // z/y/x with x, the texture-fast axis, innermost; each cell gets at most one contribution per vertex, so the
+      // per-cell summation order is unchanged. `dz2 > p2` and `dy2 + dz2 > p2` only skip cells whose distance below
+      // exceeds p as well (rounded addition of non-negative terms is monotone), and `d2` keeps the original
+      // association so `d` is bit-identical; cells at `d2 > p2` but `d == p` would add `s = 0`, which changes nothing.
+      for (let zi = begZ; zi < endZ; ++zi) {
+        const dz = zi - vz;
+        const dz2 = dz * dz;
+        if (dz2 > p2) continue;
+        const zo = zOff[zi];
         for (let yi = begY; yi < endY; ++yi) {
           const dy = yi - vy;
-          for (let zi = begZ; zi < endZ; ++zi) {
-            const dz = zi - vz;
-            const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (d > p) continue;
+          const dy2 = dy * dy;
+          if (dy2 + dz2 > p2) continue;
+          const yo = zo + yi * width;
+          for (let xi = begX; xi < endX; ++xi) {
+            const dx = xi - vx;
+            const d2 = dx * dx + dy2 + dz2;
+            if (d2 > p2) continue;
 
-            const s = p - d;
-            const index = getIndex(xi, yi, zi);
-            for (let k = 0; k < itemSize; ++k) {
-              data[index + k] += colors[ci + k] * s;
+            const s = p - Math.sqrt(d2);
+            const c = yo + xi;
+            if (itemSize === 4) {
+              const index = c * 4;
+              data[index] += c0 * s;
+              data[index + 1] += c1 * s;
+              data[index + 2] += c2 * s;
+              data[index + 3] += c3 * s;
+            } else {
+              data[c] += c0 * s;
             }
-            count[index / itemSize] += s;
+            count[c] += s;
           }
         }
       }
     }
   }
 
-  for (let i = 0, il = count.length; i < il; ++i) {
-    const is = i * itemSize;
-    const c = count[i];
-    for (let k = 0; k < itemSize; ++k) {
-      grid[is + k] = Math.round(data[is + k] / c);
+  if (itemSize === 4) {
+    for (let i = 0, il = count.length; i < il; ++i) {
+      const is = i * 4;
+      const c = count[i];
+      grid[is] = Math.round(data[is] / c);
+      grid[is + 1] = Math.round(data[is + 1] / c);
+      grid[is + 2] = Math.round(data[is + 2] / c);
+      grid[is + 3] = Math.round(data[is + 3] / c);
+    }
+  } else {
+    for (let i = 0, il = count.length; i < il; ++i) {
+      grid[i] = Math.round(data[i] / count[i]);
     }
   }
 
@@ -189,6 +213,21 @@ export function calcMeshColorSmoothing(
       type: isInstanceType ? 'vertexInstance' : 'vertex',
     };
   }
+}
+
+/**
+ * Offset of slice `z` in the 2d layout of a grid (`getVolumeTexture2dLayout`), in cells: cell (x, y, z) is at
+ * `offsets[z] + y * width + x`
+ */
+function getSliceOffsets(gridDim: Vec3, width: number) {
+  const [xn, yn, zn] = gridDim;
+  const offsets = new Float64Array(zn);
+  for (let z = 0; z < zn; ++z) {
+    const column = Math.floor(((z * xn) % width) / xn);
+    const row = Math.floor((z * xn) / width);
+    offsets[z] = row * yn * width + column * xn;
+  }
+  return offsets;
 }
 
 //
@@ -233,16 +272,17 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Text
   const image = createTextureImage(Math.max(1, instanceCount * vertexCount), outputStride, Uint8Array);
   const { array } = image;
 
-  const [xn, yn] = gridDim;
+  const [xn, yn, zn] = gridDim;
   const width = gridTexDim[0];
   const min = Vec3.fromArray(Vec3(), gridTransform, 0);
   const scaleFactor = gridTransform[3];
 
+  const zOff = getSliceOffsets(gridDim, width);
   function getIndex(x: number, y: number, z: number) {
-    const column = Math.floor(((z * xn) % width) / xn);
-    const row = Math.floor((z * xn) / width);
-    const px = column * xn + x;
-    return colorStride * (row * yn * width + y * width + px);
+    // vertices outside the grid (not expected) keep their former, layout-derived index
+    const zo =
+      z >= 0 && z < zn ? zOff[z] : Math.floor(((z * xn) % width) / xn) * xn + Math.floor((z * xn) / width) * yn * width;
+    return colorStride * (zo + y * width + x);
   }
 
   const v = Vec3();
