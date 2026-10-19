@@ -276,7 +276,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
           order[order.length] = e.order;
           let flag = e.flags;
           if (isMetal) {
-            if (flag | BondType.Flag.Covalent) flag ^= BondType.Flag.Covalent;
+            flag &= ~BondType.Flag.Covalent;
             flag |= BondType.Flag.MetallicCoordination;
           }
           flags[flags.length] = flag;

@@ -66,18 +66,8 @@ namespace StructureSequence {
       // Only for polymers, trying to mirror _entity_poly_seq
       if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
 
-      const start = cI;
-      cI++;
-      while (
-        cI < _cI &&
-        entityKey === hierarchy.index.getEntityFromChain(cI) &&
-        entities.data.type.value(entityKey) !== 'polymer'
-      ) {
-        cI++;
-      }
-      cI--;
-
-      const rStart = residueAtomSegments.index[offsets[start]];
+      // the entity's first chain stands for all of them, as one copy in _entity_poly_seq does
+      const rStart = residueAtomSegments.index[offsets[cI]];
       const rEnd = residueAtomSegments.index[offsets[cI + 1] - 1] + 1;
       const seqId = Column.window(label_seq_id, rStart, rEnd);
 

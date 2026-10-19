@@ -22,11 +22,8 @@ decided or fixed. Spec: [\_spec](_spec/README.md). Performance items and bugs of
 
 ## Defects
 
-- `intra-compute.ts` (`findBonds`, metal component bonds): `if (flag | BondType.Flag.Covalent)` is always true, so the
-  covalent flag is toggled, not cleared; `&` was meant.
-- `Model.getInvertedAtomSourceIndex` (`invertIndex`): `isIdentity` starts `false` and is never set `true`.
-- `StructureSequence.fromAtomicHierarchy`: the loop over a polymer entity's chains tests `type !== 'polymer'`, so it
-  never advances; each entity's sequence is its first chain's.
-- `CrossLinkRestraint.isLoci` tests the tag `'interactions'`; its loci use `'cross-link-restraints'`.
-- `Bond.areLocationsEqual` compares the structures' labels, not the structures.
-- `model/sequence/alignment.ts` is an empty file.
+- `Model.getInvertedAtomSourceIndex` (`invertIndex`) sizes its array by the model's atom count but indexes it by
+  `atomSourceIndex`, which holds absolute rows of the file's `atom_site` (`sortAtomSite`): for the second and later
+  models of a file whose hierarchies differ, the writes fall past the end and the inverted index is zeros. Consumers:
+  index-pair inter-unit bonds (`inter-compute.ts`). Which index space `IndexPairBonds` uses (source rows of the file, of
+  the model, or element indices for `molstar_bond_site`) has to be settled first.

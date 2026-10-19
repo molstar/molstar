@@ -1087,3 +1087,8 @@ the static props are shared by symmetry copies and filled only by the units' own
 (`packages/model/_spec/unit.md` §1). Code that wrote a prop (`unit.props.bonds = ...`) passes it to `Unit.create`
 instead. `Unit.Base.parent` is new: the root unit a child was made from (§2). `remapModel` drops `rings` and
 `resonance` when it drops `bonds` (§3).
+
+## Empty sequence alignment module removed
+
+`@molstar/model/model/sequence/alignment` was an empty module (as `mol-model/sequence/alignment.ts` was in v5) and is
+gone; `align` and `AlignSequences` are in `@molstar/model/model/sequence/alignment/alignment` and `.../sequence`.

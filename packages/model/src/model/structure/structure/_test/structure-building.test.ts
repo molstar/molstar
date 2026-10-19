@@ -20,7 +20,7 @@ import { CIF } from '@molstar/io/reader/cif';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { trajectoryFromMol2 } from '@molstar/model/formats/structure/mol2';
-import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
+import { Bond, Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { StructureSymmetry } from '../symmetry.js';
@@ -441,6 +441,35 @@ describe('structure building', async () => {
       // topology props survive, geometry props do not
       expect(dropped.props.polymerElements).toBe(u.polymerElements);
       expect(dropped.props.boundary).toBeUndefined();
+    });
+  });
+
+  describe('bond loci', () => {
+    /** A bond loci of the first intra-unit bond of 1grm's first unit, on `s`. */
+    function firstBond(s: Structure) {
+      const u = s.units[0] as Unit.Atomic;
+      const { a, b } = u.bonds;
+      return Bond.Loci(s, [Bond.Location(s, u, a[0], s, u, b[0])]);
+    }
+
+    it('locations of structures with equal labels are not equal', () => {
+      const s1 = Structure.ofModel(m1grm);
+      const s2 = Structure.create(s1.units, { label: s1.label });
+      expect(s2.label).toBe(s1.label);
+      const [l1] = firstBond(s1).bonds;
+      const [l2] = firstBond(s2).bonds;
+      expect(Bond.areLocationsEqual(l1, l1)).toBe(true);
+      expect(Bond.areLocationsEqual(l1, l2)).toBe(false);
+    });
+
+    it('remapLoci gives locations on the new structure', () => {
+      const s1 = Structure.ofModel(m1grm);
+      const s2 = Structure.create(s1.units, { label: s1.label });
+      const remapped = Bond.remapLoci(firstBond(s1), s2);
+      expect(remapped.structure).toBe(s2);
+      expect(remapped.bonds[0].aStructure).toBe(s2);
+      expect(remapped.bonds[0].bStructure).toBe(s2);
+      expect(Bond.areLociEqual(remapped, firstBond(s2))).toBe(true);
     });
   });
 
