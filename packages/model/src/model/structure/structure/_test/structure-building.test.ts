@@ -12,7 +12,6 @@ import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
-import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { CIF } from '@molstar/io/reader/cif';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
@@ -22,11 +21,11 @@ import { Structure, StructureElement, Unit } from '@molstar/model/model/structur
 import type { Model } from '@molstar/model/model/structure/model';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { StructureSymmetry } from '../symmetry.js';
-import { InterUnitBonds, type InterUnitEdgeProps, type IntraUnitBonds } from '../unit/bonds/data.js';
+import { InterUnitBonds, type InterUnitEdgeProps } from '../unit/bonds/data.js';
 import { computeInterUnitBonds } from '../unit/bonds/inter-compute.js';
 
 // Pins what building structures and child structures gives today: bonds (pairs, orders, flags, keys), unit groupings,
-// element sets and boundaries. The values were recorded before the 05-model-structure P4/P3/P5/P6/P2 changes
+// element sets and boundaries. The values were recorded before the 05-model-structure P4/P3/P5/P2 changes
 // (.v6/perf-audit/05-model-structure.md), which must keep them.
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
@@ -335,49 +334,6 @@ describe('structure building', async () => {
       expect(interSignature(moved.interUnitBonds).sorted).toBe(
         interSignature(Structure.ofModel(m7qpd).interUnitBonds).sorted,
       );
-    });
-  });
-
-  describe('child intra-unit bonds', () => {
-    /** Unit 0 of 1grm with one made-up bond (that no computation would find) between its elements 0 and 2. */
-    function unitWithMadeUpBond() {
-      const u = Structure.ofModel(m1grm).units[0] as Unit.Atomic;
-      const n = u.elements.length;
-      const offset = Int32Array.from({ length: n + 1 }, (_, i) => (i === 0 ? 0 : i <= 2 ? 1 : 2));
-      const edgeProps = { order: [1, 1], flags: [1, 1], key: [-1, -1] };
-      u.props.bonds = IntAdjacencyGraph.create(offset, [0, 2], [2, 0], 1, edgeProps) as IntraUnitBonds;
-      return u;
-    }
-
-    const everySecond = (u: Unit) =>
-      SortedArray.ofSortedArray<ElementIndex>(u.elements.filter((_, i) => i % 2 === 0) as any);
-
-    it("restricts the parent's bonds", () => {
-      const u = unitWithMadeUpBond();
-      const child = u.getChild(everySecond(u)) as Unit.Atomic;
-      expect(child.bonds.edgeCount).toBe(1);
-      expect(child.bonds.getEdgeIndex(0 as any, 1 as any)).toBeGreaterThanOrEqual(0);
-      // the parent's props are not kept once the bonds are known
-      expect(child.props.bondsParent).toBeUndefined();
-    });
-
-    it("restricts an ancestor's bonds through a child without bonds", () => {
-      const u = unitWithMadeUpBond();
-      const child = u.getChild(everySecond(u)) as Unit.Atomic;
-      const grandchild = child.getChild(everySecond(child)) as Unit.Atomic;
-      // elements 0 and 2 of u are 0 and 1 of the child, and only element 0 of the grandchild
-      expect(grandchild.bonds.edgeCount).toBe(0);
-      const other = child.getChild(SortedArray.ofSortedArray(child.elements.slice(0, 2))) as Unit.Atomic;
-      expect(other.bonds.edgeCount).toBe(1);
-    });
-
-    it('computes after remapping the model', () => {
-      const fresh = Structure.ofModel(m1grm).units[0] as Unit.Atomic;
-      const computed = (fresh.getChild(everySecond(fresh)) as Unit.Atomic).bonds;
-      const u = unitWithMadeUpBond();
-      const remapped = u.getChild(everySecond(u)).remapModel(m1grm, true) as Unit.Atomic;
-      expect(remapped.props.bondsParent).toBeUndefined();
-      expect(IntAdjacencyGraph.areEqual(remapped.bonds, computed)).toBe(true);
     });
   });
 

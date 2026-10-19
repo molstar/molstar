@@ -5,13 +5,11 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
-import { arrayPickIndices } from '@molstar/core/data/util';
-import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import type { StructureElement } from '../../element.js';
 import type { Structure } from '../../structure.js';
-import { InterUnitBonds, type InterUnitEdgeProps, IntraUnitBonds } from './data.js';
+import { InterUnitBonds, type InterUnitEdgeProps } from './data.js';
 
 /**
  * The parent UnitIndex of every element of `child`, ascending; `undefined` if an element is not in `parent`. Takes
@@ -47,71 +45,6 @@ function childIndexOf(parentIndices: Int32Array, parentIndex: number) {
     parentIndex,
     0,
     parentIndices.length,
-  );
-}
-
-/**
- * The intra-unit bonds of a child unit with `elements`, restricted from `bonds` of its parent unit with
- * `parentElements` (05-model-structure P6); `undefined` if `elements` is not a subset of `parentElements`.
- *
- * The edges equal a recompute on the child: `computeIntraUnitBonds` decides per atom pair (struct_conn, the component
- * dictionary, the hydrogen fallback, alt-locs, thresholds, index pairs). Their order is the parent's. The props
- * (`canRemap`, `cacheable`) are the parent's: a parent that may remap its bonds has children that may too, while a
- * child of one that may not could have been allowed (it then recomputes on a remap). As in the parent, bonds carried
- * over from another frame (`remapModel`) are carried over to the child.
- */
-export function subsetIntraUnitBonds(
-  bonds: IntraUnitBonds,
-  parentElements: SortedArray<number>,
-  elements: ArrayLike<number>,
-): IntraUnitBonds | undefined {
-  const n = elements.length;
-  if (n <= 1) return IntraUnitBonds.Empty;
-  const vertices = getParentIndices(parentElements, elements);
-  if (!vertices) return undefined;
-
-  // the induced subgraph, visiting only the child's vertices and their parent edges (IntAdjacencyGraph
-  // .induceByVertices visits every parent vertex)
-  const { offset, b } = bonds;
-  // a child that is a large share of its parent looks its neighbours up in a parent-sized map, which costs no more
-  // than the walk of `getParentIndices` did; a small one searches its own vertices
-  const p = parentElements.length;
-  let map: Int32Array | undefined;
-  if (n * Math.log2(p + 1) >= p) {
-    map = new Int32Array(p).fill(-1);
-    for (let i = 0; i < n; i++) map[vertices[i]] = i;
-  }
-  let slots = 0;
-  for (let i = 0; i < n; i++) slots += offset[vertices[i] + 1] - offset[vertices[i]];
-  const newOffset = new Int32Array(n + 1);
-  const newA = new Int32Array(slots);
-  const newB = new Int32Array(slots);
-  const edgeIndices = new Int32Array(slots);
-  let eo = 0;
-  for (let i = 0; i < n; i++) {
-    const v = vertices[i];
-    for (let t = offset[v], tl = offset[v + 1]; t < tl; t++) {
-      const j = map ? map[b[t]] : childIndexOf(vertices, b[t]);
-      if (j < 0) continue;
-      newA[eo] = i;
-      newB[eo] = j;
-      edgeIndices[eo++] = t;
-    }
-    newOffset[i + 1] = eo;
-  }
-  const picked = edgeIndices.subarray(0, eo);
-  const { order, flags, key } = bonds.edgeProps;
-  return IntAdjacencyGraph.create(
-    newOffset,
-    newA.slice(0, eo) as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,
-    newB.slice(0, eo) as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,
-    eo / 2,
-    {
-      order: arrayPickIndices(order, picked),
-      flags: arrayPickIndices(flags, picked),
-      key: arrayPickIndices(key, picked),
-    },
-    bonds.props,
   );
 }
 
