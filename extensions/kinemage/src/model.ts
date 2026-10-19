@@ -416,25 +416,25 @@ export async function createShapesForKinemage(
 
   // Generate all shape types that have data, each as child of the visibility controller
   if (kinData.dotLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapePointsProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D);
   }
   if (kinData.vectorLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeLinesProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D);
   }
   if (kinData.ribbonLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeMeshProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D, { doubleSided: true });
   }
   if (kinData.ballLists.length > 0) {
-    await update
+    update
       .to(visControllerSelector.ref)
       .apply(KinemageShapeSpheresProvider, {}, { state: { isGhost: true } })
       .apply(ShapeRepresentation3D);
