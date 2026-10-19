@@ -17,7 +17,6 @@ import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import { lerp } from '@molstar/core/math/interpolate';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
-import { getFittingResolution } from '../texture-mesh/color-smoothing.js';
 import { ValueCell } from '@molstar/core/util';
 
 interface ColorSmoothingInput {
@@ -68,6 +67,86 @@ function releaseAccumulators(data: Float32Array) {
   if (data === Scratch.data) Scratch.dirty = false;
 }
 
+function getTextureSide(gridDim: Vec3) {
+  const { width, height } = getVolumeTexture2dLayout(gridDim);
+  return Math.max(width, height);
+}
+
+/**
+ * Grid of the smoothing: `box` expanded by `1 + resolution`, two extra cells per axis, on the cell lattice of
+ * `latticeBox` (the bounding-sphere box) expanded alike. A cell then has the same position and value, up to rounding,
+ * as on the grid of `latticeBox`: its value depends only on the vertices within 2 cells of it, which are splatted
+ * wherever the grid ends, and the vertices, which are what is interpolated, lie in `box` (as far as `latticeBox` holds
+ * them). With `box` equal to `latticeBox`, this is the grid of `latticeBox` (as `getGridDim` in
+ * `texture-mesh/color-smoothing.ts`). Vertex animation (wiggle, tumble) gets no slack beyond the padding, as on the
+ * faces where the vertices touch `latticeBox`.
+ */
+function getGrid(latticeBox: Box3D, box: Box3D, resolution: number) {
+  const pad = 1 + resolution;
+  const scaleFactor = 1 / resolution;
+  const min = Vec3();
+  const gridDim = Vec3();
+  for (let k = 0; k < 3; ++k) {
+    const latticeMin = latticeBox.min[k] - pad;
+    min[k] = latticeMin + Math.floor((box.min[k] - latticeBox.min[k]) * scaleFactor) * resolution;
+    gridDim[k] = Math.ceil((box.max[k] + pad) * scaleFactor - min[k] * scaleFactor) + 2;
+  }
+  return { min, gridDim };
+}
+
+/**
+ * Box of the vertices (of all instances for instance types, from the transformed corners of the untransformed box),
+ * within `bound`; `bound` when there are no vertices
+ */
+function getVertexBox(input: ColorSmoothingInput, instanceCount: number, isInstanceType: boolean, bound: Box3D) {
+  const { vertexCount, positionBuffer, transformBuffer } = input;
+  if (vertexCount === 0) return Box3D.clone(bound);
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (let j = 0, jl = vertexCount * 3; j < jl; j += 3) {
+    const x = positionBuffer[j];
+    const y = positionBuffer[j + 1];
+    const z = positionBuffer[j + 2];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+
+  const box = Box3D.create(Vec3.create(minX, minY, minZ), Vec3.create(maxX, maxY, maxZ));
+  if (isInstanceType) {
+    const corners = Box3D();
+    Box3D.setEmpty(corners);
+    const c = Vec3();
+    for (let i = 0; i < instanceCount; ++i) {
+      for (let k = 0; k < 8; ++k) {
+        Vec3.set(c, k & 1 ? maxX : minX, k & 2 ? maxY : minY, k & 4 ? maxZ : minZ);
+        Vec3.transformMat4Offset(c, c, transformBuffer, 0, 0, i * 16);
+        Box3D.add(corners, c);
+      }
+    }
+    Box3D.copy(box, corners);
+  }
+
+  // both boxes hold the vertices: take the smaller extent per axis (an empty intersection means `bound` misses
+  // vertices, where the former grid cut them off too)
+  for (let k = 0; k < 3; ++k) {
+    const lo = Math.max(box.min[k], bound.min[k]);
+    const hi = Math.min(box.max[k], bound.max[k]);
+    if (!(lo <= hi)) return Box3D.clone(bound);
+    box.min[k] = lo;
+    box.max[k] = hi;
+  }
+  return box;
+}
+
 export function calcMeshColorSmoothing(
   input: ColorSmoothingInput,
   options: ColorSmoothingOptions,
@@ -81,23 +160,17 @@ export function calcMeshColorSmoothing(
   const { stride } = options;
 
   const isInstanceType = colorType.endsWith('Instance');
-  const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
-  // the grid is uploaded into a texture with a graphics context
-  const resolution = graphics
-    ? getFittingResolution(box, options.resolution, graphics.resources.limits.maxTextureSize, (gridDim) => {
-        const { width, height } = getVolumeTexture2dLayout(gridDim);
-        return Math.max(width, height);
-      })
-    : options.resolution;
-  const pad = 1 + resolution;
-  const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
-
+  const instanceCount = isInstanceType ? input.instanceCount : 1;
+  const sphereBox = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
+  const box = getVertexBox(input, instanceCount, isInstanceType, sphereBox);
+  // the grid is uploaded into a texture with a graphics context: coarsen as `getFittingResolution`, on this grid
+  let resolution = options.resolution;
+  if (graphics) {
+    const { maxTextureSize } = graphics.resources.limits;
+    while (getTextureSide(getGrid(sphereBox, box, resolution).gridDim) > maxTextureSize) resolution *= 1.1;
+  }
+  const { min, gridDim } = getGrid(sphereBox, box, resolution);
   const scaleFactor = 1 / resolution;
-  const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor);
-  const gridDim = Box3D.size(Vec3(), scaledBox);
-  Vec3.ceil(gridDim, gridDim);
-  Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
-  const { min } = expandedBox;
 
   const { width, height } = getVolumeTexture2dLayout(gridDim);
 
@@ -107,7 +180,6 @@ export function calcMeshColorSmoothing(
   const grid = new Uint8Array(width * height * itemSize);
   const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
 
-  const instanceCount = isInstanceType ? input.instanceCount : 1;
   const colors = input.colorData.array;
 
   const zOff = getSliceOffsets(gridDim, width);

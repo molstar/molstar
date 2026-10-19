@@ -6,13 +6,17 @@
 
 import { describe, expect, it } from 'vitest';
 import { hashFnv32a } from '@molstar/core/data/util';
-import { Sphere3D } from '@molstar/core/math/geometry';
+import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
-import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import {
+  calculateTransformBoundingSphere,
+  createTextureImage,
+  type TextureImage,
+} from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { setColorType } from '../../color-data.js';
 import { setEmissiveType } from '../../emissive-data.js';
@@ -276,22 +280,22 @@ describe('mesh color smoothing', () => {
         "emissive groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,124],"gridDim":[30,31,16],"gridTransform":[-11.554531723313419,-27.53121326298447,-2.1124960780669135,0.642572149049219],"hash":3763575608}",
         "emissive groupInstance 1/3": "{"type":"volumeInstance","texDim":[225,230],"gridDim":[45,46,23],"gridTransform":[-10.998286247253418,-26.974967786924466,-1.5562506020069122,1],"hash":1563449615}",
         "emissive groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[126,42],"gridDim":[21,21,12],"gridTransform":[-12.498286247253418,-28.474967786924466,-3.0562506020069122,0.4],"hash":2159287128}",
-        "loose color group 0.6/1": "{"type":"volume","texDim":[1020,340],"gridDim":[68,68,68],"gridTransform":[-15.6,-20.6,-14.6,1.6666666666666667],"hash":1817859345}",
-        "loose color group 0.6/1 max 128": "{"type":"volume","texDim":[125,125],"gridDim":[25,25,25],"gridTransform":[-16.883057026032603,-21.883057026032603,-15.883057026032603,0.5310513628505942],"hash":3937165767}",
-        "loose color group 1/3": "{"type":"volume","texDim":[504,168],"gridDim":[42,42,42],"gridTransform":[-16,-21,-15,1],"hash":59257073}",
-        "loose color group 2.5/2": "{"type":"volume","texDim":[120,80],"gridDim":[20,20,20],"gridTransform":[-17.5,-22.5,-16.5,0.4],"hash":2689130760}",
-        "loose color groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[960,832],"gridDim":[96,104,75],"gridTransform":[-15.6,-37.28770852684975,-14.6,1.6666666666666667],"hash":3825871562}",
-        "loose color groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,104],"gridDim":[24,26,20],"gridTransform":[-17.756983791814335,-39.44469231866408,-16.756983791814335,0.3627152263169141],"hash":3297276040}",
-        "loose color groupInstance 1/3": "{"type":"volumeInstance","texDim":[472,384],"gridDim":[59,64,47],"gridTransform":[-16,-37.68770852684975,-15,1],"hash":750626130}",
-        "loose color groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[104,168],"gridDim":[26,28,22],"gridTransform":[-17.5,-39.18770852684975,-16.5,0.4],"hash":4110540348}",
-        "loose overpaint groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[960,832],"gridDim":[96,104,75],"gridTransform":[-15.6,-37.28770852684975,-14.6,1.6666666666666667],"hash":2799551573}",
-        "loose overpaint groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,104],"gridDim":[24,26,20],"gridTransform":[-17.756983791814335,-39.44469231866408,-16.756983791814335,0.3627152263169141],"hash":3143126408}",
-        "loose overpaint groupInstance 1/3": "{"type":"volumeInstance","texDim":[472,384],"gridDim":[59,64,47],"gridTransform":[-16,-37.68770852684975,-15,1],"hash":1915317021}",
-        "loose overpaint groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[104,168],"gridDim":[26,28,22],"gridTransform":[-17.5,-39.18770852684975,-16.5,0.4],"hash":3447763946}",
-        "loose transparency groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[960,832],"gridDim":[96,104,75],"gridTransform":[-15.6,-37.28770852684975,-14.6,1.6666666666666667],"hash":4011198851}",
-        "loose transparency groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,104],"gridDim":[24,26,20],"gridTransform":[-17.756983791814335,-39.44469231866408,-16.756983791814335,0.3627152263169141],"hash":1439242791}",
-        "loose transparency groupInstance 1/3": "{"type":"volumeInstance","texDim":[472,384],"gridDim":[59,64,47],"gridTransform":[-16,-37.68770852684975,-15,1],"hash":1445885550}",
-        "loose transparency groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[104,168],"gridDim":[26,28,22],"gridTransform":[-17.5,-39.18770852684975,-16.5,0.4],"hash":2148976572}",
+        "loose color group 0.6/1": "{"type":"volume","texDim":[240,160],"gridDim":[48,32,23],"gridTransform":[-10.8,-11.000000000000002,-1.4000000000000004,1.6666666666666667],"hash":624941653}",
+        "loose color group 0.6/1 max 128": "{"type":"volume","texDim":[128,105],"gridDim":[32,21,17],"gridTransform":[-11.134775999999999,-11.303245999999996,-2.404327999999996,1.0348688717652583],"hash":395792937}",
+        "loose color group 1/3": "{"type":"volume","texDim":[120,88],"gridDim":[30,22,16],"gridTransform":[-11,-12,-2,1],"hash":3288666885}",
+        "loose color group 2.5/2": "{"type":"volume","texDim":[60,36],"gridDim":[15,12,9],"gridTransform":[-12.5,-15,-4,0.4],"hash":677397544}",
+        "loose color groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[1008,320],"gridDim":[72,80,49],"gridTransform":[-10.8,-30.08770852684975,-4.4,1.6666666666666667],"hash":461035582}",
+        "loose color groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,108],"gridDim":[24,27,17],"gridTransform":[-12.928637271364138,-32.544983069578024,-5.714549085456552,0.4827739662278129],"hash":849991221}",
+        "loose color groupInstance 1/3": "{"type":"volumeInstance","texDim":[495,150],"gridDim":[45,50,31],"gridTransform":[-11,-30.687708526849747,-5,1],"hash":3998981198}",
+        "loose color groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[126,72],"gridDim":[21,24,15],"gridTransform":[-12.5,-34.18770852684975,-6.5,0.4],"hash":746077568}",
+        "loose overpaint groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[1008,320],"gridDim":[72,80,49],"gridTransform":[-10.8,-30.08770852684975,-4.4,1.6666666666666667],"hash":2048038893}",
+        "loose overpaint groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,108],"gridDim":[24,27,17],"gridTransform":[-12.928637271364138,-32.544983069578024,-5.714549085456552,0.4827739662278129],"hash":3536861249}",
+        "loose overpaint groupInstance 1/3": "{"type":"volumeInstance","texDim":[495,150],"gridDim":[45,50,31],"gridTransform":[-11,-30.687708526849747,-5,1],"hash":920044561}",
+        "loose overpaint groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[126,72],"gridDim":[21,24,15],"gridTransform":[-12.5,-34.18770852684975,-6.5,0.4],"hash":493930730}",
+        "loose transparency groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[1008,320],"gridDim":[72,80,49],"gridTransform":[-10.8,-30.08770852684975,-4.4,1.6666666666666667],"hash":3577676271}",
+        "loose transparency groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,108],"gridDim":[24,27,17],"gridTransform":[-12.928637271364138,-32.544983069578024,-5.714549085456552,0.4827739662278129],"hash":1108770472}",
+        "loose transparency groupInstance 1/3": "{"type":"volumeInstance","texDim":[495,150],"gridDim":[45,50,31],"gridTransform":[-11,-30.687708526849747,-5,1],"hash":2148475396}",
+        "loose transparency groupInstance 2.5/2": "{"type":"volumeInstance","texDim":[126,72],"gridDim":[21,24,15],"gridTransform":[-12.5,-34.18770852684975,-6.5,0.4],"hash":2615218260}",
         "overpaint groupInstance 0.6/1": "{"type":"volumeInstance","texDim":[497,370],"gridDim":[71,74,35],"gridTransform":[-10.598286247253418,-26.574967786924468,-1.1562506020069123,1.6666666666666667],"hash":3747949446}",
         "overpaint groupInstance 0.6/1 max 128": "{"type":"volumeInstance","texDim":[120,124],"gridDim":[30,31,16],"gridTransform":[-11.554531723313419,-27.53121326298447,-2.1124960780669135,0.642572149049219],"hash":3126137542}",
         "overpaint groupInstance 1/3": "{"type":"volumeInstance","texDim":[225,230],"gridDim":[45,46,23],"gridTransform":[-10.998286247253418,-26.974967786924466,-1.5562506020069122,1],"hash":504842673}",
@@ -316,5 +320,63 @@ describe('mesh color smoothing', () => {
     expect(smooth('transparency', 'groupInstance', Options[1]).array).toEqual(
       smooth('transparency', 'groupInstance', Options[1]).array,
     );
+  });
+
+  it('spans the vertices of every instance with a margin, also on a grid much smaller than the bounding-sphere box', () => {
+    // a third instance with a reflection and a non-uniform scale
+    const skewed = Mat4.mul(
+      Mat4(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(-30, 4, 2)),
+      Mat4.fromScaling(Mat4(), Vec3.create(-1, 1.7, 0.6)),
+    );
+    for (const [layer, type, loose] of Cases) {
+      for (const skew of type === 'groupInstance' ? [false, true] : [false]) {
+        for (const o of [...Options, { resolution: 0.25, stride: 1 }]) {
+          const values = createValues(layer, type, loose);
+          const transforms = values.aTransform.ref.value;
+          if (skew) {
+            Mat4.toArray(skewed, transforms, 2 * 16);
+            const bs = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, transforms, 3, 0);
+            ValueCell.update(values.boundingSphere, bs);
+          }
+          const { graphics } = createGraphics(16384);
+          apply[layer](values, o, graphics);
+          const { gridDim, gridTransform } = layerValues(values, layer);
+          const positions = values.aPosition.ref.value;
+          const instanceCount = type === 'groupInstance' ? values.uInstanceCount.ref.value : 1;
+          const sphere = type === 'groupInstance' ? values.boundingSphere : values.invariantBoundingSphere;
+          const sphereBox = Box3D.fromSphere3D(Box3D(), sphere.ref.value);
+          const p = Vec3();
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (let i = 0; i < instanceCount; ++i) {
+            for (let j = 0; j < VertexCount; ++j) {
+              Vec3.fromArray(p, positions, j * 3);
+              if (type === 'groupInstance') Vec3.transformMat4Offset(p, p, transforms, 0, 0, i * 16);
+              for (let k = 0; k < 3; ++k) {
+                const g = (p[k] - gridTransform[k]) * gridTransform[3];
+                // a vertex outside the bounding-sphere box (the box of transformed extrema can miss some) loses that
+                // much margin, as on the grid of the bounding-sphere box
+                lo = Math.min(lo, g + Math.max(0, (sphereBox.min[k] - p[k]) * gridTransform[3]));
+                hi = Math.max(hi, g - gridDim[k] - Math.max(0, (p[k] - sphereBox.max[k]) * gridTransform[3]));
+              }
+            }
+          }
+          // the box is expanded by 1 + resolution (1 + 1 / resolution cells) and has 2 extra cells at the end
+          const padCells = 1 + 1 / o.resolution;
+          expect(lo).toBeGreaterThanOrEqual(padCells - 1e-6);
+          expect(hi).toBeLessThanOrEqual(-(2 + padCells) + 1e-6);
+        }
+      }
+    }
+  });
+
+  it('smooths a mesh without vertices', () => {
+    const values = createValues('color', 'groupInstance', false);
+    ValueCell.update(values.uVertexCount, 0);
+    const { graphics, loaded } = createGraphics(16384);
+    applyMeshColorSmoothing(values, Options[1], graphics);
+    expect(loaded[0].array.every((x) => x === 0)).toBe(true);
+    applyMeshColorSmoothing(createValues('color', 'group', false), Options[1]);
   });
 });
