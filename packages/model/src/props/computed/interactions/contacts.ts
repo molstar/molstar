@@ -211,22 +211,29 @@ function isRigid(m: Mat4, eps: number) {
   return true;
 }
 
+/** All features of `featuresA`, in order. */
+function allCandidates(featuresA: Features) {
+  const n = featuresA.count;
+  if (_candidates.length < n) _candidates = new Int32Array(Math.max(n, 2 * _candidates.length));
+  for (let i = 0; i < n; i++) _candidates[i] = i;
+  return _candidates.subarray(0, n);
+}
+
 /**
  * The features of `unitA` (sorted) that may lie within `radius` of `sphereB` (in `unitB`'s frame): fetched from
  * `featuresA`'s grid around the sphere centre mapped into `unitA`'s frame, instead of transforming every feature of
- * `unitA` (06-model-props-script N1). The radius is padded so that the exact test in `unitB`'s frame still decides;
- * operators that do not keep distances (mmCIF allows them with a warning) get every feature, as before.
+ * `unitA` (06-model-props-script N1). The radius is padded so that the exact test in `unitB`'s frame still decides.
+ * Every feature is a candidate, without a grid query (or building `featuresA`'s grid), when `unitA`'s boundary sphere
+ * (which holds its features: atoms and centroids of atoms) lies inside that radius, mostly ions and waters next to a
+ * chain, and for operators that do not keep distances (mmCIF allows them with a warning).
  */
 function getCandidates(featuresA: Features, unitA: Unit, unitB: Unit, sphereB: Sphere3D, radius: number) {
-  const n = featuresA.count;
-  if (n === 0) return _candidates.subarray(0, 0);
+  if (featuresA.count === 0) return _candidates.subarray(0, 0);
   Mat4.mul(_bToA, unitA.conformation.operator.inverse, unitB.conformation.operator.matrix);
-  if (!isRigid(_bToA, 1e-4)) {
-    if (_candidates.length < n) _candidates = new Int32Array(Math.max(n, 2 * _candidates.length));
-    for (let i = 0; i < n; i++) _candidates[i] = i;
-    return _candidates.subarray(0, n);
-  }
+  if (!isRigid(_bToA, 1e-4)) return allCandidates(featuresA);
   Vec3.transformMat4(_bCenterInA, sphereB.center, _bToA);
+  const sphereA = unitA.boundary.sphere;
+  if (Vec3.distance(_bCenterInA, sphereA.center) + sphereA.radius <= radius) return allCandidates(featuresA);
   const { indices, count } = featuresA.lookup3d.find(
     _bCenterInA[0],
     _bCenterInA[1],
