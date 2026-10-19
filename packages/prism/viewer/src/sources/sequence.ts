@@ -301,7 +301,9 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
           return () => sub.unsubscribe();
         },
         onSelect: (fn) => {
-          const sub = plugin.managers.structure.selection.events.changed.subscribe(() => {
+          // Once a task, as the source's own listener: a select over S structures says `changed` once per structure,
+          // and this remaps the whole target selection each time.
+          const sub = onceATask(plugin.managers.structure.selection.events.changed).subscribe(() => {
             const loci = plugin.managers.structure.selection.getLoci(target);
             fn(
               StructureElement.Loci.is(loci) && loci.elements.length ? StructureElement.Loci.remap(loci, target) : null,
