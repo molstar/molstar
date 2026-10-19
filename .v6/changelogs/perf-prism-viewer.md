@@ -8,3 +8,5 @@
   their checkpoints let go (`HistoryOptions.checkpoints`)
 - Showing a snapshot (`snapshot.apply`, `.next`, `.previous`, an MVS story's steps) is no longer an undo step and takes
   no checkpoint: the steps before it stay undoable, and Undo brings back the snapshot that was current with the scene
+- The sequence keeps its document over a trajectory's frames: a frame step no longer rebuilds the Seq\* document,
+  empties the band or re-registers the 3D link (20 steps of a 10-model ensemble: 40 rebuilds → 0)

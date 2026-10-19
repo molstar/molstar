@@ -23,7 +23,7 @@ import {
 } from '@molstar/seq-core/model';
 import { TranslateMaps, type Translator } from '@molstar/seq-core/translate';
 import { OrderedSet } from '@molstar/core/data/int';
-import { type Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
+import { Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
 import { type ChainInstance, chainsOf } from './chains.js';
 import { complexUnits, seqRoutes } from './seq-units.js';
 
@@ -78,7 +78,11 @@ export class StructureLink {
   readonly key: string;
   readonly system: CoordinateSystem;
   readonly chains: readonly LinkedChain[];
-  readonly structure: Structure;
+  #structure: Structure;
+  /** The structure its loci are of: the one it was attached to, or a frame of it (`rebind`). */
+  get structure(): Structure {
+    return this.#structure;
+  }
   /** The set its units are in: a query's runs name them (query.ts). */
   readonly set: SeqSet;
   private readonly t: Translator;
@@ -94,7 +98,7 @@ export class StructureLink {
 
   private constructor(t: Translator, ref: string, structure: Structure, set: SeqSet, complex: string) {
     this.t = t;
-    this.structure = structure;
+    this.#structure = structure;
     this.set = set;
     this.key = `molstar:${ref}`;
     const index = chainsOf(structure);
@@ -173,6 +177,17 @@ export class StructureLink {
   /** Registers `structure`'s chains as `molstar:<ref>` and its members, mapped onto `complex`'s units in `set`. */
   static attach(t: Translator, ref: string, structure: Structure, set: SeqSet, complex: string): StructureLink {
     return new StructureLink(t, ref, structure, set, complex);
+  }
+
+  /**
+   * Follows a frame of its structure (sequence.md §2): the same units and atoms, so the systems, the maps (by unit id and
+   * position) and the chains stay; only the loci it makes and reads are of `structure`. False: not a frame of it.
+   */
+  rebind(structure: Structure): boolean {
+    if (structure === this.#structure) return true;
+    if (!Structure.areUnitIdsAndIndicesEqual(this.#structure, structure)) return false;
+    this.#structure = structure;
+    return true;
   }
 
   /** Unregisters the systems; their keys keep their ids, so a later `attach` under `ref` names the same systems. */

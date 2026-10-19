@@ -7,7 +7,7 @@
  */
 
 import { Representation } from '@molstar/graphics/repr/representation';
-import { type Structure, StructureElement } from '@molstar/model/model/structure';
+import { Model, Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -91,7 +91,10 @@ function channel(): Channel {
 }
 
 export function createSequenceSource(scope: SourceScope, plugin: PluginContext, link: ViewerApi): SequenceSource {
-  const structure = observableState<HostStructure | undefined>(undefined, { compare: (a, b) => a?.key === b?.key });
+  // A new key or a new frame of it (the same key, another Structure: sequence.md §2).
+  const structure = observableState<HostStructure | undefined>(undefined, {
+    compare: (a, b) => a?.key === b?.key && a?.structure === b?.structure,
+  });
   const followed = observableState<string | undefined>(undefined);
   const shows = observableState<string | undefined>(undefined);
   const hoverMapped = observableState(false);
@@ -107,6 +110,12 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     if (k === undefined) keys.set(s, (k = ++serial));
     return `${ref}:${k}`;
   };
+
+  /** Two frames of one structure: the same units, atoms and hierarchy (only coordinates may differ). */
+  const sameAtoms = (a: Structure, b: Structure) =>
+    Structure.areUnitIdsAndIndicesEqual(a, b) &&
+    a.models.length === b.models.length &&
+    a.models.every((m, i) => Model.areHierarchiesEqual(m, b.models[i]));
 
   const pick = (): StructureRef | undefined => {
     const list = plugin.managers.structure.hierarchy.current.structures.filter((s) => !!s.cell.obj?.data);
@@ -149,8 +158,18 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
       return;
     }
     const ref = s.cell.transform.ref;
+    const now = structure.value;
+    // A frame of the structure shown (a trajectory step, the model-index animation): the same atoms, so the same key:
+    // the sequence keeps its document and the link follows the new Structure (sequence.md §2).
+    if (now?.ref === ref && now.structure !== data && now.source.trajectory === trajectory) {
+      if (sameAtoms(now.structure, data)) {
+        keys.set(data, keys.get(now.structure)!);
+        structure.set({ ...now, structure: data });
+        return;
+      }
+    }
     const key = keyOf(ref, data);
-    if (structure.value?.key === key) return;
+    if (now?.key === key) return;
     structure.set({
       key,
       ref,

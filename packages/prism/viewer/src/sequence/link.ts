@@ -12,7 +12,7 @@ import { StructureLink } from './molstar/link.js';
 import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from './molstar/link-views.js';
 import type { MarksView } from '../sources/marks.js';
 import { type HoverLabel, lociSize } from '@molstar/seq-viewer';
-import type { SequenceViewer } from './model.js';
+import type { SequenceStructure, SequenceViewer } from './model.js';
 
 /** The 3D view the sequence links to: Seq*'s contract and, optionally, the camera's reset to the whole structure. */
 export interface SequenceView3D extends StructureView3D {
@@ -43,26 +43,28 @@ export function linkSequence(
   options?: LinkViewsOptions & { readonly marks?: MarksView },
 ): () => void {
   const seq = viewer.seq;
-  let unlink: (() => void) | undefined;
   let link: StructureLink | undefined;
+  let shownNow: SequenceStructure | undefined;
+  let stopViews: (() => void) | undefined;
   let lit: SequenceView3D | undefined;
-  const drop = () => {
-    unlink?.();
-    link?.detach();
-    unlink = link = undefined;
-    // What the sequence hovered in 3D goes with the link (the 3D view also drops `hoverMapped`).
+  const stop = () => {
+    stopViews?.();
+    stopViews = undefined;
+    // What the sequence hovered in 3D goes with the views (the 3D view also drops `hoverMapped`).
     lit?.highlight(null);
     lit = undefined;
   };
-  const sub = viewer.structure.subscribe((shown) => {
-    drop();
-    const set = seq.graph.assembled.value?.set;
-    const view = shown && view3d(shown.structure);
-    if (!shown || !set || !view) return;
+  const drop = () => {
+    stop();
+    link?.detach();
+    link = shownNow = undefined;
+  };
+  /** The views over the link, for the 3D view of `structure` (the one shown, or a frame of it). */
+  const start = (structure: Structure, view: SequenceView3D) => {
+    if (!link) return;
     lit = view;
-    link = StructureLink.attach(seq.systems, '3d', shown.structure, set, shown.complex);
-    const stop = linkViews(seq, view, link, options);
-    const stopMarks = options?.marks ? showMarks(seq, link, shown.structure, options.marks) : undefined;
+    const stopLink = linkViews(seq, view, link, options);
+    const stopMarks = options?.marks ? showMarks(seq, link, structure, options.marks) : undefined;
     const stopLabel = view.annotateHover ? annotateHover(seq, view.annotateHover) : undefined;
     // Whether the selection held something: the reset follows only the move that empties it, not an empty selection again.
     let held = false;
@@ -78,15 +80,36 @@ export function linkSequence(
       held = !empty;
       if (emptied && FromSequence.has(sel.origin)) view.resetCamera?.();
     });
-    unlink = () => {
+    stopViews = () => {
       sub.unsubscribe();
-      stop();
+      stopLink();
       stopMarks?.();
       stopLabel?.();
     };
+  };
+  const sub = viewer.structure.subscribe((shown) => {
+    drop();
+    const set = seq.graph.assembled.value?.set;
+    if (!shown || !set) return;
+    const structure = viewer.frame.value ?? shown.structure;
+    const view = view3d(structure);
+    if (!view) return;
+    shownNow = shown;
+    link = StructureLink.attach(seq.systems, '3d', structure, set, shown.complex);
+    start(structure, view);
+  });
+  // A frame step (sequence.md §2): the link follows the new Structure, its systems stay; only the views (which map 3D
+  // loci onto the structure drawn) start again.
+  const frames = viewer.frame.subscribe((structure) => {
+    if (!link || !shownNow || !structure || structure === link.structure) return;
+    const view = view3d(structure);
+    if (!view || !link.rebind(structure)) return;
+    stop();
+    start(structure, view);
   });
   return () => {
     sub.unsubscribe();
+    frames.unsubscribe();
     drop();
   };
 }
