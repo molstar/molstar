@@ -9,7 +9,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { ValueCell } from '@molstar/core/util';
 import { AssetManager } from '@molstar/core/util/assets';
@@ -280,6 +280,50 @@ describe('mesh layer smoothing on instances', async () => {
             expect(r.cpuZero, name).toBe(false);
             expect(r.gridZero, name).toBe(false);
           }
+        }
+      }
+      expect(result).toMatchSnapshot();
+    });
+  }
+});
+
+describe('mesh layer smoothing on spread instances', async () => {
+  const cells = await surfaceGeometry(await loadCells());
+  // pairs of neighbours (within the smoothing reach) and lone instances, a rotated one among them
+  const ms = [
+    Mat4.identity(),
+    Mat4.fromTranslation(Mat4(), Vec3.create(30, 0, 0)),
+    Mat4.fromTranslation(Mat4(), Vec3.create(0, 90, 0)),
+    Mat4.mul(
+      Mat4(),
+      Mat4.fromTranslation(Mat4(), Vec3.create(25, 100, 5)),
+      Mat4.fromRotation(Mat4(), Math.PI / 2, Vec3.create(0, 0, 1)),
+    ),
+    Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, -90)),
+    Mat4.fromTranslation(Mat4(), Vec3.create(60, 50, -45)),
+  ];
+  const transforms = new Float32Array(ms.length * 16);
+  ms.forEach((m, i) => Mat4.toArray(m, transforms, i * 16));
+  const geometry: Geometry = { ...cells, instanceCount: ms.length, transforms };
+  const { groupCount } = geometry;
+
+  const Reach: [string, (instance: number, group: number) => boolean, ColorSmoothingOptions[]][] = [
+    ['one instance with a neighbour', (i) => i === 0, Options],
+    ['the rotated instance', (i) => i === 3, [Options[0]]],
+    ['a lone instance, some groups', (i, g) => i === 4 && g >= groupCount / 4 && g < groupCount / 2, Options],
+    ['two lone instances', (i) => i === 4 || i === 5, [Options[0]]],
+    ['none', () => false, [Options[0]]],
+  ];
+
+  for (const layer of ['overpaint', 'transparency', 'emissive', 'substance'] as Layer[]) {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
+      const result: Record<string, ReturnType<typeof smoothed>> = {};
+      for (const [name, reach, options] of Reach) {
+        for (const o of options) {
+          const r = smoothed(geometry, layer, layerImage(geometry, ItemSize[layer], reach), o);
+          result[`${name} ${o.resolution}/${o.stride}`] = r;
+          expect(r.cpuZero, name).toBe(name === 'none');
+          expect(r.gridZero, name).toBe(name === 'none');
         }
       }
       expect(result).toMatchSnapshot();

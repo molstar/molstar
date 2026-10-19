@@ -234,3 +234,191 @@ exports[`mesh layer smoothing on instances > smooths transparency reaching some 
   },
 }
 `;
+
+exports[`mesh layer smoothing on spread instances > smooths emissive reaching some instances as when every instance is splatted 1`] = `
+{
+  "a lone instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 0 0 0 0 ba0b4627 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:ad42ce14",
+    "gridZero": false,
+  },
+  "a lone instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 6e882fde 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:2b9f48dc",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance with a neighbour 0.8/2": {
+    "cpu": "vertexInstance e0ac096d fd4efe4c 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:ad0c18dd",
+    "gridZero": false,
+  },
+  "one instance with a neighbour 1.2/3": {
+    "cpu": "vertexInstance a2c4c4bb 2513858f 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:e224de9d",
+    "gridZero": false,
+  },
+  "the rotated instance 1.2/3": {
+    "cpu": "vertexInstance 0 0 4784891e d26fdcaa 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:80615069",
+    "gridZero": false,
+  },
+  "two lone instances 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 d743d205 7583716b",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:18c43ade",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on spread instances > smooths overpaint reaching some instances as when every instance is splatted 1`] = `
+{
+  "a lone instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 0 0 0 0 b7377ad6 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:cef1da9f",
+    "gridZero": false,
+  },
+  "a lone instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 d63f082d 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:317ddeb0",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance with a neighbour 0.8/2": {
+    "cpu": "vertexInstance c47b56b7 d6a57681 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:b0d3a4f7",
+    "gridZero": false,
+  },
+  "one instance with a neighbour 1.2/3": {
+    "cpu": "vertexInstance f37517ee b195873 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:b65cfc9",
+    "gridZero": false,
+  },
+  "the rotated instance 1.2/3": {
+    "cpu": "vertexInstance 0 0 fd54c85d 5b71e292 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:1b4b17ca",
+    "gridZero": false,
+  },
+  "two lone instances 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 47e88ef c34a717d",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:4f201a99",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on spread instances > smooths substance reaching some instances as when every instance is splatted 1`] = `
+{
+  "a lone instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 0 0 0 0 b7377ad6 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:cef1da9f",
+    "gridZero": false,
+  },
+  "a lone instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 d63f082d 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:317ddeb0",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance with a neighbour 0.8/2": {
+    "cpu": "vertexInstance c47b56b7 d6a57681 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:b0d3a4f7",
+    "gridZero": false,
+  },
+  "one instance with a neighbour 1.2/3": {
+    "cpu": "vertexInstance f37517ee b195873 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:b65cfc9",
+    "gridZero": false,
+  },
+  "the rotated instance 1.2/3": {
+    "cpu": "vertexInstance 0 0 fd54c85d 5b71e292 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:1b4b17ca",
+    "gridZero": false,
+  },
+  "two lone instances 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 47e88ef c34a717d",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:4f201a99",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on spread instances > smooths transparency reaching some instances as when every instance is splatted 1`] = `
+{
+  "a lone instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 0 0 0 0 ba0b4627 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:ad42ce14",
+    "gridZero": false,
+  },
+  "a lone instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 6e882fde 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:2b9f48dc",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance with a neighbour 0.8/2": {
+    "cpu": "vertexInstance e0ac096d fd4efe4c 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 143x177x188 4004x1239 -13.4164,-0.4494,-90.8006,1.2500 grid:ad0c18dd",
+    "gridZero": false,
+  },
+  "one instance with a neighbour 1.2/3": {
+    "cpu": "vertexInstance a2c4c4bb 2513858f 0 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:e224de9d",
+    "gridZero": false,
+  },
+  "the rotated instance 1.2/3": {
+    "cpu": "vertexInstance 0 0 4784891e d26fdcaa 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:80615069",
+    "gridZero": false,
+  },
+  "two lone instances 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 d743d205 7583716b",
+    "cpuZero": false,
+    "gpu": "volumeInstance 97x119x128 2037x833 -13.8164,-0.8494,-92.0006,0.8333 grid:18c43ade",
+    "gridZero": false,
+  },
+}
+`;
