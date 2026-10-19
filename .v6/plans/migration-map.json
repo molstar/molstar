@@ -1077,7 +1077,7 @@
   "src/mol-model/particles/particle-list.ts": "packages/model/src/model/particles/particle-list.ts",
   "src/mol-model/particles/particle-trajectory.ts": "packages/model/src/model/particles/particle-trajectory.ts",
   "src/mol-model/sequence.ts": "packages/model/src/model/sequence.ts",
-  "src/mol-model/sequence/alignment.ts": "packages/model/src/model/sequence/alignment.ts",
+  "src/mol-model/sequence/alignment.ts": null,
   "src/mol-model/sequence/alignment/_spec/alignment.spec.ts": "packages/model/src/model/sequence/alignment/_test/alignment.test.ts",
   "src/mol-model/sequence/alignment/alignment.ts": "packages/model/src/model/sequence/alignment/alignment.ts",
   "src/mol-model/sequence/alignment/sequence.ts": "packages/model/src/model/sequence/alignment/sequence.ts",

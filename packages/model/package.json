@@ -30,6 +30,7 @@
     "./props/computed/_test/*": null,
     "./props/computed/accessible-surface-area/_test/*": null,
     "./props/computed/interactions/_test/*": null,
+    "./props/integrative/_test/*": null,
     "./props/volume/streamlines/_test/*": null,
     "./script/_test/*": null,
     "./script/runtime/query/_test/*": null

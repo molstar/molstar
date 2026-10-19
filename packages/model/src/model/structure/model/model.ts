@@ -214,7 +214,7 @@ export namespace Model {
 
   function invertIndex(xs: Column<number>) {
     const invertedIndex = new Int32Array(xs.rowCount);
-    let isIdentity = false;
+    let isIdentity = true;
     for (let i = 0, _i = xs.rowCount; i < _i; i++) {
       const x = xs.value(i);
       if (x !== i) isIdentity = false;
