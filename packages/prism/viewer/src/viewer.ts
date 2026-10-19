@@ -463,9 +463,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           (r.origin.kind === 'person' || r.origin.kind === 'url') &&
           def &&
           !def.read &&
-          // View operations (hover's highlight, focus) say nothing, but a quiet one (a story's step) is still said; a lazy
-          // stub's run is the real one's result.
-          (def.history !== false || def.quiet || isStubDefinition(def))
+          // View operations (hover's highlight, focus) say nothing; a lazy stub's run is the real one's result.
+          (def.history !== false || isStubDefinition(def))
         ) {
           // A quiet one (a story's step: the card shows it) is said to screen readers only.
           if (def.quiet) notifications.announce(result.did);

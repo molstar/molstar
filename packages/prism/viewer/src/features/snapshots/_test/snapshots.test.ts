@@ -186,6 +186,25 @@ describe('snapshot.apply', () => {
     expect((await list(v)).entries.find((e) => e.current)?.name).toBe('Cartoon');
   });
 
+  it('runs in order with the steps: Undo waits while a snapshot is being applied', async () => {
+    const v = await viewer();
+    expectOk(await snap(v).add({ name: 'A' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    let open!: () => void;
+    const gate = new Promise<void>((r) => (open = r));
+    const real = v.plugin.state.setSnapshot.bind(v.plugin.state);
+    vi.spyOn(v.plugin.state, 'setSnapshot').mockImplementationOnce(async (s) => {
+      await gate;
+      return real(s);
+    });
+    const applying = snap(v).apply({ entry: 'A' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await v.api.history.undo()).toMatchObject({ ok: false });
+    open();
+    expectOk(await applying);
+    expectOk(await v.api.history.undo());
+  });
+
   it('marks the entry current', async () => {
     const v = await viewer();
     await snap(v).add({ name: 'A' });

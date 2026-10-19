@@ -164,9 +164,9 @@ The code is the truth for how.
   command's several calls) or open (`beginGroup(origin)`: an agent's turn, keyed by `origin.turn`). One checkpoint is
   taken when it opens.
 - **Not steps**: `history: false` operations (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`,
-  `sequence.follow`, `trajectory.frame`, playing animations, showing a snapshot: `snapshot.apply`, `.next`, `.previous`,
-  reads); a result that changed nothing ("it is already so"); `undoable: false` (an upload: no checkpoint, the steps
-  before it stay undoable).
+  `sequence.follow`, `trajectory.frame`, playing animations, reads); a result that changed nothing ("it is already so");
+  `undoable: false` (an upload, showing a snapshot: in order with the steps, no checkpoint, the steps before it stay
+  undoable).
 - **Inside a step**: each top-level run or group gets a `HistoryContext`; work that calls back in with it (an
   operation's `ctx.api`, a group's API, `viewer.run`'s `api`) is part of that step, with no lock. Calls without it queue
   and are steps of their own: a click during an agent's snippet is never rolled back with it.
@@ -180,11 +180,12 @@ The code is the truth for how.
 - **Changes outside the API** (`watchOutsideChanges`) make every earlier checkpoint unsafe, and History says so. Not
   outside: runs, the history's own restores, cells behaviors own (the focus representation, volume streaming, custom
   properties), snapshots shown or playing and frames or animations viewed.
-- **Showing a snapshot is viewing a story** (David, 2026-10-20): no step and no checkpoint, so stepping through an MVS
-  story leaves the steps before undoable. A checkpoint notes the snapshot current with it, and Undo makes it current
-  again with the scene it restores (when the list still has it; the list itself is not undone). Like any
-  `history: false` run, a failed apply is not rolled back (`setSnapshot` checks the transformers before it changes
-  anything).
+- **Showing a snapshot is no step** (David, 2026-10-20): `snapshot.apply`, `.next` and `.previous` (an MVS story's
+  steps) are `undoable: false`, so stepping through a story fills no history and takes no checkpoint, the steps before
+  it stay undoable, and it runs in order with the steps (Undo waits for it; a step never sees a half-applied scene). A
+  checkpoint notes the snapshot current with it, and Undo makes it current again with the scene it restores (when the
+  list still has it; the list itself is not undone). Undo after a snapshot goes back to before the step before it: the
+  scene between that step and the snapshot is not kept. The agent asks before it shows one (what no undo restores).
 - **While an animation plays** (`isAnimating`: trajectory playback, the model-index and other animations, a snapshot's
   transition), no checkpoint is taken for it (David, 2026-10-20): playing is no step, its frames are viewing, and the
   history ignores the changes it makes. When it stops, nothing is recorded: Undo takes back the step before it, with the

@@ -7,7 +7,8 @@
 - Undo takes back the latest 10 steps (`options.ui.undoSteps`, 1–100); older steps stay in History, too old to undo,
   their checkpoints let go (`HistoryOptions.checkpoints`)
 - Showing a snapshot (`snapshot.apply`, `.next`, `.previous`, an MVS story's steps) is no longer an undo step and takes
-  no checkpoint: the steps before it stay undoable, and Undo brings back the snapshot that was current with the scene
+  no checkpoint (`undoable: false`): the steps before it stay undoable, Undo waits while one is applied, and Undo brings
+  back the snapshot that was current with the scene; the assistant asks before it shows one
 - The sequence keeps its document over a trajectory's frames: a frame step no longer rebuilds the Seq\* document,
   empties the band or re-registers the 3D link (20 steps of a 10-model ensemble: 40 rebuilds → 0)
 - Plugin: `StructureInfo` walks the tree for the max model index only when a model or a structure is created or
