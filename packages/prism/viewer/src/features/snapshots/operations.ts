@@ -7,6 +7,7 @@
  */
 
 import { holdCanvas } from '../../sources/canvas-presence.js';
+import { whileViewing } from '../../sources/trajectory.js';
 import { OptionalParam } from '../../api/params.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginState } from '@molstar/plugin/state';
@@ -26,7 +27,9 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 // The `snapshot` area (api.md §2; viewer-spec.md §3.1, the `snapshots` feature): the plugin's snapshot manager
 // as operations. Its checkpoints never use the manager (sequence.md §7.2) and the list is not part of Undo ("what it
 // never touches: … the Snapshots list"), so changes to the list are `undoable: false` (no checkpoint, recorded as
-// runs); applying one changes the scene and is a step. Playback is view state: `history: false`.
+// runs). Showing one (apply, next, previous) is viewing a story, as playing it is: `history: false`, no checkpoint, the
+// steps before it stay undoable, and Undo brings back the snapshot that was current with the scene it restores
+// (sequence.md §7.3; David, 2026-10-20).
 
 type Entry = PluginStateSnapshotManager.Entry;
 
@@ -321,13 +324,14 @@ export class SnapshotApi extends ApiArea {
     quiet: true,
     title: 'Apply a snapshot',
     params: { entry: EntryParam(ByIdNameOrKey) },
+    history: false,
     async run({ entry }, ctx) {
       const found = find(ctx, entry, false);
       if (isFailure(found)) return found;
       const manager = ctx.plugin.managers.snapshot;
       const snapshot = manager.getEntry(found.entry.snapshot.id)?.snapshot;
       if (!snapshot) return ApiResult.fail('not-found', `There is no snapshot '${entry}'.`);
-      await ctx.plugin.state.setSnapshot(snapshot);
+      await whileViewing(ctx.plugin, () => ctx.plugin.state.setSnapshot(snapshot));
       // Current only once it is applied: a failed apply leaves the list's current entry as it was.
       manager.setCurrent(snapshot.id);
       return ApiResult.ok(
@@ -470,6 +474,7 @@ export class SnapshotApi extends ApiArea {
     quiet: true,
     title: 'Next snapshot',
     params: {},
+    history: false,
     // Two or more to step through (the arrows' commands are quiet where they cannot run).
     when: (ctx) => (ctx.plugin.managers.snapshot.state.entries.size > 1 ? true : 'There is no story to step through.'),
     run: (_, ctx) => step(ctx, 1),
@@ -481,6 +486,7 @@ export class SnapshotApi extends ApiArea {
     quiet: true,
     title: 'Previous snapshot',
     params: {},
+    history: false,
     // Two or more to step through (the arrows' commands are quiet where they cannot run).
     when: (ctx) => (ctx.plugin.managers.snapshot.state.entries.size > 1 ? true : 'There is no story to step through.'),
     run: (_, ctx) => step(ctx, -1),
@@ -620,7 +626,7 @@ async function step(ctx: ApiContext, dir: -1 | 1): Promise<ApiResult> {
   const snapshot = id ? manager.getEntry(id)?.snapshot : undefined;
   if (!id || !snapshot) return ApiResult.fail('not-found', 'There is no such snapshot.');
   const index = entriesOf(ctx).findIndex((e) => e.snapshot.id === id);
-  await ctx.plugin.state.setSnapshot(snapshot);
+  await whileViewing(ctx.plugin, () => ctx.plugin.state.setSnapshot(snapshot));
   // Current only once it is applied (see `snapshot.apply`).
   manager.setCurrent(id);
   return ApiResult.ok(

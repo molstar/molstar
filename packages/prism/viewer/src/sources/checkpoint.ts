@@ -21,6 +21,8 @@ import { isViewing } from './trajectory.js';
 
 export interface ViewerCheckpoint {
   readonly plugin: PluginState.Snapshot;
+  /** The snapshot (a story's) shown with this scene: showing one is no step, so Undo brings it back with the scene. */
+  readonly snapshot?: string;
 }
 
 /** The snapshot's parts a checkpoint holds; `camera: false` keeps it from reading the canvas (headless). */
@@ -44,18 +46,25 @@ export function createCheckpointPort(plugin: PluginContext): HistoryPort<ViewerC
     checkpoint: () => {
       // The trees from the cache (unchanged transforms shared with earlier checkpoints), the rest from the plugin.
       const snapshot = plugin.state.getSnapshot(TreelessParams);
+      const current = plugin.managers.snapshot.state.current;
       return {
         plugin: withoutViewState({
           ...snapshot,
           data: { tree: trees.serialize(plugin.state.data.tree) },
           behaviour: { tree: trees.serialize(plugin.state.behaviors.tree) },
         }),
+        ...(current ? { snapshot: current } : {}),
       };
     },
     restore: async (c) => {
       // The focus is view state: a restore leaves it (and the camera, which the checkpoint does not hold); so is the
       // frame a trajectory shows (sequence.md §7.3).
       await plugin.state.setSnapshot({ ...keepFrames(plugin, c.plugin), structureFocus: undefined });
+      // The story's snapshot this scene was shown with, when the list still has it (the list is not undone).
+      const snapshots = plugin.managers.snapshot;
+      if (c.snapshot && c.snapshot !== snapshots.state.current && snapshots.getEntry(c.snapshot)) {
+        snapshots.setCurrent(c.snapshot);
+      }
     },
     size: (c) => trees.size(c),
   };

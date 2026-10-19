@@ -156,8 +156,9 @@ The code is the truth for how.
   command's several calls) or open (`beginGroup(origin)`: an agent's turn, keyed by `origin.turn`). One checkpoint is
   taken when it opens.
 - **Not steps**: `history: false` operations (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`,
-  `sequence.follow`, `trajectory.frame`, playing animations, reads); a result that changed nothing ("it is already so");
-  `undoable: false` (an upload: no checkpoint, the steps before it stay undoable).
+  `sequence.follow`, `trajectory.frame`, playing animations, showing a snapshot: `snapshot.apply`, `.next`, `.previous`,
+  reads); a result that changed nothing ("it is already so"); `undoable: false` (an upload: no checkpoint, the steps
+  before it stay undoable).
 - **Inside a step**: each top-level run or group gets a `HistoryContext`; work that calls back in with it (an
   operation's `ctx.api`, a group's API, `viewer.run`'s `api`) is part of that step, with no lock. Calls without it queue
   and are steps of their own: a click during an agent's snippet is never rolled back with it.
@@ -170,7 +171,12 @@ The code is the truth for how.
   it.
 - **Changes outside the API** (`watchOutsideChanges`) make every earlier checkpoint unsafe, and History says so. Not
   outside: runs, the history's own restores, cells behaviors own (the focus representation, volume streaming, custom
-  properties), snapshots playing and frames or animations viewed.
+  properties), snapshots shown or playing and frames or animations viewed.
+- **Showing a snapshot is viewing a story** (David, 2026-10-20): no step and no checkpoint, so stepping through an MVS
+  story leaves the steps before undoable. A checkpoint notes the snapshot current with it, and Undo makes it current
+  again with the scene it restores (when the list still has it; the list itself is not undone). Like any
+  `history: false` run, a failed apply is not rolled back (`setSnapshot` checks the transformers before it changes
+  anything).
 - **One undo**: Mol\*'s state history is off (`PluginConfig.State.HistoryCapacity` 0, `sources/compose-plugin.ts`).
 - Every run and step is also in the session record ([journal.md](journal.md)).
 

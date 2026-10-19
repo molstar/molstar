@@ -155,24 +155,35 @@ describe('snapshot.apply', () => {
     expect(await current()).toBe('B');
   });
 
-  it('restores the scene it saved, as one step Undo takes back', async () => {
+  it('restores the scene it saved with no step: viewing a story, the steps before stay undoable', async () => {
     const v = await viewer();
+    const runs = recordRuns(v);
     const original = representationTypes(v);
     expectOk(await snap(v).add({ name: 'Cartoon' }));
+    expectOk(await snap(v).add({ name: 'Other' }));
     expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     const changed = representationTypes(v);
     expect(changed).toContain('spacefill');
     const before = steps(v);
+    const checkpoints = vi.spyOn(v.plugin.state, 'getSnapshot');
 
     const r = await snap(v).apply({ entry: 'Cartoon' });
     expectOk(r);
     expect(r.changed.view).toBe(true);
     expect(representationTypes(v)).toEqual(original);
-    expect(steps(v)).toBe(before + 1);
+    expect(steps(v)).toBe(before);
+    expect(checkpoints).not.toHaveBeenCalled();
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+    // In the record all the same, with no step.
+    await until(() => runs.some((x) => x.operation === 'snapshot.apply'));
+    expect(runs.find((x) => x.operation === 'snapshot.apply')?.step).toBeUndefined();
 
-    // Undo goes back to the scene before applying.
+    // A step on the snapshot shown, then another snapshot: Undo restores the scene and the snapshot it was shown with.
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    expectOk(await snap(v).apply({ entry: 'Other' }));
     expectOk(await v.api.history.undo());
-    expect(representationTypes(v)).toEqual(changed);
+    expect(representationTypes(v)).toEqual(original);
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('Cartoon');
   });
 
   it('marks the entry current', async () => {
@@ -269,20 +280,26 @@ describe('snapshot.next and previous', () => {
     expect(await current()).toBe('C');
     expectOk(await snap(v).previous());
     expect(await current()).toBe('B');
-    // Each one changes the scene: a step apiece.
-    expect(steps(v)).toBe(before + 3);
+    // Viewing a story: no step.
+    expect(steps(v)).toBe(before);
   });
 
-  it('restores each snapshot and Undo goes back', async () => {
+  it('restores each snapshot; Undo takes back the step before, not the stepping', async () => {
     const v = await viewer();
     const original = representationTypes(v);
     await snap(v).add({ name: 'A' });
     await v.api.styles.apply({ style: 'spacefill' });
     await snap(v).add({ name: 'B' });
+    const before = steps(v);
     expectOk(await snap(v).previous());
     expect(representationTypes(v)).toEqual(original);
-    expectOk(await v.api.history.undo());
+    expectOk(await snap(v).next());
     expect(representationTypes(v)).toContain('spacefill');
+    // The last step is the spacefill: Undo restores the scene before it, with A current as it was then.
+    expect(steps(v)).toBe(before);
+    expectOk(await v.api.history.undo());
+    expect(representationTypes(v)).toEqual(original);
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('A');
   });
 });
 

@@ -121,14 +121,14 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `settings.get` | Read the settings | read | group |
 | `settings.set` | Change settings | agent-only | group, values |
 | `snapshot.add` | Add a snapshot | no undo | name, description, key, showFor, options |
-| `snapshot.apply` | Apply a snapshot |  | entry |
+| `snapshot.apply` | Apply a snapshot | view | entry |
 | `snapshot.clear` | Remove all snapshots | no undo; destructive; agent-only |  |
 | `snapshot.link` | Follow a link in a description | view; ui-only | href, event |
 | `snapshot.list` | List the snapshots | read |  |
 | `snapshot.move` | Move a snapshot | no undo; agent-only | entry, position |
-| `snapshot.next` | Next snapshot |  |  |
+| `snapshot.next` | Next snapshot | view |  |
 | `snapshot.play` | Play the snapshots | view | delay |
-| `snapshot.previous` | Previous snapshot |  |  |
+| `snapshot.previous` | Previous snapshot | view |  |
 | `snapshot.remove` | Remove a snapshot | no undo; destructive; agent-only | entry |
 | `snapshot.replace` | Replace a snapshot with the current view | no undo; agent-only | entry, showFor, options |
 | `snapshot.seek` | Show a frame of the snapshot's transition | view; agent-only | time |
