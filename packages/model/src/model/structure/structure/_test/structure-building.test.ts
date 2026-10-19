@@ -21,6 +21,7 @@ import type { Model } from '@molstar/model/model/structure/model';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { StructureSymmetry } from '../symmetry.js';
 import { InterUnitBonds, type InterUnitEdgeProps, type IntraUnitBonds } from '../unit/bonds/data.js';
+import { computeInterUnitBonds } from '../unit/bonds/inter-compute.js';
 
 // Pins what building structures and child structures gives today: bonds (pairs, orders, flags, keys), unit groupings,
 // element sets and boundaries. The values were recorded before the 05-model-structure P4/P3/P5/P6/P2 changes
@@ -152,6 +153,47 @@ function subsetChild(s: Structure, whole: (u: Unit) => boolean) {
   return b.getStructure();
 }
 
+/** The first residue (or element) of every unit, from the subset builder. */
+function firstResidues(s: Structure) {
+  const b = s.subsetBuilder(true);
+  for (const u of s.units) {
+    const { elements } = u;
+    b.beginUnit(u.id);
+    for (let i = 0; i < elements.length; i++) {
+      if (Unit.isAtomic(u) && i > 0 && u.residueIndex[elements[i]] !== u.residueIndex[elements[0]]) break;
+      b.addElement(elements[i]);
+      if (!Unit.isAtomic(u)) break;
+    }
+    b.commitUnit();
+  }
+  return b.getStructure();
+}
+
+/** The residues at the inter-unit bonds of `s` (computed aside, so `s` keeps no bonds), from the subset builder. */
+function bondedResidues(s: Structure) {
+  const byUnit = new Map<number, Set<number>>();
+  for (const e of computeInterUnitBonds(s).edges) {
+    for (const [id, index] of [
+      [e.unitA, e.indexA],
+      [e.unitB, e.indexB],
+    ]) {
+      const u = s.unitMap.get(id) as Unit.Atomic;
+      if (!byUnit.has(id)) byUnit.set(id, new Set());
+      byUnit.get(id)!.add(u.residueIndex[u.elements[index]]);
+    }
+  }
+  const b = s.subsetBuilder(true);
+  for (const u of s.units) {
+    const residues = byUnit.get(u.id);
+    if (!residues || !Unit.isAtomic(u)) continue;
+    b.beginUnit(u.id);
+    for (let i = 0; i < u.elements.length; i++)
+      if (residues.has(u.residueIndex[u.elements[i]])) b.addElement(u.elements[i]);
+    b.commitUnit();
+  }
+  return b.getStructure();
+}
+
 /** The largest distance by which an element (centre plus radius) of `s` lies outside `sphere`. */
 function worstOutside(sphere: { center: Vec3; radius: number }, s: Structure) {
   let worst = -Infinity;
@@ -226,6 +268,9 @@ describe('structure building', async () => {
       (s) => StructureElement.Bundle.toStructure(StructureElement.Bundle.fromLoci(halfLoci(s, true)), s),
     ],
     ['loci first halves', (s) => StructureElement.Loci.toStructure(halfLoci(s, true))],
+    // small children of large units: the subsets search the parent instead of walking it
+    ['first residue of each unit', (s) => firstResidues(s)],
+    ['residues at inter-unit bonds', (s) => bondedResidues(s)],
   ];
 
   it.each(cases)('root bonds: %s', async (name, root) => {
@@ -516,4 +561,44 @@ const expected: Record<string, unknown> = {
   '1grm: box': '-10.448,-14.779,-6.382,10.421,14.756,14.354',
   '1grm: sphere': [-0.022, 0.093, 3.901, 16.73],
   '1grm: half loci radius': 16.72,
+  '1bna cell / first residue of each unit: units':
+    'units=24 elements=264 rows=37017ead ops=14036e05 groups=46ce97f7 groupCount=3',
+  '1bna cell / first residue of each unit: inter': 'count=0 flags= sorted=811c9dc5',
+  '1bna cell / first residue of each unit: intra': 'count=272 sorted=7d83b0bd',
+  '1bna cell / residues at inter-unit bonds: units':
+    'units=16 elements=3888 rows=142a192d ops=cdaef8db groups=43ea81a5 groupCount=2',
+  '1bna cell / residues at inter-unit bonds: inter': 'count=512 flags=4:512 sorted=2ebef715',
+  '1bna cell / residues at inter-unit bonds: intra': 'count=4352 sorted=37340355',
+  '7qpd / first residue of each unit: units':
+    'units=7 elements=53 rows=1c48e514 ops=ffd43aee groups=7c4d33d9 groupCount=7',
+  '7qpd / first residue of each unit: inter': 'count=0 flags= sorted=811c9dc5',
+  '7qpd / first residue of each unit: intra': 'count=48 sorted=23f4e1b3',
+  '7qpd / residues at inter-unit bonds: units':
+    'units=5 elements=56 rows=6589f47f ops=e153cf4a groups=a4438b3d groupCount=5',
+  '7qpd / residues at inter-unit bonds: inter': 'count=6 flags=1:4,9:2 sorted=580e2015',
+  '7qpd / residues at inter-unit bonds: intra': 'count=52 sorted=d8625be4',
+  '1cbs split cell / first residue of each unit: units':
+    'units=48 elements=408 rows=9e3895e5 ops=70a54e4f groups=cfa8213d groupCount=6',
+  '1cbs split cell / first residue of each unit: inter': 'count=0 flags= sorted=811c9dc5',
+  '1cbs split cell / first residue of each unit: intra': 'count=376 sorted=3f1dc565',
+  '1cbs split cell / residues at inter-unit bonds: units':
+    'units=32 elements=336 rows=34364175 ops=fc9023d3 groups=fa776e5 groupCount=4',
+  '1cbs split cell / residues at inter-unit bonds: inter': 'count=48 flags=33:48 sorted=39be0a5',
+  '1cbs split cell / residues at inter-unit bonds: intra': 'count=296 sorted=78871925',
+  'ace2 split / first residue of each unit: units':
+    'units=4 elements=37 rows=578b6ba2 ops=cef4bbf3 groups=9f25f271 groupCount=4',
+  'ace2 split / first residue of each unit: inter': 'count=20 flags=1:12,17:8 sorted=dffd54db',
+  'ace2 split / first residue of each unit: intra': 'count=31 sorted=82125e7f',
+  'ace2 split / residues at inter-unit bonds: units':
+    'units=4 elements=37 rows=578b6ba2 ops=cef4bbf3 groups=9f25f271 groupCount=4',
+  'ace2 split / residues at inter-unit bonds: inter': 'count=20 flags=1:12,17:8 sorted=dffd54db',
+  'ace2 split / residues at inter-unit bonds: intra': 'count=31 sorted=82125e7f',
+  '1grm / first residue of each unit: units':
+    'units=2 elements=18 rows=42c69092 ops=61a2fd77 groups=206c2eda groupCount=2',
+  '1grm / first residue of each unit: inter': 'count=0 flags= sorted=811c9dc5',
+  '1grm / first residue of each unit: intra': 'count=16 sorted=e3e71edd',
+  '1grm / residues at inter-unit bonds: units':
+    'units=0 elements=0 rows=811c9dc5 ops=811c9dc5 groups=811c9dc5 groupCount=0',
+  '1grm / residues at inter-unit bonds: inter': 'count=0 flags= sorted=811c9dc5',
+  '1grm / residues at inter-unit bonds: intra': 'count=0 sorted=811c9dc5',
 };

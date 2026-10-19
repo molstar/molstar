@@ -5,6 +5,7 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
+import { arrayPickIndices } from '@molstar/core/data/util';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
@@ -13,18 +14,40 @@ import type { Structure } from '../../structure.js';
 import { InterUnitBonds, type InterUnitEdgeProps, IntraUnitBonds } from './data.js';
 
 /**
- * Maps the UnitIndices of `parent` to those of `child`, whose elements must be a subset of the parent's:
- * `map[parentIndex]` is the child index or -1. `undefined` if an element of `child` is not in `parent`.
+ * The parent UnitIndex of every element of `child`, ascending; `undefined` if an element is not in `parent`. Takes
+ * binary searches, O(c log p), or a merged walk, O(c + p), whichever is cheaper, so that a small child of a large (for
+ * example merged) unit does not pay for the whole parent; nothing here or in the callers is sized by the parent.
  */
-function getUnitIndexMap(parent: ArrayLike<number>, child: ArrayLike<number>): Int32Array | undefined {
-  const map = new Int32Array(parent.length).fill(-1);
-  for (let i = 0, j = 0, il = child.length, jl = parent.length; i < il; i++) {
-    const e = child[i];
-    while (j < jl && parent[j] < e) j++;
-    if (j === jl || parent[j] !== e) return undefined;
-    map[j++] = i;
+function getParentIndices(parent: SortedArray<number>, child: ArrayLike<number>): Int32Array | undefined {
+  const c = child.length;
+  const p = parent.length;
+  const ret = new Int32Array(c);
+  if (c * Math.log2(p + 1) < p) {
+    for (let i = 0, j = 0; i < c; i++) {
+      const k = SortedArray.indexOfInRange(parent, child[i], j, p);
+      if (k < 0) return undefined;
+      ret[i] = k;
+      j = k + 1;
+    }
+  } else {
+    for (let i = 0, j = 0; i < c; i++) {
+      const e = child[i];
+      while (j < p && parent[j] < e) j++;
+      if (j === p || parent[j] !== e) return undefined;
+      ret[i] = j++;
+    }
   }
-  return map;
+  return ret;
+}
+
+/** The child index of `parentIndex` in `parentIndices` (from `getParentIndices`), or -1. */
+function childIndexOf(parentIndices: Int32Array, parentIndex: number) {
+  return SortedArray.indexOfInRange(
+    parentIndices as ArrayLike<number> as SortedArray,
+    parentIndex,
+    0,
+    parentIndices.length,
+  );
 }
 
 /**
@@ -39,19 +62,57 @@ function getUnitIndexMap(parent: ArrayLike<number>, child: ArrayLike<number>): I
  */
 export function subsetIntraUnitBonds(
   bonds: IntraUnitBonds,
-  parentElements: ArrayLike<number>,
+  parentElements: SortedArray<number>,
   elements: ArrayLike<number>,
 ): IntraUnitBonds | undefined {
-  if (elements.length <= 1) return IntraUnitBonds.Empty;
-  // the parent UnitIndex of every child element
-  const vertices = new Int32Array(elements.length);
-  for (let i = 0, j = 0, il = elements.length, jl = parentElements.length; i < il; i++) {
-    const e = elements[i];
-    while (j < jl && parentElements[j] < e) j++;
-    if (j === jl || parentElements[j] !== e) return undefined;
-    vertices[i] = j++;
+  const n = elements.length;
+  if (n <= 1) return IntraUnitBonds.Empty;
+  const vertices = getParentIndices(parentElements, elements);
+  if (!vertices) return undefined;
+
+  // the induced subgraph, visiting only the child's vertices and their parent edges (IntAdjacencyGraph
+  // .induceByVertices visits every parent vertex)
+  const { offset, b } = bonds;
+  // a child that is a large share of its parent looks its neighbours up in a parent-sized map, which costs no more
+  // than the walk of `getParentIndices` did; a small one searches its own vertices
+  const p = parentElements.length;
+  let map: Int32Array | undefined;
+  if (n * Math.log2(p + 1) >= p) {
+    map = new Int32Array(p).fill(-1);
+    for (let i = 0; i < n; i++) map[vertices[i]] = i;
   }
-  return IntAdjacencyGraph.induceByVertices(bonds, vertices, bonds.props) as IntraUnitBonds;
+  let slots = 0;
+  for (let i = 0; i < n; i++) slots += offset[vertices[i] + 1] - offset[vertices[i]];
+  const newOffset = new Int32Array(n + 1);
+  const newA = new Int32Array(slots);
+  const newB = new Int32Array(slots);
+  const edgeIndices = new Int32Array(slots);
+  let eo = 0;
+  for (let i = 0; i < n; i++) {
+    const v = vertices[i];
+    for (let t = offset[v], tl = offset[v + 1]; t < tl; t++) {
+      const j = map ? map[b[t]] : childIndexOf(vertices, b[t]);
+      if (j < 0) continue;
+      newA[eo] = i;
+      newB[eo] = j;
+      edgeIndices[eo++] = t;
+    }
+    newOffset[i + 1] = eo;
+  }
+  const picked = edgeIndices.subarray(0, eo);
+  const { order, flags, key } = bonds.edgeProps;
+  return IntAdjacencyGraph.create(
+    newOffset,
+    newA.slice(0, eo) as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,
+    newB.slice(0, eo) as ArrayLike<number> as ArrayLike<StructureElement.UnitIndex>,
+    eo / 2,
+    {
+      order: arrayPickIndices(order, picked),
+      flags: arrayPickIndices(flags, picked),
+      key: arrayPickIndices(key, picked),
+    },
+    bonds.props,
+  );
 }
 
 /**
@@ -69,7 +130,7 @@ export function subsetIntraUnitBonds(
  * frame (`remapModel` without `dynamicBonds`). The edge order follows the parent's units, not a recompute's.
  */
 export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, child: Structure) {
-  // null: the child unit has every element of the parent unit
+  // the parent indices of a child unit's elements, or null when it has every element of the parent unit
   const maps = new Map<number, Int32Array | null>();
   let whole = child.units.length === parent.units.length;
   for (const u of child.units) {
@@ -84,9 +145,9 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
       maps.set(u.id, null);
       continue;
     }
-    const map = getUnitIndexMap(p.elements, u.elements);
-    if (!map) return;
-    maps.set(u.id, map);
+    const parentIndices = getParentIndices(p.elements, u.elements);
+    if (!parentIndices) return;
+    maps.set(u.id, parentIndices);
     whole = false;
   }
   if (whole) return bonds;
@@ -103,10 +164,10 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
 
       builder.startUnitPair(pair.unitA, pair.unitB);
       for (const indexA of pair.connectedIndices) {
-        const a = mapA ? mapA[indexA] : indexA;
+        const a = mapA ? childIndexOf(mapA, indexA) : indexA;
         if (a < 0) continue;
         for (const { indexB, props } of pair.getEdges(indexA)) {
-          const b = mapB ? mapB[indexB] : indexB;
+          const b = mapB ? childIndexOf(mapB, indexB) : indexB;
           if (b >= 0) builder.add(a as UnitIndex, b as UnitIndex, props);
         }
       }
