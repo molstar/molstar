@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -113,8 +113,12 @@ function indexPairBondsFromMolstarBondSite(model: Model) {
 
   const { atom_id_1, atom_id_2, value_order, type_id } = entries;
   for (let i = 0; i < entries._rowCount; i++) {
-    indexA.push(idToIndex.get(atom_id_1.value(i))!);
-    indexB.push(idToIndex.get(atom_id_2.value(i))!);
+    // in a multi-model file the rows of the other models name atoms this model does not have
+    const a = idToIndex.get(atom_id_1.value(i));
+    const b = idToIndex.get(atom_id_2.value(i));
+    if (a === undefined || b === undefined) continue;
+    indexA.push(a);
+    indexB.push(b);
 
     let flag = BondType.Flag.None;
     let order = 1;
@@ -158,6 +162,8 @@ function indexPairBondsFromMolstarBondSite(model: Model) {
     orders.push(order);
     flags.push(flag);
   }
+
+  if (indexA.length === 0) return;
 
   const pairBonds = IndexPairBonds.fromData(
     {
