@@ -383,6 +383,7 @@ class State {
 
   private reverted = false;
   private updateQueue = new AsyncQueue<UpdateParams>();
+  private dependencyWaiters = new DependencyWaiters();
 
   private async _revertibleTreeUpdate(
     taskCtx: RuntimeContext,
@@ -432,6 +433,8 @@ class State {
       editInfo: StateBuilder.is(tree) ? tree.editInfo : void 0,
 
       errorFree: this.errorFree,
+      dependencyWaiters: this.dependencyWaiters,
+      orphans: void 0,
       taskCtx,
       oldTree,
       tree: _tree,
@@ -541,6 +544,9 @@ interface UpdateContext {
   editInfo: StateBuilder.EditInfo | undefined;
 
   errorFree: boolean;
+  dependencyWaiters: DependencyWaiters;
+  /** Cells whose dependency was deleted in this pass (`unlinkCell`): dependents, evaluated again. */
+  orphans: StateObjectCell[] | undefined;
   taskCtx: RuntimeContext;
   oldTree: StateTree;
   tree: TransientTree;
@@ -559,7 +565,8 @@ interface UpdateContext {
 
   /**
    * Refs that are scheduled to be (re-)evaluated in this update pass:
-   * the union of every `roots[i]` and its descendants. Used to distinguish
+   * the union of every `roots[i]` and its descendants, less those `doError`
+   * cleared (below an error or a Null object). Used to distinguish
    * "dep not yet produced this pass" (defer + retry) from "dep can never
    * be produced this pass" (throw).
    */
@@ -620,7 +627,7 @@ async function update(ctx: UpdateContext) {
       const cell = ctx.cells.get(d);
       if (cell) {
         cell.parent = void 0;
-        unlinkCell(cell);
+        unlinkCell(cell, ctx);
       }
       const obj = cell && cell.obj;
       ctx.cells.delete(d);
@@ -812,10 +819,21 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
   }
 }
 
-function unlinkCell(cell: StateObjectCell) {
+/** Removes a deleted cell from the dependency graph; the cells that depended on it wait for its ref again. */
+function unlinkCell(cell: StateObjectCell, ctx: UpdateContext) {
   for (const other of cell.dependencies.dependsOn) {
     arraySetRemove(other.dependencies.dependentBy, cell);
   }
+  const ref = cell.transform.ref;
+  for (const by of cell.dependencies.dependentBy) {
+    arraySetRemove(by.dependencies.dependsOn, cell);
+    // a dependency derived from params is not removed with it (`TransientTree.remove` follows `dependsOn`)
+    if (!by.parent) continue;
+    ctx.dependencyWaiters.wait(by, ref);
+    if (ctx.orphans) ctx.orphans.push(by);
+    else ctx.orphans = [by];
+  }
+  ctx.dependencyWaiters.forget(cell);
 }
 
 type InitCellsCtx = { ctx: UpdateContext; visited: Set<Ref>; added: StateObjectCell[] };
@@ -845,6 +863,99 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
 
 // type LinkCellsCtx = { ctx: UpdateContext, visited: Set<Ref>, dependent: UniqueArray<Ref, StateObjectCell> }
 
+/**
+ * Cells that depend on refs with no cell: a ref in the tree below a Null object or an error (nothing there is
+ * evaluated), or a dependency deleted while its dependent stayed. `resolveDependencies` reports a waiting cell
+ * unresolved, and `linkWaiting` links it once the ref has a cell (dependencies.md §3).
+ */
+class DependencyWaiters {
+  private byRef = new Map<Ref, StateObjectCell[]>();
+  private byCell = new Map<StateObjectCell, Ref[]>();
+
+  isWaiting(cell: StateObjectCell) {
+    return this.byCell.size > 0 && this.byCell.has(cell);
+  }
+
+  isWaitingFor(cell: StateObjectCell, ref: Ref) {
+    return this.byCell.size > 0 && (this.byCell.get(cell)?.indexOf(ref) ?? -1) >= 0;
+  }
+
+  wait(cell: StateObjectCell, ref: Ref) {
+    const cells = this.byRef.get(ref);
+    if (cells) arraySetAdd(cells, cell);
+    else this.byRef.set(ref, [cell]);
+    const refs = this.byCell.get(cell);
+    if (refs) arraySetAdd(refs, ref);
+    else this.byCell.set(cell, [ref]);
+  }
+
+  /** The cells that waited for `ref`, which no longer wait for it. */
+  take(ref: Ref): StateObjectCell[] | undefined {
+    const cells = this.byRef.get(ref);
+    if (!cells) return void 0;
+    this.byRef.delete(ref);
+    for (const cell of cells) this.removeRef(cell, ref);
+    return cells;
+  }
+
+  /** Stop waiting for the refs `cell` no longer depends on. */
+  retain(cell: StateObjectCell, refs: ReadonlySet<Ref>) {
+    const waited = this.byCell.get(cell);
+    if (!waited) return;
+    for (let i = waited.length - 1; i >= 0; i--) {
+      const ref = waited[i];
+      if (refs.has(ref)) continue;
+      waited.splice(i, 1);
+      this.removeCell(ref, cell);
+    }
+    if (waited.length === 0) this.byCell.delete(cell);
+  }
+
+  forget(cell: StateObjectCell) {
+    const waited = this.byCell.get(cell);
+    if (!waited) return;
+    this.byCell.delete(cell);
+    for (const ref of waited) this.removeCell(ref, cell);
+  }
+
+  private removeRef(cell: StateObjectCell, ref: Ref) {
+    const refs = this.byCell.get(cell);
+    if (!refs) return;
+    arraySetRemove(refs, ref);
+    if (refs.length === 0) this.byCell.delete(cell);
+  }
+
+  private removeCell(ref: Ref, cell: StateObjectCell) {
+    const cells = this.byRef.get(ref);
+    if (!cells) return;
+    arraySetRemove(cells, cell);
+    if (cells.length === 0) this.byRef.delete(ref);
+  }
+}
+
+/** Links `target` to the cell of `ref`, or makes it wait for one (`DependencyWaiters`). Returns `true` if it linked. */
+function linkDependency(target: StateObjectCell, ref: Ref, ctx: UpdateContext) {
+  const cell = ctx.cells.get(ref);
+  if (!cell) {
+    ctx.dependencyWaiters.wait(target, ref);
+    return false;
+  }
+  arraySetAdd(target.dependencies.dependsOn, cell);
+  arraySetAdd(cell.dependencies.dependentBy, target);
+  return true;
+}
+
+/** Links the cells that waited for the new `cell` (`DependencyWaiters`); they are its dependents now. */
+function linkWaiting(cell: StateObjectCell, ctx: UpdateContext, linked: StateObjectCell[]) {
+  const waiting = ctx.dependencyWaiters.take(cell.transform.ref);
+  if (!waiting) return;
+  for (const w of waiting) {
+    arraySetAdd(w.dependencies.dependsOn, cell);
+    arraySetAdd(cell.dependencies.dependentBy, w);
+    linked.push(w);
+  }
+}
+
 function linkCells(target: StateObjectCell, ctx: UpdateContext) {
   const effective = StateTransform.getEffectiveDependsOn(target.transform);
   if (effective.length === 0) return;
@@ -854,11 +965,29 @@ function linkCells(target: StateObjectCell, ctx: UpdateContext) {
     if (!t) {
       throw new Error(`Cannot depend on a non-existent transform.`);
     }
-
-    const cell = ctx.cells.get(ref)!;
-    arraySetAdd(target.dependencies.dependsOn, cell);
-    arraySetAdd(cell.dependencies.dependentBy, target);
+    linkDependency(target, ref, ctx);
   }
+}
+
+/** Links newly added cells, and the cells that waited for them (returned), and checks for cycles. */
+function linkAdded(ctx: UpdateContext, added: StateObjectCell[]) {
+  const waited: StateObjectCell[] = [];
+  for (const cell of added) {
+    linkCells(cell, ctx);
+  }
+  for (const cell of added) {
+    linkWaiting(cell, ctx, waited);
+  }
+
+  // Cycle detection over the dependency cross-edges of newly added cells.
+  // Parent/child is already a tree, so cycles can only enter via dependsOn.
+  for (const cell of added) {
+    checkDependenciesCycle(cell);
+  }
+  for (const cell of waited) {
+    checkDependenciesCycle(cell);
+  }
+  return waited;
 }
 
 /**
@@ -871,8 +1000,8 @@ function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
   const effective = StateTransform.getEffectiveDependsOn(target.transform);
   const current = target.dependencies.dependsOn;
 
-  // Fast path: same number and all current refs are still in effective.
-  if (current.length === effective.length) {
+  // Fast path: same number and all current refs are still in effective (and it waits for none).
+  if (current.length === effective.length && !ctx.dependencyWaiters.isWaiting(target)) {
     let same = true;
     for (const c of current) {
       if (effective.indexOf(c.transform.ref) < 0) {
@@ -885,6 +1014,7 @@ function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
 
   const desired = new Set(effective);
   let changed = false;
+  ctx.dependencyWaiters.retain(target, desired);
 
   // Remove stale outgoing edges.
   for (let i = current.length - 1; i >= 0; i--) {
@@ -902,12 +1032,11 @@ function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
     if (have.has(ref)) continue;
     const t = ctx.tree.transforms.get(ref);
     if (!t) {
+      // a deleted dependency it waits for: still unresolved
+      if (ctx.dependencyWaiters.isWaitingFor(target, ref)) continue;
       throw new Error(`Cannot depend on a non-existent transform.`);
     }
-    const cell = ctx.cells.get(ref)!;
-    arraySetAdd(target.dependencies.dependsOn, cell);
-    arraySetAdd(cell.dependencies.dependentBy, target);
-    changed = true;
+    if (linkDependency(target, ref, ctx)) changed = true;
   }
 
   return changed;
@@ -969,16 +1098,7 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), initCtx, addCellsVisitor);
   }
 
-  // Update links for newly added cells
-  for (const cell of initCtx.added) {
-    linkCells(cell, ctx);
-  }
-
-  // Cycle detection over the dependency cross-edges of newly added cells.
-  // Parent/child is already a tree, so cycles can only enter via dependsOn.
-  for (const cell of initCtx.added) {
-    checkDependenciesCycle(cell);
-  }
+  linkAdded(ctx, initCtx.added);
 
   let dependent: UniqueArray<Ref, StateObjectCell>;
 
@@ -993,7 +1113,32 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     }
   });
 
+  // The cells whose dependency was deleted: their objects were made from it
+  if (ctx.orphans) {
+    for (const cell of ctx.orphans) {
+      // deleted after it was left (later in the deletes), or in the subtrees above already
+      if (ctx.cells.get(cell.transform.ref) !== cell || initCtx.visited.has(cell.transform.ref)) continue;
+      if (!dependent!) dependent = UniqueArray.create();
+      UniqueArray.add(dependent, cell.transform.ref, cell);
+    }
+  }
+
   // TODO: check if dependent cells are all "proper roots"
+
+  // The subtrees of the dependents need cells too: a dependent below a Null object (where the diff does not descend)
+  // can have children with none. A cell that waited for one of those is a dependent as well (reconcile.md §4).
+  if (dependent!) {
+    const depCtx: InitCellsCtx = { ctx, visited: initCtx.visited, added: [] };
+    for (let i = 0; i < dependent.array.length; i++) {
+      const start = depCtx.added.length;
+      const root = ctx.tree.transforms.get(dependent.array[i].transform.ref);
+      StateTree.doPreOrder(ctx.tree, root, depCtx, addCellsVisitor);
+      for (const w of linkAdded(ctx, depCtx.added.slice(start))) {
+        if (!depCtx.visited.has(w.transform.ref)) UniqueArray.add(dependent, w.transform.ref, w);
+      }
+    }
+    for (const cell of depCtx.added) initCtx.added.push(cell);
+  }
 
   return { added: initCtx.added, dependent: dependent! ? dependent!.array : void 0 };
 }
@@ -1047,6 +1192,8 @@ function doError(ctx: UpdateContext, ref: Ref, errorObject: any | undefined, sil
   }
 
   const cell = ctx.cells.get(ref)!;
+  // it will not produce an object this pass: what depends on it is not deferred for it (`pendingBlockers`)
+  ctx.scheduled?.delete(ref);
 
   if (errorObject) {
     ctx.wasAborted = ctx.wasAborted || Task.isAbort(errorObject);
@@ -1097,10 +1244,11 @@ function collectScheduled(ctx: UpdateContext, roots: Ref[]): Set<Ref> {
 
 /**
  * Refs that `cell` depends on which are scheduled for evaluation in this
- * pass but haven't produced an object yet (and aren't in an error state).
- * An empty result means deps are either ready, in error, or out-of-scope —
- * in any of those cases the cell should proceed (and may throw at
- * `resolveDependencies` time if the dep is genuinely missing).
+ * pass and not evaluated yet (still 'pending', with no object).
+ * An empty result means deps are either ready, evaluated without an object
+ * (in error, or below a Null object), or out-of-scope — in any of those cases
+ * the cell should proceed (and may throw at `resolveDependencies` time if the
+ * dep is genuinely missing). dependencies.md §4.
  */
 function pendingBlockers(ctx: UpdateContext, cell: StateObjectCell): Ref[] {
   const blockers: Ref[] = [];
@@ -1108,7 +1256,8 @@ function pendingBlockers(ctx: UpdateContext, cell: StateObjectCell): Ref[] {
   if (!scheduled) return blockers;
   for (const dep of cell.dependencies.dependsOn) {
     if (dep.obj) continue;
-    if (dep.status === 'error') continue;
+    // evaluated this pass and left without an object: waiting would not change that
+    if (dep.status !== 'pending') continue;
     if (!scheduled.has(dep.transform.ref)) continue;
     blockers.push(dep.transform.ref);
   }
@@ -1301,7 +1450,9 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
   return t as T;
 }
 
-function resolveDependencies(cell: StateObjectCell) {
+function resolveDependencies(ctx: UpdateContext, cell: StateObjectCell) {
+  // a dependency with no cell is not linked (`DependencyWaiters`)
+  if (ctx.dependencyWaiters.isWaiting(cell)) throw new Error('Unresolved dependency.');
   if (cell.dependencies.dependsOn.length === 0) return void 0;
 
   const deps = Object.create(null);
@@ -1326,7 +1477,7 @@ function createObject(
   if (!cell.cache) cell.cache = Object.create(null);
   return runTask(
     transformer.definition.apply(
-      { a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) },
+      { a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) },
       ctx.parent.globalContext,
     ),
     ctx.taskCtx,
@@ -1348,7 +1499,7 @@ async function updateObject(
   if (!cell.cache) cell.cache = Object.create(null);
   return runTask(
     transformer.definition.update(
-      { a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) },
+      { a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(ctx, cell) },
       ctx.parent.globalContext,
     ),
     ctx.taskCtx,
