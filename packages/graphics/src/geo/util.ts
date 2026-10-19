@@ -27,7 +27,7 @@ const tmpV3 = Vec3();
 // The transforms below read and write the array inline: `Vec3.fromArray`, `Vec3.toArray` and the `Vec3` transforms are
 // called app-wide with many array kinds, so their keyed loads and stores are megamorphic, also where V8 inlines them.
 
-/** In place, as `Vec3.transformMat4` (the w divide only for a non-affine `t`, where it is not exactly 1) */
+/** In place, as `Vec3.transformMat4`; skips the w divide for an affine `t`, where w is exactly 1 */
 export function transformPositionArray(t: Mat4, array: NumberArray, offset: number, count: number) {
   const m0 = t[0],
     m1 = t[1],
@@ -103,7 +103,7 @@ const cb = Vec3();
 const ab = Vec3();
 
 /**
- * indexed vertex normals weighted by triangle areas
+ * indexed vertex normals weighted by triangle areas (reads inline, as the transforms above)
  *      http://www.iquilezles.org/www/articles/normals/normals.htm
  * - normals array must contain only zeros
  */
@@ -119,25 +119,31 @@ export function computeIndexedVertexNormals<T extends NumberArray>(
     const bi = indices[i + 1] * 3;
     const ci = indices[i + 2] * 3;
 
-    Vec3.fromArray(a, vertices, ai);
-    Vec3.fromArray(b, vertices, bi);
-    Vec3.fromArray(c, vertices, ci);
+    const bx = vertices[bi],
+      by = vertices[bi + 1],
+      bz = vertices[bi + 2];
+    // cb = c - b, ab = a - b, n = cb x ab, as `Vec3.sub` and `Vec3.cross`
+    const cbx = vertices[ci] - bx,
+      cby = vertices[ci + 1] - by,
+      cbz = vertices[ci + 2] - bz;
+    const abx = vertices[ai] - bx,
+      aby = vertices[ai + 1] - by,
+      abz = vertices[ai + 2] - bz;
+    const nx = cby * abz - cbz * aby;
+    const ny = cbz * abx - cbx * abz;
+    const nz = cbx * aby - cby * abx;
 
-    Vec3.sub(cb, c, b);
-    Vec3.sub(ab, a, b);
-    Vec3.cross(cb, cb, ab);
+    normals[ai] += nx;
+    normals[ai + 1] += ny;
+    normals[ai + 2] += nz;
 
-    normals[ai] += cb[0];
-    normals[ai + 1] += cb[1];
-    normals[ai + 2] += cb[2];
+    normals[bi] += nx;
+    normals[bi + 1] += ny;
+    normals[bi + 2] += nz;
 
-    normals[bi] += cb[0];
-    normals[bi + 1] += cb[1];
-    normals[bi + 2] += cb[2];
-
-    normals[ci] += cb[0];
-    normals[ci + 1] += cb[1];
-    normals[ci + 2] += cb[2];
+    normals[ci] += nx;
+    normals[ci + 1] += ny;
+    normals[ci + 2] += nz;
   }
 
   return normalizeVec3Array(normals, vertexCount);

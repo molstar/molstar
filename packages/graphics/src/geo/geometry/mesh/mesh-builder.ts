@@ -73,7 +73,6 @@ function addTransformedPrimitive(state: MeshBuilder.State, t: Mat4, primitive: P
     n8 = n[8];
   // w is exactly 1 for an affine matrix, so `Vec3.transformMat4`'s divide changes no bits there
   const affine = m3 === 0 && m7 === 0 && m11 === 0 && m15 === 1;
-  const s = flipped ? -1 : 1;
 
   for (let i = 0, il = va.length; i < il; i += 3) {
     // position, as `Vec3.transformMat4`
@@ -94,12 +93,11 @@ function addTransformedPrimitive(state: MeshBuilder.State, t: Mat4, primitive: P
     const nx = na[i],
       ny = na[i + 1],
       nz = na[i + 2];
-    caAdd3(
-      normals,
-      s * (nx * n0 + ny * n3 + nz * n6),
-      s * (nx * n1 + ny * n4 + nz * n7),
-      s * (nx * n2 + ny * n5 + nz * n8),
-    );
+    const qx = nx * n0 + ny * n3 + nz * n6;
+    const qy = nx * n1 + ny * n4 + nz * n7;
+    const qz = nx * n2 + ny * n5 + nz * n8;
+    if (flipped) caAdd3(normals, -qx, -qy, -qz);
+    else caAdd3(normals, qx, qy, qz);
     // group
     caAdd(groups, currentGroup);
   }

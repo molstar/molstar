@@ -14,7 +14,7 @@ import { Cylinder } from '../../primitive/cylinder.js';
 import { Sphere } from '../../primitive/sphere.js';
 import { BoxCage } from '../../primitive/box.js';
 import { type Primitive, transformPrimitive } from '../../primitive/primitive.js';
-import { transformDirectionArray, transformPositionArray } from '../../util.js';
+import { computeIndexedVertexNormals, transformDirectionArray, transformPositionArray } from '../../util.js';
 
 // The inlined vertex loops must give the same bits as the Vec3 helper round trip they replace
 // (`Vec3.fromArray` + `Vec3.transformMat4` / `Vec3.transformMat3` into a double `Vec3`).
@@ -49,9 +49,20 @@ const matrices: [string, () => Mat4][] = [
   ['w-scaled', wScaled],
 ];
 
+/** NaN, infinities and signed zeros, through the affine shortcut and the w divide */
+function special(): Primitive {
+  const values = [0, -0, 1, Infinity, -Infinity, NaN, -1.5, 2.25, -0, 3e38, -3e38, 1e-45];
+  return {
+    vertices: Float32Array.from(values),
+    normals: Float32Array.from(values.slice().reverse()),
+    indices: Uint32Array.from([0, 1, 2, 1, 2, 3]),
+  };
+}
+
 const primitives: [string, () => Primitive][] = [
   ['cylinder', () => Cylinder({ radiusTop: 0.3, radiusBottom: 0.6, radialSegments: 7, topCap: true, bottomCap: true })],
   ['sphere', () => Sphere(2)],
+  ['NaN/Infinity/-0', special],
 ];
 
 type Out = { vertices: number[]; normals: number[]; indices: number[]; groups: number[] };
@@ -65,12 +76,12 @@ function referenceAdd(out: Out, t: Mat4, p: Primitive, group: number, flipped: b
   const offset = out.vertices.length / 3;
   const n = Mat3.directionTransform(Mat3(), t);
   const v = Vec3();
-  const s = flipped ? -1 : 1;
   for (let i = 0; i < p.vertices.length; i += 3) {
     Vec3.transformMat4(v, Vec3.fromArray(v, p.vertices, i), t);
     out.vertices.push(v[0], v[1], v[2]);
     Vec3.transformMat3(v, Vec3.fromArray(v, p.normals, i), n);
-    out.normals.push(s * v[0], s * v[1], s * v[2]);
+    if (flipped) out.normals.push(-v[0], -v[1], -v[2]);
+    else out.normals.push(v[0], v[1], v[2]);
     out.groups.push(group);
   }
   for (let i = 0; i < p.indices.length; i += 3) {
@@ -81,17 +92,25 @@ function referenceAdd(out: Out, t: Mat4, p: Primitive, group: number, flipped: b
 }
 
 function stateOut(state: MeshBuilder.State): Out {
+  // a single chunk comes back as is, longer than what was added
+  const used = (c: ChunkedArray<number, number>) =>
+    Array.from(ChunkedArray.compact(c, true)).slice(0, c.elementCount * c.elementSize);
   return {
-    vertices: Array.from(ChunkedArray.compact(state.vertices, true)),
-    normals: Array.from(ChunkedArray.compact(state.normals, true)),
-    indices: Array.from(ChunkedArray.compact(state.indices, true)),
-    groups: Array.from(ChunkedArray.compact(state.groups, true)),
+    vertices: used(state.vertices),
+    normals: used(state.normals),
+    indices: used(state.indices),
+    groups: used(state.groups),
   };
 }
 
-/** Compares the Float32 bit patterns, so -0 and NaN count too */
+/** Compares the Float32 bit patterns, so -0 and the sign of NaN count too */
 function bits(a: ArrayLike<number>) {
   return Array.from(new Uint32Array(Float32Array.from(a).buffer));
+}
+
+/** Compares the Float64 bit patterns, for arrays that keep doubles */
+function bits64(a: ArrayLike<number>) {
+  return Array.from(new BigUint64Array(Float64Array.from(a).buffer));
 }
 
 function expectSame(actual: Out, expected: Out) {
@@ -226,7 +245,7 @@ describe('MeshBuilder', () => {
   }
 });
 
-describe('transformPositionArray / transformDirectionArray / transformPrimitive', () => {
+describe('transformPositionArray / transformDirectionArray / transformPrimitive / computeIndexedVertexNormals', () => {
   const values = Float32Array.from({ length: 3 * 40 + 2 }, (_, i) => Math.sin(i * 1.7) * (i % 7) - 0.25 * (i % 3));
 
   for (const [mName, mat] of matrices) {
@@ -264,5 +283,80 @@ describe('transformPositionArray / transformDirectionArray / transformPrimitive'
       expect(bits(p.vertices)).toEqual(bits(refP.vertices));
       expect(bits(p.normals)).toEqual(bits(refP.normals));
     });
+
+    it(`${mName} matrix, Float64Array and number[] keep the doubles bit for bit`, () => {
+      const t = mat();
+      const n = Mat3.directionTransform(Mat3(), t);
+      // full-mantissa doubles: a reordered sum would show here, where Float32 rounding could hide it
+      const doubles = Array.from({ length: 3 * 50 }, (_, i) => Math.sin(i * 12.9898) * 43758.5453 - Math.cos(i));
+      for (const make of [(a: number[]) => Float64Array.from(a), (a: number[]) => a.slice()]) {
+        const pos = make(doubles);
+        const dir = make(doubles);
+        transformPositionArray(t, pos, 0, 50);
+        transformDirectionArray(n, dir, 0, 50);
+        const refPos = doubles.slice();
+        const refDir = doubles.slice();
+        const v = Vec3();
+        for (let i = 0; i < 150; i += 3) {
+          Vec3.toArray(Vec3.transformMat4(v, Vec3.fromArray(v, refPos, i), t), refPos, i);
+          Vec3.toArray(Vec3.transformMat3(v, Vec3.fromArray(v, refDir, i), n), refDir, i);
+        }
+        expect(bits64(pos)).toEqual(bits64(refPos));
+        expect(bits64(dir)).toEqual(bits64(refDir));
+      }
+    });
+
+    it(`${mName} matrix, transformPrimitive of a sphere subset, whose normals are its vertices`, () => {
+      const t = mat();
+      const n = Mat3.directionTransform(Mat3(), t);
+      const p = Sphere(1, { subset: 'ring' });
+      expect(p.normals).toBe(p.vertices);
+      const ref = p.vertices.slice();
+      transformPrimitive(p, t);
+      // today's order: position then normal, per vertex, on the same slots
+      const v = Vec3();
+      for (let i = 0; i < ref.length; i += 3) {
+        Vec3.toArray(Vec3.transformMat4(v, Vec3.fromArray(v, ref, i), t), ref, i);
+        Vec3.toArray(Vec3.transformMat3(v, Vec3.fromArray(v, ref, i), n), ref, i);
+      }
+      expect(bits(p.vertices)).toEqual(bits(ref));
+    });
   }
+
+  it('computeIndexedVertexNormals, Float32 and number[] vertices, bit for bit', () => {
+    const p = Cylinder({ radiusTop: 0.3, radiusBottom: 0.6, radialSegments: 7, topCap: true, bottomCap: true });
+    const vertexCount = p.vertices.length / 3;
+    const triangleCount = p.indices.length / 3;
+    const doubles = Array.from(p.vertices, (x, i) => x * 1.1 + Math.sin(i) * 1e-3);
+    for (const vertices of [p.vertices, doubles]) {
+      const normals = new Float32Array(vertices.length);
+      computeIndexedVertexNormals(vertices, p.indices, normals, vertexCount, triangleCount);
+
+      // today's code, through the Vec3 helpers
+      const ref = new Float32Array(vertices.length);
+      const [a, b, c, cb, ab] = [Vec3(), Vec3(), Vec3(), Vec3(), Vec3()];
+      for (let i = 0; i < triangleCount * 3; i += 3) {
+        const [ai, bi, ci] = [p.indices[i] * 3, p.indices[i + 1] * 3, p.indices[i + 2] * 3];
+        Vec3.fromArray(a, vertices, ai);
+        Vec3.fromArray(b, vertices, bi);
+        Vec3.fromArray(c, vertices, ci);
+        Vec3.sub(cb, c, b);
+        Vec3.sub(ab, a, b);
+        Vec3.cross(cb, cb, ab);
+        for (const k of [ai, bi, ci]) {
+          ref[k] += cb[0];
+          ref[k + 1] += cb[1];
+          ref[k + 2] += cb[2];
+        }
+      }
+      for (let i = 0; i < ref.length; i += 3) {
+        const [x, y, z] = [ref[i], ref[i + 1], ref[i + 2]];
+        const s = 1 / Math.sqrt(x * x + y * y + z * z);
+        ref[i] = x * s;
+        ref[i + 1] = y * s;
+        ref[i + 2] = z * s;
+      }
+      expect(bits(normals)).toEqual(bits(ref));
+    }
+  });
 });

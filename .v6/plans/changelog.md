@@ -85,11 +85,6 @@ the [API change ledger](breaking-v6-changes.md).
   small ones on the CPU, where they are faster; WebGL keeps the resolution cutoff
 - Fix images and direct volumes with instance granularity: markers were read per group instance, and direct volumes
   ignored overpaint
-- Mesh primitives (dashed interaction cylinders, mesh spheres, carbohydrate symbols, `addMesh`) and `Mesh.transform` read
-  and transform their arrays inline instead of through `Vec3.fromArray` and the `Vec3` transforms, which are
-  megamorphic app-wide: `MeshBuilder.addPrimitive` 1.2× to 2.6× faster, the array transforms up to 40×; identical
-  output. [Breaking] `Primitive` arrays are `Float32Array` / `Uint32Array`, see the
-  [API change ledger](breaking-v6-changes.md)
 
 ## MVS selectors through model indices
 
