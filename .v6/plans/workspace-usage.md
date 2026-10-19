@@ -274,6 +274,13 @@ Package exports use wildcard mappings for regular modules, with explicit root an
 Sass/CSS patterns, and blocked test paths. The workspace refresh script preserves this compact form. Workspace and
 tarball checks expand the patterns and validate every concrete conditional target.
 
+A package whose `./*` maps `molstar-src` to `./src/*.ts` publishes every `.tsx` under `src/` through a `.ts` source
+that is not there. Each `.tsx` (a Prism view, `prism-panel.tsx`) needs its own entry,
+`"./view": { "molstar-src": "./src/view.tsx", "types": "./lib/view.d.ts", "import": "./lib/view.js" }`, or
+`"./view": null` when only its package imports it. `check.mjs` names the entry to add, and so does
+`scripts/workspace/_test/exports.test.mjs` in `pnpm test`, which needs no build (`check:workspace` without
+`--source-only` reads `lib/`).
+
 CIF field-name filters have one source of truth in root `data/cif-field-names/`. Workspace CLI runs read those files
 directly. Library asset staging copies them into ignored `cli/cifschema/lib/data/` for installed consumers, and tarball
 checks verify each staged filter against its root source.

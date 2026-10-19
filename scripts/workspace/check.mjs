@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { builtinModules } from 'node:module';
 // AST inspection only; builds and declaration checks use the native TypeScript 7 CLI.
 import ts from '@typescript/typescript6';
-import { expandExports, exportTargets } from './exports.mjs';
+import { expandExports, exportTargets, tsxBehindTsWildcard, tsxExportMessage } from './exports.mjs';
 import { importsFrom } from './imports.mjs';
 import { checkImportGraph } from './import-graph.mjs';
 import { checkMigrationRecords } from './migration-records.mjs';
@@ -130,7 +130,13 @@ for (const pkg of publicPackages) {
               files.push(file.replace(/^src\//u, 'lib/').replace(/\.s[ac]ss$/u, '.css'));
           }
         }
+      // A .tsx under a `./*` export to `.ts` sources: said with the entry to add, not as a target that does not resolve.
+      const sources = files.filter((file) => file.startsWith('src/')).map((file) => file.slice('src/'.length));
+      const tsx = tsxBehindTsWildcard(manifest.exports ?? {}, sources);
+      for (const found of tsx) errors.push(tsxExportMessage(pkg.name, found));
+      const reported = new Set(tsx.map((found) => found.key));
       for (const [key, value] of Object.entries(expandExports(manifest.exports ?? {}, files))) {
+        if (reported.has(key)) continue;
         for (const target of exportTargets(value)) validateExport(pkg, key, target);
       }
     } catch (error) {
