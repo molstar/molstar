@@ -635,7 +635,9 @@ export namespace Loci {
 
   //
 
-  const boundaryHelper = new BoundaryHelper('98');
+  // 14 directions (refined to 98 from their extrema): the radius pass visits every element, so the sphere still
+  // encloses them (05-model-structure P2)
+  const boundaryHelper = new BoundaryHelper('14');
   const tempPosBoundary = Vec3();
   const tempSphereBoundary = Sphere3D();
 
@@ -653,6 +655,10 @@ export namespace Loci {
     // reuse structure boundary if the loci covers the whole structure
     if (isWholeStructure(loci)) {
       return Sphere3D.copy(boundingSphere || Sphere3D(), loci.structure.boundary.sphere);
+    }
+    // reuse unit boundary if the loci is one whole unit
+    if (loci.elements.length === 1 && isWholeUnit(loci.elements[0])) {
+      return Sphere3D.copy(boundingSphere || Sphere3D(), getWholeUnitBoundarySphere(loci.elements[0].unit));
     }
 
     boundaryHelper.reset();

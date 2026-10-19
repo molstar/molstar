@@ -346,7 +346,8 @@ describe('structure building', async () => {
     const s = await root();
     // unit spheres: exact
     check(`${name}: unit spheres`, hash(s.units.flatMap((u) => sphereOf(u.boundary.sphere))), expected);
-    // structure box: exact; sphere: within 3 % of the recorded radius, atoms outside by at most 0.05 Å
+    // structure box: exact; sphere: radius within 3 % of the recorded one, atoms outside by at most 0.05 Å, centre
+    // within 5 % of the radius (14 instead of 98 directions average other extrema: 3.7 % on these fixtures)
     const { box, sphere } = s.boundary;
     check(`${name}: box`, [...Array.from(box.min, (x) => round(x)), ...Array.from(box.max, (x) => round(x))], expected);
     const [cx, cy, cz, r] = sphereOf(sphere);
@@ -354,7 +355,7 @@ describe('structure building', async () => {
     else {
       const [ex, ey, ez, er] = expected[`${name}: sphere`] as number[];
       expect(Math.abs(r - er) / er).toBeLessThan(0.03);
-      expect(Vec3.distance(Vec3.create(cx, cy, cz), Vec3.create(ex, ey, ez)) / er).toBeLessThan(0.03);
+      expect(Vec3.distance(Vec3.create(cx, cy, cz), Vec3.create(ex, ey, ez)) / er).toBeLessThan(0.05);
       expect(worstOutside(sphere, s)).toBeLessThan(0.05);
     }
     // loci sphere of every second element: within 3 %, encloses every selected element
