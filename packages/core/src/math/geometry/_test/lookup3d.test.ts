@@ -338,4 +338,17 @@ describe('GridLookup3d result order', () => {
       }
     `);
   });
+
+  it('a contiguous SortedArray gives the same results as the interval', () => {
+    const contiguous = OrderedSet.ofSortedArray(Int32Array.from({ length: count }, (_, i) => i));
+    expect(fingerprint({ ...cases['f32 interval'], indices: contiguous })).toBe(fingerprint(cases['f32 interval']));
+    expect(fingerprint({ ...cases['f64 interval radii'], indices: contiguous })).toBe(
+      fingerprint(cases['f64 interval radii']),
+    );
+    // offset range: elements 100..1099 as a SortedArray vs as an interval
+    const sub = OrderedSet.ofSortedArray(Int32Array.from({ length: 1000 }, (_, i) => 100 + i));
+    expect(fingerprint({ ...cases['f32 interval'], indices: sub })).toBe(
+      fingerprint({ ...cases['f32 interval'], indices: OrderedSet.ofBounds(100, 1100) }),
+    );
+  });
 });
