@@ -450,8 +450,10 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     const groupRef = this.groupRef();
     if (!groupRef) {
       const e = this._empty;
+      // `labels` a new list, as the walk made it: the state counts as updated on every sync, and listeners of
+      // `stateUpdated` (Prism's scene, for one) are told of every state change as before.
       const updated = this.updateState({
-        labels: e,
+        labels: [],
         distances: e,
         angles: e,
         dihedrals: e,

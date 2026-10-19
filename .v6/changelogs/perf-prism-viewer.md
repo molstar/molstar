@@ -14,7 +14,7 @@
   removed, not for every created object; a removed model lowers the max at once (100 structures: first overpaint over
   all 101 → 39 ms, transparency 79 → 16 ms)
 - Plugin: the measurement manager's sync, on every state change, searches the tree for the measurement group once per
-  tree instead of six walks (none when there is no group)
+  tree instead of six walks (none when there is no group); it still reports an update on every sync, as before
 - Style layers (the Layers list) read all five kinds of a representation in one walk: 300 representations, a read with
   nothing changed 1.15 → 0.24 ms
 - Superpose's picked atoms are counted once per selection, not again on every state change (an all-atom selection of
