@@ -37,6 +37,7 @@ import { type Boundary, getBoundary, getFastBoundary } from '@molstar/core/math/
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache.js';
+import { subsetIntraUnitBonds } from './unit/bonds/subset.js';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { getResonance, type UnitResonance } from './unit/resonance.js';
 
@@ -218,7 +219,14 @@ namespace Unit {
     readonly elements: StructureElement.Set;
     readonly model: Model;
     readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
-    readonly props: BaseProperties;
+    /**
+     * The unit `getChild` made this one from, flattened to the root as `Structure.parent` is: same kind and model,
+     * a superset of the elements, possibly another operator. Only its static props may be used (unit.md §2).
+     */
+    readonly parent: Unit | undefined;
+    /** Static props: shared by every unit with these elements and model (symmetry copies), read-only (unit.md §1). */
+    readonly props: Readonly<BaseProperties>;
+    /** Dynamic data of this unit instance, never inherited by children (unit.md §1). */
     readonly transientCache: Map<any, any>;
 
     getChild(elements: StructureElement.Set): Unit;
@@ -294,7 +302,11 @@ namespace Unit {
     /** Reference `chainIndex` from `model` for faster access. */
     readonly chainIndex: ArrayLike<ChainIndex>;
 
-    readonly props: AtomicProperties;
+    readonly parent: Atomic | undefined;
+    private readonly _props: AtomicProperties;
+    get props(): Readonly<AtomicProperties> {
+      return this._props;
+    }
 
     private _transientCache: Map<any, any> | undefined = undefined;
     get transientCache() {
@@ -313,6 +325,7 @@ namespace Unit {
         elements,
         this.conformation,
         AtomicProperties(),
+        this.parent ?? this,
       );
     }
 
@@ -325,7 +338,8 @@ namespace Unit {
         this.model,
         this.elements,
         this.conformation,
-        this.props,
+        this._props,
+        this.parent,
       );
       if (options?.propagateTransientCache) {
         unit._transientCache = this._transientCache;
@@ -343,19 +357,25 @@ namespace Unit {
         this.model,
         this.elements,
         SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r),
-        this.props,
+        this._props,
+        this.parent,
       );
     }
 
     remapModel(model: Model, dynamicBonds: boolean, props?: AtomicProperties) {
       if (!props) {
         props = {
-          ...this.props,
+          ...this._props,
           bonds:
-            dynamicBonds && !this.props.bonds?.props?.canRemap
+            dynamicBonds && !this._props.bonds?.props?.canRemap
               ? undefined
-              : tryRemapBonds(this, this.props.bonds, model, dynamicBonds),
+              : tryRemapBonds(this, this._props.bonds, model, dynamicBonds),
         };
+        // rings and resonance are derived from the bonds (unit.md §3)
+        if (!props.bonds) {
+          props.rings = undefined;
+          props.resonance = undefined;
+        }
         if (!Unit.isSameConformation(this, model)) {
           props.boundary = undefined;
           props.lookup3d = undefined;
@@ -385,86 +405,93 @@ namespace Unit {
         this.elements,
         conformation,
         props,
+        // the parent belongs to the old model (unit.md §3)
+        model === this.model ? this.parent : undefined,
       );
     }
 
     get boundary() {
-      if (this.props.boundary) return this.props.boundary;
+      if (this._props.boundary) return this._props.boundary;
       const fast = Traits.is(this.traits, Trait.FastBoundary);
       const { x, y, z } = this.model.atomicConformation;
       const radius = fast ? undefined : Model.getAtomicRadii(this.model);
-      this.props.boundary = fast
+      this._props.boundary = fast
         ? getFastBoundary({ x, y, z, radius, indices: this.elements })
         : getBoundary({ x, y, z, radius, indices: this.elements });
-      return this.props.boundary;
+      return this._props.boundary;
     }
 
     get lookup3d() {
-      if (this.props.lookup3d) return this.props.lookup3d;
+      if (this._props.lookup3d) return this._props.lookup3d;
       const { x, y, z } = this.model.atomicConformation;
-      this.props.lookup3d = GridLookup3D({ x, y, z, indices: this.elements }, this.boundary);
-      return this.props.lookup3d;
+      this._props.lookup3d = GridLookup3D({ x, y, z, indices: this.elements }, this.boundary);
+      return this._props.lookup3d;
     }
 
     get principalAxes() {
-      if (this.props.principalAxes) return this.props.principalAxes;
-      this.props.principalAxes = getPrincipalAxes(this);
-      return this.props.principalAxes;
+      if (this._props.principalAxes) return this._props.principalAxes;
+      this._props.principalAxes = getPrincipalAxes(this);
+      return this._props.principalAxes;
     }
 
     get bonds() {
-      if (this.props.bonds) return this.props.bonds;
+      if (this._props.bonds) return this._props.bonds;
 
-      const cache = ElementSetIntraBondCache.get(this.model);
-      let bonds = cache.get(this.elements);
+      // a child restricts its parent's bonds if they exist, and never computes them (unit.md §4)
+      const parentBonds = this.parent?.props.bonds;
+      let bonds = parentBonds && subsetIntraUnitBonds(parentBonds, this.parent!.elements, this.elements);
       if (!bonds) {
-        bonds = computeIntraUnitBonds(this);
-        if (bonds.props?.cacheable) {
-          cache.set(this.elements, bonds);
+        const cache = ElementSetIntraBondCache.get(this.model);
+        bonds = cache.get(this.elements);
+        if (!bonds) {
+          bonds = computeIntraUnitBonds(this);
+          if (bonds.props?.cacheable) {
+            cache.set(this.elements, bonds);
+          }
         }
       }
-      this.props.bonds = bonds;
-      return this.props.bonds;
+      this._props.bonds = bonds;
+      return this._props.bonds;
     }
 
     get rings() {
-      if (this.props.rings) return this.props.rings;
-      this.props.rings = UnitRings.create(this);
-      return this.props.rings;
+      if (this._props.rings) return this._props.rings;
+      this._props.rings = UnitRings.create(this);
+      return this._props.rings;
     }
 
     get resonance() {
-      if (this.props.resonance) return this.props.resonance;
-      this.props.resonance = getResonance(this);
-      return this.props.resonance;
+      if (this._props.resonance) return this._props.resonance;
+      this._props.resonance = getResonance(this);
+      return this._props.resonance;
     }
 
     get polymerElements() {
-      if (this.props.polymerElements) return this.props.polymerElements;
-      this.props.polymerElements = getAtomicPolymerElements(this);
-      return this.props.polymerElements;
+      if (this._props.polymerElements) return this._props.polymerElements;
+      this._props.polymerElements = getAtomicPolymerElements(this);
+      return this._props.polymerElements;
     }
 
     get gapElements() {
-      if (this.props.gapElements) return this.props.gapElements;
-      this.props.gapElements = getAtomicGapElements(this);
-      return this.props.gapElements;
+      if (this._props.gapElements) return this._props.gapElements;
+      this._props.gapElements = getAtomicGapElements(this);
+      return this._props.gapElements;
     }
 
     get nucleotideElements() {
-      if (this.props.nucleotideElements) return this.props.nucleotideElements;
-      this.props.nucleotideElements = getNucleotideElements(this);
-      return this.props.nucleotideElements;
+      if (this._props.nucleotideElements) return this._props.nucleotideElements;
+      this._props.nucleotideElements = getNucleotideElements(this);
+      return this._props.nucleotideElements;
     }
 
     get proteinElements() {
-      if (this.props.proteinElements) return this.props.proteinElements;
-      this.props.proteinElements = getProteinElements(this);
-      return this.props.proteinElements;
+      if (this._props.proteinElements) return this._props.proteinElements;
+      this._props.proteinElements = getProteinElements(this);
+      return this._props.proteinElements;
     }
 
     get residueCount(): number {
-      if (this.props.residueCount !== undefined) return this.props.residueCount;
+      if (this._props.residueCount !== undefined) return this._props.residueCount;
 
       let residueCount = 0;
       const residueIt = Segmentation.transientSegments(this.model.atomicHierarchy.residueAtomSegments, this.elements);
@@ -473,8 +500,8 @@ namespace Unit {
         residueCount += 1;
       }
 
-      this.props.residueCount = residueCount;
-      return this.props.residueCount!;
+      this._props.residueCount = residueCount;
+      return this._props.residueCount!;
     }
 
     getResidueIndex(elementIndex: StructureElement.UnitIndex) {
@@ -498,6 +525,7 @@ namespace Unit {
       elements: StructureElement.Set,
       conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
       props: AtomicProperties,
+      parent?: Atomic,
     ) {
       this.id = id;
       this.invariantId = invariantId;
@@ -509,7 +537,8 @@ namespace Unit {
 
       this.residueIndex = model.atomicHierarchy.residueAtomSegments.index;
       this.chainIndex = model.atomicHierarchy.chainAtomSegments.index;
-      this.props = props;
+      this._props = props;
+      this.parent = parent;
     }
   }
 
@@ -543,7 +572,11 @@ namespace Unit {
     readonly coarseElements: CoarseElements;
     readonly coarseConformation: C;
 
-    readonly props: CoarseProperties;
+    readonly parent: Unit.Spheres | Unit.Gaussians | undefined;
+    private readonly _props: CoarseProperties;
+    get props(): Readonly<CoarseProperties> {
+      return this._props;
+    }
 
     private _transientCache: Map<any, any> | undefined = undefined;
     get transientCache() {
@@ -563,6 +596,7 @@ namespace Unit {
         elements,
         this.conformation,
         CoarseProperties(),
+        this.parent ?? (this as Unit.Spheres | Unit.Gaussians), // TODO get rid of casting
       );
     }
 
@@ -576,7 +610,8 @@ namespace Unit {
         this.kind,
         this.elements,
         this.conformation,
-        this.props,
+        this._props,
+        this.parent,
       );
       if (options?.propagateTransientCache) {
         unit._transientCache = this._transientCache;
@@ -595,7 +630,8 @@ namespace Unit {
         this.kind,
         this.elements,
         SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r),
-        this.props,
+        this._props,
+        this.parent,
       );
     }
 
@@ -604,7 +640,7 @@ namespace Unit {
       const modelCoarseConformation = getCoarseConformation(this.kind, model);
 
       if (!props) {
-        props = { ...this.props };
+        props = { ...this._props };
         if (!Unit.isSameConformation(this as Unit.Spheres | Unit.Gaussians, model)) {
           // TODO get rid of casting
           props.boundary = undefined;
@@ -631,43 +667,44 @@ namespace Unit {
         this.elements,
         conformation,
         props,
+        model === this.model ? this.parent : undefined,
       ) as Unit.Spheres | Unit.Gaussians; // TODO get rid of casting
     }
 
     get boundary() {
-      if (this.props.boundary) return this.props.boundary;
+      if (this._props.boundary) return this._props.boundary;
       const { x, y, z } = this.getCoarseConformation();
       const radius = this.getCoarseRadii();
-      this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
+      this._props.boundary = Traits.is(this.traits, Trait.FastBoundary)
         ? getFastBoundary({ x, y, z, radius, indices: this.elements })
         : getBoundary({ x, y, z, radius, indices: this.elements });
-      return this.props.boundary;
+      return this._props.boundary;
     }
 
     get lookup3d() {
-      if (this.props.lookup3d) return this.props.lookup3d;
+      if (this._props.lookup3d) return this._props.lookup3d;
       // TODO: support sphere radius?
       const { x, y, z } = this.getCoarseConformation();
-      this.props.lookup3d = GridLookup3D({ x, y, z, indices: this.elements }, this.boundary);
-      return this.props.lookup3d;
+      this._props.lookup3d = GridLookup3D({ x, y, z, indices: this.elements }, this.boundary);
+      return this._props.lookup3d;
     }
 
     get principalAxes() {
-      if (this.props.principalAxes) return this.props.principalAxes;
-      this.props.principalAxes = getPrincipalAxes(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
-      return this.props.principalAxes;
+      if (this._props.principalAxes) return this._props.principalAxes;
+      this._props.principalAxes = getPrincipalAxes(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
+      return this._props.principalAxes;
     }
 
     get polymerElements() {
-      if (this.props.polymerElements) return this.props.polymerElements;
-      this.props.polymerElements = getCoarsePolymerElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
-      return this.props.polymerElements;
+      if (this._props.polymerElements) return this._props.polymerElements;
+      this._props.polymerElements = getCoarsePolymerElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
+      return this._props.polymerElements;
     }
 
     get gapElements() {
-      if (this.props.gapElements) return this.props.gapElements;
-      this.props.gapElements = getCoarseGapElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
-      return this.props.gapElements;
+      if (this._props.gapElements) return this._props.gapElements;
+      this._props.gapElements = getCoarseGapElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
+      return this._props.gapElements;
     }
 
     private getCoarseConformation() {
@@ -688,6 +725,7 @@ namespace Unit {
       elements: StructureElement.Set,
       conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
       props: CoarseProperties,
+      parent?: Unit.Spheres | Unit.Gaussians,
     ) {
       this.kind = kind;
       this.objectPrimitive = kind === Kind.Spheres ? 'sphere' : 'gaussian';
@@ -702,7 +740,8 @@ namespace Unit {
       this.coarseConformation = (
         kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians
       ) as C;
-      this.props = props;
+      this._props = props;
+      this.parent = parent;
     }
   }
 
@@ -733,8 +772,9 @@ namespace Unit {
     elements: StructureElement.Set,
     conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
     props: CoarseProperties,
+    parent?: Unit.Spheres | Unit.Gaussians,
   ): K extends Kind.Spheres ? Spheres : Gaussians {
-    return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props) as any; // lets call this an ugly temporary hack
+    return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props, parent) as any; // lets call this an ugly temporary hack
   }
 
   export function areSameChainOperatorGroup(a: Unit, b: Unit) {

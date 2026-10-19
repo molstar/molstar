@@ -1079,3 +1079,11 @@ loader).
 `indices: Uint32Array` instead of `ArrayLike<number>`, so `MeshBuilder.addPrimitive` reads one array kind per vertex.
 Every built-in producer (`PrimitiveBuilder`, `Polyhedron`, the shapes in `geo/primitive/`) already returned them; a
 primitive made of plain arrays wraps them (`new Float32Array(vertices)`, `new Uint32Array(indices)`).
+
+## Unit props are read-only; units know their parent
+
+`unit.props` (`@molstar/model/model/structure`, `Unit.Atomic`, `Unit.Spheres`, `Unit.Gaussians`) is typed `Readonly`:
+the static props are shared by symmetry copies and filled only by the units' own getters
+(`packages/model/_spec/unit.md` §1). Code that wrote a prop (`unit.props.bonds = ...`) passes it to `Unit.create`
+instead. `Unit.Base.parent` is new: the root unit a child was made from (§2). `remapModel` drops `rings` and
+`resonance` when it drops `bonds` (§3).
