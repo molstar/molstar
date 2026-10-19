@@ -116,7 +116,7 @@ namespace CrossLinkRestraint {
   }
 
   export function isLoci(x: any): x is Loci {
-    return !!x && x.kind === 'data-loci' && x.tag === 'interactions';
+    return !!x && x.kind === 'data-loci' && x.tag === 'cross-link-restraints';
   }
 
   export function getBoundingSphere(

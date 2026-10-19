@@ -21,6 +21,7 @@
     "./formats/writer/ccp4/_test/*": null,
     "./model/particles/_test/*": null,
     "./model/sequence/alignment/_test/*": null,
+    "./model/structure/structure/_test/*": null,
     "./model/structure/structure/element/_test/*": null,
     "./model/structure/structure/element/schema-selection/_test/*": null,
     "./model/structure/structure/util/_test/*": null,
@@ -29,6 +30,7 @@
     "./props/computed/_test/*": null,
     "./props/computed/accessible-surface-area/_test/*": null,
     "./props/computed/interactions/_test/*": null,
+    "./props/integrative/_test/*": null,
     "./props/volume/streamlines/_test/*": null,
     "./script/_test/*": null,
     "./script/runtime/query/_test/*": null

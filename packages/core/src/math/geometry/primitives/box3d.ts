@@ -117,6 +117,45 @@ namespace Box3D {
     return { min, max };
   }
 
+  /** Bounding box of the first `count` points of the interleaved xyz `array`; empty (`setEmpty`) if `count` is 0 */
+  export function fromPositionArray(out: Box3D, array: ArrayLike<number>, count: number): Box3D {
+    let minX = Number.MAX_VALUE,
+      minY = Number.MAX_VALUE,
+      minZ = Number.MAX_VALUE;
+    let maxX = -Number.MAX_VALUE,
+      maxY = -Number.MAX_VALUE,
+      maxZ = -Number.MAX_VALUE;
+    for (let j = 0, jl = count * 3; j < jl; j += 3) {
+      const x = array[j],
+        y = array[j + 1],
+        z = array[j + 2];
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+    Vec3.set(out.min, minX, minY, minZ);
+    Vec3.set(out.max, maxX, maxY, maxZ);
+    return out;
+  }
+
+  /** Intersection of `a` and `b`, empty (`isEmpty`) if they do not overlap */
+  export function intersect(out: Box3D, a: Box3D, b: Box3D): Box3D {
+    for (let k = 0; k < 3; ++k) {
+      out.min[k] = Math.max(a.min[k], b.min[k]);
+      out.max[k] = Math.min(a.max[k], b.max[k]);
+    }
+    return out;
+  }
+
+  /** Whether the box holds no point: min > max (or NaN) on some axis, e.g. after `setEmpty` */
+  export function isEmpty(box: Box3D) {
+    const { min, max } = box;
+    return !(min[0] <= max[0] && min[1] <= max[1] && min[2] <= max[2]);
+  }
+
   /** Get size/extent of the box */
   export function size(size: Vec3, box: Box3D): Vec3 {
     return Vec3.sub(size, box.max, box.min);
@@ -165,8 +204,12 @@ namespace Box3D {
   const tmpTransformV = Vec3();
   /** Transform box with a Mat4 */
   export function transform(out: Box3D, box: Box3D, m: Mat4): Box3D {
-    const [minX, minY, minZ] = box.min;
-    const [maxX, maxY, maxZ] = box.max;
+    const minX = box.min[0],
+      minY = box.min[1],
+      minZ = box.min[2];
+    const maxX = box.max[0],
+      maxY = box.max[1],
+      maxZ = box.max[2];
     setEmpty(out);
     add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, minZ), m));
     add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, maxZ), m));

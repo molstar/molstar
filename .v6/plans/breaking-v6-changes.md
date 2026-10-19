@@ -1079,3 +1079,24 @@ loader).
 `indices: Uint32Array` instead of `ArrayLike<number>`, so `MeshBuilder.addPrimitive` reads one array kind per vertex.
 Every built-in producer (`PrimitiveBuilder`, `Polyhedron`, the shapes in `geo/primitive/`) already returned them; a
 primitive made of plain arrays wraps them (`new Float32Array(vertices)`, `new Uint32Array(indices)`).
+
+## Cage vertices and mesh fan/strip vertices are Float32Array
+
+`Cage.vertices` (`@molstar/graphics/geo/primitive/cage`) is a `Float32Array` instead of `ArrayLike<number>`, and the
+`vertices` of `MeshBuilder.addTriangleStrip`, `addTriangleFan` and `addTriangleFanWithNormal` are `Float32Array`, so
+their loops read one array kind through `Vec3.fromFloat32Array`. `createCage` still takes any array and copies a
+non-Float32Array one; a cage object literal goes through `createCage`, and fan or strip vertices are wrapped
+(`new Float32Array(vertices)`).
+
+## Unit props are read-only; units know their parent
+
+`unit.props` (`@molstar/model/model/structure`, `Unit.Atomic`, `Unit.Spheres`, `Unit.Gaussians`) is typed `Readonly`:
+the static props are shared by symmetry copies and filled only by the units' own getters
+(`packages/model/_spec/unit.md` §1). Code that wrote a prop (`unit.props.bonds = ...`) passes it to `Unit.create`
+instead. `Unit.Base.parent` is new: the root unit a child was made from (§2). `remapModel` drops `rings` and
+`resonance` when it drops `bonds` (§3).
+
+## Empty sequence alignment module removed
+
+`@molstar/model/model/sequence/alignment` was an empty module (as `mol-model/sequence/alignment.ts` was in v5) and is
+gone; `align` and `AlignSequences` are in `@molstar/model/model/sequence/alignment/alignment` and `.../sequence`.

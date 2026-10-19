@@ -87,6 +87,26 @@ export namespace Vec3 {
     return { x: v[0], y: v[1], z: v[2] };
   }
 
+  /**
+   * `fromArray` for a `Float32Array` only. `fromArray` and `toArray` are called app-wide with many array kinds, so
+   * V8's feedback for their element loads and stores turns megamorphic (2x slower in hot loops); these typed variants
+   * see one kind, wherever they are called from. Use them in per-element loops over Float32Array buffers.
+   */
+  export function fromFloat32Array(v: Vec3, array: Float32Array, offset: number) {
+    v[0] = array[offset];
+    v[1] = array[offset + 1];
+    v[2] = array[offset + 2];
+    return v;
+  }
+
+  /** `toArray` for a `Float32Array` only; see `fromFloat32Array` */
+  export function toFloat32Array(v: Vec3, out: Float32Array, offset: number) {
+    out[offset] = v[0];
+    out[offset + 1] = v[1];
+    out[offset + 2] = v[2];
+    return out;
+  }
+
   export function fromArray(v: Vec3, array: ArrayLike<number>, offset: number) {
     v[0] = array[offset + 0];
     v[1] = array[offset + 1];
