@@ -21,3 +21,5 @@
   186k atoms: ~4 ms a change while the section shows)
 - `trajectory.frame` is `record: false`: a scrub through a trajectory writes no record entry per frame (as
   `snapshot.seek`)
+- The sequence's chain index lists water chains without indexing their atoms (nothing links them): 186k atoms with 12k
+  waters, 1.3 → 0.85 ms per new structure
