@@ -1,4 +1,4 @@
-## Graphics: faster marching cubes
+## Volumes: field reads at the strides
 
 - Marching cubes (molecular, Gaussian and blob surfaces, isosurfaces) reads the field at its strides
   (`Tensor.strides`, new) and each cell reads 4 corners instead of 8, with the same mesh: 220³ field, z fastest

@@ -335,7 +335,11 @@ namespace Grid {
     return { min, max, mean, sigma };
   }
 
-  /** As `computeGradientsGet`, reading `data[i * sx + j * sy + k * sz]` */
+  /**
+   * As `computeGradientsGet`, reading `data[i * sx + j * sy + k * sz]`. Keeps the k, j, i loop order (i innermost
+   * whatever the layout) so that the magnitude sums add up in the same order; looping in memory order would be faster
+   * for z-fastest data, with the same gradients and only the last bits of `mean`/`sigma` moved.
+   */
   function computeGradientsStrided(grid: Grid, strides: ReadonlyArray<number>): Gradients {
     const { space, data } = grid.cells;
     const [mi, mj, mk] = space.dimensions;

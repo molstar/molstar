@@ -12,11 +12,11 @@ import { Dims, Orders, grid, hash, viaAccessors } from './grid-test-util.js';
 /** Gradients in (i, j, k) order, whatever the layout */
 function gradients(g: Grid) {
   const { values, magnitude } = Grid.getGradients(g);
-  const { dataOffset } = g.cells.space;
+  const { dataOffset, dimensions: dims } = g.cells.space;
   const out: number[] = [];
-  for (let k = 0; k < Dims[2]; k++) {
-    for (let j = 0; j < Dims[1]; j++) {
-      for (let i = 0; i < Dims[0]; i++) {
+  for (let k = 0; k < dims[2]; k++) {
+    for (let j = 0; j < dims[1]; j++) {
+      for (let i = 0; i < dims[0]; i++) {
         const o = dataOffset(i, j, k) * 3;
         out.push(values[o], values[o + 1], values[o + 2]);
       }
@@ -78,6 +78,43 @@ describe('grid gradients', () => {
       }
     `);
     for (const order of Orders) expect(gradients(grid(order, Float64Array)), `order ${order}`).toEqual(reference);
+  });
+
+  it('use one-sided differences on axes of size 1 and 2', () => {
+    // size 1: both neighbours are the voxel itself, the divisor falls back to 1; size 2: one-sided differences
+    const references = [];
+    for (const dims of [
+      [1, 2, 3],
+      [3, 1, 2],
+      [2, 3, 1],
+    ]) {
+      const reference = gradients(grid([0, 1, 2], Float32Array, dims));
+      for (const order of Orders) {
+        expect(gradients(grid(order, Float32Array, dims)), `${dims} order ${order}`).toEqual(reference);
+        const g = viaAccessors(grid(order, Float32Array, dims));
+        expect(gradients(g), `${dims} order ${order}, accessors`).toEqual(reference);
+      }
+      references.push(reference.values);
+    }
+    expect(references).toMatchInlineSnapshot(`
+      [
+        "6c48c935",
+        "611e940c",
+        "5f0377c7",
+      ]
+    `);
+  });
+
+  it('report a magnitude range of 0..1 when no gradient is a number', () => {
+    for (const g of [
+      grid([0, 1, 2], Float32Array, [1, 1, 1], () => Number.NaN),
+      grid([2, 1, 0], Float32Array, [2, 2, 1], () => Number.NaN),
+    ]) {
+      const { magnitude } = Grid.getGradients(g);
+      expect(magnitude.min).toBe(0);
+      expect(magnitude.max).toBe(1);
+      expect(Grid.getGradients(viaAccessors(g)).magnitude).toEqual(magnitude);
+    }
   });
 
   it('read an overridden get', () => {

@@ -2,8 +2,9 @@
 
 Goal: find the big performance wins (algorithmic complexity, per-element allocation, recomputation that could be cached
 or incremental, oversized buffers, blocking main-thread work) and the real bugs met along the way, across the v6 library
-layers and Prism, ranked so they can be worked through. Read-only: nothing under `packages/` was changed; every number
-below comes from scratch benches on `v6-opts-261019` (`90d717f49`), Node 25.6, Apple M4, headless.
+layers and Prism, ranked so they can be worked through. Read-only (slices 00–11: nothing under `packages/` was changed;
+slice 12 was written with #1987); every number below comes from scratch benches on `v6-opts-261019` (`90d717f49`), Node
+25.6, Apple M4, headless.
 
 Constraints: Canvas3D and `packages/graphics/src/gl` are frozen while WebGPU lands (findings there are recorded with
 `frozen`); MVS loading and animation are in [mvs-optimizations](../mvs-optimizations/research/README.md) and not
@@ -35,11 +36,11 @@ repeated. Bugs are listed in [bugs.md](bugs.md).
 | [09-graphics-theme-props](09-graphics-theme-props.md) | `packages/graphics/src/theme`, `packages/graphics/src/props`               |    6 / 4 |
 | [10-prism-viewer](10-prism-viewer.md)                 | `packages/prism/viewer/src` (plus two plugin hot spots on its paths)       |   11 / 3 |
 | [11-prism-ui-assistant](11-prism-ui-assistant.md)     | `packages/prism/ui/src`, `packages/prism/assistant/src`                    |    7 / 2 |
-| [12-tensor-access](12-tensor-access.md)               | every `Tensor` `get`/`dataOffset`/`getCoords` site; strides (#1987)         |    9 / 2 |
+| [12-tensor-access](12-tensor-access.md)               | every `Tensor` `get`/`dataOffset`/`getCoords` site; strides (#1987)         |    10 / 3 |
 
 Not audited: `packages/io` (profiled only: parse is cheap), `graphics/src/gl` and Canvas3D (frozen), `packages/plugin`
-(only 10/P4, 10/P5), `packages/mvs`, `query-language`, `sequences`, `ai`, extensions, apps, servers. Not measured:
-browser frame time, GPU memory, the WebGPU backend.
+(only 10/P4, 10/P5), `packages/mvs`, `query-language`, `sequences`, `ai`, extensions (but their tensor accessor sites,
+slice 12), apps, servers. Not measured: browser frame time, GPU memory, the WebGPU backend.
 
 ## Profile headlines
 

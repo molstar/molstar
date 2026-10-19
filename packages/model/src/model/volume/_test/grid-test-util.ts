@@ -22,12 +22,17 @@ export function value(i: number, j: number, k: number) {
   return Math.sin(0.45 * i + 0.2 * j) * Math.cos(0.3 * j - 0.25 * k) + 0.02 * i * k + 0.1 * Math.sin(0.9 * k);
 }
 
-export function grid(order: number[], ctor: Tensor.ArrayCtor = Float32Array): Grid {
-  const space = Tensor.Space(Dims, order, ctor);
+export function grid(
+  order: number[],
+  ctor: Tensor.ArrayCtor = Float32Array,
+  dims = Dims,
+  f: (i: number, j: number, k: number) => number = value,
+): Grid {
+  const space = Tensor.Space(dims, order, ctor);
   const data = space.create();
-  for (let k = 0; k < Dims[2]; k++) {
-    for (let j = 0; j < Dims[1]; j++) {
-      for (let i = 0; i < Dims[0]; i++) space.set(data, i, j, k, value(i, j, k));
+  for (let k = 0; k < dims[2]; k++) {
+    for (let j = 0; j < dims[1]; j++) {
+      for (let i = 0; i < dims[0]; i++) space.set(data, i, j, k, f(i, j, k));
     }
   }
   return {
