@@ -43,6 +43,15 @@
 - **The count still comes back, asynchronously**: `readAsync` of the total is started but not awaited by the geometry.
   When it resolves, the exact count updates the texture mesh (stats, CPU-side consumers); if it exceeds the capacity the
   surface is computed again with the exact capacity (tracked as pending work, so screenshots wait for it).
+- **Direct draws once the count is back** (`TextureMesh.setDrawnVertexCount`): the count read back goes into the draw
+  arguments (`DrawIndirect.count`), and the WebGPU render item draws it directly until the next extraction; `drawCount`
+  and `uVertexCount` stay the upper bound (the stride of vertex-instance data). An indirect draw costs far more GPU time
+  than a direct one in Chrome (Apple M4, without render bundles): 3j3q in the Prism viewer, 1356 Gaussian surfaces drawn
+  about 3× a frame, took 105–540 ms a frame indirectly and 20–25 ms directly, with the same CPU time (WebGL2: about 40
+  ms, its CPU surfaces merged). Indirect draws stay for the frames between an extraction and its readback. Render
+  bundles (layer C of [webgpu-draw-submission.md](webgpu-draw-submission.md)) recorded with such a draw must be
+  recorded again when the `drawIndirect` cell changes: the count changes twice per extraction (cleared, then read back)
+  without a change of `drawCount` or the instance count.
 
 ## Decisions
 
