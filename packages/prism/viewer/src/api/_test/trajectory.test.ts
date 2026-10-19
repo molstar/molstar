@@ -34,6 +34,18 @@ describe('trajectory', () => {
     expect(none.value?.structures).toEqual([]);
   });
 
+  it('writes no record entry for a frame shown (a scrub seeks once a frame), and no history step', async () => {
+    const v = await headlessViewer({ files: [ensemble()] });
+    await v.record.flush();
+    const before = (await v.record.read(50)).items.length;
+    const steps = v.managers.history.steps.value.length;
+    for (const by of [1, 1, -1]) expectOk(await v.api.trajectory.frame({ by }));
+    await v.record.flush();
+    expect((await v.record.read(50)).items.length).toBe(before);
+    expect(v.managers.history.steps.value.length).toBe(steps);
+    expect(modelIndex(v)).toBe(1);
+  });
+
   it('runs under its former ids too (api.md §1 "Words"), listed once', async () => {
     const v = await headlessViewer({ files: [ensemble()] });
     expectOk(await v.api.run('structure.model', { index: 1 }));

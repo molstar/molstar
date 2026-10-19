@@ -19,3 +19,5 @@
   nothing changed 1.15 → 0.24 ms
 - Superpose's picked atoms are counted once per selection, not again on every state change (an all-atom selection of
   186k atoms: ~4 ms a change while the section shows)
+- `trajectory.frame` is `record: false`: a scrub through a trajectory writes no record entry per frame (as
+  `snapshot.seek`)
