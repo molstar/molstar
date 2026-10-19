@@ -847,8 +847,3 @@ the [API change ledger](breaking-v6-changes.md).
 - Fix: a dependency that has no object after this pass (below a new Null object or an error, or evaluated below a
   Null object) no longer stalls its dependent and fails the whole update (`Unresolved dependency: … (waiting on: …)`);
   the dependent alone is in error
-
-## Accessible surface area
-
-- Shrake-Rupley accessible surface area no longer allocates per atom (typed neighbour buffers, no sort, last occluder
-  first): 1.6–2× faster in a Node A/B bench, 5.6 GB → 11 MB allocated on 186k atoms; the areas are unchanged
