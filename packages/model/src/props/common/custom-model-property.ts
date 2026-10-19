@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -37,6 +37,8 @@ namespace CustomModelProperty {
   ): CustomProperty.Provider<Model, Params, Value> {
     const descriptorName = builder.descriptor.name;
     const propertyDataName = builder.type === 'static' ? '_staticPropertyData' : '_dynamicPropertyData';
+    // models with the topology of the previous one share `customProperties` but not their dynamic data
+    const assetOwner = builder.type === 'static' ? (_: Model) => undefined : (data: Model) => data.id;
 
     const get = (data: Model) => {
       if (!(descriptorName in data[propertyDataName])) {
@@ -73,7 +75,7 @@ namespace CustomModelProperty {
         if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return;
         const { value, assets } = await builder.obtain(ctx, data, p);
         data.customProperties.add(builder.descriptor);
-        data.customProperties.assets(builder.descriptor, assets);
+        data.customProperties.assets(builder.descriptor, assets, assetOwner(data));
         set(data, p, value);
       },
       ref: (data: Model, add: boolean) => data.customProperties.reference(builder.descriptor, add),
@@ -85,7 +87,7 @@ namespace CustomModelProperty {
           // this invalidates property.value
           set(data, p, value);
           // dispose of assets
-          data.customProperties.assets(builder.descriptor);
+          data.customProperties.assets(builder.descriptor, undefined, assetOwner(data));
         }
       },
       props: (data: Model) => get(data).props,

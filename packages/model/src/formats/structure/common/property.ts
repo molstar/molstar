@@ -70,8 +70,10 @@ namespace FormatPropertyProvider {
       get(model: Model): T | undefined {
         const store = options?.asDynamic ? model._dynamicPropertyData : model._staticPropertyData;
 
-        if (store[name]) return store[name];
-        if (model.customProperties.has(descriptor)) return;
+        // Presence in the store, not `customProperties`: models with the topology of the previous one share its
+        // `customProperties` and static data, but each has its own dynamic data, so `has(descriptor)` would hide the
+        // value of every model after the first one asked.
+        if (name in store) return store[name];
 
         const obtain = formatRegistry.get(model.sourceData.kind);
         if (!obtain) return;
