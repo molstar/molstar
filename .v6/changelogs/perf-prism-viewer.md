@@ -27,3 +27,5 @@
 - Fix: the sequence of the followed structure reads its CIF block again: SIFTS numberings onto UniProt (mapping,
   alignment), a predicted model's styling and the auth labels of unobserved residues were silently missing
 - Fix: the marks' paint lets go of a removed representation (its structure and theme) at once, not at the next paint
+- Fix: a large sequence hover or selection over ions of one Mol\* unit lights the ions it touches, not every chain
+  between them
