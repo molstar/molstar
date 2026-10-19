@@ -8,3 +8,5 @@
   `undefined`); each model reads only its own rows of `_molstar_bond_site`
 - Fix: attaching a dynamic custom model property (e.g. the RCSB validation report) to one model of a multi-model file
   no longer disposes the assets of the same property on the other models
+- Fix: accessible surface area values (the color theme, `is-buried` and `is-accessible`) are right on assemblies,
+  symmetry mates and multi-model structures; many atoms read another atom's value

@@ -56,6 +56,7 @@ here.
   saved sessions, undo and `setSnapshot`; a builder can be edited again after `getTree()`
 - Fix models 2..N of multi-model mmCIF/PDB files having no assemblies, spacegroup or `_molstar_bond_site` bonds, and
   attaching a dynamic custom model property to one model disposing another model's assets
+- Fix accessible surface area values on assemblies, symmetry mates and multi-model structures
 
 ## [v5.13.1] - 2026-10-08
 

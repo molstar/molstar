@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task, type RuntimeContext } from '@molstar/core/task';
@@ -126,15 +127,18 @@ namespace AccessibleSurfaceArea {
     return asa / maxAsa;
   }
 
+  /**
+   * The value is computed on the root structure: find the element in the root's unit with the location's unit id (an
+   * element repeats across the units of an assembly, so the element index alone does not identify it).
+   */
   export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
     const { area, serialResidueIndex } = accessibleSurfaceArea;
-    const rSI =
-      serialResidueIndex[
-        SortedArray.indexOf(
-          SortedArray.ofSortedArray(location.structure.root.serialMapping.elementIndices),
-          location.element,
-        )
-      ];
+    const { root } = location.structure;
+    const unitIndex = root.unitIndexMap.get(location.unit.id);
+    if (unitIndex === undefined) return -1;
+    const index = SortedArray.indexOf(root.units[unitIndex].elements, location.element);
+    if (index < 0) return -1;
+    const rSI = serialResidueIndex[root.serialMapping.cumulativeUnitElementCount[unitIndex] + index];
     if (rSI === -1) return -1;
     return area[rSI];
   }
