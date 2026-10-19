@@ -1,0 +1,288 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
+import { Sphere3D } from '@molstar/core/math/geometry';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { RuntimeContext } from '@molstar/core/task';
+import { ValueCell } from '@molstar/core/util';
+import { AssetManager } from '@molstar/core/util/assets';
+import { Color } from '@molstar/core/util/color';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { CIF } from '@molstar/io/reader/cif';
+import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { Structure } from '@molstar/model/model/structure';
+import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
+import type { CustomProperty } from '@molstar/model/props/common/custom-property';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
+import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { Representation } from '@molstar/graphics/repr/representation';
+import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
+import { ColorTheme } from '@molstar/graphics/theme/color';
+import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
+import { SizeTheme } from '@molstar/graphics/theme/size';
+import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
+import { Theme } from '@molstar/graphics/theme/theme';
+import { setColorType } from '../../color-data.js';
+import { setEmissiveType } from '../../emissive-data.js';
+import { setOverpaintType } from '../../overpaint-data.js';
+import { setSubstanceType } from '../../substance-data.js';
+import { createTransform } from '../../transform-data.js';
+import { setTransparencyType } from '../../transparency-data.js';
+import {
+  applyMeshColorSmoothing,
+  applyMeshEmissiveSmoothing,
+  applyMeshOverpaintSmoothing,
+  applyMeshSubstanceSmoothing,
+  applyMeshTransparencySmoothing,
+  type ColorSmoothingOptions,
+} from '../color-smoothing.js';
+import { Mesh } from '../mesh.js';
+
+// Layer smoothing on an instanced surface whose layer reaches only some instances (perf-audit 13/P1): the gaussian
+// surface of the 1cbs protein over two unit cells (8 instances, neighbours within the smoothing reach). The snapshot
+// pins, per instance, what the CPU path writes and what the GPU path's grid gives at the vertices, as computed when
+// every instance was splatted over the grid of all instances.
+
+const registries = (() => {
+  const colorThemeRegistry = ColorTheme.createRegistry();
+  for (const p of Object.values(BuiltInColorThemes)) colorThemeRegistry.add(p as ColorTheme.Provider<any, any, any>);
+  const sizeThemeRegistry = SizeTheme.createRegistry();
+  for (const p of Object.values(BuiltInSizeThemes)) sizeThemeRegistry.add(p as SizeTheme.Provider<any, any>);
+  return { colorThemeRegistry, sizeThemeRegistry };
+})();
+const propCtx: CustomProperty.Context = { runtime: RuntimeContext.Synchronous, assetManager: new AssetManager() };
+
+async function loadCells() {
+  const data = fs.readFileSync(
+    path.resolve(import.meta.dirname, '../../../../../../../data/examples/1cbs_updated.cif'),
+    'utf8',
+  );
+  const parsed = await CIF.parse(data).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run();
+  const model = Structure.ofModel(trajectory.representative);
+  return StructureSymmetry.buildSymmetryRange(model, Vec3.create(0, 0, 0), Vec3.create(1, 0, 0)).run();
+}
+
+/** the geometry of the largest gaussian-surface visual: positions, groups, transforms and bounding sphere */
+async function surfaceGeometry(structure: Structure) {
+  const provider = GaussianSurfaceRepresentationProvider;
+  const themeProps = {
+    colorTheme: { name: provider.defaultColorTheme.name, params: provider.defaultColorTheme.props ?? {} },
+    sizeTheme: { name: provider.defaultSizeTheme.name, params: provider.defaultSizeTheme.props ?? {} },
+  };
+  await Theme.ensureDependencies(propCtx, registries, { structure }, themeProps);
+  const repr = provider.factory({ ...registries }, provider.getParams) as Representation<Structure>;
+  repr.setTheme(Theme.create(registries, { structure }, themeProps));
+  const params = PD.getDefaultValues(provider.getParams(registries, structure));
+  await repr
+    .createOrUpdate({ ...params, renderMerged: false, smoothColors: { name: 'off', params: {} } }, structure)
+    .run();
+  let values: MeshValues | undefined;
+  for (const o of repr.renderObjects) {
+    const v = o.values as MeshValues;
+    if (!values || v.uVertexCount.ref.value > values.uVertexCount.ref.value) values = v;
+  }
+  if (!values) throw new Error('expected a surface');
+  const geometry = {
+    vertexCount: values.uVertexCount.ref.value,
+    groupCount: values.uGroupCount.ref.value,
+    instanceCount: values.uInstanceCount.ref.value,
+    positions: values.aPosition.ref.value.slice(0, values.uVertexCount.ref.value * 3),
+    groups: values.aGroup.ref.value.slice(0, values.uVertexCount.ref.value),
+    transforms: values.aTransform.ref.value.slice(0, values.uInstanceCount.ref.value * 16),
+    invariantBoundingSphere: Sphere3D.clone(values.invariantBoundingSphere.ref.value),
+  };
+  repr.destroy();
+  return geometry;
+}
+
+type Geometry = Awaited<ReturnType<typeof surfaceGeometry>>;
+type Layer = 'color' | 'overpaint' | 'transparency' | 'emissive' | 'substance';
+
+const ItemSize: Record<Layer, 1 | 4> = { color: 4, overpaint: 4, transparency: 1, emissive: 1, substance: 4 };
+
+function rng(seed: number) {
+  return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+}
+
+/** a `groupInstance` layer, non-zero on the groups `reach(instance, group)` accepts, random values there */
+function layerImage(geometry: Geometry, itemSize: 1 | 4, reach: (instance: number, group: number) => boolean) {
+  const { groupCount, instanceCount } = geometry;
+  const image = createTextureImage(groupCount * instanceCount, itemSize, Uint8Array);
+  const rnd = rng(31);
+  for (let i = 0; i < instanceCount; ++i) {
+    for (let g = 0; g < groupCount; ++g) {
+      const o = (i * groupCount + g) * itemSize;
+      for (let k = 0; k < itemSize; ++k) {
+        const x = 1 + Math.floor(rnd() * 255);
+        if (reach(i, g)) image.array[o + k] = x;
+      }
+    }
+  }
+  return image;
+}
+
+function createValues(geometry: Geometry, layer: Layer, image: TextureImage<Uint8Array>) {
+  const { positions, groups, vertexCount, transforms, instanceCount } = geometry;
+  const mesh = Mesh.create(
+    positions.slice(),
+    new Uint32Array(0),
+    new Float32Array(vertexCount * 3),
+    groups.slice(),
+    vertexCount,
+    0,
+  );
+  mesh.setBoundingSphere(geometry.invariantBoundingSphere);
+  const transform = createTransform(transforms.slice(), instanceCount, undefined, 0, 0);
+  const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0x808080), 1, transform);
+  ValueCell.update(values.uGroupCount, geometry.groupCount);
+  switch (layer) {
+    case 'color':
+      ValueCell.update(values.tColor, image);
+      setColorType(values, 'groupInstance');
+      break;
+    case 'overpaint':
+      ValueCell.update(values.tOverpaint, image);
+      setOverpaintType(values, 'groupInstance');
+      break;
+    case 'transparency':
+      ValueCell.update(values.tTransparency, image);
+      setTransparencyType(values, 'groupInstance');
+      break;
+    case 'emissive':
+      ValueCell.update(values.tEmissive, image);
+      setEmissiveType(values, 'groupInstance');
+      break;
+    case 'substance':
+      ValueCell.update(values.tSubstance, image);
+      setSubstanceType(values, 'groupInstance');
+      break;
+  }
+  return values;
+}
+
+const apply = {
+  color: applyMeshColorSmoothing,
+  overpaint: applyMeshOverpaintSmoothing,
+  transparency: applyMeshTransparencySmoothing,
+  emissive: applyMeshEmissiveSmoothing,
+  substance: applyMeshSubstanceSmoothing,
+};
+
+function layerValues(values: MeshValues, layer: Layer) {
+  const prefix = layer === 'color' ? 'Color' : layer[0].toUpperCase() + layer.slice(1);
+  const v = values as unknown as Record<string, ValueCell<any>>;
+  return {
+    type: v[`${layer}Type`].ref.value as string,
+    texture: v[`t${prefix}`].ref.value as TextureImage<Uint8Array>,
+    texDim: v[`u${prefix}TexDim`].ref.value as number[],
+    gridDim: v[`u${prefix}GridDim`].ref.value as number[],
+    gridTransform: v[`u${prefix}GridTransform`].ref.value as number[],
+  };
+}
+
+/** just enough of a graphics context for the volume path: captures the image loaded into the grid texture */
+function createGraphics() {
+  const loaded: TextureImage<Uint8Array>[] = [];
+  const graphics = {
+    resources: {
+      ownsTexture: () => true,
+      limits: { maxTextureSize: 16384 },
+      texture: () => ({ load: (image: TextureImage<Uint8Array>) => loaded.push(image) }) as unknown as Texture,
+    },
+  } as unknown as GraphicsContext;
+  return { graphics, loaded };
+}
+
+function hash(array: Uint8Array) {
+  return hashFnv32a(array as unknown as number[]).toString(16);
+}
+
+function isZero(array: Uint8Array) {
+  for (let i = 0; i < array.length; ++i) if (array[i]) return false;
+  return true;
+}
+
+/** per instance: `0` when all clear, else the hash of its values */
+function perInstance(array: Uint8Array, geometry: Geometry, itemSize: number) {
+  const n = geometry.vertexCount * itemSize;
+  const out: string[] = [];
+  for (let i = 0; i < geometry.instanceCount; ++i) {
+    const row = array.subarray(i * n, (i + 1) * n);
+    out.push(isZero(row) ? '0' : hash(row));
+  }
+  return out.join(' ');
+}
+
+/** the CPU output (per vertex, per instance) and the GPU path's grid */
+function smoothed(geometry: Geometry, layer: Layer, image: TextureImage<Uint8Array>, options: ColorSmoothingOptions) {
+  const itemSize = ItemSize[layer];
+  const cpuValues = createValues(geometry, layer, { ...image, array: image.array.slice() });
+  apply[layer](cpuValues, options);
+  const cpu = layerValues(cpuValues, layer);
+
+  const gpuValues = createValues(geometry, layer, { ...image, array: image.array.slice() });
+  const { graphics, loaded } = createGraphics();
+  apply[layer](gpuValues, options, graphics);
+  const gpu = layerValues(gpuValues, layer);
+  const grid = loaded[0].array;
+  return {
+    cpu: `${cpu.type} ${perInstance(cpu.texture.array, geometry, itemSize)}`,
+    gpu: `${gpu.type} ${[...gpu.gridDim].join('x')} ${[...gpu.texDim].join('x')} ${[...gpu.gridTransform].map((x) => x.toFixed(4)).join(',')} grid:${isZero(grid) ? '0' : hash(grid)}`,
+    cpuZero: isZero(cpu.texture.array),
+    gridZero: isZero(grid),
+  };
+}
+
+const Options: ColorSmoothingOptions[] = [
+  { resolution: 1.2, stride: 3 },
+  { resolution: 0.8, stride: 2 },
+];
+
+describe('mesh layer smoothing on instances', async () => {
+  const geometry = await surfaceGeometry(await loadCells());
+  const { groupCount, instanceCount } = geometry;
+
+  const Reach: [string, (instance: number, group: number) => boolean, ColorSmoothingOptions[]][] = [
+    ['one instance', (i) => i === 3, Options],
+    ['first instance, some groups', (i, g) => i === 0 && g >= groupCount / 4 && g < groupCount / 2, Options],
+    ['two instances', (i) => i === 1 || i === 6, [Options[0]]],
+    ['every instance', () => true, [Options[0]]],
+    ['none', () => false, [Options[0]]],
+  ];
+
+  it('has an instanced fixture', () => {
+    expect(instanceCount).toBe(8);
+    expect(geometry.vertexCount).toBeGreaterThan(1000);
+  });
+
+  for (const layer of ['overpaint', 'transparency', 'emissive', 'substance', 'color'] as Layer[]) {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
+      const result: Record<string, ReturnType<typeof smoothed>> = {};
+      for (const [name, reach, options] of Reach) {
+        for (const o of options) {
+          const r = smoothed(geometry, layer, layerImage(geometry, ItemSize[layer], reach), o);
+          result[`${name} ${o.resolution}/${o.stride}`] = r;
+          if (name === 'none') {
+            expect(r.cpuZero, name).toBe(true);
+            expect(r.gridZero, name).toBe(true);
+          } else {
+            expect(r.cpuZero, name).toBe(false);
+            expect(r.gridZero, name).toBe(false);
+          }
+        }
+      }
+      expect(result).toMatchSnapshot();
+    });
+  }
+});

@@ -1,0 +1,236 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mesh layer smoothing on instances > smooths color reaching some instances as when every instance is splatted 1`] = `
+{
+  "every instance 1.2/3": {
+    "cpu": "vertexInstance c536b4f0 12625efd b82d5c30 993bff86 7484b7b6 ba453c19 9809811d d568796",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:eb5f7808",
+    "gridZero": false,
+  },
+  "first instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 1a5df5b9 0 6179c02f 0 0 0 a7735caf 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:e11c1f1d",
+    "gridZero": false,
+  },
+  "first instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 6a03b56f 0 1e9993a6 0 0 0 9a768ff3 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:fa2c7630",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance 0.8/2": {
+    "cpu": "vertexInstance 0 ba643839 0 988eb3fc ad9eeabc 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:9ec8a082",
+    "gridZero": false,
+  },
+  "one instance 1.2/3": {
+    "cpu": "vertexInstance 0 926b610a 0 a8fb1fd6 83da5c 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:944541a3",
+    "gridZero": false,
+  },
+  "two instances 1.2/3": {
+    "cpu": "vertexInstance 24c70b45 9bc3f849 0 52c33c0d 81d81c67 c64c76b7 33969d21 33ff5378",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:39c72c3d",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on instances > smooths emissive reaching some instances as when every instance is splatted 1`] = `
+{
+  "every instance 1.2/3": {
+    "cpu": "vertexInstance 3a46f66 95b7f0c 3c662e2 aa96049a 44a52034 90cfbe1f 5ab1ced4 70d50da4",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:b1489187",
+    "gridZero": false,
+  },
+  "first instance, some groups 0.8/2": {
+    "cpu": "vertexInstance fc732711 0 2725ff49 0 0 0 f2df555e 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:70950ef6",
+    "gridZero": false,
+  },
+  "first instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 4cd91134 0 dc27a014 0 0 0 673a5835 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:7e4083dd",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance 0.8/2": {
+    "cpu": "vertexInstance 0 fd487d01 0 e70d2ed0 bd91b9c6 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:6abb2f28",
+    "gridZero": false,
+  },
+  "one instance 1.2/3": {
+    "cpu": "vertexInstance 0 9cf4a505 0 9e0ee002 34607177 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:d2e89ff1",
+    "gridZero": false,
+  },
+  "two instances 1.2/3": {
+    "cpu": "vertexInstance 71c13d60 2ed955aa 0 f238fed8 5a0b8fb f7c5bddd 14bc9ce0 dc3219a9",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:5b29116d",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on instances > smooths overpaint reaching some instances as when every instance is splatted 1`] = `
+{
+  "every instance 1.2/3": {
+    "cpu": "vertexInstance c536b4f0 12625efd b82d5c30 993bff86 7484b7b6 ba453c19 9809811d d568796",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:eb5f7808",
+    "gridZero": false,
+  },
+  "first instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 1a5df5b9 0 6179c02f 0 0 0 a7735caf 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:e11c1f1d",
+    "gridZero": false,
+  },
+  "first instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 6a03b56f 0 1e9993a6 0 0 0 9a768ff3 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:fa2c7630",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance 0.8/2": {
+    "cpu": "vertexInstance 0 ba643839 0 988eb3fc ad9eeabc 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:9ec8a082",
+    "gridZero": false,
+  },
+  "one instance 1.2/3": {
+    "cpu": "vertexInstance 0 926b610a 0 a8fb1fd6 83da5c 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:944541a3",
+    "gridZero": false,
+  },
+  "two instances 1.2/3": {
+    "cpu": "vertexInstance 24c70b45 9bc3f849 0 52c33c0d 81d81c67 c64c76b7 33969d21 33ff5378",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:39c72c3d",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on instances > smooths substance reaching some instances as when every instance is splatted 1`] = `
+{
+  "every instance 1.2/3": {
+    "cpu": "vertexInstance c536b4f0 12625efd b82d5c30 993bff86 7484b7b6 ba453c19 9809811d d568796",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:eb5f7808",
+    "gridZero": false,
+  },
+  "first instance, some groups 0.8/2": {
+    "cpu": "vertexInstance 1a5df5b9 0 6179c02f 0 0 0 a7735caf 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:e11c1f1d",
+    "gridZero": false,
+  },
+  "first instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 6a03b56f 0 1e9993a6 0 0 0 9a768ff3 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:fa2c7630",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance 0.8/2": {
+    "cpu": "vertexInstance 0 ba643839 0 988eb3fc ad9eeabc 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:9ec8a082",
+    "gridZero": false,
+  },
+  "one instance 1.2/3": {
+    "cpu": "vertexInstance 0 926b610a 0 a8fb1fd6 83da5c 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:944541a3",
+    "gridZero": false,
+  },
+  "two instances 1.2/3": {
+    "cpu": "vertexInstance 24c70b45 9bc3f849 0 52c33c0d 81d81c67 c64c76b7 33969d21 33ff5378",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:39c72c3d",
+    "gridZero": false,
+  },
+}
+`;
+
+exports[`mesh layer smoothing on instances > smooths transparency reaching some instances as when every instance is splatted 1`] = `
+{
+  "every instance 1.2/3": {
+    "cpu": "vertexInstance 3a46f66 95b7f0c 3c662e2 aa96049a 44a52034 90cfbe1f 5ab1ced4 70d50da4",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:b1489187",
+    "gridZero": false,
+  },
+  "first instance, some groups 0.8/2": {
+    "cpu": "vertexInstance fc732711 0 2725ff49 0 0 0 f2df555e 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:70950ef6",
+    "gridZero": false,
+  },
+  "first instance, some groups 1.2/3": {
+    "cpu": "vertexInstance 4cd91134 0 dc27a014 0 0 0 673a5835 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:7e4083dd",
+    "gridZero": false,
+  },
+  "none 1.2/3": {
+    "cpu": "vertexInstance 0 0 0 0 0 0 0 0",
+    "cpuZero": true,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:0",
+    "gridZero": true,
+  },
+  "one instance 0.8/2": {
+    "cpu": "vertexInstance 0 fd487d01 0 e70d2ed0 bd91b9c6 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 158x99x136 1896x1188 -16.7871,-14.6364,-14.7572,1.2500 grid:6abb2f28",
+    "gridZero": false,
+  },
+  "one instance 1.2/3": {
+    "cpu": "vertexInstance 0 9cf4a505 0 9e0ee002 34607177 0 0 0",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:d2e89ff1",
+    "gridZero": false,
+  },
+  "two instances 1.2/3": {
+    "cpu": "vertexInstance 71c13d60 2ed955aa 0 f238fed8 5a0b8fb f7c5bddd 14bc9ce0 dc3219a9",
+    "cpuZero": false,
+    "gpu": "volumeInstance 107x67x92 963x737 -17.5871,-15.0364,-15.5572,0.8333 grid:5b29116d",
+    "gridZero": false,
+  },
+}
+`;
