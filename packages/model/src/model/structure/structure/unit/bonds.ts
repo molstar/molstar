@@ -57,8 +57,8 @@ namespace Bond {
 
   export function areLocationsEqual(locA: Location, locB: Location) {
     return (
-      locA.aStructure.label === locB.aStructure.label &&
-      locA.bStructure.label === locB.bStructure.label &&
+      locA.aStructure === locB.aStructure &&
+      locA.bStructure === locB.bStructure &&
       locA.aIndex === locB.aIndex &&
       locA.bIndex === locB.bIndex &&
       locA.aUnit.id === locB.aUnit.id &&
@@ -110,7 +110,7 @@ namespace Bond {
       const indexB = SortedArray.indexOf(unitB.elements, elementB) as StructureElement.UnitIndex | -1;
       if (indexB === -1) return;
 
-      bonds.push(Location(loci.structure, unitA, indexA, loci.structure, unitB, indexB));
+      bonds.push(Location(structure, unitA, indexA, structure, unitB, indexB));
     });
 
     return Loci(structure, bonds);
