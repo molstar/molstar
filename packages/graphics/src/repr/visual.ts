@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { RuntimeContext } from '@molstar/core/task';
@@ -95,10 +96,14 @@ interface Visual<D, P extends PD.Params> {
   setPickable: (pickable: boolean) => void;
   setColorOnly: (colorOnly: boolean) => void;
   setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void;
-  setOverpaint: (overpaint: Overpaint, graphics?: GraphicsContext) => void;
-  setTransparency: (transparency: Transparency, graphics?: GraphicsContext) => void;
-  setEmissive: (emissive: Emissive, graphics?: GraphicsContext) => void;
-  setSubstance: (substance: Substance, graphics?: GraphicsContext) => void;
+  /**
+   * The layer setters smooth the layer where the visual's props ask for it, unless `smooth` is false (members of a
+   * merged render object: the merged object has one layer type for all members, and smoothing changes it)
+   */
+  setOverpaint: (overpaint: Overpaint, graphics?: GraphicsContext, smooth?: boolean) => void;
+  setTransparency: (transparency: Transparency, graphics?: GraphicsContext, smooth?: boolean) => void;
+  setEmissive: (emissive: Emissive, graphics?: GraphicsContext, smooth?: boolean) => void;
+  setSubstance: (substance: Substance, graphics?: GraphicsContext, smooth?: boolean) => void;
   setClipping: (clipping: Clipping) => void;
   setWiggle: (wiggle: Wiggle, graphics?: GraphicsContext) => void;
   setThemeStrength: (strength: {
@@ -181,21 +186,6 @@ namespace Visual {
     const { array } = tMarker.ref.value;
     const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
 
-    if (!isEveryLoci(loci)) {
-      // assume that all interval are non-overlapping
-      let intervalSize = 0;
-      lociApply(
-        loci,
-        (interval) => {
-          intervalSize += Interval.size(interval);
-          return true;
-        },
-        true,
-      );
-      if (intervalSize === 0) return false;
-      if (intervalSize === count) loci = EveryLoci;
-    }
-
     let changed = false;
     let average = -1;
     let status: MarkerInfo['status'] = -1;
@@ -210,8 +200,29 @@ namespace Visual {
       average = info.average;
       status = info.status;
     } else {
-      changed = lociApply(loci, (interval) => applyMarkerAction(array, interval, action), true);
-      if (changed) {
+      // one pass that applies and sums the covered size, intervals assumed non-overlapping (perf-audit 07 P5)
+      let size = 0;
+      lociApply(
+        loci,
+        (interval) => {
+          size += Interval.size(interval);
+          if (applyMarkerAction(array, interval, action)) changed = true;
+          return true;
+        },
+        true,
+      );
+      if (size === 0) return false;
+      if (size === count) {
+        // all covered: the outcome is that of `EveryLoci`
+        loci = EveryLoci;
+        const info = getMarkerInfo(action, currentStatus);
+        if (info.status !== -1) {
+          changed = currentStatus !== info.status;
+          if (changed) setMarkerValue(array, info.status, count);
+        }
+        average = info.average;
+        status = info.status;
+      } else if (changed) {
         average = getPartialMarkerAverage(action, currentStatus);
         if (
           previous &&
@@ -285,9 +296,11 @@ namespace Visual {
     // clear all if requested
     if (clear) clearOverpaint(array, 0, count);
 
+    let touched = false;
     for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
       const { loci, color, clear } = overpaint.layers[i];
       const apply = (interval: Interval) => {
+        touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
         return clear ? clearOverpaint(array, start, end) : applyOverpaintColor(array, start, end, color);
@@ -299,6 +312,7 @@ namespace Visual {
 
     if (overpaint.layers.length === 0) return;
     if (type === 'instance') return;
+    if (clear && !touched) return; // all clear: nothing to smooth (perf-audit 07 P1)
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
       const { geometry, props, graphics } = smoothing;
@@ -350,9 +364,11 @@ namespace Visual {
     // clear if requested
     if (clear) clearTransparency(array, 0, count);
 
+    let touched = false;
     for (let i = 0, il = transparency.layers.length; i < il; ++i) {
       const { loci, value } = transparency.layers[i];
       const apply = (interval: Interval) => {
+        touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
         return applyTransparencyValue(array, start, end, value);
@@ -366,6 +382,7 @@ namespace Visual {
 
     if (transparency.layers.length === 0) return;
     if (type === 'instance') return;
+    if (clear && !touched) return; // all clear: nothing to smooth (perf-audit 07 P1)
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
       const { geometry, props, graphics } = smoothing;
@@ -416,9 +433,11 @@ namespace Visual {
     // clear if requested
     if (clear) clearEmissive(array, 0, count);
 
+    let touched = false;
     for (let i = 0, il = emissive.layers.length; i < il; ++i) {
       const { loci, value } = emissive.layers[i];
       const apply = (interval: Interval) => {
+        touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
         return applyEmissiveValue(array, start, end, value);
@@ -431,6 +450,7 @@ namespace Visual {
 
     if (emissive.layers.length === 0) return;
     if (type === 'instance') return;
+    if (clear && !touched) return; // all clear: nothing to smooth (perf-audit 07 P1)
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
       const { geometry, props, graphics } = smoothing;
@@ -480,9 +500,11 @@ namespace Visual {
     // clear all if requested
     if (clear) clearSubstance(array, 0, count);
 
+    let touched = false;
     for (let i = 0, il = substance.layers.length; i < il; ++i) {
       const { loci, material, clear } = substance.layers[i];
       const apply = (interval: Interval) => {
+        touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
         return clear ? clearSubstance(array, start, end) : applySubstanceMaterial(array, start, end, material);
@@ -494,6 +516,7 @@ namespace Visual {
 
     if (substance.layers.length === 0) return;
     if (type === 'instance') return;
+    if (clear && !touched) return; // all clear: nothing to smooth (perf-audit 07 P1)
 
     if (smoothing && hasColorSmoothingProp(smoothing.props)) {
       const { geometry, props, graphics } = smoothing;

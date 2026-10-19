@@ -282,6 +282,61 @@ export function getIntraBondLoci(pickingId: PickingId, structureGroup: Structure
   return EmptyLoci;
 }
 
+/**
+ * Applies the directed bonds of the atoms `indices` (when marking, only those whose partner is in `indices` too),
+ * shifted by `offset`, as runs of consecutive edges: one interval for a whole residue or chain, not one per bond
+ * (perf-audit 07 P4)
+ */
+function applyIntraBondRuns(
+  bonds: Unit.Atomic['bonds'],
+  indices: OrderedSet<StructureElement.UnitIndex>,
+  offset: number,
+  apply: (interval: Interval) => boolean,
+  isMarking: boolean,
+) {
+  const { offset: edgeOffset, b } = bonds;
+  let changed = false;
+  let runStart = 0;
+  let runEnd = 0;
+  if (Interval.is(indices)) {
+    const start = Interval.start(indices);
+    const end = Interval.end(indices);
+    if (start >= end) return false;
+    if (!isMarking) {
+      const t0 = edgeOffset[start];
+      const t1 = edgeOffset[end];
+      return t0 < t1 ? apply(Interval.ofBounds(offset + t0, offset + t1)) : false;
+    }
+    for (let t = edgeOffset[start], _t = edgeOffset[end]; t < _t; ++t) {
+      const p = b[t];
+      if (p < start || p >= end) continue;
+      if (t === runEnd && runEnd > runStart) {
+        ++runEnd;
+        continue;
+      }
+      if (runEnd > runStart && apply(Interval.ofBounds(offset + runStart, offset + runEnd))) changed = true;
+      runStart = t;
+      runEnd = t + 1;
+    }
+  } else {
+    for (let i = 0, il = indices.length; i < il; ++i) {
+      const v = indices[i];
+      for (let t = edgeOffset[v], _t = edgeOffset[v + 1]; t < _t; ++t) {
+        if (isMarking && !SortedArray.has(indices, b[t])) continue;
+        if (t === runEnd && runEnd > runStart) {
+          ++runEnd;
+          continue;
+        }
+        if (runEnd > runStart && apply(Interval.ofBounds(offset + runStart, offset + runEnd))) changed = true;
+        runStart = t;
+        runEnd = t + 1;
+      }
+    }
+  }
+  if (runEnd > runStart && apply(Interval.ofBounds(offset + runStart, offset + runEnd))) changed = true;
+  return changed;
+}
+
 export function eachIntraBond(
   loci: Loci,
   structureGroup: StructureGroup,
@@ -314,14 +369,7 @@ export function eachIntraBond(
     for (const e of loci.elements) {
       const unitIdx = group.unitIndexMap.get(e.unit.id);
       if (unitIdx !== undefined) {
-        const { offset, b } = unit.bonds;
-        OrderedSet.forEach(e.indices, (v) => {
-          for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
-            if (!isMarking || OrderedSet.has(e.indices, b[t])) {
-              if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true;
-            }
-          }
-        });
+        if (applyIntraBondRuns(unit.bonds, e.indices, unitIdx * groupCount, apply, isMarking)) changed = true;
       }
     }
   }
@@ -456,14 +504,7 @@ export function eachStructureGroupsBond(
       const groupCount = unit.bonds.edgeCount * 2;
       const unitIdx = group.unitIndexMap.get(e.unit.id);
       if (unitIdx !== undefined) {
-        const { offset, b } = unit.bonds;
-        OrderedSet.forEach(e.indices, (v) => {
-          for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
-            if (!isMarking || OrderedSet.has(e.indices, b[t])) {
-              if (apply(Interval.ofSingleton(unitIdx * groupCount + t + o))) changed = true;
-            }
-          }
-        });
+        if (applyIntraBondRuns(unit.bonds, e.indices, unitIdx * groupCount + o, apply, isMarking)) changed = true;
       }
     }
   }

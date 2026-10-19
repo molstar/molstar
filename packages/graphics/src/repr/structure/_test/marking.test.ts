@@ -21,7 +21,11 @@ import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
 import { Bond, Structure, StructureElement, StructureProperties, Unit } from '@molstar/model/model/structure';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
-import { isMergedRenderObject, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import {
+  canMergeRenderObjects,
+  isMergedRenderObject,
+  type GraphicsRenderObject,
+} from '@molstar/graphics/gl/render-object';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
@@ -279,4 +283,46 @@ describe('representation marking and layers', async () => {
       });
     }
   }
+});
+
+describe('layers on surfaces', async () => {
+  const model = await load1cbs();
+  const props = { smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } } };
+  const protein = model.units.find((u) => Unit.isAtomic(u) && u.polymerElements.length > 0)!;
+  const chain = StructureElement.Loci(model, [{ unit: protein, indices: Interval.ofLength(protein.elements.length) }]);
+  const overpaint = Overpaint(chain.kind, [{ loci: chain, color: Color(0xff0000), clear: false }]);
+
+  /** the layer type of each member and whether it has the color */
+  function layerTypes(repr: Representation<Structure>) {
+    return members(repr).map((o) => {
+      const v = o.values;
+      return `${v.overpaintType.ref.value} ${isZero(v.tOverpaint.ref.value.array) ? 'clear' : 'set'}`;
+    });
+  }
+
+  it('smooths the layer only on the visuals it reaches', async () => {
+    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, { ...props, renderMerged: false });
+    expect(repr.renderObjects.length).toBeGreaterThan(1);
+    repr.setState({ overpaint });
+    const types = layerTypes(repr);
+    expect(types.filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'vertexInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
+    repr.destroy();
+  });
+
+  it('does not smooth members of a merged object, which keep one layer type', async () => {
+    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, { ...props, renderMerged: true });
+    const merged = repr.renderObjects.find((o) => isMergedRenderObject(o));
+    if (!merged || !isMergedRenderObject(merged)) throw new Error('expected a merged render object');
+    repr.setState({ overpaint });
+    const types = layerTypes(repr);
+    expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
+    expect(canMergeRenderObjects(merged.members)).toBe(true);
+    // the merged copy shows the layer
+    merged.merged.sync();
+    expect(merged.values.overpaintType.ref.value).toBe('groupInstance');
+    expect(isZero(merged.values.tOverpaint.ref.value.array)).toBe(false);
+    repr.destroy();
+  });
 });
