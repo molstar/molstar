@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -17,12 +17,6 @@ const controlPoint = Vec3();
 const u = Vec3();
 const v = Vec3();
 
-function add2AndScale2(out: Vec3, a: Vec3, b: Vec3, sa: number, sb: number) {
-  out[0] = a[0] * sa + b[0] * sb;
-  out[1] = a[1] * sa + b[1] * sb;
-  out[2] = a[2] * sa + b[2] * sb;
-}
-
 function add3AndScale2(out: Vec3, a: Vec3, b: Vec3, c: Vec3, sa: number, sb: number) {
   out[0] = a[0] * sa + b[0] * sb + c[0];
   out[1] = a[1] * sa + b[1] * sb + c[1];
@@ -31,12 +25,11 @@ function add3AndScale2(out: Vec3, a: Vec3, b: Vec3, c: Vec3, sa: number, sb: num
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
+const v3set = Vec3.set;
 const v3normalize = Vec3.normalize;
 const v3scaleAndAdd = Vec3.scaleAndAdd;
 const v3cross = Vec3.cross;
 const v3slerp = Vec3.slerp;
-const v3dot = Vec3.dot;
-const v3unitX = Vec3.unitX;
 const caAdd3 = ChunkedArray.add3;
 
 const CosSinCache = new Map<number, { cos: number[]; sin: number[] }>();
@@ -83,16 +76,26 @@ export function addTube(
   let halfLinearSegments;
   const doubleRoundCap = roundCapFlag && startCap && endCap;
   if (doubleRoundCap) halfLinearSegments = linearSegments / 2;
+  // The per-vertex loop works on scalar locals instead of `Vec3` calls (megamorphic app-wide); each expression keeps
+  // the operation order of the call it replaces (named in the comments), so the output is bit-identical.
   for (let i = 0; i <= linearSegments; ++i) {
     const i3 = i * 3;
-    v3fromArray(u, normalVectors, i3);
-    v3fromArray(v, binormalVectors, i3);
-    v3fromArray(controlPoint, controlPoints, i3);
+    const ux = normalVectors[i3],
+      uy = normalVectors[i3 + 1],
+      uz = normalVectors[i3 + 2];
+    const vx = binormalVectors[i3],
+      vy = binormalVectors[i3 + 1],
+      vz = binormalVectors[i3 + 2];
+    const cx = controlPoints[i3],
+      cy = controlPoints[i3 + 1],
+      cz = controlPoints[i3 + 2];
 
     let width = widthValues[i];
     let height = heightValues[i];
     let capSmoothingFactor: number;
     if (roundCapFlag) {
+      v3set(u, ux, uy, uz);
+      v3set(v, vx, vy, vz);
       const sc = doubleRoundCap ? i <= halfLinearSegments! : startCap;
       if (doubleRoundCap) {
         capSmoothingFactor = Math.max(
@@ -111,37 +114,74 @@ export function addTube(
       v3normalize(capNormalSmoothingVector, capNormalSmoothingVector);
     }
     const rounded = crossSection === 'rounded' && height > width;
+    // `Vec3.dot(v, Vec3.unitX) < 0`
+    const vNegX = vx * 1 + vy * 0 + vz * 0 < 0;
 
     for (let j = 0; j < radialSegments; ++j) {
+      let px: number, py: number, pz: number, nx: number, ny: number, nz: number;
       if (rounded) {
-        add3AndScale2(surfacePoint, u, v, controlPoint, width * cos[j], width * sin[j]);
-        const h =
-          v3dot(v, v3unitX) < 0
-            ? j < q1 || j >= q3
-              ? height - width
-              : -height + width
-            : j >= q1 && j < q3
-              ? -height + width
-              : height - width;
-        v3scaleAndAdd(surfacePoint, surfacePoint, u, h);
+        // `add3AndScale2(u, v, controlPoint, width * cos, width * sin)`
+        const sa = width * cos[j],
+          sb = width * sin[j];
+        px = ux * sa + vx * sb + cx;
+        py = uy * sa + vy * sb + cy;
+        pz = uz * sa + vz * sb + cz;
+        const h = vNegX
+          ? j < q1 || j >= q3
+            ? height - width
+            : -height + width
+          : j >= q1 && j < q3
+            ? -height + width
+            : height - width;
+        // `Vec3.scaleAndAdd(surfacePoint, surfacePoint, u, h)`
+        px = px + ux * h;
+        py = py + uy * h;
+        pz = pz + uz * h;
+        // `u * sa + v * sb`
         if (j === q1 || j === q1 - 1) {
-          add2AndScale2(normalVector, u, v, 0, 1);
+          nx = ux * 0 + vx * 1;
+          ny = uy * 0 + vy * 1;
+          nz = uz * 0 + vz * 1;
         } else if (j === q3 || j === q3 - 1) {
-          add2AndScale2(normalVector, u, v, 0, -1);
+          nx = ux * 0 + vx * -1;
+          ny = uy * 0 + vy * -1;
+          nz = uz * 0 + vz * -1;
         } else {
-          add2AndScale2(normalVector, u, v, cos[j], sin[j]);
+          const ca = cos[j],
+            cb = sin[j];
+          nx = ux * ca + vx * cb;
+          ny = uy * ca + vy * cb;
+          nz = uz * ca + vz * cb;
         }
       } else {
-        add3AndScale2(surfacePoint, u, v, controlPoint, height * cos[j], width * sin[j]);
-        add2AndScale2(normalVector, u, v, width * cos[j], height * sin[j]);
+        const sa = height * cos[j],
+          sb = width * sin[j];
+        px = ux * sa + vx * sb + cx;
+        py = uy * sa + vy * sb + cy;
+        pz = uz * sa + vz * sb + cz;
+        const na = width * cos[j],
+          nb = height * sin[j];
+        nx = ux * na + vx * nb;
+        ny = uy * na + vy * nb;
+        nz = uz * na + vz * nb;
       }
-      v3normalize(normalVector, normalVector);
+      // `Vec3.normalize`
+      let len = nx * nx + ny * ny + nz * nz;
+      if (len > 0) {
+        len = 1 / Math.sqrt(len);
+        nx *= len;
+        ny *= len;
+        nz *= len;
+      }
 
-      caAdd3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);
+      caAdd3(vertices, px, py, pz);
       if (roundCapFlag) {
+        v3set(normalVector, nx, ny, nz);
         v3slerp(normalVector, capNormalSmoothingVector, normalVector, capSmoothingFactor!);
+        caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
+      } else {
+        caAdd3(normals, nx, ny, nz);
       }
-      caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
     }
   }
 

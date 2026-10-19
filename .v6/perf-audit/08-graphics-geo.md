@@ -27,6 +27,7 @@ memory order.
 | P1  | Color smoothing: sqrt on 216 cells, `getIndex` per cell, z innermost, sphere-cube grid, nothing reused | [color-smoothing.ts:128](../../packages/graphics/src/geo/geometry/mesh/color-smoothing.ts#L128) | time+memory | high   | surface recolor ~2.5–3× (7qpd ~250 → ~90 ms); grid −2/3 with an AABB box | M      | confirmed | no     |
 | P2  | Marching cubes: 8 closure reads per cell, no corner reuse, polymorphic `get` | [algorithm.ts:250](../../packages/graphics/src/geo/util/marching-cubes/algorithm.ts#L250) | time        | high   | MC 1.7×, 4–7× when the call site is polymorphic; CPU gaussian ~−25 % | S      | confirmed | no     |
 | P4  | `addPrimitive` per vertex through megamorphic `Vec3.fromArray`/`transformMat4` | [mesh-builder.ts:122](../../packages/graphics/src/geo/geometry/mesh/mesh-builder.ts#L122) | time        | high   | `addPrimitive` 1.5× (monomorphic) to 3× (app state); interactions ~−50 % | S      | confirmed | no     |
+| P12 | Cartoon curve, tube and sheet loops through `Vec3` calls (landed, #1993) | [curve-segment.ts:68](../../packages/graphics/src/repr/structure/visual/util/polymer/curve-segment.ts#L68) | time | high | big-bcif `repr:cartoon` 174 → 133 ms, allocation 337 → 208 MB; bit-identical | S | confirmed | no |
 | P3  | Single-chunk buffers never trimmed; index reserve 3 tri/vertex           | [mesh-builder.ts:47](../../packages/graphics/src/geo/geometry/mesh/mesh-builder.ts#L47)      | memory      | high   | cartoon −43 %, surface vertex buffers −20 %, mesh ball-and-stick −36 % (CPU and GPU) | S      | confirmed | no     |
 | P7  | Cylinder impostor attributes repeated 6× per cylinder                    | [cylinders-builder.ts:116](../../packages/graphics/src/geo/geometry/cylinders/cylinders-builder.ts#L116) | memory      | high   | cylinder buffers ~5× smaller (big-bcif 165 → ~35 MB)           | L      | plausible | yes    |
 | P5  | Cylinder primitive keeps three.js UV duplicates (seam column, 16 cap centers) | [cylinder.ts:124](../../packages/graphics/src/geo/primitive/cylinder.ts#L124)              | time+memory | medium | capped cylinder 100 → 66 vertices; interactions buffers ~−27 % (~−110 MB big-bcif) | S      | confirmed | no     |
@@ -90,6 +91,22 @@ memory order.
   `Float32Array`/`Uint32Array` (all producers already do). Same for `transformPositionArray`/`transformDirectionArray`
   in [util.ts:26](../../packages/graphics/src/geo/util.ts#L26) (`Mesh.transform` on every surface and isosurface).
 - **Risk**: floating-point order only. `addMesh` passes Float32 subarrays (same map).
+
+### P12: cartoon curve and builder loops (landed, #1993)
+
+- **Mechanism**: per curve point `interpolateNormals` calls `slerp`, `orthogonalize`, `cross`, `normalize` and
+  `interpolatePointsAndTangents` three `Vec3.spline`s; per vertex `addTube`/`addSheet` go through `fromArray`, `scale`,
+  `add`, `sub`, `normalize`. These `Vec3` helpers are megamorphic app-wide (see P4); replacing only the array reads
+  (#1990) gained 183 → 179 ms.
+- **Evidence**: the same loops on scalar locals, each expression in the operation order of the call it replaces:
+  big-bcif `repr:cartoon` 174 → 133 ms in the full pipeline (169 → 129 in the quick loop; interleaved, min of
+  medians), allocation 337 → 208 MB; `createPolymerTraceMesh`
+  90 → 52 ms (`interpolateCurveSegment` 24.5 → 9.5, `addTube` 21.7 → 8.3, `addSheet` 17.2 → 5.5). Output hash
+  identical on big-bcif, 7qpd, 8zzh, 3k7f, 1c26 assembly; retained memory unchanged.
+- **Risk**: the loops are a second copy of the `Vec3` semantics (the rare `orthogonalize` fallbacks still call it); a
+  change to `Vec3.slerp`/`orthogonalize`, or a port of the rotation-minimizing normals of #1950, must update
+  `curve-segment.ts` too. Pinned by `cartoon-geometry.test.ts`. The cartoon memory overshoot is P3 (index reserve:
+  2.53M triangles reserved, 0.87M used on big-bcif, ~20 MB retained).
 
 ### P3: oversized single-chunk buffers
 
@@ -209,8 +226,11 @@ memory order.
   `tube.ts`, `sheet.ts`, `ribbon.ts`, bit-identical. Microbench after warming `Vec3.fromArray` with 6 array kinds: tube
   1482 → 1373 ms, sheet 402 → 327, ribbon 224 → 153, curve interpolation 525 → 387; unchanged when clean. Pipeline
   `repr:cartoon` big-bcif 183 → 179 ms, 7qpd unchanged. The cartoon's 62 ms of `vec3.ts` self time (of 185) is mostly
-  `normalize`, `cross`, `slerp`, `orthogonalize` (`interpolateNormals` 18 ms, `addSheet` 8, `addTube` 7); a follow-up
-  would have to show those are megamorphic in the app before inlining them.
+  `normalize`, `cross`, `slerp`, `orthogonalize` (`interpolateNormals` 18 ms, `addSheet` 8, `addTube` 7); replacing
+  the math itself does pay, see P12.
+- Cartoon, with P12: exact pre-sized buffers instead of `ChunkedArray.add3` (`add3` is ~8 ms self after P12, and exact
+  counts need a trace pre-pass where the iterator alone is 14 ms) and a cheaper cartoon bounding sphere (the mesh
+  already takes `unit.boundary`; the 10 ms of `includeSphere` is `merged.ts` `unionSpheres`, frozen).
 - Aside for the core slice (not counted here): `ChunkedArray._compact` copies a partial last chunk with a scalar loop
   over the whole chunk length instead of `set(lastChunk.subarray(0, currentIndex))`
   ([chunked-array.ts:148](../../packages/core/src/data/util/chunked-array.ts#L148)).
