@@ -45,3 +45,11 @@
 
 `interactions/params.ts` has no computation, so state and UI code can describe the parameters without loading the
 providers.
+
+ASA `symmetry`: `'all'` (default) computes every atom; `'per-group'` computes one unit per symmetry group, the one
+nearest the structure's centre, against the whole structure, and copies its residue areas to the group's other units
+element for element (equal elements, `areUnitsEquivalent`). Opt-in because it is approximate: a copy with other
+surroundings (crystal-block edges, open assemblies) gets the representative's areas. In a closed point group it equals
+`'all'` computed with the copy rotated into the representative's place; plain `'all'` differs between rotated copies by
+the sphere-point sampling noise, since the points do not rotate with a copy. The nearest-centre unit, not the first: in
+crystal blocks the first is at a corner (asm-864 translation copies: 10.4 → 3.3 % of residues changed).

@@ -18,20 +18,24 @@ import type { Unit } from '@molstar/model/model/structure';
 // - factor serialResidueIndex out
 
 const updateChunk = 5000;
-export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyContext) {
-  const { atomRadiusType: atomRadius } = ctx;
+/** Computes the atoms in the serial element ranges `ranges` (`[begin, end)`, flattened); all of them when [0, count] */
+export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyContext, ranges: ArrayLike<number>) {
   const spherePoints = flattenSpherePoints(ctx.spherePoints);
   const neighbors = createNeighbors(256);
-  for (let i = 0; i < atomRadius.length; i += updateChunk) {
-    if (runtime.shouldUpdate) {
-      await runtime.update({
-        message: 'Computing per residue surface accessibility...',
-        current: i,
-        max: atomRadius.length,
-      });
-    }
+  let max = 0;
+  for (let r = 0; r < ranges.length; r += 2) max += ranges[r + 1] - ranges[r];
+  let current = 0;
+  for (let r = 0; r < ranges.length; r += 2) {
+    const end = ranges[r + 1];
+    for (let i = ranges[r]; i < end; i += updateChunk) {
+      if (runtime.shouldUpdate) {
+        await runtime.update({ message: 'Computing per residue surface accessibility...', current, max });
+      }
 
-    computeRange(ctx, spherePoints, neighbors, i, Math.min(i + updateChunk, atomRadius.length));
+      const chunkEnd = Math.min(i + updateChunk, end);
+      computeRange(ctx, spherePoints, neighbors, i, chunkEnd);
+      current += chunkEnd - i;
+    }
   }
 }
 

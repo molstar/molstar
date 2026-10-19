@@ -119,6 +119,24 @@ describe('AccessibleSurfaceArea.getValue', () => {
     for (const xs of [a, b, c]) for (const x of xs) expect(x).toBeGreaterThan(0);
   });
 
+  it("reads the representative's values for every copy once per symmetry group", async () => {
+    const structure = await assembly();
+    expect(structure.unitSymmetryGroups.length).toBe(1);
+    const all = expected(structure, await AccessibleSurfaceArea.compute(structure).run());
+    const asa = await AccessibleSurfaceArea.compute(structure, { symmetry: 'per-group' }).run();
+
+    const exp = expected(structure, asa);
+    expect(values(structure, asa)).toEqual(exp);
+
+    // an open assembly: the representative is the copy nearest the centre (the second, in contact with the first),
+    // and the far copy gets its values
+    const [a, b, c] = structure.units.map((u) => exp.get(u.id)!);
+    expect(b).toEqual(all.get(structure.units[1].id));
+    expect(a).toEqual(b);
+    expect(c).toEqual(b);
+    expect(c).not.toEqual(all.get(structure.units[2].id));
+  });
+
   it('reads a substructure from its root', async () => {
     const root = await assembly();
     const asa = await AccessibleSurfaceArea.compute(root).run();

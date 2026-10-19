@@ -10,7 +10,7 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 // import { BitFlags } from '../../../mol-util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import { type Structure, type StructureElement, StructureProperties } from '@molstar/model/model/structure';
+import { type Structure, type StructureElement, StructureProperties, type Unit } from '@molstar/model/model/structure';
 import { assignRadiusForHeavyAtoms } from './shrake-rupley/radii.js';
 import { type ShrakeRupleyContext, VdWLookup, MaxAsa, DefaultMaxAsa } from './shrake-rupley/common.js';
 import { computeArea } from './shrake-rupley/area.js';
@@ -36,6 +36,17 @@ export const ShrakeRupleyComputationParams = {
     description:
       'Compute only using alpha-carbons, if true increase probeSize accordingly (e.g., 4 A). Considers only canonical amino acids.',
   }),
+  symmetry: PD.Select<'all' | 'per-group'>(
+    'all',
+    [
+      ['all', 'Every unit'],
+      ['per-group', 'Once per symmetry group'],
+    ],
+    {
+      description:
+        "Once per symmetry group computes one unit of each group of symmetry-equivalent units, the one nearest the structure's centre, against the whole structure, and gives its residue areas to the other units of the group: much faster on large assemblies, but approximate. A copy whose surroundings differ from the computed unit's gets that unit's areas: at the edges of a crystal-packing block, in an open or partial assembly. In a closed point-group assembly (a complete biological assembly, a capsid) every copy has the same surroundings, and the areas differ from Every unit only by the sampling noise of the sphere points, which do not rotate with a copy (as when the whole structure is rotated).",
+    },
+  ),
 };
 export type ShrakeRupleyComputationParams = typeof ShrakeRupleyComputationParams;
 export type ShrakeRupleyComputationProps = PD.Values<ShrakeRupleyComputationParams>;
@@ -70,7 +81,13 @@ namespace AccessibleSurfaceArea {
     const ctx = initialize(structure, props);
 
     assignRadiusForHeavyAtoms(ctx);
-    await computeArea(runtime, ctx);
+    if (props.symmetry === 'per-group') {
+      const representatives = groupRepresentatives(structure);
+      await computeArea(runtime, ctx, unitRanges(structure, representatives));
+      copyToSymmetryMates(ctx, representatives);
+    } else {
+      await computeArea(runtime, ctx, [0, structure.elementCount]);
+    }
 
     const { area, serialResidueIndex } = ctx;
     return { area, serialResidueIndex };
@@ -92,6 +109,67 @@ namespace AccessibleSurfaceArea {
       serialResidueIndex: new Int32Array(elementCount),
       area: new Float32Array(atomicResidueCount),
     };
+  }
+
+  /**
+   * The unit of each symmetry group whose centre is nearest the structure's: in a crystal-packing block or an open
+   * assembly the most likely to have all its neighbours (the first unit is often at a corner). Any unit would do in a
+   * closed point-group assembly.
+   */
+  function groupRepresentatives(structure: Structure) {
+    const center = structure.boundary.sphere.center;
+    const unitCenter = Vec3();
+    const ret: Unit[] = [];
+    for (const { units } of structure.unitSymmetryGroups) {
+      let best = units[0];
+      let bestDistance = Infinity;
+      for (const unit of units) {
+        Vec3.transformMat4(unitCenter, unit.boundary.sphere.center, unit.conformation.operator.matrix);
+        const d = Vec3.squaredDistance(unitCenter, center);
+        if (d < bestDistance) {
+          best = unit;
+          bestDistance = d;
+        }
+      }
+      ret.push(best);
+    }
+    return ret;
+  }
+
+  /** The serial element ranges `[begin, end)` of `units`, flattened */
+  function unitRanges(structure: Structure, units: readonly Unit[]) {
+    const { unitIndexMap } = structure;
+    const { cumulativeUnitElementCount } = structure.serialMapping;
+    const ranges: number[] = [];
+    for (const unit of units) {
+      const begin = cumulativeUnitElementCount[unitIndexMap.get(unit.id)];
+      ranges.push(begin, begin + unit.elements.length);
+    }
+    return ranges;
+  }
+
+  /**
+   * Gives the other units of each symmetry group the residue areas of its representative. The units of a group have
+   * the same elements of the same model (`areUnitsEquivalent`), so the j-th element of each is the same atom and
+   * `assignRadiusForHeavyAtoms` gave it the same residue pattern: element for element, residue for residue.
+   */
+  function copyToSymmetryMates(ctx: ShrakeRupleyContext, representatives: readonly Unit[]) {
+    const { structure, serialResidueIndex, area } = ctx;
+    const { unitIndexMap, unitSymmetryGroups } = structure;
+    const { cumulativeUnitElementCount } = structure.serialMapping;
+    for (let g = 0, gl = unitSymmetryGroups.length; g < gl; ++g) {
+      const representative = representatives[g];
+      const source = cumulativeUnitElementCount[unitIndexMap.get(representative.id)];
+      const count = representative.elements.length;
+      for (const unit of unitSymmetryGroups[g].units) {
+        if (unit === representative) continue;
+        const offset = cumulativeUnitElementCount[unitIndexMap.get(unit.id)];
+        for (let j = 0; j < count; ++j) {
+          const rSI = serialResidueIndex[offset + j];
+          if (rSI !== -1) area[rSI] = area[serialResidueIndex[source + j]];
+        }
+      }
+    }
   }
 
   /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
