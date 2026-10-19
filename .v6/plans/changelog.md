@@ -85,10 +85,6 @@ the [API change ledger](breaking-v6-changes.md).
   small ones on the CPU, where they are faster; WebGL keeps the resolution cutoff
 - Fix images and direct volumes with instance granularity: markers were read per group instance, and direct volumes
   ignored overpaint
-- Marching cubes (molecular, Gaussian and blob surfaces, isosurfaces) reads the field at its strides
-  (`Tensor.strides`, new) and each cell reads 4 corners instead of 8, with the same mesh: about twice as fast on a 220³
-  field (z fastest 151 → 73 ms, x fastest 130 → 61 ms), no longer several times slower when plain fields of different
-  layouts are meshed in one session (519 → 61 ms), and floodfilled fields (read through `get`) 1.5–2× faster
 
 ## MVS selectors through model indices
 
