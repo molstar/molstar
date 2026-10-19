@@ -195,6 +195,21 @@ export function createElementSphereImpostor(
   return s;
 }
 
+/** Applies the runs of consecutive `indices`, shifted by `offset`, one interval each */
+export function applyIndexRuns(indices: SortedArray<number>, offset: number, apply: (interval: Interval) => boolean) {
+  let changed = false;
+  for (let i = 0, il = indices.length; i < il; ++i) {
+    const start = indices[i];
+    let end = start + 1;
+    while (i + 1 < il && indices[i + 1] === end) {
+      ++end;
+      ++i;
+    }
+    if (apply(Interval.ofBounds(offset + start, offset + end))) changed = true;
+  }
+  return changed;
+}
+
 export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
   let changed = false;
   if (!StructureElement.Loci.is(loci)) return false;
@@ -211,14 +226,7 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
         const end = offset + Interval.end(e.indices);
         if (apply(Interval.ofBounds(start, end))) changed = true;
       } else {
-        for (let i = 0, _i = e.indices.length; i < _i; i++) {
-          const start = e.indices[i];
-          let endI = i + 1;
-          while (endI < _i && e.indices[endI] === start) endI++;
-          i = endI - 1;
-          const end = e.indices[i];
-          changed = apply(Interval.ofRange(offset + start, offset + end)) || changed;
-        }
+        changed = applyIndexRuns(e.indices, offset, apply) || changed;
       }
     }
   }
@@ -395,10 +403,7 @@ export function eachSerialElement(loci: Loci, structure: Structure, apply: (inte
         const end = cumulativeUnitElementCount[unitIdx] + Interval.end(e.indices);
         if (apply(Interval.ofBounds(start, end))) changed = true;
       } else {
-        for (let i = 0, _i = e.indices.length; i < _i; i++) {
-          const idx = cumulativeUnitElementCount[unitIdx] + e.indices[i];
-          if (apply(Interval.ofSingleton(idx))) changed = true;
-        }
+        changed = applyIndexRuns(e.indices, cumulativeUnitElementCount[unitIdx], apply) || changed;
       }
     }
   }

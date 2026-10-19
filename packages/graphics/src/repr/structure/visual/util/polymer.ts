@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -19,6 +19,7 @@ import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { getResidueLoci, type StructureGroup } from './common.js';
+import { applyIndexRuns } from './element.js';
 
 export * from './polymer/backbone.js';
 export * from './polymer/gap-iterator.js';
@@ -230,14 +231,7 @@ export function eachPolymerElement(loci: Loci, structureGroup: StructureGroup, a
         const end = offset + Interval.end(e.indices);
         changed = apply(Interval.ofBounds(start, end)) || changed;
       } else {
-        for (let i = 0, _i = e.indices.length; i < _i; i++) {
-          const start = e.indices[i];
-          let endI = i + 1;
-          while (endI < _i && e.indices[endI] === start) endI++;
-          i = endI - 1;
-          const end = e.indices[i];
-          changed = apply(Interval.ofRange(offset + start, offset + end)) || changed;
-        }
+        changed = applyIndexRuns(e.indices, offset, apply) || changed;
       }
     }
   }

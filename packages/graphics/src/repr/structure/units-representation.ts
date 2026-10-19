@@ -19,7 +19,7 @@ import { getNextMaterialId, type GraphicsRenderObject } from '@molstar/graphics/
 import { Theme } from '@molstar/graphics/theme/theme';
 import { Task } from '@molstar/core/task';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
-import { Loci, EmptyLoci, isEmptyLoci, isEveryLoci, isDataLoci, EveryLoci } from '@molstar/model/model/loci';
+import { Loci, EmptyLoci, isEveryLoci, isDataLoci, EveryLoci } from '@molstar/model/model/loci';
 import { MarkerAction, MarkerActions, applyMarkerAction } from '@molstar/core/util/marker-action';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { Transparency } from '@molstar/graphics/theme/transparency';
@@ -29,6 +29,7 @@ import type { StructureParams } from './params.js';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { StructureGroup } from './visual/util/common.js';
+import { isWholeStructureLoci } from './visual/util/loci-index.js';
 import { Substance } from '@molstar/graphics/theme/substance';
 import type { LocationCallback } from '../util.js';
 import { Emissive } from '@molstar/graphics/theme/emissive';
@@ -70,6 +71,29 @@ export function UnitsRepresentation<P extends StructureParams>(
   let visuals = createVisualsMap<P>();
 
   let mergedByType = new Map<string, MergedEntry<UnitsVisual<P>>>();
+  /** visuals whose render object is a member of a merged one: their layers are not smoothed (perf-audit 07 P1, N2) */
+  const mergedVisuals = new Set<UnitsVisual<P>>();
+  /** whether the layers of a visual were last set with smoothing, to set them again when its merging changes */
+  const layersSmoothed = new WeakMap<UnitsVisual<P>, boolean>();
+  /** visuals by the id of their render object, to resolve a pick without asking every visual */
+  const visualsByObjectId = new Map<number, UnitsVisual<P>>();
+  /**
+   * The entries of `visuals` by the ids of their units, to mark only the visuals a small loci has (perf-audit 07 P3);
+   * reset whenever an entry is added, an entry's visual replaced in place stays found
+   */
+  let visualsByUnitId: Map<number, { visual: UnitsVisual<P> }> | undefined;
+  let visualCount = 0;
+
+  function getVisualsByUnitId() {
+    if (visualsByUnitId) return visualsByUnitId;
+    visualsByUnitId = new Map();
+    visualCount = 0;
+    visuals.forEach((entry) => {
+      ++visualCount;
+      for (const u of entry.group.units) visualsByUnitId!.set(u.id, entry);
+    });
+    return visualsByUnitId;
+  }
 
   let _structure: Structure;
   let _groups: ReadonlyArray<Unit.SymmetryGroup>;
@@ -100,6 +124,7 @@ export function UnitsRepresentation<P extends StructureParams>(
           if (promise) await promise;
           setVisualState(visual, group, _state); // current state for new visual
           visuals.set(group, { visual, group });
+          visualsByUnitId = undefined;
           if (runtime.shouldUpdate)
             await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
         }
@@ -114,6 +139,7 @@ export function UnitsRepresentation<P extends StructureParams>(
         // const newGroups: Unit.SymmetryGroup[] = []
         const oldVisuals = visuals;
         visuals = createVisualsMap<P>();
+        visualsByUnitId = undefined;
         for (let i = 0; i < _groups.length; i++) {
           const group = _groups[i];
           const visualGroup = oldVisuals.get(group);
@@ -133,6 +159,7 @@ export function UnitsRepresentation<P extends StructureParams>(
               if (promise) await promise;
             }
             visuals.set(group, { visual, group });
+            visualsByUnitId = undefined;
             oldVisuals.delete(group);
 
             // Remove highlight
@@ -149,6 +176,7 @@ export function UnitsRepresentation<P extends StructureParams>(
             if (promise) await promise;
             setVisualState(visual, group, _state); // current state for new visual
             visuals.set(group, { visual, group });
+            visualsByUnitId = undefined;
           }
           if (runtime.shouldUpdate)
             await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
@@ -236,6 +264,24 @@ export function UnitsRepresentation<P extends StructureParams>(
     // from BaseGeometry.Params, part of every units visual's props
     const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
     mergedByType = mergeRenderObjectsByType(entries, renderMerged, mergedByType, renderObjects);
+    mergedVisuals.clear();
+    mergedByType.forEach(({ visuals }) => {
+      for (const v of visuals) mergedVisuals.add(v);
+    });
+    visualsByObjectId.clear();
+    const { overpaint, transparency, emissive, substance } = _state;
+    const hasLayers =
+      overpaint.layers.length > 0 ||
+      transparency.layers.length > 0 ||
+      emissive.layers.length > 0 ||
+      substance.layers.length > 0;
+    for (const { visual, renderObject } of entries) {
+      visualsByObjectId.set(renderObject.id, visual);
+      // merged or unmerged now: layers set before the merging was decided (new visuals) or under the previous one
+      if (hasLayers && layersSmoothed.has(visual) && layersSmoothed.get(visual) !== !mergedVisuals.has(visual)) {
+        setLayers(visual, _state);
+      }
+    }
   }
 
   function getMergedLoci(pickingId: PickingId): Loci | undefined {
@@ -248,12 +294,8 @@ export function UnitsRepresentation<P extends StructureParams>(
     const mergedLoci = getMergedLoci(pickingId);
     if (mergedLoci !== undefined) return mergedLoci;
 
-    let loci: Loci = EmptyLoci;
-    visuals.forEach(({ visual }) => {
-      const _loci = visual.getLoci(pickingId);
-      if (!isEmptyLoci(_loci)) loci = _loci;
-    });
-    return loci;
+    const visual = visualsByObjectId.get(pickingId.objectId);
+    return visual ? visual.getLoci(pickingId) : EmptyLoci;
   }
 
   function eachLocation(cb: LocationCallback) {
@@ -273,7 +315,7 @@ export function UnitsRepresentation<P extends StructureParams>(
       if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false;
       // Remap `loci` from equivalent structure to the current `_structure`
       loci = Loci.remap(loci, _structure);
-      if (Structure.isLoci(loci) || (StructureElement.Loci.is(loci) && StructureElement.Loci.isWholeStructure(loci))) {
+      if (Structure.isLoci(loci) || (StructureElement.Loci.is(loci) && isWholeStructureLoci(loci))) {
         // Change to `EveryLoci` to allow for downstream optimizations
         loci = EveryLoci;
       }
@@ -283,10 +325,55 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (Loci.isEmpty(loci)) return false;
 
     let changed = false;
-    visuals.forEach(({ visual }) => {
-      changed = visual.mark(loci, action) || changed;
-    });
+    const marked = getMarkedVisuals(loci);
+    if (marked) {
+      for (const visual of marked) changed = visual.mark(loci, action) || changed;
+    } else {
+      visuals.forEach(({ visual }) => {
+        changed = visual.mark(loci, action) || changed;
+      });
+    }
     return changed;
+  }
+
+  /**
+   * The visuals of the units in `loci` when it has fewer units than there are visuals, `undefined` for all: the others
+   * have none of it (their `lociApply` keys by unit), and a hover then costs the same with 10 or 10,000 visuals
+   */
+  function getMarkedVisuals(loci: Loci): Set<UnitsVisual<P>> | undefined {
+    const byUnitId = getVisualsByUnitId();
+    if (StructureElement.Loci.is(loci)) {
+      if (loci.elements.length >= visualCount) return;
+      const marked = new Set<UnitsVisual<P>>();
+      for (const e of loci.elements) {
+        const entry = byUnitId.get(e.unit.id);
+        if (entry) marked.add(entry.visual);
+      }
+      return marked;
+    }
+    if (Bond.isLoci(loci)) {
+      if (loci.bonds.length >= visualCount) return;
+      const marked = new Set<UnitsVisual<P>>();
+      for (const b of loci.bonds) {
+        const a = byUnitId.get(b.aUnit.id);
+        if (a) marked.add(a.visual);
+        const c = byUnitId.get(b.bUnit.id);
+        if (c) marked.add(c.visual);
+      }
+      return marked;
+    }
+  }
+
+  /** the layers that can be smoothed: not on members of a merged object, which keeps one layer type for all */
+  function setLayers(visual: UnitsVisual<P>, state: Partial<StructureRepresentationState>) {
+    const { overpaint, transparency, emissive, substance } = state;
+    if (!overpaint && !transparency && !emissive && !substance) return;
+    const smooth = !mergedVisuals.has(visual);
+    if (overpaint !== undefined) visual.setOverpaint(overpaint, graphics, smooth);
+    if (transparency !== undefined) visual.setTransparency(transparency, graphics, smooth);
+    if (emissive !== undefined) visual.setEmissive(emissive, graphics, smooth);
+    if (substance !== undefined) visual.setSubstance(substance, graphics, smooth);
+    layersSmoothed.set(visual, smooth);
   }
 
   function setVisualState(
@@ -294,28 +381,12 @@ export function UnitsRepresentation<P extends StructureParams>(
     group: Unit.SymmetryGroup,
     state: Partial<StructureRepresentationState>,
   ) {
-    const {
-      visible,
-      alphaFactor,
-      pickable,
-      overpaint,
-      transparency,
-      emissive,
-      substance,
-      clipping,
-      wiggle,
-      themeStrength,
-      transform,
-      unitTransforms,
-    } = state;
+    const { visible, alphaFactor, pickable, clipping, wiggle, themeStrength, transform, unitTransforms } = state;
 
     if (visible !== undefined) visual.setVisibility(visible);
     if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
     if (pickable !== undefined) visual.setPickable(pickable);
-    if (overpaint !== undefined) visual.setOverpaint(overpaint, graphics);
-    if (transparency !== undefined) visual.setTransparency(transparency, graphics);
-    if (emissive !== undefined) visual.setEmissive(emissive, graphics);
-    if (substance !== undefined) visual.setSubstance(substance, graphics);
+    setLayers(visual, state);
     if (clipping !== undefined) visual.setClipping(clipping);
     if (wiggle !== undefined) visual.setWiggle(wiggle, graphics);
     if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
@@ -398,6 +469,9 @@ export function UnitsRepresentation<P extends StructureParams>(
     visuals.forEach(({ visual }) => visual.destroy());
     visuals.clear();
     mergedByType.clear();
+    mergedVisuals.clear();
+    visualsByObjectId.clear();
+    visualsByUnitId = undefined;
   }
 
   return {
