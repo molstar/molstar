@@ -9,7 +9,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { OrderedSet, SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { CIF } from '@molstar/io/reader/cif';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
@@ -18,7 +19,7 @@ import { Structure, StructureElement, Unit } from '@molstar/model/model/structur
 import type { Model } from '@molstar/model/model/structure/model';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { StructureSymmetry } from '../symmetry.js';
-import type { InterUnitBonds } from '../unit/bonds/data.js';
+import { InterUnitBonds, type InterUnitEdgeProps } from '../unit/bonds/data.js';
 
 // Pins what building structures and child structures gives today: bonds (pairs, orders, flags, keys), unit groupings,
 // element sets and boundaries. The values were recorded before the 05-model-structure P4/P3/P5/P6/P2 changes
@@ -251,6 +252,43 @@ describe('structure building', async () => {
       }
     });
   }
+
+  describe('child inter-unit bonds', () => {
+    /** The root's units with one made-up bond (that no computation would find) between the first atoms of units 0, 1. */
+    async function rootWithMadeUpBond() {
+      const s = Structure.ofModel(m7qpd);
+      const builder = new InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>();
+      builder.startUnitPair(s.units[0].id, s.units[1].id);
+      builder.add(0 as StructureElement.UnitIndex, 0 as StructureElement.UnitIndex, { order: 1, flag: 1, key: -1 });
+      builder.finishUnitPair();
+      return Structure.create(s.units, { interUnitBonds: new InterUnitBonds(builder.getMap()) });
+    }
+
+    it("restricts the parent's bonds", async () => {
+      const root = await rootWithMadeUpBond();
+      // every second element keeps index 0 of every unit
+      const half = subsetChild(root, () => false);
+      expect(half.interUnitBonds.edgeCount).toBe(2);
+      expect(half.interUnitBonds.getEdge(0 as any, root.units[0].id, 0 as any, root.units[1].id)).toBeDefined();
+      // whole units: the parent's bonds as they are
+      expect(subsetChild(root, () => true).interUnitBonds).toBe(root.interUnitBonds);
+      // without the first element of unit 0
+      const b = root.subsetBuilder(true);
+      for (const u of root.units) b.setUnit(u.id, u === root.units[0] ? u.elements.slice(1) : u.elements);
+      expect(b.getStructure().interUnitBonds.edgeCount).toBe(0);
+    });
+
+    it('computes when the units are transformed', async () => {
+      const root = await rootWithMadeUpBond();
+      void root.interUnitBonds;
+      // same unit ids, other operators: computed, so the made-up bond is gone and 7qpd's own 6 are there
+      const moved = Structure.transform(root, Mat4.fromTranslation(Mat4(), Vec3.create(10, 0, 0)));
+      expect(moved.parent).toBe(root);
+      expect(interSignature(moved.interUnitBonds).sorted).toBe(
+        interSignature(Structure.ofModel(m7qpd).interUnitBonds).sorted,
+      );
+    });
+  });
 
   // symmetry copies of a child unit share its props (lookups, bonds, boundary) whichever way the child is built
   it.each(children)('child props shared across symmetry copies: %s', async (_name, child) => {
