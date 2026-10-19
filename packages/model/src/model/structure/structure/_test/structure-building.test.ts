@@ -252,6 +252,14 @@ describe('structure building', async () => {
     });
   }
 
+  // symmetry copies of a child unit share its props (lookups, bonds, boundary) whichever way the child is built
+  it.each(children)('child props shared across symmetry copies: %s', async (_name, child) => {
+    for (const [, root] of [cases[0], cases[2]]) {
+      const c = child(await root());
+      expect(new Set(c.units.map((u) => u.props)).size).toBe(c.unitSymmetryGroups.length);
+    }
+  });
+
   it.each(cases)('boundaries: %s', async (name, root) => {
     const s = await root();
     // unit spheres: exact

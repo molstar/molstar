@@ -28,6 +28,7 @@ import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { compile } from '@molstar/model/script/runtime/query/base';
 import { QueryContext, type QueryFn, StructureSelection } from '../../query.js';
 import { Schema } from './schema.js';
+import { StructureSymmetry } from '../symmetry.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const itDiff = IntTuple.diff;
@@ -168,11 +169,17 @@ export namespace Loci {
 
   export function toStructure(loci: Loci): Structure {
     const units: Unit[] = [];
+    // children equal up to the operator share their props (lookups, bonds, boundary), as in the subset builder
+    // (05-model-structure P3)
+    const symmGroups = StructureSymmetry.UnitEquivalenceBuilder();
     for (const e of loci.elements) {
       const { unit, indices } = e;
       const elements = new Int32Array(OrderedSet.size(indices));
       OrderedSet.forEach(indices, (v, i) => (elements[i] = unit.elements[v]));
-      units.push(unit.getChild(SortedArray.ofSortedArray(elements)));
+      let child = unit.getChild(SortedArray.ofSortedArray(elements));
+      const pivot = symmGroups.add(child.id, child);
+      if (child !== pivot && child !== unit) child = pivot.applyOperator(child.id, child.conformation.operator, true);
+      units.push(child);
     }
     return Structure.create(units, { parent: loci.structure.parent });
   }
