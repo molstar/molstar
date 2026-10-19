@@ -851,4 +851,4 @@ the [API change ledger](breaking-v6-changes.md).
 ## Accessible surface area
 
 - Shrake-Rupley accessible surface area no longer allocates per atom (typed neighbour buffers, no sort, last occluder
-  first): 1.6–1.9× faster, 5.6 GB → 11 MB allocated on 186k atoms; the areas are unchanged
+  first): 1.6–2× faster in a Node A/B bench, 5.6 GB → 11 MB allocated on 186k atoms; the areas are unchanged
