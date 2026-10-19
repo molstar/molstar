@@ -26,3 +26,4 @@
 - The sequence's link takes a 3D select over several structures once, not once per structure
 - Fix: the sequence of the followed structure reads its CIF block again: SIFTS numberings onto UniProt (mapping,
   alignment), a predicted model's styling and the auth labels of unobserved residues were silently missing
+- Fix: the marks' paint lets go of a removed representation (its structure and theme) at once, not at the next paint
