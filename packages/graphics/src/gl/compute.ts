@@ -118,6 +118,11 @@ export interface StorageBuffer {
 export interface DrawIndirect {
   readonly buffer: StorageBuffer;
   readonly byteOffset: number;
+  /**
+   * The vertex count in the buffer once read back: drawn directly with it then, an indirect draw costs far more GPU
+   * time than a direct one in Chrome (`TextureMesh.setDrawnVertexCount`)
+   */
+  readonly count?: number;
 }
 
 export interface ComputeKernel {
