@@ -1,10 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
+// without UVs: a full turn has no seam column (it wraps to the first) and a cap has one center vertex, not one per face;
+// the triangles are the same, in the same order (16 capped segments: 66 vertices instead of 100)
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Primitive } from './primitive.js';
@@ -44,6 +47,9 @@ export function Cylinder(props?: CylinderProps): Primitive {
   let index = 0;
   const indexArray: number[][] = [];
   const halfHeight = height / 2;
+  // a full turn ends where it starts (as in `Circle`)
+  const isFull = thetaLength === Math.PI * 2;
+  const columnCount = isFull ? radialSegments : radialSegments + 1;
 
   // generate geometry
   generateTorso();
@@ -72,7 +78,7 @@ export function Cylinder(props?: CylinderProps): Primitive {
       // calculate the radius of the current row
       const radius = v * (radiusBottom - radiusTop) + radiusTop;
 
-      for (let x = 0; x <= radialSegments; ++x) {
+      for (let x = 0; x < columnCount; ++x) {
         const u = x / radialSegments;
         const theta = u * thetaLength + thetaStart;
         const sinTheta = Math.sin(theta);
@@ -88,6 +94,8 @@ export function Cylinder(props?: CylinderProps): Primitive {
         // save index of vertex in respective row
         indexRow.push(index++);
       }
+      // the last column of a full turn is the first
+      if (isFull) indexRow.push(indexRow[0]);
 
       // now save vertices of the row in our index array
       indexArray.push(indexRow);
@@ -114,29 +122,17 @@ export function Cylinder(props?: CylinderProps): Primitive {
     const radius = top === true ? radiusTop : radiusBottom;
     const sign = top === true ? 1 : -1;
 
-    // save the index of the first center vertex
-    const centerIndexStart = index;
+    // the center vertex, shared by all faces (no uvs)
+    const c = index;
+    vertices.push(0, halfHeight * sign, 0);
+    normals.push(0, sign, 0);
+    ++index;
 
-    // first we generate the center vertex data of the cap.
-    // because the geometry needs one set of uvs per face,
-    // we must generate a center vertex per face/segment
+    // save the index of the first ring vertex
+    const ringStart = index;
 
-    for (let x = 1; x <= radialSegments; ++x) {
-      // vertex
-      vertices.push(0, halfHeight * sign, 0);
-
-      // normal
-      normals.push(0, sign, 0);
-
-      // increase index
-      ++index;
-    }
-
-    // save the index of the last center vertex
-    const centerIndexEnd = index;
-
-    // now we generate the surrounding vertices, normals and uvs
-    for (let x = 0; x <= radialSegments; ++x) {
+    // now we generate the surrounding vertices and normals
+    for (let x = 0; x < columnCount; ++x) {
       const u = x / radialSegments;
       const theta = u * thetaLength + thetaStart;
 
@@ -155,13 +151,14 @@ export function Cylinder(props?: CylinderProps): Primitive {
 
     // generate indices
     for (let x = 0; x < radialSegments; ++x) {
-      const c = centerIndexStart + x;
-      const i = centerIndexEnd + x;
+      const i = ringStart + x;
+      // the last face of a full turn closes on the first ring vertex
+      const j = isFull && x === radialSegments - 1 ? ringStart : i + 1;
 
       if (top === true) {
-        indices.push(i, i + 1, c); // face top
+        indices.push(i, j, c); // face top
       } else {
-        indices.push(i + 1, i, c); // face bottom
+        indices.push(j, i, c); // face bottom
       }
     }
   }
