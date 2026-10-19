@@ -1,11 +1,14 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { OrderedSet } from '@molstar/core/data/int';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import type { Sphere3D } from '@molstar/core/math/geometry';
+import { Result } from '@molstar/core/math/geometry/lookup3d/common';
 import { type Structure, type StructureElement, Unit } from '@molstar/model/model/structure';
 import { VdwRadius } from '@molstar/model/model/structure/model/properties/atomic';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
@@ -190,6 +193,52 @@ function _addUnitContacts(
 }
 
 const _imageTransform = Mat4();
+const _bToA = Mat4();
+const _bCenterInA = Vec3();
+// not the lookup's own result: symmetry copies share one Features object, so the inner query on B's lookup would
+// overwrite it
+const _candidateResult = Result.create<Features.FeatureIndex>();
+let _candidates = new Int32Array(1024);
+
+/** Whether the linear part of `m` is orthonormal within `eps` (a rigid transform keeps distances). */
+function isRigid(m: Mat4, eps: number) {
+  for (let i = 0; i < 3; i++) {
+    for (let j = i; j < 3; j++) {
+      const d = m[4 * i] * m[4 * j] + m[4 * i + 1] * m[4 * j + 1] + m[4 * i + 2] * m[4 * j + 2];
+      if (Math.abs(d - (i === j ? 1 : 0)) > eps) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The features of `unitA` (sorted) that may lie within `radius` of `sphereB` (in `unitB`'s frame): fetched from
+ * `featuresA`'s grid around the sphere centre mapped into `unitA`'s frame, instead of transforming every feature of
+ * `unitA` (06-model-props-script N1). The radius is padded so that the exact test in `unitB`'s frame still decides;
+ * operators that do not keep distances (mmCIF allows them with a warning) get every feature, as before.
+ */
+function getCandidates(featuresA: Features, unitA: Unit, unitB: Unit, sphereB: Sphere3D, radius: number) {
+  const n = featuresA.count;
+  if (n === 0) return _candidates.subarray(0, 0);
+  Mat4.mul(_bToA, unitA.conformation.operator.inverse, unitB.conformation.operator.matrix);
+  if (!isRigid(_bToA, 1e-4)) {
+    if (_candidates.length < n) _candidates = new Int32Array(Math.max(n, 2 * _candidates.length));
+    for (let i = 0; i < n; i++) _candidates[i] = i;
+    return _candidates.subarray(0, n);
+  }
+  Vec3.transformMat4(_bCenterInA, sphereB.center, _bToA);
+  const { indices, count } = featuresA.lookup3d.find(
+    _bCenterInA[0],
+    _bCenterInA[1],
+    _bCenterInA[2],
+    radius * (1 + 1e-3) + 1e-3,
+    _candidateResult,
+  );
+  if (_candidates.length < count) _candidates = new Int32Array(Math.max(count, 2 * _candidates.length));
+  for (let i = 0; i < count; i++) _candidates[i] = indices[i];
+  // ascending, as the scan was: keeps the contact order
+  return _candidates.subarray(0, count).sort();
+}
 
 /**
  * Add all inter-unit contacts, i.e. pairs of features
@@ -204,7 +253,7 @@ export function addStructureContacts(
   testers: ReadonlyArray<ContactTester>,
   props: ContactsProps,
 ) {
-  const { count: countA, x: xA, y: yA, z: zA } = featuresA;
+  const { x: xA, y: yA, z: zA } = featuresA;
   const { lookup3d } = featuresB;
 
   // the lookup queries need to happen in the "unitB space".
@@ -228,7 +277,9 @@ export function addStructureContacts(
 
   builder.startUnitPair(unitA, unitB);
 
-  for (let i = 0 as Features.FeatureIndex; i < countA; ++i) {
+  const candidates = getCandidates(featuresA, unitA, unitB, lookup3d.boundary.sphere, radius + maxDistance);
+  for (let ci = 0, cl = candidates.length; ci < cl; ++ci) {
+    const i = candidates[ci] as Features.FeatureIndex;
     Vec3.set(imageA, xA[i], yA[i], zA[i]);
     if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
     if (Vec3.squaredDistance(imageA, center) > testDistanceSq) continue;
