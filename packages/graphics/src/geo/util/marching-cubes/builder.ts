@@ -55,10 +55,10 @@ export function MarchingCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): 
       }
     },
     get: () => {
-      const vb = ChunkedArray.compact(vertices, true) as Float32Array;
-      const nb = ChunkedArray.compact(normals, true) as Float32Array;
-      const ib = ChunkedArray.compact(indices, true) as Uint32Array;
-      const gb = ChunkedArray.compact(groups, true) as Float32Array;
+      const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
+      const nb = ChunkedArray.compactTrimmed(normals) as Float32Array;
+      const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
+      const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
       return Mesh.create(vb, ib, nb, gb, vertexCount, triangleCount, mesh);
     },
   };
@@ -101,9 +101,9 @@ export function MarchingCubesLinesBuilder(vertexChunkSize: number, lines?: Lines
       }
     },
     get: () => {
-      const vb = ChunkedArray.compact(vertices, true) as Float32Array;
-      const ib = ChunkedArray.compact(indices, true) as Uint32Array;
-      const gb = ChunkedArray.compact(groups, true) as Float32Array;
+      const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
+      const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
+      const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
 
       const builder = LinesBuilder.create(linesCount, linesCount / 10, lines);
 
