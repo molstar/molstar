@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -12,15 +13,21 @@ import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import {
+  createLinkCylinderImpostors,
   createLinkCylinderMesh,
+  type LinkBuilderProps,
   LinkCylinderParams,
   LinkStyle,
 } from '@molstar/graphics/repr/structure/visual/util/link';
 import {
+  ComplexCylindersParams,
+  ComplexCylindersVisual,
   ComplexMeshParams,
   type ComplexVisual,
   ComplexMeshVisual,
 } from '@molstar/graphics/repr/structure/complex-visual';
+import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VisualUpdateState } from '@molstar/graphics/repr/util';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
@@ -32,18 +39,17 @@ import { FeatureType, InteractionFlag, InteractionType } from '@molstar/model/pr
 import { Unit } from '@molstar/model/model/structure/structure';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
-import { InteractionsSharedParams } from './shared.js';
+import { impostorProps, InteractionsSharedParams, withDashedCylinderCount } from './shared.js';
 import { eachBondedAtom } from '@molstar/model/props/computed/chemistry/util';
-import { isHydrogen } from '@molstar/graphics/repr/structure/visual/util/common';
+import { checkCylinderImpostorSupport, isHydrogen } from '@molstar/graphics/repr/structure/visual/util/common';
 
-function createInterUnitInteractionCylinderMesh(
-  ctx: VisualContext,
+/** The inter-unit interactions as dashed links, for the impostor and the mesh builder; undefined if there are none */
+function getInterUnitInteractionsBuilderProps(
   structure: Structure,
   theme: Theme,
   props: PD.Values<InteractionsInterUnitParams>,
-  mesh?: Mesh,
-) {
-  if (!structure.hasAtomic) return Mesh.createEmpty(mesh);
+): LinkBuilderProps | undefined {
+  if (!structure.hasAtomic) return;
 
   const l = StructureElement.Location.create(structure);
   const interactions = InteractionsProvider.get(structure).value!;
@@ -52,14 +58,14 @@ function createInterUnitInteractionCylinderMesh(
   const { edgeCount, edges } = contacts;
   const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
 
-  if (!edgeCount) return Mesh.createEmpty(mesh);
+  if (!edgeCount) return;
 
   const { child } = structure;
   const p = Vec3();
   const pA = Vec3();
   const pB = Vec3();
 
-  const builderProps = {
+  return {
     linkCount: edgeCount,
     position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
       const {
@@ -190,28 +196,122 @@ function createInterUnitInteractionCylinderMesh(
       return false;
     },
   };
+}
 
-  const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
-
+function setBoundingSphere(
+  geometry: Mesh | Cylinders,
+  boundingSphere: Sphere3D | undefined,
+  structure: Structure,
+  sizeFactor: number,
+) {
   if (boundingSphere) {
-    m.setBoundingSphere(boundingSphere);
-  } else if (m.triangleCount > 0) {
+    geometry.setBoundingSphere(boundingSphere);
+  } else if (geometry.kind === 'mesh' ? geometry.triangleCount > 0 : geometry.cylinderCount > 0) {
     const { child } = structure;
     const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * sizeFactor);
-    m.setBoundingSphere(sphere);
+    geometry.setBoundingSphere(sphere);
   }
+}
 
+function createInterUnitInteractionCylinderImpostors(
+  ctx: VisualContext,
+  structure: Structure,
+  theme: Theme,
+  props: PD.Values<InteractionsInterUnitParams>,
+  cylinders?: Cylinders,
+) {
+  const builderProps = getInterUnitInteractionsBuilderProps(structure, theme, props);
+  if (!builderProps) return Cylinders.createEmpty(cylinders);
+
+  const { cylinders: c, boundingSphere } = createLinkCylinderImpostors(
+    ctx,
+    withDashedCylinderCount(builderProps, props.dashCount),
+    impostorProps(props),
+    cylinders,
+  );
+  setBoundingSphere(c, boundingSphere, structure, props.sizeFactor);
+  return c;
+}
+
+function createInterUnitInteractionCylinderMesh(
+  ctx: VisualContext,
+  structure: Structure,
+  theme: Theme,
+  props: PD.Values<InteractionsInterUnitParams>,
+  mesh?: Mesh,
+) {
+  const builderProps = getInterUnitInteractionsBuilderProps(structure, theme, props);
+  if (!builderProps) return Mesh.createEmpty(mesh);
+
+  const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+  setBoundingSphere(m, boundingSphere, structure, props.sizeFactor);
   return m;
 }
 
 export const InteractionsInterUnitParams = {
   ...ComplexMeshParams,
+  ...ComplexCylindersParams,
   ...LinkCylinderParams,
   ...InteractionsSharedParams,
 };
 export type InteractionsInterUnitParams = typeof InteractionsInterUnitParams;
 
-export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<InteractionsInterUnitParams> {
+export function InteractionsInterUnitVisual(
+  materialId: number,
+  structure: Structure,
+  props: PD.Values<InteractionsInterUnitParams>,
+  graphics?: GraphicsContext,
+) {
+  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
+    ? InteractionsInterUnitImpostorVisual(materialId)
+    : InteractionsInterUnitMeshVisual(materialId);
+}
+
+function setUpdateState(
+  state: VisualUpdateState,
+  newProps: PD.Values<InteractionsInterUnitParams>,
+  currentProps: PD.Values<InteractionsInterUnitParams>,
+  newTheme: Theme,
+  currentTheme: Theme,
+  newStructure: Structure,
+  currentStructure: Structure,
+) {
+  state.createGeometry =
+    newProps.sizeFactor !== currentProps.sizeFactor ||
+    newProps.dashCount !== currentProps.dashCount ||
+    newProps.dashScale !== currentProps.dashScale ||
+    newProps.dashCap !== currentProps.dashCap ||
+    newProps.radialSegments !== currentProps.radialSegments ||
+    newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+    newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+    newProps.parentDisplay !== currentProps.parentDisplay;
+
+  const interactionsHash = InteractionsProvider.get(newStructure).version;
+  if ((state.info.interactionsHash as number) !== interactionsHash) {
+    state.createGeometry = true;
+    state.updateTransform = true;
+    state.updateColor = true;
+    state.info.interactionsHash = interactionsHash;
+  }
+}
+
+export function InteractionsInterUnitImpostorVisual(materialId: number): ComplexVisual<InteractionsInterUnitParams> {
+  return ComplexCylindersVisual<InteractionsInterUnitParams>(
+    {
+      defaultProps: PD.getDefaultValues(InteractionsInterUnitParams),
+      createGeometry: createInterUnitInteractionCylinderImpostors,
+      createLocationIterator: createInteractionsIterator,
+      getLoci: getInteractionLoci,
+      eachLocation: eachInteraction,
+      setUpdateState,
+      mustRecreate: (_: Structure, props: PD.Values<InteractionsInterUnitParams>, graphics?: GraphicsContext) =>
+        !props.tryUseImpostor || !graphics,
+    },
+    materialId,
+  );
+}
+
+export function InteractionsInterUnitMeshVisual(materialId: number): ComplexVisual<InteractionsInterUnitParams> {
   return ComplexMeshVisual<InteractionsInterUnitParams>(
     {
       defaultProps: PD.getDefaultValues(InteractionsInterUnitParams),
@@ -219,33 +319,9 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
       createLocationIterator: createInteractionsIterator,
       getLoci: getInteractionLoci,
       eachLocation: eachInteraction,
-      setUpdateState: (
-        state: VisualUpdateState,
-        newProps: PD.Values<InteractionsInterUnitParams>,
-        currentProps: PD.Values<InteractionsInterUnitParams>,
-        newTheme: Theme,
-        currentTheme: Theme,
-        newStructure: Structure,
-        currentStructure: Structure,
-      ) => {
-        state.createGeometry =
-          newProps.sizeFactor !== currentProps.sizeFactor ||
-          newProps.dashCount !== currentProps.dashCount ||
-          newProps.dashScale !== currentProps.dashScale ||
-          newProps.dashCap !== currentProps.dashCap ||
-          newProps.radialSegments !== currentProps.radialSegments ||
-          newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-          newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-          newProps.parentDisplay !== currentProps.parentDisplay;
-
-        const interactionsHash = InteractionsProvider.get(newStructure).version;
-        if ((state.info.interactionsHash as number) !== interactionsHash) {
-          state.createGeometry = true;
-          state.updateTransform = true;
-          state.updateColor = true;
-          state.info.interactionsHash = interactionsHash;
-        }
-      },
+      setUpdateState,
+      mustRecreate: (_: Structure, props: PD.Values<InteractionsInterUnitParams>, graphics?: GraphicsContext) =>
+        props.tryUseImpostor && !!graphics,
     },
     materialId,
   );

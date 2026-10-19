@@ -91,6 +91,11 @@ export interface LinkBuilderProps {
   style?: (edgeIndex: number) => LinkStyle;
   ignore?: (edgeIndex: number) => boolean;
   stub?: (edgeIndex: number) => boolean;
+  /**
+   * The number of cylinders the impostor builder will add, when the caller knows it: the buffers are then allocated
+   * once at their final size and not grown and copied
+   */
+  cylinderCount?: () => number;
 }
 
 export const EmptyLinkBuilderProps: LinkBuilderProps = {
@@ -381,8 +386,10 @@ export function createLinkCylinderImpostors(
 
   const oldBoundingSphere = cylinders?.hasBoundingSphere() ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
 
-  const cylindersCountEstimate = linkCount * 2;
-  const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
+  // CylindersBuilder sizes its arrays in vertices, six per cylinder
+  const builder = linkBuilder.cylinderCount
+    ? CylindersBuilder.create(linkBuilder.cylinderCount() * 6, linkCount, cylinders)
+    : CylindersBuilder.create(linkCount * 2, (linkCount * 2) / 4, cylinders);
 
   const va = Vec3();
   const vb = Vec3();
@@ -401,7 +408,6 @@ export function createLinkCylinderImpostors(
     v3add(center, center, vb);
     count += 2;
 
-    const linkRadius = radius(edgeIndex);
     const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
     const linkStub = stubCap && (stub ? stub(edgeIndex) : false);
 
@@ -419,6 +425,8 @@ export function createLinkCylinderImpostors(
       linkStyle === LinkStyle.Aromatic ||
       linkStyle === LinkStyle.MirroredAromatic
     ) {
+      // the impostor size comes from the size theme; the radius only places the parallel cylinders
+      const linkRadius = radius(edgeIndex);
       const order =
         linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble
           ? 2

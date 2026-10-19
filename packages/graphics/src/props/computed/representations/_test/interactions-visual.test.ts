@@ -77,7 +77,10 @@ const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
 
 async function createRepr(structure: Structure, graphics: any, props: Record<string, any> = {}) {
   const provider = InteractionsRepresentationProvider;
-  const themeProps = { colorTheme: { name: 'interaction-type', params: {} }, sizeTheme: { name: 'uniform', params: {} } };
+  const themeProps = {
+    colorTheme: { name: 'interaction-type', params: {} },
+    sizeTheme: { name: 'uniform', params: {} },
+  };
   await Theme.ensureDependencies(ctx, registries, { structure }, themeProps);
   const repr = provider.factory({ graphics, ...registries }, provider.getParams) as Representation.Any;
   repr.setTheme(Theme.create(registries, { structure }, themeProps));
@@ -224,5 +227,94 @@ describe('interactions representation', async () => {
     const repr = await createRepr(structure, undefined);
     expect(repr.renderObjects.every((ro) => ro.type === 'mesh')).toBe(true);
     expect(signature(repr, structure)).toEqual(expected);
+  });
+
+  it('impostor visuals: the same groups, picking and marking', async () => {
+    const repr = await createRepr(structure, graphicsStub);
+    expect(repr.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+    expect(signature(repr, structure)).toEqual(expected);
+  });
+
+  it('impostor dashes sit where the mesh dashes are, with the same radius', async () => {
+    const mesh = await createRepr(structure, undefined);
+    const impostors = await createRepr(structure, graphicsStub);
+    const { sizeFactor, dashScale, dashCount } = PD.getDefaultValues(
+      InteractionsRepresentationProvider.getParams(registries, structure),
+    );
+    expect(mesh.renderObjects.length).toBe(impostors.renderObjects.length);
+    for (let i = 0; i < mesh.renderObjects.length; ++i) {
+      const m = groupCentroids(mesh.renderObjects[i]);
+      const c = groupCentroids(impostors.renderObjects[i]);
+      expect([...c.keys()]).toEqual([...m.keys()]);
+      for (const [g, p] of m) expect(Vec3.distance(p, c.get(g)!)).toBeLessThan(1e-3);
+
+      const v = impostors.renderObjects[i].values as any;
+      const groups = v.aGroup.ref.value as Float32Array;
+      const cylinderCount = v.drawCount.ref.value / 12;
+      // one impostor per dash, ceil(dashCount / 2) dashes per drawn half
+      expect(cylinderCount).toBe(c.size * Math.ceil(dashCount / 2));
+      // buffers allocated once at their final size
+      expect(groups.length).toBe(cylinderCount * 6);
+      // radius: uniform size 1 × sizeFactor × dashScale, as the mesh bakes it
+      expect(v.uSize.ref.value * v.uSizeFactor.ref.value).toBeCloseTo(sizeFactor);
+      const scales = (v.aScale.ref.value as Float32Array).subarray(0, cylinderCount * 6);
+      expect(scales.every((x) => Math.abs(x - dashScale) < 1e-6)).toBe(true);
+    }
+  });
+
+  it('switches between impostors and mesh with tryUseImpostor', async () => {
+    const repr = await createRepr(structure, graphicsStub, { tryUseImpostor: false });
+    expect(repr.renderObjects.every((ro) => ro.type === 'mesh')).toBe(true);
+    await repr.createOrUpdate({ tryUseImpostor: true }, structure).run();
+    expect(repr.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+    expect(signature(repr, structure)).toEqual(expected);
+  });
+
+  it("draws colorMode 'interpolate' as 'default' (the iterators give one location per group)", async () => {
+    const repr = await createRepr(structure, graphicsStub, { colorMode: 'interpolate' });
+    for (const ro of repr.renderObjects) {
+      const v = ro.values as any;
+      const modes = (v.aColorMode.ref.value as Float32Array).subarray(0, (v.drawCount.ref.value / 12) * 6);
+      expect(modes.every((x) => x === 2)).toBe(true);
+    }
+  });
+
+  it("physical size theme: the impostors' group size is the smaller end's vdW radius, as the mesh bakes it", async () => {
+    const theme = registries.sizeThemeRegistry.create('physical', { structure }, {});
+    const interactions = InteractionsProvider.get(structure).value!;
+    const { contacts, unitsFeatures } = interactions;
+    const vdw = (unitId: number, feature: number) => {
+      const unit = structure.unitMap.get(unitId);
+      const f = unitsFeatures.get(unitId);
+      const l = StructureElement.Location.create(structure, unit, unit.elements[f.members[f.offsets[feature]]]);
+      return theme.size(l);
+    };
+    const location = Interactions.Location(interactions, structure);
+    let different = 0;
+    for (const e of contacts.edges) {
+      location.element.unitA = structure.unitMap.get(e.unitA);
+      location.element.indexA = e.indexA;
+      location.element.unitB = structure.unitMap.get(e.unitB);
+      location.element.indexB = e.indexB;
+      const a = vdw(e.unitA, e.indexA);
+      const b = vdw(e.unitB, e.indexB);
+      if (a !== b) different++;
+      expect(theme.size(location)).toBe(Math.min(a, b));
+    }
+    expect(different).toBeGreaterThan(0);
+
+    const { bridges } = interactions;
+    const bridge = Bridges.Location({ structure, bridges, unitsFeatures });
+    for (let i = 0; i < bridges.length; ++i) {
+      const b = bridges[i];
+      bridge.element.bridgeIndex = i;
+      const min = Math.min(
+        vdw(b.unitA, b.indexA),
+        vdw(b.unitM, b.indexMA),
+        vdw(b.unitM, b.indexMB),
+        vdw(b.unitB, b.indexB),
+      );
+      expect(theme.size(bridge)).toBe(min);
+    }
   });
 });
