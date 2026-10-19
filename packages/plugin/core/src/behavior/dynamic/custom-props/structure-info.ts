@@ -165,10 +165,13 @@ export const StructureInfo = PluginBehavior.create({
       });
 
       this.subscribeObservable(this.ctx.state.data.events.object.updated, (o) => {
-        this.handle(o.ref, o.obj, o.oldObj);
-        // A model or a structure made anew (a trajectory frame, other params) has the max at once, without a walk (before,
-        // the next created object of any kind set it).
-        if (o.action === 'recreate') this.setMaxIndexOf(o.obj);
+        // An in-place update gives the old data, not the old object (a structure remapped onto a trajectory's next
+        // model): its index carries over all the same.
+        const old = o.oldObj ?? (o.oldData !== undefined ? ({ data: o.oldData } as StateObject) : undefined);
+        this.handle(o.ref, o.obj, old);
+        // A model or a structure made anew or remapped in place (a trajectory frame, other params) has the max at once,
+        // without a walk (before, the next created object of any kind set it).
+        this.setMaxIndexOf(o.obj);
       });
     }
 

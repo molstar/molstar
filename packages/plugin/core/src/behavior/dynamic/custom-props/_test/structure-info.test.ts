@@ -53,15 +53,17 @@ describe('StructureInfo', () => {
     plugin.dispose();
   });
 
-  it('gives a model replaced in place (another frame) the max index at once', async () => {
+  it('gives a model and its structure replaced by another frame the max index at once, the structure its index kept', async () => {
     const plugin = await createPlugin();
     const twoModels = ['MODEL        1', pdb, 'ENDMDL', 'MODEL        2', pdb, 'ENDMDL'].join('\n');
     const data = await plugin.builders.data.rawData({ data: twoModels, label: 'nmr' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
     const modelCell = await plugin.builders.structure.createModel(trajectory);
-    await plugin.builders.structure.createStructure(modelCell);
+    const structureCell = await plugin.builders.structure.createStructure(modelCell);
     await load(plugin, 'b');
     const first = modelCell.obj!.data;
+    const firstStructure = structureCell.obj!.data;
+    expect(Structure.Index.get(firstStructure).value).toBe(0);
     expect(Model.MaxIndex.get(first).value).toBe(1);
     await plugin
       .build()
@@ -71,6 +73,11 @@ describe('StructureInfo', () => {
     const model = plugin.state.data.cells.get(modelCell.ref)!.obj!.data as Model;
     expect(model).not.toBe(first);
     expect(Model.MaxIndex.get(model).value).toBe(1);
+    // Its structure, remapped onto the new model in place, keeps its index and has the max too.
+    const structure = plugin.state.data.cells.get(structureCell.ref)!.obj!.data as Structure;
+    expect(structure).not.toBe(firstStructure);
+    expect(Structure.Index.get(structure).value).toBe(0);
+    expect(Structure.MaxIndex.get(structure).value).toBe(1);
     plugin.dispose();
   });
 
