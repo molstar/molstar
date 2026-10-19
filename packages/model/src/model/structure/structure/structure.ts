@@ -16,6 +16,7 @@ import { StructureLookup3D } from './util/lookup3d.js';
 import type { CoarseElements } from '../model/properties/coarse.js';
 import { StructureSubsetBuilder } from './util/subset-builder.js';
 import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds.js';
+import { subsetInterUnitBonds } from './unit/bonds/subset.js';
 import { StructureSymmetry } from './symmetry.js';
 import { StructureProperties } from './properties.js';
 import type { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing.js';
@@ -238,15 +239,25 @@ class Structure {
 
   get interUnitBonds() {
     if (this.state.interUnitBonds) return this.state.interUnitBonds;
-    if (
-      this.parent &&
-      this.state.dynamicBonds === this.parent.state.dynamicBonds &&
-      this.parent.state.interUnitBonds &&
-      this.parent.state.interUnitBonds.edgeCount === 0
-    ) {
+    const parent = this.parent;
+    const parentBonds = parent?.state.interUnitBonds;
+    if (parent && parentBonds && this.state.dynamicBonds === parent.state.dynamicBonds && parentBonds.edgeCount === 0) {
       // no need to compute InterUnitBonds if parent's ones are empty
       this.state.interUnitBonds = new InterUnitBonds(new Map());
-    } else {
+      return this.state.interUnitBonds;
+    }
+    if (
+      parent &&
+      parentBonds &&
+      this.state.dynamicBonds === parent.state.dynamicBonds &&
+      this.state.interBondsValidUnit === parent.state.interBondsValidUnit &&
+      this.state.interBondsValidUnitPair === parent.state.interBondsValidUnitPair &&
+      this.masterModel === parent.masterModel
+    ) {
+      // the parent's bonds restricted to this structure's elements (05-model-structure P5)
+      this.state.interUnitBonds = subsetInterUnitBonds(parentBonds, parent, this);
+    }
+    if (!this.state.interUnitBonds) {
       this.state.interUnitBonds = computeInterUnitBonds(this, {
         ignoreWater: !this.dynamicBonds,
         ignoreIon: !this.dynamicBonds,

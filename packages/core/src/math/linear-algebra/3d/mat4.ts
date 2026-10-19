@@ -1011,6 +1011,29 @@ namespace Mat4 {
   }
 
   /**
+   * Check if the matrix is a rigid transform, one that keeps distances:
+   * [ Q    Translation ]
+   * [ 0    1           ]
+   * with Q orthonormal (Q^T Q = I) within `eps` per entry; allows improper rotations (reflections).
+   * `isRotationAndTranslation` checks only that the determinant of Q is ±1, which a shear or a scaling that keeps the
+   * volume also passes.
+   */
+  export function isRigid(a: Mat4, eps?: number) {
+    const e = typeof eps !== 'undefined' ? eps : EPSILON;
+    if (!equalEps(a[15], 1, e) || !equalEps(a[3], 0, e) || !equalEps(a[7], 0, e) || !equalEps(a[11], 0, e)) {
+      return false;
+    }
+    // the columns of Q are unit length and pairwise orthogonal
+    for (let i = 0; i < 3; i++) {
+      for (let j = i; j < 3; j++) {
+        const d = a[4 * i] * a[4 * j] + a[4 * i + 1] * a[4 * j + 1] + a[4 * i + 2] * a[4 * j + 2];
+        if (!equalEps(d, i === j ? 1 : 0, e)) return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Check if the matrix has the form
    * [ Rotation    Translation ]
    * [ 0           1           ]

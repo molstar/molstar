@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { OrderedSet, SortedArray, Interval } from '@molstar/core/data/int';
@@ -232,8 +233,16 @@ export namespace Bundle {
           }
         }
 
-        for (const unit of _units) {
-          units.push(unit.getChild(indices));
+        // copies of one invariant unit share the child's props (lookups, bonds, boundary), as the subset builder's
+        // children do (05-model-structure P3)
+        const first = _units[0].getChild(indices);
+        units.push(first);
+        for (let i = 1, il = _units.length; i < il; ++i) {
+          const unit = _units[i];
+          if (first === _units[0]) units.push(unit);
+          else if (unit.elements === ue && unit.model === first.model) {
+            units.push(first.applyOperator(unit.id, unit.conformation.operator, true));
+          } else units.push(unit.getChild(indices));
         }
       }
     }

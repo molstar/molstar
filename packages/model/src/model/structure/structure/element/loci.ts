@@ -28,6 +28,7 @@ import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { compile } from '@molstar/model/script/runtime/query/base';
 import { QueryContext, type QueryFn, StructureSelection } from '../../query.js';
 import { Schema } from './schema.js';
+import { StructureSymmetry } from '../symmetry.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const itDiff = IntTuple.diff;
@@ -168,11 +169,17 @@ export namespace Loci {
 
   export function toStructure(loci: Loci): Structure {
     const units: Unit[] = [];
+    // children equal up to the operator share their props (lookups, bonds, boundary), as in the subset builder
+    // (05-model-structure P3)
+    const symmGroups = StructureSymmetry.UnitEquivalenceBuilder();
     for (const e of loci.elements) {
       const { unit, indices } = e;
       const elements = new Int32Array(OrderedSet.size(indices));
       OrderedSet.forEach(indices, (v, i) => (elements[i] = unit.elements[v]));
-      units.push(unit.getChild(SortedArray.ofSortedArray(elements)));
+      let child = unit.getChild(SortedArray.ofSortedArray(elements));
+      const pivot = symmGroups.add(child.id, child);
+      if (child !== pivot && child !== unit) child = pivot.applyOperator(child.id, child.conformation.operator, true);
+      units.push(child);
     }
     return Structure.create(units, { parent: loci.structure.parent });
   }
@@ -628,7 +635,12 @@ export namespace Loci {
 
   //
 
-  const boundaryHelper = new BoundaryHelper('98');
+  // 98 directions up to 10k points (elements, or the extrema of whole units), as for unit spheres; above, 14 refined
+  // to 98 from their extrema: the radius pass visits every element, so the sphere still encloses them, but keeps only
+  // 14 distinct extrema for spheres merged from it (05-model-structure P2)
+  const boundaryHelperCoarse = new BoundaryHelper('14');
+  const boundaryHelperFine = new BoundaryHelper('98');
+  const FinePointCount = 10_000;
   const tempPosBoundary = Vec3();
   const tempSphereBoundary = Sphere3D();
 
@@ -647,7 +659,20 @@ export namespace Loci {
     if (isWholeStructure(loci)) {
       return Sphere3D.copy(boundingSphere || Sphere3D(), loci.structure.boundary.sphere);
     }
+    // reuse unit boundary if the loci is one whole unit
+    if (loci.elements.length === 1 && isWholeUnit(loci.elements[0])) {
+      return Sphere3D.copy(boundingSphere || Sphere3D(), getWholeUnitBoundarySphere(loci.elements[0].unit));
+    }
 
+    let pointCount = 0;
+    for (const e of loci.elements) {
+      if (!isWholeUnit(e)) pointCount += OrderedSet.size(e.indices);
+      else {
+        const { extrema } = e.unit.boundary.sphere;
+        pointCount += extrema && extrema.length > 1 ? extrema.length : 1;
+      }
+    }
+    const boundaryHelper = pointCount > FinePointCount ? boundaryHelperCoarse : boundaryHelperFine;
     boundaryHelper.reset();
 
     for (const e of loci.elements) {

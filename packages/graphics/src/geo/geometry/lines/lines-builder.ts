@@ -89,8 +89,8 @@ export namespace LinesBuilder {
       addCage: (t: Mat4, cage: Cage, group: number) => {
         const { vertices, edges } = cage;
         for (let i = 0, il = edges.length; i < il; i += 2) {
-          Vec3.fromArray(tmpVecA, vertices, edges[i] * 3);
-          Vec3.fromArray(tmpVecB, vertices, edges[i + 1] * 3);
+          Vec3.fromFloat32Array(tmpVecA, vertices, edges[i] * 3);
+          Vec3.fromFloat32Array(tmpVecB, vertices, edges[i + 1] * 3);
           Vec3.transformMat4(tmpVecA, tmpVecA, t);
           Vec3.transformMat4(tmpVecB, tmpVecB, t);
           add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], group);

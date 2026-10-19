@@ -8,7 +8,7 @@
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { type Primitive, PrimitiveBuilder, createPrimitive } from './primitive.js';
 import { polygon } from './polygon.js';
-import type { Cage } from './cage.js';
+import { type Cage, createCage } from './cage.js';
 
 const on = Vec3.create(0, 0, -0.5),
   op = Vec3.create(0, 0, 0.5);
@@ -146,7 +146,7 @@ export function PyramidCage(points: ArrayLike<number>): Cage {
     edges.push(i + 1, ni + 1);
   }
 
-  return { vertices, edges };
+  return createCage(vertices, edges);
 }
 
 let octagonalPyramidCage: Cage;

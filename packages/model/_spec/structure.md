@@ -1,0 +1,88 @@
+# Structures
+
+`Structure` (`src/model/structure/structure/structure.ts`): units sorted by id, a root, and lazy derived data. Units:
+[unit.md](unit.md).
+
+## 1. Building
+
+- `Structure.create(units, props)`: sorts `units` by id (in place), builds `unitMap` and `unitIndexMap`. Props:
+  `parent`, `interUnitBonds`, `dynamicBonds`, `interBondsValidUnit(Pair)`, `coordinateSystem`, `label`, `masterModel`,
+  `representativeModel`; what is not given is inherited from `parent`.
+- `ofModel(model)`: one atomic unit per chain (operator from `atomicChainOperatorMappinng`); consecutive water chains
+  with one operator merge (`Trait.Water`), as do consecutive single-atom chains of one entity and auth asym id
+  (`Trait.MultiChain`); one coarse unit per coarse chain.
+- `ofTrajectory`: every frame's units, `invariantId` and `chainGroupId` offset per frame, so frames never share symmetry
+  groups.
+- `StructureBuilder`: `addUnit`, `copyUnit`, `addWithOperator`, chain groups; single-element units at the same position
+  with one `invariantId` are dropped (degenerate spacegroups).
+- `transform(s, m)` (rigid only; same unit ids, `parent: s`), `instances(s, ms)`, `mergeUnitsByOperator(s)` (one unit
+  per model, kind and operator; no parent).
+
+## 2. Symmetry
+
+`StructureSymmetry` (`symmetry.ts`), tasks over a structure of one model: `buildAssembly` (the assembly's operator
+groups select by query), `buildSymmetryAssembly`, `builderSymmetryMates` (radius), `buildSymmetryRange` (cells),
+`buildNcs`. Results carry the label and `dynamicBonds` and have no parent: an assembly is a new root (its units may
+still have a unit parent, unit.md §2).
+
+Units that differ only by operator form a `Unit.SymmetryGroup` (`unitSymmetryGroups`: equal `invariantId`, model and
+elements). Builders keep a group's units sharing static props: `StructureSymmetry` adds each source unit under each
+operator (`addWithOperator`, composed), the subset builders apply the operator of a group's other units to its first
+child (`applyOperator(id, op, true)`). Graphics draws a group as one geometry with instances.
+
+## 3. Children and the root
+
+- `state.parent` is flattened to the root (`props.parent.parent ?? props.parent`); `root` is `parent ?? this`.
+  Root-scoped properties live on the root (properties.md §2).
+- Children come from `subsetBuilder`/`StructureSubsetBuilder` (reuses the parent unit when a unit is whole), selections,
+  `Loci.toStructure`, `Bundle.toStructure`, `Schema.toStructure`, `transform`. Their units are `getChild` of the root's
+  (unit.md §2).
+- `asParent()`: a proxy of the parent in the child's coordinate system, for representations that need the context of the
+  whole.
+- `remapModel(m)`: remaps each symmetry group's first unit and passes its props to the others; keeps `interUnitBonds`
+  unless `dynamicBonds`; remaps the parent too (05-model-structure B1: each component gets its own root).
+
+## 4. Lazy data
+
+Memoized in `state` (sentinel -1 or `undefined`), never invalidated: counts (`elementCount` eager; residues, polymer
+units, gaps, unique elements), hashes (`hashCode`: unit ids and element sets; `transformHash`: unit ids), `boundary`
+(from the unit spheres, `util/boundary.ts`), `lookup3d` (a grid of unit spheres; queries go to each unit's grid in its
+frame), `unitSymmetryGroups`, `interUnitBonds`, `carbohydrates`, `coordination`, `models`, serial and bond mappings,
+property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
+
+`model` is the representative, the master or the single model, and throws for several models without either.
+
+## 5. Bonds
+
+- Intra-unit: unit.md §4 and `unit/bonds/intra-compute.ts`: index pairs if the model has them; else struct_conn, the
+  component dictionary per residue (not at microheterogeneity), then distance thresholds (`common.ts`) over the unit's
+  grid. Edge props `order`, `flags`, `key` (the struct_conn row, index-pair key or dictionary key; -1 computed).
+- Inter-unit (`inter-compute.ts`): unit pairs from `eachUnitPair` (structure grid, `validUnit`, `validUnitPair`: same
+  model or the master model; waters and ions skipped unless `dynamicBonds` or a common struct_conn record). Per pair,
+  A's atoms near B come from A's grid (P4). Index pairs, else struct_conn, else distance.
+- A child's inter-unit bonds: empty if the root's are empty and `dynamicBonds` is the root's; else restricted from the
+  root's (`subsetInterUnitBonds`, `unit/bonds/subset.ts`) when the bond props and the units' operators are the root's;
+  else computed. The restriction keeps what the root shows where a recompute could differ (struct_conn partners outside
+  the child, which unit of a pair is iterated, water and ion pairing by a unit's first element) and for bonds the root
+  carried over from another frame: a child shows a subset of its root.
+- `IntraUnitBonds` store both directions (`edgeCount` undirected); `InterUnitBonds` list a pair under both units
+  (`edgeCount` directed; `Structure.bondCount` halves it).
+
+## 6. Elements and selections
+
+- `StructureElement.Location`: `{ structure, unit, element: ElementIndex }`, mutable and reused by iterators; clone to
+  keep one. `StructureProperties` (`properties.ts`) are Location → value accessors.
+- `StructureElement.Loci`: `{ structure, elements: { unit, indices: OrderedSet<UnitIndex> }[] }`. Set operations and
+  `remap` key on unit ids. `extendTo*` grow to residues, chains, entities, models, operators, a radius. `toExpression`
+  writes MolScript by source index and operator name.
+- `Bundle`: a loci without a structure (unit ids grouped by `invariantId`, ranges and a set), checked against
+  `structure.hashCode`; `Schema`: rows or columns of file identifiers, to an expression or a substructure.
+- `Bond.Location`, `Bond.Loci`: bonds by unit and `UnitIndex` on both sides.
+
+## 7. Other derived data
+
+- Carbohydrates (`carbohydrates/`): saccharide elements from rings, links from bonds; SNFG shapes and colors
+  (`SaccharideCompIdMap` is global: `setSaccharideCompIdMapType`).
+- Coordination (`coordination/`): sites with four or more covalent or metallic bonds.
+- `util/`: polymer element sets, principal axes, subset builders, unit merging, superposition (RMSD, SIFTS, ligand MCCS,
+  TM-align).

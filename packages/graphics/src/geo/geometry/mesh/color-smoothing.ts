@@ -16,7 +16,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import { lerp } from '@molstar/core/math/interpolate';
-import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
 import { ValueCell } from '@molstar/core/util';
 
@@ -95,6 +95,9 @@ function getGrid(latticeBox: Box3D, box: Box3D, resolution: number) {
   return { min, gridDim };
 }
 
+const tmpTransform = Mat4();
+const tmpBox = Box3D();
+
 /**
  * Box of the vertices (of all instances for instance types, from the transformed corners of the untransformed box),
  * within `bound`; `bound` when there are no vertices
@@ -103,49 +106,20 @@ function getVertexBox(input: ColorSmoothingInput, instanceCount: number, isInsta
   const { vertexCount, positionBuffer, transformBuffer } = input;
   if (vertexCount === 0) return Box3D.clone(bound);
 
-  let minX = Infinity;
-  let minY = Infinity;
-  let minZ = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  let maxZ = -Infinity;
-  for (let j = 0, jl = vertexCount * 3; j < jl; j += 3) {
-    const x = positionBuffer[j];
-    const y = positionBuffer[j + 1];
-    const z = positionBuffer[j + 2];
-    if (x < minX) minX = x;
-    if (x > maxX) maxX = x;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-    if (z < minZ) minZ = z;
-    if (z > maxZ) maxZ = z;
-  }
-
-  const box = Box3D.create(Vec3.create(minX, minY, minZ), Vec3.create(maxX, maxY, maxZ));
+  let box = Box3D.fromPositionArray(Box3D(), positionBuffer, vertexCount);
   if (isInstanceType) {
-    const corners = Box3D();
-    Box3D.setEmpty(corners);
-    const c = Vec3();
+    const instances = Box3D.setEmpty(Box3D());
     for (let i = 0; i < instanceCount; ++i) {
-      for (let k = 0; k < 8; ++k) {
-        Vec3.set(c, k & 1 ? maxX : minX, k & 2 ? maxY : minY, k & 4 ? maxZ : minZ);
-        Vec3.transformMat4Offset(c, c, transformBuffer, 0, 0, i * 16);
-        Box3D.add(corners, c);
-      }
+      Mat4.fromArray(tmpTransform, transformBuffer, i * 16);
+      Box3D.addBox3D(instances, Box3D.transform(tmpBox, box, tmpTransform));
     }
-    Box3D.copy(box, corners);
+    box = instances;
   }
 
   // both boxes hold the vertices: take the smaller extent per axis (an empty intersection means `bound` misses
   // vertices, where the former grid cut them off too)
-  for (let k = 0; k < 3; ++k) {
-    const lo = Math.max(box.min[k], bound.min[k]);
-    const hi = Math.min(box.max[k], bound.max[k]);
-    if (!(lo <= hi)) return Box3D.clone(bound);
-    box.min[k] = lo;
-    box.max[k] = hi;
-  }
-  return box;
+  Box3D.intersect(box, box, bound);
+  return Box3D.isEmpty(box) ? Box3D.clone(bound) : box;
 }
 
 export function calcMeshColorSmoothing(

@@ -23,21 +23,16 @@ const tmpVecD = Vec3();
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3triangleNormal = Vec3.triangleNormal;
 const v3copy = Vec3.copy;
+const v3fromFloat32Array = Vec3.fromFloat32Array;
 const v3transformMat4 = Vec3.transformMat4;
 const mat3directionTransform = Mat3.directionTransform;
 const caAdd3 = ChunkedArray.add3;
 const caAdd = ChunkedArray.add;
 
-// The per-vertex loops below read the arrays inline instead of through `Vec3.fromArray` and the `Vec3` transforms:
-// those are called app-wide with many array kinds, so their keyed loads are megamorphic, also where V8 inlines them
-// (2-3x slower here once a session has warmed them up).
-
-/** `Vec3.fromArray` with feedback only from this module's loops (Float32 rings, cage vertices) */
-function setFromArray(v: Vec3, array: ArrayLike<number>, offset: number) {
-  v[0] = array[offset];
-  v[1] = array[offset + 1];
-  v[2] = array[offset + 2];
-}
+// `Vec3.fromArray` and the `Vec3` transforms are called app-wide with many array kinds, so their keyed loads are
+// megamorphic, also where V8 inlines them (2-3x slower here once a session has warmed them up). Strips, fans and cages
+// read their Float32Array vertices through `Vec3.fromFloat32Array`; the primitive transform below reads and transforms
+// inline, with the matrix entries hoisted out of the vertex loop.
 
 /** Adds the primitive transformed by `t`; `flipped` negates the normals and reverses the winding order */
 function addTransformedPrimitive(state: MeshBuilder.State, t: Mat4, primitive: Primitive, flipped: boolean) {
@@ -166,38 +161,38 @@ export namespace MeshBuilder {
     caAdd3(indices, offset, offset + 1, offset + 2);
   }
 
-  export function addTriangleStrip(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
-    setFromArray(tmpVecC, vertices, indices[0] * 3);
-    setFromArray(tmpVecD, vertices, indices[1] * 3);
+  export function addTriangleStrip(state: State, vertices: Float32Array, indices: ArrayLike<number>) {
+    v3fromFloat32Array(tmpVecC, vertices, indices[0] * 3);
+    v3fromFloat32Array(tmpVecD, vertices, indices[1] * 3);
     for (let i = 2, il = indices.length; i < il; i += 2) {
       v3copy(tmpVecA, tmpVecC);
       v3copy(tmpVecB, tmpVecD);
-      setFromArray(tmpVecC, vertices, indices[i] * 3);
-      setFromArray(tmpVecD, vertices, indices[i + 1] * 3);
+      v3fromFloat32Array(tmpVecC, vertices, indices[i] * 3);
+      v3fromFloat32Array(tmpVecD, vertices, indices[i + 1] * 3);
       addTriangle(state, tmpVecA, tmpVecB, tmpVecC);
       addTriangle(state, tmpVecB, tmpVecD, tmpVecC);
     }
   }
 
-  export function addTriangleFan(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
-    setFromArray(tmpVecA, vertices, indices[0] * 3);
+  export function addTriangleFan(state: State, vertices: Float32Array, indices: ArrayLike<number>) {
+    v3fromFloat32Array(tmpVecA, vertices, indices[0] * 3);
     for (let i = 2, il = indices.length; i < il; ++i) {
-      setFromArray(tmpVecB, vertices, indices[i - 1] * 3);
-      setFromArray(tmpVecC, vertices, indices[i] * 3);
+      v3fromFloat32Array(tmpVecB, vertices, indices[i - 1] * 3);
+      v3fromFloat32Array(tmpVecC, vertices, indices[i] * 3);
       addTriangle(state, tmpVecA, tmpVecC, tmpVecB);
     }
   }
 
   export function addTriangleFanWithNormal(
     state: State,
-    vertices: ArrayLike<number>,
+    vertices: Float32Array,
     indices: ArrayLike<number>,
     normal: Vec3,
   ) {
-    setFromArray(tmpVecA, vertices, indices[0] * 3);
+    v3fromFloat32Array(tmpVecA, vertices, indices[0] * 3);
     for (let i = 2, il = indices.length; i < il; ++i) {
-      setFromArray(tmpVecB, vertices, indices[i - 1] * 3);
-      setFromArray(tmpVecC, vertices, indices[i] * 3);
+      v3fromFloat32Array(tmpVecB, vertices, indices[i - 1] * 3);
+      v3fromFloat32Array(tmpVecC, vertices, indices[i] * 3);
       addTriangleWithNormal(state, tmpVecA, tmpVecC, tmpVecB, normal);
     }
   }
@@ -215,8 +210,8 @@ export namespace MeshBuilder {
     const { vertices: va, edges: ea } = cage;
     const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments };
     for (let i = 0, il = ea.length; i < il; i += 2) {
-      setFromArray(tmpVecA, va, ea[i] * 3);
-      setFromArray(tmpVecB, va, ea[i + 1] * 3);
+      v3fromFloat32Array(tmpVecA, va, ea[i] * 3);
+      v3fromFloat32Array(tmpVecB, va, ea[i + 1] * 3);
       v3transformMat4(tmpVecA, tmpVecA, t);
       v3transformMat4(tmpVecB, tmpVecB, t);
       addSphere(state, tmpVecA, radius, detail);

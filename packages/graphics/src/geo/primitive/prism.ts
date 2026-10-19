@@ -6,7 +6,7 @@
  */
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import type { Cage } from './cage.js';
+import { type Cage, createCage } from './cage.js';
 import { polygon } from './polygon.js';
 import { type Primitive, PrimitiveBuilder } from './primitive.js';
 
@@ -155,7 +155,7 @@ export function PrismCage(points: ArrayLike<number>, height = 1): Cage {
     edges.push(i * 2, ni * 2, i * 2 + 1, ni * 2 + 1);
   }
 
-  return { vertices, edges };
+  return createCage(vertices, edges);
 }
 
 let diamondCage: Cage;
