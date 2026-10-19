@@ -40,6 +40,34 @@ export type ColorSmoothingOptions = {
   stride: number;
 };
 
+/**
+ * Grow-only scratch for the accumulators of `calcMeshColorSmoothing` (`data` with up to 4 values per cell, `count`),
+ * all-zero between calls: the normalization clears what the splat wrote. The calculation is synchronous, so one set
+ * serves every call; grids above `MaxScratchCells` (20 MB) get their own arrays so a rare large grid is not retained.
+ */
+const MaxScratchCells = 1 << 20;
+const Scratch = { data: new Float32Array(0), count: new Float32Array(0), dirty: false };
+
+function getAccumulators(cellCount: number, itemSize: number) {
+  if (cellCount > MaxScratchCells)
+    return { data: new Float32Array(cellCount * itemSize), count: new Float32Array(cellCount) };
+  if (Scratch.count.length < cellCount) {
+    const n = Math.min(MaxScratchCells, Math.max(cellCount, 2 * Scratch.count.length));
+    Scratch.data = new Float32Array(n * 4);
+    Scratch.count = new Float32Array(n);
+  } else if (Scratch.dirty) {
+    // a previous call threw before clearing
+    Scratch.data.fill(0);
+    Scratch.count.fill(0);
+  }
+  Scratch.dirty = true;
+  return { data: Scratch.data, count: Scratch.count };
+}
+
+function releaseAccumulators(data: Float32Array) {
+  if (data === Scratch.data) Scratch.dirty = false;
+}
+
 export function calcMeshColorSmoothing(
   input: ColorSmoothingInput,
   options: ColorSmoothingOptions,
@@ -73,8 +101,8 @@ export function calcMeshColorSmoothing(
 
   const { width, height } = getVolumeTexture2dLayout(gridDim);
 
-  const data = new Float32Array(width * height * itemSize);
-  const count = new Float32Array(width * height);
+  const cellCount = width * height;
+  const { data, count } = getAccumulators(cellCount, itemSize);
 
   const grid = new Uint8Array(width * height * itemSize);
   const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
@@ -129,7 +157,9 @@ export function calcMeshColorSmoothing(
       // z/y/x with x, the texture-fast axis, innermost; each cell gets at most one contribution per vertex, so the
       // per-cell summation order is unchanged. `dz2 > p2` and `dy2 + dz2 > p2` only skip cells whose distance below
       // exceeds p as well (rounded addition of non-negative terms is monotone), and `d2` keeps the original
-      // association so `d` is bit-identical; cells at `d2 > p2` but `d == p` would add `s = 0`, which changes nothing.
+      // association so `d` is bit-identical; cells at `s == 0` (`d2 > p2` or `d == p`) would add 0, which changes
+      // nothing for finite colors. Skipping them also keeps the scratch clean: every write makes `count` > 0, so the
+      // normalization clears it, even for a non-finite color (an out-of-range group or instance).
       for (let zi = begZ; zi < endZ; ++zi) {
         const dz = zi - vz;
         const dz2 = dz * dz;
@@ -146,6 +176,7 @@ export function calcMeshColorSmoothing(
             if (d2 > p2) continue;
 
             const s = p - Math.sqrt(d2);
+            if (s === 0) continue;
             const c = yo + xi;
             if (itemSize === 4) {
               const index = c * 4;
@@ -163,20 +194,33 @@ export function calcMeshColorSmoothing(
     }
   }
 
+  // cells without a contribution stay 0 in `grid` (formerly `Math.round(0 / 0)`, also 0 in a Uint8Array); a cell with
+  // `data` > 0 has `count` > 0, so clearing the counted cells leaves the accumulators all-zero for the next call
   if (itemSize === 4) {
-    for (let i = 0, il = count.length; i < il; ++i) {
-      const is = i * 4;
+    for (let i = 0; i < cellCount; ++i) {
       const c = count[i];
+      if (c === 0) continue;
+      const is = i * 4;
       grid[is] = Math.round(data[is] / c);
       grid[is + 1] = Math.round(data[is + 1] / c);
       grid[is + 2] = Math.round(data[is + 2] / c);
       grid[is + 3] = Math.round(data[is + 3] / c);
+      data[is] = 0;
+      data[is + 1] = 0;
+      data[is + 2] = 0;
+      data[is + 3] = 0;
+      count[i] = 0;
     }
   } else {
-    for (let i = 0, il = count.length; i < il; ++i) {
-      grid[i] = Math.round(data[i] / count[i]);
+    for (let i = 0; i < cellCount; ++i) {
+      const c = count[i];
+      if (c === 0) continue;
+      grid[i] = Math.round(data[i] / c);
+      data[i] = 0;
+      count[i] = 0;
     }
   }
+  releaseAccumulators(data);
 
   const gridTexDim = Vec2.create(width, height);
   const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
