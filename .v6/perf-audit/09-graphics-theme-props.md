@@ -34,6 +34,9 @@ Recreating structure themes on each update costs ≤ 2 ms; what a recolor costs 
 
 ### P1: no impostor path for interactions
 
+- **Status**: done (branch `claude/interactions-impostors`): impostor variants of the three visuals, dashes as one
+  impostor each through the builder (no shader change); the `physical` and `uncertainty` size themes size interaction
+  locations. Impostor buffers stay 6 vertices per cylinder (frozen `gl/`, 08/P7).
 - **Mechanism**: `createIntraUnitInteractionsCylinderMesh` (:164), `createInterUnitInteractionCylinderMesh`
   ([inter:194](../../packages/graphics/src/props/computed/representations/interactions-inter-unit-cylinder.ts#L194)) and
   `createBridgeCylinderMesh` ([bridge:233](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L233))
@@ -68,7 +71,7 @@ Recreating structure themes on each update costs ≤ 2 ms; what a recolor costs 
 - **Fix**: `dashCap: PD.Boolean(false)` in `InteractionsSharedParams` (or caps only at `radialSegments >= 16`); estimate
   per directed link from the style: dashed `ceil(dashCount / 2) * (radialSegments + 1) * (2 + (dashCap ? 2 : 0))`.
 - **Risk**: open dash ends are visible end-on at high zoom (no caps, single-sided mesh). Matters only for the mesh
-  fallback once P1 lands (no `fragDepth`, `tryUseImpostor: false`, export).
+  fallback once P1 lands (no `fragDepth`, `tryUseImpostor: false`); export meshes the impostors.
 
 ### P6: particle color index rebuilt per update
 

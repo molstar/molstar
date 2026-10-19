@@ -56,7 +56,9 @@ function getInterUnitInteractionsBuilderProps(
   const { contacts, unitsFeatures } = interactions;
 
   const { edgeCount, edges } = contacts;
-  const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
+  const { ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
+  // as the impostors' uSizeFactor
+  const sizeFactor = props.sizeFactor * props.sizeAspectRatio;
 
   if (!edgeCount) return;
 
@@ -281,7 +283,6 @@ function setUpdateState(
     newProps.dashCount !== currentProps.dashCount ||
     newProps.dashScale !== currentProps.dashScale ||
     newProps.dashCap !== currentProps.dashCap ||
-    newProps.radialSegments !== currentProps.radialSegments ||
     newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
     newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
     newProps.parentDisplay !== currentProps.parentDisplay;
@@ -291,7 +292,21 @@ function setUpdateState(
     state.createGeometry = true;
     state.updateTransform = true;
     state.updateColor = true;
+    // group sizes from a group-granularity size theme
+    state.updateSize = true;
     state.info.interactionsHash = interactionsHash;
+  }
+}
+
+/** The mesh bakes the radius and the radial segments; impostors take them from uniforms and the size theme */
+function setMeshUpdateState(...args: Parameters<typeof setUpdateState>) {
+  setUpdateState(...args);
+  const [state, newProps, currentProps] = args;
+  if (
+    newProps.radialSegments !== currentProps.radialSegments ||
+    newProps.sizeAspectRatio !== currentProps.sizeAspectRatio
+  ) {
+    state.createGeometry = true;
   }
 }
 
@@ -319,7 +334,7 @@ export function InteractionsInterUnitMeshVisual(materialId: number): ComplexVisu
       createLocationIterator: createInteractionsIterator,
       getLoci: getInteractionLoci,
       eachLocation: eachInteraction,
-      setUpdateState,
+      setUpdateState: setMeshUpdateState,
       mustRecreate: (_: Structure, props: PD.Values<InteractionsInterUnitParams>, graphics?: GraphicsContext) =>
         props.tryUseImpostor && !!graphics,
     },

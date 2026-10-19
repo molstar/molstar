@@ -92,8 +92,8 @@ export interface LinkBuilderProps {
   ignore?: (edgeIndex: number) => boolean;
   stub?: (edgeIndex: number) => boolean;
   /**
-   * The number of cylinders the impostor builder will add, when the caller knows it: the buffers are then allocated
-   * once at their final size and not grown and copied
+   * The number of cylinders the impostor builder will add, when the caller knows it: a fresh build then allocates its
+   * buffers once at their final size instead of growing and copying them (an update starts from the old buffers)
    */
   cylinderCount?: () => number;
 }

@@ -33,7 +33,8 @@ export function impostorProps<P extends LinkCylinderProps>(props: P): P {
 }
 
 /**
- * Dashed links with their impostor count, `ceil(dashCount / 2)` per link not ignored, so that
+ * Dashed links with their impostor count, as many per link not ignored as `CylindersBuilder.addFixedCountDashes`
+ * adds, so that
  * `createLinkCylinderImpostors` allocates its buffers once
  */
 export function withDashedCylinderCount(builderProps: LinkBuilderProps, dashCount: number): LinkBuilderProps {
@@ -41,7 +42,7 @@ export function withDashedCylinderCount(builderProps: LinkBuilderProps, dashCoun
   const cylinderCount = () => {
     let count = 0;
     for (let i = 0; i < linkCount; ++i) if (!ignore?.(i)) count++;
-    return count * Math.ceil(dashCount / 2);
+    return count * Math.floor((dashCount + 1) / 2);
   };
   return { ...builderProps, cylinderCount };
 }

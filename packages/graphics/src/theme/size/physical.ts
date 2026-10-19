@@ -11,8 +11,7 @@ import type { SizeTheme } from '../size.js';
 import { VdwRadius } from '@molstar/model/model/structure/model/properties/atomic';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ThemeDataContext } from '../theme.js';
-import { Bridges, Interactions } from '@molstar/model/props/computed/interactions/interactions';
-import type { Features } from '@molstar/model/props/computed/interactions/features';
+import { getInteractionLocationSize } from './interaction-location.js';
 
 const DefaultSize = 1;
 const Description = 'Assigns a physical size, i.e. vdW radius for atoms or given radius for coarse spheres.';
@@ -33,11 +32,6 @@ export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
   } else {
     return 0;
   }
-}
-
-/** The physical radius of a feature's first member, the atom the interactions visuals draw from */
-function getFeatureRadius(unit: Unit, features: Features, index: Features.FeatureIndex) {
-  return getPhysicalRadius(unit, unit.elements[features.members[features.offsets[index]]]);
 }
 
 /**
@@ -61,33 +55,10 @@ export function PhysicalSizeTheme(
           getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex]),
           getPhysicalRadius(location.bUnit, location.bUnit.elements[location.bIndex]),
         );
-    } else if (Interactions.isLocation(location)) {
-      // the smaller end, as the interactions mesh bakes it (impostors read it from here)
-      const { unitA, indexA, unitB, indexB } = location.element;
-      const { unitsFeatures } = location.data.interactions;
-      size =
-        scale *
-        Math.min(
-          getFeatureRadius(unitA, unitsFeatures.get(unitA.id), indexA),
-          getFeatureRadius(unitB, unitsFeatures.get(unitB.id), indexB),
-        );
-    } else if (Bridges.isLocation(location)) {
-      // one size for the four half-legs of a bridge: the smallest of its feature atoms
-      const { structure, bridges, unitsFeatures } = location.data;
-      const b = bridges[location.element.bridgeIndex];
-      const uA = structure.unitMap.get(b.unitA);
-      const uM = structure.unitMap.get(b.unitM);
-      const uB = structure.unitMap.get(b.unitB);
-      size =
-        scale *
-        Math.min(
-          getFeatureRadius(uA, unitsFeatures.get(b.unitA), b.indexA),
-          getFeatureRadius(uM, unitsFeatures.get(b.unitM), b.indexMA),
-          getFeatureRadius(uM, unitsFeatures.get(b.unitM), b.indexMB),
-          getFeatureRadius(uB, unitsFeatures.get(b.unitB), b.indexB),
-        );
     } else {
-      size = scale * DefaultSize;
+      // interactions: the smaller end, as their mesh bakes it (impostors read it from here)
+      const interaction = getInteractionLocationSize(location, getPhysicalRadius);
+      size = scale * (interaction ?? DefaultSize);
     }
     return size;
   }

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StructureElement, Unit, Bond, type ElementIndex } from '@molstar/model/model/structure';
@@ -9,6 +10,7 @@ import type { Location } from '@molstar/model/model/location';
 import type { SizeTheme } from '../size.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ThemeDataContext } from '../theme.js';
+import { getInteractionLocationSize } from './interaction-location.js';
 
 const Description = `Assigns a size reflecting the uncertainty or disorder of an element's position, e.g. B-factor or RMSF, depending on the data availability and experimental technique.`;
 
@@ -46,6 +48,9 @@ export function UncertaintySizeTheme(
       size += getUncertainty(location.unit, location.element, props);
     } else if (Bond.isLocation(location)) {
       size += getUncertainty(location.aUnit, location.aUnit.elements[location.aIndex], props);
+    } else {
+      // interactions: the smaller end, as their mesh bakes it (impostors read it from here)
+      size += getInteractionLocationSize(location, (u, e) => getUncertainty(u, e, props)) ?? 0;
     }
     return size;
   }

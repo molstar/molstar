@@ -75,11 +75,11 @@ const graphicsStub = {
 
 const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
 
-async function createRepr(structure: Structure, graphics: any, props: Record<string, any> = {}) {
+async function createRepr(structure: Structure, graphics: any, props: Record<string, any> = {}, sizeTheme = 'uniform') {
   const provider = InteractionsRepresentationProvider;
   const themeProps = {
     colorTheme: { name: 'interaction-type', params: {} },
-    sizeTheme: { name: 'uniform', params: {} },
+    sizeTheme: { name: sizeTheme, params: {} },
   };
   await Theme.ensureDependencies(ctx, registries, { structure }, themeProps);
   const repr = provider.factory({ graphics, ...registries }, provider.getParams) as Representation.Any;
@@ -279,42 +279,84 @@ describe('interactions representation', async () => {
     }
   });
 
-  it("physical size theme: the impostors' group size is the smaller end's vdW radius, as the mesh bakes it", async () => {
-    const theme = registries.sizeThemeRegistry.create('physical', { structure }, {});
-    const interactions = InteractionsProvider.get(structure).value!;
-    const { contacts, unitsFeatures } = interactions;
-    const vdw = (unitId: number, feature: number) => {
-      const unit = structure.unitMap.get(unitId);
-      const f = unitsFeatures.get(unitId);
-      const l = StructureElement.Location.create(structure, unit, unit.elements[f.members[f.offsets[feature]]]);
-      return theme.size(l);
-    };
-    const location = Interactions.Location(interactions, structure);
-    let different = 0;
-    for (const e of contacts.edges) {
-      location.element.unitA = structure.unitMap.get(e.unitA);
-      location.element.indexA = e.indexA;
-      location.element.unitB = structure.unitMap.get(e.unitB);
-      location.element.indexB = e.indexB;
-      const a = vdw(e.unitA, e.indexA);
-      const b = vdw(e.unitB, e.indexB);
-      if (a !== b) different++;
-      expect(theme.size(location)).toBe(Math.min(a, b));
-    }
-    expect(different).toBeGreaterThan(0);
+  it.each(['physical', 'uncertainty'])(
+    "%s size theme: an interaction's size is its smaller end's, as the mesh bakes it",
+    async (name) => {
+      const theme = registries.sizeThemeRegistry.create(name, { structure }, {});
+      const interactions = InteractionsProvider.get(structure).value!;
+      const { contacts, unitsFeatures } = interactions;
+      const vdw = (unitId: number, feature: number) => {
+        const unit = structure.unitMap.get(unitId);
+        const f = unitsFeatures.get(unitId);
+        const l = StructureElement.Location.create(structure, unit, unit.elements[f.members[f.offsets[feature]]]);
+        return theme.size(l);
+      };
+      const location = Interactions.Location(interactions, structure);
+      let different = 0;
+      for (const e of contacts.edges) {
+        location.element.unitA = structure.unitMap.get(e.unitA);
+        location.element.indexA = e.indexA;
+        location.element.unitB = structure.unitMap.get(e.unitB);
+        location.element.indexB = e.indexB;
+        const a = vdw(e.unitA, e.indexA);
+        const b = vdw(e.unitB, e.indexB);
+        if (a !== b) different++;
+        expect(theme.size(location)).toBe(Math.min(a, b));
+      }
+      expect(different).toBeGreaterThan(0);
 
-    const { bridges } = interactions;
-    const bridge = Bridges.Location({ structure, bridges, unitsFeatures });
-    for (let i = 0; i < bridges.length; ++i) {
-      const b = bridges[i];
-      bridge.element.bridgeIndex = i;
-      const min = Math.min(
-        vdw(b.unitA, b.indexA),
-        vdw(b.unitM, b.indexMA),
-        vdw(b.unitM, b.indexMB),
-        vdw(b.unitB, b.indexB),
-      );
-      expect(theme.size(bridge)).toBe(min);
+      const { bridges } = interactions;
+      const bridge = Bridges.Location({ structure, bridges, unitsFeatures });
+      for (let i = 0; i < bridges.length; ++i) {
+        const b = bridges[i];
+        bridge.element.bridgeIndex = i;
+        const min = Math.min(
+          vdw(b.unitA, b.indexA),
+          vdw(b.unitM, b.indexMA),
+          vdw(b.unitM, b.indexMB),
+          vdw(b.unitB, b.indexB),
+        );
+        expect(theme.size(bridge)).toBe(min);
+      }
+    },
+  );
+
+  it('updates group sizes when the interactions are recomputed on the same structure', async () => {
+    const cell = await StructureSymmetry.buildSymmetryRange(
+      Structure.ofModel(m1cbs),
+      Vec3.create(0, 0, 0),
+      Vec3.create(1, 0, 0),
+    ).run();
+    await InteractionsProvider.attach(ctx, cell, {}, true);
+    const repr = await createRepr(cell, graphicsStub, {}, 'physical');
+    await InteractionsProvider.attach(ctx, cell, { providers: allOn(ContactProviderParams) as any }, true);
+    await repr.createOrUpdate({}, cell).run();
+    const fresh = await createRepr(cell, graphicsStub, {}, 'physical');
+
+    expect(repr.renderObjects.length).toBe(fresh.renderObjects.length);
+    for (let i = 0; i < repr.renderObjects.length; ++i) {
+      const a = repr.renderObjects[i].values as any;
+      const b = fresh.renderObjects[i].values as any;
+      const groupCount = b.uGroupCount.ref.value;
+      expect(a.uGroupCount.ref.value).toBe(groupCount);
+      const sizeA = (a.tSize.ref.value.array as Uint8Array).subarray(0, groupCount * 4);
+      const sizeB = (b.tSize.ref.value.array as Uint8Array).subarray(0, groupCount * 4);
+      expect(sizeA).toEqual(sizeB);
+    }
+  });
+
+  it('includeParent: impostors draw, pick and mark as the mesh for every parentDisplay', async () => {
+    // a child of the first unit's first half and the whole second unit
+    const [u0, u1] = structure.units;
+    const half = u0.elements.subarray(0, u0.elements.length >> 1) as any;
+    const child = Structure.create([u0.getChild(half), u1], { parent: structure });
+    for (const parentDisplay of ['stub', 'full', 'between']) {
+      const props = { includeParent: true, parentDisplay };
+      const mesh = await createRepr(child, undefined, props);
+      const impostors = await createRepr(child, graphicsStub, props);
+      expect(impostors.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+      const parent = child.asParent();
+      expect(signature(impostors, parent)).toEqual(signature(mesh, parent));
     }
   });
 });

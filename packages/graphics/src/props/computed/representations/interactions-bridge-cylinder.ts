@@ -154,7 +154,8 @@ function getBridgeBuilderProps(
   if (!n) return;
 
   const l = StructureElement.Location.create(structure);
-  const { sizeFactor } = props;
+  // as the impostors' uSizeFactor
+  const sizeFactor = props.sizeFactor * props.sizeAspectRatio;
   const canonical = getCanonicalLegIndices(bridges);
 
   return {
@@ -320,7 +321,6 @@ function setUpdateState(
     newProps.dashCount !== currentProps.dashCount ||
     newProps.dashScale !== currentProps.dashScale ||
     newProps.dashCap !== currentProps.dashCap ||
-    newProps.radialSegments !== currentProps.radialSegments ||
     newTheme.size !== currentTheme.size;
 
   const interactionsHash = InteractionsProvider.get(newStructure).version;
@@ -328,7 +328,21 @@ function setUpdateState(
     state.createGeometry = true;
     state.updateTransform = true;
     state.updateColor = true;
+    // group sizes from a group-granularity size theme
+    state.updateSize = true;
     state.info.interactionsHash = interactionsHash;
+  }
+}
+
+/** The mesh bakes the radius and the radial segments; impostors take them from uniforms and the size theme */
+function setMeshUpdateState(...args: Parameters<typeof setUpdateState>) {
+  setUpdateState(...args);
+  const [state, newProps, currentProps] = args;
+  if (
+    newProps.radialSegments !== currentProps.radialSegments ||
+    newProps.sizeAspectRatio !== currentProps.sizeAspectRatio
+  ) {
+    state.createGeometry = true;
   }
 }
 
@@ -356,7 +370,7 @@ export function BridgeMeshVisual(materialId: number): ComplexVisual<BridgeParams
       createLocationIterator: createBridgeIterator,
       getLoci: getBridgeLoci,
       eachLocation: eachBridgeInteraction,
-      setUpdateState,
+      setUpdateState: setMeshUpdateState,
       mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
         props.tryUseImpostor && !!graphics,
     },
