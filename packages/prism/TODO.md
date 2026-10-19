@@ -111,6 +111,12 @@ section); an entry leaves when it is done (its spec section says so then). The s
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
 
+- A story's links and clicks through the API: a description's `!apply-snapshot` / `!next-snapshot` and a clickable
+  primitive's `snapshot_key` apply through the plugin's snapshot manager, so the history counts them as changes outside
+  the viewer (every earlier step unsafe). Route them through `snapshot.apply` / `.next` (`undoable: false`, in order).
+- The current snapshot after Undo to a scene that had none: the manager has no public way to clear it, so it stays
+  marked (sequence.md §7.3); needs one in plugin/core.
+
 ## Missing: prism-ui
 
 - Commands: Select's one-run mode by a modifier on Enter (Shift+Enter removes, ⌥↵ intersects) and mode words in tails

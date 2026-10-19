@@ -186,7 +186,7 @@ describe('snapshot.apply', () => {
     expect((await list(v)).entries.find((e) => e.current)?.name).toBe('Cartoon');
   });
 
-  it('runs in order with the steps: Undo waits while a snapshot is being applied', async () => {
+  it('runs in order with the steps: Undo is refused while a snapshot is being applied', async () => {
     const v = await viewer();
     expectOk(await snap(v).add({ name: 'A' }));
     expectOk(await v.api.styles.apply({ style: 'spacefill' }));

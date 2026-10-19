@@ -27,7 +27,7 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 // as operations. Its checkpoints never use the manager (sequence.md §7.2) and the list is not part of Undo ("what it
 // never touches: … the Snapshots list"), so changes to the list are `undoable: false` (no checkpoint, recorded as
 // runs). Showing one (apply, next, previous) is no step either (David, 2026-10-20): `undoable: false`, so it runs in
-// order with the steps (Undo waits for it, a step never runs against a half-applied scene), takes no checkpoint, and
+// order with the steps (Undo is refused while one is applied, a step never runs against a half-applied scene), takes no checkpoint, and
 // leaves the steps before it undoable; Undo brings back the snapshot that was current with the scene it restores
 // (sequence.md §7.3).
 
