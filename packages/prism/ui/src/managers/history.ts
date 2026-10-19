@@ -301,7 +301,12 @@ export class HistoryManager<C = unknown> {
     options: RunOptions<T> = {},
   ): Promise<StepOutcome<T>> {
     const parent = options.within && this.#active.get(options.within.id);
-    if (parent) return this.#nested(parent, 'run', label, work, options.failed, options.record, 'rollback');
+    if (parent) {
+      // Inside a step, work that changes nothing undoable (an upload, a snapshot shown) is no run of it either: a group
+      // of only such work records no step.
+      const record = options.undoable === false ? () => false : options.record;
+      return this.#nested(parent, 'run', label, work, options.failed, record, 'rollback');
+    }
 
     this.#running.set(this.#running.value + 1);
     this.#updateBlocked();

@@ -372,6 +372,22 @@ describe('HistoryManager', () => {
     expect(s.get().a).toBe(7);
   });
 
+  it('records no step for a group of only work that changes nothing undoable', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryManager(s.port);
+    const g = await h.group('Show', script, async (ctx) => {
+      await h.run('Apply a snapshot', script, async () => s.set('a', 1), { within: ctx, undoable: false });
+    });
+    expect(g.runs).toEqual([]);
+    expect(h.steps.value).toEqual([]);
+    const both = await h.group('Both', script, async (ctx) => {
+      await h.run('Apply a snapshot', script, async () => s.set('a', 2), { within: ctx, undoable: false });
+      await h.run('Set b', script, async () => s.set('b', 1), { within: ctx });
+    });
+    expect(both.runs).toEqual(['Set b']);
+    expect(h.steps.value.map((x) => x.runs)).toEqual([['Set b']]);
+  });
+
   it('releases the lock when taking a checkpoint throws', async () => {
     let fail = true;
     const s = store({ a: 0 });
