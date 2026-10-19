@@ -24,7 +24,9 @@ import { Structure, StructureElement, Unit } from '@molstar/model/model/structur
 import type { Model } from '@molstar/model/model/structure/model';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { StructureSymmetry } from '../symmetry.js';
-import { InterUnitBonds, type InterUnitEdgeProps, type IntraUnitBonds } from '../unit/bonds/data.js';
+import { InterUnitBonds, type InterUnitEdgeProps, IntraUnitBonds } from '../unit/bonds/data.js';
+import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
+import { Column } from '@molstar/core/data/db';
 import { computeInterUnitBonds } from '../unit/bonds/inter-compute.js';
 
 // Pins what building structures and child structures gives today: bonds (pairs, orders, flags, keys), unit groupings,
@@ -399,6 +401,49 @@ describe('structure building', async () => {
       const child = u.getChild(elements) as Unit.Atomic;
       expect(IntAdjacencyGraph.areEqual(child.bonds, computed(u, elements))).toBe(true);
       expect(u.props.bonds).toBeUndefined();
+    });
+
+    it('restricts a parent of another operator only without index-pair bonds', () => {
+      // 1grm with one index-pair bond between its first and third atoms, listed for operator key 1 only
+      const model: Model = { ...m1grm, id: UUID.create22(), _dynamicPropertyData: Object.create(null) };
+      const pairs = {
+        indexA: Column.ofIntArray([0]),
+        indexB: Column.ofIntArray([2]),
+        operatorA: Column.ofIntArray([1]),
+        operatorB: Column.ofIntArray([1]),
+      };
+      IndexPairBonds.Provider.set(model, IndexPairBonds.fromData({ pairs, count: 1 }, { maxDistance: Infinity }));
+      const u = Structure.ofModel(model).units[0] as Unit.Atomic;
+      const op = (key: number) => SymmetryOperator.create(`k${key}`, Mat4.identity(), { key });
+      const root = u.applyOperator(0, op(1), true) as Unit.Atomic;
+      expect(root.bonds.edgeCount).toBe(1);
+      // a symmetry copy (key 2) of a child keeps the root (key 1) as its parent but not its operator-keyed bonds
+      const copy = root.getChild(everySecond(root)).applyOperator(1, op(2), true);
+      const grandchild = copy.getChild(SortedArray.ofSortedArray(copy.elements.slice(0, 2))) as Unit.Atomic;
+      expect(grandchild.parent).toBe(root);
+      expect(grandchild.bonds.edgeCount).toBe(0);
+      // the same operator restricts
+      const child = root.getChild(SortedArray.ofSortedArray(root.elements.slice(0, 3))) as Unit.Atomic;
+      expect(child.bonds.edgeCount).toBe(1);
+    });
+
+    it('restricts empty parent bonds to empty bonds', () => {
+      const u = Structure.ofModel(m1grm).units[0];
+      const { id, invariantId, chainGroupId, traits, kind, conformation, elements } = u;
+      const props = { bonds: IntraUnitBonds.Empty };
+      const root = Unit.create(
+        id,
+        invariantId,
+        chainGroupId,
+        traits,
+        kind,
+        m1grm,
+        conformation.operator,
+        elements,
+        props,
+      );
+      const child = root.getChild(everySecond(root)) as Unit.Atomic;
+      expect(child.bonds).toBe(IntraUnitBonds.Empty);
     });
 
     it('copies and symmetry copies keep the parent and share the static props', () => {

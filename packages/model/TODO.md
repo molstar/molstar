@@ -22,6 +22,9 @@ decided or fixed. Spec: [\_spec](_spec/README.md). Performance items and bugs of
 
 ## Defects
 
+- `Structure.instances` gives the copies new ids from 0 and keeps the original unit, with its id, for an identity
+  transform: ids collide (1cbs with `[I, T]`: `0 0 1 1 2 2`), and without an identity the copies' ids differ from their
+  parent structure's, which children and loci assume (README invariant 3). Reached from the plugin (`hierarchy.ts`).
 - `intra-compute.ts` (`findBonds`, metal component bonds): `if (flag | BondType.Flag.Covalent)` is always true, so the
   covalent flag is toggled, not cleared; `&` was meant.
 - `Model.getInvertedAtomSourceIndex` (`invertIndex`): `isIdentity` starts `false` and is never set `true`.

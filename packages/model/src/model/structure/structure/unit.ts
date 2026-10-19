@@ -438,8 +438,12 @@ namespace Unit {
       if (this._props.bonds) return this._props.bonds;
 
       // a child restricts its parent's bonds if they exist, and never computes them (unit.md §4)
-      const parentBonds = this.parent?.props.bonds;
-      let bonds = parentBonds && subsetIntraUnitBonds(parentBonds, this.parent!.elements, this.elements);
+      const { parent } = this;
+      const parentBonds = parent?.props.bonds;
+      let bonds =
+        parentBonds &&
+        canRestrictParentBonds(parent!, this) &&
+        subsetIntraUnitBonds(parentBonds, parent!.elements, this.elements);
       if (!bonds) {
         const cache = ElementSetIntraBondCache.get(this.model);
         bonds = cache.get(this.elements);
@@ -540,6 +544,15 @@ namespace Unit {
       this._props = props;
       this.parent = parent;
     }
+  }
+
+  /**
+   * Index-pair bonds may be listed per operator (`molstar_bond_site` with operator ids), so a unit's bonds then depend
+   * on its operator: a child restricts the bonds of a parent with another operator only without index pairs (unit.md §4).
+   */
+  function canRestrictParentBonds(parent: Atomic, child: Atomic) {
+    if (parent.conformation.operator.key === child.conformation.operator.key) return true;
+    return !IndexPairBonds.Provider.get(child.model);
   }
 
   interface AtomicProperties extends BaseProperties {

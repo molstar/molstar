@@ -55,7 +55,8 @@ function childIndexOf(parentIndices: Int32Array, parentIndex: number) {
  * `parentElements` (05-model-structure P6, unit.md §4); `undefined` if `elements` is not a subset of `parentElements`.
  *
  * The edges equal a recompute on the child: `computeIntraUnitBonds` decides per atom pair (struct_conn, the component
- * dictionary, the hydrogen fallback, alt-locs, thresholds, index pairs). Their order is the parent's. The props
+ * dictionary, the hydrogen fallback, alt-locs, thresholds, index pairs), and from the unit's operator only for index
+ * pairs with operators, where the caller restricts a parent of the same operator only. Their order is the parent's. The props
  * (`canRemap`, `cacheable`) are the parent's: a parent that may remap its bonds has children that may too, while a
  * child of one that may not could have been allowed (it then recomputes on a remap). As in the parent, bonds carried
  * over from another frame (`remapModel`) are carried over to the child.
@@ -69,6 +70,8 @@ export function subsetIntraUnitBonds(
   if (n <= 1) return IntraUnitBonds.Empty;
   const vertices = getParentIndices(parentElements, elements);
   if (!vertices) return undefined;
+  // `IntraUnitBonds.Empty` has no offsets, whatever the size of its unit
+  if (bonds.edgeCount === 0) return IntraUnitBonds.Empty;
 
   // the induced subgraph, visiting only the child's vertices and their parent edges (IntAdjacencyGraph
   // .induceByVertices visits every parent vertex)

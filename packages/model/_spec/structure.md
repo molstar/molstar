@@ -22,11 +22,13 @@
 
 `StructureSymmetry` (`symmetry.ts`), tasks over a structure of one model: `buildAssembly` (the assembly's operator
 groups select by query), `buildSymmetryAssembly`, `builderSymmetryMates` (radius), `buildSymmetryRange` (cells),
-`buildNcs`. Results carry the label and `dynamicBonds` and have no parent: an assembly is a new root.
+`buildNcs`. Results carry the label and `dynamicBonds` and have no parent: an assembly is a new root (its units may
+still have a unit parent, unit.md §2).
 
 Units that differ only by operator form a `Unit.SymmetryGroup` (`unitSymmetryGroups`: equal `invariantId`, model and
-elements). Every builder keeps a group's units sharing static props (`applyOperator(id, op, true)` on the group's first
-unit); graphics draws a group as one geometry with instances.
+elements). Builders keep a group's units sharing static props: `StructureSymmetry` adds each source unit under each
+operator (`addWithOperator`, composed), the subset builders apply the operator of a group's other units to its first
+child (`applyOperator(id, op, true)`). Graphics draws a group as one geometry with instances.
 
 ## 3. Children and the root
 

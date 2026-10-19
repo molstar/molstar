@@ -6,9 +6,10 @@ that places them, and data derived from them. Kinds: `Unit.Atomic`, `Unit.Sphere
 ## 1. Static and dynamic
 
 **Static props** (`unit.props`) are derived from the unit's elements and model alone. They use model (invariant)
-coordinates, so they do not depend on the unit's id or operator. One object is shared by every unit with the same
-elements and model: symmetry copies (`applyOperator`), `getCopy`, the mates of a symmetry group in
-`Structure.remapModel`. It is filled lazily by the getters of the units that share it; everyone else reads it
+coordinates, so they do not depend on the unit's id or operator; the one exception is index-pair bonds listed per
+operator (§4). One object is shared by the copies of one unit: symmetry copies (`applyOperator`), `getCopy`, the mates
+of a symmetry group in `Structure.remapModel`; units with equal elements made otherwise (`Unit.create`, two equal
+selections) have their own. It is filled lazily by the getters of the units that share it; everyone else reads it
 (`Readonly`). Why: a 60-mer computes its lookups, bonds and boundaries once, not 60 times.
 
 | Static prop                                                                               | Depends on                   |
@@ -27,10 +28,14 @@ is the one way to share it.
 `unit.parent`: the unit `getChild` was called on, flattened to that unit's own parent, as `Structure.parent` is
 flattened to the root. A child holds at most one other unit; no chains of ancestors build up.
 
-- Same kind and model as the child, and a superset of its elements (set by construction: `getChild` keeps the model,
-  `remapModel` drops a parent of another model).
+- Same kind and model as the child (by construction: `getChild` keeps the model, `remapModel` drops a parent of another
+  model). A superset of its elements is expected, not checked: `getChild` takes the caller's word, and a child whose
+  elements are not all in the parent's computes its bonds.
 - The operator may differ: the subset builders give a symmetry mate `pivot.applyOperator(...)`, which keeps the pivot's
-  parent. So a child uses only the parent's static props.
+  parent. So a child uses only the parent's static props, and not its bonds when those depend on the operator (§4).
+- The root is the unit's origin, not always a unit of the structure's root: a symmetry builder that selects part of a
+  unit (an assembly's chains out of merged waters) applies operators to a child, which keeps the asymmetric unit's unit
+  as its parent.
 - A child peeks at `parent.props` and never calls the parent's getters: a one-residue child must not compute the bonds
   of a 186k-atom unit.
 - Flattened, not immediate: a grandchild cannot use bonds only the intermediate unit computed, but holding the immediate
@@ -42,7 +47,7 @@ flattened to the root. A child holds at most one other unit; no chains of ancest
 | Operation                     | Static props                   | `parent`                                 | `transientCache`        |
 | ----------------------------- | ------------------------------ | ---------------------------------------- | ----------------------- |
 | `getChild(elements)`          | new, empty                     | `this.parent ?? this`                    | new                     |
-| `getChild` with every element | returns `this`                 | –                                        | –                       |
+| `getChild`, as many elements  | returns `this`                 | –                                        | –                       |
 | `getCopy(id, …)`              | shared                         | same                                     | new, or shared if asked |
 | `applyOperator(id, op)`       | shared                         | same                                     | new                     |
 | `remapModel(m, dynamicBonds)` | new, filled by the rules below | kept if `m === this.model`, else dropped | new                     |
@@ -65,9 +70,11 @@ the remapped root (05-model-structure B1), it can pass the root's unit with the 
 - **Bonds**: the induced subgraph of `parent.props.bonds` when they exist (`subsetIntraUnitBonds`,
   `unit/bonds/subset.ts`); else `ElementSetIntraBondCache`, else `computeIntraUnitBonds`. Exact: every decision of the
   computation is per atom pair (struct_conn, the component dictionary, the hydrogen fallback, alt-locs, thresholds,
-  index pairs). Edge order is the parent's; `canRemap` and `cacheable` are the parent's; bonds the parent carried over
-  from another frame are carried over to the child. Restricted bonds are not put in `ElementSetIntraBondCache`: cheap to
-  redo, and that cache never evicts.
+  index pairs). The exception is index-pair bonds listed per operator (`molstar_bond_site` with operator ids:
+  `findIndexPairBonds`, `getIndexPairBonds`), which depend on the unit's operator: with index pairs, a child restricts
+  only a parent of the same operator key. Edge order is the parent's; `canRemap` and `cacheable` are the parent's; bonds
+  the parent carried over from another frame are carried over to the child. Restricted bonds are not put in
+  `ElementSetIntraBondCache`: cheap to redo, and that cache never evicts.
 - **Cost O(child)**: the parent index of each child element by binary search in the parent's elements, each neighbour's
   child index by binary search among those; a child with `n·log2(p) ≥ p` uses a merged walk and a parent-sized map
   instead, O(p). A parent-sized pass per small child is the hazard: 2000 one-residue children of a 186k-atom unit took
@@ -83,5 +90,5 @@ the remapped root (05-model-structure B1), it can pass the root's unit with the 
 
 One pointer per unit. A child keeps its parent unit alive, static props and transient cache included. Child structures
 already keep their root structure (`Structure.parent`), whose units are these parents, so usually nothing more is
-retained. Units of structures made without `parent` (`plugin/ui/src/sequence.tsx`) keep one root unit each: at most one
-per child, never a chain.
+retained. Units whose root is not their structure's root (§2: symmetry built from part of a unit) keep one unit of the
+discarded asymmetric unit alive each: at most one per unit, never a chain. Coarse units keep a parent they never use.
