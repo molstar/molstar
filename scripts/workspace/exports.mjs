@@ -52,6 +52,40 @@ export function expandExports(exports, files) {
     }),
   );
 }
+/**
+ * The `.tsx` sources a `./*` export would publish through its `.ts` source (`molstar-src: ./src/*.ts`): `src/view.tsx`
+ * becomes `./view`, whose source `./src/view.ts` is not there, so importing it fails with the source condition. Each
+ * needs an entry of its own (`entry`), or `null` when only its package loads it (a view chunk by relative import).
+ * `sourceFiles` are relative to `src/`.
+ */
+export function tsxBehindTsWildcard(exports, sourceFiles) {
+  const found = [];
+  const files = new Set(sourceFiles);
+  for (const file of sourceFiles) {
+    if (!file.endsWith('.tsx')) continue;
+    const base = file.slice(0, -'.tsx'.length);
+    // A .ts of the same name is what the wildcard reaches.
+    if (files.has(`${base}.ts`)) continue;
+    const key = `./${base}`;
+    const value = resolveExport(exports, key);
+    if (!value || typeof value !== 'object' || value['molstar-src'] !== `./src/${base}.ts`) continue;
+    found.push({
+      file: `src/${file}`,
+      key,
+      entry: { 'molstar-src': `./src/${file}`, types: `./lib/${base}.d.ts`, import: `./lib/${base}.js` },
+    });
+  }
+  return found;
+}
+
+/** What `pnpm check:workspace` and the unit tests say of one (`tsxBehindTsWildcard`): what to add, and where. */
+export function tsxExportMessage(pkg, { file, key, entry }) {
+  return (
+    `${pkg}: ${file} is exported as ${key} by "./*", whose molstar-src is ./src/*.ts (${entry['molstar-src'].replace(/x$/, '')} does not exist). ` +
+    `Add to its package.json exports "${key}": ${JSON.stringify(entry)}, or "${key}": null if only its own package imports it.`
+  );
+}
+
 function moduleExport(extension) {
   return { 'molstar-src': `./src/*.${extension}`, types: './lib/*.d.ts', import: './lib/*.js' };
 }

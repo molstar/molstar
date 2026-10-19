@@ -744,8 +744,13 @@ class KinParser {
               // If the groupFlags include animate or 2animate, set those to true in the groupDict. Otherwise, set them to false.
               animate: groupFlags['animate'] ? true : false,
               '2animate': groupFlags['2animate'] ? true : false,
-              // If the foundAnimate or found2Animate flags are true, set off to true; otherwise set it to the flags value.
-              off: foundAnimate || found2Animate ? true : groupFlags['off'] ? true : false,
+              // Only the first animate (2animate) group starts shown; the other groups follow their own flags.
+              off:
+                (groupFlags['animate'] && foundAnimate) ||
+                (groupFlags['2animate'] && found2Animate) ||
+                groupFlags['off']
+                  ? true
+                  : false,
             };
             // If the animate or 2animate flags are found in the groupFlags, set foundAnimate
             // or found2Animate to true, respectively. Also update the list and index.
@@ -762,6 +767,9 @@ class KinParser {
             currentGroupMasters = groupMasters;
           }
           currentGroup = groupName;
+          // A group ends the previous group's subgroup: its lists until the next @subgroup are the group's own.
+          currentSubgroup = '';
+          currentSubgroupMasters = [];
 
           if (currentGroupMasters) {
             currentGroupMasters.forEach(function (master) {

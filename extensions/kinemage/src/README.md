@@ -19,6 +19,11 @@ It currently supports the following features:
 - Group and subgroup hierarchy with buttons to control visibility
 - @pointmaster lists controlling visibility of points
 - animate/2animate: First entry turned on to start, changing visibility of Animate button cycles through them
+- In the Prism viewer (`prism-viewer.ts`): the `kinemage` API area (`kinemage.get`, `.visibility`, `.view`, `.animate`)
+  with commands and assistant tools, and the Kinemage panel (`prism-panel.tsx`), a tab beside Structure while a kinemage
+  is loaded, opened when one loads: Next frame in its header, then a tree of the views (a click applies one), the
+  animate frames (the row says which is shown), the masters and the groups with their subgroups as tree rows with eyes,
+  each control a step in the history
 
 Currently unsupported features include:
 

@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Kinemage: a `@group` ends the previous group's `@subgroup` (its lists were put in that subgroup and hidden with its
+  group), and only the animate groups after the first start hidden, not every group after it
 - Fix highlighting and selecting cross-link restraints (`CrossLinkRestraint.isLoci` tested the tag of interactions)
 - Fix `Bond.remapLoci`, which kept the old structure on the remapped bond locations, and `Bond.areLocationsEqual`, which
   compared structures by label

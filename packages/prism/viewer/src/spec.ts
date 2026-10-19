@@ -372,6 +372,11 @@ export interface ViewerExtensionUI {
     readonly order?: number;
     /** On the rail: among the tabs (default), or at its foot with Settings (the assistant). */
     readonly place?: 'strip' | 'foot';
+    /**
+     * On the rail while true (always, when not given): a panel for what is loaded (a kinemage's), which an app with the
+     * extension does not show until there is something in it. Not the person's hidden tabs: those they choose.
+     */
+    readonly visible?: Observable<boolean>;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /** Cards over the canvas, opened by a toolbar button or a command. */

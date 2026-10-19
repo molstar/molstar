@@ -19,7 +19,7 @@ import type { SceneNode } from '../../../model/scene.js';
 import { mockScene } from '../../../testing/scene.js';
 import { extensionUIPort } from '../../../ui/extensions.js';
 import type { ViewerUIContext } from '../../../spec.js';
-import { SceneRow } from '../scene-row.js';
+import { SceneRow, SceneRowPickEvent } from '../scene-row.js';
 import { SceneTree } from '../scene-tree.js';
 
 // Extensions' rows in the scene tree (viewer-spec.md §3, `rows`): registered through the extension port, shown under
@@ -125,5 +125,42 @@ describe('SceneRow', () => {
     (container.querySelector('[data-tree-row]') as HTMLElement).click();
     expect(item.getAttribute('aria-expanded')).toBe('true');
     expect(container.querySelector('.controls')?.textContent).toBe('Planes');
+  });
+
+  it('is a tree of its own with rows under it: its chevron and a click fold them, its depth indents it', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(
+      () => <SceneRow label="Kinemage" icon="shapes" depth={0} children={() => <SceneRow label="Group" depth={1} />} />,
+      container,
+    );
+    const items = () => [...container.querySelectorAll('[role=treeitem]')] as HTMLElement[];
+    const [root] = items();
+    expect(root.getAttribute('aria-expanded')).toBe('false');
+    expect(items()).toHaveLength(1);
+    const expander = root.querySelector('[data-tree-toggle]') as HTMLElement;
+    expect(expander.className).not.toMatch(/leaf/);
+    (root.querySelector('[data-tree-row]') as HTMLElement).click();
+    flush();
+    expect(root.getAttribute('aria-expanded')).toBe('true');
+    expect(items().map((i) => i.querySelector('span[id]')?.textContent)).toEqual(['Kinemage', 'Group']);
+    expect(items()[1].style.getPropertyValue('--msp-tree-depth')).toBe('1');
+    // The child is a leaf: no chevron to press.
+    expect(items()[1].querySelector('[data-tree-toggle]')!.className).toMatch(/leaf/);
+    expander.click();
+    flush();
+    expect(root.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('acts on a click with onActivate, in place of being picked', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const onActivate = vi.fn();
+    const picked = vi.fn();
+    container.addEventListener(SceneRowPickEvent, picked);
+    render(() => <SceneRow label="Overview" depth={2} onActivate={onActivate} />, container);
+    (container.querySelector('[data-tree-row]') as HTMLElement).click();
+    expect(onActivate).toHaveBeenCalledOnce();
+    expect(picked).not.toHaveBeenCalled();
   });
 });

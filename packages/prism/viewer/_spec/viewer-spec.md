@@ -130,22 +130,25 @@ beyond it (README decision 13).
 - **Commands first** (README decision 27): operations with commands and tools; `ui` only where a view is needed.
 - **Views go in named slots** (`ViewerSlot`, closed: Home's import, Export, Selection, canvas settings, animation,
   Settings, inspector sections), plus `tabs`, `overlays` (cards), `pages` (over the app), scene tree `rows`, `toolbar`
-  items. No cards or rail buttons of its own. A row's eye that turns something on (a row with controls; the viewer's
-  Volume streaming and Unit cell too) picks it: its controls are in the inspector at once. A scene tree row is one row
-  of the tree's height (`SceneRow`; the tree is virtualized, view-models.md §3): its controls go to the inspector, never
-  under it. A row whose `when` holds takes a slot, so its view renders a row whenever `when` holds (one that renders
-  nothing leaves a gap); `when` says what the view would (assembly symmetry: only a PDB entry's assembly). A `when` that
-  follows more than the node and its structure passes `whenChanged`, told when it may answer otherwise (a PAE fetched is
-  a state cell, no change of the scene): the tree asks it again for the rows it shows. Streaming starts in the Auto view
-  (around the whole structure, the selection while there is one). A structure with several frames says how many on its
-  row ("1,231 atoms · 10 models"; `frames` for a simulation's coordinates) and has a row of its own first under it
-  (`views/structure/trajectory-row.tsx`): the frame shown, a scrubber, ‹ ›, play; picked, the same at full width and how
-  it plays (mode, seconds per pass) in the inspector. The row plays that structure (`trajectory.play` with `structure`;
-  without one, the operation plays every structure's frames, and every row says so); starting one stops what played. The
-  canvas' trajectory bar follows the structure that plays (paused, the one that played last): while that structure's row
-  is on screen (the Structure tab shown, the structure open, not under a card), a compact chip while frames play (name,
-  frame, pause); otherwise the full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand
-  (another tab, the panel closed, the canvas expanded).
+  items. No cards or rail buttons of its own. A tab for what is loaded (the Kinemage panel) passes `visible`: on the
+  rail only while it holds, so an app with the extension shows nothing for it until it has content (not the person's
+  hidden tabs). A panel with a tree of its own draws it with `SceneRow` (`children`, `depth`; `onActivate` for a row
+  that is an action, a kinemage's view), so it reads as the Structure panel. A row's eye that turns something on (a row
+  with controls; the viewer's Volume streaming and Unit cell too) picks it: its controls are in the inspector at once. A
+  scene tree row is one row of the tree's height (`SceneRow`; the tree is virtualized, view-models.md §3): its controls
+  go to the inspector, never under it. A row whose `when` holds takes a slot, so its view renders a row whenever `when`
+  holds (one that renders nothing leaves a gap); `when` says what the view would (assembly symmetry: only a PDB entry's
+  assembly). A `when` that follows more than the node and its structure passes `whenChanged`, told when it may answer
+  otherwise (a PAE fetched is a state cell, no change of the scene): the tree asks it again for the rows it shows.
+  Streaming starts in the Auto view (around the whole structure, the selection while there is one). A structure with
+  several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for a simulation's coordinates) and has a
+  row of its own first under it (`views/structure/trajectory-row.tsx`): the frame shown, a scrubber, ‹ ›, play; picked,
+  the same at full width and how it plays (mode, seconds per pass) in the inspector. The row plays that structure
+  (`trajectory.play` with `structure`; without one, the operation plays every structure's frames, and every row says
+  so); starting one stops what played. The canvas' trajectory bar follows the structure that plays (paused, the one that
+  played last): while that structure's row is on screen (the Structure tab shown, the structure open, not under a card),
+  a compact chip while frames play (name, frame, pause); otherwise the full bar (scrubber, ‹ ›, play), paused or not, so
+  the controls are always at hand (another tab, the panel closed, the canvas expanded).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).
