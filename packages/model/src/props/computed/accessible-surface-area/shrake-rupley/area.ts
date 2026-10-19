@@ -21,6 +21,7 @@ const updateChunk = 5000;
 export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyContext) {
   const { atomRadiusType: atomRadius } = ctx;
   const spherePoints = flattenSpherePoints(ctx.spherePoints);
+  const neighbors = createNeighbors(256);
   for (let i = 0; i < atomRadius.length; i += updateChunk) {
     if (runtime.shouldUpdate) {
       await runtime.update({
@@ -30,7 +31,7 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
       });
     }
 
-    computeRange(ctx, spherePoints, i, Math.min(i + updateChunk, atomRadius.length));
+    computeRange(ctx, spherePoints, neighbors, i, Math.min(i + updateChunk, atomRadius.length));
   }
 }
 
@@ -44,24 +45,39 @@ function flattenSpherePoints(points: Vec3[]) {
   return flat;
 }
 
-// Neighbours of the current atom: the projection threshold and the offset from the atom. Grow-only and shared by all
-// computations: computeRange is synchronous and nothing in them outlives one atom, so the yields in computeArea
-// (between computeRange calls) cannot interleave two computations inside them.
-let neighborSqRadius = new Float64Array(256);
-let neighborX = new Float64Array(256);
-let neighborY = new Float64Array(256);
-let neighborZ = new Float64Array(256);
-
-function ensureNeighborCapacity(count: number) {
-  if (count <= neighborSqRadius.length) return;
-  const size = Math.max(count, 2 * neighborSqRadius.length);
-  neighborSqRadius = new Float64Array(size);
-  neighborX = new Float64Array(size);
-  neighborY = new Float64Array(size);
-  neighborZ = new Float64Array(size);
+/** Neighbours of the current atom: the projection threshold and the offset from the atom; reused for every atom. */
+interface Neighbors {
+  sqRadius: Float64Array;
+  x: Float64Array;
+  y: Float64Array;
+  z: Float64Array;
 }
 
-function computeRange(ctx: ShrakeRupleyContext, spherePoints: Float64Array, begin: number, end: number) {
+function createNeighbors(capacity: number): Neighbors {
+  return {
+    sqRadius: new Float64Array(capacity),
+    x: new Float64Array(capacity),
+    y: new Float64Array(capacity),
+    z: new Float64Array(capacity),
+  };
+}
+
+function ensureNeighborCapacity(neighbors: Neighbors, count: number) {
+  if (count <= neighbors.sqRadius.length) return;
+  const size = Math.max(count, 2 * neighbors.sqRadius.length);
+  neighbors.sqRadius = new Float64Array(size);
+  neighbors.x = new Float64Array(size);
+  neighbors.y = new Float64Array(size);
+  neighbors.z = new Float64Array(size);
+}
+
+function computeRange(
+  ctx: ShrakeRupleyContext,
+  spherePoints: Float64Array,
+  neighbors: Neighbors,
+  begin: number,
+  end: number,
+) {
   const { structure, atomRadiusType, serialResidueIndex, area, scalingConstant, maxLookupRadius, probeSize } = ctx;
   const { lookup3d, serialMapping, unitIndexMap, units } = structure;
   const { cumulativeUnitElementCount, elementIndices, unitIndices } = serialMapping;
@@ -81,11 +97,8 @@ function computeRange(ctx: ShrakeRupleyContext, spherePoints: Float64Array, begi
     // pre-filter by lookup3d (provides >10x speed-up compared to naive evaluation)
     const { count, units: lUnits, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
 
-    ensureNeighborCapacity(count);
-    const sqRadius = neighborSqRadius;
-    const nX = neighborX;
-    const nY = neighborY;
-    const nZ = neighborZ;
+    ensureNeighborCapacity(neighbors, count);
+    const { sqRadius, x: nX, y: nY, z: nZ } = neighbors;
 
     // see optimizations proposed in Eisenhaber et al., 1995 (https://doi.org/10.1002/jcc.540160303)
     // collect neighbors for each atom

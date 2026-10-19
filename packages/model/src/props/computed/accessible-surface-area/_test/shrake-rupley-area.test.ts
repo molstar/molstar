@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
@@ -27,10 +28,7 @@ async function load1cbs() {
 
 /** FNV-1a over the float32 bits: equal hashes mean bit-identical areas. */
 function hash(area: ArrayLike<number>) {
-  const bits = new Uint32Array(Float32Array.from(area).buffer);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < bits.length; ++i) h = Math.imul(h ^ bits[i], 0x01000193) >>> 0;
-  return h.toString(16);
+  return hashFnv32a(new Uint32Array(Float32Array.from(area).buffer)).toString(16);
 }
 
 function summary(asa: AccessibleSurfaceArea) {
