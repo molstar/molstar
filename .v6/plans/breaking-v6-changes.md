@@ -1080,6 +1080,14 @@ loader).
 Every built-in producer (`PrimitiveBuilder`, `Polyhedron`, the shapes in `geo/primitive/`) already returned them; a
 primitive made of plain arrays wraps them (`new Float32Array(vertices)`, `new Uint32Array(indices)`).
 
+## Cage vertices and mesh fan/strip vertices are Float32Array
+
+`Cage.vertices` (`@molstar/graphics/geo/primitive/cage`) is a `Float32Array` instead of `ArrayLike<number>`, and the
+`vertices` of `MeshBuilder.addTriangleStrip`, `addTriangleFan` and `addTriangleFanWithNormal` are `Float32Array`, so
+their loops read one array kind through `Vec3.fromFloat32Array`. `createCage` still takes any array and copies a
+non-Float32Array one; a cage object literal goes through `createCage`, and fan or strip vertices are wrapped
+(`new Float32Array(vertices)`).
+
 ## Unit props are read-only; units know their parent
 
 `unit.props` (`@molstar/model/model/structure`, `Unit.Atomic`, `Unit.Spheres`, `Unit.Gaussians`) is typed `Readonly`:

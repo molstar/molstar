@@ -20,3 +20,7 @@ Measured on 1tup expanded to 2×2×2 cell blocks (186k atoms): as 288 units in 9
   (0.6 Å before)
 - `Mat4.isRigid`: whether a matrix keeps distances (orthonormal linear part, affine)
 - `Box3D.fromPositionArray` (interleaved xyz), `Box3D.intersect`, `Box3D.isEmpty`
+- [Breaking] `Cage.vertices` and the fan and strip vertices of `MeshBuilder` are `Float32Array`, see the
+  [API change ledger](../plans/breaking-v6-changes.md)
+- `Vec3.fromFloat32Array` and `Vec3.toFloat32Array`: `fromArray` / `toArray` restricted to Float32Array, for hot loops
+  (the generic ones are megamorphic app-wide: 2x slower per element); mesh fans, strips and cages use them
