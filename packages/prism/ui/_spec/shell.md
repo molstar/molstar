@@ -132,6 +132,11 @@ buttons) is the app's. The code is the truth for how.
   item, growing upward, frameless ink with a halo: the latest message (fades after 4 s, held while hovered; an error
   stays until its ✕; a click opens the log, `onOpenLog`), then each running task (spinner, progress, ✕ to cancel), then
   the `agent` slot. The model keeps 200 messages.
+- **The log** (`LogView`, the History panel's Log): the messages the status line showed, each with its `detail` (how
+  long its run took; the status line never shows it), and what was written to the log only (`log(text, kind, source)`:
+  never on show, never said; a source keeps its own bound, `keep`, so a burst does not push the messages out; written
+  once a task, a burst one change). Filters: All, Messages, one per source written, Problems (warnings and errors), and
+  a text filter (Escape empties it).
 - **Busy overlay**: a task with `overlay` holds the app: a scrim and one card with its progress and Cancel.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.
