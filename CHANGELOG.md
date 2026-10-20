@@ -15,8 +15,9 @@ here.
 - Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts
   within a metal coordination, hydrophobic and cation-pi contacts within pi-stacking); the inter-unit check never
   matched
-- Interactions: `closestHydrogenIndex` considers only hydrogens of the donor's unit; a hydrogen bonded across units gave
-  an index that the H-bond acceptor angle then read as an atom of the donor's unit
+- Interactions: `closestHydrogenIndex` considers only hydrogens of the donor's unit (a hydrogen bonded across units gave
+  an index read as an atom of the donor's unit), and an H-bond whose donor has explicit hydrogens but none of its unit
+  toward the acceptor is rejected rather than measured from the heavy atom
 - Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
   (`parentDisplay` read unrelated atoms)
 - Fix state builders that remove a node writing into the state's tree before they commit: a node added under, updated or

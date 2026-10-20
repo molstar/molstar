@@ -251,6 +251,9 @@ export function checkGeometry(
   let donorIndex = donIndex;
   if (!opts.ignoreHydrogens && donHAngles.length > 0) {
     donorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
+    // the model has hydrogens on this donor, but none of its unit lies between it and the acceptor: the H-bond is not
+    // supported by the model (no fallback to the heavy atom)
+    if (donorIndex === donIndex) return;
   }
 
   const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donorIndex, opts.ignoreHydrogens);
