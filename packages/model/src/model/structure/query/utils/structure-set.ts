@@ -7,37 +7,76 @@
 import { Structure, type Unit, type StructureElement } from '../../structure.js';
 import { SortedArray } from '@molstar/core/data/int';
 import type { StructureSubsetBuilder } from '../../structure/util/subset-builder.js';
+import type { ElementIndex } from '../../model.js';
 
+/** The element sets of one unit id across the inputs of a union. */
+interface UnionParts {
+  sets: StructureElement.Set[];
+  /** A set as large as the source unit, which is then the union. */
+  full: StructureElement.Set | undefined;
+  size: number;
+}
+
+/**
+ * The union of parts of `source`. Each unit's sets are merged once, after all inputs are read, not input by input:
+ * merging into the accumulated set copied it per input, quadratic in the unit's size for singletons
+ * (perf audit 05/P1).
+ */
 export function structureUnion(source: Structure, structures: Structure[]) {
   if (structures.length === 0) return Structure.Empty;
   if (structures.length === 1) return structures[0];
 
-  const unitMap = new Map<number, StructureElement.Set>();
-  const fullUnits = new Set<number>();
+  const parts = new Map<number, UnionParts>();
 
   for (const { units } of structures) {
     for (let i = 0, _i = units.length; i < _i; i++) {
       const u = units[i];
-      if (unitMap.has(u.id)) {
-        // check if there is anything more to union in this particual unit.
-        if (fullUnits.has(u.id)) continue;
-        const merged = SortedArray.union(unitMap.get(u.id)!, u.elements);
-        unitMap.set(u.id, merged);
-        if (merged.length === source.unitMap.get(u.id).elements.length) fullUnits.add(u.id);
+      const isFull = u.elements.length === source.unitMap.get(u.id).elements.length;
+      const p = parts.get(u.id);
+      if (p) {
+        if (p.full) continue;
+        if (isFull) p.full = u.elements;
+        else {
+          p.sets.push(u.elements);
+          p.size += u.elements.length;
+        }
       } else {
-        unitMap.set(u.id, u.elements);
-        if (u.elements.length === source.unitMap.get(u.id).elements.length) fullUnits.add(u.id);
+        parts.set(u.id, { sets: [u.elements], full: isFull ? u.elements : undefined, size: u.elements.length });
       }
     }
   }
 
   const builder = source.subsetBuilder(true);
-  unitMap.forEach(buildUnion, builder);
+  parts.forEach(buildUnion, builder);
   return builder.getStructure();
 }
 
-function buildUnion(this: StructureSubsetBuilder, elements: StructureElement.Set, id: number) {
-  this.setUnit(id, elements);
+function buildUnion(this: StructureSubsetBuilder, p: UnionParts, id: number) {
+  this.setUnit(id, p.full ?? mergeSets(p.sets, p.size));
+}
+
+/** The union of sorted sets: one linear merge for two, else a concatenation, sorted and deduplicated if needed. */
+function mergeSets(sets: StructureElement.Set[], size: number): StructureElement.Set {
+  if (sets.length === 1) return sets[0];
+  if (sets.length === 2) return SortedArray.union(sets[0], sets[1]);
+
+  const merged = new Int32Array(size);
+  let offset = 0,
+    inOrder = true,
+    largest = sets[0];
+  for (const s of sets) {
+    // sets that follow one another (residues of a unit in order) concatenate to a sorted, duplicate-free set
+    if (offset > 0 && merged[offset - 1] >= s[0]) inOrder = false;
+    merged.set(s, offset);
+    offset += s.length;
+    if (s.length > largest.length) largest = s;
+  }
+  if (inOrder) return SortedArray.ofSortedArray(merged);
+
+  merged.sort();
+  const union = SortedArray.deduplicate(SortedArray.ofSortedArray<ElementIndex>(merged));
+  // a set that holds all the others is their union: keep it rather than a copy
+  return union.length === largest.length ? largest : union;
 }
 
 export function structureAreEqual(sA: Structure, sB: Structure): boolean {
