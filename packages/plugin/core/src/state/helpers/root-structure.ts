@@ -16,7 +16,7 @@ import { Assembly, Symmetry } from '@molstar/model/model/structure/model/propert
 import { PluginStateObject as SO } from '../objects.js';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
-import { BondProviderRegistry, unregisteredBondProviderMessage } from '../bonds/registry.js';
+import { BondProviderRegistry } from '../bonds/registry.js';
 
 /** The bonds param without a plugin: the built-in bonds only. */
 const EmptyBondProviders = new BondProviderRegistry();
@@ -53,8 +53,8 @@ function structureProps(
   props: CommonStructureProps | undefined,
 ): StructureProps | undefined {
   if (!props) return undefined;
+  // an unregistered name is 'default' by now (normalization); `resolve` falls back for raw params too
   const { bonds, ...rest } = props;
-  if (bonds && !plugin.bondProviders.has(bonds.name)) plugin.log.warn(unregisteredBondProviderMessage(bonds.name));
   return { ...rest, bondProvider: plugin.bondProviders.resolve(bonds, model) };
 }
 

@@ -42,7 +42,8 @@ export namespace BondProvider {
     readonly provider: BondProvider;
     /**
      * Equal keys give equal bonds for an equal model and element set: the key of the model's intra-unit bond cache
-     * (`ElementSetIntraBondCache`). `undefined` caches nothing.
+     * (`ElementSetIntraBondCache`), under the provider's name, so it need only be unique within the provider.
+     * `undefined` caches nothing.
      */
     readonly cacheKey: string | undefined;
     /**
@@ -51,6 +52,12 @@ export namespace BondProvider {
      * decisions over rings or conjugated systems, at the cost of the whole root unit once.
      */
     readonly childBonds?: 'self' | 'root';
+    /**
+     * The bonds are complete as given (as a file's full bond table is), so presets may draw bonds where they would not
+     * trust the built-in computation (`atomic-detail` on structures of few atoms per residue). Not for providers that
+     * only drop or reorder the built-in bonds.
+     */
+    readonly bondsGiven?: boolean;
     /** The bonds of an atomic unit; without it, the built-in computation. */
     intra?(unit: Unit.Atomic, ctx: IntraContext): IntraUnitBonds;
     /** The bonds between the units of a structure; without it, the built-in computation. */

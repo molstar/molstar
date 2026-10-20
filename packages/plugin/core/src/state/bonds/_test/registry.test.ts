@@ -8,7 +8,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { StateSelection } from '@molstar/core/state';
+import { StateSelection, StateTransformer } from '@molstar/core/state';
+import { UUID } from '@molstar/core/util/uuid';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import type { Model } from '@molstar/model/model/structure';
 import { Structure, Unit } from '@molstar/model/model/structure';
 import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
@@ -183,6 +185,34 @@ describe('bond providers in the plugin', async () => {
     expect(s.data!.bondProvider.provider).toBe(a.provider);
   });
 
+  it('a new model under the structure (a frame) keeps the instance, units included', async () => {
+    const { plugin: p, trajectory } = await plugin(true);
+    const s = await structureOf(p, trajectory, { name: 'a', params: { cutoff: 2.2 } });
+    const [cell] = p.state.data.select(StateSelection.Generators.ofTransformer(StructureFromModel));
+    const frame = { ...s.model, id: UUID.create22() } as Model;
+    const b = cell.obj! as PluginStateObject.Molecule.Structure;
+    const params = cell.transform.params as any;
+    const result = await (StructureFromModel.definition.update as any)(
+      { a: new PluginStateObject.Molecule.Model(frame), b, oldParams: params, newParams: params, cache: {} },
+      p,
+    );
+    expect(result).toBe(StateTransformer.UpdateResult.Updated);
+    expect(b.data.model).toBe(frame);
+    expect(b.data.bondProvider).toBe(s.bondProvider);
+    for (const u of b.data.units) if (Unit.isAtomic(u)) expect(u.bondProvider).toBe(s.bondProvider);
+  });
+
+  it('a direct apply naming a provider this plugin lacks gets the built-in bonds, silently', async () => {
+    const { plugin: p, trajectory } = await plugin(false);
+    const warnings: string[] = [];
+    (p.log as any).warn = (m: string) => warnings.push(m);
+    const s = await structureOf(p, trajectory, { name: 'a', params: { cutoff: 2.2 } });
+    expect(s.bondProvider).toBe(BondProvider.DefaultInstance);
+    const [cell] = p.state.data.select(StateSelection.Generators.ofTransformer(StructureFromModel));
+    expect((cell.transform.params as any).type.params.bonds).toEqual({ name: 'default', params: {} });
+    expect(warnings).toEqual([]);
+  });
+
   it('a snapshot naming a provider this plugin lacks loads with the built-in bonds and warns', async () => {
     const source = await plugin(true);
     await structureOf(source.plugin, source.trajectory, { name: 'a', params: { cutoff: 2.2 } });
@@ -294,7 +324,7 @@ describe("'per-unit'", async () => {
     }
   });
 
-  it('a child unit gets the provider its root matched', () => {
+  it("a unit made anew from a matched unit's elements gets the same provider", () => {
     const { units, calls } = run({ name: 'entity-type', params: ['polymer'] });
     const polymer = units.find((u) => describeUnit(u).type === 'polymer')!;
     calls.length = 0;

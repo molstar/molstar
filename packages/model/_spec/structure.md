@@ -8,9 +8,10 @@
 - `Structure.create(units, props)`: sorts `units` by id (in place), builds `unitMap` and `unitIndexMap`. Props:
   `parent`, `interUnitBonds`, `dynamicBonds`, `bondProvider`, `interBondsValidUnit(Pair)`, `coordinateSystem`, `label`,
   `masterModel`, `representativeModel`; what is not given is inherited from `parent`.
-- `bondProvider` (`unit/bonds/provider.ts`; the built-in `BondProvider.DefaultInstance` when neither given nor
-  inherited): the structure's inter-unit bonds come from it, and `StructureBuilder.addUnit` gives it to the units it
-  makes (unit.md §1). Paths that make a new root without a parent pass it on: `remapModel`, `ofTrajectory` (its props),
+- `bondProvider` (`unit/bonds/provider.ts`; when neither given nor inherited, the first atomic unit's, so a root made of
+  another's units (`Loci.toStructure` of a root's loci) keeps their bonds' source; else `BondProvider.DefaultInstance`):
+  the structure's inter-unit bonds come from it, and `StructureBuilder.addUnit` gives it to the units it makes (unit.md
+  §1). Paths that make a new root without a parent pass it on: `remapModel`, `ofTrajectory` (its props),
   `mergeUnitsByOperator` and `mergeUnitsWithSameOperator` (the merged unit takes its first unit's), and the
   `StructureSymmetry` builders. A structure over units of several providers is allowed: each unit's decides its
   intra-unit bonds.
@@ -68,7 +69,7 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
 - Both come from the bond provider when it has `intra` (a unit's) or `inter` (the structure's), which may call the
   built-in computation through its context (`ctx.builtIn(props)`); else from the built-in computation below. The generic
   providers are in `unit/bonds/providers.ts`: `'none'` (the built-in computation with `noDistance`) and `'per-unit'`
-  (other providers by rules on a unit's root: entity type, chain, entity; bond-providers plan §5).
+  (other providers by rules on a unit's first element: entity type, chain, entity; bond-providers plan §5).
 - `noDistance` (`BondComputationProps`): only the bonds the format states (index pairs, struct_conn, the component
   dictionary); the distance pass over the grid is skipped, intra and inter, as is the distance fallback for hydrogens
   the dictionary lacks. The rest of the computation is the same pass, so the result is the default bonds without the

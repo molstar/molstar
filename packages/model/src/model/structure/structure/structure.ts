@@ -784,6 +784,7 @@ namespace Structure {
 
     if (props.bondProvider) state.bondProvider = props.bondProvider;
     else if (props.parent) state.bondProvider = props.parent.bondProvider;
+    else state.bondProvider = unitsBondProvider(units);
 
     if (props.coordinateSystem) state.coordinateSystem = props.coordinateSystem;
     else if (props.parent) state.coordinateSystem = props.parent.coordinateSystem;
@@ -798,6 +799,16 @@ namespace Structure {
     else if (props.parent) state.representativeModel = props.parent.representativeModel;
 
     return new Structure(units, unitMap, unitIndexMap, state);
+  }
+
+  /**
+   * A new root given no provider (`Loci.toStructure` of a root's loci, a structure of units made elsewhere) takes its
+   * units' (bond-providers plan §2.2): the first atomic unit's, so the inter-unit bonds come from where the intra-unit
+   * ones do.
+   */
+  function unitsBondProvider(units: ReadonlyArray<Unit>): BondProvider.Instance {
+    for (const u of units) if (Unit.isAtomic(u)) return u.bondProvider;
+    return BondProvider.DefaultInstance;
   }
 
   export async function ofTrajectory(

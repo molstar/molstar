@@ -465,10 +465,8 @@ namespace Unit {
       let bonds: IntraUnitBonds | undefined =
         parentBonds && subsetIntraUnitBonds(parentBonds, parent!.elements, this.elements);
       if (!bonds) {
-        const cache =
-          bondProvider.cacheKey !== undefined
-            ? ElementSetIntraBondCache.get(this.model, bondProvider.cacheKey)
-            : undefined;
+        const cacheKey = intraCacheKey(bondProvider);
+        const cache = cacheKey !== undefined ? ElementSetIntraBondCache.get(this.model, cacheKey) : undefined;
         bonds = cache?.get(this.elements);
         if (!bonds) {
           bonds = bondProvider.intra ? bondProvider.intra(this, intraContext(this)) : computeIntraUnitBonds(this);
@@ -569,6 +567,16 @@ namespace Unit {
       this.parent = parent;
       this.bondProvider = bondProvider;
     }
+  }
+
+  /**
+   * The provider's cache key under its name, so two providers never share a cache by choosing the same key; the
+   * built-in bonds keep the model's original cache (bond-providers plan §2.1).
+   */
+  function intraCacheKey(instance: BondProvider.Instance): string | undefined {
+    if (BondProvider.isDefault(instance)) return BondProvider.DefaultName;
+    if (instance.cacheKey === undefined) return undefined;
+    return `${instance.provider.name}:${instance.cacheKey}`;
   }
 
   function intraContext(unit: Atomic): BondProvider.IntraContext {

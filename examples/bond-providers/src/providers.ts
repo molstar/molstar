@@ -8,7 +8,7 @@ import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { BondType } from '@molstar/model/model/structure/model/types';
 import type { StructureElement, Unit } from '@molstar/model/model/structure';
-import { InterUnitBonds, type IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
+import { InterUnitBonds, IntraUnitBonds } from '@molstar/model/model/structure/structure/unit/bonds/data';
 import type { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
 
 // Three naive bond providers, written as a third party would: against the public interface only (`BondProvider`, the
@@ -46,18 +46,21 @@ function bondsWithin(unit: Unit.Atomic, cutoff: number): IntraUnitBonds {
       b.push(indices[k]);
     }
   }
-  const builder = new IntAdjacencyGraph.EdgeBuilder(elements.length, a, b);
-  const order = new Int8Array(builder.slotCount);
-  const flags = new Uint16Array(builder.slotCount);
-  const key = new Int32Array(builder.slotCount);
-  for (let i = 0; i < builder.edgeCount; i++) {
-    builder.addNextEdge();
-    builder.assignProperty(order, 1);
-    builder.assignProperty(flags, BondType.Flag.Covalent | BondType.Flag.Computed);
-    builder.assignProperty(key, -1);
-  }
+  const flag = BondType.Flag.Covalent | BondType.Flag.Computed;
+  const ones = a.map(() => 1);
   // the bonds depend on the coordinates: recomputed for another frame when bonds are dynamic
-  return builder.createGraph({ order, flags, key }, { canRemap: false, cacheable: true });
+  return IntraUnitBonds.fromPairs(
+    a,
+    b,
+    ones,
+    ones.map(() => flag),
+    ones.map(() => -1),
+    elements.length,
+    {
+      canRemap: false,
+      cacheable: true,
+    },
+  );
 }
 
 /**
@@ -161,15 +164,17 @@ function randomBonds(unit: Unit.Atomic, probability: number, maxDistance: number
       orders.push(1 + Math.floor(pairRandom(seed, e, elements[j], 1) * 3));
     }
   }
-  const builder = new IntAdjacencyGraph.EdgeBuilder(elements.length, a, b);
-  const order = new Int8Array(builder.slotCount);
-  const flags = new Uint16Array(builder.slotCount);
-  const key = new Int32Array(builder.slotCount);
-  for (let i = 0; i < builder.edgeCount; i++) {
-    builder.addNextEdge();
-    builder.assignProperty(order, orders[i]);
-    builder.assignProperty(flags, BondType.Flag.Covalent | BondType.Flag.Computed);
-    builder.assignProperty(key, -1);
-  }
-  return builder.createGraph({ order, flags, key }, { canRemap: false, cacheable: true });
+  const flag = BondType.Flag.Covalent | BondType.Flag.Computed;
+  return IntraUnitBonds.fromPairs(
+    a,
+    b,
+    orders,
+    orders.map(() => flag),
+    orders.map(() => -1),
+    elements.length,
+    {
+      canRemap: false,
+      cacheable: true,
+    },
+  );
 }

@@ -14,7 +14,7 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 import { type Coordinates, Structure, Model, type Frame } from '@molstar/model/model/structure';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
-import { BondProviderRegistry, unregisteredBondProviderMessage } from '@molstar/plugin/state/bonds/registry';
+import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
 import type { PluginContext } from '@molstar/plugin/context';
 import { deepEqual } from '@molstar/core/util';
 import {
@@ -120,9 +120,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Build Structure', async (ctx) => {
-      const { bonds } = params ?? {};
-      if (bonds && !plugin.bondProviders.has(bonds.name)) plugin.log.warn(unregisteredBondProviderMessage(bonds.name));
-      const bondProvider = plugin.bondProviders.resolve(bonds, a.data.representative);
+      const bondProvider = plugin.bondProviders.resolve(params?.bonds, a.data.representative);
       const s = await Structure.ofTrajectory(a.data, ctx, { bondProvider });
       const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
       return new SO.Molecule.Structure(s, props);

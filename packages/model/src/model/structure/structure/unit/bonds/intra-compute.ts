@@ -9,7 +9,6 @@
 import { BondType } from '../../../model/types.js';
 import { type IntraUnitBondProps, IntraUnitBonds } from './data.js';
 import type { Unit } from '../../unit.js';
-import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import {
   type BondComputationProps,
   getElementIdx,
@@ -47,18 +46,7 @@ function getGraph(
   atomCount: number,
   props?: IntraUnitBondProps,
 ): IntraUnitBonds {
-  const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
-  const flags = new Uint16Array(builder.slotCount);
-  const order = new Int8Array(builder.slotCount);
-  const key = new Uint32Array(builder.slotCount);
-  for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
-    builder.addNextEdge();
-    builder.assignProperty(flags, _flags[i]);
-    builder.assignProperty(order, _order[i]);
-    builder.assignProperty(key, _key[i]);
-  }
-
-  return builder.createGraph({ flags, order, key }, props);
+  return IntraUnitBonds.fromPairs(atomA, atomB, _order, _flags, _key, atomCount, props);
 }
 
 const tmpDistVecA = Vec3();

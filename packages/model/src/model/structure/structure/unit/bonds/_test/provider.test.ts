@@ -13,7 +13,7 @@ import { Task } from '@molstar/core/task';
 import { UUID } from '@molstar/core/util/uuid';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
-import { Structure, Unit } from '@molstar/model/model/structure';
+import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import { ArrayTrajectory } from '../../../../trajectory.js';
 import type { ElementIndex } from '../../../../model/indexing.js';
@@ -22,6 +22,8 @@ import type { IntraUnitBonds } from '../data.js';
 import { computeIntraUnitBonds } from '../intra-compute.js';
 import { BondProvider } from '../provider.js';
 import { NoComputedBondsProvider } from '../providers.js';
+import { ElementSetIntraBondCache } from '../element-set-intra-bond-cache.js';
+import { Interval } from '@molstar/core/data/int';
 import { BondType } from '../../../../model/types.js';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
 import { trajectoryFromMol2 } from '@molstar/model/formats/structure/mol2';
@@ -75,11 +77,18 @@ function withProps(bonds: IntraUnitBonds, cacheable: boolean): IntraUnitBonds {
 }
 
 /** A provider recording the units and structures it computes bonds for. */
-function counting(options: { cacheKey?: string; cacheable?: boolean; childBonds?: 'self' | 'root'; inter?: boolean }) {
+function counting(options: {
+  name?: string;
+  cacheKey?: string;
+  cacheable?: boolean;
+  childBonds?: 'self' | 'root';
+  inter?: boolean;
+}) {
   const intraCalls: Unit.Atomic[] = [];
   const interCalls: Structure[] = [];
+  const provider = { name: options.name ?? 'counting', label: 'Counting' } as BondProvider;
   const instance: BondProvider.Instance = {
-    provider: undefined as any,
+    provider,
     cacheKey: options.cacheKey,
     childBonds: options.childBonds,
     intra(unit, ctx) {
@@ -199,6 +208,33 @@ describe('bond providers', async () => {
       }
     });
 
+    it("cache keys are per provider: the same key of two providers, or the key 'default', shares nothing", () => {
+      const model = fresh(m1cbs);
+      const a = counting({ name: 'a', cacheKey: 'k', cacheable: true });
+      const b = counting({ name: 'b', cacheKey: 'k', cacheable: true });
+      const d = counting({ name: 'c', cacheKey: 'default', cacheable: true });
+      for (const p of [a, b, d]) {
+        for (const u of atomic(Structure.ofModel(model, { bondProvider: p.instance }))) void u.bonds;
+        expect(p.intraCalls.length).toBeGreaterThan(0);
+      }
+      // the model's built-in cache holds none of them
+      expect(model._dynamicPropertyData.ElementSetIntraBondCache).toBeUndefined();
+    });
+
+    it('a model keeps the caches of the last few provider keys only', () => {
+      const model = fresh(m1cbs);
+      const unitsOf = (cutoff: number) => {
+        const p = counting({ name: 'cutoff', cacheKey: `${cutoff}`, cacheable: true });
+        for (const u of atomic(Structure.ofModel(model, { bondProvider: p.instance }))) void u.bonds;
+        return p.intraCalls.length;
+      };
+      const first = unitsOf(0);
+      expect(unitsOf(0)).toBe(0); // cached
+      for (let i = 1; i <= ElementSetIntraBondCache.MaxProviderKeys; i++) unitsOf(i);
+      // key 0 was evicted by the later ones: computed again
+      expect(unitsOf(0)).toBe(first);
+    });
+
     it('no cache key caches nothing', () => {
       const model = fresh(m1cbs);
       const p = counting({ cacheKey: undefined, cacheable: true });
@@ -276,6 +312,20 @@ describe('bond providers', async () => {
   });
 
   describe('structures derived from a structure', () => {
+    it("a structure of a root's loci (no parent) takes its units' provider", () => {
+      const p = counting({ inter: true });
+      const s = Structure.ofModel(fresh(m1cbs), { bondProvider: p.instance });
+      const loci = StructureElement.Loci(
+        s,
+        s.units.map((unit) => ({ unit, indices: Interval.ofBounds(0, Math.min(10, unit.elements.length)) })),
+      );
+      const sub = StructureElement.Loci.toStructure(loci);
+      expect(sub.parent).toBeUndefined();
+      expect(sub.bondProvider).toBe(p.instance);
+      void sub.interUnitBonds;
+      expect(p.interCalls).toEqual([sub]);
+    });
+
     it('assemblies, merged units, remapped models and trajectories keep the instance', async () => {
       const { instance } = counting({});
       const model = fresh(m1cbs);

@@ -10,7 +10,6 @@
 import { StateObjectRef } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
-import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
 import { StructConn } from '@molstar/model/formats/structure/property/bonds/struct_conn';
 import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
 import { CarbohydrateRepresentationProvider } from '@molstar/graphics/repr/structure/representation/carbohydrate';
@@ -61,9 +60,9 @@ export const AtomicDetailPreset = StructureRepresentationPresetProvider({
       structure.atomicResidueCount / structure.elementCount < 3;
 
     const m = structure.models[0];
-    // a bond provider other than the built-in one gives the bonds (bond-providers plan §4)
+    // or a bond provider that says it gives complete bonds (bond-providers plan §4)
     const bondsGiven =
-      !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m) || !BondProvider.isDefault(structure.bondProvider);
+      !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m) || !!structure.bondProvider.bondsGiven;
 
     let atomicType:
       | typeof BallAndStickRepresentationProvider

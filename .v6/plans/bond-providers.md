@@ -282,10 +282,11 @@ different instances (§2.2); only the selection needs to be serializable.
 
 - `create(props)` makes the child instances once, and its `intra(unit)` hands the unit to the first rule that matches.
   `cacheKey` combines the children's keys; `childBonds` is per child (the composite asks the matched child).
-- Rules match the unit's **root** (`unit.parent ?? unit`) on properties that are the same for every element of a chain
-  and every operator: entity type, entity id, label_asym_id. So a child, a symmetry copy (they share `_props` and so
-  bonds) and a remapped frame always get the provider their root got. A merged water unit is one unit and matches as
-  one.
+- Rules match the unit's **first element** on properties that are the same for every element of a chain and every
+  operator: entity type, entity id, label_asym_id. A function of the model and the elements alone, as the intra-unit
+  cache requires (equal elements, equal bonds; matching on the root broke that for children of multi-chain units). A
+  symmetry copy and a remapped frame have the elements and so the match; a child of a unit with several chains (merged
+  waters) matches by its own first chain.
 - Why not per-element selections (MolScript, MVS selectors): bonds are a per-unit computation, so a selection that
   splits a unit has no meaning, and expression rules would need a structure to evaluate against before the structure
   exists.

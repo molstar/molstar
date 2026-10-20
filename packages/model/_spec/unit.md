@@ -86,8 +86,10 @@ the remapped root (05-model-structure B1), it can pass the root's unit with the 
   (`childBonds: 'self'`, the default). One whose decisions span rings or conjugated systems sets `childBonds: 'root'`: a
   child without restricted bonds computes the root unit's (`parent.bonds`) and restricts them, so a residue never
   differs from its chain, at the cost of the root unit once. `intra(unit)` depends on the model, the elements and its
-  props only, which is what makes a `cacheKey` sound; the cache is one per key and model, the built-in key the model's
-  original cache, so structures of one model with different providers never share bonds. No key caches nothing.
+  props only, which is what makes a `cacheKey` sound. The cache is one per model and key, the key under the provider's
+  name (`intraCacheKey`), so two providers never share bonds; the built-in bonds keep the model's original cache for its
+  life, the other keys only the last `MaxProviderKeys` (an LRU: a key per param value, a slider, would keep every
+  value's bonds). No key caches nothing.
 - **Cost O(child)**: the parent index of each child element by binary search in the parent's elements, each neighbour's
   child index by binary search among those; a child with `n·log2(p) ≥ p` uses a merged walk and a parent-sized map
   instead, O(p). A parent-sized pass per small child is the hazard: 2000 one-residue children of a 186k-atom unit took

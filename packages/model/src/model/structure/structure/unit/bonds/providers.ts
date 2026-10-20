@@ -83,7 +83,11 @@ const list = (text: string) =>
       .filter((s) => s.length > 0),
   );
 
-/** Whether a unit matches; read on the unit's root, so a child, a symmetry copy and a frame match as the root did. */
+/**
+ * Whether a unit matches, read on its first element: a function of the model and the elements alone, as the intra-unit
+ * bond cache requires (equal elements, equal bonds). A symmetry copy and a frame have the elements and so the match of
+ * their unit; a child of a unit with several chains (merged waters) matches by its own first chain.
+ */
 function matcher(match: Match): (unit: Unit.Atomic) => boolean {
   const entityOf = (u: Unit.Atomic) => u.model.atomicHierarchy.index.getEntityFromChain(u.chainIndex[u.elements[0]]);
   switch (match.name) {
@@ -103,7 +107,7 @@ function matcher(match: Match): (unit: Unit.Atomic) => boolean {
 }
 
 /**
- * Other providers chosen per unit: the first rule matching a unit's root decides its intra-unit bonds, units no rule
+ * Other providers chosen per unit: the first rule matching a unit decides its intra-unit bonds, units no rule
  * matches get the built-in ones, and one provider decides the bonds between units. Serializable as plain params, so
  * per-unit choice needs nothing of the model layer beyond units with their own instances (plan §5).
  */
@@ -119,8 +123,7 @@ const PerUnitBondProvider: BondProvider<PerUnitParams> = {
     const instances = [...rules.map((r) => r.instance), inter];
     const keys = instances.map((i) => i.cacheKey);
     const instanceFor = (unit: Unit.Atomic) => {
-      const root = unit.parent ?? unit;
-      for (const r of rules) if (r.matches(root)) return r.instance;
+      for (const r of rules) if (r.matches(unit)) return r.instance;
       return BondProvider.DefaultInstance;
     };
     return {
