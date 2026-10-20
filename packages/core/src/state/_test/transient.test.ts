@@ -4,9 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Map as ImmutableMap } from 'immutable';
 import { describe, expect, it, vi } from 'vitest';
 import { State, StateObject, StateTransform, StateTransformer, StateTree } from '../index.js';
 import { Task } from '@molstar/core/task';
+import { UUID } from '@molstar/core/util/uuid';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
 // A transient tree's edits never reach the tree it was made on (tree.md §2), whatever it removed before them.
@@ -42,6 +44,36 @@ function newState() {
  * and the two share a collision node. Generated refs (UUIDs that differ in the last characters) collide this way often.
  */
 const colliding = (n: number) => `n${n >> 1}${n & 1 ? 'Aa' : 'BB'}`;
+
+const Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+/**
+ * `UUID.create22`'s layout (a 14-character prefix, then an 8-character base64 counter) with a fixed prefix: the
+ * collisions of generated refs and versions, the same in every run, so a failing seed reproduces.
+ */
+function generatedIds() {
+  let n = 0;
+  const spy = vi.spyOn(UUID, 'create22').mockImplementation(() => {
+    let s = '';
+    for (let i = 0, c = n++; i < 8; i++, c = Math.floor(c / 64)) s = Alphabet[c % 64] + s;
+    return `transientTests${s}` as UUID;
+  });
+  return { reset: () => void (n = 0), restore: () => spy.mockRestore() };
+}
+
+// The workaround in `TransientTree` (`renewOwner`, tree.md §2) is for this. When it fails, Immutable is fixed: see the
+// core TODO.
+it('Immutable writes a set after a delete of a colliding key into the frozen map', () => {
+  const entries: [string, number][] = [
+    ['Aa', 1],
+    ['BB', 2],
+  ];
+  for (let i = 0; i < 10; i++) entries.push([`k${i}`, i]);
+  const frozen = ImmutableMap(entries);
+  const mutable = frozen.asMutable();
+  mutable.delete('Aa');
+  mutable.set('BB', 3);
+  expect(frozen.get('BB')).toBe(3);
+});
 
 /** 10 nodes under the root, then the pair 'pAa' and 'pBB'; each with a dependent */
 async function withPair() {
@@ -167,42 +199,48 @@ describe('random builders with removals', () => {
     ['generated refs', 'generated'],
   ] as const)('never change the state tree before they commit (%s)', async (_, refs) => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    const ids = generatedIds();
     let removals = 0;
-    for (let seed = 1; seed <= 100; seed++) {
-      const rnd = random(seed);
-      const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
-      const state = newState();
-      let n = 0;
-      const options = () => (refs === 'colliding' ? { ref: colliding(n++) } : undefined);
-      const value = () => pick([1, 2, 3, 4, 0, -1]);
-      for (let step = 0; step < 60; step++) {
-        const committed = shape(state.tree).join();
-        const b = state.build();
-        const all = () => Array.from(b.currentTree.transforms.keys());
-        const count = 1 + Math.floor(rnd() * 5);
-        for (let e = 0; e < count; e++) {
-          const nonRoot = all().filter((r) => r !== StateTransform.RootRef);
-          const op = rnd();
-          if (op < 0.45 || nonRoot.length === 0) b.to(pick(all())).apply(Node, { value: value() }, options());
-          else if (op < 0.65) b.to(pick(nonRoot)).update({ value: value() });
-          else if (op < 0.75) b.to(pick(nonRoot)).tag(`t${Math.floor(rnd() * 3)}`);
-          else if (op < 0.85) {
-            const deps = nonRoot.filter(() => rnd() < 0.3).slice(0, 2);
-            b.to(pick(all())).apply(Node, { value: 1 }, { ...options(), dependsOn: deps });
-          } else {
-            b.delete(pick(nonRoot));
-            removals++;
+    try {
+      for (let seed = 1; seed <= 100; seed++) {
+        ids.reset();
+        const rnd = random(seed);
+        const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
+        const state = newState();
+        let n = 0;
+        const options = () => (refs === 'colliding' ? { ref: colliding(n++) } : undefined);
+        const value = () => pick([1, 2, 3, 4, 0, -1]);
+        for (let step = 0; step < 60; step++) {
+          const committed = shape(state.tree).join();
+          const b = state.build();
+          const all = () => Array.from(b.currentTree.transforms.keys());
+          const count = 1 + Math.floor(rnd() * 5);
+          for (let e = 0; e < count; e++) {
+            const nonRoot = all().filter((r) => r !== StateTransform.RootRef);
+            const op = rnd();
+            if (op < 0.45 || nonRoot.length === 0) b.to(pick(all())).apply(Node, { value: value() }, options());
+            else if (op < 0.65) b.to(pick(nonRoot)).update({ value: value() });
+            else if (op < 0.75) b.to(pick(nonRoot)).tag(`t${Math.floor(rnd() * 3)}`);
+            else if (op < 0.85) {
+              const deps = nonRoot.filter(() => rnd() < 0.3).slice(0, 2);
+              b.to(pick(all())).apply(Node, { value: 1 }, { ...options(), dependsOn: deps });
+            } else {
+              b.delete(pick(nonRoot));
+              removals++;
+            }
           }
+          const where = `seed ${seed}, step ${step}`;
+          const unchanged = shape(state.tree).join() === committed;
+          if (!unchanged) expect(shape(state.tree), where).toEqual(committed.split(','));
+          const built = inconsistencies(b.getTree());
+          if (built.length) expect(built, where).toEqual([]);
+          await state.runTask(state.updateTree(b, { doNotLogTiming: true }));
+          const after = inconsistencies(state.tree);
+          if (after.length) expect(after, where).toEqual([]);
         }
-        const where = `seed ${seed}, step ${step}`;
-        const unchanged = shape(state.tree).join() === committed;
-        if (!unchanged) expect(shape(state.tree), where).toEqual(committed.split(','));
-        const built = inconsistencies(b.getTree());
-        if (built.length) expect(built, where).toEqual([]);
-        await state.runTask(state.updateTree(b, { doNotLogTiming: true }));
-        const after = inconsistencies(state.tree);
-        if (after.length) expect(after, where).toEqual([]);
       }
+    } finally {
+      ids.restore();
     }
     expect(removals).toBeGreaterThan(500);
   });

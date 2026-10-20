@@ -24,6 +24,7 @@
   cells left behind by a throw) needs a commit with one edit (the fast track) and one with more.
 - Tests of `TransientTree` use refs with equal Immutable hashes (`'Aa'` and `'BB'` hash alike) and maps of more than 8
   keys (a hashed trie): explicit refs like `n0`, `n1` never collide, generated refs often do (tree.md §2). A random test
-  runs with both.
+  runs with both; its generated ids come from a spy on `UUID.create22` with the same layout and a fixed prefix, so a
+  failing seed reproduces. A canary asserts the Immutable bug itself: it fails once Immutable is fixed (core TODO).
 - The state logs every transformer error (`console.error`): a test that makes errors on purpose mutes it
   (`vi.spyOn(console, 'error')`).
