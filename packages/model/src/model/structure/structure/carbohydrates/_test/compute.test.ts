@@ -187,7 +187,7 @@ describe('computeCarbohydrates', () => {
     );
   });
 
-  it('a large polysaccharide in one chain', { tags: ['medium'] }, async () => {
+  it('a large polysaccharide in one chain', async () => {
     const c = computeCarbohydrates(await glycan({ strands: 20, length: 100, branchEvery: 3, otherChains: true }));
     expect(signature(c)).toMatchInlineSnapshot(
       `"elements=2660:cec615cf components=364bf603 geometry=3c361c12 links=5280:313fc561 terminal=2:286d66a2 partial=0:811c9dc5"`,

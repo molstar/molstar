@@ -87,11 +87,16 @@ function mergeSets({ all, sets, size }: UnionParts): StructureElement.Set {
     union = SortedArray.deduplicate(SortedArray.ofSortedArray<ElementIndex>(concat(sets, size).sort()));
   } else {
     const marks = new Uint8Array(span);
-    for (const s of sets) {
-      for (let i = 0, il = s.length; i < il; i++) marks[s[i] - min] = 1;
-    }
     let count = 0;
-    for (let i = 0; i < span; i++) count += marks[i];
+    for (const s of sets) {
+      for (let i = 0, il = s.length; i < il; i++) {
+        const m = s[i] - min;
+        if (marks[m]) continue;
+        marks[m] = 1;
+        // the whole unit: the rest adds nothing (as the fold's full-unit shortcut)
+        if (++count === all.length) return all;
+      }
+    }
     const merged = new Int32Array(count);
     for (let i = 0, o = 0; o < count; i++) {
       if (marks[i]) merged[o++] = min + i;
