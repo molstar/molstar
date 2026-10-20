@@ -5,10 +5,9 @@
  */
 
 import { createRangeArray, makeBuckets } from '@molstar/core/data/util';
-import { Column, Table } from '@molstar/core/data/db';
+import { Column, ColumnHelpers, Table } from '@molstar/core/data/db';
 import type { RuntimeContext } from '@molstar/core/task';
 import type { AtomSite } from './schema.js';
-import { arrayIsIdentity } from '@molstar/core/util/array';
 
 export type SortedAtomSite = {
   atom_site: AtomSite;
@@ -42,12 +41,34 @@ export async function sortAtomSite(
     if (ctx.shouldUpdate) await ctx.update();
   }
 
-  if (arrayIsIdentity(indices) && indices.length === atom_site._rowCount) {
-    return { atom_site, sourceIndex: Column.ofIntArray(indices) };
+  // Already in order (every model of most files): typed-array columns are read in place, where `Table.view` copied
+  // them (perf-audit 04/P5); the others are views as before (a plain array keeps the array fast paths of the
+  // hierarchy comparison). The whole table when the range is all of it.
+  if (isRange(indices, start)) {
+    if (start === 0 && end === atom_site._rowCount) return { atom_site, sourceIndex: Column.ofIntArray(indices) };
+    const windowed = Object.create(null);
+    windowed._rowCount = indices.length;
+    windowed._columns = Object.keys(atom_site._schema);
+    windowed._schema = atom_site._schema;
+    for (const k of windowed._columns) {
+      const c = (atom_site as any)[k] as Column<any>;
+      // a typed array read as its values (`Column.view`'s own test for reading the array)
+      const inPlace = !!c.__array && ColumnHelpers.isTypedArray(c.__array) && typeof c.value(0) === typeof c.__array[0];
+      windowed[k] = inPlace ? Column.window(c, start, end) : Column.view(c, indices);
+    }
+    return { atom_site: windowed as AtomSite, sourceIndex: Column.ofIntArray(indices) };
   }
 
   return {
     atom_site: Table.view(atom_site, atom_site._schema, indices) as AtomSite,
     sourceIndex: Column.ofIntArray(indices),
   };
+}
+
+/** Whether `indices[i] === start + i` for every i. */
+function isRange(indices: ArrayLike<number>, start: number) {
+  for (let i = 0, il = indices.length; i < il; ++i) {
+    if (indices[i] !== start + i) return false;
+  }
+  return true;
 }
