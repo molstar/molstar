@@ -34,6 +34,8 @@ import of the plugin.
   `createPrismViewer({ options })`, the URL ([app.md](app.md) §4, v5's names) and the Settings tab. A value becomes
   config items and canvas props, the camera behaviors (`focusBehavior`), or hidden parts (`ui.buttons.x: false` is
   `overrides: { 'core.toolbar.x': null }`). `auto` values leave the plugin's own detection.
+- `ui.undoSteps` (10, 1–100): how many of the latest steps Undo takes back; only they keep a checkpoint, older steps
+  stay in History, too old to undo ([sequence.md](sequence.md) §7.4). Read when the viewer is made.
 - `ui.homeWhenEmpty` (off): Home at start while nothing is loaded; the app turns it on when its URL loads nothing.
   `ui.splash` (`random`; `quantum`, `light`, `off`; the app's `?splash=`): the empty canvas's splash. `ui.hoverLabel`
   (`corner`, the default as in v5: at the canvas' bottom right, clear of the rail, a floating panel and an open card,

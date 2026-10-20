@@ -132,17 +132,18 @@ function ownOverpaint(plugin: PluginContext, reprRef: string): Overpaint {
  * again after Mol* sets a representation's state (its overpaint cells changed) or makes one. Once per frame at most.
  * When the marks or their colors change, every representation is painted again; otherwise only those whose own cell
  * or overpaint cells changed (a volume streamed in, or another representation's update, paints nothing).
- * Returns the stop.
+ * A removed representation is let go once the task ends, not kept until the next paint. Returns the stop; `held`
+ * counts the representations it still refers to (tests).
  */
-function paintMarks(
+export function paintMarks(
   plugin: PluginContext,
   marks: ReadonlyState<readonly Mark[]>,
   colors: ReadonlyState<MarkColors>,
-): () => void {
+): (() => void) & { readonly held: () => number } {
   /** What it painted, to put back. */
   let painted = new Map<Representation<any>, string>();
-  /** The representations of marked structures it left alone (none of the marks on them, nothing dimmed). */
-  let unpainted = new Set<Representation<any>>();
+  /** The representations of marked structures it left alone (none of the marks on them, nothing dimmed), by ref. */
+  let unpainted = new Map<Representation<any>, string>();
   /** Paint every representation again (the marks or their colors changed), not only the changed ones. */
   let all = false;
   /** The cells made or updated since the last paint: representations and their overpaint cells. */
@@ -159,7 +160,7 @@ function paintMarks(
     frame = 0;
     const list = marks.value;
     const next = new Map<Representation<any>, string>();
-    const nextUnpainted = new Set<Representation<any>>();
+    const nextUnpainted = new Map<Representation<any>, string>();
     if (list.length) {
       const tone = colors.value;
       for (const s of plugin.managers.structure.hierarchy.current.structures) {
@@ -179,7 +180,7 @@ function paintMarks(
                 continue;
               }
               if (unpainted.has(repr)) {
-                nextUnpainted.add(repr);
+                nextUnpainted.set(repr, ref);
                 continue;
               }
             }
@@ -190,7 +191,7 @@ function paintMarks(
             }
             // Dimmed: grey under them (all of it: the marks paint over), a representation with none of them too.
             if (!layers.length && !dim) {
-              nextUnpainted.add(repr);
+              nextUnpainted.set(repr, ref);
               continue;
             }
             if (dim)
@@ -236,15 +237,31 @@ function paintMarks(
       changed.add(e.ref);
       schedule();
     }),
+    // A removed representation (its structure and theme with it) is let go once the removal's task ends: a bulk removal
+    // prunes once. Nothing to put back for it.
+    events.cell.removed.subscribe(() => {
+      if (pruning || (!painted.size && !unpainted.size)) return;
+      pruning = true;
+      queueMicrotask(prune);
+    }),
   ];
-  return () => {
+  let pruning = false;
+  const prune = () => {
+    pruning = false;
+    const transforms = plugin.state.data.tree.transforms;
+    for (const [repr, ref] of painted) if (!transforms.has(ref)) painted.delete(repr);
+    for (const [repr, ref] of unpainted) if (!transforms.has(ref)) unpainted.delete(repr);
+  };
+  const stop = () => {
     for (const s of subs) s.unsubscribe();
     if (frame > 0) cancelFrameCallback(frame);
     for (const [repr, ref] of painted) {
       if (plugin.state.data.tree.transforms.has(ref)) repr.setState({ overpaint: ownOverpaint(plugin, ref) });
     }
     painted.clear();
+    unpainted.clear();
   };
+  return Object.assign(stop, { held: () => painted.size + unpainted.size });
 }
 
 /** The read side of the marks, for `viewer.sources` (read-only: api.md §6). */

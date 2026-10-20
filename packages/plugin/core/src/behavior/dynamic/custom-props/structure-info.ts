@@ -2,12 +2,16 @@
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PluginBehavior } from '../../behavior.js';
 import { Structure, Model } from '@molstar/model/model/structure';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { StateSelection, StateObject } from '@molstar/core/state';
+
+const isModelOrStructure = (obj: StateObject | undefined) =>
+  !!obj && (PluginStateObject.Molecule.Model.is(obj) || PluginStateObject.Molecule.Structure.is(obj));
 
 export const StructureInfo = PluginBehavior.create({
   name: 'structure-info-prop',
@@ -54,8 +58,17 @@ export const StructureInfo = PluginBehavior.create({
       return { auth, label };
     }
 
-    private setModelMaxIndex() {
+    /** The max model index the last walk found: what a model or structure replaced in place (`updated`) is given. */
+    private maxIndex = -1;
+
+    private setMaxIndices() {
       const value = this.maxModelIndex;
+      this.maxIndex = value;
+      this.setModelMaxIndex(value);
+      this.setStructureMaxIndex(value);
+    }
+
+    private setModelMaxIndex(value: number) {
       const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
       for (const c of cells) {
         const m = c.obj?.data;
@@ -67,8 +80,7 @@ export const StructureInfo = PluginBehavior.create({
       }
     }
 
-    private setStructureMaxIndex() {
-      const value = this.maxModelIndex;
+    private setStructureMaxIndex(value: number) {
       const cells = this.ctx.state.data.select(
         StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure),
       );
@@ -79,6 +91,16 @@ export const StructureInfo = PluginBehavior.create({
             Structure.MaxIndex.set(s, { value }, value);
           }
         }
+      }
+    }
+
+    private setMaxIndexOf(obj: StateObject) {
+      const value = this.maxIndex;
+      if (value < 0) return;
+      if (PluginStateObject.Molecule.Model.is(obj)) {
+        if (Model.MaxIndex.get(obj.data).value !== value) Model.MaxIndex.set(obj.data, { value }, value);
+      } else if (PluginStateObject.Molecule.Structure.is(obj) && obj.data.parent === undefined) {
+        if (Structure.MaxIndex.get(obj.data).value !== value) Structure.MaxIndex.set(obj.data, { value }, value);
       }
     }
 
@@ -132,12 +154,24 @@ export const StructureInfo = PluginBehavior.create({
 
       this.subscribeObservable(this.ctx.state.data.events.object.created, (o) => {
         this.handle(o.ref, o.obj);
-        this.setModelMaxIndex();
-        this.setStructureMaxIndex();
+        // Only a model or a structure can move the max indices or need them set: anything else (a representation, a
+        // component, a layer) skips the walks, which made an op over N structures O(N²).
+        if (isModelOrStructure(o.obj)) this.setMaxIndices();
+      });
+
+      // A removed model lowers the max at once (before, the next created object of any kind did it).
+      this.subscribeObservable(this.ctx.state.data.events.object.removed, (o) => {
+        if (isModelOrStructure(o.obj)) this.setMaxIndices();
       });
 
       this.subscribeObservable(this.ctx.state.data.events.object.updated, (o) => {
-        this.handle(o.ref, o.obj, o.oldObj);
+        // An in-place update gives the old data, not the old object (a structure remapped onto a trajectory's next
+        // model): its index carries over all the same.
+        const old = o.oldObj ?? (o.oldData !== undefined ? ({ data: o.oldData } as StateObject) : undefined);
+        this.handle(o.ref, o.obj, old);
+        // A model or a structure made anew or remapped in place (a trajectory frame, other params) has the max at once,
+        // without a walk (before, the next created object of any kind set it).
+        this.setMaxIndexOf(o.obj);
       });
     }
 

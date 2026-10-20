@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { StateObjectCell, StateTransform } from '@molstar/core/state';
+import { type StateObjectCell, StateTransform, StateTree } from '@molstar/core/state';
 import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
@@ -21,6 +21,8 @@ import { isViewing } from './trajectory.js';
 
 export interface ViewerCheckpoint {
   readonly plugin: PluginState.Snapshot;
+  /** The snapshot (a story's) shown with this scene: showing one is no step, so Undo brings it back with the scene. */
+  readonly snapshot?: string;
 }
 
 /** The snapshot's parts a checkpoint holds; `camera: false` keeps it from reading the canvas (headless). */
@@ -39,15 +41,106 @@ const CheckpointParams: PluginState.SnapshotParams = {
 };
 
 export function createCheckpointPort(plugin: PluginContext): HistoryPort<ViewerCheckpoint> {
+  const trees = new SerializedTrees();
   return {
-    checkpoint: () => ({ plugin: withoutViewState(plugin.state.getSnapshot(CheckpointParams)) }),
+    checkpoint: () => {
+      // The trees from the cache (unchanged transforms shared with earlier checkpoints), the rest from the plugin.
+      const snapshot = plugin.state.getSnapshot(TreelessParams);
+      const current = plugin.managers.snapshot.state.current;
+      return {
+        plugin: withoutViewState({
+          ...snapshot,
+          data: { tree: trees.serialize(plugin.state.data.tree) },
+          behaviour: { tree: trees.serialize(plugin.state.behaviors.tree) },
+        }),
+        ...(current ? { snapshot: current } : {}),
+      };
+    },
     restore: async (c) => {
       // The focus is view state: a restore leaves it (and the camera, which the checkpoint does not hold); so is the
       // frame a trajectory shows (sequence.md §7.3).
       await plugin.state.setSnapshot({ ...keepFrames(plugin, c.plugin), structureFocus: undefined });
+      // The story's snapshot this scene was shown with, when the list still has it (the list is not undone).
+      // A scene shown with none (before a story was shown, or a snapshot added) marks none.
+      const snapshots = plugin.managers.snapshot;
+      // One removed from the list since: none of the list is the scene restored either.
+      if (!c.snapshot || !snapshots.getEntry(c.snapshot)) snapshots.clearCurrent();
+      else if (c.snapshot !== snapshots.state.current) snapshots.setCurrent(c.snapshot);
     },
-    size: (c) => checkpointSize(c),
+    size: (c) => trees.size(c),
   };
+}
+
+/** The snapshot's parts but the trees, which the port serializes itself. */
+const TreelessParams: PluginState.SnapshotParams = { ...CheckpointParams, data: false, behavior: false };
+
+/** Data payloads (a file's text in a raw-data cell) are not counted: the budget is the state's, not the files'. */
+function withoutPayloads(_key: string, value: unknown) {
+  if (typeof value === 'string' && value.length > 1024) return '';
+  if (ArrayBuffer.isView(value)) return '';
+  return value;
+}
+
+/** The state flags of a transform as they are now (`StateTransform.toJSON` writes the set ones). */
+function flagsOf(t: StateTransform): number {
+  const s = t.state;
+  return (s.isGhost ? 1 : 0) | (s.isLocked ? 2 : 0) | (s.isHidden ? 4 : 0) | (s.isCollapsed ? 8 : 0);
+}
+
+/**
+ * The trees of checkpoints, each transform serialized and measured once (sequence.md §7.4): a transform object is
+ * immutable in a committed tree (a new version is a new object), so its JSON is kept per object and shared by every
+ * checkpoint that holds it, and its size with it. A step costs the transforms it changed, not the scene (a scene of
+ * 1401 cells re-serialized 147 KB and measured 1 MB of JSON each step). The one thing changed in place is a
+ * transform's state flags (the state's transient tree merges a second flag update into the same object), so they are
+ * compared on each read. Shared means read-only: `keepFrames` copies what it changes, `StateTransform.fromJSON` only
+ * reads.
+ */
+class SerializedTrees {
+  readonly #json = new WeakMap<StateTransform, { flags: number; json: StateTransform.Serialized }>();
+  readonly #sizes = new WeakMap<StateTransform.Serialized, number>();
+
+  serialize(tree: StateTree): StateTree.Serialized {
+    const transforms: StateTransform.Serialized[] = [];
+    StateTree.doPreOrder(tree, tree.root, transforms, (t, _, out) => {
+      const flags = flagsOf(t);
+      let cached = this.#json.get(t);
+      if (cached?.flags !== flags) {
+        // Params are kept from the cached JSON: a transform with custom serialization makes them fresh each time.
+        const json = StateTransform.toJSON(t);
+        cached = { flags, json: cached ? { ...json, params: cached.json.params } : json };
+        this.#json.set(t, cached);
+      }
+      out.push(cached.json);
+    });
+    return { transforms };
+  }
+
+  /** The checkpoint's JSON size without payloads: each transform measured once, the small rest each time. */
+  size(c: ViewerCheckpoint): number {
+    try {
+      const { data, behaviour, ...rest } = c.plugin;
+      let size = JSON.stringify(rest, withoutPayloads).length;
+      for (const tree of [data?.tree, behaviour?.tree]) {
+        if (!tree) continue;
+        // `,"data":{"tree":{"transforms":[…]}}` and a comma between transforms.
+        size += 34 + Math.max(0, tree.transforms.length - 1);
+        for (const t of tree.transforms) size += this.#sizeOf(t);
+      }
+      return size;
+    } catch {
+      return 0;
+    }
+  }
+
+  #sizeOf(t: StateTransform.Serialized): number {
+    let size = this.#sizes.get(t);
+    if (size === undefined) {
+      size = JSON.stringify(t, withoutPayloads).length;
+      this.#sizes.set(t, size);
+    }
+    return size;
+  }
 }
 
 /**
@@ -77,19 +170,13 @@ function keepFrames(plugin: PluginContext, snapshot: PluginState.Snapshot): Plug
   return changed ? { ...snapshot, data: { ...data, tree: { ...data.tree, transforms } } } : snapshot;
 }
 
-/** The checkpoint's JSON size without data payloads (a file's text in a raw-data cell): what the budget measures. */
+/** The checkpoint's JSON size without data payloads, measured whole (tests; the port measures per transform). */
 export function checkpointSize(c: ViewerCheckpoint): number {
-  let size = 0;
   try {
-    size = JSON.stringify(c.plugin, (_key, value) => {
-      if (typeof value === 'string' && value.length > 1024) return '';
-      if (ArrayBuffer.isView(value)) return '';
-      return value;
-    }).length;
+    return JSON.stringify(c.plugin, withoutPayloads).length;
   } catch {
-    size = 0;
+    return 0;
   }
-  return size;
 }
 
 /** Cells owned by behaviors: they change outside the API by design and do not make checkpoints unsafe (§7.3). */

@@ -54,7 +54,10 @@ export type { SequenceTheme };
 
 /** A structure the host (the 3D view) shows and has parsed. */
 export interface HostStructure {
-  /** Tells one structure from another: a new key rebuilds the view. */
+  /**
+   * Tells one structure from another: a new key rebuilds the view. A frame of the same structure (the same atoms, new
+   * coordinates: a trajectory step) keeps the key with a new `structure`: the document stays (sequence.md §2).
+   */
   readonly key: string;
   /** The structure's state ref (a loaded SeqViewSpec names the one it maps onto by it); absent: none. */
   readonly ref?: string;
@@ -215,6 +218,11 @@ export interface SequenceViewer {
   setStyle(style: SequenceStyle): void;
   /** What it shows, once the document is in; undefined: nothing (no structure, or the document is being made). */
   readonly structure: ReadonlyState<SequenceStructure | undefined>;
+  /**
+   * The Structure the 3D view draws now: `structure`'s, or a later frame of it (same atoms); the link maps onto it. A
+   * frame step changes only this (sequence.md §2).
+   */
+  readonly frame: ReadonlyState<Structure | undefined>;
   readonly theme: ReadonlyState<SequenceTheme>;
   /** Written into the document the model builds. */
   setTheme(theme: SequenceTheme): void;
@@ -339,6 +347,10 @@ class Viewer implements SequenceViewer {
   private dropPreset: (() => void) | undefined;
   private fonts: SequenceFonts | undefined;
   private builds = 0;
+  /** The host key the document shown (or being made) is for: a frame of it changes only `frame`. */
+  private documentKey: string | undefined;
+  private readonly frameState = observableState<Structure | undefined>(undefined, { compare: (a, b) => a === b });
+  readonly frame = this.frameState.asReadonly;
   private disposed = false;
   /** The `.svsx` files overrides name (`archive`), for the page's life. */
   private readonly archives = new Map<string, SequenceArchive>();
@@ -402,7 +414,11 @@ class Viewer implements SequenceViewer {
         // No colors: the letters' cells are the surface's color, which changed.
         if (this.themeState.value.letters === null) void this.build();
       }),
-      deps.structure.subscribe(() => void this.build()),
+      deps.structure.subscribe((host) => {
+        // A frame of the structure shown (sequence.md §2): no new document; the link follows the new Structure.
+        if (host && host.key === this.documentKey) this.frameState.set(host.structure);
+        else void this.build();
+      }),
       // The tracks the band shows, for the Visible tracks menu: read from the document shown (behaviors' patches included).
       this.seq.document.shown.subscribe(() => this.refreshTracks()),
       this.structure.subscribe(() => this.refreshTracks()),
@@ -662,8 +678,10 @@ class Viewer implements SequenceViewer {
     // A document is being made: what the behaviors patch for the last one is dropped meanwhile (`patch` checks it).
     if (this.shownState.value) this.shownState.set(undefined);
     this.refreshLegend();
+    this.documentKey = host?.key;
     if (!host) {
       this.structureState.set(undefined);
+      this.frameState.set(undefined);
       this.shownState.set(undefined);
       return { ok: true, issues: [] };
     }
@@ -700,6 +718,9 @@ class Viewer implements SequenceViewer {
     for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(this.styleState.value));
     const complex = svs?.complex ?? ComplexRef;
     const section = svs?.section ?? SectionRef;
+    // The frame shown now (frames stepped while the document was made), before the link reads it.
+    const now = this.deps.structure.value;
+    this.frameState.set(now?.key === host.key ? now.structure : host.structure);
     this.structureState.set({ title: host.title, structure: host.structure, complex, section });
     // The behaviors add theirs to this document (sequence.md §3).
     this.shownState.set({

@@ -34,7 +34,15 @@ The code is the truth for how.
   the plugin side (`sources/sequence.ts`); a spec without a sequence bundles none of it.
 - **One parse.** The document names its structure by host file `structure:<key>`; the loaders' `parsed` answers it with
   a `StructureSource` over the trajectory the 3D view drew, so `StructureLink` maps the very `Structure` the 3D view
-  draws. A new key rebuilds the view.
+  draws. One source per trajectory, with the CIF block it was parsed from (`cifFrameOf`: SIFTS numberings, a predicted
+  model's origin, the scheme's auth labels). A new key rebuilds the view.
+- **A frame keeps the document.** A trajectory step or the model-index animation makes a new `Structure` of the same
+  atoms (unit ids, element indices and model hierarchies equal, same trajectory): it keeps the key, so no document is
+  made and the band does not empty. Only `SequenceViewer.frame` changes; the link rebinds `StructureLink` to it (its
+  systems, maps by unit id and chains stay) and starts its views again, as the 3D view's loci are of the frame drawn.
+  Tracks read from the structure (B-factors, secondary structure) stay those of the frame the document was made for. A
+  structure of other atoms (another assembly, a model with another hierarchy) is a new key. On 20 steps of a 10-model
+  11.5k-atom ensemble: 40 structure changes and 168 system registrations → 0 (measured, headless).
 - **Two caches, both read-through, neither fetching for the sequence:**
   - **Bytes, in core**: Mol\*'s asset manager reads URLs through a URL-keyed, ref-counted byte cache
     (`packages/core/src/util/assets.ts`): the plugin's downloads, MVS's and the viewer's loaders share one fetch.
@@ -157,7 +165,8 @@ The code is the truth for how.
   taken when it opens.
 - **Not steps**: `history: false` operations (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`,
   `sequence.follow`, `trajectory.frame`, playing animations, reads); a result that changed nothing ("it is already so");
-  `undoable: false` (an upload: no checkpoint, the steps before it stay undoable).
+  `undoable: false` (an upload, showing a snapshot: in order with the steps, no checkpoint, the steps before it stay
+  undoable).
 - **Inside a step**: each top-level run or group gets a `HistoryContext`; work that calls back in with it (an
   operation's `ctx.api`, a group's API, `viewer.run`'s `api`) is part of that step, with no lock. Calls without it queue
   and are steps of their own: a click during an agent's snippet is never rolled back with it.
@@ -170,19 +179,49 @@ The code is the truth for how.
   it.
 - **Changes outside the API** (`watchOutsideChanges`) make every earlier checkpoint unsafe, and History says so. Not
   outside: runs, the history's own restores, cells behaviors own (the focus representation, volume streaming, custom
-  properties), snapshots playing and frames or animations viewed.
+  properties), snapshots shown or playing and frames or animations viewed.
+- **Showing a snapshot is no step** (David, 2026-10-20): `snapshot.apply`, `.next` and `.previous` (an MVS story's
+  steps) are `undoable: false`, so stepping through a story fills no history and takes no checkpoint, the steps before
+  it stay undoable, and it runs in order with the steps (Undo is refused while one is applied; a step never sees a
+  half-applied scene). A checkpoint notes the snapshot current with it, and Undo makes it current again with the scene
+  it restores (when the list still has it; the list itself is not undone); a scene shown with none marks none
+  (`clearCurrent`). Undo after a snapshot goes back to before the step before it: the scene between that step and the
+  snapshot is not kept, and Redo (a snapshot shown leaves it) puts back the state Undo left. Inside a group it is no run
+  of it (a group of only snapshots shown records no step). The agent asks before it shows one (what no undo restores). A
+  story's own navigation goes the same way: a description's links (`!apply-snapshot`, `!next-snapshot`), a clickable
+  primitive's `snapshot_key` and the keyboard's next, previous, first and last reach the plugin's manager, which hands
+  them to the snapshot area (`setNavigator`) to run as the person's `snapshot.apply` / `.next` / `.previous` (next with
+  one snapshot shows it again, with none does nothing). Always in order with the history: a key pressed while another
+  run is in flight goes after it, as on the panel. While the history is busy the step is queued but not handed back, so
+  a script awaiting the manager inside its own step does not wait for itself (the snapshot comes right after that step).
+- **While an animation plays** (`isAnimating`: trajectory playback, the model-index and other animations, a snapshot's
+  transition), no checkpoint is taken for it (David, 2026-10-20): playing is no step, its frames are viewing, and the
+  history ignores the changes it makes. When it stops, nothing is recorded: Undo takes back the step before it, with the
+  frame left as shown (frames are view state). Pinned by `api/_test/trajectory.test.ts`. Not covered: a step someone
+  starts while it plays still takes its own checkpoint (of that moment's state; a restore keeps the frames), and Undo or
+  Redo stops the animation first (`setSnapshot` does) after checkpointing the state it leaves for Redo.
 - **One undo**: Mol\*'s state history is off (`PluginConfig.State.HistoryCapacity` 0, `sources/compose-plugin.ts`).
 - Every run and step is also in the session record ([journal.md](journal.md)).
 
 ### 7.4 Large scenes
 
-- **Each checkpoint is measured**: time, and the JSON size without data payloads (`checkpointSize`).
+- **Each checkpoint is measured**: time, and the JSON size without data payloads; the time counts the size pass.
+- **A step costs what it changed, not the scene** (`SerializedTrees`, `sources/checkpoint.ts`): each transform is
+  serialized and measured once per transform object (a new version is a new object) and shared by every checkpoint that
+  holds it, its state flags compared on each read (the state's transient tree changes them in place). At 1401 cells: the
+  size pass 16 → 0.2 ms a step, 100 checkpoints 14.8 → 1.6 MB. Shared parts are read-only.
+- **Over the hard limit, no checkpoint is even taken for 30 s** (or until a clear): each try is a full snapshot thrown
+  away, and an agent's turn tried on every call.
 - **Per-step checkpoints turn off** for the scene when one is over the size budget, or three in a row over the time
   budget (50 ms, 5 MB: a first guess); the status says once "This scene is large: undo is off. Settings turns it back
   on." (Settings › Undo each step).
 - **A group's one checkpoint** (an agent's turn) is still taken under the hard limit (500 ms, 50 MB). When a turn cannot
   be undone, its first changing call asks the person, once for the turn (`agent/policies.ts`).
 - **Clearing the scene** turns per-step undo back on (`session.clear`).
+- **Undo goes back the latest 10 steps** (`options.ui.undoSteps`, `HistoryOptions.checkpoints`): only they keep a
+  checkpoint; an older step stays in History (100 at most, `capacity`) as unsafe, "Too old to undo", its checkpoint let
+  go. The record still lists every run (journal.md). Ten because a step's checkpoint holds its whole scene: memory is
+  bounded by a few scenes, not a hundred (David, 2026-10-20).
 
 ## 8. The band and its menu
 

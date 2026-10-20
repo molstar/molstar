@@ -6,7 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateSelection, type StateTransform, type StateTransformer } from '@molstar/core/state';
+import {
+  type StateObjectCell,
+  StateSelection,
+  type StateTransform,
+  type StateTransformer,
+  StateTree,
+} from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { Material } from '@molstar/core/util/material';
 import { Clipping } from '@molstar/graphics/theme/clipping';
@@ -108,6 +114,32 @@ export function styleLayerCellsOf(plugin: PluginContext, kind: StyleLayerKind, r
   return plugin.state.data.select(StateSelection.Generators.ofTransformer(transformer, representation).withTag(tag));
 }
 
+/** The kinds by transformer: one walk of a representation's subtree finds the cells of all five. */
+const KindOfTransformer = new Map<StateTransformer, StyleLayerKind>(
+  StyleLayerKinds.map((k) => [StyleLayerCells[k].transformer, k]),
+);
+
+/**
+ * The layer cells under a representation into `out`, by kind, in the order `styleLayerCellsOf` gives them (pre-order,
+ * with an object, the kind's tag): one walk instead of a compiled select per kind, as a read with nothing changed walks
+ * every representation (five selects each were 1.1 ms at 300 representations).
+ */
+function layerCellsUnder(plugin: PluginContext, repr: string, out: Map<StyleLayerKind, StateObjectCell[]>) {
+  for (const list of out.values()) list.length = 0;
+  const state = plugin.state.data;
+  const root = state.tree.transforms.get(repr);
+  if (!root) return;
+  StateTree.doPreOrder(state.tree, root, out, (n, _, acc) => {
+    const cell = state.cells.get(n.ref);
+    const kind = cell?.obj ? KindOfTransformer.get(cell.transform.transformer) : undefined;
+    if (kind && cell!.transform.tags?.includes(StyleLayerCells[kind].tag)) {
+      let list = acc.get(kind);
+      if (!list) acc.set(kind, (list = []));
+      list.push(cell!);
+    }
+  });
+}
+
 /** What one layer collects while the cells are read. */
 interface Gathering {
   readonly kind: StyleLayerKind;
@@ -137,12 +169,14 @@ export function readStyleLayers(plugin: PluginContext, memo?: { current?: ReadMe
   const nameKey = structures.map((s) => names.get(s.cell.transform.ref)).join('\n');
   const transforms = new Map<string, StateTransform>();
   const found: { kind: StyleLayerKind; structure: StructureRef; repr: string; transform: StateTransform }[] = [];
+  const byKind = new Map<StyleLayerKind, StateObjectCell[]>();
   for (const s of structures) {
     for (const c of s.components) {
       for (const r of c.representations) {
         const repr = r.cell.transform.ref;
+        layerCellsUnder(plugin, repr, byKind);
         for (const kind of StyleLayerKinds) {
-          for (const cell of styleLayerCellsOf(plugin, kind, repr)) {
+          for (const cell of byKind.get(kind) ?? []) {
             transforms.set(cell.transform.ref, cell.transform);
             found.push({ kind, structure: s, repr, transform: cell.transform });
           }

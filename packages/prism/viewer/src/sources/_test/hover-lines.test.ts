@@ -25,6 +25,17 @@ it('decodes only the known entities, never what an object inherits', () => {
   ]);
 });
 
+it('decodes numeric references and the common names (a no-break space a plain one)', () => {
+  expect(hoverLines(['&#x2B05; back&nbsp;to &mdash; 2&#8201;&Aring;'])).toEqual([
+    '\u2B05 back to \u2014 2\u2009\u00c5',
+  ]);
+  // Markdown (a label with a newline): the same decoding in its text runs.
+  const text = hoverRich(['A tooltip\n\n&#x2B05; *Basic&nbsp;workflow*'])
+    .map((l) => (typeof l === 'string' ? l : l.runs.map((r) => r.text).join('')))
+    .join('|');
+  expect(text).toContain('\u2B05 Basic workflow');
+});
+
 describe('hoverRich', () => {
   it("keeps Mol*'s emphasis as runs, the first line a title", () => {
     expect(hoverRich(['Cytochrome P450 3A4</br><b>A</b> | <i>ALA</i> 12 &amp; more'])).toEqual([
