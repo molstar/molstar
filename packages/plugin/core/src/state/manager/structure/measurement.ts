@@ -424,28 +424,30 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     T extends StateTransformer<A, B, any>,
     A extends PluginStateObject.Molecule.Structure.Selections,
     B extends StateObject,
-  >(transformer: T) {
+  >(groupRef: StateTransform.Ref | undefined, transformer: T) {
     const state = this.plugin.state.data;
-    const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
     const ret = groupRef ? state.select(StateSelection.Generators.ofTransformer(transformer, groupRef)) : this._empty;
     if (ret.length === 0) return this._empty;
     return ret;
   }
 
   private sync() {
+    // the group is looked for once: a walk over the whole state on every change (O(cells) per change)
+    const state = this.plugin.state.data;
+    const groupRef = StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, MeasurementGroupTag);
     const labels = [];
-    for (const cell of this.getTransforms(StructureSelectionsLabel3D) as StructureMeasurementCell[]) {
+    for (const cell of this.getTransforms(groupRef, StructureSelectionsLabel3D) as StructureMeasurementCell[]) {
       const tags = (cell.obj as any)['tags'] as string[];
       if (!tags || !tags.includes(MeasurementOrderLabelTag)) labels.push(cell);
     }
 
     const updated = this.updateState({
       labels,
-      distances: this.getTransforms(StructureSelectionsDistance3D),
-      angles: this.getTransforms(StructureSelectionsAngle3D),
-      dihedrals: this.getTransforms(StructureSelectionsDihedral3D),
-      orientations: this.getTransforms(StructureSelectionsOrientation3D),
-      planes: this.getTransforms(StructureSelectionsPlane3D),
+      distances: this.getTransforms(groupRef, StructureSelectionsDistance3D),
+      angles: this.getTransforms(groupRef, StructureSelectionsAngle3D),
+      dihedrals: this.getTransforms(groupRef, StructureSelectionsDihedral3D),
+      orientations: this.getTransforms(groupRef, StructureSelectionsOrientation3D),
+      planes: this.getTransforms(groupRef, StructureSelectionsPlane3D),
     });
     if (updated) this.stateUpdated();
   }

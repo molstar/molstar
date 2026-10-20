@@ -29,6 +29,7 @@
     "./state/formats/_test/*": null,
     "./state/helpers/_test/*": null,
     "./state/manager/_test/*": null,
+    "./state/manager/structure/_test/*": null,
     "./state/queries/structure/_test/*": null,
     "./state/transforms/_test/*": null
   },
