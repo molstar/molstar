@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -15,11 +15,49 @@ export const StructureInfo = PluginBehavior.create({
   category: 'custom-props',
   display: { name: 'Structure Info' },
   ctor: class StructureInfoHandler extends PluginBehavior.Handler {
+    /**
+     * The root model and structure cells (what `rootsOfType` selects: no ancestor of the same type), kept from the
+     * object events instead of walking the state for each created model and structure (O(structures²) otherwise), plus
+     * the cells new in the current update whose events have not come yet (`pending`: the walk would see them too). A
+     * cell's object is checked when it is read. The values below are maxima over them, so their order does not matter.
+     */
+    private rootModels = new Set<string>();
+    private rootStructures = new Set<string>();
+    private pending = new Set<string>();
+
+    private isRoot(ref: string, type: StateObject.Type) {
+      const { tree, cells } = this.ctx.state.data;
+      for (let t = tree.transforms.get(ref); t && t.ref !== StateTransform.RootRef; ) {
+        t = tree.transforms.get(t.parent);
+        if (t && cells.get(t.ref)?.obj?.type === type) return false;
+      }
+      return true;
+    }
+
+    private *rootObjects<T>(roots: Set<string>, type: StateObject.Type): Generator<T> {
+      const { cells } = this.ctx.state.data;
+      for (const ref of roots) {
+        const obj = cells.get(ref)?.obj;
+        if (obj?.type === type) yield obj.data as T;
+      }
+      for (const ref of this.pending) {
+        const obj = cells.get(ref)?.obj;
+        if (obj?.type === type && !roots.has(ref) && this.isRoot(ref, type)) yield obj.data as T;
+      }
+    }
+
+    private models() {
+      return this.rootObjects<Model>(this.rootModels, PluginStateObject.Molecule.Model.type);
+    }
+
+    private structures() {
+      return this.rootObjects<Structure>(this.rootStructures, PluginStateObject.Molecule.Structure.type);
+    }
+
     private get maxModelIndex() {
       let maxIndex = -1;
-      const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
-      for (const c of cells) {
-        const index = c.obj?.data && Model.Index.get(c.obj?.data).value;
+      for (const m of this.models()) {
+        const index = Model.Index.get(m).value;
         if (index !== undefined && index > maxIndex) maxIndex = index;
       }
       return maxIndex;
@@ -27,11 +65,8 @@ export const StructureInfo = PluginBehavior.create({
 
     private get maxStructureIndex() {
       let maxIndex = -1;
-      const cells = this.ctx.state.data.select(
-        StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure),
-      );
-      for (const c of cells) {
-        const index = c.obj?.data && Structure.Index.get(c.obj?.data).value;
+      for (const s of this.structures()) {
+        const index = Structure.Index.get(s).value;
         if (index !== undefined && index > maxIndex) maxIndex = index;
       }
       return maxIndex;
@@ -40,25 +75,21 @@ export const StructureInfo = PluginBehavior.create({
     private get asymIdOffset() {
       let auth = 0;
       let label = 0;
-      const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
-      for (const c of cells) {
-        const m = c.obj?.data;
-        if (m) {
-          const count = Model.AsymIdCount.get(m);
-          const offset = Model.AsymIdOffset.get(m).value;
-          if (count !== undefined && offset !== undefined) {
-            auth = Math.max(auth, offset.auth + count.auth);
-            label = Math.max(label, offset.label + count.label);
-          }
+      for (const m of this.models()) {
+        const count = Model.AsymIdCount.get(m);
+        const offset = Model.AsymIdOffset.get(m).value;
+        if (count !== undefined && offset !== undefined) {
+          auth = Math.max(auth, offset.auth + count.auth);
+          label = Math.max(label, offset.label + count.label);
         }
       }
       return { auth, label };
     }
 
     /**
-     * The max indices depend only on the root model and structure objects (`rootsOfType`): they are walked for again
-     * only after one of those was created or updated, or a model or structure was removed, not on every created object
-     * (components, representations: O(objects × cells) otherwise). The result is the same, at the same moment.
+     * The max indices depend only on the root model and structure objects: they are set again only after one of those
+     * was created, updated or removed, not on every created object (components, representations). The result is the
+     * same, at the same moment.
      */
     private maxIndexDirty = true;
 
@@ -70,46 +101,51 @@ export const StructureInfo = PluginBehavior.create({
       this.setStructureMaxIndex(value);
     }
 
-    private static typeOf(obj: StateObject | undefined) {
-      if (PluginStateObject.Molecule.Model.is(obj)) return PluginStateObject.Molecule.Model.type;
-      if (PluginStateObject.Molecule.Structure.is(obj)) return PluginStateObject.Molecule.Structure.type;
+    private rootsOf(obj: StateObject | undefined) {
+      if (PluginStateObject.Molecule.Model.is(obj)) return this.rootModels;
+      if (PluginStateObject.Molecule.Structure.is(obj)) return this.rootStructures;
       return undefined;
     }
 
     /** a created or updated object below another of its type (a component, a decorator) is not one of the roots */
-    private markIfRoot(ref: string, obj: StateObject | undefined) {
-      const type = StructureInfoHandler.typeOf(obj);
-      if (!type || this.maxIndexDirty) return;
-      const { tree, cells } = this.ctx.state.data;
-      for (let t = tree.transforms.get(ref); t && t.ref !== StateTransform.RootRef; ) {
-        t = tree.transforms.get(t.parent);
-        if (t && cells.get(t.ref)?.obj?.type === type) return;
-      }
+    private trackIfRoot(ref: string, obj: StateObject | undefined) {
+      const roots = this.rootsOf(obj);
+      if (!roots || !this.isRoot(ref, obj!.type)) return;
+      roots.add(ref);
       this.maxIndexDirty = true;
     }
 
+    /** whatever the object was (an update in place to a Null object carries no old one) */
+    private untrack(ref: string) {
+      const had = this.rootModels.delete(ref);
+      if (this.rootStructures.delete(ref) || had) this.maxIndexDirty = true;
+    }
+
+    /** a root among the cells whose created event has not come yet changes the max index as the walk would see it */
+    private markIfPendingRoot() {
+      if (this.maxIndexDirty) return;
+      const { cells } = this.ctx.state.data;
+      for (const ref of this.pending) {
+        const obj = cells.get(ref)?.obj;
+        if (this.rootsOf(obj) && this.isRoot(ref, obj!.type)) {
+          this.maxIndexDirty = true;
+          return;
+        }
+      }
+    }
+
     private setModelMaxIndex(value: number) {
-      const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
-      for (const c of cells) {
-        const m = c.obj?.data;
-        if (m) {
-          if (Model.MaxIndex.get(m).value !== value) {
-            Model.MaxIndex.set(m, { value }, value);
-          }
+      for (const m of this.models()) {
+        if (Model.MaxIndex.get(m).value !== value) {
+          Model.MaxIndex.set(m, { value }, value);
         }
       }
     }
 
     private setStructureMaxIndex(value: number) {
-      const cells = this.ctx.state.data.select(
-        StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure),
-      );
-      for (const c of cells) {
-        const s = c.obj?.data;
-        if (s) {
-          if (Structure.MaxIndex.get(s).value !== value) {
-            Structure.MaxIndex.set(s, { value }, value);
-          }
+      for (const s of this.structures()) {
+        if (Structure.MaxIndex.get(s).value !== value) {
+          Structure.MaxIndex.set(s, { value }, value);
         }
       }
     }
@@ -162,22 +198,38 @@ export const StructureInfo = PluginBehavior.create({
       this.ctx.customStructureProperties.register(Structure.Index, true);
       this.ctx.customStructureProperties.register(Structure.MaxIndex, true);
 
-      this.subscribeObservable(this.ctx.state.data.events.object.created, (o) => {
+      // the roots already in the state (the behavior may be registered after loading)
+      const { data } = this.ctx.state;
+      for (const c of data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model))) {
+        this.rootModels.add(c.transform.ref);
+      }
+      for (const c of data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure))) {
+        this.rootStructures.add(c.transform.ref);
+      }
+
+      this.subscribeObservable(data.events.cell.created, (o) => this.pending.add(o.ref));
+      // after the object events of an update (a cell that failed has none)
+      this.subscribeObservable(data.events.changed, () => this.pending.clear());
+      this.subscribeObservable(data.events.cell.removed, (o) => {
+        this.pending.delete(o.ref);
+        this.untrack(o.ref);
+      });
+
+      this.subscribeObservable(data.events.object.created, (o) => {
+        this.pending.delete(o.ref);
+        this.trackIfRoot(o.ref, o.obj);
+        this.markIfPendingRoot();
         this.handle(o.ref, o.obj);
-        this.markIfRoot(o.ref, o.obj);
         this.setMaxIndex();
       });
 
-      this.subscribeObservable(this.ctx.state.data.events.object.updated, (o) => {
+      this.subscribeObservable(data.events.object.updated, (o) => {
+        this.untrack(o.ref);
+        this.trackIfRoot(o.ref, o.obj);
         this.handle(o.ref, o.obj, o.oldObj);
-        this.markIfRoot(o.ref, o.obj);
-        this.markIfRoot(o.ref, o.oldObj);
       });
 
-      // the cell is gone from the tree: any model or structure counts
-      this.subscribeObservable(this.ctx.state.data.events.object.removed, (o) => {
-        if (StructureInfoHandler.typeOf(o.obj)) this.maxIndexDirty = true;
-      });
+      this.subscribeObservable(data.events.object.removed, (o) => this.untrack(o.ref));
     }
 
     unregister() {

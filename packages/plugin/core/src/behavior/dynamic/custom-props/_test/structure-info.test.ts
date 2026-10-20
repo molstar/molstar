@@ -12,6 +12,10 @@ import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
+import { RawData } from '@molstar/plugin/state/transforms/data/fetch';
+import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { ParseCif } from '../../../../state/formats/cif.js';
+import { TrajectoryFromMmCif } from '../../../../state/formats/trajectory/mmcif.js';
 
 /** An mmCIF entry of `chains` chains of two glycines each */
 function cif(name: string, chains: number) {
@@ -124,6 +128,40 @@ describe('structure info behavior', () => {
     steps.loadedAgain = info(plugin);
 
     expect(steps).toMatchSnapshot();
+    plugin.dispose();
+  });
+
+  it('numbers models and structures created in one update as those created one by one', async () => {
+    const plugin = await createPlugin();
+    await load(plugin, 'a', 1);
+    const b = plugin.build();
+    for (const [name, chains] of [
+      ['b', 2],
+      ['c', 3],
+    ] as const) {
+      b.toRoot()
+        .apply(RawData, { data: cif(name, chains), label: name })
+        .apply(ParseCif)
+        .apply(TrajectoryFromMmCif)
+        .apply(ModelFromTrajectory, { modelIndex: 0 })
+        .apply(StructureFromModel);
+    }
+    await b.commit();
+    expect(info(plugin)).toMatchSnapshot();
+    plugin.dispose();
+  });
+
+  it('takes the models and structures loaded before it was registered', async () => {
+    const plugin = new PluginContext({ registry: DefaultPluginSpec().registry, behaviors: [] });
+    await plugin.init();
+    await load(plugin, 'a', 2);
+    await load(plugin, 'b', 1);
+    await plugin.state.updateBehavior(PluginBehaviors.CustomProps.StructureInfo, () => {});
+    await load(plugin, 'c', 3);
+    // a component: not a root structure
+    const s = plugin.managers.structure.hierarchy.current.structures[0].cell;
+    await plugin.builders.structure.tryCreateComponentStatic(s, 'polymer');
+    expect(info(plugin)).toMatchSnapshot();
     plugin.dispose();
   });
 
