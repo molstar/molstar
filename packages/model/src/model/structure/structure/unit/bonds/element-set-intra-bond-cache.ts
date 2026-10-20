@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -36,10 +36,20 @@ export class ElementSetIntraBondCache {
     }
   }
 
-  static get(model: Model): ElementSetIntraBondCache {
-    if (!model._dynamicPropertyData.ElementSetIntraBondCache) {
-      model._dynamicPropertyData.ElementSetIntraBondCache = new ElementSetIntraBondCache();
+  /**
+   * The model's cache for the bonds of one provider instance's key (`BondProvider.Instance.cacheKey`): two structures
+   * of a model with different providers never share bonds. The default key is the model's original cache.
+   */
+  static get(model: Model, key = 'default'): ElementSetIntraBondCache {
+    const data = model._dynamicPropertyData;
+    if (key === 'default') {
+      if (!data.ElementSetIntraBondCache) data.ElementSetIntraBondCache = new ElementSetIntraBondCache();
+      return data.ElementSetIntraBondCache;
     }
-    return model._dynamicPropertyData.ElementSetIntraBondCache;
+    let byKey: Map<string, ElementSetIntraBondCache> | undefined = data.ElementSetIntraBondCacheByKey;
+    if (!byKey) data.ElementSetIntraBondCacheByKey = byKey = new Map();
+    let cache = byKey.get(key);
+    if (!cache) byKey.set(key, (cache = new ElementSetIntraBondCache()));
+    return cache;
   }
 }

@@ -65,6 +65,9 @@ export function mergeUnitsWithSameOperator(units: readonly Unit[], id: number, i
     u.model,
     u.conformation.operator,
     elements,
+    undefined,
+    // the merged unit keeps the provider of the units it merges (bond-providers plan §2.2)
+    Unit.isAtomic(u) ? u.bondProvider : undefined,
   );
 }
 

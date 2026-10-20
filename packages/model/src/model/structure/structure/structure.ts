@@ -15,7 +15,7 @@ import { Unit } from './unit.js';
 import { StructureLookup3D } from './util/lookup3d.js';
 import type { CoarseElements } from '../model/properties/coarse.js';
 import { StructureSubsetBuilder } from './util/subset-builder.js';
-import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds.js';
+import { InterUnitBonds, computeInterUnitBonds, Bond, type InterBondComputationProps } from './unit/bonds.js';
 import { subsetInterUnitBonds } from './unit/bonds/subset.js';
 import { StructureSymmetry } from './symmetry.js';
 import { StructureProperties } from './properties.js';
@@ -38,6 +38,7 @@ import { computeStructureBoundary } from './util/boundary.js';
 import type { PrincipalAxes } from '@molstar/core/math/linear-algebra/matrix/principal-axes';
 import { type IntraUnitBondMapping, getIntraUnitBondMapping, getSerialMapping, type SerialMapping } from './mapping.js';
 import { mergeUnitsWithSameOperator } from './util/unit-merging.js';
+import { BondProvider } from './unit/bonds/provider.js';
 
 /** Internal structure state */
 type State = {
@@ -46,6 +47,7 @@ type State = {
   lookup3d?: StructureLookup3D;
   interUnitBonds?: InterUnitBonds;
   dynamicBonds: boolean;
+  bondProvider: BondProvider.Instance;
   interBondsValidUnit?: (unit: Unit) => boolean;
   interBondsValidUnitPair?: (structure: Structure, unitA: Unit, unitB: Unit) => boolean;
   unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>;
@@ -241,7 +243,15 @@ class Structure {
     if (this.state.interUnitBonds) return this.state.interUnitBonds;
     const parent = this.parent;
     const parentBonds = parent?.state.interUnitBonds;
-    if (parent && parentBonds && this.state.dynamicBonds === parent.state.dynamicBonds && parentBonds.edgeCount === 0) {
+    // only the bonds of the same provider are the parent's to reuse (bond-providers plan §2.2)
+    const sameProvider = !!parent && this.state.bondProvider === parent.state.bondProvider;
+    if (
+      parent &&
+      parentBonds &&
+      sameProvider &&
+      this.state.dynamicBonds === parent.state.dynamicBonds &&
+      parentBonds.edgeCount === 0
+    ) {
       // no need to compute InterUnitBonds if parent's ones are empty
       this.state.interUnitBonds = new InterUnitBonds(new Map());
       return this.state.interUnitBonds;
@@ -249,6 +259,7 @@ class Structure {
     if (
       parent &&
       parentBonds &&
+      sameProvider &&
       this.state.dynamicBonds === parent.state.dynamicBonds &&
       this.state.interBondsValidUnit === parent.state.interBondsValidUnit &&
       this.state.interBondsValidUnitPair === parent.state.interBondsValidUnitPair &&
@@ -258,14 +269,23 @@ class Structure {
       this.state.interUnitBonds = subsetInterUnitBonds(parentBonds, parent, this);
     }
     if (!this.state.interUnitBonds) {
-      this.state.interUnitBonds = computeInterUnitBonds(this, {
-        ignoreWater: !this.dynamicBonds,
-        ignoreIon: !this.dynamicBonds,
-        validUnit: this.state.interBondsValidUnit,
-        validUnitPair: this.state.interBondsValidUnitPair,
-      });
+      const builtIn = (props?: Partial<InterBondComputationProps>) =>
+        computeInterUnitBonds(this, {
+          ignoreWater: !this.dynamicBonds,
+          ignoreIon: !this.dynamicBonds,
+          validUnit: this.state.interBondsValidUnit,
+          validUnitPair: this.state.interBondsValidUnitPair,
+          ...props,
+        });
+      const { bondProvider } = this.state;
+      this.state.interUnitBonds = bondProvider.inter ? bondProvider.inter(this, { builtIn }) : builtIn();
     }
     return this.state.interUnitBonds;
+  }
+
+  /** Where the inter-unit bonds come from, and what the builder gives its units (bond-providers plan §2.2). */
+  get bondProvider() {
+    return this.state.bondProvider;
   }
 
   get dynamicBonds() {
@@ -422,6 +442,7 @@ class Structure {
       label: this.label,
       interUnitBonds: dynamicBonds ? undefined : interUnitBonds,
       dynamicBonds,
+      bondProvider: this.state.bondProvider,
       interBondsValidUnit: this.state.interBondsValidUnit,
       interBondsValidUnitPair: this.state.interBondsValidUnitPair,
       coordinateSystem: this.state.coordinateSystem,
@@ -659,6 +680,11 @@ namespace Structure {
      * Also enables calculation of inter-unit bonds in water molecules.
      */
     dynamicBonds?: boolean;
+    /**
+     * Where the bonds come from: the inter-unit bonds of this structure, and the intra-unit bonds of the units its
+     * builder makes (bond-providers plan §2.2). Inherited from `parent`; the built-in bonds by default.
+     */
+    bondProvider?: BondProvider.Instance;
     interBondsValidUnit?: (unit: Unit) => boolean;
     interBondsValidUnitPair?: (structure: Structure, unitA: Unit, unitB: Unit) => boolean;
     coordinateSystem?: SymmetryOperator;
@@ -738,6 +764,7 @@ namespace Structure {
       polymerGapCount: -1,
       polymerUnitCount: -1,
       dynamicBonds: false,
+      bondProvider: BondProvider.DefaultInstance,
       coordinateSystem: SymmetryOperator.Default,
       label: '',
     };
@@ -755,6 +782,9 @@ namespace Structure {
     if (props.dynamicBonds) state.dynamicBonds = props.dynamicBonds;
     else if (props.parent) state.dynamicBonds = props.parent.dynamicBonds;
 
+    if (props.bondProvider) state.bondProvider = props.bondProvider;
+    else if (props.parent) state.bondProvider = props.parent.bondProvider;
+
     if (props.coordinateSystem) state.coordinateSystem = props.coordinateSystem;
     else if (props.parent) state.coordinateSystem = props.parent.coordinateSystem;
 
@@ -770,7 +800,12 @@ namespace Structure {
     return new Structure(units, unitMap, unitIndexMap, state);
   }
 
-  export async function ofTrajectory(trajectory: Trajectory, ctx: RuntimeContext): Promise<Structure> {
+  export async function ofTrajectory(
+    trajectory: Trajectory,
+    ctx: RuntimeContext,
+    props: Pick<Props, 'bondProvider'> = {},
+  ): Promise<Structure> {
+    const bondProvider = props.bondProvider ?? BondProvider.DefaultInstance;
     if (trajectory.frameCount === 0) return Empty;
 
     const units: Unit[] = [];
@@ -794,13 +829,15 @@ namespace Structure {
           u.model,
           u.conformation.operator,
           u.elements,
+          undefined,
+          bondProvider,
         );
         units.push(newUnit);
       }
       count = units.length;
     }
 
-    return create(units, { representativeModel: first!, label: first!.label });
+    return create(units, { representativeModel: first!, label: first!.label, bondProvider });
   }
 
   /**
@@ -979,6 +1016,7 @@ namespace Structure {
 
     return create(units, {
       dynamicBonds: s.dynamicBonds,
+      bondProvider: s.bondProvider,
       label: s.label,
       masterModel: s.masterModel,
       representativeModel: s.representativeModel,
@@ -1014,7 +1052,18 @@ namespace Structure {
     ): Unit {
       if (invariantId === undefined) invariantId = this.invariantId();
       const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
-      const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements);
+      const unit = Unit.create(
+        this.units.length,
+        invariantId,
+        chainGroupId,
+        traits,
+        kind,
+        model,
+        operator,
+        elements,
+        undefined,
+        this.props.bondProvider,
+      );
       return this.add(unit);
     }
 
