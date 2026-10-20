@@ -8,11 +8,11 @@ import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { BallAndStickPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/ball-and-stick';
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
-import { NaiveDistanceBondProvider, NaiveOrdersBondProvider } from './providers.js';
+import { NaiveDistanceBondProvider, NaiveOrdersBondProvider, RandomBondProvider } from './providers.js';
 
 /** The example's own bond providers, registered as any registry entry is. */
 export const NaiveBonds: PluginRegistryEntry = {
-  structure: { bondProviders: [NaiveDistanceBondProvider, NaiveOrdersBondProvider] },
+  structure: { bondProviders: [NaiveDistanceBondProvider, NaiveOrdersBondProvider, RandomBondProvider] },
 };
 
 /**

@@ -14,4 +14,4 @@
   entity type, chain or entity). `BondComputationProps.noDistance` is the flag behind `'none'`.
 - Prism: the `structure.bonds` operation and a Bonds field in a structure's inspector (hidden when the built-in bonds
   are the only choice). MolViewSpec: a structure node's `custom.molstar_bond_provider`.
-- `examples/bond-providers`: a Prism viewer with two naive providers of its own.
+- `examples/bond-providers`: a Prism viewer with three naive providers of its own (distance, bond orders, random).

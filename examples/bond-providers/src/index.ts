@@ -27,6 +27,7 @@ const Choices: Record<string, { provider: string; params?: Record<string, unknow
   none: { provider: 'none' },
   'naive-distance': { provider: 'naive-distance', params: { cutoff: 1.9 } },
   'naive-orders': { provider: 'naive-orders' },
+  random: { provider: 'random', params: { probability: 0.1, maxDistance: 4, seed: 42 } },
   // naive orders for the ligands, the built-in bonds for the rest and between units
   'per-unit': {
     provider: 'per-unit',
