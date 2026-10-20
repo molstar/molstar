@@ -1134,17 +1134,21 @@ export function createSceneSource(
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
-  // The measurements (one added or removed): the manager says its state changed on every state change, so the rows
-  // sync only when one of its lists holds other cells.
+  // The measurements (one added, removed, or given new params: its label, its unit): the manager says its state
+  // changed on every state change, so the rows sync only when a list holds other cells, or a cell another transform or
+  // object (a cell keeps its identity through an update).
   const MeasurementKinds = ['labels', 'distances', 'angles', 'dihedrals', 'orientations', 'planes'] as const;
-  let measured: readonly (readonly unknown[])[] = [];
+  let measured: readonly unknown[] = [];
   scope.add(
     plugin.managers.structure.measurement.behaviors.state.subscribe((state) => {
-      const lists = MeasurementKinds.map((k) => state[k] as readonly unknown[]);
-      const same =
-        measured.length === lists.length &&
-        lists.every((l, i) => l.length === measured[i].length && l.every((c, j) => c === measured[i][j]));
-      measured = lists;
+      const now: unknown[] = [];
+      for (const k of MeasurementKinds) {
+        const list = state[k] as readonly { transform: unknown; obj?: unknown }[];
+        now.push(list.length);
+        for (const c of list) now.push(c, c.transform, c.obj);
+      }
+      const same = now.length === measured.length && now.every((x, i) => x === measured[i]);
+      measured = now;
       if (!same) sync();
     }),
   );
