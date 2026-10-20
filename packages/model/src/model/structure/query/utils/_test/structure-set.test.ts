@@ -18,6 +18,7 @@ import type { Model } from '@molstar/model/model/structure/model';
 import { Queries as Q, StructureQuery, StructureSelection } from '@molstar/model/model/structure/query';
 import type { ElementIndex } from '../../../model/indexing.js';
 import { StructureSymmetry } from '../../../structure/symmetry.js';
+import { glycanCif } from '../../../structure/carbohydrates/_test/glycan.js';
 import { structureUnion } from '../structure-set.js';
 
 // Pins what `structureUnion` gives: the units (ids, invariant and chain-group ids, operators, element sets, whether a
@@ -178,12 +179,12 @@ describe('structureUnion', async () => {
     ['7qpd singletons', s7qpd, () => singletons(s7qpd, 3)],
     ['7qpd every singleton', s7qpd, () => singletons(s7qpd, 1)],
     ['7qpd one unit singletons', one7qpd, () => singletons(one7qpd, 2)],
-    ['1cbs cell singletons', cell1cbs, () => singletons(cell1cbs, 4)],
+    ['1cbs cells singletons', cell1cbs, () => singletons(cell1cbs, 4)],
     ['7qpd residues', s7qpd, () => residues(s7qpd).structures],
     ['7qpd every third residue', s7qpd, () => residues(s7qpd, 3).structures],
     ['7qpd one unit residues', one7qpd, () => residues(one7qpd).structures],
     ['7qpd one unit every third residue', one7qpd, () => residues(one7qpd, 3).structures],
-    ['1cbs cell every second residue', cell1cbs, () => residues(cell1cbs, 2).structures],
+    ['1cbs cells every second residue', cell1cbs, () => residues(cell1cbs, 2).structures],
     [
       '7qpd overlapping',
       s7qpd,
@@ -222,7 +223,7 @@ describe('structureUnion', async () => {
       ],
     ],
     [
-      '1cbs cell, same parts of every copy',
+      '1cbs cells, same parts of every copy',
       cell1cbs,
       () => [
         part(cell1cbs, (u) => range(0, u.elements.length, 2)),
@@ -231,13 +232,38 @@ describe('structureUnion', async () => {
       ],
     ],
     [
-      '1cbs cell, different parts of each copy',
+      '1cbs cells, different parts of each copy',
       cell1cbs,
       () => [
         part(cell1cbs, (u, k) => range(k % 4, u.elements.length, 3)),
         part(cell1cbs, (u, k) => (k % 2 ? range(0, u.elements.length) : [])),
         part(cell1cbs, (u) => range(0, 12)),
       ],
+    ],
+    [
+      '7qpd touching windows',
+      s7qpd,
+      () => [part(s7qpd, () => range(0, 11)), part(s7qpd, () => range(10, 21)), part(s7qpd, () => range(20, 31))],
+    ],
+    [
+      '7qpd touching windows, out of order',
+      s7qpd,
+      () => [part(s7qpd, () => range(20, 31)), part(s7qpd, () => range(0, 11)), part(s7qpd, () => range(10, 21))],
+    ],
+    [
+      '7qpd one unit, few elements out of order',
+      one7qpd,
+      () => [
+        part(one7qpd, () => range(500, 520)),
+        part(one7qpd, () => range(100, 110)),
+        part(one7qpd, () => range(105, 130)),
+      ],
+    ],
+    [
+      '7qpd one unit, large sets overlapping',
+      one7qpd,
+      () =>
+        range(0, 10).map((k) => part(one7qpd, (u) => range(k * 100, k * 100 + Math.floor(u.elements.length * 0.9)))),
     ],
     ['7qpd two structures', s7qpd, () => [part(s7qpd, (u) => range(0, 50)), part(s7qpd, (u) => range(25, 90))]],
   ];
@@ -253,20 +279,24 @@ describe('structureUnion', async () => {
     );
     expect(sig).toMatchInlineSnapshot(`
       {
-        "1cbs cell every second residue": "units=24 elements=5216 sourceUnits=16 rows=2db3cf35 ops=d6c8b9b9 groups=3:46ce97f7 root=true",
-        "1cbs cell singletons": "units=24 elements=2432 sourceUnits=0 rows=43844d5d ops=d6c8b9b9 groups=3:46ce97f7 root=true",
-        "1cbs cell, different parts of each copy": "units=24 elements=6566 sourceUnits=12 rows=6fb66079 ops=d6c8b9b9 groups=9:35cf313b root=true",
-        "1cbs cell, same parts of every copy": "units=24 elements=6744 sourceUnits=8 rows=401c15d ops=d6c8b9b9 groups=3:46ce97f7 root=true",
+        "1cbs cells every second residue": "units=24 elements=5216 sourceUnits=16 rows=2db3cf35 ops=d6c8b9b9 groups=3:46ce97f7 root=true",
+        "1cbs cells singletons": "units=24 elements=2432 sourceUnits=0 rows=43844d5d ops=d6c8b9b9 groups=3:46ce97f7 root=true",
+        "1cbs cells, different parts of each copy": "units=24 elements=6566 sourceUnits=12 rows=6fb66079 ops=d6c8b9b9 groups=9:35cf313b root=true",
+        "1cbs cells, same parts of every copy": "units=24 elements=6744 sourceUnits=8 rows=401c15d ops=d6c8b9b9 groups=3:46ce97f7 root=true",
         "7qpd disjoint, out of order": "units=7 elements=3594 sourceUnits=0 rows=2116633 ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd every singleton": "units=7 elements=11521 sourceUnits=7 rows=57d468e9 ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd every third residue": "units=7 elements=3945 sourceUnits=2 rows=42b99a0c ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd one unit every third residue": "units=1 elements=3945 sourceUnits=0 rows=cdafd2cb ops=93c84ec2 groups=1:eb741d64 root=true",
         "7qpd one unit residues": "units=1 elements=11521 sourceUnits=1 rows=2f1af5d2 ops=93c84ec2 groups=1:eb741d64 root=true",
         "7qpd one unit singletons": "units=1 elements=5761 sourceUnits=0 rows=d2503ce5 ops=93c84ec2 groups=1:eb741d64 root=true",
+        "7qpd one unit, few elements out of order": "units=1 elements=50 sourceUnits=0 rows=c7ae1d41 ops=93c84ec2 groups=1:eb741d64 root=true",
+        "7qpd one unit, large sets overlapping": "units=1 elements=11268 sourceUnits=0 rows=99432038 ops=93c84ec2 groups=1:eb741d64 root=true",
         "7qpd overlapping": "units=7 elements=11521 sourceUnits=7 rows=57d468e9 ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd overlapping partial": "units=7 elements=6891 sourceUnits=0 rows=1e304ef7 ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd residues": "units=7 elements=11521 sourceUnits=7 rows=57d468e9 ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd singletons": "units=7 elements=3843 sourceUnits=0 rows=ed508bf5 ops=ffd43aee groups=7:7c4d33d9 root=true",
+        "7qpd touching windows": "units=7 elements=217 sourceUnits=0 rows=4b3346e5 ops=ffd43aee groups=7:7c4d33d9 root=true",
+        "7qpd touching windows, out of order": "units=7 elements=217 sourceUnits=0 rows=4b3346e5 ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd two structures": "units=7 elements=572 sourceUnits=2 rows=3d0bbdff ops=ffd43aee groups=7:7c4d33d9 root=true",
         "7qpd whole units and parts": "units=7 elements=8157 sourceUnits=5 rows=61cdb6d9 ops=ffd43aee groups=7:7c4d33d9 root=true",
       }
@@ -334,28 +364,34 @@ describe('structureUnion', async () => {
   });
 
   // scaling, not a pin: the per-input merge copied the accumulated set for every singleton (quadratic, 16× for 4×)
-  it('singletons in one unit scale near-linearly', { tags: ['heavy'] }, () => {
-    const u = one7qpd.units[0];
+  it('singletons in one unit scale near-linearly', { tags: ['heavy'] }, async () => {
+    // one chain of 48k atoms
+    const parsed = await CIF.parse(glycanCif({ strands: 40, length: 100, branchEvery: 3 })).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const source = Structure.ofModel(
+      (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative,
+    );
+    const u = source.units[0];
     const take = (n: number) => {
       const step = Math.floor(u.elements.length / n);
       const xs: Structure[] = [];
       for (let i = 0; i < n; i++) {
         const e = u.elements[((i * 7919) % n) * step];
-        xs.push(Structure.create([u.getChild(SortedArray.ofSingleton(e))], { parent: one7qpd }));
+        xs.push(Structure.create([u.getChild(SortedArray.ofSingleton(e))], { parent: source }));
       }
       return xs;
     };
     const time = (xs: Structure[]) => {
       let best = Infinity;
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 9; i++) {
         const t0 = performance.now();
-        structureUnion(one7qpd, xs);
+        structureUnion(source, xs);
         best = Math.min(best, performance.now() - t0);
       }
       return best;
     };
-    const small = take(2500),
-      large = take(10000);
+    const small = take(4000),
+      large = take(16000);
     expect(time(large) / time(small)).toBeLessThan(10);
   });
 });

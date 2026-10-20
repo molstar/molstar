@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
+import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, Unit } from '@molstar/model/model/structure';
@@ -62,6 +63,38 @@ function signature(c: Carbohydrates) {
 /** Links as `a-b` pairs in order. */
 function linkList(c: Carbohydrates) {
   return c.links.map((l) => `${l.carbohydrateIndexA}-${l.carbohydrateIndexB}`).join(' ');
+}
+
+/**
+ * The links between rings of different residues of a unit, in order, as the code before P9 found them: every pair of
+ * elements tested with `areVertexSetsConnected` at 3 bonds.
+ */
+function allPairsLinks(c: Carbohydrates) {
+  const ret: string[] = [];
+  for (let i = 0; i < c.elements.length; i++) {
+    const a = c.elements[i];
+    for (let j = i + 1; j < c.elements.length; j++) {
+      const b = c.elements[j];
+      if (a.unit !== b.unit || a.residueIndex === b.residueIndex) continue;
+      const { all } = a.unit.rings;
+      if (IntAdjacencyGraph.areVertexSetsConnected(a.unit.bonds, all[a.ringIndex], all[b.ringIndex], 3)) {
+        ret.push(`${i}-${j}`, `${j}-${i}`);
+      }
+    }
+  }
+  return ret.join(' ');
+}
+
+/** `linkList` restricted to links between different residues of a unit. */
+function intraUnitLinks(c: Carbohydrates) {
+  return c.links
+    .filter(({ carbohydrateIndexA: a, carbohydrateIndexB: b }) => {
+      const ea = c.elements[a],
+        eb = c.elements[b];
+      return ea.unit === eb.unit && ea.residueIndex !== eb.residueIndex;
+    })
+    .map((l) => `${l.carbohydrateIndexA}-${l.carbohydrateIndexB}`)
+    .join(' ');
 }
 
 describe('computeCarbohydrates', () => {
@@ -123,6 +156,28 @@ describe('computeCarbohydrates', () => {
     expect(linkList(c)).toMatchInlineSnapshot(
       `"0-1 1-0 0-2 2-0 1-3 3-1 2-3 3-2 3-4 4-3 4-5 5-4 4-6 6-4 4-7 7-4 6-8 8-6 7-8 8-7 8-9 9-8 9-10 10-9 9-11 11-9 9-12 12-9 13-14 14-13 13-15 15-13 14-16 16-14 15-16 16-15 16-17 17-16 17-18 18-17 17-19 19-17 17-20 20-17 19-21 21-19 20-21 21-20 21-22 22-21 22-23 23-22 22-24 24-22 22-25 25-22"`,
     );
+  });
+
+  it('rings 4 bonds apart are not linked', async () => {
+    const c = computeCarbohydrates(await glycan({ strands: 1, length: 8, branchEvery: 3, spacer: true }));
+    expect(signature(c)).toMatchInlineSnapshot(
+      `"elements=10:1cee7033 components=e2a7ae0f geometry=7b304f65 links=14:d3a6b61b terminal=0:811c9dc5 partial=0:811c9dc5"`,
+    );
+    expect(linkList(c)).toMatchInlineSnapshot(`"0-1 1-0 1-2 2-1 2-3 3-2 3-5 5-3 5-6 6-5 6-7 7-6 7-9 9-7"`);
+  });
+
+  it('links between residues of a unit are all pairs at most 3 bonds apart, in order', async () => {
+    const s7qpd = await load(fs.readFileSync(path.join(examples, '7qpd.fw2.cif'), 'utf8'));
+    const structures = [
+      s7qpd,
+      await glycan({ strands: 2, length: 10, branchEvery: 3, otherChains: true }),
+      await glycan({ strands: 2, length: 8, branchEvery: 3, altEvery: 3 }),
+      await glycan({ strands: 2, length: 9, branchEvery: 2, spacer: true }),
+    ];
+    for (const s of structures) {
+      const c = computeCarbohydrates(s);
+      expect(intraUnitLinks(c)).toEqual(allPairsLinks(c));
+    }
   });
 
   it('strands without branches, several in a chain', async () => {

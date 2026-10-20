@@ -18,6 +18,8 @@ export interface GlycanParams {
   branchEvery: number;
   /** The first branch of strand 0 in its own chain C (an inter-unit link), and an ASN in chain B on strand 0's last C1. */
   otherChains?: boolean;
+  /** A carbon (C7) between a branch point's O6 and the branch's C1: the rings are then 4 bonds apart, not linked. */
+  spacer?: boolean;
   /** Every `altEvery`-th residue of a strand (from the second) in two conformations, alt ids A and B (0.2 Å apart). */
   altEvery?: number;
 }
@@ -67,7 +69,7 @@ export function glycanCif(p: GlycanParams): string {
   const step = 2 * RingR + 2 * 1.43;
   // a branch's ring centre from its parent's: O6 at 4.40 Å, then 1.43 Å to the branch's C1, rotated to face it
   const [bx, by] = dir(240);
-  const branch = RingR + 2.95 + 1.43 + RingR;
+  const branch = RingR + 2.95 + 1.43 + RingR + (p.spacer ? 1.43 : 0);
 
   const deferred: (() => void)[] = [];
   for (let s = 0; s < p.strands; s++) {
@@ -87,6 +89,10 @@ export function glycanCif(p: GlycanParams): string {
         sugar(Comps[r % Comps.length], 'A', ++seq, cx, 0, z, 0);
       }
       if (p.branchEvery > 0 && r > 0 && r % p.branchEvery === 0) {
+        if (p.spacer) {
+          const d = RingR + 2.95 + 1.43;
+          atom('C', 'C7', Comps[r % Comps.length], 'A', 1, seq, cx + d * bx, d * by, z);
+        }
         const comp = Comps[(r + 1) % Comps.length];
         if (p.otherChains && s === 0 && firstBranch) {
           deferred.push(() => sugar(comp, 'C', 1, cx + branch * bx, branch * by, z, 60));

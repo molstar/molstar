@@ -137,8 +137,8 @@ const MaxLinkDistance = 3;
  * Calls `link(i, j)`, in the order of `i` and then `j` (i < j), for the elements of one unit, `elements[start..end)`,
  * whose rings are of different residues and at most `MaxLinkDistance` bonds apart: what
  * `IntAdjacencyGraph.areVertexSetsConnected` gives for each pair. One breadth-first search per ring through an
- * atom → element index, not one per pair (perf audit 05/P9); inlined, with one visit-mark array per unit, because it
- * runs for every ring of a polysaccharide.
+ * atom → element index, not one per pair (perf audit 05/P9). The search is written here rather than as a graph helper
+ * to reuse one visit-mark array per unit and stop at the depth: it runs for every ring of a polysaccharide.
  */
 function forEachIntraUnitLink(
   elements: CarbohydrateElement[],
@@ -180,7 +180,8 @@ function forEachIntraUnitLink(
       }
     };
 
-    // distance 0: rings that share an atom
+    // distance 0: rings that share an atom (kept for `areVertexSetsConnected`'s semantics; sugar rings are of one
+    // residue each, `UnitRings.byFingerprintAndResidue`, so rings of different residues never do)
     const ring = all[elements[i].ringIndex];
     frontier.length = 0;
     for (let k = 0, kl = ring.length; k < kl; ++k) {
