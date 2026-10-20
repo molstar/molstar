@@ -11,8 +11,11 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'detail': 'msp-shell-log-view-detail',
   'empty': 'msp-shell-log-view-empty',
+  'entries': 'msp-shell-log-view-entries',
   'entry': 'msp-shell-log-view-entry',
+  'filters': 'msp-shell-log-view-filters',
   'kind': 'msp-shell-log-view-kind',
   'log': 'msp-shell-log-view-log',
   'text': 'msp-shell-log-view-text',
@@ -21,8 +24,19 @@ export const classes = {
 
 defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 .msp-shell-log-view-log {
+  gap: var(--msp-space-2);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
+  display: grid;
+}
+
+.msp-shell-log-view-filters {
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3) 0;
+  display: grid;
+}
+
+.msp-shell-log-view-entries {
   display: grid;
 }
 
@@ -36,7 +50,7 @@ defineStyles('views/shell/log-view.module.css', `@layer msp.components {
   gap: var(--msp-space-3);
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   display: grid;
 
   &:hover {
@@ -63,6 +77,13 @@ defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 
 .msp-shell-log-view-text {
   overflow-wrap: anywhere;
+}
+
+.msp-shell-log-view-detail {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .msp-shell-log-view-time {

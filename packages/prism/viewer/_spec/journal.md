@@ -63,6 +63,10 @@ the truth for how.
 
 ## 3. Shown back
 
+- **The Log's timings** (David, 2026-10-20): a person's run says in the Log how long it took ("120 ms", the message's
+  `detail`; the canvas shows the message without it). The plugin's state lines, one per transform created or updated
+  with its time (v5's log), are the Log's Transforms, the latest 100 (`TransformsKept`, `viewer.ts`); the plugin's
+  warnings are its Plugin entries. Neither is on the canvas or said.
 - **History** (`ui/history.tsx`, Steps beside the Log): newest first; a run is a row, an agent turn one group, undone
   steps struck. Undo the latest step; Undo turn asks first when later steps would go too. A run's second line says what
   it was pointed at and changed ("1CBS · A:10-20 · 3 nodes, view", `metaOf`) and "Undone by the assistant" when it was
