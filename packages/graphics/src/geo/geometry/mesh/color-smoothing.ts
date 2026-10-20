@@ -137,7 +137,7 @@ const SplatRadius = 2;
  * round differently
  */
 function getInstanceCells(
-  input: ColorSmoothingInput,
+  transformBuffer: Float32Array,
   vertexBox: Box3D,
   instanceCount: number,
   isInstanceType: boolean,
@@ -148,7 +148,7 @@ function getInstanceCells(
   for (let i = 0; i < instanceCount; ++i) {
     let box = vertexBox;
     if (isInstanceType) {
-      Mat4.fromArray(tmpTransform, input.transformBuffer, i * 16);
+      Mat4.fromArray(tmpTransform, transformBuffer, i * 16);
       box = Box3D.transform(tmpBox, vertexBox, tmpTransform);
     }
     for (let k = 0; k < 3; ++k) {
@@ -169,18 +169,10 @@ function hasGroupOutOfRange(groupBuffer: Float32Array, vertexCount: number, grou
 }
 
 /**
- * Whether any value of instance row `row` is non-zero, read 4 bytes at a time through `words` (a view of `colors`)
- * when given; a row (partly) beyond `colors` counts as non-zero
+ * Whether any value of the bytes from `start` to `end` of `colors` is non-zero, read 4 bytes at a time through `words`
+ * (a view of `colors`) when given; a range (partly) beyond `colors` counts as non-zero
  */
-function isRowReached(
-  colors: Uint8Array,
-  words: Uint32Array | undefined,
-  row: number,
-  groupCount: number,
-  itemSize: number,
-) {
-  const start = row * groupCount * itemSize;
-  const end = start + groupCount * itemSize;
+function isRangeReached(colors: Uint8Array, words: Uint32Array | undefined, start: number, end: number) {
   if (!(start >= 0 && end <= colors.length)) return true;
   let k = start;
   if (words) {
@@ -191,6 +183,19 @@ function isRowReached(
   }
   for (; k < end; ++k) if (colors[k] !== 0) return true;
   return false;
+}
+
+/**
+ * Whether instance row `row` of the layer `colors` is reached (any value non-zero), with the `itemsBefore` items before
+ * the row, which vertices of negative groups read; a row (partly) beyond `colors` counts as reached
+ */
+export function getRowReachedTest(colors: Uint8Array, groupCount: number, itemSize: number, itemsBefore = 0) {
+  const words =
+    colors.byteOffset % 4 === 0 ? new Uint32Array(colors.buffer, colors.byteOffset, colors.length >> 2) : undefined;
+  return (row: number) => {
+    const start = row * groupCount * itemSize;
+    return isRangeReached(colors, words, start - itemsBefore * itemSize, start + groupCount * itemSize);
+  };
 }
 
 /** Whether the cells of instance `i` overlap the box at `o` of `boxes` (6 numbers per box, as `cells`) */
@@ -211,40 +216,36 @@ const MaxReachedTests = 256;
 
 /**
  * The instances to splat (perf-audit 13/P1, `.v6/perf-audit/13-large-scale.md`): an instance whose layer is non-zero
- * ("reached"), and an instance whose cells overlap the cells of a reached one. The region, where the accumulators
- * are, is the box of the reached instances' cells, clamped to the grid.
+ * ("reached", `isReached`), and an instance whose cells overlap the cells of a reached one. The region, where the
+ * accumulators are, is the box of the reached instances' cells, clamped to the grid. `vertexBox` holds the untransformed
+ * vertices; the grid is at `min`, `scaleFactor` cells per unit, `gridDim` cells.
  *
  * Exact: only cells of reached instances can become non-zero, and every vertex that adds to such a cell is splatted
  * in the former order, so these cells are bit-identical to splatting every instance; every other cell gets zeros or
  * nothing, so it is 0, as before. A reached instance with non-finite cells (a degenerate transform) splats every
- * instance over the whole grid, as before.
+ * instance over the whole grid, as before. Also used by the GPU path of texture meshes (`calcTextureMeshColorSmoothing`).
  *
  * `read` (the CPU path only): the instances to interpolate, those splatted and those whose vertices are not within the
  * grid (they read cells of other slices, as before); the others read only cells of their own, which are 0.
  */
-function getSplatInstances(
-  input: ColorSmoothingInput,
+export function getSplatInstances(
+  transformBuffer: Float32Array,
   vertexBox: Box3D,
   instanceCount: number,
   isInstanceType: boolean,
-  instanceRow: (i: number) => number,
+  isReached: (i: number) => boolean,
   gridDim: Vec3,
   min: Vec3,
   scaleFactor: number,
   withRead: boolean,
 ) {
-  const { groupCount, groupBuffer, vertexCount, itemSize } = input;
-  const colors = input.colorData.array;
-  const cells = getInstanceCells(input, vertexBox, instanceCount, isInstanceType, min, scaleFactor);
-  const allReached = hasGroupOutOfRange(groupBuffer, vertexCount, groupCount);
-  const words =
-    colors.byteOffset % 4 === 0 ? new Uint32Array(colors.buffer, colors.byteOffset, colors.length >> 2) : undefined;
+  const cells = getInstanceCells(transformBuffer, vertexBox, instanceCount, isInstanceType, min, scaleFactor);
 
   const splat = new Uint8Array(instanceCount);
   const reached: number[] = [];
   let finite = true;
   for (let i = 0; i < instanceCount; ++i) {
-    if (!allReached && !isRowReached(colors, words, instanceRow(i), groupCount, itemSize)) continue;
+    if (!isReached(i)) continue;
     splat[i] = 1;
     reached.push(i);
     for (let k = 0; k < 6; ++k) if (!Number.isFinite(cells[i * 6 + k])) finite = false;
@@ -450,13 +451,15 @@ export function calcMeshColorSmoothing(
   // - use reordered index for access from GPU
   // - use serial index for access from CPU
   const instanceRow = (i: number) => (graphics && isInstanceType ? instanceBuffer[i] : i);
+  const allReached = hasGroupOutOfRange(groupBuffer, vertexCount, groupCount);
+  const isRowReached = getRowReachedTest(colors, groupCount, itemSize);
   const instances = vertexBox
     ? getSplatInstances(
-        input,
+        transformBuffer,
         vertexBox,
         instanceCount,
         isInstanceType,
-        instanceRow,
+        (i) => allReached || isRowReached(instanceRow(i)),
         gridDim,
         min,
         scaleFactor,

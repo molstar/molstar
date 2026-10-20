@@ -7,7 +7,7 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { Sphere3D } from '@molstar/core/math/geometry';
+import { type Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import type { TransformData } from '../transform-data.js';
@@ -83,6 +83,11 @@ export interface TextureMesh {
     chunkByteCount?: number;
     /** Settles once the vertices are final (indirectly drawn meshes: after the count check and any re-extraction) */
     extracted?: Promise<void>;
+    /**
+     * A box holding every untransformed vertex (e.g. the grid the surface was extracted from), which lets layer
+     * smoothing leave out the instances a layer does not reach (`getTextureMeshSplatInstances`); unknown: all drawn
+     */
+    vertexBox?: Box3D;
     [k: string]: unknown;
   };
 }
@@ -172,6 +177,7 @@ export namespace TextureMesh {
       textureMesh.groupCount = groupCount;
       textureMesh.meta.vertexData = undefined;
       textureMesh.meta.extracted = undefined;
+      textureMesh.meta.vertexBox = undefined;
       ValueCell.updateIfChanged(textureMesh.vertexCountCell, vertexCount);
       ValueCell.updateIfChanged(textureMesh.drawIndirect, drawIndirect);
       ValueCell.update(textureMesh.geoTextureDim, Vec2.set(textureMesh.geoTextureDim.ref.value, width, height));
@@ -232,6 +238,7 @@ export namespace TextureMesh {
       mesh.groupCount = groupCount;
       mesh.meta.vertexData = undefined;
       mesh.meta.extracted = undefined;
+      mesh.meta.vertexBox = undefined;
       ValueCell.updateIfChanged(mesh.vertexCountCell, vertexCount);
       ValueCell.updateIfChanged(mesh.drawIndirect, drawIndirect);
       Sphere3D.copy(mesh.boundingSphere, boundingSphere);
