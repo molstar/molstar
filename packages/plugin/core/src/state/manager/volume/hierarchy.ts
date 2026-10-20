@@ -7,6 +7,8 @@
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginComponent } from '../../component.js';
+import { PluginStateObject as SO } from '../../objects.js';
+import { trackObjectRefs } from '../object-refs.js';
 import { buildVolumeHierarchy, VolumeHierarchy, type VolumeHierarchyRef, type VolumeRef } from './hierarchy-state.js';
 import { createVolumeRepresentationParams } from '../../helpers/volume-representation-params.js';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
@@ -19,6 +21,9 @@ export class VolumeHierarchyManager extends PluginComponent {
     hierarchy: VolumeHierarchy(),
     selection: void 0 as VolumeRef | undefined,
   };
+
+  /** the cells of the hierarchy's root objects (volumes): their representations are only looked for below them */
+  private roots = trackObjectRefs(this, this.plugin.state.data, (o) => SO.Volume.Data.is(o) || SO.Volume.Lazy.is(o));
 
   readonly behaviors = {
     selection: this.ev.behavior({
@@ -54,6 +59,9 @@ export class VolumeHierarchyManager extends PluginComponent {
     }
 
     this.state.syncedTree = this.dataState.tree;
+
+    // without any root object and an empty hierarchy, the walk over the whole state could only find nothing new
+    if (this.roots.size === 0 && this.state.hierarchy.refs.size === 0) return;
 
     const update = buildVolumeHierarchy(this.plugin.state.data, this.current);
     if (!update.changed) {

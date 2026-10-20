@@ -60,7 +60,11 @@ Anything else that mutates a transform breaks invariant 4 (README) and the versi
 | `sourceTree` | the tree it was made on                                                              |
 | `count`      | the edits so far; with `lastUpdate`, one edit takes the fast track (reconcile.md §2) |
 | `lastUpdate` | the ref of the last edit                                                             |
+| `edits`      | what the builder's tree set (refs), moved and removed: the diff from edits           |
 | `applied`    | set on commit: a builder commits once                                                |
+
+`edits` is recorded by the builder's `TransientTree` (`TransientTree.Edits`), not by the builder's methods, so a write
+to `currentTree` directly counts too; it is not reset by `asImmutable()`. The reconciler reads it (reconcile.md §2).
 
 `apply` adds a node (a decorator transformer is inserted instead: between the node and its children, which move to it);
 `apply` on a decorated node applies to the end of its decorator chain. `update`, `updateState`, `tag`, `dependsOn`,

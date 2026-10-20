@@ -3601,6 +3601,9 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../packages/model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../packages/plugin/core
       rxjs:
         specifier: 'catalog:'
         version: 7.8.2

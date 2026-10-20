@@ -7,6 +7,8 @@
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginComponent } from '../../component.js';
+import { PluginStateObject as SO } from '../../objects.js';
+import { trackObjectRefs } from '../object-refs.js';
 import {
   buildParticleHierarchy,
   ParticleHierarchy,
@@ -23,6 +25,9 @@ export class ParticleHierarchyManager extends PluginComponent {
     hierarchy: ParticleHierarchy(),
     selection: void 0 as ParticleListRef | undefined,
   };
+
+  /** the cells of the hierarchy's root objects (particle lists): their representations are only looked for below them */
+  private roots = trackObjectRefs(this, this.plugin.state.data, (o) => SO.Particle.List.is(o));
 
   readonly behaviors = {
     selection: this.ev.behavior({
@@ -58,6 +63,9 @@ export class ParticleHierarchyManager extends PluginComponent {
     }
 
     this.state.syncedTree = this.dataState.tree;
+
+    // without any root object and an empty hierarchy, the walk over the whole state could only find nothing new
+    if (this.roots.size === 0 && this.state.hierarchy.refs.size === 0) return;
 
     const update = buildParticleHierarchy(this.plugin.state.data, this.current);
     if (!update.changed) {

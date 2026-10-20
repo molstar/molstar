@@ -37,6 +37,7 @@ repeated. Bugs are listed in [bugs.md](bugs.md).
 | [10-prism-viewer](10-prism-viewer.md)                 | `packages/prism/viewer/src` (plus two plugin hot spots on its paths)       |   11 / 3 |
 | [11-prism-ui-assistant](11-prism-ui-assistant.md)     | `packages/prism/ui/src`, `packages/prism/assistant/src`                    |    7 / 2 |
 | [12-tensor-access](12-tensor-access.md)               | every `Tensor` `get`/`dataOffset`/`getCoords` site; strides (#1987)         |    10 / 3 |
+| [14-many-structures](14-many-structures.md)           | `packages/plugin` state managers and behaviors, `core/src/state` diff (500 structures) | 8 fixed / 1 |
 
 Not audited: `packages/io` (profiled only: parse is cheap), `graphics/src/gl` and Canvas3D (frozen), `packages/plugin`
 (only 10/P4, 10/P5), `packages/mvs`, `query-language`, `sequences`, `ai`, extensions (but their tensor accessor sites,

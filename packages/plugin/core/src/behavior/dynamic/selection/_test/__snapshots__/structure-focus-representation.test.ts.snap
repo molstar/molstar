@@ -1,0 +1,100 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`structure focus representation behavior > updates the focus representations with new theme params 1`] = `
+{
+  "surroundings": [
+    {
+      "colorTheme": {
+        "name": "chain-id",
+        "params": {
+          "asymId": "auth",
+          "palette": {
+            "name": "colors",
+            "params": {
+              "list": {
+                "colors": [
+                  1810039,
+                  14245634,
+                  7696563,
+                  15149450,
+                  6727198,
+                  15117058,
+                  10909213,
+                  6710886,
+                  14948892,
+                  3636920,
+                  5091146,
+                  9981603,
+                  16744192,
+                  16777011,
+                  10901032,
+                  16220607,
+                  10066329,
+                  6734501,
+                  16551266,
+                  9281739,
+                  15174339,
+                  10934356,
+                  16767279,
+                  15058068,
+                  11776947,
+                ],
+                "kind": "set",
+              },
+            },
+          },
+        },
+      },
+      "sizeTheme": "physical",
+      "type": "ball-and-stick",
+    },
+  ],
+  "target": [
+    {
+      "colorTheme": {
+        "name": "chain-id",
+        "params": {
+          "asymId": "auth",
+          "palette": {
+            "name": "colors",
+            "params": {
+              "list": {
+                "colors": [
+                  1810039,
+                  14245634,
+                  7696563,
+                  15149450,
+                  6727198,
+                  15117058,
+                  10909213,
+                  6710886,
+                  14948892,
+                  3636920,
+                  5091146,
+                  9981603,
+                  16744192,
+                  16777011,
+                  10901032,
+                  16220607,
+                  10066329,
+                  6734501,
+                  16551266,
+                  9281739,
+                  15174339,
+                  10934356,
+                  16767279,
+                  15058068,
+                  11776947,
+                ],
+                "kind": "set",
+              },
+            },
+          },
+        },
+      },
+      "sizeTheme": "physical",
+      "type": "ball-and-stick",
+    },
+  ],
+}
+`;

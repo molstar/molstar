@@ -22,11 +22,19 @@ them:
 
 1. **Fast track**: a builder made on the current tree with one edit (`count === 1`, `lastUpdate`): no deletes, roots =
    `[lastUpdate]`, evaluated even below a Null object or an error.
-2. **Whole trees** (`findDeletes` over the old tree, `findUpdateRoots` over the new one): everything else (a builder
-   with more edits, or rebased; a `StateTree` passed in: snapshots, undo, transactions).
+2. **From the edits** (`state/diff.ts`: `findEditedDeletes`, `findEditedRoots`): a builder made on the current tree that
+   moved no node and removed at most one (`editInfo.edits`, tree.md §4), while the cells are in line with the tree. The
+   same deletes and roots as the whole trees, in the same order, without walking them: the deletes are the removed
+   node's subtree in the old tree (post-order of a subtree is a run of the whole tree's); a root is an edited ref whose
+   cell is missing or has another version, with no ancestor the whole-tree diff stops at, sorted in pre-order.
+3. **Whole trees** (`findDeletes` over the old tree, `findUpdateRoots` over the new one): everything else (a builder
+   that moved nodes, removed more than one, or was rebased; a `StateTree` passed in: snapshots, undo, transactions;
+   after cells fell behind).
 
 An update that throws leaves cells behind the tree (missing, or with an older transform): the next whole-tree diff finds
-them; the fast track does not.
+them; the fast track does not. So does a fast track whose builder's tree changed outside the edited node (a write to
+`currentTree` directly, not counted). After either, the state takes the whole trees (`cellsInSync`) until a pass of them
+completes.
 
 ## 3. Deletes
 
@@ -96,15 +104,23 @@ Listeners run synchronously in the middle of a pass: they may read the state and
 
 ## 8. Cost
 
-A builder commit with one edit costs the edited subtree; any other update walks both trees (O(n)), plus the evaluated
-subtrees, and a tree passed in syncs every cell's state flags. Per evaluated node: the transformer, three status events,
-`params(a)`, and Immutable.js lookups (README, Decisions).
+A builder commit with one edit costs the edited subtree; a builder commit diffed from its edits costs the edits, their
+ancestors and the removed subtree (and, to sort several roots, one pass over the children of each parent where their
+paths part); any other update walks both trees (O(n)), plus the evaluated subtrees, and a tree passed in syncs every
+cell's state flags. With many objects in the state (hundreds of structures), the whole-tree diff on every commit made
+loading O(n²) (perf-audit 14). Per evaluated node: the transformer, three status events, `params(a)`, and Immutable.js
+lookups (README, Decisions).
 
 ## Decisions
 
 - **One edit takes a fast track.** It is the common case (a UI control): the edited node is the root, with no walk of
   either tree. It differs from the whole-tree diff: it evaluates the node even below a Null object or an error, and it
   never finds cells an earlier update left behind.
+- **More edits are diffed from the edits, exactly.** Presets commit a few edits at a time (a component and its
+  representation, an empty component deleted), one commit per object; walking the whole state for each made loading N
+  structures O(N²). The result must equal the whole-tree diff (a differential test, testing.md), so it applies only
+  while the cells are in line with the tree, and the edits are recorded by the builder's tree itself, writes to
+  `currentTree` included.
 - **Evaluate sequentially.** Transformers are tasks that may take seconds; one at a time keeps a pass deterministic
   (events, the current object, dispose order) and lets a dependency defer its dependent (dependencies.md §4).
 - **Nothing below a Null object is evaluated.** Null is "no value here" (a representation of an empty selection): its
