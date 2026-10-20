@@ -81,6 +81,93 @@ export const LargeComplex1AON: StoryObj = {
     }),
 };
 
+// --- Many structures -------------------------------------------------------------------------------------------
+
+/** Local entries of 1.2k–11.5k atoms (no network): protein–ligand, protein–DNA, multi-chain, an AlphaFold model. */
+const ManySources = [
+  new URL('../../../../../data/examples/1cbs_full.bcif', import.meta.url).href,
+  new URL('../sequence/molstar/_test/fixtures/structures/1tup.bcif', import.meta.url).href,
+  new URL('../sequence/molstar/_test/fixtures/structures/2ocj.bcif', import.meta.url).href,
+  new URL('../sequence/molstar/_test/fixtures/structures/2xwr.bcif', import.meta.url).href,
+  new URL('../sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif', import.meta.url).href,
+  new URL('../../../../../data/examples/7qpd.fw2.cif', import.meta.url).href,
+];
+
+/**
+ * `count` separate structures in one scene (perf-audit 14): the local entries above cycled, each its own file, opened
+ * in one drop (`load.files`) and moved onto a grid (`structure.transform`). Nothing is shared between them, so the
+ * scene has `count` structures and several representations each. The times show in the corner.
+ */
+function manyStructures(count: number) {
+  return story(() => {
+    const box = document.createElement('div');
+    box.style.cssText = 'position: relative; height: 100vh';
+    const status = document.createElement('div');
+    status.style.cssText =
+      'position: absolute; left: 8px; bottom: 8px; z-index: 10; padding: 4px 8px; border-radius: 4px; ' +
+      'font: 12px/1.4 ui-monospace, monospace; background: rgba(0, 0, 0, 0.6); color: white; pointer-events: none';
+    const show = (text: string) => {
+      status.textContent = text;
+      console.info(`[story] ${text}`);
+    };
+    show(`Fetching ${ManySources.length} files…`);
+    const viewer = RealViewerStory({
+      style: 'height: 100%',
+      setup: async (v) => {
+        const bytes = await Promise.all(
+          ManySources.map(async (url) => {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`${url}: ${response.status}`);
+            return response.arrayBuffer();
+          }),
+        );
+        const files = Array.from({ length: count }, (_, i) => {
+          const source = ManySources[i % ManySources.length];
+          const name = source.slice(source.lastIndexOf('/') + 1);
+          return new File([bytes[i % bytes.length]], `${String(i + 1).padStart(3, '0')}-${name}`);
+        });
+        show(`Loading ${count} structures…`);
+        const t0 = performance.now();
+        await must(person(v).load.files({ files: files as never }));
+        const loaded = performance.now() - t0;
+        show(`${count} structures loaded in ${(loaded / 1000).toFixed(1)} s; arranging…`);
+
+        // A grid, 80 Å apart: each structure moved from where it was loaded, its center to its cell
+        const t1 = performance.now();
+        const structures = v.api.structure.loaded.value;
+        const side = Math.ceil(Math.sqrt(structures.length));
+        await v.plugin.dataTransaction(async () => {
+          for (let i = 0; i < structures.length; i++) {
+            const data = v.plugin.state.data.cells.get(structures[i].ref)?.obj?.data as
+              | { boundary: { sphere: { center: ArrayLike<number> } } }
+              | undefined;
+            if (!data) continue;
+            const c = data.boundary.sphere.center;
+            const translation = [80 * (i % side) - c[0], 80 * Math.floor(i / side) - c[1], -c[2]];
+            await must(
+              person(v).structure.transform({ structure: structures[i].ref, translation: translation as never }),
+            );
+          }
+        });
+        await must(person(v).camera.reset({ animate: false }));
+        const arranged = performance.now() - t1;
+        const atoms = structures.reduce((a, s) => a + s.atoms, 0);
+        show(
+          `${structures.length} structures, ${atoms.toLocaleString('en')} atoms: loaded in ${(loaded / 1000).toFixed(1)} s, ` +
+            `arranged in ${(arranged / 1000).toFixed(1)} s`,
+        );
+      },
+    });
+    box.append(viewer, status);
+    return box;
+  });
+}
+
+/** 50 separate structures (1.2k–11.5k atoms each, 261k in all) in one scene, from local files. */
+export const ManyStructures50: StoryObj = {
+  render: () => manyStructures(50),
+};
+
 // --- Models and trajectories ------------------------------------------------------------------------------------
 
 /** An NMR ensemble (ubiquitin, 1D3Z, 10 models) opened on its first model, then `trajectory.frame` shows the fourth. */
