@@ -7,7 +7,7 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { type Box3D, Sphere3D } from '@molstar/core/math/geometry';
+import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import type { TransformData } from '../transform-data.js';
@@ -22,7 +22,7 @@ import { createEmptyTransparency } from '../transparency-data.js';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, isNullTexture, type Texture } from '@molstar/graphics/gl/texture';
-import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { type Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data.js';
 import { NullLocation } from '@molstar/model/model/location';
 import { createEmptySubstance } from '../substance-data.js';
@@ -282,6 +282,15 @@ export namespace TextureMesh {
   export function bindChunkedTable(mesh: TextureMesh, surface: ChunkedSurface) {
     ValueCell.updateIfChanged(mesh.isoTable, surface.table);
     releaseRetiredTables(surface);
+  }
+
+  /**
+   * The box of the points of a grid of `gridDim` points placed by `transform`, which holds every vertex of an isosurface
+   * extracted from it (marching cubes puts them on the edges between grid points), for `meta.vertexBox`
+   */
+  export function getGridVertexBox(gridDim: Vec3, transform: Mat4) {
+    const box = Box3D.create(Vec3.create(0, 0, 0), Vec3.create(gridDim[0] - 1, gridDim[1] - 1, gridDim[2] - 1));
+    return Box3D.transform(box, box, transform);
   }
 
   /** Sets the handler of `kind` called after the vertices were extracted again */

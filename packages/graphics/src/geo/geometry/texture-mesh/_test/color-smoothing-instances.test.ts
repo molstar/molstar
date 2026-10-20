@@ -9,12 +9,17 @@ import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
-import { getGridDim, getTextureMeshSplatInstances, type SplatInstances } from '../color-smoothing.js';
+import { getGridDim, getTextureMeshSplatInstances } from '../color-smoothing.js';
 
 // The instances the GPU smoothing of texture meshes draws (perf-audit 13/P1): the grid the shaders accumulate, emulated
 // on the CPU (cells within 2 of a vertex, weighted `2 - distance`, summed in fp32 in draw order: instance-major, as
 // instanced draws blend and the compute path's fixed-point sums give in any order), must be the same with the subset
 // as with every instance.
+
+type SplatInstances = Pick<
+  ReturnType<typeof getTextureMeshSplatInstances>,
+  'instanceCount' | 'transformBuffer' | 'instanceBuffer'
+>;
 
 const GroupCount = 7;
 const VertexCount = 400;
