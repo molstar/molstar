@@ -54,6 +54,11 @@ One commit each, identical results pinned by `_test/` tests recorded on the code
 | F7  | SelectLoci does not mark an empty selection on a new representation                                                 |
 | F8  | the volume and particle hierarchies skip the walk without any volume or particle list                               |
 
+Master meanwhile landed 10/P4 and 10/P5 (#2008), versions of F1 and F2 from the Prism audit; the merge keeps them:
+the measurement manager is master's (it also skips the walk without a group), and StructureInfo has master's
+semantics (a removed model lowers the max at once; a replaced or remapped object gets the last max and keeps its
+index) computed over F6's tracked roots, so it walks for no object. The per-commit table below is from before the merge.
+
 One difference besides speed (F3, F5): the focus behavior's empty data commit is gone, and it used to clear the data
 state's undo history (an update without `canUndo`), toggle `isUpdating` and wait for queued updates. The presets'
 own commits clear the history anyway.
