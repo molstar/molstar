@@ -203,8 +203,12 @@ export const StructureInfo = PluginBehavior.create({
       }
 
       this.subscribeObservable(data.events.cell.created, (o) => this.pending.add(o.ref));
-      // after the object events of an update (a cell that failed has none)
-      this.subscribeObservable(data.events.changed, () => this.pending.clear());
+      // After the object events of an update: a cell with an object and no event (its update threw after making it)
+      // stays a root as the walk would see it; a failed cell has no object.
+      this.subscribeObservable(data.events.changed, () => {
+        for (const ref of this.pending) this.trackIfRoot(ref, data.cells.get(ref)?.obj);
+        this.pending.clear();
+      });
       this.subscribeObservable(data.events.cell.removed, (o) => {
         this.pending.delete(o.ref);
         this.untrack(o.ref);

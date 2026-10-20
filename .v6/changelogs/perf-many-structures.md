@@ -1,8 +1,9 @@
 ## Performance: many structures in one scene
 
 Measured with up to 500 separate entries of 1.2k–11.5k atoms in one plugin (`tests/src/pipeline/many.ts`, loads in one
-data transaction as `OpenFiles` and Prism do). Loading 500 to a full scene: 74 s → 16 s; the representation presets
-alone 60 s → 10 s, allocating 72 → 4.2 GB.
+data transaction as `OpenFiles` and Prism do), before merging #2008 (whose StructureInfo and measurement changes
+overlap two of these). Loading 500 to a full scene: 74 s → 16 s; the representation presets alone 60 s → 10 s,
+allocating 72 → 4.2 GB.
 
 - State updates with more than one edit (a preset's component and representation, an empty component deleted) no
   longer walk the whole state tree twice: the reconciler takes deletes and update roots from what the builder's tree

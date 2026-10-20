@@ -206,7 +206,7 @@ describe('structure info behavior', () => {
       .commit();
     steps.updated = info(plugin);
 
-    // the last model goes away; the max index follows at the next created object
+    // the last model goes away; the max index is lowered at once (#2008)
     await plugin.managers.structure.hierarchy.remove([c.data.ref]);
     steps.removed = info(plugin);
     await plugin.builders.structure.representation.addRepresentation(b.structure, { type: 'cartoon' });
@@ -253,7 +253,7 @@ describe('structure info behavior', () => {
     plugin.dispose();
   });
 
-  it('walks the state for root models and structures only, not for every created object', async () => {
+  it('walks the state for no created object once registered, components and representations included', async () => {
     const plugin = await createPlugin();
     const a = await load(plugin, 'a', 2);
     await load(plugin, 'b', 1);

@@ -4,9 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { OrderedSet } from '@molstar/core/data/int';
-import { StateSelection } from '@molstar/core/state';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
@@ -96,19 +95,6 @@ describe('structure measurement manager', () => {
     steps.removed = summary(m.state);
 
     expect(steps).toMatchSnapshot();
-    plugin.dispose();
-  });
-
-  it('finds the measurement group once per change', async () => {
-    const plugin = await createPlugin();
-    const s = await loadStructure(plugin, 'a');
-    await plugin.managers.structure.measurement.addDistance(atom(s, 0), atom(s, 1));
-    let changes = 0;
-    plugin.state.data.events.changed.subscribe(() => changes++);
-    const find = vi.spyOn(StateSelection, 'findTagInSubtree');
-    await loadStructure(plugin, 'b');
-    expect(changes).toBeGreaterThan(0);
-    expect(find).toHaveBeenCalledTimes(changes);
     plugin.dispose();
   });
 });

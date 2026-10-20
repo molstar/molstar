@@ -136,19 +136,27 @@ function manyStructures(count: number) {
         const t1 = performance.now();
         const structures = v.api.structure.loaded.value;
         const side = Math.ceil(Math.sqrt(structures.length));
-        await v.plugin.dataTransaction(async () => {
-          for (let i = 0; i < structures.length; i++) {
-            const data = v.plugin.state.data.cells.get(structures[i].ref)?.obj?.data as
-              | { boundary: { sphere: { center: ArrayLike<number> } } }
-              | undefined;
-            if (!data) continue;
-            const c = data.boundary.sphere.center;
-            const translation = [80 * (i % side) - c[0], 80 * Math.floor(i / side) - c[1], -c[2]];
-            await must(
-              person(v).structure.transform({ structure: structures[i].ref, translation: translation as never }),
-            );
-          }
-        });
+        // One history step, all or nothing (api.md §5); one data transaction, so the scene syncs once
+        await must(
+          person(v).group('Arrange on a grid', (api) =>
+            v.plugin.dataTransaction(
+              async () => {
+                for (let i = 0; i < structures.length; i++) {
+                  const data = v.plugin.state.data.cells.get(structures[i].ref)?.obj?.data as
+                    | { boundary: { sphere: { center: ArrayLike<number> } } }
+                    | undefined;
+                  if (!data) continue;
+                  const c = data.boundary.sphere.center;
+                  const translation = [80 * (i % side) - c[0], 80 * Math.floor(i / side) - c[1], -c[2]];
+                  await must(
+                    api.structure.transform({ structure: structures[i].ref, translation: translation as never }),
+                  );
+                }
+              },
+              { rethrowErrors: true },
+            ),
+          ),
+        );
         await must(person(v).camera.reset({ animate: false }));
         const arranged = performance.now() - t1;
         const atoms = structures.reduce((a, s) => a + s.atoms, 0);
