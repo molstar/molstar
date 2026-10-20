@@ -42,8 +42,9 @@ class TransientTree implements StateTree {
     return this._dependencyMutations;
   }
 
-  // Every write to a map goes through its `change*` gate and every delete through its `delete*`: the map turns mutable
-  // on the first write or delete, and a write after deletes renews its owner (tree.md §2); deletes in a row stay in place.
+  // Every write to a map goes through its `change*` gate and every delete through its `delete*`: the map turns
+  // mutable on the first write or delete, and a write after deletes renews its owner (tree.md §2); deletes in a row
+  // stay in place.
 
   private changeNodes() {
     if (this.deletedNodes) {
@@ -375,10 +376,11 @@ function fixDependencyMutations(
 
 /**
  * A new owner for a mutable map, before a write that follows deletes (tree.md §2). Deleting one of two keys with equal
- * hashes leaves the other in a node of the map's owner that shares its `[key, value]` entry with the source tree's node,
- * and Immutable writes a later `set` of that key into the entry in place: into the source tree (`HashCollisionNode.update`;
- * seen in immutable 4.3.9, 5.1.9 and 6.0.0-beta.1; fixed by immutable-js#2279, see the core TODO). Under a new owner, that `set` copies the node
- * instead; the writes after it copy their paths once more. Generated refs collide this way often.
+ * hashes leaves the other in a node of the map's owner that shares its `[key, value]` entry with the source tree's
+ * node, and Immutable writes a later `set` of that key into the entry in place: into the source tree
+ * (`HashCollisionNode.update`; seen in immutable 4.3.9, 5.1.9 and 6.0.0-beta.1; fixed by immutable-js#2279, see the
+ * core TODO). Under a new owner, that `set` copies the node instead; the writes after it copy their paths once more.
+ * Generated refs collide this way often.
  */
 function renewOwner<M extends StateTree.MutableMap<any>>(map: M): M {
   return map.asImmutable().asMutable() as M;
