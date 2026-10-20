@@ -19,6 +19,9 @@ is shared. `1tup-2x2x2` is the same atoms with symmetry groups (9 representative
 
 ## How to rerun
 
+The bench now lives in the repo (`tests/src/pipeline/`, `node scripts/pipeline-bench.mjs`; `flat-32` is `big-bcif`),
+see [13-large-scale](13-large-scale.md#how-to-rerun). The scratch scripts below are what produced this report.
+
 Scripts in `/private/tmp/claude-501/-Users-davinci001-projects-molstar-molstar-v6/ac6cef1a-5954-43a5-ae83-c22fef35f065/scratchpad/perf-audit/`
 (`bench.ts` pipeline, `build.mjs` esbuild bundle with `conditions: ['molstar-src']`, `analyze.mjs` per-stage
 self/total from `.cpuprofile` mapped back to TS by the bundle's source map, `mkbig.ts` big fixtures, `snapdiff.py` /
