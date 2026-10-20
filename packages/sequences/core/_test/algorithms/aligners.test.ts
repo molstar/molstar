@@ -12,10 +12,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ALIGNOPT, pairwiseAlignment } from '../../src/algorithms/biomsa/align/align.js';
 import { extractLongestPath, noalignPair } from '../../src/algorithms/biomsa/align/noalign.js';
 import { getAlignmentParameters, SEQUENCE_TYPE } from '../../src/algorithms/biomsa/align/params.js';
-import { makeSequence } from '../../src/algorithms/biomsa/sequence/sequence.js';
+import { profileFromMSA } from '../../src/algorithms/biomsa/sequence/profile.js';
+import { distanceKimura, makeSequence } from '../../src/algorithms/biomsa/sequence/sequence.js';
+import { BioMSA } from '../../src/algorithms/biomsa/index.js';
+import { GAP } from '../../src/model/alignment.js';
 import {
   type Aligner,
   type AlignerOptions,
+  GAP_CHAR,
   AlignerOptionsError,
   AlignerSizeError,
   Aligners,
@@ -541,6 +545,25 @@ describe('biomsa', () => {
 
   it('accepts a pair just under the cell limit: 8191 × 8191, its full matrix filled', { tags: ['heavy'] }, async () => {
     await expect(biomsa.align('A'.repeat(8191), 'C'.repeat(8191), { method: 'complete' })).resolves.toMatch(/M/);
+  });
+});
+
+describe('the gap symbol', () => {
+  it("is the model's gap code", () => {
+    expect(GAP_CHAR.charCodeAt(0)).toBe(GAP);
+  });
+
+  it('is a biomsa parameter: rows, profiles and distances read it (B19)', async () => {
+    const seqs = ['ACGTACGTTTGACCA', 'ACGTACGACCA', 'ACGTTTGACC'];
+    const dashed = await BioMSA.align(seqs, { type: 'nucleic' });
+    const dotted = await BioMSA.align(seqs, { type: 'nucleic', gapchar: '.' });
+    expect(dashed.some((r) => r.includes('-'))).toBe(true);
+    expect(dotted).toEqual(dashed.map((r) => r.replaceAll('-', '.')));
+
+    const params = getAlignmentParameters(SEQUENCE_TYPE.NUCLEIC);
+    const weights = dashed.map(() => 1);
+    expect(profileFromMSA(dotted, weights, params, 0, '.')).toEqual(profileFromMSA(dashed, weights, params));
+    expect(distanceKimura(dotted, '.')).toEqual(distanceKimura(dashed));
   });
 });
 

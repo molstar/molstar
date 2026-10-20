@@ -17,6 +17,7 @@ import {
   alignable,
   cigarFromRows,
   detectType,
+  GAP_CHAR,
   type ResolvedOptions,
   readOptions,
   type SequenceType,
@@ -29,7 +30,6 @@ export type BiomsaMatrix = keyof typeof BiomsaMatrices;
 
 /** biomsa's default penalties per type, as positive costs (its own values are the negated scores). */
 const DEFAULTS = { amino: { gap_open: 300, gap_extend: 11 }, nucleic: { gap_open: 400, gap_extend: 60 } } as const;
-const GAP = '-';
 
 const params: AlignerParams = {
   matrix: {
@@ -104,7 +104,7 @@ async function rowsOf(
         method: o.method as 'auto' | 'complete' | 'diag',
         gapopen: -(o.gap_open ?? DEFAULTS[type].gap_open),
         gapextend: -(o.gap_extend ?? DEFAULTS[type].gap_extend),
-        gapchar: GAP,
+        gapchar: GAP_CHAR,
       },
       step,
     );
@@ -126,7 +126,7 @@ export const biomsa: Aligner = {
     const type = typeOf([A, B], o);
     if (type === null) return null;
     const rows = await rowsOf([A, B], type, o);
-    return cigarFromRows(rows[0], rows[1], GAP);
+    return cigarFromRows(rows[0], rows[1], GAP_CHAR);
   },
   async alignMany(seqs, options, signal) {
     const o = readOptions('biomsa', params, options);

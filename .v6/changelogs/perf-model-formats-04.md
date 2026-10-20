@@ -18,3 +18,6 @@
 - struct_conn partners are looked up in their asym's entity only: 10k rows over 100 entities 38 → 5 ms (#2017)
 - IHM: model group names from one pass (5000 models 66 → 0.7 ms); the residue source index skips its sort when residues
   are in order (#2017)
+- Seq\*: `@molstar/seq-core/algorithms` exports `GAP_CHAR`, the gap symbol of gapped rows (the model's `GAP`); the
+  biomsa aligner and `cigarFromRows` use it, and biomsa's profile and Kimura distance read the gap symbol they are given
+  (#2017)

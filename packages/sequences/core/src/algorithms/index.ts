@@ -20,6 +20,7 @@ export {
   alignable,
   cigarFromRows,
   cigarOf,
+  GAP_CHAR,
   detectType,
   pairType,
   type ResolvedOptions,

@@ -7,7 +7,7 @@
   0.3.3).
 - **License**: MIT, Copyright (c) 2021 Paul Pillot; the text in `src/biomsa/LICENSE`.
 - **Copied**: `src/` without `src/**/__tests__/` and `src/dotplot/` (an unused, commented-out dotplot); `TODO.md` kept
-  as it was.
+  as it was but for its gap-symbol item, done by B19.
 - **Used through**: `src/biomsa-aligner.ts` (the `biomsa` aligner), which calls `BioMSA.align` (the named export of
   `src/biomsa/index.ts`; upstream's was the default) on two sequences and reads the gapped rows as a CIGAR, and
   `src/aligner.ts`, which uses `getSequenceType` to detect the sequence type.
@@ -134,6 +134,12 @@ tests in `_test/aligners.test.ts` pin them.
   reject. The singleton's state (`sequences`, the gap character) is read into locals before the first await, since the
   next call replaces it while this one waits. `centerStarNoAlign` (the diagonal method for sequences over 1,600 letters)
   does not yield.
+- **B19, the gap symbol is a parameter everywhere** (upstream's `TODO.md` item; `sequence/profile.ts`,
+  `sequence/sequence.ts`): `align`'s `gapchar` already set the output rows' gap, but `profileFromMSA` and
+  `distanceKimura` (with `fractionalIdentity`) read `-` literally. They take the rows' gap symbol, `-` by default.
+  Neither is called by the alignment itself (the progressive alignment works on edit strings, and its Kimura distances
+  are commented out), so no result changes. Our side passes `GAP_CHAR` (`src/aligner.ts`, the model's `GAP`) as
+  `gapchar`.
 
 **Our side of A1** (not in `src/biomsa/`): `src/limits.ts` (`MAX_CELLS`, `AlignerSizeError`, `checkCells`),
 `AlignerOptionsError extends RangeError` in `src/aligner.ts` (thrown by `readOptions` and by the `biomsa` aligner's
