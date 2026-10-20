@@ -377,7 +377,7 @@ function fixDependencyMutations(
  * A new owner for a mutable map, before a write that follows deletes (tree.md §2). Deleting one of two keys with equal
  * hashes leaves the other in a node of the map's owner that shares its `[key, value]` entry with the source tree's node,
  * and Immutable writes a later `set` of that key into the entry in place: into the source tree (`HashCollisionNode.update`;
- * seen in immutable 4.3.9, 5.1.9 and 6.0.0-beta.1, see the core TODO). Under a new owner, that `set` copies the node
+ * seen in immutable 4.3.9, 5.1.9 and 6.0.0-beta.1; fixed by immutable-js#2279, see the core TODO). Under a new owner, that `set` copies the node
  * instead; the writes after it copy their paths once more. Generated refs collide this way often.
  */
 function renewOwner<M extends StateTree.MutableMap<any>>(map: M): M {

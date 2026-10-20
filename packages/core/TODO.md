@@ -7,9 +7,10 @@ The decisions still open. One entry each, with a pointer; an entry leaves when i
 - **Drop the Immutable workaround once Immutable is fixed.** `TransientTree` gives a map a new owner on the first write
   after deletes (`renewOwner`, [tree.md](src/state/_spec/tree.md) §2) because Immutable's `HashCollisionNode.update`
   shares the survivor's `[key, value]` entry with the source tree, and a later `set` writes into it (seen in 4.3.9,
-  5.1.9, 6.0.0-beta.1; not yet reported upstream). When an upgrade makes the canary in
-  `src/state/_test/transient.test.ts` fail, remove `renewOwner`, the `deleted*` flags and the canary, and keep the other
-  tests there.
+  5.1.9, 6.0.0-beta.1; known upstream, fixed by the open
+  [immutable-js#2279](https://github.com/immutable-js/immutable-js/pull/2279)). When an upgrade with that fix makes the
+  canary in `src/state/_test/transient.test.ts` fail, remove `renewOwner`, the `deleted*` flags and the canary, and keep
+  the other tests there.
 
 - **Cells for every node of the tree.** The diff does not descend below Null objects and errors, so nodes added there
   have no cell; the dependents' cell pass and `DependencyWaiters` exist for that

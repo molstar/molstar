@@ -84,7 +84,7 @@ plain `StateTree` passed to `updateTree` (e.g. `getTree()` committed later) is a
   the flags reach cells by `updateCellState` or, without a builder, `syncNewStates`.
 - **Immutable's shared entries are worked around, not patched.** The bug is in immutable 4.3.9, 5.1.9 and 6.0.0-beta.1
   (the versions checked), and a patch of the dependency would not reach the packages' consumers. The cost: the first
-  write after deletes copies the paths it takes. Revisit once Immutable is fixed (TODO; the canary in
-  `_test/transient.test.ts` fails then).
+  write after deletes copies the paths it takes. Revisit once Immutable is fixed (immutable-js#2279, open; TODO; the
+  canary in `_test/transient.test.ts` fails then).
 - **A builder rebases by replaying its actions.** Edits made on an older tree are replayed on the current one rather
   than merged; an action that no longer applies throws (`Parent ... must be present in the tree`).
