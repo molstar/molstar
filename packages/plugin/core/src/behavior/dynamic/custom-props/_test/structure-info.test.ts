@@ -1,0 +1,142 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { describe, expect, it, vi } from 'vitest';
+import { StateSelection } from '@molstar/core/state';
+import { Model, Structure } from '@molstar/model/model/structure';
+import { PluginBehaviors } from '@molstar/plugin/behavior';
+import { PluginContext } from '@molstar/plugin/context';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { PluginSpec } from '@molstar/plugin/spec';
+import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
+
+/** An mmCIF entry of `chains` chains of two glycines each */
+function cif(name: string, chains: number) {
+  const rows: string[] = [];
+  let id = 1;
+  for (let c = 0; c < chains; c++) {
+    const asym = String.fromCharCode(65 + c);
+    for (let r = 1; r <= 2; r++) {
+      for (const [atom, el] of [
+        ['N', 'N'],
+        ['CA', 'C'],
+        ['C', 'C'],
+        ['O', 'O'],
+      ]) {
+        rows.push(`ATOM ${id} ${el} ${atom} . GLY ${asym} 1 ${r} ${id * 1.1} ${c * 5} 0 1 10 ${r} ${asym} 1`);
+        id++;
+      }
+    }
+  }
+  return `data_${name}
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.auth_seq_id
+_atom_site.auth_asym_id
+_atom_site.pdbx_PDB_model_num
+${rows.join('\n')}
+#
+`;
+}
+
+async function createPlugin() {
+  const plugin = new PluginContext({
+    registry: DefaultPluginSpec().registry,
+    behaviors: [PluginSpec.Behavior(PluginBehaviors.CustomProps.StructureInfo)],
+  });
+  await plugin.init();
+  return plugin;
+}
+
+async function load(plugin: PluginContext, name: string, chains: number) {
+  const data = await plugin.builders.data.rawData({ data: cif(name, chains), label: name });
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+  const model = await plugin.builders.structure.createModel(trajectory);
+  const props = await plugin.builders.structure.insertModelProperties(model);
+  const structure = await plugin.builders.structure.createStructure(props);
+  return { data, structure };
+}
+
+/** The structure info of every model and structure object in the state, in cell order */
+function info(plugin: PluginContext) {
+  const rows: string[] = [];
+  for (const cell of plugin.state.data.cells.values()) {
+    const label = cell.obj?.label;
+    if (SO.Molecule.Model.is(cell.obj)) {
+      const m = cell.obj.data;
+      const o = Model.AsymIdOffset.get(m).value;
+      rows.push(
+        `model ${label}: index=${Model.Index.get(m).value} max=${Model.MaxIndex.get(m).value} asym=${o ? `${o.auth}/${o.label}` : o}`,
+      );
+    } else if (SO.Molecule.Structure.is(cell.obj)) {
+      const s = cell.obj.data;
+      rows.push(`structure ${label}: index=${Structure.Index.get(s).value} max=${Structure.MaxIndex.get(s).value}`);
+    }
+  }
+  return rows;
+}
+
+describe('structure info behavior', () => {
+  it('numbers models and structures and keeps their max index over loads, updates and removals', async () => {
+    const plugin = await createPlugin();
+    const steps: Record<string, string[]> = {};
+
+    const a = await load(plugin, 'a', 2);
+    const b = await load(plugin, 'b', 3);
+    const c = await load(plugin, 'c', 1);
+    steps.loaded = info(plugin);
+
+    // a representation is created: an object that is not a model or a structure
+    await plugin.builders.structure.representation.addRepresentation(a.structure, { type: 'ball-and-stick' });
+    steps.representation = info(plugin);
+
+    // the structure is updated (recreated): its index carries over
+    await plugin
+      .build()
+      .to(b.structure)
+      .update({ type: { name: 'model', params: {} } })
+      .commit();
+    steps.updated = info(plugin);
+
+    // the last model goes away; the max index follows at the next created object
+    await plugin.managers.structure.hierarchy.remove([c.data.ref]);
+    steps.removed = info(plugin);
+    await plugin.builders.structure.representation.addRepresentation(b.structure, { type: 'cartoon' });
+    steps.createdAfterRemove = info(plugin);
+
+    await load(plugin, 'd', 2);
+    steps.loadedAgain = info(plugin);
+
+    expect(steps).toMatchSnapshot();
+    plugin.dispose();
+  });
+
+  it('walks the state for root models and structures only, not for every created object', async () => {
+    const plugin = await createPlugin();
+    const a = await load(plugin, 'a', 2);
+    await load(plugin, 'b', 1);
+    const select = vi.spyOn(StateSelection.Generators, 'rootsOfType');
+    await plugin.builders.structure.representation.addRepresentation(a.structure, { type: 'ball-and-stick' });
+    // a component is a structure too, but not a root one
+    const polymer = await plugin.builders.structure.tryCreateComponentStatic(a.structure, 'polymer');
+    await plugin.builders.structure.representation.addRepresentation(polymer!, { type: 'cartoon' });
+    expect(select).not.toHaveBeenCalled();
+    plugin.dispose();
+  });
+});

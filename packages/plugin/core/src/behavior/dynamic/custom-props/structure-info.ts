@@ -2,18 +2,19 @@
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PluginBehavior } from '../../behavior.js';
 import { Structure, Model } from '@molstar/model/model/structure';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { StateSelection, StateObject } from '@molstar/core/state';
+import { StateSelection, StateObject, StateTransform } from '@molstar/core/state';
 
 export const StructureInfo = PluginBehavior.create({
   name: 'structure-info-prop',
   category: 'custom-props',
   display: { name: 'Structure Info' },
-  ctor: class extends PluginBehavior.Handler {
+  ctor: class StructureInfoHandler extends PluginBehavior.Handler {
     private get maxModelIndex() {
       let maxIndex = -1;
       const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
@@ -54,8 +55,40 @@ export const StructureInfo = PluginBehavior.create({
       return { auth, label };
     }
 
-    private setModelMaxIndex() {
+    /**
+     * The max indices depend only on the root model and structure objects (`rootsOfType`): they are walked for again
+     * only after one of those was created or updated, or a model or structure was removed, not on every created object
+     * (components, representations: O(objects × cells) otherwise). The result is the same, at the same moment.
+     */
+    private maxIndexDirty = true;
+
+    private setMaxIndex() {
+      if (!this.maxIndexDirty) return;
+      this.maxIndexDirty = false;
       const value = this.maxModelIndex;
+      this.setModelMaxIndex(value);
+      this.setStructureMaxIndex(value);
+    }
+
+    private static typeOf(obj: StateObject | undefined) {
+      if (PluginStateObject.Molecule.Model.is(obj)) return PluginStateObject.Molecule.Model.type;
+      if (PluginStateObject.Molecule.Structure.is(obj)) return PluginStateObject.Molecule.Structure.type;
+      return undefined;
+    }
+
+    /** a created or updated object below another of its type (a component, a decorator) is not one of the roots */
+    private markIfRoot(ref: string, obj: StateObject | undefined) {
+      const type = StructureInfoHandler.typeOf(obj);
+      if (!type || this.maxIndexDirty) return;
+      const { tree, cells } = this.ctx.state.data;
+      for (let t = tree.transforms.get(ref); t && t.ref !== StateTransform.RootRef; ) {
+        t = tree.transforms.get(t.parent);
+        if (t && cells.get(t.ref)?.obj?.type === type) return;
+      }
+      this.maxIndexDirty = true;
+    }
+
+    private setModelMaxIndex(value: number) {
       const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
       for (const c of cells) {
         const m = c.obj?.data;
@@ -67,8 +100,7 @@ export const StructureInfo = PluginBehavior.create({
       }
     }
 
-    private setStructureMaxIndex() {
-      const value = this.maxModelIndex;
+    private setStructureMaxIndex(value: number) {
       const cells = this.ctx.state.data.select(
         StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure),
       );
@@ -132,12 +164,19 @@ export const StructureInfo = PluginBehavior.create({
 
       this.subscribeObservable(this.ctx.state.data.events.object.created, (o) => {
         this.handle(o.ref, o.obj);
-        this.setModelMaxIndex();
-        this.setStructureMaxIndex();
+        this.markIfRoot(o.ref, o.obj);
+        this.setMaxIndex();
       });
 
       this.subscribeObservable(this.ctx.state.data.events.object.updated, (o) => {
         this.handle(o.ref, o.obj, o.oldObj);
+        this.markIfRoot(o.ref, o.obj);
+        this.markIfRoot(o.ref, o.oldObj);
+      });
+
+      // the cell is gone from the tree: any model or structure counts
+      this.subscribeObservable(this.ctx.state.data.events.object.removed, (o) => {
+        if (StructureInfoHandler.typeOf(o.obj)) this.maxIndexDirty = true;
       });
     }
 
