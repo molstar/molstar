@@ -277,6 +277,8 @@ async function createComputeGaussianSurface(
     estimateVertexCount(groupCount, density.resolution),
   );
   (surface.meta as GaussianSurfaceMeta).resolution = density.resolution;
+  // a re-extraction computes the same grid
+  surface.meta.vertexBox = TextureMesh.getGridVertexBox(density.gridDim, density.transform);
   return surface;
 }
 
@@ -645,6 +647,7 @@ function createGaussianSurfaceTextureMesh(
       textureMesh,
     );
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+    surface.meta.vertexBox = TextureMesh.getGridVertexBox(densityTextureData.gridDim, densityTextureData.transform);
     return surface;
   };
 
@@ -814,6 +817,7 @@ function createStructureGaussianSurfaceTextureMesh(
       textureMesh,
     );
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+    surface.meta.vertexBox = TextureMesh.getGridVertexBox(densityTextureData.gridDim, densityTextureData.transform);
     return surface;
   };
 
