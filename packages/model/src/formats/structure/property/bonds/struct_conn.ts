@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -14,7 +14,7 @@ import type { CustomPropertyDescriptor } from '@molstar/model/model/custom-prope
 import type { mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';
 import { SortedArray } from '@molstar/core/data/int';
 import { CifWriter } from '@molstar/io/writer/cif';
-import type { ElementIndex, ResidueIndex } from '@molstar/model/model/structure/model/indexing';
+import type { ChainIndex, ElementIndex, ResidueIndex } from '@molstar/model/model/structure/model/indexing';
 import { getInterBondOrderFromTable } from '@molstar/model/model/structure/model/properties/atomic/bonds';
 import { FormatPropertyProvider } from '../../common/property.js';
 
@@ -124,7 +124,28 @@ export namespace StructConn {
       symmetry: struct_conn.ptnr2_symmetry,
     };
 
+    // The entity ids, in entity order, that have a chain with each label_asym_id: `findResidue` fails for any other,
+    // so trying only these finds what trying every entity did (perf-audit 04/P10).
     const entityIds = Array.from(model.entities.data.id.toArray());
+    const { chains, index } = model.atomicHierarchy;
+    const asymEntityIndices = new Map<string, Set<number>>();
+    for (let cI = 0 as ChainIndex, cl = chains._rowCount; cI < cl; cI++) {
+      const asymId = chains.label_asym_id.value(cI);
+      const set = asymEntityIndices.get(asymId);
+      if (set) set.add(index.getEntityFromChain(cI));
+      else asymEntityIndices.set(asymId, new Set([index.getEntityFromChain(cI)]));
+    }
+    const asymEntityIds = new Map<string, string[]>();
+    const entityIdsOf = (asymId: string) => {
+      let ids = asymEntityIds.get(asymId);
+      if (!ids) {
+        const set = asymEntityIndices.get(asymId);
+        ids = set ? entityIds.filter((e) => set.has(model.entities.getEntityIndex(e))) : [];
+        asymEntityIds.set(asymId, ids);
+      }
+      return ids;
+    };
+
     const _p = (row: number, ps: typeof p1) => {
       if (ps.label_asym_id.valueKind(row) !== Column.ValueKinds.Present) return void 0;
       const asymId = ps.label_asym_id.value(row);
@@ -139,10 +160,10 @@ export namespace StructConn {
           : ps.label_seq_id.value(row);
       const resInsCode = ps.ins_code.value(row);
       const altId = ps.label_alt_id.value(row);
-      for (const eId of entityIds) {
-        const residueIndex = model.atomicHierarchy.index.findResidue(eId, asymId, resId, resInsCode);
+      for (const eId of entityIdsOf(asymId)) {
+        const residueIndex = index.findResidue(eId, asymId, resId, resInsCode);
         if (residueIndex < 0) continue;
-        const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, altId);
+        const atomIndex = index.findAtomOnResidue(residueIndex, atomName, altId);
         if (atomIndex < 0) continue;
         return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) };
       }
