@@ -118,9 +118,9 @@ structure 3.4 → 0.9 s, overpaint of all 1001 → 65 ms, theme of one 31 → 13
 6. **13/P4** (a per-visual cache of the foreign-resource walk, branch `verify-p4-p7`) re-measured here: `theme:all` at
    N = 300 231 → 217 ms (−6 %, within noise), nothing else moved. With small visuals the walk is about a tenth of a
    recolor; it does not justify itself at this end.
-7. **Bug found by the differential test** (pre-existing, core TODO): random builders with generated refs can leak a
-   child added by a later builder into a child set of `state.tree` before that builder commits; the next whole-tree
-   diff then fails in `findDeletes`. Not seen with explicit refs.
+7. **Bug found by the differential test**, fixed in #2014: a builder's removal could write into `state.tree` when
+   refs hash alike, an Immutable.js bug (`HashCollisionNode.update` shares the survivor's entry; immutable-js#2279,
+   open), worked around in `TransientTree` (`renewOwner`).
 
 ## Reproduce
 

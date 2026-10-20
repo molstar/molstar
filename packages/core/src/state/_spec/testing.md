@@ -12,6 +12,7 @@
 | `action-manager.test.ts` | the action registry                                                                    |
 | `cell-state.test.ts`     | state flags in the tree with builders outstanding; `asImmutable` (tree.md §2, §4)      |
 | `diff.test.ts`           | the diff from edits against the whole-tree diff: random builders, twin states (§2)     |
+| `transient.test.ts`      | a builder's edits after removals stay out of the state's tree; random builders (§2)    |
 
 ## How to test a change
 
@@ -26,7 +27,11 @@
 - The differential tests (`diff.test.ts`): before every commit of random builders (Null objects, errors, flags, tags,
   writes to `currentTree`, removals), the diff from edits equals the whole-tree diff; and twin states take the same
   random commits (with dependencies and rebased builders), one forced to the whole trees (`cellsInSync` cleared), and
-  must end with the same cells and the same events. Refs are explicit: with generated ones the generator picks other
-  nodes, and some seeds then hit a known bug (a builder's removal leaking into the state's tree, TODO).
+  must end with the same cells and the same events. Refs are explicit, so a seed picks the same nodes on every run
+  (generated refs and their hash collisions are `transient.test.ts`'s).
+- Tests of `TransientTree` use refs with equal Immutable hashes (`'Aa'` and `'BB'` hash alike) and maps of more than 8
+  keys (a hashed trie): explicit refs like `n0`, `n1` never collide, generated refs often do (tree.md §2). A random test
+  runs with both; its generated ids come from a spy on `UUID.create22` with the same layout and a fixed prefix, so a
+  failing seed reproduces. A canary asserts the Immutable bug itself: it fails once Immutable is fixed (core TODO).
 - The state logs every transformer error (`console.error`): a test that makes errors on purpose mutes it
   (`vi.spyOn(console, 'error')`).

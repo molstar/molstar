@@ -5,7 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { type Map as ImmutableMap, OrderedSet } from 'immutable';
+import { OrderedSet } from 'immutable';
 import { StateTransform } from '../transform.js';
 import { StateTree } from './immutable.js';
 import { shallowEqual } from '@molstar/core/util/object';
@@ -21,6 +21,10 @@ class TransientTree implements StateTree {
   private changedNodes = false;
   private changedChildren = false;
   private changedDependencies = false;
+  /** a map that had deletes takes a new owner before its next write (`renewOwner`, tree.md §2) */
+  private deletedNodes = false;
+  private deletedChildren = false;
+  private deletedDependencies = false;
 
   private _childMutations: Map<StateTransform.Ref, OrderedSet<StateTransform.Ref>> | undefined = void 0;
   private _dependencyMutations: Map<StateTransform.Ref, StateTree.MutableChildSet> | undefined = void 0;
@@ -57,22 +61,56 @@ class TransientTree implements StateTree {
     return this._dependencyMutations;
   }
 
+  // Every write to a map goes through its `change*` gate and every delete through its `delete*`: the map turns
+  // mutable on the first write or delete, and a write after deletes renews its owner (tree.md §2); deletes in a row
+  // stay in place.
+
   private changeNodes() {
-    if (this.changedNodes) return;
-    this.changedNodes = true;
-    this.transforms = this.transforms.asMutable();
+    if (this.deletedNodes) {
+      this.deletedNodes = false;
+      this.transforms = renewOwner(this.transforms);
+    } else if (!this.changedNodes) {
+      this.changedNodes = true;
+      this.transforms = this.transforms.asMutable();
+    }
   }
 
   private changeChildren() {
-    if (this.changedChildren) return;
-    this.changedChildren = true;
-    this.children = this.children.asMutable();
+    if (this.deletedChildren) {
+      this.deletedChildren = false;
+      this.children = renewOwner(this.children);
+    } else if (!this.changedChildren) {
+      this.changedChildren = true;
+      this.children = this.children.asMutable();
+    }
   }
 
   private changeDependencies() {
-    if (this.changedDependencies) return;
-    this.changedDependencies = true;
-    this.dependencies = this.dependencies.asMutable();
+    if (this.deletedDependencies) {
+      this.deletedDependencies = false;
+      this.dependencies = renewOwner(this.dependencies);
+    } else if (!this.changedDependencies) {
+      this.changedDependencies = true;
+      this.dependencies = this.dependencies.asMutable();
+    }
+  }
+
+  private deleteNode(ref: StateTransform.Ref) {
+    if (!this.deletedNodes) this.changeNodes();
+    this.transforms.delete(ref);
+    this.deletedNodes = true;
+  }
+
+  private deleteChildren(ref: StateTransform.Ref) {
+    if (!this.deletedChildren) this.changeChildren();
+    this.children.delete(ref);
+    this.deletedChildren = true;
+  }
+
+  private deleteDependencies(ref: StateTransform.Ref) {
+    if (!this.deletedDependencies) this.changeDependencies();
+    this.dependencies.delete(ref);
+    this.deletedDependencies = true;
   }
 
   get root() {
@@ -84,26 +122,24 @@ class TransientTree implements StateTree {
   }
 
   private addChild(parent: StateTransform.Ref, child: StateTransform.Ref) {
-    this.changeChildren();
-
     if (this.childMutations.has(parent)) {
       this.childMutations.get(parent)!.add(child);
     } else {
       const set = (this.children.get(parent) as OrderedSet<StateTransform.Ref>).asMutable();
       set.add(child);
+      this.changeChildren();
       this.children.set(parent, set);
       this.childMutations.set(parent, set);
     }
   }
 
   private removeChild(parent: StateTransform.Ref, child: StateTransform.Ref) {
-    this.changeChildren();
-
     if (this.childMutations.has(parent)) {
       this.childMutations.get(parent)!.remove(child);
     } else {
       const set = (this.children.get(parent) as OrderedSet<StateTransform.Ref>).asMutable();
       set.remove(child);
+      this.changeChildren();
       this.children.set(parent, set);
       this.childMutations.set(parent, set);
     }
@@ -115,7 +151,8 @@ class TransientTree implements StateTree {
 
     this.changeChildren();
 
-    const set = OrderedSet<StateTransform.Ref>();
+    // mutable: later `addChild`s to the root write into it
+    const set = OrderedSet<StateTransform.Ref>().asMutable();
     this.children.set(parent, set);
     this.childMutations.set(parent, set);
   }
@@ -166,10 +203,7 @@ class TransientTree implements StateTree {
     }
 
     if (!this.children.has(transform.ref)) {
-      if (!this.changedChildren) {
-        this.changedChildren = true;
-        this.children = this.children.asMutable();
-      }
+      this.changeChildren();
       this.children.set(transform.ref, OrderedSet());
     }
 
@@ -196,10 +230,7 @@ class TransientTree implements StateTree {
       return false;
     }
 
-    if (!this.changedNodes) {
-      this.changedNodes = true;
-      this.transforms = this.transforms.asMutable();
-    }
+    this.changeNodes();
 
     this.transforms.set(transform.ref, StateTransform.withParams(transform, params));
     this.edited(ref);
@@ -218,10 +249,7 @@ class TransientTree implements StateTree {
       return false;
     }
 
-    if (!this.changedNodes) {
-      this.changedNodes = true;
-      this.transforms = this.transforms.asMutable();
-    }
+    this.changeNodes();
 
     this.transforms.set(transform.ref, withTags);
     this.edited(ref);
@@ -238,10 +266,7 @@ class TransientTree implements StateTree {
       return false;
     }
 
-    if (!this.changedNodes) {
-      this.changedNodes = true;
-      this.transforms = this.transforms.asMutable();
-    }
+    this.changeNodes();
 
     this.transforms.set(transform.ref, withDependsOn);
     this.edited(ref);
@@ -280,13 +305,11 @@ class TransientTree implements StateTree {
       this.removeChild(node.parent, node.ref);
     }
 
-    this.changeNodes();
-    this.changeChildren();
     this.removed(ref);
 
     for (const n of st) {
-      this.transforms.delete(n.ref);
-      this.children.delete(n.ref);
+      this.deleteNode(n.ref);
+      this.deleteChildren(n.ref);
       if (this._childMutations) this._childMutations.delete(n.ref);
     }
 
@@ -301,8 +324,7 @@ class TransientTree implements StateTree {
 
       if (this.dependencies.has(n.ref)) {
         const deps = this.dependencies.get(n.ref).toArray();
-        this.changeDependencies();
-        this.dependencies.delete(n.ref);
+        this.deleteDependencies(n.ref);
         if (this._dependencyMutations) this._dependencyMutations.delete(n.ref);
 
         for (const dep of deps) {
@@ -325,8 +347,14 @@ class TransientTree implements StateTree {
     if (!this.changedNodes && !this.changedChildren && !this.changedDependencies && !this._childMutations) {
       return this.tree;
     }
-    if (this._childMutations) this._childMutations.forEach(fixChildMutations, this.children);
-    if (this._dependencyMutations) this._dependencyMutations.forEach(fixDependencyMutations as any, this.dependencies);
+    if (this._childMutations) {
+      this.changeChildren();
+      fixChildMutations(this._childMutations, this.children);
+    }
+    if (this._dependencyMutations) {
+      this.changeDependencies();
+      fixDependencyMutations(this._dependencyMutations, this.dependencies);
+    }
     const tree = StateTree.create(
       this.changedNodes ? this.transforms.asImmutable() : this.transforms,
       this.changedChildren ? this.children.asImmutable() : this.children,
@@ -340,6 +368,9 @@ class TransientTree implements StateTree {
     this.changedNodes = false;
     this.changedChildren = false;
     this.changedDependencies = false;
+    this.deletedNodes = false;
+    this.deletedChildren = false;
+    this.deletedDependencies = false;
     this._childMutations = void 0;
     this._dependencyMutations = void 0;
     this._stateUpdates = void 0;
@@ -362,20 +393,35 @@ namespace TransientTree {
 }
 
 function fixChildMutations(
-  this: ImmutableMap<StateTransform.Ref, OrderedSet<StateTransform.Ref>>,
-  m: OrderedSet<StateTransform.Ref>,
-  k: StateTransform.Ref,
+  mutations: Map<StateTransform.Ref, OrderedSet<StateTransform.Ref>>,
+  children: StateTree.MutableMap<StateTree.ChildSet>,
 ) {
-  this.set(k, m.asImmutable());
+  mutations.forEach((m, k) => children.set(k, m.asImmutable()));
 }
 
+/** the sets, then the deletes: the map is frozen right after them, so no write follows a delete (`renewOwner`) */
 function fixDependencyMutations(
-  this: ImmutableMap<StateTransform.Ref, OrderedSet<StateTransform.Ref>>,
-  m: OrderedSet<StateTransform.Ref>,
-  k: StateTransform.Ref,
+  mutations: Map<StateTransform.Ref, StateTree.MutableChildSet>,
+  dependencies: StateTree.MutableMap<StateTree.ChildSet>,
 ) {
-  if (m.size === 0) this.delete(k);
-  else this.set(k, m.asImmutable());
+  const empty: StateTransform.Ref[] = [];
+  mutations.forEach((m, k) => {
+    if (m.size === 0) empty.push(k);
+    else dependencies.set(k, m.asImmutable());
+  });
+  for (const k of empty) dependencies.delete(k);
+}
+
+/**
+ * A new owner for a mutable map, before a write that follows deletes (tree.md §2). Deleting one of two keys with equal
+ * hashes leaves the other in a node of the map's owner that shares its `[key, value]` entry with the source tree's
+ * node, and Immutable writes a later `set` of that key into the entry in place: into the source tree
+ * (`HashCollisionNode.update`; seen in immutable 4.3.9, 5.1.9 and 6.0.0-beta.1; fixed by immutable-js#2279, see the
+ * core TODO). Under a new owner, that `set` copies the node instead; the writes after it copy their paths once more.
+ * Generated refs collide this way often.
+ */
+function renewOwner<M extends StateTree.MutableMap<any>>(map: M): M {
+  return map.asImmutable().asMutable() as M;
 }
 
 function alreadyPresent(ref: StateTransform.Ref) {

@@ -61,7 +61,7 @@ describe('the diff from the edits of a builder', () => {
       const rnd = random(seed);
       const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
       const state = newState();
-      // explicit refs: with generated ones, a builder's delete can leak into the state's tree (a known bug, not this)
+      // explicit refs: a seed picks the same nodes on every run (generated refs and their collisions: transient.test.ts)
       let n = 0;
       // values: mostly ok, some Null objects (0) and errors (-1)
       const value = () => pick([1, 2, 3, 4, 0, -1]);
