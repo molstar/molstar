@@ -99,6 +99,32 @@ describe('updateFocusRepr', () => {
     plugin.dispose();
   });
 
+  it('does not update the behavior when the themes are already set', async () => {
+    const plugin = await createPlugin();
+    await updateFocusRepr(plugin, Structure.Empty, 'chain-id', undefined);
+    const before = focusParams(plugin);
+    const update = vi.spyOn(plugin.state, 'updateBehavior');
+    expect(updateFocusRepr(plugin, Structure.Empty, 'chain-id', undefined)).toBeUndefined();
+    expect(update).not.toHaveBeenCalled();
+    expect(focusParams(plugin)).toBe(before);
+    // a different theme still updates
+    await updateFocusRepr(plugin, Structure.Empty, 'element-symbol', undefined);
+    expect(focusParams(plugin).targetParams.colorTheme.name).toBe('element-symbol');
+    plugin.dispose();
+  });
+
+  it('applies the last of two overlapping calls', async () => {
+    const plugin = await createPlugin();
+    const before = focusParams(plugin).targetParams.colorTheme.name;
+    expect(before).not.toBe('chain-id');
+    // the first update is still in flight when the second asks for the theme the behavior has now
+    const first = updateFocusRepr(plugin, Structure.Empty, 'chain-id', undefined);
+    const second = updateFocusRepr(plugin, Structure.Empty, before as any, undefined);
+    await Promise.all([first, second]);
+    expect(focusParams(plugin).targetParams.colorTheme.name).toBe(before);
+    plugin.dispose();
+  });
+
   it('does not throw when nothing is registered', async () => {
     const plugin = await createPlugin();
     const { registry, themes } = plugin.representation.structure;

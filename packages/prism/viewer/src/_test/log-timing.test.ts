@@ -32,7 +32,8 @@ describe('timings in the log', () => {
     expect(v.managers.notifications.current.value?.source).toBeUndefined();
     // Not in the messages the status line showed: what reads those (a card's own message count) is unchanged.
     expect(v.managers.notifications.history.value.some((m) => m.source !== undefined)).toBe(false);
-    for (let i = 0; i < 6; i++) expectOk(await v.api.load.files({ files: [cbs()] }));
+    // about 14 transforms a file: more than 100 in all
+    for (let i = 0; i < 7; i++) expectOk(await v.api.load.files({ files: [cbs()] }));
     await Promise.resolve();
     expect(transforms()).toHaveLength(100);
   });
