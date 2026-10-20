@@ -227,7 +227,7 @@ describe('dynamic nodes out: eviction', () => {
 
   it(
     "a thousand node patches leave the document, its history and the person's edits untouched",
-    { tags: ['slow'] },
+    { tags: ['heavy'] },
     () => nodePatches(1000),
   );
 });

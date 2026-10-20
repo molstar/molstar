@@ -16,11 +16,16 @@ import {
   createMolstarConversionMemo,
 } from '@molstar/mvs/tree/molstar/conversion';
 
+// `exosome`, the largest, is medium (AGENTS.md, Tests)
 const Fixtures = ['features', 'motm1', 'exosome'];
+const lane = (name: string) => (name === 'exosome' ? ['medium'] : []);
 
 describe('convertMvsToMolstarMemo', () => {
   for (const name of Fixtures) {
-    it(`converts every frame of ${name} as convertMvsToMolstar does`, { timeout: 60_000 }, async () => {
+    it(`converts every frame of ${name} as convertMvsToMolstar does`, {
+      timeout: 60_000,
+      tags: lane(name),
+    }, async () => {
       const json = fs.readFileSync(path.join(import.meta.dirname, 'fixtures', `${name}.mvsj`), 'utf8');
       const data = MVSData.fromMVSJ(json);
       const snapshots = data.kind === 'multiple' ? data.snapshots : MVSData.stateToStates(data).snapshots;

@@ -285,7 +285,7 @@ describe('history', () => {
 
   it(
     'undo and redo round-trip 300 random sequences with snapshots, previews and foreign documents',
-    { tags: ['slow'] },
+    { tags: ['heavy'] },
     () => roundTrips(300),
   );
 });

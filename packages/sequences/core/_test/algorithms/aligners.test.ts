@@ -460,7 +460,7 @@ describe('biomsa', () => {
 
   it('aligns an insertion of 1 to 10 kb anywhere in 20 kb as one run (B12), 10 insertions', () => insertions(10));
 
-  it('aligns an insertion of 1 to 10 kb anywhere in 20 kb as one run (B12)', { tags: ['slow'] }, () => insertions(50));
+  it('aligns an insertion of 1 to 10 kb anywhere in 20 kb as one run (B12)', { tags: ['heavy'] }, () => insertions(50));
 
   it('aligns an insertion whose ends repeat the letters around it as one run (B12)', async () => {
     // An insertion that starts with the letters after it and ends with those before it: the diagonals overlap.
@@ -537,7 +537,7 @@ describe('biomsa', () => {
     );
   });
 
-  it('accepts a pair just under the cell limit: 8191 × 8191, its full matrix filled', { tags: ['slow'] }, async () => {
+  it('accepts a pair just under the cell limit: 8191 × 8191, its full matrix filled', { tags: ['heavy'] }, async () => {
     await expect(biomsa.align('A'.repeat(8191), 'C'.repeat(8191), { method: 'complete' })).resolves.toMatch(/M/);
   });
 });

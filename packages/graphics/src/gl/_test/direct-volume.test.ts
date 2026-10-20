@@ -24,7 +24,7 @@ export function createDirectVolume() {
 describe('direct-volume', () => {
   const ctx = tryGetGLContext(32, 32);
 
-  (ctx ? it : it.skip)('basic', async () => {
+  (ctx ? it : it.skip)('basic', { tags: ['medium'] }, async () => {
     const ctx = getGLContext(32, 32);
     const scene = Scene.create(ctx);
     const directVolume = createDirectVolume();

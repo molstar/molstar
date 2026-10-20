@@ -9,7 +9,7 @@
 // Case 14 and the genome story rendered headless to SVG (SV1b), in Node and with the committed tables' widths: well-formed,
 // every number finite, the text where the layout put it, in a bounded time and size at two scales. The PNG of the same
 // two, rasterized by Chrome as `seqv-render --png` does, with the pixels checked in _test/canvas/export.test.ts. Chrome,
-// the times and the 3,000,000-nucleotide genome are the slow tier's; the fast tier draws a tenth of the genome.
+// the times and the 3,000,000-nucleotide genome are the heavy lane's; the quick lane draws a tenth of the genome.
 
 import { deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
@@ -39,7 +39,7 @@ describe.each([1, 2])('case 14 at scale %i', (scale) => {
   });
 });
 
-describe('as PNG, through Chrome', { timeout: 120_000, tags: ['slow'] }, () => {
+describe('as PNG, through Chrome', { timeout: 120_000, tags: ['heavy'] }, () => {
   /** A PNG of the SVG, and of the same size with nothing drawn: Chrome's PNG filters, so only sizes are compared. */
   async function drawnAndBlank(svg: string) {
     const [w, h] = [/ width="([\d.]+)"/.exec(svg)?.[1], / height="([\d.]+)"/.exec(svg)?.[1]];
@@ -96,7 +96,7 @@ describe('the genome story', () => {
   });
 
   it('24 chromosomes, 3,000,000 nucleotides: two scales in a bounded time and size', {
-    tags: ['slow'],
+    tags: ['heavy'],
     timeout: 60_000,
   }, async () => {
     for (const r of await genomeAtTwoScales(genomeDoc(synthGenome()))) {

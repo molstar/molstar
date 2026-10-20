@@ -24,7 +24,7 @@ export function createCylinders() {
 describe('cylinders', () => {
   const ctx = tryGetGLContext(32, 32, { fragDepth: true });
 
-  (ctx ? it : it.skip)('basic', async () => {
+  (ctx ? it : it.skip)('basic', { tags: ['medium'] }, async () => {
     const ctx = getGLContext(32, 32);
     const scene = Scene.create(ctx);
     const cylinders = createCylinders();

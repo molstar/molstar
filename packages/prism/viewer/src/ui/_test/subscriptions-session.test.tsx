@@ -1,5 +1,7 @@
 /** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
+// @module-tag medium
+// (AGENTS.md, Tests: 72 structures loaded and every tab shown; the views' own guards are quick, subscriptions.test.tsx)
 
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -105,7 +107,9 @@ function grown(a: Map<string, number> | undefined, b: Map<string, number> | unde
 }
 
 describe('the app’s subscriptions', () => {
-  it('are the same for 24 structures as for 48, in each tab; a view listening to each structure is caught', async () => {
+  it('are the same for 24 structures as for 48, in each tab; a view listening to each structure is caught', {
+    timeout: 120_000,
+  }, async () => {
     vi.stubGlobal('ResizeObserver', NoResize);
     const a = await session(24);
     const b = await session(48);
@@ -113,5 +117,5 @@ describe('the app’s subscriptions', () => {
       expect(grown(a.get(tab), b.get(tab)), `${tab}: listeners that grew with the model`).toEqual([]);
     expect(grown(a.get(Control), b.get(Control)).length).toBeGreaterThan(0);
     vi.unstubAllGlobals();
-  }, 120_000);
+  });
 });

@@ -184,7 +184,7 @@ describe('the runtime against the oracle', () => {
   });
 
   it("gives the oracle's groups, in its order, or its error, for 1,500 random queries", {
-    tags: ['slow'],
+    tags: ['heavy'],
     timeout: 60_000,
   }, () => {
     const tally = againstOracle(1500);

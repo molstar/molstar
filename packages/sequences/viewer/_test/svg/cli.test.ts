@@ -9,8 +9,8 @@
 // `seqv-render` (SV1b; seqspec:viewer#the-render-backend) run as a process: a document file in, the SVG the library
 // writes out, the options, the exit codes, file sources read relative to the root and the network refused, the
 // executable bit, and `--png` through Chrome. The documents are case 14 and one made of
-// packages/sequences/core/_test/fixtures/1iep.json; nothing is fetched. A process each: the slow tier's, but for the first,
-// the fast tier's one run of the CLI.
+// packages/sequences/core/_test/fixtures/1iep.json; nothing is fetched. A process each: the heavy lane's, but for the
+// first, the quick lane's one run of the CLI.
 
 import { spawnSync } from 'node:child_process';
 import {
@@ -36,7 +36,7 @@ import { DefaultFontMetrics, metricsMeasurer, renderSvg } from '../../src/svg/in
 import { decodePng } from './png.js';
 import { all, parseXml } from './xml.js';
 
-// The CLI runs built (`tsc -b`: the slow tier builds first); the source carries the executable bit and the shebang.
+// The CLI runs built (`tsc -b`: the heavy lane builds first); the source carries the executable bit and the shebang.
 const source = join(import.meta.dirname, '../../src/cli/seqv-render.ts');
 const cli = join(import.meta.dirname, '../../lib/cli/seqv-render.js');
 const dir = mkdtempSync(join(tmpdir(), 'seqv-render-'));
@@ -73,7 +73,7 @@ function iepDoc() {
 describe('seqv-render', { timeout: 30_000 }, () => {
   const c14 = write('case14.json', JSON.stringify(case14()));
 
-  // The fast tier's one run of the CLI: it waits for a `lib` (packages/sequences/AGENTS.md, Tests).
+  // The quick lane's one run of the CLI: it waits for a `lib` (packages/sequences/AGENTS.md, Tests).
   it.skipIf(!existsSync(cli))('writes to stdout what renderSvg writes for the document', async () => {
     const r = run(c14, '--width', '900');
     expect(r.status).toBe(0);
@@ -86,7 +86,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('a document made of the vendored 1IEP fixture: -o, the scale, the overlay, the navigator, a background and a title', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const doc = write('iep.json', JSON.stringify(iepDoc()));
     const out = join(dir, 'iep.svg');
@@ -115,7 +115,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
     expect(all(svg, 'text').map((t) => t.text)).toContain('M');
   });
 
-  it('--view and --sections pick what is drawn', { tags: ['slow'] }, () => {
+  it('--view and --sections pick what is drawn', { tags: ['heavy'] }, () => {
     const r = run(c14, '--view', 'gene-view', '--sections', 'no-such');
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/no section "no-such"/);
@@ -123,7 +123,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('exit 2 for usage and an unreadable file, 1 for a document that does not load or render', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     expect(run().status).toBe(2);
     expect(run().stderr).toMatch(/^usage: seqv-render/);
@@ -138,7 +138,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
     expect([junk.status, junk.stderr]).toEqual([1, expect.stringMatching(/seqv-render: not a document/)]);
   });
 
-  it('sources are files relative to the document, or to --root; the network is refused', { tags: ['slow'] }, () => {
+  it('sources are files relative to the document, or to --root; the network is refused', { tags: ['heavy'] }, () => {
     const b = createSeqViewSpec({ title: 'from files' });
     const file = b.data.source({ ref: 'f', host_file: 's.fasta', format: 'fasta' });
     const s = b.data.sequence({ ref: 's', label: 'S', alphabet: 'protein', source_ref: file, record: 's' });
@@ -163,7 +163,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('a source outside --root is refused, as the network is: `..`, an absolute path, a link out (VB-06)', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const box = mkdtempSync(join(tmpdir(), 'seqv-render-root-'));
     try {
@@ -198,7 +198,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('a streamed source, which the CLI does not stream: written short of it, exit 3, the issue on stderr (LB-13)', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const b = createSeqViewSpec({ title: 'streamed' });
     const aln = b.data.alignment({
@@ -223,7 +223,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('--png without playwright: exit 1, nothing written, and the message names what is missing', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const out = join(dir, 'never.png');
     // A resolve hook that finds no playwright, as on a machine without it.
@@ -242,7 +242,7 @@ describe('seqv-render', { timeout: 30_000 }, () => {
     expect(() => statSync(out)).toThrow();
   });
 
-  it("--png rasterizes the SVG in Chrome to a PNG of the SVG's own size", { timeout: 90_000, tags: ['slow'] }, () => {
+  it("--png rasterizes the SVG in Chrome to a PNG of the SVG's own size", { timeout: 90_000, tags: ['heavy'] }, () => {
     const out = join(dir, 'case14.png');
     made.push(out);
     const r = run(c14, '--width', '600', '--scale', '2', '--background', '--png', '-o', out);

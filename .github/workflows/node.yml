@@ -5,6 +5,7 @@ on:
     branches: master
   pull_request:
     branches: master
+  workflow_dispatch:
 
 jobs:
   style:
@@ -45,8 +46,31 @@ jobs:
       - name: Type-check the stories and tests
         run: pnpm --filter "./packages/prism/*" run typecheck:storybook
 
+  # The test lanes (AGENTS.md, Tests): the quick lane in shards, the medium lane (with the native GL suite) beside
+  # them; the heavy lane runs nightly and on demand (tests-heavy.yml).
   test:
-    name: Native tests
+    name: Quick tests (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Test
+        run: pnpm test:unit --shard=${{ matrix.shard }}/4
+
+  medium:
+    name: Medium tests (native GL)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -61,12 +85,17 @@ jobs:
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+      - name: Cache the native GL backend
+        uses: actions/cache@v6
+        with:
+          path: .cache/native
+          key: native-${{ runner.os }}-node22-${{ hashFiles('scripts/native.mjs') }}
       - name: Install opt-in native GL backend
         run: pnpm native:install
       - name: Install virtual display
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+        run: command -v xvfb-run || (sudo apt-get update && sudo apt-get install -y xvfb)
       - name: Test
-        run: xvfb-run --auto-servernum pnpm test:native
+        run: xvfb-run --auto-servernum pnpm test:native -- medium
 
   types:
     name: Full declaration check

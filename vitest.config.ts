@@ -5,75 +5,129 @@
  */
 
 import { globSync, readFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import { defaultClientConditions, defaultServerConditions } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 const include = ['**/*.test.{ts,tsx,mjs}'];
+const skipDirs = new Set(['node_modules', 'lib', 'build', '.pnpm-store', '.claude', '.git', 'smoke', 'deploy']);
 const exclude = ['**/node_modules/**', '**/lib/**', '**/build/**', '.pnpm-store/**', '.claude/**', 'smoke/**'];
 
-// Seq* (`packages/sequences`, its AGENTS.md, Tests): its fast tier runs here, in two projects of its own. Files share a
-// worker's module registry (`isolate: false`: each file importing the whole package again was most of the run's time);
-// the files that mock or reset modules, found by reading them, run isolated. Never matched: the browser folders, the
-// heap guards (`*.heap.ts`, not `*.test.*`) and the benches. The opt-in tiers (`test:slow`, `test:browser`,
-// `test:heap`, `bench`) are the packages' own scripts (`packages/sequences/vitest.shared.ts`).
-const seq = 'packages/sequences';
-const seqBrowser = [`${seq}/*/_test/**/{canvas,dom,react}/**`, `${seq}/*/bench/**`, `${seq}/**/*.heap.ts`];
-const seqMocks = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
-const seqTests = globSync(`${seq}/*/_test/**/*.test.ts`)
-  .map((f) => f.replaceAll('\\', '/'))
-  .filter((f) => !/\/_test\/(.*\/)?(canvas|dom|react)\//.test(f))
-  .sort();
-const seqMocking = seqTests.filter((f) => seqMocks.test(readFileSync(f, 'utf8')));
+// The test lanes (AGENTS.md, Tests), by Vitest tag: a test is quick unless it carries `{ tags: ['medium'] }` or
+// `{ tags: ['heavy'] }` (a `describe` tags its tests), or its file `// @module-tag medium`. `vitest run` is the quick
+// lane, `--mode medium` and `--mode heavy` the others, `--mode pr` quick and medium (what a PR's checks run), `--mode
+// all` every lane. Tags inherit: a heavy test inside a medium `describe` is heavy.
+const Lanes = {
+  quick: ['!medium', '!heavy'],
+  medium: ['medium', '!heavy'],
+  heavy: ['heavy'],
+  pr: ['!heavy'],
+  all: undefined,
+} satisfies Record<string, string[] | undefined>;
+type Lane = keyof typeof Lanes;
 
-// The slow tier's tag (Seq*: `{ tags: ['slow'] }` on a test, `// @module-tag slow` on a file). Vitest's tags are strict,
-// so it is declared; `tagsFilter` is CLI-only in Vitest 5, so the tag itself skips its tests here. Only the Seq*
-// projects declare it: Mol*'s own projects are as before. The packages' `test:slow` configs run it (§2.3).
-const slow = {
-  name: 'slow',
-  description: 'slow by nature (timing, fuzz, scale, Chrome, CLIs): the package `test:slow`',
-  skip: true,
-};
+const tags = [
+  { name: 'medium', description: 'larger fixtures, the native GL suite, sweeps: `pnpm test:medium`, its own CI job' },
+  {
+    name: 'heavy',
+    description: 'wall-clock and scaling bounds, full-size fuzz, CLIs, Chrome: `pnpm test:heavy`, nightly or on demand',
+    timeout: 120_000,
+  },
+];
+
+// Every test file, read once: its module tag, whether it names the medium tag, whether it mocks modules (Seq*). A
+// lane only imports the files that can hold its tests (a filtered-out file is still imported, and imports are about
+// half the run): the quick lane skips the files tagged medium or heavy as a whole, the medium lane takes the files that
+// name the tag (medium tags sit in the test's own file, never in a helper). The heavy lane imports every file: helpers
+// tag its tests (`itWithin`, Seq*'s smoke stories), and it runs nightly.
+const Mocks = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
+const files = globSync(include, {
+  exclude: (p: string) => skipDirs.has(basename(p)) || basename(p).startsWith('.'),
+})
+  .map((f) => f.replaceAll('\\', '/'))
+  .sort()
+  .map((path) => {
+    const source = readFileSync(path, 'utf8');
+    return {
+      path,
+      module: /^\s*(?:\/\/|\/?\*+)\s*@module-tag\s+(medium|heavy)\b/m.exec(source)?.[1],
+      medium: /['"]medium['"]/.test(source),
+      mocks: Mocks.test(source),
+    };
+  });
+
+// Mol*'s files run isolated, each in a module registry of its own. Shared registries (`isolate: false`, as Seq* runs)
+// would save about a third of the quick lane's CPU (Mol*'s quick files, M4, 2026-10-20: 672 CPU-s isolated, 423
+// shared), but which file a worker ran first then decides how an import cycle evaluates: under Vite's module runner an
+// `export *` copies the names the module has at that moment, so `to_mmCIF` (`model/structure`, re-exported from
+// `export/mmcif.js`) is undefined after `formats/structure/mmcif` was imported first; and module state (registries,
+// spies on namespaces) leaks between files. Sharding the CI job buys the same time without the flakes.
+
+// Seq* (`packages/sequences`, its AGENTS.md, Tests) runs here in two projects of its own, under its own rules: files
+// share a worker's module registry (`isolate: false`), the files that mock or reset modules run isolated. Never
+// matched: the browser folders, the heap guards (`*.heap.ts`, not `*.test.*`) and the benches; its opt-in tiers
+// (`test:perf`, `test:browser`, `test:heap`, `bench`) are the packages' own scripts (`sequences/vitest.shared.ts`).
+const seq = 'packages/sequences/';
+const seqBrowser = /^packages\/sequences\/[^/]+\/(_test\/(.*\/)?(canvas|dom|react)\/|bench\/)/;
+
+function lane(mode: string): Lane {
+  if (mode === 'test') return 'quick';
+  if (mode in Lanes) return mode as Lane;
+  throw new Error(`Unknown test lane '${mode}': use one of ${Object.keys(Lanes).join(', ')} (vitest --mode <lane>).`);
+}
+
+function inLane(l: Lane, f: (typeof files)[number]) {
+  if (l === 'quick') return !f.module;
+  if (l === 'medium') return f.module === 'medium' || f.medium;
+  if (l === 'pr') return f.module !== 'heavy';
+  return true;
+}
 
 // One Vitest run for the whole workspace, ESM throughout. Workspace packages resolve to their sources through the
 // `molstar-src` export condition (the same one the build and the type checker use), so a new package needs no mapping
 // here. DOM tests opt in per file with `// @vitest-environment jsdom`.
-export default defineConfig({
-  resolve: { conditions: ['molstar-src', ...defaultClientConditions] },
-  ssr: { resolve: { conditions: ['molstar-src', ...defaultServerConditions] } },
-  test: {
-    // Preact (the adapter tests) ships ESM and CommonJS builds; inlined, all of it comes from one.
-    server: { deps: { inline: ['preact'] } },
-    // The long cases (2,000-append histories, fresh module graphs) can share the machine with other files.
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
-    environmentOptions: { jsdom: { url: 'http://localhost/' } },
-    projects: [
-      {
-        extends: true,
-        test: { name: 'unit', include, exclude: [...exclude, `${seq}/**`], sequence: { groupOrder: 0 } },
-      },
-      // Seq*: listed by file (a glob would have to be inverted to leave the mocking files out of this project).
-      {
-        extends: true,
-        test: {
-          name: 'sequences',
-          include: seqTests.filter((f) => !seqMocking.includes(f)),
-          exclude: [...exclude, ...seqBrowser],
-          tags: [slow],
-          isolate: false,
-          sequence: { groupOrder: 0 },
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: 'sequences-isolated',
-          include: seqMocking,
-          tags: [slow],
-          exclude: [...exclude, ...seqBrowser],
-          sequence: { groupOrder: 0 },
-        },
-      },
-    ],
-  },
+export default defineConfig(({ mode }) => {
+  const l = lane(mode);
+  const selected = files.filter((f) => inLane(l, f) && !seqBrowser.test(f.path));
+  const project = (name: string, list: string[], isolate: boolean) => ({
+    extends: true as const,
+    test: { name, include: list, exclude, isolate, sequence: { groupOrder: 0 } },
+  });
+  const seqFiles = selected.filter((f) => f.path.startsWith(seq));
+  return {
+    resolve: { conditions: ['molstar-src', ...defaultClientConditions] },
+    ssr: { resolve: { conditions: ['molstar-src', ...defaultServerConditions] } },
+    test: {
+      // Preact (the adapter tests) ships ESM and CommonJS builds; inlined, all of it comes from one.
+      server: { deps: { inline: ['preact'] } },
+      // The long cases (2,000-append histories, fresh module graphs) can share the machine with other files.
+      testTimeout: 30_000,
+      hookTimeout: 30_000,
+      environmentOptions: { jsdom: { url: 'http://localhost/' } },
+      tags,
+      tagsFilter: Lanes[l],
+      // a lane with no tests in a filtered run passes
+      passWithNoTests: true,
+      projects: [
+        project(
+          'unit',
+          selected.filter((f) => !f.path.startsWith(seq)).map((f) => f.path),
+          true,
+        ),
+        // (a file that mocks or resets modules needs a module registry of its own)
+        ...[
+          project(
+            'sequences',
+            seqFiles.filter((f) => !f.mocks).map((f) => f.path),
+            false,
+          ),
+          project(
+            'sequences-isolated',
+            seqFiles.filter((f) => f.mocks).map((f) => f.path),
+            true,
+          ),
+        ].filter((p) => p.test.include.length > 0),
+      ],
+    },
+  };
 });

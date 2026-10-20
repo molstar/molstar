@@ -6,11 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The vitest configs the opt-in tiers share (RB0; packages/sequences/AGENTS.md, Tests). A package's own configs call
-// these: the slow Node tier (`test:slow`), the heap guards, the browser suite (and its heap guards, `HEAP=1`) and the
-// bench. The fast tier (`test`) is the repository's one run (`pnpm test:unit packages/sequences/<package>`, the root
-// `vitest.config.ts`), which reads the same rules; `nodeTests` still serves the slow tier and the composer proof. They
-// return plain objects: this folder has no vitest of its own to import from.
+// The vitest configs the opt-in tiers share (RB0; packages/sequences/AGENTS.md, Tests; the lanes: the root AGENTS.md,
+// Tests). A package's own configs call these: its heavy lane (`test:heavy`, also in the root's `pnpm test:heavy`), the
+// heap guards, the browser suite (and its heap guards, `HEAP=1`) and the bench. The quick lane is the repository's one
+// run (`pnpm test:unit packages/sequences/<package>`, the root `vitest.config.ts`), which reads the same rules;
+// `nodeTests` still serves the heavy lane and the composer proof. They return plain objects: this folder has no vitest
+// of its own to import from.
 
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,24 +32,28 @@ const SOURCES = {
 const MOCKS = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
 
 /**
- * The slow tier's tag. A test is slow by nature (a wall-clock timing, a fuzz or oracle run of thousands, a million
- * rows, a large fixture, Chrome or a CLI in a process of its own) when it carries `{ tags: ["slow"] }`, or its file
- * `// @module-tag slow`; its quick representative (a short fuzz, a few stories, a small scale) stays untagged.
+ * The lanes' tags, as the root config declares them (Vitest's tags are strict). A test is heavy by nature (a wall-clock
+ * timing, a fuzz or oracle run of thousands, a million rows, a large fixture, Chrome or a CLI in a process of its own)
+ * when it carries `{ tags: ["heavy"] }`, or its file `// @module-tag heavy`; its quick representative (a short fuzz, a
+ * few stories, a small scale) stays untagged.
  */
-const SLOW_TAG = {
-  name: 'slow',
-  description: 'slow by nature (timing, fuzz, scale, Chrome, CLIs): `test:slow`, never CI',
-  timeout: 120_000,
-};
+const TAGS = [
+  { name: 'medium', description: 'larger fixtures, sweeps: the root `pnpm test:medium`' },
+  {
+    name: 'heavy',
+    description: 'heavy by nature (timing, fuzz, scale, Chrome, CLIs): `test:heavy`, nightly CI',
+    timeout: 120_000,
+  },
+];
 
 /**
- * The Node suites, with no DOM (browser tests run in `browserTests`). `tier`: `"fast"` is `test`, the default and the
- * one CI runs: fast, deterministic, no wall-clock timing, no Chrome, no heap guards; `"slow"` is `test:slow`, the tests
- * tagged slow, run by hand or at checkpoints; `"all"` both. Files share their worker's module registry (`isolate:
- * false`: each file imported the whole package again, most of the run's time); the files that mock or reset modules,
- * found by reading them, run isolated in a project of their own. `dir` is the package's folder.
+ * The Node suites, with no DOM (browser tests run in `browserTests`). `lane`: `"quick"` is the default, the one every
+ * push runs: fast, deterministic, no wall-clock timing, no Chrome, no heap guards; `"heavy"` is `test:heavy`, the tests
+ * tagged heavy, run by hand, at checkpoints and nightly; `"all"` every lane. Files share their worker's module
+ * registry (`isolate: false`: each file imported the whole package again, most of the run's time); the files that mock
+ * or reset modules, found by reading them, run isolated in a project of their own. `dir` is the package's folder.
  */
-export const nodeTests = (dir: string, tier: 'fast' | 'slow' | 'all' = 'fast') => {
+export const nodeTests = (dir: string, lane: 'quick' | 'heavy' | 'all' = 'quick') => {
   const exclude = [...BROWSER_DIRS, '**/node_modules/**'];
   const mocking = globSync('_test/**/*.test.ts', { cwd: dir })
     .filter((f) => !BROWSER_PATH.test(f) && MOCKS.test(readFileSync(join(dir, f), 'utf8')))
@@ -65,8 +70,8 @@ export const nodeTests = (dir: string, tier: 'fast' | 'slow' | 'all' = 'fast') =
     test: {
       passWithNoTests: true,
       ...(process.env.PROF_SETUP ? { setupFiles: [process.env.PROF_SETUP] } : {}),
-      tags: [SLOW_TAG],
-      tagsFilter: tier === 'fast' ? ['!slow'] : tier === 'slow' ? ['slow'] : undefined,
+      tags: TAGS,
+      tagsFilter: lane === 'quick' ? ['!medium', '!heavy'] : lane === 'heavy' ? ['heavy'] : undefined,
       projects: mocking.length > 0 ? [shared, isolated] : [shared],
     },
   };

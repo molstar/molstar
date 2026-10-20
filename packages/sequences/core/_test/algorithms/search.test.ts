@@ -420,7 +420,7 @@ describe('approximateMatcher', () => {
 
   it(
     'equals the oracle for 31 to 70 letters (one to three blocks, full words too)',
-    { tags: ['slow'], timeout: 60000 },
+    { tags: ['heavy'], timeout: 60000 },
     () => longPatterns(120),
   );
 
@@ -617,8 +617,8 @@ describe('textIndex', () => {
   });
 });
 
-// Wall-clock bounds over 3 million nucleotides: the slow tier (the oracles above check the matchers' results).
-describe('large inputs', { tags: ['slow'] }, () => {
+// Wall-clock bounds over 3 million nucleotides: the heavy lane (the oracles above check the matchers' results).
+describe('large inputs', { tags: ['heavy'] }, () => {
   const N = 3_000_000;
   let seq: Uint8Array = new Uint8Array(0);
   let pattern = seq;

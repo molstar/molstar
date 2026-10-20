@@ -53,7 +53,9 @@ async function main() {
     console.log(
       'pnpm native:install [-- --canvas] [--webgpu]  Install gl (and optionally canvas, webgpu) in .cache/native',
     );
-    console.log('pnpm test:native                  Run the unit tests (Vitest) with the installed native GL backend');
+    console.log(
+      'pnpm test:native [-- <lane>]       Run a test lane (default pr: quick and medium) with the installed native GL backend',
+    );
     console.log('pnpm native:run -- <command>      Run a command with the native modules available');
     if (!help) process.exitCode = 2;
     return;
@@ -91,7 +93,13 @@ async function main() {
   }
   await requireSetup();
   if (action === 'test') {
-    if (args.length) throw new Error('Use pnpm native:run -- pnpm test:unit <args> for focused native tests.');
+    // the lanes of vitest.config.ts (AGENTS.md, Tests); the native GL suite is medium
+    const lanes = ['quick', 'medium', 'heavy', 'pr', 'all'];
+    const lane = args[0] ?? 'pr';
+    if (args.length > 1 || !lanes.includes(lane))
+      throw new Error(
+        `pnpm test:native takes one lane (${lanes.join(', ')}); use pnpm native:run -- pnpm test:unit <args> for focused native tests.`,
+      );
     if (await isInstalled('gl')) {
       const gl = require('gl');
       const context = gl(1, 1);
@@ -99,7 +107,7 @@ async function main() {
         throw new Error('Native gl is installed but could not create a WebGL context. On Linux, run under Xvfb.');
       context.getExtension('STACKGL_destroy_context')?.destroy();
     }
-    await run(command('pnpm'), ['test:unit']);
+    await run(command('pnpm'), ['exec', 'vitest', 'run', '--mode', lane]);
   } else {
     if (!args.length)
       throw new Error(

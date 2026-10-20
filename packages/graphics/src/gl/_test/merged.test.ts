@@ -150,7 +150,7 @@ describe('merged', () => {
 
   const ctx = tryGetGLContext(32, 32, { fragDepth: true });
 
-  (ctx ? it : it.skip)('scene', async () => {
+  (ctx ? it : it.skip)('scene', { tags: ['medium'] }, async () => {
     const ctx = getGLContext(32, 32);
     const scene = Scene.create(ctx);
     const [a, b] = createMembers();

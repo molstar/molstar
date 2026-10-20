@@ -175,8 +175,10 @@ describe('hidden UI', () => {
     ],
   ];
   let round = 0;
+  // the first setup and the control are the quick lane's, the other setups medium (AGENTS.md, Tests)
   for (const [name, setup, shownTab] of setups) {
-    it(`${name}: nothing hidden is written while the model changes; what shows updates`, async () => {
+    const lane = setup === setups[0][1] ? {} : { tags: ['medium'] };
+    it(`${name}: nothing hidden is written while the model changes; what shows updates`, lane, async () => {
       await setup();
       await wait(400);
       const inert = [...mounted.root.querySelectorAll('[inert]')];

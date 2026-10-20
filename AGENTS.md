@@ -36,9 +36,11 @@ pnpm build                 # libraries, apps, distribution
 pnpm dev:apps -- viewer    # one app in watch mode
 pnpm lint                  # Biome
 pnpm format                # Biome (code, JSON) and Prettier (Markdown, YAML, SCSS); format:check in CI
-pnpm test:unit             # unit tests (Vitest, ESM; one run for every package, `vitest.config.ts`)
+pnpm test:unit             # the quick test lane (Vitest, ESM; one run for every package, `vitest.config.ts`)
 pnpm test:unit packages/ai # a folder or file filter; `pnpm test:watch` for watch mode
-pnpm test                  # lint and the unit tests
+pnpm test                  # lint and the quick lane
+pnpm test:medium           # the medium lane; `pnpm test:native -- medium` with the native GL backend
+pnpm test:heavy            # the heavy lane (after `npx tsc -b`: its CLIs run built)
 pnpm test:live             # live agent runs on real models (opt in: keys in .env.local; costs money)
 pnpm check:workspace       # package boundaries, exports, imports, the inventory
 pnpm deploy:local          # build, then the GitHub Pages folder in deploy/data (apps, prism/, ui-storybook/)
@@ -63,8 +65,8 @@ npx tsc -b                 # every project, by references
   make an import pass.
 - **Headers**: every source file starts with the Mol\* copyright header and its authors; add yourself to the headers of
   files you change substantially.
-- **Tests** live in `_test/` folders next to the code, run by Vitest
-  (`import { describe, expect, it, vi } from 'vitest'`, no globals; DOM tests opt in with
+- **Tests** are in one of three lanes ([Tests](#tests-three-lanes)) and live in `_test/` folders next to the code, run
+  by Vitest (`import { describe, expect, it, vi } from 'vitest'`, no globals; DOM tests opt in with
   `// @vitest-environment jsdom`); they never reach the network. A new `_test/` folder in a published package needs
   `"./<dir>/_test/*": null` in its `package.json` exports, or its `./*` wildcard publishes the tests and
   `check:workspace` fails in CI; `pnpm lint` checks it from the sources (`scripts/workspace/test-exports.mjs`, `--fix`
@@ -79,3 +81,33 @@ npx tsc -b                 # every project, by references
 - **Question the specs**: a spec records decisions, some made in passing by agents. Working in a package, re-read its
   foundational choices and raise any that the code, measurements or the maintainers' intent contradict, or that have no
   reason recorded; ask, don't silently follow or rewrite.
+
+## Tests: three lanes
+
+A test's lane is its Vitest tag; the root `vitest.config.ts` picks a lane by `--mode` and imports only the files that
+can hold its tests.
+
+| Lane                                                     | What goes there                                                                                                                                                                                                    | Command            | CI                                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------- |
+| quick (untagged)                                         | deterministic, no clock, small fixtures: well under a second a test on CI, seconds a package                                                                                                                       | `pnpm test:unit`   | every push, in 4 shards (`Quick tests`)                                    |
+| medium (`{ tags: ['medium'] }`, `// @module-tag medium`) | a second or more a test, deterministic: large fixtures (1cbs over two cells, the exosome animation), the rest of a sweep (axe over every tab, every shader, every layer), a whole app session, the native GL suite | `pnpm test:medium` | every push, its own job (`Medium tests (native GL)`, with `gl` under Xvfb) |
+| heavy (`{ tags: ['heavy'] }`, `// @module-tag heavy`)    | wall-clock bounds and ratios, scaling by size, full-size fuzz and oracles, a million rows, CLIs in a process (built first), Chrome                                                                                 | `pnpm test:heavy`  | nightly, by hand, and on a PR labelled `heavy tests` (`tests-heavy.yml`)   |
+
+- **A test slow by nature moves, and keeps a quick representative**: one layer of a sweep, the smaller fixtures, a short
+  fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`packages/sequences/core/_test/model/timing.ts`): the
+  test runs quick without the bound and heavy with it. Coverage is never dropped: medium runs on every PR. Why: the PR
+  checks finish in minutes, and the edit loop in seconds.
+- **A test slow by waste is fixed, not moved**: a fixture computed once per file, not per `describe`; fake timers where
+  real ones only wait; no rebuild per test.
+- **Tag in the test's own file**, inline or by `@module-tag` on a line of its own: the config reads the files to decide
+  what a lane imports (a filtered-out file is still imported, and imports are about half the run). Helpers that tag are
+  heavy only (`itWithin`, Seq\*'s smoke stories): the heavy lane imports every file. Tags inherit (a heavy test in a
+  medium `describe` is heavy), and the lanes are exclusive. A medium test may build on the state an earlier medium test
+  left, never on a quick one's.
+- `--mode pr` runs quick and medium (what a PR checks; `pnpm test:native` runs it with the GL backend), `--mode all`
+  every lane; `pnpm check:publish` runs quick and medium. Run the quick lane in the edit loop, the medium lane when you
+  touch what it covers, the heavy lane when you touch what it bounds and at checkpoints.
+- **Not lanes**: the packages' opt-in tiers, by hand at checkpoints and never in CI: `test:perf` (allocation, the
+  `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap guards (`test:heap`,
+  `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md) guides.
+- Mol\*'s files each run in a module registry of their own; Seq\*'s share their worker's (`vitest.config.ts` says why).

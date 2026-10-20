@@ -70,7 +70,7 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       `resolve.conditions` and `ssr.resolve.conditions`, so a new package needs no mapping; explicit `vitest` imports
       (no globals); `jest.*` to `vi.*`; `@jest-environment` docblocks to `@vitest-environment`. Four io tests that
       imported `@molstar/model` moved to the model package, which the Jest mapper had hidden. The sequence packages
-      (`packages/sequences/_spec`) have joined this run (the `sequences` projects, the fast tier only; their other tiers are each
+      (`packages/sequences/_spec`) have joined this run (the `sequences` projects, the quick lane only; their other tiers are each
       package's own scripts).
 
 Tooling verification (2026-10-05): native TypeScript 7.0.2 forced compilation of all 67 projects took 7.28 s, compared

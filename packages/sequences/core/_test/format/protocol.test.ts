@@ -328,10 +328,10 @@ describe('CLIs', () => {
     return join(dir, name);
   };
 
-  // A process each: slow. The print below is the fast tier's one CLI run; the CLIs run built (`tsc -b`: the slow tier
+  // A process each: slow. The print below is the quick lane's one CLI run; the CLIs run built (`tsc -b`: the heavy lane
   // builds first), so it waits for a `lib` (packages/sequences/AGENTS.md, Tests).
   it("svs-validate: exit 0 valid, 0 with a newer minor's warnings, 1 with errors, 2 on usage", {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const ok = cli('svs-validate', file('ok.json', toJSON(case1())));
     expect([ok.status, ok.stdout, ok.stderr.trim()]).toEqual([

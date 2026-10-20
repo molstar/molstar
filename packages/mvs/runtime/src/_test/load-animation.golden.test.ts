@@ -12,7 +12,9 @@
  * the last bit between platforms. Versions, hashes of exact numbers, are replaced by their equality pattern (the n-th
  * distinct version of the snapshot). `Math.random` (noise) is seeded. Regenerate after an intended change of the output:
  *
- *   MVS_UPDATE_GOLDENS=1 pnpm test:unit packages/mvs/runtime/src/_test/load-animation.golden.test.ts
+ *   MVS_UPDATE_GOLDENS=1 pnpm test:unit --mode pr packages/mvs/runtime/src/_test/load-animation.golden.test.ts
+ *
+ * `exosome`, the largest, is medium (AGENTS.md, Tests): the quick lane's representatives are the other two.
  */
 
 import { createHash } from 'node:crypto';
@@ -33,6 +35,7 @@ import { SubtreeMemo } from '@molstar/mvs/load-generic';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 
 const Fixtures = ['features', 'motm1', 'exosome'];
+const lane = (name: string) => (name === 'exosome' ? ['medium'] : []);
 const Update = process.env.MVS_UPDATE_GOLDENS === '1';
 const FixtureDir = path.join(import.meta.dirname, 'fixtures');
 
@@ -197,7 +200,7 @@ describe('MVS animation load goldens', () => {
   });
 
   for (const name of Fixtures) {
-    it(name, { timeout: 120_000 }, async () => {
+    it(name, { timeout: 120_000, tags: lane(name) }, async () => {
       const goldenPath = path.join(FixtureDir, 'goldens', `${name}.json`);
       const actual = await computeGoldens(name);
       if (Update) {
