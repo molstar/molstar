@@ -163,7 +163,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   /**
    * Routes `applyKey` and `applyNext` (a description's links, a clickable primitive's `snapshotKey`, the keyboard's
    * next and previous) through a host's own path, which applies the snapshot itself (a host's API, in order with its
-   * undo history). While none is set, the manager applies them. Returns the removal.
+   * undo history). A navigator returning `false` declines (the manager applies it, as with none set: work already
+   * running in the host's order, which must not wait for itself). Returns the removal.
    */
   setNavigator(navigator: PluginStateSnapshotManager.Navigator): () => void {
     this.navigator = navigator;
@@ -180,7 +181,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   }
 
   applyKey(key: string) {
-    if (this.navigator) return this.navigator.applyKey(key);
+    const routed = this.navigator?.applyKey(key);
+    if (routed !== void 0 && routed !== false) return routed;
+    if (routed === void 0 && this.navigator) return;
     const e = this.state.entries.find((e) => e.key === key);
     if (!e) return;
 
@@ -238,7 +241,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   }
 
   applyNext(dir: -1 | 1) {
-    if (this.navigator) return this.navigator.applyNext(dir);
+    const routed = this.navigator?.applyNext(dir);
+    if (routed !== void 0 && routed !== false) return routed;
+    if (routed === void 0 && this.navigator) return;
     const next = this.getNextId(this.state.current, dir);
     if (next) {
       const snapshot = this.setCurrent(next);
@@ -589,10 +594,13 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
 }
 
 namespace PluginStateSnapshotManager {
-  /** A host's own way of showing a story's snapshots (`setNavigator`): it applies the snapshot and makes it current. */
+  /**
+   * A host's own way of showing a story's snapshots (`setNavigator`): it applies the snapshot and makes it current
+   * (nothing returned: done, or nothing to do), or returns `false` to leave it to the manager.
+   */
   export interface Navigator {
-    applyKey(key: string): void | Promise<unknown>;
-    applyNext(dir: -1 | 1): void | Promise<unknown>;
+    applyKey(key: string): void | false | Promise<unknown>;
+    applyNext(dir: -1 | 1): void | false | Promise<unknown>;
   }
 
   export type DescriptionFormat = 'markdown' | 'plaintext';

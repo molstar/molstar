@@ -63,10 +63,9 @@ export function createCheckpointPort(plugin: PluginContext): HistoryPort<ViewerC
       // The story's snapshot this scene was shown with, when the list still has it (the list is not undone).
       // A scene shown with none (before a story was shown, or a snapshot added) marks none.
       const snapshots = plugin.managers.snapshot;
-      if (!c.snapshot) snapshots.clearCurrent();
-      else if (c.snapshot !== snapshots.state.current && snapshots.getEntry(c.snapshot)) {
-        snapshots.setCurrent(c.snapshot);
-      }
+      // One removed from the list since: none of the list is the scene restored either.
+      if (!c.snapshot || !snapshots.getEntry(c.snapshot)) snapshots.clearCurrent();
+      else if (c.snapshot !== snapshots.state.current) snapshots.setCurrent(c.snapshot);
     },
     size: (c) => trees.size(c),
   };

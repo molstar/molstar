@@ -257,11 +257,27 @@ export class SnapshotApi extends ApiArea {
    */
   readonly #unnavigate = this.ctx.plugin.managers.snapshot.setNavigator({
     applyKey: (key) => {
+      // Called from work the history is already running (a script awaiting it, an operation): it is part of that work,
+      // so the manager applies it; queued behind it, it would wait for itself.
+      if (this.ctx.managers.history.applying) return false;
       const id = this.ctx.plugin.managers.snapshot.state.entries.find((e) => e.key === key)?.snapshot.id;
       return id ? this.ctx.operations.run(this.apply.definition, { entry: id }, { origin: Person }) : undefined;
     },
-    applyNext: (dir) =>
-      this.ctx.operations.run((dir > 0 ? this.next : this.previous).definition, {}, { origin: Person }),
+    applyNext: (dir) => {
+      if (this.ctx.managers.history.applying) return false;
+      const entries = this.ctx.plugin.managers.snapshot.state.entries;
+      // One snapshot is shown again (the manager's own way), none is nothing: neither is a story's step, whose
+      // operation would refuse and warn.
+      if (entries.size === 0) return undefined;
+      if (entries.size === 1) {
+        return this.ctx.operations.run(
+          this.apply.definition,
+          { entry: entries.get(0)!.snapshot.id },
+          { origin: Person },
+        );
+      }
+      return this.ctx.operations.run((dir > 0 ? this.next : this.previous).definition, {}, { origin: Person });
+    },
   });
 
   dispose(): void {

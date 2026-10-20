@@ -232,6 +232,33 @@ describe('snapshot.apply', () => {
     expectOk(await v.api.history.undo());
   });
 
+  it("a script awaiting the manager's navigation is not stuck behind itself, nor is anything after it", async () => {
+    const v = await viewer();
+    expectOk(await snap(v).add({ name: 'A', key: 'a' }));
+    expectOk(await snap(v).add({ name: 'B', key: 'b' }));
+    await v.run('Step the story', async (plugin) => {
+      await plugin.managers.snapshot.applyNext(1);
+      await plugin.managers.snapshot.applyKey('b');
+    });
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    expect(v.managers.history.canUndo.value).toBe(true);
+  });
+
+  it('next with one snapshot shows it again, with none does nothing, and says nothing either way', async () => {
+    const v = await viewer();
+    const posted: string[] = [];
+    const sub = v.managers.notifications.posted.subscribe((m) => posted.push(m.text));
+    await v.plugin.managers.snapshot.applyNext(1);
+    expectOk(await snap(v).add({ name: 'A' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    await v.plugin.managers.snapshot.applyNext(1);
+    expect(representationTypes(v)).not.toContain('spacefill');
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('A');
+    sub.unsubscribe();
+    expect(posted).toEqual([]);
+  });
+
   it('Undo to a scene shown with no snapshot marks none current', async () => {
     const v = await viewer();
     expectOk(await v.api.styles.apply({ style: 'spacefill' }));
