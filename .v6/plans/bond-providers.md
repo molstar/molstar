@@ -239,10 +239,9 @@ Two built-in providers, neither with params:
   `plugin.bondProviders.options(model)`, hidden when only `'default'` is there (so a viewer without `DefaultBonds` or
   extra providers looks as today). The chosen provider's params show under it from its `getParams(model)`. Edits go
   through `sourceChanges` to `structure.bonds`, with the slider debounce the radius uses.
-- **The sequence source** (`prism/viewer/src/sequence/molstar/source.ts:112`) builds its own `Structure.ofModel` and
-  assembly outside the state tree. It takes the instance from the structure it mirrors
-  (`structure.state.bondProvider`), so the sequence band and the canvas show the same bonds.
-- `DefaultPrismViewerSpec` registers `DefaultBonds`.
+- **The sequence source** (`prism/viewer/src/sequence/molstar/source.ts`) needs nothing: it builds structures from the
+  files for Seq*'s kernels (sequences, pLDDT, secondary structure), never shown and never reading bonds.
+- `DefaultPrismViewerSpec` gets `DefaultBonds` through `DefaultRegistry` (`sources/base.ts`), so nothing to add.
 - Spec: `_spec/operations.md` (the operation), `parity.md` (the row for structure source).
 
 ### 4.2 MolViewSpec

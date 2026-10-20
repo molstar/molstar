@@ -82,6 +82,12 @@ function structureFeatureCommands(api: ViewerApi): CommandDefinition<ViewerComma
       alias: ['quick style', 'look', 'style', 'default style', 'illustrative style'],
       action: 'Apply',
     }),
+    operationCommand(api, api.structure.bonds, {
+      category: 'Data',
+      icon: 'ball-and-stick',
+      alias: ['bonds', 'bond provider', 'bond orders', 'no computed bonds', 'connectivity'],
+      action: 'Choose',
+    }),
     operationCommand(api, api.structure.symmetry, {
       category: 'Data',
       icon: 'hexagon',

@@ -429,8 +429,22 @@ export function isPhantomComponent(node: MolstarSubtree<'component' | 'component
   // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
 }
 
-/** Create props for `StructureFromModel` transformer from a structure node. */
+/**
+ * Create props for `StructureFromModel` transformer from a structure node. A Mol*-specific bond provider comes from
+ * `custom.molstar_bond_provider` (`{ name, params? }`, bond-providers plan §4.2); a name the plugin lacks falls back to
+ * the built-in bonds, with a warning when the snapshot is applied.
+ */
 export function structureProps(node: MolstarNode<'structure'>): StateTransformer.Params<StructureFromModel> {
+  const props = structurePropsOfType(node);
+  const bonds = node.custom?.molstar_bond_provider as { name?: unknown; params?: unknown } | undefined;
+  if (bonds && typeof bonds.name === 'string') {
+    // a choice without params is completed here: normalization would replace it by the default
+    props.type.params = { ...props.type.params, bonds: { name: bonds.name, params: bonds.params ?? {} } } as never;
+  }
+  return props;
+}
+
+function structurePropsOfType(node: MolstarNode<'structure'>): StateTransformer.Params<StructureFromModel> {
   const params = node.params;
   switch (params.type) {
     case 'model':

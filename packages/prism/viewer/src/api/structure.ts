@@ -16,7 +16,13 @@ import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetr
 import type { Structure } from '@molstar/model/model/structure';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { getTransformFromParams, type TransformParam } from '@molstar/plugin/state/transforms/helpers';
-import { TransformStructureConformation } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import {
+  StructureFromModel,
+  StructureFromTrajectory,
+  TransformStructureConformation,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
+import { deepEqual } from '@molstar/core/util';
 import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureInfo } from '../sources/viewer-sources.js';
@@ -126,6 +132,58 @@ export class StructureApi extends ApiArea {
       return ApiResult.ok(id ? `${labelOf(ctx, s)} shows assembly ${id}.` : `${labelOf(ctx, s)} shows the model.`, {
         nodes: [s.cell.transform.ref],
       });
+    },
+  });
+
+  // bond-providers plan §4.1: where a structure's bonds come from, one of the plugin's bond providers.
+  readonly bonds = this.operation({
+    id: 'structure.bonds',
+    title: 'Choose where bonds come from',
+    params: {
+      provider: PD.Text(BondProvider.DefaultName, {
+        description: "A bond provider by name ('default': the built-in bonds; 'none': only the file's)",
+      }),
+      params: PD.Value<Record<string, unknown>>(
+        {},
+        { description: "The provider's params; missing ones get defaults" },
+      ),
+      structure: StructureParam(),
+    },
+    async run({ provider, params, structure }, ctx) {
+      const s = oneStructure(ctx, structure || undefined);
+      if (isFailure(s)) return s;
+      const registry = ctx.plugin.bondProviders;
+      const transform = s.cell.transform;
+      const fromTrajectory = transform.transformer === StructureFromTrajectory;
+      const model = fromTrajectory
+        ? (s.cell.obj?.data as Structure | undefined)?.representativeModel
+        : s.model?.cell.obj?.data;
+      if (!model || (!fromTrajectory && transform.transformer !== StructureFromModel)) {
+        return ApiResult.fail('blocked', `${labelOf(ctx, s)} is not built from a model.`);
+      }
+      const options = registry.options(model);
+      const p = registry.get(provider);
+      if (!p || !options.some((o) => o[0] === provider)) {
+        return ApiResult.fail(
+          'invalid',
+          `No bond provider '${provider}' for ${labelOf(ctx, s)}.`,
+          `Providers: ${options.map((o) => o[0]).join(', ')}.`,
+        );
+      }
+      const bonds = { name: provider, params: PD.normalizeParams(p.getParams(model, registry), params ?? {}, 'all') };
+      const current = transform.params as any;
+      const now = (fromTrajectory ? current?.bonds : current?.type?.params?.bonds) ?? {
+        name: BondProvider.DefaultName,
+        params: {},
+      };
+      if (deepEqual(now, bonds))
+        return ApiResult.already(`${labelOf(ctx, s)} already takes its bonds from ${p.label}.`);
+      // a new structure with the same components (StructureFromModel recreates on a param change)
+      const next = fromTrajectory
+        ? { ...current, bonds }
+        : { ...current, type: { ...current.type, params: { ...current.type.params, bonds } } };
+      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, transform.ref, next, 'Bonds');
+      return ApiResult.ok(`${labelOf(ctx, s)} takes its bonds from ${p.label}.`, { nodes: [transform.ref] });
     },
   });
 
