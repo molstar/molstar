@@ -365,7 +365,7 @@ describe('HistoryManager', () => {
     expect(await h.undo()).toMatchObject({ ok: false, reason: expect.stringMatching(/Too old/) });
     expect(s.get().a).toBe(5);
     // Redo puts the three back, each undoable again.
-    for (const a of [6, 7, 8]) expectOk(await h.redo());
+    for (let i = 0; i < 3; i++) expectOk(await h.redo());
     expect(s.get().a).toBe(8);
     expect(h.steps.value.map((x) => !!x.unsafe)).toEqual([false, false, false, true, true, true]);
     expectOk(await h.undo());
