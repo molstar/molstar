@@ -104,10 +104,10 @@ Recreating structure themes on each update costs ≤ 2 ms; what a recolor costs 
 
 | Id  | Title                                                                    | Where                                                                                                                      | Severity | Verdict   |
 | --- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | -------- | --------- |
-| B1  | intra-unit `includeParent` filter reads `members[offsets[i]]`            | [interactions-intra-unit-cylinder.ts:135](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L135) | medium   | confirmed |
+| B1  | intra-unit `includeParent` filter reads `members[offsets[i]]`            | [interactions-intra-unit-cylinder.ts:135](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L135) | medium   | fixed (#2004) |
 | B2  | entity-source indexes polymer-only `sequence.sequences` by entity index  | [entity-source.ts:81](../../packages/graphics/src/theme/color/entity-source.ts#L81)                                        | medium   | confirmed |
 | B3  | `ColorTheme.Palette` 'set' with offsets writes `undefined` (black)       | [color.ts:128](../../packages/graphics/src/theme/color.ts#L128)                                                            | low      | confirmed |
-| B4  | bridge visual rebuilds geometry on every update (size theme by reference) | [interactions-bridge-cylinder.ts:276](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L276) | low      | confirmed |
+| B4  | bridge visual rebuilds geometry on every update (size theme by reference) | [interactions-bridge-cylinder.ts:276](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L276) | low      | fixed (#2004) |
 
 - **B1**: the loops `for (i = offsets[f]; i < offsets[f + 1]; ++i)` already walk member positions, yet read
   `elements[members[offsets[i]]]` at :135, :144, :150. For `i >` feature count `offsets[i]` is `undefined`, so the

@@ -10,6 +10,13 @@ here.
 
 ## [Unreleased]
 
+- Interactions: inter-unit ionic, hydrophobic and cation-pi contacts are filtered when a contact of the overriding type
+  (H-bond, metal coordination, pi-stacking) joins the same atoms, as intra-unit ones were (the inter-unit check never
+  matched)
+- Interactions: the H-bond acceptor angle uses the donor's hydrogen when it is in another unit (it read an atom of the
+  donor's unit with that index)
+- Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
+  (`parentDisplay` read unrelated atoms)
 - Kinemage: a `@group` ends the previous group's `@subgroup` (its lists were put in that subgroup and hidden with its
   group), and only the animate groups after the first start hidden, not every group after it
 - Fix highlighting and selecting cross-link restraints (`CrossLinkRestraint.isLoci` tested the tag of interactions)

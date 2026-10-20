@@ -148,7 +148,7 @@ function getIntraUnitInteractionsBuilderProps(
         if (parentDisplay === 'stub') {
           const f = a[edgeIndex];
           for (let i = offsets[f], il = offsets[f + 1]; i < il; ++i) {
-            const e = elements[members[offsets[i]]];
+            const e = elements[members[i]];
             if (!SortedArray.has(childUnit.elements, e)) return true;
           }
         } else if (parentDisplay === 'full' || parentDisplay === 'between') {
@@ -157,13 +157,13 @@ function getIntraUnitInteractionsBuilderProps(
 
           const fA = a[edgeIndex];
           for (let i = offsets[fA], il = offsets[fA + 1]; i < il; ++i) {
-            const eA = elements[members[offsets[i]]];
+            const eA = elements[members[i]];
             if (!SortedArray.has(childUnit.elements, eA)) flagA = true;
           }
 
           const fB = b[edgeIndex];
           for (let i = offsets[fB], il = offsets[fB + 1]; i < il; ++i) {
-            const eB = elements[members[offsets[i]]];
+            const eB = elements[members[i]];
             if (!SortedArray.has(childUnit.elements, eB)) flagB = true;
           }
 

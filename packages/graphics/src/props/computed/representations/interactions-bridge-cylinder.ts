@@ -320,8 +320,8 @@ function setUpdateState(
     newProps.sizeFactor !== currentProps.sizeFactor ||
     newProps.dashCount !== currentProps.dashCount ||
     newProps.dashScale !== currentProps.dashScale ||
-    newProps.dashCap !== currentProps.dashCap ||
-    newTheme.size !== currentTheme.size;
+    newProps.dashCap !== currentProps.dashCap;
+  // a size change rebuilds the mesh (ComplexMeshVisual, by SizeTheme.areEqual) and updates the impostors' sizes
 
   const interactionsHash = InteractionsProvider.get(newStructure).version;
   if ((state.info.interactionsHash as number) !== interactionsHash) {

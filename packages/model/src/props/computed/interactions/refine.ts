@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -196,7 +197,9 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
 }
 
 /**
- * Filter inter-unit contact `index` if there is a contact of `types` between its members
+ * Filter inter-unit contact `index` if there is a contact of `types` between its members.
+ * `getContactIndicesForElement` lists the edges directed away from an element's unit, so a contact `cI` found from a
+ * member of A is then matched on its B side: same unit as B and a feature sharing a member with B's.
  */
 function filterInter(
   types: InteractionType[],
@@ -206,17 +209,20 @@ function filterInter(
   contacts: InteractionsInterContacts,
 ) {
   const { offsets: offsetsA, feature: featureA } = infoA;
-  const { offsets: offsetsB, feature: featureB } = infoB;
+  const { offsets: offsetsB, members: membersB, feature: featureB, unit: unitB } = infoB;
 
   for (let i = offsetsA[featureA], il = offsetsA[featureA + 1]; i < il; ++i) {
     const aI = infoA.members[i];
     const indices = contacts.getContactIndicesForElement(aI, infoA.unit);
     for (let k = 0, kl = indices.length; k < kl; ++k) {
       const cI = indices[k];
-      if (types.includes(contacts.edges[cI].props.type)) {
-        for (let j = offsetsB[featureB], jl = offsetsB[featureB + 1]; j < jl; ++j) {
-          const bI = infoB.members[j];
-          if (contacts.getContactIndicesForElement(bI, infoB.unit).includes(cI)) {
+      const c = contacts.edges[cI];
+      if (c.unitB !== unitB.id || !types.includes(c.props.type)) continue;
+      // infoB holds unit B's features, which c.indexB indexes too
+      for (let j = offsetsB[featureB], jl = offsetsB[featureB + 1]; j < jl; ++j) {
+        const bI = membersB[j];
+        for (let l = offsetsB[c.indexB], ll = offsetsB[c.indexB + 1]; l < ll; ++l) {
+          if (membersB[l] === bI) {
             contacts.edges[index].props.flag = InteractionFlag.Filtered;
             return;
           }

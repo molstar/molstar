@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
@@ -20,6 +21,7 @@ import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
+import { InteractionFlag } from '@molstar/model/props/computed/interactions/common';
 import { Bridges, Interactions } from '@molstar/model/props/computed/interactions/interactions';
 import { BridgeProviderParams, ContactProviderParams } from '@molstar/model/props/computed/interactions/params';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
@@ -219,7 +221,8 @@ describe('interactions representation', async () => {
   const expected = [
     'groups=5308 instances=1 drawn=3714:b9d4f0a8 picked=d0bf6c41 marked=b45c7705',
     'groups=614 instances=16 drawn=430:99358b04 picked=14680205 marked=be41d1f9',
-    'groups=6628 instances=1 drawn=3470:c0e49c76 picked=e2375f35 marked=b81ec6f5',
+    // 50 fewer than first pinned: inter-unit ionic contacts overlapping an H-bond are filtered as intra-unit ones are
+    'groups=6628 instances=1 drawn=3420:4d23a1d9 picked=12f33845 marked=23b6fe95',
     'residues=fe1b5bba',
   ];
 
@@ -352,11 +355,82 @@ describe('interactions representation', async () => {
     const child = Structure.create([u0.getChild(half), u1], { parent: structure });
     for (const parentDisplay of ['stub', 'full', 'between']) {
       const props = { includeParent: true, parentDisplay };
-      const mesh = await createRepr(child, undefined, props);
-      const impostors = await createRepr(child, graphicsStub, props);
-      expect(impostors.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+      // the data the provider gives its representation with includeParent (`getData`)
       const parent = child.asParent();
+      const mesh = await createRepr(parent, undefined, props);
+      const impostors = await createRepr(parent, graphicsStub, props);
+      expect(impostors.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
       expect(signature(impostors, parent)).toEqual(signature(mesh, parent));
     }
+  });
+
+  it('includeParent: intra-unit contacts drawn by whether their features lie in the child, for every parentDisplay', async () => {
+    // a child of the first unit's even residues: many contacts have one feature in and one out
+    const u0 = structure.units[0];
+    expect(structure.unitSymmetryGroups.find((g) => g.units.includes(u0))!.units[0]).toBe(u0);
+    const { residueIndex } = u0 as any;
+    const even = u0.elements.filter((e) => residueIndex[e] % 2 === 0);
+    const childUnit = u0.getChild(SortedArray.ofSortedArray(Int32Array.from(even)) as any);
+    const child = Structure.create([childUnit], { parent: structure });
+
+    // what the provider gives its representation with includeParent (`getData`): the parent with the child attached
+    const parent = child.asParent();
+
+    for (const parentDisplay of ['stub', 'full', 'between'] as const) {
+      const repr = await createRepr(parent, graphicsStub, {
+        includeParent: true,
+        parentDisplay,
+        visuals: ['intra-unit'],
+      });
+
+      // read after creating the representation: its color theme attaches the interactions to the parent
+      const interactions = InteractionsProvider.get(parent).value!;
+      const contacts = interactions.unitsContacts.get(u0.id);
+      const { members, offsets } = interactions.unitsFeatures.get(u0.id);
+      /** whether a feature has a member outside the child */
+      const outside = (f: number) => {
+        for (let i = offsets[f]; i < offsets[f + 1]; ++i) {
+          if (!SortedArray.has(childUnit.elements, u0.elements[members[i]])) return true;
+        }
+        return false;
+      };
+      const expected: number[] = [];
+      for (let i = 0; i < contacts.edgeCount * 2; ++i) {
+        if (contacts.edgeProps.flag[i] === InteractionFlag.Filtered) continue;
+        const a = outside(contacts.a[i]);
+        const b = outside(contacts.b[i]);
+        const ignore = parentDisplay === 'stub' ? a : parentDisplay === 'full' ? a && b : a === b;
+        if (!ignore) expected.push(i);
+      }
+      expect(expected.length).toBeGreaterThan(0);
+
+      // u0 alone is its child-aware group
+      const ro = repr.renderObjects.find((ro) => (ro.values as any).instanceCount.ref.value === 1)!;
+      expect((ro.values as any).uGroupCount.ref.value).toBe(contacts.edgeCount * 2);
+      expect([...groupCentroids(ro).keys()]).toEqual(expected);
+    }
+  });
+
+  it.each([
+    ['mesh', undefined],
+    ['impostors', graphicsStub],
+  ])('%s: a new theme with the same size keeps the geometry', async (_name, graphics) => {
+    const repr = await createRepr(structure, graphics);
+    const geometryVersions = () =>
+      repr.renderObjects.map((ro) => {
+        const v = ro.values as any;
+        return (v.aPosition ?? v.aStart).ref.version;
+      });
+    // the first update records the interactions version and rebuilds once
+    await repr.createOrUpdate({}, structure).run();
+    const before = geometryVersions();
+    // what a structure-representation update does: a new theme object, here with the same color and size
+    const themeProps = {
+      colorTheme: { name: 'interaction-type', params: {} },
+      sizeTheme: { name: 'uniform', params: {} },
+    };
+    repr.setTheme(Theme.create(registries, { structure }, themeProps));
+    await repr.createOrUpdate({}, structure).run();
+    expect(geometryVersions()).toEqual(before);
   });
 });

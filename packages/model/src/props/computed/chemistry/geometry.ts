@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { degToRad } from '@molstar/core/math/misc';
@@ -163,17 +164,17 @@ export function calcPlaneAngle(
   return Math.abs(Math.PI / 2 - Vec3.angle(tmpDir2, tmpDir1));
 }
 
-export function closestHydrogenIndex(
+/** The atom nearest to (unitB, indexB) among (unitA, indexA) and the hydrogens bonded to it, which may be in other units */
+export function closestHydrogen(
   structure: Structure,
   unitA: Unit.Atomic,
   indexA: StructureElement.UnitIndex,
   unitB: Unit.Atomic,
   indexB: StructureElement.UnitIndex,
-) {
-  let hIndex = indexA;
+): { unit: Unit.Atomic; index: StructureElement.UnitIndex } {
+  const ret = { unit: unitA, index: indexA };
   unitA.conformation.position(unitA.elements[indexA], tmpPosA);
   unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
   let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
   eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
     if (typeSymbol(unitX, indexX) === Elements.H) {
@@ -181,9 +182,23 @@ export function closestHydrogenIndex(
       const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
       if (dist < minDistSq) {
         minDistSq = dist;
-        hIndex = indexX;
+        ret.unit = unitX;
+        ret.index = indexX;
       }
     }
   });
-  return hIndex;
+  return ret;
+}
+
+/**
+ * @deprecated the index may belong to another unit than `unitA` (a hydrogen bonded across units); use `closestHydrogen`
+ */
+export function closestHydrogenIndex(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+) {
+  return closestHydrogen(structure, unitA, indexA, unitB, indexB).index;
 }

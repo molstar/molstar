@@ -9,3 +9,10 @@
   baked it (was the default size); a bridge gets the smallest of its four feature atoms for all its legs
 - Interactions `sizeAspectRatio` (from the cylinder params) scales the mesh radius too; `colorMode: 'interpolate'`
   draws as 'default' with impostors (the mesh path ignored it)
+- Fixes (perf audit 09/B1, 09/B4 and two found on the way):
+  - inter-unit contacts are filtered by the refiners as intra-unit ones are: an ionic contact overlapping an H-bond or
+    a metal coordination, a hydrophobic or cation-pi one overlapping pi-stacking (the inter-unit check never matched)
+  - H-bond geometry uses the donor's hydrogen when it is in another unit; `closestHydrogen` gives its unit,
+    `closestHydrogenIndex` is deprecated
+  - `includeParent`: intra-unit contacts are shown or hidden by their own atoms
+  - the bridge visual no longer rebuilds its geometry on every update

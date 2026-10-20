@@ -15,7 +15,7 @@ import {
   AtomGeometryAngles,
   calcAngles,
   calcPlaneAngle,
-  closestHydrogenIndex,
+  closestHydrogen,
 } from '../chemistry/geometry.js';
 import { type FeaturesBuilder, Features } from './features.js';
 import { typeSymbol, bondToElementCount, bondCount, formalCharge, compId, atomId } from '../chemistry/util.js';
@@ -248,12 +248,20 @@ export function checkGeometry(
     if (outOfPlane !== undefined && outOfPlane > opts.maxDonOutOfPlaneAngle) return;
   }
 
-  let donorIndex = donIndex;
-  if (!opts.ignoreHydrogens && donHAngles.length > 0) {
-    donorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
-  }
+  // the donor's hydrogen nearest the acceptor, which may be in another unit
+  const donor =
+    !opts.ignoreHydrogens && donHAngles.length > 0
+      ? closestHydrogen(structure, don.unit, donIndex, acc.unit, accIndex)
+      : { unit: don.unit, index: donIndex };
 
-  const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donorIndex, opts.ignoreHydrogens);
+  const [accAngles, accHAngles] = calcAngles(
+    structure,
+    acc.unit,
+    accIndex,
+    donor.unit,
+    donor.index,
+    opts.ignoreHydrogens,
+  );
   const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
   // Do not limit large acceptor angles
