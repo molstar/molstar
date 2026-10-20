@@ -8,8 +8,19 @@
 
 .log {
   display: grid;
+  gap: var(--msp-space-2);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
+}
+
+.filters {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3) 0;
+}
+
+.entries {
+  display: grid;
 }
 
 .empty {
@@ -19,7 +30,7 @@
 
 .entry {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: baseline;
   gap: var(--msp-space-3);
   padding: var(--msp-space-2) var(--msp-space-3);
@@ -49,6 +60,13 @@
 
 .text {
   overflow-wrap: anywhere;
+}
+
+.detail {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .time {

@@ -456,7 +456,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         if (!result.ok) {
           if (result.code === 'aborted' || result.code === 'confirm') return;
           if (r.origin.kind === 'person' || r.origin.kind === 'url' || r.origin.kind === 'link') {
-            notifications.post(result.hint ? `${result.message} ${result.hint}` : result.message, 'warning');
+            notifications.post(result.hint ? `${result.message} ${result.hint}` : result.message, 'warning', {
+              detail: durationOf(r.ms),
+            });
           }
           error.next({ message: result.message, source: 'api' });
         } else if (
@@ -468,7 +470,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         ) {
           // A quiet one (a story's step: the card shows it) is said to screen readers only.
           if (def.quiet) notifications.announce(result.did);
-          else notifications.post(result.did, 'info');
+          // How long it took: in the Log only, never on the canvas (journal.md §3).
+          else notifications.post(result.did, 'info', { detail: durationOf(r.ms) });
         } else if (r.origin.kind === 'person' && def && !def.read && /^(select|focus|measure)\./.test(r.operation)) {
           // A selection, a focus or a measurement by target is how a person without sight picks (accessibility.md): its
           // result is said (the live region), with no message on show.
@@ -476,9 +479,21 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         }
       }),
       plugin.events.log.subscribe((e) => {
-        if (e.type !== 'error') return;
-        notifications.post(String(e.message), 'error');
-        error.next({ message: String(e.message), source: 'plugin' });
+        if (e.type === 'error') {
+          notifications.post(String(e.message), 'error');
+          error.next({ message: String(e.message), source: 'plugin' });
+          return;
+        }
+        // The state's own lines, one per transform it created or updated, with its time (v5's log): the Log's
+        // Transforms, the latest kept. Never on the canvas.
+        const transform = TransformLine.exec(String(e.message));
+        if (transform) {
+          // `12ms`, `1.204s` (core's `formatTimespan`) as the runs' are said: `12 ms`, `1.204 s`.
+          const detail = transform[2].replace(/^([\d.]+)(ms|s)$/, '$1 $2');
+          notifications.log(transform[1], 'info', 'Transforms', { detail, keep: TransformsKept });
+        } else if (e.type === 'warning') {
+          notifications.log(String(e.message), 'warning', 'Plugin');
+        }
       }),
       sources.tasks.subscribe((tasks) =>
         notifications.setTasks(
@@ -560,6 +575,18 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
 }
 
 /** The layout's and navigation's starting state from the spec (viewer-spec.md §2.5, §2.2). */
+/** A state transform's log line (`Created Model in 12ms.`): what it did, and how long it took. */
+const TransformLine = /^((?:Created|Updated) .+) in (\S+)\.$/;
+
+/** The latest transforms the Log keeps (David, 2026-10-20). */
+const TransformsKept = 100;
+
+/** A run's duration as the Log says it: "120 ms", "2.4 s". */
+function durationOf(ms: number | undefined): string | undefined {
+  if (ms === undefined) return undefined;
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
+}
+
 function layoutManagers(spec: PrismViewerSpec, options: PrismViewerOptionValues) {
   const layout = spec.ui?.layout ?? {};
   const docks: Partial<Record<DockId, Partial<DockLayout>>> = {};
