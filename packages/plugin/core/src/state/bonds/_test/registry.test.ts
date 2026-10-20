@@ -308,6 +308,15 @@ describe("'per-unit'", async () => {
     const params = r.get('per-unit')!.getParams(m1cbs, r) as any;
     const provider = params.rules.element.provider as PD.Mapped<any>;
     expect(provider.select.options.map((o: any) => o[0])).toEqual(['default', 'none', 'rec']);
+    // the mmCIF entity types, from the model's `EntityType`
+    const types = (params.rules.element.match as PD.Mapped<any>).map('entity-type') as PD.MultiSelect<string>;
+    expect(types.options).toEqual([
+      ['polymer', 'Polymer'],
+      ['non-polymer', 'Non Polymer'],
+      ['macrolide', 'Macrolide'],
+      ['water', 'Water'],
+      ['branched', 'Branched'],
+    ]);
   });
 
   it('matches by entity type, chain and entity; other units get the built-in bonds', () => {

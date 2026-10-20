@@ -7,6 +7,8 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Unit } from '../../unit.js';
 import { BondProvider } from './provider.js';
+import { EntityType } from '../../../model/types.js';
+import { stringToWords } from '@molstar/core/util/string';
 
 /**
  * The generic bond providers (bond-providers plan §2.4, §5): `'none'`, the built-in bonds without the distance-based
@@ -39,13 +41,10 @@ const NoComputedBondsProvider: BondProvider<{}> = {
 
 const PerUnitName = 'per-unit';
 
-const EntityTypes = [
-  ['polymer', 'Polymer'],
-  ['non-polymer', 'Non-polymer'],
-  ['branched', 'Branched'],
-  ['water', 'Water'],
-  ['macrolide', 'Macrolide'],
-] as [string, string][];
+/** The mmCIF entity types (`EntityType`, the dictionary's), as options. */
+const EntityTypes = Object.keys(EntityType)
+  .filter((k) => Number.isNaN(Number(k)) && k !== 'unknown')
+  .map((k) => [k, stringToWords(k)] as [string, string]);
 
 /** What a rule matches: properties the same for every element of a chain and every operator (plan §5). */
 const MatchParams = PD.MappedStatic('entity-type', {
