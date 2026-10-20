@@ -15,13 +15,16 @@ import { AssetManager } from '@molstar/core/util/assets';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
+import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import type { Loci } from '@molstar/model/model/loci';
-import { Structure, StructureElement } from '@molstar/model/model/structure';
+import { Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
-import { InteractionFlag } from '@molstar/model/props/computed/interactions/common';
+import { eachIntraBondedAtom } from '@molstar/model/props/computed/chemistry/util';
+import { FeatureType, InteractionFlag, InteractionType } from '@molstar/model/props/computed/interactions/common';
 import { Bridges, Interactions } from '@molstar/model/props/computed/interactions/interactions';
 import { BridgeProviderParams, ContactProviderParams } from '@molstar/model/props/computed/interactions/params';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
@@ -432,5 +435,56 @@ describe('interactions representation', async () => {
     repr.setTheme(Theme.create(registries, { structure }, themeProps));
     await repr.createOrUpdate({}, structure).run();
     expect(geometryVersions()).toEqual(before);
+  });
+
+  it("H-bond dashes start at the donor's hydrogen nearest the acceptor", async () => {
+    // polar hydrogens (PDBQT). Feature types are per feature: H-bond features have one member each and come first, so
+    // indexing them by member offset happened to work here; this pins the anchoring itself
+    const pdbqt = await parsePDB(fs.readFileSync(path.join(examples, 'ace2.pdbqt'), 'utf8'), 'ace2', 'pdbqt').run();
+    if (pdbqt.isError) throw new Error(pdbqt.message);
+    const ace2 = Structure.ofModel((await trajectoryFromPDB(pdbqt.result).run()).representative);
+    await InteractionsProvider.attach(ctx, ace2, {}, true);
+    const repr = await createRepr(ace2, graphicsStub, { visuals: ['intra-unit'] });
+
+    const unit = ace2.units[0] as Unit.Atomic;
+    const interactions = InteractionsProvider.get(ace2).value!;
+    const contacts = interactions.unitsContacts.get(unit.id);
+    const { members, offsets, types } = interactions.unitsFeatures.get(unit.id);
+    const ro = repr.renderObjects.find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
+    const v = ro.values as any;
+    const group = v.aGroup.ref.value as Float32Array;
+    const start = v.aStart.ref.value as Float32Array;
+    const end = v.aEnd.ref.value as Float32Array;
+
+    const position = (index: number) => unit.conformation.invariantPosition(unit.elements[index], Vec3());
+    let checked = 0;
+    for (let c = 0, cl = v.drawCount.ref.value / 12; c < cl; ++c) {
+      const i = group[c * 6];
+      if (contacts.edgeProps.type[i] !== InteractionType.HydrogenBond) continue;
+      // the first dash of each half: its link starts one dash length before it
+      if (c > 0 && group[(c - 1) * 6] === i) continue;
+      const s0 = Vec3.fromArray(Vec3(), start, c * 18);
+      const e0 = Vec3.fromArray(Vec3(), end, c * 18);
+      const linkStart = Vec3.sub(Vec3(), Vec3.scale(Vec3(), s0, 2), e0);
+
+      const a = members[offsets[contacts.a[i]]];
+      const b = members[offsets[contacts.b[i]]];
+      let expected = position(a);
+      if (types[contacts.a[i]] === FeatureType.HydrogenDonor) {
+        const acceptor = position(b);
+        let min = Vec3.distance(expected, acceptor);
+        eachIntraBondedAtom(unit, a, (_, x) => {
+          if (unit.model.atomicHierarchy.atoms.type_symbol.value(unit.elements[x]) !== 'H') return;
+          const p = position(x);
+          if (Vec3.distance(p, acceptor) < min) {
+            min = Vec3.distance(p, acceptor);
+            expected = p;
+          }
+        });
+      }
+      expect(Vec3.distance(linkStart, expected)).toBeLessThan(1e-3);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(100);
   });
 });

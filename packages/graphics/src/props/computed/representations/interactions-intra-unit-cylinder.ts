@@ -103,7 +103,7 @@ function getIntraUnitInteractionsBuilderProps(
         Vec3.copy(posB, pB);
         const donorType =
           t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
-        const isHydrogenDonorA = types[offsets[a[edgeIndex]]] === donorType;
+        const isHydrogenDonorA = types[a[edgeIndex]] === donorType;
 
         if (isHydrogenDonorA) {
           eachIntraBondedAtom(unit, idxA, (_, idx) => {

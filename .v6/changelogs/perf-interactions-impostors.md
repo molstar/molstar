@@ -15,4 +15,5 @@
   - H-bond geometry uses the donor's hydrogen when it is in another unit; `closestHydrogen` gives its unit,
     `closestHydrogenIndex` is deprecated
   - `includeParent`: intra-unit contacts are shown or hidden by their own atoms
-  - the bridge visual no longer rebuilds its geometry on every update
+  - the bridge visual no longer rebuilds its geometry when an update brings a new but equal size theme
+  - H-bond dashes read the donor flag per feature (it was read by member offset; latent, H-bond features come first)
