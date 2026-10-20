@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -127,6 +127,87 @@ function filterFusedRings(unitRings: UnitRings, rings: UnitRings.Index[] | undef
     return filteredRings;
   } else {
     return rings;
+  }
+}
+
+/** Rings of 1,6 glycosidic links are 3 bonds apart, of 1,4 links 2. */
+const MaxLinkDistance = 3;
+
+/**
+ * Calls `link(i, j)`, in the order of `i` and then `j` (i < j), for the elements of one unit, `elements[start..end)`,
+ * whose rings are of different residues and at most `MaxLinkDistance` bonds apart: what
+ * `IntAdjacencyGraph.areVertexSetsConnected` gives for each pair. One breadth-first search per ring through an
+ * atom → element index, not one per pair (perf audit 05/P9); inlined, with one visit-mark array per unit, because it
+ * runs for every ring of a polysaccharide.
+ */
+function forEachIntraUnitLink(
+  elements: CarbohydrateElement[],
+  start: number,
+  end: number,
+  link: (i: number, j: number) => void,
+) {
+  const unit = elements[start].unit;
+  const { all } = unit.rings;
+  const { offset, b: neighbor } = unit.bonds;
+
+  // ring atom (UnitIndex) → the elements whose ring has it, in order
+  const atomElements = new Map<number, number[]>();
+  for (let i = start; i < end; ++i) {
+    const ring = all[elements[i].ringIndex];
+    for (let k = 0, kl = ring.length; k < kl; ++k) {
+      const e = atomElements.get(ring[k]);
+      if (e === undefined) atomElements.set(ring[k], [i]);
+      else e.push(i);
+    }
+  }
+
+  const visited = new Int32Array(unit.elements.length);
+  let frontier: number[] = [],
+    next: number[] = [];
+  const partners: number[] = [];
+
+  for (let i = start; i < end; ++i) {
+    const { residueIndex } = elements[i];
+    const mark = i - start + 1;
+    partners.length = 0;
+
+    const reach = (atom: number) => {
+      const es = atomElements.get(atom);
+      if (es === undefined) return;
+      for (let k = 0, kl = es.length; k < kl; ++k) {
+        const j = es[k];
+        if (j > i && elements[j].residueIndex !== residueIndex) partners.push(j);
+      }
+    };
+
+    // distance 0: rings that share an atom
+    const ring = all[elements[i].ringIndex];
+    frontier.length = 0;
+    for (let k = 0, kl = ring.length; k < kl; ++k) {
+      visited[ring[k]] = mark;
+      frontier.push(ring[k]);
+      reach(ring[k]);
+    }
+    for (let d = 1; d <= MaxLinkDistance && frontier.length > 0; ++d) {
+      next.length = 0;
+      for (let f = 0, fl = frontier.length; f < fl; ++f) {
+        const src = frontier[f];
+        for (let t = offset[src], tl = offset[src + 1]; t < tl; ++t) {
+          const other = neighbor[t];
+          if (visited[other] === mark) continue;
+          visited[other] = mark;
+          next.push(other);
+          reach(other);
+        }
+      }
+      [frontier, next] = [next, frontier];
+    }
+
+    if (partners.length === 0) continue;
+    partners.sort((a, b) => a - b);
+    for (let k = 0, kl = partners.length; k < kl; ++k) {
+      if (k === 0 || partners[k] !== partners[k - 1]) link(i, partners[k]);
+    }
   }
 }
 
@@ -261,25 +342,22 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
 
   // add carbohydrate links induced by intra-unit bonds
   // (e.g. for structures from the PDB archive __after__ carbohydrate remediation)
-  for (let i = 0, il = elements.length; i < il; ++i) {
-    const cA = elements[i];
-    const { unit } = cA;
-
-    for (let j = i + 1; j < il; ++j) {
-      const cB = elements[j];
-      if (unit !== cB.unit || cA.residueIndex === cB.residueIndex) continue;
-      const rA = unit.rings.all[cA.ringIndex];
-      const rB = unit.rings.all[cB.ringIndex];
-
-      if (IntAdjacencyGraph.areVertexSetsConnected(unit.bonds, rA, rB, 3)) {
+  // a unit's elements are contiguous: they were added unit by unit
+  for (let start = 0, il = elements.length; start < il; ) {
+    const { unit } = elements[start];
+    let end = start + 1;
+    while (end < il && elements[end].unit === unit) ++end;
+    if (end - start > 1) {
+      forEachIntraUnitLink(elements, start, end, (i, j) => {
         // TODO handle better, for now fix both directions as it is unclear where the C1 atom is
         //      would need to know the path connecting the two rings
         fixLinkDirection(i, j);
         fixLinkDirection(j, i);
         links.push({ carbohydrateIndexA: i, carbohydrateIndexB: j });
         links.push({ carbohydrateIndexA: j, carbohydrateIndexB: i });
-      }
+      });
     }
+    start = end;
   }
 
   // get carbohydrate links induced by inter-unit bonds, that is
