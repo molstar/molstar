@@ -148,9 +148,37 @@ function findIndexPairBonds(unit: Unit.Atomic) {
   });
 }
 
+/**
+ * Above every distance threshold (`getPairingThreshold` is at most (2.88 + 2.88) / 1.95 ≈ 2.95 Å): distance bonds of
+ * atomic models need no larger neighbour query. Dictionary bonds keep `maxRadius`, through the residue's atoms
+ * (perf-audit 05/P7).
+ */
+const DistanceBondMaxRadius = 3.1;
+
+/** Above this many atoms a residue's dictionary pairs come from the grid: walking the residue per atom is quadratic */
+const LargeResidueAtomCount = 256;
+
+const structConnResidueCache = new WeakMap<StructConn, Set<number>>();
+/** Residues of the struct_conn entries: no pair of residues without one is in `residueCantorPairs` */
+function getStructConnResidues(structConn: StructConn) {
+  let residues = structConnResidueCache.get(structConn);
+  if (!residues) {
+    residues = new Set();
+    for (const e of structConn.entries) {
+      residues.add(e.partnerA.residueIndex);
+      residues.add(e.partnerB.residueIndex);
+    }
+    structConnResidueCache.set(structConn, residues);
+  }
+  return residues;
+}
+
 function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
   const isCoarseGrained = Model.isCoarseGrained(unit.model);
   const maxRadius = isCoarseGrained ? CoarseGrainedBondMaxRadius : props.maxRadius;
+  // the grid's inclusion test is `distSq <= r * r`; dictionary pairs found through the residue use the same
+  const maxRadiusSq = maxRadius * maxRadius;
+  const queryRadius = isCoarseGrained ? maxRadius : Math.min(maxRadius, DistanceBondMaxRadius);
 
   const { x, y, z } = unit.model.atomicConformation;
   const atomCount = unit.elements.length;
@@ -158,6 +186,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
   const { type_symbol, label_atom_id, label_alt_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
   const { label_seq_id } = unit.model.atomicHierarchy.residues;
   const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
+  const { offsets: residueOffsets } = unit.model.atomicHierarchy.residueAtomSegments;
   const { index } = unit.model.atomicHierarchy;
   const { byEntityKey } = unit.model.sequence;
   const query3d = unit.lookup3d;
@@ -182,12 +211,66 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
 
   const structConnAdded = __structConnAdded;
   const hasStructConnEntries = !!structConn?.residueCantorPairs.size;
+  const structConnResidues = hasStructConnEntries ? getStructConnResidues(structConn) : undefined;
+
+  // element index per atom, looked up once instead of per neighbour (`getElementIdx` is in [-1, 118])
+  const elementIdx = new Int8Array(atomCount);
+  for (let _aI = 0; _aI < atomCount; _aI++) {
+    const elem = type_symbol.value(atoms[_aI]);
+    if (isWatery && elem !== 'H' && elem !== 'O') isWatery = false;
+    elementIdx[_aI] = getElementIdx(elem);
+  }
+
+  /** A bond from distance (`dist` > 0) between atoms not both hydrogen */
+  const addDistanceBond = (
+    _aI: StructureElement.UnitIndex,
+    _bI: StructureElement.UnitIndex,
+    aI: ElementIndex,
+    bI: ElementIndex,
+    raI: number,
+    rbI: number,
+    dist: number,
+    thresholdA: number,
+    isMetal: boolean,
+    compId: string,
+    atomIdA: string,
+    seqIdA: number,
+  ) => {
+    let flag = false;
+    if (isCoarseGrained) {
+      if (raI === rbI) {
+        // intra residue bonds
+        flag = dist <= CoarseGrainedIntraResidueBondMaxDistance;
+      } else {
+        // inter residue "backbone" bonds
+        flag =
+          dist <= CoarseGrainedInterResidueBondMaxDistance &&
+          traceElementIndex[raI] === aI &&
+          traceElementIndex[rbI] === bI;
+      }
+    } else {
+      const beI = elementIdx[_bI];
+      const pairingThreshold = getPairingThreshold(elementIdx[_aI], beI, thresholdA, getElementThreshold(beI));
+      flag = dist <= pairingThreshold;
+    }
+
+    if (flag) {
+      atomA[atomA.length] = _aI;
+      atomB[atomB.length] = _bI;
+      order[order.length] = getIntraBondOrderFromTable(compId, atomIdA, label_atom_id.value(bI));
+      flags[flags.length] =
+        (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed;
+      key[key.length] = -1;
+
+      const seqIdB = label_seq_id.value(rbI);
+
+      if (seqIdA === seqIdB) isDictionaryBased = false;
+      if (Math.abs(seqIdA - seqIdB) > 1) isSequenced = false;
+    }
+  };
 
   for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
     const aI = atoms[_aI];
-
-    const elemA = type_symbol.value(aI);
-    if (isWatery && elemA !== 'H' && elemA !== 'O') isWatery = false;
 
     const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
     let hasStructConn = false;
@@ -233,42 +316,61 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     }
     lastResidue = raI;
 
-    const aeI = getElementIdx(elemA);
+    const aeI = elementIdx[_aI];
     const isHa = isHydrogen(aeI);
     const atomIdA = label_atom_id.value(aI);
     const componentPairs = componentEntry ? componentEntry.get(atomIdA, isHa) : void 0;
 
-    const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], maxRadius);
     const thresholdA = getElementThreshold(aeI);
     const altA = label_alt_id.value(aI);
     const metalA = MetalsSet.has(aeI);
+    // only residues with a struct_conn entry can be in a pair that has one
+    const checkResiduePairs = hasStructConnEntries && structConnResidues!.has(raI);
 
-    for (let ni = 0; ni < count; ni++) {
-      const _bI = indices[ni];
-      if (hasStructConn && structConnAdded.has(_bI)) continue;
+    // "component dictionary" bonds, within `maxRadius`: the later atoms of the residue (it is contiguous in the unit);
+    // in a residue of more than `LargeResidueAtomCount` atoms, those the grid finds within `maxRadius`
+    if (componentPairs) {
+      const skipResidue = checkResiduePairs && structConn!.residueCantorPairs.has(sortedCantorPairing(raI, raI));
+      const xA = x[aI],
+        yA = y[aI],
+        zA = z[aI];
+      const near =
+        residueOffsets[raI + 1] - residueOffsets[raI] > LargeResidueAtomCount
+          ? query3d.find(xA, yA, zA, maxRadius)
+          : undefined;
+      const candidateCount = near ? near.count : atomCount - _aI - 1;
+      for (let k = 0; k < candidateCount; k++) {
+        let _bI: StructureElement.UnitIndex, bI: ElementIndex, distSq: number;
+        if (near) {
+          _bI = near.indices[k];
+          bI = atoms[_bI];
+          if (bI <= aI || residueIndex[bI] !== raI) continue;
+          distSq = near.squaredDistances[k];
+        } else {
+          _bI = (_aI + 1 + k) as StructureElement.UnitIndex;
+          bI = atoms[_bI];
+          if (residueIndex[bI] !== raI) break;
+          const dx = x[bI] - xA;
+          const dy = y[bI] - yA;
+          const dz = z[bI] - zA;
+          distSq = dx * dx + dy * dy + dz * dz;
+          // as the grid's test: NaN coordinates are never within
+          if (!(distSq <= maxRadiusSq)) continue;
+        }
+        if (hasStructConn && structConnAdded.has(_bI)) continue;
 
-      const bI = atoms[_bI];
-      if (bI <= aI) continue;
+        const altB = label_alt_id.value(bI);
+        if (altA && altB && altA !== altB) continue;
 
-      const altB = label_alt_id.value(bI);
-      if (altA && altB && altA !== altB) continue;
+        // Do not add bonds for residues that have a structConn entry
+        if (skipResidue) continue;
 
-      // Do not add bonds for residues that have a structConn entry
-      if (hasStructConnEntries) {
-        const residuePair = sortedCantorPairing(residueIndex[aI], residueIndex[bI]);
-        if (structConn.residueCantorPairs.has(residuePair)) continue;
-      }
+        const beI = elementIdx[_bI];
+        const isHb = isHydrogen(beI);
+        if (isHa && isHb) continue;
 
-      const beI = getElementIdx(type_symbol.value(bI)!);
+        const isMetal = (metalA || MetalsSet.has(beI)) && !(isHa || isHb);
 
-      const isHb = isHydrogen(beI);
-      if (isHa && isHb) continue;
-
-      const isMetal = (metalA || MetalsSet.has(beI)) && !(isHa || isHb);
-
-      const rbI = residueIndex[bI];
-      // handle "component dictionary" bonds.
-      if (raI === rbI && componentPairs) {
         const e = componentPairs.get(label_atom_id.value(bI), isHb);
         if (e) {
           atomA[atomA.length] = _aI;
@@ -284,41 +386,45 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
           continue;
         }
         if (!isHa && !isHb) continue; // If Hydrogen not in the component dictionary, fallback to distance-based.
+
+        const dist = Math.sqrt(distSq);
+        if (dist === 0) continue;
+        addDistanceBond(_aI, _bI, aI, bI, raI, raI, dist, thresholdA, isMetal, compId, atomIdA, seqIdA);
       }
+    }
+
+    const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], queryRadius);
+
+    for (let ni = 0; ni < count; ni++) {
+      const _bI = indices[ni];
+      if (hasStructConn && structConnAdded.has(_bI)) continue;
+
+      const bI = atoms[_bI];
+      if (bI <= aI) continue;
+
+      const rbI = residueIndex[bI];
+      // the residue's own atoms went through the dictionary above
+      if (componentPairs && raI === rbI) continue;
+
+      const altB = label_alt_id.value(bI);
+      if (altA && altB && altA !== altB) continue;
+
+      // Do not add bonds for residues that have a structConn entry
+      if (checkResiduePairs) {
+        const residuePair = sortedCantorPairing(raI, rbI);
+        if (structConn!.residueCantorPairs.has(residuePair)) continue;
+      }
+
+      const beI = elementIdx[_bI];
+
+      const isHb = isHydrogen(beI);
+      if (isHa && isHb) continue;
+
+      const isMetal = (metalA || MetalsSet.has(beI)) && !(isHa || isHb);
 
       const dist = Math.sqrt(squaredDistances[ni]);
       if (dist === 0) continue;
-
-      let flag = false;
-      if (isCoarseGrained) {
-        if (raI === rbI) {
-          // intra residue bonds
-          flag = dist <= CoarseGrainedIntraResidueBondMaxDistance;
-        } else {
-          // inter residue "backbone" bonds
-          flag =
-            dist <= CoarseGrainedInterResidueBondMaxDistance &&
-            traceElementIndex[raI] === aI &&
-            traceElementIndex[rbI] === bI;
-        }
-      } else {
-        const pairingThreshold = getPairingThreshold(aeI, beI, thresholdA, getElementThreshold(beI));
-        flag = dist <= pairingThreshold;
-      }
-
-      if (flag) {
-        atomA[atomA.length] = _aI;
-        atomB[atomB.length] = _bI;
-        order[order.length] = getIntraBondOrderFromTable(compId, atomIdA, label_atom_id.value(bI));
-        flags[flags.length] =
-          (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed;
-        key[key.length] = -1;
-
-        const seqIdB = label_seq_id.value(rbI);
-
-        if (seqIdA === seqIdB) isDictionaryBased = false;
-        if (Math.abs(seqIdA - seqIdB) > 1) isSequenced = false;
-      }
+      addDistanceBond(_aI, _bI, aI, bI, raI, rbI, dist, thresholdA, isMetal, compId, atomIdA, seqIdA);
     }
   }
 

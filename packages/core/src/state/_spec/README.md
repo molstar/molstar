@@ -38,8 +38,8 @@ The reconciler's shortcuts rely on these; a change that breaks one must change t
    (reconcile.md §2; nodes added there get no cell until their ancestor changes). After an update completes, every
    cell's ref is in the tree.
 2. A cell's `transform` has the version of the tree's transform with its ref, except below an error cell or a Null
-   object, and after an update that threw (the cells it did not reach; the next whole-tree diff finds them, reconcile.md
-   §2).
+   object, and after an update that threw or a fast track with an uncounted write (the cells it did not reach; the next
+   whole-tree diff finds them, reconcile.md §2). The diff from edits relies on this (`cellsInSync`).
 3. A child set is a new object exactly when the children changed (structural sharing): Prism's change signatures add
    child sets (`prism/viewer/src/sources/scene.ts`).
 4. A transform is shared by every tree and snapshot that has it: never mutate one, except what tree.md §3 lists.

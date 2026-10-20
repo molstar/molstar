@@ -155,6 +155,11 @@ export const PrismViewerOptions = {
       ['corner', 'Bottom right'],
       ['cursor', 'At the cursor'],
     ]),
+    /**
+     * How many of the latest steps Undo can take back (sequence.md §7.4): only they keep a checkpoint; older steps stay
+     * in History, too old to undo.
+     */
+    undoSteps: PD.Numeric(10, { min: 1, max: 100, step: 1 }, { description: 'How many steps Undo can take back' }),
     /** Records kept in the browser at most (journal.md §5); keeping one more offers to forget the oldest. */
     keptRecordsMax: PD.Numeric(20, { min: 1, max: 200, step: 1 }),
     buttons: PD.Group({

@@ -63,8 +63,13 @@ export interface HistoryContext {
 export type UndoResult = { ok: true; step: HistoryStep } | { ok: false; reason: string; laterSteps?: number };
 
 export interface HistoryOptions {
-  /** Most entries kept; the oldest go first. */
+  /** Most entries listed; the oldest go first. */
   readonly capacity?: number;
+  /**
+   * The latest entries that keep their checkpoint (Undo goes back this many steps); older ones stay listed, unsafe
+   * ("too old"), their checkpoints let go (sequence.md §7.4).
+   */
+  readonly checkpoints?: number;
   /** Over either, per-step checkpoints turn off for the scene (sequence.md §7.4; a first guess). */
   readonly budget?: { readonly ms: number; readonly bytes: number };
   /** Over either, even a group's one checkpoint is not taken. */
@@ -173,6 +178,12 @@ function stepWith(fields: StepFields, log: readonly string[], length: number): H
 /** Checkpoints over the time budget in a row that turn per-step checkpoints off (sequence.md §7.4). */
 const SlowCheckpointsToTurnOff = 3;
 
+/**
+ * After a checkpoint over the hard limit, how long checkpoints are not even taken (sequence.md §7.4): the scene stays
+ * that large until it is cleared, and each try costs a full snapshot that is thrown away.
+ */
+const OverHardLimitPauseMs = 30_000;
+
 export class HistoryManager<C = unknown> {
   readonly #port: HistoryPort<C>;
   readonly #options: Required<Omit<HistoryOptions, 'now'>> & { now: () => number };
@@ -183,6 +194,8 @@ export class HistoryManager<C = unknown> {
   readonly #checkpointing = observableState(true);
   /** Checkpoints in a row over the time budget. */
   #slow = 0;
+  /** When the last checkpoint over the hard limit was taken; none since a clear. */
+  #overHardLimitAt: number | undefined;
   readonly #undoBlocked = observableState<string | undefined>('Nothing to undo');
   readonly #canUndo = observableState(false);
   readonly #undone = new Subject<HistoryStep>();
@@ -204,6 +217,7 @@ export class HistoryManager<C = unknown> {
     this.#port = port;
     this.#options = {
       capacity: options.capacity ?? 100,
+      checkpoints: Math.max(1, Math.min(options.checkpoints ?? 10, options.capacity ?? 100)),
       budget: options.budget ?? { ms: 50, bytes: 5_000_000 },
       hardLimit: options.hardLimit ?? { ms: 500, bytes: 50_000_000 },
       now: options.now ?? (() => Date.now()),
@@ -270,6 +284,8 @@ export class HistoryManager<C = unknown> {
 
   /** Turns per-step checkpoints on or off (Settings: "Undo for large scenes"); on again after a clear. */
   setCheckpointing(on: boolean): void {
+    // Turned on by the person: try again at once, past the pause after a scene over the hard limit.
+    if (on) this.#overHardLimitAt = undefined;
     this.#checkpointing.set(on);
   }
 
@@ -285,7 +301,12 @@ export class HistoryManager<C = unknown> {
     options: RunOptions<T> = {},
   ): Promise<StepOutcome<T>> {
     const parent = options.within && this.#active.get(options.within.id);
-    if (parent) return this.#nested(parent, 'run', label, work, options.failed, options.record, 'rollback');
+    if (parent) {
+      // Inside a step, work that changes nothing undoable (an upload, a snapshot shown) is no run of it either: a group
+      // of only such work records no step.
+      const record = options.undoable === false ? () => false : options.record;
+      return this.#nested(parent, 'run', label, work, options.failed, record, 'rollback');
+    }
 
     this.#running.set(this.#running.value + 1);
     this.#updateBlocked();
@@ -420,7 +441,7 @@ export class HistoryManager<C = unknown> {
       const next = this.#redo[0];
       if (!next) return { ok: false, reason: 'Nothing to redo' };
       await this.#restore(next.after);
-      this.#entries = [next.entry, ...this.#entries].slice(0, this.#options.capacity);
+      this.#setEntries([next.entry, ...this.#entries]);
       this.#setRedo(this.#redo.slice(1));
       this.#publish();
       this.#redone.next(next.entry.step);
@@ -496,6 +517,7 @@ export class HistoryManager<C = unknown> {
   clear(): void {
     this.#setRedo([]);
     this.#entries = [];
+    this.#overHardLimitAt = undefined;
     this.#checkpointing.set(true);
     this.#publish();
   }
@@ -596,12 +618,26 @@ export class HistoryManager<C = unknown> {
       log,
       log.length,
     );
-    this.#entries = [
-      { step, checkpoint: checkpoint.value, openKey: group ? key : undefined, log },
-      ...this.#entries,
-    ].slice(0, this.#options.capacity);
+    this.#setEntries([{ step, checkpoint: checkpoint.value, openKey: group ? key : undefined, log }, ...this.#entries]);
     this.#publish();
     return step;
+  }
+
+  /** The entries, the oldest past the capacity dropped and those past the checkpoints' count without one. */
+  #setEntries(entries: Entry<C>[]) {
+    const { capacity, checkpoints } = this.#options;
+    if (entries.length > capacity) entries.length = capacity;
+    for (let i = checkpoints; i < entries.length; i++) {
+      const e = entries[i];
+      if (e.checkpoint === undefined) continue;
+      e.checkpoint = undefined;
+      e.openKey = undefined;
+      if (!e.step.unsafe) {
+        const unsafe = `Too old to undo: the last ${checkpoints} step${checkpoints === 1 ? '' : 's'} can be undone`;
+        e.step = stepWith({ ...fieldsOf(e.step), unsafe }, e.log, e.log.length);
+      }
+    }
+    this.#entries = entries;
   }
 
   /** Takes a checkpoint unless checkpoints are off (a group's, and a turn's run's, are taken below the hard limit). */
@@ -609,15 +645,22 @@ export class HistoryManager<C = unknown> {
     if (!this.#checkpointing.value && !group) {
       return { value: undefined, unsafe: 'Undo is off for this large scene' };
     }
+    const { budget, hardLimit, now } = this.#options;
+    // Over the hard limit a moment ago: the snapshot would be thrown away again (a turn's every call paid for it).
+    if (this.#overHardLimitAt !== undefined && now() - this.#overHardLimitAt < OverHardLimitPauseMs) {
+      return { value: undefined, unsafe: 'This scene is too large to undo' };
+    }
+    // The size pass is part of the checkpoint's cost: the time budget counts it.
     const t0 = performance.now();
     const value = this.#port.checkpoint();
-    const ms = performance.now() - t0;
     const bytes = this.#port.size?.(value) ?? 0;
-    const { budget, hardLimit } = this.#options;
+    const ms = performance.now() - t0;
     if (ms > hardLimit.ms || bytes > hardLimit.bytes) {
+      this.#overHardLimitAt = now();
       this.#turnOff(ms, bytes);
       return { value: undefined, unsafe: 'This scene is too large to undo' };
     }
+    this.#overHardLimitAt = undefined;
     // Size is the scene's; time can be a one-off (a cold start, a pause): only a run of slow checkpoints counts.
     this.#slow = ms > budget.ms ? this.#slow + 1 : 0;
     if (bytes > budget.bytes || this.#slow >= SlowCheckpointsToTurnOff) this.#turnOff(ms, bytes);

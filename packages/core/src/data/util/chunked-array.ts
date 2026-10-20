@@ -111,6 +111,14 @@ namespace ChunkedArray {
     return _compact(array, doNotResizeSingleton);
   }
 
+  /**
+   * `compact` that keeps a single chunk as it is only while at least `minFill` of it is used, else copies the used part:
+   * builders reserve from estimates, and an underfilled buffer would stay allocated (and uploaded) whole.
+   */
+  export function compactTrimmed<T>(array: ChunkedArray<T, any>, minFill = 0.8): ArrayLike<T> {
+    return _compact(array, array.chunks.length === 1 && array.currentIndex >= minFill * array.allocatedSize);
+  }
+
   export function _compact<T>(array: ChunkedArray<T, any>, doNotResizeSingleton: boolean): ArrayLike<T> {
     const { ctor, chunks, currentIndex } = array;
 
@@ -141,11 +149,15 @@ namespace ChunkedArray {
       }
     }
 
+    // the used part of the last chunk only
     const lastChunk = chunks[chunks.length - 1];
-    if (ret.buffer && currentIndex >= array.currentSize) {
-      ret.set(lastChunk, offset);
+    if (ret.buffer) {
+      ret.set(
+        currentIndex >= lastChunk.length ? lastChunk : (lastChunk as unknown as Uint8Array).subarray(0, currentIndex),
+        offset,
+      );
     } else {
-      for (let j = 0, _j = lastChunk.length; j < _j; j++) ret[offset + j] = lastChunk[j];
+      for (let j = 0; j < currentIndex; j++) ret[offset + j] = lastChunk[j];
     }
 
     return ret;

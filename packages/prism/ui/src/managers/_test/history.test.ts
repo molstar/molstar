@@ -29,6 +29,8 @@ function store(initial: Record<string, number> = {}) {
 
 const person = { kind: 'person' };
 const script = { kind: 'script' };
+/** Asserts an undo or redo went. */
+const expectOk = (r: { ok: boolean }) => expect(r).toMatchObject({ ok: true });
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 /** A promise and its resolver. */
@@ -298,6 +300,92 @@ describe('HistoryManager', () => {
     await h.run('big', person, async () => s.set('a', 1));
     expect(h.steps.value[0].unsafe).toMatch(/too large/);
     expect(h.canUndo.value).toBe(false);
+  });
+
+  it('past the hard limit, takes no snapshot for a while, then tries again; a clear or undo turned on lets it at once', async () => {
+    const s = store({ a: 0 });
+    let taken = 0;
+    let time = 0;
+    let big = true;
+    const port: HistoryPort<Record<string, number>> = {
+      ...s.port,
+      checkpoint: () => {
+        taken++;
+        return s.port.checkpoint();
+      },
+      size: () => (big ? 1e9 : 10),
+    };
+    const h = new HistoryManager(port, { hardLimit: { ms: 1e9, bytes: 1000 }, now: () => time });
+    const end = h.beginGroup('Turn', { kind: 'agent', turn: 't' });
+    for (let i = 0; i < 5; i++) await h.run(`call ${i}`, { kind: 'agent', turn: 't' }, async () => s.set('a', i));
+    end();
+    expect(taken).toBe(1);
+    expect(h.steps.value[0].unsafe).toMatch(/too large/);
+    time += 60_000;
+    await h.group('Later', script, async (ctx) => {
+      await h.run('x', script, async () => s.set('a', 9), { within: ctx });
+    });
+    expect(taken).toBe(2);
+    // Undo turned back on (Settings) tries again at once, as a clear does.
+    h.setCheckpointing(true);
+    await h.group('Again', script, async (ctx) => {
+      await h.run('y', script, async () => s.set('a', 8), { within: ctx });
+    });
+    expect(taken).toBe(3);
+    big = false;
+    h.clear();
+    await h.run('Small', script, async () => s.set('a', 10));
+    expect(taken).toBe(4);
+    expect(h.steps.value[0].unsafe).toBeUndefined();
+  });
+
+  it('counts the size pass in the time budget', async () => {
+    const s = store({ a: 0 });
+    const slowSize = () => {
+      const t0 = performance.now();
+      while (performance.now() - t0 < 3);
+      return 10;
+    };
+    const h = new HistoryManager({ ...s.port, size: slowSize }, { budget: { ms: 1, bytes: 1e9 } });
+    for (let i = 0; i < 3; i++) await h.run(`r${i}`, person, async () => s.set('a', i));
+    expect(h.checkpointing.value).toBe(false);
+  });
+
+  it('keeps checkpoints for the latest steps only; older ones stay listed, too old to undo', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryManager(s.port, { capacity: 6, checkpoints: 3 });
+    for (let i = 1; i <= 8; i++) await h.run(`Set a to ${i}`, person, async () => s.set('a', i));
+    expect(h.steps.value.map((x) => x.label)).toEqual([8, 7, 6, 5, 4, 3].map((i) => `Set a to ${i}`));
+    expect(h.steps.value.map((x) => !!x.unsafe)).toEqual([false, false, false, true, true, true]);
+    expect(h.steps.value[3].unsafe).toMatch(/Too old to undo: the last 3 steps/);
+    for (const a of [7, 6, 5]) {
+      expectOk(await h.undo());
+      expect(s.get().a).toBe(a);
+    }
+    expect(await h.undo()).toMatchObject({ ok: false, reason: expect.stringMatching(/Too old/) });
+    expect(s.get().a).toBe(5);
+    // Redo puts the three back, each undoable again.
+    for (let i = 0; i < 3; i++) expectOk(await h.redo());
+    expect(s.get().a).toBe(8);
+    expect(h.steps.value.map((x) => !!x.unsafe)).toEqual([false, false, false, true, true, true]);
+    expectOk(await h.undo());
+    expect(s.get().a).toBe(7);
+  });
+
+  it('records no step for a group of only work that changes nothing undoable', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryManager(s.port);
+    const g = await h.group('Show', script, async (ctx) => {
+      await h.run('Apply a snapshot', script, async () => s.set('a', 1), { within: ctx, undoable: false });
+    });
+    expect(g.runs).toEqual([]);
+    expect(h.steps.value).toEqual([]);
+    const both = await h.group('Both', script, async (ctx) => {
+      await h.run('Apply a snapshot', script, async () => s.set('a', 2), { within: ctx, undoable: false });
+      await h.run('Set b', script, async () => s.set('b', 1), { within: ctx });
+    });
+    expect(both.runs).toEqual(['Set b']);
+    expect(h.steps.value.map((x) => x.runs)).toEqual([['Set b']]);
   });
 
   it('releases the lock when taking a checkpoint throws', async () => {

@@ -21,6 +21,9 @@
       "path": "../packages/model"
     },
     {
+      "path": "../packages/plugin/core"
+    },
+    {
       "path": "../extensions/anvil"
     },
     {

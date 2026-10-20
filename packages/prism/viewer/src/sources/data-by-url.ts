@@ -115,10 +115,7 @@ export function createDataByUrl(scope: SourceScope, plugin: PluginContext): Data
       const kind = Trajectories[tc.transform.transformer.definition.name];
       const binary = e.cell.obj?.data instanceof Uint8Array;
       const format: StructureFormat = kind === 'cif' ? (binary ? 'bcif' : 'mmcif') : kind;
-      // A CIF's data block, for categories read beside the structure (pLDDT, ma_qa_metric_local).
-      const parent = plugin.state.data.cells.get(tc.transform.parent);
-      const cif = parent?.obj && SO.Format.Cif.is(parent.obj) ? parent.obj.data : undefined;
-      const frame = (cif?.blocks[0] as CifFrame | undefined) ?? null;
+      const frame = cifFrameOf(plugin, tc);
       const source: StructureSource = {
         kind: 'molstar:structure-source',
         format,
@@ -130,4 +127,24 @@ export function createDataByUrl(scope: SourceScope, plugin: PluginContext): Data
       return source;
     },
   };
+}
+
+/**
+ * The CIF data block a trajectory was parsed from (the parse cell above it, the block its params name), for the
+ * categories the sequence reads beside the structure: `ma_qa_metric_local` (a predicted model), SIFTS numberings,
+ * `pdbx_poly_seq_scheme` (sequence.md §2). Null: not from a CIF, or every block in one trajectory.
+ */
+export function cifFrameOf(plugin: PluginContext, trajectoryCell: StateObjectCell): CifFrame | null {
+  const parent = plugin.state.data.cells.get(trajectoryCell.transform.parent);
+  const cif = parent?.obj && SO.Format.Cif.is(parent.obj) ? parent.obj.data : undefined;
+  if (!cif?.blocks.length) return null;
+  const p = trajectoryCell.transform.params as
+    | { loadAllBlocks?: boolean; blockHeader?: string; blockIndex?: number }
+    | undefined;
+  if (p?.loadAllBlocks) return null;
+  const header = p?.blockHeader?.toLowerCase();
+  const block = header
+    ? cif.blocks.find((b) => b.header.toLowerCase() === header)
+    : cif.blocks[Math.max(0, p?.blockIndex ?? 0)];
+  return (block as CifFrame | undefined) ?? null;
 }

@@ -62,7 +62,11 @@ const caAdd = ChunkedArray.add;
 const caAdd3 = ChunkedArray.add3;
 
 export namespace CylindersBuilder {
+  /** `initialCount` and `chunkSize` count cylinders (6 vertices each) */
   export function create(initialCount = 2048, chunkSize = 1024, cylinders?: Cylinders): CylindersBuilder {
+    // ChunkedArray sizes count elements, one per vertex (perf-audit 08/P8)
+    initialCount *= 6;
+    chunkSize *= 6;
     const groups = ChunkedArray.create(
       Float32Array,
       1,
@@ -188,12 +192,12 @@ export namespace CylindersBuilder {
       },
       getCylinders: () => {
         const cylinderCount = groups.elementCount / 6;
-        const gb = ChunkedArray.compact(groups, true) as Float32Array;
-        const sb = ChunkedArray.compact(starts, true) as Float32Array;
-        const eb = ChunkedArray.compact(ends, true) as Float32Array;
-        const ab = ChunkedArray.compact(scales, true) as Float32Array;
-        const cb = ChunkedArray.compact(caps, true) as Float32Array;
-        const cmb = ChunkedArray.compact(colorModes, true) as Float32Array;
+        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+        const sb = ChunkedArray.compactTrimmed(starts) as Float32Array;
+        const eb = ChunkedArray.compactTrimmed(ends) as Float32Array;
+        const ab = ChunkedArray.compactTrimmed(scales) as Float32Array;
+        const cb = ChunkedArray.compactTrimmed(caps) as Float32Array;
+        const cmb = ChunkedArray.compactTrimmed(colorModes) as Float32Array;
         const mb =
           cylinders && cylinderCount <= cylinders.cylinderCount
             ? cylinders.mappingBuffer.ref.value

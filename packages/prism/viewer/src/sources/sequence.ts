@@ -7,7 +7,7 @@
  */
 
 import { Representation } from '@molstar/graphics/repr/representation';
-import { type Structure, StructureElement } from '@molstar/model/model/structure';
+import { Model, Structure, StructureElement, type Trajectory } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -17,7 +17,7 @@ import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
 import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
-import { createDataByUrl } from './data-by-url.js';
+import { cifFrameOf, createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
 import { onceATask, type SourceScope } from './state.js';
 
@@ -91,7 +91,10 @@ function channel(): Channel {
 }
 
 export function createSequenceSource(scope: SourceScope, plugin: PluginContext, link: ViewerApi): SequenceSource {
-  const structure = observableState<HostStructure | undefined>(undefined, { compare: (a, b) => a?.key === b?.key });
+  // A new key or a new frame of it (the same key, another Structure: sequence.md §2).
+  const structure = observableState<HostStructure | undefined>(undefined, {
+    compare: (a, b) => a?.key === b?.key && a?.structure === b?.structure,
+  });
   const followed = observableState<string | undefined>(undefined);
   const shows = observableState<string | undefined>(undefined);
   const hoverMapped = observableState(false);
@@ -106,6 +109,29 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     let k = keys.get(s);
     if (k === undefined) keys.set(s, (k = ++serial));
     return `${ref}:${k}`;
+  };
+
+  /** Two frames of one structure: the same units, atoms and hierarchy (only coordinates may differ). */
+  const sameAtoms = (a: Structure, b: Structure) =>
+    Structure.areUnitIdsAndIndicesEqual(a, b) &&
+    a.models.length === b.models.length &&
+    a.models.every((m, i) => Model.areHierarchiesEqual(m, b.models[i]));
+
+  // The followed structure's parse, one per trajectory (its models and structures cached across keys), with the CIF
+  // block it came from: SIFTS numberings, a predicted model's origin and the scheme's auth labels read from it.
+  const sources = new WeakMap<Trajectory, StructureSource>();
+  const sourceOf = (s: StructureRef, trajectory: Trajectory, format: StructureFormat): StructureSource => {
+    const hit = sources.get(trajectory);
+    if (hit?.format === format) return hit;
+    const source: StructureSource = {
+      kind: 'molstar:structure-source',
+      format,
+      trajectory,
+      frame: cifFrameOf(plugin, s.model!.trajectory!.cell),
+      structures: new Map(),
+    };
+    sources.set(trajectory, source);
+    return source;
   };
 
   const pick = (): StructureRef | undefined => {
@@ -149,20 +175,24 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
       return;
     }
     const ref = s.cell.transform.ref;
+    const now = structure.value;
+    // A frame of the structure shown (a trajectory step, the model-index animation): the same atoms, so the same key:
+    // the sequence keeps its document and the link follows the new Structure (sequence.md §2).
+    if (now?.ref === ref && now.structure !== data && now.source.trajectory === trajectory) {
+      if (sameAtoms(now.structure, data)) {
+        keys.set(data, keys.get(now.structure)!);
+        structure.set({ ...now, structure: data });
+        return;
+      }
+    }
     const key = keyOf(ref, data);
-    if (structure.value?.key === key) return;
+    if (now?.key === key) return;
     structure.set({
       key,
       ref,
       title: structureNames(plugin.managers.structure.hierarchy.current.structures).get(ref) ?? ref,
       // Seq*'s source over the 3D view's parse (`StructureSource.of`, made here: Seq* is the sequence's own chunk).
-      source: {
-        kind: 'molstar:structure-source',
-        format,
-        trajectory,
-        frame: null,
-        structures: new Map(),
-      } satisfies StructureSource,
+      source: sourceOf(s, trajectory, format),
       structure: data,
     });
   };
@@ -282,7 +312,9 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
           return () => sub.unsubscribe();
         },
         onSelect: (fn) => {
-          const sub = plugin.managers.structure.selection.events.changed.subscribe(() => {
+          // Once a task, as the source's own listener: a select over S structures says `changed` once per structure,
+          // and this remaps the whole target selection each time.
+          const sub = onceATask(plugin.managers.structure.selection.events.changed).subscribe(() => {
             const loci = plugin.managers.structure.selection.getLoci(target);
             fn(
               StructureElement.Loci.is(loci) && loci.elements.length ? StructureElement.Loci.remap(loci, target) : null,

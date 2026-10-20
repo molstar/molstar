@@ -26,3 +26,36 @@ describe('the notifications tasks', () => {
     expect(ids()).toEqual(['2']);
   });
 });
+
+describe('the log', () => {
+  it("keeps a message's detail for the log, not the status line's text", () => {
+    const n = new NotificationsManager();
+    n.post('Colored the polymer', 'info', { detail: '12 ms' });
+    expect(n.current.value).toMatchObject({ text: 'Colored the polymer', detail: '12 ms' });
+    expect(n.spoken.value).toBe('Colored the polymer');
+  });
+
+  it('writes log-only entries once a task, never on show or said, each source within its bound', async () => {
+    const n = new NotificationsManager({ historySize: 3 });
+    n.post('a message');
+    const changes: number[] = [];
+    const sub = n.logged.subscribe((h) => changes.push(h.length));
+    changes.length = 0;
+    for (let i = 0; i < 5; i++) n.log(`Created ${i}`, 'info', 'Transforms', { detail: `${i} ms`, keep: 2 });
+    expect(changes).toEqual([]);
+    await Promise.resolve();
+    // One change for the burst; the two newest transforms, and the message is still there.
+    expect(changes).toHaveLength(1);
+    expect(n.logged.value.map((m) => m.text)).toEqual(['Created 4', 'Created 3', 'a message']);
+    expect(n.history.value.map((m) => m.text)).toEqual(['a message']);
+    expect(n.logged.value[0]).toMatchObject({ source: 'Transforms', detail: '4 ms' });
+    expect(n.current.value?.text).toBe('a message');
+    expect(n.spoken.value).toBe('a message');
+    // A message posted meanwhile comes after what was logged before it; messages keep their own bound.
+    n.log('Created 5', 'info', 'Transforms', { keep: 2 });
+    for (const t of ['b', 'c', 'd']) n.post(t);
+    expect(n.logged.value.map((m) => m.text)).toEqual(['d', 'c', 'b', 'Created 5', 'Created 4']);
+    expect(n.history.value.map((m) => m.text)).toEqual(['d', 'c', 'b']);
+    sub.unsubscribe();
+  });
+});

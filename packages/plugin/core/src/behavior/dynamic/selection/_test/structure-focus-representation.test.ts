@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { StateSelection } from '@molstar/core/state';
 import { Structure } from '@molstar/model/model/structure';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
@@ -15,6 +15,7 @@ import {
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
 
 const Cif = `data_test
 loop_
@@ -88,4 +89,32 @@ describe('structure focus representation behavior', () => {
     expect(select(StructureFocusRepresentationTags.SurrNciRepr)).toHaveLength(1);
     plugin.dispose();
   }, 30000);
+
+  it('updates the focus representations with new theme params', async () => {
+    const plugin = await createPlugin([PluginSpec.Behavior(StructureFocusRepresentation)]);
+    const select = await focusStructure(plugin);
+    const structure = select(StructureFocusRepresentationTags.TargetRepr)[0].obj!.data.sourceData as Structure;
+    await StructureRepresentationPresetProvider.updateFocusRepr(plugin, structure, 'chain-id', undefined);
+    const params = (tag: StructureFocusRepresentationTags) =>
+      select(tag).map((c) => ({
+        type: c.transform.params.type.name,
+        colorTheme: c.transform.params.colorTheme,
+        sizeTheme: c.transform.params.sizeTheme.name,
+      }));
+    expect({
+      target: params(StructureFocusRepresentationTags.TargetRepr),
+      surroundings: params(StructureFocusRepresentationTags.SurrRepr),
+    }).toMatchSnapshot();
+    plugin.dispose();
+  }, 30000);
+
+  it('walks the state once and commits nothing when there are no focus representations', async () => {
+    const plugin = await createPlugin([PluginSpec.Behavior(StructureFocusRepresentation)]);
+    const select = vi.spyOn(plugin.state.data, 'select');
+    const update = vi.spyOn(plugin.state.data, 'updateTree');
+    await StructureRepresentationPresetProvider.updateFocusRepr(plugin, Structure.Empty, 'chain-id', undefined);
+    expect(select).toHaveBeenCalledTimes(1);
+    expect(update).not.toHaveBeenCalled();
+    plugin.dispose();
+  });
 });

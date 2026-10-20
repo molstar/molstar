@@ -33,7 +33,8 @@
     "@molstar/model": "workspace:*",
     "@molstar/anvil-extension": "workspace:*",
     "@molstar/alpha-orbitals-extension": "workspace:*",
-    "@molstar/geo-export-extension": "workspace:*"
+    "@molstar/geo-export-extension": "workspace:*",
+    "@molstar/plugin": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -7,8 +7,8 @@ the truth for how.
 
 - **One record, one writer** (`journal/record.ts`, `createSessionRecord`): `run` per finished API call (any origin),
   `turn` per agent turn, `undo`/`redo` from the history, `session` for open, clear, save. One write chain: record order
-  is the order things happened. Not recorded: reads, `record: false` operations (pointer-rate view state),
-  `highlight.*`, `view.*`, `export.preview`, nested runs.
+  is the order things happened. Not recorded: reads, `record: false` operations (pointer-rate view state:
+  `trajectory.frame`, `snapshot.seek`), `highlight.*`, `view.*`, `export.preview`, nested runs.
 - **In memory by default.** A reload ends it and every checkpoint: a turn cannot be undone after a reload.
 - **Kept on purpose**: "Keep this session's record" (History, `record.keep`) copies it into the spec's `persist.rows`
   ([viewer-spec.md](viewer-spec.md) §2.6), else IndexedDB `<persist.key>-records` (`prism-viewer-records` for the app's
@@ -63,6 +63,10 @@ the truth for how.
 
 ## 3. Shown back
 
+- **The Log's timings** (David, 2026-10-20): a person's run says in the Log how long it took ("120 ms", the message's
+  `detail`; the canvas shows the message without it). The plugin's state lines, one per transform created or updated
+  with its time (v5's log), are the Log's Transforms, the latest 100 (`TransformsKept`, `viewer.ts`); the plugin's
+  warnings are its Plugin entries. Neither is on the canvas or said.
 - **History** (`ui/history.tsx`, Steps beside the Log): newest first; a run is a row, an agent turn one group, undone
   steps struck. Undo the latest step; Undo turn asks first when later steps would go too. A run's second line says what
   it was pointed at and changed ("1CBS · A:10-20 · 3 nodes, view", `metaOf`) and "Undone by the assistant" when it was

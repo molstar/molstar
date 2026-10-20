@@ -92,6 +92,12 @@ export enum StructureFocusRepresentationTags {
   SurrNciRepr = 'structure-focus-surr-nci-repr',
 }
 
+const ReprTags: string[] = [
+  StructureFocusRepresentationTags.TargetRepr,
+  StructureFocusRepresentationTags.SurrRepr,
+  StructureFocusRepresentationTags.SurrNciRepr,
+];
+
 const TagSet: Set<StructureFocusRepresentationTags> = new Set([
   StructureFocusRepresentationTags.TargetSel,
   StructureFocusRepresentationTags.TargetRepr,
@@ -282,34 +288,44 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     const state = this.plugin.state.data;
     const builder = state.build();
 
-    const all = StateSelection.Generators.root.subtree();
+    // one walk over the state for the three kinds (presets update these params once per structure loaded)
+    const reprs = state.select(
+      StateSelection.Generators.root.subtree().filter((c) => {
+        const tags = c.transform.tags;
+        return !!tags && ReprTags.some((t) => tags.indexOf(t) >= 0);
+      }),
+    );
+    const withTag = (tag: StructureFocusRepresentationTags) => reprs.filter((c) => c.transform.tags!.indexOf(tag) >= 0);
 
     const components = this.params.components;
 
     // TODO: create component if previously didnt exist
     let hasComponent = components.indexOf('target') >= 0;
-    for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.TargetRepr))) {
+    for (const repr of withTag(StructureFocusRepresentationTags.TargetRepr)) {
       if (!hasComponent) builder.delete(repr.transform.ref);
       else builder.to(repr).update(this.getReprParams(this.params.targetParams));
     }
 
     hasComponent = components.indexOf('surroundings') >= 0;
-    for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrRepr))) {
+    for (const repr of withTag(StructureFocusRepresentationTags.SurrRepr)) {
       if (!hasComponent) builder.delete(repr.transform.ref);
       else builder.to(repr).update(this.getReprParams(this.params.surroundingsParams));
     }
 
     hasComponent = components.indexOf('interactions') >= 0;
-    for (const repr of state.select(all.withTag(StructureFocusRepresentationTags.SurrNciRepr))) {
+    for (const repr of withTag(StructureFocusRepresentationTags.SurrNciRepr)) {
       if (!hasComponent) builder.delete(repr.transform.ref);
       else builder.to(repr).update(this.getReprParams(this.params.nciParams));
     }
 
-    await PluginCommands.State.Update(this.plugin, {
-      state,
-      tree: builder,
-      options: { doNotLogTiming: true, doNotUpdateCurrent: true },
-    });
+    // nothing to commit without focus representations: an empty update still diffs the whole state tree
+    if (builder.editInfo.count > 0) {
+      await PluginCommands.State.Update(this.plugin, {
+        state,
+        tree: builder,
+        options: { doNotLogTiming: true, doNotUpdateCurrent: true },
+      });
+    }
 
     if (params.expandRadius !== old.expandRadius) {
       if (this.currentSource) {

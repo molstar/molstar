@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Mat3, Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ChunkedArray } from '@molstar/core/data/util';
 import { MeshBuilder } from '../mesh/mesh-builder.js';
+import { Mesh } from '../mesh/mesh.js';
 import { addSphere } from '../mesh/builder/sphere.js';
 import { addCylinder } from '../mesh/builder/cylinder.js';
 import { Cylinder } from '../../primitive/cylinder.js';
@@ -146,14 +147,26 @@ describe('MeshBuilder', () => {
 
   for (const [mName, mat] of matrices) {
     it(`addMesh: Float32 subarrays of a mesh, ${mName} matrix, bit for bit`, () => {
-      // one oversized chunk, which getMesh hands over as is
       const src = MeshBuilder.createState(1000, 1000);
       src.currentGroup = 0;
       MeshBuilder.addPrimitive(src, affine(), Sphere(1));
       src.currentGroup = 1;
       MeshBuilder.addPrimitiveFlipped(src, Mat4.identity(), Cylinder({ radialSegments: 5 }));
-      const mesh = MeshBuilder.getMesh(src);
-      // the buffers are longer than the counts: the subarrays must cut them
+      const built = MeshBuilder.getMesh(src);
+      // buffers longer than the counts (a mesh updated in place keeps them): the subarrays must cut them
+      const pad = <T extends Float32Array | Uint32Array>(a: T): T => {
+        const ret = new (a.constructor as new (n: number) => T)(a.length * 2 + 7);
+        ret.set(a);
+        return ret;
+      };
+      const mesh = Mesh.create(
+        pad(built.vertexBuffer.ref.value),
+        pad(built.indexBuffer.ref.value),
+        pad(built.normalBuffer.ref.value),
+        pad(built.groupBuffer.ref.value),
+        built.vertexCount,
+        built.triangleCount,
+      );
       expect(mesh.vertexBuffer.ref.value.length).toBeGreaterThan(mesh.vertexCount * 3);
 
       const t = mat();

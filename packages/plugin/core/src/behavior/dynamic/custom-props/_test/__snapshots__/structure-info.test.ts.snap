@@ -1,0 +1,93 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`structure info behavior > numbers models and structures and keeps their max index over loads, updates and removals 1`] = `
+{
+  "createdAfterRemove": [
+    "model Model 1: index=0 max=1 asym=0/0",
+    "model Model 1: index=0 max=1 asym=0/0",
+    "structure Model: index=0 max=1",
+    "model Model 1: index=1 max=1 asym=2/2",
+    "model Model 1: index=1 max=1 asym=2/2",
+    "structure Model: index=1 max=1",
+  ],
+  "loaded": [
+    "model Model 1: index=0 max=2 asym=0/0",
+    "model Model 1: index=0 max=2 asym=0/0",
+    "structure Model: index=0 max=2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "structure Model: index=1 max=2",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "structure Model: index=2 max=2",
+  ],
+  "loadedAgain": [
+    "model Model 1: index=0 max=2 asym=0/0",
+    "model Model 1: index=0 max=2 asym=0/0",
+    "structure Model: index=0 max=2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "structure Model: index=1 max=2",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "structure Model: index=2 max=2",
+  ],
+  "removed": [
+    "model Model 1: index=0 max=1 asym=0/0",
+    "model Model 1: index=0 max=1 asym=0/0",
+    "structure Model: index=0 max=1",
+    "model Model 1: index=1 max=1 asym=2/2",
+    "model Model 1: index=1 max=1 asym=2/2",
+    "structure Model: index=1 max=1",
+  ],
+  "representation": [
+    "model Model 1: index=0 max=2 asym=0/0",
+    "model Model 1: index=0 max=2 asym=0/0",
+    "structure Model: index=0 max=2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "structure Model: index=1 max=2",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "structure Model: index=2 max=2",
+  ],
+  "updated": [
+    "model Model 1: index=0 max=2 asym=0/0",
+    "model Model 1: index=0 max=2 asym=0/0",
+    "structure Model: index=0 max=2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "model Model 1: index=1 max=2 asym=2/2",
+    "structure Model: index=1 max=2",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "model Model 1: index=2 max=2 asym=5/5",
+    "structure Model: index=2 max=2",
+  ],
+}
+`;
+
+exports[`structure info behavior > numbers models and structures created in one update as those created one by one 1`] = `
+[
+  "model Model 1: index=0 max=2 asym=0/0",
+  "model Model 1: index=0 max=2 asym=0/0",
+  "structure Model: index=0 max=2",
+  "model Model 1: index=1 max=2 asym=1/1",
+  "structure Model: index=1 max=2",
+  "model Model 1: index=2 max=2 asym=3/3",
+  "structure Model: index=2 max=2",
+]
+`;
+
+exports[`structure info behavior > takes the models and structures loaded before it was registered 1`] = `
+[
+  "model Model 1: index=undefined max=0 asym=undefined",
+  "model Model 1: index=undefined max=0 asym=undefined",
+  "structure Model: index=undefined max=0",
+  "model Model 1: index=undefined max=0 asym=undefined",
+  "model Model 1: index=undefined max=0 asym=undefined",
+  "structure Model: index=undefined max=0",
+  "model Model 1: index=0 max=0 asym=0/0",
+  "model Model 1: index=0 max=0 asym=0/0",
+  "structure Model: index=0 max=0",
+  "structure Polymer: index=undefined max=0",
+]
+`;

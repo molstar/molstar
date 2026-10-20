@@ -298,12 +298,12 @@ export namespace TextBuilder {
       },
       getText: () => {
         const ft = fontAtlas.texture;
-        const cb = ChunkedArray.compact(centers, true) as Float32Array;
-        const mb = ChunkedArray.compact(mappings, true) as Float32Array;
-        const db = ChunkedArray.compact(depths, true) as Float32Array;
-        const ib = ChunkedArray.compact(indices, true) as Uint32Array;
-        const gb = ChunkedArray.compact(groups, true) as Float32Array;
-        const tb = ChunkedArray.compact(tcoords, true) as Float32Array;
+        const cb = ChunkedArray.compactTrimmed(centers) as Float32Array;
+        const mb = ChunkedArray.compactTrimmed(mappings) as Float32Array;
+        const db = ChunkedArray.compactTrimmed(depths) as Float32Array;
+        const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
+        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+        const tb = ChunkedArray.compactTrimmed(tcoords) as Float32Array;
         return Text.create(ft, cb, mb, db, ib, gb, tb, indices.elementCount / 2, text);
       },
     };

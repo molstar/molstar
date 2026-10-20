@@ -65,7 +65,10 @@ npx tsc -b                 # every project, by references
   files you change substantially.
 - **Tests** live in `_test/` folders next to the code, run by Vitest
   (`import { describe, expect, it, vi } from 'vitest'`, no globals; DOM tests opt in with
-  `// @vitest-environment jsdom`); they never reach the network.
+  `// @vitest-environment jsdom`); they never reach the network. A new `_test/` folder in a published package needs
+  `"./<dir>/_test/*": null` in its `package.json` exports, or its `./*` wildcard publishes the tests and
+  `check:workspace` fails in CI; `pnpm lint` checks it from the sources (`scripts/workspace/test-exports.mjs`, `--fix`
+  adds the entries).
 - **User-facing changes** go into the `[Unreleased]` section of `CHANGELOG.md`. v6 collects them in
   `.v6/plans/changelog.md`, but a branch never edits that file: it adds its own entry file to `.v6/changelogs/` (see
   [its AGENTS.md](.v6/changelogs/AGENTS.md)), and the entries get folded into the draft from time to time. A v6 break of

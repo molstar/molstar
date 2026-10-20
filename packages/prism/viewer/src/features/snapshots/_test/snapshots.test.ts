@@ -155,24 +155,150 @@ describe('snapshot.apply', () => {
     expect(await current()).toBe('B');
   });
 
-  it('restores the scene it saved, as one step Undo takes back', async () => {
+  it('restores the scene it saved with no step: viewing a story, the steps before stay undoable', async () => {
     const v = await viewer();
+    const runs = recordRuns(v);
     const original = representationTypes(v);
     expectOk(await snap(v).add({ name: 'Cartoon' }));
+    expectOk(await snap(v).add({ name: 'Other' }));
     expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     const changed = representationTypes(v);
     expect(changed).toContain('spacefill');
     const before = steps(v);
+    const checkpoints = vi.spyOn(v.plugin.state, 'getSnapshot');
 
     const r = await snap(v).apply({ entry: 'Cartoon' });
     expectOk(r);
     expect(r.changed.view).toBe(true);
     expect(representationTypes(v)).toEqual(original);
-    expect(steps(v)).toBe(before + 1);
+    expect(steps(v)).toBe(before);
+    expect(checkpoints).not.toHaveBeenCalled();
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+    // In the record all the same, with no step.
+    await until(() => runs.some((x) => x.operation === 'snapshot.apply'));
+    expect(runs.find((x) => x.operation === 'snapshot.apply')?.step).toBeUndefined();
 
-    // Undo goes back to the scene before applying.
+    // A step on the snapshot shown, then another snapshot: Undo restores the scene and the snapshot it was shown with.
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    expectOk(await snap(v).apply({ entry: 'Other' }));
     expectOk(await v.api.history.undo());
-    expect(representationTypes(v)).toEqual(changed);
+    expect(representationTypes(v)).toEqual(original);
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('Cartoon');
+  });
+
+  it('runs in order with the steps: Undo is refused while a snapshot is being applied', async () => {
+    const v = await viewer();
+    expectOk(await snap(v).add({ name: 'A' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    let open!: () => void;
+    const gate = new Promise<void>((r) => (open = r));
+    const real = v.plugin.state.setSnapshot.bind(v.plugin.state);
+    vi.spyOn(v.plugin.state, 'setSnapshot').mockImplementationOnce(async (s) => {
+      await gate;
+      return real(s);
+    });
+    const applying = snap(v).apply({ entry: 'A' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await v.api.history.undo()).toMatchObject({ ok: false });
+    open();
+    expectOk(await applying);
+    expectOk(await v.api.history.undo());
+  });
+
+  it("a story's own links, clicks and keys go through the API: no step, the steps before stay undoable", async () => {
+    const v = await viewer();
+    const runs = recordRuns(v);
+    const original = representationTypes(v);
+    expectOk(await snap(v).add({ name: 'A', key: 'a' }));
+    expectOk(await snap(v).add({ name: 'B', key: 'b' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    const before = steps(v);
+    const current = async () => (await list(v)).entries.find((e) => e.current)?.name;
+
+    // A description's link (the plugin's markdown extension calls the manager's applyKey).
+    expectOk(await snap(v).link({ href: '!apply-snapshot=a', event: 'click' }));
+    await until(() => runs.some((r) => r.operation === 'snapshot.apply' && r.origin.kind === 'person'));
+    expect(representationTypes(v)).toEqual(original);
+    expect(await current()).toBe('A');
+    // A clickable primitive's key and the keyboard's next, as the plugin's behaviors call them.
+    await v.plugin.managers.snapshot.applyNext(1);
+    await until(() => runs.some((r) => r.operation === 'snapshot.next'));
+    expect(await current()).toBe('B');
+    await v.plugin.managers.snapshot.applyKey('a');
+    expect(await current()).toBe('A');
+    // The keyboard's first and last (the plugin's behavior calls applyId).
+    await v.plugin.managers.snapshot.applyId((await list(v)).entries[1].id);
+    expect(await current()).toBe('B');
+    await until(() => runs.filter((r) => r.operation === 'snapshot.apply' && r.origin.kind === 'person').length >= 3);
+
+    expect(steps(v)).toBe(before);
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+    expectOk(await v.api.history.undo());
+  });
+
+  it("a script awaiting the manager's navigation is not stuck behind itself; the step follows it, all undoable", async () => {
+    const v = await viewer();
+    const runs = recordRuns(v);
+    expectOk(await snap(v).add({ name: 'A', key: 'a' }));
+    expectOk(await snap(v).add({ name: 'B', key: 'b' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    await v.run('Step the story', async (plugin) => {
+      await plugin.managers.snapshot.applyNext(1);
+      await plugin.managers.snapshot.applyKey('b');
+    });
+    await until(
+      () => runs.filter((r) => r.origin.kind === 'person' && r.operation.startsWith('snapshot.')).length === 2,
+    );
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+    expectOk(await v.api.styles.apply({ style: 'cartoon' }));
+    expect(v.managers.history.canUndo.value).toBe(true);
+  });
+
+  it("a person's key press while another run is in flight goes after it, as a run of its own", async () => {
+    const v = await viewer();
+    const runs = recordRuns(v);
+    expectOk(await snap(v).add({ name: 'A' }));
+    expectOk(await snap(v).add({ name: 'B' }));
+    let open!: () => void;
+    const gate = new Promise<void>((r) => (open = r));
+    const slow = v.run('Slow', async () => {
+      await gate;
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    const pressed = v.plugin.managers.snapshot.applyNext(1);
+    expect(pressed).toBeUndefined();
+    await new Promise((r) => setTimeout(r, 20));
+    // Not applied meanwhile: it waits for the run in flight.
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
+    open();
+    await slow;
+    await until(() => runs.some((r) => r.operation === 'snapshot.next' && r.origin.kind === 'person'));
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('A');
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+  });
+
+  it('next with one snapshot shows it again, with none does nothing, and says nothing either way', async () => {
+    const v = await viewer();
+    const posted: string[] = [];
+    const sub = v.managers.notifications.posted.subscribe((m) => posted.push(m.text));
+    await v.plugin.managers.snapshot.applyNext(1);
+    expectOk(await snap(v).add({ name: 'A' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    await v.plugin.managers.snapshot.applyNext(1);
+    expect(representationTypes(v)).not.toContain('spacefill');
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('A');
+    sub.unsubscribe();
+    expect(posted).toEqual([]);
+  });
+
+  it('Undo to a scene shown with no snapshot marks none current', async () => {
+    const v = await viewer();
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    expectOk(await snap(v).add({ name: 'B' }));
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
+    expectOk(await v.api.history.undo());
+    expect((await list(v)).entries.some((e) => e.current)).toBe(false);
   });
 
   it('marks the entry current', async () => {
@@ -269,20 +395,26 @@ describe('snapshot.next and previous', () => {
     expect(await current()).toBe('C');
     expectOk(await snap(v).previous());
     expect(await current()).toBe('B');
-    // Each one changes the scene: a step apiece.
-    expect(steps(v)).toBe(before + 3);
+    // Viewing a story: no step.
+    expect(steps(v)).toBe(before);
   });
 
-  it('restores each snapshot and Undo goes back', async () => {
+  it('restores each snapshot; Undo takes back the step before, not the stepping', async () => {
     const v = await viewer();
     const original = representationTypes(v);
     await snap(v).add({ name: 'A' });
     await v.api.styles.apply({ style: 'spacefill' });
     await snap(v).add({ name: 'B' });
+    const before = steps(v);
     expectOk(await snap(v).previous());
     expect(representationTypes(v)).toEqual(original);
-    expectOk(await v.api.history.undo());
+    expectOk(await snap(v).next());
     expect(representationTypes(v)).toContain('spacefill');
+    // The last step is the spacefill: Undo restores the scene before it, with A current as it was then.
+    expect(steps(v)).toBe(before);
+    expectOk(await v.api.history.undo());
+    expect(representationTypes(v)).toEqual(original);
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('A');
   });
 });
 

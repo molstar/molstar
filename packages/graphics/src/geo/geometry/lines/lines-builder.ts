@@ -29,7 +29,11 @@ export interface LinesBuilder {
 }
 
 export namespace LinesBuilder {
+  /** `initialCount` and `chunkSize` count lines (4 vertices each) */
   export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
+    // ChunkedArray sizes count elements, one per vertex (perf-audit 08/P8)
+    initialCount *= 4;
+    chunkSize *= 4;
     const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
     const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
     const ends = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.endBuffer.ref.value : initialCount);
@@ -99,9 +103,9 @@ export namespace LinesBuilder {
       getLines: () => {
         const lineCount = groups.elementCount / 4;
         const vertexCount = groups.elementCount;
-        const gb = ChunkedArray.compact(groups, true) as Float32Array;
-        const sb = ChunkedArray.compact(starts, true) as Float32Array;
-        const eb = ChunkedArray.compact(ends, true) as Float32Array;
+        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+        const sb = ChunkedArray.compactTrimmed(starts) as Float32Array;
+        const eb = ChunkedArray.compactTrimmed(ends) as Float32Array;
         const mb =
           lines && lineCount <= lines.lineCount && lines.stripCount.ref.value === 0
             ? lines.mappingBuffer.ref.value
@@ -155,6 +159,7 @@ export interface StripLinesBuilder {
 }
 
 export namespace StripLinesBuilder {
+  /** `initialCount` and `chunkSize` count vertices, unlike `LinesBuilder.create` (a strip's size depends on its points) */
   export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): StripLinesBuilder {
     const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
     const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
@@ -244,12 +249,12 @@ export namespace StripLinesBuilder {
         const lineCount = indices.elementCount / 2;
         const vertexCount = groups.elementCount;
         const stripCount = strips.elementCount - 1;
-        const gb = ChunkedArray.compact(groups, true) as Float32Array;
-        const sb = ChunkedArray.compact(starts, true) as Float32Array;
-        const eb = ChunkedArray.compact(ends, true) as Float32Array;
-        const mb = ChunkedArray.compact(mapping, true) as Float32Array;
-        const ib = ChunkedArray.compact(indices, true) as Uint32Array;
-        const ob = ChunkedArray.compact(strips, true) as Uint32Array;
+        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+        const sb = ChunkedArray.compactTrimmed(starts) as Float32Array;
+        const eb = ChunkedArray.compactTrimmed(ends) as Float32Array;
+        const mb = ChunkedArray.compactTrimmed(mapping) as Float32Array;
+        const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
+        const ob = ChunkedArray.compactTrimmed(strips) as Uint32Array;
         return Lines.create(mb, ib, gb, sb, eb, ob, lineCount, vertexCount, stripCount, lines);
       },
     };

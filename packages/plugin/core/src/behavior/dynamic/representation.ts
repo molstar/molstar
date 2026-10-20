@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -146,6 +146,9 @@ export const SelectLoci = PluginBehavior.create({
             this.lociMarkProvider({ loci: Structure.Loci(so.data) }, MarkerAction.Deselect);
           }
           const loci = this.ctx.managers.structure.selection.getLoci(so.data);
+          // an empty selection marks nothing, but the canvas would ask every representation (O(representations) for
+          // each one created)
+          if (Loci.isEmpty(loci)) return;
           this.lociMarkProvider({ loci }, MarkerAction.Select);
         }
       }

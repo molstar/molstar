@@ -76,6 +76,8 @@ export class TrajectoryApi extends ApiArea {
     when: hasFrames,
     // The classic's arrows are viewing (sequence.md §7.3): the frame is not a step, and Undo leaves it where it is.
     history: false,
+    // A scrub or a held arrow seeks once a frame: not a record entry each (journal.md §1, as `snapshot.seek`).
+    record: false,
     async run(v, ctx) {
       const { structure } = v;
       const { index, by } = v as { index?: number; by?: number };

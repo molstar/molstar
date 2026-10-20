@@ -18,6 +18,19 @@ export interface StatusMessage {
   kind: MessageKind;
   text: string;
   time: Date;
+  /** Said in the log only, beside the text (how long it took: "120 ms"); the status line never shows it. */
+  detail?: string;
+  /**
+   * What wrote a log-only entry (`log`: the plugin's transforms, for one); absent: a message the status line showed. The
+   * Log tab filters by it.
+   */
+  source?: string;
+}
+
+export interface LogOptions {
+  readonly detail?: string;
+  /** Entries kept of this source, the newest (default: the history's size). */
+  readonly keep?: number;
 }
 
 export interface StatusTask {
@@ -50,6 +63,7 @@ export interface StatusChip {
 export class NotificationsManager extends ReactiveModel {
   readonly #current = observableState<StatusMessage | undefined>(undefined);
   readonly #history = observableState<readonly StatusMessage[]>([]);
+  readonly #log = observableState<readonly StatusMessage[]>([]);
   readonly #tasks = observableState<readonly StatusTask[]>([]);
   /** The tasks put one by one (`putTask`), by id: `setTasks` leaves them. */
   readonly #put = new Set<string>();
@@ -58,6 +72,10 @@ export class NotificationsManager extends ReactiveModel {
   readonly #spoken = observableState('');
   #serial = 0;
   #fade: ReturnType<typeof setTimeout> | undefined;
+  /** Log-only entries waiting for the end of the task: a burst (a load's hundreds of transforms) is one change. */
+  #pending: { message: StatusMessage; keep: number | undefined }[] = [];
+  /** The sources with their own bound (`log`'s `keep`). */
+  readonly #keep = new Map<string, number>();
 
   constructor(readonly options: { fadeMs?: number; historySize?: number } = {}) {
     super();
@@ -71,6 +89,14 @@ export class NotificationsManager extends ReactiveModel {
   /** Recent messages, newest first. */
   get history(): ReadonlyState<readonly StatusMessage[]> {
     return this.#history.asReadonly;
+  }
+
+  /**
+   * What the Log shows, newest first: the messages (`history`) and what was written to the log only (`log`: the
+   * plugin's transforms, for one), each source within its bound.
+   */
+  get logged(): ReadonlyState<readonly StatusMessage[]> {
+    return this.#log.asReadonly;
   }
 
   get tasks(): ReadonlyState<readonly StatusTask[]> {
@@ -103,14 +129,68 @@ export class NotificationsManager extends ReactiveModel {
     return this.#posted.asObservable();
   }
 
-  post(text: string, kind: MessageKind = 'info'): void {
-    const message: StatusMessage = { id: ++this.#serial, kind, text, time: new Date() };
+  post(text: string, kind: MessageKind = 'info', options: { readonly detail?: string } = {}): void {
+    const message: StatusMessage = {
+      id: ++this.#serial,
+      kind,
+      text,
+      time: new Date(),
+      ...(options.detail ? { detail: options.detail } : {}),
+    };
+    this.#flush();
     this.#history.set([message, ...this.#history.value].slice(0, this.options.historySize ?? 200));
+    this.#log.set(this.#bounded([message, ...this.#log.value]));
     this.#current.set(message);
     this.announce(text);
     clearTimeout(this.#fade);
     if (kind !== 'error') this.#fade = setTimeout(() => this.dismiss(message.id), this.options.fadeMs ?? 4000);
     this.#posted.next(message);
+  }
+
+  /**
+   * Writes `text` to the log only (`logged`, the Log tab, filtered by `source`): never on show, never said, not in
+   * `history`. Entries of one source past `keep` drop the oldest of that source. Written once a task, so a burst is
+   * one change.
+   */
+  log(text: string, kind: MessageKind, source: string, options: LogOptions = {}): void {
+    const message: StatusMessage = {
+      id: ++this.#serial,
+      kind,
+      text,
+      time: new Date(),
+      source,
+      ...(options.detail ? { detail: options.detail } : {}),
+    };
+    if (!this.#pending.length) queueMicrotask(() => this.#flush());
+    this.#pending.push({ message, keep: options.keep });
+  }
+
+  #flush() {
+    if (!this.#pending.length) return;
+    const pending = this.#pending;
+    this.#pending = [];
+    for (const { message, keep } of pending) if (keep !== undefined) this.#keep.set(message.source!, keep);
+    const next: StatusMessage[] = [];
+    for (let i = pending.length - 1; i >= 0; i--) next.push(pending[i].message);
+    for (const m of this.#log.value) next.push(m);
+    this.#log.set(this.#bounded(next));
+  }
+
+  /**
+   * The log within its bounds, newest kept: a source with its own (`keep`) to that many, the rest (the messages) to the
+   * history's size, so a burst of transforms does not push the messages out.
+   */
+  #bounded(list: StatusMessage[]): StatusMessage[] {
+    const size = this.options.historySize ?? 200;
+    if (!this.#keep.size) return list.length > size ? list.slice(0, size) : list;
+    const counts = new Map<string | undefined, number>();
+    return list.filter((m) => {
+      const own = m.source === undefined ? undefined : this.#keep.get(m.source);
+      const key = own === undefined ? undefined : m.source;
+      const n = (counts.get(key) ?? 0) + 1;
+      counts.set(key, n);
+      return n <= (own ?? size);
+    });
   }
 
   /** Adds or replaces a task by id; it stays until `removeTask`, whatever `setTasks` sets. */

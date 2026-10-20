@@ -1,0 +1,80 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`structure measurement manager > lists the measurements of the measurement group after every change 1`] = `
+{
+  "all": {
+    "angles": [
+      "ms-plugin.structure-selections-angle-3d:Angle",
+    ],
+    "dihedrals": [
+      "ms-plugin.structure-selections-dihedral-3d:Dihedral",
+    ],
+    "distances": [
+      "ms-plugin.structure-selections-distance-3d:Distance",
+      "ms-plugin.structure-selections-distance-3d:Distance",
+    ],
+    "labels": [],
+    "orientations": [
+      "ms-plugin.structure-selections-orientation-3d:Orientation",
+    ],
+    "planes": [
+      "ms-plugin.structure-selections-plane-3d:Plane",
+    ],
+  },
+  "distance": {
+    "angles": [],
+    "dihedrals": [],
+    "distances": [
+      "ms-plugin.structure-selections-distance-3d:Distance",
+    ],
+    "labels": [],
+    "orientations": [],
+    "planes": [],
+  },
+  "empty": {
+    "angles": [],
+    "dihedrals": [],
+    "distances": [],
+    "labels": [],
+    "orientations": [],
+    "planes": [],
+  },
+  "removed": {
+    "angles": [
+      "ms-plugin.structure-selections-angle-3d:Angle",
+    ],
+    "dihedrals": [
+      "ms-plugin.structure-selections-dihedral-3d:Dihedral",
+    ],
+    "distances": [
+      "ms-plugin.structure-selections-distance-3d:Distance",
+    ],
+    "labels": [],
+    "orientations": [
+      "ms-plugin.structure-selections-orientation-3d:Orientation",
+    ],
+    "planes": [
+      "ms-plugin.structure-selections-plane-3d:Plane",
+    ],
+  },
+  "unrelated": {
+    "angles": [
+      "ms-plugin.structure-selections-angle-3d:Angle",
+    ],
+    "dihedrals": [
+      "ms-plugin.structure-selections-dihedral-3d:Dihedral",
+    ],
+    "distances": [
+      "ms-plugin.structure-selections-distance-3d:Distance",
+      "ms-plugin.structure-selections-distance-3d:Distance",
+    ],
+    "labels": [],
+    "orientations": [
+      "ms-plugin.structure-selections-orientation-3d:Orientation",
+    ],
+    "planes": [
+      "ms-plugin.structure-selections-plane-3d:Plane",
+    ],
+  },
+}
+`;

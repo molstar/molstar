@@ -19,6 +19,10 @@ here.
   an index that the H-bond acceptor angle then read as an atom of the donor's unit
 - Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
   (`parentDisplay` read unrelated atoms)
+- Fix state builders that remove a node writing into the state's tree before they commit: a node added under, updated or
+  depended on by a node whose ref hashes like the removed one's (common for generated refs) appeared in the current
+  tree, and the next update could fail with "Cannot read properties of undefined (reading 'ref')". Also keep the nodes
+  added to the root in the same builder after the root was cleared
 - Kinemage: a `@group` ends the previous group's `@subgroup` (its lists were put in that subgroup and hidden with its
   group), and only the animate groups after the first start hidden, not every group after it
 - Fix highlighting and selecting cross-link restraints (`CrossLinkRestraint.isLoci` tested the tag of interactions)
