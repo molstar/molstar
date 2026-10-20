@@ -26,22 +26,22 @@ topology).
 
 ## Performance findings (confirmed and plausible, ranked)
 
-| Id | Title | File | Kind | Impact | Estimate | Effort | Verdict | Frozen |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1 | Needleman-Wunsch keeps three `(n+1)(m+1)` `number[][]` matrices | [alignment.ts:32](../../packages/model/src/model/sequence/alignment/alignment.ts#L32) | time+memory | high | 2.3–5× faster, 5× less memory (flat Int32); ~50× less with 2-row + 2-bit traceback | M | confirmed | no |
-| P2 | Multi-frame GRO builds a full model per frame | [gro.ts:134](../../packages/model/src/formats/structure/gro.ts#L134) | memory | high | 100–200 → ~15–25 B/atom/frame (8–15×); faster load | S | confirmed | no |
-| P4 | Multi-model mmCIF builds each hierarchy, then compares it through allocating string compares | [atomic.ts:217](../../packages/model/src/formats/structure/basic/atomic.ts#L217) | time | medium | multi-model text mmCIF model stage ~180 → ~105 ms per 576k atom rows | M | confirmed | no |
-| P3 | IHM ensembles recompute and keep coarse hierarchy, sequence, ranges and static props per model | [parser.ts:227](../../packages/model/src/formats/structure/basic/parser.ts#L227) | time+memory | medium | ~720 → ~60–100 KB/model for identical topologies; load ~2× faster | M | confirmed | no |
-| P8 | Grid gradients, 12 B/voxel, cached on the Grid for its lifetime | [grid.ts:310](../../packages/model/src/model/volume/grid.ts#L310) | memory | medium | −12 B/voxel retained once streamlines run (1.6 GB at 512³) | S | confirmed | no |
-| P7 | `getIsosurfaceBoundingSphere` scans the full grid with `getCoords` per hit | [grid.ts:85](../../packages/model/src/model/volume/grid.ts#L85) | time | low | 3–10× faster per call (35–120 → 11–17 ms on 256³); CPU mesh / wireframe / dots only | S | confirmed | no |
-| P5 | `sortAtomSite` copies all columns through `Table.view`, even for a contiguous identity range | [sort.ts:47](../../packages/model/src/formats/structure/basic/sort.ts#L47) | time | low | −13 ms of 90 (big-bcif), −24 ms of 137 (50-model BCIF); ~0.15 MB/model retained, not MBs | S | confirmed | no |
-| P6 | `addMissingResiduesFromEntityPolySeq` builds a template-string key per atom | [properties.ts:83](../../packages/model/src/formats/structure/basic/properties.ts#L83) | time | low | −8–12 ms on 186k atoms | S | confirmed | no |
-| P11 | `guessElementSymbolString`: regex and `toUpperCase` per atom | [util.ts:65](../../packages/model/src/formats/structure/util.ts#L65) | time | low | 100 → 26 ms per 2M atoms | S | confirmed | no |
-| P9 | `IndexPairBonds` graph stores operators, distance and flag in holey JS arrays | [index-pair.ts:44](../../packages/model/src/formats/structure/property/bonds/index-pair.ts#L44) | memory | low | −36 MB per 1M bonds in Node; −12–16 MB in Chrome (pointer compression) | S | confirmed | no |
-| P14 | `getResidueSourceIndex` comparator-sorts residues even when the order is identity | [atomic.ts:121](../../packages/model/src/formats/structure/basic/atomic.ts#L121) | time | low | ~1 ms of 5.4 (1tup-2x2x2); O(n) when monotonic | S | confirmed | no |
-| P13 | Cube and DX volumes stored as Float64; each cube orbital copied again as Float64 | [cube.ts:21](../../packages/model/src/formats/volume/cube.ts#L21) | memory | low | −50 % volume memory, needs the io readers to parse to Float32 | S | confirmed | no |
-| P10 | struct_conn partner lookup tries every entity | [struct_conn.ts:139](../../packages/model/src/formats/structure/property/bonds/struct_conn.ts#L139) | time | low | rows × 2 × entities Map misses → rows × 2; ~10–20 ms on 10k-row / 100-entity entries, once per hierarchy | S | plausible | no |
-| P12 | `getModelGroupName` scans `ihm_model_group_link` per model | [util.ts:11](../../packages/model/src/formats/structure/basic/util.ts#L11) | time | low | O(models²) → O(models); matters above ~1k models | S | confirmed | no |
+| Id | Title | File | Kind | Impact | Estimate | Effort | Verdict | Frozen | Addressed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P1 | Needleman-Wunsch keeps three `(n+1)(m+1)` `number[][]` matrices | [alignment.ts:32](../../packages/model/src/model/sequence/alignment/alignment.ts#L32) | time+memory | high | 2.3–5× faster, 5× less memory (flat Int32); ~50× less with 2-row + 2-bit traceback | M | confirmed | no | #2017 |
+| P2 | Multi-frame GRO builds a full model per frame | [gro.ts:134](../../packages/model/src/formats/structure/gro.ts#L134) | memory | high | 100–200 → ~15–25 B/atom/frame (8–15×); faster load | S | confirmed | no |  |
+| P4 | Multi-model mmCIF builds each hierarchy, then compares it through allocating string compares | [atomic.ts:217](../../packages/model/src/formats/structure/basic/atomic.ts#L217) | time | medium | multi-model text mmCIF model stage ~180 → ~105 ms per 576k atom rows | M | confirmed | no |  |
+| P3 | IHM ensembles recompute and keep coarse hierarchy, sequence, ranges and static props per model | [parser.ts:227](../../packages/model/src/formats/structure/basic/parser.ts#L227) | time+memory | medium | ~720 → ~60–100 KB/model for identical topologies; load ~2× faster | M | confirmed | no |  |
+| P8 | Grid gradients, 12 B/voxel, cached on the Grid for its lifetime | [grid.ts:310](../../packages/model/src/model/volume/grid.ts#L310) | memory | medium | −12 B/voxel retained once streamlines run (1.6 GB at 512³) | S | confirmed | no | #2017 |
+| P7 | `getIsosurfaceBoundingSphere` scans the full grid with `getCoords` per hit | [grid.ts:85](../../packages/model/src/model/volume/grid.ts#L85) | time | low | 3–10× faster per call (35–120 → 11–17 ms on 256³); CPU mesh / wireframe / dots only | S | confirmed | no | #2017 |
+| P5 | `sortAtomSite` copies all columns through `Table.view`, even for a contiguous identity range | [sort.ts:47](../../packages/model/src/formats/structure/basic/sort.ts#L47) | time | low | −13 ms of 90 (big-bcif), −24 ms of 137 (50-model BCIF); ~0.15 MB/model retained, not MBs | S | confirmed | no | #2017 |
+| P6 | `addMissingResiduesFromEntityPolySeq` builds a template-string key per atom | [properties.ts:83](../../packages/model/src/formats/structure/basic/properties.ts#L83) | time | low | −8–12 ms on 186k atoms | S | confirmed | no | #2007 |
+| P11 | `guessElementSymbolString`: regex and `toUpperCase` per atom | [util.ts:65](../../packages/model/src/formats/structure/util.ts#L65) | time | low | 100 → 26 ms per 2M atoms | S | confirmed | no | #2017 |
+| P9 | `IndexPairBonds` graph stores operators, distance and flag in holey JS arrays | [index-pair.ts:44](../../packages/model/src/formats/structure/property/bonds/index-pair.ts#L44) | memory | low | −36 MB per 1M bonds in Node; −12–16 MB in Chrome (pointer compression) | S | confirmed | no | #2017 |
+| P14 | `getResidueSourceIndex` comparator-sorts residues even when the order is identity | [atomic.ts:121](../../packages/model/src/formats/structure/basic/atomic.ts#L121) | time | low | ~1 ms of 5.4 (1tup-2x2x2); O(n) when monotonic | S | confirmed | no | #2017 |
+| P13 | Cube and DX volumes stored as Float64; each cube orbital copied again as Float64 | [cube.ts:21](../../packages/model/src/formats/volume/cube.ts#L21) | memory | low | −50 % volume memory, needs the io readers to parse to Float32 | S | confirmed | no |  |
+| P10 | struct_conn partner lookup tries every entity | [struct_conn.ts:139](../../packages/model/src/formats/structure/property/bonds/struct_conn.ts#L139) | time | low | rows × 2 × entities Map misses → rows × 2; ~10–20 ms on 10k-row / 100-entity entries, once per hierarchy | S | plausible | no | #2017 |
+| P12 | `getModelGroupName` scans `ihm_model_group_link` per model | [util.ts:11](../../packages/model/src/formats/structure/basic/util.ts#L11) | time | low | O(models²) → O(models); matters above ~1k models | S | confirmed | no | #2017 |
 
 ### P1: sequence alignment matrices
 
@@ -60,6 +60,13 @@ topology).
   once; fast path when observed is an in-order exact subsequence of SEQRES (greedy O(n + m)).
 - Risk: `trace` tie-breaking (S, then V, then H) must be kept or ambiguous alignments change; compare `aliA` / `aliB`
   with the old implementation on random inputs and run the alignment and PDB `label_seq_id` tests.
+- Addressed (#2017): one DP for the model and Seq\*, `@molstar/core/data/util/needleman-wunsch` (`globalAlign`): two
+  Float64 rows, a one-byte traceback per cell (2 bits per state), a branch-free tie choice (mispredicted branches were
+  ~40 % of the time). Both callers bit-identical (160k seeded cases against the old code; the model's leading gaps
+  (`flat`) and extend-first ties are options). 3000 res: 210 ms / 1017 MB peak → 48 ms / 32 MB (4.4×, 32×; the estimate
+  was 41 ms / 101 MB for flat Int32 matrices); 10000: 3.1 s / 3 GB → 0.5 s / 97 MB; Seq\* 3000: 82 → 45 ms.
+  `seqres.pdb`: `trajectoryFromPDB` 17–29 ms / 45–55 MB → 10–21 ms / 7–19 MB. Identical chains align once; the greedy
+  subsequence fast path was not done (it could change ambiguous alignments). Interning names to codes is done.
 
 ### P2: GRO trajectories
 
@@ -123,37 +130,55 @@ topology).
   stored; or keep the precompute on the streamlines property (disposed with it), loop in memory order, drop the unused
   stats.
 - Risk: streamlines move slightly if gradients are no longer interpolated from cell values; compare fixtures.
+- Addressed (#2017): `makeGetInterpolatedGradient` computes the 8 corners on demand (rounded to float32 as the cache
+  stored them: streamlines unchanged); `getGradients` no longer caches. 256³: 201 MB → 0 retained, 532 → 139 ms at the
+  default seed density; at the maximum density (30) 3.37 → 3.87 s (+15 %): on-demand reads cost more than the precompute
+  when every voxel is sampled many times.
 
 ### Low-impact findings
 
 - P7: `getIsosurfaceBoundingSphere` loops over every voxel with `getCoords` per hit; `isobs.ts`: 256³ 35–67 ms (axis
-  order 012) and 47–121 ms (210) against 11–17 ms for a plain threshold pass. Called after every CPU mesh, wireframe
-  and dot build ([isosurface.ts:205](../../packages/graphics/src/repr/volume/isosurface.ts#L205), `:505`, `dot.ts`);
-  the GPU and texture-mesh paths already use `Grid.getBoundingSphere` instead, and CPU marching cubes costs more than
-  the scan. Fix: nested loops in memory order (coordinates are loop indices), first / last hit per row, cache by
-  isoValue on the grid like the histogram.
-- P5: after bucketing, the identity shortcut needs `indices.length === _rowCount`, so models 2..N and every sorted
-  file go through `Table.view` of all schema columns; for BCIF `arrayView` copies each (unused ones included) and
-  `Cartn_x/y/z` are copied again into Float32 by `getConformation`. `arrayView` is 13.8 ms of 90 (big-bcif), 23.8 ms
-  of 137 (multi50.bcif). The 99 MB retained for multi50.bcif (`multib2.ts`, 172 B/atom/model) is the decode of every
-  column of the full table (`getNormalizedAtomSite` spreads the lazy `CategoryTable` getters), not the views; per model
-  only id / occupancy / B copies stay (~0.15 MB). Fix: `Table.window` when `indices[i] === start + i`; lazy per-column
-  views; `getNormalizedAtomSite` replacing only the five substituted columns over the original getters.
+  order 012) and 47–121 ms (210) against 11–17 ms for a plain threshold pass. Called after every CPU mesh, wireframe and
+  dot build ([isosurface.ts:205](../../packages/graphics/src/repr/volume/isosurface.ts#L205), `:505`, `dot.ts`); the GPU
+  and texture-mesh paths already use `Grid.getBoundingSphere` instead, and CPU marching cubes costs more than the scan.
+  Fix: nested loops in memory order (coordinates are loop indices), first / last hit per row, cache by isoValue on the
+  grid like the histogram. Addressed (#2017): memory order, first / last hit per row, cached for the last iso value;
+  256³ random data 33–122 → 1–6 ms, a blob 34–40 → 8–9 ms (better than the 11–17 ms estimate: rows stop at their first
+  hit).
+- P5: after bucketing, the identity shortcut needs `indices.length === _rowCount`, so models 2..N and every sorted file
+  go through `Table.view` of all schema columns; for BCIF `arrayView` copies each (unused ones included) and
+  `Cartn_x/y/z` are copied again into Float32 by `getConformation`. `arrayView` is 13.8 ms of 90 (big-bcif), 23.8 ms of
+  137 (multi50.bcif). The 99 MB retained for multi50.bcif (`multib2.ts`, 172 B/atom/model) is the decode of every column
+  of the full table (`getNormalizedAtomSite` spreads the lazy `CategoryTable` getters), not the views; per model only id
+  / occupancy / B copies stay (~0.15 MB). Fix: `Table.window` when `indices[i] === start + i`; lazy per-column views;
+  `getNormalizedAtomSite` replacing only the five substituted columns over the original getters. Addressed (#2017) for
+  in-order ranges only: typed columns are windows (no copy), plain-array columns still views (windows of them lost the
+  hierarchy compare's array fast path and the time). multi50.bcif 131–134 → 118–122 ms, alloc −35 MB, retained buffers
+  66 → 29 MB (the copies were retained, unlike the note above says). Not done: lazy views for sorted models (big-bcif
+  63–64 ms unchanged), `getNormalizedAtomSite`.
 - P6 (landed, #2007): `${model}|${asym}|${seq}` per atom row (`:83`); same in
   [pdb/entity.ts:235](../../packages/model/src/formats/structure/pdb/entity.ts#L235); `MissingResidues.has/get`
   allocate a key per call. 8.9 ms self on big-bcif. Fix: emit a key only when the triple changes
   (`areValuesEqual(i - 1, i)`), or nested `Map<asym, Map<model, Set<seq>>>` used by `has/get` too.
 - P11: `guess.ts`: 2M atoms 100 ms per-atom, 25–27 ms with a call-local `(compId, atomId)` cache. Used by GRO (per
-  frame, see P2), PSF, TOP, MOL2, CIF-core.
-- P9: `new Array(slotCount)` for operatorA/B, distance, flag. Fix: `Int32Array` / `Float32Array` / `Uint8Array`
-  (flags fit), or skip constant ones behind `hasOperators`.
+  frame, see P2), PSF, TOP, MOL2, CIF-core. Addressed (#2017): char codes for ASCII names, the regex path for others; 2M
+  atoms 83 → 31 ms (no cache needed).
+- P9: `new Array(slotCount)` for operatorA/B, distance, flag. Fix: `Int32Array` / `Float32Array` / `Uint8Array` (flags
+  fit), or skip constant ones behind `hasOperators`. Addressed (#2017): `Int32Array` operators, `Uint16Array` flags,
+  `Float64Array` distances (exact; they are compared with a 0.3 Å tolerance). 1M bonds: −28 MB retained (estimate −36 MB
+  assumed Float32 distances); `fromData` 56–61 → 40–42 ms.
 - P14: `range(n).sort(comparator)` per model build. Fix: if `residueSourceIndex` is strictly increasing fill 0..n-1.
+  Addressed (#2017): 32.4k residues 0.47 → 0.17–0.25 ms (V8's sort was already near-linear on sorted input).
 - P13: `Tensor.Space(..., Float64Array)` in `volumeFromCube` / `volumeFromDx`; orbital extraction allocates a new
   Float64 array while `sourceData` keeps the interleaved one. Converting only here adds a copy; the io readers
   (`io/reader/cube`, `io/reader/dx`) must parse to Float32.
 - P10: `_p` loops over all entity ids calling `findResidue` (two Map lookups per miss). Resolve the entity from
-  `structAsymMap.get(asymId)?.entity_id`, fall back to the loop. Computed once per hierarchy, so small.
+  `structAsymMap.get(asymId)?.entity_id`, fall back to the loop. Computed once per hierarchy, so small. Addressed
+  (#2017): only the entities that have a chain with the asym id, in entity order (same entries, malformed files
+  included); 10k rows over 100 entities 37.8 → 4.7 ms.
 - P12: `Table.pickRow` (linear) over `ihm_model_group_link` and `ihm_model_group` per model. Build two Maps once.
+  Addressed (#2017): `getModelGroupNames(data)` reads both tables once; 5000 models 66 → 0.7 ms, 1000 models 3.3 → 0.5
+  ms.
 
 ## Bugs
 
