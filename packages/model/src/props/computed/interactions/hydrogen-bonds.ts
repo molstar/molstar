@@ -1,10 +1,9 @@
 /**
- * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Paul Pillot <paul.pillot@tandemai.com>
- * @author David Sehnal <david.sehnal@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -16,7 +15,7 @@ import {
   AtomGeometryAngles,
   calcAngles,
   calcPlaneAngle,
-  closestHydrogen,
+  closestHydrogenIndex,
 } from '../chemistry/geometry.js';
 import { type FeaturesBuilder, Features } from './features.js';
 import { typeSymbol, bondToElementCount, bondCount, formalCharge, compId, atomId } from '../chemistry/util.js';
@@ -249,20 +248,12 @@ export function checkGeometry(
     if (outOfPlane !== undefined && outOfPlane > opts.maxDonOutOfPlaneAngle) return;
   }
 
-  // the donor's hydrogen nearest the acceptor, which may be in another unit
-  const donor =
-    !opts.ignoreHydrogens && donHAngles.length > 0
-      ? closestHydrogen(structure, don.unit, donIndex, acc.unit, accIndex)
-      : { unit: don.unit, index: donIndex };
+  let donorIndex = donIndex;
+  if (!opts.ignoreHydrogens && donHAngles.length > 0) {
+    donorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
+  }
 
-  const [accAngles, accHAngles] = calcAngles(
-    structure,
-    acc.unit,
-    accIndex,
-    donor.unit,
-    donor.index,
-    opts.ignoreHydrogens,
-  );
+  const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donorIndex, opts.ignoreHydrogens);
   const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
   // Do not limit large acceptor angles

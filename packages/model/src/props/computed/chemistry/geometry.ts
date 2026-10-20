@@ -1,16 +1,15 @@
 /**
- * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { degToRad } from '@molstar/core/math/misc';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Structure, Unit, StructureElement } from '@molstar/model/model/structure';
-import { eachBondedAtom, typeSymbol } from './util.js';
+import { eachBondedAtom, eachIntraBondedAtom, typeSymbol } from './util.js';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 
 /**
@@ -164,41 +163,32 @@ export function calcPlaneAngle(
   return Math.abs(Math.PI / 2 - Vec3.angle(tmpDir2, tmpDir1));
 }
 
-/** The atom nearest to (unitB, indexB) among (unitA, indexA) and the hydrogens bonded to it, which may be in other units */
-export function closestHydrogen(
-  structure: Structure,
-  unitA: Unit.Atomic,
-  indexA: StructureElement.UnitIndex,
-  unitB: Unit.Atomic,
-  indexB: StructureElement.UnitIndex,
-): { unit: Unit.Atomic; index: StructureElement.UnitIndex } {
-  const ret = { unit: unitA, index: indexA };
-  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
-  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-  let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
-  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-    if (typeSymbol(unitX, indexX) === Elements.H) {
-      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-      const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
-      if (dist < minDistSq) {
-        minDistSq = dist;
-        ret.unit = unitX;
-        ret.index = indexX;
-      }
-    }
-  });
-  return ret;
-}
-
 /**
- * @deprecated the index may belong to another unit than `unitA` (a hydrogen bonded across units); use `closestHydrogen`
+ * The index in `unitA` of the hydrogen bonded to (unitA, indexA) nearest to (unitB, indexB), or `indexA` if none is
+ * nearer. Only hydrogens of `unitA` are candidates, so the index is always one of `unitA`'s: a hydrogen covalently
+ * bonded across units is not a plausible H-bond donor hydrogen.
  */
 export function closestHydrogenIndex(
-  structure: Structure,
+  _structure: Structure,
   unitA: Unit.Atomic,
   indexA: StructureElement.UnitIndex,
   unitB: Unit.Atomic,
   indexB: StructureElement.UnitIndex,
 ) {
-  return closestHydrogen(structure, unitA, indexA, unitB, indexB).index;
+  let hIndex = indexA;
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
+  let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
+  eachIntraBondedAtom(unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+    if (typeSymbol(unitX, indexX) === Elements.H) {
+      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+      const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
+      if (dist < minDistSq) {
+        minDistSq = dist;
+        hIndex = indexX;
+      }
+    }
+  });
+  return hIndex;
 }

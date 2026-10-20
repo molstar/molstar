@@ -15,8 +15,8 @@ here.
 - Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts
   within a metal coordination, hydrophobic and cation-pi contacts within pi-stacking); the inter-unit check never
   matched
-- Interactions: the H-bond acceptor angle uses the donor's hydrogen when it is in another unit (it read an atom of the
-  donor's unit with that index); `closestHydrogen` returns its unit, `closestHydrogenIndex` is deprecated
+- Interactions: `closestHydrogenIndex` considers only hydrogens of the donor's unit; a hydrogen bonded across units gave
+  an index that the H-bond acceptor angle then read as an atom of the donor's unit
 - Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
   (`parentDisplay` read unrelated atoms)
 - Kinemage: a `@group` ends the previous group's `@subgroup` (its lists were put in that subgroup and hidden with its
