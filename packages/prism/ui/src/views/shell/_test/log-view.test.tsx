@@ -35,7 +35,9 @@ describe('the Log tab', () => {
 describe('the Log tab filters', () => {
   const texts = (host: HTMLElement) => [...host.querySelectorAll('[data-kind]')].map((e) => e.textContent ?? '');
   const pick = (host: HTMLElement, label: string) =>
-    ([...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === label) as HTMLButtonElement).click();
+    (
+      [...host.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === label) as HTMLButtonElement
+    ).click();
 
   it('shows the details, a filter per source written, the problems, and filters by text', async () => {
     const status = new NotificationsManager();
