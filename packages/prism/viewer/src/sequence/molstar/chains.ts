@@ -88,6 +88,9 @@ export function chainsOf(structure: Structure): ChainIndex {
           b.residues.push(r);
           i = j;
         }
+      } else if (kind === 'water') {
+        // Listed with no elements: nothing links a water chain (the complex and the link skip them), and a Set per water
+        // residue was a third of the index of a structure with 12k waters.
       } else {
         // Heavy atoms, one per name in a residue (an alternate location is not another atom).
         let seen = new Set<string>();

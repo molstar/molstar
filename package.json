@@ -13,7 +13,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "lint": "biome lint .",
+    "lint": "biome lint . && node scripts/workspace/test-exports.mjs",
     "test:unit": "vitest run",
     "test:live": "vitest run --config vitest.live.config.ts",
     "test:watch": "vitest",

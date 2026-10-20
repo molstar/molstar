@@ -184,6 +184,24 @@ describe('the sequence', () => {
     stop();
   });
 
+  it('passes a select over several structures on once, with the selection of the structure it shows', async () => {
+    const v = await headlessViewer({ files: [cbs(), crambin(), cbs()] });
+    const seq = v.views.sequence!;
+    const structure = seq.source.structure.value!.structure;
+    const seen: (StructureElement.Loci | null)[] = [];
+    const stop = seq.source.view3d(structure).onSelect((l) => seen.push(l));
+    expectOk(await v.api.select.set({ target: 'A:1-5' }));
+    await Promise.resolve();
+    expect(seen).toHaveLength(1);
+    expect(seen[0] && StructureElement.Loci.size(seen[0])).toBeGreaterThan(0);
+    expect(seen[0]?.structure).toBe(structure);
+    v.plugin.managers.structure.selection.clear();
+    await Promise.resolve();
+    expect(seen).toHaveLength(2);
+    expect(seen[1]).toBeNull();
+    stop();
+  });
+
   it('is absent when the spec has none', async () => {
     const v = await headlessViewer({ spec: { sequence: false } });
     expect(v.views.sequence).toBeUndefined();

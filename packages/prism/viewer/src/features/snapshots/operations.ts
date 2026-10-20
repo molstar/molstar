@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginState } from '@molstar/plugin/state';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
-import { type ApiContext, ApiArea, ApiResult, type ApiFailure } from '../../api/area.js';
+import { type ApiContext, ApiArea, ApiResult, type ApiFailure, type OperationDefinition } from '../../api/area.js';
 import {
   createMarkdownSource,
   createSnapshotsSource,
@@ -26,9 +26,14 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 // The `snapshot` area (api.md §2; viewer-spec.md §3.1, the `snapshots` feature): the plugin's snapshot manager
 // as operations. Its checkpoints never use the manager (sequence.md §7.2) and the list is not part of Undo ("what it
 // never touches: … the Snapshots list"), so changes to the list are `undoable: false` (no checkpoint, recorded as
-// runs); applying one changes the scene and is a step. Playback is view state: `history: false`.
+// runs). Showing one (apply, next, previous) is no step either (David, 2026-10-20): `undoable: false`, so it runs in
+// order with the steps (Undo is refused while one is applied, a step never runs against a half-applied scene), takes no checkpoint, and
+// leaves the steps before it undoable; Undo brings back the snapshot that was current with the scene it restores
+// (sequence.md §7.3).
 
 type Entry = PluginStateSnapshotManager.Entry;
+
+const Person = { kind: 'person' } as const;
 
 /** One entry as `snapshot.list` reports it. */
 export interface SnapshotListEntry {
@@ -245,7 +250,41 @@ export class SnapshotApi extends ApiArea {
     return (this.#markdown ??= createMarkdownSource(this.ctx.plugin));
   }
 
+  /**
+   * A story's own navigation (a description's `!apply-snapshot` / `!next-snapshot`, a clickable primitive's
+   * `snapshot_key`, the keyboard's next, previous, first and last) goes through these operations as the person, in order with the
+   * history like the panel's (sequence.md §7.3): the plugin's manager hands it here.
+   */
+  readonly #unnavigate = this.ctx.plugin.managers.snapshot.setNavigator({
+    applyKey: (key) => {
+      const id = this.ctx.plugin.managers.snapshot.state.entries.find((e) => e.key === key)?.snapshot.id;
+      return id ? this.#navigate(this.apply.definition, { entry: id }) : undefined;
+    },
+    applyNext: (dir) => {
+      const entries = this.ctx.plugin.managers.snapshot.state.entries;
+      // One snapshot is shown again (the manager's own way), none is nothing: neither is a story's step, whose
+      // operation would refuse and warn.
+      if (entries.size === 0) return undefined;
+      if (entries.size === 1) return this.#navigate(this.apply.definition, { entry: entries.get(0)!.snapshot.id });
+      return this.#navigate((dir > 0 ? this.next : this.previous).definition, {});
+    },
+    applyId: (id) =>
+      this.ctx.plugin.managers.snapshot.getEntry(id) ? this.#navigate(this.apply.definition, { entry: id }) : undefined,
+  });
+
+  /**
+   * Runs a story's step as the person, in order with the history (a key pressed while an agent's call runs goes after
+   * it, as on the panel). While the history is busy the caller may be that very work (a script awaiting the manager):
+   * the step is queued after it and not handed back, so nothing waits for itself.
+   */
+  #navigate(def: OperationDefinition<any, any>, values: Record<string, unknown>): Promise<unknown> | undefined {
+    const busy = this.ctx.managers.history.applying;
+    const run = this.ctx.operations.run(def, values, { origin: Person });
+    return busy ? undefined : run;
+  }
+
   dispose(): void {
+    this.#unnavigate();
     this.#source?.dispose();
     this.#source = undefined;
     this.#markdown?.dispose();
@@ -321,6 +360,7 @@ export class SnapshotApi extends ApiArea {
     quiet: true,
     title: 'Apply a snapshot',
     params: { entry: EntryParam(ByIdNameOrKey) },
+    undoable: false,
     async run({ entry }, ctx) {
       const found = find(ctx, entry, false);
       if (isFailure(found)) return found;
@@ -470,6 +510,7 @@ export class SnapshotApi extends ApiArea {
     quiet: true,
     title: 'Next snapshot',
     params: {},
+    undoable: false,
     // Two or more to step through (the arrows' commands are quiet where they cannot run).
     when: (ctx) => (ctx.plugin.managers.snapshot.state.entries.size > 1 ? true : 'There is no story to step through.'),
     run: (_, ctx) => step(ctx, 1),
@@ -481,6 +522,7 @@ export class SnapshotApi extends ApiArea {
     quiet: true,
     title: 'Previous snapshot',
     params: {},
+    undoable: false,
     // Two or more to step through (the arrows' commands are quiet where they cannot run).
     when: (ctx) => (ctx.plugin.managers.snapshot.state.entries.size > 1 ? true : 'There is no story to step through.'),
     run: (_, ctx) => step(ctx, -1),

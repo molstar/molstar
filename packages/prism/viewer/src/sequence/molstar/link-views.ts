@@ -12,7 +12,8 @@
 import { Extents, type Loci } from '@molstar/seq-core/model';
 import { type Coordinates, type LociSize, lociSize, type SeqViewerContext } from '@molstar/seq-viewer';
 import { OrderedSet } from '@molstar/core/data/int';
-import { StructureElement } from '@molstar/model/model/structure';
+import { StructureElement, type Unit } from '@molstar/model/model/structure';
+import type { ChainInstance } from './chains.js';
 import type { StructureLink } from './link.js';
 
 const sameLoci = (a: StructureElement.Loci | null, b: StructureElement.Loci | null) =>
@@ -90,21 +91,31 @@ export const DefaultLinkViewsOptions: {
   focus: true,
 };
 
-/** The whole chains a set's runs touch, as one Mol* loci (a large set's summary). Edge rate. */
-function wholeChains(link: StructureLink, runs: Extents): StructureElement.Loci {
+/**
+ * The whole chains a set's runs touch, as one Mol* loci (a large set's summary). Edge rate. Each touched chain is its
+ * own interval: Mol* merges consecutive one-atom chains (ions) into one unit, and the chains between two touched ones
+ * are not touched. The units are the structure the link maps now (a frame of the one it was attached to).
+ */
+export function wholeChains(link: StructureLink, runs: Extents): StructureElement.Loci {
   const members = link.toMembers(runs, Extents.create(16));
-  const units = new Map<number, { unit: StructureElement.Loci['elements'][number]['unit']; lo: number; hi: number }>();
+  const byUnit = new Map<number, Map<ChainInstance, readonly [number, number]>>();
   for (let i = 0; i < members.count; i++) {
     const c = link.memberOf(members, i)?.chain;
     if (!c || c.count === 0) continue;
-    const u = units.get(c.unit.id) ?? { unit: c.unit, lo: c.start[0], hi: c.end[c.count - 1] };
-    [u.lo, u.hi] = [Math.min(u.lo, c.start[0]), Math.max(u.hi, c.end[c.count - 1])];
-    units.set(c.unit.id, u);
+    let chains = byUnit.get(c.unit.id);
+    if (!chains) byUnit.set(c.unit.id, (chains = new Map()));
+    chains.set(c, [c.start[0], c.end[c.count - 1]]);
   }
-  const elements = [...units.values()].map((u) => ({
-    unit: u.unit,
-    indices: OrderedSet.ofBounds(u.lo, u.hi) as OrderedSet<StructureElement.UnitIndex>,
-  }));
+  const elements: { unit: Unit; indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
+  for (const unit of link.structure.units) {
+    const chains = byUnit.get(unit.id);
+    if (!chains) continue;
+    const spans = [...chains.values()].sort((a, b) => a[0] - b[0]);
+    let indices = OrderedSet.ofBounds(spans[0][0], spans[0][1]);
+    for (let k = 1; k < spans.length; k++)
+      indices = OrderedSet.union(indices, OrderedSet.ofBounds(spans[k][0], spans[k][1]));
+    elements.push({ unit, indices: indices as OrderedSet<StructureElement.UnitIndex> });
+  }
   return StructureElement.Loci(link.structure, elements);
 }
 

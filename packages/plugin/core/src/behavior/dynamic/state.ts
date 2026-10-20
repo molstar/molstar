@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -42,16 +43,15 @@ export const SnapshotControls = PluginBehavior.create<SnapshotControlsProps>({
           snapshot.applyNext(-1);
         }
 
+        // Through the manager, as next and previous: a host's navigator gets them too. No snapshot: nothing.
         if (Binding.matchKey(b.first, code, modifiers, key)) {
-          const e = snapshot.state.entries.get(0)!;
-          const s = snapshot.setCurrent(e.snapshot.id);
-          if (s) return this.ctx.state.setSnapshot(s);
+          const e = snapshot.state.entries.get(0);
+          if (e) return snapshot.applyId(e.snapshot.id);
         }
 
         if (Binding.matchKey(b.last, code, modifiers, key)) {
-          const e = snapshot.state.entries.get(snapshot.state.entries.size - 1)!;
-          const s = snapshot.setCurrent(e.snapshot.id);
-          if (s) return this.ctx.state.setSnapshot(s);
+          const e = snapshot.state.entries.get(snapshot.state.entries.size - 1);
+          if (e) return snapshot.applyId(e.snapshot.id);
         }
       });
     }

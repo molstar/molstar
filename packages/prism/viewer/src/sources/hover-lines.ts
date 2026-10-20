@@ -6,19 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { decodeHtmlEntities } from '@molstar/core/util/html-entities';
 import { type MarkdownBlock, type MarkdownInline, parseMarkdown } from '@molstar/core/util/markdown';
 import type { HoverLine, HoverRun } from '@molstar/prism-ui/model/playback';
-
-// A Map, not an object literal: `&constructor;` must not find `Object.prototype.constructor`.
-const Entities = new Map([
-  ['amp', '&'],
-  ['lt', '<'],
-  ['gt', '>'],
-  ['quot', '"'],
-  ['apos', "'"],
-  ['nbsp', ' '],
-  ['#39', "'"],
-]);
 
 const isSpace = (c: number) => c === 32 || (c >= 9 && c <= 13) || (c > 127 && /\s/.test(String.fromCharCode(c)));
 
@@ -86,7 +76,7 @@ export function hoverLines(labels: readonly unknown[]): readonly string[] {
       if (tag.name === 'br') stripped += '\n';
       last = tag.end;
     }
-    const text = collapseBars((stripped + label.slice(last)).replace(/&(#?\w+);/g, decodeEntity));
+    const text = collapseBars(decode(stripped + label.slice(last)));
     for (const line of text.split('\n')) {
       const trimmed = line.trim();
       if (trimmed) out.push(trimmed);
@@ -114,11 +104,8 @@ export function hoverRich(labels: readonly unknown[]): readonly HoverLine[] {
   return out;
 }
 
-function decodeEntity(m: string, name: string): string {
-  return Entities.get(name) ?? m;
-}
-
-const decode = (s: string) => s.replace(/&(#?\w+);/g, decodeEntity);
+/** A label's references as characters (core's decoder); a no-break space a plain one, as before. */
+const decode = (s: string) => decodeHtmlEntities(s).replace(/\u00a0/g, ' ');
 
 /** Mol*'s HTML: a line per `<br>`, runs by the allowed tags. The first line of the label is its title. */
 function htmlLines(label: string, out: HoverLine[], first: boolean): void {

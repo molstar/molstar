@@ -4,18 +4,106 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StateSelection } from '@molstar/core/state';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
+import { StructureInfo } from '../structure-info.js';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { RawData } from '@molstar/plugin/state/transforms/data/fetch';
 import { ModelFromTrajectory, StructureFromModel } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { ParseCif } from '../../../../state/formats/cif.js';
 import { TrajectoryFromMmCif } from '../../../../state/formats/trajectory/mmcif.js';
+
+const pdb = 'ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N  ';
+
+async function createPluginWithBehavior() {
+  const plugin = new PluginContext({
+    registry: DefaultPluginSpec().registry,
+    behaviors: [PluginSpec.Behavior(StructureInfo)],
+  });
+  await plugin.init();
+  return plugin;
+}
+
+async function loadPdb(plugin: PluginContext, label: string) {
+  const data = await plugin.builders.data.rawData({ data: pdb, label });
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+  const model = await plugin.builders.structure.createModel(trajectory);
+  const structure = await plugin.builders.structure.createStructure(model);
+  return { data, model: model.obj!.data, structure: structure.obj!.data };
+}
+
+// the spies are on shared module objects
+afterEach(() => vi.restoreAllMocks());
+
+describe('StructureInfo', () => {
+  it('indexes models and structures and keeps their max index, lowered when a model goes', async () => {
+    const plugin = await createPluginWithBehavior();
+    const loaded = [await loadPdb(plugin, 'a'), await loadPdb(plugin, 'b'), await loadPdb(plugin, 'c')];
+    expect(loaded.map((l) => Model.Index.get(l.model).value)).toEqual([0, 1, 2]);
+    expect(loaded.map((l) => Structure.Index.get(l.structure).value)).toEqual([0, 1, 2]);
+    for (const l of loaded) {
+      expect(Model.MaxIndex.get(l.model).value).toBe(2);
+      expect(Structure.MaxIndex.get(l.structure).value).toBe(2);
+    }
+    await plugin.build().delete(loaded[2].data).commit();
+    for (const l of loaded.slice(0, 2)) {
+      expect(Model.MaxIndex.get(l.model).value).toBe(1);
+      expect(Structure.MaxIndex.get(l.structure).value).toBe(1);
+    }
+    // A new model takes the next index after the highest left.
+    const d = await loadPdb(plugin, 'd');
+    expect(Model.Index.get(d.model).value).toBe(2);
+    expect(Model.MaxIndex.get(loaded[0].model).value).toBe(2);
+    plugin.dispose();
+  });
+
+  it('gives a model and its structure replaced by another frame the max index at once, the structure its index kept', async () => {
+    const plugin = await createPluginWithBehavior();
+    const twoModels = ['MODEL        1', pdb, 'ENDMDL', 'MODEL        2', pdb, 'ENDMDL'].join('\n');
+    const data = await plugin.builders.data.rawData({ data: twoModels, label: 'nmr' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const modelCell = await plugin.builders.structure.createModel(trajectory);
+    const structureCell = await plugin.builders.structure.createStructure(modelCell);
+    await loadPdb(plugin, 'b');
+    const first = modelCell.obj!.data;
+    const firstStructure = structureCell.obj!.data;
+    expect(Structure.Index.get(firstStructure).value).toBe(0);
+    expect(Model.MaxIndex.get(first).value).toBe(1);
+    await plugin
+      .build()
+      .to(modelCell.ref)
+      .update(ModelFromTrajectory, (old: any) => ({ ...old, modelIndex: 1 }))
+      .commit();
+    const model = plugin.state.data.cells.get(modelCell.ref)!.obj!.data as Model;
+    expect(model).not.toBe(first);
+    expect(Model.MaxIndex.get(model).value).toBe(1);
+    // Its structure, remapped onto the new model in place, keeps its index and has the max too.
+    const structure = plugin.state.data.cells.get(structureCell.ref)!.obj!.data as Structure;
+    expect(structure).not.toBe(firstStructure);
+    expect(Structure.Index.get(structure).value).toBe(0);
+    expect(Structure.MaxIndex.get(structure).value).toBe(1);
+    plugin.dispose();
+  });
+
+  it('walks the tree for no object created, models and structures included', async () => {
+    const plugin = await createPluginWithBehavior();
+    await loadPdb(plugin, 'a');
+    const select = vi.spyOn(plugin.state.data, 'select');
+    await plugin.builders.data.rawData({ data: 'x', label: 'other' });
+    // The state's own select of the update, none of the behavior's (it made four before).
+    expect(select).toHaveBeenCalledTimes(1);
+    // nor a walk for a model or a structure: the behavior keeps its roots (14/F6)
+    const roots = vi.spyOn(StateSelection.Generators, 'rootsOfType');
+    await loadPdb(plugin, 'b');
+    expect(roots).not.toHaveBeenCalled();
+    plugin.dispose();
+  });
+});
 
 /** An mmCIF entry of `chains` chains of two glycines each */
 function cif(name: string, chains: number) {

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer, until } from '../../_test/harness.js';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
@@ -32,6 +32,18 @@ describe('trajectory', () => {
     const none = await single.api.trajectory.get();
     expectOk(none);
     expect(none.value?.structures).toEqual([]);
+  });
+
+  it('writes no record entry for a frame shown (a scrub seeks once a frame), and no history step', async () => {
+    const v = await headlessViewer({ files: [ensemble()] });
+    await v.record.flush();
+    const before = (await v.record.read(50)).items.length;
+    const steps = v.managers.history.steps.value.length;
+    for (const by of [1, 1, -1]) expectOk(await v.api.trajectory.frame({ by }));
+    await v.record.flush();
+    expect((await v.record.read(50)).items.length).toBe(before);
+    expect(v.managers.history.steps.value.length).toBe(steps);
+    expect(modelIndex(v)).toBe(1);
   });
 
   it('runs under its former ids too (api.md §1 "Words"), listed once', async () => {
@@ -122,12 +134,14 @@ describe('trajectory', () => {
     expect(((await v.api.trajectory.get()) as any).value.structures[1].index).toBe(3);
   });
 
-  it('plays through the frames with the animation, and stops, leaving the history alone', async () => {
+  it('plays through the frames with the animation, and stops, leaving the history alone: no checkpoint', async () => {
     const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
     try {
       expectOk(await v.api.load.files({ files: [ensemble()] }));
       expectOk(await v.api.structure.visibility({ visible: false }));
       const steps = v.managers.history.steps.value.length;
+      // A checkpoint is the plugin's snapshot (sources/checkpoint.ts): none while it plays (sequence.md §7.3).
+      const checkpoints = vi.spyOn(v.plugin.state, 'getSnapshot');
 
       const r = await v.api.trajectory.play({ mode: 'loop', seconds: 3 });
       expectOk(r);
@@ -145,8 +159,12 @@ describe('trajectory', () => {
       expect(await v.api.trajectory.stop()).toMatchObject({ ok: true, unchanged: true });
       expect(((await v.api.trajectory.get()) as any).value.playing).toBe(false);
       expect(v.managers.history.steps.value.length).toBe(steps);
-      // The step before is still undoable: the animation was viewing.
+      expect(checkpoints).not.toHaveBeenCalled();
+      // The step before is still undoable: the animation was viewing. Undo takes back that step and keeps the frame.
       expect(v.managers.history.canUndo.value).toBe(true);
+      expectOk(await v.api.history.undo());
+      expect(modelIndex(v)).toBe(1);
+      expect(v.plugin.managers.structure.hierarchy.current.structures[0].cell.state.isHidden).toBeFalsy();
     } finally {
       await v.dispose();
     }

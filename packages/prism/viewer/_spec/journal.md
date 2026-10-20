@@ -7,8 +7,8 @@ the truth for how.
 
 - **One record, one writer** (`journal/record.ts`, `createSessionRecord`): `run` per finished API call (any origin),
   `turn` per agent turn, `undo`/`redo` from the history, `session` for open, clear, save. One write chain: record order
-  is the order things happened. Not recorded: reads, `record: false` operations (pointer-rate view state),
-  `highlight.*`, `view.*`, `export.preview`, nested runs.
+  is the order things happened. Not recorded: reads, `record: false` operations (pointer-rate view state:
+  `trajectory.frame`, `snapshot.seek`), `highlight.*`, `view.*`, `export.preview`, nested runs.
 - **In memory by default.** A reload ends it and every checkpoint: a turn cannot be undone after a reload.
 - **Kept on purpose**: "Keep this session's record" (History, `record.keep`) copies it into the spec's `persist.rows`
   ([viewer-spec.md](viewer-spec.md) §2.6), else IndexedDB `<persist.key>-records` (`prism-viewer-records` for the app's

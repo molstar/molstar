@@ -10,6 +10,9 @@ import { Structure, Model } from '@molstar/model/model/structure';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { StateSelection, StateObject, StateTransform } from '@molstar/core/state';
 
+const isModelOrStructure = (obj: StateObject | undefined) =>
+  !!obj && (PluginStateObject.Molecule.Model.is(obj) || PluginStateObject.Molecule.Structure.is(obj));
+
 export const StructureInfo = PluginBehavior.create({
   name: 'structure-info-prop',
   category: 'custom-props',
@@ -86,17 +89,13 @@ export const StructureInfo = PluginBehavior.create({
       return { auth, label };
     }
 
-    /**
-     * The max indices depend only on the root model and structure objects: they are set again only after one of those
-     * was created, updated or removed, not on every created object (components, representations). The result is the
-     * same, at the same moment.
-     */
-    private maxIndexDirty = true;
+    /** The max model index last set: what a model or structure replaced in place (`updated`) is given. */
+    private maxIndex = -1;
 
-    private setMaxIndex() {
-      if (!this.maxIndexDirty) return;
-      this.maxIndexDirty = false;
+    /** After a model or structure was created or removed: over the roots, not a walk of the state */
+    private setMaxIndices() {
       const value = this.maxModelIndex;
+      this.maxIndex = value;
       this.setModelMaxIndex(value);
       this.setStructureMaxIndex(value);
     }
@@ -112,26 +111,12 @@ export const StructureInfo = PluginBehavior.create({
       const roots = this.rootsOf(obj);
       if (!roots || !this.isRoot(ref, obj!.type)) return;
       roots.add(ref);
-      this.maxIndexDirty = true;
     }
 
     /** whatever the object was (an update in place to a Null object carries no old one) */
     private untrack(ref: string) {
-      const had = this.rootModels.delete(ref);
-      if (this.rootStructures.delete(ref) || had) this.maxIndexDirty = true;
-    }
-
-    /** a root among the cells whose created event has not come yet changes the max index as the walk would see it */
-    private markIfPendingRoot() {
-      if (this.maxIndexDirty) return;
-      const { cells } = this.ctx.state.data;
-      for (const ref of this.pending) {
-        const obj = cells.get(ref)?.obj;
-        if (this.rootsOf(obj) && this.isRoot(ref, obj!.type)) {
-          this.maxIndexDirty = true;
-          return;
-        }
-      }
+      this.rootModels.delete(ref);
+      this.rootStructures.delete(ref);
     }
 
     private setModelMaxIndex(value: number) {
@@ -147,6 +132,16 @@ export const StructureInfo = PluginBehavior.create({
         if (Structure.MaxIndex.get(s).value !== value) {
           Structure.MaxIndex.set(s, { value }, value);
         }
+      }
+    }
+
+    private setMaxIndexOf(obj: StateObject) {
+      const value = this.maxIndex;
+      if (value < 0) return;
+      if (PluginStateObject.Molecule.Model.is(obj)) {
+        if (Model.MaxIndex.get(obj.data).value !== value) Model.MaxIndex.set(obj.data, { value }, value);
+      } else if (PluginStateObject.Molecule.Structure.is(obj) && obj.data.parent === undefined) {
+        if (Structure.MaxIndex.get(obj.data).value !== value) Structure.MaxIndex.set(obj.data, { value }, value);
       }
     }
 
@@ -218,18 +213,29 @@ export const StructureInfo = PluginBehavior.create({
       this.subscribeObservable(data.events.object.created, (o) => {
         this.pending.delete(o.ref);
         this.trackIfRoot(o.ref, o.obj);
-        this.markIfPendingRoot();
         this.handle(o.ref, o.obj);
-        this.setMaxIndex();
+        // Only a model or a structure can move the max indices or need them set: anything else (a representation, a
+        // layer) skips them, which made an op over N structures O(N²).
+        if (isModelOrStructure(o.obj)) this.setMaxIndices();
+      });
+
+      // A removed model lowers the max at once (before, the next created object of any kind did it).
+      this.subscribeObservable(data.events.object.removed, (o) => {
+        this.untrack(o.ref);
+        if (isModelOrStructure(o.obj)) this.setMaxIndices();
       });
 
       this.subscribeObservable(data.events.object.updated, (o) => {
         this.untrack(o.ref);
         this.trackIfRoot(o.ref, o.obj);
-        this.handle(o.ref, o.obj, o.oldObj);
+        // An in-place update gives the old data, not the old object (a structure remapped onto a trajectory's next
+        // model): its index carries over all the same.
+        const old = o.oldObj ?? (o.oldData !== undefined ? ({ data: o.oldData } as StateObject) : undefined);
+        this.handle(o.ref, o.obj, old);
+        // A model or a structure made anew or remapped in place (a trajectory frame, other params) has the max at once,
+        // without a walk (before, the next created object of any kind set it).
+        this.setMaxIndexOf(o.obj);
       });
-
-      this.subscribeObservable(data.events.object.removed, (o) => this.untrack(o.ref));
     }
 
     unregister() {

@@ -43,6 +43,59 @@ describe('Markdown', () => {
   });
 });
 
+describe('emphasis', () => {
+  it('holds links and code: a command link in bold goes to the host', () => {
+    const calls: string[] = [];
+    const host: MarkdownHost = {
+      link: (href) => (href.startsWith('!') ? (e) => calls.push(`${href} ${e}`) : undefined),
+    };
+    const el = Markdown({
+      source: 'a **[heme group](!query%3Dresn%20HEM%26lang%3Dpymol)** and *[web](https://molstar.org) `x`*',
+      host,
+    });
+    const strongLink = el.querySelector('strong a') as HTMLAnchorElement;
+    expect(strongLink.textContent).toBe('heme group');
+    strongLink.click();
+    expect(calls).toEqual(['!query%3Dresn%20HEM%26lang%3Dpymol click']);
+    expect(el.querySelector('em a')?.getAttribute('href')).toBe('https://molstar.org');
+    expect(el.querySelector('em code')?.textContent).toBe('x');
+    expect(el.textContent).not.toContain('](');
+  });
+});
+
+describe('character references', () => {
+  it('are the characters they name in text, emphasis, headings, links, tables and alt text; not in code', () => {
+    const el = Markdown({
+      source: [
+        '## A&nbsp;title &amp; more',
+        '[&#x2B05; Back to *Basic workflow*](#basic) and&nbsp;then &#8212; **&lt;b&gt;** *&quot;it&quot;*',
+        '',
+        '| a&nbsp;b | &#65; |',
+        '|---|---|',
+        '| &copy; | ![x&amp;y](img.png) |',
+        '',
+        '`&nbsp;` &unknownname;',
+        '```',
+        '&amp; stays',
+        '```',
+      ].join('\n'),
+    });
+    expect(el.querySelector('h4')?.textContent).toBe('A\u00a0title & more');
+    expect(el.querySelector('a')?.textContent).toBe('\u2B05 Back to Basic workflow');
+    expect(el.querySelector('a em')?.textContent).toBe('Basic workflow');
+    const p = el.querySelector('p')!;
+    expect(p.textContent).toContain('and\u00a0then \u2014 <b> "it"');
+    // Decoded markup is text, never elements.
+    expect(p.querySelector('b')).toBeNull();
+    expect([...el.querySelectorAll('th, td')].map((c) => c.textContent)).toEqual(['a\u00a0b', 'A', '\u00a9', '']);
+    expect(el.querySelector('img')?.alt).toBe('x&y');
+    const last = el.querySelectorAll('p')[1];
+    expect(last.querySelector('code')?.textContent).toBe('&nbsp;');
+    expect(last.textContent).toContain('&unknownname;');
+    expect(el.querySelector('pre code')?.textContent).toBe('&amp; stays');
+  });
+});
+
 describe('Markdown with a host', () => {
   it('renders GFM tables with their alignment, fenced code and rules', () => {
     const el = Markdown({

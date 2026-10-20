@@ -10,6 +10,9 @@ import type { Representation } from '@molstar/graphics/repr/representation';
 import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
+import { StructureElement } from '@molstar/model/model/structure';
+import { observableState } from '@molstar/prism-ui/core';
+import { type Mark, type MarkColors, paintMarks } from '../marks.js';
 
 // The marks' paint (marks.md) follows what changed: the representations whose cells changed are painted again, an
 // unrelated cell or a canvas setting paints nothing.
@@ -88,5 +91,29 @@ describe('the marks on the representations', () => {
     expect(failures).toEqual([]);
     // What is still there has its own overpaint back.
     expect(reprs[1].repr.state.overpaint.layers.length).toBe(0);
+  });
+
+  it('lets go of a removed representation once the removal is done, not at the next paint', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const s = v.plugin.managers.structure.hierarchy.current.structures[0];
+    const marks = observableState<readonly Mark[]>([
+      {
+        owner: 'test',
+        id: 'a',
+        tone: 'accent',
+        structure: s.cell.transform.ref,
+        loci: StructureElement.Loci.all(s.cell.obj!.data),
+      } as Mark,
+    ]);
+    const colors = observableState<MarkColors>({ highlight: 0xff0000, accent: 0x00ff00, rest: 0x888888 } as MarkColors);
+    const stop = paintMarks(v.plugin, marks.asReadonly, colors.asReadonly);
+    await frame();
+    const reprs = representations(v);
+    expect(stop.held()).toBe(reprs.length);
+    await v.plugin.build().delete(reprs[0].ref).commit();
+    await Promise.resolve();
+    expect(stop.held()).toBe(reprs.length - 1);
+    stop();
+    expect(stop.held()).toBe(0);
   });
 });

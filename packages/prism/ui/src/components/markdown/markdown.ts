@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { decodeHtmlEntities } from '@molstar/core/util/html-entities';
 import { bind, getScope, onCleanup } from '../../dom/scope.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { classes } from './_generated/markdown.module.css.js';
@@ -32,7 +33,8 @@ export interface MarkdownHost {
 
 /**
  * A small, safe markdown renderer for descriptions (no HTML is parsed; everything becomes DOM nodes): headings,
- * paragraphs, lists, tables, fenced code, rules, **bold**, *italic*, `code`, images and [links](href). A link the host
+ * paragraphs, lists, tables, fenced code, rules, **bold**, *italic*, `code`, images and [links](href). Character
+ * references (`&nbsp;`, `&#x2B05;`, `&amp;`) are the characters they name, as in CommonMark, except in code. A link the host
  * claims goes to it; `#key` and other non-web links go to `onLink`; web links open in a new tab.
  */
 export function Markdown(props: { source: string; onLink?: (href: string) => void; host?: MarkdownHost }): HTMLElement {
@@ -165,15 +167,16 @@ function inline(parent: Node, text: string, ctx: InlineContext) {
   // A fresh pattern per call: a link's text is rendered by a nested call.
   const pattern = new RegExp(InlinePattern.source, 'g');
   for (let m = pattern.exec(text); m; m = pattern.exec(text)) {
-    if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
-    if (m[1] !== undefined) parent.appendChild(element('strong', m[1]));
-    else if (m[2] !== undefined) parent.appendChild(element('em', m[2]));
+    if (m.index > last) parent.appendChild(document.createTextNode(decodeHtmlEntities(text.slice(last, m.index))));
+    // Emphasis holds inline markdown of its own (a story's **[link](!command)**), as a link's text does.
+    if (m[1] !== undefined) parent.appendChild(nested('strong', m[1], ctx));
+    else if (m[2] !== undefined) parent.appendChild(nested('em', m[2], ctx));
     else if (m[3] !== undefined) parent.appendChild(element('code', m[3]));
-    else if (m[5] !== undefined) parent.appendChild(image(m[5], m[4], ctx));
+    else if (m[5] !== undefined) parent.appendChild(image(m[5], decodeHtmlEntities(m[4]), ctx));
     else parent.appendChild(link(m[7], m[6], ctx));
     last = m.index + m[0].length;
   }
-  if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+  if (last < text.length) parent.appendChild(document.createTextNode(decodeHtmlEntities(text.slice(last))));
 }
 
 function link(href: string, text: string, ctx: InlineContext): HTMLAnchorElement {
@@ -232,6 +235,12 @@ function image(src: string, alt: string, ctx: InlineContext): Node {
     );
   } else img.src = src;
   return img;
+}
+
+function nested(tag: 'strong' | 'em', text: string, ctx: InlineContext) {
+  const el = document.createElement(tag);
+  inline(el, text, ctx);
+  return el;
 }
 
 function element(tag: string, text: string) {
