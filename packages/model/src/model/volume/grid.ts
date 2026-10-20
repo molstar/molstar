@@ -82,37 +82,84 @@ namespace Grid {
   }
 
   const _isoBbox = Box3D();
+  const _isoMin = [0, 0, 0];
+  const _isoMax = [0, 0, 0];
+  /**
+   * The last iso value's sphere per Grid object. A WeakMap, not a property: grids are copied with another transform
+   * (`{ ...grid, transform }`), and a copied property would give the copy its source's sphere.
+   */
+  const isoBoundingSpheres = new WeakMap<Grid, { isoValue: number; sphere: Sphere3D }>();
+
+  /**
+   * The sphere around the voxels at or above `isoValue` (at or below when it is negative), one voxel wider on each
+   * side. Cached per Grid object for the last iso value.
+   */
   export function getIsosurfaceBoundingSphere(grid: Grid, isoValue: number, boundingSphere?: Sphere3D) {
-    const neg = isoValue < 0;
+    const cached = isoBoundingSpheres.get(grid);
+    if (cached?.isoValue === isoValue) return Sphere3D.copy(boundingSphere || Sphere3D(), cached.sphere);
 
-    const c = [0, 0, 0];
-    const getCoords = grid.cells.space.getCoords;
-    const d = grid.cells.data;
-    const [xn, yn, zn] = grid.cells.space.dimensions;
+    const { space, data: d } = grid.cells;
+    const [xn, yn, zn] = space.dimensions;
+    const min = _isoMin;
+    const max = _isoMax;
+    min[0] = xn - 1;
+    min[1] = yn - 1;
+    min[2] = zn - 1;
+    max[0] = max[1] = max[2] = 0;
 
-    let minx = xn - 1,
-      miny = yn - 1,
-      minz = zn - 1;
-    let maxx = 0,
-      maxy = 0,
-      maxz = 0;
-    for (let i = 0, il = d.length; i < il; ++i) {
-      if ((neg && d[i] <= isoValue) || (!neg && d[i] >= isoValue)) {
-        getCoords(i, c);
-        if (c[0] < minx) minx = c[0];
-        if (c[1] < miny) miny = c[1];
-        if (c[2] < minz) minz = c[2];
-        if (c[0] > maxx) maxx = c[0];
-        if (c[1] > maxy) maxy = c[1];
-        if (c[2] > maxz) maxz = c[2];
+    // A voxel counts when `sign * value >= sign * isoValue`: the same test as `value <= isoValue` for a negative one.
+    const sign = isoValue < 0 ? -1 : 1;
+    const t = sign * isoValue;
+
+    const strides = Tensor.strides(space);
+    if (strides && strides.length === 3) {
+      // In memory order, the coordinates are the loop indices; per row of the fastest axis only its first and last
+      // voxels that count move the box (perf-audit 04/P7).
+      const [a0, a1, a2] = space.axisOrderSlowToFast;
+      const n0 = space.dimensions[a0];
+      const n1 = space.dimensions[a1];
+      const n2 = space.dimensions[a2];
+      const s0 = strides[a0];
+      const s1 = strides[a1];
+      for (let c0 = 0; c0 < n0; ++c0) {
+        for (let c1 = 0; c1 < n1; ++c1) {
+          const o = c0 * s0 + c1 * s1;
+          let first = 0;
+          while (first < n2 && !(sign * d[o + first] >= t)) ++first;
+          if (first === n2) continue;
+          let last = n2 - 1;
+          while (!(sign * d[o + last] >= t)) --last;
+          if (c0 < min[a0]) min[a0] = c0;
+          if (c0 > max[a0]) max[a0] = c0;
+          if (c1 < min[a1]) min[a1] = c1;
+          if (c1 > max[a1]) max[a1] = c1;
+          if (first < min[a2]) min[a2] = first;
+          if (last > max[a2]) max[a2] = last;
+        }
+      }
+    } else {
+      const c = [0, 0, 0];
+      const getCoords = space.getCoords;
+      for (let i = 0, il = d.length; i < il; ++i) {
+        if (sign * d[i] >= t) {
+          getCoords(i, c);
+          if (c[0] < min[0]) min[0] = c[0];
+          if (c[1] < min[1]) min[1] = c[1];
+          if (c[2] < min[2]) min[2] = c[2];
+          if (c[0] > max[0]) max[0] = c[0];
+          if (c[1] > max[1]) max[1] = c[1];
+          if (c[2] > max[2]) max[2] = c[2];
+        }
       }
     }
 
-    Vec3.set(_isoBbox.min, minx - 1, miny - 1, minz - 1);
-    Vec3.set(_isoBbox.max, maxx + 1, maxy + 1, maxz + 1);
+    Vec3.set(_isoBbox.min, min[0] - 1, min[1] - 1, min[2] - 1);
+    Vec3.set(_isoBbox.max, max[0] + 1, max[1] + 1, max[2] + 1);
     const transform = Grid.getGridToCartesianTransform(grid);
     Box3D.transform(_isoBbox, _isoBbox, transform);
-    return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), _isoBbox);
+    const sphere = Sphere3D.fromBox3D(Sphere3D(), _isoBbox);
+    isoBoundingSpheres.set(grid, { isoValue, sphere });
+    return Sphere3D.copy(boundingSphere || Sphere3D(), sphere);
   }
 
   /**
