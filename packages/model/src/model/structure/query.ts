@@ -6,7 +6,13 @@
 
 import { StructureSelection } from './query/selection.js';
 import { StructureQuery } from './query/query.js';
-export * from './query/context.js';
+export {
+  QueryContext,
+  type QueryContextOptions,
+  type QueryContextView,
+  type QueryFn,
+  type QueryPredicate,
+} from './query/context.js';
 import * as generators from './query/queries/generators.js';
 import * as modifiers from './query/queries/modifiers.js';
 import * as filters from './query/queries/filters.js';

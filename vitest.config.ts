@@ -37,7 +37,7 @@ const tags = [
   },
 ];
 
-// Every test file, read once: its module tag, whether it names the medium tag, whether it mocks modules (Seq*). A
+// Every test file, read once: its module tag, whether it names the medium tag, whether it mocks modules. A
 // lane only imports the files that can hold its tests (a filtered-out file is still imported, and imports are about
 // half the run): the quick lane skips the files tagged medium or heavy as a whole, the medium lane takes the files that
 // name the tag in an array (`tags: ['medium']`: medium tags sit in the test's own file, never in a helper; a test file
@@ -59,15 +59,27 @@ const files = globSync(include, {
     };
   });
 
-// Mol*'s files run isolated, each in a module registry of its own. Shared registries (`isolate: false`, as Seq* runs)
-// would save about a third of the quick lane's CPU (Mol*'s quick files, M4, 2026-10-20: 672 CPU-s isolated, 423
-// shared), but which file a worker ran first then decides how an import cycle evaluates: under Vite's module runner an
-// `export *` copies the names the module has at that moment, so `to_mmCIF` (`model/structure`, re-exported from
-// `export/mmcif.js`) is undefined after `formats/structure/mmcif` was imported first; and module state (registries,
-// spies on namespaces) leaks between files. Sharding the CI job buys the same time without the flakes.
+// Files share their worker's module registry (`isolate: false`): each file importing the libraries again was most of
+// the run (Mol*'s quick files, M4, 2026-10-20: 672 CPU-s isolated, 423 shared; Seq* found the same,
+// packages/sequences/AGENTS.md). Two rules keep a file's result independent of the files before it in its worker:
+// no `export *` inside an import cycle (`scripts/workspace/export-star-cycles.mjs`, in `pnpm lint`), and module state a
+// file changes it restores (`vitest.setup.ts` restores spies, stubbed globals and environment variables and real timers
+// after every file). A file that mocks or resets modules runs isolated, found by reading it; so do the files below,
+// which need a registry of their own (shuffled runs find more: `vitest run --sequence.shuffle.files --maxWorkers=3`).
+const Isolated = new Set([
+  // asserts which languages are registered: another file's import registers them too
+  'packages/query-language/src/_test/compile.test.ts',
+  // lists every registered provider: another file's registrations are listed too
+  'cli/state-docs/src/_test/state-docs.test.ts',
+  // spies on `Vec3.orthogonalize` before `curve-segment.ts` loads and keeps it in a constant
+  'packages/graphics/src/repr/structure/visual/util/polymer/_test/cartoon-geometry.test.ts',
+  // registers a stand-in encoder in Mediabunny's registry, which has no unregister
+  'packages/ai/src/narration/_test/mediabunny-containers.test.ts',
+]);
+const isolated = (f: (typeof files)[number]) => f.mocks || Isolated.has(f.path);
+const setupFiles = [`${import.meta.dirname}/vitest.setup.ts`];
 
-// Seq* (`packages/sequences`, its AGENTS.md, Tests) runs here in two projects of its own, under its own rules: files
-// share a worker's module registry (`isolate: false`), the files that mock or reset modules run isolated. Never
+// Seq* (`packages/sequences`, its AGENTS.md, Tests) runs here in two projects of its own, under the same rules. Never
 // matched: the browser folders, the heap guards (`*.heap.ts`, not `*.test.*`) and the benches; its opt-in tiers
 // (`test:perf`, `test:browser`, `test:heap`, `bench`) are the packages' own scripts (`sequences/vitest.shared.ts`).
 const seq = 'packages/sequences/';
@@ -92,10 +104,18 @@ function inLane(l: Lane, f: (typeof files)[number]) {
 export default defineConfig(({ mode }) => {
   const l = lane(mode);
   const selected = files.filter((f) => inLane(l, f) && !seqBrowser.test(f.path));
-  const project = (name: string, list: string[], isolate: boolean) => ({
+  const project = (name: string, list: typeof selected, isolate: boolean) => ({
     extends: true as const,
-    test: { name, include: list, exclude, isolate, sequence: { groupOrder: 0 } },
+    test: {
+      name,
+      include: list.map((f) => f.path),
+      exclude,
+      isolate,
+      ...(isolate ? {} : { setupFiles }),
+      sequence: { groupOrder: 0 },
+    },
   });
+  const molstar = selected.filter((f) => !f.path.startsWith(seq));
   const seqFiles = selected.filter((f) => f.path.startsWith(seq));
   return {
     resolve: { conditions: ['molstar-src', ...defaultClientConditions] },
@@ -114,21 +134,17 @@ export default defineConfig(({ mode }) => {
       projects: [
         project(
           'unit',
-          selected.filter((f) => !f.path.startsWith(seq)).map((f) => f.path),
-          true,
+          molstar.filter((f) => !isolated(f)),
+          false,
         ),
-        // (a file that mocks or resets modules needs a module registry of its own)
         ...[
+          project('unit-isolated', molstar.filter(isolated), true),
           project(
             'sequences',
-            seqFiles.filter((f) => !f.mocks).map((f) => f.path),
+            seqFiles.filter((f) => !isolated(f)),
             false,
           ),
-          project(
-            'sequences-isolated',
-            seqFiles.filter((f) => f.mocks).map((f) => f.path),
-            true,
-          ),
+          project('sequences-isolated', seqFiles.filter(isolated), true),
         ].filter((p) => p.test.include.length > 0),
       ],
     },

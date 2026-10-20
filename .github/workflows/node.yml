@@ -49,11 +49,12 @@ jobs:
   # The test lanes (AGENTS.md, Tests): the quick lane in shards, the medium lane (with the native GL suite) beside
   # them; the heavy lane runs nightly and on demand (tests-heavy.yml).
   test:
-    name: Quick tests (${{ matrix.shard }}/4)
+    name: Quick tests (${{ matrix.shard }}/4, Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        node: [22, 24]
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
@@ -62,8 +63,8 @@ jobs:
           version: 11.25.0
       - uses: actions/setup-node@v7
         with:
-          # the lowest Node of `engines` (22.13+); the other jobs run on Node 24
-          node-version: 22
+          # the lowest Node of `engines` (22.13+) and the repository's (mise.toml)
+          node-version: ${{ matrix.node }}
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile

@@ -9,6 +9,6 @@ import * as Types from './model/types.js';
 import { Symmetry } from './model/properties/symmetry.js';
 import { StructureSequence } from './model/properties/sequence.js';
 
-export * from './model/properties/custom/indexed.js';
+export { IndexedCustomProperty } from './model/properties/custom/indexed.js';
 export * from './model/indexing.js';
 export { Model, Types, Symmetry, StructureSequence };

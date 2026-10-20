@@ -13,9 +13,9 @@ import { SortedArray, type Iterator, OrderedSet } from '@molstar/core/data/int';
 import { CentroidHelper } from '@molstar/core/math/geometry/centroid-helper';
 import type { Sphere3D } from '@molstar/core/math/geometry';
 
-export * from './bonds/data.js';
-export * from './bonds/intra-compute.js';
-export * from './bonds/inter-compute.js';
+export { InterUnitBonds, IntraUnitBonds, type InterUnitEdgeProps, type IntraUnitBondProps } from './bonds/data.js';
+export { computeIntraUnitBonds } from './bonds/intra-compute.js';
+export { computeInterUnitBonds, type InterBondComputationProps } from './bonds/inter-compute.js';
 
 namespace Bond {
   export interface Location<U extends Unit = Unit> {

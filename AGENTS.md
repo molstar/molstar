@@ -111,4 +111,10 @@ can hold its tests.
 - **Not lanes**: the packages' opt-in tiers, by hand at checkpoints and never in CI: `test:perf` (allocation, the
   `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap guards (`test:heap`,
   `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md) guides.
-- Mol\*'s files each run in a module registry of their own; Seq\*'s share their worker's (`vitest.config.ts` says why).
+- **Files share their worker's module registry** (`isolate: false`: importing the libraries again per file was about a
+  third of the run's CPU). So a file restores the module state it changes (a registry, a config default);
+  `vitest.setup.ts` restores spies, stubbed globals and env and real timers after every file. No `export *` inside an
+  import cycle (`pnpm lint`, `scripts/workspace/export-star-cycles.mjs`): under Vite's module runner the names it
+  re-exports depend on which file imported the cycle first. A file that mocks or resets modules (`vi.mock`,
+  `vi.resetModules`) runs isolated, found by reading it; one that needs a fresh registry otherwise goes in
+  `vitest.config.ts`'s `Isolated`, with why.

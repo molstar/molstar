@@ -13,7 +13,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "lint": "biome lint . && node scripts/workspace/test-exports.mjs",
+    "lint": "biome lint . && node scripts/workspace/test-exports.mjs && node scripts/workspace/export-star-cycles.mjs",
     "test:unit": "vitest run",
     "test:medium": "vitest run --mode medium",
     "test:heavy": "vitest run --mode heavy",
