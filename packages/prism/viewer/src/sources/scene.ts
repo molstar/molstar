@@ -1134,7 +1134,20 @@ export function createSceneSource(
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
-  scope.add(plugin.managers.structure.measurement.behaviors.state.subscribe(() => sync()));
+  // The measurements (one added or removed): the manager says its state changed on every state change, so the rows
+  // sync only when one of its lists holds other cells.
+  const MeasurementKinds = ['labels', 'distances', 'angles', 'dihedrals', 'orientations', 'planes'] as const;
+  let measured: readonly (readonly unknown[])[] = [];
+  scope.add(
+    plugin.managers.structure.measurement.behaviors.state.subscribe((state) => {
+      const lists = MeasurementKinds.map((k) => state[k] as readonly unknown[]);
+      const same =
+        measured.length === lists.length &&
+        lists.every((l, i) => l.length === measured[i].length && l.every((c, j) => c === measured[i][j]));
+      measured = lists;
+      if (!same) sync();
+    }),
+  );
   // Streaming's cells are not in the hierarchies: their coming and going rebuilds, a params change refreshes the row.
   const isStreaming = (t: { transformer: unknown } | undefined) =>
     t?.transformer === CreateVolumeStreamingInfo || t?.transformer === CreateVolumeStreamingBehavior;
@@ -1165,6 +1178,26 @@ export function createSceneSource(
       const s = owner ? plugin.managers.structure.hierarchy.current.refs.get(owner) : undefined;
       const on = s?.kind === 'structure' ? streamingOf(plugin, s) : undefined;
       if (on) streamingNode(on, owner!);
+    }),
+  );
+  // A streaming behavior given new params (`volume.streaming-view`) takes them in place: no object event, only a new
+  // transform. Its row follows its transform, read on each state change (one lookup per streaming row), not the
+  // measurement manager's state, which said "changed" on every state change only by accident.
+  const streamingSeen = new Map<string, unknown>();
+  scope.add(
+    plugin.state.data.events.changed.subscribe(() => {
+      if (!streamingBehaviors.size) return;
+      for (const [behavior, root] of streamingBehaviors) {
+        const t = plugin.state.data.tree.transforms.get(behavior);
+        if (!t || streamingSeen.get(behavior) === t) continue;
+        streamingSeen.set(behavior, t);
+        const owner = streamingOwners.get(root);
+        const s = owner ? plugin.managers.structure.hierarchy.current.refs.get(owner) : undefined;
+        const on = s?.kind === 'structure' ? streamingOf(plugin, s) : undefined;
+        if (on) streamingNode(on, owner!);
+      }
+      for (const behavior of streamingSeen.keys())
+        if (!streamingBehaviors.has(behavior)) streamingSeen.delete(behavior);
     }),
   );
   scope.add(
