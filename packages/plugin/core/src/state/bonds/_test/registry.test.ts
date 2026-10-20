@@ -9,8 +9,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateSelection } from '@molstar/core/state';
-import type { Model, Structure } from '@molstar/model/model/structure';
-import { Unit } from '@molstar/model/model/structure';
+import type { Model } from '@molstar/model/model/structure';
+import { Structure, Unit } from '@molstar/model/model/structure';
 import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginState } from '@molstar/plugin/state';
@@ -22,6 +22,13 @@ import {
   StructureFromTrajectory,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { BondProviderRegistry } from '../registry.js';
+import {
+  NoComputedBondsProvider,
+  PerUnitBondProvider,
+} from '@molstar/model/model/structure/structure/unit/bonds/providers';
+import { CIF } from '@molstar/io/reader/cif';
+import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { SortedArray } from '@molstar/core/data/int';
 
 // The plugin's bond providers (bond-providers plan §3, §4): the registry's rules, the param a transform offers and its
 // fallback to the built-in bonds, and the instance a structure built through the state tree gets.
@@ -215,5 +222,99 @@ describe('bond providers in the plugin', async () => {
     // added again: offered again
     p.bondProviders.add(a.provider);
     expect(p.bondProviders.options().map((o) => o[0])).toContain('a');
+  });
+});
+
+describe("'per-unit'", async () => {
+  const cif = fs.readFileSync(path.join(examples, '1cbs_updated.cif'), 'utf8');
+  const parsed = await CIF.parse(cif).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const m1cbs = (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative;
+
+  /** A registry with 'none', 'per-unit' and a provider recording the units it computes bonds for. */
+  function setup() {
+    const calls: Unit.Atomic[] = [];
+    const recording: BondProvider<{}> = {
+      name: 'rec',
+      label: 'Recording',
+      getParams: () => ({}),
+      create: () => ({
+        provider: recording,
+        cacheKey: undefined,
+        intra: (unit, ctx) => {
+          calls.push(unit);
+          return ctx.builtIn();
+        },
+      }),
+    };
+    const r = new BondProviderRegistry();
+    r.add(NoComputedBondsProvider);
+    r.add(PerUnitBondProvider);
+    r.add(recording);
+    return { r, calls };
+  }
+
+  const describeUnit = (u: Unit.Atomic) => {
+    const e = u.model.atomicHierarchy.index.getEntityFromChain(u.chainIndex[u.elements[0]]);
+    return {
+      type: u.model.entities.data.type.value(e),
+      entity: u.model.entities.data.id.value(e),
+      asym: u.model.atomicHierarchy.chains.label_asym_id.value(u.chainIndex[u.elements[0]]),
+    };
+  };
+
+  function run(match: any) {
+    const { r, calls } = setup();
+    const choice = { name: 'per-unit', params: { rules: [{ match, provider: { name: 'rec', params: {} } }] } };
+    const instance = r.resolve(choice, m1cbs);
+    const s = Structure.ofModel(m1cbs, { bondProvider: instance });
+    const units = s.units.filter(Unit.isAtomic) as Unit.Atomic[];
+    for (const u of units) void u.bonds;
+    return { units, calls, instance };
+  }
+
+  it('offers the other providers to its rules, not itself', () => {
+    const { r } = setup();
+    const params = r.get('per-unit')!.getParams(m1cbs, r) as any;
+    const provider = params.rules.element.provider as PD.Mapped<any>;
+    expect(provider.select.options.map((o: any) => o[0])).toEqual(['default', 'none', 'rec']);
+  });
+
+  it('matches by entity type, chain and entity; other units get the built-in bonds', () => {
+    for (const [match, pick] of [
+      [{ name: 'entity-type', params: ['non-polymer'] }, (d: any) => d.type === 'non-polymer'],
+      [{ name: 'label-asym-id', params: 'A' }, (d: any) => d.asym === 'A'],
+      [{ name: 'entity-id', params: '1, 2' }, (d: any) => d.entity === '1' || d.entity === '2'],
+    ] as const) {
+      const { units, calls } = run(match);
+      const expected = units.filter((u) => pick(describeUnit(u)));
+      expect(expected.length).toBeGreaterThan(0);
+      expect(expected.length).toBeLessThan(units.length);
+      expect(calls).toEqual(expected);
+    }
+  });
+
+  it('a child unit gets the provider its root matched', () => {
+    const { units, calls } = run({ name: 'entity-type', params: ['polymer'] });
+    const polymer = units.find((u) => describeUnit(u).type === 'polymer')!;
+    calls.length = 0;
+    const child = polymer.getChild(
+      SortedArray.ofSortedArray(Array.from(polymer.elements).slice(0, 10)) as any,
+    ) as Unit.Atomic;
+    // a fresh child of a unit whose bonds exist restricts them; drop them to see the provider chosen
+    const orphan = Unit.create(
+      child.id,
+      child.invariantId,
+      child.chainGroupId,
+      child.traits,
+      child.kind,
+      child.model,
+      child.conformation.operator,
+      child.elements,
+      undefined,
+      child.bondProvider,
+    ) as Unit.Atomic;
+    void orphan.bonds;
+    expect(calls).toEqual([orphan]);
   });
 });

@@ -136,6 +136,10 @@ import { AnimateStateInterpolation } from '@molstar/plugin/state/animation/built
 import { AnimateStructureSpin } from '@molstar/plugin/state/animation/built-in/spin-structure';
 import { AnimateCameraRock } from '@molstar/plugin/state/animation/built-in/camera-rock';
 import { AnimateTime } from '@molstar/plugin/state/animation/built-in/time';
+import {
+  NoComputedBondsProvider,
+  PerUnitBondProvider,
+} from '@molstar/model/model/structure/structure/unit/bonds/providers';
 
 /*
  * The default plugin as named entries, in the order of `DefaultRegistry`. Applications compose subsets by identity,
@@ -347,6 +351,14 @@ export const DefaultAnimations: PluginRegistryEntry = {
 };
 
 /** The default plugin: every entry above, in registration order. */
+/**
+ * The generic bond providers: `'none'` (the format's bonds only) and `'per-unit'`. The built-in bonds are not an entry,
+ * they are always there (bond-providers plan §3); an app that needs neither provider leaves this out.
+ */
+export const DefaultBonds: PluginRegistryEntry = {
+  structure: { bondProviders: [NoComputedBondsProvider, PerUnitBondProvider] },
+};
+
 export const DefaultRegistry: readonly PluginRegistryEntry[] = [
   DefaultThemes,
   DefaultStructureRepresentations,
@@ -354,6 +366,7 @@ export const DefaultRegistry: readonly PluginRegistryEntry[] = [
   DefaultParticleRepresentations,
   DefaultActions, // before DefaultFormats: format entries carry actions, which keep the 5.x registration order
   DefaultFormats,
+  DefaultBonds,
   DefaultPresets,
   DefaultSelectionQueries,
   DefaultMarkdownExtensions,

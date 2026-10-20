@@ -9,10 +9,7 @@ import type { Model } from '@molstar/model/model/structure';
 import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
 
 /** A stored choice of bond provider: what the state tree holds (bond-providers plan §4). */
-export interface BondProviderChoice {
-  name: string;
-  params: any;
-}
+export type BondProviderChoice = BondProvider.Choice;
 
 /**
  * The bond providers a plugin offers, keyed by name and counted like the other registries (plugin-composition §4.2):
@@ -22,7 +19,7 @@ export interface BondProviderChoice {
  * `'default'` (`BondProvider.Default`, the built-in bonds) is always there and is not an entry: it cannot be added or
  * removed, it is the first option, and every name that does not resolve falls back to it.
  */
-export class BondProviderRegistry {
+export class BondProviderRegistry implements BondProvider.Context {
   private _list: BondProvider[] = [];
   private _map = new Map<string, { provider: BondProvider; count: number }>();
 
@@ -91,8 +88,10 @@ export class BondProviderRegistry {
     return ret;
   }
 
-  options(model?: Model): [name: string, label: string][] {
-    return this.getApplicable(model).map((p) => [p.name, p.label]);
+  options(model?: Model, exclude?: readonly string[]): [name: string, label: string][] {
+    const ret: [name: string, label: string][] = [];
+    for (const p of this.getApplicable(model)) if (!exclude?.includes(p.name)) ret.push([p.name, p.label]);
+    return ret;
   }
 
   /**
@@ -101,11 +100,16 @@ export class BondProviderRegistry {
    * `'default'` (bond-providers plan §4). Never throws, with or without a model.
    */
   getParam(model?: Model, info?: PD.Info) {
+    return this.choiceParam(model, undefined, { label: 'Bonds', description: 'Where the bonds come from', ...info });
+  }
+
+  /** `getParam` without the providers in `exclude`: what a provider composing the others offers (`'per-unit'`). */
+  choiceParam(model: Model | undefined, options?: { exclude?: readonly string[] }, info?: PD.Info) {
     return PD.Mapped<any>(
       BondProvider.DefaultName,
-      this.options(model),
-      (name) => PD.Group(this.get(name)?.getParams(model) ?? {}),
-      { label: 'Bonds', description: 'Where the bonds come from', ...info },
+      this.options(model, options?.exclude),
+      (name) => PD.Group(this.get(name)?.getParams(model, this) ?? {}),
+      info,
     );
   }
 
@@ -119,8 +123,8 @@ export class BondProviderRegistry {
     const provider = this._map.get(choice.name)?.provider;
     if (!provider) return BondProvider.DefaultInstance;
     if (model && provider.isApplicable && !provider.isApplicable(model)) return BondProvider.DefaultInstance;
-    const params = PD.normalizeParams(provider.getParams(model), choice.params ?? {}, 'all');
-    return provider.create(params);
+    const params = PD.normalizeParams(provider.getParams(model, this), choice.params ?? {}, 'all');
+    return provider.create(params, this);
   }
 }
 

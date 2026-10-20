@@ -21,6 +21,10 @@ import { StructureSymmetry } from '../../../symmetry.js';
 import type { IntraUnitBonds } from '../data.js';
 import { computeIntraUnitBonds } from '../intra-compute.js';
 import { BondProvider } from '../provider.js';
+import { NoComputedBondsProvider } from '../providers.js';
+import { BondType } from '../../../../model/types.js';
+import { parseMol2 } from '@molstar/io/reader/mol2/parser';
+import { trajectoryFromMol2 } from '@molstar/model/formats/structure/mol2';
 
 // Bond providers in the model layer (bond-providers plan §2): the instance a unit and a structure hold, how it passes
 // to children, copies, assemblies and frames, the per-key intra-unit cache, and that the default is today's bonds.
@@ -33,8 +37,36 @@ async function loadCif(name: string): Promise<Model> {
   return (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative;
 }
 
-/** A model that shares nothing cached with `model` (its own `_dynamicPropertyData`). */
-const fresh = (model: Model): Model => ({ ...model, id: UUID.create22(), _dynamicPropertyData: Object.create(null) });
+async function loadMol2(name: string): Promise<Model> {
+  const parsed = await parseMol2(fs.readFileSync(path.join(examples, name), 'utf8'), name).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  return (await trajectoryFromMol2(parsed.result).run()).representative;
+}
+
+/** The bonds of a graph as sorted `a-b:order:flags` rows, each once. */
+function intraRows(bonds: IntraUnitBonds) {
+  const rows: string[] = [];
+  const { a, b, edgeProps } = bonds;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] < b[i]) rows.push(`${a[i]}-${b[i]}:${edgeProps.order[i]}:${edgeProps.flags[i]}`);
+  }
+  return rows.sort();
+}
+
+function interRows(s: Structure) {
+  return s.interUnitBonds.edges
+    .filter((e) => e.unitA < e.unitB)
+    .map((e) => `${e.unitA}.${e.indexA}-${e.unitB}.${e.indexB}:${e.props.order}:${e.props.flag}`)
+    .sort();
+}
+
+/** A model that shares no cached bonds with `model`: its own `_dynamicPropertyData`, with the format's (index pairs). */
+function fresh(model: Model): Model {
+  const data = Object.assign(Object.create(null), model._dynamicPropertyData);
+  delete data.ElementSetIntraBondCache;
+  delete data.ElementSetIntraBondCacheByKey;
+  return { ...model, id: UUID.create22(), _dynamicPropertyData: data };
+}
 
 /** The built-in bonds of a unit, marked cacheable or not. */
 function withProps(bonds: IntraUnitBonds, cacheable: boolean): IntraUnitBonds {
@@ -199,6 +231,47 @@ describe('bond providers', async () => {
       const other = Structure.create(s.units.slice(0, 2), { parent: s, bondProvider: q.instance });
       void other.interUnitBonds;
       expect(q.interCalls).toEqual([other]);
+    });
+  });
+
+  describe("'none': the format's bonds without the distance-based ones", async () => {
+    const none = NoComputedBondsProvider.create({});
+    const m7qpd = await loadCif('7qpd.fw2.cif');
+    const mAce2 = await loadMol2('ace2-hit.mol2');
+
+    it('keeps bond tables (index pairs) as they are', () => {
+      const model = fresh(mAce2);
+      const byDefault = atomic(Structure.ofModel(model)).map((u) => intraRows(u.bonds));
+      const byNone = atomic(Structure.ofModel(model, { bondProvider: none })).map((u) => intraRows(u.bonds));
+      expect(byNone).toEqual(byDefault);
+      expect(byNone.flat().length).toBeGreaterThan(0);
+    });
+
+    it('keeps struct_conn and dictionary bonds of an mmCIF and drops the computed ones, intra and inter', () => {
+      const model = fresh(m7qpd);
+      const byDefault = Structure.ofModel(model);
+      const byNone = Structure.ofModel(model, { bondProvider: none });
+
+      const defaultIntra = atomic(byDefault).flatMap((u) => intraRows(u.bonds).map((r) => `${u.id}|${r}`));
+      const noneIntra = atomic(byNone).flatMap((u) => intraRows(u.bonds).map((r) => `${u.id}|${r}`));
+      const computed = (row: string) => BondType.is(+row.split(':')[2] as BondType.Flag, BondType.Flag.Computed);
+      expect(noneIntra.length).toBeGreaterThan(0);
+      expect(noneIntra.some(computed)).toBe(false);
+      expect(noneIntra).toEqual(defaultIntra.filter((r) => !computed(r)));
+      expect(defaultIntra.some(computed)).toBe(true);
+
+      const defaultInter = interRows(byDefault);
+      const noneInter = interRows(byNone);
+      expect(noneInter.length).toBeGreaterThan(0);
+      expect(noneInter.some(computed)).toBe(false);
+      expect(noneInter).toEqual(defaultInter.filter((r) => !computed(r)));
+    });
+
+    it('the default bonds are unchanged by the flag being there', () => {
+      const model = fresh(m1cbs);
+      for (const u of atomic(Structure.ofModel(model))) {
+        expect(intraRows(u.bonds)).toEqual(intraRows(computeIntraUnitBonds(u, { noDistance: false })));
+      }
     });
   });
 

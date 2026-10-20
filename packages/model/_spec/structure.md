@@ -66,7 +66,13 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
   threshold (coarse-grained models: `maxRadius`). Edge order follows the grid. Edge props `order`, `flags`, `key` (the
   struct_conn row, index-pair key or dictionary key; -1 computed).
 - Both come from the bond provider when it has `intra` (a unit's) or `inter` (the structure's), which may call the
-  built-in computation through its context (`ctx.builtIn(props)`); else from the built-in computation below.
+  built-in computation through its context (`ctx.builtIn(props)`); else from the built-in computation below. The generic
+  providers are in `unit/bonds/providers.ts`: `'none'` (the built-in computation with `noDistance`) and `'per-unit'`
+  (other providers by rules on a unit's root: entity type, chain, entity; bond-providers plan §5).
+- `noDistance` (`BondComputationProps`): only the bonds the format states (index pairs, struct_conn, the component
+  dictionary); the distance pass over the grid is skipped, intra and inter, as is the distance fallback for hydrogens
+  the dictionary lacks. The rest of the computation is the same pass, so the result is the default bonds without the
+  `Computed` ones.
 - Inter-unit (`inter-compute.ts`): unit pairs from `eachUnitPair` (structure grid, `validUnit`, `validUnitPair`: same
   model or the master model; waters and ions skipped unless `dynamicBonds` or a common struct_conn record). Per pair,
   A's atoms near B come from A's grid (P4). Index pairs, else struct_conn, else distance.

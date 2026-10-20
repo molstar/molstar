@@ -19,12 +19,13 @@ import {
   DefaultStructureRepresentations,
   DefaultThemes,
   DefaultVolumeRepresentations,
+  DefaultBonds,
 } from '@molstar/plugin/default-registry';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ExternalColorThemes } from '@molstar/plugin/themes/external';
 
 describe('DefaultRegistry', () => {
-  it('lists the eleven named entries in order', () => {
+  it('lists the twelve named entries in order', () => {
     expect(DefaultRegistry).toEqual([
       DefaultThemes,
       DefaultStructureRepresentations,
@@ -32,6 +33,7 @@ describe('DefaultRegistry', () => {
       DefaultParticleRepresentations,
       DefaultActions,
       DefaultFormats,
+      DefaultBonds,
       DefaultPresets,
       DefaultSelectionQueries,
       DefaultMarkdownExtensions,

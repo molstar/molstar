@@ -23,11 +23,14 @@ export interface BondProvider<P extends PD.Params = PD.Params> {
   readonly name: string;
   readonly label: string;
   readonly description?: string;
-  /** The params for a model; called without one when a param definition is built without data, and must not throw. */
-  getParams(model: Model | undefined): P;
+  /**
+   * The params for a model; called without one when a param definition is built without data, and must not throw.
+   * `ctx` is there when a registry builds them, for providers that compose others.
+   */
+  getParams(model: Model | undefined, ctx?: BondProvider.Context): P;
   /** A provider not applicable to a model is not offered for it, and a stored choice of it falls back to the default. */
   isApplicable?(model: Model): boolean;
-  create(props: PD.Values<P>): BondProvider.Instance;
+  create(props: PD.Values<P>, ctx?: BondProvider.Context): BondProvider.Instance;
 }
 
 export namespace BondProvider {
@@ -62,6 +65,20 @@ export namespace BondProvider {
   export interface InterContext {
     /** The built-in computation for the structure, with the props the structure would use (`computeInterUnitBonds`). */
     builtIn(props?: Partial<InterBondComputationProps>): InterUnitBonds;
+  }
+
+  /** A choice of provider as the state tree stores it. */
+  export interface Choice {
+    name: string;
+    params: any;
+  }
+
+  /** What a registry offers the providers it builds, so a provider can compose the others (`'per-unit'`). */
+  export interface Context {
+    /** The select over the registry's providers for a model, as the structure's `bonds` param, without `exclude`. */
+    choiceParam(model: Model | undefined, options?: { exclude?: readonly string[] }): PD.Mapped<PD.NamedParams<any>>;
+    /** The instance of a choice; the default instance for none, an unknown or a non-applicable one. */
+    resolve(choice: Choice | undefined, model?: Model): Instance;
   }
 
   export const DefaultName = 'default';

@@ -455,6 +455,7 @@ export const DefaultRegistry: readonly PluginRegistryEntry[] = [
   DefaultParticleRepresentations,
   DefaultActions, // today's full action list in today's order; before DefaultFormats (below)
   DefaultFormats, // today's order: volume, topology, coordinates, shape, particles, trajectory
+  DefaultBonds, // the 'none' and 'per-unit' bond providers; the built-in bonds are not an entry
   DefaultPresets,
   DefaultSelectionQueries, // today's catalog and residue queries, in today's order (§7)
   DefaultMarkdownExtensions,
@@ -463,7 +464,7 @@ export const DefaultRegistry: readonly PluginRegistryEntry[] = [
 ];
 ```
 
-The module, these eleven export names, and their order are part of the public contract; migration examples, apps, and
+The module, these twelve export names, and their order are part of the public contract; migration examples, apps, and
 the migration tool refer to them. `DefaultActions` comes before `DefaultFormats` because format entries carry actions
 and actions are listed per type in registration order; this way the format entries' actions are already registered
 (counted by id) and the 5.x action order is kept. `DefaultPresets` holds today's hierarchy and representation presets;

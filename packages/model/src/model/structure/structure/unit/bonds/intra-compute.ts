@@ -386,12 +386,15 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
           continue;
         }
         if (!isHa && !isHb) continue; // If Hydrogen not in the component dictionary, fallback to distance-based.
+        if (props.noDistance) continue;
 
         const dist = Math.sqrt(distSq);
         if (dist === 0) continue;
         addDistanceBond(_aI, _bI, aI, bI, raI, raI, dist, thresholdA, isMetal, compId, atomIdA, seqIdA);
       }
     }
+
+    if (props.noDistance) continue;
 
     const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], queryRadius);
 

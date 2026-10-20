@@ -218,7 +218,7 @@ function findPairBonds(
       // all are given and thus we don't need to compute any other
       if (added) continue;
     }
-    if (structConnExhaustive) continue;
+    if (structConnExhaustive || props.noDistance) continue;
 
     const occA = occupancyA.value(aI);
 
