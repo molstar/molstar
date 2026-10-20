@@ -105,6 +105,11 @@ afterAll(() => {
   vi.unstubAllGlobals();
 });
 
+// An axe check takes about a second: the self-check, the rail, the home tabs and the trajectory bar are the quick
+// lane's representatives, the rest of the sweep is medium (AGENTS.md, Tests). A medium test may build on the state
+// an earlier one left (snapshots, a selection, history steps): the quick ones leave none.
+const medium = { tags: ['medium'] };
+
 let core: ViewerCore;
 let mounted: MountedShell;
 let check: () => Promise<void>;
@@ -139,14 +144,14 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     'settings',
     'help',
   ]) {
-    it(`the ${tab} tab`, async () => {
+    it(`the ${tab} tab`, tab === 'home' ? {} : medium, async () => {
       mounted.shell.show(tab);
       await quiet();
       await check();
     });
   }
 
-  it('the snapshots tab and the playback card with snapshots', async () => {
+  it('the snapshots tab and the playback card with snapshots', medium, async () => {
     const person = core.api.as({ kind: 'person' });
     expectOk(await person.snapshot!.add({}));
     expectOk(await person.snapshot!.add({}));
@@ -160,7 +165,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     mounted.shell.closeOverlay();
   });
 
-  it('the structure tab with a node picked (the inspector) and a row menu open', async () => {
+  it('the structure tab with a node picked (the inspector) and a row menu open', medium, async () => {
     mounted.shell.show('structure');
     const scene = core.views.scene;
     const first = scene.roots.value[0];
@@ -177,14 +182,14 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
 
-  it('the selection tab with a selection', async () => {
+  it('the selection tab with a selection', medium, async () => {
     expectOk(await core.api.as({ kind: 'person' }).select.set({ target: 'ligand' }));
     mounted.shell.show('selection');
     await quiet();
     await check();
   });
 
-  it('the state tree with a cell picked (its form and actions)', async () => {
+  it('the state tree with a cell picked (its form and actions)', medium, async () => {
     mounted.shell.show('state-tree.tab.tree');
     await quiet();
     const row = mounted.root.querySelector<HTMLElement>('[role=treeitem] > div:first-child');
@@ -194,7 +199,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     await check();
   });
 
-  it('the history tab with steps', async () => {
+  it('the history tab with steps', medium, async () => {
     expectOk(await core.api.as({ kind: 'person' }).settings.set({ group: 'viewer', values: { checkpointing: false } }));
     mounted.shell.show('history');
     await quiet();
@@ -203,7 +208,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
   });
 
   for (const card of ['export', 'canvas-settings.overlay.canvas', 'animation.overlay.animation']) {
-    it(`the ${card} card`, async () => {
+    it(`the ${card} card`, medium, async () => {
       mounted.shell.openOverlay(card);
       await quiet();
       expect(mounted.root.querySelector('[role=dialog]')).not.toBeNull();
@@ -212,14 +217,14 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     });
   }
 
-  it('the sequence band', async () => {
+  it('the sequence band', medium, async () => {
     mounted.shell.show('sequence');
     await quiet();
     expect(mounted.root.querySelector('[aria-label="What a click selects"]')).not.toBeNull();
     await check();
   });
 
-  it('the command menu open', async () => {
+  it('the command menu open', medium, async () => {
     // From inside the shell: the page's keys belong to the viewer whose shell has the focus.
     mounted.root
       .querySelector('[role=tab]')!
@@ -230,7 +235,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
 
-  it('a compact shell', async () => {
+  it('a compact shell', medium, async () => {
     mounted.shell.setMode('compact');
     mounted.shell.show('home');
     await quiet();
@@ -270,15 +275,19 @@ describe('the viewer shell with a trajectory and a volume (axe)', () => {
     expect(bar()).toBe('none');
   });
 
-  it("the trajectory's row in the Structure panel (the canvas' bar steps back while it is on screen)", async () => {
-    page.mounted.shell.show('structure');
-    await quiet();
-    expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
-    await page.check();
-  });
+  it(
+    "the trajectory's row in the Structure panel (the canvas' bar steps back while it is on screen)",
+    medium,
+    async () => {
+      page.mounted.shell.show('structure');
+      await quiet();
+      expect(page.mounted.root.querySelector('[data-scene-row="scene.trajectory"]')).not.toBeNull();
+      await page.check();
+    },
+  );
 
   for (const kind of ['structure', 'volume', 'volume-representation'] as const) {
-    it(`the structure tab with a ${kind} picked (its inspector)`, async () => {
+    it(`the structure tab with a ${kind} picked (its inspector)`, medium, async () => {
       page.mounted.shell.show('structure');
       const scene = page.core.views.scene;
       const find = (nodes: readonly SceneNode[]): SceneNode | undefined => {
@@ -306,7 +315,7 @@ describe('the empty viewer shell (axe)', () => {
   afterAll(() => page.dispose());
 
   for (const tab of ['home', 'structure', 'help']) {
-    it(`the ${tab} tab with nothing loaded`, async () => {
+    it(`the ${tab} tab with nothing loaded`, tab === 'home' ? {} : medium, async () => {
       page.mounted.shell.show(tab);
       await quiet();
       await page.check();
@@ -321,7 +330,7 @@ describe('the viewer shell with the compact canvas toolbar (axe)', () => {
   });
   afterAll(() => page.dispose());
 
-  it('is one button, its menu open with the mode choices and a submenu', async () => {
+  it('is one button, its menu open with the mode choices and a submenu', medium, async () => {
     const root = page.mounted.root;
     const button = root.querySelector<HTMLElement>('[data-stack-collapsed]');
     expect(button).not.toBeNull();

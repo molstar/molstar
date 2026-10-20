@@ -9,8 +9,8 @@
 // Validation at genome scale and its cost (V5): a table's `target` column is a ref per row, so a dense values
 // table over 3M positions names a chromosome 3M times. The check reads each cell once, records one ref per distinct
 // value, and a snapshot re-checks only the nodes it touched (each node's own checks memoized by its params object).
-// Times are compared between two sizes, the best of five runs each, never against a fixed bound (the slow tier: they
-// read the clock); where the work can be counted (cell reads), it is counted instead, in the fast tier.
+// Times are compared between two sizes, the best of five runs each, never against a fixed bound (the heavy lane: they
+// read the clock); where the work can be counted (cell reads), it is counted instead, in the quick lane.
 
 import { SeqSets } from '@molstar/seq-core/model';
 import { describe, expect, it } from 'vitest';
@@ -41,7 +41,7 @@ const brief = (d: SeqViewSpecDoc, o = {}) => validate(d, reg, o).map((i) => `${i
 
 describe('validation scales with table rows', () => {
   it('200,000 target refs from one annotation validate, coded or as strings, in linear time', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     for (const plain of [false, true]) {
       const doc = (n: number) => {
@@ -59,7 +59,7 @@ describe('validation scales with table rows', () => {
     }
   });
 
-  it('the 3M-row coded genome table validates in linear time (V5)', { tags: ['slow'] }, () => {
+  it('the 3M-row coded genome table validates in linear time (V5)', { tags: ['heavy'] }, () => {
     const small = codedDoc(750_000);
     const large = codedDoc(3_000_000);
     expect(validate(large, reg)).toEqual([]);

@@ -21,9 +21,19 @@ import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { getResidueLoci, type StructureGroup } from './common.js';
 import { applyIndexRuns } from './element.js';
 
-export * from './polymer/backbone.js';
-export * from './polymer/gap-iterator.js';
-export * from './polymer/trace-iterator.js';
+export {
+  eachAtomicPolymerBackboneElement,
+  eachPolymerBackboneElement,
+  eachPolymerBackboneLink,
+  type PolymerBackboneElementCallback,
+  type PolymerBackboneLinkCallback,
+} from './polymer/backbone.js';
+export { AtomicPolymerGapIterator, CoarsePolymerGapIterator, PolymerGapIterator } from './polymer/gap-iterator.js';
+export {
+  AtomicPolymerTraceIterator,
+  CoarsePolymerTraceIterator,
+  PolymerTraceIterator,
+} from './polymer/trace-iterator.js';
 export * from './polymer/curve-segment.js';
 
 export const StandardTension = 0.5;

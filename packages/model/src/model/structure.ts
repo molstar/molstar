@@ -7,7 +7,40 @@
 
 export * from './structure/coordinates.js';
 export * from './structure/topology.js';
-export * from './structure/model.js';
-export * from './structure/structure.js';
-export * from './structure/query.js';
+export {
+  IndexedCustomProperty,
+  Model,
+  StructureSequence,
+  Symmetry,
+  Types,
+  type ChainIndex,
+  type ElementIndex,
+  type EntityIndex,
+  type ResidueIndex,
+} from './structure/model.js';
+export {
+  Bond,
+  CifExportContext,
+  Structure,
+  StructureElement,
+  StructureProperties,
+  StructureSymmetry,
+  Unit,
+  UnitRing,
+  UnitRings,
+  encode_mmCIF_categories,
+  mmCIF_Export_Filters,
+  to_mmCIF,
+  type CifExportCategoryInfo,
+} from './structure/structure.js';
+export {
+  Queries,
+  QueryContext,
+  StructureQuery,
+  StructureSelection,
+  type QueryContextOptions,
+  type QueryContextView,
+  type QueryFn,
+  type QueryPredicate,
+} from './structure/query.js';
 export * from './structure/trajectory.js';

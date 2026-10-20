@@ -48,7 +48,7 @@ const DOCS: [string, () => SeqViewSpecDoc][] = [
 ];
 const EACH: [string, () => SeqViewSpecDoc, string[]][] = [
   ...DOCS.map(([name, make]): [string, () => SeqViewSpecDoc, string[]] => [name, make, []]),
-  ['case17 at full size', () => case17(), ['slow']],
+  ['case17 at full size', () => case17(), ['heavy']],
 ];
 
 describe.each(EACH)('%s', (_, make, tags) => {
@@ -296,7 +296,7 @@ describe('a source in `format: "msgpack"`', () => {
   });
 });
 
-describe('CLIs', { tags: ['slow'] }, () => {
+describe('CLIs', { tags: ['heavy'] }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'svs-msgpack-'));
   const cli = (name: string, ...args: string[]) =>
     spawnSync(process.execPath, [fileURLToPath(new URL(`../../lib/format/cli/${name}.js`, import.meta.url)), ...args], {

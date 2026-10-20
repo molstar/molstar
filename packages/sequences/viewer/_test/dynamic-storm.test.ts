@@ -10,7 +10,7 @@
 // stream manager's nodes (one node a patch, as a region's would bring it), then applied: all in one frame (one graph
 // update), and one a frame (1,000 updates at stream rate, the case the assembly must not rebuild the view for), then
 // the same 1,000 again (no-ops). Reports the time a patch costs to hold, an update's time and what it reran; asserts
-// what reruns, and loose times. The slow tier's; the fast tier's storm of 50 checks what reruns.
+// what reruns, and loose times. The heavy lane's; the quick lane's storm of 50 checks what reruns.
 
 import { describe, expect, it } from 'vitest';
 import { GRCH38 } from '../../core/_test/format/stream-provider.js';
@@ -80,7 +80,7 @@ describe('a storm of dynamic nodes', () => {
   });
 
   it('1,000 node patches: held in microseconds each, applied in one update a frame that reruns no section, layer or view', {
-    tags: ['slow'],
+    tags: ['heavy'],
     timeout: 120_000,
   }, async () => {
     const { hold, once, each, again } = await storm(1_000);

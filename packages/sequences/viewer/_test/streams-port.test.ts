@@ -194,7 +194,7 @@ describe('the cache', () => {
 
   it('two hundred patches leave the document, its history and the set untouched', () => patches(200));
 
-  it('a thousand patches leave the document, its history and the set untouched', { tags: ['slow'] }, () =>
+  it('a thousand patches leave the document, its history and the set untouched', { tags: ['heavy'] }, () =>
     patches(1000),
   );
 });

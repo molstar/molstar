@@ -61,7 +61,7 @@ describe("a streamed alignment's labels under the cache bound (VT-07)", () => {
 
   it('are counted and evicted with their chunks, and asked again in view: 4,000 rows a scroll', () => tour(4000));
 
-  it('are counted and evicted with their chunks, and asked again in view', { timeout: 30_000, tags: ['slow'] }, () =>
+  it('are counted and evicted with their chunks, and asked again in view', { timeout: 30_000, tags: ['heavy'] }, () =>
     tour(400),
   );
 });

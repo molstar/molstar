@@ -47,7 +47,7 @@ describe('the generated reference', () => {
   });
 });
 
-describe('svs-validate and svs-print-schema', { tags: ['slow'] }, () => {
+describe('svs-validate and svs-print-schema', { tags: ['heavy'] }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'svs-cli-'));
   const path = (name: string) => join(dir, name);
   const cli = (name: string, ...args: string[]) =>

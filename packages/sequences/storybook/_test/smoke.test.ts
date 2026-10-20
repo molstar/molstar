@@ -14,7 +14,7 @@
 // entry. Several stories broke silently before this: a lazy alignment sharing a ref with its view, buttons that
 // patched a track instead of its layer, a filter that kept rows no track draws, a query naming one that had not run.
 // The stories' documents are opened half here and half in smoke-more.test.ts (smoke-stories.ts), so the halves run at
-// once; the four with the largest documents are the slow tier's, every other runs in the fast tier.
+// once; the four with the largest documents are the heavy lane's, every other runs in the quick lane.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,7 +26,7 @@ import { BAD, styled } from '../src/_stories/support/seqstar-docs-views.js';
 import { storyPatch } from '../src/_stories/support/seqstar-patch.js';
 import { SMOKE } from '../src/_stories/support/seqstar-smoke.js';
 import { smoke } from './smoke-harness.js';
-import { root, SLOW_STORIES, storyDocuments } from './smoke-stories.js';
+import { root, HEAVY_STORIES, storyDocuments } from './smoke-stories.js';
 
 const stories = join(root, 'packages/sequences/storybook/src/_stories');
 
@@ -56,8 +56,8 @@ describe('the story registry', () => {
       if (s.same) expect(SMOKE.find((x) => x.key === s.same)?.cases, `${s.key} -> ${s.same}`).toBeTypeOf('function');
     }
   });
-  it("names the slow tier's stories among those with documents", () => {
-    expect([...SLOW_STORIES].filter((k) => !SMOKE.find((s) => s.key === k)?.cases)).toEqual([]);
+  it("names the heavy lane's stories among those with documents", () => {
+    expect([...HEAVY_STORIES].filter((k) => !SMOKE.find((s) => s.key === k)?.cases)).toEqual([]);
   });
 });
 

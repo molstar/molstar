@@ -26,7 +26,7 @@ function createMesh() {
 describe('WebGL program cache', () => {
   const ctx = tryGetGLContext(32, 32);
 
-  (ctx ? it : it.skip)('shares programs of equal defines, not of others', () => {
+  (ctx ? it : it.skip)('shares programs of equal defines, not of others', { tags: ['medium'] }, () => {
     const ctx = getGLContext(32, 32);
     const { resourceCounts } = ctx.stats;
     const scene = Scene.create(ctx);

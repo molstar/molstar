@@ -30,7 +30,7 @@ describe('graphics context', () => {
     expect(isWebGLContext({} as GraphicsContext)).toBe(false);
   });
 
-  it.skipIf(!hasGl)('isWebGLContext accepts WebGL contexts', () => {
+  it.skipIf(!hasGl)('isWebGLContext accepts WebGL contexts', { tags: ['medium'] }, () => {
     const ctx = tryGetGLContext(32, 32)!;
     expect(isWebGLContext(ctx)).toBe(true);
     ctx.destroy();
@@ -42,7 +42,7 @@ describe('graphics context', () => {
     expect(() => asGLTexture(foreignTexture)).toThrow(/another backend/);
   });
 
-  it.skipIf(!hasGl)('isGLTexture accepts textures of the WebGL resources', () => {
+  it.skipIf(!hasGl)('isGLTexture accepts textures of the WebGL resources', { tags: ['medium'] }, () => {
     const ctx = tryGetGLContext(32, 32)!;
     const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     expect(isGLTexture(texture)).toBe(true);
@@ -55,7 +55,7 @@ describe('graphics context', () => {
     expect(() => asWebGLGlobalBindings(foreignGlobals)).toThrow(/another backend/);
   });
 
-  it.skipIf(!hasGl)('isWebGLGlobalBindings accepts global bindings of the WebGL context', () => {
+  it.skipIf(!hasGl)('isWebGLGlobalBindings accepts global bindings of the WebGL context', { tags: ['medium'] }, () => {
     const ctx = tryGetGLContext(32, 32)!;
     const globals = ctx.createGlobalBindings(GlobalUniformSchema, [], []);
     expect(isWebGLGlobalBindings(globals)).toBe(true);

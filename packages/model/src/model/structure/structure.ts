@@ -12,5 +12,11 @@ import { Bond } from './structure/unit/bonds.js';
 import { StructureProperties } from './structure/properties.js';
 
 export { StructureElement, Bond, Structure, Unit, StructureSymmetry, StructureProperties };
-export * from './structure/unit/rings.js';
-export * from './export/mmcif.js';
+export { UnitRing, UnitRings } from './structure/unit/rings.js';
+export {
+  CifExportContext,
+  encode_mmCIF_categories,
+  mmCIF_Export_Filters,
+  to_mmCIF,
+  type CifExportCategoryInfo,
+} from './export/mmcif.js';

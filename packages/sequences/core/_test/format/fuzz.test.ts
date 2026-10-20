@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// A seeded fuzz of 2,000 mutations over the acceptance cases of cases.ts (the slow tier; the fast tier runs 100). Whatever a mutation does to a
+// A seeded fuzz of 2,000 mutations over the acceptance cases of cases.ts (the heavy lane; the quick lane runs 100). Whatever a mutation does to a
 // document (a key deleted, a value replaced by junk, children turned into an object, a kind swapped, a node
 // duplicated), `validate`, `normalize`, `diff` and `applyPatch` report issues and never throw; and when both documents
 // validate, `applyPatch(structuredClone(a), diff(a, b))` gives b.
@@ -186,7 +186,7 @@ describe('fuzz', () => {
   });
 
   it('2000 mutations of the acceptance cases never throw, and a diff of two valid documents applies', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const { failures, applied, both } = fuzz(2000, 20261011);
     expect(failures).toEqual([]);

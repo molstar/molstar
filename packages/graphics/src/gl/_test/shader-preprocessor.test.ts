@@ -175,6 +175,7 @@ function checkVariant(shaderCode: ShaderCode, schema: RenderableSchema, values: 
   }
 }
 
+// every shader in every variant: the mesh is the quick lane's representative, the others are medium (AGENTS.md, Tests)
 describe('shader preprocessor: inventory', () => {
   for (const [name, shaderCode, renderableSchema, geometryType] of GraphicsShaders) {
     const schema: RenderableSchema = {
@@ -186,7 +187,7 @@ describe('shader preprocessor: inventory', () => {
     };
     const defineVariants = getComputeDefineVariants(schema);
     for (const renderVariant of RenderVariants) {
-      it(`${name} ${renderVariant}`, () => {
+      it(`${name} ${renderVariant}`, name === 'mesh' ? {} : { tags: ['medium'] }, () => {
         const variants = FullRenderVariants.has(renderVariant) ? defineVariants : defineVariants.slice(0, 1);
         for (const variant of variants) {
           const values = { ...variant, dRenderVariant: renderVariant, dGeometryType: geometryType };

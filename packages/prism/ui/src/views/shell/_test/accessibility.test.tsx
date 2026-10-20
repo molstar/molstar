@@ -36,6 +36,10 @@ function mount(props: Partial<ShellStoryProps> = {}) {
   };
 }
 
+// An axe check takes about half a second: the rail, the empty canvas and the overlay card are the quick lane's
+// representatives, the other layouts are medium (AGENTS.md, Tests).
+const medium = { tags: ['medium'] };
+
 describe('the shell has no accessibility violations (axe)', () => {
   beforeEach(() => {
     vi.stubGlobal(
@@ -61,7 +65,7 @@ describe('the shell has no accessibility violations (axe)', () => {
     t.done();
   });
 
-  it('the compact canvas toolbar (one button), and its menu open', async () => {
+  it('the compact canvas toolbar (one button), and its menu open', medium, async () => {
     const t = mount({ noPanel: true, toolbarCollapsed: true });
     await frame();
     const folded = t.container.querySelector<HTMLButtonElement>('[data-stack-collapsed]');
@@ -81,7 +85,7 @@ describe('the shell has no accessibility violations (axe)', () => {
   });
 
   for (const tab of ['log', 'settings', 'help']) {
-    it(`the ${tab} panel`, async () => {
+    it(`the ${tab} panel`, medium, async () => {
       const t = mount({ openTab: tab });
       await frame();
       await expectNoAxeViolations(t.container);
@@ -89,21 +93,21 @@ describe('the shell has no accessibility violations (axe)', () => {
     });
   }
 
-  it('the right panel pinned beside the canvas', async () => {
+  it('the right panel pinned beside the canvas', medium, async () => {
     const t = mount({ openTab: 'settings', pinned: true });
     await frame();
     await expectNoAxeViolations(t.container);
     t.done();
   });
 
-  it('a compact rail', async () => {
+  it('a compact rail', medium, async () => {
     const t = mount({ compact: true, openTab: 'settings' });
     await frame();
     await expectNoAxeViolations(t.container);
     t.done();
   });
 
-  it('the command menu open', async () => {
+  it('the command menu open', medium, async () => {
     const t = mount({ commandMenu: true });
     await frame();
     await expectNoAxeViolations(t.container);

@@ -104,14 +104,23 @@ function stateOut(state: MeshBuilder.State): Out {
   };
 }
 
-/** Compares the Float32 bit patterns, so -0 and the sign of NaN count too */
+// A NaN compares as one pattern: which NaN a store into a typed array writes is the engine's (ECMA-262,
+// NumericToRawBytes), and Node 24 on x64 writes 0x7fc00000 where the reference's arithmetic gave 0xffc00000.
+const NaN32 = 0x7fc00000;
+const NaN64 = 0x7ff8000000000000n;
+
+/** Compares the Float32 bit patterns, so -0 counts too */
 function bits(a: ArrayLike<number>) {
-  return Array.from(new Uint32Array(Float32Array.from(a).buffer));
+  const f = Float32Array.from(a);
+  const u = new Uint32Array(f.buffer);
+  return Array.from(u, (b, i) => (Number.isNaN(f[i]) ? NaN32 : b));
 }
 
 /** Compares the Float64 bit patterns, for arrays that keep doubles */
 function bits64(a: ArrayLike<number>) {
-  return Array.from(new BigUint64Array(Float64Array.from(a).buffer));
+  const f = Float64Array.from(a);
+  const u = new BigUint64Array(f.buffer);
+  return Array.from(u, (b, i) => (Number.isNaN(f[i]) ? NaN64 : b));
 }
 
 function expectSame(actual: Out, expected: Out) {

@@ -7,8 +7,8 @@
  */
 
 // The reference server holds nothing (ST2): a million rows are sampled when a tile is asked, never generated and
-// kept (the first version cached every row string, about 4 GB at that size). The million is the slow tier's; the fast
-// tier asks the same of 20,000 rows.
+// kept (the first version cached every row string, about 4 GB at that size). The million is the heavy lane's; the quick
+// lane asks the same of 20,000 rows.
 
 import { TILE } from '@molstar/seq-core/format';
 import { describe, expect, it } from 'vitest';
@@ -42,7 +42,7 @@ describe('20,000 rows', () => {
   });
 });
 
-describe('a million rows', { tags: ['slow'] }, () => {
+describe('a million rows', { tags: ['heavy'] }, () => {
   const [R, C] = [1_000_000, 320];
   const server = tileServer({ rowCount: R, columnCount: C });
   const client = tileClient('x', server.transport);

@@ -10,7 +10,7 @@
 // 9,000 under another source. Then one node a frame: under the template's source (an arrival: its template and the view
 // rerun, every other instance kept), under the other (only `#assemble.stream`), and evictions of instances. Reports the
 // times and, apart, what an update spends in the set's `withChanges` and in `templateNodes` at 10,000 held; asserts
-// what reruns and loose times. The slow tier's; the fast tier's storm of 50 instances over 500 checks what reruns.
+// what reruns and loose times. The heavy lane's; the quick lane's storm of 50 instances over 500 checks what reruns.
 
 import { indexDoc, templateNodes } from '@molstar/seq-core/format';
 import { SeqSets } from '@molstar/seq-core/model';
@@ -68,7 +68,7 @@ describe('a templated storm', () => {
   });
 
   it("1,000 instances over 10,000 held nodes: an arrival reruns its template and the view, another source's nothing", {
-    tags: ['slow'],
+    tags: ['heavy'],
     timeout: 300_000,
   }, async () => {
     const { t, hold, once, arrive, other, leave } = await storm(1_000, 10_000, 200);

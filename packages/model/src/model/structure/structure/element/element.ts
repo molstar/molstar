@@ -6,8 +6,19 @@
  */
 
 export * from './location.js';
-export * from './loci.js';
-export * from './bundle.js';
-export * from './schema.js';
-export * from './stats.js';
-export * from './util.js';
+export { Loci } from './loci.js';
+export { Bundle, type BundleElement } from './bundle.js';
+export { Schema, type SchemaItem, type SchemaItems } from './schema.js';
+export { Stats } from './stats.js';
+export {
+  atomicProperty,
+  chainIndex,
+  coarseProperty,
+  entityIndex,
+  property,
+  residueIndex,
+  type Predicate,
+  type Property,
+  type Set,
+  type UnitIndex,
+} from './util.js';

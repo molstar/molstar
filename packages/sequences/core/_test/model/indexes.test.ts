@@ -8,7 +8,7 @@
 
 // Build-once indexes and loci (M3): "look up, never search" (seqspec:model#locations-and-loci). The
 // scaling tests compare a query's cost at two sizes (the best of a few runs), never a time against a constant; they
-// read the clock, so they are the slow tier's.
+// read the clock, so they are the heavy lane's.
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -115,7 +115,7 @@ describe('rows slots', () => {
   });
 
   it('build in time linear in the records: 10 times the records cost under 30 times as much', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const cost = (n: number) => perCall(() => records(n), 1);
     expect(cost(50_000) / cost(5_000)).toBeLessThan(30);
@@ -192,7 +192,7 @@ describe('pairs: touching through a running maximum, endUnits', () => {
     expect(ends(-1, 0)).toEqual([]);
   });
 
-  it('cost about the same per hover near the end of a unit with 32 times the pairs', { tags: ['slow'] }, () => {
+  it('cost about the same per hover near the end of a unit with 32 times the pairs', { tags: ['heavy'] }, () => {
     const L = 20_000;
     const contacts = (n: number) => {
       const set = SeqSets.build({
@@ -241,7 +241,7 @@ describe('toRowLocations through the unit index', () => {
     expect(seen).toEqual(['0:7', '1:7', '517:7', '999:7']);
   });
 
-  it('cost about the same per hover with 10 times the chains', { tags: ['slow'] }, () => {
+  it('cost about the same per hover with 10 times the chains', { tags: ['heavy'] }, () => {
     const cost = (n: number) => {
       const set = chains(n).set;
       const l = SeqLocation.create(set);
@@ -282,7 +282,7 @@ describe('items: itemRows, itemOf and remapped item loci', () => {
     ]);
   });
 
-  it('remap item loci in time linear in the items', { tags: ['slow'] }, () => {
+  it('remap item loci in time linear in the items', { tags: ['heavy'] }, () => {
     const cost = (n: number) => {
       const ids = Array.from({ length: n }, (_, i) => `k${i}`);
       const from = ranges(ids);

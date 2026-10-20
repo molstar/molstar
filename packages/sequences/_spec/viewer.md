@@ -322,7 +322,7 @@ platform-free: the same code exports from a page and renders figures in Node), a
   overlay stopped by the pause (a skeleton's shimmer, a region's fade) runs on. Its events still run (the viewport pans,
   the hover moves); only drawing waits. Guards: `_test/canvas/active.test.ts` (no frame asked for while paused, one on
   resume, the size given while paused, an animation running on) and the paused case of `surface.heap.ts`, each with a
-  positive control; `_test/surface-resume.test.ts` in the fast tier.
+  positive control; `_test/surface-resume.test.ts` in the quick lane.
 - **Per-position text** (a block's letters, another polymer's residues, three-letter codes, atom symbols) is set per
   row: one font size and one form for the whole row, from its cells' width and never larger than the row allows nor than
   the cap (the render prop `maxLetterPx`; by default the header labels' size, `labelFontPx`), so zoomed in past it the

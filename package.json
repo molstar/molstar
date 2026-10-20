@@ -13,8 +13,10 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "lint": "biome lint . && node scripts/workspace/test-exports.mjs",
+    "lint": "biome lint . && node scripts/workspace/test-exports.mjs && node scripts/workspace/export-star-cycles.mjs",
     "test:unit": "vitest run",
+    "test:medium": "vitest run --mode medium",
+    "test:heavy": "vitest run --mode heavy",
     "test:live": "vitest run --config vitest.live.config.ts",
     "test:watch": "vitest",
     "test": "pnpm lint && pnpm test:unit",
@@ -45,7 +47,7 @@
     "test:visual": "node scripts/visual-tests.mjs",
     "benchmark": "node scripts/benchmark.mjs",
     "check:types:full": "node scripts/workspace/typecheck-full.mjs",
-    "check:publish": "pnpm format:check && pnpm test && pnpm rebuild && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
+    "check:publish": "pnpm format:check && pnpm test && pnpm test:medium && pnpm rebuild && pnpm check:types:full && pnpm check:workspace && pnpm version:check && pnpm pack:workspace && node smoke/run.mjs node && node smoke/run.mjs types && node smoke/run.mjs source && node smoke/run.mjs cli",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write . && prettier --write \"**/*.{md,mdx,yaml,yml,scss}\"",
     "format:check": "biome format . && prettier --check \"**/*.{md,mdx,yaml,yml,scss}\""

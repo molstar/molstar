@@ -170,7 +170,7 @@ describe('grids at scale', () => {
   });
 
   it('stacked lanes share one frame count and budget: they settle, and steady frames build nothing', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, async () => {
     // Before: each lane counted a frame and evicted the others' levels (2,262 tiles in 100 frames, never settled).
     expect(await stacked(12, 1000)).toBeLessThan(300);
