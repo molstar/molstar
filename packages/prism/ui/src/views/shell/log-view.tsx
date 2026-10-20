@@ -40,7 +40,7 @@ export function LogView(props: { status: NotificationsManager }) {
   const query = observableState('');
   // The log-only sources present, in the order they first appear: a filter each.
   const sources = derive(
-    props.status.history,
+    props.status.logged,
     (list) => {
       const seen = new Set<string>();
       for (const m of list) if (m.source !== undefined) seen.add(m.source);
@@ -55,7 +55,7 @@ export function LogView(props: { status: NotificationsManager }) {
     { id: 'problems', label: 'Problems' },
   ]);
   const shown = derive(
-    [props.status.history, filter.asReadonly, query.asReadonly],
+    [props.status.logged, filter.asReadonly, query.asReadonly],
     (list, f, q): readonly StatusMessage[] => {
       const text = q.trim().toLowerCase();
       return f === 'all' && !text ? list : list.filter((m) => passes(m, f, text));
@@ -91,7 +91,7 @@ export function LogView(props: { status: NotificationsManager }) {
           key={(m) => m.id}
           fallback={() => (
             <p class={classes.empty}>
-              {derive(props.status.history, (h) => (h.length ? 'Nothing matches.' : 'No messages yet.'))}
+              {derive(props.status.logged, (h) => (h.length ? 'Nothing matches.' : 'No messages yet.'))}
             </p>
           )}
         >

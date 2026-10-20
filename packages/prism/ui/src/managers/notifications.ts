@@ -63,6 +63,7 @@ export interface StatusChip {
 export class NotificationsManager extends ReactiveModel {
   readonly #current = observableState<StatusMessage | undefined>(undefined);
   readonly #history = observableState<readonly StatusMessage[]>([]);
+  readonly #log = observableState<readonly StatusMessage[]>([]);
   readonly #tasks = observableState<readonly StatusTask[]>([]);
   /** The tasks put one by one (`putTask`), by id: `setTasks` leaves them. */
   readonly #put = new Set<string>();
@@ -88,6 +89,14 @@ export class NotificationsManager extends ReactiveModel {
   /** Recent messages, newest first. */
   get history(): ReadonlyState<readonly StatusMessage[]> {
     return this.#history.asReadonly;
+  }
+
+  /**
+   * What the Log shows, newest first: the messages (`history`) and what was written to the log only (`log`: the
+   * plugin's transforms, for one), each source within its bound.
+   */
+  get logged(): ReadonlyState<readonly StatusMessage[]> {
+    return this.#log.asReadonly;
   }
 
   get tasks(): ReadonlyState<readonly StatusTask[]> {
@@ -129,7 +138,8 @@ export class NotificationsManager extends ReactiveModel {
       ...(options.detail ? { detail: options.detail } : {}),
     };
     this.#flush();
-    this.#history.set(this.#bounded([message, ...this.#history.value]));
+    this.#history.set([message, ...this.#history.value].slice(0, this.options.historySize ?? 200));
+    this.#log.set(this.#bounded([message, ...this.#log.value]));
     this.#current.set(message);
     this.announce(text);
     clearTimeout(this.#fade);
@@ -138,8 +148,9 @@ export class NotificationsManager extends ReactiveModel {
   }
 
   /**
-   * Writes `text` to the log only (the Log tab, filtered by `source`): never on show, never said. Entries of one source
-   * past `keep` drop the oldest of that source. Written once a task, so a burst is one change of the history.
+   * Writes `text` to the log only (`logged`, the Log tab, filtered by `source`): never on show, never said, not in
+   * `history`. Entries of one source past `keep` drop the oldest of that source. Written once a task, so a burst is
+   * one change.
    */
   log(text: string, kind: MessageKind, source: string, options: LogOptions = {}): void {
     const message: StatusMessage = {
@@ -161,13 +172,13 @@ export class NotificationsManager extends ReactiveModel {
     for (const { message, keep } of pending) if (keep !== undefined) this.#keep.set(message.source!, keep);
     const next: StatusMessage[] = [];
     for (let i = pending.length - 1; i >= 0; i--) next.push(pending[i].message);
-    for (const m of this.#history.value) next.push(m);
-    this.#history.set(this.#bounded(next));
+    for (const m of this.#log.value) next.push(m);
+    this.#log.set(this.#bounded(next));
   }
 
   /**
-   * The history within its bounds, newest kept: a source with its own (`keep`) to that many, the rest (the messages)
-   * to the history's size, so a burst of transforms does not push the messages out.
+   * The log within its bounds, newest kept: a source with its own (`keep`) to that many, the rest (the messages) to the
+   * history's size, so a burst of transforms does not push the messages out.
    */
   #bounded(list: StatusMessage[]): StatusMessage[] {
     const size = this.options.historySize ?? 200;

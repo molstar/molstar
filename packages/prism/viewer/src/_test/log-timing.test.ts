@@ -25,11 +25,13 @@ describe('timings in the log', () => {
 
   it("logs the plugin's transforms with their time, the latest 100", async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const transforms = () => v.managers.notifications.history.value.filter((m) => m.source === 'Transforms');
+    const transforms = () => v.managers.notifications.logged.value.filter((m) => m.source === 'Transforms');
     await until(() => transforms().length > 0);
     expect(transforms()[0].text).toMatch(/^(Created|Updated) /);
     expect(transforms()[0].detail).toMatch(/^[\d.]+ m?s$/);
     expect(v.managers.notifications.current.value?.source).toBeUndefined();
+    // Not in the messages the status line showed: what reads those (a card's own message count) is unchanged.
+    expect(v.managers.notifications.history.value.some((m) => m.source !== undefined)).toBe(false);
     for (let i = 0; i < 6; i++) expectOk(await v.api.load.files({ files: [cbs()] }));
     await Promise.resolve();
     expect(transforms()).toHaveLength(100);
