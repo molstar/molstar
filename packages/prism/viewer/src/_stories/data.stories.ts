@@ -163,7 +163,7 @@ function manyStructures(count: number) {
   });
 }
 
-/** 50 separate structures (1.2k–11.5k atoms each, 261k in all) in one scene, from local files. */
+/** 50 separate structures (1.2k–11.5k atoms each, about 200k in their default assemblies) in one scene, local files. */
 export const ManyStructures50: StoryObj = {
   render: () => manyStructures(50),
 };
