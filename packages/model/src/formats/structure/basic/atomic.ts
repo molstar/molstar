@@ -118,6 +118,18 @@ function getResidueSourceIndex(
     }
     residueSourceIndex[iRes] = firstSrcIdx;
   }
+  // Source indices are distinct: increasing means the order is the identity, the usual case (perf-audit 04/P14).
+  let increasing = true;
+  for (let i = 1; i < nResidues; i++) {
+    if (residueSourceIndex[i] <= residueSourceIndex[i - 1]) {
+      increasing = false;
+      break;
+    }
+  }
+  if (increasing) {
+    for (let i = 0; i < nResidues; i++) residueSourceIndex[i] = i;
+    return Column.ofIntArray(residueSourceIndex);
+  }
   const sortedResidues = range(nResidues).sort((ia, ib) => residueSourceIndex[ia] - residueSourceIndex[ib]);
   // Reusing `residueSourceIndex` array for source index of the residue:
   for (let i = 0; i < nResidues; i++) {
