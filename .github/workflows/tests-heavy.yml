@@ -11,10 +11,18 @@ on:
     branches: master
     types: [labeled, synchronize]
 
+# one run per PR (or branch) at a time: a newer push or label cancels the one before
+concurrency:
+  group: heavy-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   heavy:
     name: Heavy tests
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'heavy tests')
+    # on a PR: labelled `heavy tests`, on that label or a push (not on another label)
+    if: >-
+      github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'heavy tests') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'heavy tests'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

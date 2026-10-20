@@ -146,7 +146,7 @@ CLI and skip without a build (`lib`). The Mol\* adapter's link guards (Prism's,
   `Seq*/Docs` pages it touches (Features, Concepts, Extending, Streaming, Color schemes, Query language). A new story
   brings its entry in `storybook/src/_stories/support/seqstar-smoke.ts` (the documents it opens, the patches its buttons
   send, the warnings it shows on purpose): `storybook/_test/smoke.test.ts` and `smoke-more.test.ts` (half each,
-  `smoke-stories.ts`) open each on a headless viewer in the `test` tier (the four largest, `SLOW_STORIES`, in
+  `smoke-stories.ts`) open each on a headless viewer in the quick lane (the four largest, `HEAVY_STORIES`, in
   `test:heavy`) and fail on an error, an unlisted warning, an empty visible section, or a story export with no entry. A
   story's builder lives in `storybook/src/_stories/support/` (not in the `.stories.tsx`), so the test can import it
   without React.

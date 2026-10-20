@@ -101,12 +101,13 @@ can hold its tests.
   real ones only wait; no rebuild per test.
 - **Tag in the test's own file**, inline or by `@module-tag` on a line of its own: the config reads the files to decide
   what a lane imports (a filtered-out file is still imported, and imports are about half the run). Helpers that tag are
-  heavy only (`itWithin`, Seq\*'s smoke stories): the heavy lane imports every file. Tags inherit (a heavy test in a
-  medium `describe` is heavy), and the lanes are exclusive. A medium test may build on the state an earlier medium test
-  left, never on a quick one's.
+  heavy only (`itWithin`, Seq\*'s smoke stories): the heavy lane imports every file. A test file imported by another
+  runs its medium tests in its own file only. Tags inherit (a heavy test in a medium `describe` is heavy), and the lanes
+  are exclusive. A medium test may build on the state an earlier medium test left, never on a quick one's.
 - `--mode pr` runs quick and medium (what a PR checks; `pnpm test:native` runs it with the GL backend), `--mode all`
-  every lane; `pnpm check:publish` runs quick and medium. Run the quick lane in the edit loop, the medium lane when you
-  touch what it covers, the heavy lane when you touch what it bounds and at checkpoints.
+  every lane; `pnpm check:publish` runs quick and medium (the GL suite skips without `gl`). Run the quick lane in the
+  edit loop, the medium lane when you touch what it covers, the heavy lane when you touch what it bounds and at
+  checkpoints.
 - **Not lanes**: the packages' opt-in tiers, by hand at checkpoints and never in CI: `test:perf` (allocation, the
   `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap guards (`test:heap`,
   `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md) guides.

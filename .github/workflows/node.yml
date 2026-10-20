@@ -62,7 +62,8 @@ jobs:
           version: 11.25.0
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          # the lowest Node of `engines` (22.13+); the other jobs run on Node 24
+          node-version: 22
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -80,7 +81,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           # The opt-in native GL backend (`gl`) has no prebuilt binaries for Node 24 and fails to build from source;
-          # this job stays on Node 22 until it has. The other jobs run on Node 24.
+          # this job stays on Node 22 until it has.
           node-version: 22
           cache: pnpm
       - name: Install workspace dependencies

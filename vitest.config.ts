@@ -10,7 +10,9 @@ import { defaultClientConditions, defaultServerConditions } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 const include = ['**/*.test.{ts,tsx,mjs}'];
-const skipDirs = new Set(['node_modules', 'lib', 'build', '.pnpm-store', '.claude', '.git', 'smoke', 'deploy']);
+// as `exclude`: these folders at any depth, these at the root
+const skipDirs = new Set(['node_modules', 'lib', 'build']);
+const skipRoots = new Set(['.pnpm-store', '.claude', '.git', 'smoke']);
 const exclude = ['**/node_modules/**', '**/lib/**', '**/build/**', '.pnpm-store/**', '.claude/**', 'smoke/**'];
 
 // The test lanes (AGENTS.md, Tests), by Vitest tag: a test is quick unless it carries `{ tags: ['medium'] }` or
@@ -38,11 +40,12 @@ const tags = [
 // Every test file, read once: its module tag, whether it names the medium tag, whether it mocks modules (Seq*). A
 // lane only imports the files that can hold its tests (a filtered-out file is still imported, and imports are about
 // half the run): the quick lane skips the files tagged medium or heavy as a whole, the medium lane takes the files that
-// name the tag (medium tags sit in the test's own file, never in a helper). The heavy lane imports every file: helpers
-// tag its tests (`itWithin`, Seq*'s smoke stories), and it runs nightly.
+// name the tag in an array (`tags: ['medium']`: medium tags sit in the test's own file, never in a helper; a test file
+// imported by another runs its medium tests in its own file only, as `points.test.ts` in `renderer.test.ts`). The heavy
+// lane imports every file: helpers tag its tests (`itWithin`, Seq*'s smoke stories), and it runs nightly.
 const Mocks = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
 const files = globSync(include, {
-  exclude: (p: string) => skipDirs.has(basename(p)) || basename(p).startsWith('.'),
+  exclude: (p: string) => skipDirs.has(basename(p)) || skipRoots.has(p.replaceAll('\\', '/')),
 })
   .map((f) => f.replaceAll('\\', '/'))
   .sort()
@@ -51,7 +54,7 @@ const files = globSync(include, {
     return {
       path,
       module: /^\s*(?:\/\/|\/?\*+)\s*@module-tag\s+(medium|heavy)\b/m.exec(source)?.[1],
-      medium: /['"]medium['"]/.test(source),
+      medium: /\[\s*['"]medium['"]/.test(source),
       mocks: Mocks.test(source),
     };
   });
@@ -106,8 +109,8 @@ export default defineConfig(({ mode }) => {
       environmentOptions: { jsdom: { url: 'http://localhost/' } },
       tags,
       tagsFilter: Lanes[l],
-      // a lane with no tests in a filtered run passes
-      passWithNoTests: true,
+      // a filtered run of the medium or heavy lane may hold none of their tests; the quick lane always has some
+      passWithNoTests: l === 'medium' || l === 'heavy',
       projects: [
         project(
           'unit',
