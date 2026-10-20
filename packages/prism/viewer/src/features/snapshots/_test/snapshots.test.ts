@@ -232,17 +232,46 @@ describe('snapshot.apply', () => {
     expectOk(await v.api.history.undo());
   });
 
-  it("a script awaiting the manager's navigation is not stuck behind itself, nor is anything after it", async () => {
+  it("a script awaiting the manager's navigation is not stuck behind itself; the step follows it, all undoable", async () => {
     const v = await viewer();
+    const runs = recordRuns(v);
     expectOk(await snap(v).add({ name: 'A', key: 'a' }));
     expectOk(await snap(v).add({ name: 'B', key: 'b' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
     await v.run('Step the story', async (plugin) => {
       await plugin.managers.snapshot.applyNext(1);
       await plugin.managers.snapshot.applyKey('b');
     });
+    await until(
+      () => runs.filter((r) => r.origin.kind === 'person' && r.operation.startsWith('snapshot.')).length === 2,
+    );
     expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
-    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+    expectOk(await v.api.styles.apply({ style: 'cartoon' }));
     expect(v.managers.history.canUndo.value).toBe(true);
+  });
+
+  it("a person's key press while another run is in flight goes after it, as a run of its own", async () => {
+    const v = await viewer();
+    const runs = recordRuns(v);
+    expectOk(await snap(v).add({ name: 'A' }));
+    expectOk(await snap(v).add({ name: 'B' }));
+    let open!: () => void;
+    const gate = new Promise<void>((r) => (open = r));
+    const slow = v.run('Slow', async () => {
+      await gate;
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    const pressed = v.plugin.managers.snapshot.applyNext(1);
+    expect(pressed).toBeUndefined();
+    await new Promise((r) => setTimeout(r, 20));
+    // Not applied meanwhile: it waits for the run in flight.
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
+    open();
+    await slow;
+    await until(() => runs.some((r) => r.operation === 'snapshot.next' && r.origin.kind === 'person'));
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('A');
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
   });
 
   it('next with one snapshot shows it again, with none does nothing, and says nothing either way', async () => {

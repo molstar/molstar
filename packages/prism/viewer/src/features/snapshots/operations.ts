@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginState } from '@molstar/plugin/state';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
-import { type ApiContext, ApiArea, ApiResult, type ApiFailure } from '../../api/area.js';
+import { type ApiContext, ApiArea, ApiResult, type ApiFailure, type OperationDefinition } from '../../api/area.js';
 import {
   createMarkdownSource,
   createSnapshotsSource,
@@ -257,28 +257,29 @@ export class SnapshotApi extends ApiArea {
    */
   readonly #unnavigate = this.ctx.plugin.managers.snapshot.setNavigator({
     applyKey: (key) => {
-      // Called from work the history is already running (a script awaiting it, an operation): it is part of that work,
-      // so the manager applies it; queued behind it, it would wait for itself.
-      if (this.ctx.managers.history.applying) return false;
       const id = this.ctx.plugin.managers.snapshot.state.entries.find((e) => e.key === key)?.snapshot.id;
-      return id ? this.ctx.operations.run(this.apply.definition, { entry: id }, { origin: Person }) : undefined;
+      return id ? this.#navigate(this.apply.definition, { entry: id }) : undefined;
     },
     applyNext: (dir) => {
-      if (this.ctx.managers.history.applying) return false;
       const entries = this.ctx.plugin.managers.snapshot.state.entries;
       // One snapshot is shown again (the manager's own way), none is nothing: neither is a story's step, whose
       // operation would refuse and warn.
       if (entries.size === 0) return undefined;
-      if (entries.size === 1) {
-        return this.ctx.operations.run(
-          this.apply.definition,
-          { entry: entries.get(0)!.snapshot.id },
-          { origin: Person },
-        );
-      }
-      return this.ctx.operations.run((dir > 0 ? this.next : this.previous).definition, {}, { origin: Person });
+      if (entries.size === 1) return this.#navigate(this.apply.definition, { entry: entries.get(0)!.snapshot.id });
+      return this.#navigate((dir > 0 ? this.next : this.previous).definition, {});
     },
   });
+
+  /**
+   * Runs a story's step as the person, in order with the history (a key pressed while an agent's call runs goes after
+   * it, as on the panel). While the history is busy the caller may be that very work (a script awaiting the manager):
+   * the step is queued after it and not handed back, so nothing waits for itself.
+   */
+  #navigate(def: OperationDefinition<any, any>, values: Record<string, unknown>): Promise<unknown> | undefined {
+    const busy = this.ctx.managers.history.applying;
+    const run = this.ctx.operations.run(def, values, { origin: Person });
+    return busy ? undefined : run;
+  }
 
   dispose(): void {
     this.#unnavigate();

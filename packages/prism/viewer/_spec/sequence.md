@@ -191,8 +191,9 @@ The code is the truth for how.
   story's own navigation goes the same way: a description's links (`!apply-snapshot`, `!next-snapshot`), a clickable
   primitive's `snapshot_key` and the keyboard's next and previous reach the plugin's manager, which hands them to the
   snapshot area (`setNavigator`) to run as the person's `snapshot.apply` / `.next` / `.previous` (next with one snapshot
-  shows it again, with none does nothing). Called from work the history is already running (a script awaiting it), the
-  navigator declines and the manager applies it within that work: queued, it would wait for itself.
+  shows it again, with none does nothing). Always in order with the history: a key pressed while another run is in
+  flight goes after it, as on the panel. While the history is busy the step is queued but not handed back, so a script
+  awaiting the manager inside its own step does not wait for itself (the snapshot comes right after that step).
 - **While an animation plays** (`isAnimating`: trajectory playback, the model-index and other animations, a snapshot's
   transition), no checkpoint is taken for it (David, 2026-10-20): playing is no step, its frames are viewing, and the
   history ignores the changes it makes. When it stops, nothing is recorded: Undo takes back the step before it, with the
