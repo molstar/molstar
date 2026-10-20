@@ -14,6 +14,7 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 import { type Coordinates, Structure, Model, type Frame } from '@molstar/model/model/structure';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
+import { BondProviderRegistry, unregisteredBondProviderMessage } from '@molstar/plugin/state/bonds/registry';
 import type { PluginContext } from '@molstar/plugin/context';
 import { deepEqual } from '@molstar/core/util';
 import {
@@ -111,10 +112,18 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
   display: { name: 'Structure from Trajectory', description: 'Create a molecular structure from a trajectory.' },
   from: SO.Molecule.Trajectory,
   to: SO.Molecule.Structure,
+  params(a, plugin: PluginContext | undefined) {
+    // the same choice as `StructureFromModel`'s, for the frames' representative model (bond-providers plan §4)
+    const registry = plugin?.bondProviders ?? new BondProviderRegistry();
+    return { bonds: PD.Optional(registry.getParam(a?.data.representative)) };
+  },
 })({
-  apply({ a }) {
+  apply({ a, params }, plugin: PluginContext) {
     return Task.create('Build Structure', async (ctx) => {
-      const s = await Structure.ofTrajectory(a.data, ctx);
+      const { bonds } = params ?? {};
+      if (bonds && !plugin.bondProviders.has(bonds.name)) plugin.log.warn(unregisteredBondProviderMessage(bonds.name));
+      const bondProvider = plugin.bondProviders.resolve(bonds, a.data.representative);
+      const s = await Structure.ofTrajectory(a.data, ctx, { bondProvider });
       const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
       return new SO.Molecule.Structure(s, props);
     });
@@ -134,8 +143,8 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
   },
   from: SO.Molecule.Model,
   to: SO.Molecule.Structure,
-  params(a) {
-    return RootStructureDefinition.getParams(a && a.data);
+  params(a, plugin: PluginContext | undefined) {
+    return RootStructureDefinition.getParams(a && a.data, undefined, plugin);
   },
 })({
   canAutoUpdate({ oldParams, newParams }) {

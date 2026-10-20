@@ -38,6 +38,7 @@ import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
+import { unregisteredBondProviderMessage } from '@molstar/plugin/state/bonds/registry';
 
 export { PluginState };
 
@@ -50,6 +51,10 @@ const RepresentationTransformerScopes: { [id: string]: RepresentationScope | und
   'ms-plugin.volume-representation-3d': 'volume',
   'ms-plugin.particles-representation-3d': 'particles',
 };
+
+/** The transformers that choose a structure's bond provider (ids only, as above). */
+const StructureFromModelId = 'ms-plugin.structure-from-model';
+const StructureFromTrajectoryId = 'ms-plugin.structure-from-trajectory';
 
 /** How long a scrubbed transition (`setAnimationSnapshot`) rests before it emits `canvas3d.settingsUpdated`. */
 const SettingsUpdatedDebounceMs = 100;
@@ -192,8 +197,18 @@ class PluginState extends PluginComponent {
       reported.add(key);
       warnIfUnregistered(this.plugin, scopeName, kind, registry, name);
     };
+    const checkBonds = (name: unknown) => {
+      if (typeof name !== 'string' || this.plugin.bondProviders.has(name)) return;
+      const key = `bonds|${name}`;
+      if (reported.has(key)) return;
+      reported.add(key);
+      this.plugin.log.warn(unregisteredBondProviderMessage(name));
+    };
     const visit = (tree: State.Snapshot | undefined) => {
       for (const t of tree?.tree?.transforms ?? []) {
+        // the structure transforms' bond provider, which normalization replaces by the default (bond-providers plan §4)
+        if (t.transformer === StructureFromModelId) checkBonds(t.params?.type?.params?.bonds?.name);
+        else if (t.transformer === StructureFromTrajectoryId) checkBonds(t.params?.bonds?.name);
         const scopeName = RepresentationTransformerScopes[t.transformer];
         if (!scopeName || !t.params) continue;
         const { registry, themes } = this.plugin.representation[scopeName];

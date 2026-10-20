@@ -128,6 +128,7 @@ interface PluginRegistryEntry {
       readonly representation?: readonly StructureRepresentationPresetProvider<any, any>[];
     };
     readonly selectionQueries?: readonly StructureSelectionQuery[];
+    readonly bondProviders?: readonly BondProvider[];
   };
   readonly volume?: {
     readonly themes?: PluginRegistryEntry.Themes;
@@ -235,7 +236,7 @@ These stay behavior-managed (or global), because they take behavior params, are 
 
 `init()` creates `interactivity`, `lociLabels`, and `builders.structure` as today (they are `void 0` before), then
 registers `spec.registry`, then initializes behaviors. Within one entry the order is fixed: for each scope (structure,
-volume, particles) themes then representations; then formats; then structure presets and selection queries; then loci
+volume, particles) themes then representations; then formats; then bond providers; then structure presets and selection queries; then loci
 labels, markdown extensions, drag-and-drop handlers, actions, and animations. Entries register in spec order. Behaviors
 can rely on registered providers.
 
@@ -267,6 +268,7 @@ duplicate and unknown-removal behavior of each registry is listed in the
 | `<scope>.themes.color/size`                    | `representation.<scope>.themes.{color,size}ThemeRegistry` | `name`                         |
 | `<scope>.representations`                      | `representation.<scope>.registry`                         | `name`                         |
 | `formats`                                      | `dataFormats`                                             | `name`                         |
+| `structure.bondProviders`                      | `bondProviders`                                           | `name` (`'default'` reserved)  |
 | `structure.presets.hierarchy`/`representation` | `builders.structure.hierarchy`/`.representation`          | `id`, and `alias` when present |
 | `structure.selectionQueries`                   | `query.structure.registry`                                | Identity only                  |
 | `lociLabels`                                   | `managers.lociLabels`                                     | Identity only                  |

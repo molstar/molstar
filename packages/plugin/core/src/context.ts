@@ -24,6 +24,7 @@ import type { Model, Structure } from '@molstar/model/model/structure';
 import { DataBuilder } from '@molstar/plugin/state/builder/data';
 import { StructureBuilder } from '@molstar/plugin/state/builder/structure';
 import { DataFormatRegistry } from '@molstar/plugin/state/formats/registry';
+import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
 import { StructureSelectionQueryRegistry } from '@molstar/plugin/state/queries/structure/registry';
 import { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import { CameraManager } from '@molstar/plugin/state/manager/camera';
@@ -202,6 +203,8 @@ export class PluginContext {
   } as const;
 
   readonly dataFormats = new DataFormatRegistry();
+  /** Where structures' bonds can come from, chosen by name in the structure transforms (bond-providers plan §3). */
+  readonly bondProviders = new BondProviderRegistry();
 
   readonly builders = {
     data: new DataBuilder(this),

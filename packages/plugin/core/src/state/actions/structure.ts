@@ -38,7 +38,7 @@ const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
   const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) ?? '';
   return PD.Group(
     {
-      type: RootStructureDefinition.getParams(void 0, 'auto').type,
+      type: RootStructureDefinition.getParams(void 0, 'auto', plugin).type,
       representation: PD.Select(
         representationDefault,
         plugin.builders.structure.representation
