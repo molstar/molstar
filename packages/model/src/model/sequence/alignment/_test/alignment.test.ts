@@ -52,7 +52,7 @@ describe('Alignment', () => {
     expect(score).toEqual(118);
   });
 
-  // Pinned from the number[][] implementation that the shared DP (@molstar/core/data/util/needleman-wunsch) replaced:
+  // Pinned from the number[][] implementation that the shared DP (@molstar/core/algorithms/needleman-wunsch) replaced:
   // the same alignments, ties included, and scores (perf-audit 04/P1).
   it('keeps its alignments and scores: seeded pairs under each option set', () => {
     const amino = 'ARNDCQEGHILKMFPSTWYVU'.split(''); // U: not in BLOSUM62, scores 0

@@ -21,10 +21,9 @@ The decisions still open. One entry each, with a pointer; an entry leaves when i
 - **Dependents one level deep.** A dependent's own dependents are not scheduled in the same pass (`initCells`, "check if
   dependent cells are all proper roots").
 
-## Data utilities (`src/data/util`)
+## Algorithms (`src/algorithms`)
 
-- **A common home for sequence algorithms.** `data/util/needleman-wunsch.ts` (`globalAlign`) is here only because both
-  `@molstar/model` (`align`: SEQRES mapping, superposition) and `@molstar/seq-core` (the `needleman_wunsch` aligner) use
-  it, and core is the one package both depend on. The other aligners (biomsa, myers) and their limits live in
-  `packages/sequences/core/src/algorithms`. Decide where sequence algorithms shared by Mol\* and Seq\* belong (a package
-  or entry both may import) and move it there with its test (perf-audit 04/P1).
+- **Seq\*'s other aligners.** `algorithms/needleman-wunsch.ts` (`globalAlign`) is shared by `@molstar/model` (`align`:
+  SEQRES mapping, superposition) and `@molstar/seq-core` (the `needleman_wunsch` aligner). biomsa (vendored) and the
+  Myers port, with their `MAX_CELLS` limits, stay in `packages/sequences/core/src/algorithms`, used by Seq\* only. Move
+  one here when a Mol\* package needs it, with its test and `VENDORED.md` notes.

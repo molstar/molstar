@@ -55,9 +55,10 @@ npx tsc -b                 # every project, by references
   packages to their sources through the `molstar-src` export condition.
 - **Reuse before writing helpers.** Before inlining a generic routine (hashing, sorting, array and typed-array helpers,
   sets, maps, memoization, vector and matrix math), look in `@molstar/core`: `util/`, `data/util/` (hash functions,
-  sort, array, grouping), `data/int/` (`OrderedSet`, `SortedArray`, `Interval`) and `math/` (`linear-algebra/`,
-  `geometry/`). If nothing fits and the code is generic, suggest adding it there with a test instead of keeping a
-  private copy; ask before changing a public API. Inlining in a hot loop on purpose is fine: say why in a comment.
+  sort, array, grouping), `data/int/` (`OrderedSet`, `SortedArray`, `Interval`), `math/` (`linear-algebra/`,
+  `geometry/`) and `algorithms/` (sequence alignment). If nothing fits and the code is generic, suggest adding it there
+  with a test instead of keeping a private copy; ask before changing a public API. Inlining in a hot loop on purpose is
+  fine: say why in a comment.
 - **ESM with NodeNext**: relative imports end in `.js`. Source is resolved through the `molstar-src` export condition in
   development and tests.
 - **Formatting and lint** are the repository's (`biome.json`, `.prettierrc.json`): run `pnpm format` and `pnpm lint`
