@@ -11,6 +11,7 @@
 | `cell-less.test.ts`      | cells below Null objects, waiters, deleted dependencies, stalls (dependencies.md §3-4) |
 | `action-manager.test.ts` | the action registry                                                                    |
 | `cell-state.test.ts`     | state flags in the tree with builders outstanding; `asImmutable` (tree.md §2, §4)      |
+| `transient.test.ts`      | a builder's edits after removals stay out of the state's tree; random builders (§2)    |
 
 ## How to test a change
 
@@ -21,5 +22,8 @@
   failure of the whole pass (dependencies.md §2, §4).
 - The two diffs (reconcile.md §2) are separate paths: a case that depends on what is found (cells below Null objects,
   cells left behind by a throw) needs a commit with one edit (the fast track) and one with more.
+- Tests of `TransientTree` use refs with equal Immutable hashes (`'Aa'` and `'BB'` hash alike) and maps of more than 8
+  keys (a hashed trie): explicit refs like `n0`, `n1` never collide, generated refs often do (tree.md §2). A random test
+  runs with both.
 - The state logs every transformer error (`console.error`): a test that makes errors on purpose mutes it
   (`vi.spyOn(console, 'error')`).

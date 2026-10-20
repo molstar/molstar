@@ -96,7 +96,8 @@ class TransientTree implements StateTree {
 
     this.changeChildren();
 
-    const set = OrderedSet<StateTransform.Ref>();
+    // mutable: later `addChild`s to the root write into it
+    const set = OrderedSet<StateTransform.Ref>().asMutable();
     this.children.set(parent, set);
     this.childMutations.set(parent, set);
   }
@@ -263,6 +264,8 @@ class TransientTree implements StateTree {
       this.children.delete(n.ref);
       if (this._childMutations) this._childMutations.delete(n.ref);
     }
+    this.transforms = renewOwner(this.transforms);
+    this.children = renewOwner(this.children);
 
     const depRemoves: StateTransform[] = [];
     for (const n of st) {
@@ -276,7 +279,7 @@ class TransientTree implements StateTree {
       if (this.dependencies.has(n.ref)) {
         const deps = this.dependencies.get(n.ref).toArray();
         this.changeDependencies();
-        this.dependencies.delete(n.ref);
+        this.dependencies = renewOwner(this.dependencies.delete(n.ref));
         if (this._dependencyMutations) this._dependencyMutations.delete(n.ref);
 
         for (const dep of deps) {
@@ -300,7 +303,7 @@ class TransientTree implements StateTree {
       return this.tree;
     }
     if (this._childMutations) this._childMutations.forEach(fixChildMutations, this.children);
-    if (this._dependencyMutations) this._dependencyMutations.forEach(fixDependencyMutations as any, this.dependencies);
+    if (this._dependencyMutations) fixDependencyMutations(this._dependencyMutations, this.dependencies);
     const tree = StateTree.create(
       this.changedNodes ? this.transforms.asImmutable() : this.transforms,
       this.changedChildren ? this.children.asImmutable() : this.children,
@@ -332,13 +335,28 @@ function fixChildMutations(
   this.set(k, m.asImmutable());
 }
 
+/** the sets first, then the deletes: no write after a delete (`renewOwner`) */
 function fixDependencyMutations(
-  this: ImmutableMap<StateTransform.Ref, OrderedSet<StateTransform.Ref>>,
-  m: OrderedSet<StateTransform.Ref>,
-  k: StateTransform.Ref,
+  mutations: Map<StateTransform.Ref, StateTree.MutableChildSet>,
+  dependencies: StateTree.MutableDependencies,
 ) {
-  if (m.size === 0) this.delete(k);
-  else this.set(k, m.asImmutable());
+  const empty: StateTransform.Ref[] = [];
+  mutations.forEach((m, k) => {
+    if (m.size === 0) empty.push(k);
+    else dependencies.set(k, m.asImmutable() as StateTree.MutableChildSet);
+  });
+  for (const k of empty) dependencies.delete(k);
+}
+
+/**
+ * A mutable map after deletes takes a new owner before it is written again (tree.md §2). Deleting one of two keys with
+ * equal hashes leaves the other in a node of the map's owner that shares its `[key, value]` entry with the source
+ * tree's node, and Immutable writes a later `set` of that key into the entry in place: into the source tree (immutable-js
+ * `HashCollisionNode.update`, 4.x to 6.0 beta). Under a new owner, that `set` copies the node instead. Generated refs
+ * collide this way often. The cost: the next writes copy their paths once more.
+ */
+function renewOwner<M extends StateTree.MutableMap<any>>(map: M): M {
+  return map.asImmutable().asMutable() as M;
 }
 
 function alreadyPresent(ref: StateTransform.Ref) {

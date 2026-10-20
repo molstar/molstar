@@ -23,6 +23,12 @@ map turns mutable once, on its first write; a child set too. `asImmutable()` fre
 `asImmutable` on a mutable map), so the result also becomes the transient's new base: later writes start from new
 mutable copies and never reach the snapshot, nor are they lost to a frozen map.
 
+A map takes a new owner after deletes, before it is written again (`renewOwner`): Immutable keeps the survivor of two
+keys with equal hashes in a node of the map's owner that shares its `[key, value]` entry with the source tree, and a
+later `set` of that key writes into the shared entry, so a builder's child, transform or dependent would appear in
+`state.tree` before it commits. Generated refs collide this way often. A child set stays mutable after the root is
+cleared, so later children of the root are kept.
+
 The `State` keeps its current tree as a `TransientTree` too: `updateCellState` writes state flags into it
 (`assignState`), so `state.tree` changes between updates without a new version or a new identity.
 
@@ -75,5 +81,8 @@ plain `StateTree` passed to `updateTree` (e.g. `getTree()` committed later) is a
 
 - **State flags without versions.** Hiding or collapsing a node must not evaluate it; `withState` keeps the version, and
   the flags reach cells by `updateCellState` or, without a builder, `syncNewStates`.
+- **Immutable's shared entries are worked around, not patched.** The bug is in every Immutable from 4.x to the 6.0 beta,
+  and a patch of the dependency would not reach the packages' consumers; a new owner after deletes costs a copy of the
+  paths the next writes take.
 - **A builder rebases by replaying its actions.** Edits made on an older tree are replayed on the current one rather
   than merged; an action that no longer applies throws (`Parent ... must be present in the tree`).
