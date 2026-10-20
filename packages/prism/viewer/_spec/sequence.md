@@ -184,12 +184,13 @@ The code is the truth for how.
   steps) are `undoable: false`, so stepping through a story fills no history and takes no checkpoint, the steps before
   it stay undoable, and it runs in order with the steps (Undo is refused while one is applied; a step never sees a
   half-applied scene). A checkpoint notes the snapshot current with it, and Undo makes it current again with the scene
-  it restores (when the list still has it; the list itself is not undone; a scene that had none leaves the mark: TODO).
-  Undo after a snapshot goes back to before the step before it: the scene between that step and the snapshot is not
-  kept, and Redo (a snapshot shown leaves it) puts back the state Undo left. Inside a group it is no run of it (a group
-  of only snapshots shown records no step). The agent asks before it shows one (what no undo restores). Not yet routed:
-  a description's links (`!apply-snapshot`, `!next-snapshot`) and a clickable primitive's `snapshot_key` apply through
-  the plugin's snapshot manager, not the API, so they count as changes outside the viewer (TODO).
+  it restores (when the list still has it; the list itself is not undone); a scene shown with none marks none
+  (`clearCurrent`). Undo after a snapshot goes back to before the step before it: the scene between that step and the
+  snapshot is not kept, and Redo (a snapshot shown leaves it) puts back the state Undo left. Inside a group it is no run
+  of it (a group of only snapshots shown records no step). The agent asks before it shows one (what no undo restores). A
+  story's own navigation goes the same way: a description's links (`!apply-snapshot`, `!next-snapshot`), a clickable
+  primitive's `snapshot_key` and the keyboard's next and previous reach the plugin's manager, which hands them to the
+  snapshot area (`setNavigator`) to run as the person's `snapshot.apply` / `.next` / `.previous`.
 - **While an animation plays** (`isAnimating`: trajectory playback, the model-index and other animations, a snapshot's
   transition), no checkpoint is taken for it (David, 2026-10-20): playing is no step, its frames are viewing, and the
   history ignores the changes it makes. When it stops, nothing is recorded: Undo takes back the step before it, with the

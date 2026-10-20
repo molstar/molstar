@@ -205,6 +205,42 @@ describe('snapshot.apply', () => {
     expectOk(await v.api.history.undo());
   });
 
+  it("a story's own links, clicks and keys go through the API: no step, the steps before stay undoable", async () => {
+    const v = await viewer();
+    const runs = recordRuns(v);
+    const original = representationTypes(v);
+    expectOk(await snap(v).add({ name: 'A', key: 'a' }));
+    expectOk(await snap(v).add({ name: 'B', key: 'b' }));
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    const before = steps(v);
+    const current = async () => (await list(v)).entries.find((e) => e.current)?.name;
+
+    // A description's link (the plugin's markdown extension calls the manager's applyKey).
+    expectOk(await snap(v).link({ href: '!apply-snapshot=a', event: 'click' }));
+    await until(() => runs.some((r) => r.operation === 'snapshot.apply' && r.origin.kind === 'person'));
+    expect(representationTypes(v)).toEqual(original);
+    expect(await current()).toBe('A');
+    // A clickable primitive's key and the keyboard's next, as the plugin's behaviors call them.
+    await v.plugin.managers.snapshot.applyNext(1);
+    await until(() => runs.some((r) => r.operation === 'snapshot.next'));
+    expect(await current()).toBe('B');
+    await v.plugin.managers.snapshot.applyKey('a');
+    expect(await current()).toBe('A');
+
+    expect(steps(v)).toBe(before);
+    expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);
+    expectOk(await v.api.history.undo());
+  });
+
+  it('Undo to a scene shown with no snapshot marks none current', async () => {
+    const v = await viewer();
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    expectOk(await snap(v).add({ name: 'B' }));
+    expect((await list(v)).entries.find((e) => e.current)?.name).toBe('B');
+    expectOk(await v.api.history.undo());
+    expect((await list(v)).entries.some((e) => e.current)).toBe(false);
+  });
+
   it('marks the entry current', async () => {
     const v = await viewer();
     await snap(v).add({ name: 'A' });

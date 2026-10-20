@@ -158,7 +158,29 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     this.events.changed.next(void 0);
   }
 
+  private navigator: PluginStateSnapshotManager.Navigator | undefined = void 0;
+
+  /**
+   * Routes `applyKey` and `applyNext` (a description's links, a clickable primitive's `snapshotKey`, the keyboard's
+   * next and previous) through a host's own path, which applies the snapshot itself (a host's API, in order with its
+   * undo history). While none is set, the manager applies them. Returns the removal.
+   */
+  setNavigator(navigator: PluginStateSnapshotManager.Navigator): () => void {
+    this.navigator = navigator;
+    return () => {
+      if (this.navigator === navigator) this.navigator = void 0;
+    };
+  }
+
+  /** Marks no snapshot current (the scene shown is none of them: a host's undo to before a story was shown). */
+  clearCurrent() {
+    if (this.state.current === void 0) return;
+    this.updateState({ current: void 0 });
+    this.events.changed.next(void 0);
+  }
+
   applyKey(key: string) {
+    if (this.navigator) return this.navigator.applyKey(key);
     const e = this.state.entries.find((e) => e.key === key);
     if (!e) return;
 
@@ -216,6 +238,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   }
 
   applyNext(dir: -1 | 1) {
+    if (this.navigator) return this.navigator.applyNext(dir);
     const next = this.getNextId(this.state.current, dir);
     if (next) {
       const snapshot = this.setCurrent(next);
@@ -566,6 +589,12 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
 }
 
 namespace PluginStateSnapshotManager {
+  /** A host's own way of showing a story's snapshots (`setNavigator`): it applies the snapshot and makes it current. */
+  export interface Navigator {
+    applyKey(key: string): void | Promise<unknown>;
+    applyNext(dir: -1 | 1): void | Promise<unknown>;
+  }
+
   export type DescriptionFormat = 'markdown' | 'plaintext';
 
   /** What a host keeps in a state or session file beside the state (`serialize`'s `extra`, `open`'s result). */

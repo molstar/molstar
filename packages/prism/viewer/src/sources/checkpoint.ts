@@ -61,8 +61,10 @@ export function createCheckpointPort(plugin: PluginContext): HistoryPort<ViewerC
       // frame a trajectory shows (sequence.md §7.3).
       await plugin.state.setSnapshot({ ...keepFrames(plugin, c.plugin), structureFocus: undefined });
       // The story's snapshot this scene was shown with, when the list still has it (the list is not undone).
+      // A scene shown with none (before a story was shown, or a snapshot added) marks none.
       const snapshots = plugin.managers.snapshot;
-      if (c.snapshot && c.snapshot !== snapshots.state.current && snapshots.getEntry(c.snapshot)) {
+      if (!c.snapshot) snapshots.clearCurrent();
+      else if (c.snapshot !== snapshots.state.current && snapshots.getEntry(c.snapshot)) {
         snapshots.setCurrent(c.snapshot);
       }
     },

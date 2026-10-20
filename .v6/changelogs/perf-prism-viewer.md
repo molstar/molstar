@@ -31,3 +31,8 @@
 - Fix: the marks' paint lets go of a removed representation (its structure and theme) at once, not at the next paint
 - Fix: a large sequence hover or selection over ions of one Mol\* unit lights the ions it touches, not every chain
   between them
+- Prism: a story's own navigation (a description's `!apply-snapshot` / `!next-snapshot` links, a clickable primitive's
+  `snapshot_key`, the keyboard's next and previous) goes through the snapshot operations: earlier steps stay undoable;
+  Undo to a scene shown with no snapshot marks none current
+- Plugin: `managers.snapshot.setNavigator({ applyKey, applyNext })` routes the manager's `applyKey` / `applyNext` through
+  a host's own path (unset: as before), and `clearCurrent()` marks no snapshot current

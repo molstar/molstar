@@ -33,6 +33,8 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 
 type Entry = PluginStateSnapshotManager.Entry;
 
+const Person = { kind: 'person' } as const;
+
 /** One entry as `snapshot.list` reports it. */
 export interface SnapshotListEntry {
   readonly id: string;
@@ -248,7 +250,22 @@ export class SnapshotApi extends ApiArea {
     return (this.#markdown ??= createMarkdownSource(this.ctx.plugin));
   }
 
+  /**
+   * A story's own navigation (a description's `!apply-snapshot` / `!next-snapshot`, a clickable primitive's
+   * `snapshot_key`, the keyboard's next and previous) goes through these operations as the person, in order with the
+   * history like the panel's (sequence.md §7.3): the plugin's manager hands it here.
+   */
+  readonly #unnavigate = this.ctx.plugin.managers.snapshot.setNavigator({
+    applyKey: (key) => {
+      const id = this.ctx.plugin.managers.snapshot.state.entries.find((e) => e.key === key)?.snapshot.id;
+      return id ? this.ctx.operations.run(this.apply.definition, { entry: id }, { origin: Person }) : undefined;
+    },
+    applyNext: (dir) =>
+      this.ctx.operations.run((dir > 0 ? this.next : this.previous).definition, {}, { origin: Person }),
+  });
+
   dispose(): void {
+    this.#unnavigate();
     this.#source?.dispose();
     this.#source = undefined;
     this.#markdown?.dispose();
