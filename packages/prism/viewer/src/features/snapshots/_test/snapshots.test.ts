@@ -226,6 +226,10 @@ describe('snapshot.apply', () => {
     expect(await current()).toBe('B');
     await v.plugin.managers.snapshot.applyKey('a');
     expect(await current()).toBe('A');
+    // The keyboard's first and last (the plugin's behavior calls applyId).
+    await v.plugin.managers.snapshot.applyId((await list(v)).entries[1].id);
+    expect(await current()).toBe('B');
+    await until(() => runs.filter((r) => r.operation === 'snapshot.apply' && r.origin.kind === 'person').length >= 3);
 
     expect(steps(v)).toBe(before);
     expect(v.managers.history.steps.value.some((x) => !!x.unsafe)).toBe(false);

@@ -111,10 +111,6 @@ section); an entry leaves when it is done (its spec section says so then). The s
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
 
-- The keyboard's first and last snapshot (`behavior/dynamic/state.ts`, `first` / `last` bindings) still apply through
-  the plugin directly (`setCurrent` + `setSnapshot`), not the manager's `applyKey` / `applyNext`: they count as changes
-  outside the viewer. Route them through the navigator too.
-
 ## Missing: prism-ui
 
 - Commands: Select's one-run mode by a modifier on Enter (Shift+Enter removes, ⌥↵ intersects) and mode words in tails

@@ -252,7 +252,7 @@ export class SnapshotApi extends ApiArea {
 
   /**
    * A story's own navigation (a description's `!apply-snapshot` / `!next-snapshot`, a clickable primitive's
-   * `snapshot_key`, the keyboard's next and previous) goes through these operations as the person, in order with the
+   * `snapshot_key`, the keyboard's next, previous, first and last) goes through these operations as the person, in order with the
    * history like the panel's (sequence.md §7.3): the plugin's manager hands it here.
    */
   readonly #unnavigate = this.ctx.plugin.managers.snapshot.setNavigator({
@@ -268,6 +268,8 @@ export class SnapshotApi extends ApiArea {
       if (entries.size === 1) return this.#navigate(this.apply.definition, { entry: entries.get(0)!.snapshot.id });
       return this.#navigate((dir > 0 ? this.next : this.previous).definition, {});
     },
+    applyId: (id) =>
+      this.ctx.plugin.managers.snapshot.getEntry(id) ? this.#navigate(this.apply.definition, { entry: id }) : undefined,
   });
 
   /**

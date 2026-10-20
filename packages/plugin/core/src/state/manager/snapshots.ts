@@ -161,8 +161,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   private navigator: PluginStateSnapshotManager.Navigator | undefined = void 0;
 
   /**
-   * Routes `applyKey` and `applyNext` (a description's links, a clickable primitive's `snapshotKey`, the keyboard's
-   * next and previous) through a host's own path, which applies the snapshot itself (a host's API, in order with its
+   * Routes `applyKey`, `applyNext` and `applyId` (a description's links, a clickable primitive's `snapshotKey`, the
+   * keyboard's next, previous, first and last) through a host's own path, which applies the snapshot itself (a host's API, in order with its
    * undo history). While none is set, the manager applies them. Returns the removal.
    */
   setNavigator(navigator: PluginStateSnapshotManager.Navigator): () => void {
@@ -235,6 +235,13 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     if (idx < 0) idx += len;
 
     return this.state.entries.get(idx)!.snapshot.id;
+  }
+
+  /** Shows the snapshot with this id and makes it current (the keyboard's first and last); nothing for an unknown id. */
+  applyId(id: string) {
+    if (this.navigator) return this.navigator.applyId(id);
+    const snapshot = this.setCurrent(id);
+    if (snapshot) return this.plugin.state.setSnapshot(snapshot);
   }
 
   applyNext(dir: -1 | 1) {
@@ -593,6 +600,7 @@ namespace PluginStateSnapshotManager {
   export interface Navigator {
     applyKey(key: string): void | Promise<unknown>;
     applyNext(dir: -1 | 1): void | Promise<unknown>;
+    applyId(id: string): void | Promise<unknown>;
   }
 
   export type DescriptionFormat = 'markdown' | 'plaintext';
