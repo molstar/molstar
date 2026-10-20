@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { AlignmentOp, globalAlign } from '@molstar/core/algorithms/needleman-wunsch';
+import { AlignmentOp, globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { type SubstitutionMatrix, SubstitutionMatrices } from './substitution-matrix.js';
 

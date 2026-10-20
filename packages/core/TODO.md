@@ -23,7 +23,7 @@ The decisions still open. One entry each, with a pointer; an entry leaves when i
 
 ## Algorithms (`src/algorithms`)
 
-- **Seq\*'s other aligners.** `algorithms/needleman-wunsch.ts` (`globalAlign`) is shared by `@molstar/model` (`align`:
-  SEQRES mapping, superposition) and `@molstar/seq-core` (the `needleman_wunsch` aligner). biomsa (vendored) and the
-  Myers port, with their `MAX_CELLS` limits, stay in `packages/sequences/core/src/algorithms`, used by Seq\* only. Move
-  one here when a Mol\* package needs it, with its test and `VENDORED.md` notes.
+- **Seq\*'s other aligners.** `algorithms/sequence/needleman-wunsch.ts` (`globalAlign`) is shared by `@molstar/model`
+  (`align`: SEQRES mapping, superposition) and `@molstar/seq-core` (the `needleman_wunsch` aligner). biomsa (vendored)
+  and the Myers port, with their `MAX_CELLS` limits, stay in `packages/sequences/core/src/algorithms`, used by Seq\*
+  only. Move one here when a Mol\* package needs it, with its test and `VENDORED.md` notes.

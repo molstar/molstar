@@ -1,7 +1,7 @@
 ## Model: formats and alignment (perf audit 04)
 
-- One Needleman–Wunsch for Mol\* and Seq\*: `@molstar/core/algorithms/needleman-wunsch` (`globalAlign`, affine gaps
-  over integer codes, two rows of scores and a byte of traceback a cell). `@molstar/model`'s `align` (PDB SEQRES
+- One Needleman–Wunsch for Mol\* and Seq\*: `@molstar/core/algorithms/sequence/needleman-wunsch` (`globalAlign`, affine
+  gaps over integer codes, two rows of scores and a byte of traceback a cell). `@molstar/model`'s `align` (PDB SEQRES
   mapping, sequence superposition) and Seq\*'s `needleman_wunsch` aligner run on it with the same alignments, ties and
   scores as before; the two differed in leading end gaps and gap ties, now options of the shared DP. 3000 residues:
   `align` 210 ms / 1 GB peak → 48 ms / 32 MB, `needleman_wunsch` 82 → 45 ms; 10000 residues: `align` 3.1 s / 3 GB →

@@ -38,7 +38,7 @@
       "types": "./lib/util/index.d.ts",
       "import": "./lib/util/index.js"
     },
-    "./algorithms/_test/*": null,
+    "./algorithms/sequence/_test/*": null,
     "./data/_test/*": null,
     "./data/db/_test/*": null,
     "./data/generic/_test/*": null,

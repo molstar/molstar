@@ -8,10 +8,11 @@
 
 // The `needleman_wunsch` aligner: global alignment with affine gaps (Gotoh), BLOSUM62 for amino acids, a match and
 // mismatch score otherwise. A gap of k letters costs `gap_open + (k - 1) * gap_extend`. Moved from @molstar/seq-core/model's
-// `globalAlign` (M2b), its defaults unchanged. The DP is Mol*'s shared one (`@molstar/core/algorithms/needleman-wunsch`,
-// also behind `@molstar/model`'s `align`): two rows of scores and one byte of traceback a cell.
+// `globalAlign` (M2b), its defaults unchanged. The DP is Mol*'s shared one
+// (`@molstar/core/algorithms/sequence/needleman-wunsch`, also behind `@molstar/model`'s `align`): two rows of scores
+// and one byte of traceback a cell.
 
-import { globalAlign } from '@molstar/core/algorithms/needleman-wunsch';
+import { globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { type Aligner, type AlignerParams, alignable, cigarOf, pairType, readOptions } from './aligner.js';
 import { checkCells } from './limits.js';
 

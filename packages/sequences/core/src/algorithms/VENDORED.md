@@ -140,7 +140,8 @@ tests in `_test/aligners.test.ts` pin them.
 matrix and type check; the only error a caller maps to a bad-options report), `Object.hasOwn` in `readOptions`, a
 `matrix` that names the type when `type` is `auto`, `myersAlign` validating its input (letters only, `maxDistance` null
 or a non-negative integer, equalities of two letters; `RangeError`), and `needleman_wunsch` checking `MAX_CELLS` before
-it runs Mol\*'s shared DP (`@molstar/core/algorithms/needleman-wunsch`, two rows of scores, a byte of traceback a cell).
+it runs Mol\*'s shared DP (`@molstar/core/algorithms/sequence/needleman-wunsch`, two rows of scores, a byte of traceback
+a cell).
 
 # Ported: edlib (A2)
 

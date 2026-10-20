@@ -60,13 +60,14 @@ topology).
   once; fast path when observed is an in-order exact subsequence of SEQRES (greedy O(n + m)).
 - Risk: `trace` tie-breaking (S, then V, then H) must be kept or ambiguous alignments change; compare `aliA` / `aliB`
   with the old implementation on random inputs and run the alignment and PDB `label_seq_id` tests.
-- Addressed (#2017): one DP for the model and Seq\*, `@molstar/core/algorithms/needleman-wunsch` (`globalAlign`): two
-  Float64 rows, a one-byte traceback per cell (2 bits per state), a branch-free tie choice (mispredicted branches were
-  ~40 % of the time). Both callers bit-identical (160k seeded cases against the old code; the model's leading gaps
-  (`flat`) and extend-first ties are options). 3000 res: 210 ms / 1017 MB peak → 48 ms / 32 MB (4.4×, 32×; the estimate
-  was 41 ms / 101 MB for flat Int32 matrices); 10000: 3.1 s / 3 GB → 0.5 s / 97 MB; Seq\* 3000: 82 → 45 ms.
-  `seqres.pdb`: `trajectoryFromPDB` 17–29 ms / 45–55 MB → 10–21 ms / 7–19 MB. Identical chains align once; the greedy
-  subsequence fast path was not done (it could change ambiguous alignments). Interning names to codes is done.
+- Addressed (#2017): one DP for the model and Seq\*, `@molstar/core/algorithms/sequence/needleman-wunsch`
+  (`globalAlign`): two Float64 rows, a one-byte traceback per cell (2 bits per state), a branch-free tie choice
+  (mispredicted branches were ~40 % of the time). Both callers bit-identical (160k seeded cases against the old code;
+  the model's leading gaps (`flat`) and extend-first ties are options). 3000 res: 210 ms / 1017 MB peak → 48 ms / 32 MB
+  (4.4×, 32×; the estimate was 41 ms / 101 MB for flat Int32 matrices); 10000: 3.1 s / 3 GB → 0.5 s / 97 MB; Seq\* 3000:
+  82 → 45 ms. `seqres.pdb`: `trajectoryFromPDB` 17–29 ms / 45–55 MB → 10–21 ms / 7–19 MB. Identical chains align once;
+  the greedy subsequence fast path was not done (it could change ambiguous alignments). Interning names to codes is
+  done.
 
 ### P2: GRO trajectories
 
