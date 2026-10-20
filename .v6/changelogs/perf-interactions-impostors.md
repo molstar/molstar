@@ -14,9 +14,10 @@
     default)
   - the overlap refiners also filter inter-unit contacts (the inter-unit check never matched): H-bonds within a salt
     bridge, ionic contacts within a metal coordination, hydrophobic and cation-pi contacts within pi-stacking
-  - `closestHydrogenIndex` considers only hydrogens of the donor's unit (a hydrogen bonded across units gave an index
-    read as an atom of the donor's unit); an H-bond whose donor has explicit hydrogens but none of its unit toward the
-    acceptor is rejected, not measured from the heavy atom
+  - H-bond geometry follows a donor hydrogen bonded across units (per-atom symmetry in small-molecule crystals):
+    `closestHydrogen` returns its unit, `closestHydrogenIndex` stays within the donor's unit (it returned the other
+    unit's index, read as an atom of the donor's unit); an H-bond whose donor has explicit hydrogens but none toward
+    the acceptor is rejected, not measured from the heavy atom; the intra-unit dash starts at such a hydrogen
   - `includeParent`: intra-unit contacts are shown or hidden by their own atoms
   - the bridge visual no longer rebuilds its geometry when an update brings a new but equal size theme
   - H-bond dashes read the donor flag per feature (it was read by member offset; latent, H-bond features come first)

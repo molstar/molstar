@@ -9,7 +9,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { AssetManager } from '@molstar/core/util/assets';
 import { MarkerAction } from '@molstar/core/util/marker-action';
@@ -19,11 +20,11 @@ import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import type { Loci } from '@molstar/model/model/loci';
-import { Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
+import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
-import { eachIntraBondedAtom } from '@molstar/model/props/computed/chemistry/util';
+import { eachIntraBondedAtom, typeSymbol } from '@molstar/model/props/computed/chemistry/util';
 import { FeatureType, InteractionFlag, InteractionType } from '@molstar/model/props/computed/interactions/common';
 import { Bridges, Interactions } from '@molstar/model/props/computed/interactions/interactions';
 import { BridgeProviderParams, ContactProviderParams } from '@molstar/model/props/computed/interactions/params';
@@ -487,5 +488,90 @@ describe('interactions representation', async () => {
       checked++;
     }
     expect(checked).toBeGreaterThan(100);
+  });
+
+  it('H-bond dashes start at a donor hydrogen in another unit under another operator (per-atom symmetry)', async () => {
+    const pdbqt = await parsePDB(fs.readFileSync(path.join(examples, 'ace2.pdbqt'), 'utf8'), 'ace2', 'pdbqt').run();
+    if (pdbqt.isError) throw new Error(pdbqt.message);
+    const model = (await trajectoryFromPDB(pdbqt.result).run()).representative;
+    const unit = Structure.ofModel(model).units[0] as Unit.Atomic;
+    const { x, y, z } = model.atomicConformation;
+
+    // the donor of an H-bond with one hydrogen
+    const whole = Structure.ofModel(model);
+    await InteractionsProvider.attach(ctx, whole, {}, true);
+    const { unitsContacts, unitsFeatures } = InteractionsProvider.get(whole).value!;
+    const wc = unitsContacts.get(unit.id);
+    const wf = unitsFeatures.get(unit.id);
+    let donor = -1;
+    let hydrogen = -1;
+    for (let i = 0; i < wc.edgeCount * 2 && donor < 0; ++i) {
+      if (wc.edgeProps.type[i] !== InteractionType.HydrogenBond) continue;
+      if (wf.types[wc.a[i]] !== FeatureType.HydrogenDonor) continue;
+      const d = wf.members[wf.offsets[wc.a[i]]] as StructureElement.UnitIndex;
+      const hs: number[] = [];
+      eachIntraBondedAtom(unit, d, (_, j) => {
+        if (typeSymbol(unit, j) === 'H') hs.push(unit.elements[j]);
+      });
+      if (hs.length === 1) {
+        donor = unit.elements[d];
+        hydrogen = hs[0];
+      }
+    }
+    expect(donor).toBeGreaterThanOrEqual(0);
+
+    // the unit under R, its hydrogen in a unit of its own under R · (a rotation about the hydrogen): same place
+    const R = Mat4.fromRotation(Mat4(), Math.PI / 5, Vec3.create(1, 2, 3));
+    Mat4.setTranslation(R, Vec3.create(10, -20, 5));
+    const xH = Vec3.create(x[hydrogen], y[hydrogen], z[hydrogen]);
+    const aboutH = Mat4.fromTranslation(Mat4(), xH);
+    Mat4.mul(aboutH, aboutH, Mat4.fromRotation(Mat4(), Math.PI / 2, Vec3.unitZ));
+    Mat4.mul(aboutH, aboutH, Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), xH)));
+    const create = (id: number, op: SymmetryOperator, elements: ArrayLike<number>) =>
+      Unit.create(
+        id,
+        id,
+        id,
+        unit.traits,
+        unit.kind,
+        model,
+        op,
+        SortedArray.ofSortedArray(Int32Array.from(elements)) as any,
+      );
+    const split = Structure.create([
+      create(
+        0,
+        SymmetryOperator.create('R', R),
+        unit.elements.filter((e) => e !== hydrogen),
+      ),
+      create(1, SymmetryOperator.create('R·H', Mat4.mul(Mat4(), R, aboutH)), [hydrogen]),
+    ]);
+    await InteractionsProvider.attach(ctx, split, {}, true);
+    const repr = await createRepr(split, graphicsStub, { visuals: ['intra-unit'] });
+
+    const heavy = split.units[0] as Unit.Atomic;
+    const interactions = InteractionsProvider.get(split).value!;
+    const contacts = interactions.unitsContacts.get(heavy.id);
+    const { members, offsets, types } = interactions.unitsFeatures.get(heavy.id);
+    const ro = repr.renderObjects.find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
+    const v = ro.values as any;
+    const group = v.aGroup.ref.value as Float32Array;
+    const start = v.aStart.ref.value as Float32Array;
+    const end = v.aEnd.ref.value as Float32Array;
+
+    let checked = 0;
+    for (let c = 0, cl = v.drawCount.ref.value / 12; c < cl; ++c) {
+      const i = group[c * 6];
+      if (contacts.edgeProps.type[i] !== InteractionType.HydrogenBond) continue;
+      if (types[contacts.a[i]] !== FeatureType.HydrogenDonor) continue;
+      if (heavy.elements[members[offsets[contacts.a[i]]]] !== donor) continue;
+      if (c > 0 && group[(c - 1) * 6] === i) continue;
+      const s0 = Vec3.fromArray(Vec3(), start, c * 18);
+      const e0 = Vec3.fromArray(Vec3(), end, c * 18);
+      // in the heavy unit's invariant frame the hydrogen is at its model coordinates
+      expect(Vec3.distance(Vec3.sub(Vec3(), Vec3.scale(Vec3(), s0, 2), e0), xH)).toBeLessThan(1e-3);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });

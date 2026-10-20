@@ -12,12 +12,12 @@ import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import { Structure, type StructureElement, Unit } from '@molstar/model/model/structure';
 import type { ElementIndex } from '@molstar/model/model/structure/model/indexing';
-import { closestHydrogenIndex } from '../geometry.js';
+import { closestHydrogen, closestHydrogenIndex } from '../geometry.js';
 import { eachBondedAtom, typeSymbol } from '../util.js';
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
 
-describe('closestHydrogenIndex', async () => {
+describe('closestHydrogen, closestHydrogenIndex', async () => {
   // polar hydrogens (PDBQT)
   const parsed = await parsePDB(fs.readFileSync(path.join(examples, 'ace2.pdbqt'), 'utf8'), 'ace2', 'pdbqt').run();
   if (parsed.isError) throw new Error(parsed.message);
@@ -45,7 +45,7 @@ describe('closestHydrogenIndex', async () => {
     expect(closestHydrogenIndex(structure, unit, donor, unit, hydrogen)).toBe(hydrogen);
   });
 
-  it("ignores a hydrogen bonded across units: the index is always the donor unit's", () => {
+  it("closestHydrogenIndex ignores a hydrogen bonded across units (the index is always the donor unit's), closestHydrogen follows it", () => {
     // the same hydrogen in a unit of its own, covalently bonded to the donor across units
     const e = unit.elements[hydrogen];
     const rest = SortedArray.ofSortedArray<ElementIndex>(Int32Array.from(unit.elements.filter((x) => x !== e)) as any);
@@ -72,5 +72,9 @@ describe('closestHydrogenIndex', async () => {
 
     const index = closestHydrogenIndex(split, heavy as Unit.Atomic, donorInHeavy, h, 0 as StructureElement.UnitIndex);
     expect(index).toBe(donorInHeavy);
+    // closestHydrogen follows the bond across units and says which unit the hydrogen is in
+    const closest = closestHydrogen(split, heavy as Unit.Atomic, donorInHeavy, h, 0 as StructureElement.UnitIndex);
+    expect(closest.unit).toBe(h);
+    expect(closest.index).toBe(0);
   });
 });

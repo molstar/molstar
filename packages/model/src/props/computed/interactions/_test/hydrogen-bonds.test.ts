@@ -8,6 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SortedArray } from '@molstar/core/data/int';
+import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { AssetManager } from '@molstar/core/util/assets';
 import { parsePDB } from '@molstar/io/reader/pdb/parser';
@@ -52,7 +54,7 @@ describe('hydrogen bonds', async () => {
   const model = (await trajectoryFromPDB(parsed.result).run()).representative;
   const structure = Structure.ofModel(model);
 
-  it("are rejected when the donor's only hydrogen is not in its unit (no fallback to the heavy atom)", async () => {
+  it('follow a donor hydrogen in another unit under another operator (per-atom symmetry)', async () => {
     const unit = structure.units[0] as Unit.Atomic;
     const { unitsContacts, unitsFeatures } = await computeInteractions(ctx, structure, {});
     const contacts = unitsContacts.get(unit.id);
@@ -76,19 +78,52 @@ describe('hydrogen bonds', async () => {
       hydrogen = unit.elements[hs[0]];
     }
     expect(donor).toBeGreaterThanOrEqual(0);
-    expect(await hydrogenBonds(structure)).toContain(`${donor}-${acceptor}`);
 
-    // that hydrogen in a unit of its own: bonded to the donor across units
-    const rest = SortedArray.ofSortedArray<ElementIndex>(
-      Int32Array.from(unit.elements.filter((e) => e !== hydrogen)) as any,
+    // the unit under a rotation R, whole and with that hydrogen in a unit of its own under R · (a rotation about the
+    // hydrogen): the same position under another operator, bonded to the donor across units
+    const R = Mat4.fromRotation(Mat4(), Math.PI / 5, Vec3.create(1, 2, 3));
+    Mat4.setTranslation(R, Vec3.create(10, -20, 5));
+    const xH = Vec3.create(
+      model.atomicConformation.x[hydrogen],
+      model.atomicConformation.y[hydrogen],
+      model.atomicConformation.z[hydrogen],
     );
-    const units: Unit[] = [Unit.create(0, 0, 0, unit.traits, unit.kind, model, unit.conformation.operator, rest)];
-    const single = SortedArray.ofSingleton(hydrogen) as SortedArray<ElementIndex>;
-    units.push(Unit.create(1, 1, 1, unit.traits, unit.kind, model, unit.conformation.operator, single));
-    const split = Structure.create(units);
+    const aboutH = Mat4.fromTranslation(Mat4(), xH);
+    Mat4.mul(aboutH, aboutH, Mat4.fromRotation(Mat4(), Math.PI / 2, Vec3.unitZ));
+    Mat4.mul(aboutH, aboutH, Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), xH)));
+    const opR = SymmetryOperator.create('R', R);
+    const opH = SymmetryOperator.create('R·H', Mat4.mul(Mat4(), R, aboutH));
+    expect(Mat4.areEqual(opR.matrix, opH.matrix, 1e-3)).toBe(false);
 
-    const bonds = await hydrogenBonds(split);
-    expect(bonds.size).toBeGreaterThan(0);
-    expect(bonds).not.toContain(`${donor}-${acceptor}`);
+    const create = (id: number, op: SymmetryOperator, elements: ArrayLike<number>) =>
+      Unit.create(
+        id,
+        id,
+        id,
+        unit.traits,
+        unit.kind,
+        model,
+        op,
+        SortedArray.ofSortedArray<ElementIndex>(Int32Array.from(elements) as any),
+      );
+    const joined = Structure.create([create(0, opR, unit.elements)]);
+    const split = Structure.create([
+      create(
+        0,
+        opR,
+        unit.elements.filter((e) => e !== hydrogen),
+      ),
+      create(1, opH, [hydrogen]),
+    ]);
+    expect(
+      Vec3.distance(
+        split.units[1].conformation.position(hydrogen as ElementIndex, Vec3()),
+        joined.units[0].conformation.position(hydrogen as ElementIndex, Vec3()),
+      ),
+    ).toBeLessThan(1e-6);
+
+    const expected = await hydrogenBonds(joined);
+    expect(expected).toContain(`${donor}-${acceptor}`);
+    expect(await hydrogenBonds(split)).toEqual(expected);
   });
 });

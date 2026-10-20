@@ -45,7 +45,7 @@ import {
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { impostorProps, InteractionsSharedParams, withDashedCylinderCount } from './shared.js';
 import { InteractionType } from '@molstar/model/props/computed/interactions/common';
-import { eachIntraBondedAtom } from '@molstar/model/props/computed/chemistry/util';
+import { eachBondedAtom } from '@molstar/model/props/computed/chemistry/util';
 
 /** The interactions of a unit as dashed links, for the impostor and the mesh builder; undefined if there are none */
 function getIntraUnitInteractionsBuilderProps(
@@ -81,6 +81,12 @@ function getIntraUnitInteractionsBuilderProps(
 
   const { elements, conformation: c } = unit;
   const p = Vec3();
+  /** A bonded hydrogen in this unit's invariant frame; with per-atom symmetry it can be in another unit */
+  const hydrogenPosition = (u: Unit.Atomic, index: StructureElement.UnitIndex, out: Vec3) => {
+    if (u === unit) return c.invariantPosition(u.elements[index], out);
+    u.conformation.position(u.elements[index], out);
+    return Vec3.transformMat4(out, out, c.operator.inverse);
+  };
   const pA = Vec3();
   const pB = Vec3();
 
@@ -106,9 +112,9 @@ function getIntraUnitInteractionsBuilderProps(
         const isHydrogenDonorA = types[a[edgeIndex]] === donorType;
 
         if (isHydrogenDonorA) {
-          eachIntraBondedAtom(unit, idxA, (_, idx) => {
-            if (isHydrogen(structure, unit, elements[idx], 'all')) {
-              c.invariantPosition(elements[idx], p);
+          eachBondedAtom(structure, unit, idxA, (u, idx) => {
+            if (isHydrogen(structure, u, u.elements[idx], 'all')) {
+              hydrogenPosition(u, idx, p);
               const dist = Vec3.distance(p, pB);
               if (dist < minDistA) {
                 minDistA = dist;
@@ -117,9 +123,9 @@ function getIntraUnitInteractionsBuilderProps(
             }
           });
         } else {
-          eachIntraBondedAtom(unit, idxB, (_, idx) => {
-            if (isHydrogen(structure, unit, elements[idx], 'all')) {
-              c.invariantPosition(elements[idx], p);
+          eachBondedAtom(structure, unit, idxB, (u, idx) => {
+            if (isHydrogen(structure, u, u.elements[idx], 'all')) {
+              hydrogenPosition(u, idx, p);
               const dist = Vec3.distance(p, pA);
               if (dist < minDistB) {
                 minDistB = dist;
