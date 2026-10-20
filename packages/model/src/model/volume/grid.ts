@@ -303,101 +303,53 @@ namespace Grid {
   };
 
   /**
-   * Pre-compute gradients at each grid cell using central differences.
-   * Returns a single Float32Array with interleaved xyz components (x1, y1, z1, x2, y2, z2, ...).
-   * Cached on the Grid object.
+   * The gradient at a voxel by central differences (one-sided at the faces, divisor 1 on an axis of size 1). Reads the
+   * data directly where the space allows it (the same values as `get`), else through `get`.
    */
-  export function getGradients(grid: Grid): Gradients {
-    if ((grid as any)._gradients) {
-      return (grid as any)._gradients as Gradients;
+  function makeGetGradient(grid: Grid): (i: number, j: number, k: number, out: Vec3) => void {
+    const { space, data } = grid.cells;
+    const [mi, mj, mk] = space.dimensions;
+    const strides = Tensor.strides(space);
+    if (strides && strides.length === 3) {
+      const [sx, sy, sz] = strides;
+      return (i, j, k, out) => {
+        const im = Math.max(0, i - 1);
+        const ip = Math.min(mi - 1, i + 1);
+        const jm = Math.max(0, j - 1);
+        const jp = Math.min(mj - 1, j + 1);
+        const km = Math.max(0, k - 1);
+        const kp = Math.min(mk - 1, k + 1);
+        const o = i * sx + j * sy + k * sz;
+        out[0] = (data[o + (ip - i) * sx] - data[o + (im - i) * sx]) / (ip - im || 1);
+        out[1] = (data[o + (jp - j) * sy] - data[o + (jm - j) * sy]) / (jp - jm || 1);
+        out[2] = (data[o + (kp - k) * sz] - data[o + (km - k) * sz]) / (kp - km || 1);
+      };
     }
-
-    const gradients = computeGradients(grid);
-    (grid as any)._gradients = gradients;
-    return gradients;
-  }
-
-  function computeGradients(grid: Grid): Gradients {
-    const strides = Tensor.strides(grid.cells.space);
-    // read the data directly where the space allows it (same values as `get`), else through the accessors
-    return strides && strides.length === 3 ? computeGradientsStrided(grid, strides) : computeGradientsGet(grid);
-  }
-
-  function gradientStats(n: number, min: number, max: number, sum: number, sumSq: number) {
-    if (min === Infinity) min = 0;
-    if (max === -Infinity) max = 1;
-    min = Math.sqrt(min);
-    max = Math.sqrt(max);
-
-    const mean = sum / n;
-    const sigma = Math.sqrt(sumSq / n);
-
-    return { min, max, mean, sigma };
+    const { get } = space;
+    return (i, j, k, out) => {
+      const im = Math.max(0, i - 1);
+      const ip = Math.min(mi - 1, i + 1);
+      const jm = Math.max(0, j - 1);
+      const jp = Math.min(mj - 1, j + 1);
+      const km = Math.max(0, k - 1);
+      const kp = Math.min(mk - 1, k + 1);
+      out[0] = (get(data, ip, j, k) - get(data, im, j, k)) / (ip - im || 1);
+      out[1] = (get(data, i, jp, k) - get(data, i, jm, k)) / (jp - jm || 1);
+      out[2] = (get(data, i, j, kp) - get(data, i, j, km)) / (kp - km || 1);
+    };
   }
 
   /**
-   * As `computeGradientsGet`, reading `data[i * sx + j * sy + k * sz]`. Keeps the k, j, i loop order (i innermost
-   * whatever the layout) so that the magnitude sums add up in the same order; looping in memory order would be faster
-   * for z-fastest data, with the same gradients and only the last bits of `mean`/`sigma` moved.
+   * Gradients at every voxel (`makeGetGradient`), laid out as the data: xyz interleaved at `dataOffset * 3`, with the
+   * magnitudes' statistics. Not cached: 12 bytes a voxel, the caller keeps it as long as it needs it.
    */
-  function computeGradientsStrided(grid: Grid, strides: ReadonlyArray<number>): Gradients {
-    const { space, data } = grid.cells;
-    const [mi, mj, mk] = space.dimensions;
-    const [sx, sy, sz] = strides;
-
-    const n = mi * mj * mk;
-    const values = new Float32Array(n * 3);
-
-    let min = Infinity;
-    let max = -Infinity;
-    let sum = 0;
-    let sumSq = 0;
-
-    for (let k = 0; k < mk; ++k) {
-      const km = Math.max(0, k - 1);
-      const kp = Math.min(mk - 1, k + 1);
-      const dzm = (km - k) * sz;
-      const dzp = (kp - k) * sz;
-      const dz = kp - km || 1;
-      for (let j = 0; j < mj; ++j) {
-        const jm = Math.max(0, j - 1);
-        const jp = Math.min(mj - 1, j + 1);
-        const dym = (jm - j) * sy;
-        const dyp = (jp - j) * sy;
-        const dy = jp - jm || 1;
-        let o = j * sy + k * sz;
-        for (let i = 0; i < mi; ++i, o += sx) {
-          const im = Math.max(0, i - 1);
-          const ip = Math.min(mi - 1, i + 1);
-
-          const gx = (data[o + (ip - i) * sx] - data[o + (im - i) * sx]) / (ip - im || 1);
-          const gy = (data[o + dyp] - data[o + dym]) / dy;
-          const gz = (data[o + dzp] - data[o + dzm]) / dz;
-
-          const idx = o * 3;
-          values[idx] = gx;
-          values[idx + 1] = gy;
-          values[idx + 2] = gz;
-
-          const mag = gx * gx + gy * gy + gz * gz;
-          if (mag < min) min = mag;
-          if (mag > max) max = mag;
-          sum += mag;
-          sumSq += mag * mag;
-        }
-      }
-    }
-
-    return { values, magnitude: gradientStats(n, min, max, sum, sumSq) };
-  }
-
-  function computeGradientsGet(grid: Grid): Gradients {
-    const { dimensions, get, dataOffset } = grid.cells.space;
-    const data = grid.cells.data;
+  export function getGradients(grid: Grid): Gradients {
+    const { dimensions, dataOffset } = grid.cells.space;
     const [mi, mj, mk] = dimensions;
-
+    const getGradient = makeGetGradient(grid);
     const n = mi * mj * mk;
     const values = new Float32Array(n * 3);
+    const g = Vec3();
 
     let min = Infinity;
     let max = -Infinity;
@@ -407,26 +359,13 @@ namespace Grid {
     for (let k = 0; k < mk; ++k) {
       for (let j = 0; j < mj; ++j) {
         for (let i = 0; i < mi; ++i) {
+          getGradient(i, j, k, g);
           const idx = dataOffset(i, j, k) * 3;
+          values[idx] = g[0];
+          values[idx + 1] = g[1];
+          values[idx + 2] = g[2];
 
-          // Use central differences where possible, forward/backward at boundaries
-          const im = Math.max(0, i - 1);
-          const ip = Math.min(mi - 1, i + 1);
-          const jm = Math.max(0, j - 1);
-          const jp = Math.min(mj - 1, j + 1);
-          const km = Math.max(0, k - 1);
-          const kp = Math.min(mk - 1, k + 1);
-
-          // Gradient components (using central differences with proper divisor)
-          const gx = (get(data, ip, j, k) - get(data, im, j, k)) / (ip - im || 1);
-          const gy = (get(data, i, jp, k) - get(data, i, jm, k)) / (jp - jm || 1);
-          const gz = (get(data, i, j, kp) - get(data, i, j, km)) / (kp - km || 1);
-
-          values[idx] = gx;
-          values[idx + 1] = gy;
-          values[idx + 2] = gz;
-
-          const mag = gx * gx + gy * gy + gz * gz;
+          const mag = g[0] * g[0] + g[1] * g[1] + g[2] * g[2];
           if (mag < min) min = mag;
           if (mag > max) max = mag;
           sum += mag;
@@ -435,36 +374,29 @@ namespace Grid {
       }
     }
 
-    return { values, magnitude: gradientStats(n, min, max, sum, sumSq) };
+    if (min === Infinity) min = 0;
+    if (max === -Infinity) max = 1;
+    return {
+      values,
+      magnitude: { min: Math.sqrt(min), max: Math.sqrt(max), mean: sum / n, sigma: Math.sqrt(sumSq / n) },
+    };
   }
 
   /**
-   * Create a function that returns trilinearly interpolated gradient at a grid position.
-   * The gradient is pre-computed at grid cells and interpolated for smooth results.
+   * Create a function that returns the trilinearly interpolated gradient at a grid position. The gradients of the eight
+   * surrounding voxels are computed on demand, nothing is kept: a gradient field cached for the whole grid was 12 bytes
+   * a voxel for the volume's lifetime (perf-audit 04/P8). They are rounded to float32 as that field stored them.
    */
   export function makeGetInterpolatedGradient(grid: Grid) {
-    const { values: g } = getGradients(grid);
-    const { space } = grid.cells;
-    const { dimensions, dataOffset } = space;
-    const [mi, mj, mk] = dimensions;
-
-    // the gradients are laid out as the data, `dataOffset * 3`
-    const strides = Tensor.strides(space);
-    const strided = !!strides && strides.length === 3;
-    const [sx, sy, sz] = strided ? strides! : [0, 0, 0];
-    const getGradientVec3 = strided
-      ? (i: number, j: number, k: number, out: Vec3) => {
-          const idx = (i * sx + j * sy + k * sz) * 3;
-          out[0] = g[idx];
-          out[1] = g[idx + 1];
-          out[2] = g[idx + 2];
-        }
-      : (i: number, j: number, k: number, out: Vec3) => {
-          const idx = dataOffset(i, j, k) * 3;
-          out[0] = g[idx];
-          out[1] = g[idx + 1];
-          out[2] = g[idx + 2];
-        };
+    const [mi, mj, mk] = grid.cells.space.dimensions;
+    const getGradient = makeGetGradient(grid);
+    const fround = Math.fround;
+    const getGradientVec3 = (i: number, j: number, k: number, out: Vec3) => {
+      getGradient(i, j, k, out);
+      out[0] = fround(out[0]);
+      out[1] = fround(out[1]);
+      out[2] = fround(out[2]);
+    };
 
     return function getInterpolatedGradient(gridCoords: Vec3, out: Vec3): boolean {
       return trilinearlyInterpolateVec3(gridCoords, mi, mj, mk, getGradientVec3, out);
