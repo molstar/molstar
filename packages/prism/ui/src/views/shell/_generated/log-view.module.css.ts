@@ -17,7 +17,9 @@ export const classes = {
   'entry': 'msp-shell-log-view-entry',
   'filters': 'msp-shell-log-view-filters',
   'kind': 'msp-shell-log-view-kind',
+  'kinds': 'msp-shell-log-view-kinds',
   'log': 'msp-shell-log-view-log',
+  'search': 'msp-shell-log-view-search',
   'text': 'msp-shell-log-view-text',
   'time': 'msp-shell-log-view-time',
 } as const;
@@ -31,9 +33,25 @@ defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 }
 
 .msp-shell-log-view-filters {
+  z-index: 1;
+  align-items: center;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-3) 0;
-  display: grid;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  background: var(--msp-color-panel);
+  display: flex;
+  position: sticky;
+  top: 0;
+}
+
+.msp-shell-log-view-kinds {
+  gap: var(--msp-space-1);
+  flex: none;
+  display: flex;
+}
+
+.msp-shell-log-view-search {
+  flex: auto;
+  min-width: 0;
 }
 
 .msp-shell-log-view-entries {

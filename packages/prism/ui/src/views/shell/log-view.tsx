@@ -8,10 +8,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Choices } from '../../components/choices/choices.js';
-import { Icon } from '../../components/icon/icon.js';
+import { Button } from '../../components/button/button.js';
+import { Icon, type IconName } from '../../components/icon/icon.js';
 import { TextInput } from '../../components/text-input/text-input.js';
-import { Dynamic, For } from '../../dom/control-flow.js';
+import { For } from '../../dom/control-flow.js';
 import type { StatusMessage, NotificationsManager } from '../../managers/notifications.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { derive } from '../../reactive/state.js';
@@ -22,6 +22,15 @@ const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-di
 
 /** What the Log shows: everything, the messages the status line showed, one log-only source, or the problems. */
 type LogFilter = 'all' | 'messages' | 'problems' | `source:${string}`;
+
+interface LogChoice {
+  readonly id: LogFilter;
+  readonly label: string;
+  readonly icon: IconName;
+}
+
+/** The icons of the log-only sources the viewer writes; another source gets a tag. */
+const SourceIcons: Readonly<Record<string, IconName>> = { Transforms: 'layers', Plugin: 'wrench' };
 
 const passes = (m: StatusMessage, filter: LogFilter, query: string) => {
   if (filter === 'messages' && m.source !== undefined) return false;
@@ -48,11 +57,11 @@ export function LogView(props: { status: NotificationsManager }) {
     },
     (a, b) => a.length === b.length && a.every((s, i) => s === b[i]),
   );
-  const choices = derive(sources, (list) => [
-    { id: 'all', label: 'All' },
-    { id: 'messages', label: 'Messages' },
-    ...list.map((s) => ({ id: `source:${s}`, label: s })),
-    { id: 'problems', label: 'Problems' },
+  const choices = derive(sources, (list): readonly LogChoice[] => [
+    { id: 'all', label: 'All', icon: 'list' },
+    { id: 'messages', label: 'Messages', icon: 'info' },
+    ...list.map((s): LogChoice => ({ id: `source:${s}`, label: s, icon: SourceIcons[s] ?? 'tag' })),
+    { id: 'problems', label: 'Problems', icon: 'triangle-alert' },
   ]);
   const shown = derive(
     [props.status.logged, filter.asReadonly, query.asReadonly],
@@ -64,21 +73,26 @@ export function LogView(props: { status: NotificationsManager }) {
   // Not live (a log is, by default): each message is said once, by the status line's region (accessibility.md).
   return (
     <div class={classes.log}>
+      {/* One line, kept in view while the entries scroll under it: the filters as icons, then the text filter. */}
       <div class={classes.filters}>
-        {/* Made again only when the sources change (a first transform logged). */}
-        <Dynamic
-          component={derive(choices, (list) => () => (
-            <Choices
-              label="Show"
-              choices={list}
-              active={filter.asReadonly}
-              onPick={(id) => filter.set(id as LogFilter)}
-            />
-          ))}
-        />
+        <div class={classes.kinds} role="group" aria-label="Show">
+          <For each={choices} key={(c) => c.id}>
+            {(c) => (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icon name={c.icon} size={15} />}
+                title={c.label}
+                pressed={derive(filter.asReadonly, (f) => f === c.id)}
+                onClick={() => filter.set(c.id)}
+              />
+            )}
+          </For>
+        </div>
         <TextInput
           search
           size="sm"
+          class={classes.search}
           placeholder="Filter"
           aria-label="Filter the log"
           value={query.asReadonly}
