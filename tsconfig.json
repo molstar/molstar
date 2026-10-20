@@ -74,6 +74,9 @@
       "path": "./examples/lighting"
     },
     {
+      "path": "./examples/bond-providers"
+    },
+    {
       "path": "./examples/minimal-prism-viewer"
     },
     {

@@ -1,0 +1,17 @@
+## Bond providers
+
+- Pluggable bonds: a `BondProvider` (`@molstar/model/.../unit/bonds/provider`) supplies a structure's intra-unit bonds,
+  inter-unit bonds or both, starting from the built-in computation (`ctx.builtIn()`) or replacing it. Its instance is a
+  constructor argument of a unit and a prop of a structure (`Structure.Props.bondProvider`), fixed for their life and
+  passed on to children, symmetry copies, assemblies, merged units and remapped frames; the intra-unit bond cache is
+  one per provider. Without one, the bonds are exactly the built-in ones, as before.
+- `PluginContext.bondProviders`: the plugin's providers, registered by a spec (`registry.structure.bondProviders`) or
+  added and removed at run time. `StructureFromModel` (in every structure type) and `StructureFromTrajectory` take an
+  optional `bonds` param (`{ name, params }`); a name the plugin lacks, or a provider not applicable to the model, falls
+  back to the built-in bonds, with a warning when a snapshot names it.
+- `DefaultRegistry` gets a `DefaultBonds` entry: `'none'` (only the bonds the file states: bond tables, CONECT,
+  struct_conn, the component dictionary; none from distances) and `'per-unit'` (other providers chosen per unit by
+  entity type, chain or entity). `BondComputationProps.noDistance` is the flag behind `'none'`.
+- Prism: the `structure.bonds` operation and a Bonds field in a structure's inspector (hidden when the built-in bonds
+  are the only choice). MolViewSpec: a structure node's `custom.molstar_bond_provider`.
+- `examples/bond-providers`: a Prism viewer with two naive providers of its own.

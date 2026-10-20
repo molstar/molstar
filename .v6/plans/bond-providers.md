@@ -1,6 +1,6 @@
 # Bond providers: design and plan
 
-Status: draft, decisions of 2026-10-20 folded in (§7), nothing implemented. Origin: molstar/molstar#1939 (Paul Pillot's
+Status: implemented on `v6-bond-providers` (2026-10-20), steps 1–6; decisions in §7. Origin: molstar/molstar#1939 (Paul Pillot's
 POC) and the review there: a provider is a static parameter of a `Unit`, never looked up at `unit.bonds` time; the
 registry is on `PluginContext`; a transform resolves a provider by name and passes the instance to the `Structure`,
 which passes it to its units. This plan covers the interface only. Bond-order perception itself stays in an extension.
