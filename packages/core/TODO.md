@@ -20,3 +20,11 @@ The decisions still open. One entry each, with a pointer; an entry leaves when i
   (`updateNode`, the parent-Null branch); one evaluated before gets the Null object. Pick one.
 - **Dependents one level deep.** A dependent's own dependents are not scheduled in the same pass (`initCells`, "check if
   dependent cells are all proper roots").
+
+## Data utilities (`src/data/util`)
+
+- **A common home for sequence algorithms.** `data/util/needleman-wunsch.ts` (`globalAlign`) is here only because both
+  `@molstar/model` (`align`: SEQRES mapping, superposition) and `@molstar/seq-core` (the `needleman_wunsch` aligner) use
+  it, and core is the one package both depend on. The other aligners (biomsa, myers) and their limits live in
+  `packages/sequences/core/src/algorithms`. Decide where sequence algorithms shared by Mol\* and Seq\* belong (a package
+  or entry both may import) and move it there with its test (perf-audit 04/P1).

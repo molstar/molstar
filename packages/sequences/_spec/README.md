@@ -27,8 +27,9 @@ does not import out of its bundle. An entry names what it exports, the host's co
 uses, the registry's entry types included), and every type a public signature names is exported by some entry, so a host
 can name it; its internals are not exported, and tests reach them by path.
 
-**`@molstar/seq-core`**: platform-free; of other packages only Mol\*'s MessagePack codec (`@molstar/io`), zip and
-synchronous task context (`@molstar/core`); Node's built-ins only in its CLIs and the tile server.
+**`@molstar/seq-core`**: platform-free; of other packages only Mol\*'s MessagePack codec (`@molstar/io`), zip,
+synchronous task context and the Needleman–Wunsch DP that `@molstar/model` shares (`@molstar/core`); Node's built-ins
+only in its CLIs and the tile server.
 
 | Entry                           | Holds                                                                                          | Imports (of the core)                                   |
 | ------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------- |

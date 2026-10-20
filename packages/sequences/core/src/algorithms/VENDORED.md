@@ -139,8 +139,8 @@ tests in `_test/aligners.test.ts` pin them.
 `AlignerOptionsError extends RangeError` in `src/aligner.ts` (thrown by `readOptions` and by the `biomsa` aligner's
 matrix and type check; the only error a caller maps to a bad-options report), `Object.hasOwn` in `readOptions`, a
 `matrix` that names the type when `type` is `auto`, `myersAlign` validating its input (letters only, `maxDistance` null
-or a non-negative integer, equalities of two letters; `RangeError`), and `needleman_wunsch` checking `MAX_CELLS` and
-swapping its row buffers without allocating.
+or a non-negative integer, equalities of two letters; `RangeError`), and `needleman_wunsch` checking `MAX_CELLS` before
+it runs Mol\*'s shared DP (`@molstar/core/data/util/needleman-wunsch`, two rows of scores, a byte of traceback a cell).
 
 # Ported: edlib (A2)
 

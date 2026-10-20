@@ -166,10 +166,19 @@ function computeSeqresAlignments(
     }
   }
 
+  // Chains with the same SEQRES and the same observed residues (homo-oligomers) align once; the result is read only.
+  const byResidues = new Map<string, number[]>();
   for (const [chainId, observed] of chainObserved) {
     const seqres = seqresMap.get(chainId);
     if (seqres && seqres.length > 0) {
-      seqresAlignments.set(chainId, alignCompIdsToSeqres(seqres, observed));
+      // Names hold no line break; the SEQRES length makes the split unambiguous.
+      const key = `${seqres.length}\n${seqres.join('\n')}\n${observed.join('\n')}`;
+      let alignment = byResidues.get(key);
+      if (!alignment) {
+        alignment = alignCompIdsToSeqres(seqres, observed);
+        byResidues.set(key, alignment);
+      }
+      seqresAlignments.set(chainId, alignment);
     }
   }
 
