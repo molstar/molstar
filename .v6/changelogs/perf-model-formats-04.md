@@ -21,3 +21,6 @@
 - Seq\*: `@molstar/seq-core/algorithms` exports `GAP_CHAR`, the gap symbol of gapped rows (the model's `GAP`); the
   biomsa aligner and `cigarFromRows` use it, and biomsa's profile and Kimura distance read the gap symbol they are given
   (#2017)
+- Prism: a second MVSX (or MVSJ) file opened after another opens: its view reuses the first one's node refs, so
+  `load.files` judged it to have made nothing, reported "Could not open", and undid it back to the first view, whose
+  archive's files were gone (`fetch failed`). A file is judged by the nodes it added or replaced (#2017)
