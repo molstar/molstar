@@ -139,7 +139,7 @@ topology).
   column of the full table (`getNormalizedAtomSite` spreads the lazy `CategoryTable` getters), not the views; per model
   only id / occupancy / B copies stay (~0.15 MB). Fix: `Table.window` when `indices[i] === start + i`; lazy per-column
   views; `getNormalizedAtomSite` replacing only the five substituted columns over the original getters.
-- P6: `${model}|${asym}|${seq}` per atom row (`:83`); same in
+- P6 (landed, #2007): `${model}|${asym}|${seq}` per atom row (`:83`); same in
   [pdb/entity.ts:235](../../packages/model/src/formats/structure/pdb/entity.ts#L235); `MissingResidues.has/get`
   allocate a key per call. 8.9 ms self on big-bcif. Fix: emit a key only when the triple changes
   (`areValuesEqual(i - 1, i)`), or nested `Map<asym, Map<model, Set<seq>>>` used by `has/get` too.

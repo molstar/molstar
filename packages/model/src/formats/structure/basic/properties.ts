@@ -80,11 +80,23 @@ function addMissingResiduesFromEntityPolySeq(
   const observed = new Set<string>();
   const _models = new Set<number>();
   const { label_asym_id, label_seq_id, pdbx_PDB_model_num } = data.atom_site;
+  // a key per residue, not per atom row (perf-audit 04/P6): the atoms of a residue are consecutive rows
+  let hasLast = false,
+    lastModel = 0,
+    lastAsym = '',
+    lastSeq = 0;
   for (let i = 0, il = label_asym_id.rowCount; i < il; ++i) {
     if (label_seq_id.valueKind(i) !== Column.ValueKinds.Present) continue;
     const model_num = pdbx_PDB_model_num.value(i);
+    const asym_id = label_asym_id.value(i);
+    const seq_id = label_seq_id.value(i);
+    if (hasLast && model_num === lastModel && asym_id === lastAsym && seq_id === lastSeq) continue;
+    hasLast = true;
+    lastModel = model_num;
+    lastAsym = asym_id;
+    lastSeq = seq_id;
     _models.add(model_num);
-    observed.add(getKey(model_num, label_asym_id.value(i), label_seq_id.value(i)));
+    observed.add(getKey(model_num, asym_id, seq_id));
   }
   if (_models.size === 0) _models.add(1);
   const models = Array.from(_models);

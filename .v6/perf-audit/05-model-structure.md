@@ -171,7 +171,7 @@ Confirmed and plausible findings, ranked.
 - **Risk.** (b) changes `child !== parent`. `structure-component` already handles `component === a`; check the
   hierarchy manager.
 
-### P7 Intra `findBonds` radius and per-neighbour lookups (plausible)
+### P7 Intra `findBonds` radius and per-neighbour lookups (landed, #2007)
 
 - **Radius.** The largest distance threshold reachable from the tables is ~2.95 Å: element thresholds ≤ 2.88 give
   (2.88 + 2.88)/1.95, and pair thresholds are ≤ 2.87. The 4 Å query exists only so that component-dictionary bonds

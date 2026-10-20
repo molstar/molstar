@@ -108,7 +108,7 @@ memory order.
   `curve-segment.ts` too. Pinned by `cartoon-geometry.test.ts`. The cartoon memory overshoot is P3 (index reserve:
   2.53M triangles reserved, 0.87M used on big-bcif, ~20 MB retained).
 
-### P3: oversized single-chunk buffers
+### P3: oversized single-chunk buffers (landed, #2007)
 
 - **Mechanism**: `createState` reserves `initialCount*3` triangles (3 per vertex; real meshes have 1–2).
   Caller estimates overshoot too (`link.ts:139` 64 vertices per half-link where 34 are used). `getMesh` calls
@@ -159,7 +159,7 @@ memory order.
   (`mappingBuffer` is only read and ValueCell-updated). GPU memory unchanged unless the renderer also shares the buffer
   (frozen area).
 
-### P8: builder sizes in the wrong unit
+### P8: builder sizes in the wrong unit (landed, #2007)
 
 - **Mechanism**: a cylinder adds 6 ChunkedArray elements, a line 4, but `create(initialCount, chunkSize)` sizes chunks in
   elements. Callers pass item counts: `link.ts:384` and `polymer-backbone-cylinder.ts:81` (×2), `nucleotide-atomic-bond`

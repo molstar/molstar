@@ -122,7 +122,8 @@ export namespace MeshBuilder {
       currentGroup: -1,
       vertices: ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.vertexBuffer.ref.value : initialCount),
       normals: ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.normalBuffer.ref.value : initialCount),
-      indices: ChunkedArray.create(Uint32Array, 3, chunkSize * 3, mesh ? mesh.indexBuffer.ref.value : initialCount * 3),
+      // ~2 triangles per vertex (closed surfaces, tubes and grids); `getMesh` trims what an estimate overshoots
+      indices: ChunkedArray.create(Uint32Array, 3, chunkSize * 2, mesh ? mesh.indexBuffer.ref.value : initialCount * 2),
       groups: ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.groupBuffer.ref.value : initialCount),
       mesh,
     };
@@ -230,10 +231,10 @@ export namespace MeshBuilder {
 
   export function getMesh(state: State): Mesh {
     const { vertices, normals, indices, groups, mesh } = state;
-    const vb = ChunkedArray.compact(vertices, true) as Float32Array;
-    const ib = ChunkedArray.compact(indices, true) as Uint32Array;
-    const nb = ChunkedArray.compact(normals, true) as Float32Array;
-    const gb = ChunkedArray.compact(groups, true) as Float32Array;
+    const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
+    const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
+    const nb = ChunkedArray.compactTrimmed(normals) as Float32Array;
+    const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
     return Mesh.create(vb, ib, nb, gb, state.vertices.elementCount, state.indices.elementCount, mesh);
   }
 }

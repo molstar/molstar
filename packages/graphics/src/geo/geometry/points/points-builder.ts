@@ -37,8 +37,8 @@ export namespace PointsBuilder {
         caAdd(groups, group);
       },
       getPoints: () => {
-        const cb = ChunkedArray.compact(centers, true) as Float32Array;
-        const gb = ChunkedArray.compact(groups, true) as Float32Array;
+        const cb = ChunkedArray.compactTrimmed(centers) as Float32Array;
+        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
         return Points.create(cb, gb, centers.elementCount, points);
       },
     };

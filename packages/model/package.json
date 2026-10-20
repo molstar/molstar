@@ -24,6 +24,7 @@
     "./model/structure/structure/_test/*": null,
     "./model/structure/structure/element/_test/*": null,
     "./model/structure/structure/element/schema-selection/_test/*": null,
+    "./model/structure/structure/unit/bonds/_test/*": null,
     "./model/structure/structure/util/_test/*": null,
     "./model/volume/_test/*": null,
     "./props/common/_test/*": null,
