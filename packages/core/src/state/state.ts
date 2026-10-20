@@ -13,6 +13,7 @@ import { type RuntimeContext, Task } from '@molstar/core/task';
 import { StateSelection } from './state/selection.js';
 import { RxEventHelper } from '@molstar/core/util/rx-event-helper';
 import { StateBuilder } from './state/builder.js';
+import { findDeletes, findEditedDeletes, findEditedRoots, findUpdateRoots } from './state/diff.js';
 import type { StateAction } from './action.js';
 import { StateActionManager } from './action/manager.js';
 import type { TransientTree } from './tree/transient.js';
@@ -46,6 +47,11 @@ class State {
   private _tree: TransientTree;
 
   protected errorFree = true;
+  /**
+   * the cells are in line with the tree (README invariant 2): false after an update that threw or a fast track with an
+   * uncounted write, until a whole-tree diff completes (reconcile.md §2)
+   */
+  protected cellsInSync = true;
 
   private ev = RxEventHelper.create();
 
@@ -627,6 +633,21 @@ async function update(ctx: UpdateContext) {
     ctx.editInfo.lastUpdate &&
     ctx.editInfo.sourceTree === ctx.oldTree
   );
+  // a builder on the current tree that only added or updated nodes, with the cells in line with that tree: the
+  // roots of the whole-tree diff are among its edits (reconcile.md §2)
+  const parent = ctx.parent as unknown as { cellsInSync: boolean };
+  const cellsInSync = parent.cellsInSync;
+  const edits = ctx.editInfo?.edits;
+  const editsOnly =
+    !fastTrack &&
+    cellsInSync &&
+    !!edits &&
+    !edits.moved &&
+    edits.removed.length <= 1 &&
+    ctx.editInfo!.sourceTree === ctx.oldTree;
+  // until this pass completes: a throw leaves cells behind the tree, which only the whole-tree diff finds
+  parent.cellsInSync = false;
+
   let deletes: StateTransform.Ref[],
     deletedObjects: (StateObject | undefined)[] = [],
     roots: StateTransform.Ref[];
@@ -637,7 +658,9 @@ async function update(ctx: UpdateContext) {
   } else {
     // find all nodes that will definitely be deleted.
     // this is done in "post order", meaning that leaves will be deleted first.
-    deletes = findDeletes(ctx);
+    deletes = editsOnly
+      ? findEditedDeletes(ctx.oldTree, ctx.tree, ctx.cells, edits!.removed)
+      : findDeletes(ctx.oldTree, ctx.tree, ctx.cells);
 
     const current = ctx.parent.current;
     let hasCurrent = false;
@@ -673,7 +696,7 @@ async function update(ctx: UpdateContext) {
     }
 
     // Find roots where transform version changed or where nodes will be added.
-    roots = findUpdateRoots(ctx.cells, ctx.tree);
+    roots = editsOnly ? findEditedRoots(ctx.cells, ctx.tree, edits!.refs) : findUpdateRoots(ctx.cells, ctx.tree);
   }
 
   // Init empty cells where not present
@@ -790,36 +813,22 @@ async function update(ctx: UpdateContext) {
     }
   }
 
+  // the fast track evaluates one subtree: the cells stay in line only if the tree changed nowhere else (a write to the
+  // builder's tree directly is not counted) and they were before
+  parent.cellsInSync = fastTrack ? cellsInSync && editsWithin(ctx.tree, edits, ctx.editInfo!.lastUpdate!) : true;
+
   return deletes.length > 0 || roots.length > 0 || ctx.changed;
 }
 
-function findUpdateRoots(cells: Map<StateTransform.Ref, StateObjectCell>, tree: StateTree) {
-  const findState = { roots: [] as Ref[], cells };
-  StateTree.doPreOrder(tree, tree.root, findState, findUpdateRootsVisitor);
-  return findState.roots;
-}
-
-function findUpdateRootsVisitor(n: StateTransform, _: any, s: { roots: Ref[]; cells: Map<Ref, StateObjectCell> }) {
-  const cell = s.cells.get(n.ref);
-  if (!cell || cell.transform.version !== n.version) {
-    s.roots.push(n.ref);
-    return false;
+/** whether every recorded edit is in the subtree of `root` (none removed) */
+function editsWithin(tree: StateTree, edits: TransientTree.Edits | undefined, root: Ref) {
+  if (!edits || edits.removed.length > 0) return false;
+  for (const ref of edits.refs) {
+    let t = tree.transforms.get(ref);
+    while (t && t.ref !== root && t.ref !== StateTransform.RootRef) t = tree.transforms.get(t.parent);
+    if (!t || t.ref !== root) return false;
   }
-  if (cell.status === 'error') return false;
-
-  // nothing below a Null object can be an update root
-  if (cell && cell.obj === StateObject.Null) return false;
   return true;
-}
-
-type FindDeletesCtx = { newTree: StateTree; cells: State.Cells; deletes: Ref[] };
-function checkDeleteVisitor(n: StateTransform, _: any, ctx: FindDeletesCtx) {
-  if (!ctx.newTree.transforms.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
-}
-function findDeletes(ctx: UpdateContext): Ref[] {
-  const deleteCtx: FindDeletesCtx = { newTree: ctx.tree, cells: ctx.cells, deletes: [] };
-  StateTree.doPostOrder(ctx.oldTree, ctx.oldTree.root, deleteCtx, checkDeleteVisitor);
-  return deleteCtx.deletes;
 }
 
 const StateFlags = ['isGhost', 'isLocked', 'isHidden', 'isCollapsed'] as const;

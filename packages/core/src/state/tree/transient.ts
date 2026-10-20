@@ -26,6 +26,25 @@ class TransientTree implements StateTree {
   private _dependencyMutations: Map<StateTransform.Ref, StateTree.MutableChildSet> | undefined = void 0;
   private _stateUpdates: Set<StateTransform.Ref> | undefined = void 0;
 
+  /**
+   * Set by a builder (`StateBuilder.EditInfo.edits`): every ref whose transform this tree sets, and whether a node was
+   * moved or removed. The reconciler finds the update roots of such edits without walking the trees (reconcile.md §2).
+   */
+  edits: TransientTree.Edits | undefined = void 0;
+
+  private edited(ref: StateTransform.Ref) {
+    if (this.edits) this.edits.refs.push(ref);
+  }
+
+  private moved(ref: StateTransform.Ref) {
+    if (this.edits) this.edits.moved = true;
+    this.edited(ref);
+  }
+
+  private removed(ref: StateTransform.Ref) {
+    if (this.edits) this.edits.removed.push(ref);
+  }
+
   private get childMutations() {
     if (this._childMutations) return this._childMutations;
     this._childMutations = new Map();
@@ -128,6 +147,7 @@ class TransientTree implements StateTree {
     this.addChild(newParent, ref);
     this.changeNodes();
     this.transforms.set(ref, StateTransform.withParent(old, newParent));
+    this.moved(ref);
   }
 
   add(transform: StateTransform) {
@@ -155,6 +175,7 @@ class TransientTree implements StateTree {
 
     this.changeNodes();
     this.transforms.set(ref, transform);
+    this.edited(ref);
 
     if (transform.dependsOn) {
       for (const d of transform.dependsOn) {
@@ -181,6 +202,7 @@ class TransientTree implements StateTree {
     }
 
     this.transforms.set(transform.ref, StateTransform.withParams(transform, params));
+    this.edited(ref);
     return true;
   }
 
@@ -202,6 +224,7 @@ class TransientTree implements StateTree {
     }
 
     this.transforms.set(transform.ref, withTags);
+    this.edited(ref);
     return true;
   }
 
@@ -221,6 +244,7 @@ class TransientTree implements StateTree {
     }
 
     this.transforms.set(transform.ref, withDependsOn);
+    this.edited(ref);
     return true;
   }
 
@@ -237,6 +261,7 @@ class TransientTree implements StateTree {
       this.changeNodes();
       const updated = StateTransform.withState(old, state);
       this.transforms.set(ref, updated);
+      this.edited(ref);
       return updated;
     }
   }
@@ -257,6 +282,7 @@ class TransientTree implements StateTree {
 
     this.changeNodes();
     this.changeChildren();
+    this.removed(ref);
 
     for (const n of st) {
       this.transforms.delete(n.ref);
@@ -322,6 +348,17 @@ class TransientTree implements StateTree {
   }
 
   constructor(private tree: StateTree) {}
+}
+
+namespace TransientTree {
+  export interface Edits {
+    /** refs whose transform was set (added, params, tags, dependencies, state flags, parent), in order, with repeats */
+    refs: StateTransform.Ref[];
+    /** a node was moved to another parent */
+    moved: boolean;
+    /** the refs `remove` was called with that removed nodes, in order (dependents removed with one come after it) */
+    removed: StateTransform.Ref[];
+  }
 }
 
 function fixChildMutations(

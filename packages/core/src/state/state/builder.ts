@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
@@ -26,6 +26,8 @@ namespace StateBuilder {
     sourceTree: StateTree;
     count: number;
     lastUpdate?: StateTransform.Ref;
+    /** what the builder's tree set and whether it removed or moved a node (tree.md §4, reconcile.md §2) */
+    edits?: TransientTree.Edits;
   }
 
   interface BuildState {
@@ -165,11 +167,14 @@ namespace StateBuilder {
     }
 
     constructor(tree: StateTree, state?: State) {
+      const transient = tree.asTransient();
+      const edits: TransientTree.Edits = { refs: [], moved: false, removed: [] };
+      transient.edits = edits;
       this.state = {
         state,
-        tree: tree.asTransient(),
+        tree: transient,
         actions: [],
-        editInfo: { applied: false, sourceTree: tree, count: 0, lastUpdate: void 0 },
+        editInfo: { applied: false, sourceTree: tree, count: 0, lastUpdate: void 0, edits },
       };
     }
   }
