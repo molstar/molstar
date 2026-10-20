@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { decodeHtmlEntities } from './html-entities.js';
+
 // A small Markdown tokenizer for labels, tooltips and short descriptions: a typed tree, never HTML, so whatever renders
 // it builds elements from text (a document's Markdown cannot inject markup). The approach follows snarkdown (Jason
 // Miller, MIT): a line pass for the blocks and one scanner for the inline marks. What it reads: ATX headings, paragraphs
@@ -37,35 +39,15 @@ export type MarkdownBlock =
   | { readonly kind: 'code'; readonly lang: string; readonly text: string }
   | { readonly kind: 'rule' };
 
-const Entities = new Map([
-  ['amp', '&'],
-  ['lt', '<'],
-  ['gt', '>'],
-  ['quot', '"'],
-  ['apos', "'"],
-  ['nbsp', '\u00a0'],
-  ['#39', "'"],
-]);
-
 const Escapable = '\\`*_{}[]()#+-.!<>|~';
 
-function entity(m: string, name: string): string {
-  if (name[0] === '#') {
-    const code = name[1] === 'x' || name[1] === 'X' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10);
-    return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : m;
-  }
-  return Entities.get(name) ?? m;
-}
-
-function decode(s: string): string {
-  return s.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, entity);
-}
+const decode = decodeHtmlEntities;
 
 /** A link destination's text: backslash escapes and entities read in one pass. */
 function decodeHref(s: string): string {
   return s.replace(
-    /\\([\\`*_{}[\]()#+\-.!<>|~])|&(#x[0-9a-f]+|#\d+|\w+);/gi,
-    (m, escaped: string | undefined, name: string) => escaped ?? entity(m, name),
+    /\\([\\`*_{}[\]()#+\-.!<>|~])|&(?:#x[0-9a-f]+|#\d+|\w+);/gi,
+    (m, escaped: string | undefined) => escaped ?? decodeHtmlEntities(m),
   );
 }
 
