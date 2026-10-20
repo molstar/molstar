@@ -221,11 +221,12 @@ describe('interactions representation', async () => {
     true,
   );
 
+  // against the first pins: salt bridges hide the H-bonds within them, not themselves, and the inter-unit refinement
+  // works; intra 8 salt bridges shown and 8 H-bonds hidden, inter 82 H-bonds hidden (3470 drawn before)
   const expected = [
     'groups=5308 instances=1 drawn=3714:b9d4f0a8 picked=d0bf6c41 marked=b45c7705',
-    'groups=614 instances=16 drawn=430:99358b04 picked=14680205 marked=be41d1f9',
-    // 50 fewer than first pinned: inter-unit ionic contacts overlapping an H-bond are filtered as intra-unit ones are
-    'groups=6628 instances=1 drawn=3420:4d23a1d9 picked=12f33845 marked=23b6fe95',
+    'groups=614 instances=16 drawn=430:df17f4ac picked=4ef33375 marked=cc066459',
+    'groups=6628 instances=1 drawn=3388:9bbce37b picked=894807c5 marked=87d83c85',
     'residues=fe1b5bba',
   ];
 

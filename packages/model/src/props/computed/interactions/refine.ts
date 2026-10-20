@@ -270,25 +270,20 @@ function filterIntra(
 
 /**
  * Remove hydrogen bonds (normal and weak) between groups that also form
- * an ionic interaction between each other
+ * an ionic interaction between each other (the salt bridge is kept, as in NGL and PLIP)
  */
 function saltBridgeRefiner(structure: Structure, interactions: Interactions): ContactRefiner {
   const { contacts } = interactions;
 
   return {
-    isApplicable: (type: InteractionType) => type === InteractionType.Ionic,
+    isApplicable: (type: InteractionType) =>
+      type === InteractionType.HydrogenBond || type === InteractionType.WeakHydrogenBond,
     handleInterContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-      filterInter([InteractionType.HydrogenBond, InteractionType.WeakHydrogenBond], index, infoA, infoB, contacts);
+      filterInter([InteractionType.Ionic], index, infoA, infoB, contacts);
     },
     startUnit: () => {},
     handleIntraContact: (index: number, infoA: Features.Info, infoB: Features.Info) => {
-      filterIntra(
-        [InteractionType.HydrogenBond, InteractionType.WeakHydrogenBond],
-        index,
-        infoA,
-        infoB,
-        interactions.unitsContacts.get(infoA.unit.id),
-      );
+      filterIntra([InteractionType.Ionic], index, infoA, infoB, interactions.unitsContacts.get(infoA.unit.id));
     },
   };
 }

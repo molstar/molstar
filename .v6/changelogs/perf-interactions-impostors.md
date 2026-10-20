@@ -10,8 +10,10 @@
 - Interactions `sizeAspectRatio` (from the cylinder params) scales the mesh radius too; `colorMode: 'interpolate'`
   draws as 'default' with impostors (the mesh path ignored it)
 - Fixes (perf audit 09/B1, 09/B4 and two found on the way):
-  - inter-unit contacts are filtered by the refiners as intra-unit ones are: an ionic contact overlapping an H-bond or
-    a metal coordination, a hydrophobic or cation-pi one overlapping pi-stacking (the inter-unit check never matched)
+  - a salt bridge hides the H-bonds between the same atoms, not itself (as documented, NGL and PLIP; ionic is off by
+    default)
+  - the overlap refiners also filter inter-unit contacts (the inter-unit check never matched): H-bonds within a salt
+    bridge, ionic contacts within a metal coordination, hydrophobic and cation-pi contacts within pi-stacking
   - H-bond geometry uses the donor's hydrogen when it is in another unit; `closestHydrogen` gives its unit,
     `closestHydrogenIndex` is deprecated
   - `includeParent`: intra-unit contacts are shown or hidden by their own atoms

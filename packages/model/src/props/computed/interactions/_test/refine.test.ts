@@ -53,7 +53,8 @@ const AllProviders: Partial<InteractionsProps> = {
 
 /** The refiners that filter a contact of `applicable` type when a contact of `filters` type joins the same atoms */
 const OverlapRefiners: [applicable: InteractionType[], filters: InteractionType[]][] = [
-  [[InteractionType.Ionic], [InteractionType.HydrogenBond, InteractionType.WeakHydrogenBond]],
+  // salt bridges are kept, the H-bonds within them filtered (as NGL and PLIP)
+  [[InteractionType.HydrogenBond, InteractionType.WeakHydrogenBond], [InteractionType.Ionic]],
   [[InteractionType.Hydrophobic, InteractionType.CationPi], [InteractionType.PiStacking]],
   [[InteractionType.Ionic], [InteractionType.MetalCoordination]],
 ];
@@ -62,8 +63,8 @@ describe('interactions refinement', async () => {
   const m1cbs = await loadCif('1cbs_updated.cif');
   const mAce2 = await loadPdbqt('ace2.pdbqt');
 
-  it('filters inter-unit contacts that share atoms with a contact of the filtering type, as intra-unit ones', async () => {
-    let overlaps = 0;
+  it('filters inter- and intra-unit contacts that share atoms with a contact of the filtering type', async () => {
+    const overlaps = { inter: 0, intra: 0, saltBridgeHBonds: 0 };
     for (const s of [
       await StructureSymmetry.buildSymmetryRange(
         Structure.ofModel(m1cbs),
@@ -72,31 +73,61 @@ describe('interactions refinement', async () => {
       ).run(),
       Structure.ofModel(mAce2),
     ]) {
-      const { contacts, unitsFeatures } = await computeInteractions(ctx, s, AllProviders);
+      const { contacts, unitsContacts, unitsFeatures } = await computeInteractions(ctx, s, AllProviders);
       const members = (unitId: number, feature: number) => {
         const { offsets, members } = unitsFeatures.get(unitId);
         return Array.from(members.subarray(offsets[feature], offsets[feature + 1]));
       };
       const shares = (xs: number[], ys: number[]) => xs.some((x) => ys.includes(x));
-      for (const e of contacts.edges) {
+      const check = (
+        kind: 'inter' | 'intra',
+        type: InteractionType,
+        flag: number,
+        overlapsWith: (filters: InteractionType[]) => boolean,
+      ) => {
         for (const [applicable, filters] of OverlapRefiners) {
-          if (!applicable.includes(e.props.type)) continue;
-          const overlap = contacts.edges.some(
+          if (!applicable.includes(type) || !overlapsWith(filters)) continue;
+          overlaps[kind]++;
+          if (filters.includes(InteractionType.Ionic)) overlaps.saltBridgeHBonds++;
+          expect(flag).toBe(InteractionFlag.Filtered);
+        }
+      };
+
+      for (const e of contacts.edges) {
+        check('inter', e.props.type, e.props.flag, (filters) =>
+          contacts.edges.some(
             (f) =>
               f.unitA === e.unitA &&
               f.unitB === e.unitB &&
               filters.includes(f.props.type) &&
               shares(members(f.unitA, f.indexA), members(e.unitA, e.indexA)) &&
               shares(members(f.unitB, f.indexB), members(e.unitB, e.indexB)),
-          );
-          if (overlap) {
-            overlaps++;
-            expect(e.props.flag).toBe(InteractionFlag.Filtered);
-          }
+          ),
+        );
+      }
+
+      for (const unit of s.units) {
+        const c = unitsContacts.get(unit.id);
+        if (!c) continue;
+        const { a, b, edgeProps } = c;
+        for (let i = 0; i < c.edgeCount * 2; ++i) {
+          check('intra', edgeProps.type[i], edgeProps.flag[i], (filters) => {
+            for (let j = 0; j < c.edgeCount * 2; ++j) {
+              if (!filters.includes(edgeProps.type[j])) continue;
+              if (
+                shares(members(unit.id, a[j]), members(unit.id, a[i])) &&
+                shares(members(unit.id, b[j]), members(unit.id, b[i]))
+              )
+                return true;
+            }
+            return false;
+          });
         }
       }
     }
-    // the structures have such contacts, so the test checks something
-    expect(overlaps).toBeGreaterThan(0);
+    // the structures have such contacts, salt bridges with an H-bond among them, so the test checks something
+    expect(overlaps.inter).toBeGreaterThan(0);
+    expect(overlaps.intra).toBeGreaterThan(0);
+    expect(overlaps.saltBridgeHBonds).toBeGreaterThan(0);
   });
 });

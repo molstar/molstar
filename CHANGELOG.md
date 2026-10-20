@@ -10,9 +10,11 @@ here.
 
 ## [Unreleased]
 
-- Interactions: inter-unit ionic, hydrophobic and cation-pi contacts are filtered when a contact of the overriding type
-  (H-bond, metal coordination, pi-stacking) joins the same atoms, as intra-unit ones were (the inter-unit check never
-  matched)
+- Interactions: a salt bridge (ionic contact) hides the H-bonds between the same atoms instead of being hidden by them,
+  as documented and as in NGL and PLIP (ionic is off by default)
+- Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts
+  within a metal coordination, hydrophobic and cation-pi contacts within pi-stacking); the inter-unit check never
+  matched
 - Interactions: the H-bond acceptor angle uses the donor's hydrogen when it is in another unit (it read an atom of the
   donor's unit with that index); `closestHydrogen` returns its unit, `closestHydrogenIndex` is deprecated
 - Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
