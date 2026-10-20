@@ -20,6 +20,7 @@
     },
     "./_test/*": null,
     "./behavior/dynamic/custom-props/_test/*": null,
+    "./behavior/dynamic/_test/*": null,
     "./behavior/dynamic/selection/_test/*": null,
     "./behavior/dynamic/volume-streaming/_test/*": null,
     "./registry/_test/*": null,
