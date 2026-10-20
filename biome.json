@@ -87,8 +87,7 @@
         "packages/prism/assistant/vitest*.config.ts",
         "packages/ai/vitest*.config.ts",
         "apps/docs/astro.config.ts",
-        "examples/minimal-prism-viewer/vite.config.ts",
-        "examples/bond-providers/vite.config.ts"
+        "examples/minimal-prism-viewer/vite.config.ts"
       ],
       "linter": {
         "rules": {

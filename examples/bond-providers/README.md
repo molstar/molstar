@@ -5,13 +5,13 @@ A [Prism](../../packages/prism/AGENTS.md) viewer that shows where a structure's 
 registry, and two naive providers of the example's own, registered as any registry entry is.
 
 ```sh
-pnpm -C examples/bond-providers dev        # http://localhost:5173, from the workspace sources
-pnpm -C examples/bond-providers build      # vite build → build/
+pnpm dev:examples -- bond-providers   # http://localhost:1338/examples/bond-providers/build/, watching the sources
+pnpm -C examples/bond-providers build # esbuild → build/
 pnpm -C examples/bond-providers typecheck
 ```
 
-A Vite app like [the minimal Prism viewer](../minimal-prism-viewer/README.md) (`"molstar": { "builder": "vite" }`),
-resolving workspace packages to their sources, so nothing needs building first.
+Built like the other examples (`scripts/esbuild/app.mjs`), as an ES module with lazy chunks (`"format": "esm"`, as the
+Prism viewer app), from the workspace sources, so nothing needs building first.
 
 ## The providers
 

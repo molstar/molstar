@@ -9,6 +9,7 @@ import { createPrismViewer } from '@molstar/prism-viewer/page';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { NaiveOrdersBondProvider } from './providers.js';
 import { BondProvidersViewerSpec } from './spec.js';
+import './index.html';
 
 // The bond providers example page: a viewer with the example's providers, a header that loads an entry and switches
 // the structure's bonds through the `structure.bonds` operation (as the inspector's Bonds field does), and a button
