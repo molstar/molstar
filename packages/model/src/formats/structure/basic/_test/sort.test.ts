@@ -1,0 +1,63 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { describe, expect, it } from 'vitest';
+import { Column, Table } from '@molstar/core/data/db';
+import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { BasicSchema } from '../schema.js';
+import { sortAtomSite } from '../sort.js';
+
+// Model 1 (rows 0-4): entity 2's rows first and seq ids out of order, so it sorts. Model 2 (rows 5-8): already in
+// order, a contiguous range. Typed and plain array columns, one column with a missing value.
+const atom_site = Table.ofArrays(BasicSchema.atom_site, {
+  id: Int32Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9),
+  pdbx_PDB_model_num: Int32Array.of(1, 1, 1, 1, 1, 2, 2, 2, 2),
+  label_entity_id: ['2', '1', '1', '1', '2', '1', '1', '1', '2'],
+  label_asym_id: ['B', 'A', 'A', 'A', 'B', 'A', 'A', 'A', 'B'],
+  label_seq_id: Int32Array.of(1, 3, 1, 2, 1, 1, 2, 3, 1),
+  label_comp_id: ['HOH', 'VAL', 'ALA', 'GLY', 'HOH', 'ALA', 'GLY', 'VAL', 'HOH'],
+  Cartn_x: Float32Array.of(0, 1, 2, 3, 4, 5, 6, 7, 8),
+  B_iso_or_equiv: [10, 11, 12, 13, 14, 15, 16, 17, 18],
+});
+
+/** Every column read row by row: values and value kinds. */
+function read(table: Table<BasicSchema['atom_site']>) {
+  const out: Record<string, unknown> = { rowCount: table._rowCount };
+  for (const k of table._columns) {
+    const c = table[k] as Column<unknown>;
+    out[k] = {
+      isDefined: c.isDefined,
+      rowCount: c.rowCount,
+      values: Array.from({ length: c.rowCount }, (_, i) => c.value(i)),
+      kinds: Array.from({ length: c.rowCount }, (_, i) => c.valueKind(i)),
+      array: c.toArray(),
+    };
+  }
+  return out;
+}
+
+describe('sortAtomSite', () => {
+  it('sorts a model by entity, chain and seq id', async () => {
+    // entities in their first rows' order, seq ids sorted within a chain
+    const { atom_site: sorted, sourceIndex } = await sortAtomSite(SyncRuntimeContext, atom_site, 0, 5);
+    expect(Array.from(sourceIndex.toArray())).toEqual([0, 4, 2, 3, 1]);
+    expect(read(sorted)).toEqual(read(Table.view(atom_site, atom_site._schema, [0, 4, 2, 3, 1])));
+  });
+
+  it('reads a model already in order as the rows of its range, typed arrays in place', async () => {
+    const { atom_site: sorted, sourceIndex } = await sortAtomSite(SyncRuntimeContext, atom_site, 5, 9);
+    expect(Array.from(sourceIndex.toArray())).toEqual([5, 6, 7, 8]);
+    expect(read(sorted)).toEqual(read(Table.view(atom_site, atom_site._schema, [5, 6, 7, 8])));
+    expect(sorted.Cartn_x.__array!.buffer).toBe(atom_site.Cartn_x.__array!.buffer);
+    expect(Array.isArray(sorted.label_comp_id.__array)).toBe(true);
+  });
+
+  it('returns the table itself when it is one model in order', async () => {
+    const one = Table.window(atom_site, atom_site._schema, 5, 9);
+    const { atom_site: sorted } = await sortAtomSite(SyncRuntimeContext, one, 0, 4);
+    expect(sorted).toBe(one);
+  });
+});

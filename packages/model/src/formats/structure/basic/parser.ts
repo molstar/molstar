@@ -25,7 +25,7 @@ import {
   getStructAsymMap,
 } from './properties.js';
 import { getEntitiesWithPRD, getEntityData } from './entities.js';
-import { getModelGroupName } from './util.js';
+import { getModelGroupNames } from './util.js';
 import { ArrayTrajectory } from '@molstar/model/model/structure/trajectory';
 
 export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
@@ -244,6 +244,7 @@ async function readIntegrative(
   const gauss_sites = splitTable(data.ihm_gaussian_obj_site, data.ihm_gaussian_obj_site.model_id);
 
   const models: Model[] = [];
+  const modelGroupName = getModelGroupNames(data);
 
   if (data.ihm_model_list) {
     const { model_id, model_name } = data.ihm_model_list;
@@ -265,7 +266,7 @@ async function readIntegrative(
       const ihm: CoarseData = {
         model_id: id,
         model_name: model_name.value(i),
-        model_group_name: getModelGroupName(id, data),
+        model_group_name: modelGroupName(id),
         entities,
         atom_site,
         atom_site_sourceIndex,
