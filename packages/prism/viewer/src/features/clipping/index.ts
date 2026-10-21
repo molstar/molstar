@@ -80,6 +80,13 @@ export const ClippingFeature: ViewerExtension = {
         alias: ['keep whole', 'unclip', 'clip representation'],
         action: 'Apply',
       }),
+      operationCommand(api, x.show, {
+        category,
+        icon: 'eye',
+        title: 'Draw a cut in the scene…',
+        alias: ['show cut', 'clip volume', 'draw clipping', 'show clipping'],
+        action: 'Draw',
+      }),
       operationCommand(api, x.remove, { category, icon: 'trash-2', alias: ['remove clip', 'uncut'], action: 'Remove' }),
       operationCommand(api, x.clear, { category, icon: 'trash-2', alias: ['remove all clipping'], action: 'Remove' }),
     ];

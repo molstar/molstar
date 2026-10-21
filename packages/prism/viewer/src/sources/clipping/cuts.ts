@@ -10,6 +10,7 @@ import { type State, type StateObjectCell, StateTransform } from '@molstar/core/
 import type { Clip } from '@molstar/core/util/clip';
 import type { PluginContext } from '@molstar/plugin/context';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
+import { ClipVolumesShape3D, ClipVolumesTag, clipVolumeTag } from '@molstar/plugin/state/transforms/shape/clip-volumes';
 
 // Cuts (clipping.md §1): the clip objects of the representations, read from the state tree (its record of what is
 // clipped, so a clip set by code or a file shows too) and grouped: equal objects on several representations are one
@@ -42,6 +43,8 @@ export interface Cut {
   readonly index: number;
   readonly object: CutObject;
   readonly targets: readonly CutTarget[];
+  /** Its drawing in the scene (a clip volumes shape tagged `clip-volume-<its tag>`): the cell's ref, if drawn */
+  readonly drawing?: string;
 }
 
 /** The representations whose geometry can be clipped, in tree order (a walk from the root) */
@@ -49,6 +52,8 @@ export function clippableCells(state: State): StateObjectCell[] {
   const out: StateObjectCell[] = [];
   const walk = (ref: string) => {
     const cell = state.cells.get(ref);
+    // a drawing of the cuts is not cut (nor is anything under it)
+    if (cell?.transform.tags?.includes(ClipVolumesTag)) return;
     if (cell && RepresentationClip.isClippable(cell)) out.push(cell);
     for (const child of state.tree.children.get(ref).values()) walk(child);
   };
@@ -97,7 +102,17 @@ export function findCuts(plugin: PluginContext): Cut[] {
       }
     }
   }
-  return cuts.map((c, i) => ({ index: i + 1, ...c }));
+  // the drawings by the cut they draw (`clip-volume-<tag>`)
+  const drawings = new Map<string, string>();
+  for (const cell of state.cells.values()) {
+    const tags = cell.transform.tags;
+    if (!tags?.includes(ClipVolumesTag) || cell.transform.transformer !== ClipVolumesShape3D) continue;
+    for (const t of tags) if (t !== ClipVolumesTag) drawings.set(t, cell.transform.ref);
+  }
+  return cuts.map((c, i) => {
+    const drawing = c.object.tag ? drawings.get(clipVolumeTag(c.object.tag)) : undefined;
+    return { index: i + 1, ...c, ...(drawing ? { drawing } : {}) };
+  });
 }
 
 /**
@@ -114,6 +129,8 @@ export function cutCandidates(state: State, cut: Cut): CutTarget[] {
   const out: CutTarget[] = [...cut.targets];
   const walk = (ref: string) => {
     const cell = state.cells.get(ref);
+    // the cuts' drawings are not cut
+    if (cell?.transform.tags?.includes(ClipVolumesTag)) return;
     if (cell && RepresentationClip.isClippable(cell) && !out.some((t) => t.ref === ref)) {
       out.push({ ref, label: representationLabel(state, cell), type: representationType(cell) });
     }

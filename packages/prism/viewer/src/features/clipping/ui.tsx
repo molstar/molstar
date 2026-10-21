@@ -277,6 +277,28 @@ function Muted(props: { on: ReadonlyState<boolean>; children?: unknown }) {
   );
 }
 
+/** A fold in a cut's editor: its title and a count, the chevron on the right; closed at first */
+function Fold(props: { title: string; meta?: ReadonlyState<string>; children: () => unknown }) {
+  const open = observableState(false);
+  return (
+    <div style="display: grid; gap: 2px; min-width: 0">
+      <button
+        type="button"
+        class={classes.fold}
+        aria-expanded={derive(open.asReadonly, (o) => String(o))}
+        onClick={() => open.set(!open.value)}
+      >
+        <span class={`${classes.foldTitle} ${classes.fade}`}>
+          {props.title}
+          {props.meta ? <> {props.meta}</> : null}
+        </span>
+        <Icon name="chevron-right" size={14} class={classes.foldChevron} />
+      </button>
+      <Show when={open.asReadonly}>{() => props.children() as never}</Show>
+    </div>
+  );
+}
+
 /** The five shapes as a strip of icons (as a representation's Type), the current one pressed */
 function ShapeStrip(props: { current: CutShape; pick(shape: CutShape): void }) {
   return (
@@ -356,6 +378,20 @@ function CutRow(props: {
               <Button
                 size="xs"
                 variant="ghost"
+                icon={
+                  <Show when={derive(cut, (c) => !!c?.drawing)} fallback={() => <Icon name="eye-off" />}>
+                    {() => <Icon name="eye" />}
+                  </Show>
+                }
+                title={derive(cut, (c) =>
+                  c?.drawing ? 'Drawn in the scene (saved with it): hide it' : 'Draw it in the scene (saved with it)',
+                )}
+                pressed={derive(cut, (c) => !!c?.drawing)}
+                onClick={() => run('clipping.show', { on: !cut.value?.drawing })}
+              />
+              <Button
+                size="xs"
+                variant="ghost"
                 icon={<Icon name="flip-vertical-2" />}
                 title={shape === 'plane' ? 'Cut away the other side' : 'Cut away the outside instead'}
                 pressed={derive(cut, (c) => !!c?.object.invert)}
@@ -382,6 +418,11 @@ function CutRow(props: {
                 <>
                   <ShapeStrip current={shape} pick={(next) => run('clipping.update', { shape: next })} />
                   <CutTargets clipping={clipping} cut={cut} run={run} />
+                  <Show when={derive(cut, (c) => !!c?.drawing)}>
+                    {() => (
+                      <Fold title="In the scene">{() => <DrawingForm clipping={clipping} cut={cut} run={run} />}</Fold>
+                    )}
+                  </Show>
                   <CutForm cut={cut} shape={shape} run={run} />
                 </>
               )}
@@ -439,77 +480,81 @@ function CutTargets(props: {
   );
   const apply = (refs: readonly string[], value: boolean) =>
     props.run('clipping.apply', { representations: refs, on: value });
+  const count = derive([candidates, on], (cs, o) => `(${cs.filter((t) => o.has(t.ref)).length}/${cs.length})`);
   return (
-    <div style="display: grid; gap: 2px; min-width: 0" role="group" aria-label="The representations it cuts">
-      <p style={caption}>Cuts through</p>
-      <Show when={derive([byType, candidates], (t, cs) => t.length > 1 && cs.length > t.length)}>
-        {() => (
-          <div style="display: flex; flex-wrap: wrap; gap: var(--msp-space-1); min-width: 0" aria-label="By type">
-            <For each={derive(byType, (t) => t.map((x) => x.type), sameNumbersOrStrings)}>
-              {(type) => {
-                const entry = derive(byType, (t) => t.find((x) => x.type === type));
-                const any = derive(entry, (e) => !!e && e.on > 0);
-                const partly = derive(entry, (e) => !!e && e.on > 0 && e.on < e.refs.length);
-                return (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    pressed={any}
-                    icon={<Check on={any} partly={partly} />}
-                    title={derive(entry, (e) =>
-                      e && e.on === e.refs.length ? `Leave every ${type} whole` : `Cut every ${type}`,
-                    )}
-                    onClick={() => {
-                      const e = entry.value;
-                      if (e) apply(e.refs, e.on < e.refs.length);
-                    }}
-                  >
-                    <Muted on={any}>{derive(entry, (e) => (e ? `${type} ${e.on}/${e.refs.length}` : type))}</Muted>
-                  </Button>
-                );
-              }}
-            </For>
-          </div>
-        )}
-      </Show>
-      <Show when={many}>
-        {() => (
-          <TextInput
-            size="sm"
-            search
-            placeholder="Find a representation"
-            aria-label="Find a representation"
-            value={query}
-            onInput={(v) => query.set(v)}
-          />
-        )}
-      </Show>
-      <For each={shown} key={(t) => t.ref}>
-        {(t) => {
-          const checked = derive(on, (o) => o.has(t.ref));
-          return (
-            <Button
-              size="xs"
-              variant="ghost"
-              block
-              pressed={checked}
-              icon={<Check on={checked} />}
-              title={derive(checked, (v) => (v ? `Leave ${t.label} whole` : `Cut ${t.label} too`))}
-              onClick={() => apply([t.ref], !checked.value)}
-            >
-              <Muted on={checked}>{t.label}</Muted>
-            </Button>
-          );
-        }}
-      </For>
-      <Show when={derive([many, query.asReadonly], (m, q) => m && !q.trim())}>
-        {() => (
-          <Button size="xs" variant="ghost" onClick={() => all.set(!all.value)}>
-            {derive([all.asReadonly, candidates], (a, cs) => (a ? 'Show fewer' : `Show all ${cs.length}`))}
-          </Button>
-        )}
-      </Show>
-    </div>
+    <Fold title="Cuts through" meta={count}>
+      {() => (
+        <div style="display: grid; gap: 2px; min-width: 0" role="group" aria-label="The representations it cuts">
+          <Show when={derive([byType, candidates], (t, cs) => t.length > 1 && cs.length > t.length)}>
+            {() => (
+              <div style="display: flex; flex-wrap: wrap; gap: var(--msp-space-1); min-width: 0" aria-label="By type">
+                <For each={derive(byType, (t) => t.map((x) => x.type), sameNumbersOrStrings)}>
+                  {(type) => {
+                    const entry = derive(byType, (t) => t.find((x) => x.type === type));
+                    const any = derive(entry, (e) => !!e && e.on > 0);
+                    const partly = derive(entry, (e) => !!e && e.on > 0 && e.on < e.refs.length);
+                    return (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        pressed={any}
+                        icon={<Check on={any} partly={partly} />}
+                        title={derive(entry, (e) =>
+                          e && e.on === e.refs.length ? `Leave every ${type} whole` : `Cut every ${type}`,
+                        )}
+                        onClick={() => {
+                          const e = entry.value;
+                          if (e) apply(e.refs, e.on < e.refs.length);
+                        }}
+                      >
+                        <Muted on={any}>{derive(entry, (e) => (e ? `${type} ${e.on}/${e.refs.length}` : type))}</Muted>
+                      </Button>
+                    );
+                  }}
+                </For>
+              </div>
+            )}
+          </Show>
+          <Show when={many}>
+            {() => (
+              <TextInput
+                size="sm"
+                search
+                placeholder="Find a representation"
+                aria-label="Find a representation"
+                value={query}
+                onInput={(v) => query.set(v)}
+              />
+            )}
+          </Show>
+          <For each={shown} key={(t) => t.ref}>
+            {(t) => {
+              const checked = derive(on, (o) => o.has(t.ref));
+              return (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  block
+                  pressed={checked}
+                  icon={<Check on={checked} />}
+                  title={derive(checked, (v) => (v ? `Leave ${t.label} whole` : `Cut ${t.label} too`))}
+                  onClick={() => apply([t.ref], !checked.value)}
+                >
+                  <Muted on={checked}>{t.label}</Muted>
+                </Button>
+              );
+            }}
+          </For>
+          <Show when={derive([many, query.asReadonly], (m, q) => m && !q.trim())}>
+            {() => (
+              <Button size="xs" variant="ghost" onClick={() => all.set(!all.value)}>
+                {derive([all.asReadonly, candidates], (a, cs) => (a ? 'Show fewer' : `Show all ${cs.length}`))}
+              </Button>
+            )}
+          </Show>
+        </div>
+      )}
+    </Fold>
   );
 }
 
@@ -519,6 +564,36 @@ function sameTargets(a: readonly { ref: string }[], b: readonly { ref: string }[
 
 function sameNumbersOrStrings<T extends string | number>(a: readonly T[], b: readonly T[]) {
   return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+/** How a drawn cut looks in the scene (its walls, its edges): each change applied at once, the latest wins */
+function DrawingForm(props: {
+  clipping: ClippingApi;
+  cut: ReadonlyState<Cut | undefined>;
+  run(op: string, values: Record<string, unknown>): Promise<unknown> | void;
+}) {
+  const { clipping, cut } = props;
+  let running = false;
+  let latest: Record<string, unknown> | undefined;
+  const flush = async () => {
+    running = true;
+    while (latest) {
+      const options = latest;
+      latest = undefined;
+      await props.run('clipping.show', { on: true, options });
+    }
+    running = false;
+  };
+  const form = new ParamsFormModel(clipping.drawingParams, cut.value ? clipping.drawingValues(cut.value) : undefined, {
+    onChange: (values) => {
+      latest = values;
+      if (!running) void flush();
+    },
+  });
+  effect(cut, (c) => {
+    if (c && !running) form.load(clipping.drawingValues(c) as never);
+  });
+  return <ParamsForm form={form} />;
 }
 
 /** A cut's numbers by its shape: where, which way, how large (Å, degrees) */

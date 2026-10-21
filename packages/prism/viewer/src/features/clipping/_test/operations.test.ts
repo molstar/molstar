@@ -256,4 +256,38 @@ describe('the clipping area', () => {
     ok(await clipping.remove({ cut: 2 }));
     expect(findCuts(v.plugin)).toHaveLength(1);
   });
+
+  it('draws a cut in the scene once, moves the drawing with the cut, and takes it away with it', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping;
+    const state = v.plugin.state.data;
+    const cut = ok<Cut>(await clipping.add({ shape: 'cube', target: 'polymer' }));
+    const others = clipping.candidates(cut).filter((t) => !cut.targets.some((x) => x.ref === t.ref));
+    ok(await clipping.apply({ cut: 1, representations: [others[0].ref], on: true }));
+
+    ok(await clipping.show({ cut: 1, on: true }));
+    const drawn = findCuts(v.plugin)[0];
+    expect(drawn.drawing).toBeDefined();
+    const drawing = state.cells.get(drawn.drawing!)!;
+    expect(drawing.transform.tags).toContain(`clip-volume-${cut.object.tag}`);
+    expect(drawing.transform.parent).toBe(cut.targets[0].ref);
+    expect(drawing.obj).toBeDefined();
+    // once a cut, and never itself something to cut
+    expect(await clipping.show({ cut: 1, on: true })).toMatchObject({ ok: true, unchanged: true });
+    expect(clipping.candidates(findCuts(v.plugin)[0]).some((t) => t.label.includes('Cut'))).toBe(false);
+    // its options
+    ok(await clipping.show({ cut: 1, on: true, options: { wallOpacity: 0.4, edges: false } }));
+    expect(state.cells.get(findCuts(v.plugin)[0].drawing!)!.transform.params).toMatchObject({
+      wallOpacity: 0.4,
+      edges: false,
+    });
+
+    // the cut off its first representation: the drawing goes under the other one
+    ok(await clipping.apply({ cut: 1, representation: cut.targets[0].ref, on: false }));
+    const moved = findCuts(v.plugin)[0];
+    expect(state.cells.get(moved.drawing!)!.transform.parent).toBe(others[0].ref);
+    // removed: so is its drawing
+    ok(await clipping.remove({ cut: 1 }));
+    expect([...state.cells.values()].some((c) => c.transform.tags?.includes('clip-volumes'))).toBe(false);
+  });
 });

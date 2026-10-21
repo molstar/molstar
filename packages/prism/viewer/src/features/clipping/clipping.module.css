@@ -42,3 +42,39 @@
   font-size: var(--msp-font-size-xs);
   color: var(--msp-color-text-muted);
 }
+
+/* A fold in a cut's editor: its title (and a count), the chevron on the right as on the panel's sections, turned down
+   when open. */
+.fold {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--msp-color-text-muted);
+  font: inherit;
+  font-size: var(--msp-font-size-xs);
+  text-align: start;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+.foldTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.foldChevron {
+  flex: none;
+  transition: transform var(--msp-motion-fast, 120ms) ease;
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}

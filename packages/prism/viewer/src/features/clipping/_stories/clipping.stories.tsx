@@ -104,3 +104,11 @@ export const AroundTheLigand: StoryObj = clippingStory(async (v) => {
   ok(await v.api.clipping.add({ shape: 'sphere', node: `#${surface.cell.transform.ref}`, target: 'ligand' }));
   v.api.clipping.gizmos.setHandled(1, true);
 });
+
+/** Every shape drawn in the scene (clip volumes, saved with it): translucent walls, solid edges, no handles */
+export const DrawnInTheScene: StoryObj = clippingStory(async (v) => {
+  for (const shape of ['plane', 'sphere', 'cube', 'cylinder', 'infiniteCone'] as const) {
+    ok(await v.api.clipping.add({ shape, types: ['molecular-surface'] }));
+  }
+  for (let i = 1; i <= 5; i++) ok(await v.api.clipping.show({ cut: i, on: true }));
+});

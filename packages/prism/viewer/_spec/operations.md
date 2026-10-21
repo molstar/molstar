@@ -33,6 +33,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `clipping.clear` | Remove every cut | destructive |  |
 | `clipping.list` | List the cuts | read |  |
 | `clipping.remove` | Remove a cut | destructive | cut |
+| `clipping.show` | Draw a cut in the scene, or not |  | cut, on, options |
 | `clipping.update` | Change a cut |  | cut, shape, position, normal, rotation, scale, invert |
 | `component.add` | Add a component |  | target, label, representation, structure, language |
 | `component.list` | List the components | read | structure |

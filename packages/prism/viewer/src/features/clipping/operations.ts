@@ -6,12 +6,20 @@
 
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import type { StateObjectCell } from '@molstar/core/state';
+import type { StateBuilder, StateObjectCell } from '@molstar/core/state';
 import { Clip } from '@molstar/core/util/clip';
 import { UUID } from '@molstar/core/util/uuid';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
+import {
+  ClipVolumesParams,
+  type ClipVolumesProps,
+  ClipVolumesShape3D,
+  ClipVolumesTag,
+  clipVolumeTag,
+} from '@molstar/plugin/state/transforms/shape/clip-volumes';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import type { PluginContext } from '@molstar/plugin/context';
 import { selectNodes } from '../../api.js';
 import { watchedState } from '../../sources/watched.js';
@@ -338,6 +346,66 @@ export class ClippingApi extends ApiArea {
     },
   });
 
+  readonly show = this.operation({
+    id: 'clipping.show',
+    title: 'Draw a cut in the scene, or not',
+    params: {
+      cut: CutParam(),
+      on: PD.Boolean(true, { description: 'Draw it (its walls and edges, saved with the scene) or not' }),
+      options: OptionalParam(
+        PD.Value<Partial<ClipVolumesProps>>(
+          {},
+          {
+            description: 'How: walls (on, wallColor, wallOpacity), edges (on, edgeColor, edgeWidth Å), extent Å',
+          },
+        ),
+      ),
+    },
+    async run({ cut: index, on, options }, ctx) {
+      let cut = oneCut(ctx, index);
+      if (ApiResult.isFailure(cut)) return cut;
+      // drawn by its tag: an untagged cut (set by code) is tagged first, as this clip manager's
+      if (!cut.object.tag) {
+        if (!on) return ApiResult.already(`Cut ${index} is not drawn.`);
+        await commit(ctx, cellsOf(ctx, cut), cut.object, { ...cut.object, tag: newCutTag() });
+        const tagged = oneCut(ctx, index);
+        if (ApiResult.isFailure(tagged)) return tagged;
+        cut = tagged;
+      }
+      const tag = cut.object.tag!;
+      const state = ctx.plugin.state.data;
+      const b = state.build();
+      const drawing = cut.drawing ? state.cells.get(cut.drawing) : undefined;
+      const values = (options as Partial<ClipVolumesProps> | undefined) ?? {};
+      if (!on) {
+        if (!drawing) return ApiResult.already(`Cut ${index} is not drawn.`);
+        b.delete(drawing.transform.ref);
+      } else if (drawing) {
+        const current = drawing.transform.params as ClipVolumesProps;
+        const next = { ...current, ...values, tags: [tag] };
+        if (PD.areEqual(ClipVolumesParams, current, next))
+          return ApiResult.already(`Cut ${index} is drawn so already.`);
+        b.to(drawing.transform.ref).update(next);
+      } else {
+        const host = cellsOf(ctx, cut)[0];
+        if (!host) return ApiResult.fail('not-found', `Cut ${index} is on nothing to draw it under.`);
+        addDrawing(b, host, tag, values);
+      }
+      await ctx.plugin.runTask(state.updateTree(b));
+      const said = !on ? 'is no longer drawn' : drawing ? 'is drawn differently' : 'is drawn in the scene';
+      return ApiResult.ok(`Cut ${index} ${said}.`, { nodes: cut.targets.map((t) => t.ref) });
+    },
+  });
+
+  /** The drawing's options (without which cuts: a cut's drawing is its own) */
+  readonly drawingParams = (({ tags: _, ...rest }) => rest)(ClipVolumesParams);
+
+  /** A cut's drawing's options as they are, or the defaults */
+  drawingValues(cut: Cut): ClipVolumesProps {
+    const cell = cut.drawing ? this.ctx.plugin.state.data.cells.get(cut.drawing) : undefined;
+    return { ...PD.getDefaultValues(ClipVolumesParams), ...((cell?.transform.params as ClipVolumesProps) ?? {}) };
+  }
+
   readonly remove = this.operation({
     id: 'clipping.remove',
     title: 'Remove a cut',
@@ -370,6 +438,7 @@ export class ClippingApi extends ApiArea {
         }
       }
       await ctx.plugin.runTask(state.updateTree(b));
+      await reconcileDrawings(ctx);
       return ApiResult.ok(`Removed ${cuts.length === 1 ? 'the cut' : `${cuts.length} cuts`}.`);
     },
   });
@@ -413,6 +482,44 @@ async function commit(
   const b = state.build();
   for (const cell of cells) b.to(cell).update(withObject(cell.transform.params, previous, next) as never);
   await ctx.plugin.runTask(state.updateTree(b));
+  await reconcileDrawings(ctx);
+}
+
+/**
+ * The cuts' drawings where their cuts are: one whose representation no longer has its cut (it was turned off there,
+ * or removed) is drawn under another the cut is on, or goes with the cut (one a cut: `clip-volume-<tag>`)
+ */
+async function reconcileDrawings(ctx: ApiContext) {
+  const state = ctx.plugin.state.data;
+  const b = state.build();
+  let changed = false;
+  for (const cell of state.cells.values()) {
+    if (cell.transform.transformer !== ClipVolumesShape3D) continue;
+    const key = cell.transform.tags?.find((t) => t !== ClipVolumesTag);
+    const tag = key?.slice(clipVolumeTag('').length);
+    if (!tag) continue;
+    const has = (c: StateObjectCell | undefined) =>
+      !!c && !!RepresentationClip.get(c.transform.params)?.objects.some((o) => o.tag === tag);
+    if (has(state.cells.get(cell.transform.parent))) continue;
+    changed = true;
+    b.delete(cell.transform.ref);
+    const other = clippableCells(state).find(has);
+    if (other) addDrawing(b, other, tag, cell.transform.params as ClipVolumesProps);
+  }
+  if (changed) await ctx.plugin.runTask(state.updateTree(b));
+}
+
+/** A cut's drawing under a representation it is on: the clip volumes shape and its representation, tagged */
+function addDrawing(b: StateBuilder.Root, host: StateObjectCell, tag: string, params: Partial<ClipVolumesProps>) {
+  b.to(host)
+    .apply(
+      ClipVolumesShape3D,
+      { ...PD.getDefaultValues(ClipVolumesParams), ...params, tags: [tag] },
+      {
+        tags: [ClipVolumesTag, clipVolumeTag(tag)],
+      },
+    )
+    .apply(ShapeRepresentation3D, {}, { tags: [ClipVolumesTag] });
 }
 
 function namesOf(ctx: ApiContext, cells: readonly StateObjectCell[]): string {
@@ -515,6 +622,7 @@ function sameCuts(a: readonly Cut[], b: readonly Cut[]): boolean {
     a.every(
       (c, i) =>
         RepresentationClip.objectsEqual(c.object, b[i].object) &&
+        c.drawing === b[i].drawing &&
         c.targets.length === b[i].targets.length &&
         c.targets.every((t, j) => t.ref === b[i].targets[j].ref && t.label === b[i].targets[j].label),
     )
