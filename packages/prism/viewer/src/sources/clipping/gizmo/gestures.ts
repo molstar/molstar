@@ -20,7 +20,8 @@ export interface Face {
 
 /**
  * A handle of a gizmo: what dragging it does. `size` scales the whole cut (a sphere's ring, a box's corner); `faces`
- * drags faces along their axes, the opposite ones staying (a box's edge: the two it joins; a cylinder's end); `radius`
+ * drags faces along their axes, the opposite ones staying (a box's face; a cylinder's end); `across` scales a box's
+ * section across `axis` about its center (its four edges along that axis, held as one); `radius`
  * widens a cylinder and `angle` a cone, about `pivot` (in the cut's frame: a rim's center).
  */
 export type Handle =
@@ -29,6 +30,7 @@ export type Handle =
   | { readonly kind: 'turn' }
   | { readonly kind: 'size' }
   | { readonly kind: 'faces'; readonly faces: readonly Face[] }
+  | { readonly kind: 'across'; readonly axis: 0 | 1 | 2 }
   | { readonly kind: 'radius'; readonly pivot: Vec3 }
   | { readonly kind: 'angle'; readonly pivot: Vec3 };
 
@@ -102,6 +104,14 @@ export function resize(from: CutObject, faces: readonly Face[], frame: DragFrame
   return { ...from, scale, position };
 }
 
+/** A box's section across `axis` scaled about its center: the edge held stays under the cursor */
+export function across(from: CutObject, axis: 0 | 1 | 2, frame: DragFrame, dx: number, dy: number): CutObject {
+  const ratio = grabRatio(frame, dx, dy) ?? 2 ** ((dx - dy) / DoublingPixels);
+  const scale = Vec3.clone(from.scale);
+  for (const a of [0, 1, 2] as const) if (a !== axis) scale[a] = Math.max(MinExtent, from.scale[a] * ratio);
+  return { ...from, scale };
+}
+
 /** How much farther from the grab's center the cursor is than the grab was; undefined grabbed (nearly) at it */
 export function grabRatio(frame: DragFrame | undefined, dx: number, dy: number): number | undefined {
   const g = frame?.grab;
@@ -173,6 +183,8 @@ export function gesture(handle: Handle, from: CutObject, axis: Vec3, frame: Drag
       return size(from, dx, dy, frame);
     case 'faces':
       return resize(from, handle.faces, frame, dx, dy);
+    case 'across':
+      return across(from, handle.axis, frame, dx, dy);
     case 'radius':
       return radius(from, frame, dx, dy);
     case 'angle':

@@ -15,7 +15,7 @@ import { Box } from '@molstar/graphics/geo/primitive/box';
 import { Circle } from '@molstar/graphics/geo/primitive/circle';
 import { Torus } from '@molstar/graphics/geo/primitive/torus';
 import { ConeOpening, type CutObject, coneAngle, LocalUp, rotated } from '../cuts.js';
-import type { Face, Handle } from './gestures.js';
+import type { Handle } from './gestures.js';
 
 // A cut's gizmo (clipping.md §4): its body, translucent and not picked (a click needs alpha ≥ 0.5, and the body
 // covers what it cuts), and its handles, opaque, one group each, each saying what dragging it does (`Handle`). Built
@@ -129,32 +129,33 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
       MeshBuilder.addPrimitive(body, Mat4.fromScaling(Mat4(), Vec3.create(sx, sy, sz)), Box());
       group({ kind: 'move' }, 'Drag to move it', HandleColors.move);
       knobAt(Vec3());
+      // its faces: a knob at the center of each moves that face along its normal (the opposite one stays)
+      for (const a of [0, 1, 2] as const) {
+        for (const sign of [-1, 1] as const) {
+          const at = Vec3();
+          at[a] = sign * half[a];
+          group({ kind: 'faces', faces: [{ axis: a, sign }] }, 'Drag to move this side', HandleColors.outline);
+          knobAt(at, knob * 0.8);
+        }
+      }
+      // the slide arrow from past the top face's knob
       group({ kind: 'slide' }, 'Drag to slide it along its up', HandleColors.slide);
-      arrow(Vec3.create(0, sy / 2, 0), Vec3.create(0, sy / 2 + reach * 0.25, 0));
+      arrow(Vec3.create(0, sy / 2 + knob * 1.2, 0), Vec3.create(0, sy / 2 + knob * 1.2 + reach * 0.25, 0));
       group({ kind: 'turn' }, 'Drag to turn it', HandleColors.turn);
       ringXZ(handles, (Math.max(sx, sz) / 2) * 1.25);
-      // its 12 edges, each moving the two faces it joins (the opposite ones stay)
+      // its edges, the four along each axis one handle (lit together): the section across that axis scaled about the
+      // center
       for (const a of [0, 1, 2] as const) {
-        const [b, c] = ([0, 1, 2] as const).filter((x) => x !== a) as [Face['axis'], Face['axis']];
-        for (const sb of [-1, 1] as const) {
-          for (const sc of [-1, 1] as const) {
+        const [b, c] = ([0, 1, 2] as const).filter((x) => x !== a);
+        group({ kind: 'across', axis: a }, 'Drag to size it across these edges', HandleColors.outline);
+        for (const sb of [-1, 1]) {
+          for (const sc of [-1, 1]) {
             const from = Vec3();
             const to = Vec3();
             from[a] = -half[a];
             to[a] = half[a];
             from[b] = to[b] = sb * half[b];
             from[c] = to[c] = sc * half[c];
-            group(
-              {
-                kind: 'faces',
-                faces: [
-                  { axis: b, sign: sb },
-                  { axis: c, sign: sc },
-                ],
-              },
-              'Drag to size it along this edge',
-              HandleColors.outline,
-            );
             tubeBetween(from, to);
           }
         }

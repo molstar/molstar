@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import type { CutObject } from '../../cuts.js';
 import { coneAngle, coneScale } from '../../cuts.js';
 import {
+  across,
   angle,
   type DragFrame,
   MaxSlideGain,
@@ -134,5 +135,12 @@ describe('gestures', () => {
     expect(right.scale[0]).toBeCloseTo(40, 6);
     // and inward shrinks
     expect(size(sphere, 20, 0, { ...frame, grab: [-40, 0] }).scale[0]).toBeCloseTo(10, 6);
+  });
+
+  it("scales a box's section across its edges' axis about its center, its length kept", () => {
+    // an edge along Y grabbed 30 px from the center, dragged 15 px further: the X and Z extents half again
+    const next = across(box(), 1, { ...frame, grab: [30, 0] }, 15, 0);
+    close(next.scale, [15, 10, 15]);
+    close(next.position, [0, 0, 0]);
   });
 });
