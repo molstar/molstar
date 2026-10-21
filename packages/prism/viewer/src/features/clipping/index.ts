@@ -97,7 +97,7 @@ export const ClippingFeature: ViewerExtension = {
       }),
       operationCommand(api, x.show, {
         category,
-        icon: 'eye',
+        icon: 'scan',
         title: 'Draw a cut in the scene…',
         alias: ['show cut', 'clip volume', 'draw clipping', 'show clipping'],
         action: 'Draw',

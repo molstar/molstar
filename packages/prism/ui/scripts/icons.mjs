@@ -40,6 +40,7 @@ const ICONS = [
   'flip-vertical-2',
   'scissors',
   'shield',
+  'scan',
   'swatch-book',
   'book-open',
   'layers',

@@ -368,11 +368,7 @@ function CutRow(props: {
               <Button
                 size="xs"
                 variant="ghost"
-                icon={
-                  <Show when={derive(cut, (c) => !!c?.drawing)} fallback={() => <Icon name="eye-off" />}>
-                    {() => <Icon name="eye" />}
-                  </Show>
-                }
+                icon={<Icon name="scan" />}
                 title={derive(cut, (c) =>
                   c?.drawing ? 'Drawn in the scene (saved with it): hide it' : 'Draw it in the scene (saved with it)',
                 )}
