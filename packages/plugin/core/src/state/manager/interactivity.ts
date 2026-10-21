@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -36,6 +36,13 @@ export type InteractivityFocusLociOptions = typeof DefaultInteractivityFocusOpti
 class InteractivityManager extends StatefulPluginComponent<InteractivityManagerState> {
   readonly lociSelects: InteractivityManager.LociSelectManager;
   readonly lociHighlights: InteractivityManager.LociHighlightManager;
+  /**
+   * Representations whose clicks are their owner's: what a tool draws outside the state tree (a clipping gizmo, a
+   * preview) and handles itself. Their clicks do not reach `behaviors.interaction.click` (focus on click, select, the
+   * host's click events); the canvas' own `interaction.click` still has them, and hover is untouched (highlight,
+   * labels).
+   */
+  readonly clickOwners = new InteractivityManager.ClickOwners();
 
   private _props = PD.getDefaultValues(InteractivityManager.Params);
 
@@ -76,6 +83,24 @@ class InteractivityManager extends StatefulPluginComponent<InteractivityManagerS
 }
 
 namespace InteractivityManager {
+  /** Who owns a representation's clicks (`InteractivityManager.clickOwners`) */
+  export class ClickOwners {
+    private readonly owners: ((repr: Representation.Any) => boolean)[] = [];
+
+    /** The representations `owns` says are a tool's: their clicks are its own until the returned removal */
+    claim(owns: (repr: Representation.Any) => boolean): () => void {
+      this.owners.push(owns);
+      return () => {
+        const i = this.owners.indexOf(owns);
+        if (i >= 0) this.owners.splice(i, 1);
+      };
+    }
+
+    owns(repr: Representation.Any | undefined): boolean {
+      return !!repr && this.owners.some((o) => o(repr));
+    }
+  }
+
   export const Params = {
     granularity: PD.Select('residue', Loci.GranularityOptions, {
       label: 'Picking Level',

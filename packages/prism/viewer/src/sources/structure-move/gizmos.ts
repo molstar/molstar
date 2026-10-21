@@ -228,7 +228,7 @@ export class StructureMoveGizmos {
     const controller = new GizmoController(canvas, binding);
     this.#binding = binding;
     this.#controller = controller;
-    this.#release = this.plugin.clickOwners.claim((r) => controller.owns(r));
+    this.#release = this.plugin.managers.interactivity.clickOwners.claim((r) => controller.owns(r));
     this.#sub = this.plugin.state.data.events.changed.subscribe(() => this.#publish());
     this.#publish();
     this.#shown.set(true);

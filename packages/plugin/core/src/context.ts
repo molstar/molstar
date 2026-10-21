@@ -217,24 +217,6 @@ export class PluginContext {
     viewportScreenshot: void 0 as ViewportScreenshotHelper | undefined,
   } as const;
 
-  /**
-   * Representations whose clicks are their owner's: what a tool draws outside the state tree (a clipping gizmo, a
-   * preview) and handles itself. Their clicks do not reach `behaviors.interaction.click` (focus on click, select, the
-   * host's click events); the canvas' own `interaction.click` still has them, and hover is untouched (highlight,
-   * labels). `claim` returns the removal.
-   */
-  readonly clickOwners = {
-    claim: (owns: (repr: Representation.Any) => boolean): (() => void) => {
-      this._clickOwners.push(owns);
-      return () => {
-        const i = this._clickOwners.indexOf(owns);
-        if (i >= 0) this._clickOwners.splice(i, 1);
-      };
-    },
-    owns: (repr: Representation.Any | undefined): boolean => !!repr && this._clickOwners.some((o) => o(repr)),
-  };
-  private readonly _clickOwners: ((repr: Representation.Any) => boolean)[] = [];
-
   private readonly assetManager = this.spec.assetManager?.() ?? { manager: new DefaultAssetManager() };
 
   readonly managers = {
@@ -441,7 +423,8 @@ export class PluginContext {
 
       this.subs.push(
         this.canvas3d!.interaction.click.subscribe((e) => {
-          if (!this.clickOwners.owns(e.current.repr)) this.behaviors.interaction.click.next(e);
+          // a tool's own representations' clicks are its own (`InteractivityManager.clickOwners`)
+          if (!this.managers.interactivity?.clickOwners.owns(e.current.repr)) this.behaviors.interaction.click.next(e);
         }),
       );
       this.subs.push(this.canvas3d!.interaction.drag.subscribe((e) => this.behaviors.interaction.drag.next(e)));

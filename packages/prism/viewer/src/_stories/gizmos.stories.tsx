@@ -78,7 +78,7 @@ function showTransformHandles(v: PrismViewer, options: TransformHandlesOptions) 
   };
   const controller = new GizmoController(canvas, binding);
   // a click on a handle is the gizmo's (no focus, no select)
-  v.plugin.clickOwners.claim((repr) => controller.owns(repr));
+  v.plugin.managers.interactivity.clickOwners.claim((repr) => controller.owns(repr));
 }
 
 function transformStory(options: TransformHandlesOptions): StoryObj {

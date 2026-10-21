@@ -16,7 +16,7 @@ export type { GizmoCommit } from './binding.js';
 
 // The clipping gizmos (clipping.md §4): the gizmo library's controller (`@molstar/graphics/util/gizmo`) on the cuts'
 // binding (`ClipBinding`), for the active cut (its editor open: `handleOnly`), shown while the section is (`show`,
-// `hide`), its clicks claimed (`PluginContext.clickOwners`: no focus, no select). The active cut outlives `hide`: shown
+// `hide`), its clicks claimed (`InteractivityManager.clickOwners`: no focus, no select). The active cut outlives `hide`: shown
 // again, its gizmo comes back. A cut is known by its number, which shifts when one before it goes: the active cut is
 // followed by its object (its tag), or by its number when its object changed and the count did not (an edit).
 
@@ -68,7 +68,7 @@ export class ClipGizmos {
     const controller = new GizmoController(canvas, binding);
     this.#binding = binding;
     this.#controller = controller;
-    this.#releaseClicks = this.plugin.clickOwners.claim((r) => controller.owns(r));
+    this.#releaseClicks = this.plugin.managers.interactivity.clickOwners.claim((r) => controller.owns(r));
     this.#subs.push(this.cuts.subscribe((cuts) => this.#publish(cuts)));
     this.#shown.set(true);
     return true;
