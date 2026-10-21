@@ -21,6 +21,7 @@ import { ExportImageFeature } from './features/export-image/index.js';
 import { ExportSessionFeature } from './features/export-session/index.js';
 import { LazyParticles, LazyRemoteStates, LazyStateTree, LazySuperposition } from './features/lazy/index.js';
 import { LoadersFeature } from './features/loaders/index.js';
+import { ClippingFeature } from './features/clipping/index.js';
 import { MeasurementsFeature } from './features/measurements/index.js';
 import { SnapshotsFeature } from './features/snapshots/index.js';
 import { prismViewerPluginParts } from './sources/base.js';
@@ -50,6 +51,7 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
       LoadersFeature,
       CanvasSettingsFeature,
       MeasurementsFeature,
+      ClippingFeature,
       LazySuperposition,
       LazyStateTree,
       LazyRemoteStates,

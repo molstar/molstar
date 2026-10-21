@@ -22,7 +22,7 @@ import { type Cut, type CutObject, representationsSphere } from '../cuts.js';
 import { gizmoGeometry, type GizmoGeometry, HandleGroups, HandleLabels, slideAxis } from './geometry.js';
 import { type DragFrame, gesture, type Handle } from './gestures.js';
 
-// The gizmos of the cuts (_spec/README.md §4): one per cut the person handles (`handled`), drawn in the canvas outside the state tree (a `VisualSet`),
+// The gizmos of the cuts (clipping.md §4): one per cut the person handles (`handled`), drawn in the canvas outside the state tree (a `VisualSet`),
 // their clicks their own (`PluginContext.clickOwners`). Hovering a handle takes the trackball's drags; a drag moves the
 // cut on the live representations (a clip-only update touches uniforms only, repr/_test/clip-update.test.ts), and its
 // release is one `clipping.update` through the person's API (`commit`). Esc, or the cut's representations changed

@@ -7,23 +7,17 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { ClippingExtension, ClippingSectionId } from '@molstar/clipping-extension/prism-viewer';
+import { ClippingSectionId } from '../index.js';
 import { story } from '@molstar/prism-ui/testing/index';
-import type { PrismViewer } from '@molstar/prism-viewer';
-import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
-import { ExampleFiles, RealViewerStory } from '@molstar/prism-viewer/testing/real-viewer';
+import type { PrismViewer } from '../../../index.js';
+import { ExampleFiles, RealViewerStory } from '../../../testing/real-viewer.js';
 
 // The clipping extension in the Prism viewer: cuts through representations (a plane, a sphere, a box, a cylinder, a
 // cone), made and edited in the Selection tab's Clipping section, from the selection menu's Clip…, or by the API.
 // 1CBS (data/examples): its polymer drawn as a molecular surface over the cartoon, retinoic acid inside. No network.
 
-const meta: Meta = { title: 'Viewer/With extensions/Clipping', parameters: { layout: 'fullscreen' } };
+const meta: Meta = { title: 'Viewer/Clipping', parameters: { layout: 'fullscreen' } };
 export default meta;
-
-const withClipping = (base: PrismViewerSpec): PrismViewerSpec => ({
-  ...base,
-  extensions: [...(base.extensions ?? []), ClippingExtension],
-});
 
 const ok = (r: { ok: boolean; message?: string }) => {
   if (!r.ok) throw new Error(r.message);
@@ -35,7 +29,6 @@ function clippingStory(steps?: (v: PrismViewer) => Promise<void>): StoryObj {
     render: () =>
       story(() => (
         <RealViewerStory
-          spec={withClipping}
           load={[ExampleFiles.cbs]}
           setup={async (v) => {
             const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
@@ -57,31 +50,31 @@ export const Section: StoryObj = clippingStory();
 
 /** A plane through the surface only: the cartoon and the ligand inside show where the surface is cut away */
 export const PlaneThroughTheSurface: StoryObj = clippingStory(async (v) => {
-  ok(await v.api.clipping!.add({ shape: 'plane', types: ['molecular-surface'] }));
+  ok(await v.api.clipping.add({ shape: 'plane', types: ['molecular-surface'] }));
 });
 
 /** A sphere window into the surface, and its numbers open */
 export const SphereWindow: StoryObj = clippingStory(async (v) => {
-  ok(await v.api.clipping!.add({ shape: 'sphere', types: ['molecular-surface'] }));
+  ok(await v.api.clipping.add({ shape: 'sphere', types: ['molecular-surface'] }));
 });
 
 /** Every shape, one cut each on the surface */
 export const EveryShape: StoryObj = clippingStory(async (v) => {
   for (const shape of ['plane', 'sphere', 'cube', 'cylinder', 'infiniteCone'] as const) {
-    ok(await v.api.clipping!.add({ shape, types: ['molecular-surface'] }));
+    ok(await v.api.clipping.add({ shape, types: ['molecular-surface'] }));
   }
 });
 
 /** A plane with its handles in 3D: drag the orange knob to move it, the blue arrow to slide it, the green ring to turn it */
 export const PlaneHandles: StoryObj = clippingStory(async (v) => {
-  ok(await v.api.clipping!.add({ shape: 'plane', types: ['molecular-surface'] }));
-  v.api.clipping!.gizmos.setHandled(1, true);
+  ok(await v.api.clipping.add({ shape: 'plane', types: ['molecular-surface'] }));
+  v.api.clipping.gizmos.setHandled(1, true);
 });
 
 /** A box with its handles: the purple corner knob sizes it */
 export const BoxHandles: StoryObj = clippingStory(async (v) => {
-  ok(await v.api.clipping!.add({ shape: 'cube', types: ['molecular-surface'] }));
-  v.api.clipping!.gizmos.setHandled(1, true);
+  ok(await v.api.clipping.add({ shape: 'cube', types: ['molecular-surface'] }));
+  v.api.clipping.gizmos.setHandled(1, true);
 });
 
 /** Clip this… from the structure tree's row menu, on the polymer's surface: selected, narrowed to the surface, a sphere */
@@ -93,9 +86,9 @@ export const ClipThisFromTheTree: StoryObj = clippingStory(async (v) => {
     (r) => (r.cell.transform.params as { type?: { name: string } }).type?.name === 'molecular-surface',
   );
   if (!surface) throw new Error('No surface');
-  await v.api.clipping!.clipThis(v.api.as({ kind: 'person' }), surface.cell.transform.ref);
-  ok(await v.api.clipping!.add({ shape: 'sphere', types: ['molecular-surface'] }));
-  v.api.clipping!.gizmos.setHandled(1, true);
+  await v.api.clipping.clipThis(v.api.as({ kind: 'person' }), surface.cell.transform.ref);
+  ok(await v.api.clipping.add({ shape: 'sphere', types: ['molecular-surface'] }));
+  v.api.clipping.gizmos.setHandled(1, true);
 });
 
 /** A sphere around the ligand inside the surface (centered on what it targets, with room) */
@@ -108,6 +101,6 @@ export const AroundTheLigand: StoryObj = clippingStory(async (v) => {
     (r) => (r.cell.transform.params as { type?: { name: string } }).type?.name === 'molecular-surface',
   );
   if (!surface) throw new Error('No surface');
-  ok(await v.api.clipping!.add({ shape: 'sphere', node: `#${surface.cell.transform.ref}`, target: 'ligand' }));
-  v.api.clipping!.gizmos.setHandled(1, true);
+  ok(await v.api.clipping.add({ shape: 'sphere', node: `#${surface.cell.transform.ref}`, target: 'ligand' }));
+  v.api.clipping.gizmos.setHandled(1, true);
 });

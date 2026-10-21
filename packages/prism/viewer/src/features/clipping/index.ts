@@ -4,19 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { operationCommand } from '@molstar/prism-viewer/commands/operations';
-import type { ViewerExtension, ViewerSkill } from '@molstar/prism-viewer/spec';
+import { operationCommand } from '../../commands/operations.js';
+import type { ViewerExtension, ViewerSkill } from '../../spec.js';
 import { ClippingApi } from './operations.js';
 
-declare module '@molstar/prism-viewer/api' {
-  // The `clipping` area (_spec/README.md §2): cuts through representations, read from and written to the state tree.
-  interface ExtensionApis {
+declare module '../../api/area.js' {
+  // The feature's area (typed as present, as in the default spec: api/area.ts `BuiltInApis`): cuts through
+  // representations, read from and written to the state tree (clipping.md §2).
+  interface BuiltInApis {
     clipping: ClippingApi;
   }
 }
 
-// The clipping extension for Prism (_spec/README.md): the `clipping` area and its commands and skill; its views (the
-// Selection tab's Clipping section, the selection menu's Clip…, the gizmos) are a chunk of their own.
+// The `clipping` feature (viewer-spec.md §3.1, clipping.md): the `clipping` area, its commands and skill; its views
+// (the Selection tab's Clipping section, Clip… in the selection menu, Clip this… in the scene tree's row menus, the
+// gizmos) are a chunk of their own. In the default spec.
 
 export const ClippingSectionId = 'clipping.section.clip';
 
@@ -54,13 +56,13 @@ export const ClippingSkill: ViewerSkill = {
   ],
 };
 
-export const ClippingExtension: ViewerExtension = {
+export const ClippingFeature: ViewerExtension = {
   id: 'clipping',
   title: 'Clipping',
+  builtIn: true,
   api: { clipping: (ctx) => new ClippingApi(ctx) },
   commands: (api) => {
     const x = api.clipping;
-    if (!x) return [];
     const category = 'Clipping';
     return [
       operationCommand(api, x.add, {
@@ -71,10 +73,17 @@ export const ClippingExtension: ViewerExtension = {
         action: 'Cut',
       }),
       operationCommand(api, x.update, { category, icon: 'crop', title: 'Change a cut…', action: 'Change' }),
+      operationCommand(api, x.apply, {
+        category,
+        icon: 'scissors',
+        title: 'Cut a representation, or leave it whole…',
+        alias: ['keep whole', 'unclip', 'clip representation'],
+        action: 'Apply',
+      }),
       operationCommand(api, x.remove, { category, icon: 'trash-2', alias: ['remove clip', 'uncut'], action: 'Remove' }),
       operationCommand(api, x.clear, { category, icon: 'trash-2', alias: ['remove all clipping'], action: 'Remove' }),
     ];
   },
   skills: [ClippingSkill],
-  ui: async (ctx) => (await import('./prism-viewer-ui.js')).clippingUI(ctx),
+  ui: async (ctx) => (await import('./ui.js')).clippingUI(ctx),
 };

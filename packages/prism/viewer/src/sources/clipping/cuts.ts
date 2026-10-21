@@ -11,7 +11,7 @@ import type { Clip } from '@molstar/core/util/clip';
 import type { PluginContext } from '@molstar/plugin/context';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 
-// Cuts (_spec/README.md §1): the clip objects of the representations, read from the state tree (its record of what is
+// Cuts (clipping.md §1): the clip objects of the representations, read from the state tree (its record of what is
 // clipped, so a clip set by code or a file shows too) and grouped: equal objects on several representations are one
 // cut. A cut has no id of its own in the state; its number is its place in the list (tree order of first use).
 

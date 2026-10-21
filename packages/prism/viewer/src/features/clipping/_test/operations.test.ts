@@ -4,20 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { readFileSync } from 'node:fs';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
-import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
-import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
-import type { PrismViewer } from '@molstar/prism-viewer/viewer';
+import { DefaultPrismViewerSpec } from '../../../default-spec.js';
+import { createPrismViewerHeadless } from '../../../headless.js';
+import type { PrismViewer } from '../../../viewer.js';
+import { cbs } from '../../../_test/harness.js';
 import { afterEach, describe, expect, it } from 'vitest';
-import { type Cut, findCuts } from '../cuts.js';
-import { ClippingExtension } from '../prism-viewer.js';
+import { type Cut, findCuts } from '../../../sources/clipping/cuts.js';
 
 // The `clipping` area over a headless viewer: cuts written into the representations' params and read back from them.
 
-const cbs = () =>
-  new File([readFileSync(new URL('../../../../data/examples/1cbs_updated.cif', import.meta.url))], '1cbs.cif');
 const triangle = () => new File(['v 0 0 0\nv 10 0 0\nv 0 10 0\nf 1 2 3\n'], 'triangle.obj');
 
 let viewer: PrismViewer | undefined;
@@ -27,10 +24,7 @@ afterEach(async () => {
 });
 
 async function create(...files: File[]) {
-  const base = DefaultPrismViewerSpec();
-  viewer = await createPrismViewerHeadless({
-    spec: { ...base, extensions: [...(base.extensions ?? []), ClippingExtension] },
-  });
+  viewer = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec() });
   for (const f of files) expect((await viewer.api.load.files({ files: [f] })).ok).toBe(true);
   return viewer;
 }
@@ -45,7 +39,7 @@ const clipOf = (v: PrismViewer, ref: string) =>
 describe('the clipping area', () => {
   it('cuts the representations drawing the selection, and lists the cut', async () => {
     const v = await create(cbs());
-    const clipping = v.api.clipping!;
+    const clipping = v.api.clipping;
     expect(ok<Cut[]>(await clipping.list())).toEqual([]);
     expect(await clipping.add({ shape: 'plane' })).toMatchObject({ ok: false, code: 'not-found' });
 
@@ -63,7 +57,7 @@ describe('the clipping area', () => {
 
   it('narrows to representation types, and says what it is drawn as when none matches', async () => {
     const v = await create(cbs());
-    const clipping = v.api.clipping!;
+    const clipping = v.api.clipping;
     const r = await clipping.add({ shape: 'sphere', target: 'polymer', types: ['molecular-surface'] });
     expect(r).toMatchObject({ ok: false, code: 'not-found' });
     if (!r.ok) expect(r.hint).toMatch(/cartoon/);
@@ -73,7 +67,7 @@ describe('the clipping area', () => {
 
   it('changes, inverts and removes a cut, each a step undo takes back', async () => {
     const v = await create(cbs());
-    const clipping = v.api.clipping!;
+    const clipping = v.api.clipping;
     const { targets } = ok<Cut>(await clipping.add({ shape: 'plane', target: 'polymer' }));
     const ref = targets[0].ref;
 
@@ -131,13 +125,13 @@ describe('the clipping area', () => {
 
   it('cuts a shape by node selector', async () => {
     const v = await create(triangle());
-    const cut = ok<Cut>(await v.api.clipping!.add({ shape: 'cube', node: 'shape' }));
+    const cut = ok<Cut>(await v.api.clipping.add({ shape: 'cube', node: 'shape' }));
     expect(cut.targets.map((t) => t.type)).toEqual(['shape']);
   });
 
   it('turns a cut on and off for one representation, never off the last', async () => {
     const v = await create(cbs());
-    const clipping = v.api.clipping!;
+    const clipping = v.api.clipping;
     const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
       (c) => c.cell.obj?.label === 'Polymer',
     )!;
@@ -166,7 +160,7 @@ describe('the clipping area', () => {
 
   it('refuses a direction of length 0, and keeps a rotation axis unit', async () => {
     const v = await create(cbs());
-    const clipping = v.api.clipping!;
+    const clipping = v.api.clipping;
     ok(await clipping.add({ shape: 'cube', target: 'polymer' }));
     expect(await clipping.update({ cut: 1, normal: [0, 0, 0] })).toMatchObject({ ok: false, code: 'invalid' });
     ok(await clipping.update({ cut: 1, rotation: { axis: [0, 0, 2], angle: 30 } }));
@@ -176,7 +170,7 @@ describe('the clipping area', () => {
 
   it('Clip this… selects what a row draws and narrows the filter to a representation', async () => {
     const v = await create(cbs());
-    const clipping = v.api.clipping!;
+    const clipping = v.api.clipping;
     const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
       (c) => c.cell.obj?.label === 'Polymer',
     )!;

@@ -16,7 +16,7 @@ import { effect, onActive, onCleanup } from '@molstar/prism-ui/dom/scope';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
-import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
+import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import {
   ConeOpening,
   type Cut,
@@ -27,11 +27,11 @@ import {
   coneScale,
   LocalUp,
   rotated,
-} from './cuts.js';
+} from '../../sources/clipping/cuts.js';
 import type { ClippingApi } from './operations.js';
-import { ClippingSectionId } from './prism-viewer.js';
+import { ClippingSectionId } from './index.js';
 
-// The Clipping section of the Selection tab (_spec/README.md §3): a cut through what the selection is drawn as, by
+// The Clipping section of the Selection tab (clipping.md §3): a cut through what the selection is drawn as, by
 // shape, narrowed to some representation types; the cuts, each flipped, edited or removed. It acts only through the
 // person's API (`clipping.*`) and reads the cuts the area follows.
 
@@ -66,7 +66,7 @@ export function clippingUI(ctx: ViewerUIContext): ViewerExtensionUI {
         icon: 'scissors',
         order: 10,
         kinds: ['component', 'representation'],
-        when: (node) => !!ctx.api.clipping?.canClipThis(node.id),
+        when: (node) => !!ctx.api.clipping.canClipThis(node.id),
         run: (node) => {
           const clipping = ctx.api.clipping;
           if (!clipping) return;

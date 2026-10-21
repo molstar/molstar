@@ -12,12 +12,12 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 import type { PluginContext } from '@molstar/plugin/context';
-import { selectNodes } from '@molstar/prism-viewer/api';
-import { watchedState } from '@molstar/prism-viewer/sources/watched';
+import { selectNodes } from '../../api.js';
+import { watchedState } from '../../sources/watched.js';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import { type ApiContext, ApiArea, type ApiFailure, ApiResult, type ViewerApi } from '@molstar/prism-viewer/api/area';
-import { NodeParam, OptionalParam, TargetParam } from '@molstar/prism-viewer/api/params';
-import { ClipGizmos } from './gizmo/controller.js';
+import { type ApiContext, ApiArea, type ApiFailure, ApiResult, type ViewerApi } from '../../api/area.js';
+import { NodeParam, OptionalParam, TargetParam } from '../../api/params.js';
+import { ClipGizmos } from '../../sources/clipping/gizmo/controller.js';
 import {
   type Cut,
   type CutObject,
@@ -34,9 +34,9 @@ import {
   representationsSphere,
   rotationTo,
   withObject,
-} from './cuts.js';
+} from '../../sources/clipping/cuts.js';
 
-// The `clipping` area (_spec/README.md §2): cuts through the representations a target or a node selector reaches,
+// The `clipping` area (clipping.md §2): cuts through the representations a target or a node selector reaches,
 // written into those representations' own params (the state tree is the record), read back as cuts. Each run is one
 // step of the history.
 

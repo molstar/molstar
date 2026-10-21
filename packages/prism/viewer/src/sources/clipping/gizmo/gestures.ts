@@ -8,7 +8,7 @@ import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Clip } from '@molstar/core/util/clip';
 import { type CutObject, coneAngle, coneScale, rotated } from '../cuts.js';
 
-// What a drag on a gizmo's handle does to its cut (_spec/README.md §4), as pure functions of the drag: pixels moved,
+// What a drag on a gizmo's handle does to its cut (clipping.md §4), as pure functions of the drag: pixels moved,
 // the camera's axes and how many Å a pixel is at the cut. Each gesture starts from the cut as it was when the drag
 // began (`from`) and the drag's total so far, so it never accumulates rounding.
 

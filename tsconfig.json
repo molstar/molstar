@@ -116,9 +116,6 @@
       "path": "./extensions/g3d"
     },
     {
-      "path": "./extensions/clipping"
-    },
-    {
       "path": "./extensions/geo-export"
     },
     {

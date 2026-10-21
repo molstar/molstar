@@ -16,7 +16,7 @@ import { Torus } from '@molstar/graphics/geo/primitive/torus';
 import { ConeOpening, type CutObject, coneAngle, LocalUp, rotated } from '../cuts.js';
 import type { Handle } from './gestures.js';
 
-// A cut's gizmo (_spec/README.md §4): its body, translucent and not picked (a click needs alpha ≥ 0.5, and the body
+// A cut's gizmo (clipping.md §4): its body, translucent and not picked (a click needs alpha ≥ 0.5, and the body
 // covers what it cuts), and its handles, opaque, one group each: what dragging it does. Built in the cut's frame (its
 // rotation, from its center; a plane's from where it crosses what it cuts), so a move or a turn only moves the frame.
 // Sized by what it cuts (`reach`, the radius of their bounds): knobs and rings stay in proportion to the scene.
