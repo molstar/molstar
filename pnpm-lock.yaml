@@ -625,6 +625,9 @@ importers:
       '@molstar/backgrounds-extension':
         specifier: workspace:*
         version: link:../../extensions/backgrounds
+      '@molstar/clipping-extension':
+        specifier: workspace:*
+        version: link:../../extensions/clipping
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1800,6 +1803,40 @@ importers:
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  extensions/clipping:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../packages/graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../packages/model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin/core
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../packages/prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../packages/prism/viewer
       tslib:
         specifier: 'catalog:'
         version: 2.8.1

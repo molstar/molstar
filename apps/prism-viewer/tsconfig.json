@@ -46,6 +46,9 @@
       "path": "../../extensions/kinemage"
     },
     {
+      "path": "../../extensions/clipping"
+    },
+    {
       "path": "../../extensions/geo-export"
     },
     {

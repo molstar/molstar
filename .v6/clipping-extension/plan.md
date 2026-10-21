@@ -269,8 +269,8 @@ Prism rules apply: the DOM runtime, no rxjs in views, `scoped` attachments, `--m
    - `RepresentationClip` (`state/helpers/representation-clip.ts`) reads and writes a cell's clip at either path, so no adapter registry is needed: every representation transform holds it at `type.params.clip` or `clip`, and extensions' do too.
    - The component manager replaces only its own objects (`replaceOwned`).
    - `PluginContext.clickOwners`: a tool claims its representations' clicks, which then never reach `behaviors.interaction.click` (focus, select, host events). Hover is untouched.
-4. **`extensions/clipping` package wiring:** `inventory.json`, root tsconfig refs, `apps/prism-viewer` deps and `extensions.ts`.
-5. **The `clipping` API area:** derive the cuts, the operations, commands and a skill, and exclusion re-indexing. Quick-lane tests through a headless viewer, including a clip set from code showing up in `list`.
+4. **(done) `extensions/clipping` package wiring:** `inventory.json`, root tsconfig refs, `apps/prism-viewer` deps and `extensions.ts`.
+5. **(done, but exclusion) The `clipping` API area** (`cuts.ts`: cuts found by grouping equal objects, numbered in tree order, the component manager's own excluded; `placeCut` by shape; `operations.ts`: list, add, update, remove, clear; targets by atoms or node selector, filtered by type): derive the cuts, the operations, commands and a skill, and exclusion re-indexing. Quick-lane tests through a headless viewer, including a clip set from code showing up in `list`.
 6. **The Selection section UI.**
 7. **Gizmos for the five shapes:** hover, drag, commit and cancel, with the gesture and cancel tests.
 8. **The row-menu point in Prism and "Clip this…".**

@@ -8,6 +8,7 @@
 
 import { AnvilExtension } from '@molstar/anvil-extension/prism-viewer';
 import { AssemblySymmetryExtension } from '@molstar/assembly-symmetry-extension/prism-viewer';
+import { ClippingExtension } from '@molstar/clipping-extension/prism-viewer';
 import { GeoExportExtension } from '@molstar/geo-export-extension/prism-viewer';
 import { KinemageExtension } from '@molstar/kinemage-extension/prism-viewer';
 import { ModelArchiveExtension } from '@molstar/model-archive-extension/prism-viewer';
@@ -26,6 +27,7 @@ export const MolstarViewerExtensions: readonly (ViewerExtension | LazyViewerExte
   ModelArchiveExtension,
   ModelExportExtension,
   GeoExportExtension,
+  ClippingExtension,
   KinemageExtension,
   AssemblySymmetryExtension,
   AnvilExtension,

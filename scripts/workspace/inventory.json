@@ -235,6 +235,12 @@
       "private": false
     },
     {
+      "name": "@molstar/clipping-extension",
+      "path": "extensions/clipping",
+      "kind": "extension",
+      "private": false
+    },
+    {
       "name": "@molstar/geo-export-extension",
       "path": "extensions/geo-export",
       "kind": "extension",

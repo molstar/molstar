@@ -29,6 +29,34 @@ const Allowed = {
   dragAndDrop: ['open-files'],
 };
 
+/**
+ * Particles are opt-in (`ParticlesRegistry`, breaking-v6-changes.md): the default spec and the Viewer register none of
+ * them, so the baseline's particle entries are taken out before comparing.
+ */
+const ParticleTransformer =
+  /^ms-plugin\.(particle|parse-artiatomi-em|parse-cryoet-data-portal-ndjson|parse-dynamo-tbl|parse-simularium)/;
+const isParticleTheme = (name) => name.startsWith('particle-');
+
+function withoutParticles(target) {
+  const copy = structuredClone(target);
+  copy.representations.particles = [];
+  copy.themes.particles = { color: [], size: [] };
+  for (const scope of Object.values(copy.themes)) {
+    scope.color = scope.color.filter((n) => !isParticleTheme(n));
+    scope.size = scope.size.filter((n) => !isParticleTheme(n));
+  }
+  copy.formats = copy.formats.filter((n) => !n.endsWith('_particles'));
+  copy.animations = copy.animations.filter((n) => n !== 'built-in.animate-particle-trajectory');
+  const data = copy.actions.data;
+  data.all = data.all.filter((id) => !ParticleTransformer.test(id));
+  for (const [from, ids] of Object.entries(data.byFromType)) {
+    const kept = ids.filter((id) => !ParticleTransformer.test(id));
+    if (kept.length) data.byFromType[from] = kept;
+    else delete data.byFromType[from];
+  }
+  return copy;
+}
+
 const read = (dir, file) => JSON.parse(readFileSync(join(dir, file), 'utf8'));
 
 function withoutAllowed(target) {
@@ -74,10 +102,12 @@ try {
       problems.push(`${target}: target missing from the current dump`);
       continue;
     }
-    diff(target, baseline.targets[target], withoutAllowed(c), problems);
+    diff(target, withoutParticles(baseline.targets[target]), withoutAllowed(c), problems);
 
     // The allowed differences must actually be present, so an obsolete allowance is noticed.
     for (const [scope, t] of Object.entries(c.themes)) {
+      // opt-in particles: no particles scope to check
+      if (scope === 'particles') continue;
       for (const name of Allowed.externalThemes) {
         if (!t.color.includes(name)) problems.push(`${target}.themes.${scope}.color: expected '${name}'`);
       }
@@ -87,7 +117,7 @@ try {
     }
 
     const have = new Set(currentIds.targets[target]);
-    const lost = baselineIds.targets[target].filter((id) => !have.has(id));
+    const lost = baselineIds.targets[target].filter((id) => !have.has(id) && !ParticleTransformer.test(id));
     if (lost.length > 0) problems.push(`${target}: transformer ids no longer registered: ${lost.join(', ')}`);
   }
 } finally {
