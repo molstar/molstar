@@ -11,6 +11,7 @@ import * as path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import { memoryStore } from '../../persist/stores.js';
+import { particlesFile } from '../../api/_test/volume-fixtures.js';
 
 // The light restore (journal.md §6) on headless viewers sharing one store, as a tab's sessionStorage is across a reload.
 // The address is served by a stubbed fetch: no network.
@@ -44,6 +45,24 @@ describe('the light restore', () => {
     expect(await second.restore!.run()).toBe(true);
     expect(structures(second)).toBe(1);
     expect(second.managers.history.steps.value).toEqual([]);
+  });
+
+  it('brings back a particle list from an address: the lazy particles feature loads first', async () => {
+    const text = await particlesFile().text();
+    vi.stubGlobal('fetch', async () => new Response(text));
+    const store = memoryStore({ version: 'test', budget: 256 * 1024 });
+    const first = await headlessViewer({ spec: { persist: { key: 'test', restore: store } } });
+    expectOk(await first.api.load.url!({ url: 'https://files.test/picks.ndjson' }));
+    first.restore!.flush();
+    expect(first.restore!.available).toBe(true);
+
+    // a fresh viewer, as after a reload: without the feature its transformers would not be registered (in this
+    // worker the first viewer registered them, so what is checked is that the restore loads the feature)
+    const second = await headlessViewer({ spec: { persist: { key: 'test', restore: store } } });
+    expect(second.extensions.loaded.value).not.toContain('particles');
+    expect(await second.restore!.run()).toBe(true);
+    expect(second.extensions.loaded.value).toContain('particles');
+    expect(second.plugin.managers.particles.hierarchy.current.lists).toHaveLength(1);
   });
 
   it('does not keep a scene with a local file, and says so once', async () => {

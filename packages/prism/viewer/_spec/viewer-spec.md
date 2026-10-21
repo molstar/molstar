@@ -132,37 +132,43 @@ beyond it (README decision 13).
 - **Commands first** (README decision 27): operations with commands and tools; `ui` only where a view is needed.
 - **Views go in named slots** (`ViewerSlot`, closed: Home's import, Export, Selection, canvas settings, animation,
   Settings, inspector sections), plus `tabs`, `overlays` (cards), `pages` (over the app), scene tree `rows`, `toolbar`
-  items. No cards or rail buttons of its own. A tab for what is loaded (the Kinemage panel) passes `visible`: on the
-  rail only while it holds, so an app with the extension shows nothing for it until it has content (not the person's
-  hidden tabs). A panel with a tree of its own draws it with `SceneRow` (`children`, `depth`; `onActivate` for a row
-  that is an action, a kinemage's view), so it reads as the Structure panel. A row's eye that turns something on (a row
-  with controls; the viewer's Volume streaming and Unit cell too) picks it: its controls are in the inspector at once. A
-  scene tree row is one row of the tree's height (`SceneRow`; the tree is virtualized, view-models.md §3): its controls
-  go to the inspector, never under it. A row whose `when` holds takes a slot, so its view renders a row whenever `when`
-  holds (one that renders nothing leaves a gap); `when` says what the view would (assembly symmetry: only a PDB entry's
-  assembly). A `when` that follows more than the node and its structure passes `whenChanged`, told when it may answer
-  otherwise (a PAE fetched is a state cell, no change of the scene): the tree asks it again for the rows it shows.
-  Streaming starts in the Auto view (around the whole structure, the selection while there is one). A structure with
-  several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for a simulation's coordinates) and has a
-  row of its own first under it (`views/structure/trajectory-row.tsx`): the frame shown, a scrubber, ‹ ›, play; picked,
-  the same at full width and how it plays (mode, seconds per pass) in the inspector. The row plays that structure
-  (`trajectory.play` with `structure`; without one, the operation plays every structure's frames, and every row says
-  so); starting one stops what played. The canvas' trajectory bar follows the structure that plays (paused, the one that
-  played last): while that structure's row is on screen (the Structure tab shown, the structure open, not under a card),
-  a compact chip while frames play (name, frame, pause); otherwise the full bar (scrubber, ‹ ›, play), paused or not, so
-  the controls are always at hand (another tab, the panel closed, the canvas expanded).
+  items, and `selectionActions`: rows of the selection bar's menu (a title, a line, a command or `run`, by `order`; the
+  clipping extension's Clip…), part ids `<ext>.selection-action.<name>`, and `nodeActions`: rows of the scene tree's
+  node menus (the inspector shows the same menu) on the node kinds given and passing `when`, after the node's own and
+  before Remove, by `order`; `run` gets the node (the clipping feature's Clip this…), part ids
+  `<ext>.node-action.<name>`. No cards or rail buttons of its own. A tab for what is loaded (the Kinemage panel) passes
+  `visible`: on the rail only while it holds, so an app with the extension shows nothing for it until it has content
+  (not the person's hidden tabs). A panel with a tree of its own draws it with `SceneRow` (`children`, `depth`;
+  `onActivate` for a row that is an action, a kinemage's view), so it reads as the Structure panel. A row's eye that
+  turns something on (a row with controls; the viewer's Volume streaming and Unit cell too) picks it: its controls are
+  in the inspector at once. A scene tree row is one row of the tree's height (`SceneRow`; the tree is virtualized,
+  view-models.md §3): its controls go to the inspector, never under it. A row whose `when` holds takes a slot, so its
+  view renders a row whenever `when` holds (one that renders nothing leaves a gap); `when` says what the view would
+  (assembly symmetry: only a PDB entry's assembly). A `when` that follows more than the node and its structure passes
+  `whenChanged`, told when it may answer otherwise (a PAE fetched is a state cell, no change of the scene): the tree
+  asks it again for the rows it shows. Streaming starts in the Auto view (around the whole structure, the selection
+  while there is one). A structure with several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for
+  a simulation's coordinates) and has a row of its own first under it (`views/structure/trajectory-row.tsx`): the frame
+  shown, a scrubber, ‹ ›, play; picked, the same at full width and how it plays (mode, seconds per pass) in the
+  inspector. The row plays that structure (`trajectory.play` with `structure`; without one, the operation plays every
+  structure's frames, and every row says so); starting one stops what played. The canvas' trajectory bar follows the
+  structure that plays (paused, the one that played last): while that structure's row is on screen (the Structure tab
+  shown, the structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the
+  full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the
+  canvas expanded).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).
 - **Lazy** (`LazyViewerExtension`): a `stub` declares every part (ids, kinds, slots), operations with their flags,
-  commands, skills, and what it `owns` (transformers, formats, file extensions, representations, themes); `load()`
-  brings the real one. First use loads the chunk (a status task) and replays the call. `preload: true` loads during
-  creation.
+  commands, skills, and what it `owns` (transformers, formats, file extensions, representations, themes, and a `sniff`
+  for files whose extension does not tell: mmCIF holding particles); `load()` brings the real one. First use loads the
+  chunk (a status task) and replays the call. `preload: true` loads during creation.
 - **Checked against its stub**: an undeclared area, command or view, a declared operation not brought, or other flags
   fail the load. **Activation is all or nothing**: a failure undoes it and puts the stub back; a later call retries
   (`extensions/host.ts`).
-- **Owned files and sessions**: `load.files` loads the extension owning a file's extension first; `session.open` of a
-  `.molj` those owning its transformers.
+- **Owned files and sessions**: `load.files` loads the extension owning a file's extension, or claiming its content by
+  `sniff` (read only for the extensions a stub sniffs), first; `session.open` of a `.molj` those owning its
+  transformers.
 - **An extension names its own areas**: a name another extension or the viewer has fails activation, naming who has it;
   only built-in features contribute to core areas.
 - **Mounted at runtime**: `viewer.extensions.mount(ext)` adds one to a running viewer and returns its removal.
@@ -172,10 +178,22 @@ beyond it (README decision 13).
 - **Core** (fixed code; its parts still removable by overrides): the shell (rail, status, History, Settings, theme,
   command menu, the Export card's frame), the canvas and its chrome, drag and drop and `.molx`/`.molj` sessions,
   selection, focus, highlight, targets, the history, the agent's account, the sequence viewer.
+- **The selection bar** (`views/canvas/selection-bar.tsx`, `selectionModel`): Unfocus first while something is focused
+  (`focus.clear`, the selection kept; beside the canvas toolbar when nothing is selected); what is selected is the
+  button of a menu (hover opens it, as the canvas stack's menus; the stack's corner mark says so), and Clear. The menu:
+  Focus, Show in structure tree, Make a component, the extensions' rows, More in the Selection panel. Show in structure
+  tree turns on the tree's selection filter: its search's non-text part (`SceneModel.selectionFilter`, a chip before the
+  text), the rows that hold the selection (structures; components and their representations it overlaps; Contents'
+  entities and chains), asked per row and cached until the selection changes, followed only while on, off when the
+  selection is cleared; the first component that holds it picked.
 - **Built-in features** (`DefaultPrismViewerSpec().extensions`, `src/features/<name>`): `structure`, `volume`,
   `trajectory`, `annotations` (the scene's API; `requires` lists what must come before), `home`, `structure-panel`,
-  `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `superposition` (lazy), `state-tree` (lazy),
-  `remote-states` (lazy, behind its setting), `snapshots`, `animation`, `export-image`, `export-session`.
+  `particles` (lazy: Mol*'s particles are opt-in, `ParticlesRegistry` is its plugin registry, so a viewer holds no
+  particle code until a particle file, an mmCIF holding particles or a session with particles needs it),
+  `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `clipping` ([clipping.md](clipping.md)),
+  `superposition` (lazy), `state-tree` (lazy), `remote-states` (lazy, behind its setting), `snapshots`, `animation`,
+  `export-image`, `export-session`. Opt-in (not in the default spec; the Prism app adds it): `structure-move`
+  ([structure-move.md](structure-move.md)).
 - Built-in features' areas and operations in core areas are typed as present (`BuiltInApis`,
   `BuiltInOperationFeatures`); left out of a spec, reading one throws, naming the feature ([api.md](api.md) §2).
 - **Panels keep the core's ids** (`home`, `structure`, `selection`, `help`; `core.tab.*` as parts). Built-in features
@@ -186,6 +204,29 @@ beyond it (README decision 13).
 - **The app's list**: `[...DefaultPrismViewerSpec().extensions, ...MolstarViewerExtensions]` (built-ins first); Mol\*'s
   extensions are the app's, since they depend on the viewer (`apps/prism-viewer/src/extensions.ts`). The single file
   inlines every lazy entry ([app.md](app.md) §2).
+
+### 3.2 Particles
+
+- **Opt-in, lazy** (`features/particles`, `LazyParticles`): Mol*'s `ParticlesRegistry` is the feature's plugin registry,
+  `DefaultRegistry` holds none of it. The stub `owns` the particle transformers, formats and extensions (`.star`,
+  `.tbl`, `.ndjson`, `.em`, `.simularium`) and sniffs `.cif`/`.bcif` for CellPack and PetWorld assemblies
+  (`mmcif-sniff`); a `.molx` session is read for its transformers too. Why: most viewers never read particles.
+- **Operations** (`particles.*`, operations.md): `list`, `representation`, `color`, `visibility`, `remove`, `focus`,
+  `unit-cell` (as `structure.unit-cell`), `targets` (what stands for the particles: a file, a PDB id or a URL, one
+  target per call), `source` (how the list is read: the format transform's params, the inspector's Source form),
+  `frame`, `play`, `stop` (a trajectory's frames: viewing, no step).
+- **Read at the end of the decorators**: operations and the scene read a list as its representations see it
+  (`StateTree.getDecoratorRoot`: `ParticleListWithTargets` adds the targets); the hierarchy's ref holds the list below
+  them.
+- **Scene** (`sources/scene.ts`, by transformer id: no import of the feature): a list's row says its count and targets;
+  its menu adds a representation, colors all, sets targets, focuses, shows the unit cell; a representation's row says
+  its color theme and picks one; the unit cell is a row; the inspector lists source, orientations, targets, entities,
+  compartments, fibers, attribute ranges, the cell, and the Source form. A trajectory's list has the frame row and the
+  canvas' trajectory bar follows it (`frameInfos`, `kind: 'particles'`).
+- **Default size**: particles without radii are drawn at half the typical nearest-neighbor distance
+  (`getParticleSpacingRadius`, sampled, cached); an explicit size or radius wins.
+- Measured (2026-10-21, headless): 100k picks load in 0.55 s, their default size in 84 ms once; a Simularium frame step
+  is 1.4 ms with 20 structures loaded.
 
 ## 4. Parts and overrides
 
@@ -214,8 +255,10 @@ options, the assistant and `persist`; its loaders read the URL once the viewer i
   `createPrismViewerHeadless({ spec, plugin? })` (no DOM; `plugin` makes a `HeadlessPluginContext` for images). Both
   give a `PrismViewer` (`src/viewer.ts`): `plugin` (escape hatch), `api`, `run(label, work)` (one step), `managers`,
   `views`, `sources` (read-only), `camera` (the view to follow and set: api.md §12), `spec`, `options`, `state`
-  (`ready`, `busy`, `empty`), `events` (`hover`, `click`, `error`), `extensions`, `dispose()`. Several viewers on a
-  page: each its own `persist.key` (§2.6, README decision 29).
+  (`ready`, `busy`, `working`, `empty`: `busy` is the plugin's debounced flag, `working` anything in progress now, an
+  operation from its start, a lazy extension's load, the plugin updating; the empty canvas's splash waits on `working`,
+  as the plugin's flag comes 750 ms late and misses what is not plugin work), `events` (`hover`, `click`, `error`),
+  `extensions`, `dispose()`. Several viewers on a page: each its own `persist.key` (§2.6, README decision 29).
 - **Order**: validate the spec (`spec-check.ts`: ids, overrides, slots), compose the plugin spec, `init()` the plugin,
   make the API, managers and views, activate the extensions in order (lazy as stubs), then with a page mount the canvas
   and render the shell; `ready` last, and only then URL calls and the light restore ([journal.md](journal.md) §6).

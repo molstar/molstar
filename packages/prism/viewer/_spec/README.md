@@ -7,20 +7,22 @@ extension relies on, where the code is, and the decisions below. Code comments c
 [prism-ui's \_spec](../../ui/_spec/README.md); the assistant: [its \_spec](../../assistant/_spec/README.md); what is
 missing: [../../TODO.md](../../TODO.md).
 
-| File                             | What it covers                                                                                                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [viewer-spec.md](viewer-spec.md) | `PrismViewerSpec`: fields, extensions, built-in features, parts and overrides, creation                       |
-| [api.md](api.md)                 | the API: operations, areas, run path, origins, groups, extensions' areas, commands over operations, coverage  |
-| [operations.md](operations.md)   | every operation of the default spec: id, title, flags, params (generated from the code; a test keeps it true) |
-| [targets.md](targets.md)         | the address language: keywords, addresses, query texts; MolQL underneath                                      |
-| [nodes.md](nodes.md)             | node selectors over the state tree                                                                            |
-| [marks.md](marks.md)             | marks on the scene: highlights and what views draw over it                                                    |
-| [state.md](state.md)             | the plugin's state area by area: sources, view models                                                         |
-| [journal.md](journal.md)         | the session record, History, what is kept in the browser                                                      |
-| [sequence.md](sequence.md)       | the sequence viewer (Seq\*) beside the 3D view, the link, the history's rules                                 |
-| [agent.md](agent.md)             | the agent: tools, skills, the account, policies, headless and evals                                           |
-| [parity.md](parity.md)           | v5 → Prism, feature by feature                                                                                |
-| [app.md](app.md)                 | `apps/prism-viewer`, the single file, embedding, URL parameters                                               |
+| File                                   | What it covers                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [viewer-spec.md](viewer-spec.md)       | `PrismViewerSpec`: fields, extensions, built-in features, parts and overrides, creation                       |
+| [api.md](api.md)                       | the API: operations, areas, run path, origins, groups, extensions' areas, commands over operations, coverage  |
+| [operations.md](operations.md)         | every operation of the default spec: id, title, flags, params (generated from the code; a test keeps it true) |
+| [targets.md](targets.md)               | the address language: keywords, addresses, query texts; MolQL underneath                                      |
+| [nodes.md](nodes.md)                   | node selectors over the state tree                                                                            |
+| [marks.md](marks.md)                   | marks on the scene: highlights and what views draw over it                                                    |
+| [clipping.md](clipping.md)             | cuts through representations: read from the state, the area, the section, gizmos, keep whole, drawn in scene  |
+| [structure-move.md](structure-move.md) | moving a structure by hand: the Move section, transform handles, through `structure.transform`                |
+| [state.md](state.md)                   | the plugin's state area by area: sources, view models                                                         |
+| [journal.md](journal.md)               | the session record, History, what is kept in the browser                                                      |
+| [sequence.md](sequence.md)             | the sequence viewer (Seq\*) beside the 3D view, the link, the history's rules                                 |
+| [agent.md](agent.md)                   | the agent: tools, skills, the account, policies, headless and evals                                           |
+| [parity.md](parity.md)                 | v5 → Prism, feature by feature                                                                                |
+| [app.md](app.md)                       | `apps/prism-viewer`, the single file, embedding, URL parameters                                               |
 
 ## Entries
 

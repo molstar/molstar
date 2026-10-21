@@ -84,3 +84,6 @@ const isPlain = (x: unknown): x is Record<string, any> =>
 export function NodeParam(description = 'Nodes by selector (representation[type=cartoon], #ref) or a state ref') {
   return PD.Text('', { description });
 }
+
+// The `target` param, for extensions' operations too (targets.md §1: a keyword, an address list, a query, a selector)
+export { TargetParam, type TargetValue } from './target-param.js';

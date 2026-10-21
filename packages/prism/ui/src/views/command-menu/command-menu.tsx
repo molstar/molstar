@@ -12,12 +12,12 @@ import type { CommandInvocation, InvocationState } from '../../commands/invocati
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
 import { fuzzyScore, matchPositions } from '../../commands/match.js';
-import type { CommandGroup } from '../../commands/types.js';
+import type { CommandGroup, FormatCompletion } from '../../commands/types.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { keepRows } from '../../components/virtual-list/virtual-list.js';
 import { For, Show } from '../../dom/control-flow.js';
-import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
+import { deepActiveElement, focusables, rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { toNode } from '../../dom/render.js';
 import { effect, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
@@ -48,6 +48,30 @@ export interface CommandMenuProps {
    * field) closes the menu rather than going back to the list.
    */
   direct?: boolean;
+  /** Commands' own forms, by command id (commands.md §5.1): drawn under the sentence in place of its option list. */
+  forms?: Readonly<Record<string, CommandFormView>>;
+}
+
+/**
+ * What a command's own form view gets (commands.md §5.1). It edits the open invocation (`set`, `setParam`, `focus`) and
+ * runs it (`run`); the menu's input keeps the focus and its keys (Tab, Enter, ⌫, Esc), and `keys` sees each key first.
+ * Tab past the sentence's last field goes into the view's own controls (those that take the focus), and back to the
+ * input past them.
+ */
+export interface CommandFormViewProps {
+  manager: CommandManager<any>;
+  invocation: CommandInvocation<any>;
+  /** Runs the command as Enter does. */
+  run(): void;
+  /** A key in the menu's input, before the menu acts on it: true takes it. */
+  keys(handler: (e: KeyboardEvent) => boolean): void;
+}
+
+/** A command's own form in the command menu (commands.md §5.1), under the sentence. */
+export interface CommandFormView {
+  /** The fields it draws itself: while one of them is active, its options are not listed under the sentence. */
+  fields?: readonly string[];
+  render(props: CommandFormViewProps): Child;
 }
 
 /**
@@ -212,6 +236,7 @@ export function CommandMenu(props: CommandMenuProps) {
               proposed={proposed.asReadonly}
               onClose={props.onClose}
               {...(props.direct ? { direct: true } : {})}
+              {...(props.forms?.[invocation.command.id] ? { form: props.forms[invocation.command.id] } : {})}
             />
           )}
         </Show>
@@ -904,14 +929,53 @@ function FormMode(props: {
   onClose(): void;
   /** Opened for this command alone: leaving the form closes the menu. */
   direct?: boolean;
+  /** The command's own form, in place of the option list. */
+  form?: CommandFormView;
 }) {
   const { manager, invocation } = props;
+  // The own form's key handler: it sees each key before the input acts on it.
+  let formKeys: ((e: KeyboardEvent) => boolean) | undefined;
+  // The active field is one the own form draws: its options are there, not in the list.
+  const drawn = (s: InvocationState) => s.field !== undefined && !!props.form?.fields?.includes(s.field);
   const state = invocation.state;
   const command = invocation.command;
   const listId = uniqueId('msp-command-options');
   // The picked completion, a gate: the options listen to it, not to every change of the state.
   const pick = derive(state, (s) => s.pick);
   const optionId = (i: number) => `${listId}-${i}`;
+  // The own form's element: Tab past the sentence's last field goes into its controls (commands.md §5.1).
+  let formEl: HTMLElement | undefined;
+  // Its Tab stops: not its tiles (`tabIndex` -1: the input's arrows move between them), which `focusables` keeps.
+  const formControls = () => (formEl ? focusables(formEl).filter((el) => el.tabIndex >= 0) : []);
+  /**
+   * Tab past the last field (Shift+Tab before the first) with nothing typed to take: the focus goes to the own form's
+   * first (last) control, its options the sentence does not show (a type's size, the uniform color). False: the
+   * sentence's Tab.
+   */
+  const intoForm = (back: boolean): boolean => {
+    if (!formEl) return false;
+    const s = state.value;
+    if (s.canAssist || (s.text.trim() && s.completions.length) || s.pick >= 0) return false;
+    const i = s.fields.findIndex((f) => f.id === s.field);
+    if (back ? i > 0 : i < s.fields.length - 1) return false;
+    const controls = formControls();
+    const to = back ? controls[controls.length - 1] : controls[0];
+    if (!to) return false;
+    to.focus();
+    return true;
+  };
+  /** Tab past the own form's last control (Shift+Tab before its first): back to the input, the sentence's first (last) field. */
+  const outOfForm = (e: KeyboardEvent) => {
+    if (e.key !== 'Tab' || e.defaultPrevented || !formEl || e.altKey || e.metaKey || e.ctrlKey) return;
+    const controls = formControls();
+    const at = deepActiveElement(formEl.ownerDocument);
+    if (at !== (e.shiftKey ? controls[0] : controls[controls.length - 1])) return;
+    e.preventDefault();
+    const fields = state.value.fields;
+    const field = e.shiftKey ? fields[fields.length - 1] : fields[0];
+    if (field) invocation.focus(field.id);
+    input.focus();
+  };
   const input = (
     <input
       class={classes.input}
@@ -922,6 +986,10 @@ function FormMode(props: {
       spellcheck={false}
       onInput={(e) => invocation.type(e.currentTarget.value)}
       onKeyDown={(e) => {
+        if (formKeys?.(e)) {
+          e.preventDefault();
+          return;
+        }
         if (e.key === 'Enter' && e.altKey && command.view) {
           e.preventDefault();
           goToView();
@@ -930,7 +998,7 @@ function FormMode(props: {
           void invocation.enter();
         } else if (e.key === 'Tab') {
           e.preventDefault();
-          void invocation.tab(e.shiftKey ? -1 : 1);
+          if (!intoForm(e.shiftKey)) void invocation.tab(e.shiftKey ? -1 : 1);
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
           invocation.move(e.key === 'ArrowDown' ? 1 : -1);
@@ -952,11 +1020,12 @@ function FormMode(props: {
     const s = state.value;
     writeText(action, s.action);
     const f = s.fields.find((x) => x.id === s.field);
-    setAttr(input, 'aria-expanded', String(s.completions.length > 0));
+    const listed = !drawn(s) && s.completions.length > 0;
+    setAttr(input, 'aria-expanded', String(listed));
     setAttr(
       input,
       'aria-activedescendant',
-      s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined,
+      listed && s.pick >= 0 && s.pick < s.completions.length ? optionId(s.pick) : undefined,
     );
     setAttr(input, 'aria-label', f?.label ?? command.title);
     setAttr(input, 'placeholder', f ? f.label : 'Enter to run');
@@ -1032,7 +1101,7 @@ function FormMode(props: {
         role="listbox"
         aria-label="Options"
       >
-        <For each={derive(state, (s) => s.completions)}>
+        <For each={derive(state, (s) => (drawn(s) ? NoCompletions : s.completions))}>
           {(c, i) => {
             const option = (
               <div
@@ -1056,7 +1125,26 @@ function FormMode(props: {
           }}
         </For>
       </ScrollArea>
-      <Show when={derive(state, (s) => s.formOnly.length > 0)}>
+      {props.form ? (
+        <div
+          class={classes.form}
+          ref={(el: HTMLElement) => {
+            formEl = el;
+          }}
+          onKeyDown={outOfForm}
+        >
+          {props.form.render({
+            manager,
+            invocation,
+            run: () => void invocation.enter(),
+            keys: (handler) => {
+              formKeys = handler;
+            },
+          })}
+        </div>
+      ) : null}
+      {/* An own form shows the options it offers; the rest stay at their defaults unsaid. */}
+      <Show when={derive(state, (s) => !props.form && s.formOnly.length > 0)}>
         {() => {
           const text = document.createTextNode('');
           watch([state], () => {
@@ -1078,6 +1166,8 @@ function FormMode(props: {
     </>
   );
 }
+
+const NoCompletions: readonly FormatCompletion[] = [];
 
 /** One argument in the sentence: its quiet before-word, then its value (or its name, until set). */
 function FieldToken(props: { field: FormFieldView; state: ReadonlyState<InvocationState>; onFocus(): void }) {

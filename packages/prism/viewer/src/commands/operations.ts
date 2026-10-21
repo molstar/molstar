@@ -8,9 +8,11 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { CommandDefinition, CommandValues, IconName, KeyChord } from '@molstar/prism-ui/core';
+import type { FieldHint } from '@molstar/prism-ui/forms/flat-fields';
 import type { OperationFn, ViewerApi } from '../api/area.js';
 import { filePickers, filesOf } from '../api/files.js';
 import type { ViewerCommandContext } from '../api/managers.js';
+import { parseAddressList, readKeyword } from '../targets/index.js';
 
 // Commands over operations (api.md §9): one command per operation by default, with the operation's id, title
 // and params (resolved as the API describes them, so registry-driven params are current); its form is the params'
@@ -40,6 +42,10 @@ export interface OperationCommandOptions {
    * now): called each time the form is shown, so it reads the registry then, not when the command was made.
    */
   readonly form?: (params: PD.Params) => PD.Params;
+  /** The params that start the sentence, in this order (the rest follow in the operation's). */
+  readonly order?: readonly string[];
+  /** How params read inline (before-words), over the target fields' format. */
+  readonly fields?: Readonly<Record<string, FieldHint>>;
   /**
    * Where it is in the UI ("Export › Models"): a card or a tab by part id, at a section; the command's form offers to go
    * there (`CommandDefinition.view`).
@@ -81,19 +87,32 @@ export function operationCommand(
     ...(o.values ?? {}),
     ...(o.toggle ? { [o.toggle.key]: true } : {}),
   };
-  const form = () => {
+  const form = (values?: CommandValues) => {
     const params = api.describe(def.id)?.params ?? {};
-    const open = Object.keys(params).filter((k) => !(k in fixed));
+    const first = (o.order ?? []).filter((k) => k in params);
+    const keys = [...first, ...Object.keys(params).filter((k) => !first.includes(k))];
+    const open = keys.filter((k) => !(k in fixed));
     if (!open.length) return undefined;
     const built = formParams(Object.fromEntries(open.map((k) => [k, params[k]])));
+    // The query language says how a query's text reads: in the sentence only while the target is one (not a keyword or
+    // an address list), and then optional (empty: the default language). It follows the target (`reshapes`).
+    if (built.language && built.target) {
+      built.language = {
+        ...built.language,
+        isOptional: true,
+        ...(isQueryText(values?.target) ? {} : { isHidden: true }),
+      };
+    }
     return o.form ? o.form(built) : built;
   };
+  const followsTarget = !!form()?.language && 'target' in (form() ?? {});
   // Target fields read and complete as targets (`sources/target-format.ts`).
   const fields = Object.fromEntries(
     Object.entries(api.describe(def.id)?.params ?? {})
       .filter(([k, p]) => p.type === 'value' && typeof p.defaultValue === 'string' && !(k in fixed))
-      .map(([k]) => [k, { format: 'target' }]),
+      .map(([k]): [string, FieldHint] => [k, { format: 'target' }]),
   );
+  for (const [k, hint] of Object.entries(o.fields ?? {})) fields[k] = { ...fields[k], ...hint };
   const files = new Set(
     Object.entries(api.describe(def.id)?.params ?? {})
       .filter(([, p]) => p.type === 'value' && (Array.isArray(p.defaultValue) || p.defaultValue === null))
@@ -109,7 +128,13 @@ export function operationCommand(
     ...(o.action ? { action: o.action } : {}),
     ...(o.group ? { group: o.group } : {}),
     ...(o.view ? { view: viewOf(api, o.view) } : {}),
-    ...(form() ? { params: () => form() ?? {}, defaults: () => formDefaults(form()) } : {}),
+    ...(form()
+      ? {
+          params: (_ctx: ViewerCommandContext, values: CommandValues) => form(values) ?? {},
+          defaults: () => formDefaults(form()),
+        }
+      : {}),
+    ...(followsTarget ? { reshapes: ['target'] } : {}),
     ...(Object.keys(fields).length ? { fields } : {}),
     when: () => api.describe(def.id)?.available ?? `There is no operation '${def.id}'.`,
     async run(args) {
@@ -146,12 +171,21 @@ function formParams(params: PD.Params): PD.Params {
   return out;
 }
 
+/** Text a target reads as a query (in the query language), not as a keyword or an address list (targets.md §1). */
+function isQueryText(target: CommandValues[string]): boolean {
+  if (typeof target !== 'string' || !target.trim()) return false;
+  return readKeyword(target) === undefined && !parseAddressList(target).ok;
+}
+
 /** The values a form starts with: its choices' defaults (selects, switches, numbers); texts and files start empty. */
 function formDefaults(params: PD.Params | undefined): CommandValues {
   const out: Record<string, string | number | boolean> = {};
   for (const [k, p] of Object.entries(params ?? {})) {
     // An optional one (absent: kept as it is) starts empty.
     if (p.isOptional) continue;
+    // A select whose default is the empty choice ("None") is asked for: as a value it would fill the field, and the
+    // form would open on the next one (the theme's form opened on the query language).
+    if (p.type === 'select' && p.defaultValue === '') continue;
     if (p.type === 'select' || p.type === 'boolean' || p.type === 'number') out[k] = p.defaultValue;
   }
   return out;

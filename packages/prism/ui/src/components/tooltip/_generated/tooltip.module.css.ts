@@ -26,12 +26,14 @@ defineStyles('components/tooltip/tooltip.module.css', `@layer msp.components {
   color: var(--msp-color-bg);
   font-size: var(--msp-font-size-xs);
   white-space: nowrap;
+  text-overflow: ellipsis;
   pointer-events: none;
   animation: msp-tooltip-tooltip-in var(--msp-motion-fast) var(--msp-ease);
   line-height: 1.3;
   position: fixed;
   top: 0;
   left: 0;
+  overflow: hidden;
 
   &[hidden] {
     display: none;
@@ -48,6 +50,7 @@ defineStyles('components/tooltip/tooltip.module.css', `@layer msp.components {
     var(--msp-shadow-float);
   font-size: var(--msp-font-size-sm);
   white-space: normal;
+  overflow-wrap: anywhere;
   line-height: 1.4;
 }
 

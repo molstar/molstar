@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * ported from https://github.com/photopea/UZIP.js/blob/master/UZIP.js
  * MIT License, Copyright (c) 2018 Photopea
  *
  * - added `ungzip`
+ * - added `unzip`'s `only` (one entry read without inflating the rest)
  */
 
 import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, readUTF8, toInt32 } from './bin.js';
@@ -37,7 +39,17 @@ interface CentralEntry {
   readonly roff: number;
 }
 
-export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false, limits?: UnzipLimits) {
+/**
+ * The archive's entries by name: their bytes, or with `onlyNames` their sizes. `only`, when given, keeps the entries
+ * whose names it accepts and reads nothing of the rest (the limits still cover the whole archive).
+ */
+export async function unzip(
+  runtime: RuntimeContext,
+  buf: ArrayBuffer,
+  onlyNames = false,
+  limits?: UnzipLimits,
+  only?: (name: string) => boolean,
+) {
   const out: { [k: string]: Uint8Array<ArrayBuffer> | { size: number; csize: number } } = Object.create(null);
   const data = new Uint8Array(buf);
   if (readUshort(data, 0) !== 0x4b50) {
@@ -102,7 +114,9 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
     }
     entries.push({ name, crc: crc32, csize, usize, roff });
   }
-  for (const e of entries) await _readLocal(runtime, data, e, out, onlyNames);
+  for (const e of entries) {
+    if (!only || only(e.name)) await _readLocal(runtime, data, e, out, onlyNames);
+  }
   // console.log(out);
   return out;
 }

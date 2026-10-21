@@ -7,6 +7,8 @@
  */
 
 import { StateTransform } from '@molstar/core/state';
+import { RuntimeContext } from '@molstar/core/task';
+import { unzip } from '@molstar/core/util/zip/zip';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ApiContext } from './area.js';
 import { ApiArea, ApiResult } from './area.js';
@@ -132,8 +134,10 @@ export async function openSession(
     const kind =
       values.type !== 'auto' ? values.type : (sessionTypeOf(input.name) ?? (isZip(content) ? 'molx' : 'molj'));
     name = input.name || (kind === 'molx' ? 'the session' : 'the state');
-    // A lazy extension whose transformers the state uses loads first (a .molj names them; a .molx is zipped).
+    // A lazy extension whose transformers the state uses loads first (a .molj names them; a .molx holds them in its
+    // `state.json`, read here once more: Mol*'s snapshot manager unzips it again to open it).
     if (kind === 'molj') await ctx.extensions.ensureFor({ transformers: transformersOf(asText(content)) });
+    else await ctx.extensions.ensureFor({ transformers: await zippedTransformers(content) });
     // Mol*'s snapshot manager reads the kind from the file's name.
     const base = input.name.replace(/\.[^.]*$/, '') || 'session';
     const file = new File([content as BlobPart], `${base}.${kind}`);
@@ -206,4 +210,20 @@ export class SessionApi extends ApiArea {
       return ApiResult.ok(`Cleared the session (${removed} item${removed === 1 ? '' : 's'}).`, { view: true });
     },
   });
+}
+
+/** The transformers a zipped session's `state.json` names (none when it cannot be read: Mol* says why when it opens) */
+async function zippedTransformers(content: string | Uint8Array): Promise<string[]> {
+  if (typeof content === 'string') return [];
+  try {
+    // Only state.json is read (the rest is not inflated); the bytes are copied only when they are a view of a larger
+    // buffer, as unzip reads a whole ArrayBuffer.
+    const whole = content.byteOffset === 0 && content.byteLength === content.buffer.byteLength;
+    const buffer = (whole ? content.buffer : content.slice().buffer) as ArrayBuffer;
+    const files = await unzip(RuntimeContext.Synchronous, buffer, false, undefined, (n) => n === 'state.json');
+    const state = files['state.json'];
+    return state instanceof Uint8Array ? transformersOf(new TextDecoder().decode(state)) : [];
+  } catch {
+    return [];
+  }
 }

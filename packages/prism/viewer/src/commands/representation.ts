@@ -6,10 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { CommandDefinition } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
+
+/** A param kept out of the sentence: set by the command's own form in the command menu (`ui/command-forms.ts`), if any. */
+const hidden = (params: PD.Params, ...names: string[]): PD.Params => {
+  const out = { ...params };
+  for (const k of names) if (out[k]) out[k] = { ...out[k], isHidden: true };
+  return out;
+};
 
 /** The representation commands (api.md §9, §2 `representation`): the look of a target, and what a component shows. */
 export function representationCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
@@ -31,7 +39,16 @@ export function representationCommands(api: ViewerApi): CommandDefinition<Viewer
       icon: 'palette',
       alias: ['color theme', 'color by', 'theme', 'color scheme'],
       action: 'Apply',
-      values: { color: '' },
+      // A sentence: "ligand in 1TQN by Chain Id".
+      order: ['target', 'structure', 'theme'],
+      fields: { structure: { before: 'in' }, theme: { before: 'by' } },
+      // A theme is asked for (no "None"); the color is the uniform theme's, set by the form's color picker.
+      form: (params) => {
+        const out = hidden(params, 'color');
+        const theme = out.theme as PD.Select<string>;
+        if (theme) out.theme = { ...theme, options: theme.options.filter(([v]) => v !== '') };
+        return out;
+      },
     }),
     operationCommand(api, api.representation.transparency, {
       category,
@@ -53,7 +70,11 @@ export function representationCommands(api: ViewerApi): CommandDefinition<Viewer
         'change representation',
       ],
       action: 'Show',
-      values: { params: {} },
+      // A sentence: "Polymer in 1TQN as Cartoon".
+      order: ['component', 'structure', 'type'],
+      fields: { structure: { before: 'in' }, type: { before: 'as' } },
+      // The type's options are the form's (size, quality, …); typed, the type's defaults.
+      form: (params) => hidden(params, 'params'),
     }),
     operationCommand(api, api.representation.remove, {
       category,

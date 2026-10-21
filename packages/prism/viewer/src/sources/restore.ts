@@ -9,6 +9,8 @@
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
 import type { HistoryManager } from '@molstar/prism-ui/core';
+import type { ExtensionNeed } from '../api/area.js';
+import { transformersOf } from '../api/state-open.js';
 import type { PrismStore } from '../spec.js';
 import { skip } from 'rxjs';
 import type { SourceScope } from './state.js';
@@ -51,6 +53,8 @@ export interface LightRestoreOptions {
   readonly debounceMs?: number;
   /** Said once when the scene is not kept (a local file). */
   readonly notify?: (message: string) => void;
+  /** Loads the extensions the kept scene's transformers need (a lazy feature's, as particles'), before it is set */
+  readonly ensureFor?: (need: ExtensionNeed) => Promise<void>;
 }
 
 export function createLightRestore(
@@ -106,6 +110,8 @@ export function createLightRestore(
       if (!snapshot) return false;
       restoring = true;
       try {
+        // a transformer of a feature not loaded yet is not registered: setting the snapshot would throw
+        await o.ensureFor?.({ transformers: transformersOf(JSON.stringify(snapshot)) });
         await plugin.state.setSnapshot(snapshot);
         // Not a step: a fresh start that looks like the last one (journal.md §6, the history starts empty).
         history.clear();

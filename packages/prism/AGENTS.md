@@ -69,6 +69,11 @@ it is done).
   or screen reader) and its scope is paused, so its bindings hold no subscriptions until it shows again (`activity()`,
   `Scope.setActive`; the runtime does it once, views do nothing). A view that subscribes, observes or loops by itself
   pauses that with `onActive(active => …)`; content that is hidden by removing it needs none of this.
+- **Extensions' Prism code follows the same rules** (David, 2026-10-21): an extension's views and operations are held to
+  the checks Prism's own are: no rxjs in views, scoped attachments, owned subscriptions, no MutationObserver
+  (`ui/src/_test/extension-views.ts` lists them), the plugin only through operations
+  (`viewer/src/_test/boundary.test.ts`), and a command for every operation
+  (`apps/prism-viewer/src/_test/full-spec.test.ts`, over the app's composition).
 
 ## Commands
 
@@ -89,6 +94,12 @@ The repository's lanes hold Prism's unit tests (quick, medium, heavy: the root
 | `pnpm -C packages/prism/<ui\|viewer> test:perf`               | the quick allocation tier: bytes a step of each `*.quick.ts` case, read exactly (`v8.GCProfiler`), against `src/_test/perf-baseline.json` (`--update` for an intended move); the base primitives read 0                                                                                                                                   | when you touch a primitive or a hot path, in the edit loop; at checkpoints |
 | `pnpm -C packages/prism/<ui\|viewer> test:heap`               | the heap guards (`*.heap.ts`, `*.heap.tsx`): growth over n and 4n steps (`heapScaling`; `retainedScaling` after collections for steps that allocate by design), each with a positive control; the leak guard (views mounted and disposed: heap and listeners)                                                                             | at checkpoints and before a release                                        |
 | `pnpm -C packages/prism/<ui\|viewer\|assistant> test:scaling` | the bulk paths' scaling guards (`*.scaling.ts`, `*.scaling.tsx`; the harness `sequences/core/_test/model/scaling.ts`, shared with `packages/ai`): each at n and 4n, the fastest time and the allocation (`GCProfiler`) under 8× (a quadratic reads about 16×); a deliberately quadratic control caught                                    | when you touch a bulk path; at checkpoints                                 |
+
+**Run what you touched.** In the edit loop, run the folders you changed
+(`pnpm test:unit packages/prism/viewer/src/features/particles`, a test file), not the whole Prism suite, and the guards
+only where their row says. The whole suite is for checkpoints. Its timing-sensitive checks (the waste audit, a drag's
+lost releases) can fail when every file runs in parallel on a loaded machine: rerun the failing file alone, and only a
+failure there is yours. Never raise a budget to quiet a run that passes alone.
 
 The guards run on Seq\*'s harness (`packages/sequences/vitest.shared.ts`, `core/_test/model`; prism-ui's
 `src/_test/perf.ts`); a `*.heap.ts` has its quick twin `*.quick.ts`, the two sharing their cases (`*-cases.ts`). CI runs

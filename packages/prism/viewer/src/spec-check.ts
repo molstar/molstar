@@ -22,6 +22,8 @@ const PartKindIds: Readonly<Record<PartKind, true>> = {
   tab: true,
   section: true,
   row: true,
+  'selection-action': true,
+  'node-action': true,
   toolbar: true,
   overlay: true,
   page: true,

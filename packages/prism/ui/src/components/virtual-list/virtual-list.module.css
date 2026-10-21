@@ -30,6 +30,12 @@
   background-position: var(--msp-space-6) 0;
 }
 
+/* A reveal (a node opened) uncovers no rows that are not made: no skeleton then, which would show through the rows
+   fading in. */
+.content[data-revealing] {
+  background-image: none;
+}
+
 .window {
   position: absolute;
   inset: 0 0 auto;

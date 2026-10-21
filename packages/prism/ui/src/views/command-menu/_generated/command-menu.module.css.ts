@@ -23,6 +23,7 @@ export const classes = {
   'empty': 'msp-command-menu-empty',
   'error': 'msp-command-menu-error',
   'footer': 'msp-command-menu-footer',
+  'form': 'msp-command-menu-form',
   'head': 'msp-command-menu-head',
   'headIcon': 'msp-command-menu-headIcon',
   'hint': 'msp-command-menu-hint',
@@ -167,6 +168,12 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-listContent {
   padding: var(--msp-space-2);
+}
+
+.msp-command-menu-form {
+  flex: auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .msp-command-menu-empty {

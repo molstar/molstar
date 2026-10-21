@@ -7,6 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { observableState } from '@molstar/prism-ui/core';
+import type { SelectionAction } from '../../model/selection.js';
 import { headlessViewer } from '../../_test/harness.js';
 import { selectionModel } from '../interaction.js';
 
@@ -16,7 +18,7 @@ describe('the selection bar', () => {
   it('offers Component only where the viewer has the component area', async () => {
     const v = await headlessViewer();
     const person = v.api.as({ kind: 'person' });
-    const ids = (api: typeof person) => selectionModel(v.sources.interaction, api).actions.map((a) => a.id);
+    const ids = (api: typeof person) => selectionModel(v.sources.interaction, api).actions.value.map((a) => a.id);
     expect(ids(person)).toContain('component');
     const without = new Proxy(person, {
       get: (target, key) =>
@@ -24,5 +26,20 @@ describe('the selection bar', () => {
     });
     expect(ids(without)).not.toContain('component');
     expect(ids(without)).toContain('focus');
+  });
+
+  it("lists Focus, Show in structure tree, Make a component, the extensions' rows by order, and the panel last", async () => {
+    const v = await headlessViewer();
+    const person = v.api.as({ kind: 'person' });
+    const extra = observableState<readonly SelectionAction[]>([]);
+    const model = selectionModel(v.sources.interaction, person, {
+      openPanel: () => {},
+      showInTree: () => {},
+      extra: extra.asReadonly,
+    });
+    expect(model.actions.value.map((a) => a.id)).toEqual(['focus', 'show-in-tree', 'component', 'more']);
+    expect(model.actions.value.every((a) => !!a.hint)).toBe(true);
+    extra.set([{ id: 'clip', label: 'Clip…', icon: 'crop', order: 10, run: () => {} }]);
+    expect(model.actions.value.map((a) => a.id)).toEqual(['focus', 'show-in-tree', 'component', 'clip', 'more']);
   });
 });

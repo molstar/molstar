@@ -59,7 +59,8 @@ command menu, the tools, the run log and the docs.
 | `structure`, `contents`        | `managers.structure.hierarchy`, hierarchy presets; entities, chains | `structure`                   |
 | `component`, `representation`  | `managers.structure.component`, themes, the style layers            | `structure`                   |
 | `styles`, `annotations`        | representation presets and looks; what extensions can apply         | `structure`; `annotations`    |
-| `volume`, `particles`          | `managers.volume`, `managers.particles`                             | `volume`                      |
+| `volume`                       | `managers.volume`                                                   | `volume`                      |
+| `particles`                    | `managers.particles`                                                | `particles` (lazy)            |
 | `trajectory`                   | the model-index transforms                                          | `trajectory`                  |
 | `select`, `focus`, `highlight` | `managers.structure.selection`, `.focus`, `managers.interactivity`  | core                          |
 | `measure`                      | `managers.structure.measurement`                                    | `measurements`                |
@@ -160,6 +161,21 @@ nothing; the typings the model reads are generated from the API's definitions, a
 - **Opening commands** (`<feature>.open`, `panel.<tab>`) run `view.open`: the way into a custom UI, whose actions are
   the area's operations.
 - **Keybindings and toolbar buttons name commands**, never operations, so hiding a command hides them.
+- **Own forms** (ui's commands.md §5.1; `views/command-forms/`, `sources/command-forms.ts`, given to the menu by the
+  shell): Show as… (`representation.set`) is the types the component supports as icon rows (those it shows marked, one
+  it does not picked), the picked type's size, quality and opacity under them (its hidden `params`); Color by theme…
+  (`representation.color-theme`) is the themes that apply, by the registry's categories, painted with their legends on
+  the structure, and the uniform theme's color (its hidden `color`). A click on a theme or a swatch applies it (nothing
+  more to set); a click on a type picks it (its options follow), Enter or a double click adds it. The inspector's Add
+  representation… and Set coloring… open them filled in. Why: a long registry list reads better as what it draws than as
+  words, and the sentence keeps the keys.
+- **The query language shows only for a query** (`operationCommand`): a command with `target` and `language` shows the
+  language in its sentence only while the target text reads as a query (not a keyword or an address list), optional
+  (empty: the default); it follows the target (`reshapes`). Why: "ligand · PyMOL" read as if the coloring were PyMOL's.
+- **Own forms read as sentences**: the subject, `in` its structure, then the choice (`as` a type, `by` a theme), by the
+  command's `order` and `fields`.
+- **A select whose default is the empty choice is asked for** (`formDefaults`): its "None" would fill the field and the
+  form open on the next one (the theme's form opened on the query language).
 
 ## 10. Coverage
 

@@ -67,6 +67,8 @@ export interface ViewerSources {
   readonly empty: ReadonlyState<boolean>;
   /** The plugin is updating or animating for a while (its busy flag). */
   readonly busy: ReadonlyState<boolean>;
+  /** The plugin updates its state now (not debounced, as `busy` is): what `ViewerCore.state.working` follows. */
+  readonly updating: ReadonlyState<boolean>;
   readonly tasks: ReadonlyState<readonly TaskInfo[]>;
   /** What is under the pointer: the hover label's lines, hover and click events. */
   readonly pointer: PointerSources;
@@ -128,6 +130,7 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   );
   const empty = fromChanged(scope, () => isEmpty(plugin), plugin.state.data.events.changed);
   const busy = fromBehavior(scope, plugin.behaviors.state.isBusy);
+  const updating = fromBehavior(scope, plugin.behaviors.state.isUpdating);
   const tasks = scanList<TaskEvent, TaskInfo>(
     scope,
     merge<TaskEvent[]>(plugin.managers.task.events.progress, plugin.managers.task.events.finished),
@@ -161,6 +164,7 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
       structures,
       empty,
       busy,
+      updating,
       tasks,
       pointer,
       interaction,

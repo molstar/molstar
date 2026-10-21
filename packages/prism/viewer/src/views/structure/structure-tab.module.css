@@ -216,8 +216,42 @@
 
 /* The tree's search, between the header and the tree. */
 .search {
-  display: grid;
+  /* The search's non-text part (a chip: the selection) before its text */
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
   padding: 0 var(--msp-space-2);
+
+  & > :last-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.searchChip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding: 0 0 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-accent-muted);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.searchChipRemove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-md);
+  color: inherit;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
 .optionsButton {
@@ -293,19 +327,41 @@
 }
 
 .childChevron {
+  display: grid;
   flex: none;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
   color: var(--msp-color-text-subtle);
 }
 
+/* The eye and the ⋯, left of the chevron: shown on the row's hover or focus (the chevron always, it says the row
+   opens), always on a touch screen (no hover there; styling.md §4). */
 .childEye {
   display: grid;
   flex: none;
   place-items: center;
   width: 28px;
   height: 28px;
-  margin-right: var(--msp-space-1);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .child:hover &,
+  .child:focus-within &,
+  &[aria-expanded="true"] {
+    opacity: 1;
+  }
+
+  /* A hidden representation keeps its eye: the state is worth seeing at a glance (as in the tree). */
+  .childHidden & {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);

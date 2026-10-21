@@ -1,13 +1,14 @@
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { produce } from '@molstar/core/util/produce';
 import { Interval } from '@molstar/core/data/int/interval';
-import { addCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
+import { addSimpleCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -82,7 +83,9 @@ export class CameraHelper {
     axes: { name: 'off', params: {} },
   };
 
+  /** The axes and the planes, each its own (one mesh of overlapping parts showed its insides through its translucency) */
   private meshRenderObject: GraphicsRenderObject | undefined;
+  private planesRenderObject: GraphicsRenderObject | undefined;
   private textRenderObject: GraphicsRenderObject | undefined;
   private pixelRatio = 1;
 
@@ -118,6 +121,12 @@ export class CameraHelper {
           };
           this.meshRenderObject = createMeshRenderObject(params);
           this.scene.add(this.meshRenderObject);
+          if (props.axes.params.showPlanes) {
+            this.planesRenderObject = createPlanesRenderObject(params);
+            this.scene.add(this.planesRenderObject);
+          } else {
+            this.planesRenderObject = undefined;
+          }
           if (props.axes.params.showLabels) {
             this.textRenderObject = createTextRenderObject(params);
             this.scene.add(this.textRenderObject);
@@ -143,6 +152,7 @@ export class CameraHelper {
     const { objectId, groupId, instanceId } = pickingId;
     if (
       ((!this.meshRenderObject || objectId !== this.meshRenderObject.id) &&
+        (!this.planesRenderObject || objectId !== this.planesRenderObject.id) &&
         (!this.textRenderObject || objectId !== this.textRenderObject.id)) ||
       groupId === CameraHelperAxis.None
     )
@@ -153,15 +163,9 @@ export class CameraHelper {
   private eachGroup = (loci: Loci, apply: (interval: Interval) => boolean): boolean => {
     if (!isCameraAxesLoci(loci)) return false;
     let changed = false;
-    if (this.meshRenderObject) {
-      const groupCount = this.meshRenderObject.values.uGroupCount.ref.value;
-      for (const { groupId, instanceId } of loci.elements) {
-        const idx = instanceId * groupCount + groupId;
-        if (apply(Interval.ofSingleton(idx))) changed = true;
-      }
-    }
-    if (this.textRenderObject) {
-      const groupCount = this.textRenderObject.values.uGroupCount.ref.value;
+    for (const ro of [this.meshRenderObject, this.planesRenderObject, this.textRenderObject]) {
+      if (!ro) continue;
+      const groupCount = ro.values.uGroupCount.ref.value;
       for (const { groupId, instanceId } of loci.elements) {
         const idx = instanceId * groupCount + groupId;
         if (apply(Interval.ofSingleton(idx))) changed = true;
@@ -176,10 +180,11 @@ export class CameraHelper {
       if (!isCameraAxesLoci(loci)) return false;
       if (loci.data !== this) return false;
     }
-    return (
-      Visual.mark(this.meshRenderObject, loci, action, this.eachGroup) ||
-      Visual.mark(this.textRenderObject, loci, action, this.eachGroup)
-    );
+    // each one marked (not `||`: the first marked would skip the others)
+    const axes = Visual.mark(this.meshRenderObject, loci, action, this.eachGroup);
+    const planes = Visual.mark(this.planesRenderObject, loci, action, this.eachGroup);
+    const text = Visual.mark(this.textRenderObject, loci, action, this.eachGroup);
+    return axes || planes || text;
   }
 
   update(camera: ICamera) {
@@ -300,64 +305,74 @@ function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.Vie
   Mat4.ortho(camera.projection, left, right, top, bottom, near, far);
 }
 
+/** The axes' length, short of the labels where they are shown */
+function axisLength(props: AxesProps) {
+  const textScale = props.showLabels ? (100 * props.labelScale) / 3 : 0;
+  return 100 * props.scale - textScale;
+}
+
+/**
+ * The axes: a slim arrow each (a shaft and a small cone head, ending where the old rods' end caps did) from a small
+ * origin sphere; no part inside another, so a translucent arrow shows only its front (`transparentBackfaces` off)
+ */
 function createAxesMesh(props: AxesProps, mesh?: Mesh) {
   const state = MeshBuilder.createState(512, 256, mesh);
-  const scale = 100 * props.scale;
-  const radius = props.radiusScale * scale;
-  const textScale = props.showLabels ? (100 * props.labelScale) / 3 : 0;
-  const x = Vec3.scale(Vec3(), Vec3.unitX, scale - textScale);
-  const y = Vec3.scale(Vec3(), Vec3.unitY, scale - textScale);
-  const z = Vec3.scale(Vec3(), Vec3.unitZ, scale - textScale);
-  const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments: 32 };
+  const length = axisLength(props);
+  const radius = props.radiusScale * 100 * props.scale * 0.6;
+  const head = Math.min(radius * 4.5, length * 0.25);
+  // closed at the origin's end: a translucent open tube would show its inside
+  const shaft = { radiusTop: radius, radiusBottom: radius, radialSegments: 24, bottomCap: true };
+  const cone = { radiusTop: 0, radiusBottom: radius * 2.2, radialSegments: 24, bottomCap: true };
 
+  // the origin: a small sphere the shafts start at, not inside it (an overlap shows through the translucency)
+  const origin = radius * 1.5;
   state.currentGroup = CameraHelperAxis.Origin;
-  addSphere(state, Vec3.origin, radius, 2);
+  addSphere(state, Vec3.origin, origin, 3);
 
-  state.currentGroup = CameraHelperAxis.X;
-  addSphere(state, x, radius, 2);
-  addCylinder(state, Vec3.origin, x, 1, cylinderProps);
-
-  state.currentGroup = CameraHelperAxis.Y;
-  addSphere(state, y, radius, 2);
-  addCylinder(state, Vec3.origin, y, 1, cylinderProps);
-
-  state.currentGroup = CameraHelperAxis.Z;
-  addSphere(state, z, radius, 2);
-  addCylinder(state, Vec3.origin, z, 1, cylinderProps);
-
-  if (props.showPlanes) {
-    Vec3.scale(x, x, 0.5);
-    Vec3.scale(y, y, 0.5);
-    Vec3.scale(z, z, 0.5);
-
-    state.currentGroup = CameraHelperAxis.XY;
-    MeshBuilder.addTriangle(state, Vec3.origin, x, y);
-    MeshBuilder.addTriangle(state, Vec3.origin, y, x);
-    const xy = Vec3.add(Vec3(), x, y);
-    MeshBuilder.addTriangle(state, xy, x, y);
-    MeshBuilder.addTriangle(state, xy, y, x);
-
-    state.currentGroup = CameraHelperAxis.XZ;
-    MeshBuilder.addTriangle(state, Vec3.origin, x, z);
-    MeshBuilder.addTriangle(state, Vec3.origin, z, x);
-    const xz = Vec3.add(Vec3(), x, z);
-    MeshBuilder.addTriangle(state, xz, x, z);
-    MeshBuilder.addTriangle(state, xz, z, x);
-
-    state.currentGroup = CameraHelperAxis.YZ;
-    MeshBuilder.addTriangle(state, Vec3.origin, y, z);
-    MeshBuilder.addTriangle(state, Vec3.origin, z, y);
-    const yz = Vec3.add(Vec3(), y, z);
-    MeshBuilder.addTriangle(state, yz, y, z);
-    MeshBuilder.addTriangle(state, yz, z, y);
+  const axes = [
+    [CameraHelperAxis.X, Vec3.unitX],
+    [CameraHelperAxis.Y, Vec3.unitY],
+    [CameraHelperAxis.Z, Vec3.unitZ],
+  ] as const;
+  for (const [group, unit] of axes) {
+    state.currentGroup = group;
+    const tip = Vec3.scale(Vec3(), unit, length + radius);
+    const base = Vec3.scale(Vec3(), unit, length + radius - head);
+    // `addSimpleCylinder` takes the start's radius as `radiusBottom` (and caps it): from the origin sphere's surface
+    addSimpleCylinder(state, Vec3.scale(Vec3(), unit, origin), base, shaft);
+    // `addSimpleCylinder` puts `radiusBottom` at its start: the head's base at the shaft's end
+    addSimpleCylinder(state, base, tip, cone);
   }
 
   return MeshBuilder.getMesh(state);
 }
 
-function getAxesMeshShape(props: AxesProps, shape?: Shape<Mesh>) {
+/**
+ * The planes, translucent: a square each between its two axes, clear of them; both windings (only the face toward the
+ * viewer is drawn, so a plane does not darken itself)
+ */
+function createPlanesMesh(props: AxesProps, mesh?: Mesh) {
+  const state = MeshBuilder.createState(64, 32, mesh);
+  const length = axisLength(props);
+  const from = length * 0.12;
+  const to = length * 0.5;
+  const square = (group: number, u: Vec3, v: Vec3) => {
+    state.currentGroup = group;
+    const p = (a: number, b: number) => Vec3.add(Vec3(), Vec3.scale(Vec3(), u, a), Vec3.scale(Vec3(), v, b));
+    MeshBuilder.addTriangle(state, p(from, from), p(to, from), p(to, to));
+    MeshBuilder.addTriangle(state, p(from, from), p(to, to), p(from, to));
+    MeshBuilder.addTriangle(state, p(from, from), p(to, to), p(to, from));
+    MeshBuilder.addTriangle(state, p(from, from), p(from, to), p(to, to));
+  };
+  square(CameraHelperAxis.XY, Vec3.unitX, Vec3.unitY);
+  square(CameraHelperAxis.XZ, Vec3.unitZ, Vec3.unitX);
+  square(CameraHelperAxis.YZ, Vec3.unitY, Vec3.unitZ);
+  return MeshBuilder.getMesh(state);
+}
+
+function getAxesMeshShape(props: AxesProps, shape?: Shape<Mesh>, planes = false) {
   const scale = 100 * props.scale;
-  const mesh = createAxesMesh(props, shape?.geometry);
+  const mesh = planes ? createPlanesMesh(props, shape?.geometry) : createAxesMesh(props, shape?.geometry);
   mesh.setBoundingSphere(Sphere3D.create(Vec3.create(scale / 2, scale / 2, scale / 2), scale + scale / 4));
   const getColor = (groupId: number) => {
     switch (groupId) {
@@ -391,6 +406,17 @@ function getAxesMeshShape(props: AxesProps, shape?: Shape<Mesh>) {
 
 function createMeshRenderObject(props: AxesProps) {
   const shape = getAxesMeshShape(props);
+  return ShapeUtils.createRenderObject(shape, {
+    ...PD.getDefaultValues(Mesh.Params),
+    ...props,
+    // shaded: an arrow toward the viewer reads as one, not as a flat disk
+    ignoreLight: false,
+    cellSize: 0,
+  });
+}
+
+function createPlanesRenderObject(props: AxesProps) {
+  const shape = getAxesMeshShape(props, undefined, true);
   return ShapeUtils.createRenderObject(shape, {
     ...PD.getDefaultValues(Mesh.Params),
     ...props,

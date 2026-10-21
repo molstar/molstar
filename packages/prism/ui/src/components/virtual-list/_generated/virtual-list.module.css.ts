@@ -38,6 +38,10 @@ defineStyles('components/virtual-list/virtual-list.module.css', `@layer msp.comp
   position: relative;
 }
 
+.msp-virtual-list-content[data-revealing] {
+  background-image: none;
+}
+
 .msp-virtual-list-window {
   will-change: transform;
   background-color: var(--msp-surface, var(--msp-color-panel));

@@ -3,12 +3,14 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { OrderedSet } from '@molstar/core/data/int';
 import type { Column } from '@molstar/core/data/db';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
+import { GridLookup3D } from '@molstar/core/math/geometry/lookup3d/grid';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import type { ModelFormat } from '@molstar/model/formats/format';
 import { type CustomProperties, CustomPropertyDescriptor } from '../custom-property.js';
@@ -136,6 +138,7 @@ export interface ParticleList {
    */
   readonly attributes?: ReadonlyMap<string, ParticleAttribute>;
 
+  /** A particle in words, its index from 1 first: "Particle 165 · tomo 1 · class 2 · cc 0.4213" */
   readonly getParticleLabel: (index: number) => string;
 
   readonly sourceData: ModelFormat;
@@ -165,6 +168,51 @@ export namespace ParticleTarget {
         return target.volume;
     }
   }
+}
+
+const ParticleSpacingDescriptor = CustomPropertyDescriptor({ name: 'particle-spacing-radius' });
+
+/** How many particles the spacing is measured over (evenly spread): the median settles well before */
+const SpacingSamples = 2000;
+
+/**
+ * A radius for particles that carry none (picks, oriented points): half the median distance from a particle to its
+ * nearest neighbor, so neighbors about touch, as cryo-ET picks of one kind do. Measured on up to 2,000 particles,
+ * cached on the list; 1 for fewer than two particles or all at one point.
+ */
+export function getParticleSpacingRadius(data: ParticleList): number {
+  const cached = data._propertyData[ParticleSpacingDescriptor.name] as number | undefined;
+  if (cached !== undefined) return cached;
+  const { count, coordinates } = data;
+  let radius = 1;
+  if (count > 1) {
+    const x = new Float32Array(count);
+    const y = new Float32Array(count);
+    const z = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      x[i] = coordinates[3 * i];
+      y[i] = coordinates[3 * i + 1];
+      z[i] = coordinates[3 * i + 2];
+    }
+    const lookup = GridLookup3D({ x, y, z, indices: OrderedSet.ofBounds(0, count) }, Particle.getBoundary(data));
+    const step = Math.max(1, Math.floor(count / SpacingSamples));
+    const nearest: number[] = [];
+    for (let i = 0; i < count; i += step) {
+      const r = lookup.nearest(x[i], y[i], z[i], 2);
+      let best = Infinity;
+      for (let k = 0; k < r.count; k++) {
+        if (r.indices[k] !== i && r.squaredDistances[k] > 0) best = Math.min(best, r.squaredDistances[k]);
+      }
+      if (best < Infinity) nearest.push(Math.sqrt(best));
+    }
+    if (nearest.length) {
+      nearest.sort((a, b) => a - b);
+      radius = nearest[nearest.length >> 1] / 2;
+    }
+  }
+  data.customProperties.add(ParticleSpacingDescriptor);
+  data._propertyData[ParticleSpacingDescriptor.name] = radius;
+  return radius;
 }
 
 const ParticleTransformsDescriptor = CustomPropertyDescriptor({ name: 'particle-transforms' });
@@ -512,7 +560,7 @@ export namespace Particle {
       const index = OrderedSet.start(loci.indices);
       return loci.particles.getParticleLabel(index);
     }
-    return `${size} Particles`;
+    return `${size.toLocaleString('en')} particles`;
   }
 
   /** Return a copy of `particles` with the given per-target reference objects attached. */

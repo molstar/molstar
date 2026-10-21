@@ -1,0 +1,142 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The command menu's own forms for a component's look: the choices as a grid of ghost buttons (the menu's rows), the
+   picked one marked as the inspector marks it, and its options under them. */
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+}
+
+.caption {
+  padding: var(--msp-space-1) var(--msp-space-3) 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
+  gap: var(--msp-space-1);
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+  text-align: left;
+
+  &:hover,
+  &[data-highlight="true"] {
+    background: var(--msp-color-hover);
+  }
+
+  /* Picked: as the tree marks its picked row (the control's fill, the name in the accent). */
+  &[aria-checked="true"] {
+    background: var(--msp-color-control);
+    box-shadow: inset 0 0 0 1px var(--msp-selected-edge);
+  }
+
+  &[aria-checked="true"] .icon,
+  &[aria-checked="true"] .label {
+    color: var(--msp-color-accent);
+  }
+}
+
+.icon {
+  color: var(--msp-color-text-muted);
+}
+
+.label {
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.meta {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* A theme's colors on the structure (its legend), as the quick settings paint them. */
+.swatch {
+  position: relative;
+  width: 24px;
+  height: 14px;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+}
+
+/* A theme with no legend: a quiet hatch. */
+.unpainted {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--msp-color-control) 0 3px,
+    color-mix(in oklab, var(--msp-color-text-muted), transparent 75%) 3px 6px
+  );
+}
+
+/* One color: a small dot on its swatch, so it reads as "one" among the palettes. */
+.one {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px; /* off-scale: centred */
+  border-radius: 50%;
+  background: var(--msp-color-bg);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 70%);
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  text-align: center;
+}
+
+/* The picked choice's options: set apart from the grid, the sliders and selects of the quick settings. */
+.options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-2);
+  margin-top: var(--msp-space-2);
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
+  border-top: 1px solid var(--msp-glass-edge);
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-2);
+}
+
+.choiceLabel {
+  color: var(--msp-color-text-muted);
+}

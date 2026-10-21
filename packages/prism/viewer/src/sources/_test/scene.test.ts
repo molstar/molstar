@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, recordRuns, representationTypes, until } from '../../_test/harness.js';
 import { mapFile, particlesFile } from '../../api/_test/volume-fixtures.js';
@@ -298,5 +300,116 @@ describe('the scene: volumes and particles', () => {
     list.remove();
     await until(() => runs.length >= 2);
     expect(v.views.scene.roots.value).toHaveLength(0);
+  });
+
+  const fixture = (name: string) =>
+    new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../data/examples/particles', name))],
+      name,
+    );
+
+  it('says what a list is, offers what can be done with it, and colors a representation from its row', async () => {
+    const v = await headlessViewer({ files: [fixture('relion-subtomo.star')] });
+    const list = v.views.scene.roots.value[0];
+    expect(list.description.value).toBe('300 particles');
+    const facts = new Map(v.views.scene.inspect(list).facts ?? []);
+    expect(facts.get('Particles')).toBe('300');
+    expect(facts.get('Orientations')).toBe('yes');
+    // how it is read (RELION's tomograms, micrographs, pixel size, radius) as a form, `particles.source`
+    expect(Object.keys(v.views.scene.inspect(list).form!.params)).toEqual(
+      expect.arrayContaining(['pixelSize', 'particleRadius']),
+    );
+
+    const menu = list.menu!;
+    expect(menu.map((i) => i.id)).toEqual(expect.arrayContaining(['add', 'color', 'focus']));
+    // what is shown already is not offered again
+    expect(menu.find((i) => i.id === 'add')!.items!.map((i) => i.id)).not.toContain('spacefill');
+
+    const rep = list.children.value[0];
+    const colors = rep.menu!.find((i) => i.id === 'color')!.items!;
+    expect(colors.find((i) => i.checked)).toBeDefined();
+    const runs = recordRuns(v);
+    colors.find((i) => i.id === 'uniform')!.run!();
+    await until(() => runs.length >= 1);
+    expect(runs[0]).toMatchObject({ operation: 'particles.color', origin: { kind: 'person' } });
+    await until(() => rep.description.value === 'Uniform');
+  });
+
+  it('says what stands for the particles once a target is attached', async () => {
+    const v = await headlessViewer({ files: [fixture('cryoet-ribosomes.ndjson')] });
+    const list = v.views.scene.roots.value[0];
+    expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Targets')).toBe('1: target 0');
+    const crambin = new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../data/examples/1crn.cif'))],
+      '1crn.cif',
+    );
+    expectOk(await v.api.particles!.targets({ file: crambin }));
+    expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Targets')).toBe('1: target 0: 1CRN');
+    expect(list.children.value.map((c) => c.label.value)).toContain('Target');
+  });
+
+  it("shows a particle trajectory's frames as a row, which seeks and steps", async () => {
+    const v = await headlessViewer({ files: [fixture('small.simularium')] });
+    const list = v.views.scene.roots.value[0];
+    const t = list.trajectory!;
+    expect(t.count.value).toBe(5);
+    expect(t.index.value).toBe(0);
+    t.seek(2);
+    await until(() => t.index.value === 2);
+    t.step(-3);
+    await until(() => t.index.value === 4);
+    expect(t.playing.value).toBe(false);
+  });
+
+  it("shows a list's unit cell as a row of its own, its inspector the cell's", async () => {
+    const v = await headlessViewer({ files: [fixture('small.simularium')] });
+    const list = v.views.scene.roots.value[0];
+    expect(list.menu!.some((i) => i.id === 'unit-cell')).toBe(true);
+    if (!list.children.value.some((c) => c.kind === 'unit-cell')) {
+      list.menu!.find((i) => i.id === 'unit-cell')!.run!();
+      await until(() => list.children.value.some((c) => c.kind === 'unit-cell'));
+    }
+    const cell = list.children.value.find((c) => c.kind === 'unit-cell')!;
+    const inspection = v.views.scene.inspect(cell);
+    expect(inspection.form).toBeDefined();
+    expect(new Map(inspection.facts ?? []).get('Cell')).toMatch(/Å$/);
+  });
+});
+
+describe('the scene: the tree filtered by the selection', () => {
+  const all = (nodes: readonly SceneNode[]): SceneNode[] => nodes.flatMap((n) => [n, ...all(n.children.value)]);
+
+  it('holds the rows the selection is in: the structure, the components and representations, the entity and chain', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const scene = v.views.scene;
+    const filter = scene.selectionFilter!;
+    // nothing selected: it does not go on
+    filter.set(true);
+    expect(filter.on.value).toBe(false);
+
+    expectOk(await v.api.select.set({ target: 'ligand' }));
+    filter.set(true);
+    expect(filter.on.value).toBe(true);
+    const structure = scene.roots.value.find((n) => n.kind === 'structure')!;
+    expect(filter.holds(structure)).toBe(true);
+    const components = structure.children.value.filter((n) => n.kind === 'component');
+    const held = components.filter((c) => filter.holds(c)).map((c) => c.label.value);
+    expect(held).toEqual(['Ligand']);
+    const ligand = components.find((c) => c.label.value === 'Ligand')!;
+    for (const r of ligand.children.value) expect(filter.holds(r)).toBe(true);
+    // Contents: the ligand's entity and its chain only
+    const contents = structure.children.value.find((n) => n.kind === 'contents')!;
+    contents.load?.(true);
+    const entities = all([contents]).filter((n) => n.kind === 'entity');
+    expect(entities.filter((e) => filter.holds(e)).length).toBe(1);
+    expect(all([contents]).some((n) => n.kind === 'chain' && filter.holds(n))).toBe(true);
+
+    // a new selection searches again; cleared, the filter goes off
+    const before = filter.version.value;
+    expectOk(await v.api.select.set({ target: 'polymer' }));
+    expect(filter.version.value).toBeGreaterThan(before);
+    expect(components.filter((c) => filter.holds(c)).map((c) => c.label.value)).toEqual(['Polymer']);
+    expectOk(await v.api.select.clear());
+    expect(filter.on.value).toBe(false);
   });
 });

@@ -219,6 +219,8 @@ export type PartKind =
   | 'tab'
   | 'section'
   | 'row'
+  | 'selection-action'
+  | 'node-action'
   | 'toolbar'
   | 'overlay'
   | 'page'
@@ -419,6 +421,36 @@ export interface ViewerExtensionUI {
     readonly whenChanged?: import('@molstar/prism-ui/core').ReadonlyState<unknown>;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
+  /**
+   * Rows of the selection bar's menu (what to do with the selection: the clipping feature's Clip…), after the
+   * viewer's own (Focus, Show in structure tree, Make a component) and before More in the Selection panel; by `order`.
+   * Each runs a command by id (its form, as the command menu opens it), or its own `run`.
+   */
+  readonly selectionActions?: readonly {
+    readonly id: PartId;
+    readonly title: string;
+    /** One line under the title: what it does. */
+    readonly hint?: string;
+    readonly icon?: IconName;
+    readonly order?: number;
+    readonly command?: string;
+    readonly run?: () => void;
+  }[];
+  /**
+   * Rows of the scene tree's node menus (and the inspector's, which shows the node's menu): the clipping feature's
+   * Clip this… on a component or a representation. On the nodes of `kinds` that pass `when`, after the node's own rows
+   * and before Remove, by `order`; `run` gets the node (its `id` is the state cell's ref for a component or a
+   * representation).
+   */
+  readonly nodeActions?: readonly {
+    readonly id: PartId;
+    readonly title: string;
+    readonly icon?: IconName;
+    readonly order?: number;
+    readonly kinds: readonly SceneNodeKind[];
+    readonly when?: (node: SceneNode) => boolean;
+    readonly run: (node: SceneNode) => void;
+  }[];
   /** The canvas stack only: a command by id, or a card to open. */
   readonly toolbar?: readonly {
     readonly id: PartId;
@@ -484,6 +516,14 @@ export interface LazyViewerExtensionStub {
     readonly fileExtensions?: readonly string[];
     readonly representations?: readonly string[];
     readonly themes?: readonly string[];
+    /**
+     * Files it reads that their extension does not tell apart (mmCIF holding particles, not a structure): the files
+     * with one of these `extensions` are read, and `test` (plain code, no import of the extension's chunk) says
+     */
+    readonly sniff?: {
+      readonly extensions: readonly string[];
+      test(file: { readonly name: string; readonly ext: string }, content: string | Uint8Array): boolean;
+    };
   };
 }
 

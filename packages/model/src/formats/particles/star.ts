@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '@molstar/core/data/db';
@@ -141,7 +142,8 @@ function buildRelionLabel(
   tomograms?: ReadonlyArray<string>,
   micrographs?: ReadonlyArray<string>,
 ) {
-  const base = particleBlockHeader || 'RELION';
+  // `data_particles` is RELION's own block name: "particles particles" says nothing, the format does
+  const base = particleBlockHeader && !/^particles$/i.test(particleBlockHeader) ? particleBlockHeader : 'RELION';
   const filters: string[] = [];
   if (tomograms !== void 0 && tomograms.length > 0) filters.push(tomograms.join(', '));
   if (micrographs !== void 0 && micrographs.length > 0) filters.push(micrographs.join(', '));
@@ -388,10 +390,10 @@ export function createParticleListFromRelionStar(
       const row = keys[index];
       const tomoName = tomoNameCol.isDefined ? tomoNameCol.value(row) : undefined;
       const micrographName = micrographNameCol.isDefined ? micrographNameCol.value(row) : undefined;
-      const label: string[] = [`#${row + 1}`];
+      const label: string[] = [`Particle ${row + 1}`];
       if (tomoName) label.push(tomoName);
       if (micrographName) label.push(micrographName);
-      return label.join(' | ');
+      return label.join(' · ');
     },
     sourceData: RelionStarFormat.create(data),
     customProperties: new CustomProperties(),

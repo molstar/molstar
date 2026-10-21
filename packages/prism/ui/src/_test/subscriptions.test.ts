@@ -9,11 +9,13 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { extensionPrismFiles, RepoRoot } from './extension-views.js';
 
 // A component follows a stream with `bind` (dom/scope.ts), which its render scope unsubscribes. A raw `.subscribe(`
 // in a component outlives it unless it is kept in a const and unsubscribed (`onCleanup(() => sub.unsubscribe())`):
 // the command menu's rows and selected rows were, and a closed menu kept recomputing on the registry's changes.
-// prism-ui's own components, and the viewer's (the sequence control among them; the stories' mocks, in `testing`, are not).
+// prism-ui's own components, the viewer's (the sequence control among them; the stories' mocks, in `testing`, are not),
+// and the extensions' Prism views.
 const roots = [path.resolve(import.meta.dirname, '..'), path.resolve(import.meta.dirname, '../../../viewer/src')];
 
 function* components(dir: string): Generator<string> {
@@ -58,6 +60,9 @@ describe('subscriptions in components', () => {
       for (const file of components(src)) {
         for (const at of unowned(fs.readFileSync(file, 'utf8'))) offenders.push(`${path.relative(src, file)}:${at}`);
       }
+    }
+    for (const file of extensionPrismFiles()) {
+      for (const at of unowned(fs.readFileSync(file, 'utf8'))) offenders.push(`${path.relative(RepoRoot, file)}:${at}`);
     }
     expect(offenders).toEqual([]);
   });

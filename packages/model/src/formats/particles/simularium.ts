@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -330,7 +331,7 @@ function createParticleListFromSimulariumWithContext(
     getParticleLabel: (index: number) => {
       const t = particleTypeId[index];
       const id = particleInstanceId[index];
-      return `#${index + 1} | ${typeName(t)} | id ${id}`;
+      return `Particle ${index + 1} · ${typeName(t)} · id ${id}`;
     },
     sourceData: SimulariumFormat.create(file),
     customProperties: new CustomProperties(),

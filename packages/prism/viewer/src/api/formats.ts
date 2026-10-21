@@ -72,7 +72,13 @@ export async function chooseFormat(
   const ext = extensionOf(o.name);
   if (format === 'auto') {
     // A lazy extension that reads the extension loads first (viewer-spec.md §3).
-    if (ext) await ctx.extensions.ensureFor({ fileExtensions: [ext] });
+    if (ext) {
+      const content = o.content;
+      await ctx.extensions.ensureFor({
+        fileExtensions: [ext],
+        files: content !== undefined && o.name ? [{ name: o.name, content: async () => content }] : undefined,
+      });
+    }
     const candidates = registry.autoOrder
       .map((e) => e.provider)
       .filter((p) => inScope(scope, p) && (p.binaryExtensions?.includes(ext) || p.stringExtensions?.includes(ext)));

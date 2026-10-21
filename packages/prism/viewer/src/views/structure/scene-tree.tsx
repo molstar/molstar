@@ -80,6 +80,8 @@ interface RowState {
 /** What the rows are flattened from: the search, its hits, the scene's roots, the extensions' rows. */
 interface Search {
   readonly text: string;
+  /** The selection filter's version while it is on (the search's non-text part), -1 while it is off */
+  readonly sel: number;
   readonly hits: SearchHits;
   readonly roots: readonly SceneNode[];
   readonly sections: readonly ShellSection[];
@@ -116,17 +118,24 @@ export function SceneTree(props: {
   // A search: the rows that match, with the rows they are in (opened); lazy contents are looked into to be searched.
   // One walk of the scene per search (and per change of the scene while searching), the rows flattened from its result.
   const sections = shell ? shell.sections(SceneRowSlot) : undefined;
+  // The selection filter (Show in structure tree): a row passes when it holds the selection, and the text too.
+  const selection = scene.selectionFilter;
   const searchNow = (): Search => {
     const text = (props.filter?.value ?? '').trim().toLowerCase();
     const roots = scene.roots.value;
     const all = sections?.value ?? NoSections;
+    const selOn = !!selection?.on.value;
+    const textHit = (node: SceneNode) =>
+      hasText(node, text) || (!!shell && all.some((r) => rowMatches(shell, r, node, text)));
     return {
       text,
+      sel: selOn ? selection!.version.value : -1,
       roots,
       sections: all,
-      hits: text
-        ? searchHits(roots, text, (node) => !!shell && all.some((r) => rowMatches(shell, r, node, text)))
-        : undefined,
+      hits:
+        text || selOn
+          ? searchHits(roots, (node) => (!text || textHit(node)) && (!selOn || selection!.holds(node)))
+          : undefined,
     };
   };
   // What shows where there are no rows: nothing loaded, or nothing that matches the search.
@@ -334,7 +343,7 @@ export function SceneTree(props: {
     if (!current) return;
     if (rehit) {
       rehit = false;
-      if (current.text) {
+      if (current.hits) {
         current = searchNow();
         noteEmpty(current);
       }
@@ -381,7 +390,14 @@ export function SceneTree(props: {
     );
   const research = () => {
     const s = searchNow();
-    if (current && s.text === current.text && s.roots === current.roots && s.sections === current.sections) return;
+    if (
+      current &&
+      s.text === current.text &&
+      s.sel === current.sel &&
+      s.roots === current.roots &&
+      s.sections === current.sections
+    )
+      return;
     current = s;
     rehit = false;
     noteEmpty(s);
@@ -394,6 +410,10 @@ export function SceneTree(props: {
   };
   effect(scene.roots, research);
   if (props.filter) effect(props.filter, research);
+  if (selection) {
+    effect(selection.on, research);
+    effect(selection.version, research);
+  }
   if (sections) effect(sections, research);
   // The scene's structure, one listener (`SceneModel.changes`): the changed nodes' subtrees flattened again.
   if (scene.changes) {
@@ -404,7 +424,7 @@ export function SceneTree(props: {
       // Resumed after more than one change: what changed meanwhile is not known by node, so all of it.
       if (c.version !== version + 1) full = true;
       version = c.version;
-      if (current?.text) {
+      if (current?.hits) {
         rehit = true;
         full = true;
       }
@@ -427,7 +447,7 @@ export function SceneTree(props: {
         any = true;
       }
       if (!any) return;
-      if (s.text) {
+      if (s.hits) {
         rehit = true;
         full = true;
       }
@@ -573,16 +593,18 @@ const rowMatches = (shell: ShellModel, row: ShellSection, node: SceneNode, text:
  * rows they are in, in one walk; lazy rows are looked into (`load(true)`: they stay lazy, so later syncs do not
  * compute them).
  */
-function searchHits(
-  roots: readonly SceneNode[],
-  text: string,
-  hasRow: (node: SceneNode) => boolean,
-): ReadonlySet<SceneNode> {
-  const hits = new Set<SceneNode>();
+/** A row's own words hold the text (lower case): its label or its description */
+function hasText(node: SceneNode, text: string): boolean {
   const hit = (v: string | undefined) => !!v && v.toLowerCase().includes(text);
+  return hit(node.label.value) || hit(node.description.value);
+}
+
+/** The rows that match, with the rows they are in; lazy contents are looked into to be matched */
+function searchHits(roots: readonly SceneNode[], matches: (node: SceneNode) => boolean): ReadonlySet<SceneNode> {
+  const hits = new Set<SceneNode>();
   const walk = (node: SceneNode): boolean => {
     if (node.lazy) node.load?.(true);
-    let any = hit(node.label.value) || hit(node.description.value) || hasRow(node);
+    let any = matches(node);
     for (const c of node.children.value) if (walk(c)) any = true;
     if (any) hits.add(node);
     return any;
@@ -1151,7 +1173,11 @@ export function menuOf(node: SceneNode): SceneMenuItem[] {
 }
 
 /** A row's menu, a popover from its ⋯ button (`MenuPopover`): actions run and close it; entries with sub-entries open them in place. */
-function RowMenu(props: { items: readonly SceneMenuItem[]; anchor: HTMLElement; onDone(refocus?: boolean): void }) {
+export function RowMenu(props: {
+  items: readonly SceneMenuItem[];
+  anchor: HTMLElement;
+  onDone(refocus?: boolean): void;
+}) {
   return (
     <MenuPopover anchor={props.anchor} onClose={props.onDone}>
       <div class={classes.menu} data-popover="">

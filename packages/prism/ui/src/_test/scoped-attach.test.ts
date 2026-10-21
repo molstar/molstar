@@ -9,6 +9,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { extensionPrismFiles } from './extension-views.js';
 
 // What a component attaches imperatively is released by construction (rendering.md §2.4): the scoped helpers
 // (dom/scoped.ts: `on`, `observeResize`, `observeIntersection`, `frame`, `frames`, `timeout`, `drag`) are the way. A raw
@@ -53,10 +54,7 @@ function componentFiles(): string[] {
   for (const dir of ['ui/src/components', 'ui/src/views', 'viewer/src/views', 'assistant/src/views'])
     out.push(...files(path.join(prism, dir), '.ts'));
   out.push(path.join(prism, 'ui/src/dom/tree-keys.ts'), path.join(prism, 'ui/src/dom/focus.ts'));
-  const extensions = path.join(repo, 'extensions');
-  for (const ext of fs.readdirSync(extensions))
-    for (const f of files(path.join(extensions, ext, 'src'), '.tsx'))
-      if (fs.readFileSync(f, 'utf8').includes('@molstar/prism-ui')) out.push(f);
+  out.push(...extensionPrismFiles());
   return out;
 }
 

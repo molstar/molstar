@@ -37,7 +37,7 @@ type Params = {
 };
 
 /** The types offered at once, in order (those that apply to the structure). */
-const CommonTypes: readonly [string, string][] = [
+export const CommonTypes: readonly [string, string][] = [
   ['cartoon', 'Cartoon'],
   ['ball-and-stick', 'Ball & stick'],
   ['spacefill', 'Spacefill'],
@@ -54,7 +54,7 @@ const TypeIcons: Readonly<Record<string, IconName>> = {
 };
 
 /** The color themes offered at once, in order (those that apply). */
-const CommonThemes: readonly [string, string][] = [
+export const CommonThemes: readonly [string, string][] = [
   ['chain-id', 'Chain'],
   ['element-symbol', 'Element'],
   ['secondary-structure', 'Secondary'],
@@ -80,7 +80,7 @@ const sameChoices = (a: readonly QuickChoice[], b: readonly QuickChoice[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.swatch === b[i].swatch);
 
 /** A legend as a CSS background: a scale's gradient, a table's first colors as bands. */
-function legendSwatch(legend: ScaleLegend | TableLegend | undefined): string | undefined {
+export function legendSwatch(legend: ScaleLegend | TableLegend | undefined): string | undefined {
   const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
   if (legend?.kind === 'scale-legend') {
     const colors = legend.colors.map((c) => (Array.isArray(c) ? c[0] : c) as number);
@@ -116,7 +116,7 @@ function typeApplies(plugin: PluginContext, s: Structure | undefined, id: string
   return registry.has(id) && !!s && registry.get(id).isApplicable(s);
 }
 
-function themeApplies(plugin: PluginContext, s: Structure | undefined, id: string) {
+export function themeApplies(plugin: PluginContext, s: Structure | undefined, id: string) {
   const themes = plugin.representation.structure.themes;
   if (!themes.colorThemeRegistry.has(id) || !s || !themes.colorThemeRegistry.get(id).isApplicable({ structure: s })) {
     return false;

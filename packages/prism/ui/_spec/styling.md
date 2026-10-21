@@ -85,6 +85,11 @@ Every padding, margin and gap is a step of the scale or a rule named after it:
   menu items, headers or beside words (except + Add). `Icon({ name, size, label })` is decorative unless labelled.
 - **Accent for actions and the picked item only** (a primary button, the picked option, the active tab, the focus ring);
   settings (a slider's fill, a switch that is on) are `--msp-color-text-muted`.
+- **A row's actions show on its hover, always on touch** (David, 2026-10-21): icon actions beside a row's text (an eye,
+  a ⋯) are `opacity: 0` until the row is hovered or holds the focus, or the action's menu is open; under
+  `@media (hover: none)` always shown, since a touch screen has no hover to find them by. What tells the row's state or
+  where it leads stays shown: a hidden item's eye, a chevron (at the row's edge, the actions left of it). Why: quiet
+  rows on a mouse, nothing out of reach on a finger.
 - **The arrow cursor**; the text cursor only where text is typed; special cursors only for special gestures.
 - **Cut-off text fades out, no ellipsis**: `msp-fade-overflow` (`reset.css`, CSS only, on the element's inline scroll
   timeline); `data-tip-overflow` shows the full text in the tooltip only while cut off.

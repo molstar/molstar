@@ -38,17 +38,17 @@ does with it, and `runUrlLoads` below for the loading half.
 
 ### What a viewer gives you
 
-| Member                                    | What it is                                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `viewer.api`                              | Every operation, as a script calls them. See [the API](/docs/v6/prism-viewer/api/).                           |
-| `viewer.run(label, (plugin, api) => ...)` | Raw plugin work as one undoable step.                                                                         |
-| `viewer.state.ready`, `.busy`, `.empty`   | `ReadonlyState`s: an rxjs `Observable` with a synchronous `value`.                                            |
-| `viewer.events.hover`, `.click`, `.error` | Observables. Hover and click carry the target under the pointer.                                              |
-| `viewer.extensions`                       | Which extensions are loaded, the status of each lazy one, `load(id)`, and `mount(ext)` to add one at runtime. |
-| `viewer.managers`                         | `commands`, `history`, `navigation`, `viewState`, `notifications`, `transactions`.                            |
-| `viewer.record`                           | The session record that History shows.                                                                        |
-| `viewer.plugin`                           | The Mol\* plugin context. An escape hatch that the API does not promise to keep stable.                       |
-| `viewer.dispose()`                        | Tears the viewer down.                                                                                        |
+| Member                                              | What it is                                                                                                                                                                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewer.api`                                        | Every operation, as a script calls them. See [the API](/docs/v6/prism-viewer/api/).                                                                                                                           |
+| `viewer.run(label, (plugin, api) => ...)`           | Raw plugin work as one undoable step.                                                                                                                                                                         |
+| `viewer.state.ready`, `.busy`, `.working`, `.empty` | `ReadonlyState`s: an rxjs `Observable` with a synchronous `value`. `busy` is the plugin's debounced flag; `working` is anything in progress now (an operation, a lazy extension's load, the plugin updating). |
+| `viewer.events.hover`, `.click`, `.error`           | Observables. Hover and click carry the target under the pointer.                                                                                                                                              |
+| `viewer.extensions`                                 | Which extensions are loaded, the status of each lazy one, `load(id)`, and `mount(ext)` to add one at runtime.                                                                                                 |
+| `viewer.managers`                                   | `commands`, `history`, `navigation`, `viewState`, `notifications`, `transactions`.                                                                                                                            |
+| `viewer.record`                                     | The session record that History shows.                                                                                                                                                                        |
+| `viewer.plugin`                                     | The Mol\* plugin context. An escape hatch that the API does not promise to keep stable.                                                                                                                       |
+| `viewer.dispose()`                                  | Tears the viewer down.                                                                                                                                                                                        |
 
 ### Load from the URL
 
@@ -104,26 +104,27 @@ viewer again. Several on a page each own their viewer, and one leaving the page 
 
 `DefaultPrismViewerSpec()` returns a new spec each call. It holds the viewer's base and its own features as extensions:
 
-| Feature           | Brings                                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `structure`       | The scene's API: the `structure`, `contents`, `component`, `representation` and `styles` areas.                   |
-| `volume`          | The `volume` and `particles` areas.                                                                               |
-| `trajectory`      | The `trajectory` area and the trajectory bar.                                                                     |
-| `annotations`     | The `annotations` area and Home's offer of a structure's annotations. Needs `structure`.                          |
-| `home`            | Home.                                                                                                             |
-| `structure-panel` | The Structure tab: the scene tree and its inspectors, Preset and Styles. Needs `structure`.                       |
-| `selection-panel` | The Selection tab. Needs `structure`.                                                                             |
-| `help`            | Help.                                                                                                             |
-| `loaders`         | `load.entry`, `load.url`, `load.data`, `load.mvs`, `load.svs`, `load.snapshot`, `load.trajectory`, `load.volume`. |
-| `canvas-settings` | The canvas settings card and `canvas.lighting` (illumination too), `.camera`, `.clipping`.                        |
-| `measurements`    | The `measure` area and the Measure section.                                                                       |
-| `superposition`   | The `superpose` area and the Superpose section. Lazy.                                                             |
-| `state-tree`      | The `state` area and the State tree tab. Lazy.                                                                    |
-| `remote-states`   | Remote states in the `session` area. Lazy, and left out unless `options.ui.showRemoteStates` is on.               |
-| `snapshots`       | The `snapshot` area and the Snapshots tab.                                                                        |
-| `animation`       | The `animation` area and the animation card.                                                                      |
-| `export-image`    | The `export` area: images.                                                                                        |
-| `export-session`  | `session.save`.                                                                                                   |
+| Feature           | Brings                                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `structure`       | The scene's API: the `structure`, `contents`, `component`, `representation` and `styles` areas.                      |
+| `volume`          | The `volume` area.                                                                                                   |
+| `particles`       | Lazy: Mol*'s particles (`ParticlesRegistry`) and the `particles` area, loaded by the first particle file or session. |
+| `trajectory`      | The `trajectory` area and the trajectory bar.                                                                        |
+| `annotations`     | The `annotations` area and Home's offer of a structure's annotations. Needs `structure`.                             |
+| `home`            | Home.                                                                                                                |
+| `structure-panel` | The Structure tab: the scene tree and its inspectors, Preset and Styles. Needs `structure`.                          |
+| `selection-panel` | The Selection tab. Needs `structure`.                                                                                |
+| `help`            | Help.                                                                                                                |
+| `loaders`         | `load.entry`, `load.url`, `load.data`, `load.mvs`, `load.svs`, `load.snapshot`, `load.trajectory`, `load.volume`.    |
+| `canvas-settings` | The canvas settings card and `canvas.lighting` (illumination too), `.camera`, `.clipping`.                           |
+| `measurements`    | The `measure` area and the Measure section.                                                                          |
+| `superposition`   | The `superpose` area and the Superpose section. Lazy.                                                                |
+| `state-tree`      | The `state` area and the State tree tab. Lazy.                                                                       |
+| `remote-states`   | Remote states in the `session` area. Lazy, and left out unless `options.ui.showRemoteStates` is on.                  |
+| `snapshots`       | The `snapshot` area and the Snapshots tab.                                                                           |
+| `animation`       | The `animation` area and the animation card.                                                                         |
+| `export-image`    | The `export` area: images.                                                                                           |
+| `export-session`  | `session.save`.                                                                                                      |
 
 Leave a feature out and its code is not in your bundle: `examples/minimal-prism-viewer` lists only `structure` and is
 under half the size of the full viewer. The panels keep their tab ids (`home`, `structure`, `selection`, `help`) when

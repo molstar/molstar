@@ -19,7 +19,17 @@ import { mergeParams } from './params.js';
 // text (`node('structure', { label: '1CBS' }).find('representation')`); the text is what the history records.
 
 /** The kinds a selector names; `*` is any. */
-export const NodeKinds = ['data', 'trajectory', 'model', 'structure', 'component', 'representation', 'volume'] as const;
+export const NodeKinds = [
+  'data',
+  'trajectory',
+  'model',
+  'structure',
+  'component',
+  'representation',
+  'volume',
+  'particles',
+  'shape',
+] as const;
 export type NodeKind = (typeof NodeKinds)[number];
 
 /** The attributes a selector tests (`[name op value]`); text compares without case, except `ref`. */
@@ -343,6 +353,8 @@ export function nodeKind(state: State, cell: StateObjectCell): NodeKind | undefi
   if (SO.Molecule.Model.is(obj)) return 'model';
   if (SO.Molecule.Trajectory.is(obj)) return 'trajectory';
   if (SO.Volume.Data.is(obj)) return 'volume';
+  if (SO.Particle.List.is(obj)) return 'particles';
+  if (SO.Shape.Provider.is(obj)) return 'shape';
   if (obj.type.typeClass === 'Data') return 'data';
   return undefined;
 }

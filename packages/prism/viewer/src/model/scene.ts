@@ -128,6 +128,20 @@ export interface SceneMenuItem {
   disabled?: Observable<boolean>;
 }
 
+/**
+ * A row of the scene tree's node menus that an extension adds (`ui.nodeActions`: the clipping feature's Clip this…),
+ * on the nodes of its kinds that pass `when`; after the node's own rows, before Remove.
+ */
+export interface SceneNodeAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  order?: number;
+  kinds: readonly SceneNodeKind[];
+  when?(node: SceneNode): boolean;
+  run(node: SceneNode): void;
+}
+
 /** What the inspector shows for a node: its parameters as a form (changes apply to the state tree). */
 export interface SceneInspection {
   node: SceneNode;
@@ -191,6 +205,23 @@ export interface SceneModel {
    * tree follows each shown node's `children` and `isExpanded`.
    */
   changes?: ReadonlyState<SceneChanges>;
+  /**
+   * The tree filtered by the selection (the search's non-text part, a chip in its field): only the rows that hold it.
+   * Absent (a fixture without it): no such filter.
+   */
+  selectionFilter?: SceneSelectionFilter;
+  /** The rows the extensions add to the node menus (`ui.nodeActions`); absent: none can be added. */
+  nodeActions?: ObservableState<readonly SceneNodeAction[]>;
+}
+
+/** Which rows hold the current selection: structures, their components and representations, Contents' entities and chains. */
+export interface SceneSelectionFilter {
+  readonly on: ReadonlyState<boolean>;
+  /** On; off when the selection is cleared (nothing would show), and it cannot go on with nothing selected. */
+  set(on: boolean): void;
+  /** Told when the selection changes while on: the tree searches again. */
+  readonly version: ReadonlyState<number>;
+  holds(node: SceneNode): boolean;
 }
 
 /** A representation preset (Mol*'s structure representation preset registry): its name, group, description. */

@@ -26,6 +26,32 @@ describe('operation commands', () => {
     expect(v.plugin.managers.structure.selection.elementCount()).toBeGreaterThan(0);
   });
 
+  it('show the query language only while the target is query text, optional', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const opened = v.managers.commands.open('focus.set', 'ligand');
+    if (opened.kind !== 'form') throw new Error(opened.kind);
+    const fields = () => opened.invocation.state.value.fields.map((f) => f.id);
+    expect(fields()).not.toContain('language');
+    opened.invocation.set('target', 'resn REA');
+    expect(fields()).toContain('language');
+    expect(opened.invocation.state.value.missing).toEqual([]);
+    opened.invocation.set('target', 'A:10-20');
+    expect(fields()).not.toContain('language');
+  });
+
+  it('read Show as… and Color by theme… as sentences: the subject, its structure, then the choice', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const read = (id: string) => {
+      const opened = v.managers.commands.open(id);
+      if (opened.kind !== 'form') throw new Error(opened.kind);
+      const s = opened.invocation.state.value;
+      v.managers.commands.close();
+      return s.fields.map((f) => (f.before ? `${f.before} ${f.id}` : f.id));
+    };
+    expect(read('representation.set')).toEqual(['component', 'in structure', 'as type']);
+    expect(read('representation.color-theme')).toEqual(['target', 'in structure', 'by theme']);
+  });
+
   it('ask for the target when it is missing', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const opened = v.managers.commands.open('focus.set');

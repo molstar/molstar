@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -144,6 +144,11 @@ export function trimCharEnd(str: string, char: string) {
   let end = str.length;
   while (end > 0 && str[end - 1] === char) --end;
   return end < str.length ? str.substring(0, end) : str;
+}
+
+/** Text set inside HTML markup (a label's): `&`, `<` and `>` escaped, so it reads as text, never as tags */
+export function escapeHtml(str: string) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /** Simple function to strip tags from a string */

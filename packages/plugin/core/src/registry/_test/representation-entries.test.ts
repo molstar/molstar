@@ -14,11 +14,8 @@ import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
 import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { setProductionMode } from '@molstar/core/util/debug';
 import { PluginContext } from '@molstar/plugin/context';
-import {
-  DefaultParticleRepresentations,
-  DefaultStructureRepresentations,
-  DefaultVolumeRepresentations,
-} from '@molstar/plugin/default-registry';
+import { DefaultStructureRepresentations, DefaultVolumeRepresentations } from '@molstar/plugin/default-registry';
+import { ParticleRepresentations } from '@molstar/plugin/particles-registry';
 import { Backbone } from '@molstar/plugin/registry/structure/backbone';
 import { BallAndStick } from '@molstar/plugin/registry/structure/ball-and-stick';
 import { BlobSurface } from '@molstar/plugin/registry/structure/blob-surface';
@@ -111,9 +108,7 @@ describe('representation registry entries', () => {
       Object.values(BuiltInStructureRepresentations),
     );
     expect(DefaultVolumeRepresentations.volume!.representations).toEqual(Object.values(BuiltInVolumeRepresentations));
-    expect(DefaultParticleRepresentations.particles!.representations).toEqual(
-      Object.values(BuiltInParticleRepresentations),
-    );
+    expect(ParticleRepresentations.particles!.representations).toEqual(Object.values(BuiltInParticleRepresentations));
   });
 
   it('entry modules do not import catalogs', () => {
