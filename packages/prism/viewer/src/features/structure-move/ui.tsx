@@ -8,7 +8,7 @@
 
 import { Button, domView, Icon } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { onActive, onCleanup } from '@molstar/prism-ui/dom/scope';
+import { effect, onActive, onCleanup } from '@molstar/prism-ui/dom/scope';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { MoveSectionId } from './index.js';
@@ -48,11 +48,17 @@ function MoveSection(props: { ctx: ViewerUIContext; move: MoveApi }) {
     if (now && list.some((s) => s.ref === now)) return;
     gizmos.setTarget(move.selectedStructure() ?? list[0]?.ref);
   };
-  onActive((active) => {
-    if (active) {
+  let active = false;
+  onActive((now) => {
+    active = now;
+    if (now) {
       pick();
       move.showGizmos(ctx.api);
     } else gizmos.hide();
+  });
+  // a structure loaded while the section is open (the first one), or the target removed: picked again
+  effect(move.structures, () => {
+    if (active) pick();
   });
   onCleanup(() => gizmos.hide());
   const many = derive(move.structures, (s) => s.length > 1);

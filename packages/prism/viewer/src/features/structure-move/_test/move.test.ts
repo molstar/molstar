@@ -9,7 +9,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cbs } from '../../../_test/harness.js';
 import { DefaultPrismViewerSpec } from '../../../default-spec.js';
 import { createPrismViewerHeadless } from '../../../headless.js';
-import { placementPose, poseMatrix, type StructurePlacement } from '../../../sources/structure-move/gizmos.js';
+import {
+  applyToPlacement,
+  placementPose,
+  poseMatrix,
+  type StructurePlacement,
+} from '../../../sources/structure-move/gizmos.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { StructureMoveFeature } from '../index.js';
 
@@ -50,6 +55,15 @@ describe('structure-move', () => {
 
     const moved = { ...placementPose(p), position: Vec3.create(15, 20, 30) };
     close(Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), poseMatrix(moved, p.center)), [5, 0, 0]);
+  });
+
+  it('a drag keeps what a placement has beyond a rigid move (a scale given as a matrix)', () => {
+    const p = placement(Mat4.fromScaling(Mat4(), Vec3.create(2, 2, 2)));
+    const frame = { right: Vec3.create(1, 0, 0), up: Vec3.create(0, 1, 0), perPixel: 0.5 };
+    const next = applyToPlacement(p, { kind: 'move' }, frame, 10, 0);
+    // still twice the size, its center (as placed: twice the loaded one) moved 5 Å right
+    expect(Mat4.getMaxScaleOnAxis(next.matrix)).toBeCloseTo(2, 6);
+    close(Vec3.transformMat4(Vec3(), p.center, next.matrix), [25, 40, 60]);
   });
 
   it('is opt-in, and lists the structures it can move', async () => {

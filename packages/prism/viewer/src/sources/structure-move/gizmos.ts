@@ -12,6 +12,7 @@ import type { Handle } from '@molstar/graphics/util/gizmo/handle';
 import { transformHandles } from '@molstar/graphics/util/gizmo/transform';
 import type { Representation } from '@molstar/graphics/repr/representation';
 import type { PluginContext } from '@molstar/plugin/context';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 import { currentTransform } from '../../api/structure.js';
@@ -20,8 +21,9 @@ import { currentTransform } from '../../api/structure.js';
 // conformation transform (Mol*'s `TransformStructureConformation`, as `structure.transform` writes it). A rigid move
 // is a turn about the structure's center then a move: the gizmo's frame is that center as placed now, turned as now.
 // A drag's preview moves the structure's representations as drawn (their state transforms, on top of what they had):
-// recomputing a structure a frame would not keep up. Its release is one `structure.transform` with the new matrix
-// (`commit`); the representations' own transforms are put back once the state has the move.
+// recomputing a structure a frame would not keep up; only the structure's own representations (what the transform
+// moves: not a volume streamed under it). Its release is one `structure.transform` with the new matrix (`commit`); the
+// representations' own transforms are put back once the state has the move, frames held meanwhile (`holdFrames`).
 
 /** A structure's placement: the transform on top of where it was loaded, and its center there */
 export interface StructurePlacement {
@@ -48,10 +50,29 @@ export function poseMatrix(pose: GizmoPose, center: Vec3): Mat4 {
   return Mat4.mul(out, out, Mat4.fromTranslation(Mat4(), Vec3.negate(Vec3(), center)));
 }
 
+/** The placement a drag on `handle` makes from `from`: what it has beyond a rigid move (a scale or shear given as a
+ * matrix) kept under the new pose */
+export function applyToPlacement(
+  from: StructurePlacement,
+  handle: Handle,
+  frame: DragFrame,
+  dx: number,
+  dy: number,
+): StructurePlacement {
+  const base = placementPose(from);
+  const pose = poseGesture(base, handle, frame, dx, dy);
+  if (!pose) return from;
+  const residual = Mat4.mul(Mat4(), Mat4.invert(Mat4(), poseMatrix(base, from.center)), from.matrix);
+  return { ...from, matrix: Mat4.mul(Mat4(), poseMatrix(pose, from.center), residual) };
+}
+
 /** The frame the handles are drawn in */
 function frameOf(pose: GizmoPose) {
   return Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), pose.position), Mat4.fromQuat(Mat4(), pose.rotation));
 }
+
+/** The longest a commit holds the canvas's frames (ms) */
+const MaxCommitHoldMs = 3000;
 
 interface Drawn {
   readonly repr: Representation.Any;
@@ -92,13 +113,13 @@ class MoveBinding implements GizmoBinding<StructurePlacement> {
   }
 
   apply(from: StructurePlacement, handle: Handle, frame: DragFrame, dx: number, dy: number): StructurePlacement {
-    const pose = poseGesture(placementPose(from), handle, frame, dx, dy);
-    return pose ? { ...from, matrix: poseMatrix(pose, from.center) } : from;
+    return applyToPlacement(from, handle, frame, dx, dy);
   }
 
   begin(key: string) {
     const drawn: Drawn[] = [];
     for (const cell of this.#cellsUnder(key)) {
+      if (!PluginStateObject.Molecule.Structure.Representation3D.is(cell.obj)) continue;
       const repr = (cell.obj?.data as { repr?: Representation.Any } | undefined)?.repr;
       if (repr?.state?.transform) drawn.push({ repr, transform: Mat4.clone(repr.state.transform) });
     }
@@ -113,33 +134,37 @@ class MoveBinding implements GizmoBinding<StructurePlacement> {
   }
 
   async commit(key: string, _from: StructurePlacement, next: StructurePlacement) {
-    // Nothing drawn until the state has the move and the preview is off: the representations are rebuilt where the
-    // move puts them while still carrying the preview's transform (moved twice), or, the preview off first, drawn
-    // where they were (a blink either way).
-    const canvas = this.plugin.canvas3d;
-    canvas?.pause(true);
-    try {
-      return await this.commitMove(key, next.matrix);
-    } finally {
-      // the state has the move (or not): the representations as they were drawn before the drag
-      this.#restore();
-      canvas?.resume();
-    }
+    // this drag's representations (the controller starts no other drag until the commit is done)
+    const drag = this.#drag;
+    this.#drag = undefined;
+    const done = (async () => {
+      try {
+        return await this.commitMove(key, next.matrix);
+      } finally {
+        // the state has the move (or not): the representations as they were drawn before the drag
+        this.#restore(drag);
+      }
+    })();
+    // Frames held until the state has the move and the preview is off: the representations are rebuilt where the move
+    // puts them while still carrying the preview's transform (moved twice), or, the preview off first, drawn where
+    // they were (a blink either way). At most a few seconds: a commit that hangs does not freeze the canvas.
+    this.plugin.canvas3d?.holdFrames(done, MaxCommitHoldMs);
+    return done;
   }
 
   cancel() {
-    this.#restore();
+    this.#restore(this.#drag);
+    this.#drag = undefined;
   }
 
   dispose() {
-    this.#restore();
+    this.cancel();
     this.#sub.unsubscribe();
     this.#invalidated.complete();
   }
 
-  #restore() {
-    for (const d of this.#drag?.drawn ?? []) this.#draw(d.repr, d.transform);
-    this.#drag = undefined;
+  #restore(drag: { drawn: readonly Drawn[] } | undefined) {
+    for (const d of drag?.drawn ?? []) this.#draw(d.repr, d.transform);
     this.plugin.canvas3d?.requestDraw();
   }
 
@@ -155,7 +180,9 @@ class MoveBinding implements GizmoBinding<StructurePlacement> {
     const walk = (r: string) => {
       const cell = state.cells.get(r);
       if (cell) out.push(cell);
-      for (const child of state.tree.children.get(r).values()) walk(child);
+      // a ref gone (the structure removed under a drag) has no children
+      const children = state.tree.children.get(r);
+      if (children) for (const child of children.values()) walk(child);
     };
     walk(ref);
     return out;
