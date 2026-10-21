@@ -216,8 +216,42 @@
 
 /* The tree's search, between the header and the tree. */
 .search {
-  display: grid;
+  /* The search's non-text part (a chip: the selection) before its text */
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
   padding: 0 var(--msp-space-2);
+
+  & > :last-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.searchChip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding: 0 0 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-accent-muted);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+}
+
+.searchChipRemove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--msp-radius-md);
+  color: inherit;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
 .optionsButton {

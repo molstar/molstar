@@ -51,6 +51,7 @@ import type {
   SceneModel,
   SceneNode,
   SceneNodeKind,
+  SceneSelectionFilter,
   SceneTrajectory,
 } from '../model/scene.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
@@ -341,6 +342,71 @@ export function createSceneSource(
   const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, onceATask(selection.events.changed));
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
+  // The tree filtered by the selection (the selection bar's Show in structure tree): which rows hold it, asked by the
+  // tree's search per row and kept until the selection changes; followed only while the filter is on (idle is idle).
+  const filterOn = observableState(false);
+  const filterVersion = observableState(0);
+  const holding = new Map<string, boolean>();
+  scope.add(
+    selection.events.changed.subscribe(() => {
+      holding.clear();
+      if (!filterOn.value) return;
+      // Cleared: the filter goes with it (nothing would show)
+      if (selection.stats.elementCount === 0) filterOn.set(false);
+      else filterVersion.set(filterVersion.value + 1);
+    }),
+  );
+  const selectedIn = (structureRef: string | undefined) => {
+    const data = structureRef ? dataOf(plugin, structureRef) : undefined;
+    const l = data && selection.getLoci(data);
+    return l && StructureElement.Loci.is(l) && !StructureElement.Loci.isEmpty(l) ? l : undefined;
+  };
+  const holdsNow = (node: SceneNode): boolean => {
+    const refs = plugin.managers.structure.hierarchy.current.refs;
+    switch (node.kind) {
+      case 'structure':
+        return !!selectedIn(node.id);
+      case 'contents':
+        return !!selectedIn(node.id.slice(0, node.id.indexOf('#')));
+      case 'component':
+      case 'representation': {
+        const ref = refs.get(node.id);
+        const component = ref?.kind === 'structure-representation' ? ref.component : ref;
+        if (component?.kind !== 'structure-component') return false;
+        const sel = selectedIn(component.structure.cell.transform.ref);
+        const data = component.cell.obj?.data;
+        return !!sel && !!data && !StructureElement.Loci.isEmpty(StructureElement.Loci.remap(sel, data));
+      }
+      case 'entity':
+      case 'chain': {
+        const at = node.id.indexOf('#');
+        const structureRef = node.id.slice(0, at);
+        const sel = selectedIn(structureRef);
+        const data = dataOf(plugin, structureRef);
+        if (!sel || !data) return false;
+        const [, entity, chain] = node.id.slice(at + 1).split(':');
+        return StructureElement.Loci.areIntersecting(
+          sel,
+          contentsLoci(data, entity, node.kind === 'chain' ? chain : undefined),
+        );
+      }
+    }
+    return false;
+  };
+  const selectionFilter: SceneSelectionFilter = {
+    on: filterOn.asReadonly,
+    version: filterVersion.asReadonly,
+    set(on) {
+      if (on && selection.stats.elementCount === 0) on = false;
+      holding.clear();
+      if (filterOn.value !== on) filterOn.set(on);
+    },
+    holds(node) {
+      let h = holding.get(node.id);
+      if (h === undefined) holding.set(node.id, (h = holdsNow(node)));
+      return h;
+    },
+  };
   // The frames of the structures that have several (made when the first such structure is shown; its states listen to
   // the plugin only while a row or the inspector reads them).
   const trajectories = () => trajectorySourceOf(plugin);
@@ -1275,6 +1341,7 @@ export function createSceneSource(
     roots: roots.asReadonly,
     picked: picked.asReadonly,
     pick: (n) => picked.set(n === picked.value ? undefined : n),
+    selectionFilter,
     reveal(id) {
       const path = (list: readonly SceneNode[]): SceneNode[] | undefined => {
         for (const n of list) {

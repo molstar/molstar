@@ -7,11 +7,11 @@
  */
 
 .bar {
+  position: relative;
   display: flex;
   align-items: center;
   height: max(34px, var(--msp-touch-target, 0px));
-  overflow: hidden;
-  padding: 0 0 0 var(--msp-space-4);
+  padding: 0;
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -28,12 +28,32 @@
 }
 
 .summary {
+  /* The menu's button: what is selected and a chevron, the bar's full height, as wide as its words. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  margin-right: var(--msp-space-3);
+  height: 100%;
+  padding: 0 var(--msp-space-4);
+  /* The bar's own corners: it does not clip (its menu opens above it) */
+  border-radius: var(--msp-radius-lg) 0 0 var(--msp-radius-lg);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+/* The canvas stack's mark for a button with a menu (prism-ui canvas.module.css `.menuMark`) */
+.menuMark {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  border-right: 4px solid currentColor;
+  border-top: 4px solid transparent;
+  opacity: 0.45;
 }
 
 .action {
@@ -43,10 +63,34 @@
   place-items: center;
   width: max(34px, var(--msp-touch-target, 0px));
   height: 100%;
+  border-radius: 0 var(--msp-radius-lg) var(--msp-radius-lg) 0;
   color: var(--msp-color-text-muted);
 
   &:hover {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
   }
+}
+
+/* The menu: above the bar, its right edge level with the bar's, as the canvas stack's menus open (prism-ui
+   canvas.module.css `.toolMenu`, `.toolMenuCard`); the bottom padding bridges the gap so the pointer can travel to it. */
+.menu {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  z-index: var(--msp-z-overlay);
+  padding-bottom: var(--msp-space-3);
+  animation: bar-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.menuCard {
+  display: grid;
+  min-width: 200px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  white-space: nowrap;
 }

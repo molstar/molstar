@@ -375,3 +375,41 @@ describe('the scene: volumes and particles', () => {
     expect(new Map(inspection.facts ?? []).get('Cell')).toMatch(/Å$/);
   });
 });
+
+describe('the scene: the tree filtered by the selection', () => {
+  const all = (nodes: readonly SceneNode[]): SceneNode[] => nodes.flatMap((n) => [n, ...all(n.children.value)]);
+
+  it('holds the rows the selection is in: the structure, the components and representations, the entity and chain', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const scene = v.views.scene;
+    const filter = scene.selectionFilter!;
+    // nothing selected: it does not go on
+    filter.set(true);
+    expect(filter.on.value).toBe(false);
+
+    expectOk(await v.api.select.set({ target: 'ligand' }));
+    filter.set(true);
+    expect(filter.on.value).toBe(true);
+    const structure = scene.roots.value.find((n) => n.kind === 'structure')!;
+    expect(filter.holds(structure)).toBe(true);
+    const components = structure.children.value.filter((n) => n.kind === 'component');
+    const held = components.filter((c) => filter.holds(c)).map((c) => c.label.value);
+    expect(held).toEqual(['Ligand']);
+    const ligand = components.find((c) => c.label.value === 'Ligand')!;
+    for (const r of ligand.children.value) expect(filter.holds(r)).toBe(true);
+    // Contents: the ligand's entity and its chain only
+    const contents = structure.children.value.find((n) => n.kind === 'contents')!;
+    contents.load?.(true);
+    const entities = all([contents]).filter((n) => n.kind === 'entity');
+    expect(entities.filter((e) => filter.holds(e)).length).toBe(1);
+    expect(all([contents]).some((n) => n.kind === 'chain' && filter.holds(n))).toBe(true);
+
+    // a new selection searches again; cleared, the filter goes off
+    const before = filter.version.value;
+    expectOk(await v.api.select.set({ target: 'polymer' }));
+    expect(filter.version.value).toBeGreaterThan(before);
+    expect(components.filter((c) => filter.holds(c)).map((c) => c.label.value)).toEqual(['Polymer']);
+    expectOk(await v.api.select.clear());
+    expect(filter.on.value).toBe(false);
+  });
+});

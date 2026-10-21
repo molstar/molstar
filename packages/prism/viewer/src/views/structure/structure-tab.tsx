@@ -99,9 +99,15 @@ export function StructureTab(props: StructureTabProps) {
       cancelTyping = undefined;
     }
   });
+  // The search's non-text part: the tree filtered by the selection (the selection bar's Show in structure tree), a
+  // chip before the text; the search field shows while either is on.
+  const selectionFilter = scene.selectionFilter;
+  const filterOn = selectionFilter ? selectionFilter.on : observableState(false).asReadonly;
+  const searchShown = derive([searchOpen.asReadonly, filterOn], (open, on) => open || on);
   const closeSearch = () => {
     search.set('');
     searchOpen.set(false);
+    selectionFilter?.set(false);
   };
   return (
     <div class={classes.tab}>
@@ -132,8 +138,8 @@ export function StructureTab(props: StructureTabProps) {
           class={classes.searchButton}
           icon={<Icon name="search" />}
           title="Search the scene"
-          pressed={searchOpen.asReadonly}
-          onClick={() => (searchOpen.value ? closeSearch() : searchOpen.set(true))}
+          pressed={searchShown}
+          onClick={() => (searchShown.value ? closeSearch() : searchOpen.set(true))}
         />
         {props.options ? (
           <Button
@@ -161,13 +167,42 @@ export function StructureTab(props: StructureTabProps) {
           ) : null
         }
       </Show>
-      <Show when={searchOpen.asReadonly}>
+      <Show when={searchShown}>
         {() => (
-          <div class={classes.search} ref={(el) => queueMicrotask(() => el.querySelector('input')?.focus())}>
+          <div
+            class={classes.search}
+            ref={(el) => queueMicrotask(() => el.querySelector('input')?.focus())}
+            onKeyDown={(e: KeyboardEvent) => {
+              // Backspace in an empty field takes the chip, as a token field does
+              if (e.key !== 'Backspace' || !filterOn.value) return;
+              if ((e.target as HTMLInputElement).value === '') selectionFilter?.set(false);
+            }}
+          >
+            <Show when={filterOn}>
+              {() => (
+                <span class={classes.searchChip}>
+                  <Icon name="mouse-pointer-click" size={12} />
+                  In the selection
+                  <button
+                    type="button"
+                    class={classes.searchChipRemove}
+                    aria-label="Show every row, not only those in the selection"
+                    data-tip="Show every row"
+                    onClick={() => selectionFilter?.set(false)}
+                  >
+                    <Icon name="x" size={12} />
+                  </button>
+                </span>
+              )}
+            </Show>
             <TextInput
               size="sm"
               search
-              placeholder="Search the scene: an entity, a chain, a component…"
+              placeholder={derive(filterOn, (on) =>
+                on
+                  ? 'Narrow it: an entity, a chain, a component…'
+                  : 'Search the scene: an entity, a chain, a component…',
+              )}
               aria-label="Search the scene"
               value={search.asReadonly}
               onInput={(v) => search.set(v)}

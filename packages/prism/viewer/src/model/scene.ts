@@ -191,6 +191,21 @@ export interface SceneModel {
    * tree follows each shown node's `children` and `isExpanded`.
    */
   changes?: ReadonlyState<SceneChanges>;
+  /**
+   * The tree filtered by the selection (the search's non-text part, a chip in its field): only the rows that hold it.
+   * Absent (a fixture without it): no such filter.
+   */
+  selectionFilter?: SceneSelectionFilter;
+}
+
+/** Which rows hold the current selection: structures, their components and representations, Contents' entities and chains. */
+export interface SceneSelectionFilter {
+  readonly on: ReadonlyState<boolean>;
+  /** On; off when the selection is cleared (nothing would show), and it cannot go on with nothing selected. */
+  set(on: boolean): void;
+  /** Told when the selection changes while on: the tree searches again. */
+  readonly version: ReadonlyState<number>;
+  holds(node: SceneNode): boolean;
 }
 
 /** A representation preset (Mol*'s structure representation preset registry): its name, group, description. */

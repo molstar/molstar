@@ -219,6 +219,7 @@ export type PartKind =
   | 'tab'
   | 'section'
   | 'row'
+  | 'selection-action'
   | 'toolbar'
   | 'overlay'
   | 'page'
@@ -418,6 +419,21 @@ export interface ViewerExtensionUI {
      */
     readonly whenChanged?: import('@molstar/prism-ui/core').ReadonlyState<unknown>;
     readonly render: ViewRenderer<ShellViewContext>;
+  }[];
+  /**
+   * Rows of the selection bar's menu (what to do with the selection: the clipping extension's Clip…), after the
+   * viewer's own (Focus, Show in structure tree, Make a component) and before More in the Selection panel; by `order`.
+   * Each runs a command by id (its form, as the command menu opens it), or its own `run`.
+   */
+  readonly selectionActions?: readonly {
+    readonly id: PartId;
+    readonly title: string;
+    /** One line under the title: what it does. */
+    readonly hint?: string;
+    readonly icon?: IconName;
+    readonly order?: number;
+    readonly command?: string;
+    readonly run?: () => void;
   }[];
   /** The canvas stack only: a command by id, or a card to open. */
   readonly toolbar?: readonly {

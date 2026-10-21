@@ -103,7 +103,7 @@ export {
   type CommandMenuPrefix,
   type CommandMenuProps,
 } from './views/command-menu/command-menu.js';
-export { StatusLine, StatusPill } from './views/shell/canvas-chrome.js';
+export { StatusLine, StatusPill, ToolMenuRows } from './views/shell/canvas-chrome.js';
 export { CanvasPlaceholder } from './views/shell/canvas-placeholder.js';
 export { HelpPanel, type InputBinding, type InputBindingGroup } from './views/shell/help-panel.js';
 export { LogView } from './views/shell/log-view.js';

@@ -11,11 +11,12 @@
 import { Button, domView, type ShellModel } from '@molstar/prism-ui';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { onActive } from '@molstar/prism-ui/dom/scope';
-import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { type ObservableState, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { CommandManager } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { ExtensionUIPort } from '../extensions/host.js';
 import type { SceneNode } from '../model/scene.js';
+import type { SelectionAction } from '../model/selection.js';
 import { SceneRowSlot } from '../views/structure/scene-row-slot.js';
 import type { LazyViewerExtension, ViewerExtensionUI, ViewerUIContext } from '../spec.js';
 
@@ -28,6 +29,8 @@ export function extensionUIPort(
   shell: ShellModel,
   commands: CommandManager<ViewerCommandContext>,
   context: ViewerUIContext,
+  /** The selection bar's menu rows the extensions add (`ui.selectionActions`) */
+  selectionActions?: ObservableState<readonly SelectionAction[]>,
 ): ExtensionUIPort {
   // Owners whose load failed: their placeholders, put back by the host, wait for Retry instead of loading again.
   const failed = new Set<string>();
@@ -135,6 +138,18 @@ export function extensionUIPort(
             })),
           ),
         );
+      }
+      if (ui.selectionActions?.length && selectionActions) {
+        const mine: SelectionAction[] = ui.selectionActions.map((a) => ({
+          id: a.id,
+          label: a.title,
+          icon: a.icon ?? 'mouse-pointer-click',
+          ...(a.hint ? { hint: a.hint } : {}),
+          ...(a.order !== undefined ? { order: a.order } : {}),
+          run: () => (a.run ? a.run() : a.command ? void commands.open(a.command) : undefined),
+        }));
+        selectionActions.set([...selectionActions.value, ...mine]);
+        undo.push(() => selectionActions.set(selectionActions.value.filter((a) => !mine.includes(a))));
       }
       if (ui.toolbar?.length) {
         undo.push(

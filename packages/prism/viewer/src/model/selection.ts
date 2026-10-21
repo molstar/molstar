@@ -9,23 +9,27 @@
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 
-/** One thing to do with the current selection (color it, make a component of it, focus it, …). */
+/** One thing to do with the current selection (focus it, find it in the tree, make a component of it, …). */
 export interface SelectionAction {
   id: string;
   label: string;
+  /** One line under the label in the menu: what it does. */
+  hint?: string;
   icon: IconName;
+  /** Its place among the menu's rows (the viewer's are 0–3, More in the Selection panel last). */
+  order?: number;
   run(): void;
 }
 
 /**
  * The current selection, for the selection bar (implemented over the structure selection manager): what is
- * selected, and what can be done with it. The actions are commands of the `selection` group, so the command menu offers
- * the same ones.
+ * selected, and what can be done with it, the menu the summary opens: the viewer's actions and the extensions'
+ * (`ui.selectionActions`), by order.
  */
 export interface SelectionModel {
   /** "12 residues"; undefined when nothing is selected. */
   summary: ReadonlyState<string | undefined>;
-  actions: readonly SelectionAction[];
+  actions: ReadonlyState<readonly SelectionAction[]>;
   clear(): void;
 }
 

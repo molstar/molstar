@@ -38,6 +38,8 @@ import {
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { HoverLine } from '@molstar/prism-ui/model/playback';
+import type { SceneNode } from '../model/scene.js';
+import type { SelectionAction } from '../model/selection.js';
 import { pickHoverLabel } from '../sources/hover-lines.js';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
@@ -357,7 +359,31 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       : undefined;
     // The chip stays while it has the focus (its Pause pressed from the keyboard does not drop the focus to the page).
     const chipFocused = observableState(false);
-    const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
+    // The selection bar's menu: the viewer's rows, the extensions' (`ui.selectionActions`, through the port below)
+    const extraSelectionActions = observableState<readonly SelectionAction[]>([]);
+    // Show in structure tree: the Structure panel with its tree filtered by the selection, the first component that
+    // holds it picked (viewer-spec.md §3.1, its search's non-text part)
+    const showInTree = () => {
+      if (!('scene' in core.views)) return;
+      const scene = core.views.scene;
+      scene.selectionFilter?.set(true);
+      shell.show('structure');
+      const first = (nodes: readonly SceneNode[]): SceneNode | undefined => {
+        for (const n of nodes) {
+          if (n.kind === 'component' && scene.selectionFilter?.holds(n)) return n;
+          const below = n.kind === 'structure' ? first(n.children.value) : undefined;
+          if (below) return below;
+        }
+        return undefined;
+      };
+      const hit = first(scene.roots.value);
+      if (hit) scene.reveal?.(hit.id);
+    };
+    const selection = selectionModel(sources.interaction, person, {
+      openPanel: () => shell.show('selection'),
+      ...('scene' in core.views ? { showInTree } : {}),
+      extra: extraSelectionActions.asReadonly,
+    });
     unregister.push(
       shell.registerToolbar(
         own('toolbar', [
@@ -535,7 +561,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
 
     // Extensions' views: the eager ones' now, a lazy one's placeholders until it loads (viewer-spec.md §3).
-    const port = extensionUIPort(shell, managers.commands, { api: person, sources, managers });
+    const port = extensionUIPort(shell, managers.commands, { api: person, sources, managers }, extraSelectionActions);
     unregister.push(core.attachExtensionUI(port));
     // An extension that did not load, or whose views did not: said, not silent (its placeholder offers Retry).
     const extensionFailed = core.extensions.events.failed.subscribe((f) =>

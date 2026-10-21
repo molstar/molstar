@@ -125,7 +125,8 @@ buttons) is the app's. The code is the truth for how.
 - **Expand by context** (`FullscreenModel`, `shell/fullscreen.ts`): on a page Expand fills it (fixed position, no
   `<body>` change) with Fullscreen in its menu; in an iframe that allows it the button is Fullscreen; one that forbids
   it greys Fullscreen with why.
-- **Bottom of the canvas**: the status column on the left; the corner on the right: `context` (the selection bar) and
+- **Bottom of the canvas**: the status column on the left; the corner on the right: `context` (the selection bar: its
+  summary a menu button with the stack's corner mark, opening on hover; its menu a card as the stack's, above it) and
   the status chips left of the toolbar on its row. A narrow bar (container query, under 560px) puts the corner on a row
   of its own.
 - **Status column** (`NotificationsManager`, `managers/notifications.ts`; `StatusLine`, `StatusPill`): one line per

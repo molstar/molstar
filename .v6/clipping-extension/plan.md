@@ -2,7 +2,7 @@
 
 Before the PR, what holds moves to `extensions/clipping/_spec/`, and this folder is deleted.
 
-**Prism particles are done (2026-10-21, viewer-spec.md §3.2)**: they are an opt-in registry entry with `particles` and `shape` node kinds. Next is the selection menu (`selection-actions.md`), then this plan. Steps 1 and 2 here are done.
+**Prism particles are done (2026-10-21, viewer-spec.md §3.2)**: they are an opt-in registry entry with `particles` and `shape` node kinds. The selection menu is done (viewer-spec.md §3: `ui.selectionActions`, where this extension's Clip… goes; the tree's selection filter). This plan is next. Steps 1 and 2 here are done.
 
 ## Goal
 

@@ -50,7 +50,7 @@ describe('the trajectory controls', () => {
     const { model, dispose } = createTrajectoryControls(v.plugin, v.api.as({ kind: 'person' }));
     try {
       expect(model.count.value).toBe(5);
-      expect(model.unit.value).toBe('frames');
+      expect(model.unit?.value).toBe('frames');
       model.seek(3);
       await until(() => model.index.value === 3);
       const list = v.plugin.managers.particles.hierarchy.current.lists[0];

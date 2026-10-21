@@ -19,11 +19,12 @@ import { domView } from '@molstar/prism-ui/dom/view';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { SceneRow } from '../scene-row.js';
 import { SceneRowSlot } from '../scene-tree.js';
-import type { SceneInspection } from '../../../model/scene.js';
+import type { SceneInspection, SceneModel, SceneNode } from '../../../model/scene.js';
 import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
-function mount(preset?: MockScenePreset) {
-  const scene = mockScene(preset ? { preset } : {});
+function mount(preset?: MockScenePreset, withScene?: (scene: SceneModel) => SceneModel) {
+  const base = mockScene(preset ? { preset } : {});
+  const scene = withScene ? withScene(base) : base;
   const container = document.createElement('div');
   document.body.append(container);
   const dispose = render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
@@ -208,6 +209,38 @@ describe('StructureTab', () => {
     expect(labels).toEqual(
       expect.arrayContaining(['cryoet-ribosomes.ndjson', 'Spacefill', 'Orientation', 'Unit cell', 'small.simularium']),
     );
+    dispose();
+  });
+
+  it('filtered by the selection: only the rows that hold it, a chip in the search; its × or Backspace shows all again', async () => {
+    const on = observableState(true);
+    const held = new Set(['Ligand', 'Ball & stick']);
+    const { rows, container, dispose } = mount(undefined, (scene) => ({
+      ...scene,
+      selectionFilter: {
+        on: on.asReadonly,
+        version: observableState(0).asReadonly,
+        set: (v: boolean) => on.set(v),
+        holds: (n: SceneNode) => held.has(n.label.value),
+      },
+    }));
+    const labels = () => rows().map((r) => r.querySelector('span')?.textContent);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(labels()).toContain('Ligand');
+    expect(labels()).not.toContain('Water');
+    const chip = () => container.querySelector('[aria-label="Show every row, not only those in the selection"]');
+    expect(chip()).not.toBeNull();
+
+    (chip() as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(on.value).toBe(false);
+    expect(labels()).toContain('Water');
+
+    on.set(true);
+    await new Promise((r) => setTimeout(r, 0));
+    const input = container.querySelector('input')!;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    expect(on.value).toBe(false);
     dispose();
   });
 });

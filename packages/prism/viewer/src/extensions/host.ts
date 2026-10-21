@@ -445,6 +445,7 @@ export class ExtensionHost {
             overlays: overrides.parts(checked.overlays),
             pages: overrides.parts(checked.pages),
             rows: overrides.parts(checked.rows),
+            selectionActions: overrides.parts(checked.selectionActions),
             toolbar: overrides.parts(checked.toolbar),
           });
           replaces?.();
@@ -533,6 +534,7 @@ const ViewKinds = {
   overlays: 'overlay',
   pages: 'page',
   rows: 'row',
+  selectionActions: 'selection-action',
   toolbar: 'toolbar',
 } as const;
 
