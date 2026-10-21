@@ -41,6 +41,17 @@ describe('RepresentationClip', () => {
     const next = RepresentationClip.replaceOwned(cell, [globalA], clip('pixel', globalB));
     expect(next.objects.map((o) => o.position[0])).toEqual([5, 2]);
     expect(next.variant).toBe('instance');
+    // in place: an object's index is what a clipping layer's group means
+    const before = clip('instance', globalA, own);
+    expect(
+      RepresentationClip.replaceOwned(before, [globalA], clip('pixel', globalB)).objects.map((o) => o.position[0]),
+    ).toEqual([2, 5]);
+    // more after, fewer drop their places
+    const more = RepresentationClip.replaceOwned(before, [globalA], clip('pixel', globalB, object('plane', 3)));
+    expect(more.objects.map((o) => o.position[0])).toEqual([2, 5, 3]);
+    expect(RepresentationClip.replaceOwned(before, [globalA], clip('pixel')).objects.map((o) => o.position[0])).toEqual(
+      [5],
+    );
     // nothing of its own: the owner's variant
     expect(RepresentationClip.replaceOwned(clip('instance', globalA), [globalA], clip('pixel')).variant).toBe('pixel');
   });

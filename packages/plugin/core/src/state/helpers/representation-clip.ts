@@ -56,14 +56,21 @@ export namespace RepresentationClip {
 
   /**
    * A cell's clip with the objects one owner put there (`previous`, the component manager's global objects) replaced by
-   * its new ones (`next`), the others kept in their order and the new ones after them. Its variant is kept while it
-   * has objects of its own, else the owner's.
+   * its new ones (`next`) in their places: an object's index is what a clipping layer's group means (bit i, object i),
+   * so the others keep theirs. The owner's first new object takes its first old one's place, and so on; more go at
+   * the end, fewer leave their places out. Its variant is kept while it has objects of its own, else the owner's.
    */
   export function replaceOwned(clip: Clip.Props, previous: readonly Object[], next: Clip.Props): Clip.Props {
-    const own = clip.objects.filter((o) => !previous.some((p) => objectsEqual(o, p)));
-    return {
-      variant: own.length ? clip.variant : next.variant,
-      objects: [...own, ...next.objects],
-    };
+    const objects: Object[] = [];
+    let k = 0;
+    let own = 0;
+    for (const o of clip.objects) {
+      if (!previous.some((p) => objectsEqual(o, p))) {
+        objects.push(o);
+        own++;
+      } else if (k < next.objects.length) objects.push(next.objects[k++]);
+    }
+    for (; k < next.objects.length; k++) objects.push(next.objects[k]);
+    return { variant: own ? clip.variant : next.variant, objects };
   }
 }
