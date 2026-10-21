@@ -1117,7 +1117,7 @@ longer list the `particle-*` color and size themes. `DefaultParticleRepresentati
 `ParticleRepresentations`). `@molstar/plugin/state/transforms/catalog` no longer imports the particle transformers.
 An application that reads particles composes `[...DefaultRegistry, ...ParticlesRegistry]`
 (`@molstar/plugin/particles-registry`), whose import also registers the particle transformers a session needs. The
-classic viewer (`apps/viewer`) does not compose it. Prism loads it with its lazy particles feature when a particle file,
+classic viewer (`apps/viewer`) composes it, so it reads particles as 5.12 did. Prism loads it with its lazy particles feature when a particle file,
 an mmCIF holding particles or a session with particles needs it. `looksLikeMmcifParticles` moved to
 `@molstar/model/formats/particles/mmcif-sniff` (still re-exported by `.../mmcif`).
 

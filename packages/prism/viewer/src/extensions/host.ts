@@ -8,6 +8,8 @@
 
 import { type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { CommandDefinition } from '@molstar/prism-ui/core';
+import { RuntimeContext } from '@molstar/core/task';
+import { ungzip } from '@molstar/core/util/zip/zip';
 import { type Observable, Subject } from 'rxjs';
 import type { AnnotationsApi } from '../api/annotations.js';
 import {
@@ -479,12 +481,19 @@ async function sniffs(
     const ext = extensionOf(f.name);
     if (!extensions.includes(ext)) continue;
     try {
-      if (sniff.test({ name: f.name, ext }, await contentOf(f))) return true;
+      if (sniff.test({ name: f.name, ext }, await gunzipped(await contentOf(f)))) return true;
     } catch {
       // not claimed
     }
   }
   return false;
+}
+
+/** A gzipped file's bytes inflated (its name, `.gz`, is read without the suffix: `hiv.cif.gz` is sniffed as mmCIF) */
+async function gunzipped(content: string | Uint8Array): Promise<string | Uint8Array> {
+  if (typeof content === 'string' || content.length < 2 || content[0] !== 0x1f || content[1] !== 0x8b) return content;
+  const bytes = new Uint8Array(content);
+  return ungzip(RuntimeContext.Synchronous, bytes);
 }
 
 function sameFlags(stub: LazyOperationStub, def: OperationDefinition<any, any>): boolean {

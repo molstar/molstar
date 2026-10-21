@@ -2,7 +2,9 @@
 
 - [Breaking] Particles are opt-in: `ParticlesRegistry` (`@molstar/plugin/particles-registry`) holds the particle
   formats, transformers, representations, themes and animation, and `DefaultRegistry` none of them; the classic viewer
-  no longer reads particle files.
+  composes it and reads particle files as before.
+- Prism: a kept scene with particles comes back after a reload; a downloaded or gzipped mmCIF holding particles is
+  read as particles; a particle's plain-text label has no markup.
 - Prism: a lazy particles feature, loaded by a particle file (`.star`, `.tbl`, `.ndjson`, `.em`, `.simularium`), an
   mmCIF holding particles (CellPack, PetWorld; by its content) or a session with particles; lazy features can claim
   files by content (`owns.sniff`).

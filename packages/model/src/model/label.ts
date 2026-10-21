@@ -81,9 +81,14 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
         `${loci.volume.label || 'Volume'}`,
         `${segmentCount === 1 ? `Segment ${firstSegment}` : `${segmentCount} Segments`}`,
       ].join(' | ');
-    case 'particle-loci':
-      // The particle (its own words: "Particle 165 · tomo 1 · class 2"), its list beneath, small
-      return `<b>${escapeHtml(Particle.getLabel(loci))}</b></br><small>${escapeHtml(loci.particles.label || 'Particles')}</small>`;
+    case 'particle-loci': {
+      // The particle (its own words: "Particle 165 · tomo 1 · class 2"), its list beneath, small; plain text joined as
+      // the volumes' labels are
+      const particle = Particle.getLabel(loci);
+      const list = loci.particles.label || 'Particles';
+      if (options.htmlStyling === false) return `${particle} | ${list}`;
+      return `<b>${escapeHtml(particle)}</b></br><small>${escapeHtml(list)}</small>`;
+    }
   }
 }
 

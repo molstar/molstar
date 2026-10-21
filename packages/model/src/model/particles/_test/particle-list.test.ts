@@ -105,4 +105,9 @@ describe('a particle loci label', () => {
       '<b>2 particles</b></br><small>picks &lt;1&gt;.em</small>',
     );
   });
+
+  it('is plain text when asked (no tags, nothing escaped)', () => {
+    const list = { ...createParticles(new Float32Array([0, 0, 0, 5, 0, 0])), label: 'picks <1>.em' };
+    expect(lociLabel(Particle.Loci(list, OrderedSet.ofSingleton(1)), { htmlStyling: false })).toBe('1 | picks <1>.em');
+  });
 });

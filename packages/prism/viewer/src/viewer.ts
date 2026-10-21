@@ -410,6 +410,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const restore = spec.persist?.restore
       ? createLightRestore(viewScope, plugin, history, spec.persist.restore, {
           notify: (message) => notifications.post(message, 'info'),
+          // late-bound: the port is wired once the extensions are added (below)
+          ensureFor: (need) => extensionPort.ensureFor(need),
         })
       : undefined;
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.

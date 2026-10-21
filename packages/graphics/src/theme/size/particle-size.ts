@@ -31,16 +31,18 @@ export function ParticleSizeTheme(
   ctx: ThemeDataContext,
   props: PD.Values<ParticleSizeThemeParams>,
 ): SizeTheme<ParticleSizeThemeParams> {
-  // Without radii and a size set, the spacing's (picks of one kind about touching), measured once per list
-  const fallback =
-    props.defaultSize > 0 ? props.defaultSize : ctx.particles ? getParticleSpacingRadius(ctx.particles) : 1;
+  // Without radii and a size set, the spacing's (picks of one kind about touching), measured once per list and only
+  // when a particle has no radius (a list with radii, as a Simularium frame's, never pays for it)
+  let fallback: number | undefined;
+  const fallbackSize = () =>
+    (fallback ??=
+      props.defaultSize > 0 ? props.defaultSize : ctx.particles ? getParticleSpacingRadius(ctx.particles) : 1);
   function size(location: Location): number {
-    let s = fallback;
     if (Particle.isLocation(location)) {
       const { particles, index } = location;
-      s = particles.radii?.[index] ?? fallback;
+      return (particles.radii?.[index] ?? fallbackSize()) * props.scale;
     }
-    return s * props.scale;
+    return fallbackSize() * props.scale;
   }
 
   return {

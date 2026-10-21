@@ -9,6 +9,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultFormats, DefaultRegistry } from '@molstar/plugin/default-registry';
+import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { createViewerRegistry } from '@molstar/viewer/registry';
@@ -27,9 +28,12 @@ async function createPlugin(customFormats?: [string, DataFormatProvider.Unnamed]
 }
 
 describe('createViewerRegistry', () => {
-  it('lists DefaultRegistry followed by the custom formats entry', async () => {
+  it('lists DefaultRegistry and ParticlesRegistry followed by the custom formats entry', async () => {
     const { registry, plugin } = await createPlugin([['extra', customProvider('Custom extra')]]);
-    expect(registry.slice(0, -1)).toEqual(DefaultRegistry);
+    expect(registry.slice(0, -1)).toEqual([...DefaultRegistry, ...ParticlesRegistry]);
+    // particles, as the Viewer read them in 5.12
+    expect(plugin.dataFormats.has('relion_star_particles')).toBe(true);
+    expect(plugin.representation.particles.registry.list.length).toBeGreaterThan(0);
     expect(registry[registry.length - 1].formats!.map((f) => f.name)).toEqual(['extra']);
     expect(plugin.managers.animation.animations[0].name).toBe('built-in.animate-model-index');
 

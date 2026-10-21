@@ -6,7 +6,8 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { gzipSync } from 'node:zlib';
+import { describe, expect, it, vi } from 'vitest';
 import { StateTransformer } from '@molstar/core/state';
 import { ParticleActions, ParticleFormats } from '@molstar/plugin/particles-registry';
 import { expectOk, headlessViewer } from '../../../_test/harness.js';
@@ -44,6 +45,30 @@ describe('the particles feature, lazy', () => {
 
     const cellpack = 'data_cellpack_model\n# cellPACK recipe\n_entry.id cellpack\n';
     await v.extensions.ensureFor({ fileExtensions: ['cif'], files: [{ name: 'hiv.cif', content: bytes(cellpack) }] });
+    expect(loaded(v)).toBe(true);
+  });
+
+  it('loads for a gzipped mmCIF holding particles (sniffed inflated)', async () => {
+    const v = await headlessViewer();
+    const cellpack = gzipSync(new TextEncoder().encode('data_cellpack_model\n# cellPACK recipe\n_entry.id cellpack\n'));
+    await v.extensions.ensureFor({
+      fileExtensions: ['cif'],
+      files: [{ name: 'hiv.cif.gz', content: async () => new Uint8Array(cellpack) }],
+    });
+    expect(loaded(v)).toBe(true);
+  });
+
+  it('loads for a downloaded mmCIF holding particles (sniffed once it is here), not for a downloaded structure', async () => {
+    const cellpack = 'data_cellpack_model\n# cellPACK recipe\n_entry.id cellpack\n';
+    vi.stubGlobal('fetch', async (input: string | URL | Request) => {
+      const url = String(typeof input === 'object' && 'url' in input ? input.url : input);
+      return new Response(url.includes('hiv.cif') ? cellpack : crambin, { status: 200 });
+    });
+    const v = await headlessViewer();
+    expectOk(await v.api.load.url({ url: 'https://files.test/1crn.cif' }));
+    expect(loaded(v)).toBe(false);
+    // the list itself is not readable from this stub: the feature loading is what is asked here
+    await v.api.load.url({ url: 'https://files.test/hiv.cif' });
     expect(loaded(v)).toBe(true);
   });
 

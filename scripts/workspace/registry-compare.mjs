@@ -30,8 +30,9 @@ const Allowed = {
 };
 
 /**
- * Particles are opt-in (`ParticlesRegistry`, breaking-v6-changes.md): the default spec and the Viewer register none of
- * them, so the baseline's particle entries are taken out before comparing.
+ * Particles are opt-in (`ParticlesRegistry`, breaking-v6-changes.md): the default spec registers none of them, so the
+ * baseline's particle entries are taken out before comparing it; the Viewer composes `ParticlesRegistry` (as in 5.12)
+ * and is compared with them.
  */
 const ParticleTransformer =
   /^ms-plugin\.(particle|parse-artiatomi-em|parse-cryoet-data-portal-ndjson|parse-dynamo-tbl|parse-simularium)/;
@@ -102,7 +103,8 @@ try {
       problems.push(`${target}: target missing from the current dump`);
       continue;
     }
-    diff(target, withoutParticles(baseline.targets[target]), withoutAllowed(c), problems);
+    const expected = target === 'viewer' ? baseline.targets[target] : withoutParticles(baseline.targets[target]);
+    diff(target, expected, withoutAllowed(c), problems);
 
     // The allowed differences must actually be present, so an obsolete allowance is noticed.
     for (const [scope, t] of Object.entries(c.themes)) {
