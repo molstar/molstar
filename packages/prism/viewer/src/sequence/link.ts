@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { escapeHtml } from '@molstar/core/util/string';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { Extents } from '@molstar/seq-core/model';
 import { StructureLink } from './molstar/link.js';
@@ -180,8 +181,7 @@ function annotateHover(seq: SequenceViewer['seq'], annotate: NonNullable<Sequenc
 }
 
 /** Escaped for Mol*'s label HTML, on one line: a line break would make the label Markdown to Prism (`hoverRich`). */
-const escapeHtml = (s: string) =>
-  s.replace(/\s+/g, ' ').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const oneLine = (s: string) => escapeHtml(s.replace(/\s+/g, ' '));
 
 /**
  * Seq*'s providers that label the residue itself (its name and numbers, its copies, its stored letter): Mol*'s label
@@ -205,9 +205,9 @@ export function sequenceLabelHtml(label: HoverLabel): string | undefined {
     const from = label.from?.[i];
     if (residueLine(from, l)) continue;
     if (label.track && l.key === label.track) named = true;
-    lines.push(escapeHtml(l.value ? `${l.key}: ${l.value}` : l.key));
+    lines.push(oneLine(l.value ? `${l.key}: ${l.value}` : l.key));
   }
   if (!lines.length) return undefined;
-  if (label.track && !named) lines.unshift(`<b>${escapeHtml(label.track)}</b>`);
+  if (label.track && !named) lines.unshift(`<b>${oneLine(label.track)}</b>`);
   return lines.join('<br/>');
 }

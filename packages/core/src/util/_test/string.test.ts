@@ -3,9 +3,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { interpolate, interpolateIdPath, validateIdPathTemplate } from '../string.js';
+import { escapeHtml, interpolate, interpolateIdPath, validateIdPathTemplate } from '../string.js';
 
 describe('string', () => {
+  it('escapes text for HTML markup: &, < and >, & first (no double escape)', () => {
+    expect(escapeHtml('a < b && c > d')).toBe('a &lt; b &amp;&amp; c &gt; d');
+    expect(escapeHtml('&lt;')).toBe('&amp;lt;');
+  });
+
   describe('interpolate', () => {
     it('substitutes simple placeholders', () => {
       expect(interpolate('Hello ${name}!', { name: 'world' })).toBe('Hello world!');

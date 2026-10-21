@@ -8,7 +8,7 @@
 import { Unit, StructureElement, StructureProperties as Props, type Bond } from './structure.js';
 import { Loci } from './loci.js';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
-import { capitalize, stripTags } from '@molstar/core/util/string';
+import { capitalize, escapeHtml, stripTags } from '@molstar/core/util/string';
 import { Column } from '@molstar/core/data/db/column';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { radToDeg } from '@molstar/core/math/misc';
@@ -444,9 +444,4 @@ export function dihedralLabel(quad: Loci.Bundle<4>, options: Partial<LabelOption
   if (o.measureOnly) return dihedral;
   const label = bundleLabel(quad, o);
   return o.condensed ? `${dihedral} | ${label}` : `Dihedral ${dihedral}</br>${label}`;
-}
-
-/** Text from a loaded file inside a label's markup */
-function escapeHtml(text: string) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
