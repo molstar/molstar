@@ -2579,8 +2579,10 @@ function particleTrajectory(plugin: PluginContext, api: ViewerApi, ref: string):
         ? api.run('particles.stop')
         : api.run('particles.play', { particles: ref, mode: mode.value, seconds: seconds.value }));
     },
-    // The canvas' frame bar is the structures' (trajectory source): a particle row does not step it back
-    markShown() {},
+    // The canvas' frame bar steps back while the row is on screen, as for a structure's (the trajectory source)
+    markShown(on) {
+      trajectorySourceOf(plugin).markRowShown(ref, on);
+    },
     refresh(frames) {
       if (count.value !== frames.count) count.set(frames.count);
       if (index.value !== frames.index) index.set(frames.index);

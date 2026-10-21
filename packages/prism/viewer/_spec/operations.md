@@ -82,7 +82,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `particles.play` | Play the particle frames | view; needs canvas | mode, seconds, particles |
 | `particles.remove` | Remove particles | destructive | particles, representation, node |
 | `particles.representation` | Show particles as… |  | type, params, particles |
-| `particles.source` | Set how particles are read |  | params, particles |
+| `particles.source` | Set how particles are read | agent-only | params, particles |
 | `particles.stop` | Stop playing the particle frames | view |  |
 | `particles.targets` | Set what the particles stand for | network (addresses) | file, source, target, particles |
 | `particles.unit-cell` | Show the particle unit cell |  | visible, color, opacity, particles |

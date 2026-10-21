@@ -18,13 +18,9 @@ import { ExampleFiles, openAt, RealViewerStory } from '../../../testing/real-vie
 const meta: Meta = { title: 'Viewer/Particles', parameters: { layout: 'fullscreen' } };
 export default meta;
 
-/** A few frames: what was just built reaches the canvas (its bounds) before the camera frames it */
-const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 200));
-
-/** The camera to everything, once the canvas has it */
+/** The camera to everything */
 async function frameAll(v: PrismViewer) {
-  await settle();
-  await frameAll(v);
+  await v.api.camera.reset({ animate: false });
 }
 
 async function load(v: PrismViewer, url: string) {
@@ -43,7 +39,7 @@ export const CryoEtRibosomes: StoryObj = {
       <RealViewerStory
         setup={async (v) => {
           await load(v, ExampleFiles.cryoetRibosomes);
-          await v.api.particles!.source({ params: { pixelSize: 6.802, particleRadius: 120 } });
+          await v.api.particles!.source({ params: { pixelSize: 6.802 } });
           await v.api.particles!.representation({ type: 'orientation' });
           await frameAll(v);
           pickList(v);
@@ -52,14 +48,13 @@ export const CryoEtRibosomes: StoryObj = {
     )),
 };
 
-/** RELION STAR: 300 HIV capsid picks with their poses (10 Å pixels from the optics block), 50 Å each, by index. */
+/** RELION STAR: 300 HIV capsid picks with their poses (10 Å pixels from the optics block), colored by index. */
 export const RelionStar: StoryObj = {
   render: () =>
     story(() => (
       <RealViewerStory
         setup={async (v) => {
           await load(v, ExampleFiles.relionSubtomo);
-          await v.api.particles!.source({ params: { particleRadius: 50 } });
           await v.api.particles!.color({ theme: 'particle-index' });
           await frameAll(v);
           pickList(v);
@@ -75,7 +70,7 @@ export const DynamoOneTomogram: StoryObj = {
       <RealViewerStory
         setup={async (v) => {
           await load(v, ExampleFiles.dynamo);
-          await v.api.particles!.source({ params: { tomos: ['2'], pixelSize: 10, particleRadius: 50 } });
+          await v.api.particles!.source({ params: { tomos: ['2'], pixelSize: 10 } });
           await frameAll(v);
           pickList(v);
         }}
@@ -90,7 +85,7 @@ export const ArtiatomiMotivelist: StoryObj = {
       <RealViewerStory
         setup={async (v) => {
           await load(v, ExampleFiles.artiatomi);
-          await v.api.particles!.source({ params: { pixelSize: 13, particleRadius: 120 } });
+          await v.api.particles!.source({ params: { pixelSize: 13 } });
           await frameAll(v);
           pickList(v);
         }}

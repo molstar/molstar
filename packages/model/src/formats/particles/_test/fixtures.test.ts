@@ -13,7 +13,7 @@ import { parseCryoEtDataPortalNdjson } from '@molstar/io/reader/cryoet/ndjson';
 import { parseDynamoTbl } from '@molstar/io/reader/dynamo/tbl';
 import { getRelionStarTomogramNames, parseRelionStar } from '@molstar/io/reader/relion/star';
 import { parseSimularium } from '@molstar/io/reader/simularium/parser';
-import type { ParticleList } from '@molstar/model/model/particles/particle-list';
+import { getParticleSpacingRadius, type ParticleList } from '@molstar/model/model/particles/particle-list';
 import { createParticleListFromArtiatomiEm, getArtiatomiMotivelistTomogramIds } from '../em.js';
 import { createParticleListFromCryoEtDataPortalNdjson } from '../ndjson.js';
 import { createParticleListFromSimularium, getSimulariumFrameCount } from '../simularium.js';
@@ -56,6 +56,9 @@ describe('particle fixtures in data/examples/particles', () => {
     expect(data.records.every((r) => r.type === 'orientedPoint')).toBe(true);
 
     const list = createParticleListFromCryoEtDataPortalNdjson(data, { pixelSize: 6.802 });
+    // no radii: picks of 70S ribosomes (~250 Å) about touch, the default size half their spacing
+    expect(getParticleSpacingRadius(list)).toBeGreaterThan(50);
+    expect(getParticleSpacingRadius(list)).toBeLessThan(500);
     expect(list.count).toBe(200);
     expectFinite(list);
     expectUnitRotations(list);

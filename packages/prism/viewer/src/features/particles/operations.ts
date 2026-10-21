@@ -300,6 +300,10 @@ export class ParticlesApi extends ApiArea {
   readonly source = this.operation({
     id: 'particles.source',
     title: 'Set how particles are read',
+    surface: {
+      kind: 'agent-only',
+      reason: "The list's Source form in the inspector; a format's own params have no command form",
+    },
     params: {
       params: PD.Value<Record<string, unknown>>(
         {},

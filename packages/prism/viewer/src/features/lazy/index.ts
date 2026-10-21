@@ -201,6 +201,7 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.focus', title: 'Focus the particles', category: 'Particles', icon: 'focus' },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell', category: 'Particles', icon: 'box' },
       { id: 'particles.targets', title: 'Set what the particles stand for…', category: 'Particles', icon: 'shapes' },
+      { id: 'particles.frame', title: 'Show a particle frame…', category: 'Particles', icon: 'trajectory' },
       { id: 'particles.play', title: 'Play the particle frames', category: 'Particles', icon: 'play' },
       { id: 'particles.stop', title: 'Stop playing the particle frames', category: 'Particles', icon: 'square' },
     ],

@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { CustomProperties } from '../../custom-property.js';
-import { getParticleTransforms, ParticleList } from '../particle-list.js';
+import { getParticleSpacingRadius, getParticleTransforms, ParticleList } from '../particle-list.js';
 
 function createParticles(coordinates: Float32Array, rotations?: Float32Array): ParticleList {
   const count = coordinates.length / 3;
@@ -74,5 +74,22 @@ describe('getParticleTransforms', () => {
   it('caches the result on the particle list', () => {
     const particles = createParticles(new Float32Array([1, 2, 3]));
     expect(getParticleTransforms(particles)).toBe(getParticleTransforms(particles));
+  });
+});
+
+describe('getParticleSpacingRadius', () => {
+  it('is half the distance to the nearest particle, for particles on a lattice', () => {
+    const coords: number[] = [];
+    for (let i = 0; i < 6; i++)
+      for (let j = 0; j < 6; j++) for (let k = 0; k < 6; k++) coords.push(i * 10, j * 10, k * 10);
+    const list = createParticles(new Float32Array(coords));
+    expect(getParticleSpacingRadius(list)).toBeCloseTo(5, 4);
+    // cached
+    expect(getParticleSpacingRadius(list)).toBe(getParticleSpacingRadius(list));
+  });
+
+  it('is 1 for a single particle or particles all at one point', () => {
+    expect(getParticleSpacingRadius(createParticles(new Float32Array([1, 2, 3])))).toBe(1);
+    expect(getParticleSpacingRadius(createParticles(new Float32Array([1, 2, 3, 1, 2, 3])))).toBe(1);
   });
 });

@@ -62,6 +62,13 @@ export function particleCommands(api: ViewerApi): CommandDefinition<ViewerComman
       alias: ['particle targets', 'subtomogram average', 'place structure at particles', 'reference object'],
       action: 'Set',
     }),
+    operationCommand(api, particles.frame, {
+      category: 'Particles',
+      icon: 'trajectory',
+      title: 'Show a particle frame…',
+      alias: ['particle frame', 'simularium frame', 'go to frame'],
+      action: 'Show',
+    }),
     operationCommand(api, particles.play, {
       category: 'Particles',
       icon: 'play',

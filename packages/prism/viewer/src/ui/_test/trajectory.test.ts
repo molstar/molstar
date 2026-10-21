@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ensemble } from '../../api/_test/trajectory-fixtures.js';
 import { cbs, expectOk, headlessViewer, until } from '../../_test/harness.js';
@@ -30,6 +32,29 @@ describe('the trajectory controls', () => {
       await until(() => model.index.value === 2);
       // Viewing: no step of its own.
       expect(v.managers.history.steps.value.length).toBe(2);
+    } finally {
+      dispose();
+    }
+  });
+
+  it("follow a particle trajectory's frames (Simularium) as a structure's, through particles.*", async () => {
+    const file = new File(
+      [
+        fs.readFileSync(
+          path.resolve(import.meta.dirname, '../../../../../../data/examples/particles/small.simularium'),
+        ),
+      ],
+      'small.simularium',
+    );
+    const v = await headlessViewer({ files: [file] });
+    const { model, dispose } = createTrajectoryControls(v.plugin, v.api.as({ kind: 'person' }));
+    try {
+      expect(model.count.value).toBe(5);
+      expect(model.unit.value).toBe('frames');
+      model.seek(3);
+      await until(() => model.index.value === 3);
+      const list = v.plugin.managers.particles.hierarchy.current.lists[0];
+      expect((list.cell.transform.params as { frameIndex: number }).frameIndex).toBe(3);
     } finally {
       dispose();
     }

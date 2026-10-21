@@ -36,6 +36,11 @@ export interface TrajectoryInfo {
    * file's own models (an NMR ensemble).
    */
   readonly unit: 'models' | 'frames';
+  /**
+   * A particle list read from a trajectory (a Simularium file), whose frames the canvas' bar shows as a structure's:
+   * `ref` and `model` are the list's, its frames moved through `particles.*`. Absent: a structure's.
+   */
+  readonly kind?: 'particles';
 }
 
 /** The transformer that adds coordinates (a simulation's frames) to a model. */
@@ -61,6 +66,46 @@ export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
     });
   }
   return out;
+}
+
+const ParticleListFromTrajectory = 'ms-plugin.particle-list-from-trajectory';
+/** The animation that steps a particle trajectory (the particles feature's, `ParticlesRegistry`). */
+export const ParticleTrajectoryAnimation = 'built-in.animate-particle-trajectory';
+
+/** The particle lists read from a trajectory with several frames (Simularium), after the structures. */
+export function particleTrajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
+  const out: TrajectoryInfo[] = [];
+  for (const l of plugin.managers.particles.hierarchy.current.lists) {
+    const cell = plugin.state.data.cells.get(l.cell.transform.ref) ?? l.cell;
+    if (cell.transform.transformer.id !== ParticleListFromTrajectory) continue;
+    const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj;
+    const count = (parent?.data as { frameCount?: number } | undefined)?.frameCount ?? 0;
+    if (count < 2) continue;
+    out.push({
+      ref: cell.transform.ref,
+      label: cell.obj?.label ?? cell.transform.ref,
+      model: cell.transform.ref,
+      count,
+      index: (cell.transform.params as { frameIndex?: number }).frameIndex ?? 0,
+      unit: 'frames',
+      kind: 'particles',
+    });
+  }
+  return out;
+}
+
+/** Everything with frames the canvas' bar can show: the structures', then the particle trajectories'. */
+export function frameInfos(plugin: PluginContext): TrajectoryInfo[] {
+  return [...trajectoryInfos(plugin), ...particleTrajectoryInfos(plugin)];
+}
+
+/** A particle trajectory's frames are being played: any, or (`ref`, a list's) that list's. */
+export function isPlayingParticleFrames(plugin: PluginContext, ref?: string): boolean {
+  const animation = plugin.managers.animation;
+  if (!animation.isAnimating || animation.current?.anim.name !== ParticleTrajectoryAnimation) return false;
+  if (ref === undefined) return true;
+  const refs = (animation.current.paramValues as { refs?: readonly string[] }).refs;
+  return !refs?.length || refs.includes(ref);
 }
 
 /** The frames are being played: any, or (`model`, a model cell's ref) that model's. */
@@ -89,6 +134,14 @@ export function playingStructures(
   if (!isPlayingFrames(plugin)) return NoneShown;
   const out = new Set<string>();
   for (const t of list) if (isPlayingFrames(plugin, t.model)) out.add(t.ref);
+  return out;
+}
+
+/** What plays: the structures whose frames play, or the particle list whose do. */
+function playingFrames(plugin: PluginContext): ReadonlySet<string> {
+  if (!isPlayingParticleFrames(plugin)) return playingStructures(plugin);
+  const out = new Set<string>();
+  for (const t of particleTrajectoryInfos(plugin)) if (isPlayingParticleFrames(plugin, t.ref)) out.add(t.ref);
   return out;
 }
 
@@ -181,8 +234,13 @@ export function trajectorySourceOf(plugin: PluginContext): TrajectorySource {
 export function createTrajectorySource(plugin: PluginContext): TrajectorySource {
   const hierarchy = plugin.managers.structure.hierarchy;
   const frames = watchedState(
-    () => trajectoryInfos(plugin),
-    () => merge(hierarchy.behaviors.selection, plugin.state.data.events.changed),
+    () => frameInfos(plugin),
+    () =>
+      merge(
+        hierarchy.behaviors.selection,
+        plugin.managers.particles.hierarchy.behaviors.selection,
+        plugin.state.data.events.changed,
+      ),
     { compare: (a, b) => sameItems(a, b, sameInfo) },
   );
   const pick = (list: readonly TrajectoryInfo[]) => {
@@ -202,7 +260,7 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
     { compare: (a, b) => (a && b ? sameShape(a, b) : a === b), coalesce: 'none', derived: true },
   );
   const playing = watchedState(
-    () => isPlayingFrames(plugin),
+    () => isPlayingFrames(plugin) || isPlayingParticleFrames(plugin),
     () => plugin.managers.animation.events.updated,
     {
       coalesce: 'none',
@@ -211,8 +269,13 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
   // Which structures play changes with the animation (played, stopped) and with the structures (one added or removed),
   // not with the frame shown: it does not follow `frames`, which changes every frame of a play.
   const playingRefs = watchedState(
-    () => playingStructures(plugin),
-    () => merge(plugin.managers.animation.events.updated, hierarchy.behaviors.selection),
+    () => playingFrames(plugin),
+    () =>
+      merge(
+        plugin.managers.animation.events.updated,
+        hierarchy.behaviors.selection,
+        plugin.managers.particles.hierarchy.behaviors.selection,
+      ),
     { coalesce: 'none', compare: sameSet },
   );
   const counts = new Map<string, number>();
