@@ -9,7 +9,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { CIF } from '@molstar/io/reader/cif';
@@ -23,7 +23,7 @@ import { computeInteractions } from '../interactions.js';
 import { BridgeProviderParams, ContactProviderParams, type InteractionsProps } from '../params.js';
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
-const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
+const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
 
 async function loadCif(name: string): Promise<Model> {
   const parsed = await CIF.parse(fs.readFileSync(path.join(examples, name), 'utf8')).run();

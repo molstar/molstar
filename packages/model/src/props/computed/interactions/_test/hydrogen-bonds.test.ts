@@ -11,7 +11,7 @@ import { SortedArray } from '@molstar/core/data/int';
 import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import { Structure, type StructureElement, Unit } from '@molstar/model/model/structure';
@@ -21,7 +21,7 @@ import { FeatureType, InteractionType } from '../common.js';
 import { computeInteractions } from '../interactions.js';
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
-const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
+const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
 
 /** Donor–acceptor element pairs of the intra- and inter-unit H-bonds */
 async function hydrogenBonds(structure: Structure) {

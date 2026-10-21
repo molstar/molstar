@@ -12,7 +12,7 @@ import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
@@ -79,7 +79,7 @@ const graphicsStub = {
   namedTextures: {},
 } as any;
 
-const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
+const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
 
 async function createRepr(structure: Structure, graphics: any, props: Record<string, any> = {}, sizeTheme = 'uniform') {
   const provider = InteractionsRepresentationProvider;
