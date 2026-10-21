@@ -59,6 +59,23 @@ export function clippingUI(ctx: ViewerUIContext): ViewerExtensionUI {
         }),
       },
     ],
+    nodeActions: [
+      {
+        id: 'clipping.node-action.clip-this',
+        title: 'Clip this…',
+        icon: 'scissors',
+        order: 10,
+        kinds: ['component', 'representation'],
+        when: (node) => !!ctx.api.clipping?.canClipThis(node.id),
+        run: (node) => {
+          const clipping = ctx.api.clipping;
+          if (!clipping) return;
+          void clipping.clipThis(ctx.api, node.id).then((ok) => {
+            if (ok) void ctx.api.view.open({ tab: 'selection', section: ClippingSectionId });
+          });
+        },
+      },
+    ],
     selectionActions: [
       {
         id: 'clipping.selection-action.clip',
@@ -80,10 +97,16 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
   const selected = derive(ctx.sources.interaction.selection, (s) => s !== undefined);
   // The types it cuts: every type the selection is drawn as but those unchecked (a new type comes checked)
   const types = clipping.selectionTypes;
-  const excluded = observableState<readonly string[]>([]);
-  const chosen = derive([types, excluded.asReadonly], (ts, ex) => ts.filter((t) => !ex.includes(t)));
-  const toggle = (t: string) =>
-    excluded.set(excluded.value.includes(t) ? excluded.value.filter((x) => x !== t) : [...excluded.value, t]);
+  const filter = clipping.filter;
+  const chosen = derive([types, filter.asReadonly], (ts, f) =>
+    ts.filter((t) => (f.only ? f.only.includes(t) : !f.excluded.includes(t))),
+  );
+  // Set by hand, the filter is the types left out (a type drawn later comes checked)
+  const exclude = (excluded: readonly string[]) => filter.set({ excluded });
+  const toggle = (t: string) => {
+    const on = chosen.value.includes(t);
+    exclude(types.value.filter((x) => (x === t ? on : !chosen.value.includes(x))));
+  };
   const add = (shape: CutShape) => {
     // all chosen: no filter, so a type drawn later is cut too
     const only = chosen.value.length === types.value.length ? [] : chosen.value;
@@ -105,23 +128,24 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           on ? 'Cut through what the selection is drawn as:' : 'Select something to cut through what it is drawn as.',
         )}
       </p>
-      {/* As the Structure tab's header and Snapshots' Add: quiet buttons, an icon and a word each */}
+      {/* As a representation's Type: a strip of icons, their names as tooltips (a shape is plain from its icon) */}
       <div
-        style="display: flex; flex-wrap: wrap; gap: var(--msp-space-1); min-width: 0"
+        style="display: flex; padding: 2px; border-radius: var(--msp-radius-md); background: var(--msp-color-control); min-width: 0"
         role="group"
         aria-label="Cut with"
       >
         {CutShapes.map((shape) => (
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={<Icon name={ShapeIcons[shape]} />}
-            title={`Cut with a ${CutShapeLabels[shape].toLowerCase()}`}
-            disabled={derive(canAdd, (on) => !on)}
-            onClick={() => add(shape)}
-          >
-            {CutShapeLabels[shape]}
-          </Button>
+          <span style="flex: 1 1 0; min-width: 0; display: grid">
+            <Button
+              size="sm"
+              variant="ghost"
+              block
+              icon={<Icon name={ShapeIcons[shape]} />}
+              title={`Cut with a ${CutShapeLabels[shape].toLowerCase()}`}
+              disabled={derive(canAdd, (on) => !on)}
+              onClick={() => add(shape)}
+            />
+          </span>
         ))}
       </div>
       <Show when={derive(types, (t) => t.length > 1)}>
@@ -152,10 +176,10 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
               </For>
             </div>
             <span style="flex: 1" />
-            <Button size="xs" variant="ghost" title="Cut through every type" onClick={() => excluded.set([])}>
+            <Button size="xs" variant="ghost" title="Cut through every type" onClick={() => exclude([])}>
               All
             </Button>
-            <Button size="xs" variant="ghost" title="Uncheck every type" onClick={() => excluded.set(types.value)}>
+            <Button size="xs" variant="ghost" title="Uncheck every type" onClick={() => exclude(types.value)}>
               None
             </Button>
           </div>
@@ -216,7 +240,9 @@ function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: Reado
             <div style={row}>
               <Icon name={ShapeIcons[shape]} size={16} />
               <span style="flex: 1; min-width: 0; display: grid">
-                <span>{derive(cut, (c) => (c ? `Cut ${c.index} · ${CutShapeLabels[shape]}` : ''))}</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                  {derive(cut, (c) => (c ? `${CutShapeLabels[shape]} ${c.index}` : ''))}
+                </span>
                 <span style={`${caption}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap`}>
                   {derive(cut, (c) => (c ? c.targets.map((t) => t.label).join(', ') : ''))}
                 </span>

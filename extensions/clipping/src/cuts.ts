@@ -173,10 +173,24 @@ export const coneScale = (angle: number) =>
  * something seen (one centered in a hollow capsid cuts nothing); a cylinder drilled toward the viewer; a cone from the
  * center opening toward the viewer.
  */
-export function placeCut(shape: CutShape, sphere: Sphere3D, view: Vec3): CutObject {
-  const { center, radius: r } = sphere;
+/**
+ * A new cut over `target` (the targeted atoms' bounds) in what the representations draw (`drawn`), seen from `view`
+ * (toward the camera). A closed shape on a small target (a residue, a ligand) is centered on it, around it with some
+ * room; on a large one (the whole polymer), where one inside would show nothing, it is pushed toward the camera: a
+ * window into it. A plane goes through the target's center, facing the camera; a cylinder is a shaft along the view.
+ */
+export function placeCut(shape: CutShape, target: Sphere3D, view: Vec3, drawn: Sphere3D = target): CutObject {
+  const { center } = target;
+  // sized by what it cuts, never so small it is lost (a few atoms)
+  const r = Math.max(target.radius, MinPlacedRadius);
   const toward = Vec3.normalize(Vec3(), Vec3.magnitude(view) > 0 ? view : Vec3.create(0, 0, 1));
-  const at = (k: number) => Vec3.scaleAndAdd(Vec3(), center, toward, k * r);
+  const small = target.radius < 0.5 * drawn.radius;
+  // from the target's center toward the camera, how far to the front of what is drawn
+  const front = Math.max(exitDistance(center, toward, drawn), r / 2);
+  const window = (size: number) =>
+    small
+      ? { position: Vec3.clone(center), size: 2 * Math.max(target.radius + AroundRoom, MinPlacedRadius) }
+      : { position: Vec3.scaleAndAdd(Vec3(), center, toward, 0.85 * r), size };
   const base = { type: shape, invert: false, transform: Mat4.identity() };
   switch (shape) {
     case 'plane':
@@ -186,26 +200,56 @@ export function placeCut(shape: CutShape, sphere: Sphere3D, view: Vec3): CutObje
         rotation: rotationTo(LocalUp, toward),
         scale: Vec3.create(1, 1, 1),
       };
-    case 'sphere':
+    case 'sphere': {
+      const w = window(r);
       return {
         ...base,
-        position: at(0.85),
+        position: w.position,
         rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
-        scale: Vec3.create(r, r, r),
+        scale: Vec3.create(w.size, w.size, w.size),
       };
-    case 'cube':
-      return { ...base, position: at(0.85), rotation: rotationTo(LocalUp, toward), scale: Vec3.create(r, r / 2, r) };
-    case 'cylinder':
+    }
+    case 'cube': {
+      const w = window(r);
       return {
         ...base,
-        position: at(0.5),
+        position: w.position,
         rotation: rotationTo(LocalUp, toward),
-        scale: Vec3.create(0.4 * r, r, 0.4 * r),
+        scale: Vec3.create(w.size, w.size, w.size),
+      };
+    }
+    case 'cylinder':
+      // along the view, through the target and out the front: a shaft down to it
+      return {
+        ...base,
+        position: Vec3.scaleAndAdd(Vec3(), center, toward, front),
+        rotation: rotationTo(LocalUp, toward),
+        scale: Vec3.create(r, 2 * front * 1.05, r),
       };
     case 'infiniteCone':
-      return { ...base, position: Vec3.clone(center), rotation: rotationTo(ConeOpening, toward), scale: coneScale(25) };
+      return {
+        ...base,
+        position: Vec3.clone(center),
+        rotation: rotationTo(ConeOpening, toward),
+        scale: coneScale(25),
+      };
   }
 }
+
+/** How far from `from` along the unit `dir` a ray leaves `sphere` (0 when it starts outside, past it) */
+function exitDistance(from: Vec3, dir: Vec3, sphere: Sphere3D): number {
+  const oc = Vec3.sub(Vec3(), from, sphere.center);
+  const b = Vec3.dot(oc, dir);
+  const c = Vec3.dot(oc, oc) - sphere.radius * sphere.radius;
+  const disc = b * b - c;
+  return disc < 0 ? 0 : Math.max(0, -b + Math.sqrt(disc));
+}
+
+/** The room (Å) a closed shape leaves around a small target */
+export const AroundRoom = 4;
+
+/** The least radius (Å) a new cut is sized from: a few atoms' bounds would make a cut too small to see or grab */
+export const MinPlacedRadius = 12;
 
 /** Each representation's params with `next` in place of `previous` (or appended when absent; removed when undefined) */
 export function withObject(params: unknown, previous: CutObject | undefined, next: CutObject | undefined): unknown {

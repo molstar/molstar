@@ -83,3 +83,31 @@ export const BoxHandles: StoryObj = clippingStory(async (v) => {
   ok(await v.api.clipping!.add({ shape: 'cube', types: ['molecular-surface'] }));
   v.api.clipping!.gizmos.setHandled(1, true);
 });
+
+/** Clip this… from the structure tree's row menu, on the polymer's surface: selected, narrowed to the surface, a sphere */
+export const ClipThisFromTheTree: StoryObj = clippingStory(async (v) => {
+  const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
+    (c) => c.cell.obj?.label === 'Polymer',
+  );
+  const surface = polymer?.representations.find(
+    (r) => (r.cell.transform.params as { type?: { name: string } }).type?.name === 'molecular-surface',
+  );
+  if (!surface) throw new Error('No surface');
+  await v.api.clipping!.clipThis(v.api.as({ kind: 'person' }), surface.cell.transform.ref);
+  ok(await v.api.clipping!.add({ shape: 'sphere', types: ['molecular-surface'] }));
+  v.api.clipping!.gizmos.setHandled(1, true);
+});
+
+/** A sphere around the ligand inside the surface (centered on what it targets, with room) */
+export const AroundTheLigand: StoryObj = clippingStory(async (v) => {
+  ok(await v.api.select.set({ target: 'ligand' }));
+  const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
+    (c) => c.cell.obj?.label === 'Polymer',
+  );
+  const surface = polymer?.representations.find(
+    (r) => (r.cell.transform.params as { type?: { name: string } }).type?.name === 'molecular-surface',
+  );
+  if (!surface) throw new Error('No surface');
+  ok(await v.api.clipping!.add({ shape: 'sphere', node: `#${surface.cell.transform.ref}`, target: 'ligand' }));
+  v.api.clipping!.gizmos.setHandled(1, true);
+});

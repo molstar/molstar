@@ -4,16 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { StateObjectCell } from '@molstar/core/state';
 import { Clip } from '@molstar/core/util/clip';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { StructureElement } from '@molstar/model/model/structure';
+import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 import type { PluginContext } from '@molstar/plugin/context';
 import { selectNodes } from '@molstar/prism-viewer/api';
 import { watchedState } from '@molstar/prism-viewer/sources/watched';
-import type { ReadonlyState } from '@molstar/prism-ui/core';
+import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult, type ViewerApi } from '@molstar/prism-viewer/api/area';
 import { NodeParam, OptionalParam, TargetParam } from '@molstar/prism-viewer/api/params';
 import { ClipGizmos } from './gizmo/controller.js';
@@ -70,6 +71,41 @@ export class ClippingApi extends ApiArea {
     );
   }
 
+  /**
+   * The section's filter (which of the selection's representation types a new cut goes through): every type but
+   * `excluded`, or, set by Clip this… on a representation, only `only` (of the types the selection has by then)
+   */
+  readonly filter = observableState<{ readonly excluded: readonly string[]; readonly only?: readonly string[] }>({
+    excluded: [],
+  });
+
+  /**
+   * Clip this… on a component's or a representation's row: its atoms selected (the person's step), the filter narrowed
+   * to the representation's type (a component's: all its types). The section opening is the caller's.
+   */
+  async clipThis(api: ViewerApi, ref: string): Promise<boolean> {
+    const state = this.ctx.plugin.state.data;
+    const cell = state.cells.get(ref);
+    if (!cell) return false;
+    const representation = RepresentationClip.isClippable(cell);
+    const component = representation ? state.cells.get(cell.transform.parent) : cell;
+    const data = component?.obj?.data;
+    if (!(data instanceof Structure)) return false;
+    const r = await api.run('select.set', { target: { loci: Structure.toStructureElementLoci(data) } });
+    if (!r.ok) return false;
+    this.filter.set(representation ? { excluded: [], only: [representationType(cell)] } : { excluded: [] });
+    return true;
+  }
+
+  /** Clip this… offered: a structure's component, or a representation of one */
+  canClipThis(ref: string): boolean {
+    const state = this.ctx.plugin.state.data;
+    const cell = state.cells.get(ref);
+    if (!cell) return false;
+    const component = RepresentationClip.isClippable(cell) ? state.cells.get(cell.transform.parent) : cell;
+    return component?.obj?.data instanceof Structure;
+  }
+
   /** What `cut` can be turned on for: its representations and those near them (clipping.apply) */
   candidates(cut: Cut): CutTarget[] {
     return cutCandidates(this.ctx.plugin.state.data, cut);
@@ -113,7 +149,8 @@ export class ClippingApi extends ApiArea {
       invert: PD.Boolean(false, { description: 'Remove the other side (a plane) or the outside (a closed shape)' }),
     },
     async run({ shape, target, node, types, invert }, ctx) {
-      const cells = await targetCells(ctx, target, node, types);
+      const around: { sphere?: Sphere3D } = {};
+      const cells = await targetCells(ctx, target, node, types, around);
       if (ApiResult.isFailure(cells)) return cells;
       const full = cells.filter(
         (c) => RepresentationClip.get(c.transform.params)!.objects.length >= Clip.MaxObjectCount,
@@ -125,11 +162,14 @@ export class ClippingApi extends ApiArea {
           'Remove a cut first.',
         );
       }
-      const sphere = representationsSphere(cells);
-      if (!sphere) return ApiResult.fail('not-found', 'What it would cut draws nothing yet.');
+      // centered on what was targeted (its atoms), else on what the representations draw (a volume's, a shape's)
+      const drawn = representationsSphere(cells);
+      if (!drawn) return ApiResult.fail('not-found', 'What it would cut draws nothing yet.');
+      const sphere = around.sphere ?? drawn;
       const camera = ctx.plugin.canvas3d?.camera.state;
-      const view = camera ? Vec3.sub(Vec3(), camera.position, sphere.center) : Vec3.create(0, 0, 1);
-      const object = { ...placeCut(shape, sphere, view), invert };
+      // along the line of sight (not toward the camera's position): pushed toward the viewer, it stays over the target
+      const view = camera ? Vec3.sub(Vec3(), camera.position, camera.target) : Vec3.create(0, 0, 1);
+      const object = { ...placeCut(shape, sphere, view, drawn), invert };
       await commit(ctx, cells, undefined, object);
       const cut = findCuts(ctx.plugin).find((c) => RepresentationClip.objectsEqual(c.object, object));
       return ApiResult.ok(
@@ -315,6 +355,8 @@ export async function targetCells(
   target: unknown,
   node: string,
   types: readonly string[],
+  /** Given, it gets the bounds of the targeted atoms (none for a node selector) */
+  around?: { sphere?: Sphere3D },
 ): Promise<StateObjectCell[] | ApiFailure> {
   const state = ctx.plugin.state.data;
   const out = new Map<string, StateObjectCell>();
@@ -349,6 +391,10 @@ export async function targetCells(
     }
     const structures = ctx.plugin.managers.structure.hierarchy.current.structures;
     for (const part of resolved.parts) {
+      if (around) {
+        const s = StructureElement.Loci.getBoundary(part.loci).sphere;
+        around.sphere = around.sphere ? Sphere3D.expandBySphere(Sphere3D(), around.sphere, s) : Sphere3D.clone(s);
+      }
       const s = structures.find((x) => x.cell.transform.ref === part.structure.ref);
       for (const component of s?.components ?? []) {
         const data = component.cell.obj?.data;
