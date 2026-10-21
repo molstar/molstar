@@ -113,10 +113,18 @@ class MoveBinding implements GizmoBinding<StructurePlacement> {
   }
 
   async commit(key: string, _from: StructurePlacement, next: StructurePlacement) {
-    const done = await this.commitMove(key, next.matrix);
-    // the state has the move (or not): the representations as they were drawn before the drag
-    this.#restore();
-    return done;
+    // Nothing drawn until the state has the move and the preview is off: the representations are rebuilt where the
+    // move puts them while still carrying the preview's transform (moved twice), or, the preview off first, drawn
+    // where they were (a blink either way).
+    const canvas = this.plugin.canvas3d;
+    canvas?.pause(true);
+    try {
+      return await this.commitMove(key, next.matrix);
+    } finally {
+      // the state has the move (or not): the representations as they were drawn before the drag
+      this.#restore();
+      canvas?.resume();
+    }
   }
 
   cancel() {

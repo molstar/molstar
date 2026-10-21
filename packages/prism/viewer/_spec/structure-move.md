@@ -9,7 +9,8 @@ a structure.
   frame is the center as placed now, turned as now (`placementPose`, `poseMatrix`).
 - **A drag's preview moves the structure's representations as drawn** (their state transforms, on top of what they had);
   recomputing a structure each frame would not keep up. Its release is one `structure.transform` with the matrix from
-  where it was loaded (a step); the representations' own transforms are put back once the state has it. A change of the
-  structure's cells under a drag cancels it.
+  where it was loaded (a step); the representations' own transforms are put back once the state has it, the canvas not
+  drawing in between (the representations rebuilt still carrying the preview would show the structure moved twice). A
+  change of the structure's cells under a drag cancels it.
 - **The section**: which structure (the one holding the selection, or the first; a row each when several), Reset
   (`structure.transform-reset`); the handles show while the section does. The `move` area adds no operations.
