@@ -24,7 +24,7 @@ import { PostprocessingParams, type PostprocessingProps } from '@molstar/graphic
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createContext } from '@molstar/graphics/gl/webgl/context';
 import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { PixelData } from '@molstar/core/util/image';
 import { InputObserver } from '@molstar/core/util/input/input-observer';
@@ -71,7 +71,7 @@ function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScr
   const input = InputObserver.create();
   const attribs = { ...Canvas3DContext.DefaultAttribs };
   const props = { ...Canvas3DContext.DefaultProps };
-  const assetManager = new AssetManager();
+  const assetManager = new DefaultAssetManager();
   let current = graphics;
   let passes = new Passes(current, assetManager, props);
   const pixelScale = 1;

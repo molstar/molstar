@@ -10,7 +10,7 @@ import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '@molstar/common-s
 import { getSchema, shortcutIconLink } from '@molstar/membrane-orientation-server/web-schema';
 import { MembraneOrientationProvider } from '@molstar/anvil-extension/prop';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { CIF, type CifFrame } from '@molstar/io/reader/cif';
 import { Model, Structure, StructureSymmetry } from '@molstar/model/model/structure';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
@@ -18,7 +18,7 @@ import { ANVILParams, type ANVILProps } from '@molstar/anvil-extension/algorithm
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ConsoleLogger } from '@molstar/core/util/console-logger';
 
-const assetManager = new AssetManager();
+const assetManager = new DefaultAssetManager();
 
 export function initWebApi(app: express.Express) {
   function makePath(p: string) {

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Canvas3D, type Canvas3DProps, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
@@ -60,7 +60,7 @@ function main() {
 
   const canvas3ds: Canvas3D[] = [];
 
-  const canvas3dContext = createWebGLCanvas3DContext(canvas, new AssetManager());
+  const canvas3dContext = createWebGLCanvas3DContext(canvas, new DefaultAssetManager());
   resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
   canvas3dContext.syncPixelScale();
 

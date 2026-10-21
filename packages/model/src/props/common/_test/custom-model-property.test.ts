@@ -9,7 +9,7 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import type { Model } from '@molstar/model/model/structure';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
-import { AssetManager, type Asset } from '@molstar/core/util/assets';
+import { DefaultAssetManager, type Asset } from '@molstar/core/util/assets';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CustomModelProperty } from '../custom-model-property.js';
@@ -49,7 +49,7 @@ function provider(type: 'static' | 'dynamic', disposed: string[]) {
   });
 }
 
-const ctx: CustomProperty.Context = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
+const ctx: CustomProperty.Context = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
 
 describe('CustomModelProperty assets', () => {
   it('a dynamic property keeps each model its own assets', async () => {

@@ -18,7 +18,7 @@ import { createRenderObject } from '@molstar/graphics/gl/render-object';
 import { Representation } from '@molstar/graphics/repr/representation';
 import { Torus } from '@molstar/graphics/geo/primitive/torus';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -27,7 +27,7 @@ parent.style.height = '100%';
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 
-const assetManager = new AssetManager();
+const assetManager = new DefaultAssetManager();
 
 const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);

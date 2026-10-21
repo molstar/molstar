@@ -12,7 +12,7 @@ import { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { ValueCell } from '@molstar/core/util';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
@@ -60,7 +60,10 @@ const registries = (() => {
   for (const p of Object.values(BuiltInSizeThemes)) sizeThemeRegistry.add(p as SizeTheme.Provider<any, any>);
   return { colorThemeRegistry, sizeThemeRegistry };
 })();
-const propCtx: CustomProperty.Context = { runtime: RuntimeContext.Synchronous, assetManager: new AssetManager() };
+const propCtx: CustomProperty.Context = {
+  runtime: RuntimeContext.Synchronous,
+  assetManager: new DefaultAssetManager(),
+};
 
 async function loadCells() {
   const data = fs.readFileSync(
