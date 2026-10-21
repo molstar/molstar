@@ -100,6 +100,29 @@ export function findCuts(plugin: PluginContext): Cut[] {
   return cuts.map((c, i) => ({ index: i + 1, ...c }));
 }
 
+/**
+ * What a cut can be turned on for (the cut's own representations first): the representations near those it is on,
+ * under their parent's parent (a component's structure, a volume's data), in tree order
+ */
+export function cutCandidates(state: State, cut: Cut): CutTarget[] {
+  const roots = new Set<string>();
+  for (const t of cut.targets) {
+    const parent = state.tree.transforms.get(t.ref)?.parent;
+    const grand = parent ? state.tree.transforms.get(parent)?.parent : undefined;
+    roots.add(grand ?? parent ?? t.ref);
+  }
+  const out: CutTarget[] = [...cut.targets];
+  const walk = (ref: string) => {
+    const cell = state.cells.get(ref);
+    if (cell && RepresentationClip.isClippable(cell) && !out.some((t) => t.ref === ref)) {
+      out.push({ ref, label: representationLabel(state, cell), type: representationType(cell) });
+    }
+    for (const child of state.tree.children.get(ref).values()) walk(child);
+  };
+  for (const root of roots) walk(root);
+  return out;
+}
+
 /** The bounding sphere of what the representations draw (their render objects, their transforms included) */
 export function representationsSphere(cells: readonly StateObjectCell[]): Sphere3D | undefined {
   let out: Sphere3D | undefined;

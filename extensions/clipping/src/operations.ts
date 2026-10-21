@@ -14,8 +14,9 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { selectNodes } from '@molstar/prism-viewer/api';
 import { watchedState } from '@molstar/prism-viewer/sources/watched';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '@molstar/prism-viewer/api/area';
+import { type ApiContext, ApiArea, type ApiFailure, ApiResult, type ViewerApi } from '@molstar/prism-viewer/api/area';
 import { NodeParam, OptionalParam, TargetParam } from '@molstar/prism-viewer/api/params';
+import { ClipGizmos } from './gizmo/controller.js';
 import {
   type Cut,
   type CutObject,
@@ -23,6 +24,8 @@ import {
   CutShapeLabels,
   CutShapes,
   clippableCells,
+  cutCandidates,
+  type CutTarget,
   findCuts,
   placeCut,
   representationLabel,
@@ -51,6 +54,26 @@ export class ClippingApi extends ApiArea {
     ],
     { compare: sameCuts },
   );
+
+  /** The cuts' gizmos in the canvas (the section's Show handles): their drags commit through the person's API */
+  readonly gizmos = new ClipGizmos(this.ctx.plugin, this.cuts);
+
+  /** Shows the gizmos, a drag committing through `api` (the person's: one `clipping.update`, one history step) */
+  showGizmos(api: ViewerApi): boolean {
+    return this.gizmos.show((cut, next) =>
+      api.run('clipping.update', {
+        cut,
+        position: [...next.position],
+        rotation: { axis: [...next.rotation.axis], angle: next.rotation.angle },
+        scale: [...next.scale],
+      }),
+    );
+  }
+
+  /** What `cut` can be turned on for: its representations and those near them (clipping.apply) */
+  candidates(cut: Cut): CutTarget[] {
+    return cutCandidates(this.ctx.plugin.state.data, cut);
+  }
 
   /** The representation types drawing the selection: what a new cut can be narrowed to (the section's filter) */
   readonly selectionTypes: ReadonlyState<readonly string[]> = watchedState(
@@ -159,6 +182,42 @@ export class ClippingApi extends ApiArea {
     },
   });
 
+  readonly apply = this.operation({
+    id: 'clipping.apply',
+    title: 'Cut a representation or not',
+    params: {
+      cut: CutParam(),
+      representation: PD.Text('', { description: "The representation's node ref (clipping.list: a cut's targets)" }),
+      on: PD.Boolean(true, { description: 'Cut it (true) or leave it whole (false)' }),
+    },
+    async run({ cut: index, representation, on }, ctx) {
+      const cut = oneCut(ctx, index);
+      if (ApiResult.isFailure(cut)) return cut;
+      const state = ctx.plugin.state.data;
+      const cell = state.cells.get(representation);
+      if (!cell || !RepresentationClip.isClippable(cell)) {
+        return ApiResult.fail('not-found', `There is no representation ${representation} to cut.`);
+      }
+      const label = representationLabel(state, cell);
+      const has = cut.targets.some((t) => t.ref === representation);
+      if (has === on) return ApiResult.already(`Cut ${index} is ${on ? 'already' : 'not'} on ${label}.`);
+      if (!on && cut.targets.length === 1) {
+        return ApiResult.fail(
+          'blocked',
+          `${label} is all cut ${index} is on.`,
+          'Remove the cut instead (clipping.remove).',
+        );
+      }
+      if (on && RepresentationClip.get(cell.transform.params)!.objects.length >= Clip.MaxObjectCount) {
+        return ApiResult.fail('blocked', `${label} has ${Clip.MaxObjectCount} clip objects already.`);
+      }
+      await commit(ctx, [cell], on ? undefined : cut.object, on ? cut.object : undefined);
+      return ApiResult.ok(on ? `Cut ${index} now cuts ${label}.` : `Cut ${index} leaves ${label} whole.`, {
+        nodes: [representation],
+      });
+    },
+  });
+
   readonly remove = this.operation({
     id: 'clipping.remove',
     title: 'Remove a cut',
@@ -201,7 +260,7 @@ function describe(cut: Cut): string {
   const p = [...cut.object.position].map((x) => x.toFixed(1)).join(', ');
   const what = CutShapeLabels[cut.object.type as CutShape] ?? cut.object.type;
   return `Cut ${cut.index}: ${what.toLowerCase()} at (${p})${cut.object.invert ? ', inverted' : ''} · ${cut.targets
-    .map((t) => t.label)
+    .map((t) => `${t.label} (${t.ref})`)
     .join(', ')}`;
 }
 

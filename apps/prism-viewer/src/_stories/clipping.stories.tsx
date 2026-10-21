@@ -71,3 +71,15 @@ export const EveryShape: StoryObj = clippingStory(async (v) => {
     ok(await v.api.clipping!.add({ shape, types: ['molecular-surface'] }));
   }
 });
+
+/** A plane with its handles in 3D: drag the orange knob to move it, the blue arrow to slide it, the green ring to turn it */
+export const PlaneHandles: StoryObj = clippingStory(async (v) => {
+  ok(await v.api.clipping!.add({ shape: 'plane', types: ['molecular-surface'] }));
+  v.api.clipping!.gizmos.setHandled(1, true);
+});
+
+/** A box with its handles: the purple corner knob sizes it */
+export const BoxHandles: StoryObj = clippingStory(async (v) => {
+  ok(await v.api.clipping!.add({ shape: 'cube', types: ['molecular-surface'] }));
+  v.api.clipping!.gizmos.setHandled(1, true);
+});

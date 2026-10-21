@@ -12,8 +12,7 @@ import { Button, domView, Icon, ParamsForm } from '@molstar/prism-ui';
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
-import { effect, requireScope, runInScope } from '@molstar/prism-ui/dom/scope';
-import { timeout } from '@molstar/prism-ui/dom/scoped';
+import { effect, onActive, onCleanup } from '@molstar/prism-ui/dom/scope';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -79,15 +78,25 @@ const caption = 'margin: 0; font-size: var(--msp-font-size-xs); color: var(--msp
 function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi }) {
   const { ctx, clipping } = props;
   const selected = derive(ctx.sources.interaction.selection, (s) => s !== undefined);
-  // Narrowed to these types (none pressed: every type the selection is drawn as)
-  const only = observableState<readonly string[]>([]);
+  // The types it cuts: every type the selection is drawn as but those unchecked (a new type comes checked)
   const types = clipping.selectionTypes;
+  const excluded = observableState<readonly string[]>([]);
+  const chosen = derive([types, excluded.asReadonly], (ts, ex) => ts.filter((t) => !ex.includes(t)));
   const toggle = (t: string) =>
-    only.set(only.value.includes(t) ? only.value.filter((x) => x !== t) : [...only.value, t]);
+    excluded.set(excluded.value.includes(t) ? excluded.value.filter((x) => x !== t) : [...excluded.value, t]);
   const add = (shape: CutShape) => {
-    const present = only.value.filter((t) => types.value.includes(t));
-    void ctx.api.run('clipping.add', { shape, types: present });
+    // all chosen: no filter, so a type drawn later is cut too
+    const only = chosen.value.length === types.value.length ? [] : chosen.value;
+    void ctx.api.run('clipping.add', { shape, types: only }).then((r) => {
+      // a cut made here comes with its handles
+      const cut = (r as { value?: Cut }).value;
+      if (r.ok && cut) clipping.gizmos.setHandled(cut.index, true);
+    });
   };
+  // The handled cuts' gizmos show while the section does: closed (or its tab), they go; opened, they come back
+  onActive((active) => (active ? clipping.showGizmos(ctx.api) : clipping.gizmos.hide()));
+  onCleanup(() => clipping.gizmos.hide());
+  const canAdd = derive([selected, chosen], (on, c) => on && c.length > 0);
   const numbers = derive(clipping.cuts, (cuts) => cuts.map((c) => c.index), sameNumbers);
   return (
     <div style="display: grid; gap: var(--msp-space-3); min-width: 0">
@@ -96,13 +105,19 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           on ? 'Cut through what the selection is drawn as:' : 'Select something to cut through what it is drawn as.',
         )}
       </p>
-      <div style={`${row}; flex-wrap: wrap`} role="group" aria-label="Cut with">
+      {/* As the Structure tab's header and Snapshots' Add: quiet buttons, an icon and a word each */}
+      <div
+        style="display: flex; flex-wrap: wrap; gap: var(--msp-space-1); min-width: 0"
+        role="group"
+        aria-label="Cut with"
+      >
         {CutShapes.map((shape) => (
           <Button
             size="sm"
+            variant="ghost"
             icon={<Icon name={ShapeIcons[shape]} />}
             title={`Cut with a ${CutShapeLabels[shape].toLowerCase()}`}
-            disabled={derive(selected, (on) => !on)}
+            disabled={derive(canAdd, (on) => !on)}
             onClick={() => add(shape)}
           >
             {CutShapeLabels[shape]}
@@ -111,29 +126,66 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
       </div>
       <Show when={derive(types, (t) => t.length > 1)}>
         {() => (
-          <div style={`${row}; flex-wrap: wrap`} role="group" aria-label="Only these representations">
-            <span style={caption}>Only</span>
-            <For each={types}>
-              {(t) => (
-                <Button
-                  size="xs"
-                  pressed={derive(only.asReadonly, (o) => o.includes(t))}
-                  title={`Cut only the ${t} (none pressed: all)`}
-                  onClick={() => toggle(t)}
-                >
-                  {t}
-                </Button>
-              )}
-            </For>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--msp-space-1); min-width: 0">
+            <span style={`${caption}; margin-right: var(--msp-space-1)`}>Through</span>
+            <div style="display: contents" role="group" aria-label="Cut through these representations">
+              <For each={types}>
+                {(t) => {
+                  const on = derive(chosen, (c) => c.includes(t));
+                  return (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      pressed={on}
+                      icon={
+                        <span style={derive(on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
+                          <Icon name="check" size={14} />
+                        </span>
+                      }
+                      title={derive(on, (v) => (v ? `Leave the ${t} whole` : `Cut through the ${t} too`))}
+                      onClick={() => toggle(t)}
+                    >
+                      <span style={derive(on, (v) => (v ? '' : 'color: var(--msp-color-text-muted)'))}>{t}</span>
+                    </Button>
+                  );
+                }}
+              </For>
+            </div>
+            <span style="flex: 1" />
+            <Button size="xs" variant="ghost" title="Cut through every type" onClick={() => excluded.set([])}>
+              All
+            </Button>
+            <Button size="xs" variant="ghost" title="Uncheck every type" onClick={() => excluded.set(types.value)}>
+              None
+            </Button>
           </div>
         )}
       </Show>
       <Show when={derive(numbers, (n) => n.length > 0)}>
         {() => (
           <div style="display: grid; gap: var(--msp-space-1)">
-            <p style={caption}>Cuts</p>
+            <div style={row}>
+              <p style={`${caption}; flex: 1`}>Cuts</p>
+              <Button
+                size="xs"
+                variant="ghost"
+                title="Handles in 3D on every cut: drag to move, turn or size it (Esc cancels)"
+                onClick={() => clipping.gizmos.handleAll(true)}
+              >
+                All
+              </Button>
+              <Button size="xs" variant="ghost" title="No handles" onClick={() => clipping.gizmos.handleAll(false)}>
+                None
+              </Button>
+            </div>
             <For each={numbers}>
-              {(index) => <CutRow ctx={ctx} cut={derive(clipping.cuts, (cs) => cs.find((c) => c.index === index))} />}
+              {(index) => (
+                <CutRow
+                  ctx={ctx}
+                  clipping={clipping}
+                  cut={derive(clipping.cuts, (cs) => cs.find((c) => c.index === index))}
+                />
+              )}
             </For>
           </div>
         )}
@@ -147,12 +199,13 @@ function sameNumbers(a: readonly number[], b: readonly number[]) {
 }
 
 /** A cut: its shape and what it is on; flip, edit (its numbers), remove */
-function CutRow(props: { ctx: ViewerUIContext; cut: ReadonlyState<Cut | undefined> }) {
-  const { ctx, cut } = props;
+function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: ReadonlyState<Cut | undefined> }) {
+  const { ctx, clipping, cut } = props;
+  const handled = derive([clipping.gizmos.handled, cut], (h, c) => !!c && h.includes(c.index));
   const editing = observableState(false);
   const run = (op: string, values: Record<string, unknown>) => {
     const c = cut.value;
-    if (c) void ctx.api.run(op, { cut: c.index, ...values });
+    return c ? ctx.api.run(op, { cut: c.index, ...values }) : undefined;
   };
   return (
     <Show when={cut}>
@@ -168,6 +221,19 @@ function CutRow(props: { ctx: ViewerUIContext; cut: ReadonlyState<Cut | undefine
                   {derive(cut, (c) => (c ? c.targets.map((t) => t.label).join(', ') : ''))}
                 </span>
               </span>
+              <Button
+                size="xs"
+                variant="ghost"
+                icon={<Icon name="move-3d" />}
+                title={derive(handled, (on) =>
+                  on ? 'Hide its handles' : 'Handles in 3D: drag to move, turn or size it (Esc cancels)',
+                )}
+                pressed={handled}
+                onClick={() => {
+                  const c = cut.value;
+                  if (c) clipping.gizmos.setHandled(c.index, !handled.value);
+                }}
+              />
               <Button
                 size="xs"
                 variant="ghost"
@@ -192,7 +258,14 @@ function CutRow(props: { ctx: ViewerUIContext; cut: ReadonlyState<Cut | undefine
                 onClick={() => run('clipping.remove', {})}
               />
             </div>
-            <Show when={editing.asReadonly}>{() => <CutForm cut={cut} shape={shape} run={run} />}</Show>
+            <Show when={editing.asReadonly}>
+              {() => (
+                <>
+                  <CutTargets clipping={clipping} cut={cut} run={run} />
+                  <CutForm cut={cut} shape={shape} run={run} />
+                </>
+              )}
+            </Show>
           </div>
         );
       }}
@@ -200,31 +273,78 @@ function CutRow(props: { ctx: ViewerUIContext; cut: ReadonlyState<Cut | undefine
   );
 }
 
+/** What a cut is on, and the representations near them it could be: each checked or not (the last stays checked) */
+function CutTargets(props: {
+  clipping: ClippingApi;
+  cut: ReadonlyState<Cut | undefined>;
+  run(op: string, values: Record<string, unknown>): void;
+}) {
+  const candidates = derive(props.cut, (c) => (c ? props.clipping.candidates(c) : []), sameTargets);
+  return (
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--msp-space-1); min-width: 0">
+      <span style={`${caption}; margin-right: var(--msp-space-1)`}>Through</span>
+      <div style="display: contents" role="group" aria-label="The representations it cuts">
+        <For each={candidates}>
+          {(t) => {
+            const on = derive(props.cut, (c) => !!c?.targets.some((x) => x.ref === t.ref));
+            const last = derive(props.cut, (c) => !!c && c.targets.length === 1 && c.targets[0].ref === t.ref);
+            return (
+              <Button
+                size="xs"
+                variant="ghost"
+                pressed={on}
+                disabled={last}
+                icon={
+                  <span style={derive(on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
+                    <Icon name="check" size={14} />
+                  </span>
+                }
+                title={derive(on, (v) => (v ? `Leave ${t.label} whole` : `Cut ${t.label} too`))}
+                onClick={() => props.run('clipping.apply', { representation: t.ref, on: !on.value })}
+              >
+                <span style={derive(on, (v) => (v ? '' : 'color: var(--msp-color-text-muted)'))}>{t.label}</span>
+              </Button>
+            );
+          }}
+        </For>
+      </div>
+    </div>
+  );
+}
+
+function sameTargets(a: readonly { ref: string }[], b: readonly { ref: string }[]) {
+  return a.length === b.length && a.every((t, i) => t.ref === b[i].ref);
+}
+
 /** A cut's numbers by its shape: where, which way, how large (Å, degrees) */
 function CutForm(props: {
   cut: ReadonlyState<Cut | undefined>;
   shape: CutShape;
-  run(op: string, values: Record<string, unknown>): void;
+  run(op: string, values: Record<string, unknown>): Promise<unknown> | void;
 }) {
   const { cut, shape } = props;
   const params = formParams(shape);
-  const owner = requireScope('CutForm');
-  let pending: (() => void) | undefined;
+  // An edit applies at once, one update in flight: values changed meanwhile go in the next (the latest wins)
+  let running = false;
+  let latest: Record<string, unknown> | undefined;
+  const flush = async () => {
+    running = true;
+    while (latest) {
+      const values = latest;
+      latest = undefined;
+      await props.run('clipping.update', updateOf(shape, values));
+    }
+    running = false;
+  };
   const form = new ParamsFormModel(params, cut.value ? formValues(cut.value) : undefined, {
-    // Typing and sliders change values at their rate: one update a moment after the last
     onChange: (values) => {
-      pending?.();
-      pending = runInScope(owner, () =>
-        timeout(() => {
-          pending = undefined;
-          props.run('clipping.update', updateOf(shape, values));
-        }, 150),
-      );
+      latest = values;
+      if (!running) void flush();
     },
   });
   // The cut as it is now (a gizmo dragged, an undo): the form follows
   effect(cut, (c) => {
-    if (c && !pending) form.load(formValues(c) as never);
+    if (c && !running) form.load(formValues(c) as never);
   });
   return <ParamsForm form={form} />;
 }

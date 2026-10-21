@@ -14,6 +14,7 @@
       "import": "./lib/*.js"
     },
     "./_test/*": null,
+    "./gizmo/_test/*": null,
     "./prism-viewer-ui": null
   },
   "files": [
