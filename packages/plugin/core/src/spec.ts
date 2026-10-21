@@ -22,6 +22,7 @@ import type { StructureRepresentationPresetProvider } from '@molstar/plugin/stat
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { MarkdownExtension } from '@molstar/plugin/state/manager/markdown-extensions';
 import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
+import type { AssetManager } from '@molstar/core/util/assets';
 
 export { PluginSpec };
 
@@ -34,6 +35,8 @@ interface PluginSpec {
     initial?: Partial<PluginLayoutStateProps>;
   };
   config?: [PluginConfigItem, unknown][];
+  /** Called once per `PluginContext`; `undefined` uses a new `DefaultAssetManager` that the plugin disposes. */
+  assetManager?: PluginSpec.AssetManagerFactory;
 }
 
 /**
@@ -74,6 +77,16 @@ export namespace PluginRegistryEntry {
 }
 
 namespace PluginSpec {
+  /**
+   * Provides a plugin's `managers.asset`. Return a new manager per call, or one shared by several plugins with
+   * `disposeWithPlugin: false`.
+   */
+  export type AssetManagerFactory = () => {
+    manager: AssetManager;
+    /** Whether `PluginContext.dispose()` disposes the manager; `true` when omitted. */
+    disposeWithPlugin?: boolean;
+  };
+
   export interface Action {
     action: StateAction | StateTransformer;
     /* constructible react component with <action.customControl /> */

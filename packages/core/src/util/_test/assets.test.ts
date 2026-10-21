@@ -6,7 +6,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task } from '@molstar/core/task';
-import { Asset, AssetManager } from '../assets.js';
+import { Asset, DefaultAssetManager } from '../assets.js';
 
 // the byte cache is tested against a stubbed download: nothing here reaches the network
 vi.mock('../data-source.js', async (importOriginal) => ({
@@ -30,14 +30,14 @@ function serve(text: string, gate?: Promise<void>) {
   );
 }
 
-describe('AssetManager URL cache', () => {
+describe('DefaultAssetManager URL cache', () => {
   beforeEach(() => {
     ajaxMock.mockReset();
   });
 
   it('two resolves of the same URL fetch once', async () => {
     serve('abc');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const a = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     const b = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     expect(`${a.data}`).toBe('abc');
@@ -48,7 +48,7 @@ describe('AssetManager URL cache', () => {
 
   it('the same Asset.Url resolved twice counts two references', async () => {
     serve('abc');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const asset = Asset.Url('https://x.org/a');
     const a = await m.resolve(asset, 'string').run();
     const b = await m.resolve(asset, 'string').run();
@@ -62,7 +62,7 @@ describe('AssetManager URL cache', () => {
 
   it('drops the entry after the last holder disposes and fetches again', async () => {
     serve('abc');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const a = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     const b = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     a.dispose();
@@ -80,7 +80,7 @@ describe('AssetManager URL cache', () => {
   it('shares one download between concurrent resolves', async () => {
     let open!: () => void;
     serve('shared', new Promise<void>((r) => (open = r)));
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const p = [1, 2, 3].map(() => m.resolve(Asset.Url('https://x.org/a'), 'string').run());
     await Promise.resolve();
     open();
@@ -100,7 +100,7 @@ describe('AssetManager URL cache', () => {
     const gate = new Promise<void>((_, rej) => (fail = () => rej(new Error('boom'))));
     gate.catch(() => {});
     serve('x', gate);
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const p = [0, 1].map(() => m.resolve(Asset.Url('https://x.org/a'), 'string').run());
     const settled = Promise.allSettled(p);
     await Promise.resolve();
@@ -119,7 +119,7 @@ describe('AssetManager URL cache', () => {
   it('an aborted downloader does not fail the waiters, one takes over', async () => {
     let open!: () => void;
     serve('first', new Promise<void>((r) => (open = r)));
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
 
     let abort!: (reason?: string) => void;
     const downloader = m.resolve(Asset.Url('https://x.org/a'), 'string').run((p) => (abort = p.requestAbort));
@@ -144,7 +144,7 @@ describe('AssetManager URL cache', () => {
 
   it('serves different response types from the same bytes', async () => {
     serve('{"a":1}');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const s = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     const b = await m.resolve(Asset.Url('https://x.org/a'), 'binary').run();
     const j = await m.resolve(Asset.Url('https://x.org/a'), 'json').run();
@@ -157,7 +157,7 @@ describe('AssetManager URL cache', () => {
 
   it('keeps URLs and headers apart', async () => {
     serve('x');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     await m.resolve(Asset.Url('https://x.org/b'), 'string').run();
     await m.resolve(Asset.Url('https://x.org/a', { headers: { Authorization: 'k' } }), 'string').run();
@@ -168,7 +168,7 @@ describe('AssetManager URL cache', () => {
 
   it('does not cache requests with a body, nor store: false', async () => {
     serve('x');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const a = await m.resolve(Asset.Url('https://x.org/q', { body: '{}' }), 'string').run();
     const b = await m.resolve(Asset.Url('https://x.org/q', { body: '{}' }), 'string').run();
     expect(ajaxMock).toHaveBeenCalledTimes(2);
@@ -184,7 +184,7 @@ describe('AssetManager URL cache', () => {
 
   it('gives holds back when an entry is deleted or the manager is cleared', async () => {
     serve('x');
-    const m = new AssetManager();
+    const m = new DefaultAssetManager();
     const asset = Asset.Url('https://x.org/a');
     await m.resolve(asset, 'string').run();
     await m.resolve(Asset.Url('https://x.org/b'), 'string').run();
