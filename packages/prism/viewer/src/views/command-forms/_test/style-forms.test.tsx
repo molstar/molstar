@@ -118,6 +118,37 @@ describe('Show as… own form', () => {
     );
   });
 
+  it('keeps an asked type other than the default, though it is shown; the default, shown, gives way', async () => {
+    const p = await mount('representation.set', { component: 'Polymer', structure: '1CBS' });
+    // Add spacefill, then ask for it again: the form opens on it.
+    p.invocation.set('type', 'spacefill', { stay: true });
+    await p.invocation.confirm();
+    expect(typesOf(p.plugin)).toContain('spacefill');
+    document.body.innerHTML = '';
+    const again = await mount('representation.set', { component: 'Polymer', structure: '1CBS', type: 'spacefill' });
+    expect(again.invocation.state.value.values.type).toBe('spacefill');
+    // Cartoon is the default, and shown: the pick starts on a type it does not show.
+    document.body.innerHTML = '';
+    const def = await mount('representation.set', { component: 'Polymer', structure: '1CBS', type: 'cartoon' });
+    expect(def.invocation.state.value.values.type).not.toBe('cartoon');
+  });
+
+  it('reaches the type’s options by Tab from the type, and back (commands.md §5.1)', async () => {
+    const p = await mount('representation.set', { component: 'Polymer', structure: '1CBS' });
+    p.invocation.set('type', 'spacefill', { stay: true });
+    await flush();
+    p.container.querySelector('input')!.focus();
+    p.key('Tab');
+    expect((document.activeElement as HTMLInputElement).type).toBe('range');
+    expect(document.activeElement?.closest('section')?.getAttribute('aria-label')).toBe('Options');
+    const sentence = p.invocation.state.value.fields.map((f) => f.id);
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(document.activeElement).toBe(p.container.querySelector('input'));
+    expect(p.invocation.state.value.field).toBe(sentence[sentence.length - 1]);
+  });
+
   it('moves the pick with the arrows', async () => {
     const p = await mount('representation.set', { component: 'Polymer', structure: '1CBS' });
     const before = p.checked();
@@ -168,5 +199,35 @@ describe('Color by theme… own form', () => {
     const theme = (r.cell.transform.params as { colorTheme: { name: string; params: { value: number } } }).colorTheme;
     expect(theme.name).toBe('uniform');
     expect(theme.params.value).toBe(0xff0000);
+  });
+
+  it('reaches the uniform color’s swatches by Tab', async () => {
+    const p = await mount('representation.color-theme', { structure: '1CBS', target: 'polymer' });
+    p.tiles()
+      .find((t) => t.textContent === 'Uniform')!
+      .click();
+    await flush();
+    p.container.querySelector('input')!.focus();
+    p.key('Tab');
+    expect(document.activeElement?.closest('section')?.getAttribute('aria-label')).toBe('Color');
+  });
+
+  it('drops the uniform color when another theme is picked: it runs (not "a color or a theme, not both")', async () => {
+    const p = await mount('representation.color-theme', { structure: '1CBS', target: 'polymer' });
+    p.tiles()
+      .find((t) => t.textContent === 'Uniform')!
+      .click();
+    await flush();
+    // A swatch's input (a drag over the color) sets the color without running.
+    p.invocation.setParam('color', '#00ff00');
+    expect(p.invocation.state.value.params.color).toBe('#00ff00');
+    p.tiles()
+      .find((t) => t.textContent === 'Chain Id')!
+      .click();
+    await flush();
+    await flush();
+    expect(p.invocation.state.value.error).toBeUndefined();
+    const r = polymer(p.plugin).representations[0];
+    expect((r.cell.transform.params as { colorTheme: { name: string } }).colorTheme.name).toBe('chain-id');
   });
 });

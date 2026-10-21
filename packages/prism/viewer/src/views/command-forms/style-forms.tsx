@@ -25,8 +25,9 @@ import { classes } from './_generated/style-forms.module.css.js';
 // the component supports, drawn as the inspector's representation rows (icon and name), with the picked type's main
 // options under them; Color by theme… as the themes that apply, each painted with its colors on the structure, and the
 // uniform color's swatches, by the registry's categories; a click on a theme (or a swatch) applies it, as the quick
-// settings' tiles do, a click on a type picks it (its options follow). The menu's input keeps the focus: typing filters the choices, the arrows move the pick,
-// Enter runs, Tab goes to the sentence's other fields, ⌫ and Esc as in any form.
+// settings' tiles do, a click on a type picks it (its options follow). The menu's input keeps the focus: typing filters
+// the choices, the arrows move the pick, Enter runs, Tab goes to the sentence's other fields and, past the last, to the
+// options and swatches under the choices (and back), ⌫ and Esc as in any form.
 
 /** The own forms, by command id: given to the command menu (`CommandMenuProps.forms`). */
 export function styleCommandForms(model: StyleFormsModel): Record<string, CommandFormView> {
@@ -67,10 +68,14 @@ export function ShowAsForm(props: FormProps) {
   const { invocation, model } = props;
   const state = invocation.state;
   const types = derive(derive(state, subjectOf), () => model.types(invocation.values()));
-  // Add: a type it does not show yet, unless one was asked for (typed, or by a preset).
+  // Add: a type it does not show yet, unless one was asked for (typed, by a preset, or in the values it opened with).
+  // The invocation does not say where a value came from, so the type's default (the registry's first) counts as not
+  // asked: an asked type other than it is kept, shown or not; asked for, the default is still replaced while shown.
   const first = types.value.find((t) => !t.shown);
   const asked = state.value.values.type;
-  if (first && (asked === undefined || types.value.find((t) => t.id === asked)?.shown !== false)) {
+  const fallback = (invocation.params.type as { defaultValue?: unknown } | undefined)?.defaultValue;
+  const notAsked = asked === undefined || asked === fallback;
+  if (first && notAsked && types.value.find((t) => t.id === asked)?.shown !== false) {
     invocation.set('type', first.id, { stay: true });
   }
   const type = derive(state, (s) => (typeof s.values.type === 'string' ? s.values.type : ''));
@@ -161,6 +166,11 @@ export function ColorThemeForm(props: FormProps) {
     () => model.themes(invocation.values()),
   );
   const uniform = derive(state, (s) => s.values.theme === 'uniform');
+  // The color is the uniform theme's: another theme runs without it (the operation takes a color or a theme, not both,
+  // api.md §2 `representation`), as Show as… starts another type from its defaults.
+  effect(uniform, (u) => {
+    if (!u && state.value.params.color !== undefined) invocation.setParam('color', undefined);
+  });
   const color = derive(state, (s) => (typeof s.params.color === 'string' ? decodeColor(s.params.color) : undefined));
   const pickColor = (c: number) => {
     invocation.set('theme', 'uniform', { stay: true });

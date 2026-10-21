@@ -12,7 +12,8 @@ import { ToolMenuRows } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { observableState } from '@molstar/prism-ui/core';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { requireScope, runInScope } from '@molstar/prism-ui/dom/scope';
+import { menuKeys } from '@molstar/prism-ui/dom/focus';
+import { effect, requireScope, runInScope } from '@molstar/prism-ui/dom/scope';
 import { on, timeout } from '@molstar/prism-ui/dom/scoped';
 import type { CanvasMenuItem } from '@molstar/prism-ui/shell/shell';
 import type { SelectionAction, SelectionModel } from '../../model/selection.js';
@@ -58,6 +59,16 @@ export function SelectionBar(props: { selection: SelectionModel }) {
     keep();
     leaving = runInScope(owner, () => timeout(() => close(), 160));
   };
+  // The menu is the selection's: it goes with it (Clear, or a selection emptied elsewhere), so the next selection does
+  // not open it again, nor take the focus as if it were opened from the keyboard.
+  const dismiss = () => {
+    keep();
+    byKeyboard = false;
+    open.set(false);
+  };
+  effect(selection.summary, (s) => {
+    if (!s) dismiss();
+  });
   const hoverOpen = (e: PointerEvent) => {
     keep();
     // A touch opens it by its click
@@ -109,7 +120,10 @@ export function SelectionBar(props: { selection: SelectionModel }) {
               aria-label="Clear selection"
               data-tip="Clear selection"
               data-tip-side="top"
-              onClick={() => selection.clear()}
+              onClick={() => {
+                dismiss();
+                selection.clear();
+              }}
             >
               <Icon name="x" size={16} />
             </button>
@@ -145,6 +159,8 @@ export function SelectionBar(props: { selection: SelectionModel }) {
                     }}
                     onPointerEnter={keep}
                     onPointerLeave={(e: PointerEvent) => e.pointerType !== 'touch' && leaveSoon()}
+                    // ↑↓ between the rows, Home and End, as the canvas stack's menus (canvas-chrome.tsx `ToolMenus`)
+                    onKeyDown={menuKeys}
                   >
                     <div class={classes.menuCard}>
                       <Show when={selection.actions}>

@@ -116,6 +116,12 @@ browsed, §5), `count?` (how much it would do, on its highlighted row, §5), `ch
   grid, Enter on what is typed); the rest is the sentence's (Tab, Enter, ⌫, Esc). The view edits the invocation: `set`
   for inline fields, `setParam(name, value)` for a form-only or hidden param (in the run's args and the preview, kept in
   `state.params`, dropped when a reshape removes the param), `run()` as Enter.
+- **Its own controls by Tab**: Tab on the sentence's last field (Shift+Tab on its first), with nothing typed to take,
+  moves the focus into the view's controls that are Tab stops (a type's size, the uniform color's swatches; its choice
+  tiles are not: the input's arrows move among them); Tab past the last control (Shift+Tab before the first) gives the
+  focus back to the input, on the sentence's first (last) field. A view with no such control leaves Tab the sentence's.
+  Why: what a view adds is offered nowhere else (hidden params, no "+ N more"), and a keyboard must reach it without the
+  input giving up its keys.
 - Why: a choice among many drawn things (types, themes) reads as what it draws, and keyboard flow stays the menu's. A
   hidden param is offered nowhere else, so `formOnly` leaves it out.
 

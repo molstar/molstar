@@ -109,6 +109,68 @@ describe('a command’s own form in the command menu', () => {
     expect(t.ran.length).toBe(1);
   });
 
+  it('Tab past the last field goes into its controls, and past them back to the input', () => {
+    const t = open({
+      fields: ['type'],
+      render: () => (
+        <div>
+          <button type="button" tabIndex={-1} data-tile="">
+            tile
+          </button>
+          <button type="button" data-size="">
+            size
+          </button>
+          <button type="button" data-quality="">
+            quality
+          </button>
+        </div>
+      ),
+    });
+    flush();
+    const size = t.container.querySelector<HTMLElement>('[data-size]')!;
+    const quality = t.container.querySelector<HTMLElement>('[data-quality]')!;
+    const tab = (shift = false) => {
+      const e = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: shift, bubbles: true, cancelable: true });
+      (document.activeElement as HTMLElement).dispatchEvent(e);
+      flush();
+      return e;
+    };
+    t.input().focus();
+    t.invocation.focus('what');
+    flush();
+    // Not the last field: the sentence's Tab.
+    tab();
+    expect(document.activeElement).toBe(t.input());
+    expect(t.invocation.state.value.field).toBe('type');
+    // The last field: into the form, past its tiles (not Tab stops), to its first control.
+    expect(tab().defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(size);
+    // Between its controls: the browser's Tab (not taken).
+    expect(tab().defaultPrevented).toBe(false);
+    quality.focus();
+    // Past the last: the input, on the first field.
+    expect(tab().defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(t.input());
+    expect(t.invocation.state.value.field).toBe('what');
+    // Shift+Tab on the first field: the form's last control; Shift+Tab before its first: the input, the last field.
+    tab(true);
+    expect(document.activeElement).toBe(quality);
+    size.focus();
+    tab(true);
+    expect(document.activeElement).toBe(t.input());
+    expect(t.invocation.state.value.field).toBe('type');
+  });
+
+  it('keeps Tab in the sentence when the form has no control to take the focus', () => {
+    const t = open({ render: () => <div /> });
+    t.input().focus();
+    t.invocation.focus('type');
+    flush();
+    t.key('Tab');
+    expect(document.activeElement).toBe(t.input());
+    expect(t.invocation.state.value.field).toBe('what');
+  });
+
   it('runs with the form-only values it set', async () => {
     const t = open({ render: () => <div /> });
     expect(t.invocation.setParam('options', { sizeFactor: 2 })).toBe(true);

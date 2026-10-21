@@ -38,17 +38,17 @@ does with it, and `runUrlLoads` below for the loading half.
 
 ### What a viewer gives you
 
-| Member                                    | What it is                                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `viewer.api`                              | Every operation, as a script calls them. See [the API](/docs/v6/prism-viewer/api/).                           |
-| `viewer.run(label, (plugin, api) => ...)` | Raw plugin work as one undoable step.                                                                         |
-| `viewer.state.ready`, `.busy`, `.empty`   | `ReadonlyState`s: an rxjs `Observable` with a synchronous `value`.                                            |
-| `viewer.events.hover`, `.click`, `.error` | Observables. Hover and click carry the target under the pointer.                                              |
-| `viewer.extensions`                       | Which extensions are loaded, the status of each lazy one, `load(id)`, and `mount(ext)` to add one at runtime. |
-| `viewer.managers`                         | `commands`, `history`, `navigation`, `viewState`, `notifications`, `transactions`.                            |
-| `viewer.record`                           | The session record that History shows.                                                                        |
-| `viewer.plugin`                           | The Mol\* plugin context. An escape hatch that the API does not promise to keep stable.                       |
-| `viewer.dispose()`                        | Tears the viewer down.                                                                                        |
+| Member                                              | What it is                                                                                                                                                                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewer.api`                                        | Every operation, as a script calls them. See [the API](/docs/v6/prism-viewer/api/).                                                                                                                           |
+| `viewer.run(label, (plugin, api) => ...)`           | Raw plugin work as one undoable step.                                                                                                                                                                         |
+| `viewer.state.ready`, `.busy`, `.working`, `.empty` | `ReadonlyState`s: an rxjs `Observable` with a synchronous `value`. `busy` is the plugin's debounced flag; `working` is anything in progress now (an operation, a lazy extension's load, the plugin updating). |
+| `viewer.events.hover`, `.click`, `.error`           | Observables. Hover and click carry the target under the pointer.                                                                                                                                              |
+| `viewer.extensions`                                 | Which extensions are loaded, the status of each lazy one, `load(id)`, and `mount(ext)` to add one at runtime.                                                                                                 |
+| `viewer.managers`                                   | `commands`, `history`, `navigation`, `viewState`, `notifications`, `transactions`.                                                                                                                            |
+| `viewer.record`                                     | The session record that History shows.                                                                                                                                                                        |
+| `viewer.plugin`                                     | The Mol\* plugin context. An escape hatch that the API does not promise to keep stable.                                                                                                                       |
+| `viewer.dispose()`                                  | Tears the viewer down.                                                                                                                                                                                        |
 
 ### Load from the URL
 

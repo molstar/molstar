@@ -311,11 +311,13 @@ api.running.subscribe((runs) => {});                    // the runs in progress
 A run record has `id`, `operation`, `title`, `values`, `origin`, `started`, `result`, `ms`, `step`, `group` and
 `nested`.
 
-The viewer's other observables are `viewer.state.ready`, `.busy` and `.empty`, `viewer.events.hover`, `.click` and
-`.error`, and `viewer.managers.history` (`steps`, `canUndo`, `undoBlocked`, `running`, `checkpointing`).
+The viewer's other observables are `viewer.state.ready`, `.busy`, `.working` and `.empty`, `viewer.events.hover`,
+`.click` and `.error`, and `viewer.managers.history` (`steps`, `canUndo`, `undoBlocked`, `running`, `checkpointing`).
 
 States are `ReadonlyState`: an rxjs `Observable` that replays its current value on subscribe and also has a synchronous
-`.value`. Events are plain observables that replay nothing.
+`.value`. Events are plain observables that replay nothing. `busy` is the plugin's flag, which comes on 750 ms late;
+`working` is true whenever anything is in progress now: an operation from its start, a lazy extension loading, the
+plugin updating.
 
 ## What is stable
 

@@ -17,7 +17,7 @@ import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { keepRows } from '../../components/virtual-list/virtual-list.js';
 import { For, Show } from '../../dom/control-flow.js';
-import { rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
+import { deepActiveElement, focusables, rememberFocus, trapTab, uniqueId } from '../../dom/focus.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { toNode } from '../../dom/render.js';
 import { effect, flushFrame, frameState, onCleanup, type WatchSource, watch } from '../../dom/scope.js';
@@ -55,6 +55,8 @@ export interface CommandMenuProps {
 /**
  * What a command's own form view gets (commands.md §5.1). It edits the open invocation (`set`, `setParam`, `focus`) and
  * runs it (`run`); the menu's input keeps the focus and its keys (Tab, Enter, ⌫, Esc), and `keys` sees each key first.
+ * Tab past the sentence's last field goes into the view's own controls (those that take the focus), and back to the
+ * input past them.
  */
 export interface CommandFormViewProps {
   manager: CommandManager<any>;
@@ -941,6 +943,39 @@ function FormMode(props: {
   // The picked completion, a gate: the options listen to it, not to every change of the state.
   const pick = derive(state, (s) => s.pick);
   const optionId = (i: number) => `${listId}-${i}`;
+  // The own form's element: Tab past the sentence's last field goes into its controls (commands.md §5.1).
+  let formEl: HTMLElement | undefined;
+  // Its Tab stops: not its tiles (`tabIndex` -1: the input's arrows move between them), which `focusables` keeps.
+  const formControls = () => (formEl ? focusables(formEl).filter((el) => el.tabIndex >= 0) : []);
+  /**
+   * Tab past the last field (Shift+Tab before the first) with nothing typed to take: the focus goes to the own form's
+   * first (last) control, its options the sentence does not show (a type's size, the uniform color). False: the
+   * sentence's Tab.
+   */
+  const intoForm = (back: boolean): boolean => {
+    if (!formEl) return false;
+    const s = state.value;
+    if (s.canAssist || (s.text.trim() && s.completions.length) || s.pick >= 0) return false;
+    const i = s.fields.findIndex((f) => f.id === s.field);
+    if (back ? i > 0 : i < s.fields.length - 1) return false;
+    const controls = formControls();
+    const to = back ? controls[controls.length - 1] : controls[0];
+    if (!to) return false;
+    to.focus();
+    return true;
+  };
+  /** Tab past the own form's last control (Shift+Tab before its first): back to the input, the sentence's first (last) field. */
+  const outOfForm = (e: KeyboardEvent) => {
+    if (e.key !== 'Tab' || e.defaultPrevented || !formEl || e.altKey || e.metaKey || e.ctrlKey) return;
+    const controls = formControls();
+    const at = deepActiveElement(formEl.ownerDocument);
+    if (at !== (e.shiftKey ? controls[0] : controls[controls.length - 1])) return;
+    e.preventDefault();
+    const fields = state.value.fields;
+    const field = e.shiftKey ? fields[fields.length - 1] : fields[0];
+    if (field) invocation.focus(field.id);
+    input.focus();
+  };
   const input = (
     <input
       class={classes.input}
@@ -963,7 +998,7 @@ function FormMode(props: {
           void invocation.enter();
         } else if (e.key === 'Tab') {
           e.preventDefault();
-          void invocation.tab(e.shiftKey ? -1 : 1);
+          if (!intoForm(e.shiftKey)) void invocation.tab(e.shiftKey ? -1 : 1);
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
           invocation.move(e.key === 'ArrowDown' ? 1 : -1);
@@ -1091,7 +1126,13 @@ function FormMode(props: {
         </For>
       </ScrollArea>
       {props.form ? (
-        <div class={classes.form}>
+        <div
+          class={classes.form}
+          ref={(el: HTMLElement) => {
+            formEl = el;
+          }}
+          onKeyDown={outOfForm}
+        >
           {props.form.render({
             manager,
             invocation,

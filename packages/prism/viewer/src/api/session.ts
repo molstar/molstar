@@ -216,7 +216,11 @@ export class SessionApi extends ApiArea {
 async function zippedTransformers(content: string | Uint8Array): Promise<string[]> {
   if (typeof content === 'string') return [];
   try {
-    const files = await unzip(RuntimeContext.Synchronous, content.slice().buffer);
+    // Only state.json is read (the rest is not inflated); the bytes are copied only when they are a view of a larger
+    // buffer, as unzip reads a whole ArrayBuffer.
+    const whole = content.byteOffset === 0 && content.byteLength === content.buffer.byteLength;
+    const buffer = (whole ? content.buffer : content.slice().buffer) as ArrayBuffer;
+    const files = await unzip(RuntimeContext.Synchronous, buffer, false, undefined, (n) => n === 'state.json');
     const state = files['state.json'];
     return state instanceof Uint8Array ? transformersOf(new TextDecoder().decode(state)) : [];
   } catch {

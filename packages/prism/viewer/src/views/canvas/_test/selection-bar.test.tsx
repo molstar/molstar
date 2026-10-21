@@ -80,6 +80,55 @@ describe('the selection bar', () => {
     dispose();
   });
 
+  it('closes its menu on Clear and with the selection, so the next selection does not open it', async () => {
+    const { container, summary, dispose } = mount();
+    const button = () => container.querySelector<HTMLButtonElement>('button[aria-haspopup=menu]')!;
+    // opened from the keyboard (`detail` 0), then cleared
+    button().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    await tick();
+    expect(document.querySelector('[role=menu]')).not.toBeNull();
+    container.querySelector<HTMLButtonElement>('[aria-label="Clear selection"]')!.click();
+    await tick();
+    expect(document.querySelector('[role=menu]')).toBeNull();
+    // emptied elsewhere while open
+    button().click();
+    await tick();
+    expect(document.querySelector('[role=menu]')).not.toBeNull();
+    summary.set(undefined);
+    await tick();
+    summary.set('3 residues');
+    await tick();
+    await tick();
+    expect(button().getAttribute('aria-expanded')).toBe('false');
+    expect(document.querySelector('[role=menu]')).toBeNull();
+    expect(document.activeElement?.getAttribute('role')).not.toBe('menuitem');
+    dispose();
+  });
+
+  it('moves between its rows with the arrows, Home and End', async () => {
+    const { container, dispose } = mount();
+    container
+      .querySelector<HTMLButtonElement>('button[aria-haspopup=menu]')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    await tick();
+    const rows = [...document.querySelectorAll<HTMLButtonElement>('[role=menu] [role=menuitem]')];
+    // opened from the keyboard: the first row has the focus
+    expect(document.activeElement).toBe(rows[0]);
+    const key = (k: string) =>
+      document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    key('ArrowDown');
+    expect(document.activeElement).toBe(rows[1]);
+    key('End');
+    expect(document.activeElement).toBe(rows[2]);
+    key('ArrowDown');
+    expect(document.activeElement).toBe(rows[0]);
+    key('ArrowUp');
+    expect(document.activeElement).toBe(rows[2]);
+    key('Home');
+    expect(document.activeElement).toBe(rows[0]);
+    dispose();
+  });
+
   it('opens on hover and closes a moment after the pointer leaves both the button and the menu', async () => {
     const { container, dispose } = mount();
     const button = container.querySelector<HTMLButtonElement>('button[aria-haspopup=menu]')!;
