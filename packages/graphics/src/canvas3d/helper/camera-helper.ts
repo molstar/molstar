@@ -9,6 +9,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 import { produce } from '@molstar/core/util/produce';
 import { Interval } from '@molstar/core/data/int/interval';
 import { addSimpleCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
+import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
@@ -310,13 +311,9 @@ function axisLength(props: AxesProps) {
   return 100 * props.scale - textScale;
 }
 
-/** Where the axes and the planes start from the origin: the corner between them left open */
-const Inset = 0.12;
-
 /**
- * The axes: a slim arrow each (a shaft and a small cone head, ending where the old rods' end caps did), starting as far
- * from the origin as the planes do (`Inset`); no part inside another, so a translucent arrow shows only its front
- * (`transparentBackfaces` off)
+ * The axes: a slim arrow each (a shaft and a small cone head, ending where the old rods' end caps did) from a small
+ * origin sphere; no part inside another, so a translucent arrow shows only its front (`transparentBackfaces` off)
  */
 function createAxesMesh(props: AxesProps, mesh?: Mesh) {
   const state = MeshBuilder.createState(512, 256, mesh);
@@ -327,7 +324,10 @@ function createAxesMesh(props: AxesProps, mesh?: Mesh) {
   const shaft = { radiusTop: radius, radiusBottom: radius, radialSegments: 24, bottomCap: true };
   const cone = { radiusTop: 0, radiusBottom: radius * 2.2, radialSegments: 24, bottomCap: true };
 
-  const start = length * Inset;
+  // the origin: a small sphere the shafts start at, not inside it (an overlap shows through the translucency)
+  const origin = radius * 1.5;
+  state.currentGroup = CameraHelperAxis.Origin;
+  addSphere(state, Vec3.origin, origin, 3);
 
   const axes = [
     [CameraHelperAxis.X, Vec3.unitX],
@@ -338,8 +338,8 @@ function createAxesMesh(props: AxesProps, mesh?: Mesh) {
     state.currentGroup = group;
     const tip = Vec3.scale(Vec3(), unit, length + radius);
     const base = Vec3.scale(Vec3(), unit, length + radius - head);
-    // `addSimpleCylinder` takes the start's radius as `radiusBottom` (and caps it)
-    addSimpleCylinder(state, Vec3.scale(Vec3(), unit, start), base, shaft);
+    // `addSimpleCylinder` takes the start's radius as `radiusBottom` (and caps it): from the origin sphere's surface
+    addSimpleCylinder(state, Vec3.scale(Vec3(), unit, origin), base, shaft);
     // `addSimpleCylinder` puts `radiusBottom` at its start: the head's base at the shaft's end
     addSimpleCylinder(state, base, tip, cone);
   }
@@ -354,7 +354,7 @@ function createAxesMesh(props: AxesProps, mesh?: Mesh) {
 function createPlanesMesh(props: AxesProps, mesh?: Mesh) {
   const state = MeshBuilder.createState(64, 32, mesh);
   const length = axisLength(props);
-  const from = length * Inset;
+  const from = length * 0.12;
   const to = length * 0.5;
   const square = (group: number, u: Vec3, v: Vec3) => {
     state.currentGroup = group;
