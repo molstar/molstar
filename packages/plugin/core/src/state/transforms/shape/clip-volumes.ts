@@ -48,9 +48,11 @@ export const ClipVolumesParams = {
     { description: 'Å; 0: in proportion to what it cuts', hideIf: (p) => !p.edges },
   ),
   extent: PD.Numeric(
-    0,
-    { min: 0, max: 2000, step: 1 },
-    { description: "How far a plane's disk and a cone reach (Å); 0: as far as what it cuts" },
+    1,
+    { min: 0.25, max: 4, step: 0.05 },
+    {
+      description: "How far a plane's disk and a cone reach, relative to what it cuts (1: as far as it; less: shorter)",
+    },
   ),
 };
 export type ClipVolumesParams = typeof ClipVolumesParams;
@@ -149,7 +151,8 @@ export function clipVolumesMesh(
   params: ClipVolumesProps,
   into?: Mesh,
 ): Mesh {
-  const reach = params.extent > 0 ? params.extent : Math.max(around.radius, 1);
+  // relative to what it cuts: it stays in proportion when that changes
+  const reach = Math.max(around.radius, 1) * (params.extent > 0 ? params.extent : 1);
   const width = params.edgeWidth > 0 ? params.edgeWidth : reach * 0.006;
   const state = MeshBuilder.createState(4096, 2048, into);
   objects.forEach((o, i) => {

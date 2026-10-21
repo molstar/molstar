@@ -78,7 +78,8 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
 
 - **`ClipVolumesShape3D`** (plugin core, imported by the feature: registered on import, Prism only): from a
   representation that can be cut to a shape provider of its clip objects (by tag) as translucent walls and solid edges
-  (`ShapeProvider.transparency`, per group); options for walls, edges, colors, opacity, width, extent. Built from its
-  data (objects, bounds, options): the shape representation keeps its first `getShape`.
+  (`ShapeProvider.transparency`, per group); options for walls, edges, colors, opacity, width, extent (a plane's disk
+  and a cone's reach relative to what they cut, 0.25–4×: in proportion when that changes). Built from its data (objects,
+  bounds, options): the shape representation keeps its first `getShape`.
 - **One drawing a cut**, deduplicated by its tag (`clip-volume-<cut tag>`; every cell also `clip-volumes`), under the
   cut's first representation; it moves when the cut leaves that one and goes with the cut. Saved with the state.

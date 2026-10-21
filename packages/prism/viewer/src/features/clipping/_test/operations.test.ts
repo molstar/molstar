@@ -338,7 +338,7 @@ describe('the clipping area', () => {
     expect(vertices()).not.toBe(plane);
   });
 
-  it("redraws a drawing's geometry in place when its options change (its extent, as drawn)", async () => {
+  it("redraws a drawing's geometry in place when its options change (its extent, relative, as drawn)", async () => {
     const v = await create(cbs());
     const clipping = v.api.clipping;
     const state = v.plugin.state.data;
@@ -349,10 +349,11 @@ describe('the clipping area', () => {
       const repr = (state.cells.get(shape)!.obj!.data as { repr: { renderObjects: { values: any }[] } }).repr;
       return repr.renderObjects[0].values.boundingSphere.ref.value.radius as number;
     };
-    ok(await clipping.show({ cut: 1, on: true, options: { extent: 80 } }));
-    expect(radius()).toBeGreaterThan(79);
+    const auto = radius();
+    ok(await clipping.show({ cut: 1, on: true, options: { extent: 2 } }));
+    expect(radius()).toBeGreaterThan(1.9 * auto);
     // the render object's buffers are the mesh rebuilt in place: a smaller one is drawn smaller
-    ok(await clipping.show({ cut: 1, on: true, options: { extent: 10 } }));
-    expect(radius()).toBeLessThan(20);
+    ok(await clipping.show({ cut: 1, on: true, options: { extent: 0.5 } }));
+    expect(radius()).toBeLessThan(0.6 * auto);
   });
 });

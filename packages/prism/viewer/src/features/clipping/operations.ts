@@ -392,7 +392,8 @@ export class ClippingApi extends ApiArea {
         PD.Value<Partial<ClipVolumesProps>>(
           {},
           {
-            description: 'How: walls (on, wallColor, wallOpacity), edges (on, edgeColor, edgeWidth Å), extent Å',
+            description:
+              'How: walls (on, wallColor, wallOpacity), edges (on, edgeColor, edgeWidth Å), extent (× what it cuts)',
           },
         ),
       ),
