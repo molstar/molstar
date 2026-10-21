@@ -77,7 +77,7 @@ export const BoxHandles: StoryObj = clippingStory(async (v) => {
   v.api.clipping.gizmos.handleOnly(1);
 });
 
-/** Clip this… from the structure tree's row menu, on the polymer's surface: selected, narrowed to the surface, a sphere */
+/** Clip this… from the structure tree's row menu, on the polymer's surface: a plane through it, active */
 export const ClipThisFromTheTree: StoryObj = clippingStory(async (v) => {
   const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
     (c) => c.cell.obj?.label === 'Polymer',
@@ -86,9 +86,8 @@ export const ClipThisFromTheTree: StoryObj = clippingStory(async (v) => {
     (r) => (r.cell.transform.params as { type?: { name: string } }).type?.name === 'molecular-surface',
   );
   if (!surface) throw new Error('No surface');
-  await v.api.clipping.clipThis(v.api.as({ kind: 'person' }), surface.cell.transform.ref);
-  ok(await v.api.clipping.add({ shape: 'sphere', types: ['molecular-surface'] }));
-  v.api.clipping.gizmos.handleOnly(1);
+  const done = await v.api.clipping.clipThis(v.api.as({ kind: 'person' }), surface.cell.transform.ref);
+  if (done && done.cut) v.api.clipping.gizmos.handleOnly(done.cut.index);
 });
 
 /** A sphere around the ligand inside the surface (centered on what it targets, with room) */

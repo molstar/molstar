@@ -111,24 +111,12 @@ export class ClippingApi extends ApiArea {
   });
 
   /**
-   * Clip this… on a row. A structure's component or representation: its atoms selected (the person's step), the filter
-   * narrowed to the representation's type (a component's: all its types); the section's Add makes the cut. Anything
-   * else that can be cut (a volume's or a shape's representation, a volume, particles: no atoms to select): a plane
-   * through it now, and that cut. The section opening is the caller's.
+   * Clip this… on a row: a plane through what the row draws, now (a component: each of its representations; a
+   * representation, a volume, particles: theirs), and that cut; one like it already there is that one. The selection is
+   * left as it is. The section opening, the cut active, is the caller's.
    */
   async clipThis(api: ViewerApi, ref: string): Promise<false | { readonly cut?: Cut }> {
-    const state = this.ctx.plugin.state.data;
-    const cell = state.cells.get(ref);
-    if (!cell) return false;
-    const representation = RepresentationClip.isClippable(cell);
-    const component = representation ? state.cells.get(cell.transform.parent) : cell;
-    const data = component?.obj?.data;
-    if (data instanceof Structure) {
-      const r = await api.run('select.set', { target: { loci: Structure.toStructureElementLoci(data) } });
-      if (!r.ok) return false;
-      this.filter.set(representation ? { excluded: [], only: [representationType(cell)] } : { excluded: [] });
-      return {};
-    }
+    if (!this.ctx.plugin.state.data.cells.get(ref)) return false;
     const r = await api.run('clipping.add', { shape: 'plane', node: `#${ref}` });
     const cut = (r as { value?: Cut }).value;
     return r.ok && cut ? { cut } : false;

@@ -169,7 +169,7 @@ describe('the clipping area', () => {
     expect(Math.hypot(axis[0], axis[1], axis[2])).toBeCloseTo(1, 6);
   });
 
-  it('Clip this… selects what a row draws and narrows the filter to a representation', async () => {
+  it('Clip this… cuts what a row draws now, the selection left as it is', async () => {
     const v = await create(cbs());
     const clipping = v.api.clipping;
     const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
@@ -177,12 +177,14 @@ describe('the clipping area', () => {
     )!;
     const cartoon = polymer.representations[0].cell.transform.ref;
     expect(clipping.canClipThis(cartoon)).toBe(true);
-    expect(await clipping.clipThis(v.api, cartoon)).toEqual({});
-    expect(v.plugin.managers.structure.selection.stats.elementCount).toBe(polymer.cell.obj!.data.elementCount);
-    expect(clipping.filter.value).toEqual({ excluded: [], only: ['cartoon'] });
-    // a component's row: every type
-    expect(await clipping.clipThis(v.api, polymer.cell.transform.ref)).toEqual({});
-    expect(clipping.filter.value).toEqual({ excluded: [] });
+    const done = await clipping.clipThis(v.api, cartoon);
+    expect(done && done.cut?.targets.map((t) => t.ref)).toEqual([cartoon]);
+    expect(v.plugin.managers.structure.selection.stats.elementCount).toBe(0);
+    // a component's row: each of its representations; again: the same cut
+    const all = await clipping.clipThis(v.api, polymer.cell.transform.ref);
+    expect(all && all.cut?.targets.length).toBe(polymer.representations.length);
+    const again = await clipping.clipThis(v.api, polymer.cell.transform.ref);
+    expect(again && again.cut?.index).toBe(all && all.cut?.index);
   });
 
   it('turns a cut on for several representations as one step, and changes its shape in place', async () => {
