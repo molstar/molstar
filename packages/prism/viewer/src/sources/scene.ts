@@ -344,6 +344,8 @@ export function createSceneSource(
   // The frames of the structures that have several (made when the first such structure is shown; its states listen to
   // the plugin only while a row or the inspector reads them).
   const trajectories = () => trajectorySourceOf(plugin);
+  /** The frames of particle lists read from a trajectory (Simularium), by list ref */
+  const particleTrajectories = new Map<string, ParticleSceneTrajectory>();
   // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
   // builds one anew when that changed. Only the picked node's is kept once the pick changes (every sync refreshes the
   // ones kept); `inspection` is the picked node's, the inspector's (view-models.md §4.3).
@@ -768,6 +770,19 @@ export function createSceneSource(
     // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
     if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref, openCommand);
     inspections.get(ref)?.form?.load(l.cell.transform.params as never);
+    // A trajectory's frames (Simularium): a row under it shows and plays them, as a structure's (`particles.frame`)
+    const frames = particleFrames(plugin, l.cell);
+    const before = n.trajectory;
+    if (!frames) {
+      n.trajectory = undefined;
+      particleTrajectories.delete(ref);
+    } else {
+      let t = particleTrajectories.get(ref);
+      if (!t) particleTrajectories.set(ref, (t = particleTrajectory(plugin, api, ref)));
+      t.refresh(frames);
+      n.trajectory = t;
+    }
+    if (n.trajectory !== before) n.log?.touch(n.id);
     return n;
   };
 
@@ -1105,6 +1120,7 @@ export function createSceneSource(
       inspections.delete(id);
       inspectionKeys.delete(id);
       unitCellOwners.delete(id);
+      particleTrajectories.delete(id);
       streamingOwners.delete(id);
       streamingShown.delete(id);
       if (picked.value === n) picked.set(undefined);
@@ -1169,6 +1185,12 @@ export function createSceneSource(
     }),
   );
 
+  // Whether particle frames play follows the animation (played, stopped), not the frame shown
+  scope.add(
+    plugin.managers.animation.events.updated.subscribe(() => {
+      for (const t of particleTrajectories.values()) t.refreshPlaying();
+    }),
+  );
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
@@ -2487,4 +2509,86 @@ function particlesRepresentationMenu(
       : []),
     { id: 'edit', label: 'Edit…', icon: 'sliders-horizontal' as const, run: edit },
   ];
+}
+
+const ParticleListFromTrajectory = 'ms-plugin.particle-list-from-trajectory';
+const ParticleTrajectoryAnimation = 'built-in.animate-particle-trajectory';
+
+/** A list read from a trajectory's frame: its frame count and the frame shown; none with one frame */
+function particleFrames(plugin: PluginContext, cell: StateObjectCell): { count: number; index: number } | undefined {
+  if (cell.transform.transformer.id !== ParticleListFromTrajectory) return undefined;
+  const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj;
+  const count = (parent?.data as { frameCount?: number } | undefined)?.frameCount ?? 0;
+  if (count < 2) return undefined;
+  return { count, index: (cell.transform.params as { frameIndex?: number }).frameIndex ?? 0 };
+}
+
+function isPlayingParticleFrames(plugin: PluginContext, ref: string): boolean {
+  const animation = plugin.managers.animation;
+  if (!animation.isAnimating || animation.current?.anim.name !== ParticleTrajectoryAnimation) return false;
+  const refs = (animation.current.paramValues as { refs?: readonly string[] }).refs;
+  return !refs?.length || refs.includes(ref);
+}
+
+interface ParticleSceneTrajectory extends SceneTrajectory {
+  refresh(frames: { count: number; index: number }): void;
+  refreshPlaying(): void;
+}
+
+/** A particle trajectory's frames as the tree's frame row shows them, acting through `particles.frame`, `.play`, `.stop` */
+function particleTrajectory(plugin: PluginContext, api: ViewerApi, ref: string): ParticleSceneTrajectory {
+  const count = observableState(0);
+  const index = observableState(0);
+  const playing = observableState(false);
+  const mode = observableState<'loop' | 'palindrome' | 'once'>('loop');
+  const seconds = observableState(5);
+  /** The frame to show next (not sent yet), and the one being shown (sent, not done): the latest seek wins */
+  let wanted: number | undefined;
+  let sending: number | undefined;
+  const flush = async () => {
+    if (sending !== undefined) return;
+    try {
+      while (wanted !== undefined) {
+        sending = wanted;
+        wanted = undefined;
+        await api.run('particles.frame', { particles: ref, index: sending });
+      }
+    } finally {
+      sending = undefined;
+    }
+  };
+  return {
+    unit: 'frames',
+    count: count.asReadonly,
+    index: index.asReadonly,
+    playing: playing.asReadonly,
+    mode,
+    seconds,
+    seek(i) {
+      wanted = i;
+      void flush();
+    },
+    step(by) {
+      const c = count.value;
+      if (c < 2) return;
+      wanted = ((((wanted ?? sending ?? index.value) + by) % c) + c) % c;
+      void flush();
+    },
+    togglePlay() {
+      void (playing.value
+        ? api.run('particles.stop')
+        : api.run('particles.play', { particles: ref, mode: mode.value, seconds: seconds.value }));
+    },
+    // The canvas' frame bar is the structures' (trajectory source): a particle row does not step it back
+    markShown() {},
+    refresh(frames) {
+      if (count.value !== frames.count) count.set(frames.count);
+      if (index.value !== frames.index) index.set(frames.index);
+      this.refreshPlaying();
+    },
+    refreshPlaying() {
+      const now = isPlayingParticleFrames(plugin, ref);
+      if (playing.value !== now) playing.set(now);
+    },
+  };
 }

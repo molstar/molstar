@@ -118,6 +118,11 @@ Clip is not here: the clipping extension covers it, through `type.params.clip`, 
   - the row menu opens the command;
   - operations and the scene read the list at the end of its decorators (`getDecoratorRoot`).
 - P7 is done, as the list's Source form rather than a load-time choice: `particles.source` merges params into the list's format transform (RELION's tomograms and micrographs, Dynamo's and EM's tomograms, the pixel size, the radius, an mmCIF assembly, a trajectory's frame). The list's inspector shows them as a form.
+- P8 is done:
+  - `particles.frame`, `.play` and `.stop` are viewing, not history steps, through Mol*'s particle trajectory animation;
+  - a list read from a trajectory has the tree's frame row, with seek, step and play (`SceneTrajectory`);
+  - the canvas' frame bar stays the structures';
+  - a frame step syncs the scene (each frame changes the list's transform). Measure with a large Simularium file under P10.
 - Not handled: a `.molx` session holding particles does not load the feature. `session.open` reads transformers only from `.molj`. To do with P9.
 
 

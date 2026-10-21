@@ -10,7 +10,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { StateSelection } from '@molstar/core/state';
 import { describe, expect, it } from 'vitest';
-import { expectOk, headlessViewer } from '../../../_test/harness.js';
+import { expectOk, headlessViewer, until } from '../../../_test/harness.js';
+import { DefaultPrismViewerSpec } from '../../../default-spec.js';
+import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { type ParticleListInfo, particleUnitCellOf } from '../operations.js';
 import { particlesFile } from '../../../api/_test/volume-fixtures.js';
@@ -208,5 +210,43 @@ describe('particles', () => {
     expect(await v.api.particles.source({ params: { nope: 1 } })).toMatchObject({ ok: false, code: 'invalid' });
     expectOk(await v.api.history.undo());
     expect(await count()).toBe(all);
+  });
+
+  it("moves through a particle trajectory's frames, as viewing", async () => {
+    const v = await headlessViewer({ files: [particleFixture('small.simularium')] });
+    const frame = () =>
+      (v.plugin.managers.particles.hierarchy.current.lists[0].cell.transform.params as any).frameIndex;
+    const steps = v.managers.history.steps.value.length;
+    expectOk(await v.api.particles.frame({ index: 3 }));
+    expect(frame()).toBe(3);
+    expectOk(await v.api.particles.frame({ by: 2 }));
+    expect(frame()).toBe(0);
+    expect(((await v.api.particles.frame({ index: 0 })) as any).unchanged).toBe(true);
+    expect(await v.api.particles.frame({ index: 9 })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.particles.frame({})).toMatchObject({ ok: false, code: 'invalid' });
+    // viewing: no history step
+    expect(v.managers.history.steps.value.length).toBe(steps);
+
+    const w = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
+    expect(await w.api.particles.frame({ index: 1 })).toMatchObject({ ok: false, code: 'not-found' });
+  });
+
+  it('plays the frames with the animation, and stops', async () => {
+    const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
+    try {
+      expectOk(await v.api.load.files({ files: [particleFixture('small.simularium')] }));
+      const frame = () =>
+        (v.plugin.managers.particles.hierarchy.current.lists[0].cell.transform.params as any).frameIndex;
+      expectOk(await v.api.particles.play({ mode: 'loop', seconds: 2 }));
+      expect(await v.api.particles.play({})).toMatchObject({ ok: true, unchanged: true });
+      const animation = v.plugin.managers.animation;
+      await animation.tick(0, true);
+      await animation.tick(1000, true);
+      await until(() => frame() !== 0);
+      expectOk(await v.api.particles.stop());
+      expect(await v.api.particles.stop()).toMatchObject({ ok: true, unchanged: true });
+    } finally {
+      await v.dispose();
+    }
   });
 });

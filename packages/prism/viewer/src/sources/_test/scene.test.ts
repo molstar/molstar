@@ -348,6 +348,19 @@ describe('the scene: volumes and particles', () => {
     expect(list.children.value.map((c) => c.label.value)).toContain('Target');
   });
 
+  it("shows a particle trajectory's frames as a row, which seeks and steps", async () => {
+    const v = await headlessViewer({ files: [fixture('small.simularium')] });
+    const list = v.views.scene.roots.value[0];
+    const t = list.trajectory!;
+    expect(t.count.value).toBe(5);
+    expect(t.index.value).toBe(0);
+    t.seek(2);
+    await until(() => t.index.value === 2);
+    t.step(-3);
+    await until(() => t.index.value === 4);
+    expect(t.playing.value).toBe(false);
+  });
+
   it("shows a list's unit cell as a row of its own, its inspector the cell's", async () => {
     const v = await headlessViewer({ files: [fixture('small.simularium')] });
     const list = v.views.scene.roots.value[0];

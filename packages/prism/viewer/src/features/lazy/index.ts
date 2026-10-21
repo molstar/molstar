@@ -183,6 +183,9 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.focus', title: 'Focus the particles', history: false },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell' },
       { id: 'particles.source', title: 'Set how particles are read' },
+      { id: 'particles.frame', title: 'Show a particle frame', history: false },
+      { id: 'particles.play', title: 'Play the particle frames', history: false, modules: ['canvas'] },
+      { id: 'particles.stop', title: 'Stop playing the particle frames', history: false },
       {
         id: 'particles.targets',
         title: 'Set what the particles stand for',
@@ -198,6 +201,8 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.focus', title: 'Focus the particles', category: 'Particles', icon: 'focus' },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell', category: 'Particles', icon: 'box' },
       { id: 'particles.targets', title: 'Set what the particles stand for…', category: 'Particles', icon: 'shapes' },
+      { id: 'particles.play', title: 'Play the particle frames', category: 'Particles', icon: 'play' },
+      { id: 'particles.stop', title: 'Stop playing the particle frames', category: 'Particles', icon: 'square' },
     ],
     owns: {
       transformers: ParticleTransformers,

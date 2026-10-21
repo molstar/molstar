@@ -77,10 +77,13 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `measure.visibility` | Show or hide a measurement |  | visible, measurement |
 | `particles.color` | Color particles by… |  | theme, params, particles, representation, node |
 | `particles.focus` | Focus the particles | view | particles |
+| `particles.frame` | Show a particle frame | view | index, by, particles |
 | `particles.list` | Describe the particles | read |  |
+| `particles.play` | Play the particle frames | view; needs canvas | mode, seconds, particles |
 | `particles.remove` | Remove particles | destructive | particles, representation, node |
 | `particles.representation` | Show particles as… |  | type, params, particles |
 | `particles.source` | Set how particles are read |  | params, particles |
+| `particles.stop` | Stop playing the particle frames | view |  |
 | `particles.targets` | Set what the particles stand for | network (addresses) | file, source, target, particles |
 | `particles.unit-cell` | Show the particle unit cell |  | visible, color, opacity, particles |
 | `particles.update` | Update a particle representation | ui-only | node, params |

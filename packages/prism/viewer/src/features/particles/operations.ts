@@ -16,7 +16,8 @@ import type {
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
-import { ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
+import { ParticleListFromTrajectory, ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
+import { AnimateParticleTrajectory } from '@molstar/plugin/state/animation/built-in/particles';
 import { particleTargetSourceFromPdbIdOrUrl } from '@molstar/plugin/state/helpers/particle-targets';
 import { Asset } from '@molstar/core/util/assets';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
@@ -29,6 +30,7 @@ import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '../../api/
 import { NodeParam, OptionalParam } from '../../api/params.js';
 import { FileParam } from '../../api/files.js';
 import { messageOf } from '../../api/run.js';
+import { whileViewing } from '../../sources/trajectory.js';
 import { nodesFor, updateEach } from '../../api/nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from '../../api/scope.js';
 import { commitRepresentation, setRepresentation } from '../../api/set-representation.js';
@@ -343,6 +345,94 @@ export class ParticlesApi extends ApiArea {
     },
   });
 
+  // A particle trajectory's frames (a Simularium file), as `trajectory.*` does a structure's: viewing, no history step.
+  readonly frame = this.operation({
+    id: 'particles.frame',
+    title: 'Show a particle frame',
+    params: {
+      index: OptionalParam(PD.Numeric(0, { min: 0, step: 1 }, { label: 'Frame', description: 'The frame, from 0' })),
+      by: OptionalParam(
+        PD.Numeric(
+          1,
+          { step: 1 },
+          { label: 'Move by', description: 'Frames to move by (negative: back), wrapping around' },
+        ),
+      ),
+      particles: ListParam(),
+    },
+    history: false,
+    record: false,
+    async run(v, ctx) {
+      const { index, by, particles } = v as { index?: number; by?: number; particles: string };
+      if ((index === undefined) === (by === undefined)) {
+        return ApiResult.fail('invalid', 'Give the frame to show (`index`, from 0) or how far to move (`by`).');
+      }
+      const l = oneFramedList(ctx, particles);
+      if (isFailure(l)) return l;
+      const { count, current } = framesOf(ctx, l)!;
+      const name = listName(ctx, l);
+      if (index !== undefined && index >= count) {
+        return ApiResult.fail('invalid', `${name} has ${count} frames.`, `Give 0 to ${count - 1}.`);
+      }
+      const to = index !== undefined ? index : (((current + by!) % count) + count) % count;
+      if (to === current) return ApiResult.already(`${name} already shows frame ${to + 1} of ${count}.`);
+      await whileViewing(ctx.plugin, () =>
+        ctx.plugin.state.updateTransform(ctx.plugin.state.data, l.cell.transform.ref, {
+          ...(l.cell.transform.params as object),
+          frameIndex: to,
+        }),
+      );
+      return ApiResult.ok(`${name} shows frame ${to + 1} of ${count}.`, { nodes: [l.cell.transform.ref] });
+    },
+  });
+
+  readonly play = this.operation({
+    id: 'particles.play',
+    title: 'Play the particle frames',
+    params: {
+      mode: PD.Select<'loop' | 'palindrome' | 'once'>(
+        'loop',
+        PD.arrayToOptions(['loop', 'palindrome', 'once'] as const),
+        {
+          label: 'Mode',
+          description: 'Loop, back and forth (palindrome), or once through',
+        },
+      ),
+      seconds: PD.Numeric(5, { min: 1, max: 120, step: 0.5 }, { label: 'Seconds per pass' }),
+      particles: ListParam(),
+    },
+    history: false,
+    modules: ['canvas'],
+    async run({ mode, seconds, particles }, ctx) {
+      const l = oneFramedList(ctx, particles);
+      if (isFailure(l)) return l;
+      const name = listName(ctx, l);
+      const ref = l.cell.transform.ref;
+      if (isPlayingParticles(ctx.plugin, ref)) return ApiResult.already(`${name}'s frames are playing.`);
+      await ctx.plugin.managers.animation.play(AnimateParticleTrajectory, {
+        mode:
+          mode === 'palindrome'
+            ? { name: 'palindrome' as const, params: {} }
+            : { name: mode, params: { direction: 'forward' as const } },
+        duration: { name: 'fixed', params: { durationInS: seconds } },
+        refs: [ref],
+      });
+      return ApiResult.ok(`Playing ${name}'s frames.`, { view: true, nodes: [ref] });
+    },
+  });
+
+  readonly stop = this.operation({
+    id: 'particles.stop',
+    title: 'Stop playing the particle frames',
+    params: {},
+    history: false,
+    async run(_, ctx) {
+      if (!isPlayingParticles(ctx.plugin)) return ApiResult.already('No particle frames are playing.');
+      await ctx.plugin.managers.animation.stop();
+      return ApiResult.ok('Stopped playing the particle frames.', { view: true });
+    },
+  });
+
   // A representation's color theme (the row menu's Color): the theme with its defaults for the list, or `params`.
   readonly color = this.operation({
     id: 'particles.color',
@@ -574,6 +664,40 @@ function targetIdOf(data: ParticleList, target: string): number | ApiFailure {
     if ((info.name ?? entity)?.toLowerCase() === t.toLowerCase()) return id;
   }
   return ApiResult.fail('not-found', `There is no target '${t}'.`, `Targets: ${ids.slice(0, 12).join(', ')}.`);
+}
+
+/** A list read from a trajectory's frame (`ParticleListFromTrajectory`): its frame count and the frame shown */
+export function framesOf(
+  ctx: { plugin: PluginContext },
+  l: ParticleListRef,
+): { count: number; current: number } | undefined {
+  if (l.cell.transform.transformer !== ParticleListFromTrajectory) return undefined;
+  const parent = ctx.plugin.state.data.cells.get(l.cell.transform.parent)?.obj;
+  const count = (parent?.data as { frameCount?: number } | undefined)?.frameCount ?? 0;
+  if (count < 2) return undefined;
+  return { count, current: (l.cell.transform.params as { frameIndex?: number }).frameIndex ?? 0 };
+}
+
+/** Whether particle frames play: a list's (`ref`), or any */
+export function isPlayingParticles(plugin: PluginContext, ref?: string): boolean {
+  const animation = plugin.managers.animation;
+  if (!animation.isAnimating || animation.current?.anim.name !== AnimateParticleTrajectory.name) return false;
+  if (ref === undefined) return true;
+  const refs = (animation.current.paramValues as { refs?: readonly string[] }).refs;
+  return !refs?.length || refs.includes(ref);
+}
+
+function oneFramedList(ctx: ApiContext, name: string): ParticleListRef | ApiFailure {
+  const framed = lists(ctx).filter((l) => framesOf(ctx, l));
+  if (!name) {
+    if (framed.length === 1) return framed[0];
+    if (!framed.length)
+      return ApiResult.fail('not-found', 'No particles with frames are loaded.', 'Open a Simularium file.');
+  }
+  const l = oneList(ctx, name || undefined);
+  if (isFailure(l)) return l;
+  if (!framesOf(ctx, l)) return ApiResult.fail('blocked', `${listName(ctx, l)} has one frame.`);
+  return l;
 }
 
 function typeOf(r: ParticleRepresentationRef): string {
