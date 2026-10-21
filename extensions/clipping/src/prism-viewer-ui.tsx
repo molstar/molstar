@@ -136,15 +136,17 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
       >
         {CutShapes.map((shape) => (
           <span style="flex: 1 1 0; min-width: 0; display: grid">
+            {/* the icon as content, not `icon`: an icon-only button is a fixed square, this one fills its slot */}
             <Button
               size="sm"
               variant="ghost"
               block
-              icon={<Icon name={ShapeIcons[shape]} />}
               title={`Cut with a ${CutShapeLabels[shape].toLowerCase()}`}
               disabled={derive(canAdd, (on) => !on)}
               onClick={() => add(shape)}
-            />
+            >
+              <Icon name={ShapeIcons[shape]} label={CutShapeLabels[shape]} />
+            </Button>
           </span>
         ))}
       </div>
