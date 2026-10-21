@@ -33,12 +33,39 @@ const Allowed = {
 
 /**
  * Particles are opt-in (`ParticlesRegistry`, breaking-v6-changes.md): the default spec registers none of them, so the
- * baseline's particle entries are taken out before comparing it; the Viewer composes `ParticlesRegistry` (as in 5.12)
- * and is compared with them.
+ * baseline's particle entries are taken out before comparing it. The Viewer composes `ParticlesRegistry` (as in 5.12)
+ * and is compared with them, as that registry adds them (`asComposed`): the particle themes in the particles scope only
+ * (not the structure and volume scopes, where they never apply), and the particle formats and animation as a block of
+ * their own, so only the order within the particle entries and within the others is compared (a format is chosen by
+ * its priority: registration order only breaks ties).
  */
 const ParticleTransformer =
   /^ms-plugin\.(particle|parse-artiatomi-em|parse-cryoet-data-portal-ndjson|parse-dynamo-tbl|parse-simularium)/;
 const isParticleTheme = (name) => name.startsWith('particle-');
+const isParticleFormat = (name) => name.endsWith('_particles');
+const isParticleAnimation = (name) => name === 'built-in.animate-particle-trajectory';
+
+/** The others in their order, then the particle entries in theirs */
+const particlesLast = (xs, isParticle) => [...xs.filter((x) => !isParticle(x)), ...xs.filter(isParticle)];
+
+/** A Viewer registry with its particle formats and animation as one block (the current one, or the baseline's) */
+function particleBlocks(target) {
+  const copy = structuredClone(target);
+  copy.formats = particlesLast(copy.formats, isParticleFormat);
+  copy.animations = particlesLast(copy.animations, isParticleAnimation);
+  return copy;
+}
+
+/** The baseline as `[...DefaultRegistry, ...ParticlesRegistry]` registers it */
+function asComposed(target) {
+  const copy = particleBlocks(target);
+  for (const [name, scope] of Object.entries(copy.themes)) {
+    if (name === 'particles') continue;
+    scope.color = scope.color.filter((n) => !isParticleTheme(n));
+    scope.size = scope.size.filter((n) => !isParticleTheme(n));
+  }
+  return copy;
+}
 
 function withoutParticles(target) {
   const copy = structuredClone(target);
@@ -48,8 +75,8 @@ function withoutParticles(target) {
     scope.color = scope.color.filter((n) => !isParticleTheme(n));
     scope.size = scope.size.filter((n) => !isParticleTheme(n));
   }
-  copy.formats = copy.formats.filter((n) => !n.endsWith('_particles'));
-  copy.animations = copy.animations.filter((n) => n !== 'built-in.animate-particle-trajectory');
+  copy.formats = copy.formats.filter((n) => !isParticleFormat(n));
+  copy.animations = copy.animations.filter((n) => !isParticleAnimation(n));
   const data = copy.actions.data;
   data.all = data.all.filter((id) => !ParticleTransformer.test(id));
   for (const [from, ids] of Object.entries(data.byFromType)) {
@@ -105,8 +132,9 @@ try {
       problems.push(`${target}: target missing from the current dump`);
       continue;
     }
-    const expected = target === 'viewer' ? baseline.targets[target] : withoutParticles(baseline.targets[target]);
-    diff(target, expected, withoutAllowed(c), problems);
+    const viewer = target === 'viewer';
+    const expected = viewer ? asComposed(baseline.targets[target]) : withoutParticles(baseline.targets[target]);
+    diff(target, expected, withoutAllowed(viewer ? particleBlocks(c) : c), problems);
 
     // The allowed differences must actually be present, so an obsolete allowance is noticed.
     for (const [scope, t] of Object.entries(c.themes)) {

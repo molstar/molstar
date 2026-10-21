@@ -122,7 +122,11 @@ section); an entry leaves when it is done (its spec section says so then). The s
   as render layers, not an "on top" flag: a representation's layer (its state), the layers drawn in order, each with its
   own depth (cleared, or kept), picked from the top layer down. Handles are one layer above the scene; the same takes
   later effects (an overlay, a highlight layer, a layer with its own post-processing). Canvas3D's helper scenes (the
-  corner axes, `helper.handle`) are the model. A renderer change: after the WebGPU backend lands, with Alex.
+  corner axes, `helper.handle`) are the model. A first layer can grow out of `HandleHelper`'s scene
+  (`canvas3d/helper/handle-helper.ts`: drawn after the scene's depth is detached, picked after the scene, its own loci):
+  any number of render objects in it instead of its one built-in handle, `VisualSet` adding gizmos there, and the pick
+  pass's depth cleared before it if a handle behind a structure still loses the pick. A renderer change: Alex, after the
+  WebGPU backend lands.
 
 ## Missing: prism-ui
 
