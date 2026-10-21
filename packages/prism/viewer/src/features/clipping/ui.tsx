@@ -192,15 +192,24 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           <div style="display: grid; gap: var(--msp-space-1)">
             <div style={row}>
               <p style={`${caption}; flex: 1`}>Cuts</p>
+              {/* the rows' handles toggle, so All and None read as theirs */}
+              <span style="display: flex; color: var(--msp-color-text-muted)" title="Handles" aria-hidden="true">
+                <Icon name="move-3d" size={14} />
+              </span>
               <Button
                 size="xs"
                 variant="ghost"
-                title="Handles in 3D on every cut: drag to move, turn or size it (Esc cancels)"
+                title="Handles on every cut: drag to move, turn or size it (Esc cancels)"
                 onClick={() => clipping.gizmos.handleAll(true)}
               >
                 All
               </Button>
-              <Button size="xs" variant="ghost" title="No handles" onClick={() => clipping.gizmos.handleAll(false)}>
+              <Button
+                size="xs"
+                variant="ghost"
+                title="Handles on no cut"
+                onClick={() => clipping.gizmos.handleAll(false)}
+              >
                 None
               </Button>
             </div>
