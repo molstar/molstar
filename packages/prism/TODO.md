@@ -60,8 +60,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused).
 - The drop overlay and Home read `sources.formats` once, when the shell mounts (`viewer/src/ui/shell.tsx`,
   `viewer/src/features/home/shell.tsx`).
-- Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`), kinds for shapes and particle lists; `node` on the
-  structure-scoped operations ([nodes.md §5](viewer/_spec/nodes.md)).
+- Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`); `node` on the structure-scoped operations
+  ([nodes.md §5](viewer/_spec/nodes.md)).
 - Themes and presets that fetch as they apply carry no addresses (only known services today;
   `viewer/src/agent/policies.ts`); the pLDDT track reads B-factors where the 3D theme reads ModelCIF scores
   (`extensions/model-archive/src/prism-viewer.ts`).

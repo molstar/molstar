@@ -8,9 +8,10 @@ The code is the truth for how (`src/api/nodes.ts`, `features/state-tree/operatio
 - **A query, not a name**: an operation acts on every match
   (`structure[label="1CBS"] component[type=ligand] > representation`, `#ref`, `representation:hidden, volume`). A bare
   ref works too.
-- **Kinds as the Structure panel reads cells** (`NodeKinds`, `nodeKind`): a structure inside a structure is a component;
-  decorators have no kind and fold into what they decorate (`>` matches through them). Ghost cells never match; the root
-  only by its ref.
+- **Kinds as the Structure panel reads cells** (`NodeKinds`, `nodeKind`): a particle list is `particles`, a shape
+  provider (a mesh file, MVS primitives) `shape`, their representations `representation`; a structure inside a structure
+  is a component; decorators have no kind and fold into what they decorate (`>` matches through them). Ghost cells never
+  match; the root only by its ref.
 - Attributes, operators, states: `NodeAttributes`, the parser. Text compares without case, except refs.
 
 ## 2. In operations
@@ -29,5 +30,5 @@ records a selector that replays.
 
 ## 5. Limits
 
-No `:has()`, no positions, no kind for shapes or particle lists; the structure-scoped operations (`representation.set`,
-`.color`, `component.*`) take a component and structure, not `node`.
+No `:has()`, no positions; the structure-scoped operations (`representation.set`, `.color`, `component.*`) take a
+component and structure, not `node`.

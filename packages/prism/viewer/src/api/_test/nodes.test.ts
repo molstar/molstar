@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer } from '../../_test/harness.js';
 import { ApiResult } from '../area.js';
@@ -87,5 +89,40 @@ describe('node selectors: over a loaded structure', () => {
     expect(selectOneNode(state, 'representation')).toMatchObject({ ok: false, code: 'ambiguous' });
     expect(selectOneNode(state, 'volume')).toMatchObject({ ok: false, code: 'not-found' });
     expect(selectOneNode(state, 'structure[')).toMatchObject({ ok: false, code: 'invalid' });
+  });
+});
+
+describe('node selectors: particles and shapes', () => {
+  const ribosomes = () =>
+    new File(
+      [
+        fs.readFileSync(
+          path.resolve(import.meta.dirname, '../../../../../../data/examples/particles/cryoet-ribosomes.ndjson'),
+        ),
+      ],
+      'cryoet-ribosomes.ndjson',
+    );
+  const triangle = () => new File(['v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n'], 'triangle.obj');
+
+  it('names a particle list and a shape by their kinds, their representations below them', async () => {
+    const v = await headlessViewer({ files: [ribosomes(), triangle()] });
+    const state = v.plugin.state.data;
+    const sel = (text: string) => {
+      const r = selectNodes(state, text);
+      if (ApiResult.isFailure(r)) throw new Error(r.message);
+      return r;
+    };
+    const [list] = sel('particles');
+    expect(nodeKind(state, list)).toBe('particles');
+    expect(sel('particles')).toHaveLength(1);
+    expect(sel('particles > representation[type=spacefill]')).toHaveLength(1);
+    expect(sel('particles representation').length).toBeGreaterThanOrEqual(1);
+    expect(sel(`#${list.transform.ref} > representation`).length).toBeGreaterThanOrEqual(1);
+
+    const [shape] = sel('shape');
+    expect(nodeKind(state, shape)).toBe('shape');
+    expect(sel('shape > representation')).toHaveLength(1);
+    // the structure kinds do not match them
+    expect(sel('structure representation')).toHaveLength(0);
   });
 });
