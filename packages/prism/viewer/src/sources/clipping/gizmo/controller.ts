@@ -6,7 +6,7 @@
 
 import { OrderedSet } from '@molstar/core/data/int';
 import type { Sphere3D } from '@molstar/core/math/geometry';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Binding } from '@molstar/core/util/binding';
 import { Color } from '@molstar/core/util/color';
 import { MarkerActions } from '@molstar/core/util/marker-action';
@@ -372,7 +372,7 @@ export class ClipGizmos {
       handle,
       from: g.cut.object,
       axis: slideAxis(g.cut.object),
-      frame: { right, up, perPixel: perPixel(canvas, at) },
+      frame: { right, up, perPixel: perPixel(canvas, at), grab: grabFrom(canvas, at, x0, y0) },
       targets,
       x0,
       y0,
@@ -488,4 +488,11 @@ function perPixel(canvas: Canvas3D, at: Vec3): number {
           Vec3.dot(Vec3.sub(Vec3(), at, s.position), Vec3.normalize(Vec3(), Vec3.sub(Vec3(), s.target, s.position))),
         );
   return height / (camera.viewport.height / ratio);
+}
+
+/** The press (CSS px on the canvas) from `at` as the screen shows it: x right, y down */
+function grabFrom(canvas: Canvas3D, at: Vec3, x: number, y: number): [number, number] {
+  const ratio = canvas.input.pixelRatio || 1;
+  const p = canvas.camera.project(Vec4(), at);
+  return [x - p[0] / ratio, y - p[1] / ratio];
 }

@@ -7,7 +7,7 @@
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
 import type { CutObject } from '../../cuts.js';
-import { type DragFrame, MaxSlideGain, MinExtent, move, resize, slide, turn } from '../gestures.js';
+import { type DragFrame, MaxSlideGain, MinExtent, move, resize, size, slide, turn } from '../gestures.js';
 
 // What a drag does to a cut: the handle stays under the cursor (moves, slides, faces), turns and sizes by rate.
 
@@ -88,5 +88,16 @@ describe('gestures', () => {
     expect(there.rotation.angle).toBeCloseTo(45, 4);
     const back = turn(there, frame, -90, 0);
     expect(back.rotation.angle).toBeCloseTo(0, 4);
+  });
+
+  it('sizes by distance from the center: outward grows on any side of the cut', () => {
+    const sphere = { ...box(), type: 'sphere' as const, scale: Vec3.create(20, 20, 20) };
+    // grabbed 40 px left of the center: dragging further left (outward) grows it, as on the right side
+    const left = size(sphere, -40, 0, { ...frame, grab: [-40, 0] });
+    expect(left.scale[0]).toBeCloseTo(40, 6);
+    const right = size(sphere, 40, 0, { ...frame, grab: [40, 0] });
+    expect(right.scale[0]).toBeCloseTo(40, 6);
+    // and inward shrinks
+    expect(size(sphere, 20, 0, { ...frame, grab: [-40, 0] }).scale[0]).toBeCloseTo(10, 6);
   });
 });

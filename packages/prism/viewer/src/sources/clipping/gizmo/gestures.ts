@@ -35,7 +35,15 @@ export interface DragFrame {
   readonly up: Vec3;
   /** Å a pixel is at the cut's depth */
   readonly perPixel: number;
+  /**
+   * Where the drag started from the cut's center on the screen (CSS px, x right, y down): a size drag scales by how
+   * much farther from the center the cursor is, so the part grabbed stays under it on any side of the cut
+   */
+  readonly grab?: readonly [number, number];
 }
+
+/** A grab closer than this (px) to the center has no direction to scale along: the rate rule instead */
+export const MinGrab = 6;
 
 /** Degrees of turn a pixel of drag */
 export const TurnPerPixel = 0.5;
@@ -108,14 +116,24 @@ export function turn(from: CutObject, frame: DragFrame, dx: number, dy: number):
   return { ...from, rotation: rotationOf(next) };
 }
 
-/** The cut sized: twice as large every `DoublingPixels` up or right; a cone's angle widened instead */
-export function size(from: CutObject, dx: number, dy: number): CutObject {
+/**
+ * The cut sized. Grabbed off its center (`frame.grab`): by the cursor's distance from the center over the grab's, so
+ * the ring or corner held stays under the cursor whichever side it is on. Else (or a cone's angle) at a rate: twice as
+ * large every `DoublingPixels` up or right.
+ */
+export function size(from: CutObject, dx: number, dy: number, frame?: DragFrame): CutObject {
+  if (from.type === 'plane') return from;
+  const g = frame?.grab;
+  const reach = g ? Math.hypot(g[0], g[1]) : 0;
+  if (from.type !== 'infiniteCone' && g && reach >= MinGrab) {
+    const ratio = Math.max(Math.hypot(g[0] + dx, g[1] + dy) / reach, 0.01);
+    return { ...from, scale: Vec3.scale(Vec3(), from.scale, ratio) };
+  }
   const steps = (dx - dy) / DoublingPixels;
   if (from.type === 'infiniteCone') {
     const angle = Math.max(1, Math.min(89, coneAngle(from.scale) + steps * 15));
     return { ...from, scale: coneScale(angle) };
   }
-  if (from.type === 'plane') return from;
   return { ...from, scale: Vec3.scale(Vec3(), from.scale, 2 ** steps) };
 }
 
@@ -137,7 +155,7 @@ export function gesture(handle: Handle, from: CutObject, axis: Vec3, frame: Drag
     case 'turn':
       return turn(from, frame, dx, dy);
     case 'size':
-      return size(from, dx, dy);
+      return size(from, dx, dy, frame);
     default:
       return resize(from, handle, frame, dx, dy);
   }
