@@ -34,6 +34,11 @@ const LUCIDE_VERSION = '1.48.0';
 const ICONS = [
   'house',
   'locate-off',
+  'circle',
+  'cylinder',
+  'cone',
+  'flip-vertical-2',
+  'scissors',
   'swatch-book',
   'book-open',
   'layers',

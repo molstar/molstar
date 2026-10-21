@@ -70,4 +70,5 @@ export const ClippingExtension: ViewerExtension = {
     ];
   },
   skills: [ClippingSkill],
+  ui: async (ctx) => (await import('./prism-viewer-ui.js')).clippingUI(ctx),
 };

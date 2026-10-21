@@ -271,7 +271,7 @@ Prism rules apply: the DOM runtime, no rxjs in views, `scoped` attachments, `--m
    - `PluginContext.clickOwners`: a tool claims its representations' clicks, which then never reach `behaviors.interaction.click` (focus, select, host events). Hover is untouched.
 4. **(done) `extensions/clipping` package wiring:** `inventory.json`, root tsconfig refs, `apps/prism-viewer` deps and `extensions.ts`.
 5. **(done, but exclusion) The `clipping` API area** (`cuts.ts`: cuts found by grouping equal objects, numbered in tree order, the component manager's own excluded; `placeCut` by shape; `operations.ts`: list, add, update, remove, clear; targets by atoms or node selector, filtered by type): derive the cuts, the operations, commands and a skill, and exclusion re-indexing. Quick-lane tests through a headless viewer, including a clip set from code showing up in `list`.
-6. **The Selection section UI.**
+6. **(done) The Selection section UI** (`prism-viewer-ui.tsx`): a shape per button, "Only" type toggles, the cuts with flip, edit (a form per shape) and remove; Clip… in the selection menu (`ui.selectionActions`). The area publishes `cuts` and `selectionTypes` as watched states.
 7. **Gizmos for the five shapes:** hover, drag, commit and cancel, with the gesture and cancel tests.
 8. **The row-menu point in Prism and "Clip this…".**
 9. **Stories** in `apps/prism-viewer/src/_stories/clipping.stories.tsx`, with fixtures from `ExampleFiles` and no network:

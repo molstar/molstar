@@ -10,7 +10,10 @@ import { Clip } from '@molstar/core/util/clip';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StructureElement } from '@molstar/model/model/structure';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
+import type { PluginContext } from '@molstar/plugin/context';
 import { selectNodes } from '@molstar/prism-viewer/api';
+import { watchedState } from '@molstar/prism-viewer/sources/watched';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '@molstar/prism-viewer/api/area';
 import { NodeParam, OptionalParam, TargetParam } from '@molstar/prism-viewer/api/params';
 import {
@@ -38,6 +41,23 @@ const Vec3Param = (description: string) => OptionalParam(PD.Value<readonly numbe
 
 export class ClippingApi extends ApiArea {
   readonly id = 'clipping';
+
+  /** The cuts as the views follow them: read again when the state changes, while something watches */
+  readonly cuts: ReadonlyState<readonly Cut[]> = watchedState(
+    () => findCuts(this.ctx.plugin),
+    () => [
+      this.ctx.plugin.state.data.events.changed,
+      this.ctx.plugin.managers.structure.component.events.optionsUpdated,
+    ],
+    { compare: sameCuts },
+  );
+
+  /** The representation types drawing the selection: what a new cut can be narrowed to (the section's filter) */
+  readonly selectionTypes: ReadonlyState<readonly string[]> = watchedState(
+    () => typesInSelection(this.ctx.plugin),
+    () => [this.ctx.plugin.managers.structure.selection.events.changed, this.ctx.plugin.state.data.events.changed],
+    { compare: (a, b) => a.length === b.length && a.every((t, i) => t === b[i]) },
+  );
 
   readonly list = this.operation({
     id: 'clipping.list',
@@ -299,4 +319,37 @@ function isBelow(state: ApiContext['plugin']['state']['data'], ref: string, ance
     at = next;
   }
   return false;
+}
+
+function sameCuts(a: readonly Cut[], b: readonly Cut[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (c, i) =>
+        RepresentationClip.objectsEqual(c.object, b[i].object) &&
+        c.targets.length === b[i].targets.length &&
+        c.targets.every((t, j) => t.ref === b[i].targets[j].ref && t.label === b[i].targets[j].label),
+    )
+  );
+}
+
+/** The types of the clippable representations of the components the selection is in, in the order first met */
+function typesInSelection(plugin: PluginContext): string[] {
+  const selection = plugin.managers.structure.selection;
+  if (selection.stats.elementCount === 0) return [];
+  const types: string[] = [];
+  for (const s of plugin.managers.structure.hierarchy.current.structures) {
+    const data = s.cell.obj?.data;
+    const loci = data && selection.getLoci(data);
+    if (!loci || !StructureElement.Loci.is(loci) || StructureElement.Loci.isEmpty(loci)) continue;
+    for (const c of s.components) {
+      const cdata = c.cell.obj?.data;
+      if (!cdata || StructureElement.Loci.isEmpty(StructureElement.Loci.remap(loci, cdata))) continue;
+      for (const r of c.representations) {
+        const t = representationType(r.cell);
+        if (RepresentationClip.isClippable(r.cell) && !types.includes(t)) types.push(t);
+      }
+    }
+  }
+  return types;
 }
