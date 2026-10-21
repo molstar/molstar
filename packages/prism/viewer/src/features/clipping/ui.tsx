@@ -8,7 +8,7 @@
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { Button, domView, Icon, ParamsForm } from '@molstar/prism-ui';
+import { Button, domView, Icon, ParamsForm, TextInput } from '@molstar/prism-ui';
 import type { IconName } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
@@ -107,13 +107,19 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
     const on = chosen.value.includes(t);
     exclude(types.value.filter((x) => (x === t ? on : !chosen.value.includes(x))));
   };
-  const add = (shape: CutShape) => {
+  // The cuts whose editor is open (by number): a new one opens, so its shape is a click away
+  const open = observableState<readonly number[]>([]);
+  const setOpen = (index: number, on: boolean) =>
+    open.set(on ? [...open.value.filter((i) => i !== index), index] : open.value.filter((i) => i !== index));
+  // + Add: a plane through what the selection is drawn as; its shape is picked on the cut
+  const add = () => {
     // all chosen: no filter, so a type drawn later is cut too
     const only = chosen.value.length === types.value.length ? [] : chosen.value;
-    void ctx.api.run('clipping.add', { shape, types: only }).then((r) => {
-      // a cut made here comes with its handles
+    void ctx.api.run('clipping.add', { shape: 'plane', types: only }).then((r) => {
       const cut = (r as { value?: Cut }).value;
-      if (r.ok && cut) clipping.gizmos.setHandled(cut.index, true);
+      if (!r.ok || !cut) return;
+      clipping.gizmos.setHandled(cut.index, true);
+      setOpen(cut.index, true);
     });
   };
   // The handled cuts' gizmos show while the section does: closed (or its tab), they go; opened, they come back
@@ -121,77 +127,14 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
   onCleanup(() => clipping.gizmos.hide());
   const canAdd = derive([selected, chosen], (on, c) => on && c.length > 0);
   const numbers = derive(clipping.cuts, (cuts) => cuts.map((c) => c.index), sameNumbers);
+  const any = derive(numbers, (n) => n.length > 0);
   return (
-    <div style="display: grid; gap: var(--msp-space-3); min-width: 0">
-      <p style={caption}>
-        {derive(selected, (on) =>
-          on ? 'Cut through what the selection is drawn as:' : 'Select something to cut through what it is drawn as.',
-        )}
-      </p>
-      {/* As a representation's Type: a strip of icons, their names as tooltips (a shape is plain from its icon) */}
-      <div
-        style="display: flex; padding: 2px; border-radius: var(--msp-radius-md); background: var(--msp-color-control); min-width: 0"
-        role="group"
-        aria-label="Cut with"
-      >
-        {CutShapes.map((shape) => (
-          <span style="flex: 1 1 0; min-width: 0; display: grid">
-            {/* the icon as content, not `icon`: an icon-only button is a fixed square, this one fills its slot */}
-            <Button
-              size="sm"
-              variant="ghost"
-              block
-              title={`Cut with a ${CutShapeLabels[shape].toLowerCase()}`}
-              disabled={derive(canAdd, (on) => !on)}
-              onClick={() => add(shape)}
-            >
-              <Icon name={ShapeIcons[shape]} label={CutShapeLabels[shape]} />
-            </Button>
-          </span>
-        ))}
-      </div>
-      <Show when={derive(types, (t) => t.length > 1)}>
-        {() => (
-          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--msp-space-1); min-width: 0">
-            <span style={`${caption}; margin-right: var(--msp-space-1)`}>Through</span>
-            <div style="display: contents" role="group" aria-label="Cut through these representations">
-              <For each={types}>
-                {(t) => {
-                  const on = derive(chosen, (c) => c.includes(t));
-                  return (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      pressed={on}
-                      icon={
-                        <span style={derive(on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
-                          <Icon name="check" size={14} />
-                        </span>
-                      }
-                      title={derive(on, (v) => (v ? `Leave the ${t} whole` : `Cut through the ${t} too`))}
-                      onClick={() => toggle(t)}
-                    >
-                      <span style={derive(on, (v) => (v ? '' : 'color: var(--msp-color-text-muted)'))}>{t}</span>
-                    </Button>
-                  );
-                }}
-              </For>
-            </div>
-            <span style="flex: 1" />
-            <Button size="xs" variant="ghost" title="Cut through every type" onClick={() => exclude([])}>
-              All
-            </Button>
-            <Button size="xs" variant="ghost" title="Uncheck every type" onClick={() => exclude(types.value)}>
-              None
-            </Button>
-          </div>
-        )}
-      </Show>
-      <Show when={derive(numbers, (n) => n.length > 0)}>
-        {() => (
-          <div style="display: grid; gap: var(--msp-space-1)">
-            <div style={row}>
-              <p style={`${caption}; flex: 1`}>Cuts</p>
+    <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
+      <div style={row}>
+        <p style={`${caption}; flex: 1`}>Cuts</p>
+        <Show when={any}>
+          {() => (
+            <>
               {/* the rows' handles toggle, so All and None read as theirs */}
               <span style="display: flex; color: var(--msp-color-text-muted)" title="Handles" aria-hidden="true">
                 <Icon name="move-3d" size={14} />
@@ -212,19 +155,69 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
               >
                 None
               </Button>
+            </>
+          )}
+        </Show>
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={<Icon name="plus" />}
+          title={derive(selected, (on) =>
+            on ? 'A cut through what the selection is drawn as (pick its shape on it)' : 'Select what to cut first',
+          )}
+          disabled={derive(canAdd, (on) => !on)}
+          onClick={add}
+        >
+          Add
+        </Button>
+      </div>
+      <Show when={derive([any, selected], (a, s) => !a && !s)}>
+        {() => <p style={caption}>Select something, then Add a cut through what it is drawn as.</p>}
+      </Show>
+      <Show when={derive(types, (t) => t.length > 1)}>
+        {() => (
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--msp-space-1); min-width: 0">
+            <span style={`${caption}; margin-right: var(--msp-space-1)`}>Through</span>
+            <div style="display: contents" role="group" aria-label="New cuts through these representation types">
+              <For each={types}>
+                {(t) => {
+                  const on = derive(chosen, (c) => c.includes(t));
+                  return (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      pressed={on}
+                      icon={<Check on={on} />}
+                      title={derive(on, (v) => (v ? `Leave the ${t} whole` : `Cut through the ${t} too`))}
+                      onClick={() => toggle(t)}
+                    >
+                      <Muted on={on}>{t}</Muted>
+                    </Button>
+                  );
+                }}
+              </For>
             </div>
-            <For each={numbers}>
-              {(index) => (
-                <CutRow
-                  ctx={ctx}
-                  clipping={clipping}
-                  cut={derive(clipping.cuts, (cs) => cs.find((c) => c.index === index))}
-                />
-              )}
-            </For>
+            <span style="flex: 1" />
+            <Button size="xs" variant="ghost" title="Cut through every type" onClick={() => exclude([])}>
+              All
+            </Button>
+            <Button size="xs" variant="ghost" title="Uncheck every type" onClick={() => exclude(types.value)}>
+              None
+            </Button>
           </div>
         )}
       </Show>
+      <For each={numbers}>
+        {(index) => (
+          <CutRow
+            ctx={ctx}
+            clipping={clipping}
+            cut={derive(clipping.cuts, (cs) => cs.find((c) => c.index === index))}
+            open={derive(open.asReadonly, (o) => o.includes(index))}
+            setOpen={(on) => setOpen(index, on)}
+          />
+        )}
+      </For>
     </div>
   );
 }
@@ -233,18 +226,85 @@ function sameNumbers(a: readonly number[], b: readonly number[]) {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
-/** A cut: its shape and what it is on; flip, edit (its numbers), remove */
-function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: ReadonlyState<Cut | undefined> }) {
+/** A check mark, its place kept when off (the labels line up) */
+function Check(props: { on: ReadonlyState<boolean>; partly?: ReadonlyState<boolean> }) {
+  const partly = props.partly;
+  return (
+    <span style={derive(props.on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
+      {partly ? (
+        <Show when={partly} fallback={() => <Icon name="check" size={14} />}>
+          {() => <Icon name="minus" size={14} />}
+        </Show>
+      ) : (
+        <Icon name="check" size={14} />
+      )}
+    </span>
+  );
+}
+
+/** A label, muted while its check is off */
+function Muted(props: { on: ReadonlyState<boolean>; children?: unknown }) {
+  return (
+    <span
+      style={derive(
+        props.on,
+        (v) =>
+          `flex: 1; text-align: start; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap${v ? '' : '; color: var(--msp-color-text-muted)'}`,
+      )}
+    >
+      {props.children as never}
+    </span>
+  );
+}
+
+/** The five shapes as a strip of icons (as a representation's Type), the current one pressed */
+function ShapeStrip(props: { current: CutShape; pick(shape: CutShape): void }) {
+  return (
+    <div
+      style="display: flex; padding: 2px; border-radius: var(--msp-radius-md); background: var(--msp-color-control); min-width: 0"
+      role="radiogroup"
+      aria-label="Shape"
+    >
+      {CutShapes.map((shape) => (
+        <span style="flex: 1 1 0; min-width: 0; display: grid">
+          {/* the icon as content, not `icon`: an icon-only button is a fixed square, this one fills its slot */}
+          <Button
+            size="sm"
+            variant="ghost"
+            block
+            pressed={shape === props.current}
+            title={
+              shape === props.current
+                ? `A ${CutShapeLabels[shape].toLowerCase()}`
+                : `Make it a ${CutShapeLabels[shape].toLowerCase()}`
+            }
+            onClick={() => shape !== props.current && props.pick(shape)}
+          >
+            <Icon name={ShapeIcons[shape]} label={CutShapeLabels[shape]} />
+          </Button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** A cut: its shape and what it is on; handles, flip, edit (its shape, what it cuts, its numbers), remove */
+function CutRow(props: {
+  ctx: ViewerUIContext;
+  clipping: ClippingApi;
+  cut: ReadonlyState<Cut | undefined>;
+  open: ReadonlyState<boolean>;
+  setOpen(on: boolean): void;
+}) {
   const { ctx, clipping, cut } = props;
   const handled = derive([clipping.gizmos.handled, cut], (h, c) => !!c && h.includes(c.index));
-  const editing = observableState(false);
   const run = (op: string, values: Record<string, unknown>) => {
     const c = cut.value;
     return c ? ctx.api.run(op, { cut: c.index, ...values }) : undefined;
   };
   return (
     // keyed by its shape (a string, stable): a new `Cut` each state change must not render the row (and a form being
-    // edited) again
+    // edited) again; another shape is another form
     <Show when={derive(cut, (c) => c?.object.type)}>
       {(type) => {
         const shape = type as CutShape;
@@ -257,7 +317,7 @@ function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: Reado
                   {derive(cut, (c) => (c ? `${CutShapeLabels[shape]} ${c.index}` : ''))}
                 </span>
                 <span style={`${caption}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap`}>
-                  {derive(cut, (c) => (c ? c.targets.map((t) => t.label).join(', ') : ''))}
+                  {derive(cut, (c) => (c ? targetsSummary(c) : ''))}
                 </span>
               </span>
               <Button
@@ -285,9 +345,9 @@ function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: Reado
                 size="xs"
                 variant="ghost"
                 icon={<Icon name="sliders-horizontal" />}
-                title="Edit its numbers"
-                pressed={editing.asReadonly}
-                onClick={() => editing.set(!editing.value)}
+                title="Its shape, what it cuts, its numbers"
+                pressed={props.open}
+                onClick={() => props.setOpen(!props.open.value)}
               />
               <Button
                 size="xs"
@@ -297,9 +357,10 @@ function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: Reado
                 onClick={() => run('clipping.remove', {})}
               />
             </div>
-            <Show when={editing.asReadonly}>
+            <Show when={props.open}>
               {() => (
                 <>
+                  <ShapeStrip current={shape} pick={(next) => run('clipping.update', { shape: next })} />
                   <CutTargets clipping={clipping} cut={cut} run={run} />
                   <CutForm cut={cut} shape={shape} run={run} />
                 </>
@@ -312,60 +373,132 @@ function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: Reado
   );
 }
 
-/** What a cut is on, and the representations near them it could be: each checked or not (the last stays checked) */
+/** "Cartoon of Polymer, Ball & Stick of Ligand", or "12 representations" past a few */
+function targetsSummary(cut: Cut): string {
+  return cut.targets.length > 3 ? `${cut.targets.length} representations` : cut.targets.map((t) => t.label).join(', ');
+}
+
+/** Past this many representations, the list is searched and shows this many until asked for all */
+const TargetsShown = 8;
+
+/**
+ * What a cut is on, and the representations near them it could be: by type (each on or off for all of its kind, one
+ * step), then one by one, those it is on first; past a few, a search and "Show all". Turning off the last says to
+ * remove the cut instead (the operation refuses).
+ */
 function CutTargets(props: {
   clipping: ClippingApi;
   cut: ReadonlyState<Cut | undefined>;
-  run(op: string, values: Record<string, unknown>): void;
+  run(op: string, values: Record<string, unknown>): Promise<unknown> | void;
 }) {
   const candidates = derive(props.cut, (c) => (c ? props.clipping.candidates(c) : []), sameTargets);
+  const on = derive(props.cut, (c) => new Set(c?.targets.map((t) => t.ref)));
+  const byType = derive([candidates, on], (cs, o) => {
+    const types = new Map<string, { refs: string[]; on: number }>();
+    for (const t of cs) {
+      const e = types.get(t.type) ?? { refs: [], on: 0 };
+      e.refs.push(t.ref);
+      if (o.has(t.ref)) e.on++;
+      types.set(t.type, e);
+    }
+    return [...types].map(([type, e]) => ({ type, ...e }));
+  });
+  const query = observableState('');
+  const all = observableState(false);
+  const many = derive(candidates, (cs) => cs.length > TargetsShown);
+  const shown = derive(
+    [candidates, on, query.asReadonly, all.asReadonly],
+    (cs, o, q, a) => {
+      const needle = q.trim().toLowerCase();
+      const list = [...cs]
+        .filter((t) => !needle || t.label.toLowerCase().includes(needle))
+        .sort((x, y) => Number(o.has(y.ref)) - Number(o.has(x.ref)));
+      return a || needle ? list : list.slice(0, TargetsShown);
+    },
+    sameTargets,
+  );
+  const apply = (refs: readonly string[], value: boolean) =>
+    props.run('clipping.apply', { representations: refs, on: value });
   return (
     <div style="display: grid; gap: 2px; min-width: 0" role="group" aria-label="The representations it cuts">
       <p style={caption}>Cuts through</p>
-      <For each={candidates}>
+      <Show when={derive([byType, candidates], (t, cs) => t.length > 1 && cs.length > t.length)}>
+        {() => (
+          <div style="display: flex; flex-wrap: wrap; gap: var(--msp-space-1); min-width: 0" aria-label="By type">
+            <For each={derive(byType, (t) => t.map((x) => x.type), sameNumbersOrStrings)}>
+              {(type) => {
+                const entry = derive(byType, (t) => t.find((x) => x.type === type));
+                const any = derive(entry, (e) => !!e && e.on > 0);
+                const partly = derive(entry, (e) => !!e && e.on > 0 && e.on < e.refs.length);
+                return (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    pressed={any}
+                    icon={<Check on={any} partly={partly} />}
+                    title={derive(entry, (e) =>
+                      e && e.on === e.refs.length ? `Leave every ${type} whole` : `Cut every ${type}`,
+                    )}
+                    onClick={() => {
+                      const e = entry.value;
+                      if (e) apply(e.refs, e.on < e.refs.length);
+                    }}
+                  >
+                    <Muted on={any}>{derive(entry, (e) => (e ? `${type} ${e.on}/${e.refs.length}` : type))}</Muted>
+                  </Button>
+                );
+              }}
+            </For>
+          </div>
+        )}
+      </Show>
+      <Show when={many}>
+        {() => (
+          <TextInput
+            size="sm"
+            search
+            placeholder="Find a representation"
+            aria-label="Find a representation"
+            value={query}
+            onInput={(v) => query.set(v)}
+          />
+        )}
+      </Show>
+      <For each={shown} key={(t) => t.ref}>
         {(t) => {
-          const on = derive(props.cut, (c) => !!c?.targets.some((x) => x.ref === t.ref));
-          const last = derive(props.cut, (c) => !!c && c.targets.length === 1 && c.targets[0].ref === t.ref);
+          const checked = derive(on, (o) => o.has(t.ref));
           return (
             <Button
               size="xs"
               variant="ghost"
               block
-              pressed={on}
-              disabled={last}
-              icon={
-                <span style={derive(on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
-                  <Icon name="check" size={14} />
-                </span>
-              }
-              title={derive([on, last], (v, l) =>
-                l
-                  ? 'The cut is only on this: remove the cut instead'
-                  : v
-                    ? `Leave ${t.label} whole`
-                    : `Cut ${t.label} too`,
-              )}
-              onClick={() => props.run('clipping.apply', { representation: t.ref, on: !on.value })}
+              pressed={checked}
+              icon={<Check on={checked} />}
+              title={derive(checked, (v) => (v ? `Leave ${t.label} whole` : `Cut ${t.label} too`))}
+              onClick={() => apply([t.ref], !checked.value)}
             >
-              <span
-                style={derive(
-                  on,
-                  (v) =>
-                    `flex: 1; text-align: start; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap${v ? '' : '; color: var(--msp-color-text-muted)'}`,
-                )}
-              >
-                {t.label}
-              </span>
+              <Muted on={checked}>{t.label}</Muted>
             </Button>
           );
         }}
       </For>
+      <Show when={derive([many, query.asReadonly], (m, q) => m && !q.trim())}>
+        {() => (
+          <Button size="xs" variant="ghost" onClick={() => all.set(!all.value)}>
+            {derive([all.asReadonly, candidates], (a, cs) => (a ? 'Show fewer' : `Show all ${cs.length}`))}
+          </Button>
+        )}
+      </Show>
     </div>
   );
 }
 
 function sameTargets(a: readonly { ref: string }[], b: readonly { ref: string }[]) {
   return a.length === b.length && a.every((t, i) => t.ref === b[i].ref);
+}
+
+function sameNumbersOrStrings<T extends string | number>(a: readonly T[], b: readonly T[]) {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
 /** A cut's numbers by its shape: where, which way, how large (Å, degrees) */

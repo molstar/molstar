@@ -7,7 +7,17 @@
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
-import { AroundRoom, coneAngle, coneScale, LocalUp, MinPlacedRadius, placeCut, rotated, rotationTo } from '../cuts.js';
+import {
+  AroundRoom,
+  reshape,
+  coneAngle,
+  coneScale,
+  LocalUp,
+  MinPlacedRadius,
+  placeCut,
+  rotated,
+  rotationTo,
+} from '../cuts.js';
 import { turn } from '../gizmo/gestures.js';
 
 // The cut geometry the area and the gizmos share: rotations, a cone's angle, where a new cut goes.
@@ -59,5 +69,23 @@ describe('cuts', () => {
     const frame = { right: Vec3.create(1, 0, 0), up: Vec3.create(0, 1, 0), perPixel: 1 };
     const next = turn(from, frame, 0, 0);
     expect(next.rotation.angle).toBeCloseTo(30, 4);
+  });
+
+  it('reshapes a cut, its place, direction, size and flip carried over', () => {
+    const plane = placeCut('plane', Sphere3D.create(Vec3.create(1, 2, 3), 20), Vec3.create(1, 0, 0));
+    const flipped = { ...plane, invert: true };
+    // a plane has no size: the new one takes the given one; its normal becomes the cylinder's axis
+    const cylinder = reshape(flipped, 'cylinder', 16);
+    close(cylinder.position, [1, 2, 3]);
+    close(rotated(cylinder.rotation, LocalUp), [1, 0, 0]);
+    expect(cylinder.scale[0]).toBeCloseTo(16, 6);
+    expect(cylinder.invert).toBe(true);
+    // and the cone's opening
+    const cone = reshape(cylinder, 'infiniteCone', 16);
+    close(rotated(cone.rotation, Vec3.create(0, 0, -1)), [1, 0, 0]);
+    // a sphere's diameter is a box's edge
+    const box = reshape({ ...cylinder, type: 'sphere', scale: Vec3.create(9, 9, 9) }, 'cube', 16);
+    close(box.scale, [9, 9, 9]);
+    expect(reshape(box, 'cube', 16)).toBe(box);
   });
 });

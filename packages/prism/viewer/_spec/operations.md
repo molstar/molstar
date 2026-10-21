@@ -29,11 +29,11 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `canvas.settings` | Change canvas settings | needs canvas; ui-only | section, values |
 | `canvas.xr` | Enter or leave XR | view; needs canvas | on |
 | `clipping.add` | Cut… |  | shape, target, node, types, invert |
-| `clipping.apply` | Cut a representation or not |  | cut, representation, on |
+| `clipping.apply` | Cut representations or not |  | cut, representation, representations, on |
 | `clipping.clear` | Remove every cut | destructive |  |
 | `clipping.list` | List the cuts | read |  |
 | `clipping.remove` | Remove a cut | destructive | cut |
-| `clipping.update` | Change a cut |  | cut, position, normal, rotation, scale, invert |
+| `clipping.update` | Change a cut |  | cut, shape, position, normal, rotation, scale, invert |
 | `component.add` | Add a component |  | target, label, representation, structure, language |
 | `component.list` | List the components | read | structure |
 | `component.modify` | Change what a component holds |  | component, target, mode, structure, language |

@@ -28,11 +28,14 @@ import {
   cutCandidates,
   type CutTarget,
   findCuts,
+  MinPlacedRadius,
   placeCut,
   representationLabel,
   representationType,
   representationsSphere,
+  reshape,
   rotationTo,
+  shapeAxis,
   withObject,
 } from '../../sources/clipping/cuts.js';
 
@@ -189,6 +192,15 @@ export class ClippingApi extends ApiArea {
     title: 'Change a cut',
     params: {
       cut: CutParam(),
+      shape: OptionalParam(
+        PD.Select<CutShape>(
+          'plane',
+          PD.arrayToOptions([...CutShapes], (s) => CutShapeLabels[s]),
+          {
+            description: 'Another shape, in its place: its position, direction and size carried over',
+          },
+        ),
+      ),
       position: Vec3Param('Its center (Å, world): a plane through it'),
       normal: Vec3Param("A plane's normal (it removes the side this points to); a shape's axis"),
       rotation: OptionalParam(
@@ -202,7 +214,8 @@ export class ClippingApi extends ApiArea {
     },
     async run(v, ctx) {
       const { cut: index } = v;
-      const { position, normal, rotation, scale, invert } = v as {
+      const { shape, position, normal, rotation, scale, invert } = v as {
+        shape?: CutShape;
         position?: readonly number[];
         normal?: readonly number[];
         rotation?: { axis: readonly number[]; angle: number };
@@ -217,8 +230,12 @@ export class ClippingApi extends ApiArea {
         return ApiResult.fail('invalid', `A ${normal ? 'normal' : 'rotation axis'} of length 0 has no direction.`);
       }
       const o = cut.object;
+      // another shape first (sized from what it cuts when it had none), the other values over it
+      const shaped = shape
+        ? reshape(o, shape, Math.max(representationsSphere(cellsOf(ctx, cut))?.radius ?? 0, MinPlacedRadius))
+        : o;
       const next: CutObject = {
-        ...o,
+        ...shaped,
         ...(position ? { position: Vec3.fromArray(Vec3(), position, 0) } : {}),
         ...(rotation
           ? {
@@ -228,7 +245,7 @@ export class ClippingApi extends ApiArea {
               },
             }
           : {}),
-        ...(normal ? { rotation: rotationTo(axisOf(o.type), Vec3.fromArray(Vec3(), normal, 0)) } : {}),
+        ...(normal ? { rotation: rotationTo(shapeAxis(shaped.type), Vec3.fromArray(Vec3(), normal, 0)) } : {}),
         ...(scale ? { scale: Vec3.fromArray(Vec3(), scale, 0) } : {}),
         ...(invert !== undefined ? { invert } : {}),
       };
@@ -240,36 +257,57 @@ export class ClippingApi extends ApiArea {
 
   readonly apply = this.operation({
     id: 'clipping.apply',
-    title: 'Cut a representation or not',
+    title: 'Cut representations or not',
     params: {
       cut: CutParam(),
-      representation: PD.Text('', { description: "The representation's node ref (clipping.list: a cut's targets)" }),
-      on: PD.Boolean(true, { description: 'Cut it (true) or leave it whole (false)' }),
+      representation: PD.Text('', { description: "A representation's node ref (clipping.list: a cut's targets)" }),
+      representations: OptionalParam(
+        PD.Value<readonly string[]>([], { description: 'Several, as one step (a type of them all at once)' }),
+      ),
+      on: PD.Boolean(true, { description: 'Cut them (true) or leave them whole (false)' }),
     },
-    async run({ cut: index, representation, on }, ctx) {
+    async run({ cut: index, representation, representations, on }, ctx) {
       const cut = oneCut(ctx, index);
       if (ApiResult.isFailure(cut)) return cut;
       const state = ctx.plugin.state.data;
-      const cell = state.cells.get(representation);
-      if (!cell || !RepresentationClip.isClippable(cell)) {
-        return ApiResult.fail('not-found', `There is no representation ${representation} to cut.`);
+      const refs = [
+        ...new Set([
+          ...(representation ? [representation] : []),
+          ...((representations as readonly string[] | undefined) ?? []),
+        ]),
+      ];
+      if (!refs.length)
+        return ApiResult.fail('invalid', 'No representation given.', 'representation, or representations.');
+      const cells: StateObjectCell[] = [];
+      for (const ref of refs) {
+        const cell = state.cells.get(ref);
+        if (!cell || !RepresentationClip.isClippable(cell)) {
+          return ApiResult.fail('not-found', `There is no representation ${ref} to cut.`);
+        }
+        // only those it changes
+        if (cut.targets.some((t) => t.ref === ref) !== on) cells.push(cell);
       }
-      const label = representationLabel(state, cell);
-      const has = cut.targets.some((t) => t.ref === representation);
-      if (has === on) return ApiResult.already(`Cut ${index} is ${on ? 'already' : 'not'} on ${label}.`);
-      if (!on && cut.targets.length === 1) {
+      const label = cells.length === 1 ? representationLabel(state, cells[0]) : `${cells.length} representations`;
+      if (!cells.length) return ApiResult.already(`Cut ${index} is ${on ? 'already on them' : 'not on them'}.`);
+      if (!on && cells.length >= cut.targets.length) {
         return ApiResult.fail(
           'blocked',
-          `${label} is all cut ${index} is on.`,
+          `That is all cut ${index} is on.`,
           'Remove the cut instead (clipping.remove).',
         );
       }
-      if (on && RepresentationClip.get(cell.transform.params)!.objects.length >= Clip.MaxObjectCount) {
-        return ApiResult.fail('blocked', `${label} has ${Clip.MaxObjectCount} clip objects already.`);
+      const full = on
+        ? cells.find((c) => RepresentationClip.get(c.transform.params)!.objects.length >= Clip.MaxObjectCount)
+        : undefined;
+      if (full) {
+        return ApiResult.fail(
+          'blocked',
+          `${representationLabel(state, full)} has ${Clip.MaxObjectCount} clip objects already.`,
+        );
       }
-      await commit(ctx, [cell], on ? undefined : cut.object, on ? cut.object : undefined);
+      await commit(ctx, cells, on ? undefined : cut.object, on ? cut.object : undefined);
       return ApiResult.ok(on ? `Cut ${index} now cuts ${label}.` : `Cut ${index} leaves ${label} whole.`, {
-        nodes: [representation],
+        nodes: cells.map((c) => c.transform.ref),
       });
     },
   });
@@ -318,11 +356,6 @@ function describe(cut: Cut): string {
   return `Cut ${cut.index}: ${what.toLowerCase()} at (${p})${cut.object.invert ? ', inverted' : ''} · ${cut.targets
     .map((t) => `${t.label} (${t.ref})`)
     .join(', ')}`;
-}
-
-/** A shape's local axis: a plane's normal and a cylinder's axis are +Y, a cone opens along −Z */
-function axisOf(type: Clip.Props['objects'][number]['type']): Vec3 {
-  return type === 'infiniteCone' ? Vec3.create(0, 0, -1) : Vec3.create(0, 1, 0);
 }
 
 function oneCut(ctx: ApiContext, index: number): Cut | ApiFailure {

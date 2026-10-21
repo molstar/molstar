@@ -183,4 +183,23 @@ describe('the clipping area', () => {
     expect(await clipping.clipThis(v.api, polymer.cell.transform.ref)).toBe(true);
     expect(clipping.filter.value).toEqual({ excluded: [] });
   });
+
+  it('turns a cut on for several representations as one step, and changes its shape in place', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping;
+    ok(await clipping.add({ shape: 'plane', target: 'polymer' }));
+    const cut = findCuts(v.plugin)[0];
+    const others = clipping.candidates(cut).filter((t) => !cut.targets.some((x) => x.ref === t.ref));
+    expect(others.length).toBeGreaterThan(1);
+    ok(await clipping.apply({ cut: 1, representations: others.map((t) => t.ref), on: true }));
+    expect(findCuts(v.plugin)[0].targets).toHaveLength(cut.targets.length + others.length);
+    await v.api.history.undo();
+    expect(findCuts(v.plugin)[0].targets).toHaveLength(cut.targets.length);
+
+    ok(await clipping.update({ cut: 1, shape: 'sphere' }));
+    const sphere = findCuts(v.plugin)[0].object;
+    expect(sphere.type).toBe('sphere');
+    expect([...sphere.position]).toEqual([...cut.object.position]);
+    expect(sphere.scale[0]).toBeGreaterThan(0);
+  });
 });

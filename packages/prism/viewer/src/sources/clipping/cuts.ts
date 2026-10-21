@@ -245,6 +245,40 @@ function exitDistance(from: Vec3, dir: Vec3, sphere: Sphere3D): number {
   return disc < 0 ? 0 : Math.max(0, -b + Math.sqrt(disc));
 }
 
+/** The local axis a shape's direction is: a plane's normal, a box's or a cylinder's up (+Y), a cone's opening (−Z) */
+export const shapeAxis = (shape: string) => (shape === 'infiniteCone' ? ConeOpening : LocalUp);
+
+/**
+ * The cut as another shape, what they have in common carried over: where it is, which way it points (a plane's normal
+ * becomes a cylinder's axis or a cone's opening), how large (a sphere's diameter a box's edge or a cylinder's), flipped
+ * or not. A plane or a cone has no size: the new one is `size` across (from what it cuts).
+ */
+export function reshape(object: CutObject, shape: CutShape, size: number): CutObject {
+  if (object.type === shape) return object;
+  const axis = rotated(object.rotation, shapeAxis(object.type));
+  const s = object.scale;
+  const across =
+    object.type === 'sphere' || object.type === 'cylinder'
+      ? s[0]
+      : object.type === 'cube'
+        ? Math.max(s[0], s[1], s[2])
+        : size;
+  const rotation = rotationTo(shapeAxis(shape), axis);
+  const base = { ...object, type: shape, rotation, position: Vec3.clone(object.position) };
+  switch (shape) {
+    case 'plane':
+      return { ...base, scale: Vec3.create(1, 1, 1) };
+    case 'sphere':
+      return { ...base, scale: Vec3.create(across, across, across) };
+    case 'cube':
+      return { ...base, scale: Vec3.create(across, object.type === 'cylinder' ? s[1] : across, across) };
+    case 'cylinder':
+      return { ...base, scale: Vec3.create(across, object.type === 'cube' ? s[1] : 2 * across, across) };
+    case 'infiniteCone':
+      return { ...base, scale: coneScale(25) };
+  }
+}
+
 /** The room (Å) a closed shape leaves around a small target */
 export const AroundRoom = 4;
 
