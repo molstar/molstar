@@ -766,9 +766,10 @@ namespace Visual {
       values.instanceGrid.ref.value.cellSize,
       values.instanceGrid.ref.value.batchSize,
     );
+    // from the transforms as drawn (`aTransform`: the matrix and any extra transform applied), as the geometries do
     const boundingSphere = calculateTransformBoundingSphere(
       values.invariantBoundingSphere.ref.value,
-      values.transform.ref.value,
+      values.aTransform.ref.value,
       values.instanceCount.ref.value,
       0,
     );

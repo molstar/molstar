@@ -159,7 +159,8 @@ export class VisualSet {
   setState(repr: AnyRepresentation, state: Partial<Representation.State>) {
     if (!this.has(repr)) return;
     repr.setState(state);
-    this.canvas.update(repr, !!state.transform);
+    // the scene's bounds follow (a moved gizmo: the camera's near and far planes, culling, picking)
+    this.canvas.update(repr);
     this.canvas.requestDraw();
   }
 

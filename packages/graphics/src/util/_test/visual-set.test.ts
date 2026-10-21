@@ -100,7 +100,7 @@ describe('VisualSet', () => {
     set.dispose();
   });
 
-  it('moves a representation through the canvas, without rebuilding it', async () => {
+  it('moves a representation through the canvas, its bounds with it, without rebuilding it', async () => {
     const { canvas } = fakeCanvas();
     const set = new VisualSet(canvas);
     const repr = await set.addShape(sphereShape, Mesh.Utils, 1);
@@ -110,7 +110,10 @@ describe('VisualSet', () => {
     set.setTransform(repr, m);
 
     expect(Mat4.areEqual(repr.state.transform, m, 0)).toBe(true);
-    expect(canvas.update).toHaveBeenCalledWith(repr, true);
+    // the scene's bounds recomputed (`keepBoundingSphere` not set): a moved gizmo is not culled or clipped by the camera
+    expect(canvas.update).toHaveBeenCalledWith(repr);
+    const sphere = repr.renderObjects[0].values.boundingSphere.ref.value;
+    expect(sphere.center[0]).toBeCloseTo(5, 3);
     expect(repr.renderObjects.map((ro) => ro.id)).toEqual(ids);
   });
 
