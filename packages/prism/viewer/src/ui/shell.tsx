@@ -561,7 +561,13 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
 
     // Extensions' views: the eager ones' now, a lazy one's placeholders until it loads (viewer-spec.md §3).
-    const port = extensionUIPort(shell, managers.commands, { api: person, sources, managers }, extraSelectionActions);
+    const port = extensionUIPort(
+      shell,
+      managers.commands,
+      { api: person, sources, managers },
+      extraSelectionActions,
+      'scene' in core.views ? core.views.scene.nodeActions : undefined,
+    );
     unregister.push(core.attachExtensionUI(port));
     // An extension that did not load, or whose views did not: said, not silent (its placeholder offers Retry).
     const extensionFailed = core.extensions.events.failed.subscribe((f) =>

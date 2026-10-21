@@ -15,7 +15,7 @@ import { type ObservableState, observableState } from '@molstar/prism-ui/reactiv
 import type { CommandManager } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { ExtensionUIPort } from '../extensions/host.js';
-import type { SceneNode } from '../model/scene.js';
+import type { SceneNode, SceneNodeAction } from '../model/scene.js';
 import type { SelectionAction } from '../model/selection.js';
 import { SceneRowSlot } from '../views/structure/scene-row-slot.js';
 import type { LazyViewerExtension, ViewerExtensionUI, ViewerUIContext } from '../spec.js';
@@ -31,6 +31,8 @@ export function extensionUIPort(
   context: ViewerUIContext,
   /** The selection bar's menu rows the extensions add (`ui.selectionActions`) */
   selectionActions?: ObservableState<readonly SelectionAction[]>,
+  /** The scene tree's node menu rows the extensions add (`ui.nodeActions`); absent without a scene */
+  nodeActions?: ObservableState<readonly SceneNodeAction[]>,
 ): ExtensionUIPort {
   // Owners whose load failed: their placeholders, put back by the host, wait for Retry instead of loading again.
   const failed = new Set<string>();
@@ -150,6 +152,19 @@ export function extensionUIPort(
         }));
         selectionActions.set([...selectionActions.value, ...mine]);
         undo.push(() => selectionActions.set(selectionActions.value.filter((a) => !mine.includes(a))));
+      }
+      if (ui.nodeActions?.length && nodeActions) {
+        const mine: SceneNodeAction[] = ui.nodeActions.map((a) => ({
+          id: a.id,
+          label: a.title,
+          kinds: a.kinds,
+          run: a.run,
+          ...(a.icon ? { icon: a.icon } : {}),
+          ...(a.order !== undefined ? { order: a.order } : {}),
+          ...(a.when ? { when: a.when } : {}),
+        }));
+        nodeActions.set([...nodeActions.value, ...mine]);
+        undo.push(() => nodeActions.set(nodeActions.value.filter((a) => !mine.includes(a))));
       }
       if (ui.toolbar?.length) {
         undo.push(

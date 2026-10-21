@@ -128,6 +128,20 @@ export interface SceneMenuItem {
   disabled?: Observable<boolean>;
 }
 
+/**
+ * A row of the scene tree's node menus that an extension adds (`ui.nodeActions`: the clipping extension's Clip this…),
+ * on the nodes of its kinds that pass `when`; after the node's own rows, before Remove.
+ */
+export interface SceneNodeAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  order?: number;
+  kinds: readonly SceneNodeKind[];
+  when?(node: SceneNode): boolean;
+  run(node: SceneNode): void;
+}
+
 /** What the inspector shows for a node: its parameters as a form (changes apply to the state tree). */
 export interface SceneInspection {
   node: SceneNode;
@@ -196,6 +210,8 @@ export interface SceneModel {
    * Absent (a fixture without it): no such filter.
    */
   selectionFilter?: SceneSelectionFilter;
+  /** The rows the extensions add to the node menus (`ui.nodeActions`); absent: none can be added. */
+  nodeActions?: ObservableState<readonly SceneNodeAction[]>;
 }
 
 /** Which rows hold the current selection: structures, their components and representations, Contents' entities and chains. */

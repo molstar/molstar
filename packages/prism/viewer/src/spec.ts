@@ -220,6 +220,7 @@ export type PartKind =
   | 'section'
   | 'row'
   | 'selection-action'
+  | 'node-action'
   | 'toolbar'
   | 'overlay'
   | 'page'
@@ -434,6 +435,21 @@ export interface ViewerExtensionUI {
     readonly order?: number;
     readonly command?: string;
     readonly run?: () => void;
+  }[];
+  /**
+   * Rows of the scene tree's node menus (and the inspector's, which shows the node's menu): the clipping extension's
+   * Clip this… on a component or a representation. On the nodes of `kinds` that pass `when`, after the node's own rows
+   * and before Remove, by `order`; `run` gets the node (its `id` is the state cell's ref for a component or a
+   * representation).
+   */
+  readonly nodeActions?: readonly {
+    readonly id: PartId;
+    readonly title: string;
+    readonly icon?: IconName;
+    readonly order?: number;
+    readonly kinds: readonly SceneNodeKind[];
+    readonly when?: (node: SceneNode) => boolean;
+    readonly run: (node: SceneNode) => void;
   }[];
   /** The canvas stack only: a command by id, or a card to open. */
   readonly toolbar?: readonly {

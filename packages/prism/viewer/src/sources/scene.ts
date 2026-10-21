@@ -50,6 +50,7 @@ import type {
   SceneMenuItem,
   SceneModel,
   SceneNode,
+  SceneNodeAction,
   SceneNodeKind,
   SceneSelectionFilter,
   SceneTrajectory,
@@ -128,11 +129,16 @@ class NodeMap extends Map<string, Node> {
   /** Ids put in since `fresh` was last cleared. */
   readonly fresh = new Set<string>();
   readonly #byOwner = new Map<string, Set<string>>();
-  constructor(readonly log: SceneChangeLog) {
+  constructor(
+    readonly log: SceneChangeLog,
+    /** The rows the extensions add to the node menus, each node reads them when its menu opens */
+    readonly actions?: ReadonlyState<readonly SceneNodeAction[]>,
+  ) {
     super();
   }
   override set(key: string, node: Node): this {
     node.log = this.log;
+    node.added = this.actions;
     if (!super.has(key)) {
       this.fresh.add(key);
       const owner = ownerOf(key);
@@ -220,6 +226,8 @@ class Node implements SceneNode {
   #menu?: readonly SceneMenuItem[];
   /** Builds the menu when read, for one that follows the state (a representation's current type marked). */
   menuSource?: () => readonly SceneMenuItem[] | undefined;
+  /** The extensions' rows for every node (`ui.nodeActions`): this node's are those of its kind that take it */
+  added?: ReadonlyState<readonly SceneNodeAction[]>;
   removable?: boolean;
   lazy?: boolean;
   load?: (peek?: boolean) => void;
@@ -243,10 +251,20 @@ class Node implements SceneNode {
   }
 
   get menu(): readonly SceneMenuItem[] | undefined {
-    return this.menuSource?.() ?? this.#menu;
+    const own = this.menuSource?.() ?? this.#menu;
+    const added = this.#addedItems();
+    return added.length ? [...(own ?? []), ...added] : own;
   }
   get hasMenu(): boolean {
-    return this.menuSource !== undefined || (this.#menu?.length ?? 0) > 0;
+    return this.menuSource !== undefined || (this.#menu?.length ?? 0) > 0 || this.#addedItems().length > 0;
+  }
+  #addedItems(): SceneMenuItem[] {
+    const actions = this.added?.value;
+    if (!actions?.length) return [];
+    return actions
+      .filter((a) => a.kinds.includes(this.kind) && (a.when?.(this) ?? true))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((a) => ({ id: a.id, label: a.label, ...(a.icon ? { icon: a.icon } : {}), run: () => a.run(this) }));
   }
   set menu(items: readonly SceneMenuItem[] | undefined) {
     this.#menu = items;
@@ -334,7 +352,8 @@ export function createSceneSource(
 ): SceneSource {
   // The scene's structure as one stream, told once a sync (a Mol* transaction) or a toggle (model/scene-changes.ts).
   const log = new SceneChangeLog();
-  const nodes = new NodeMap(log);
+  const nodeActions = observableState<readonly SceneNodeAction[]>([]);
+  const nodes = new NodeMap(log, nodeActions.asReadonly);
   // Nothing selected: what acts on the selection is unavailable (a component's Modify by selection).
   const selection = plugin.managers.structure.selection;
   // Read once a task (a select over many structures tells `changed` once a structure, and each read sums the whole
@@ -1342,6 +1361,7 @@ export function createSceneSource(
     picked: picked.asReadonly,
     pick: (n) => picked.set(n === picked.value ? undefined : n),
     selectionFilter,
+    nodeActions,
     reveal(id) {
       const path = (list: readonly SceneNode[]): SceneNode[] | undefined => {
         for (const n of list) {

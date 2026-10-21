@@ -133,7 +133,10 @@ beyond it (README decision 13).
 - **Views go in named slots** (`ViewerSlot`, closed: Home's import, Export, Selection, canvas settings, animation,
   Settings, inspector sections), plus `tabs`, `overlays` (cards), `pages` (over the app), scene tree `rows`, `toolbar`
   items, and `selectionActions`: rows of the selection bar's menu (a title, a line, a command or `run`, by `order`; the
-  clipping extension's Clip…), part ids `<ext>.selection-action.<name>`. No cards or rail buttons of its own. A tab for
+  clipping extension's Clip…), part ids `<ext>.selection-action.<name>`, and `nodeActions`: rows of the scene tree's
+  node menus (the inspector shows the same menu) on the node kinds given and passing `when`, after the node's own and
+  before Remove, by `order`; `run` gets the node (the clipping extension's Clip this…), part ids
+  `<ext>.node-action.<name>`. No cards or rail buttons of its own. A tab for
   what is loaded (the Kinemage panel) passes `visible`: on the rail only while it holds, so an app with the extension
   shows nothing for it until it has content (not the person's hidden tabs). A panel with a tree of its own draws it with
   `SceneRow` (`children`, `depth`; `onActivate` for a row that is an action, a kinemage's view), so it reads as the
