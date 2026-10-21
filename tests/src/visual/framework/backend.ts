@@ -6,7 +6,7 @@
 
 import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import { ImagePass } from '@molstar/graphics/canvas3d/passes/image';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { isWebGPUContext, type WebGPUFeatures, type WebGPULimits } from '@molstar/graphics/gl/webgpu/context';
 import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
@@ -163,7 +163,7 @@ function WebGLProfile(
         return undefined;
       }
 
-      const assetManager = new AssetManager();
+      const assetManager = new DefaultAssetManager();
       const context = await Canvas3DContext.create(
         canvas,
         assetManager,
@@ -235,7 +235,7 @@ function WebGPUProfile(
     create: async ({ width, height }) => {
       if (!backend.isAvailable()) return undefined;
       const { canvas, host } = createHostedCanvas(width, height);
-      const assetManager = new AssetManager();
+      const assetManager = new DefaultAssetManager();
       let context: Canvas3DContext;
       try {
         context = await Canvas3DContext.create(

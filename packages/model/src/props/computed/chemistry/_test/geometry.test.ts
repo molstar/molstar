@@ -1,0 +1,80 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { SortedArray } from '@molstar/core/data/int';
+import { parsePDB } from '@molstar/io/reader/pdb/parser';
+import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
+import { Structure, type StructureElement, Unit } from '@molstar/model/model/structure';
+import type { ElementIndex } from '@molstar/model/model/structure/model/indexing';
+import { closestHydrogen, closestHydrogenIndex } from '../geometry.js';
+import { eachBondedAtom, typeSymbol } from '../util.js';
+
+const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
+
+describe('closestHydrogen, closestHydrogenIndex', async () => {
+  // polar hydrogens (PDBQT)
+  const parsed = await parsePDB(fs.readFileSync(path.join(examples, 'ace2.pdbqt'), 'utf8'), 'ace2', 'pdbqt').run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const model = (await trajectoryFromPDB(parsed.result).run()).representative;
+  const structure = Structure.ofModel(model);
+  const unit = structure.units[0] as Unit.Atomic;
+
+  // the first atom with a bonded hydrogen, and that hydrogen
+  let donor = -1 as StructureElement.UnitIndex;
+  let hydrogen = -1 as StructureElement.UnitIndex;
+  for (let i = 0; i < unit.elements.length && donor < 0; ++i) {
+    const index = i as StructureElement.UnitIndex;
+    if (typeSymbol(unit, index) === 'H') continue;
+    eachBondedAtom(structure, unit, index, (_, x) => {
+      if (donor < 0 && typeSymbol(unit, x) === 'H') {
+        donor = index;
+        hydrogen = x;
+      }
+    });
+  }
+
+  it("returns the donor unit's hydrogen nearest the other atom", () => {
+    expect(donor).toBeGreaterThanOrEqual(0);
+    // the other atom is the hydrogen itself: nearest at distance 0
+    expect(closestHydrogenIndex(structure, unit, donor, unit, hydrogen)).toBe(hydrogen);
+  });
+
+  it("closestHydrogenIndex ignores a hydrogen bonded across units (the index is always the donor unit's), closestHydrogen follows it", () => {
+    // the same hydrogen in a unit of its own, covalently bonded to the donor across units
+    const e = unit.elements[hydrogen];
+    const rest = SortedArray.ofSortedArray<ElementIndex>(Int32Array.from(unit.elements.filter((x) => x !== e)) as any);
+    const heavy = Unit.create(0, 0, 0, unit.traits, unit.kind, unit.model, unit.conformation.operator, rest);
+    const single = SortedArray.ofSingleton(e) as SortedArray<ElementIndex>;
+    const h = Unit.create(
+      1,
+      1,
+      1,
+      unit.traits,
+      unit.kind,
+      unit.model,
+      unit.conformation.operator,
+      single,
+    ) as Unit.Atomic;
+    const split = Structure.create([heavy, h]);
+    const donorInHeavy = SortedArray.indexOf(heavy.elements, unit.elements[donor]) as StructureElement.UnitIndex;
+
+    let bondedAcross = false;
+    eachBondedAtom(split, heavy as Unit.Atomic, donorInHeavy, (u) => {
+      if (u === h) bondedAcross = true;
+    });
+    expect(bondedAcross).toBe(true);
+
+    const index = closestHydrogenIndex(split, heavy as Unit.Atomic, donorInHeavy, h, 0 as StructureElement.UnitIndex);
+    expect(index).toBe(donorInHeavy);
+    // closestHydrogen follows the bond across units and says which unit the hydrogen is in
+    const closest = closestHydrogen(split, heavy as Unit.Atomic, donorInHeavy, h, 0 as StructureElement.UnitIndex);
+    expect(closest.unit).toBe(h);
+    expect(closest.index).toBe(0);
+  });
+});

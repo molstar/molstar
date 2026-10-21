@@ -9,7 +9,7 @@
 import { degToRad } from '@molstar/core/math/misc';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Structure, Unit, StructureElement } from '@molstar/model/model/structure';
-import { eachBondedAtom, typeSymbol } from './util.js';
+import { eachBondedAtom, eachIntraBondedAtom, typeSymbol } from './util.js';
 import { Elements } from '@molstar/model/model/structure/model/properties/atomic/types';
 
 /**
@@ -163,8 +163,43 @@ export function calcPlaneAngle(
   return Math.abs(Math.PI / 2 - Vec3.angle(tmpDir2, tmpDir1));
 }
 
-export function closestHydrogenIndex(
+/**
+ * The hydrogen covalently bonded to (unitA, indexA) nearest to (unitB, indexB), or (unitA, indexA) itself if none is
+ * nearer. Follows bonds across units: with per-atom symmetry (small-molecule crystals) a hydrogen can be in another
+ * unit, under another operator, than the atom it is bonded to.
+ */
+export function closestHydrogen(
   structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+): { unit: Unit.Atomic; index: StructureElement.UnitIndex } {
+  const ret = { unit: unitA, index: indexA };
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
+  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+    if (typeSymbol(unitX, indexX) === Elements.H) {
+      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+      const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
+      if (dist < minDistSq) {
+        minDistSq = dist;
+        ret.unit = unitX;
+        ret.index = indexX;
+      }
+    }
+  });
+  return ret;
+}
+
+/**
+ * The index in `unitA` of the hydrogen bonded to (unitA, indexA) nearest to (unitB, indexB), or `indexA` if none is
+ * nearer. Only hydrogens of `unitA`, so the index is always one of `unitA`'s; `closestHydrogen` also follows bonds
+ * across units.
+ */
+export function closestHydrogenIndex(
+  _structure: Structure,
   unitA: Unit.Atomic,
   indexA: StructureElement.UnitIndex,
   unitB: Unit.Atomic,
@@ -175,7 +210,7 @@ export function closestHydrogenIndex(
   unitB.conformation.position(unitB.elements[indexB], tmpPosB);
   Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
   let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
-  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+  eachIntraBondedAtom(unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
     if (typeSymbol(unitX, indexX) === Elements.H) {
       unitX.conformation.position(unitX.elements[indexX], tmpPosX);
       const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);

@@ -5,7 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Sphere3D } from '@molstar/core/math/geometry';
+import { Mat4, Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Grid } from '../grid.js';
 import { Dims, Orders, grid, hash, viaAccessors } from './grid-test-util.js';
 
@@ -138,5 +139,46 @@ describe('grid interpolated gradient', () => {
       expect(interpolated(grid(order)), `order ${order}`).toEqual(reference);
       expect(interpolated(viaAccessors(grid(order))), `order ${order}, accessors`).toEqual(reference);
     }
+  });
+});
+
+describe('grid isosurface bounding sphere', () => {
+  /** The spheres for positive and negative iso values, ones that no voxel reaches included */
+  function spheres(g: Grid) {
+    return [0.5, 0, -0.5, 0.9, -0.9, 5, -5].map((iso) => {
+      const s = Grid.getIsosurfaceBoundingSphere(g, iso);
+      return [s.center[0], s.center[1], s.center[2], s.radius];
+    });
+  }
+
+  it('is the same for every axis order', () => {
+    const reference = spheres(grid([0, 1, 2]));
+    expect(hash(reference.flat())).toMatchInlineSnapshot(`"2ff5e0b3"`);
+    for (const order of Orders) {
+      expect(spheres(grid(order)), `order ${order}`).toEqual(reference);
+      expect(spheres(viaAccessors(grid(order))), `order ${order}, accessors`).toEqual(reference);
+    }
+  });
+
+  it('is cached for the last iso value, returned as a copy', () => {
+    const g = grid([2, 0, 1]);
+    const first = Grid.getIsosurfaceBoundingSphere(g, 0.5);
+    const expected = Sphere3D.clone(first);
+    first.radius = -1;
+    expect(Grid.getIsosurfaceBoundingSphere(g, 0.5)).toEqual(expected);
+    expect(Grid.getIsosurfaceBoundingSphere(g, 0.5, Sphere3D())).toEqual(expected);
+    expect(Grid.getIsosurfaceBoundingSphere(g, -0.5)).toEqual(Grid.getIsosurfaceBoundingSphere(grid([2, 0, 1]), -0.5));
+  });
+
+  it('is not carried over to a copy with another transform', () => {
+    const g = grid([0, 1, 2]);
+    const s = Grid.getIsosurfaceBoundingSphere(g, 0.5);
+    const moved: Grid = {
+      ...g,
+      transform: { kind: 'matrix', matrix: Mat4.fromTranslation(Mat4(), Vec3.create(100, 0, 0)) },
+    };
+    const t = Grid.getIsosurfaceBoundingSphere(moved, 0.5);
+    expect(t.center[0]).toBeCloseTo(s.center[0] + 100, 5);
+    expect(t.radius).toBeCloseTo(s.radius, 5);
   });
 });

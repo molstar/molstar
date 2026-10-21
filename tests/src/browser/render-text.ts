@@ -16,7 +16,7 @@ import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-b
 import { createRenderObject } from '@molstar/graphics/gl/render-object';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -25,7 +25,7 @@ parent.style.height = '100%';
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 
-const assetManager = new AssetManager();
+const assetManager = new DefaultAssetManager();
 
 const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);

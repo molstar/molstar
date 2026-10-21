@@ -28,7 +28,7 @@ import { InteractionsRepresentationProvider } from '@molstar/graphics/props/comp
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
 import { SecondaryStructureProvider } from '@molstar/model/props/computed/secondary-structure';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { MembraneOrientationProvider } from '@molstar/anvil-extension/prop';
 import { MembraneOrientationRepresentationProvider } from '@molstar/anvil-extension/representation';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
@@ -53,7 +53,7 @@ parent.style.height = '100%';
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 
-const assetManager = new AssetManager();
+const assetManager = new DefaultAssetManager();
 
 const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);

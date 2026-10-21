@@ -1,2 +1,1 @@
--   Add parameter for gap symbol
 -   Move traceback sequence concatenations to edit strings

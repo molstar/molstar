@@ -107,6 +107,32 @@ describe('PDB SEQRES-to-label_seq_id alignment', () => {
     expect(labelSeqId.int(2)).toBe(4); // LEU -> SEQRES pos 4
   });
 
+  it('aligns identical chains alike and a chain with the same SEQRES but other residues on its own', async () => {
+    // Chains A and B: SEQRES MET ALA GLY VAL, observed ALA VAL. Chain C: the same SEQRES, observed MET GLY.
+    const pdb = makePdb(
+      [
+        'SEQRES   1 A    4  MET ALA GLY VAL                                           ',
+        'SEQRES   1 B    4  MET ALA GLY VAL                                           ',
+        'SEQRES   1 C    4  MET ALA GLY VAL                                           ',
+        'ATOM      1  CA  ALA A   2       1.000   2.000   3.000  1.00  0.00           C  ',
+        'ATOM      2  CA  VAL A   4       4.000   5.000   6.000  1.00  0.00           C  ',
+        'TER       3      VAL A   4                                                     ',
+        'ATOM      4  CA  ALA B   2       1.000   2.000   3.000  1.00  0.00           C  ',
+        'ATOM      5  CA  VAL B   4       4.000   5.000   6.000  1.00  0.00           C  ',
+        'TER       6      VAL B   4                                                     ',
+        'ATOM      7  CA  MET C   1       1.000   2.000   3.000  1.00  0.00           C  ',
+        'ATOM      8  CA  GLY C   3       4.000   5.000   6.000  1.00  0.00           C  ',
+        'END                                                                             ',
+      ].join('\n'),
+    );
+
+    const cif = await pdbToMmCif(pdb);
+    const labelSeqId = cif.categories['atom_site'].getField('label_seq_id')!;
+    // Pins today's scoring: a gap inside costs 11, more than a mismatch (-3) loses against a match (+5), and the leading
+    // gap costs 11 whatever its length, so ALA pairs with GLY (3) rather than leaving GLY out.
+    expect(Array.from({ length: 6 }, (_, i) => labelSeqId.int(i))).toEqual([3, 4, 3, 4, 1, 4]);
+  });
+
   it('assigns label_seq_id for multiple chains independently', async () => {
     // Chain A SEQRES: MET ALA, ATOM: ALA (at pos 2)
     // Chain B SEQRES: GLY VAL LEU, ATOM: GLY VAL LEU (at pos 1,2,3)

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -11,15 +12,22 @@ import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
 import {
+  createLinkCylinderImpostors,
   createLinkCylinderMesh,
+  type LinkBuilderProps,
   LinkCylinderParams,
   LinkStyle,
 } from '@molstar/graphics/repr/structure/visual/util/link';
 import {
+  ComplexCylindersParams,
+  ComplexCylindersVisual,
   ComplexMeshParams,
   type ComplexVisual,
   ComplexMeshVisual,
 } from '@molstar/graphics/repr/structure/complex-visual';
+import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { checkCylinderImpostorSupport } from '@molstar/graphics/repr/structure/visual/util/common';
 import type { VisualUpdateState } from '@molstar/graphics/repr/util';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
@@ -29,7 +37,7 @@ import { InteractionsProvider } from '@molstar/model/props/computed/interactions
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { type BridgeContacts, Bridges } from '@molstar/model/props/computed/interactions/interactions';
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { InteractionsSharedParams } from './shared.js';
+import { impostorProps, InteractionsSharedParams, withDashedCylinderCount } from './shared.js';
 import type { Features } from '@molstar/model/props/computed/interactions/features';
 
 type CanonicalLegIndices = {
@@ -129,29 +137,29 @@ function applyLegB(
   return changed;
 }
 
-function createBridgeCylinderMesh(
-  ctx: VisualContext,
+/** The bridges as dashed links, for the impostor and the mesh builder; undefined if there are none */
+function getBridgeBuilderProps(
   structure: Structure,
   theme: Theme,
   props: PD.Values<BridgeParams>,
-  mesh?: Mesh,
-) {
-  if (!structure.hasAtomic) return Mesh.createEmpty(mesh);
+): LinkBuilderProps | undefined {
+  if (!structure.hasAtomic) return;
 
   const interactions = InteractionsProvider.get(structure).value;
-  if (!interactions) return Mesh.createEmpty(mesh);
+  if (!interactions) return;
 
   const { bridges, unitsFeatures } = interactions;
 
   const n = bridges.length;
-  if (!n) return Mesh.createEmpty(mesh);
+  if (!n) return;
 
   const l = StructureElement.Location.create(structure);
-  const { sizeFactor } = props;
+  // as the impostors' uSizeFactor
+  const sizeFactor = props.sizeFactor * props.sizeAspectRatio;
   const canonical = getCanonicalLegIndices(bridges);
 
-  const builderProps = {
-    // Four half-cylinders per bridge; createLinkCylinderMesh draws the A-side half per call:
+  return {
+    // Four half-cylinders per bridge; the link builders draw the A-side half per call:
     //   [0,   n): A→mediator, forward  (A side)
     //   [n,  2n): A→mediator, backward (mediator side)
     //   [2n, 3n): mediator→B, forward  (mediator side)
@@ -229,27 +237,132 @@ function createBridgeCylinderMesh(
       }
     },
   };
+}
+
+function setBoundingSphere(
+  geometry: Mesh | Cylinders,
+  boundingSphere: Sphere3D | undefined,
+  structure: Structure,
+  sizeFactor: number,
+) {
+  if (boundingSphere) {
+    geometry.setBoundingSphere(boundingSphere);
+  } else if (geometry.kind === 'mesh' ? geometry.triangleCount > 0 : geometry.cylinderCount > 0) {
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, sizeFactor);
+    geometry.setBoundingSphere(sphere);
+  }
+}
+
+function createBridgeCylinderImpostors(
+  ctx: VisualContext,
+  structure: Structure,
+  theme: Theme,
+  props: PD.Values<BridgeParams>,
+  cylinders?: Cylinders,
+) {
+  const builderProps = getBridgeBuilderProps(structure, theme, props);
+  if (!builderProps) return Cylinders.createEmpty(cylinders);
+
+  const { cylinders: c, boundingSphere } = createLinkCylinderImpostors(
+    ctx,
+    withDashedCylinderCount(builderProps, props.dashCount),
+    impostorProps(props),
+    cylinders,
+  );
+  setBoundingSphere(c, boundingSphere, structure, props.sizeFactor);
+  return c;
+}
+
+function createBridgeCylinderMesh(
+  ctx: VisualContext,
+  structure: Structure,
+  theme: Theme,
+  props: PD.Values<BridgeParams>,
+  mesh?: Mesh,
+) {
+  const builderProps = getBridgeBuilderProps(structure, theme, props);
+  if (!builderProps) return Mesh.createEmpty(mesh);
 
   const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
-
-  if (boundingSphere) {
-    m.setBoundingSphere(boundingSphere);
-  } else if (m.triangleCount > 0) {
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, sizeFactor);
-    m.setBoundingSphere(sphere);
-  }
-
+  setBoundingSphere(m, boundingSphere, structure, props.sizeFactor);
   return m;
 }
 
 export const BridgeParams = {
   ...ComplexMeshParams,
+  ...ComplexCylindersParams,
   ...LinkCylinderParams,
   ...InteractionsSharedParams,
 };
 export type BridgeParams = typeof BridgeParams;
 
-export function BridgeVisual(materialId: number): ComplexVisual<BridgeParams> {
+export function BridgeVisual(
+  materialId: number,
+  structure: Structure,
+  props: PD.Values<BridgeParams>,
+  graphics?: GraphicsContext,
+) {
+  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
+    ? BridgeImpostorVisual(materialId)
+    : BridgeMeshVisual(materialId);
+}
+
+function setUpdateState(
+  state: VisualUpdateState,
+  newProps: PD.Values<BridgeParams>,
+  currentProps: PD.Values<BridgeParams>,
+  newTheme: Theme,
+  currentTheme: Theme,
+  newStructure: Structure,
+  _currentStructure: Structure,
+) {
+  state.createGeometry =
+    newProps.sizeFactor !== currentProps.sizeFactor ||
+    newProps.dashCount !== currentProps.dashCount ||
+    newProps.dashScale !== currentProps.dashScale ||
+    newProps.dashCap !== currentProps.dashCap;
+  // a size change rebuilds the mesh (ComplexMeshVisual, by SizeTheme.areEqual) and updates the impostors' sizes
+
+  const interactionsHash = InteractionsProvider.get(newStructure).version;
+  if ((state.info.interactionsHash as number) !== interactionsHash) {
+    state.createGeometry = true;
+    state.updateTransform = true;
+    state.updateColor = true;
+    // group sizes from a group-granularity size theme
+    state.updateSize = true;
+    state.info.interactionsHash = interactionsHash;
+  }
+}
+
+/** The mesh bakes the radius and the radial segments; impostors take them from uniforms and the size theme */
+function setMeshUpdateState(...args: Parameters<typeof setUpdateState>) {
+  setUpdateState(...args);
+  const [state, newProps, currentProps] = args;
+  if (
+    newProps.radialSegments !== currentProps.radialSegments ||
+    newProps.sizeAspectRatio !== currentProps.sizeAspectRatio
+  ) {
+    state.createGeometry = true;
+  }
+}
+
+export function BridgeImpostorVisual(materialId: number): ComplexVisual<BridgeParams> {
+  return ComplexCylindersVisual<BridgeParams>(
+    {
+      defaultProps: PD.getDefaultValues(BridgeParams),
+      createGeometry: createBridgeCylinderImpostors,
+      createLocationIterator: createBridgeIterator,
+      getLoci: getBridgeLoci,
+      eachLocation: eachBridgeInteraction,
+      setUpdateState,
+      mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
+        !props.tryUseImpostor || !graphics,
+    },
+    materialId,
+  );
+}
+
+export function BridgeMeshVisual(materialId: number): ComplexVisual<BridgeParams> {
   return ComplexMeshVisual<BridgeParams>(
     {
       defaultProps: PD.getDefaultValues(BridgeParams),
@@ -257,32 +370,9 @@ export function BridgeVisual(materialId: number): ComplexVisual<BridgeParams> {
       createLocationIterator: createBridgeIterator,
       getLoci: getBridgeLoci,
       eachLocation: eachBridgeInteraction,
-
-      setUpdateState: (
-        state: VisualUpdateState,
-        newProps: PD.Values<BridgeParams>,
-        currentProps: PD.Values<BridgeParams>,
-        newTheme: Theme,
-        currentTheme: Theme,
-        newStructure: Structure,
-        _currentStructure: Structure,
-      ) => {
-        state.createGeometry =
-          newProps.sizeFactor !== currentProps.sizeFactor ||
-          newProps.dashCount !== currentProps.dashCount ||
-          newProps.dashScale !== currentProps.dashScale ||
-          newProps.dashCap !== currentProps.dashCap ||
-          newProps.radialSegments !== currentProps.radialSegments ||
-          newTheme.size !== currentTheme.size;
-
-        const interactionsHash = InteractionsProvider.get(newStructure).version;
-        if ((state.info.interactionsHash as number) !== interactionsHash) {
-          state.createGeometry = true;
-          state.updateTransform = true;
-          state.updateColor = true;
-          state.info.interactionsHash = interactionsHash;
-        }
-      },
+      setUpdateState: setMeshUpdateState,
+      mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
+        props.tryUseImpostor && !!graphics,
     },
     materialId,
   );

@@ -5,7 +5,7 @@
  * @copyright 2020
  */
 import { BitArray } from '../utils/bitarray.js';
-import { DEBUG, SEQUENCE_TYPE } from '../align/params.js';
+import { DEBUG, DEFAULT_GAP_CHAR, SEQUENCE_TYPE } from '../align/params.js';
 import { Log } from '../utils/logger.js';
 
 export type TSequence = {
@@ -385,9 +385,11 @@ const dayhoffPams = [
  * Computes the ratio between the number of matches in both sequences and the shortest sequence length
  * @param   {string} [seqA='',] sequence A, may contain indels
  * @param   {string} seqB       sequence B, may contain indels
+ * @param   {string} gapchar    the gap symbol
  * @returns {number} fractional identity between both sequences
  */
-function fractionalIdentity(seqA: string, seqB: string) {
+// STORIES-UNTOLD(B19): the gap symbol is a parameter, as in `profileFromMSA`.
+function fractionalIdentity(seqA: string, seqB: string, gapchar: string) {
   seqA = seqA || '';
   seqB = seqB || '';
 
@@ -401,10 +403,10 @@ function fractionalIdentity(seqA: string, seqB: string) {
   for (let i = 0; i < maxI; i++) {
     tokenA = seqA.charAt(i);
     tokenB = seqB.charAt(i);
-    lA += tokenA !== '-' ? 1 : 0;
-    lB += tokenB !== '-' ? 1 : 0;
+    lA += tokenA !== gapchar ? 1 : 0;
+    lB += tokenB !== gapchar ? 1 : 0;
 
-    if (tokenA === '-' || tokenB === '-') {
+    if (tokenA === gapchar || tokenB === gapchar) {
       continue;
     }
 
@@ -419,7 +421,8 @@ function fractionalIdentity(seqA: string, seqB: string) {
  * Compute distance matrix between aligned sequences from a MSA.
  * Corrects distances using Kimura method.
  */
-export function distanceKimura(msa: string[]) {
+// STORIES-UNTOLD(B19): the rows' gap symbol is a parameter, `-` by default.
+export function distanceKimura(msa: string[], gapchar: string = DEFAULT_GAP_CHAR) {
   const l = msa.length; // nb of sequences
   const distMatrix = new Array(l); // matrix l x l
   let dPctId = 0; // Percentage of Identity between sequences
@@ -446,7 +449,7 @@ export function distanceKimura(msa: string[]) {
       // multiple mutations at a single site. To correct for this, we use
       // the following distance estimate" Edgar. BMC Bioinformatics 2004
 
-      dPctId = fractionalIdentity(msa[i], msa[j]);
+      dPctId = fractionalIdentity(msa[i], msa[j], gapchar);
       p = 1 - dPctId;
 
       // Kimura formula used for differences < 75%

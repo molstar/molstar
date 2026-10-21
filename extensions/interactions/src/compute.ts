@@ -9,7 +9,7 @@ import { FeatureType } from '@molstar/model/props/computed/interactions/common';
 import { computeInteractions, Interactions } from '@molstar/model/props/computed/interactions/interactions';
 import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { RuntimeContext } from '@molstar/core/task';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import {
   type InteractionInfo,
   InteractionTypeToKind,
@@ -45,7 +45,7 @@ export async function computeContacts(
 
   const structure = builder.getStructure();
   const interactions = await computeInteractions(
-    { runtime: ctx, assetManager: new AssetManager() },
+    { runtime: ctx, assetManager: new DefaultAssetManager() },
     structure,
     options?.interactions ?? {},
     {
