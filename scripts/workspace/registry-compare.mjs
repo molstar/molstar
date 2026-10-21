@@ -10,6 +10,8 @@
  * Usage: node scripts/workspace/registry-compare.mjs
  *
  * Requires compiled library output (`pnpm build:lib`).
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { execFileSync } from 'node:child_process';
