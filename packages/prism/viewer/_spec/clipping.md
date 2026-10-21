@@ -50,17 +50,16 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
 
 ## 4. Gizmos
 
-- **Outside the state tree**: a `VisualSet` in the canvas; their clicks claimed (`PluginContext.clickOwners`: no focus,
-  no select). Shown for the active cut while the section is shown (`onActive`).
-- **Each handle says what a drag does** (`Handle`): move (the screen's plane), slide (along the axis; foreshortening
-  corrected, capped at 4×), turn (0.5°/px about the screen's axes), size (whole: by the cursor's distance from the
-  center over the grab's), faces (a box's face knob: its face, the opposite one stays), across (a box's four edges along
-  an axis: the section about the center), radius (a cylinder's rims), angle (a cone's base rim). Outlines are handles; a
-  sphere's ring faces the camera.
-- **A drag runs live** on the representations (clip-only `createOrUpdate`: uniforms only, `repr/_test/clip-update`),
-  coalesced, from the press point (CSS px); the release is one `clipping.update`, of the cut found by its object (its
-  number may shift). Esc, a change of what it is on, or a failed commit cancels: the live representations go back to the
-  state, the gizmos resync, the trackball's bindings are restored.
+- **On the gizmo library** (`@molstar/graphics/util/gizmo`): its controller draws, hovers, drags, previews, commits and
+  cancels; clipping is a binding (`sources/clipping/gizmo/binding.ts`: a cut as a pose, previews on the representations'
+  clip, a commit through `clipping.update` by the cut's object, what a drag is on changing in the state invalidates it)
+  and its layouts (`geometry.ts`). Shown for the active cut while the section is (`onActive`); their clicks claimed
+  (`PluginContext.clickOwners`: no focus, no select).
+- **Each handle says what a drag does** (the library's `Handle`): move (the screen's plane), slide (along the axis),
+  turn (the screen's axes), scale (whole, a box across its edges, a cylinder's rims about their centers: by the cursor's
+  distance from the pivot over the grab's), faces (a box's face knob, a cylinder's bottom: the opposite face stays), and
+  the cone's angle (the binding's own: its rim under the cursor). Outlines are handles; a sphere's ring faces the
+  camera.
 - **Bodies** are the clip volumes' walls (`graphics/geo/clip-volumes.ts`), drawn on both sides as fronts; handles glow.
 
 ## 5. Keep whole
