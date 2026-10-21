@@ -11,7 +11,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { flush } from '@molstar/prism-ui/dom/scope';
-import { mockScene } from '../../../testing/scene.js';
+import { type MockScenePreset, mockScene } from '../../../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { StructureTab } from '../structure-tab.js';
@@ -22,8 +22,8 @@ import { SceneRowSlot } from '../scene-tree.js';
 import type { SceneInspection } from '../../../model/scene.js';
 import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
-function mount() {
-  const scene = mockScene();
+function mount(preset?: MockScenePreset) {
+  const scene = mockScene(preset ? { preset } : {});
   const container = document.createElement('div');
   document.body.append(container);
   const dispose = render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
@@ -200,5 +200,14 @@ describe('StructureTab', () => {
     (polymer.querySelector('button[title=Hide]') as HTMLButtonElement).click();
     expect(row('Polymer').querySelector('button[title=Show]')).not.toBeNull();
     expect(scene.picked.value).toBeUndefined();
+  });
+
+  it("shows particle lists as the tree's own rows: their representations and unit cell under them", () => {
+    const { rows, dispose } = mount('particles');
+    const labels = rows().map((r) => r.querySelector('span')?.textContent);
+    expect(labels).toEqual(
+      expect.arrayContaining(['cryoet-ribosomes.ndjson', 'Spacefill', 'Orientation', 'Unit cell', 'small.simularium']),
+    );
+    dispose();
   });
 });
