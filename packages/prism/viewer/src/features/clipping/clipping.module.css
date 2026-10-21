@@ -51,7 +51,7 @@
   gap: var(--msp-space-2);
   width: 100%;
   min-width: 0;
-  padding: 2px 0;
+  padding: var(--msp-space-1) 0;
   border: none;
   background: none;
   color: var(--msp-color-text-muted);

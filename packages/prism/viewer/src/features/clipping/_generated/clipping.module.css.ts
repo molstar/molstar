@@ -63,6 +63,7 @@ defineStyles('viewer/features/clipping/clipping.module.css', `@layer msp.compone
   gap: var(--msp-space-2);
   width: 100%;
   min-width: 0;
+  padding: var(--msp-space-1) 0;
   color: var(--msp-color-text-muted);
   font: inherit;
   font-size: var(--msp-font-size-xs);
@@ -70,7 +71,6 @@ defineStyles('viewer/features/clipping/clipping.module.css', `@layer msp.compone
   cursor: pointer;
   background: none;
   border: none;
-  padding: 2px 0;
   display: flex;
 
   &:hover {
