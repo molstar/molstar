@@ -2,7 +2,7 @@
 
 Before the PR, what holds moves to `extensions/clipping/_spec/`, and this folder is deleted.
 
-**On hold (2026-10-21):** Prism particles come first (`.v6/prism-particles/plan.md`). Clipping needs particle node kinds (P1) and particles as an opt-in registry entry (P0). Steps 1 and 2 here are done.
+**Prism particles are done (2026-10-21, viewer-spec.md §3.2)**: they are an opt-in registry entry with `particles` and `shape` node kinds. Next is the selection menu (`selection-actions.md`), then this plan. Steps 1 and 2 here are done.
 
 ## Goal
 

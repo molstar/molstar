@@ -159,7 +159,10 @@ section); an entry leaves when it is done (its spec section says so then). The s
 The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bulk operations). Open, by reach:
 
 - **Mol\*'s particle hierarchy** (`managers.particles.hierarchy.current`, `packages/plugin`) is rebuilt over the whole
-  state tree on its first read after a change (about 82 ms over 64 loads).
+  state tree on its first read after a change (about 82 ms over 64 loads); a Simularium frame step reads it (1.4 ms with
+  20 structures, 2026-10-21).
+- **Particles in `PluginContext`**: `representation.particles` and `managers.particles` are built whatever the registry
+  composes (their code imported); they move into `ParticlesRegistry` with the PluginContext rewrite.
 - **`representation.set` across many components** (an `api.group` of one call per component) is one commit per
   component; only the updates inside one call are batched.
 - **FIFO retirement in a projection** (`ui/src/reactive/transaction.ts`): retiring K in order refolds what is left each

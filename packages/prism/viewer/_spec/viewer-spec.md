@@ -190,6 +190,29 @@ beyond it (README decision 13).
   extensions are the app's, since they depend on the viewer (`apps/prism-viewer/src/extensions.ts`). The single file
   inlines every lazy entry ([app.md](app.md) §2).
 
+### 3.2 Particles
+
+- **Opt-in, lazy** (`features/particles`, `LazyParticles`): Mol*'s `ParticlesRegistry` is the feature's plugin registry,
+  `DefaultRegistry` holds none of it. The stub `owns` the particle transformers, formats and extensions (`.star`,
+  `.tbl`, `.ndjson`, `.em`, `.simularium`) and sniffs `.cif`/`.bcif` for CellPack and PetWorld assemblies
+  (`mmcif-sniff`); a `.molx` session is read for its transformers too. Why: most viewers never read particles.
+- **Operations** (`particles.*`, operations.md): `list`, `representation`, `color`, `visibility`, `remove`, `focus`,
+  `unit-cell` (as `structure.unit-cell`), `targets` (what stands for the particles: a file, a PDB id or a URL, one
+  target per call), `source` (how the list is read: the format transform's params, the inspector's Source form),
+  `frame`, `play`, `stop` (a trajectory's frames: viewing, no step).
+- **Read at the end of the decorators**: operations and the scene read a list as its representations see it
+  (`StateTree.getDecoratorRoot`: `ParticleListWithTargets` adds the targets); the hierarchy's ref holds the list below
+  them.
+- **Scene** (`sources/scene.ts`, by transformer id: no import of the feature): a list's row says its count and targets;
+  its menu adds a representation, colors all, sets targets, focuses, shows the unit cell; a representation's row says
+  its color theme and picks one; the unit cell is a row; the inspector lists source, orientations, targets, entities,
+  compartments, fibers, attribute ranges, the cell, and the Source form. A trajectory's list has the frame row and the
+  canvas' trajectory bar follows it (`frameInfos`, `kind: 'particles'`).
+- **Default size**: particles without radii are drawn at half the typical nearest-neighbor distance
+  (`getParticleSpacingRadius`, sampled, cached); an explicit size or radius wins.
+- Measured (2026-10-21, headless): 100k picks load in 0.55 s, their default size in 84 ms once; a Simularium frame step
+  is 1.4 ms with 20 structures loaded.
+
 ## 4. Parts and overrides
 
 - **A part** is anything with an id the viewer registers (tab, section, row, toolbar item, command, tool, skill,

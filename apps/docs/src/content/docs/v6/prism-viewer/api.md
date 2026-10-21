@@ -73,39 +73,40 @@ and the assistant call. A hyphen in an operation id is camel case on the area: `
 `api.history.undoTurn`, `superpose.tm-align` is `api.superpose.tmAlign`. These are the areas the viewer has today. The
 core's (`load`, `session`, `select`, `focus`, `highlight`, `camera`, `canvas`, `settings`, `history`, `view`) are always
 there. The built-in features' areas (`structure`, `contents`, `component`, `representation`, `styles`, `annotations`,
-`trajectory`, `volume`, `particles`, `measure`, `snapshot`, `animation`, `export`) and their operations in core areas
-(`load.entry`, `load.url`, `session.save`, `canvas.lighting`, …) come with the default spec and are typed as present, so
+`trajectory`, `volume`, `measure`, `snapshot`, `animation`, `export`) and their operations in core areas (`load.entry`,
+`load.url`, `session.save`, `canvas.lighting`, …) come with the default spec and are typed as present, so
 `await api.load.entry({ id: '1tqn' })` needs no `!`: reading one in a viewer whose spec left its feature out throws,
-naming the feature. The lazy ones (`superpose`, `state`) and remote states are optional in the type, so check for them
-(`api.superpose?.chains(...)`) when you do not control the spec; `api.area(id)` and `api.describe(id)` ask for any.
+naming the feature. The lazy ones (`superpose`, `state`, `particles`) and remote states are optional in the type, so
+check for them (`api.superpose?.chains(...)`) when you do not control the spec; `api.area(id)` and `api.describe(id)`
+ask for any.
 
-| Area                  | Operations                                                                                                                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `load`                | `files`, `action`; with the `loaders` feature: `entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`, `viewport`.                             |
-| `session`             | `open`, `save`, `clear`; with remote states: `remote.list`, `remote.open`, `remote.upload`, `remote.remove`.                                                     |
-| `structure`           | `preset`, `assembly`, `symmetry`, `visibility`, `remove`, `list`, `transform`, `transform-reset`, `unit-cell`.                                                   |
-| `contents`            | `get`, `visibility`: hide an entity or a chain from every component of a structure.                                                                              |
-| `component`           | `add`, `modify`, `remove`, `rename`, `visibility`, `options`, `list`.                                                                                            |
-| `representation`      | `set`, `update`, `visibility`, `remove`, `color`, `size`, `transparency`, `emissive`, `material`, `clipping`, `reset`, `layers`, `layer-update`, `layer-remove`. |
-| `styles`              | `apply`: a quick style, `default`, `cartoon`, `spacefill`, `surface`, `plain` or `illustrative`.                                                                 |
-| `annotations`         | `list`, `apply`: show what a structure carries (B-factors, secondary structure, and what extensions add).                                                        |
-| `select`              | `set`, `all`, `clear`, `invert`, `around`, `expand`, `mode`, `granularity`, `get`.                                                                               |
-| `focus`               | `set`, `clear`, `get`, `again`, `history`.                                                                                                                       |
-| `highlight`           | `set`, `clear`, `mark`, `unmark`.                                                                                                                                |
-| `camera`              | `reset`, `reset-axes`, `zoom`, `orient`, `frame`, `set`, `get`.                                                                                                  |
-| `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting` (its switches, illumination among them), `camera`, `clipping`.              |
-| `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                                                                  |
-| `volume`, `particles` | `list`, `representation`, `update`, `visibility`, `remove`, and more for volumes: `isovalue`, `streaming`, `streaming-view`.                                     |
-| `sequence`            | `style`, `colors`, `rail`, `follow`, `get`. Present when the spec has a sequence.                                                                                |
-| `settings`            | `get`, `set`.                                                                                                                                                    |
-| `history`             | `undo`, `redo`, `undo-turn`, `list`.                                                                                                                             |
-| `view`                | `open`, `close`, `expand`, `fullscreen`: open a tab, a card or a section, reveal a node, or expand or fullscreen the viewer. No history step.                    |
-| `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `list`, `remove`, `visibility`, `options`.                                                     |
-| `superpose`           | `chains`, `tm-align`, `ligands`, `atoms`, `db`, `list`, `remove`.                                                                                                |
-| `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`, `link`, `seek`, `transition`.                        |
-| `animation`           | `play` (an animation by its name without the namespace, its title or its full id), `stop`, `wiggle`, `get`.                                                      |
-| `export`              | `image`, `image-copy`, `preview`, `viewport`.                                                                                                                    |
-| `state`               | `get`, `select`, `visibility`, `update`, `apply`, `remove`, `action`: the raw state tree, by node selector. Lazy.                                                |
+| Area                  | Operations                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `load`                | `files`, `action`; with the `loaders` feature: `entry`, `url`, `data`, `mvs`, `svs`, `snapshot`, `trajectory`, `volume`, `viewport`.                                                                                      |
+| `session`             | `open`, `save`, `clear`; with remote states: `remote.list`, `remote.open`, `remote.upload`, `remote.remove`.                                                                                                              |
+| `structure`           | `preset`, `assembly`, `symmetry`, `visibility`, `remove`, `list`, `transform`, `transform-reset`, `unit-cell`.                                                                                                            |
+| `contents`            | `get`, `visibility`: hide an entity or a chain from every component of a structure.                                                                                                                                       |
+| `component`           | `add`, `modify`, `remove`, `rename`, `visibility`, `options`, `list`.                                                                                                                                                     |
+| `representation`      | `set`, `update`, `visibility`, `remove`, `color`, `size`, `transparency`, `emissive`, `material`, `clipping`, `reset`, `layers`, `layer-update`, `layer-remove`.                                                          |
+| `styles`              | `apply`: a quick style, `default`, `cartoon`, `spacefill`, `surface`, `plain` or `illustrative`.                                                                                                                          |
+| `annotations`         | `list`, `apply`: show what a structure carries (B-factors, secondary structure, and what extensions add).                                                                                                                 |
+| `select`              | `set`, `all`, `clear`, `invert`, `around`, `expand`, `mode`, `granularity`, `get`.                                                                                                                                        |
+| `focus`               | `set`, `clear`, `get`, `again`, `history`.                                                                                                                                                                                |
+| `highlight`           | `set`, `clear`, `mark`, `unmark`.                                                                                                                                                                                         |
+| `camera`              | `reset`, `reset-axes`, `zoom`, `orient`, `frame`, `set`, `get`.                                                                                                                                                           |
+| `canvas`              | `background`, `palette`, `xr`, `get`; with `canvas-settings`: `settings`, `lighting` (its switches, illumination among them), `camera`, `clipping`.                                                                       |
+| `trajectory`          | `frame`, `play`, `stop`, `get`.                                                                                                                                                                                           |
+| `volume`, `particles` | `list`, `representation`, `update`, `visibility`, `remove`, and more for volumes (`isovalue`, `streaming`, `streaming-view`) and particles (`color`, `focus`, `unit-cell`, `targets`, `source`, `frame`, `play`, `stop`). |
+| `sequence`            | `style`, `colors`, `rail`, `follow`, `get`. Present when the spec has a sequence.                                                                                                                                         |
+| `settings`            | `get`, `set`.                                                                                                                                                                                                             |
+| `history`             | `undo`, `redo`, `undo-turn`, `list`.                                                                                                                                                                                      |
+| `view`                | `open`, `close`, `expand`, `fullscreen`: open a tab, a card or a section, reveal a node, or expand or fullscreen the viewer. No history step.                                                                             |
+| `measure`             | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane`, `list`, `remove`, `visibility`, `options`.                                                                                                              |
+| `superpose`           | `chains`, `tm-align`, `ligands`, `atoms`, `db`, `list`, `remove`.                                                                                                                                                         |
+| `snapshot`            | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`, `list`, `link`, `seek`, `transition`.                                                                                 |
+| `animation`           | `play` (an animation by its name without the namespace, its title or its full id), `stop`, `wiggle`, `get`.                                                                                                               |
+| `export`              | `image`, `image-copy`, `preview`, `viewport`.                                                                                                                                                                             |
+| `state`               | `get`, `select`, `visibility`, `update`, `apply`, `remove`, `action`: the raw state tree, by node selector. Lazy.                                                                                                         |
 
 The loaders share one vocabulary. Each that reads content (`load.data`, `load.volume`, `load.mvs`, `load.svs`,
 `session.open`) takes exactly one of `url`, `data` (text, `'base64,…'`, or bytes: a `Uint8Array` or an `ArrayBuffer`)
