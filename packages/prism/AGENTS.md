@@ -69,6 +69,11 @@ it is done).
   or screen reader) and its scope is paused, so its bindings hold no subscriptions until it shows again (`activity()`,
   `Scope.setActive`; the runtime does it once, views do nothing). A view that subscribes, observes or loops by itself
   pauses that with `onActive(active => …)`; content that is hidden by removing it needs none of this.
+- **Extensions' Prism code follows the same rules** (David, 2026-10-21): an extension's views and operations are held to
+  the checks Prism's own are: no rxjs in views, scoped attachments, owned subscriptions, no MutationObserver
+  (`ui/src/_test/extension-views.ts` lists them), the plugin only through operations
+  (`viewer/src/_test/boundary.test.ts`), and a command for every operation
+  (`apps/prism-viewer/src/_test/full-spec.test.ts`, over the app's composition).
 
 ## Commands
 

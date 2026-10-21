@@ -9,6 +9,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { extensionPrismFiles } from './extension-views.js';
 
 // Views do no rxjs (rendering.md §2.6): they get states and derived values and render them (`watch`, `bind` by
 // `listen`); rxjs is the models' and sources' boundary (`toState`, `asObservable`). Strict (2026-10-17, the views all
@@ -36,12 +37,7 @@ function viewFiles(): string[] {
   };
   for (const pkg of ['ui', 'viewer', 'assistant']) viewsUnder(path.join(prism, pkg, 'src'));
   for (const f of files(path.join(prism, 'ui/src/components'))) out.push(f);
-  const extensions = path.join(repo, 'extensions');
-  for (const ext of fs.readdirSync(extensions)) {
-    for (const f of files(path.join(extensions, ext, 'src'))) {
-      if (f.endsWith('.tsx') && fs.readFileSync(f, 'utf8').includes('@molstar/prism-ui')) out.push(f);
-    }
-  }
+  out.push(...extensionPrismFiles());
   return out;
 }
 

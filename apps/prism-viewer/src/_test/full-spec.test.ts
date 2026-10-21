@@ -12,7 +12,8 @@ import { describe, expect, it } from 'vitest';
 import { FullPrismViewerSpec } from '../full-spec.js';
 
 // The app's whole composition (app.md §2): every extension at once, headless. Ids that collide, a stub that does not
-// match what it loads, or a network operation that does not say what it reaches would show here first.
+// match what it loads, a network operation that does not say what it reaches, or an extension's operation without a
+// command would show here first.
 
 describe('FullPrismViewerSpec', () => {
   it('composes headless, and every lazy extension loads as its stub says', async () => {
@@ -30,6 +31,12 @@ describe('FullPrismViewerSpec', () => {
         .filter((d) => d.approval === 'network' && !d.addresses)
         .map((d) => d.id);
       expect(silent.sort()).toEqual(['load.action', 'load.svs', 'state.action']);
+      // Coverage (api.md §10), as the viewer's own (coverage.test.ts) but with the extensions: each operation has a
+      // command or a tool, or says why it has neither (`surface`); reads are the agent's read tools.
+      const uncommanded = [...v.api.definitions.value.values()]
+        .filter((d) => !d.read && !d.surface && !v.managers.commands.get(d.id))
+        .map((d) => d.id);
+      expect(uncommanded.sort()).toEqual([]);
     } finally {
       await v.dispose();
     }
