@@ -744,7 +744,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           empty={sources.empty}
           splash={core.options.ui.splash !== 'off'}
           {...(core.options.ui.splash !== 'off' ? { splashField: core.options.ui.splash } : {})}
-          busy={sources.busy}
+          busy={core.state.working}
           context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
           canvasLead={<Show when={shown('selection-mode', stackData)}>{() => <ModeSwitch {...modeProps} />}</Show>}
           canvasLeadMenu={shown('selection-mode', stackData).pipe(map((on) => (on ? modeRows : [])))}

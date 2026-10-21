@@ -217,8 +217,10 @@ options, the assistant and `persist`; its loaders read the URL once the viewer i
   `createPrismViewerHeadless({ spec, plugin? })` (no DOM; `plugin` makes a `HeadlessPluginContext` for images). Both
   give a `PrismViewer` (`src/viewer.ts`): `plugin` (escape hatch), `api`, `run(label, work)` (one step), `managers`,
   `views`, `sources` (read-only), `camera` (the view to follow and set: api.md §12), `spec`, `options`, `state`
-  (`ready`, `busy`, `empty`), `events` (`hover`, `click`, `error`), `extensions`, `dispose()`. Several viewers on a
-  page: each its own `persist.key` (§2.6, README decision 29).
+  (`ready`, `busy`, `working`, `empty`: `busy` is the plugin's debounced flag, `working` anything in progress now, an
+  operation from its start, a lazy extension's load, the plugin updating; the empty canvas's splash waits on `working`,
+  as the plugin's flag comes 750 ms late and misses what is not plugin work), `events` (`hover`, `click`, `error`),
+  `extensions`, `dispose()`. Several viewers on a page: each its own `persist.key` (§2.6, README decision 29).
 - **Order**: validate the spec (`spec-check.ts`: ids, overrides, slots), compose the plugin spec, `init()` the plugin,
   make the API, managers and views, activate the extensions in order (lazy as stubs), then with a page mount the canvas
   and render the shell; `ready` last, and only then URL calls and the light restore ([journal.md](journal.md) §6).

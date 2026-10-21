@@ -27,6 +27,10 @@
     "noDom": 0,
     "sameDerives": 0
   },
+  "prism/viewer/sources/state.ts": {
+    "noDom": 0,
+    "sameDerives": 16
+  },
   "prism/viewer/sources/watched.ts": {
     "noDom": 7,
     "sameDerives": 7

@@ -89,7 +89,10 @@ export interface ShellViewProps {
    */
   splash?: boolean;
   splashField?: SplashKind | 'random';
-  /** The viewer is working: the splash waits for it to be idle. */
+  /**
+   * The viewer is working now (not debounced: a host's operation, a chunk loading, its engine updating): the splash waits
+   * for it to be idle. A debounced flag comes later than the splash's wait and lets it show during a load.
+   */
   busy?: MaybeReactive<boolean>;
   /**
    * Files dropped anywhere on the plugin (to the plugin's drag-and-drop manager). Given, dragging files in shows a drop
