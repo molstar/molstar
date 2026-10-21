@@ -36,5 +36,24 @@ export function particleCommands(api: ViewerApi): CommandDefinition<ViewerComman
       alias: ['delete particles', 'remove particles'],
       action: 'Remove',
     }),
+    operationCommand(api, particles.color, {
+      category: 'Particles',
+      icon: 'palette',
+      alias: ['color particles', 'particle color', 'color by class', 'color by score', 'color by entity'],
+      action: 'Set',
+      values: { params: {} },
+    }),
+    operationCommand(api, particles.focus, {
+      category: 'Particles',
+      icon: 'focus',
+      alias: ['zoom to particles', 'center particles', 'frame particles'],
+      action: 'Focus',
+    }),
+    operationCommand(api, particles.unitCell, {
+      category: 'Particles',
+      icon: 'box',
+      alias: ['particle box', 'periodic box', 'simulation box', 'particle unit cell'],
+      action: 'Show',
+    }),
   ];
 }

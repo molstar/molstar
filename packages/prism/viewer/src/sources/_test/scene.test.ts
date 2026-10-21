@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, recordRuns, representationTypes, until } from '../../_test/harness.js';
 import { mapFile, particlesFile } from '../../api/_test/volume-fixtures.js';
@@ -298,5 +300,48 @@ describe('the scene: volumes and particles', () => {
     list.remove();
     await until(() => runs.length >= 2);
     expect(v.views.scene.roots.value).toHaveLength(0);
+  });
+
+  const fixture = (name: string) =>
+    new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../data/examples/particles', name))],
+      name,
+    );
+
+  it('says what a list is, offers what can be done with it, and colors a representation from its row', async () => {
+    const v = await headlessViewer({ files: [fixture('relion-subtomo.star')] });
+    const list = v.views.scene.roots.value[0];
+    expect(list.description.value).toBe('300 particles');
+    const facts = new Map(v.views.scene.inspect(list).facts ?? []);
+    expect(facts.get('Particles')).toBe('300');
+    expect(facts.get('Orientations')).toBe('yes');
+
+    const menu = list.menu!;
+    expect(menu.map((i) => i.id)).toEqual(expect.arrayContaining(['add', 'color', 'focus']));
+    // what is shown already is not offered again
+    expect(menu.find((i) => i.id === 'add')!.items!.map((i) => i.id)).not.toContain('spacefill');
+
+    const rep = list.children.value[0];
+    const colors = rep.menu!.find((i) => i.id === 'color')!.items!;
+    expect(colors.find((i) => i.checked)).toBeDefined();
+    const runs = recordRuns(v);
+    colors.find((i) => i.id === 'uniform')!.run!();
+    await until(() => runs.length >= 1);
+    expect(runs[0]).toMatchObject({ operation: 'particles.color', origin: { kind: 'person' } });
+    await until(() => rep.description.value === 'Uniform');
+  });
+
+  it("shows a list's unit cell as a row of its own, its inspector the cell's", async () => {
+    const v = await headlessViewer({ files: [fixture('small.simularium')] });
+    const list = v.views.scene.roots.value[0];
+    expect(list.menu!.some((i) => i.id === 'unit-cell')).toBe(true);
+    if (!list.children.value.some((c) => c.kind === 'unit-cell')) {
+      list.menu!.find((i) => i.id === 'unit-cell')!.run!();
+      await until(() => list.children.value.some((c) => c.kind === 'unit-cell'));
+    }
+    const cell = list.children.value.find((c) => c.kind === 'unit-cell')!;
+    const inspection = v.views.scene.inspect(cell);
+    expect(inspection.form).toBeDefined();
+    expect(new Map(inspection.facts ?? []).get('Cell')).toMatch(/Å$/);
   });
 });

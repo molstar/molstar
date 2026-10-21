@@ -75,9 +75,12 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `measure.plane` | Show the best-fit plane |  | target, structure, language |
 | `measure.remove` | Remove a measurement | destructive | measurement |
 | `measure.visibility` | Show or hide a measurement |  | visible, measurement |
+| `particles.color` | Color particles by… |  | theme, params, particles, representation, node |
+| `particles.focus` | Focus the particles | view | particles |
 | `particles.list` | Describe the particles | read |  |
 | `particles.remove` | Remove particles | destructive | particles, representation, node |
 | `particles.representation` | Show particles as… |  | type, params, particles |
+| `particles.unit-cell` | Show the particle unit cell |  | visible, color, opacity, particles |
 | `particles.update` | Update a particle representation | ui-only | node, params |
 | `particles.visibility` | Show or hide particles |  | visible, particles, representation, node |
 | `representation.clipping` | Exclude from clipping |  | target, groups, structure, language |

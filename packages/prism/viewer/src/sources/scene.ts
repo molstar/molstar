@@ -11,7 +11,7 @@ import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynam
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
-import type { StateObjectCell } from '@molstar/core/state';
+import { type State, type StateObjectCell, StateSelection } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
@@ -28,7 +28,7 @@ import {
 import { Script } from '@molstar/model/script/script';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { PluginStateObject } from '@molstar/plugin/state/objects';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import type {
   ModelUnitcellRef,
   StructureComponentRef,
@@ -763,8 +763,30 @@ export function createSceneSource(
       n.removable = true;
       nodes.set(ref, n);
     }
-    const count = l.cell.obj?.data.count;
-    n.set(name, count !== undefined ? `${count.toLocaleString('en')} particles` : undefined, !!l.cell.state.isHidden);
+    const data = l.cell.obj?.data;
+    n.set(name, data ? particlesText(data) : undefined, !!l.cell.state.isHidden);
+    // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
+    if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref);
+    return n;
+  };
+
+  /** A particle list's unit cell (its periodic box): its eye and inspector through `particles.unit-cell`. */
+  const particlesUnitCellNode = (cell: StateObjectCell, listRef: string): Node => {
+    const ref = cell.transform.ref;
+    unitCellOwners.set(ref, listRef);
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'unit-cell', 'box', 'Unit cell', false, {
+        visibility: (hide) => {
+          if (!hide) picked.set(nodes.get(ref));
+          void api.run('particles.unit-cell', { particles: listRef, visible: !hide });
+        },
+      });
+      n.removable = false;
+      nodes.set(ref, n);
+    }
+    n.set('Unit cell', undefined, !!cell.state.isHidden);
+    inspections.get(ref)?.form?.load(unitCellValues(cell));
     return n;
   };
 
@@ -779,7 +801,17 @@ export function createSceneSource(
       n.removable = true;
       nodes.set(ref, n);
     }
-    n.set(r.cell.obj?.label ?? 'Representation', undefined, !!r.cell.state.isHidden);
+    const p = r.cell.transform.params as
+      | { type?: { name: string }; colorTheme?: { name: string; params?: { value?: number } } }
+      | undefined;
+    const { themes } = plugin.representation.particles;
+    const theme = p?.colorTheme?.name;
+    const themeLabel =
+      theme && themes.colorThemeRegistry.has(theme) ? themes.colorThemeRegistry.get(theme).label : theme;
+    n.set(r.cell.obj?.label ?? 'Representation', themeLabel, !!r.cell.state.isHidden);
+    n.setSwatch(theme === 'uniform' ? p?.colorTheme?.params?.value : undefined);
+    if (!n.menuSource)
+      n.menuSource = () => particlesRepresentationMenu(plugin, api, ref, () => picked.set(nodes.get(ref)));
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
     return n;
   };
@@ -1028,13 +1060,18 @@ export function createSceneSource(
       const ref = l.cell.transform.ref;
       const ln = particlesNode(l, listLabels.get(ref) ?? ref);
       rest.push(ref);
-      ln.setChildren(
-        l.representations.map((r) => {
+      const unitCell = particleUnitCellOf(plugin.state.data, ref);
+      ln.setChildren([
+        ...l.representations.map((r) => {
           const rn = particlesReprNode(r, ref);
           rest.push(rn.id);
           return rn;
         }),
-      );
+        ...(unitCell ? [particlesUnitCellNode(unitCell, ref)] : []).map((un) => {
+          rest.push(un.id);
+          return un;
+        }),
+      ]);
       top.push(ln);
     }
     // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
@@ -2053,6 +2090,21 @@ function inspect(
 ): SceneInspection {
   const cell = plugin.state.data.cells.get(node.id);
   const slot = `inspector:${node.kind}`;
+  if (node.kind === 'unit-cell' && cell && isParticleList(plugin.state.data.cells.get(cell.transform.parent)?.obj)) {
+    const list = plugin.state.data.cells.get(cell.transform.parent)!.obj!.data as ParticleList;
+    const form = new ParamsFormModel(UnitCellForm, unitCellValues(cell), {
+      onChange: debounced((values) => {
+        const now = plugin.state.data.cells.get(node.id);
+        void api.run('particles.unit-cell', {
+          particles: cell.transform.parent,
+          visible: !now?.state.isHidden,
+          color: Color.toHexStyle(values.color),
+          opacity: values.opacity,
+        });
+      }),
+    });
+    return { node, form, slot, facts: list.cell ? cellFacts(list.cell) : [] };
+  }
   if (node.kind === 'unit-cell' && cell) {
     const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj as PluginStateObject.Molecule.Model;
     const symmetry = parent?.data && ModelSymmetry.Provider.get(parent.data as Model);
@@ -2191,15 +2243,7 @@ function inspect(
   }
   if (node.kind === 'particles' && cell?.obj?.data) {
     const data = cell.obj.data as ParticleList;
-    return {
-      node,
-      form: undefined,
-      slot,
-      facts: [
-        ['Particles', data.count.toLocaleString('en')],
-        ['Targets', String(data.targetInfo.size)],
-      ],
-    };
+    return { node, form: undefined, slot, facts: particlesFacts(data) };
   }
   const updateOperation = UpdateOperations[node.kind];
   if (updateOperation && cell) {
@@ -2256,4 +2300,147 @@ function inspect(
     };
   }
   return { node, form: undefined, slot };
+}
+
+// Particles (the lazy particles feature's operations, by id: this module imports none of its code).
+
+const ParticleListUnitcell = 'ms-plugin.particle-list-unitcell-3d';
+
+/** A particle list's unit cell cell (`ParticleListUnitcell3D` below it), if any */
+function particleUnitCellOf(state: State, listRef: string): StateObjectCell | undefined {
+  return state.select(
+    StateSelection.Generators.byRef(listRef)
+      .subtree()
+      .filter((c) => c.transform.transformer.id === ParticleListUnitcell),
+  )[0];
+}
+
+function isParticleList(obj: unknown): obj is PluginStateObject.Particle.List {
+  return PluginStateObject.Particle.List.is(obj as never);
+}
+
+/** A list's row description: its count, and its targets when it has some ("1,200 particles · 3 targets"). */
+function particlesText(data: ParticleList): string {
+  const targets = data.targetInfo.size;
+  return `${data.count.toLocaleString('en')} particles${targets > 1 ? ` · ${targets} targets` : ''}`;
+}
+
+const listOf = (names: readonly string[], max = 3) =>
+  names.length <= max ? names.join(', ') : `${names.slice(0, max).join(', ')} and ${names.length - max} more`;
+
+/** What a particle list is, at a glance: count, source, poses, targets, entities, compartments, attributes, cell. */
+function particlesFacts(data: ParticleList): [string, string][] {
+  const facts: [string, string][] = [['Particles', data.count.toLocaleString('en')]];
+  if (data.sourceData?.kind) facts.push(['Source', data.sourceData.kind]);
+  facts.push(['Orientations', data.rotations ? 'yes' : 'none']);
+  const targets = [...data.targetInfo.values()].map((t, i) => t.name ?? `target ${i + 1}`);
+  if (targets.length) facts.push(['Targets', `${targets.length}: ${listOf(targets)}`]);
+  if (data.entityInfo?.size) {
+    facts.push(['Entities', `${data.entityInfo.size}: ${listOf([...data.entityInfo.values()].map((e) => e.name))}`]);
+  }
+  if (data.compartmentInfo?.size) facts.push(['Compartments', String(data.compartmentInfo.size)]);
+  if (data.fibers?.count) facts.push(['Fibers', data.fibers.count.toLocaleString('en')]);
+  for (const a of data.attributes?.values() ?? [])
+    facts.push([a.label, `${shortNumber(a.min)} … ${shortNumber(a.max)}`]);
+  if (data.cell) facts.push(...cellFacts(data.cell));
+  return facts;
+}
+
+function cellFacts(cell: { size: ArrayLike<number>; anglesInRadians: ArrayLike<number> }): [string, string][] {
+  const deg = (r: number) => `${Math.round(((r * 180) / Math.PI) * 100) / 100}°`;
+  return [
+    ['Cell', `${[...Array.from(cell.size)].map((x) => Math.round(x * 100) / 100).join(' × ')} Å`],
+    ['Angles', Array.from(cell.anglesInRadians).map(deg).join(', ')],
+  ];
+}
+
+/** A particle list's row menu: a representation added, all colored by a theme, the camera to it, its unit cell. */
+function particlesMenu(plugin: PluginContext, api: ViewerApi, ref: string): SceneMenuItem[] | undefined {
+  const l = plugin.managers.particles.hierarchy.current.lists.find((x) => x.cell.transform.ref === ref);
+  const data = l?.cell.obj?.data;
+  if (!l || !data) return undefined;
+  const { registry, themes } = plugin.representation.particles;
+  const present = new Set(
+    l.representations.map((r) => (r.cell.transform.params as { type?: { name: string } } | undefined)?.type?.name),
+  );
+  const types = registry.getApplicableList(data).filter((t) => !present.has(t.name));
+  const colors = themes.colorThemeRegistry.getApplicableList({ particles: data });
+  const items: SceneMenuItem[] = [];
+  if (types.length) {
+    items.push({
+      id: 'add',
+      label: 'Add representation',
+      icon: 'plus',
+      items: types.map((t) => ({
+        id: t.name,
+        label: t.provider.label,
+        run: () => void api.run('particles.representation', { particles: ref, type: t.name }),
+      })),
+    });
+  }
+  if (l.representations.length && colors.length) {
+    items.push({
+      id: 'color',
+      label: 'Color by',
+      icon: 'palette',
+      items: colors.map((t) => ({
+        id: t.name,
+        label: t.provider.label,
+        run: () => void api.run('particles.color', { particles: ref, theme: t.name }),
+      })),
+    });
+  }
+  items.push({
+    id: 'focus',
+    label: 'Focus',
+    icon: 'focus',
+    run: () => void api.run('particles.focus', { particles: ref }),
+  });
+  if (data.cell) {
+    const cell = particleUnitCellOf(plugin.state.data, ref);
+    const shown = !!cell && !cell.state.isHidden;
+    items.push({
+      id: 'unit-cell',
+      label: shown ? 'Hide unit cell' : 'Show unit cell',
+      icon: 'box',
+      run: () => void api.run('particles.unit-cell', { particles: ref, visible: !shown }),
+    });
+  }
+  return items;
+}
+
+/** A particle representation's row menu: its color (the current one checked), then the whole form in the inspector. */
+function particlesRepresentationMenu(
+  plugin: PluginContext,
+  api: ViewerApi,
+  ref: string,
+  edit: () => void,
+): SceneMenuItem[] {
+  const cell = plugin.state.data.cells.get(ref);
+  const list = plugin.managers.particles.hierarchy.current.lists.find((l) =>
+    l.representations.some((r) => r.cell.transform.ref === ref),
+  );
+  const data = list?.cell.obj?.data;
+  const current = (cell?.transform.params as { colorTheme?: { name: string } } | undefined)?.colorTheme?.name;
+  const colors = data
+    ? plugin.representation.particles.themes.colorThemeRegistry.getApplicableList({ particles: data })
+    : [];
+  return [
+    ...(colors.length
+      ? [
+          {
+            id: 'color',
+            label: 'Color',
+            icon: 'palette' as const,
+            items: colors.map((t) => ({
+              id: t.name,
+              label: t.provider.label,
+              checked: t.name === current,
+              run: () => void api.run('particles.color', { node: ref, theme: t.name }),
+            })),
+          },
+        ]
+      : []),
+    { id: 'edit', label: 'Edit…', icon: 'sliders-horizontal' as const, run: edit },
+  ];
 }

@@ -179,11 +179,17 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.representation', title: 'Show particles as…' },
       { id: 'particles.visibility', title: 'Show or hide particles' },
       { id: 'particles.remove', title: 'Remove particles', approval: 'destructive' },
+      { id: 'particles.color', title: 'Color particles by…' },
+      { id: 'particles.focus', title: 'Focus the particles', history: false },
+      { id: 'particles.unit-cell', title: 'Show the particle unit cell' },
     ],
     commands: [
       { id: 'particles.representation', title: 'Show particles as…', category: 'Particles', icon: 'layers' },
       { id: 'particles.visibility', title: 'Show or hide particles', category: 'Particles', icon: 'eye' },
       { id: 'particles.remove', title: 'Remove particles', category: 'Particles', icon: 'trash-2' },
+      { id: 'particles.color', title: 'Color particles by…', category: 'Particles', icon: 'palette' },
+      { id: 'particles.focus', title: 'Focus the particles', category: 'Particles', icon: 'focus' },
+      { id: 'particles.unit-cell', title: 'Show the particle unit cell', category: 'Particles', icon: 'box' },
     ],
     owns: {
       transformers: ParticleTransformers,

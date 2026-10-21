@@ -6,13 +6,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { expectOk, headlessViewer } from '../../../_test/harness.js';
 import type { PrismViewer } from '../../../viewer.js';
-import type { ParticleListInfo } from '../operations.js';
+import { type ParticleListInfo, particleUnitCellOf } from '../operations.js';
 import { particlesFile } from '../../../api/_test/volume-fixtures.js';
 
 // `particles` (api.md §2) on a headless viewer, over a small CryoET NDJSON file made in memory.
+
+/** A fixture of `data/examples/particles` (real files, README.md there) */
+const particleFixture = (name: string) =>
+  new File(
+    [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../../data/examples/particles', name))],
+    name,
+  );
 
 const infos = async (v: PrismViewer) => {
   const r = await v.api.particles.list();
@@ -112,5 +121,51 @@ describe('particles', () => {
     expect(await infos(v)).toHaveLength(0);
     expectOk(await v.api.history.undo());
     expect(await infos(v)).toHaveLength(1);
+  });
+
+  it('colors the representations of a list by a theme, and says when it already is', async () => {
+    const v = await headlessViewer({ files: [particleFixture('relion-subtomo.star')] });
+    const theme = () =>
+      (v.plugin.managers.particles.hierarchy.current.lists[0].representations[0].cell.transform.params as any)
+        .colorTheme.name;
+    expectOk(await v.api.particles.color({ theme: 'uniform', params: { value: 0xff0000 } }));
+    expect(theme()).toBe('uniform');
+    expect(((await v.api.particles.color({ theme: 'uniform', params: { value: 0xff0000 } })) as any).unchanged).toBe(
+      true,
+    );
+    expectOk(await v.api.particles.color({ theme: 'particle-index', representation: 'spacefill' }));
+    expect(theme()).toBe('particle-index');
+    expectOk(await v.api.history.undo());
+    expect(theme()).toBe('uniform');
+    expect(await v.api.particles.color({ theme: 'nope' })).toMatchObject({ ok: false, code: 'invalid' });
+  });
+
+  it('focuses a list, as a view change', async () => {
+    const v = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
+    const r = await v.api.particles.focus({});
+    expectOk(r);
+    expect(r.did).toMatch(/Focused/);
+  });
+
+  it("shows, styles and hides a list's unit cell; a list without one says so", async () => {
+    const v = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
+    expect(await v.api.particles.unitCell({})).toMatchObject({ ok: false, code: 'blocked' });
+
+    // Simularium trajectories carry their box
+    const w = await headlessViewer({ files: [particleFixture('small.simularium')] });
+    const list = w.plugin.managers.particles.hierarchy.current.lists[0];
+    expect(list.cell.obj?.data.cell).toBeDefined();
+    const cell = () => particleUnitCellOf(w.plugin.state.data, list.cell.transform.ref);
+    const shown = cell() && !cell()!.state.isHidden;
+    if (shown) expect(((await w.api.particles.unitCell({ visible: true })) as any).unchanged).toBe(true);
+    else expectOk(await w.api.particles.unitCell({}));
+    expect(cell()!.state.isHidden).toBeFalsy();
+
+    expectOk(await w.api.particles.unitCell({ color: '#ff8800', opacity: 0.5 }));
+    expect((cell()!.transform.params as any).cellColor).toBe(0xff8800);
+    expect((cell()!.transform.params as any).alpha).toBe(0.5);
+    expectOk(await w.api.particles.unitCell({ visible: false }));
+    expect(cell()!.state.isHidden).toBe(true);
+    expect(await w.api.particles.unitCell({ color: 'nope' })).toMatchObject({ ok: false, code: 'invalid' });
   });
 });

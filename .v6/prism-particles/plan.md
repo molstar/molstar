@@ -106,6 +106,12 @@ Clip is not here: the clipping extension covers it, through `type.params.clip`, 
 - `ParticlesRegistry` is classified as a default-composition module in `scripts/workspace/catalogs.json`.
 - The stub has `owns.sniff` (`ExtensionNeed.files` in `ensureFor`).
 - The particle area is now `features/particles/operations.ts`, as the boundary rule wants.
+- P1 is done: `particles` and `shape` node kinds.
+- P3–P5 are done:
+  - three new operations: `particles.color`, `particles.focus` and `particles.unit-cell`;
+  - rows say what they show (theme, swatch, targets) and have menus (Add representation, Color by, Focus, unit cell);
+  - the unit cell is a row of its own;
+  - the inspector shows the list's facts (source, orientations, targets, entities, compartments, fibers, attribute ranges, cell).
 - Not handled: a `.molx` session holding particles does not load the feature. `session.open` reads transformers only from `.molj`. To do with P9.
 
 

@@ -15,8 +15,15 @@ import type {
 } from '@molstar/plugin/state/manager/particles/hierarchy-state';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
+import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
+import { Interval } from '@molstar/core/data/int';
+import { type State, type StateObjectCell, StateSelection } from '@molstar/core/state';
+import type { Color } from '@molstar/core/util/color';
+import { decodeColor } from '@molstar/core/util/color/utils';
+import { Particle } from '@molstar/model/model/particles/particle-list';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '../../api/area.js';
-import { NodeParam } from '../../api/params.js';
+import { NodeParam, OptionalParam } from '../../api/params.js';
 import { nodesFor, updateEach } from '../../api/nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from '../../api/scope.js';
 import { commitRepresentation, setRepresentation } from '../../api/set-representation.js';
@@ -206,6 +213,147 @@ export class ParticlesApi extends ApiArea {
       return ApiResult.ok(`Removed ${name}.`, { nodes: [l.cell.transform.ref] });
     },
   });
+
+  // A representation's color theme (the row menu's Color): the theme with its defaults for the list, or `params`.
+  readonly color = this.operation({
+    id: 'particles.color',
+    title: 'Color particles by…',
+    params: (ctx) => ({
+      theme: PD.Select('particle-index', ctx.plugin.representation.particles.themes.colorThemeRegistry.types, {
+        description: 'A color theme: particle-index, particle-entity, particle-attribute, uniform, …',
+      }),
+      params: PD.Value<Record<string, unknown>>({}, { description: "Some of the theme's params, by name" }),
+      particles: ListParam(),
+      representation: PD.Text('', { description: 'One representation by type; empty: every one of the list' }),
+      node: RepresentationNodeParam(),
+    }),
+    async run({ theme, params, particles, representation, node }, ctx) {
+      const reps = representationsFor(ctx, particles, representation, node);
+      if (isFailure(reps)) return reps;
+      const { colorThemeRegistry } = ctx.plugin.representation.particles.themes;
+      if (!colorThemeRegistry.has(theme)) {
+        return ApiResult.fail('invalid', `Unknown color theme '${theme}'.`, 'See particles.color for the themes.');
+      }
+      const provider = colorThemeRegistry.get(theme);
+      const todo = reps.filter((r) => {
+        const data = r.list.cell.obj?.data;
+        return !data || provider.isApplicable({ particles: data });
+      });
+      if (!todo.length) return ApiResult.fail('invalid', `${provider.label} does not apply to these particles.`);
+      const update = ctx.plugin.state.data.build();
+      let changed = 0;
+      for (const r of todo) {
+        const data = r.list.cell.obj?.data;
+        const current = (r.cell.transform.params as { colorTheme?: { name: string; params?: object } } | undefined)
+          ?.colorTheme;
+        const next = {
+          name: theme,
+          params: {
+            ...PD.getDefaultValues(provider.getParams(data ? { particles: data } : {})),
+            ...(current?.name === theme ? current.params : {}),
+            ...params,
+          },
+        };
+        if (current && JSON.stringify(current) === JSON.stringify(next)) continue;
+        update.to(r.cell).update((old: any) => ({ ...old, colorTheme: next }));
+        changed++;
+      }
+      if (!changed)
+        return ApiResult.already(
+          `${namesOfReps(ctx, todo)} already ${todo.length === 1 ? 'is' : 'are'} colored by ${provider.label}.`,
+        );
+      await ctx.plugin.runTask(ctx.plugin.state.data.updateTree(update));
+      return ApiResult.ok(`Colored ${namesOfReps(ctx, todo)} by ${provider.label}.`, {
+        nodes: todo.map((r) => r.cell.transform.ref),
+      });
+    },
+  });
+
+  // The camera to a particle list (the row menu's Focus): a view change, no history step.
+  readonly focus = this.operation({
+    id: 'particles.focus',
+    title: 'Focus the particles',
+    params: { particles: ListParam() },
+    history: false,
+    async run({ particles }, ctx) {
+      const l = oneList(ctx, particles || undefined);
+      if (isFailure(l)) return l;
+      const data = l.cell.obj?.data;
+      if (!data?.count) return ApiResult.fail('not-found', `${listName(ctx, l)} has no particles.`);
+      ctx.plugin.managers.camera.focusLoci(Particle.Loci(data, Interval.ofLength(data.count)));
+      return ApiResult.ok(`Focused ${listName(ctx, l)}.`, { nodes: [l.cell.transform.ref] });
+    },
+  });
+
+  // A list's unit cell (its periodic box), as `structure.unit-cell` does a crystal's: shown, hidden or styled; made when
+  // shown and absent.
+  readonly unitCell = this.operation({
+    id: 'particles.unit-cell',
+    title: 'Show the particle unit cell',
+    params: {
+      visible: OptionalParam(
+        PD.Boolean(true, {
+          description: "Show or hide the list's periodic box; absent: shown when nothing else is given",
+        }),
+      ),
+      color: OptionalParam(PD.Text('', { description: "The cell's color, a CSS color (orange, #ff8800)" })),
+      opacity: OptionalParam(
+        PD.Numeric(1, { min: 0.05, max: 1, step: 0.05 }, { description: 'Opacity from 0.05 to 1' }),
+      ),
+      particles: ListParam(),
+    },
+    async run(v, ctx) {
+      const { color, opacity, particles } = v as { color?: string; opacity?: number; particles: string };
+      const given = v as { visible?: boolean };
+      const l = oneList(ctx, particles || undefined);
+      if (isFailure(l)) return l;
+      const name = listName(ctx, l);
+      if (!l.cell.obj?.data.cell) return ApiResult.fail('blocked', `${name} has no unit cell.`);
+      let cellColor: Color | undefined;
+      if (color?.trim()) {
+        cellColor = decodeColor(color.trim());
+        if (cellColor === undefined) {
+          return ApiResult.fail('invalid', `'${color}' is not a color.`, 'Use a CSS color: orange, #ff8800.');
+        }
+      }
+      const state = ctx.plugin.state.data;
+      const existing = particleUnitCellOf(state, l.cell.transform.ref);
+      const current = existing?.transform.params as { cellColor: Color; alpha: number } | undefined;
+      const style = {
+        ...(cellColor !== undefined && cellColor !== current?.cellColor ? { cellColor } : {}),
+        ...(opacity !== undefined && opacity !== current?.alpha ? { alpha: opacity } : {}),
+      };
+      const restyle = Object.keys(style).length > 0;
+      const shown = !!existing && !existing.state.isHidden;
+      const visible = given.visible ?? (color === undefined && opacity === undefined ? true : shown || !existing);
+      if (!restyle && shown === visible) {
+        return ApiResult.already(`The unit cell of ${name} is already ${visible ? 'shown' : 'hidden'}.`);
+      }
+      if (!existing) {
+        const b = state
+          .build()
+          .to(l.cell)
+          .apply(ParticleListUnitcell3D, style as never, { state: { isHidden: !visible } });
+        await ctx.plugin.runTask(state.updateTree(b));
+      } else {
+        if (restyle) {
+          await ctx.plugin.runTask(
+            state.updateTree(
+              state
+                .build()
+                .to(existing)
+                .update({ ...current, ...style } as never),
+            ),
+          );
+        }
+        if (shown !== visible) setSubtreeVisibility(state, existing.transform.ref, !visible);
+      }
+      const now = particleUnitCellOf(state, l.cell.transform.ref);
+      return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} the unit cell of ${name}.`, {
+        nodes: now ? [now.transform.ref] : [],
+      });
+    },
+  });
 }
 
 function lists(ctx: ApiContext): readonly ParticleListRef[] {
@@ -238,6 +386,35 @@ function namesOfReps(ctx: ApiContext, reps: readonly ParticleRepresentationRef[]
   return reps.length === 1
     ? `${reps[0].cell.obj?.label ?? typeOf(reps[0])} of ${listName(ctx, reps[0].list)}`
     : `${reps.length} representations`;
+}
+
+/** A list's unit cell cell (`ParticleListUnitcell3D` below it), if any */
+export function particleUnitCellOf(state: State, listRef: string): StateObjectCell | undefined {
+  return state.select(StateSelection.Generators.byRef(listRef).subtree().withTransformer(ParticleListUnitcell3D))[0];
+}
+
+/** The representations a call names: by node, by type in a list, else every one of the list */
+function representationsFor(
+  ctx: ApiContext,
+  particles: string,
+  representation: string,
+  node: string,
+): ParticleRepresentationRef[] | ApiFailure {
+  if (node) return particleRepresentationsOf(ctx, node);
+  if (representation) {
+    const t = findRepresentation(ctx, particles, representation);
+    return isFailure(t) ? t : [t.rep];
+  }
+  const l = oneList(ctx, particles || undefined);
+  if (isFailure(l)) return l;
+  if (!l.representations.length) {
+    return ApiResult.fail(
+      'not-found',
+      `${listName(ctx, l)} has no representations.`,
+      'Add one with particles.representation.',
+    );
+  }
+  return l.representations;
 }
 
 function typeOf(r: ParticleRepresentationRef): string {
