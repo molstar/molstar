@@ -66,13 +66,25 @@ export function clippingUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Clip this…',
         icon: 'scissors',
         order: 10,
-        kinds: ['component', 'representation'],
-        when: (node) => !!ctx.api.clipping.canClipThis(node.id),
+        kinds: [
+          'component',
+          'representation',
+          'volume',
+          'volume-representation',
+          'particles',
+          'particles-representation',
+        ],
+        when: (node) => ctx.api.clipping.canClipThis(node.id),
         run: (node) => {
           const clipping = ctx.api.clipping;
-          if (!clipping) return;
-          void clipping.clipThis(ctx.api, node.id).then((ok) => {
-            if (ok) void ctx.api.view.open({ tab: 'selection', section: ClippingSectionId });
+          void clipping.clipThis(ctx.api, node.id).then((done) => {
+            if (!done) return;
+            // a cut made here (a volume's, a shape's): its handles on, its editor the one open
+            if (done.cut) {
+              clipping.gizmos.setHandled(done.cut.index, true);
+              clipping.open.set([done.cut.index]);
+            }
+            void ctx.api.view.open({ tab: 'selection', section: ClippingSectionId });
           });
         },
       },
@@ -108,15 +120,18 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
     const on = chosen.value.includes(t);
     exclude(types.value.filter((x) => (x === t ? on : !chosen.value.includes(x))));
   };
-  // The cuts whose editor is open (by number): a new one opens alone, so its shape is a click away
-  const open = observableState<readonly number[]>([]);
+  // The cuts whose editor is open (by number, kept on the area: Clip this… opens a cut it made): a new one opens
+  // alone, so its shape is a click away
+  const open = clipping.open;
   const setOpen = (index: number, on: boolean) =>
     open.set(on ? [...open.value.filter((i) => i !== index), index] : open.value.filter((i) => i !== index));
   // + Add: a plane through what the selection is drawn as; its shape is picked on the cut
   const add = () => {
     // all chosen: no filter, so a type drawn later is cut too
     const only = chosen.value.length === types.value.length ? [] : chosen.value;
-    void ctx.api.run('clipping.add', { shape: 'plane', types: only }).then((r) => {
+    // nothing selected (a map alone, say): everything drawn, narrowed on the cut afterwards
+    const values = selected.value ? { shape: 'plane', types: only } : { shape: 'plane', everything: true };
+    void ctx.api.run('clipping.add', values).then((r) => {
       // a new cut, or the one like it already there (Add pressed again): either is what is worked on now
       const cut = (r as { value?: Cut }).value;
       if (!r.ok || !cut) return;
@@ -128,7 +143,7 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
   // The handled cuts' gizmos show while the section does: closed (or its tab), they go; opened, they come back
   onActive((active) => (active ? clipping.showGizmos(ctx.api) : clipping.gizmos.hide()));
   onCleanup(() => clipping.gizmos.hide());
-  const canAdd = derive([selected, chosen], (on, c) => on && c.length > 0);
+  const canAdd = derive([selected, chosen], (on, c) => !on || c.length > 0);
   const numbers = derive(clipping.cuts, (cuts) => cuts.map((c) => c.index), sameNumbers);
   const any = derive(numbers, (n) => n.length > 0);
   return (
@@ -166,7 +181,9 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           variant="ghost"
           icon={<Icon name="plus" />}
           title={derive(selected, (on) =>
-            on ? 'A cut through what the selection is drawn as (pick its shape on it)' : 'Select what to cut first',
+            on
+              ? 'A cut through what the selection is drawn as (pick its shape on it)'
+              : 'A cut through everything drawn (narrow it on the cut)',
           )}
           disabled={derive(canAdd, (on) => !on)}
           onClick={add}
@@ -175,7 +192,7 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
         </Button>
       </div>
       <Show when={derive([any, selected], (a, s) => !a && !s)}>
-        {() => <p style={caption}>Select something, then Add a cut through what it is drawn as.</p>}
+        {() => <p style={caption}>Add cuts what the selection is drawn as; with nothing selected, everything drawn.</p>}
       </Show>
       <Show when={derive(types, (t) => t.length > 1)}>
         {() => (

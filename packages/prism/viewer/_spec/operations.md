@@ -28,7 +28,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `canvas.lighting` | Change the lighting | needs canvas | occlusion, shadow, outline, fog, illumination |
 | `canvas.settings` | Change canvas settings | needs canvas; ui-only | section, values |
 | `canvas.xr` | Enter or leave XR | view; needs canvas | on |
-| `clipping.add` | Cut… |  | shape, target, node, types, invert |
+| `clipping.add` | Cut… |  | shape, target, node, everything, types, invert |
 | `clipping.apply` | Cut representations or not |  | cut, representation, representations, on |
 | `clipping.clear` | Remove every cut | destructive |  |
 | `clipping.list` | List the cuts | read |  |

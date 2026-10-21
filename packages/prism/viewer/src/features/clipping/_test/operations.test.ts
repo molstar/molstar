@@ -10,6 +10,7 @@ import { DefaultPrismViewerSpec } from '../../../default-spec.js';
 import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { cbs } from '../../../_test/harness.js';
+import { mapFile } from '../../../api/_test/volume-fixtures.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { type Cut, findCuts } from '../../../sources/clipping/cuts.js';
 
@@ -176,11 +177,11 @@ describe('the clipping area', () => {
     )!;
     const cartoon = polymer.representations[0].cell.transform.ref;
     expect(clipping.canClipThis(cartoon)).toBe(true);
-    expect(await clipping.clipThis(v.api, cartoon)).toBe(true);
+    expect(await clipping.clipThis(v.api, cartoon)).toEqual({});
     expect(v.plugin.managers.structure.selection.stats.elementCount).toBe(polymer.cell.obj!.data.elementCount);
     expect(clipping.filter.value).toEqual({ excluded: [], only: ['cartoon'] });
     // a component's row: every type
-    expect(await clipping.clipThis(v.api, polymer.cell.transform.ref)).toBe(true);
+    expect(await clipping.clipThis(v.api, polymer.cell.transform.ref)).toEqual({});
     expect(clipping.filter.value).toEqual({ excluded: [] });
   });
 
@@ -214,5 +215,21 @@ describe('the clipping area', () => {
     // another shape is another cut
     ok(await clipping.add({ shape: 'sphere', target: 'polymer' }));
     expect(findCuts(v.plugin)).toHaveLength(2);
+  });
+
+  it('cuts a map with nothing selected, and Clip this… on its isosurface makes a cut there', async () => {
+    const v = await create(mapFile());
+    const clipping = v.api.clipping;
+    const iso = findCuts(v.plugin).length;
+    expect(iso).toBe(0);
+    // nothing selected: everything drawn
+    const all = ok<Cut>(await clipping.add({ shape: 'plane', everything: true }));
+    expect(all.targets.map((t) => t.type)).toContain('isosurface');
+    ok(await clipping.remove({ cut: all.index }));
+    // Clip this… on the representation: a cut on it, made now (no atoms to select)
+    const ref = all.targets.find((t) => t.type === 'isosurface')!.ref;
+    expect(clipping.canClipThis(ref)).toBe(true);
+    const done = await clipping.clipThis(v.api, ref);
+    expect(done && done.cut?.targets.map((t) => t.ref)).toEqual([ref]);
   });
 });

@@ -88,31 +88,41 @@ export class ClippingApi extends ApiArea {
   });
 
   /**
-   * Clip this… on a component's or a representation's row: its atoms selected (the person's step), the filter narrowed
-   * to the representation's type (a component's: all its types). The section opening is the caller's.
+   * Clip this… on a row. A structure's component or representation: its atoms selected (the person's step), the filter
+   * narrowed to the representation's type (a component's: all its types); the section's Add makes the cut. Anything
+   * else that can be cut (a volume's or a shape's representation, a volume, particles: no atoms to select): a plane
+   * through it now, and that cut. The section opening is the caller's.
    */
-  async clipThis(api: ViewerApi, ref: string): Promise<boolean> {
+  async clipThis(api: ViewerApi, ref: string): Promise<false | { readonly cut?: Cut }> {
     const state = this.ctx.plugin.state.data;
     const cell = state.cells.get(ref);
     if (!cell) return false;
     const representation = RepresentationClip.isClippable(cell);
     const component = representation ? state.cells.get(cell.transform.parent) : cell;
     const data = component?.obj?.data;
-    if (!(data instanceof Structure)) return false;
-    const r = await api.run('select.set', { target: { loci: Structure.toStructureElementLoci(data) } });
-    if (!r.ok) return false;
-    this.filter.set(representation ? { excluded: [], only: [representationType(cell)] } : { excluded: [] });
-    return true;
+    if (data instanceof Structure) {
+      const r = await api.run('select.set', { target: { loci: Structure.toStructureElementLoci(data) } });
+      if (!r.ok) return false;
+      this.filter.set(representation ? { excluded: [], only: [representationType(cell)] } : { excluded: [] });
+      return {};
+    }
+    const r = await api.run('clipping.add', { shape: 'plane', node: `#${ref}` });
+    const cut = (r as { value?: Cut }).value;
+    return r.ok && cut ? { cut } : false;
   }
 
-  /** Clip this… offered: a structure's component, or a representation of one */
+  /** Clip this… offered: anything that can be cut, or holds what can (a structure's component, a volume) */
   canClipThis(ref: string): boolean {
     const state = this.ctx.plugin.state.data;
     const cell = state.cells.get(ref);
     if (!cell) return false;
-    const component = RepresentationClip.isClippable(cell) ? state.cells.get(cell.transform.parent) : cell;
-    return component?.obj?.data instanceof Structure;
+    if (RepresentationClip.isClippable(cell)) return true;
+    if (cell.obj?.data instanceof Structure) return true;
+    return clippableCells(state).some((c) => isBelow(state, c.transform.ref, ref));
   }
+
+  /** The cuts whose editor is open in the section, by number (a cut just made opens alone) */
+  readonly open = observableState<readonly number[]>([]);
 
   /** What `cut` can be turned on for: its representations and those near them (clipping.apply) */
   candidates(cut: Cut): CutTarget[] {
@@ -151,14 +161,17 @@ export class ClippingApi extends ApiArea {
       ),
       target: TargetParam('What to cut: the representations drawing it (default: the selection)'),
       node: NodeParam('Or representations by node selector (volume > representation, #ref): volumes, shapes too'),
+      everything: OptionalParam(
+        PD.Boolean(false, { description: 'Every representation that can be cut (nothing selected, a map alone)' }),
+      ),
       types: PD.Value<readonly string[]>([], {
         description: 'Only these representation types (molecular-surface, cartoon, isosurface, …); empty: every one',
       }),
       invert: PD.Boolean(false, { description: 'Remove the other side (a plane) or the outside (a closed shape)' }),
     },
-    async run({ shape, target, node, types, invert }, ctx) {
+    async run({ shape, target, node, everything, types, invert }, ctx) {
       const around: { sphere?: Sphere3D } = {};
-      const cells = await targetCells(ctx, target, node, types, around);
+      const cells = everything ? allCells(ctx, types) : await targetCells(ctx, target, node, types, around);
       if (ApiResult.isFailure(cells)) return cells;
       const full = cells.filter(
         (c) => RepresentationClip.get(c.transform.params)!.objects.length >= Clip.MaxObjectCount,
@@ -470,6 +483,14 @@ export async function targetCells(
     );
   }
   return cells;
+}
+
+/** Every representation that can be cut, of `types` (all when empty) */
+function allCells(ctx: ApiContext, types: readonly string[]): StateObjectCell[] | ApiFailure {
+  const cells = clippableCells(ctx.plugin.state.data).filter(
+    (c) => !types.length || types.includes(representationType(c)),
+  );
+  return cells.length ? cells : ApiResult.fail('not-found', 'Nothing is drawn that can be cut.');
 }
 
 function isBelow(state: ApiContext['plugin']['state']['data'], ref: string, ancestor: string): boolean {
