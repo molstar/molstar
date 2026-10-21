@@ -235,7 +235,7 @@ describe('features', () => {
     return b.getDocument();
   };
 
-  it('hit in logarithmic time: 10,000 features cost about what 100 do', { tags: ['slow'] }, async () => {
+  it('hit in logarithmic time: 10,000 features cost about what 100 do', { tags: ['heavy'] }, async () => {
     const time = async (n: number) => {
       const t = await opened(doc(n));
       const h = Hit.create();

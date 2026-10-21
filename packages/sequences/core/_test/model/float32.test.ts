@@ -7,8 +7,8 @@
  */
 
 // `float32Number` (common.ts): the shortest decimal that reads back as a float32, from 7 digits first, against the
-// search from 1 digit up on a million random float32s, every float32 in a few dense ranges and the edge values (the slow
-// tier; the fast tier a sample of each). Every float32 was checked once the same way.
+// search from 1 digit up on a million random float32s, every float32 in a few dense ranges and the edge values (the
+// heavy lane; the quick lane a sample of each). Every float32 was checked once the same way.
 
 import { describe, expect, it } from 'vitest';
 import { float32Number } from '../../src/model/index.js';
@@ -66,7 +66,7 @@ describe('float32Number', () => {
     expect(randomDifferences(50_000)).toEqual([]);
   });
 
-  it('equals the search from 1 digit up on a million random float32s', { tags: ['slow'] }, () => {
+  it('equals the search from 1 digit up on a million random float32s', { tags: ['heavy'] }, () => {
     expect(randomDifferences(1_000_000)).toEqual([]);
   });
 
@@ -79,7 +79,7 @@ describe('float32Number', () => {
   });
 
   it('and on every float32 in dense ranges: subnormals, around 1, and where float32 steps exceed 7 digits', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     expect(differences(0, 100_000)).toEqual([]);
     expect(differences(at(0.999), at(1.001))).toEqual([]);

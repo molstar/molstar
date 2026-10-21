@@ -22,8 +22,8 @@
     "!**/_test/**"
   ],
   "scripts": {
-    "test:slow": "vitest run --config vitest.slow.config.ts",
-    "test:full": "pnpm -w test:unit packages/sequences/storybook && pnpm test:slow",
+    "test:heavy": "vitest run --config vitest.heavy.config.ts",
+    "test:full": "pnpm -w test:unit packages/sequences/storybook && pnpm test:heavy",
     "typecheck": "tsc -b ../nightingale ../../prism/ui ../../prism/viewer ../../mvs/builder && tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {

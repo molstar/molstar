@@ -162,7 +162,7 @@ originals, preserving source paths, package/type resolution, and project referen
 These configs are removed on success or failure. Separate `*.full.tsbuildinfo` caches keep the normal incremental caches
 intact and are not published. CI runs this check after the library build, and the publish gate also requires it.
 
-Before publishing, run `pnpm check:publish`. This required release gate lints, tests, builds
+Before publishing, run `pnpm check:publish`. This required release gate lints, tests (the quick and medium lanes, AGENTS.md, Tests), builds
 libraries/apps/distributions, runs the full declaration check, verifies workspace and version consistency, packs all
 public packages, and tests packed Node, types, source-condition, and CLI consumers. It does not publish or install
 native GL. Browser smokes remain local checks as described above. Publishing automation is still deferred; wire this
@@ -177,7 +177,7 @@ remain declared explicitly. Normal installation and `pnpm test` do not install t
 
 ```sh
 pnpm native:install                    # gl only, for native tests/capture
-pnpm test:native                       # requires the installed backend
+pnpm test:native                       # the PR lanes (quick, medium) with the installed backend; -- medium: the GL suite
 pnpm native:install -- --canvas        # gl + canvas, for the rendering CLI
 pnpm native:install -- --webgpu        # gl + webgpu, for the headless WebGPU tests
 pnpm native:run -- node cli/mvs-render/lib/mvs-render.js --help

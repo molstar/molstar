@@ -8,7 +8,7 @@
 
 // @vitest-environment jsdom
 
-// A paused surface resumed with an animation running (seqspec:viewer#the-render-backend), in the fast tier: a surface
+// A paused surface resumed with an animation running (seqspec:viewer#the-render-backend), in the quick lane: a surface
 // mounted in jsdom over a 2D context that draws nothing, its composer animating (a skeleton's shimmer, a region's fade).
 // Paused, its polling frame is cancelled; resumed, by the host (`setActive`) or the viewer (`ui.active`), a frame draws
 // the overlay and the polling runs on. Chromium's own: `canvas/active.test.ts`.

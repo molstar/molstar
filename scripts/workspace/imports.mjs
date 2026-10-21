@@ -7,7 +7,9 @@ import ts from '@typescript/typescript6';
  * `typeOnly` flags imports whose bindings are all used in type positions. `erased` flags what the compiler removes
  * under `verbatimModuleSyntax`, which is only `import type` / `export type` declarations and import types: every other
  * import declaration stays in the output, including `import { type A }` (emitted as `import {} from '...'`) and a
- * binding used only as a type. A bundler therefore evaluates the module unless `erased` is true.
+ * binding used only as a type. A bundler therefore evaluates the module unless `erased` is true. `star` flags
+ * `export * from` (not `export * as`), `dynamic` an `import()` or `require()` call (evaluated when called, not with the
+ * module).
  */
 export function importsFrom(file, source) {
   const result = [];
@@ -52,7 +54,12 @@ export function importsFrom(file, source) {
         erased: !!node.importClause?.isTypeOnly,
       });
     if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
-      result.push({ specifier: node.moduleSpecifier.text, typeOnly: node.isTypeOnly, erased: node.isTypeOnly });
+      result.push({
+        specifier: node.moduleSpecifier.text,
+        typeOnly: node.isTypeOnly,
+        erased: node.isTypeOnly,
+        star: !node.exportClause && !node.isTypeOnly,
+      });
     if (
       ts.isImportEqualsDeclaration(node) &&
       ts.isExternalModuleReference(node.moduleReference) &&
@@ -66,7 +73,7 @@ export function importsFrom(file, source) {
       node.arguments.length === 1 &&
       ts.isStringLiteral(node.arguments[0])
     )
-      result.push({ specifier: node.arguments[0].text, typeOnly: false, erased: false });
+      result.push({ specifier: node.arguments[0].text, typeOnly: false, erased: false, dynamic: true });
     if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
@@ -74,7 +81,7 @@ export function importsFrom(file, source) {
       node.arguments.length === 1 &&
       ts.isStringLiteral(node.arguments[0])
     )
-      result.push({ specifier: node.arguments[0].text, typeOnly: false, erased: false });
+      result.push({ specifier: node.arguments[0].text, typeOnly: false, erased: false, dynamic: true });
     if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal))
       result.push({ specifier: node.argument.literal.text, typeOnly: true, erased: true });
     ts.forEachChild(node, visit);

@@ -9,6 +9,9 @@ import { createContext } from '../webgl/context.js';
 
 const require = createRequire(import.meta.url);
 
+// The tests that need the native backend (`gl`, `pnpm native:install`) are medium (AGENTS.md, Tests): the medium CI
+// job installs it and runs them under Xvfb; without it they skip.
+
 export function getGLContext(width: number, height: number) {
   const gl = require('gl')(width, height, {
     alpha: true,

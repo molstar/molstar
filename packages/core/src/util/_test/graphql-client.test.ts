@@ -7,13 +7,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { RuntimeContext } from '@molstar/core/task';
-import { Asset, AssetManager } from '../assets.js';
+import { Asset, DefaultAssetManager } from '../assets.js';
 import { ajaxGet } from '../data-source.js';
 import { GraphQLClient } from '../graphql-client.js';
 
 describe('graphql transport', () => {
   it('adds JSON headers to GraphQL requests', async () => {
-    const assetManager = new AssetManager();
+    const assetManager = new DefaultAssetManager();
     const dispose = vi.fn();
 
     const resolveSpy = vi.spyOn(assetManager, 'resolve').mockImplementation((asset, type) => {

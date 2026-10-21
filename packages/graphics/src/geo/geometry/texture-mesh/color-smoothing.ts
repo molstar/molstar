@@ -2,6 +2,7 @@
  * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { setColorType } from '../color-data.js';
@@ -31,6 +32,8 @@ import { TextureMesh } from './texture-mesh.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { computeColorSmoothing, isComputeColorSmoothingSupported } from '@molstar/graphics/gl/compute/color-smoothing';
 import type { StorageBuffer } from '@molstar/graphics/gl/compute';
+import type { TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { getRowReachedTest, getSplatInstances } from '../mesh/color-smoothing.js';
 
 export const ColorAccumulateSchema = {
   drawCount: ValueSpec('number'),
@@ -79,6 +82,11 @@ interface AccumulateInput {
   chunks?: { table: StorageBuffer; positions: StorageBuffer };
   colorData: Texture;
   colorType: 'group' | 'groupInstance';
+}
+
+/** A box holding every untransformed vertex, see `TextureMesh['meta']['vertexBox']` */
+function getVertexBox(values: TextureMeshValues) {
+  return (values.meta.ref.value as TextureMesh['meta']).vertexBox;
 }
 
 /** The vertices in pages of the vertex arena, see `TextureMesh.isoChunks` */
@@ -270,12 +278,177 @@ function getTexture2dSize(gridDim: Vec3) {
 interface ColorSmoothingInput extends AccumulateInput {
   boundingSphere: Sphere3D;
   invariantBoundingSphere: Sphere3D;
+  /** the layer as loaded into `colorData`, with `itemSize` values per texel */
+  layer?: { image: TextureImage<Uint8Array>; itemSize: 4 | 1 };
+  /** a box holding every untransformed vertex (`TextureMesh['meta']['vertexBox']`) */
+  vertexBox?: Box3D;
+}
+
+/** The instances of `input` to draw into the grid: `transformBuffer`, `instanceBuffer` and `instanceCount` */
+type SplatInstances = Pick<AccumulateInput, 'instanceCount' | 'transformBuffer' | 'instanceBuffer'>;
+
+/**
+ * The instances to draw into the grid (perf-audit 13/P1, see `getSplatInstances` of the mesh path): those whose layer
+ * row is non-zero and those whose cells overlap a reached one's, in their order; every instance without `layer` or
+ * `vertexBox`, and for non-instance types. The grid stays the one of every instance.
+ *
+ * Exact as on the mesh path: the cells of reached instances get every contribution, in the former order (instanced
+ * draws are in instance order, the compute path's sums are fixed-point); the other cells get none and are 0, as
+ * before (with the zero layer: 0 / weight; now 0 / 0, which the compute normalization writes as 0, and the point
+ * sprite path is left out only where its normalization does, see `probeZeroWeightNormalization`). Single-channel layers (transparency, emissive) are exact in red,
+ * the channel the shaders read: their `r` texture reads alpha 1, so the grid's alpha, which no shader reads, was 1
+ * wherever any instance splatted and is now 0 where only left-out instances did. The vertices read groups from a
+ * texture, which the CPU does not check: the groups of gaussian surfaces are in range or -1 (a cell whose voxel has no
+ * atom, packed 0), which reads the last item of the row before; so that item counts for a row, and row 0 is always
+ * reached.
+ */
+export function getTextureMeshSplatInstances(
+  input: ColorSmoothingInput,
+  gridDim: Vec3,
+  min: Vec3,
+  scaleFactor: number,
+): SplatInstances & { splatCount: number } {
+  const { instanceCount, transformBuffer, instanceBuffer, layer, vertexBox } = input;
+  const all = { instanceCount, transformBuffer, instanceBuffer, splatCount: instanceCount };
+  if (!input.colorType.endsWith('Instance') || !layer || !vertexBox) return all;
+
+  const isRowReached = getRowReachedTest(layer.image.array, input.groupCount, layer.itemSize, 1);
+  const { splat } = getSplatInstances(
+    transformBuffer,
+    vertexBox,
+    instanceCount,
+    true,
+    (i) => isRowReached(instanceBuffer[i]),
+    gridDim,
+    min,
+    scaleFactor,
+    false,
+  );
+  let splatCount = 0;
+  for (let i = 0; i < instanceCount; ++i) splatCount += splat[i];
+  // none (not expected: row 0 is always reached, and the grid holds every instance) would bind empty buffers
+  if (splatCount === instanceCount || splatCount === 0) return all;
+
+  const transforms = new Float32Array(splatCount * 16);
+  const instances = new Float32Array(splatCount);
+  for (let i = 0, k = 0; i < instanceCount; ++i) {
+    if (!splat[i]) continue;
+    transforms.set(transformBuffer.subarray(i * 16, i * 16 + 16), k * 16);
+    instances[k] = instanceBuffer[i];
+    k += 1;
+  }
+  return { instanceCount: splatCount, transformBuffer: transforms, instanceBuffer: instances, splatCount };
 }
 
 export type ColorSmoothingOptions = {
   resolution: number;
   stride: number;
 };
+
+/** The framebuffer and the accumulation targets (weighted colors, weights) of the point sprite path */
+function getAccumulateTargets(graphics: GraphicsContext) {
+  const {
+    resources,
+    capabilities: { halfFloatRenderTarget, mixedAttachmentFormats },
+  } = graphics;
+  if (!graphics.namedFramebuffers[ColorAccumulateName]) {
+    graphics.namedFramebuffers[ColorAccumulateName] = resources.framebuffer();
+  }
+  const framebuffer = graphics.namedFramebuffers[ColorAccumulateName];
+
+  if (mixedAttachmentFormats) {
+    if (!graphics.namedTextures[ColorAccumulateName]) {
+      graphics.namedTextures[ColorAccumulateName] = halfFloatRenderTarget
+        ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    }
+
+    if (!graphics.namedTextures[ColorCountName]) {
+      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'r', 'float', 'nearest');
+    }
+  } else {
+    // webgl1 requires consistent bit plane counts
+    // this is quite wasteful but good enough for medium size meshes
+
+    if (!graphics.namedTextures[ColorAccumulateName]) {
+      graphics.namedTextures[ColorAccumulateName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    }
+
+    if (!graphics.namedTextures[ColorCountName]) {
+      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    }
+  }
+
+  const accumulateTexture = graphics.namedTextures[ColorAccumulateName];
+  const countTexture = graphics.namedTextures[ColorCountName];
+  return { framebuffer, accumulateTexture, countTexture };
+}
+
+/** Per context: whether the point sprite path writes cells without weight as 0, once known */
+const ZeroWeightProbes = new WeakMap<GraphicsContext, { result?: boolean; promise: Promise<boolean> }>();
+
+/**
+ * Whether the normalization of the point sprite path (WebGL, and WebGPU without compute kernels) writes a cell without
+ * weight, 0 / 0, as 0 into its unorm texture: GLSL and the GL specs leave NaN to unorm undefined (D3D, Metal and Vulkan
+ * give 0). Leaving out instances (`getTextureMeshSplatInstances`) turns cells their vertices read from 0 / weight into
+ * 0 / 0, so it is only exact where this holds. Probed once per context, on a 1×1 target read back.
+ */
+export function probeZeroWeightNormalization(graphics: GraphicsContext): Promise<boolean> {
+  let probe = ZeroWeightProbes.get(graphics);
+  if (!probe) {
+    const promise = runZeroWeightProbe(graphics).catch(() => false);
+    const entry: { result?: boolean; promise: Promise<boolean> } = { promise };
+    promise.then((result) => {
+      entry.result = result;
+    });
+    ZeroWeightProbes.set(graphics, entry);
+    probe = entry;
+  }
+  return probe.promise;
+}
+
+/** `probeZeroWeightNormalization` once its result is known; false (and the probe started) before */
+function isZeroWeightNormalizedToZero(graphics: GraphicsContext) {
+  const probe = ZeroWeightProbes.get(graphics);
+  if (!probe) void probeZeroWeightNormalization(graphics);
+  return probe?.result === true;
+}
+
+async function runZeroWeightProbe(graphics: GraphicsContext) {
+  const { framebuffer, accumulateTexture, countTexture } = getAccumulateTargets(graphics);
+  accumulateTexture.define(1, 1);
+  countTexture.define(1, 1);
+  accumulateTexture.attachFramebuffer(framebuffer, 0);
+  countTexture.attachFramebuffer(framebuffer, 1);
+  framebuffer.setDrawBuffers(2);
+  graphics.beginRenderPass(framebuffer, { label: 'color smoothing probe clear' });
+  graphics.setViewport(0, 0, 1, 1);
+  graphics.setScissor(0, 0, 1, 1);
+  graphics.clear({ color: [0, 0, 0, 0] });
+  accumulateTexture.detachFramebuffer(framebuffer, 0);
+  countTexture.detachFramebuffer(framebuffer, 1);
+  framebuffer.setDrawBuffers(1);
+
+  // as the normalization below: additive into a cleared rgba8 target
+  const target = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+  try {
+    target.define(1, 1);
+    const normalizeRenderable = getNormalizeRenderable(graphics, accumulateTexture, countTexture);
+    graphics.setRenderState(RenderState.Additive);
+    target.attachFramebuffer(framebuffer, 0);
+    graphics.beginRenderPass(framebuffer, { label: 'color smoothing probe' });
+    graphics.setViewport(0, 0, 1, 1);
+    graphics.setScissor(0, 0, 1, 1);
+    graphics.clear({ color: [0, 0, 0, 0] });
+    normalizeRenderable.render();
+    target.detachFramebuffer(framebuffer, 0);
+    const { array } = await graphics.readTextureData(target);
+    for (let i = 0; i < 4; ++i) if (array[i] !== 0) return false;
+    return true;
+  } finally {
+    target.destroy();
+  }
+}
 
 /** Grid of the smoothing: the box expanded by `1 + resolution`, two extra cells per axis */
 export function getGridDim(box: Box3D, resolution: number) {
@@ -313,10 +486,7 @@ export function calcTextureMeshColorSmoothing(
   if (!useCompute && !graphics.capabilities.multipleRenderTargets) throw new Error('need multiple render targets');
 
   if (isTimingMode) graphics.timer.group('calcTextureMeshColorSmoothing');
-  const {
-    resources,
-    capabilities: { halfFloatRenderTarget, mixedAttachmentFormats },
-  } = graphics;
+  const { resources } = graphics;
   const { stride } = options;
 
   const isInstanceType = input.colorType.endsWith('Instance');
@@ -337,6 +507,18 @@ export function calcTextureMeshColorSmoothing(
   const scaleFactor = 1 / resolution;
   const gridDim = getGridDim(box, resolution);
   const { min } = expandedBox;
+  // the grid spans every instance, also where the layer is zero: the shaders read it without a bounds check
+  // (`texture3dFrom2dLinear` in WebGL and WebGPU), so a point beyond a smaller grid would read another slice; the point
+  // sprite path leaves out instances only where 0 / 0 is written as 0
+  const leaveOut = useCompute || isZeroWeightNormalizedToZero(graphics);
+  const subset = getTextureMeshSplatInstances(
+    leaveOut ? input : { ...input, layer: undefined },
+    gridDim,
+    min,
+    scaleFactor,
+  );
+  const { instanceCount, transformBuffer, instanceBuffer } = subset;
+  const samples = { ...input, instanceCount, transformBuffer, instanceBuffer };
 
   const [dx, dy, dz] = gridDim;
   const { texDimX: width, texDimY: height, texCols } = getTexture2dSize(gridDim);
@@ -351,7 +533,7 @@ export function calcTextureMeshColorSmoothing(
     const bboxSize = Box3D.size(Vec3(), expandedBox);
     computeColorSmoothing(
       graphics.compute,
-      { ...input, chunks, stride },
+      { ...samples, chunks, stride },
       { gridDim, texCols, width, height, bboxMin: min, bboxSize, resolution },
       texture,
     );
@@ -359,44 +541,14 @@ export function calcTextureMeshColorSmoothing(
     return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
   }
 
-  if (!graphics.namedFramebuffers[ColorAccumulateName]) {
-    graphics.namedFramebuffers[ColorAccumulateName] = graphics.resources.framebuffer();
-  }
-  const framebuffer = graphics.namedFramebuffers[ColorAccumulateName];
-
-  if (mixedAttachmentFormats) {
-    if (!graphics.namedTextures[ColorAccumulateName]) {
-      graphics.namedTextures[ColorAccumulateName] = halfFloatRenderTarget
-        ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-        : resources.texture('image-float32', 'rgba', 'float', 'nearest');
-    }
-
-    if (!graphics.namedTextures[ColorCountName]) {
-      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'r', 'float', 'nearest');
-    }
-  } else {
-    // webgl1 requires consistent bit plane counts
-    // this is quite wasteful but good enough for medium size meshes
-
-    if (!graphics.namedTextures[ColorAccumulateName]) {
-      graphics.namedTextures[ColorAccumulateName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
-    }
-
-    if (!graphics.namedTextures[ColorCountName]) {
-      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
-    }
-  }
-
-  const accumulateTexture = graphics.namedTextures[ColorAccumulateName];
-  const countTexture = graphics.namedTextures[ColorCountName];
-
+  const { framebuffer, accumulateTexture, countTexture } = getAccumulateTargets(graphics);
   accumulateTexture.define(width, height);
   countTexture.define(width, height);
 
   accumulateTexture.attachFramebuffer(framebuffer, 0);
   countTexture.attachFramebuffer(framebuffer, 1);
 
-  const accumulateRenderable = getAccumulateRenderable(graphics, input, expandedBox, resolution, stride);
+  const accumulateRenderable = getAccumulateRenderable(graphics, samples, expandedBox, resolution, stride);
 
   framebuffer.setDrawBuffers(2);
   graphics.beginRenderPass(framebuffer, { label: 'color accumulate' });
@@ -531,6 +683,7 @@ export function applyTextureMeshColorSmoothing(
         colorType: type,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        // no layer: base colors (alpha 255) reach every instance
       },
       tripled,
       graphics,
@@ -593,6 +746,8 @@ export function applyTextureMeshOverpaintSmoothing(
         colorType: type,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        layer: { image: values.tOverpaint.ref.value, itemSize: 4 },
+        vertexBox: getVertexBox(values),
       },
       tripled,
       graphics,
@@ -655,6 +810,8 @@ export function applyTextureMeshTransparencySmoothing(
         colorType: type,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        layer: { image: values.tTransparency.ref.value, itemSize: 1 },
+        vertexBox: getVertexBox(values),
       },
       tripled,
       graphics,
@@ -717,6 +874,8 @@ export function applyTextureMeshEmissiveSmoothing(
         colorType: type,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        layer: { image: values.tEmissive.ref.value, itemSize: 1 },
+        vertexBox: getVertexBox(values),
       },
       tripled,
       graphics,
@@ -779,6 +938,8 @@ export function applyTextureMeshSubstanceSmoothing(
         colorType: type,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        layer: { image: values.tSubstance.ref.value, itemSize: 4 },
+        vertexBox: getVertexBox(values),
       },
       tripled,
       graphics,

@@ -12,7 +12,7 @@ import { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { ValueCell } from '@molstar/core/util';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
@@ -60,7 +60,10 @@ const registries = (() => {
   for (const p of Object.values(BuiltInSizeThemes)) sizeThemeRegistry.add(p as SizeTheme.Provider<any, any>);
   return { colorThemeRegistry, sizeThemeRegistry };
 })();
-const propCtx: CustomProperty.Context = { runtime: RuntimeContext.Synchronous, assetManager: new AssetManager() };
+const propCtx: CustomProperty.Context = {
+  runtime: RuntimeContext.Synchronous,
+  assetManager: new DefaultAssetManager(),
+};
 
 async function loadCells() {
   const data = fs.readFileSync(
@@ -286,13 +289,19 @@ function spreadTransforms() {
   return transforms;
 }
 
+/** the surface, computed once for the file: the cases copy what they change */
+const CellsGeometry = loadCells().then(surfaceGeometry);
+
+/** the first layer's sweep is the quick lane's representative, the others are medium (AGENTS.md, Tests) */
+const sweepLane = (layer: Layer) => (layer === 'overpaint' ? {} : { tags: ['medium'] });
+
 const Options: ColorSmoothingOptions[] = [
   { resolution: 1.2, stride: 3 },
   { resolution: 0.8, stride: 2 },
 ];
 
 describe('mesh layer smoothing on instances', async () => {
-  const geometry = await surfaceGeometry(await loadCells());
+  const geometry = await CellsGeometry;
   const { groupCount, instanceCount } = geometry;
 
   const Reach: [string, (instance: number, group: number) => boolean, ColorSmoothingOptions[]][] = [
@@ -309,7 +318,7 @@ describe('mesh layer smoothing on instances', async () => {
   });
 
   for (const layer of ['overpaint', 'transparency', 'emissive', 'substance', 'color'] as Layer[]) {
-    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, sweepLane(layer), () => {
       const result: Record<string, ReturnType<typeof smoothed>> = {};
       for (const [name, reach, options] of Reach) {
         for (const o of options) {
@@ -330,7 +339,7 @@ describe('mesh layer smoothing on instances', async () => {
 });
 
 describe('mesh layer smoothing on spread instances', async () => {
-  const cells = await surfaceGeometry(await loadCells());
+  const cells = await CellsGeometry;
   const transforms = spreadTransforms();
   const geometry: Geometry = { ...cells, instanceCount: transforms.length / 16, transforms };
   const { groupCount } = geometry;
@@ -344,7 +353,7 @@ describe('mesh layer smoothing on spread instances', async () => {
   ];
 
   for (const layer of ['overpaint', 'transparency', 'emissive', 'substance'] as Layer[]) {
-    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, sweepLane(layer), () => {
       const result: Record<string, ReturnType<typeof smoothed>> = {};
       for (const [name, reach, options] of Reach) {
         for (const o of options) {
@@ -360,7 +369,7 @@ describe('mesh layer smoothing on spread instances', async () => {
 });
 
 describe('mesh layer smoothing on reordered and clipped instances, odd groups', async () => {
-  const cells = await surfaceGeometry(await loadCells());
+  const cells = await CellsGeometry;
   const transforms = spreadTransforms();
   const spread: Geometry = { ...cells, instanceCount: transforms.length / 16, transforms };
   const outOfRange = spread.groups.slice();
@@ -389,7 +398,7 @@ describe('mesh layer smoothing on reordered and clipped instances, odd groups', 
 });
 
 describe('mesh layer smoothing splats the reached instances and their neighbours', async () => {
-  const cells = await surfaceGeometry(await loadCells());
+  const cells = await CellsGeometry;
   const transforms = spreadTransforms();
   const spread: Geometry = { ...cells, instanceCount: transforms.length / 16, transforms };
 

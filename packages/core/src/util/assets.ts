@@ -11,7 +11,7 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
 
-export { AssetManager, Asset };
+export { type AssetManager, DefaultAssetManager, Asset };
 
 type _File = File;
 type Asset = Asset.Url | Asset.File;
@@ -87,7 +87,7 @@ function urlHeadersEqual(a?: Record<string, string>, b?: Record<string, string>)
 }
 
 /**
- * The key of the byte cache (`AssetManager`), or `undefined` for a request that is not cached.
+ * The key of the byte cache (`DefaultAssetManager`), or `undefined` for a request that is not cached.
  *
  * Only plain GETs are cached: a request with a body (POST: GraphQL, queries) can answer differently every time, so it
  * keeps the per-asset behavior (one download per `Asset.Url`). The headers are part of the key (an `Authorization` or
@@ -114,7 +114,38 @@ interface UrlCacheEntry {
 
 /**
  * Holds assets (URL downloads and files) and their bytes, ref-counted: `resolve` takes a reference and
- * `Asset.Wrapper.dispose` (`release`) gives it back.
+ * `Asset.Wrapper.dispose` (`release`) gives it back. `DefaultAssetManager` is the implementation; a plugin takes a
+ * custom one from `PluginSpec.assetManager`.
+ */
+interface AssetManager {
+  /** Every held asset with its bytes. */
+  readonly assets: AssetManager.Entry[];
+  tryFindUrl(url: string, body?: string, headers?: Record<string, string>): Asset.Url | undefined;
+  tryFindFilename(name: string): Asset | undefined;
+  /** Holds `file` as the bytes of `asset`, replacing what it held; a static asset outlives its last `release`. */
+  set(asset: Asset, file: File, options?: { isStatic?: boolean; tag?: string }): void;
+  get(asset: Asset): AssetManager.Entry | undefined;
+  delete(asset: Asset): boolean;
+  has(asset: Asset): boolean;
+  /** Reads the asset, taking a reference (`store` on) that the returned wrapper's `dispose` gives back. */
+  resolve<T extends DataType>(asset: Asset, type: T, store?: boolean): Task<Asset.Wrapper<T>>;
+  release(asset: Asset): void;
+  clearTag(tag: string): void;
+  clear(): void;
+  dispose(): void;
+}
+
+namespace AssetManager {
+  export interface Entry {
+    readonly asset: Asset;
+    readonly file: File;
+    readonly isStatic?: boolean;
+    readonly tag?: string;
+  }
+}
+
+/**
+ * The default `AssetManager`.
  *
  * URL assets read through a URL-keyed, ref-counted byte cache (`urlCacheKey`): the first `resolve` of a URL downloads,
  * later ones (another `Asset.Url` of the same URL and headers, or the same one) are served from the held bytes, and
@@ -126,7 +157,7 @@ interface UrlCacheEntry {
  *   one of them becoming the downloader. A waiter itself notices its own abort when its task next updates.
  * - `resolve(asset, type, false)` (`store` off) and requests with a body bypass the cache.
  */
-class AssetManager {
+class DefaultAssetManager implements AssetManager {
   // TODO: when serializing, check for duplicates?
 
   private _assets = new Map<
@@ -135,7 +166,7 @@ class AssetManager {
   >();
   private _urlCache = new Map<string, UrlCacheEntry>();
 
-  get assets() {
+  get assets(): AssetManager.Entry[] {
     return iterableToArray(this._assets.values());
   }
 
@@ -174,7 +205,7 @@ class AssetManager {
     this._assets.set(asset.id, { asset, file, refCount: 0, tag: options?.tag, isStatic: options?.isStatic });
   }
 
-  get(asset: Asset) {
+  get(asset: Asset): AssetManager.Entry | undefined {
     return this._assets.get(asset.id);
   }
 

@@ -32,7 +32,7 @@ import v8 from 'node:v8';
 import { Interval } from '@molstar/core/data/int';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -133,7 +133,10 @@ const registries = (() => {
   for (const p of Object.values(BuiltInSizeThemes)) sizeThemeRegistry.add(p as SizeTheme.Provider<any, any>);
   return { colorThemeRegistry, sizeThemeRegistry };
 })();
-const propCtx: CustomProperty.Context = { runtime: RuntimeContext.Synchronous, assetManager: new AssetManager() };
+const propCtx: CustomProperty.Context = {
+  runtime: RuntimeContext.Synchronous,
+  assetManager: new DefaultAssetManager(),
+};
 
 // cumulative JS-heap allocation: `total_allocated_bytes` is in Node 25+; without it the Alloc column is NaN
 const hasAllocCounter = typeof (v8.getHeapStatistics() as any).total_allocated_bytes === 'number';

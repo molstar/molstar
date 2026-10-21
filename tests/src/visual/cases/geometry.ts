@@ -27,7 +27,7 @@ import {
 } from '../scenes/primitives.js';
 import { blobVolume, gpuBlobVolume, negatedVolume, segmentedBlobVolume, volumeRepr } from '../scenes/volume.js';
 import { SegmentRepresentationProvider } from '@molstar/graphics/repr/volume/segment';
-import { globuleStructure, helixStructure, structureRepr } from '../scenes/structure.js';
+import { exampleStructure, globuleStructure, helixStructure, structureRepr } from '../scenes/structure.js';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { GaussianVolumeRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-volume';
 import { OrderedSet } from '@molstar/core/data/int';
@@ -38,6 +38,13 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { StructureElement, type Structure } from '@molstar/model/model/structure';
 import type { DrawIndirect } from '@molstar/graphics/gl/compute';
 import { FillKernel, FillSchema } from './compute.js';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
+import {
+  getTextureMeshSplatInstances,
+  probeZeroWeightNormalization,
+} from '@molstar/graphics/geo/geometry/texture-mesh/color-smoothing';
+import type { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 
 export const ObliqueView: TestView = { direction: [-0.4, -0.5, -1] };
 
@@ -135,6 +142,104 @@ async function smoothedLayersRepr(graphics: GraphicsContext, layers: SmoothedLay
 }
 
 const SmoothedLayers: SmoothedLayer[] = ['overpaint', 'transparency', 'emissive', 'substance'];
+
+const LayerGrid = {
+  overpaint: { prefix: 'Overpaint', channels: 4 },
+  transparency: { prefix: 'Transparency', channels: 1 },
+  emissive: { prefix: 'Emissive', channels: 1 },
+  substance: { prefix: 'Substance', channels: 4 },
+} as const;
+
+/**
+ * GPU layer smoothing on an instanced gaussian surface (1cbs over three unit cells, 12 instances) with the layer on one
+ * chain: the grids read back with the instances left out (`getTextureMeshSplatInstances`) and with every instance drawn
+ * (`meta.vertexBox` cleared) must be the same in the channels the shaders read (rgba, or red of single-channel layers)
+ */
+async function checkSmoothingInstances(graphics: GraphicsContext): Promise<string[]> {
+  const model = await exampleStructure('1cbs_updated.cif');
+  const structure = await StructureSymmetry.buildSymmetryRange(model, Vec3.create(0, 0, 0), Vec3.create(2, 0, 0)).run();
+  const repr = await structureRepr(graphics, GaussianSurfaceRepresentationProvider, structure, {
+    tryUseGpu: true,
+    smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+  });
+  const metas = repr.renderObjects.map((o) => (o.values as any).meta?.ref.value as TextureMesh['meta'] | undefined);
+  for (const m of metas) await m?.extracted;
+  // the point sprite path leaves out instances only once the probe has passed
+  const leavesOut = graphics.compute ? true : await probeZeroWeightNormalization(graphics);
+
+  const errors: string[] = [];
+  if (repr.renderObjects.some((o) => o.type !== 'texture-mesh')) errors.push('expected texture meshes');
+  const boxes = metas.map((m) => m?.vertexBox);
+  if (boxes.some((b) => !b)) errors.push('expected a vertex box on every surface');
+
+  const states = smoothedLayerState(structure, SmoothedLayers);
+  const empty: Partial<Representation.State> = {
+    overpaint: { kind: 'element-loci', layers: [] },
+    transparency: { kind: 'element-loci', layers: [] },
+    emissive: { kind: 'element-loci', layers: [] },
+    substance: { kind: 'element-loci', layers: [] },
+  };
+
+  const readGrids = async (layer: SmoothedLayer) => {
+    const { prefix, channels } = LayerGrid[layer];
+    const grids: { id: number; drawn: number; instances: number; read: Uint8Array }[] = [];
+    for (const o of repr.renderObjects) {
+      const v = o.values as any;
+      if (!v[`${layer}Type`].ref.value.startsWith('volume')) continue;
+      const data = await graphics.readTextureData(v[`t${prefix}Grid`].ref.value);
+      const bytes = new Uint8Array(data.array.buffer, data.array.byteOffset, data.array.byteLength);
+      const read = new Uint8Array((bytes.length / 4) * channels);
+      for (let t = 0, k = 0; t < bytes.length; t += 4) for (let c = 0; c < channels; ++c) read[k++] = bytes[t + c];
+      const transform = v[`u${prefix}GridTransform`].ref.value;
+      const { splatCount } = getTextureMeshSplatInstances(
+        {
+          instanceCount: v.uInstanceCount.ref.value,
+          transformBuffer: v.aTransform.ref.value,
+          instanceBuffer: v.aInstance.ref.value,
+          groupCount: v.uGroupCount.ref.value,
+          colorType: 'groupInstance',
+          layer: { image: v[`t${prefix}`].ref.value, itemSize: channels },
+          vertexBox: v.meta.ref.value.vertexBox,
+        } as any,
+        v[`u${prefix}GridDim`].ref.value,
+        Vec3.create(transform[0], transform[1], transform[2]),
+        transform[3],
+      );
+      grids.push({ id: o.id, drawn: splatCount, instances: v.uInstanceCount.ref.value, read });
+    }
+    return grids;
+  };
+
+  for (const layer of SmoothedLayers) {
+    const state = { [layer]: states[layer] };
+    repr.setState(state);
+    const left = await readGrids(layer);
+    repr.setState({ [layer]: empty[layer] });
+    metas.forEach((m) => {
+      if (m) m.vertexBox = undefined;
+    });
+    repr.setState(state);
+    const all = await readGrids(layer);
+    repr.setState({ [layer]: empty[layer] });
+    metas.forEach((m, i) => {
+      if (m) m.vertexBox = boxes[i];
+    });
+
+    if (left.length === 0) errors.push(`${layer}: no smoothed grid`);
+    if (leavesOut && !left.some((g) => g.drawn < g.instances)) {
+      errors.push(`${layer}: every instance drawn, the case does not leave any out`);
+    }
+    for (let i = 0; i < left.length; ++i) {
+      const a = left[i].read;
+      const b = all[i]?.read;
+      let diffs = b && a.length === b.length ? 0 : Infinity;
+      for (let k = 0; b && k < a.length; ++k) if (a[k] !== b[k]) diffs += 1;
+      if (diffs) errors.push(`${layer}: grid ${left[i].id} differs in ${diffs} values from every instance drawn`);
+    }
+  }
+  repr.destroy();
+  return errors;
+}
 
 export const GeometryCases: VisualTestCase[] = [
   {
@@ -367,6 +472,14 @@ export const GeometryCases: VisualTestCase[] = [
       scene: async ({ graphics }) => [await smoothedLayersRepr(graphics, [layer], true)],
     }),
   ),
+  {
+    id: 'geometry/texture-mesh/gaussian-surface-gpu-smooth-instances',
+    description:
+      'GPU layer smoothing on an instanced gaussian surface, a layer on one chain: the grids with the instances the layer does not reach left out are those of every instance drawn.',
+    requires: ['gaussianSurfaceGpu'],
+    scene: async () => [],
+    check: checkSmoothingInstances,
+  },
   {
     id: 'geometry/mesh/gaussian-surface-cpu-smooth-layers',
     description:

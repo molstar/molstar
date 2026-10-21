@@ -50,4 +50,11 @@ describe('basic streamlines', () => {
       }
     `);
   });
+
+  it('keep nothing on the grid (gradients are computed on demand)', async () => {
+    const g = grid([0, 1, 2]);
+    const keys = Object.keys(g);
+    await streamlines(g, { seedDensity: 6, stepSize: 0.35, minSeparation: 0 });
+    expect(Object.keys(g)).toEqual(keys);
+  });
 });

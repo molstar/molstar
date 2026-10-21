@@ -49,7 +49,7 @@ import { RuntimeContext, Scheduler, Task } from '@molstar/core/task';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import type { ThemeRegistryContext } from '@molstar/graphics/theme/theme';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
 import { ajaxGet } from '@molstar/core/util/data-source';
 import { isDebugMode, isProductionMode } from '@molstar/core/util/debug';
@@ -217,6 +217,8 @@ export class PluginContext {
     viewportScreenshot: void 0 as ViewportScreenshotHelper | undefined,
   } as const;
 
+  private readonly assetManager = this.spec.assetManager?.() ?? { manager: new DefaultAssetManager() };
+
   readonly managers = {
     structure: {
       hierarchy: new StructureHierarchyManager(this),
@@ -237,7 +239,7 @@ export class PluginContext {
     snapshot: new PluginStateSnapshotManager(this),
     lociLabels: void 0 as any as LociLabelManager,
     toast: new PluginToastManager(this),
-    asset: new AssetManager(),
+    asset: this.assetManager.manager,
     task: new TaskManager(),
     markdownExtensions: new MarkdownExtensionManager(this),
     dragAndDrop: new DragAndDropManager(this),
@@ -544,7 +546,10 @@ export class PluginContext {
     this.state.dispose();
     this.helpers.substructureParent.dispose();
 
-    objectForEach(this.managers, (m) => (m as any)?.dispose?.());
+    objectForEach(this.managers, (m) => {
+      if (m === this.managers.asset && this.assetManager.disposeWithPlugin === false) return;
+      (m as any)?.dispose?.();
+    });
     objectForEach(this.managers.structure, (m) => (m as any)?.dispose?.());
     objectForEach(this.managers.volume, (m) => (m as any)?.dispose?.());
 

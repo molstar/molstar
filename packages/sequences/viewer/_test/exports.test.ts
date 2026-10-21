@@ -23,9 +23,9 @@ const pkg = (dir: string, name: string, exports: Record<string, string>, files: 
 };
 
 describe('export guard', () => {
-  // A TypeScript program over every entry: about 1.5 s alone, past the default 5 s under a full parallel run. The slow
-  // tier's: `node packages/sequences/scripts/exports.ts` runs the same guard before every commit.
-  it('finds no collision across the entries of the packages', { tags: ['slow'], timeout: 30_000 }, () => {
+  // A TypeScript program over every entry: about 1.5 s alone, past the default 5 s under a full parallel run. The heavy
+  // lane's: `node packages/sequences/scripts/exports.ts` runs the same guard before every commit.
+  it('finds no collision across the entries of the packages', { tags: ['heavy'], timeout: 30_000 }, () => {
     expect(entries().length).toBeGreaterThan(10);
     expect(collisions(exported(entries()))).toEqual([]);
   });
@@ -80,9 +80,9 @@ describe('the two UIs', () => {
 });
 
 describe('unused-exports listing', () => {
-  // A TypeScript program over a written folder of packages, for a listing run by hand: the slow tier's.
+  // A TypeScript program over a written folder of packages, for a listing run by hand: the heavy lane's.
   it('lists a name no consumer outside the package mentions, and not one that a script does', {
-    tags: ['slow'],
+    tags: ['heavy'],
   }, () => {
     const entry = { pkg: 'viewer', subpath: '.', file: '' };
     const list = [

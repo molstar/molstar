@@ -11,7 +11,7 @@ import { SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, Unit } from '@molstar/model/model/structure';
@@ -89,7 +89,7 @@ const AllProviders: Partial<InteractionsProps> = {
 };
 
 async function signature(s: Structure, props: Partial<InteractionsProps>) {
-  const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
+  const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
   const { contacts, bridges } = await computeInteractions(ctx, s, props);
   const rows = contacts.edges.map((e) => [e.unitA, e.indexA, e.unitB, e.indexB, e.props.type, e.props.flag]);
   const types = new Map<number, number>();

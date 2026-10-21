@@ -21,7 +21,7 @@ import { Sphere } from '@molstar/graphics/geo/primitive/sphere';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { Shape } from '@molstar/model/model/shape';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
@@ -34,7 +34,7 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const assetManager = new AssetManager();
+const assetManager = new DefaultAssetManager();
 
 const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(canvas3dContext);

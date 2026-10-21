@@ -35,7 +35,7 @@ try {
 }
 
 describe('HeadlessPluginContext', () => {
-  (hasGl ? it : it.skip)('HeadlessPluginContext', async () => {
+  (hasGl ? it : it.skip)('HeadlessPluginContext', { tags: ['medium'] }, async () => {
     const externalModules: ExternalModules = { gl: glModule! };
     const spec = DefaultPluginSpec();
     const plugin = new HeadlessPluginContext(externalModules, spec, { height: 100, width: 100 }, {});

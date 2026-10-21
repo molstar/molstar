@@ -14,6 +14,12 @@
 import { SEQUENCE_TYPE } from './biomsa/align/params.js';
 import { getSequenceType } from './biomsa/sequence/sequence.js';
 
+/**
+ * The gap symbol of gapped rows: `alignMany`'s output, `cigarFromRows`' default. The model reads it as its `GAP` code
+ * (`@molstar/seq-core/model`).
+ */
+export const GAP_CHAR = '-';
+
 /** One option of an aligner, described as data. */
 export interface AlignerParam {
   /** `choice`: one of `choices`; `str`: a string, matching `pattern` when given. */
@@ -47,7 +53,7 @@ export interface Aligner {
   align(a: string, b: string, options?: AlignerOptions): Promise<string | null>;
   /**
    * A multiple alignment, for an aligner that has one: the gapped rows of `seqs` (at least two), in their order and
-   * upper case, `-` a gap, all of one length; null when they cannot be aligned. Deterministic. Honors `signal`: a long
+   * upper case, `GAP_CHAR` a gap, all of one length; null when they cannot be aligned. Deterministic. Honors `signal`: a long
    * run yields to the event loop between its steps and throws the signal's reason when aborted. Throws as `align` does.
    */
   alignMany?(seqs: readonly string[], options?: AlignerOptions, signal?: AbortSignal): Promise<string[] | null>;
@@ -136,7 +142,7 @@ export function cigarOf(ops: string): string {
 }
 
 /** A CIGAR from two gapped rows of equal length (`gap` marks a gap; a column gapped in both is skipped). */
-export function cigarFromRows(a: string, b: string, gap = '-'): string {
+export function cigarFromRows(a: string, b: string, gap = GAP_CHAR): string {
   if (a.length !== b.length) throw new RangeError(`rows of different lengths: ${a.length} and ${b.length}`);
   let ops = '';
   for (let i = 0; i < a.length; i++) {

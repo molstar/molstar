@@ -1,0 +1,45 @@
+name: Heavy tests
+
+# The heavy test lane (AGENTS.md, Tests): wall-clock and scaling bounds, full-size fuzz and oracles, CLIs in a process
+# of their own, Chrome. Nightly, by hand (Actions, Run workflow) and on a PR labelled `heavy tests`. Never the heap
+# guards (`*.heap.ts`): those stay out of CI.
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: master
+    types: [labeled, synchronize]
+
+# one run per PR (or branch) at a time: a newer push or label cancels the one before
+concurrency:
+  group: heavy-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  heavy:
+    name: Heavy tests
+    # on a PR: labelled `heavy tests`, on that label or a push (not on another label)
+    if: >-
+      github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'heavy tests') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'heavy tests'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      # the CLIs run built (Seq*'s `test:heavy` builds first)
+      - name: Build the libraries
+        run: pnpm build:lib
+      - name: Install Chrome
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Test
+        run: pnpm test:heavy

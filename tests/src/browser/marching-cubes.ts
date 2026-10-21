@@ -24,7 +24,7 @@ import { Representation } from '@molstar/graphics/repr/representation';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { GaussianDensityTexture2d } from '@molstar/graphics/geo/gaussian-density/gpu';
 
 const parent = document.getElementById('app')!;
@@ -34,7 +34,7 @@ parent.style.height = '100%';
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 
-const assetManager = new AssetManager();
+const assetManager = new DefaultAssetManager();
 
 const canvas3dContext = createWebGLCanvas3DContext(canvas, assetManager);
 const canvas3d = Canvas3D.create(

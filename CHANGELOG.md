@@ -21,6 +21,8 @@ here.
   acceptor is rejected rather than measured from the heavy atom. The representation draws the dash from that hydrogen
 - Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
   (`parentDisplay` read unrelated atoms)
+- MVS: fix a `clip` plane with its normal pointing straight down (e.g. `[0, -1, 0]`), which clipped the upper half
+  instead of the lower one
 - Fix state builders that remove a node writing into the state's tree before they commit: a node added under, updated or
   depended on by a node whose ref hashes like the removed one's (common for generated refs) appeared in the current
   tree, and the next update could fail with "Cannot read properties of undefined (reading 'ref')". Also keep the nodes

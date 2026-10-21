@@ -7,13 +7,19 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { hashString } from '@molstar/core/data/util/hash-functions';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ALIGNOPT, pairwiseAlignment } from '../../src/algorithms/biomsa/align/align.js';
 import { extractLongestPath, noalignPair } from '../../src/algorithms/biomsa/align/noalign.js';
 import { getAlignmentParameters, SEQUENCE_TYPE } from '../../src/algorithms/biomsa/align/params.js';
-import { makeSequence } from '../../src/algorithms/biomsa/sequence/sequence.js';
+import { profileFromMSA } from '../../src/algorithms/biomsa/sequence/profile.js';
+import { distanceKimura, makeSequence } from '../../src/algorithms/biomsa/sequence/sequence.js';
+import { BioMSA } from '../../src/algorithms/biomsa/index.js';
+import { GAP } from '../../src/model/alignment.js';
 import {
   type Aligner,
+  type AlignerOptions,
+  GAP_CHAR,
   AlignerOptionsError,
   AlignerSizeError,
   Aligners,
@@ -460,7 +466,7 @@ describe('biomsa', () => {
 
   it('aligns an insertion of 1 to 10 kb anywhere in 20 kb as one run (B12), 10 insertions', () => insertions(10));
 
-  it('aligns an insertion of 1 to 10 kb anywhere in 20 kb as one run (B12)', { tags: ['slow'] }, () => insertions(50));
+  it('aligns an insertion of 1 to 10 kb anywhere in 20 kb as one run (B12)', { tags: ['heavy'] }, () => insertions(50));
 
   it('aligns an insertion whose ends repeat the letters around it as one run (B12)', async () => {
     // An insertion that starts with the letters after it and ends with those before it: the diagonals overlap.
@@ -537,8 +543,27 @@ describe('biomsa', () => {
     );
   });
 
-  it('accepts a pair just under the cell limit: 8191 × 8191, its full matrix filled', { tags: ['slow'] }, async () => {
+  it('accepts a pair just under the cell limit: 8191 × 8191, its full matrix filled', { tags: ['heavy'] }, async () => {
     await expect(biomsa.align('A'.repeat(8191), 'C'.repeat(8191), { method: 'complete' })).resolves.toMatch(/M/);
+  });
+});
+
+describe('the gap symbol', () => {
+  it("is the model's gap code", () => {
+    expect(GAP_CHAR.charCodeAt(0)).toBe(GAP);
+  });
+
+  it('is a biomsa parameter: rows, profiles and distances read it (B19)', async () => {
+    const seqs = ['ACGTACGTTTGACCA', 'ACGTACGACCA', 'ACGTTTGACC'];
+    const dashed = await BioMSA.align(seqs, { type: 'nucleic' });
+    const dotted = await BioMSA.align(seqs, { type: 'nucleic', gapchar: '.' });
+    expect(dashed.some((r) => r.includes('-'))).toBe(true);
+    expect(dotted).toEqual(dashed.map((r) => r.replaceAll('-', '.')));
+
+    const params = getAlignmentParameters(SEQUENCE_TYPE.NUCLEIC);
+    const weights = dashed.map(() => 1);
+    expect(profileFromMSA(dotted, weights, params, 0, '.')).toEqual(profileFromMSA(dashed, weights, params));
+    expect(distanceKimura(dotted, '.')).toEqual(distanceKimura(dashed));
   });
 });
 
@@ -573,6 +598,43 @@ describe('needleman_wunsch', () => {
         await expect(al.align(DNA1, DNA2, options), `${al.name} ${name}`).rejects.toBeInstanceOf(AlignerOptionsError);
       }
     }
+  });
+
+  // Pinned from its own DP before it moved to @molstar/core's (perf-audit 04/P1): the same CIGARs, ties included.
+  it('keeps its CIGARs: seeded pairs under each option set', async () => {
+    const sets: [string, string, AlignerOptions][] = [
+      ['nucleic', 'ACGT', {}],
+      ['nucleic, two letters', 'AC', { type: 'nucleic' }],
+      ['amino, BLOSUM62', 'ACDEFGHIKLMNPQRSTVWYBZXJUOacd', { type: 'amino' }],
+      ['free end gaps', 'ACGT', { end_gaps: 'free' }],
+      ['free end gaps, BLOSUM62', 'ACDEFGHIKLMNPQRSTVWY', { end_gaps: 'free', matrix: 'BLOSUM62' }],
+      ['fractional gaps', 'ACGT', { gap_open: 2.5, gap_extend: 0.75, match: 1.5, mismatch: -0.5 }],
+      ['linear gaps', 'AC', { gap_open: 3, gap_extend: 3 }],
+      ['extension over open', 'ACG', { gap_open: 1, gap_extend: 4 }],
+      ['no gap cost', 'ACGT', { gap_open: 0, gap_extend: 0, match: 1, mismatch: -1 }],
+    ];
+    const out: Record<string, string> = {};
+    for (const [k, [name, letters, options]] of sets.entries()) {
+      const next = generator(31 + k);
+      const cigars: string[] = [];
+      for (let p = 0; p < 60; p++) {
+        const a = randomSeq(next, 1 + (next() % 24), letters);
+        const b = randomSeq(next, 1 + (next() % 24), letters);
+        cigars.push(`${await needlemanWunsch.align(a, b, options)}`);
+      }
+      out[name] = cigars.join(' ');
+    }
+    expect(Object.fromEntries(Object.entries(out).map(([k, v]) => [k, hashString(v)]))).toEqual({
+      nucleic: -1559236157,
+      'nucleic, two letters': -924660635,
+      'amino, BLOSUM62': -1221216645,
+      'free end gaps': 443062359,
+      'free end gaps, BLOSUM62': 735110485,
+      'fractional gaps': 1043541977,
+      'linear gaps': -690344163,
+      'extension over open': 853399335,
+      'no gap cost': -1943623818,
+    });
   });
 
   itWithin('is optimal: 500 seeded pairs score what an independent Gotoh DP finds', (within) =>

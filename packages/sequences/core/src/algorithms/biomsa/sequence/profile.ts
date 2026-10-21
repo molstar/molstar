@@ -6,7 +6,7 @@
  */
 
 import { ALIGNOPT } from '../align/align.js';
-import { SEQUENCE_TYPE, type TAlignmentParam } from '../align/params.js';
+import { DEFAULT_GAP_CHAR, SEQUENCE_TYPE, type TAlignmentParam } from '../align/params.js';
 import { BitArray } from '../utils/bitarray.js';
 import { estringLength, estringToIdx } from '../utils/estring.js';
 import { aaToNum, nucToNum, type TSequence } from './sequence.js';
@@ -183,12 +183,20 @@ class ProfProxy {
  * a sequence or another profile.
  * The data structure modeling the profile is a store containing numerical
  * values for the different properties (residue counts, etc...)
- * @param {string[]} pMSA: aligned sequences as an array of strings with `-` as
+ * @param {string[]} pMSA: aligned sequences as an array of strings with `gapchar` as
  *                          indels.
  * @param {number}  pGapO: gap opening penalty
  * @param {number[]} pWeights : weight of each sequence
+ * @param {string} gapchar: the gap symbol of the rows
  */
-export function profileFromMSA(pMSA: string[], pWeights: number[], params: TAlignmentParam, opt: number = 0) {
+// STORIES-UNTOLD(B19): the gap symbol is a parameter (upstream's TODO "Add parameter for gap symbol"), `-` by default.
+export function profileFromMSA(
+  pMSA: string[],
+  pWeights: number[],
+  params: TAlignmentParam,
+  opt: number = 0,
+  gapchar: string = DEFAULT_GAP_CHAR,
+) {
   /** alignment length (columns count) */
   const l = pMSA[0].length;
 
@@ -217,14 +225,14 @@ export function profileFromMSA(pMSA: string[], pWeights: number[], params: TAlig
     for (let numSeq = 0, max = pMSA.length; numSeq < max; numSeq++) {
       w = pWeights[numSeq];
       aa = pMSA[numSeq][col];
-      if (aa === '-') {
+      if (aa === gapchar) {
         fGap += w;
 
-        if (col === 0 || pMSA[numSeq][col - 1] !== '-') {
+        if (col === 0 || pMSA[numSeq][col - 1] !== gapchar) {
           lProx.m_fcStartOcc += w;
         }
 
-        if (col === l - 1 || pMSA[numSeq][col + 1] !== '-') {
+        if (col === l - 1 || pMSA[numSeq][col + 1] !== gapchar) {
           lProx.m_fcEndOcc += w;
         }
       } else {

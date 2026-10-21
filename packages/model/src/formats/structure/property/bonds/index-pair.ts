@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -40,12 +40,14 @@ function getGraph(
   count: number,
 ): IndexPairs {
   const builder = new IntAdjacencyGraph.EdgeBuilder(count, indexA, indexB);
+  // Typed arrays: two slots a bond, so a plain array's 8 bytes a slot were most of the graph (perf-audit 04/P9).
+  // Operators are integer keys, flags fit 16 bits (`BondType.Flag`); distances stay exact in Float64.
   const key = new Int32Array(builder.slotCount);
-  const operatorA = new Array(builder.slotCount);
-  const operatorB = new Array(builder.slotCount);
+  const operatorA = new Int32Array(builder.slotCount);
+  const operatorB = new Int32Array(builder.slotCount);
   const order = new Int8Array(builder.slotCount);
-  const distance = new Array(builder.slotCount);
-  const flag = new Array(builder.slotCount);
+  const distance = new Float64Array(builder.slotCount);
+  const flag = new Uint16Array(builder.slotCount);
   for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
     builder.addNextEdge();
     builder.assignProperty(key, props.key ? props.key[i] : -1);
@@ -70,6 +72,10 @@ export namespace IndexPairBonds {
 
   export const Provider = FormatPropertyProvider.create<IndexPairBonds>(Descriptor, { asDynamic: true });
 
+  /**
+   * Stored in typed arrays: `key`, `operatorA` and `operatorB` must be int32 (-1 or missing: none), `flag` fits 16 bits
+   * (`BondType.Flag`), `order` 8 bits; `distance` is kept as given.
+   */
   export type Data = {
     pairs: {
       indexA: Column<number>;

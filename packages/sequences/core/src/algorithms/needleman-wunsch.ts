@@ -8,8 +8,11 @@
 
 // The `needleman_wunsch` aligner: global alignment with affine gaps (Gotoh), BLOSUM62 for amino acids, a match and
 // mismatch score otherwise. A gap of k letters costs `gap_open + (k - 1) * gap_extend`. Moved from @molstar/seq-core/model's
-// `globalAlign` (M2b), its defaults unchanged.
+// `globalAlign` (M2b), its defaults unchanged. The DP is Mol*'s shared one
+// (`@molstar/core/algorithms/sequence/needleman-wunsch`, also behind `@molstar/model`'s `align`): two rows of scores
+// and one byte of traceback a cell.
 
+import { globalAlign } from '@molstar/core/algorithms/sequence/needleman-wunsch';
 import { type Aligner, type AlignerParams, alignable, cigarOf, pairType, readOptions } from './aligner.js';
 import { checkCells } from './limits.js';
 
@@ -40,10 +43,6 @@ for (let i = 0; i < K; i++) {
 export function blosum62(a: number, b: number): number {
   return BLOSUM62[INDEX[a & 127] * K + INDEX[b & 127]];
 }
-
-const NEG = -1e9;
-/** The first of three best: ties prefer a pair, then a gap in b. */
-const argmax = (a: number, b: number, c: number) => (a >= b && a >= c ? 0 : b >= c ? 1 : 2);
 
 const params: AlignerParams = {
   matrix: {
@@ -89,7 +88,7 @@ export const needlemanWunsch: Aligner = {
     const A = a.toUpperCase();
     const B = b.toUpperCase();
     const useMatrix = o.matrix === 'BLOSUM62' || (o.matrix === null && pairType(A, B, o.type) === 'amino');
-    return globalAlign(A, B, {
+    return align(A, B, {
       open: o.gap_open as number,
       extend: o.gap_extend as number,
       free: o.end_gaps === 'free',
@@ -100,6 +99,32 @@ export const needlemanWunsch: Aligner = {
   },
 };
 
+/** Ties prefer a pair, then a gap in b. With free end gaps, gaps in the first and last row and column cost nothing. */
+function align(a: string, b: string, s: Scoring): string {
+  checkCells('needleman_wunsch', a.length, b.length);
+  // BLOSUM62's row of each letter, or the letter's code for match and mismatch.
+  const code = (seq: string) => {
+    const out = new Int32Array(seq.length);
+    for (let i = 0; i < seq.length; i++) out[i] = s.useMatrix ? INDEX[seq.charCodeAt(i) & 127] : seq.charCodeAt(i);
+    return out;
+  };
+  const { ops } = globalAlign(code(a), code(b), {
+    matrix: s.useMatrix ? { size: K, scores: BLOSUM62 } : undefined,
+    match: s.match,
+    mismatch: s.mismatch,
+    gapOpen: s.open,
+    gapExtend: s.extend,
+    leadingGaps: s.free ? 'free' : 'penalized',
+    trailingGaps: s.free ? 'free' : 'penalized',
+    gapTies: 'open',
+    // its own DP's sentinel, kept so that huge costs align as before
+    impossible: -1e9,
+  });
+  let columns = '';
+  for (let k = 0; k < ops.length; k++) columns += 'MID'[ops[k]];
+  return cigarOf(columns);
+}
+
 interface Scoring {
   open: number;
   extend: number;
@@ -107,75 +132,4 @@ interface Scoring {
   match: number;
   mismatch: number;
   useMatrix: boolean;
-}
-
-/** Ties prefer a pair, then a gap in b. With free end gaps, gaps in the first and last row and column cost nothing. */
-function globalAlign(a: string, b: string, s: Scoring): string {
-  const n = a.length;
-  const m = b.length;
-  checkCells('needleman_wunsch', n, m);
-  const W = m + 1;
-  const free = s.free;
-  // Traceback per cell: bits 0-1 M's source, 2-3 I's (consuming a), 4-5 D's (consuming b); states 0 M, 1 I, 2 D.
-  const tb = new Uint8Array((n + 1) * W);
-  let pM = new Float64Array(W).fill(NEG);
-  let pI = new Float64Array(W).fill(NEG);
-  let pD = new Float64Array(W);
-  let cM = new Float64Array(W);
-  let cI = new Float64Array(W);
-  let cD = new Float64Array(W);
-  pM[0] = 0;
-  for (let j = 1; j <= m; j++) {
-    pD[j] = free ? 0 : -s.open - (j - 1) * s.extend;
-    tb[j] = 2 << 4;
-  }
-  pD[0] = NEG;
-  for (let i = 1; i <= n; i++) {
-    const x = a.charCodeAt(i - 1);
-    // Gaps in b along the last row (trailing D) are free with free end gaps.
-    const oD = free && i === n ? 0 : s.open;
-    const eD = free && i === n ? 0 : s.extend;
-    cM[0] = NEG;
-    cD[0] = NEG;
-    cI[0] = free ? 0 : -s.open - (i - 1) * s.extend;
-    tb[i * W] = (i > 1 ? 1 : 0) << 2;
-    for (let j = 1; j <= m; j++) {
-      const y = b.charCodeAt(j - 1);
-      const sc = s.useMatrix ? blosum62(x, y) : x === y ? s.match : s.mismatch;
-      // Gaps in a along the last column (trailing I) are free with free end gaps.
-      const oI = free && j === m ? 0 : s.open;
-      const eI = free && j === m ? 0 : s.extend;
-      const t = argmax(pM[j - 1], pI[j - 1], pD[j - 1]);
-      cM[j] = Math.max(pM[j - 1], pI[j - 1], pD[j - 1]) + sc;
-      const ti = argmax(pM[j] - oI, pI[j] - eI, pD[j] - oI);
-      cI[j] = Math.max(pM[j] - oI, pI[j] - eI, pD[j] - oI);
-      const td = argmax(cM[j - 1] - oD, cI[j - 1] - oD, cD[j - 1] - eD);
-      cD[j] = Math.max(cM[j - 1] - oD, cI[j - 1] - oD, cD[j - 1] - eD);
-      tb[i * W + j] = t | (ti << 2) | (td << 4);
-    }
-    // Swap the row buffers with temporaries: no array per row.
-    let t = pM;
-    pM = cM;
-    cM = t;
-    t = pI;
-    pI = cI;
-    cI = t;
-    t = pD;
-    pD = cD;
-    cD = t;
-  }
-  let state = argmax(pM[m], pI[m], pD[m]);
-  const ops: string[] = [];
-  let i = n;
-  let j = m;
-  while (i > 0 || j > 0) {
-    const cell = tb[i * W + j];
-    const op = i === 0 ? 2 : j === 0 ? 1 : state;
-    ops.push('MID'[op]);
-    const next = (cell >> (2 * op)) & 3;
-    if (op !== 2) i--;
-    if (op !== 1) j--;
-    state = next;
-  }
-  return cigarOf(ops.reverse().join(''));
 }

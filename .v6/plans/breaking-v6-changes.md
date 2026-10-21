@@ -1100,3 +1100,11 @@ instead. `Unit.Base.parent` is new: the root unit a child was made from (§2). `
 
 `@molstar/model/model/sequence/alignment` was an empty module (as `mol-model/sequence/alignment.ts` was in v5) and is
 gone; `align` and `AlignSequences` are in `@molstar/model/model/sequence/alignment/alignment` and `.../sequence`.
+
+## AssetManager is an interface
+
+`AssetManager` (`@molstar/core/util/assets`) is an interface, implemented by `DefaultAssetManager` (the former class,
+same behavior), so a plugin can take another one from `PluginSpec.assetManager`. Code that constructs one writes
+`new DefaultAssetManager()`; code that only takes or calls one is unchanged. `get` and `assets` return
+`AssetManager.Entry` (`asset`, `file`, `isStatic`, `tag`), without the reference count; `urlCacheSize` is on
+`DefaultAssetManager` only.

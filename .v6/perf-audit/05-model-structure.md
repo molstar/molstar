@@ -29,21 +29,21 @@ shortcuts; geometry sharing through symmetry groups.
 
 Confirmed and plausible findings, ranked.
 
-| Id  | Title                                                         | File                                                                                                         | Kind        | Impact | Estimate                                                                         | Effort | Verdict   | Frozen |
-| --- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------- | ------ | -------------------------------------------------------------------------------- | ------ | --------- | ------ |
-| P1  | `structureUnion` merges one structure at a time               | [structure-set.ts:24](../../packages/model/src/model/structure/query/utils/structure-set.ts#L24)             | time+memory | high   | 100k singletons in one unit: 8.7 s → 18 ms; residue union 36 → 2.7 ms             | S      | confirmed | no     |
-| P6  | Child units recompute intra bonds instead of subsetting       | [unit.ts:305](../../packages/model/src/model/structure/structure/unit.ts#L305)                               | time        | medium | half-unit children, big-bcif: 90 → 1.6 ms (55×)                                   | M      | confirmed | no     |
-| P2  | 98-direction EPOS for structure, loci and unit boundaries     | [util/boundary.ts:15](../../packages/model/src/model/structure/structure/util/boundary.ts#L15)               | time        | medium | structure sphere 11–14 → 3–4 ms; unit spheres 33 → 9 ms; lookup+boundary 74 → ~30 ms | S      | confirmed | no     |
-| P3  | `Bundle.toStructure` / `Loci.toStructure` lose symmetry sharing | [bundle.ts:236](../../packages/model/src/model/structure/structure/element/bundle.ts#L236)                   | time+memory | medium | 1tup-2x2x2 half selection: boundary 42 → 10 ms, per-copy lookups/bonds avoided    | S      | confirmed | no     |
-| P4  | `findPairBonds` scans every atom of A for each unit pair      | [inter-compute.ts:105](../../packages/model/src/model/structure/structure/unit/bonds/inter-compute.ts#L105)  | time+memory | medium | inter bonds 55 → ~25–30 ms; 90 → <10 MB allocated                                | M      | confirmed | no     |
-| P5  | Child structures recompute inter-unit bonds                   | [structure.ts:240](../../packages/model/src/model/structure/structure/structure.ts#L240)                     | time        | medium | ~50 ms → <1 ms per large child when the root has bonds                           | M      | confirmed | no     |
-| P7  | Intra `findBonds` queries 4 Å and uses string lookups         | [intra-compute.ts:241](../../packages/model/src/model/structure/structure/unit/bonds/intra-compute.ts#L241)  | time        | medium | bonds-intra −15–25 % (grid part 150 → 115 ms at 3.1 Å)                           | M      | plausible | no     |
-| P10 | One `Structure` per atom in singleton selections; surroundings | [selection.ts:164](../../packages/model/src/model/structure/query/selection.ts#L164)                         | time        | low    | forEach 19 ms per 186k atoms; surroundings up to 2× faster                       | M      | plausible | no     |
-| P9  | Carbohydrate links: all-pairs loop with a BFS per pair        | [carbohydrates/compute.ts:264](../../packages/model/src/model/structure/structure/carbohydrates/compute.ts#L264) | time        | low    | O(E²) → O(E·k); matters only for polysaccharide-heavy entries                    | M      | plausible | no     |
-| P11 | `ElementSetIntraBondCache` never evicts                       | [element-set-intra-bond-cache.ts:13](../../packages/model/src/model/structure/structure/unit/bonds/element-set-intra-bond-cache.ts#L13) | memory      | low    | bounds growth in long sessions on index-pair models                              | S      | confirmed | no     |
-| P12 | `IntraUnitBondMapping`: 3 × Uint32 per directed bond instance | [mapping.ts:74](../../packages/model/src/model/structure/structure/mapping.ts#L74)                           | memory      | low    | −12 B per directed bond instance (4 MB big-bcif, ~24 MB for 60-mers)              | M      | confirmed | no     |
+| Id  | Title                                                         | File                                                                                                         | Kind        | Impact | Estimate                                                                         | Effort | Verdict   | Frozen | Addressed |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------- | ------ | -------------------------------------------------------------------------------- | ------ | --------- | ------ | --- |
+| P1  | `structureUnion` merges one structure at a time               | [structure-set.ts:24](../../packages/model/src/model/structure/query/utils/structure-set.ts#L24)             | time+memory | high   | 100k singletons in one unit: 8.7 s → 18 ms; residue union 36 → 2.7 ms             | S      | confirmed | no     | #2018 |
+| P6  | Child units recompute intra bonds instead of subsetting       | [unit.ts:305](../../packages/model/src/model/structure/structure/unit.ts#L305)                               | time        | medium | half-unit children, big-bcif: 90 → 1.6 ms (55×)                                   | M      | confirmed | no     | #2000 |
+| P2  | 98-direction EPOS for structure, loci and unit boundaries     | [util/boundary.ts:15](../../packages/model/src/model/structure/structure/util/boundary.ts#L15)               | time        | medium | structure sphere 11–14 → 3–4 ms; unit spheres 33 → 9 ms; lookup+boundary 74 → ~30 ms | S      | confirmed | no     | #1994 |
+| P3  | `Bundle.toStructure` / `Loci.toStructure` lose symmetry sharing | [bundle.ts:236](../../packages/model/src/model/structure/structure/element/bundle.ts#L236)                   | time+memory | medium | 1tup-2x2x2 half selection: boundary 42 → 10 ms, per-copy lookups/bonds avoided    | S      | confirmed | no     | #1994 |
+| P4  | `findPairBonds` scans every atom of A for each unit pair      | [inter-compute.ts:105](../../packages/model/src/model/structure/structure/unit/bonds/inter-compute.ts#L105)  | time+memory | medium | inter bonds 55 → ~25–30 ms; 90 → <10 MB allocated                                | M      | confirmed | no     | #1994 |
+| P5  | Child structures recompute inter-unit bonds                   | [structure.ts:240](../../packages/model/src/model/structure/structure/structure.ts#L240)                     | time        | medium | ~50 ms → <1 ms per large child when the root has bonds                           | M      | confirmed | no     | #1994 |
+| P7  | Intra `findBonds` queries 4 Å and uses string lookups         | [intra-compute.ts:241](../../packages/model/src/model/structure/structure/unit/bonds/intra-compute.ts#L241)  | time        | medium | bonds-intra −15–25 % (grid part 150 → 115 ms at 3.1 Å)                           | M      | plausible | no     | #2007 |
+| P10 | One `Structure` per atom in singleton selections; surroundings | [selection.ts:164](../../packages/model/src/model/structure/query/selection.ts#L164)                         | time        | low    | forEach 19 ms per 186k atoms; surroundings up to 2× faster                       | M      | plausible | no     |  |
+| P9  | Carbohydrate links: all-pairs loop with a BFS per pair        | [carbohydrates/compute.ts:264](../../packages/model/src/model/structure/structure/carbohydrates/compute.ts#L264) | time        | low    | O(E²) → O(E·k); matters only for polysaccharide-heavy entries                    | M      | plausible | no     | #2018 |
+| P11 | `ElementSetIntraBondCache` never evicts                       | [element-set-intra-bond-cache.ts:13](../../packages/model/src/model/structure/structure/unit/bonds/element-set-intra-bond-cache.ts#L13) | memory      | low    | bounds growth in long sessions on index-pair models                              | S      | confirmed | no     |  |
+| P12 | `IntraUnitBondMapping`: 3 × Uint32 per directed bond instance | [mapping.ts:74](../../packages/model/src/model/structure/structure/mapping.ts#L74)                           | memory      | low    | −12 B per directed bond instance (4 MB big-bcif, ~24 MB for 60-mers)              | M      | confirmed | no     |  |
 
-### P1 `structureUnion` is quadratic per unit
+### P1 `structureUnion` is quadratic per unit (landed, #2018)
 
 - **Mechanism.** For every input structure and unit it calls `SortedArray.union(accumulated, u.elements)`, which
   allocates and copies the whole accumulated set. The `fullUnits` shortcut fires only once a unit is complete.
@@ -66,6 +66,13 @@ Confirmed and plausible findings, ranked.
   was verified identical. `getSelection` for all-singletons can feed elements straight into one subset builder.
 - **Risk.** The output must stay a sorted, deduplicated set per unit in the same unit order. The query tests cover
   this.
+- **Addressed (#2018).** Each unit's sets are merged once: one as is, two by `SortedArray.union`, more by concatenation
+  when they follow one another, else sorted (few elements in a large unit) or marked over the unit's element span,
+  stopping once the unit is full. Same unions (pinned on master's code, 120 seeded inputs against the fold). big-bcif:
+  residue union 37 → 4–6 ms (estimate 2.7), every atom as a singleton ~300 → 15–19 ms, `within(all, all, 1 Å)` 700–835
+  → 240–280 ms (the rest is the query); singletons in one 186k-atom unit 10k 103 → 0.8 ms, 100k 8.5 s → 9–14 ms
+  (estimate 18). Plain concat + sort, as estimated, was 4–5× slower than the fold for a few large overlapping sets;
+  the mark path is faster than it there too.
 
 ### P6 Child units recompute intra-unit bonds
 
@@ -192,9 +199,13 @@ Confirmed and plausible findings, ranked.
   per 186k atoms, then a P1 union. `within(all, 8.4k-atom target, 5 Å)` takes 63 ms. A reverse check for
   `includeSurroundings` halves the time on compact queries (42 → 20.5 ms, 1tup-2x2x2) and ties on big-bcif (23 vs
   26 ms), so choose it adaptively. Add singleton fast paths into one subset builder.
-- **P9** (plausible, not measured). An E²/2 loop over all ring elements, with `areVertexSetsConnected(…, 3)` for
+- **P9** (plausible, not measured; landed, #2018). An E²/2 loop over all ring elements, with `areVertexSetsConnected(…, 3)` for
   every same-unit pair in different residues. Cross-unit pairs are rejected cheaply. Only polysaccharide or
-  glycan-heavy units are affected. Fix: a depth-3 BFS per ring through an atom → ring-element index.
+  glycan-heavy units are affected. Fix: a depth-3 BFS per ring through an atom → ring-element index. Addressed (#2018) as
+  suggested: same links in the same order (pinned, plus an all-pairs oracle). Confirmed quadratic on synthetic
+  hexose chains (4× the sugars, 16× the time): 1330 sugars in one chain 312 → 6.5 ms, 5320 5.0 s → 41 ms; 7qpd (10
+  sugars) 0.3 ms either way. Real glycans, same output as master: 21NR (964 sugars in 52 chains of up to 47) 9.5 → 3.7 ms, a 5FYJ crystal cell (1968 units, 7776 sugars, the old cost being cross-unit pair rejections) 99 → 34 ms. It matters for polysaccharide chains and MD files without chain ids, not glycoproteins
+  with one chain per glycan.
 - **P11** (confirmed). `set()` only pushes, and entries live as long as the model. They are cacheable for every
   index-pair model, including mmCIF with `molstar_bond_site`. Each focus or selection child adds its element set
   and graph. Fix: an LRU cap, or skip caching small sets. P6 makes most of this cache unnecessary.

@@ -5,7 +5,7 @@
  */
 
 import './index.html';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { setTimingMode } from '@molstar/core/util/debug';
 import { Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import { createWebGLBackend, WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
@@ -71,7 +71,7 @@ async function createContext(backend: string) {
   const descriptor = Backends[backend as keyof typeof Backends];
   const context = await Canvas3DContext.create(
     canvas,
-    new AssetManager(),
+    new DefaultAssetManager(),
     [descriptor],
     {},
     { pixelScale: 1, resolutionMode: 'native' },

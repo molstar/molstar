@@ -63,8 +63,16 @@ description = "Check formatting"
 run = "pnpm format:check"
 
 [tasks."test:unit"]
-description = "Unit tests (Vitest)"
+description = "Unit tests, the quick lane (Vitest)"
 run = "pnpm test:unit"
+
+[tasks."test:medium"]
+description = "The medium test lane: larger fixtures, sweeps, the native GL suite"
+run = "pnpm test:medium"
+
+[tasks."test:heavy"]
+description = "The heavy test lane: wall-clock and scaling bounds, full-size fuzz, CLIs, Chrome"
+run = "pnpm test:heavy"
 
 [tasks.test]
 description = "Lint and the unit tests"

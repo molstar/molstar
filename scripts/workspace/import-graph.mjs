@@ -85,7 +85,10 @@ function pathPrefixMatch(file, dir) {
   return file === dir || file.startsWith(dir + path.sep);
 }
 
-/** Builds the value-import and type-import edges of every scanned source file. */
+/**
+ * Builds the value-import and type-import edges of every scanned source file. `value` holds every value import
+ * (`import()` too); `static` only the imports evaluated with the module, and `stars` the `export * from` edges.
+ */
 export function buildImportGraph({ root, packages }) {
   const scanned = packages.filter((pkg) => SCAN_ROOTS.some((prefix) => pkg.path.startsWith(prefix)));
   const byName = new Map(packages.map((pkg) => [pkg.name, pkg]));
@@ -120,6 +123,8 @@ export function buildImportGraph({ root, packages }) {
 
   const files = new Set();
   const value = new Map();
+  const staticValue = new Map();
+  const stars = [];
   const types = [];
   for (const pkg of scanned)
     for (const file of walk(path.join(root, pkg.path))) {
@@ -137,6 +142,7 @@ export function buildImportGraph({ root, packages }) {
       file.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
     );
     const edges = new Set();
+    const staticEdges = new Set();
     for (const imported of importsFrom(file, source)) {
       const target = resolveSpecifier(file, imported.specifier);
       if (!target) continue;
@@ -148,11 +154,16 @@ export function buildImportGraph({ root, packages }) {
           types.push({ from, to, fromPkg: fromPkg.name, toPkg: toPkg.name });
       }
       // Only `import type` is erased (verbatimModuleSyntax); `import { type A }` still evaluates the module.
-      if (!imported.erased && to !== from) edges.add(to);
+      if (!imported.erased && to !== from) {
+        edges.add(to);
+        if (!imported.dynamic) staticEdges.add(to);
+        if (imported.star) stars.push({ from, to });
+      }
     }
     value.set(from, edges);
+    staticValue.set(from, staticEdges);
   }
-  return { files: new Set([...files].map(rel)), value, types };
+  return { files: new Set([...files].map(rel)), value, static: staticValue, stars, types };
 }
 
 export function classify(file, manifest) {

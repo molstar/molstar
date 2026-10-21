@@ -11,7 +11,7 @@ import { Interval, SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
-import { AssetManager } from '@molstar/core/util/assets';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -49,7 +49,10 @@ const registries = (() => {
   for (const p of Object.values(BuiltInSizeThemes)) sizeThemeRegistry.add(p as SizeTheme.Provider<any, any>);
   return { colorThemeRegistry, sizeThemeRegistry };
 })();
-const propCtx: CustomProperty.Context = { runtime: RuntimeContext.Synchronous, assetManager: new AssetManager() };
+const propCtx: CustomProperty.Context = {
+  runtime: RuntimeContext.Synchronous,
+  assetManager: new DefaultAssetManager(),
+};
 
 async function load1cbs() {
   const data = fs.readFileSync(
@@ -264,7 +267,12 @@ describe('representation marking and layers', async () => {
     const other = loci['one residue'];
 
     for (const [reprName, provider, props] of reprs) {
-      it(`marks ${reprName} on ${structureName}`, async () => {
+      // the gaussian surface's layers are smoothed on the CPU, seconds on the cells: its marks on the model are the
+      // quick lane's representative, the rest is medium (AGENTS.md, Tests)
+      const surface = reprName === 'gaussian surface';
+      const marksLane = surface && structureName === 'cells' ? { tags: ['medium'] } : {};
+      const layersLane = surface ? { tags: ['medium'] } : {};
+      it(`marks ${reprName} on ${structureName}`, marksLane, async () => {
         const repr = await createRepr(provider, structure, props);
         const result: Record<string, string[]> = {};
         for (const [name, l] of Object.entries(loci)) result[name] = markSequence(repr, l, other);
@@ -272,7 +280,7 @@ describe('representation marking and layers', async () => {
         repr.destroy();
       });
 
-      it(`applies layers on ${reprName} on ${structureName}`, async () => {
+      it(`applies layers on ${reprName} on ${structureName}`, layersLane, async () => {
         const repr = await createRepr(provider, structure, props);
         const result: Record<string, Record<string, string[]>> = {};
         for (const name of ['one chain', 'scattered residues', 'carbons', 'whole structure', 'bonds', 'empty loci']) {

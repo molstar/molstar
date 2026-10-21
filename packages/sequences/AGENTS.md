@@ -42,33 +42,36 @@ all it needs.
 
 ## Tests: run the tier the change needs
 
-The fast tier runs in the repository's one Vitest run (`vitest.config.ts`, the `sequences` projects): about 3 s for
-core, 10 s for the viewer (M4, 2026-10-14). The other tiers are each package's own scripts (`vitest.shared.ts` and the
-package's `vitest.*.config.ts`):
+The repository's test lanes (quick, medium, heavy: the root [AGENTS.md](../../AGENTS.md#tests-three-lanes), Tests) hold
+Seq\*'s Node tests; this section adds Seq\*'s own tiers. The quick lane runs in the repository's one Vitest run
+(`vitest.config.ts`, the `sequences` projects): about 3 s for core, 10 s for the viewer (M4, 2026-10-14). The other
+tiers are each package's own scripts (`vitest.shared.ts` and the package's `vitest.*.config.ts`):
 
 | Command                                                                  | What                                                                                                                                                                                                                                                                                                                                     | Run it                                                                                                                                         |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm test:unit packages/sequences/<pkg>`                                | the fast tier: node unit tests, fast and deterministic, no wall-clock timing, no Chrome, no heap guards                                                                                                                                                                                                                                  | on every edit loop, in the packages you touched; a folder or file narrows it (`pnpm test:unit packages/sequences/core/_test/format`)           |
-| `pnpm -C packages/sequences/<pkg> test:perf` (core, viewer, nightingale) | the quick allocation tier: every hot path's bytes a step, read exactly (`v8.GCProfiler`), against the package's `_test/perf-baseline.json` (fails over it by 4 bytes a step; `--update` records an intended move); warm-up by count under lowered tier-up thresholds, so seconds (the viewer's about 1 min), any load, files in parallel | first in the edit loop when you touch a hot path (draws, input, streams, query kernels), beside the fast tier; pass the touched `*.quick.ts`   |
-| `pnpm -C packages/sequences/<pkg> test:slow` (core, viewer, storybook)   | node tests tagged `slow`: wall-clock bounds and ratios (`itWithin` and the scaling tests), the storms, fuzz and oracle runs at full size, a million rows and large fixtures, Chrome from Node (PNG export), the CLIs in a process (built first: `tsc -b`), the four largest smoke stories                                                | when you change what such a test covers, and at checkpoints                                                                                    |
+| `pnpm test:unit packages/sequences/<pkg>`                                | the quick lane: node unit tests, fast and deterministic, no wall-clock timing, no Chrome, no heap guards                                                                                                                                                                                                                                 | on every edit loop, in the packages you touched; a folder or file narrows it (`pnpm test:unit packages/sequences/core/_test/format`)           |
+| `pnpm -C packages/sequences/<pkg> test:perf` (core, viewer, nightingale) | the quick allocation tier: every hot path's bytes a step, read exactly (`v8.GCProfiler`), against the package's `_test/perf-baseline.json` (fails over it by 4 bytes a step; `--update` records an intended move); warm-up by count under lowered tier-up thresholds, so seconds (the viewer's about 1 min), any load, files in parallel | first in the edit loop when you touch a hot path (draws, input, streams, query kernels), beside the quick lane; pass the touched `*.quick.ts`  |
+| `pnpm -C packages/sequences/<pkg> test:heavy` (core, viewer, storybook)  | the heavy lane, node tests tagged `heavy`: wall-clock bounds and ratios (`itWithin` and the scaling tests), the storms, fuzz and oracle runs at full size, a million rows and large fixtures, Chrome from Node (PNG export), the CLIs in a process (built first: `tsc -b`), the four largest smoke stories                               | when you change what such a test covers, and at checkpoints                                                                                    |
 | `test:browser`                                                           | Chromium: pixels, UI, surface (the viewer's `_test/**/{canvas,dom,react}`; Nightingale's `mount`, `_test/dom`)                                                                                                                                                                                                                           | when you change drawing, the DOM or the UIs; pass the affected files                                                                           |
 | `test:heap`, `test:browser-heap`                                         | the deep guards: heap growth over n and 4n steps under V8's default tuning, warmed by count until optimized (`settleFrame`), each with its positive control                                                                                                                                                                              | at checkpoints and before a release, and to confirm a quick-tier finding; pass the touched guard files (the viewer's whole tier: about 25 min) |
 | `test:heap-deep` (viewer)                                                | the deep guards as before the 2026-10-12 trim: full steps (catch about 22 bytes a step, the trimmed run about 43) and the dropped cases                                                                                                                                                                                                  | before a release, or when chasing a small leak the quick tier cannot place; never in an edit loop                                              |
 | `test:full`                                                              | all of the above                                                                                                                                                                                                                                                                                                                         | at reviews and checkpoints only, one package at a time                                                                                         |
 
-**CI policy** (David, 2026-10-14): CI and `pnpm test` run the fast tier only. `test:perf`, `test:slow`, `test:browser`,
-`test:heap`, `test:browser-heap` and `test:heap-deep` are opt-in, by hand during heavy work on Seq\*, never in CI (the
-heap tiers take about half an hour). The root config never matches the browser folders, `*.heap.ts`, `*.quick.ts` or the
-benches, and skips the `slow` tag. Two fast-tier tests run a CLI and skip without a build (`lib`). The Mol\* adapter's
-link guards (Prism's, `packages/prism/viewer/src/sequence/molstar/_test`) run on this harness:
-`pnpm -C packages/prism/viewer test:perf` and `test:heap`.
+**CI policy** (David, 2026-10-14; the lanes, 2026-10-20): every push runs the quick lane (and the medium lane, which has
+no Seq\* tests); the heavy lane runs nightly and by hand (`tests-heavy.yml`, built first, with Chrome): a wall-clock
+failure there is re-run alone before it is diagnosed. `test:perf`, `test:browser`, `test:heap`, `test:browser-heap` and
+`test:heap-deep` are opt-in, by hand during heavy work on Seq\*, never in CI (the heap tiers take about half an hour).
+The root config never matches the browser folders, `*.heap.ts`, `*.quick.ts` or the benches. Two quick-lane tests run a
+CLI and skip without a build (`lib`). The Mol\* adapter's link guards (Prism's,
+`packages/prism/viewer/src/sequence/molstar/_test`) run on this harness: `pnpm -C packages/prism/viewer test:perf` and
+`test:heap`.
 
-- **The `slow` tag** (vitest's test tags, `vitest.shared.ts`): a test slow by nature carries `{ tags: ["slow"] }` (a
-  `describe` can carry it for all its tests) and keeps a quick representative untagged (the fuzz at 100 mutations, the
-  oracles at a fifth, a storm of 50, 20,000 rows for a million, most smoke stories). A wall-clock bound goes in
-  `itWithin` (`core/_test/model/timing.ts`): the test runs in the fast tier without the bound and again in the slow tier
-  with it. A loop of thousands of checks records its disagreements (`mismatches`, `core/_test/model/mismatches.ts`) and
-  checks once: an `expect` costs microseconds.
+- **The `heavy` tag** (vitest's test tags, `vitest.shared.ts`, the root's lanes): a test slow by nature carries
+  `{ tags: ["heavy"] }` (a `describe` can carry it for all its tests) and keeps a quick representative untagged (the
+  fuzz at 100 mutations, the oracles at a fifth, a storm of 50, 20,000 rows for a million, most smoke stories). A
+  wall-clock bound goes in `itWithin` (`core/_test/model/timing.ts`): the test runs in the quick lane without the bound
+  and again in the heavy lane with it. A loop of thousands of checks records its disagreements (`mismatches`,
+  `core/_test/model/mismatches.ts`) and checks once: an `expect` costs microseconds.
 - **Files share a worker's modules** (`isolate: false`): a file that mocks or resets modules (`vi.mock`, `vi.doMock`,
   `vi.resetModules`) is found by reading it and runs isolated, in the `isolated` project; module state a file changes (a
   limit, a config default) it restores in `afterEach`, or the next file in the worker sees it.
@@ -143,8 +146,8 @@ link guards (Prism's, `packages/prism/viewer/src/sequence/molstar/_test`) run on
   `Seq*/Docs` pages it touches (Features, Concepts, Extending, Streaming, Color schemes, Query language). A new story
   brings its entry in `storybook/src/_stories/support/seqstar-smoke.ts` (the documents it opens, the patches its buttons
   send, the warnings it shows on purpose): `storybook/_test/smoke.test.ts` and `smoke-more.test.ts` (half each,
-  `smoke-stories.ts`) open each on a headless viewer in the `test` tier (the four largest, `SLOW_STORIES`, in
-  `test:slow`) and fail on an error, an unlisted warning, an empty visible section, or a story export with no entry. A
+  `smoke-stories.ts`) open each on a headless viewer in the quick lane (the four largest, `HEAVY_STORIES`, in
+  `test:heavy`) and fail on an error, an unlisted warning, an empty visible section, or a story export with no entry. A
   story's builder lives in `storybook/src/_stories/support/` (not in the `.stories.tsx`), so the test can import it
   without React.
 - **Where the Storybook content lives:** `storybook` (`@molstar/seq-storybook`, private), all under `src/_stories/`

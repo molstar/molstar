@@ -13,7 +13,7 @@ import { Download } from '@molstar/plugin/state/transforms/data/fetch';
 import { PluginContext } from '@molstar/plugin/context';
 import { StateAction, StateObjectRef } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
-import { Asset, AssetManager } from '@molstar/core/util/assets';
+import { Asset, type AssetManager } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { unzip } from '@molstar/core/util/zip/zip';
 import { loadMVS, type MVSLoadOptions } from '@molstar/mvs/load';
