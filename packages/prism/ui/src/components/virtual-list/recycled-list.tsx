@@ -207,6 +207,7 @@ export function RecycledList<T>(props: {
     revealEnd = undefined;
     for (const el of revealed) el.classList.remove(classes.glide, classes.enter);
     revealed.length = 0;
+    content?.removeAttribute('data-revealing');
   }
   let animating = false;
   onCleanup(() => {
@@ -458,6 +459,8 @@ export function RecycledList<T>(props: {
           if (run) {
             endReveal();
             animating = true;
+            // no skeleton behind the rows fading in (it would show through them): a reveal uncovers no unmade rows
+            content?.setAttribute('data-revealing', '');
             revealEnd = setTimeout(endReveal, RevealMs);
           }
           layout(r.first, r.last, r.rh);
