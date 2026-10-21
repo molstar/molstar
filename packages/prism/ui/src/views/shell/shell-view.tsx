@@ -376,6 +376,15 @@ export function ShellView(props: ShellViewProps) {
     }
   };
   on(document, 'keydown', onKeyDown);
+  // A pinch (a trackpad's ctrl+wheel, Safari's gestures) is the app's, over all of it: the canvas zooms its camera, and
+  // elsewhere (the splash, a panel) it does nothing. Left to the browser it zooms the page, which the canvas then keeps
+  // from zooming back (it takes the pinch too). ⌘+ / ⌘− still zoom the page.
+  const keepPinch = (e: Event) => {
+    if (e.type !== 'wheel' || (e as WheelEvent).ctrlKey) e.preventDefault();
+  };
+  on(root, 'wheel', keepPinch, { passive: false });
+  on(root, 'gesturestart', keepPinch);
+  on(root, 'gesturechange', keepPinch);
   // Tooltips for the icon buttons of the rail and the canvas stack.
   onCleanup(installTooltips(root));
   // The shell decides compact or desktop by its own width, not the window's.
