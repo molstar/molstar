@@ -33,6 +33,7 @@
   ],
   "defaultComposition": [
     "packages/plugin/core/src/default-registry.ts",
+    "packages/plugin/core/src/particles-registry.ts",
     "packages/plugin/core/src/default-spec.ts",
     "packages/plugin/ui/src/default-spec.ts",
     "packages/sequences/storybook/src/_stories/support/seqstar-molstar-plugin.ts",

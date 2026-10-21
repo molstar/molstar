@@ -6,14 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParticlesApi } from '../../api/particles.js';
 import { VolumeApi } from '../../api/volume.js';
 import { operationCommand } from '../../commands/operations.js';
 import { volumeCommands } from '../../commands/volume.js';
 import type { ViewerExtension } from '../../spec.js';
 
-// The `volume` feature (viewer-spec.md §3.1): maps and particles: the `volume` area (levels, the transfer function,
-// streaming) and `particles`, and their commands. Their inspectors are the Structure panel's.
+// The `volume` feature (viewer-spec.md §3.1): maps: the `volume` area (levels, the transfer function, streaming) and
+// its commands. Its inspectors are the Structure panel's. Particles are their own feature (`features/particles`).
 
 export const VolumeFeature: ViewerExtension = {
   id: 'volume',
@@ -21,7 +20,6 @@ export const VolumeFeature: ViewerExtension = {
   builtIn: true,
   api: {
     volume: (c) => new VolumeApi(c),
-    particles: (c) => new ParticlesApi(c),
   },
   commands: (api) => [
     ...volumeCommands(api),

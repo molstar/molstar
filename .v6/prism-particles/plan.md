@@ -102,6 +102,13 @@ Clip is not here: the clipping extension covers it, through `type.params.clip`, 
 
 ## Steps
 
+**Done (2026-10-21):** fixtures (step 1), P0 (step 2) and P2 (step 3):
+- `ParticlesRegistry` is classified as a default-composition module in `scripts/workspace/catalogs.json`.
+- The stub has `owns.sniff` (`ExtensionNeed.files` in `ensureFor`).
+- The particle area is now `features/particles/operations.ts`, as the boundary rule wants.
+- Not handled: a `.molx` session holding particles does not load the feature. `session.open` reads transformers only from `.molj`. To do with P9.
+
+
 1. Fixtures (needs your OK to download; see the questions).
 2. P0, `ParticlesRegistry` and taking particles out of `DefaultRegistry` and the catalog. The classic viewer composes it. Tests show that a plugin without it loads no particle code and refuses a `.star` file. The breaking-change note is written.
 3. P2, the lazy `ParticlesFeature` with its stub's `owns`. Tests: a `.star` dropped on a Prism without the chunk loaded loads it, then the file. A session with particles does the same.

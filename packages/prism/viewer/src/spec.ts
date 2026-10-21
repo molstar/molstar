@@ -484,6 +484,14 @@ export interface LazyViewerExtensionStub {
     readonly fileExtensions?: readonly string[];
     readonly representations?: readonly string[];
     readonly themes?: readonly string[];
+    /**
+     * Files it reads that their extension does not tell apart (mmCIF holding particles, not a structure): the files
+     * with one of these `extensions` are read, and `test` (plain code, no import of the extension's chunk) says
+     */
+    readonly sniff?: {
+      readonly extensions: readonly string[];
+      test(file: { readonly name: string; readonly ext: string }, content: string | Uint8Array): boolean;
+    };
   };
 }
 

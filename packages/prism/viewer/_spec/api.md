@@ -59,7 +59,8 @@ command menu, the tools, the run log and the docs.
 | `structure`, `contents`        | `managers.structure.hierarchy`, hierarchy presets; entities, chains | `structure`                   |
 | `component`, `representation`  | `managers.structure.component`, themes, the style layers            | `structure`                   |
 | `styles`, `annotations`        | representation presets and looks; what extensions can apply         | `structure`; `annotations`    |
-| `volume`, `particles`          | `managers.volume`, `managers.particles`                             | `volume`                      |
+| `volume`                       | `managers.volume`                                                   | `volume`                      |
+| `particles`                    | `managers.particles`                                                | `particles` (lazy)            |
 | `trajectory`                   | the model-index transforms                                          | `trajectory`                  |
 | `select`, `focus`, `highlight` | `managers.structure.selection`, `.focus`, `managers.interactivity`  | core                          |
 | `measure`                      | `managers.structure.measurement`                                    | `measurements`                |

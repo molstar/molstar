@@ -141,13 +141,18 @@ export interface JournalPort {
 /** No record: nothing written, nothing shown (a host without one). */
 export const NoJournal: JournalPort = { lines: async () => '', show: () => false };
 
+/** What a session or files need: the lazy extensions that own any of it load first (`ExtensionPort.ensureFor`). */
+export interface ExtensionNeed {
+  readonly transformers?: readonly string[];
+  readonly formats?: readonly string[];
+  readonly fileExtensions?: readonly string[];
+  /** Files whose content a stub's `owns.sniff` may read; `content` is asked only for a file one sniffs */
+  readonly files?: readonly { readonly name: string; readonly content: () => Promise<string | Uint8Array> }[];
+}
+
 /** What operations ask of the extensions (`extensions/host.ts`). */
 export interface ExtensionPort {
-  ensureFor(need: {
-    readonly transformers?: readonly string[];
-    readonly formats?: readonly string[];
-    readonly fileExtensions?: readonly string[];
-  }): Promise<void>;
+  ensureFor(need: ExtensionNeed): Promise<void>;
 }
 
 /** What an operation's run gets: the area context, bound to who runs it (api.md §4). */
@@ -361,7 +366,7 @@ export interface CoreApi {
 
 /**
  * The built-in features' areas (viewer-spec.md §3.1): `structure` (structure, contents, component, representation,
- * styles), `volume` (volume, particles), `trajectory`, `annotations`. Typed as present, as they are in the default spec,
+ * styles), `volume`, `trajectory`, `annotations`. Typed as present, as they are in the default spec,
  * so a script writes `api.structure.preset(...)`; in a viewer whose spec leaves the feature out, reading the area throws,
  * naming the feature to add. Code that works either way asks `api.area(id)`.
  */
@@ -373,7 +378,6 @@ export interface BuiltInApis {
   readonly styles: import('./styles.js').StylesApi;
   readonly annotations: import('./annotations.js').AnnotationsApi;
   readonly volume: import('./volume.js').VolumeApi;
-  readonly particles: import('./particles.js').ParticlesApi;
   readonly trajectory: import('./trajectory.js').TrajectoryApi;
 }
 
@@ -390,7 +394,6 @@ export const BuiltInAreaFeatures: Readonly<Record<keyof BuiltInApis, string>> = 
   styles: 'StructureFeature',
   annotations: 'AnnotationsFeature',
   volume: 'VolumeFeature',
-  particles: 'VolumeFeature',
   trajectory: 'TrajectoryFeature',
 };
 

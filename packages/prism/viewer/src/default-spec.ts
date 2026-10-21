@@ -19,7 +19,7 @@ import { AnimationFeature } from './features/animation/index.js';
 import { CanvasSettingsFeature } from './features/canvas-settings/index.js';
 import { ExportImageFeature } from './features/export-image/index.js';
 import { ExportSessionFeature } from './features/export-session/index.js';
-import { LazyRemoteStates, LazyStateTree, LazySuperposition } from './features/lazy/index.js';
+import { LazyParticles, LazyRemoteStates, LazyStateTree, LazySuperposition } from './features/lazy/index.js';
 import { LoadersFeature } from './features/loaders/index.js';
 import { MeasurementsFeature } from './features/measurements/index.js';
 import { SnapshotsFeature } from './features/snapshots/index.js';
@@ -39,6 +39,7 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
       // annotations: first, as the rest use them.
       StructureFeature,
       VolumeFeature,
+      LazyParticles,
       TrajectoryFeature,
       AnnotationsFeature,
       // The panels: Home, Structure, Selection, Help (with the core's tab ids).

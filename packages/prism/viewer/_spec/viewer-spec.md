@@ -155,14 +155,15 @@ beyond it (README decision 13).
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).
 - **Lazy** (`LazyViewerExtension`): a `stub` declares every part (ids, kinds, slots), operations with their flags,
-  commands, skills, and what it `owns` (transformers, formats, file extensions, representations, themes); `load()`
-  brings the real one. First use loads the chunk (a status task) and replays the call. `preload: true` loads during
-  creation.
+  commands, skills, and what it `owns` (transformers, formats, file extensions, representations, themes, and a `sniff`
+  for files whose extension does not tell: mmCIF holding particles); `load()` brings the real one. First use loads the
+  chunk (a status task) and replays the call. `preload: true` loads during creation.
 - **Checked against its stub**: an undeclared area, command or view, a declared operation not brought, or other flags
   fail the load. **Activation is all or nothing**: a failure undoes it and puts the stub back; a later call retries
   (`extensions/host.ts`).
-- **Owned files and sessions**: `load.files` loads the extension owning a file's extension first; `session.open` of a
-  `.molj` those owning its transformers.
+- **Owned files and sessions**: `load.files` loads the extension owning a file's extension, or claiming its content by
+  `sniff` (read only for the extensions a stub sniffs), first; `session.open` of a `.molj` those owning its
+  transformers.
 - **An extension names its own areas**: a name another extension or the viewer has fails activation, naming who has it;
   only built-in features contribute to core areas.
 - **Mounted at runtime**: `viewer.extensions.mount(ext)` adds one to a running viewer and returns its removal.
@@ -174,6 +175,8 @@ beyond it (README decision 13).
   selection, focus, highlight, targets, the history, the agent's account, the sequence viewer.
 - **Built-in features** (`DefaultPrismViewerSpec().extensions`, `src/features/<name>`): `structure`, `volume`,
   `trajectory`, `annotations` (the scene's API; `requires` lists what must come before), `home`, `structure-panel`,
+  `particles` (lazy: Mol*'s particles are opt-in, `ParticlesRegistry` is its plugin registry, so a viewer holds no
+  particle code until a particle file, an mmCIF holding particles or a session with particles needs it),
   `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `superposition` (lazy), `state-tree` (lazy),
   `remote-states` (lazy, behind its setting), `snapshots`, `animation`, `export-image`, `export-session`.
 - Built-in features' areas and operations in core areas are typed as present (`BuiltInApis`,

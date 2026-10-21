@@ -1108,3 +1108,15 @@ same behavior), so a plugin can take another one from `PluginSpec.assetManager`.
 `new DefaultAssetManager()`; code that only takes or calls one is unchanged. `get` and `assets` return
 `AssetManager.Entry` (`asset`, `file`, `isStatic`, `tag`), without the reference count; `urlCacheSize` is on
 `DefaultAssetManager` only.
+
+## Particles are opt-in: `ParticlesRegistry`
+
+`DefaultRegistry` (`@molstar/plugin/default-registry`) no longer holds particles: no particle formats, transformers,
+representations, `particles` theme scope or particle trajectory animation, and its structure and volume scopes no
+longer list the `particle-*` color and size themes. `DefaultParticleRepresentations` is gone (now
+`ParticleRepresentations`). `@molstar/plugin/state/transforms/catalog` no longer imports the particle transformers.
+An application that reads particles composes `[...DefaultRegistry, ...ParticlesRegistry]`
+(`@molstar/plugin/particles-registry`), whose import also registers the particle transformers a session needs. The
+classic viewer (`apps/viewer`) does not compose it. Prism loads it with its lazy particles feature when a particle file,
+an mmCIF holding particles or a session with particles needs it. `looksLikeMmcifParticles` moved to
+`@molstar/model/formats/particles/mmcif-sniff` (still re-exported by `.../mmcif`).

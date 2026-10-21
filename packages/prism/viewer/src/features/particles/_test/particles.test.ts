@@ -7,10 +7,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { expectOk, headlessViewer } from '../../_test/harness.js';
-import type { PrismViewer } from '../../viewer.js';
-import type { ParticleListInfo } from '../particles.js';
-import { particlesFile } from './volume-fixtures.js';
+import { expectOk, headlessViewer } from '../../../_test/harness.js';
+import type { PrismViewer } from '../../../viewer.js';
+import type { ParticleListInfo } from '../operations.js';
+import { particlesFile } from '../../../api/_test/volume-fixtures.js';
 
 // `particles` (api.md §2) on a headless viewer, over a small CryoET NDJSON file made in memory.
 

@@ -13,16 +13,20 @@ import type {
   ParticleListRef,
   ParticleRepresentationRef,
 } from '@molstar/plugin/state/manager/particles/hierarchy-state';
+import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
-import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
-import { NodeParam } from './params.js';
-import { nodesFor, updateEach } from './nodes.js';
-import { entryRoot, isFailure, namesOf, pickOne } from './scope.js';
-import { commitRepresentation, setRepresentation } from './set-representation.js';
+import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '../../api/area.js';
+import { NodeParam } from '../../api/params.js';
+import { nodesFor, updateEach } from '../../api/nodes.js';
+import { entryRoot, isFailure, namesOf, pickOne } from '../../api/scope.js';
+import { commitRepresentation, setRepresentation } from '../../api/set-representation.js';
 
 // `particles` (api.md §2): the particle lists in the scene (`get`), their representations (desired
 // state, like `representation.set`), visibility and removal. It follows `volume`: a `particles` names a list by label
 // or state ref, else the only one loaded; several are `ambiguous`, with their labels in the hint.
+
+/** The feature's plugin parts: Mol*'s particles, opt-in (`ParticlesRegistry`), which its operations run on */
+export const ParticlesPlugin = { registry: ParticlesRegistry, behaviors: [] } as const;
 
 const ListParam = () =>
   PD.Text('', { description: 'A particle list by label or state ref; empty: the only one loaded' });

@@ -9,6 +9,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultActions, DefaultFormats } from '@molstar/plugin/default-registry';
+import { ParticleActions, ParticleFormats } from '@molstar/plugin/particles-registry';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 import { Segment } from '@molstar/plugin/registry/volume/segment';
@@ -68,7 +69,8 @@ type Spec = {
   visuals?: PluginRegistryEntry;
 };
 
-// In the order of `DefaultFormats`: volume, topology, coordinates, shape, particles, trajectory.
+// In the order of `DefaultFormats`: volume, topology, coordinates, shape, trajectory; then particles, in the order of
+// `ParticleFormats` (opt-in, `ParticlesRegistry`).
 const Volume: Spec[] = [
   { entry: Ccp4, provider: BuiltInVolumeFormats[0], actions: [ParseCcp4, VolumeFromCcp4], visuals: Isosurface },
   { entry: Dsn6, provider: BuiltInVolumeFormats[1], actions: [ParseDsn6, VolumeFromDsn6], visuals: Isosurface },
@@ -148,22 +150,28 @@ const Trajectory: Spec[] = [
   { entry: Sdf, provider: BuiltInTrajectoryFormats[10] },
   { entry: Mol2, provider: BuiltInTrajectoryFormats[11] },
 ];
-const All = [...Volume, ...Topology, ...Coordinates, ...Shape, ...Particles, ...Trajectory];
+const Defaults = [...Volume, ...Topology, ...Coordinates, ...Shape, ...Trajectory];
+const All = [...Defaults, ...Particles];
 
 describe('format entries', () => {
-  it('has one entry per built-in format provider, in the order of DefaultFormats', () => {
-    expect(All.length).toBe(DefaultFormats.formats!.length);
-    All.forEach((spec, i) => {
-      expect(spec.entry.formats).toEqual([DefaultFormats.formats![i]]);
-      expect(spec.entry.formats![0]).toBe(spec.provider);
-    });
+  it('has one entry per built-in format provider, in the order of DefaultFormats and ParticleFormats', () => {
+    for (const [specs, formats] of [
+      [Defaults, DefaultFormats.formats!],
+      [Particles, ParticleFormats.formats!],
+    ] as const) {
+      expect(specs.length).toBe(formats.length);
+      specs.forEach((spec, i) => {
+        expect(spec.entry.formats).toEqual([formats[i]]);
+        expect(spec.entry.formats![0]).toBe(spec.provider);
+      });
+    }
   });
 
-  it('carries the actions DefaultActions lists for the format and no others', () => {
-    const defaults = new Set<unknown>(DefaultActions.actions!);
+  it('carries the actions DefaultActions (ParticleActions) lists for the format and no others', () => {
+    const defaults = new Set<unknown>([...DefaultActions.actions!, ...ParticleActions.actions!]);
     for (const { entry, actions = [] } of All) {
       expect(entry.actions ?? []).toEqual(actions);
-      // 5.x listed all of them, so DefaultRegistry registers no action that it did not
+      // 5.x listed all of them, so DefaultRegistry and ParticlesRegistry register no action that it did not
       for (const a of entry.actions ?? []) expect(defaults.has(a)).toBe(true);
     }
   });
