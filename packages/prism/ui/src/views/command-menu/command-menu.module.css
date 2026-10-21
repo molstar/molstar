@@ -125,6 +125,13 @@
   padding: var(--msp-space-2);
 }
 
+/* A command's own form (commands.md §5.1): under the sentence, scrolled by itself. */
+.form {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .empty {
   margin: 0;
   padding: var(--msp-space-5) var(--msp-space-4);

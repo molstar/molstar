@@ -197,6 +197,9 @@
 .menuPopover {
   display: grid;
   min-width: 180px;
+  /* Taller than the window (sub-entries opened in place): it scrolls rather than run off it. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-raised);

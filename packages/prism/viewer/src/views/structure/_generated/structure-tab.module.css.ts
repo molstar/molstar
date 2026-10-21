@@ -348,19 +348,32 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 }
 
 .msp-viewer-structure-tab-childChevron {
-  color: var(--msp-color-text-subtle);
-  flex: none;
-}
-
-.msp-viewer-structure-tab-childEye {
-  width: 28px;
+  width: 24px;
   height: 28px;
   margin-right: var(--msp-space-1);
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-muted);
+  color: var(--msp-color-text-subtle);
   flex: none;
   place-items: center;
   display: grid;
+}
+
+.msp-viewer-structure-tab-childEye {
+  border-radius: var(--msp-radius-sm);
+  width: 28px;
+  height: 28px;
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .msp-viewer-structure-tab-child:hover &, .msp-viewer-structure-tab-child:focus-within &, &[aria-expanded="true"], .msp-viewer-structure-tab-childHidden & {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);

@@ -63,6 +63,8 @@ import { isLazyExtension } from '../spec.js';
 import { settingsTab } from './settings.js';
 import { keepLayout, layoutCommands, layoutStore, restoreLayout } from './layout.js';
 import { ModeSwitch, modeMenuRows, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
+import { createStyleForms } from '../sources/command-forms.js';
+import { styleCommandForms } from '../views/command-forms/style-forms.js';
 import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
@@ -175,6 +177,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The plugin's toasts in the status column (parity.md's "toasts" row).
     const stopToasts = watchToasts(core.plugin, managers.notifications);
     const xr = createXrSource(core.plugin);
+    // The command menu's own forms (commands.md §5.1): Show as… and Color by theme… as pickers.
+    const commandForms = styleCommandForms(createStyleForms(core.plugin));
 
     // The canvas: the plugin is mounted here once the shell is in the page and has a size.
     // Its text alternative (accessibility.md): what is loaded and what is selected, in words, for a screen reader; kept
@@ -790,6 +794,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                 const menu = (assistant: CommandMenuAssistant | undefined) => (
                   <CommandMenu
                     manager={managers.commands}
+                    forms={commandForms}
                     {...(assistant ? { assistant } : {})}
                     group={commandMenuGroup.value}
                     direct={commandMenuDirect}

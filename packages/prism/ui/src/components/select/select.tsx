@@ -12,7 +12,7 @@ import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { activeElement, eventTarget, isInside } from '../../dom/events.js';
 import { bind, effect, type MaybeReactive, toStream } from '../../dom/scope.js';
-import { frame, on } from '../../dom/scoped.js';
+import { frame, observeResize, on } from '../../dom/scoped.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { Icon } from '../icon/icon.js';
@@ -298,10 +298,10 @@ export function Floating(props: {
     const w = el.offsetWidth;
     const below = window.innerHeight - r.bottom;
     const top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
-    // Kept on screen.
+    // Kept on screen: one that grew past the bottom (a submenu opened in place) moves up, over its anchor if it must.
     const left = props.align === 'end' ? r.right - w : r.left;
     el.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 8 - w))}px`;
-    el.style.top = `${Math.max(4, top)}px`;
+    el.style.top = `${Math.max(4, Math.min(top, window.innerHeight - 8 - h))}px`;
   };
   // A scroll of its own list does not move the anchor (the listener captures every element's scroll).
   const onScroll = (e: Event) => {
@@ -318,5 +318,9 @@ export function Floating(props: {
   });
   on(window, 'scroll', onScroll, { capture: true });
   on(window, 'resize', place);
+  // Its content grew or shrank (a menu's entry opened its sub-entries): placed again, after that layout.
+  observeResize(el, () => {
+    if (el.isConnected) place();
+  });
   return el;
 }

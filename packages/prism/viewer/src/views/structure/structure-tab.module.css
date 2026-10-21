@@ -327,19 +327,41 @@
 }
 
 .childChevron {
+  display: grid;
   flex: none;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  margin-right: var(--msp-space-1);
   color: var(--msp-color-text-subtle);
 }
 
+/* The eye and the ⋯, left of the chevron: shown on the row's hover or focus (the chevron always, it says the row
+   opens), always on a touch screen (no hover there; styling.md §4). */
 .childEye {
   display: grid;
   flex: none;
   place-items: center;
   width: 28px;
   height: 28px;
-  margin-right: var(--msp-space-1);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .child:hover &,
+  .child:focus-within &,
+  &[aria-expanded="true"] {
+    opacity: 1;
+  }
+
+  /* A hidden representation keeps its eye: the state is worth seeing at a glance (as in the tree). */
+  .childHidden & {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);

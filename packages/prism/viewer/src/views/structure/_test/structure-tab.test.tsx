@@ -53,6 +53,20 @@ describe('StructureTab', () => {
     expect(menu()).toBeNull();
   });
 
+  it("gives a component's representations in its inspector their row's ⋯ menu (Remove among it)", () => {
+    const { container, row } = mount();
+    row('Polymer').click();
+    const reprs = container.querySelector('[aria-label=Representations]')!;
+    const more = reprs.querySelector<HTMLButtonElement>('button[aria-haspopup=menu]')!;
+    expect(more).not.toBeNull();
+    more.click();
+    const menu = container.querySelector('[role=menu] [data-popover]');
+    expect(menu?.textContent).toContain('Remove');
+    expect(more.getAttribute('aria-expanded')).toBe('true');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(container.querySelector('[role=menu] [data-popover]')).toBeNull();
+  });
+
   it('renders the scene as a tree; hidden nodes keep their eye; collapsing hides children', () => {
     const { rows, row, scene } = mount();
     expect(row('1TQN')).toBeDefined();

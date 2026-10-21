@@ -93,7 +93,7 @@ import type { RepresentationQuickChange } from '../model/representation-quick.js
 // it changed. A structure's contents (entities, then chains) are computed when first expanded. Every action goes through
 // the API, bound to the person (api.md §11): the tree changes state only by operations.
 
-const ReprIcons: Readonly<Record<string, IconName>> = {
+export const ReprIcons: Readonly<Record<string, IconName>> = {
   cartoon: 'cartoon',
   'ball-and-stick': 'ball-and-stick',
   spacefill: 'spacefill',

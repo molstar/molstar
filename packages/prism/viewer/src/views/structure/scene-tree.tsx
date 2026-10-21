@@ -1173,7 +1173,11 @@ export function menuOf(node: SceneNode): SceneMenuItem[] {
 }
 
 /** A row's menu, a popover from its ⋯ button (`MenuPopover`): actions run and close it; entries with sub-entries open them in place. */
-function RowMenu(props: { items: readonly SceneMenuItem[]; anchor: HTMLElement; onDone(refocus?: boolean): void }) {
+export function RowMenu(props: {
+  items: readonly SceneMenuItem[];
+  anchor: HTMLElement;
+  onDone(refocus?: boolean): void;
+}) {
   return (
     <MenuPopover anchor={props.anchor} onClose={props.onDone}>
       <div class={classes.menu} data-popover="">

@@ -98,12 +98,26 @@ browsed, §5), `count?` (how much it would do, on its highlighted row, §5), `ch
   field is empty (else goes there), Backspace on an empty input clears the field, then goes back a field, then to the
   list; Esc back to the list, Esc there closes. "50%" reads as 0.5. A run that is done closes the menu; a failure keeps
   the sentence open with the error.
+- **Own forms** (§5.1) replace a command's option list with its own view.
 - **The assistant** (`CommandMenuAssistant`: `ready`, `propose(text)`, `ask(text)`, `setup`), only when the app gives
   one: an Ask row takes what is typed (⌘↵, or ↵ when nothing matches); a proposed command opens as its sentence, filled
   in, and nothing runs until Enter; other words go to `ask`. Without a model the row offers the setup.
 - **Assist inside a field** (core): with a `CommandAssistant` and `assist` on the command, words a field cannot read set
   `canAssist`, and Tab asks `propose` (values marked proposed, an answer, or `escalate`).
 - **ARIA**: the input is a combobox and keeps focus; rows are `role="option"` in a `listbox`.
+
+### 5.1 A command's own form
+
+- **`CommandMenuProps.forms`**, by command id (`CommandFormView`: `fields?`, `render(props)`), from the app (the
+  viewer's Show as… and Color by theme…): drawn under the sentence. While a field it names in `fields` is active, its
+  options are not listed (the view draws them); other fields list theirs as before. "+ N more options" is not shown (the
+  view shows what it offers).
+- **The input keeps the focus and the keys**: `props.keys(handler)` sees each key first (true takes it: arrows through a
+  grid, Enter on what is typed); the rest is the sentence's (Tab, Enter, ⌫, Esc). The view edits the invocation: `set`
+  for inline fields, `setParam(name, value)` for a form-only or hidden param (in the run's args and the preview, kept in
+  `state.params`, dropped when a reshape removes the param), `run()` as Enter.
+- Why: a choice among many drawn things (types, themes) reads as what it draws, and keyboard flow stays the menu's. A
+  hidden param is offered nowhere else, so `formOnly` leaves it out.
 
 ## 6. Keybindings
 

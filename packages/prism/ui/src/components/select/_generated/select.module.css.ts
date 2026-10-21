@@ -205,6 +205,7 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
 
 .msp-select-menuPopover {
   min-width: 180px;
+  max-height: calc(100vh - 16px);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-raised);
@@ -213,6 +214,7 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-sm);
   animation: msp-select-list-in var(--msp-motion-fast) var(--msp-ease);
   display: grid;
+  overflow-y: auto;
 }
 }
 `);

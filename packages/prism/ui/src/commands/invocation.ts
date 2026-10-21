@@ -44,6 +44,11 @@ export interface InvocationState {
   /** The run action's label: "Apply". */
   action: string;
   values: CommandValues;
+  /**
+   * Values of form-only params a command's own form view set (`setParam`: a type's options, a color): what a run gets
+   * over their defaults. Never typed in the sentence.
+   */
+  params: Readonly<Record<string, unknown>>;
   /** The field being typed into. */
   field?: string;
   /** What is typed into it (not yet a value). */
@@ -113,6 +118,8 @@ export class CommandInvocation<Ctx> {
   readonly #options: InvocationOptions<Ctx>;
   #built: Built;
   #values: Record<string, FieldValue> = {};
+  /** Form-only values a form view set (`setParam`). */
+  #params: Record<string, unknown> = {};
   readonly #state;
   readonly #subs: { unsubscribe(): void }[] = [];
   /** Stops a running assist. */
@@ -160,6 +167,7 @@ export class CommandInvocation<Ctx> {
       formOnly: formOnlyParams(built.params, fields),
       action: command.action ?? 'Run',
       values,
+      params: {},
       // The first empty field, or the last one when all are filled (Enter runs; a slider shows).
       ...(first ? { field: first } : fields.length ? { field: (fields[fields.length - 1] as FormFieldView).id } : {}),
       text: '',
@@ -204,7 +212,7 @@ export class CommandInvocation<Ctx> {
 
   /** What a run would get now: the inline values plus the params' defaults. */
   args(): CommandArgs {
-    return argsFor(this.#built.params, this.#values);
+    return { ...argsFor(this.#built.params, this.#values), ...this.#params };
   }
 
   // --- Editing ---------------------------------------------------------------------------------
@@ -326,6 +334,18 @@ export class CommandInvocation<Ctx> {
       proposed: options.proposed ? [...new Set([...s.proposed, field])] : s.proposed.filter((x) => x !== field),
     });
     this.#reshape(field);
+    return true;
+  }
+
+  /**
+   * Sets a form-only param (one the sentence does not show: a group, a color, a hidden one) from a command's own form
+   * view; `undefined` goes back to its default. Inline fields go through `set`.
+   */
+  setParam(name: string, value: unknown): boolean {
+    if (!this.#editing() || !(name in this.#built.params) || this.#field(name)) return false;
+    const { [name]: _, ...rest } = this.#params;
+    this.#params = value === undefined ? rest : { ...rest, [name]: value };
+    this.#patch({ params: this.#params, error: undefined });
     return true;
   }
 
@@ -546,6 +566,7 @@ export class CommandInvocation<Ctx> {
     if (built.key === this.#built.key) return;
     this.#built = built;
     this.#values = keptValues(built.fields, this.#values);
+    this.#params = Object.fromEntries(Object.entries(this.#params).filter(([k]) => k in built.params));
     const next = this.values();
     // Cleared, it stays on the field (as Backspace does elsewhere); set, it moves on to what is empty.
     const field = cleared ? changed : (this.#nextEmpty(next, changed) ?? changed);
@@ -554,6 +575,7 @@ export class CommandInvocation<Ctx> {
       fields: built.fields,
       formOnly: formOnlyParams(built.params, built.fields),
       values: next,
+      params: this.#params,
       field,
       text: '',
       completions: f && next[f.id] === undefined ? this.#completions(f, '') : [],
@@ -684,7 +706,7 @@ export class CommandInvocation<Ctx> {
     const f = this.#field(s.field);
     if (picked && f) values[f.id] = readValue(f, isNumeric(f) ? Number(picked.value) : picked.value);
     const ready = this.#built.fields.every((x) => !x.required || values[x.id] !== undefined);
-    const key = ready && !s.blocked ? JSON.stringify(values) : undefined;
+    const key = ready && !s.blocked ? JSON.stringify([values, s.params]) : undefined;
     // The preview is what Enter would run: the same values and the same context.
     const ctx = this.#options.context.value;
     const deps = this.#options.previewDeps?.(ctx) ?? [ctx];
@@ -698,7 +720,7 @@ export class CommandInvocation<Ctx> {
     this.#previewDeps = deps;
     if (key === undefined) {
       if (shown) sink.clear();
-    } else sink.set(this.command.preview(argsFor(this.#built.params, values), ctx));
+    } else sink.set(this.command.preview({ ...argsFor(this.#built.params, values), ...s.params }, ctx));
   }
 }
 

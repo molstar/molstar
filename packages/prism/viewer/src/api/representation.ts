@@ -245,7 +245,9 @@ export class RepresentationApi extends ApiArea {
       const themes = ctx.plugin.representation.structure.themes.colorThemeRegistry.types;
       return {
         target: TargetParam(),
-        color: PD.Text('', { description: 'A CSS color: red, #ff8800, rgb(255, 136, 0)' }),
+        color: PD.Text('', {
+          description: "A CSS color: red, #ff8800, rgb(255, 136, 0); with theme 'uniform', the theme's color",
+        }),
         theme: PD.Select('', [['', 'None'], ...themes.map((t) => [t[0], t[1]] as [string, string])], {
           description: 'A color theme: element-symbol, chain-id, uncertainty, …',
         }),
@@ -254,7 +256,9 @@ export class RepresentationApi extends ApiArea {
       };
     },
     async run({ target, color, theme, structure, language }, ctx) {
-      if (!!color === !!theme) {
+      // The uniform theme takes its color (a color alone paints the overpaint layer).
+      const uniform = theme === 'uniform' && !!color;
+      if (!!color === !!theme && !uniform) {
         return ApiResult.fail(
           'invalid',
           color ? 'Give a color or a theme, not both.' : 'Give a color or a theme.',
@@ -283,7 +287,7 @@ export class RepresentationApi extends ApiArea {
       const where = await resolveCovered(ctx, target, structure, language);
       if (isFailure(where)) return where;
 
-      if (theme) return applyTheme(ctx, where, { color: theme });
+      if (theme) return applyTheme(ctx, where, { color: theme, ...(uniform ? { value: painted } : {}) });
       return applyLayer(ctx, where, 'color', `Colored ${where.summary} ${color}.`, (part, getLoci) =>
         setStructureOverpaint(ctx.plugin, part.components, painted!, getLoci),
       );
@@ -926,7 +930,8 @@ async function applyLayer(
 
 // --- themes and sizes -------------------------------------------------------------------------------------------
 
-type ThemeChange = { color?: string; size?: string };
+/** A color or size theme by name; `value`: the uniform color theme's color. */
+type ThemeChange = { color?: string; size?: string; value?: Color };
 
 /** Sets a color or size theme on the representations; `warnings` names what a theme does not apply to. */
 async function changeTheme(ctx: ApiContext, where: Covered, change: ThemeChange, warnings: string[]): Promise<void> {
@@ -948,10 +953,16 @@ async function changeTheme(ctx: ApiContext, where: Covered, change: ThemeChange,
     const stale = applicable.filter((c) =>
       c.representations.some((r) => {
         const p = r.cell.transform.params as RepresentationParams;
-        return (change.color ? p.colorTheme.name : p.sizeTheme.name) !== name;
+        if ((change.color ? p.colorTheme.name : p.sizeTheme.name) !== name) return true;
+        return change.value !== undefined && p.colorTheme.params?.value !== change.value;
       }),
     );
-    if (stale.length) await manager.updateRepresentationsTheme(stale, change as never);
+    const { value, ...theme } = change;
+    if (stale.length)
+      await manager.updateRepresentationsTheme(
+        stale,
+        (value === undefined ? theme : { ...theme, colorParams: { value } }) as never,
+      );
   }
 }
 

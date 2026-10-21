@@ -98,6 +98,8 @@ export {
   TransitionRow,
 } from './views/canvas/playback.js';
 export {
+  type CommandFormView,
+  type CommandFormViewProps,
   type CommandMenuAssistant,
   CommandMenu,
   type CommandMenuPrefix,

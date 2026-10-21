@@ -97,10 +97,10 @@ function inlineField(id: string, param: PD.Any): FormFieldView | undefined {
   }
 }
 
-/** The names of params that are edited in the full form only. */
+/** The names of params that are edited in the full form only (hidden ones are not offered anywhere). */
 export function formOnlyParams(params: PD.Params, fields: readonly FormFieldView[]): string[] {
   const inline = new Set(fields.map((f) => f.id));
-  return Object.keys(params).filter((k) => !inline.has(k));
+  return Object.keys(params).filter((k) => !inline.has(k) && !params[k].isHidden);
 }
 
 /** Is the field's value a string (so words can name it)? */
