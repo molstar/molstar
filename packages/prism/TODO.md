@@ -117,6 +117,10 @@ section); an entry leaves when it is done (its spec section says so then). The s
     layers are not remapped then;
   - stories for a volume cut and a clip set from code; a mesoscale structure's long Cuts through list measured;
   - an untagged cut from code is tagged when drawn, so code that set it no longer finds it by its values.
+- **Gizmo handles behind what is drawn cannot be grabbed** (`@molstar/graphics/util/gizmo`): picking takes the nearest
+  object, so a ring or an arrow inside a structure is hidden from the pointer by it; 3D tools draw handles on top. Needs
+  a representation drawn after the scene without the depth test (or picked first): a renderer change, after the WebGPU
+  backend lands, with Alex.
 
 ## Missing: prism-ui
 
