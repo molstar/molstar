@@ -33,11 +33,7 @@ import type { Viewport } from '../camera/util.js';
 // TODO add scale line/grid
 
 const AxesParams = {
-  alpha: PD.Numeric(
-    0.51,
-    { min: 0, max: 1, step: 0.01 },
-    { isEssential: true, label: 'Opacity', description: 'Of the planes; the axes are solid' },
-  ),
+  alpha: PD.Numeric(0.51, { min: 0, max: 1, step: 0.01 }, { isEssential: true, label: 'Opacity' }),
   colorX: PD.Color(ColorNames.red, { isEssential: true }),
   colorY: PD.Color(ColorNames.green, { isEssential: true }),
   colorZ: PD.Color(ColorNames.blue, { isEssential: true }),
@@ -87,7 +83,7 @@ export class CameraHelper {
     axes: { name: 'off', params: {} },
   };
 
-  /** The axes, solid; the planes, translucent (`alpha`): one translucent mesh showed its own insides */
+  /** The axes and the planes, each its own (one mesh of overlapping parts showed its insides through its translucency) */
   private meshRenderObject: GraphicsRenderObject | undefined;
   private planesRenderObject: GraphicsRenderObject | undefined;
   private textRenderObject: GraphicsRenderObject | undefined;
@@ -316,19 +312,19 @@ function axisLength(props: AxesProps) {
 }
 
 /**
- * The axes, solid: an arrow each (a shaft and a cone head, ending where the old rods' end caps did) from a small
- * origin sphere; no part inside another
+ * The axes: a slim arrow each (a shaft and a small cone head, ending where the old rods' end caps did) from a small
+ * origin sphere; no part inside another, so a translucent arrow shows only its front (`transparentBackfaces` off)
  */
 function createAxesMesh(props: AxesProps, mesh?: Mesh) {
   const state = MeshBuilder.createState(512, 256, mesh);
   const length = axisLength(props);
-  const radius = props.radiusScale * 100 * props.scale;
-  const head = Math.min(radius * 4, length * 0.3);
+  const radius = props.radiusScale * 100 * props.scale * 0.6;
+  const head = Math.min(radius * 4.5, length * 0.25);
   const shaft = { radiusTop: radius, radiusBottom: radius, radialSegments: 24 };
-  const cone = { radiusTop: 0, radiusBottom: radius * 2, radialSegments: 24, bottomCap: true };
+  const cone = { radiusTop: 0, radiusBottom: radius * 2.2, radialSegments: 24, bottomCap: true };
 
   state.currentGroup = CameraHelperAxis.Origin;
-  addSphere(state, Vec3.origin, radius * 1.6, 2);
+  addSphere(state, Vec3.origin, radius * 1.8, 2);
 
   const axes = [
     [CameraHelperAxis.X, Vec3.unitX],
@@ -409,8 +405,7 @@ function createMeshRenderObject(props: AxesProps) {
   return ShapeUtils.createRenderObject(shape, {
     ...PD.getDefaultValues(Mesh.Params),
     ...props,
-    alpha: 1,
-    // shaded: a solid arrow toward the viewer reads as one, not as a flat disk
+    // shaded: an arrow toward the viewer reads as one, not as a flat disk
     ignoreLight: false,
     cellSize: 0,
   });
