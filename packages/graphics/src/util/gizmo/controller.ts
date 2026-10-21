@@ -22,10 +22,50 @@ import { facingCamera } from './primitives.js';
 
 // Gizmos: handles in the 3D view for items an app edits (a clip object, a component's place), drawn outside the state
 // tree (a `VisualSet`) and dragged live. What an item is and how it changes is the app's (`GizmoBinding`); the controller
-// draws each item's gizmo, takes the trackball's drags while a handle is hovered (its bindings saved whole and restored
-// at every end), runs a drag's previews (one in flight, the latest wins), and commits on release: one step. Esc, the
-// binding saying what the drag started from changed (`invalidated`), or a commit not taken cancels: the binding puts the
-// item back, the gizmos follow what the items are. Only `Canvas3D`'s public API (no gl, no Canvas3D internals).
+// draws each item's gizmo, takes the trackball's drags while a handle is hovered (its bindings saved whole, once a
+// canvas whatever number of controllers hold them, and restored when the last lets go: `TrackballDrags`), runs a drag's
+// previews (one in flight, the latest wins), and commits on release: one step, no new drag until it is done. Esc, the
+// binding saying what the drag started from changed (`invalidated`), the item going away, or a commit not taken (or
+// failed) cancels: the binding puts the item back (after a preview in flight), the gizmos follow what the items are.
+// Only `Canvas3D`'s public API (no gl, no Canvas3D internals).
+
+type TrackballBindings = Canvas3D['attribs']['trackball']['bindings'];
+
+/**
+ * The trackball's drags held by gizmo controllers, per canvas: the bindings saved by the first holder and put back by
+ * the last (two controllers on one canvas, the pointer going straight from one's handle to the other's, would otherwise
+ * save each other's emptied bindings)
+ */
+const TrackballDrags = {
+  held: new WeakMap<Canvas3D, { saved: TrackballBindings; holders: Set<object> }>(),
+  take(canvas: Canvas3D, holder: object) {
+    const h = this.held.get(canvas);
+    if (h) {
+      h.holders.add(holder);
+      return;
+    }
+    const saved = { ...canvas.attribs.trackball.bindings };
+    this.held.set(canvas, { saved, holders: new Set([holder]) });
+    canvas.setAttribs({
+      trackball: {
+        bindings: {
+          ...saved,
+          dragRotate: Binding.Empty,
+          dragRotateZ: Binding.Empty,
+          dragPan: Binding.Empty,
+          dragFocus: Binding.Empty,
+          dragFocusZoom: Binding.Empty,
+        },
+      },
+    });
+  },
+  release(canvas: Canvas3D, holder: object) {
+    const h = this.held.get(canvas);
+    if (!h || !h.holders.delete(holder) || h.holders.size) return;
+    this.held.delete(canvas);
+    canvas.setAttribs({ trackball: { bindings: h.saved } });
+  },
+};
 
 /** An item a binding shows a gizmo for: its key (stable through edits), its value, its name */
 export interface GizmoItem<T> {
@@ -107,8 +147,10 @@ export class GizmoController<T> {
   #items: readonly GizmoItem<T>[] = [];
   #hovered: { key: string; handle: Handle; position?: Vec3 } | undefined;
   #drag: Drag<T> | undefined;
-  /** The trackball's bindings while a handle holds the drags (restored whole: a partial set keeps only its part) */
-  #bindings: Canvas3D['attribs']['trackball']['bindings'] | undefined;
+  /** This controller holds the trackball's drags (`TrackballDrags`) */
+  #holding = false;
+  /** A release's commit in flight: no drag starts until it is done (it would start from what the commit replaces) */
+  #committing = false;
   #syncing = 0;
   #disposed = false;
 
@@ -150,11 +192,27 @@ export class GizmoController<T> {
     if (!d) return;
     this.#drag = undefined;
     this.dragging.next(undefined);
-    this.#binding.cancel(d.key, d.from);
+    this.#forgetGrab();
+    this.#undo(d);
     if (!this.#hovered) this.#restoreBindings();
-    // the gizmos as the items are now (the drag's skipped its own, and they may have moved on under it)
-    void this.#sync();
-    this.#canvas.requestDraw();
+  }
+
+  /** The binding puts a drag's item back: after a preview in flight (it would land after the revert otherwise) */
+  #undo(d: Drag<T>) {
+    const running = this.#running;
+    const undo = () => {
+      this.#binding.cancel(d.key, d.from);
+      // the gizmos as the items are now (the drag's skipped its own, and they may have moved on under it)
+      void this.#sync();
+      this.#canvas.requestDraw();
+    };
+    if (running) void running.then(undo);
+    else undo();
+  }
+
+  /** After a drag: the grab's point is the last hover's, stale until the pointer moves again (a new hover) */
+  #forgetGrab() {
+    if (this.#hovered?.position) this.#hovered = { key: this.#hovered.key, handle: this.#hovered.handle };
   }
 
   dispose(): void {
@@ -174,6 +232,9 @@ export class GizmoController<T> {
     if (this.#disposed) return;
     const version = ++this.#syncing;
     const items = this.#items;
+    // the item dragged went away (removed, another target): the drag with it
+    const dragged = this.#drag?.key;
+    if (dragged !== undefined && !items.some((i) => i.key === dragged)) this.cancel();
     for (const [key, g] of [...this.#gizmos]) {
       if (items.some((i) => i.key === key)) continue;
       this.#remove(g);
@@ -200,6 +261,11 @@ export class GizmoController<T> {
       if (version !== this.#syncing || this.#disposed) {
         this.#remove(made);
         return;
+      }
+      // a drag's own remake took its place meanwhile (`#show`): that one stays
+      if (this.#gizmos.get(item.key) !== g || this.#drag?.key === item.key) {
+        this.#remove(made);
+        continue;
       }
       if (g) this.#remove(g);
       this.#gizmos.set(item.key, made);
@@ -327,7 +393,7 @@ export class GizmoController<T> {
 
   #onDrag(isStart: boolean, x: number, y: number, fx: number, fy: number) {
     if (isStart) {
-      if (!this.#hovered || this.#drag) return;
+      if (!this.#hovered || this.#drag || this.#committing) return;
       const [x0, y0] = pressPoint(this.#canvas, x, y, fx, fy);
       this.#begin(this.#hovered.key, this.#hovered.handle, x0, y0, this.#hovered.position);
     }
@@ -375,9 +441,12 @@ export class GizmoController<T> {
         this.#canvas.requestDraw();
       } while (this.#again);
     };
-    this.#running = run().finally(() => {
-      this.#running = undefined;
-    });
+    // a preview that fails is the binding's to say; the drag goes on (its release commits or cancels as ever)
+    this.#running = run()
+      .catch((e) => console.warn('[gizmo] a preview failed:', e))
+      .finally(() => {
+        this.#running = undefined;
+      });
   }
 
   async #end() {
@@ -392,37 +461,30 @@ export class GizmoController<T> {
     }
     this.#drag = undefined;
     this.dragging.next(undefined);
+    this.#forgetGrab();
     if (!this.#hovered) this.#restoreBindings();
-    // taken: the items follow (sync); not: the binding puts it back
-    const done = await this.#binding.commit(d.key, d.from, d.next);
-    if (!done) {
-      this.#drag = d;
-      this.cancel();
+    // taken: the items follow (sync); not taken, or failed: the binding puts it back (this drag's item, not a later one's)
+    this.#committing = true;
+    let done = false;
+    try {
+      done = await this.#binding.commit(d.key, d.from, d.next);
+    } catch (e) {
+      console.warn('[gizmo] a commit failed:', e);
+    } finally {
+      this.#committing = false;
     }
+    if (!done && !this.#disposed) this.#undo(d);
   }
 
   #takeDrags() {
-    if (this.#bindings) return;
-    const bindings = { ...this.#canvas.attribs.trackball.bindings };
-    this.#bindings = bindings;
-    this.#canvas.setAttribs({
-      trackball: {
-        bindings: {
-          ...bindings,
-          dragRotate: Binding.Empty,
-          dragRotateZ: Binding.Empty,
-          dragPan: Binding.Empty,
-          dragFocus: Binding.Empty,
-          dragFocusZoom: Binding.Empty,
-        },
-      },
-    });
+    if (this.#holding) return;
+    this.#holding = true;
+    TrackballDrags.take(this.#canvas, this);
   }
 
   #restoreBindings() {
-    const bindings = this.#bindings;
-    if (!bindings || this.#drag) return;
-    this.#bindings = undefined;
-    this.#canvas.setAttribs({ trackball: { bindings } });
+    if (!this.#holding || this.#drag) return;
+    this.#holding = false;
+    TrackballDrags.release(this.#canvas, this);
   }
 }

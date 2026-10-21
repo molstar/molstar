@@ -27,17 +27,22 @@ const Up = Vec3.create(0, 1, 0);
 
 /**
  * The object's frame in the world: its rotation, from its position; a plane's from where it crosses `around` (what it
- * cuts), so its disk is drawn over that, not at its point (which may be anywhere on the plane)
+ * cuts), so its disk is drawn over that, not at its point (which may be anywhere on the plane). The shader tests a
+ * point as its `transform` maps it (MolViewSpec's clips in a grid's or a cell's space): the frame is that space's, taken
+ * back to the world by the transform's inverse.
  */
 export function clipObjectFrame(object: ClipObject, around: Sphere3D): Mat4 {
   const rotation = Mat4.fromRotation(Mat4(), (object.rotation.angle * Math.PI) / 180, object.rotation.axis);
+  const transform = object.transform && !Mat4.isIdentity(object.transform) ? object.transform : undefined;
   let origin = Vec3.clone(object.position);
   if (object.type === 'plane') {
     const n = Vec3.transformDirection(Vec3(), Up, rotation);
     Vec3.normalize(n, n);
-    origin = Vec3.scaleAndAdd(Vec3(), around.center, n, -Vec3.dot(n, Vec3.sub(Vec3(), around.center, object.position)));
+    const center = transform ? Vec3.transformMat4(Vec3(), around.center, transform) : around.center;
+    origin = Vec3.scaleAndAdd(Vec3(), center, n, -Vec3.dot(n, Vec3.sub(Vec3(), center, object.position)));
   }
-  return Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), origin), rotation);
+  const frame = Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), origin), rotation);
+  return transform ? Mat4.mul(frame, Mat4.invert(Mat4(), transform), frame) : frame;
 }
 
 /** A cone's half-angle (degrees) from its scale (the shader's `atan2(scale.y, scale.x)`) */

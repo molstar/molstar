@@ -16,6 +16,7 @@
     "./canvas3d/_test/*": null,
     "./canvas3d/passes/_test/*": null,
     "./formats/shape/_test/*": null,
+    "./geo/_test/*": null,
     "./geo/geometry/_test/*": null,
     "./geo/geometry/mesh/_test/*": null,
     "./geo/geometry/texture-mesh/_test/*": null,

@@ -46,12 +46,18 @@ describe('RepresentationClip', () => {
     expect(
       RepresentationClip.replaceOwned(before, [globalA], clip('pixel', globalB)).objects.map((o) => o.position[0]),
     ).toEqual([2, 5]);
-    // more after, fewer drop their places
+    // more after; fewer: a place before the cell's own held by a `none` (its index kept), a place at the end gone
     const more = RepresentationClip.replaceOwned(before, [globalA], clip('pixel', globalB, object('plane', 3)));
     expect(more.objects.map((o) => o.position[0])).toEqual([2, 5, 3]);
-    expect(RepresentationClip.replaceOwned(before, [globalA], clip('pixel')).objects.map((o) => o.position[0])).toEqual(
-      [5],
-    );
+    const fewer = RepresentationClip.replaceOwned(before, [globalA], clip('pixel'));
+    expect(fewer.objects.map((o) => o.type)).toEqual(['none', 'sphere']);
+    expect(fewer.objects[1].position[0]).toBe(5);
+    expect(RepresentationClip.replaceOwned(cell, [globalA], clip('pixel')).objects.map((o) => o.position[0])).toEqual([
+      5,
+    ]);
+    // a held place is the owner's to fill again
+    const again = RepresentationClip.replaceOwned(fewer, [], clip('pixel', globalB));
+    expect(again.objects.map((o) => o.position[0])).toEqual([2, 5]);
     // nothing of its own: the owner's variant
     expect(RepresentationClip.replaceOwned(clip('instance', globalA), [globalA], clip('pixel')).variant).toBe('pixel');
   });

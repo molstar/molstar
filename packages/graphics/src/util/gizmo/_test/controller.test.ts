@@ -90,8 +90,8 @@ function fakeBinding(commitResult = true) {
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 /** The fake canvas' handle representation (the gizmo's only one: no body) and a loci on its group `g` */
-function hoverOn(fake: ReturnType<typeof fakeCanvas>, g: number) {
-  const repr = fake.added[0];
+function hoverOn(fake: ReturnType<typeof fakeCanvas>, g: number, at = 0) {
+  const repr = fake.added[at];
   const shape = (repr.getAllLoci()[0] as Shape.Loci).shape;
   const loci = ShapeGroup.Loci(shape, [{ ids: OrderedSet.ofSingleton(g), instance: 0 }]);
   fake.fake.interaction.hover.next({ current: { repr, loci } });
@@ -169,6 +169,61 @@ describe('GizmoController', () => {
     await settle();
     expect(fake.added).toHaveLength(0);
     expect(c.owns(undefined)).toBe(false);
+    c.dispose();
+  });
+
+  it('shares the trackball drags with another controller on the canvas: back whole when the last lets go', async () => {
+    const fake = fakeCanvas();
+    const a = new GizmoController(fake.canvas, fakeBinding());
+    const b = new GizmoController(fake.canvas, fakeBinding());
+    await settle();
+    expect(fake.added).toHaveLength(2);
+    // straight from b's handle to a's (one hover each), then off both
+    hoverOn(fake, 1, 1);
+    hoverOn(fake, 1, 0);
+    expect(fake.fake.attribs.trackball.bindings.dragRotate).toBe(Binding.Empty);
+    fake.fake.interaction.hover.next({ current: { repr: undefined, loci: { kind: 'empty-loci' } } as never });
+    expect(fake.fake.attribs.trackball.bindings).toEqual(drags);
+    a.dispose();
+    b.dispose();
+  });
+
+  it('cancels a commit that fails, and starts no drag while a commit is in flight', async () => {
+    const fake = fakeCanvas();
+    const binding = fakeBinding();
+    let fail: (e: Error) => void = () => {};
+    binding.commit.mockImplementationOnce(() => new Promise<boolean>((_, reject) => (fail = reject)));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const c = new GizmoController(fake.canvas, binding);
+    await settle();
+    hoverOn(fake, 1);
+    await drag(fake, [10]);
+    fake.fake.input.interactionEnd.next();
+    await settle();
+    // pressed again while the commit runs: no drag
+    await drag(fake, [5]);
+    expect(binding.begin).toHaveBeenCalledTimes(1);
+    fail(new Error('no'));
+    await settle();
+    expect(binding.cancel).toHaveBeenCalledWith('a', { x: 0 });
+    expect(warn).toHaveBeenCalled();
+    c.dispose();
+  });
+
+  it('cancels the drag of an item that goes away', async () => {
+    const fake = fakeCanvas();
+    const binding = fakeBinding();
+    const c = new GizmoController(fake.canvas, binding);
+    await settle();
+    hoverOn(fake, 1);
+    await drag(fake, [10]);
+    binding.items.next([]);
+    await settle();
+    expect(binding.cancel).toHaveBeenCalledWith('a', { x: 0 });
+    expect(c.dragging.value).toBeUndefined();
+    fake.fake.input.interactionEnd.next();
+    await settle();
+    expect(binding.commit).not.toHaveBeenCalled();
     c.dispose();
   });
 });

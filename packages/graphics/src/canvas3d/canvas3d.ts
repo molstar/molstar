@@ -796,6 +796,12 @@ interface Canvas3D {
   pause(noDraw?: boolean): void;
   /** Sets drawPaused = false without starting the built in animation loop */
   resume(): void;
+  /**
+   * Frames wait until `until` settles (the last frame stays shown), for at most `maxMs` (1000), as they wait for new
+   * props to be prepared: a change made in steps (a state update rebuilding representations, then their own transforms
+   * put back) drawn once it is whole. The animation loop and any pause are left as they are.
+   */
+  holdFrames(until: Promise<unknown>, maxMs?: number): void;
 
   requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number;
   cancelAnimationFrame(handle: number): void;
@@ -1345,7 +1351,7 @@ namespace Canvas3D {
     let drawPaused = false;
     let isContextLost = false;
 
-    /** prepares of new props that frames wait for, see `holdFramesUntilPrepared` */
+    /** prepares of new props, and holds (`holdFrames`), that frames wait for, see `holdFramesUntilPrepared` */
     let propsPreparing = 0;
     /**
      * Frames with the current props wait until what they draw with is ready, when that is not the case yet (e.g.
@@ -1353,6 +1359,20 @@ namespace Canvas3D {
      * instead of frames missing those draws (e.g. only the background); for at most `MaxFrameHoldMs`, so that work
      * that does not settle doesn't freeze the canvas
      */
+    function holdFrames(until: Promise<unknown>, maxMs = MaxFrameHoldMs) {
+      propsPreparing += 1;
+      let held = true;
+      const release = () => {
+        if (!held) return;
+        held = false;
+        clearTimeout(limit);
+        propsPreparing -= 1;
+        requestDraw();
+      };
+      const limit = setTimeout(release, maxMs);
+      until.then(release, release);
+    }
+
     function holdFramesUntilPrepared() {
       if (isContextLost || graphics.isContextLost) return;
       const { pending } = graphics.resources;
@@ -2253,6 +2273,7 @@ namespace Canvas3D {
       resetTime,
       pause,
       resume,
+      holdFrames,
 
       requestAnimationFrame: _requestAnimationFrame,
       cancelAnimationFrame: _cancelAnimationFrame,

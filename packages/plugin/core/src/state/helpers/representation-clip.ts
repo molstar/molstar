@@ -68,20 +68,38 @@ export namespace RepresentationClip {
   /**
    * A cell's clip with the objects one owner put there (`previous`, the component manager's global objects) replaced by
    * its new ones (`next`) in their places: an object's index is what a clipping layer's group means (bit i, object i),
-   * so the others keep theirs. The owner's first new object takes its first old one's place, and so on; more go at
-   * the end, fewer leave their places out. Its variant is kept while it has objects of its own, else the owner's.
+   * so the others keep theirs. The owner's first new object takes its first old one's place (or a place it left
+   * holding), and so on; more go at the end. Fewer: a place before an object of the cell's own is held by a `none`
+   * object (it clips nothing), so that one keeps its index; places at the end go. Its variant is kept while it has
+   * objects of its own, else the owner's.
    */
   export function replaceOwned(clip: Clip.Props, previous: readonly Object[], next: Clip.Props): Clip.Props {
-    const objects: Object[] = [];
+    const objects: (Object | undefined)[] = [];
     let k = 0;
     let own = 0;
     for (const o of clip.objects) {
-      if (!previous.some((p) => objectsEqual(o, p))) {
+      const owners = o.type === 'none' || previous.some((p) => objectsEqual(o, p));
+      if (!owners) {
         objects.push(o);
         own++;
-      } else if (k < next.objects.length) objects.push(next.objects[k++]);
+      } else objects.push(k < next.objects.length ? next.objects[k++] : undefined);
     }
     for (; k < next.objects.length; k++) objects.push(next.objects[k]);
-    return { variant: own ? clip.variant : next.variant, objects };
+    // places left at the end go; those before an object that stays are held
+    while (objects.length && objects[objects.length - 1] === undefined) objects.pop();
+    const held = objects.map((o) => o ?? placeholder());
+    return { variant: own ? clip.variant : next.variant, objects: held };
+  }
+
+  /** A place held (`replaceOwned`): an object that clips nothing */
+  function placeholder(): Object {
+    return {
+      type: 'none',
+      invert: false,
+      position: Vec3(),
+      rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+      scale: Vec3.create(1, 1, 1),
+      transform: Mat4.identity(),
+    };
   }
 }

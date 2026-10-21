@@ -14,7 +14,7 @@ import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation
 import { StateTransformer } from '@molstar/core/state';
 import { OrderedSet, SortedArray } from '@molstar/core/data/int';
 import type { ShapeProvider } from '@molstar/graphics/geo/shape/provider';
-import type { Transparency } from '@molstar/graphics/theme/transparency';
+import { Transparency } from '@molstar/graphics/theme/transparency';
 import { Shape, ShapeGroup } from '@molstar/model/model/shape';
 import { getShapeSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
 
@@ -53,9 +53,19 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
 });
 
 /** The provider's per-group transparency (`ShapeProvider.transparency`) as a layer on the shape's groups */
+/** The representations whose transparency is their provider's (what a provider without one takes away again) */
+const ProviderTransparency = new WeakSet<object>();
+
 function applyTransparency(repr: ShapeRepresentation<any, any, any>, provider: ShapeProvider<any, any, any>) {
   const of = provider.transparency;
-  if (!of) return;
+  if (!of) {
+    // a provider that had one and has not anymore: its layers go (another's transparency is left as it is)
+    if (ProviderTransparency.delete(repr)) {
+      repr.setState({ transparency: Transparency.Empty });
+    }
+    return;
+  }
+  ProviderTransparency.add(repr);
   const all = repr.getAllLoci()[0];
   if (!Shape.isLoci(all)) return;
   const { shape } = all;
