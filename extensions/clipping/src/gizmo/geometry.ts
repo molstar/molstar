@@ -182,7 +182,33 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
   knobAt(object.type === 'plane' ? 1 : 0, Vec3());
   if (object.type === 'plane') has.splice(has.indexOf('move'), 1);
   const transform = Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), origin), rotation);
-  return { body: MeshBuilder.getMesh(body), handles: MeshBuilder.getMesh(handles), has, transform, axis };
+  return { body: twoFaced(MeshBuilder.getMesh(body)), handles: MeshBuilder.getMesh(handles), has, transform, axis };
+}
+
+/**
+ * Each triangle twice, once facing each way: both sides of a translucent body draw as its front. A double-sided mesh
+ * would draw its back as the inside, darkened (the renderer's interior shading), which on a dark canvas is not seen.
+ * The body ignores light, so its normals (one a triangle) do not show.
+ */
+export function twoFaced(mesh: Mesh): Mesh {
+  const v = mesh.vertexBuffer.ref.value;
+  const idx = mesh.indexBuffer.ref.value;
+  const groups = mesh.groupBuffer.ref.value;
+  const count = mesh.triangleCount;
+  const out = MeshBuilder.createState(count * 6, count * 2);
+  const a = Vec3();
+  const b = Vec3();
+  const c = Vec3();
+  for (let t = 0; t < count; t++) {
+    const i = idx[3 * t];
+    Vec3.fromArray(a, v, 3 * i);
+    Vec3.fromArray(b, v, 3 * idx[3 * t + 1]);
+    Vec3.fromArray(c, v, 3 * idx[3 * t + 2]);
+    out.currentGroup = groups[i];
+    MeshBuilder.addTriangle(out, a, b, c);
+    MeshBuilder.addTriangle(out, a, c, b);
+  }
+  return MeshBuilder.getMesh(out);
 }
 
 /** The axis a slide follows for a cut: the plane's normal, the box's or cylinder's up, the cone's opening */

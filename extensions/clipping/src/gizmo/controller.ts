@@ -273,7 +273,7 @@ export class ClipGizmos {
         (_, s: Shape<Mesh>) => s,
         Mesh.Utils,
         bodyShape,
-        { alpha: 0.14, doubleSided: true, ignoreLight: true },
+        { alpha: 0.14, ignoreLight: true },
         {
           ...helper,
           pickable: false,
