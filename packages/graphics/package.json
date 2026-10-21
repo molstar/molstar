@@ -22,6 +22,7 @@
     "./geo/geometry/texture-mesh/_test/*": null,
     "./geo/util/marching-cubes/_test/*": null,
     "./gl/_test/*": null,
+    "./props/computed/representations/_test/*": null,
     "./repr/_test/*": null,
     "./repr/particles/representation/_test/*": null,
     "./repr/shape/_test/*": null,

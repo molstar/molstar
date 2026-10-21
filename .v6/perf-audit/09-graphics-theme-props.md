@@ -34,6 +34,9 @@ Recreating structure themes on each update costs ≤ 2 ms; what a recolor costs 
 
 ### P1: no impostor path for interactions
 
+- **Status**: done (branch `claude/interactions-impostors`): impostor variants of the three visuals, dashes as one
+  impostor each through the builder (no shader change); the `physical` and `uncertainty` size themes size interaction
+  locations. Impostor buffers stay 6 vertices per cylinder (frozen `gl/`, 08/P7).
 - **Mechanism**: `createIntraUnitInteractionsCylinderMesh` (:164), `createInterUnitInteractionCylinderMesh`
   ([inter:194](../../packages/graphics/src/props/computed/representations/interactions-inter-unit-cylinder.ts#L194)) and
   `createBridgeCylinderMesh` ([bridge:233](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L233))
@@ -68,7 +71,7 @@ Recreating structure themes on each update costs ≤ 2 ms; what a recolor costs 
 - **Fix**: `dashCap: PD.Boolean(false)` in `InteractionsSharedParams` (or caps only at `radialSegments >= 16`); estimate
   per directed link from the style: dashed `ceil(dashCount / 2) * (radialSegments + 1) * (2 + (dashCap ? 2 : 0))`.
 - **Risk**: open dash ends are visible end-on at high zoom (no caps, single-sided mesh). Matters only for the mesh
-  fallback once P1 lands (no `fragDepth`, `tryUseImpostor: false`, export).
+  fallback once P1 lands (no `fragDepth`, `tryUseImpostor: false`); export meshes the impostors.
 
 ### P6: particle color index rebuilt per update
 
@@ -101,10 +104,10 @@ Recreating structure themes on each update costs ≤ 2 ms; what a recolor costs 
 
 | Id  | Title                                                                    | Where                                                                                                                      | Severity | Verdict   |
 | --- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | -------- | --------- |
-| B1  | intra-unit `includeParent` filter reads `members[offsets[i]]`            | [interactions-intra-unit-cylinder.ts:135](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L135) | medium   | confirmed |
+| B1  | intra-unit `includeParent` filter reads `members[offsets[i]]`            | [interactions-intra-unit-cylinder.ts:135](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L135) | medium   | fixed (#2004) |
 | B2  | entity-source indexes polymer-only `sequence.sequences` by entity index  | [entity-source.ts:81](../../packages/graphics/src/theme/color/entity-source.ts#L81)                                        | medium   | confirmed |
 | B3  | `ColorTheme.Palette` 'set' with offsets writes `undefined` (black)       | [color.ts:128](../../packages/graphics/src/theme/color.ts#L128)                                                            | low      | confirmed |
-| B4  | bridge visual rebuilds geometry on every update (size theme by reference) | [interactions-bridge-cylinder.ts:276](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L276) | low      | confirmed |
+| B4  | bridge visual rebuilds geometry on every update (size theme by reference) | [interactions-bridge-cylinder.ts:276](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L276) | low      | fixed (#2004) |
 
 - **B1**: the loops `for (i = offsets[f]; i < offsets[f + 1]; ++i)` already walk member positions, yet read
   `elements[members[offsets[i]]]` at :135, :144, :150. For `i >` feature count `offsets[i]` is `undefined`, so the

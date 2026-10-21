@@ -652,14 +652,14 @@ function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number]
       const n = Vec3.normalize(Vec3(), Vec3.ofArray(node.params.normal));
       const axis = Vec3.cross(Vec3(), up, n);
       const isSingular = Vec3.magnitude(axis) < 1e-6;
+      // n parallel or antiparallel to up: the cross product vanishes, so turn about any perpendicular axis,
+      // by 180° when n points down (else the plane would face up and clip the wrong half)
+      const angle = isSingular ? (Vec3.dot(up, n) < 0 ? 180 : 0) : (Vec3.angle(up, n) * 180) / Math.PI;
       return {
         type: 'plane',
         position: Vec3.ofArray(node.params.point),
         scale: Vec3.create(1, 1, 1),
-        rotation: {
-          axis: isSingular ? Vec3.unitX : axis,
-          angle: isSingular ? 0 : (Vec3.angle(up, n) * 180) / Math.PI,
-        },
+        rotation: { axis: isSingular ? Vec3.create(1, 0, 0) : axis, angle },
         ...getCommonClipParams(node),
       };
     }

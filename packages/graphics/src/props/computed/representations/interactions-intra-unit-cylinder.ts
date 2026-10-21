@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Unit, Structure, StructureElement } from '@molstar/model/model/structure';
@@ -16,35 +17,48 @@ import type { VisualContext } from '@molstar/graphics/repr/visual';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
 import {
+  createLinkCylinderImpostors,
   createLinkCylinderMesh,
+  type LinkBuilderProps,
   LinkCylinderParams,
   LinkStyle,
 } from '@molstar/graphics/repr/structure/visual/util/link';
-import { UnitsMeshParams, type UnitsVisual, UnitsMeshVisual } from '@molstar/graphics/repr/structure/units-visual';
+import {
+  UnitsCylindersParams,
+  UnitsCylindersVisual,
+  UnitsMeshParams,
+  type UnitsVisual,
+  UnitsMeshVisual,
+} from '@molstar/graphics/repr/structure/units-visual';
+import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VisualUpdateState } from '@molstar/graphics/repr/util';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { Interactions } from '@molstar/model/props/computed/interactions/interactions';
 import { FeatureType, InteractionFlag } from '@molstar/model/props/computed/interactions/common';
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { type StructureGroup, isHydrogen } from '@molstar/graphics/repr/structure/visual/util/common';
+import {
+  type StructureGroup,
+  checkCylinderImpostorSupport,
+  isHydrogen,
+} from '@molstar/graphics/repr/structure/visual/util/common';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
-import { InteractionsSharedParams } from './shared.js';
+import { impostorProps, InteractionsSharedParams, withDashedCylinderCount } from './shared.js';
 import { InteractionType } from '@molstar/model/props/computed/interactions/common';
-import { eachIntraBondedAtom } from '@molstar/model/props/computed/chemistry/util';
+import { eachBondedAtom } from '@molstar/model/props/computed/chemistry/util';
 
-async function createIntraUnitInteractionsCylinderMesh(
-  ctx: VisualContext,
+/** The interactions of a unit as dashed links, for the impostor and the mesh builder; undefined if there are none */
+function getIntraUnitInteractionsBuilderProps(
   unit: Unit,
   structure: Structure,
   theme: Theme,
   props: PD.Values<InteractionsIntraUnitParams>,
-  mesh?: Mesh,
-) {
-  if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
+): LinkBuilderProps | undefined {
+  if (!Unit.isAtomic(unit)) return;
 
   const { child } = structure;
   const childUnit = child?.unitMap.get(unit.id);
-  if (child && !childUnit) return Mesh.createEmpty(mesh);
+  if (child && !childUnit) return;
 
   const location = StructureElement.Location.create(structure, unit);
 
@@ -59,16 +73,24 @@ async function createIntraUnitInteractionsCylinderMesh(
     b,
     edgeProps: { flag, type },
   } = contacts;
-  const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
+  const { ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
+  // as the impostors' uSizeFactor
+  const sizeFactor = props.sizeFactor * props.sizeAspectRatio;
 
-  if (!edgeCount) return Mesh.createEmpty(mesh);
+  if (!edgeCount) return;
 
   const { elements, conformation: c } = unit;
   const p = Vec3();
+  /** A bonded hydrogen in this unit's invariant frame; with per-atom symmetry it can be in another unit */
+  const hydrogenPosition = (u: Unit.Atomic, index: StructureElement.UnitIndex, out: Vec3) => {
+    if (u === unit) return c.invariantPosition(u.elements[index], out);
+    u.conformation.position(u.elements[index], out);
+    return Vec3.transformMat4(out, out, c.operator.inverse);
+  };
   const pA = Vec3();
   const pB = Vec3();
 
-  const builderProps = {
+  return {
     linkCount: edgeCount * 2,
     position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
       const t = type[edgeIndex];
@@ -87,12 +109,12 @@ async function createIntraUnitInteractionsCylinderMesh(
         Vec3.copy(posB, pB);
         const donorType =
           t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
-        const isHydrogenDonorA = types[offsets[a[edgeIndex]]] === donorType;
+        const isHydrogenDonorA = types[a[edgeIndex]] === donorType;
 
         if (isHydrogenDonorA) {
-          eachIntraBondedAtom(unit, idxA, (_, idx) => {
-            if (isHydrogen(structure, unit, elements[idx], 'all')) {
-              c.invariantPosition(elements[idx], p);
+          eachBondedAtom(structure, unit, idxA, (u, idx) => {
+            if (isHydrogen(structure, u, u.elements[idx], 'all')) {
+              hydrogenPosition(u, idx, p);
               const dist = Vec3.distance(p, pB);
               if (dist < minDistA) {
                 minDistA = dist;
@@ -101,9 +123,9 @@ async function createIntraUnitInteractionsCylinderMesh(
             }
           });
         } else {
-          eachIntraBondedAtom(unit, idxB, (_, idx) => {
-            if (isHydrogen(structure, unit, elements[idx], 'all')) {
-              c.invariantPosition(elements[idx], p);
+          eachBondedAtom(structure, unit, idxB, (u, idx) => {
+            if (isHydrogen(structure, u, u.elements[idx], 'all')) {
+              hydrogenPosition(u, idx, p);
               const dist = Vec3.distance(p, pA);
               if (dist < minDistB) {
                 minDistB = dist;
@@ -132,7 +154,7 @@ async function createIntraUnitInteractionsCylinderMesh(
         if (parentDisplay === 'stub') {
           const f = a[edgeIndex];
           for (let i = offsets[f], il = offsets[f + 1]; i < il; ++i) {
-            const e = elements[members[offsets[i]]];
+            const e = elements[members[i]];
             if (!SortedArray.has(childUnit.elements, e)) return true;
           }
         } else if (parentDisplay === 'full' || parentDisplay === 'between') {
@@ -141,13 +163,13 @@ async function createIntraUnitInteractionsCylinderMesh(
 
           const fA = a[edgeIndex];
           for (let i = offsets[fA], il = offsets[fA + 1]; i < il; ++i) {
-            const eA = elements[members[offsets[i]]];
+            const eA = elements[members[i]];
             if (!SortedArray.has(childUnit.elements, eA)) flagA = true;
           }
 
           const fB = b[edgeIndex];
           for (let i = offsets[fB], il = offsets[fB + 1]; i < il; ++i) {
-            const eB = elements[members[offsets[i]]];
+            const eB = elements[members[i]];
             if (!SortedArray.has(childUnit.elements, eB)) flagB = true;
           }
 
@@ -160,27 +182,138 @@ async function createIntraUnitInteractionsCylinderMesh(
       return false;
     },
   };
+}
+
+function setBoundingSphere(
+  geometry: Mesh | Cylinders,
+  boundingSphere: Sphere3D | undefined,
+  unit: Unit,
+  structure: Structure,
+  sizeFactor: number,
+) {
+  if (boundingSphere) {
+    geometry.setBoundingSphere(boundingSphere);
+  } else if (geometry.kind === 'mesh' ? geometry.triangleCount > 0 : geometry.cylinderCount > 0) {
+    const childUnit = structure.child?.unitMap.get(unit.id);
+    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
+    geometry.setBoundingSphere(sphere);
+  }
+}
+
+async function createIntraUnitInteractionsCylinderImpostors(
+  ctx: VisualContext,
+  unit: Unit,
+  structure: Structure,
+  theme: Theme,
+  props: PD.Values<InteractionsIntraUnitParams>,
+  cylinders?: Cylinders,
+) {
+  const builderProps = getIntraUnitInteractionsBuilderProps(unit, structure, theme, props);
+  if (!builderProps) return Cylinders.createEmpty(cylinders);
+
+  const { cylinders: c, boundingSphere } = createLinkCylinderImpostors(
+    ctx,
+    withDashedCylinderCount(builderProps, props.dashCount),
+    impostorProps(props),
+    cylinders,
+  );
+  setBoundingSphere(c, boundingSphere, unit, structure, props.sizeFactor);
+  return c;
+}
+
+async function createIntraUnitInteractionsCylinderMesh(
+  ctx: VisualContext,
+  unit: Unit,
+  structure: Structure,
+  theme: Theme,
+  props: PD.Values<InteractionsIntraUnitParams>,
+  mesh?: Mesh,
+) {
+  const builderProps = getIntraUnitInteractionsBuilderProps(unit, structure, theme, props);
+  if (!builderProps) return Mesh.createEmpty(mesh);
 
   const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
-
-  if (boundingSphere) {
-    m.setBoundingSphere(boundingSphere);
-  } else if (m.triangleCount > 0) {
-    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
-    m.setBoundingSphere(sphere);
-  }
-
+  setBoundingSphere(m, boundingSphere, unit, structure, props.sizeFactor);
   return m;
 }
 
 export const InteractionsIntraUnitParams = {
   ...UnitsMeshParams,
+  ...UnitsCylindersParams,
   ...LinkCylinderParams,
   ...InteractionsSharedParams,
 };
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams;
 
-export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<InteractionsIntraUnitParams> {
+export function InteractionsIntraUnitVisual(
+  materialId: number,
+  structure: Structure,
+  props: PD.Values<InteractionsIntraUnitParams>,
+  graphics?: GraphicsContext,
+) {
+  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
+    ? InteractionsIntraUnitImpostorVisual(materialId)
+    : InteractionsIntraUnitMeshVisual(materialId);
+}
+
+function setUpdateState(
+  state: VisualUpdateState,
+  newProps: PD.Values<InteractionsIntraUnitParams>,
+  currentProps: PD.Values<InteractionsIntraUnitParams>,
+  newTheme: Theme,
+  currentTheme: Theme,
+  newStructureGroup: StructureGroup,
+  currentStructureGroup: StructureGroup,
+) {
+  state.createGeometry =
+    newProps.sizeFactor !== currentProps.sizeFactor ||
+    newProps.dashCount !== currentProps.dashCount ||
+    newProps.dashScale !== currentProps.dashScale ||
+    newProps.dashCap !== currentProps.dashCap ||
+    newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+    newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+    newProps.parentDisplay !== currentProps.parentDisplay;
+
+  const interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version;
+  if ((state.info.interactionsHash as number) !== interactionsHash) {
+    state.createGeometry = true;
+    state.updateTransform = true;
+    state.updateColor = true;
+    // group sizes from a group-granularity size theme
+    state.updateSize = true;
+    state.info.interactionsHash = interactionsHash;
+  }
+}
+
+/** The mesh bakes the radius and the radial segments; impostors take them from uniforms and the size theme */
+function setMeshUpdateState(...args: Parameters<typeof setUpdateState>) {
+  setUpdateState(...args);
+  const [state, newProps, currentProps] = args;
+  if (
+    newProps.radialSegments !== currentProps.radialSegments ||
+    newProps.sizeAspectRatio !== currentProps.sizeAspectRatio
+  ) {
+    state.createGeometry = true;
+  }
+}
+
+export function InteractionsIntraUnitImpostorVisual(materialId: number): UnitsVisual<InteractionsIntraUnitParams> {
+  return UnitsCylindersVisual<InteractionsIntraUnitParams>(
+    {
+      defaultProps: PD.getDefaultValues(InteractionsIntraUnitParams),
+      createGeometry: createIntraUnitInteractionsCylinderImpostors,
+      createLocationIterator: createInteractionsIterator,
+      getLoci: getInteractionLoci,
+      eachLocation: eachInteraction,
+      setUpdateState,
+      mustRecreate: (_: StructureGroup, props: PD.Values<InteractionsIntraUnitParams>, graphics?: GraphicsContext) =>
+        !props.tryUseImpostor || !graphics,
+    },
+    materialId,
+  );
+}
+
+export function InteractionsIntraUnitMeshVisual(materialId: number): UnitsVisual<InteractionsIntraUnitParams> {
   return UnitsMeshVisual<InteractionsIntraUnitParams>(
     {
       defaultProps: PD.getDefaultValues(InteractionsIntraUnitParams),
@@ -188,33 +321,9 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
       createLocationIterator: createInteractionsIterator,
       getLoci: getInteractionLoci,
       eachLocation: eachInteraction,
-      setUpdateState: (
-        state: VisualUpdateState,
-        newProps: PD.Values<InteractionsIntraUnitParams>,
-        currentProps: PD.Values<InteractionsIntraUnitParams>,
-        newTheme: Theme,
-        currentTheme: Theme,
-        newStructureGroup: StructureGroup,
-        currentStructureGroup: StructureGroup,
-      ) => {
-        state.createGeometry =
-          newProps.sizeFactor !== currentProps.sizeFactor ||
-          newProps.dashCount !== currentProps.dashCount ||
-          newProps.dashScale !== currentProps.dashScale ||
-          newProps.dashCap !== currentProps.dashCap ||
-          newProps.radialSegments !== currentProps.radialSegments ||
-          newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-          newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-          newProps.parentDisplay !== currentProps.parentDisplay;
-
-        const interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version;
-        if ((state.info.interactionsHash as number) !== interactionsHash) {
-          state.createGeometry = true;
-          state.updateTransform = true;
-          state.updateColor = true;
-          state.info.interactionsHash = interactionsHash;
-        }
-      },
+      setUpdateState: setMeshUpdateState,
+      mustRecreate: (_: StructureGroup, props: PD.Values<InteractionsIntraUnitParams>, graphics?: GraphicsContext) =>
+        props.tryUseImpostor && !!graphics,
     },
     materialId,
   );
