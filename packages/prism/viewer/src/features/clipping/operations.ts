@@ -6,7 +6,7 @@
 
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import type { StateBuilder, StateObjectCell } from '@molstar/core/state';
+import type { State, StateBuilder, StateObjectCell } from '@molstar/core/state';
 import { Clip } from '@molstar/core/util/clip';
 import { UUID } from '@molstar/core/util/uuid';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -48,6 +48,16 @@ import {
   shapeAxis,
   withObject,
 } from '../../sources/clipping/cuts.js';
+import {
+  afterRemoval,
+  layerCell,
+  layerOf,
+  MaxKeptIndex,
+  structureOf,
+  withKept,
+  withoutKept,
+  writeLayer,
+} from '../../sources/clipping/kept.js';
 
 // The `clipping` area (clipping.md §2): cuts through the representations a target or a node selector reaches,
 // written into those representations' own params (the state tree is the record), read back as cuts. Each run is one
@@ -134,8 +144,8 @@ export class ClippingApi extends ApiArea {
     return clippableCells(state).some((c) => isBelow(state, c.transform.ref, ref));
   }
 
-  /** The cuts whose editor is open in the section, by number (a cut just made opens alone) */
-  readonly open = observableState<readonly number[]>([]);
+  /** The section's Add keeps the selection whole (clipping.add keepWhole) */
+  readonly keepNew = observableState(false);
 
   /** What `cut` can be turned on for: its representations and those near them (clipping.apply) */
   candidates(cut: Cut): CutTarget[] {
@@ -177,12 +187,15 @@ export class ClippingApi extends ApiArea {
       everything: OptionalParam(
         PD.Boolean(false, { description: 'Every representation that can be cut (nothing selected, a map alone)' }),
       ),
+      keepWhole: OptionalParam(
+        PD.Boolean(false, { description: 'Keep the target atoms whole: the cut goes around them (structures only)' }),
+      ),
       types: PD.Value<readonly string[]>([], {
         description: 'Only these representation types (molecular-surface, cartoon, isosurface, …); empty: every one',
       }),
       invert: PD.Boolean(false, { description: 'Remove the other side (a plane) or the outside (a closed shape)' }),
     },
-    async run({ shape, target, node, everything, types, invert }, ctx) {
+    async run({ shape, target, node, everything, keepWhole, types, invert }, ctx) {
       const around: { sphere?: Sphere3D } = {};
       const cells = everything ? allCells(ctx, types) : await targetCells(ctx, target, node, types, around);
       if (ApiResult.isFailure(cells)) return cells;
@@ -212,7 +225,12 @@ export class ClippingApi extends ApiArea {
       );
       if (same) return ApiResult.already(`Cut ${same.index} is that cut already.`, { value: same });
       await commit(ctx, cells, undefined, object);
-      const cut = findCuts(ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, object));
+      let cut = findCuts(ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, object));
+      // and the target kept whole by it (its atoms: not by a node selector, not everything)
+      if (keepWhole && cut && !everything) {
+        const r = await keepAtoms(ctx, cut.index, target);
+        if (r.ok) cut = findCuts(ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, object));
+      }
       return ApiResult.ok(
         `Cut ${namesOf(ctx, cells)} with a ${CutShapeLabels[shape].toLowerCase()}${cut ? ` (cut ${cut.index})` : ''}.`,
         { nodes: cells.map((c) => c.transform.ref) },
@@ -346,6 +364,36 @@ export class ClippingApi extends ApiArea {
     },
   });
 
+  readonly keep = this.operation({
+    id: 'clipping.keep',
+    title: 'Keep atoms whole',
+    params: {
+      cut: CutParam(),
+      target: TargetParam('The atoms the cut leaves whole (default: the selection)'),
+    },
+    run: ({ cut: index, target }, ctx) => keepAtoms(ctx, index, target),
+  });
+
+  readonly release = this.operation({
+    id: 'clipping.release',
+    title: 'Cut atoms kept whole again',
+    params: { cut: CutParam() },
+    async run({ cut: index }, ctx) {
+      const cut = oneCut(ctx, index);
+      if (ApiResult.isFailure(cut)) return cut;
+      if (!cut.kept) return ApiResult.already(`Cut ${index} keeps nothing whole.`);
+      const state = ctx.plugin.state.data;
+      const b = state.build();
+      for (const cell of cellsOf(ctx, cut)) {
+        const at = objectIndex(cell, cut.object);
+        if (!structureOf(cell) || at > MaxKeptIndex || !layerCell(state, cell.transform.ref)) continue;
+        writeLayer(state, b, cell, withoutKept(layerOf(state, cell), 1 << at));
+      }
+      await ctx.plugin.runTask(state.updateTree(b));
+      return ApiResult.ok(`Cut ${index} cuts ${cut.kept.label} again.`, { nodes: cut.targets.map((t) => t.ref) });
+    },
+  });
+
   readonly show = this.operation({
     id: 'clipping.show',
     title: 'Draw a cut in the scene, or not',
@@ -434,6 +482,10 @@ export class ClippingApi extends ApiArea {
         const clip = RepresentationClip.get(cell.transform.params)!;
         const kept = clip.objects.filter((o) => !objects.some((c) => RepresentationClip.sameCut(o, c)));
         if (kept.length !== clip.objects.length) {
+          const removed = clip.objects.flatMap((o, i) =>
+            objects.some((c) => RepresentationClip.sameCut(o, c)) ? [i] : [],
+          );
+          remapLayer(state, b, cell, removed);
           b.to(cell).update(RepresentationClip.set(cell.transform.params, { ...clip, objects: kept }) as never);
         }
       }
@@ -480,9 +532,28 @@ async function commit(
 ) {
   const state = ctx.plugin.state.data;
   const b = state.build();
-  for (const cell of cells) b.to(cell).update(withObject(cell.transform.params, previous, next) as never);
+  for (const cell of cells) {
+    // removed from it: its kept atoms' layer remapped in the same step (the objects after it moved up a place)
+    if (previous && !next) {
+      const at =
+        RepresentationClip.get(cell.transform.params)?.objects.findIndex((o) =>
+          RepresentationClip.sameCut(o, previous),
+        ) ?? -1;
+      if (at >= 0) remapLayer(state, b, cell, [at]);
+    }
+    b.to(cell).update(withObject(cell.transform.params, previous, next) as never);
+  }
   await ctx.plugin.runTask(state.updateTree(b));
   await reconcileDrawings(ctx);
+}
+
+/** A structure representation's clipping layer after its clip objects at `removed` went (clipping.md §5) */
+function remapLayer(state: State, b: StateBuilder.Root, cell: StateObjectCell, removed: readonly number[]) {
+  if (!structureOf(cell) || !layerCell(state, cell.transform.ref)) return;
+  let layer = layerOf(state, cell);
+  // from the last: each removal shifts only what is after it
+  for (const at of [...removed].sort((x, y) => y - x)) layer = afterRemoval(layer, at);
+  writeLayer(state, b, cell, layer);
 }
 
 /**
@@ -598,6 +669,77 @@ export async function targetCells(
   return cells;
 }
 
+/** The target's atoms (the selection by default) kept whole by cut `index`, on each structure it is on */
+async function keepAtoms(ctx: ApiContext, index: number, target: unknown) {
+  const cut = oneCut(ctx, index);
+  if (ApiResult.isFailure(cut)) return cut;
+  const atoms = await targetAtoms(ctx, target);
+  if (ApiResult.isFailure(atoms)) return atoms;
+  const state = ctx.plugin.state.data;
+  const b = state.build();
+  let touched = 0;
+  let beyond = 0;
+  for (const cell of cellsOf(ctx, cut)) {
+    const structure = structureOf(cell);
+    if (!structure) continue;
+    const at = objectIndex(cell, cut.object);
+    if (at > MaxKeptIndex) {
+      beyond++;
+      continue;
+    }
+    const loci = atomsOn(atoms, structure.root);
+    if (!loci) continue;
+    writeLayer(state, b, cell, withKept(layerOf(state, cell), loci, 1 << at));
+    touched++;
+  }
+  if (!touched) {
+    return beyond
+      ? ApiResult.fail(
+          'blocked',
+          `Only the first ${MaxKeptIndex + 1} cuts on a representation can keep atoms whole.`,
+          'Remove an earlier cut from it.',
+        )
+      : ApiResult.fail('not-found', `None of it is in what cut ${index} is on (it keeps only atoms whole).`);
+  }
+  await ctx.plugin.runTask(state.updateTree(b));
+  const kept = oneCut(ctx, index);
+  const label = ApiResult.isFailure(kept) ? '' : (kept.kept?.label ?? '');
+  return ApiResult.ok(`Cut ${index} keeps ${label || 'them'} whole.`, { nodes: cut.targets.map((t) => t.ref) });
+}
+
+/** A cut object's index on a representation (its group bit in the clipping layer) */
+function objectIndex(cell: StateObjectCell, object: CutObject): number {
+  return (
+    RepresentationClip.get(cell.transform.params)?.objects.findIndex((o) => RepresentationClip.sameCut(o, object)) ?? -1
+  );
+}
+
+/** The atoms a target names (the selection by default), each on its structure's root */
+async function targetAtoms(ctx: ApiContext, target: unknown): Promise<StructureElement.Loci[] | ApiFailure> {
+  const text = typeof target === 'string' ? target.trim() : target;
+  if (!text && ctx.plugin.managers.structure.selection.stats.elementCount === 0) {
+    return ApiResult.fail(
+      'not-found',
+      'Nothing is selected.',
+      'Select the atoms to keep whole, or name them (target).',
+    );
+  }
+  const resolved = await ctx.targets.resolve(text || 'selection');
+  if (ApiResult.isFailure(resolved)) return resolved;
+  if (resolved.empty) return ApiResult.fail('not-found', `${String(text || 'The selection')} selects nothing.`);
+  return resolved.parts.map((p) => StructureElement.Loci.remap(p.loci, p.loci.structure.root));
+}
+
+/** Of `atoms`, those on `root` */
+function atomsOn(atoms: readonly StructureElement.Loci[], root: Structure): StructureElement.Loci | undefined {
+  let out: StructureElement.Loci | undefined;
+  for (const a of atoms) {
+    if (a.structure.root !== root) continue;
+    out = out ? StructureElement.Loci.union(out, a) : a;
+  }
+  return out && !StructureElement.Loci.isEmpty(out) ? out : undefined;
+}
+
 /** Every representation that can be cut, of `types` (all when empty) */
 function allCells(ctx: ApiContext, types: readonly string[]): StateObjectCell[] | ApiFailure {
   const cells = clippableCells(ctx.plugin.state.data).filter(
@@ -623,6 +765,8 @@ function sameCuts(a: readonly Cut[], b: readonly Cut[]): boolean {
       (c, i) =>
         RepresentationClip.objectsEqual(c.object, b[i].object) &&
         c.drawing === b[i].drawing &&
+        c.kept?.label === b[i].kept?.label &&
+        c.kept?.count === b[i].kept?.count &&
         c.targets.length === b[i].targets.length &&
         c.targets.every((t, j) => t.ref === b[i].targets[j].ref && t.label === b[i].targets[j].label),
     )

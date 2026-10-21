@@ -68,13 +68,13 @@ export const EveryShape: StoryObj = clippingStory(async (v) => {
 /** A plane with its handles in 3D: drag the orange knob to move it, the blue arrow to slide it, the green ring to turn it */
 export const PlaneHandles: StoryObj = clippingStory(async (v) => {
   ok(await v.api.clipping.add({ shape: 'plane', types: ['molecular-surface'] }));
-  v.api.clipping.gizmos.setHandled(1, true);
+  v.api.clipping.gizmos.handleOnly(1);
 });
 
 /** A box with its handles: the purple corner knob sizes it */
 export const BoxHandles: StoryObj = clippingStory(async (v) => {
   ok(await v.api.clipping.add({ shape: 'cube', types: ['molecular-surface'] }));
-  v.api.clipping.gizmos.setHandled(1, true);
+  v.api.clipping.gizmos.handleOnly(1);
 });
 
 /** Clip this… from the structure tree's row menu, on the polymer's surface: selected, narrowed to the surface, a sphere */
@@ -88,7 +88,7 @@ export const ClipThisFromTheTree: StoryObj = clippingStory(async (v) => {
   if (!surface) throw new Error('No surface');
   await v.api.clipping.clipThis(v.api.as({ kind: 'person' }), surface.cell.transform.ref);
   ok(await v.api.clipping.add({ shape: 'sphere', types: ['molecular-surface'] }));
-  v.api.clipping.gizmos.setHandled(1, true);
+  v.api.clipping.gizmos.handleOnly(1);
 });
 
 /** A sphere around the ligand inside the surface (centered on what it targets, with room) */
@@ -102,7 +102,7 @@ export const AroundTheLigand: StoryObj = clippingStory(async (v) => {
   );
   if (!surface) throw new Error('No surface');
   ok(await v.api.clipping.add({ shape: 'sphere', node: `#${surface.cell.transform.ref}`, target: 'ligand' }));
-  v.api.clipping.gizmos.setHandled(1, true);
+  v.api.clipping.gizmos.handleOnly(1);
 });
 
 /** Every shape drawn in the scene (clip volumes, saved with it): translucent walls, solid edges, no handles */

@@ -11,6 +11,8 @@ import type { Clip } from '@molstar/core/util/clip';
 import type { PluginContext } from '@molstar/plugin/context';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 import { ClipVolumesShape3D, ClipVolumesTag, clipVolumeTag } from '@molstar/plugin/state/transforms/shape/clip-volumes';
+import { Structure, StructureElement } from '@molstar/model/model/structure';
+import { keptLabel, keptLoci, layerCell, layerOf, MaxKeptIndex, structureOf } from './kept.js';
 
 // Cuts (clipping.md §1): the clip objects of the representations, read from the state tree (its record of what is
 // clipped, so a clip set by code or a file shows too) and grouped: equal objects on several representations are one
@@ -45,6 +47,8 @@ export interface Cut {
   readonly targets: readonly CutTarget[];
   /** Its drawing in the scene (a clip volumes shape tagged `clip-volume-<its tag>`): the cell's ref, if drawn */
   readonly drawing?: string;
+  /** The atoms it keeps whole (clipping.md §5: its representations' clipping layers), if any: how many, in words */
+  readonly kept?: { readonly count: number; readonly label: string };
 }
 
 /** The representations whose geometry can be clipped, in tree order (a walk from the root) */
@@ -111,8 +115,47 @@ export function findCuts(plugin: PluginContext): Cut[] {
   }
   return cuts.map((c, i) => {
     const drawing = c.object.tag ? drawings.get(clipVolumeTag(c.object.tag)) : undefined;
-    return { index: i + 1, ...c, ...(drawing ? { drawing } : {}) };
+    const kept = keptBy(state, c.object, c.targets);
+    return { index: i + 1, ...c, ...(drawing ? { drawing } : {}), ...(kept ? { kept } : {}) };
   });
+}
+
+/**
+ * What a cut keeps whole: the atoms whose flags have its bit (its object's index there) on each structure
+ * representation it is on, in words; the count summed over its structures (the same atoms on several representations
+ * of one structure count once)
+ */
+function keptBy(state: State, object: CutObject, targets: readonly CutTarget[]) {
+  const byStructure = new Map<Structure, StructureElement.Loci>();
+  for (const t of targets) {
+    const cell = state.cells.get(t.ref);
+    const structure = cell && structureOf(cell);
+    if (!cell || !structure) continue;
+    const index =
+      RepresentationClip.get(cell.transform.params)?.objects.findIndex((o) => RepresentationClip.sameCut(o, object)) ??
+      -1;
+    if (index < 0 || index > MaxKeptIndex) continue;
+    const loci = keptLoci(cachedLayer(state, cell), 1 << index);
+    if (!loci) continue;
+    const root = structure.root;
+    const had = byStructure.get(root);
+    byStructure.set(root, had ? StructureElement.Loci.union(had, loci) : loci);
+  }
+  if (!byStructure.size) return undefined;
+  const all = [...byStructure.values()];
+  const count = all.reduce((n, l) => n + StructureElement.Loci.size(l), 0);
+  return { count, label: all.length === 1 ? keptLabel(all[0]) : `${count} atoms` };
+}
+
+/** A representation's layer merged, cached by its cell's params (a layer read again only when it changed) */
+const layers = new WeakMap<object, ReturnType<typeof layerOf>>();
+function cachedLayer(state: State, repr: StateObjectCell) {
+  const cell = layerCell(state, repr.transform.ref);
+  const key = cell?.transform.params as object | undefined;
+  if (!key) return layerOf(state, repr);
+  let layer = layers.get(key);
+  if (!layer) layers.set(key, (layer = layerOf(state, repr)));
+  return layer;
 }
 
 /**

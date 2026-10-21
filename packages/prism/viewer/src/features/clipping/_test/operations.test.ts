@@ -294,4 +294,45 @@ describe('the clipping area', () => {
     ok(await clipping.remove({ cut: 1 }));
     expect([...state.cells.values()].some((c) => c.transform.tags?.includes('clip-volumes'))).toBe(false);
   });
+
+  it('keeps atoms whole, releases them, and keeps them with their cut when an earlier one goes', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping;
+    ok(await clipping.add({ shape: 'plane', target: 'polymer' }));
+    ok(await clipping.add({ shape: 'sphere', target: 'polymer' }));
+    expect(findCuts(v.plugin)[1].kept).toBeUndefined();
+    ok(await clipping.keep({ cut: 2, target: 'A:10-20' }));
+    const kept = findCuts(v.plugin)[1].kept;
+    expect(kept?.count).toBeGreaterThan(0);
+    expect(findCuts(v.plugin)[0].kept).toBeUndefined();
+    // the first cut removed: the second (now 1) still keeps them (its bit moved down with it)
+    ok(await clipping.remove({ cut: 1 }));
+    expect(findCuts(v.plugin)[0].kept).toEqual(kept);
+    ok(await clipping.release({ cut: 1 }));
+    expect(findCuts(v.plugin)[0].kept).toBeUndefined();
+    expect(await clipping.release({ cut: 1 })).toMatchObject({ ok: true, unchanged: true });
+  });
+
+  it('adds a cut that keeps its target whole', async () => {
+    const v = await create(cbs());
+    const cut = ok<Cut>(await v.api.clipping.add({ shape: 'sphere', target: 'A:10-20', keepWhole: true }));
+    expect(cut.kept?.count).toBeGreaterThan(0);
+  });
+
+  it("draws a cut's new shape when its shape changes", async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping;
+    const state = v.plugin.state.data;
+    ok(await clipping.add({ shape: 'plane', target: 'polymer' }));
+    ok(await clipping.show({ cut: 1, on: true }));
+    const vertices = () => {
+      const drawing = findCuts(v.plugin)[0].drawing!;
+      const [shape] = [...state.tree.children.get(drawing).values()];
+      const repr = (state.cells.get(shape)!.obj!.data as { repr: { renderObjects: { values: any }[] } }).repr;
+      return repr.renderObjects[0].values.drawCount.ref.value as number;
+    };
+    const plane = vertices();
+    ok(await clipping.update({ cut: 1, shape: 'cube' }));
+    expect(vertices()).not.toBe(plane);
+  });
 });

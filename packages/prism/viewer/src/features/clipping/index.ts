@@ -33,7 +33,8 @@ export const ClippingSkill: ViewerSkill = {
     '  or a node selector (volume > representation) for volumes and shapes; types narrows them (molecular-surface).',
     '- clipping.list gives the cuts by number; clipping.update moves (position), turns (normal or rotation), sizes',
     '  (scale) or inverts one; clipping.apply turns one on or off for a representation (its ref, as the list gives it);',
-    '  clipping.remove and clipping.clear take them away.',
+    '  clipping.keep leaves atoms (a target; the selection by default) whole in a cut, clipping.release cuts them again;',
+    '  clipping.show draws a cut in the scene (saved with it); clipping.remove and clipping.clear take them away.',
   ].join('\n'),
   tools: [
     {
@@ -79,6 +80,20 @@ export const ClippingFeature: ViewerExtension = {
         title: 'Cut a representation, or leave it whole…',
         alias: ['keep whole', 'unclip', 'clip representation'],
         action: 'Apply',
+      }),
+      operationCommand(api, x.keep, {
+        category,
+        icon: 'shield',
+        title: 'Keep atoms whole in a cut…',
+        alias: ['keep whole', 'exclude from clipping', 'do not clip', 'protect from cut'],
+        action: 'Keep',
+      }),
+      operationCommand(api, x.release, {
+        category,
+        icon: 'scissors',
+        title: 'Cut atoms kept whole again…',
+        alias: ['release', 'clip again'],
+        action: 'Release',
       }),
       operationCommand(api, x.show, {
         category,

@@ -81,8 +81,7 @@ export function clippingUI(ctx: ViewerUIContext): ViewerExtensionUI {
             if (!done) return;
             // a cut made here (a volume's, a shape's): its handles on, its editor the one open
             if (done.cut) {
-              clipping.gizmos.setHandled(done.cut.index, true);
-              clipping.open.set([done.cut.index]);
+              clipping.gizmos.handleOnly(done.cut.index);
             }
             void ctx.api.view.open({ tab: 'selection', section: ClippingSectionId });
           });
@@ -120,24 +119,24 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
     const on = chosen.value.includes(t);
     exclude(types.value.filter((x) => (x === t ? on : !chosen.value.includes(x))));
   };
-  // The cuts whose editor is open (by number, kept on the area: Clip this… opens a cut it made): a new one opens
-  // alone, so its shape is a click away
-  const open = clipping.open;
-  const setOpen = (index: number, on: boolean) =>
-    open.set(on ? [...open.value.filter((i) => i !== index), index] : open.value.filter((i) => i !== index));
+  // One cut is active at a time: its editor open, its handles shown (so a cut drawn in the scene is never one that can
+  // not be dragged); the gizmo controller keeps it, following it when the cuts are renumbered
+  const active = clipping.gizmos.handled;
+  const setOpen = (index: number, on: boolean) => clipping.gizmos.handleOnly(on ? index : undefined);
   // + Add: a plane through what the selection is drawn as; its shape is picked on the cut
   const add = () => {
     // all chosen: no filter, so a type drawn later is cut too
     const only = chosen.value.length === types.value.length ? [] : chosen.value;
     // nothing selected (a map alone, say): everything drawn, narrowed on the cut afterwards
-    const values = selected.value ? { shape: 'plane', types: only } : { shape: 'plane', everything: true };
+    const values = selected.value
+      ? { shape: 'plane', types: only, ...(clipping.keepNew.value ? { keepWhole: true } : {}) }
+      : { shape: 'plane', everything: true };
     void ctx.api.run('clipping.add', values).then((r) => {
       // a new cut, or the one like it already there (Add pressed again): either is what is worked on now
       const cut = (r as { value?: Cut }).value;
       if (!r.ok || !cut) return;
-      clipping.gizmos.setHandled(cut.index, true);
-      // its editor the only one open: the new cut is what is being worked on
-      open.set([cut.index]);
+      // the new cut (or the one like it) is the active one: its editor open, its handles shown
+      clipping.gizmos.handleOnly(cut.index);
     });
   };
   // The handled cuts' gizmos show while the section does: closed (or its tab), they go; opened, they come back
@@ -150,32 +149,6 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
     <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
       <div style={row}>
         <p style={`${caption}; flex: 1`}>Cuts</p>
-        <Show when={any}>
-          {() => (
-            <>
-              {/* the rows' handles toggle, so All and None read as theirs */}
-              <span style="display: flex; color: var(--msp-color-text-muted)" title="Handles" aria-hidden="true">
-                <Icon name="move-3d" size={14} />
-              </span>
-              <Button
-                size="xs"
-                variant="ghost"
-                title="Handles on every cut: drag to move, turn or size it (Esc cancels)"
-                onClick={() => clipping.gizmos.handleAll(true)}
-              >
-                All
-              </Button>
-              <Button
-                size="xs"
-                variant="ghost"
-                title="Handles on no cut"
-                onClick={() => clipping.gizmos.handleAll(false)}
-              >
-                None
-              </Button>
-            </>
-          )}
-        </Show>
         <Button
           size="xs"
           variant="ghost"
@@ -227,13 +200,31 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           </div>
         )}
       </Show>
+      <Show when={selected}>
+        {() => {
+          const on = clipping.keepNew.asReadonly;
+          return (
+            <Button
+              size="xs"
+              variant="ghost"
+              block
+              pressed={on}
+              icon={<Check on={on} />}
+              title="A cut added keeps the selected atoms whole: it goes around them"
+              onClick={() => clipping.keepNew.set(!on.value)}
+            >
+              <Muted on={on}>Keep the selection whole</Muted>
+            </Button>
+          );
+        }}
+      </Show>
       <For each={numbers}>
         {(index) => (
           <CutRow
             ctx={ctx}
             clipping={clipping}
             cut={derive(clipping.cuts, (cs) => cs.find((c) => c.index === index))}
-            open={derive(open.asReadonly, (o) => o.includes(index))}
+            open={derive(active, (a) => a.includes(index))}
             setOpen={(on) => setOpen(index, on)}
           />
         )}
@@ -339,7 +330,6 @@ function CutRow(props: {
   setOpen(on: boolean): void;
 }) {
   const { ctx, clipping, cut } = props;
-  const handled = derive([clipping.gizmos.handled, cut], (h, c) => !!c && h.includes(c.index));
   const run = (op: string, values: Record<string, unknown>) => {
     const c = cut.value;
     return c ? ctx.api.run(op, { cut: c.index, ...values }) : undefined;
@@ -375,19 +365,6 @@ function CutRow(props: {
                   </span>
                 </span>
               </button>
-              <Button
-                size="xs"
-                variant="ghost"
-                icon={<Icon name="move-3d" />}
-                title={derive(handled, (on) =>
-                  on ? 'Hide its handles' : 'Handles in 3D: drag to move, turn or size it (Esc cancels)',
-                )}
-                pressed={handled}
-                onClick={() => {
-                  const c = cut.value;
-                  if (c) clipping.gizmos.setHandled(c.index, !handled.value);
-                }}
-              />
               <Button
                 size="xs"
                 variant="ghost"
@@ -428,6 +405,9 @@ function CutRow(props: {
                     </span>
                   </Button>
                   <CutTargets clipping={clipping} cut={cut} run={run} />
+                  <Fold title="Kept whole" meta={derive(cut, (c) => (c?.kept ? `(${c.kept.label})` : '(nothing)'))}>
+                    {() => <KeptWhole ctx={ctx} cut={cut} run={run} />}
+                  </Fold>
                   <Fold title="Position and size">{() => <CutForm cut={cut} shape={shape} run={run} />}</Fold>
                   <Show when={derive(cut, (c) => !!c?.drawing)}>
                     {() => (
@@ -574,6 +554,51 @@ function sameTargets(a: readonly { ref: string }[], b: readonly { ref: string }[
 
 function sameNumbersOrStrings<T extends string | number>(a: readonly T[], b: readonly T[]) {
   return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+/** What a cut keeps whole: the atoms (in words), cut again; the selection added */
+function KeptWhole(props: {
+  ctx: ViewerUIContext;
+  cut: ReadonlyState<Cut | undefined>;
+  run(op: string, values: Record<string, unknown>): Promise<unknown> | void;
+}) {
+  const { cut } = props;
+  const selected = derive(props.ctx.sources.interaction.selection, (s) => s !== undefined);
+  return (
+    <div style="display: grid; gap: 2px; min-width: 0">
+      <Show when={derive(cut, (c) => c?.kept?.label)}>
+        {(label) => (
+          <div class={classes.cutRow}>
+            <span class={`${classes.fade}`} style="flex: 1; min-width: 0">
+              {label}
+              <span class={classes.caption}> {derive(cut, (c) => (c?.kept ? `· ${c.kept.count} atoms` : ''))}</span>
+            </span>
+            <Button
+              size="xs"
+              variant="ghost"
+              title="Cut these atoms again"
+              onClick={() => props.run('clipping.release', {})}
+            >
+              Release
+            </Button>
+          </div>
+        )}
+      </Show>
+      <Button
+        size="xs"
+        variant="ghost"
+        block
+        icon={<Icon name="plus" />}
+        disabled={derive(selected, (s) => !s)}
+        title={derive(selected, (s) =>
+          s ? 'The selected atoms left whole by this cut' : 'Select the atoms to keep whole',
+        )}
+        onClick={() => props.run('clipping.keep', {})}
+      >
+        <span style="flex: 1; text-align: start">Keep the selection whole</span>
+      </Button>
+    </div>
+  );
 }
 
 /** How a drawn cut looks in the scene (its walls, its edges): each change applied at once, the latest wins */

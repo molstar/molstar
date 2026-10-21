@@ -56,6 +56,13 @@ export const ClipVolumesParams = {
 export type ClipVolumesParams = typeof ClipVolumesParams;
 export type ClipVolumesProps = PD.Values<ClipVolumesParams>;
 
+/** What a clip volumes shape is built from: the objects drawn, what they cut, how */
+interface ClipVolumesData {
+  readonly objects: readonly ClipObject[];
+  readonly around: Sphere3D;
+  readonly props: ClipVolumesProps;
+}
+
 type ClipVolumesShape3D = typeof ClipVolumesShape3D;
 const ClipVolumesShape3D = PluginStateTransform.BuiltIn({
   name: 'clip-volumes-shape-3d',
@@ -80,23 +87,25 @@ const ClipVolumesShape3D = PluginStateTransform.BuiltIn({
       const objects = (clipOf(a.data.repr)?.objects ?? []).filter(
         (o) => !params.tags.length || (!!o.tag && params.tags.includes(o.tag)),
       );
-      const mesh = clipVolumesMesh(objects, boundsOf(a.data.repr), params);
+      // everything the mesh is built from is the shape's data: the representation keeps the `getShape` it was made
+      // with and is given new data on an update (a closure over one mesh would draw only that one)
+      const data: ClipVolumesData = { objects, around: boundsOf(a.data.repr), props: params };
       const label = objects.length === 1 ? `Cut: ${stringToWords(objects[0].type)}` : 'Cuts';
       return new SO.Shape.Provider(
         {
           label,
-          data: params,
+          data,
           params: Mesh.Params,
-          getShape: (_, data: ClipVolumesProps) =>
+          getShape: (_, d: ClipVolumesData) =>
             ShapeUtils.create(
               label,
-              data,
-              mesh,
-              (g) => (g % 2 ? data.edgeColor : data.wallColor),
+              d,
+              clipVolumesMesh(d.objects, d.around, d.props),
+              (g) => (g % 2 ? d.props.edgeColor : d.props.wallColor),
               () => 1,
-              (g) => `${stringToWords(objects[g >> 1]?.type ?? '')} (${g % 2 ? 'edges' : 'walls'})`,
+              (g) => `${stringToWords(d.objects[g >> 1]?.type ?? '')} (${g % 2 ? 'edges' : 'walls'})`,
               undefined,
-              Math.max(2 * objects.length, 1),
+              Math.max(2 * d.objects.length, 1),
             ),
           geometryUtils: Mesh.Utils,
           // the walls translucent, the edges solid (applied by the shape representation, per group)

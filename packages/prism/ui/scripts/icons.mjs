@@ -39,6 +39,7 @@ const ICONS = [
   'cone',
   'flip-vertical-2',
   'scissors',
+  'shield',
   'swatch-book',
   'book-open',
   'layers',

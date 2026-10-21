@@ -108,6 +108,13 @@ export class ClipGizmos {
   }
 
   /** Every cut's gizmo on, or none */
+  /** The active cut (its editor open in the section): its gizmo alone, or none */
+  handleOnly(index: number | undefined): void {
+    const cut = index === undefined ? undefined : this.cuts.value.find((c) => c.index === index);
+    this.#handledObjects = new Map(cut ? [[cut.index, cut.object] as const] : []);
+    this.#publishHandled();
+  }
+
   handleAll(on: boolean): void {
     this.#handledObjects = new Map(on ? this.cuts.value.map((c) => [c.index, c.object] as const) : []);
     this.#publishHandled();
