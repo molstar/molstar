@@ -46,6 +46,11 @@ const Colors: Readonly<Record<Handle, Color>> = {
   radius: Color(0xbd10e0),
 };
 const BodyColor = Color(0x8fb8ec);
+/** The handles' glow (emissive: the canvas's bloom picks it up), and its peak when they blink */
+const Glow = 0.35;
+const GlowPeak = 1;
+/** A cut's handles, shown, blink twice over this long: they catch the eye, then keep still (no redraw after) */
+const BlinkMs = 1200;
 
 interface Gizmo {
   cut: Cut;
@@ -87,6 +92,9 @@ export class ClipGizmos {
   /** The trackball's bindings while a handle holds the drags (restored whole: a partial set keeps only its part) */
   #bindings: Canvas3D['attribs']['trackball']['bindings'] | undefined;
   #syncing = 0;
+  /** The handles blinking: since when; one frame loop for all, stopped when none is left */
+  readonly #blinking = new Map<Representation.Any, number>();
+  #blinkFrame: number | undefined;
 
   constructor(
     private readonly plugin: PluginContext,
@@ -178,6 +186,9 @@ export class ClipGizmos {
     this.#subs = [];
     this.#releaseClicks?.();
     this.#releaseClicks = undefined;
+    if (this.#blinkFrame !== undefined) cancelAnimationFrame(this.#blinkFrame);
+    this.#blinkFrame = undefined;
+    this.#blinking.clear();
     this.#set?.dispose();
     this.#set = undefined;
     this.#gizmos.clear();
@@ -240,6 +251,8 @@ export class ClipGizmos {
         set.remove(g.handles);
       }
       this.#gizmos.set(cut.index, { cut, bounds, geometry, ...made });
+      // new to the canvas (not remade for a change): it blinks
+      if (!g) this.#blink(made.handles);
     }
     this.#canvas?.requestDraw();
   }
@@ -277,7 +290,7 @@ export class ClipGizmos {
           pickable: false,
         },
       ),
-      set.addShape((_, s: Shape<Mesh>) => s, Mesh.Utils, handleShape, { alpha: 1 }, helper),
+      set.addShape((_, s: Shape<Mesh>) => s, Mesh.Utils, handleShape, { alpha: 1, emissive: Glow }, helper),
     ]);
     set.setTransform(body, geometry.transform);
     set.setTransform(handles, geometry.transform);
@@ -299,6 +312,26 @@ export class ClipGizmos {
     set.remove(g.body);
     set.remove(g.handles);
     Object.assign(g, { geometry, ...made, cut: { ...g.cut, object } });
+  }
+
+  #blink(handles: Representation.Any) {
+    if (typeof requestAnimationFrame === 'undefined') return;
+    this.#blinking.set(handles, performance.now());
+    if (this.#blinkFrame === undefined) this.#blinkFrame = requestAnimationFrame((t) => this.#blinkStep(t));
+  }
+
+  /** One frame of the blinks: the glow as two pulses (sin²), back to rest at the end; a uniform update only */
+  #blinkStep(now: number) {
+    this.#blinkFrame = undefined;
+    const set = this.#set;
+    if (!set) return;
+    for (const [handles, since] of [...this.#blinking]) {
+      const t = (now - since) / BlinkMs;
+      if (t >= 1 || !set.has(handles)) this.#blinking.delete(handles);
+      const pulse = t >= 1 ? 0 : Math.sin(2 * Math.PI * t) ** 2;
+      void set.update(handles, { emissive: Glow + (GlowPeak - Glow) * pulse } as never);
+    }
+    if (this.#blinking.size) this.#blinkFrame = requestAnimationFrame((t) => this.#blinkStep(t));
   }
 
   #hover(current: Representation.Loci) {
