@@ -18,7 +18,7 @@ import {
   rotated,
   rotationTo,
 } from '../cuts.js';
-import { turn } from '../gizmo/gestures.js';
+import { applyToCut } from '../gizmo/binding.js';
 
 // The cut geometry the area and the gizmos share: rotations, a cone's angle, where a new cut goes.
 
@@ -67,7 +67,7 @@ describe('cuts', () => {
       transform: undefined as never,
     };
     const frame = { right: Vec3.create(1, 0, 0), up: Vec3.create(0, 1, 0), perPixel: 1 };
-    const next = turn(from, frame, 0, 0);
+    const next = applyToCut(from, { kind: 'turn' }, frame, 0, 0);
     expect(next.rotation.angle).toBeCloseTo(30, 4);
   });
 

@@ -29,7 +29,8 @@
     "./repr/structure/visual/util/polymer/_test/*": null,
     "./repr/volume/_test/*": null,
     "./theme/_test/*": null,
-    "./util/_test/*": null
+    "./util/_test/*": null,
+    "./util/gizmo/_test/*": null
   },
   "files": [
     "lib",
