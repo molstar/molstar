@@ -11,7 +11,7 @@ import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynam
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
-import { type State, type StateObjectCell, StateSelection } from '@molstar/core/state';
+import { type State, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
@@ -763,10 +763,10 @@ export function createSceneSource(
       n.removable = true;
       nodes.set(ref, n);
     }
-    const data = l.cell.obj?.data;
+    const data = particleListData(plugin.state.data, ref);
     n.set(name, data ? particlesText(data) : undefined, !!l.cell.state.isHidden);
     // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
-    if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref);
+    if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref, openCommand);
     return n;
   };
 
@@ -1297,6 +1297,9 @@ function inspectionKey(plugin: PluginContext, node: SceneNode): unknown {
     }
     case 'volume-representation':
       return typeName(plugin.state.data.cells.get(node.id)?.transform.params);
+    case 'particles':
+      // its facts follow the list as its representations see it (a target attached)
+      return particleListData(plugin.state.data, node.id);
   }
   return undefined;
 }
@@ -2242,7 +2245,7 @@ function inspect(
     if (s) return { node, form: undefined, slot, contents: contentsSummary(s, reveal) };
   }
   if (node.kind === 'particles' && cell?.obj?.data) {
-    const data = cell.obj.data as ParticleList;
+    const data = particleListData(plugin.state.data, node.id) ?? (cell.obj.data as ParticleList);
     return { node, form: undefined, slot, facts: particlesFacts(data) };
   }
   const updateOperation = UpdateOperations[node.kind];
@@ -2325,6 +2328,26 @@ function particlesText(data: ParticleList): string {
   return `${data.count.toLocaleString('en')} particles${targets > 1 ? ` · ${targets} targets` : ''}`;
 }
 
+/** What stands for a target: a structure's entry, a shape's or a volume's name */
+function targetLabel(
+  target: NonNullable<ParticleList['targetMapping']> extends ReadonlyMap<number, infer T> ? T : never,
+) {
+  switch (target.kind) {
+    case 'structure':
+      return target.structure.model.entryId || target.structure.label;
+    case 'shape':
+      return target.shape.name;
+    case 'volume':
+      return target.volume.sourceData.name || 'a volume';
+  }
+}
+
+/** A list as its representations see it: the data at the end of its decorators (targets attached) */
+function particleListData(state: State, ref: string): ParticleList | undefined {
+  const root = StateTree.getDecoratorRoot(state.tree, ref);
+  return (state.cells.get(root)?.obj?.data ?? state.cells.get(ref)?.obj?.data) as ParticleList | undefined;
+}
+
 const listOf = (names: readonly string[], max = 3) =>
   names.length <= max ? names.join(', ') : `${names.slice(0, max).join(', ')} and ${names.length - max} more`;
 
@@ -2333,7 +2356,13 @@ function particlesFacts(data: ParticleList): [string, string][] {
   const facts: [string, string][] = [['Particles', data.count.toLocaleString('en')]];
   if (data.sourceData?.kind) facts.push(['Source', data.sourceData.kind]);
   facts.push(['Orientations', data.rotations ? 'yes' : 'none']);
-  const targets = [...data.targetInfo.values()].map((t, i) => t.name ?? `target ${i + 1}`);
+  // Each target by name (its entity's), and what stands for it once one is attached ("ribosome: 1crn")
+  const targets = [...data.targetInfo].map(([id, t]) => {
+    const name =
+      t.name ?? (t.entity !== undefined ? data.entityInfo?.get(t.entity)?.name : undefined) ?? `target ${id}`;
+    const object = data.targetMapping?.get(id);
+    return object ? `${name}: ${targetLabel(object)}` : name;
+  });
   if (targets.length) facts.push(['Targets', `${targets.length}: ${listOf(targets)}`]);
   if (data.entityInfo?.size) {
     facts.push(['Entities', `${data.entityInfo.size}: ${listOf([...data.entityInfo.values()].map((e) => e.name))}`]);
@@ -2355,9 +2384,14 @@ function cellFacts(cell: { size: ArrayLike<number>; anglesInRadians: ArrayLike<n
 }
 
 /** A particle list's row menu: a representation added, all colored by a theme, the camera to it, its unit cell. */
-function particlesMenu(plugin: PluginContext, api: ViewerApi, ref: string): SceneMenuItem[] | undefined {
+function particlesMenu(
+  plugin: PluginContext,
+  api: ViewerApi,
+  ref: string,
+  openCommand: OpenCommand | undefined,
+): SceneMenuItem[] | undefined {
   const l = plugin.managers.particles.hierarchy.current.lists.find((x) => x.cell.transform.ref === ref);
-  const data = l?.cell.obj?.data;
+  const data = l && particleListData(plugin.state.data, ref);
   if (!l || !data) return undefined;
   const { registry, themes } = plugin.representation.particles;
   const present = new Set(
@@ -2420,7 +2454,7 @@ function particlesRepresentationMenu(
   const list = plugin.managers.particles.hierarchy.current.lists.find((l) =>
     l.representations.some((r) => r.cell.transform.ref === ref),
   );
-  const data = list?.cell.obj?.data;
+  const data = list && particleListData(plugin.state.data, list.cell.transform.ref);
   const current = (cell?.transform.params as { colorTheme?: { name: string } } | undefined)?.colorTheme?.name;
   const colors = data
     ? plugin.representation.particles.themes.colorThemeRegistry.getApplicableList({ particles: data })

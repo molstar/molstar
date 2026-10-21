@@ -112,6 +112,11 @@ Clip is not here: the clipping extension covers it, through `type.params.clip`, 
   - rows say what they show (theme, swatch, targets) and have menus (Add representation, Color by, Focus, unit cell);
   - the unit cell is a row of its own;
   - the inspector shows the list's facts (source, orientations, targets, entities, compartments, fibers, attribute ranges, cell).
+- P6 is done:
+  - `particles.targets`: one target per call, a file or a PDB id or URL (network: asks for a URL), adding or updating `ParticleListWithTargets`, and a `target` representation when there is none;
+  - the list's Targets fact names what stands for each;
+  - the row menu opens the command;
+  - operations and the scene read the list at the end of its decorators (`getDecoratorRoot`).
 - Not handled: a `.molx` session holding particles does not load the feature. `session.open` reads transformers only from `.molj`. To do with P9.
 
 

@@ -16,14 +16,19 @@ import type {
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
+import { ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
+import { particleTargetSourceFromPdbIdOrUrl } from '@molstar/plugin/state/helpers/particle-targets';
+import { Asset } from '@molstar/core/util/assets';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import { Interval } from '@molstar/core/data/int';
-import { type State, type StateObjectCell, StateSelection } from '@molstar/core/state';
+import { type State, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
 import type { Color } from '@molstar/core/util/color';
 import { decodeColor } from '@molstar/core/util/color/utils';
 import { Particle } from '@molstar/model/model/particles/particle-list';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '../../api/area.js';
 import { NodeParam, OptionalParam } from '../../api/params.js';
+import { FileParam } from '../../api/files.js';
+import { messageOf } from '../../api/run.js';
 import { nodesFor, updateEach } from '../../api/nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from '../../api/scope.js';
 import { commitRepresentation, setRepresentation } from '../../api/set-representation.js';
@@ -107,7 +112,7 @@ export class ParticlesApi extends ApiArea {
       const l = oneList(ctx, particles || undefined);
       if (isFailure(l)) return l;
       const name = listName(ctx, l);
-      const data = l.cell.obj?.data;
+      const data = listData(ctx, l);
       return setRepresentation(ctx, {
         name,
         type,
@@ -214,6 +219,80 @@ export class ParticlesApi extends ApiArea {
     },
   });
 
+  // What the particles stand for (Mol*'s `ParticleListWithTargets`): one target per call, a file or a PDB id or URL,
+  // instanced at the particles of that target id. Calls add up (the same target again replaces its object); a list
+  // shows its targets once one is attached (a `target` representation is added when it has none).
+  readonly targets = this.operation({
+    id: 'particles.targets',
+    title: 'Set what the particles stand for',
+    params: {
+      file: FileParam({ description: 'A structure, map or shape file for the target' }),
+      source: PD.Text('', { description: 'A PDB id (1crn) or a URL, instead of a file' }),
+      target: PD.Text('', { description: 'The target by id or name; empty: the only one' }),
+      particles: ListParam(),
+    },
+    approval: 'network',
+    addresses: ({ source }) => (/^https?:/i.test(source.trim()) ? [source.trim()] : []),
+    async run({ file, source, target, particles }, ctx) {
+      const l = oneList(ctx, particles || undefined);
+      if (isFailure(l)) return l;
+      const name = listName(ctx, l);
+      const data = l.cell.obj?.data;
+      if (!data) return ApiResult.fail('not-found', `${name} is not loaded.`);
+      if (!file && !source.trim()) {
+        return ApiResult.fail('invalid', 'Which object do the particles stand for?', 'Give a file, a PDB id or a URL.');
+      }
+      const id = targetIdOf(data, target);
+      if (isFailure(id)) return id;
+      const state = ctx.plugin.state.data;
+      const decorator = state.select(
+        StateSelection.Generators.byRef(l.cell.transform.ref).subtree().withTransformer(ParticleListWithTargets),
+      )[0];
+      const src = file
+        ? { name: 'file' as const, params: { file: Asset.File(file), format: 'auto' } }
+        : (() => {
+            const t = particleTargetSourceFromPdbIdOrUrl(ctx.plugin, source);
+            const url = t.kind === 'url' ? t.url : '';
+            const asset = typeof url === 'string' ? Asset.Url(url) : url;
+            return {
+              name: 'url' as const,
+              params: {
+                url: asset,
+                format: (t.kind === 'url' && t.format) || 'auto',
+                isBinary: t.kind === 'url' ? t.isBinary : undefined,
+              },
+            };
+          })();
+      const entry = { targetId: id, source: src };
+      const old = decorator?.transform.params as
+        | { files?: unknown[]; targets: { targetId: number }[]; includeParent: boolean }
+        | undefined;
+      const targets = [...(old?.targets ?? []).filter((t) => t.targetId !== id), entry];
+      const b = state.build();
+      if (decorator) b.to(decorator).update({ ...old, targets } as never);
+      else b.to(l.cell).apply(ParticleListWithTargets, { files: [], targets, includeParent: true } as never);
+      try {
+        await ctx.plugin.runTask(state.updateTree(b));
+      } catch (e) {
+        return ApiResult.fail('failed', `Could not attach the target of ${name}: ${messageOf(e)}`);
+      }
+      const what = file ? file.name : source.trim();
+      if (!l.representations.some((r) => typeOf(r) === 'target')) {
+        const added = await ctx.api.run('particles.representation', {
+          particles: l.cell.transform.ref,
+          type: 'target',
+        });
+        if (ApiResult.isFailure(added)) return added;
+      }
+      return ApiResult.ok(
+        `The particles of ${name}${data.targetInfo.size > 1 ? ` (target ${id})` : ''} stand for ${what}.`,
+        {
+          nodes: [l.cell.transform.ref],
+        },
+      );
+    },
+  });
+
   // A representation's color theme (the row menu's Color): the theme with its defaults for the list, or `params`.
   readonly color = this.operation({
     id: 'particles.color',
@@ -236,14 +315,14 @@ export class ParticlesApi extends ApiArea {
       }
       const provider = colorThemeRegistry.get(theme);
       const todo = reps.filter((r) => {
-        const data = r.list.cell.obj?.data;
+        const data = listData(ctx, r.list);
         return !data || provider.isApplicable({ particles: data });
       });
       if (!todo.length) return ApiResult.fail('invalid', `${provider.label} does not apply to these particles.`);
       const update = ctx.plugin.state.data.build();
       let changed = 0;
       for (const r of todo) {
-        const data = r.list.cell.obj?.data;
+        const data = listData(ctx, r.list);
         const current = (r.cell.transform.params as { colorTheme?: { name: string; params?: object } } | undefined)
           ?.colorTheme;
         const next = {
@@ -278,7 +357,7 @@ export class ParticlesApi extends ApiArea {
     async run({ particles }, ctx) {
       const l = oneList(ctx, particles || undefined);
       if (isFailure(l)) return l;
-      const data = l.cell.obj?.data;
+      const data = listData(ctx, l);
       if (!data?.count) return ApiResult.fail('not-found', `${listName(ctx, l)} has no particles.`);
       ctx.plugin.managers.camera.focusLoci(Particle.Loci(data, Interval.ofLength(data.count)));
       return ApiResult.ok(`Focused ${listName(ctx, l)}.`, { nodes: [l.cell.transform.ref] });
@@ -356,6 +435,16 @@ export class ParticlesApi extends ApiArea {
   });
 }
 
+/**
+ * A list as its representations see it: the data at the end of its decorators (`ParticleListWithTargets` adds the
+ * targets; the hierarchy's ref holds the list below them)
+ */
+function listData(ctx: ApiContext, l: ParticleListRef): ParticleList | undefined {
+  const tree = ctx.plugin.state.data.tree;
+  const root = StateTree.getDecoratorRoot(tree, l.cell.transform.ref);
+  return (ctx.plugin.state.data.cells.get(root)?.obj?.data as ParticleList | undefined) ?? l.cell.obj?.data;
+}
+
 function lists(ctx: ApiContext): readonly ParticleListRef[] {
   return ctx.plugin.managers.particles.hierarchy.current.lists;
 }
@@ -415,6 +504,26 @@ function representationsFor(
     );
   }
   return l.representations;
+}
+
+/** A target by id or name (an entity's), or the only one */
+function targetIdOf(data: ParticleList, target: string): number | ApiFailure {
+  const ids = [...data.targetInfo.keys()];
+  const t = target.trim();
+  if (!t) {
+    if (ids.length === 1) return ids[0];
+    return ApiResult.fail(
+      'ambiguous',
+      `The particles have ${ids.length} targets.`,
+      `Name one: ${ids.slice(0, 12).join(', ')}.`,
+    );
+  }
+  if (/^\d+$/.test(t) && data.targetInfo.has(+t)) return +t;
+  for (const [id, info] of data.targetInfo) {
+    const entity = info.entity !== undefined ? data.entityInfo?.get(info.entity)?.name : undefined;
+    if ((info.name ?? entity)?.toLowerCase() === t.toLowerCase()) return id;
+  }
+  return ApiResult.fail('not-found', `There is no target '${t}'.`, `Targets: ${ids.slice(0, 12).join(', ')}.`);
 }
 
 function typeOf(r: ParticleRepresentationRef): string {

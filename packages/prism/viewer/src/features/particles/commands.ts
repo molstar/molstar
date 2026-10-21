@@ -55,5 +55,12 @@ export function particleCommands(api: ViewerApi): CommandDefinition<ViewerComman
       alias: ['particle box', 'periodic box', 'simulation box', 'particle unit cell'],
       action: 'Show',
     }),
+    operationCommand(api, particles.targets, {
+      category: 'Particles',
+      icon: 'shapes',
+      title: 'Set what the particles stand for…',
+      alias: ['particle targets', 'subtomogram average', 'place structure at particles', 'reference object'],
+      action: 'Set',
+    }),
   ];
 }

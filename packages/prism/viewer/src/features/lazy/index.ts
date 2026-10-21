@@ -182,6 +182,12 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.color', title: 'Color particles by…' },
       { id: 'particles.focus', title: 'Focus the particles', history: false },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell' },
+      {
+        id: 'particles.targets',
+        title: 'Set what the particles stand for',
+        approval: 'network',
+        addresses: ({ source }) => (/^https?:/i.test(String(source ?? '').trim()) ? [String(source).trim()] : []),
+      },
     ],
     commands: [
       { id: 'particles.representation', title: 'Show particles as…', category: 'Particles', icon: 'layers' },
@@ -190,6 +196,7 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.color', title: 'Color particles by…', category: 'Particles', icon: 'palette' },
       { id: 'particles.focus', title: 'Focus the particles', category: 'Particles', icon: 'focus' },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell', category: 'Particles', icon: 'box' },
+      { id: 'particles.targets', title: 'Set what the particles stand for…', category: 'Particles', icon: 'shapes' },
     ],
     owns: {
       transformers: ParticleTransformers,

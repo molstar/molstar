@@ -331,6 +331,19 @@ describe('the scene: volumes and particles', () => {
     await until(() => rep.description.value === 'Uniform');
   });
 
+  it('says what stands for the particles once a target is attached', async () => {
+    const v = await headlessViewer({ files: [fixture('cryoet-ribosomes.ndjson')] });
+    const list = v.views.scene.roots.value[0];
+    expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Targets')).toBe('1: target 0');
+    const crambin = new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../data/examples/1crn.cif'))],
+      '1crn.cif',
+    );
+    expectOk(await v.api.particles.targets({ file: crambin }));
+    expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Targets')).toBe('1: target 0: 1CRN');
+    expect(list.children.value.map((c) => c.label.value)).toContain('Target');
+  });
+
   it("shows a list's unit cell as a row of its own, its inspector the cell's", async () => {
     const v = await headlessViewer({ files: [fixture('small.simularium')] });
     const list = v.views.scene.roots.value[0];

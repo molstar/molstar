@@ -8,6 +8,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { StateSelection } from '@molstar/core/state';
 import { describe, expect, it } from 'vitest';
 import { expectOk, headlessViewer } from '../../../_test/harness.js';
 import type { PrismViewer } from '../../../viewer.js';
@@ -167,5 +168,31 @@ describe('particles', () => {
     expectOk(await w.api.particles.unitCell({ visible: false }));
     expect(cell()!.state.isHidden).toBe(true);
     expect(await w.api.particles.unitCell({ color: 'nope' })).toMatchObject({ ok: false, code: 'invalid' });
+  });
+
+  it('places a structure at the particles, as their target, and shows it', async () => {
+    const v = await headlessViewer({ files: [particleFixture('cryoet-ribosomes.ndjson')] });
+    const crambin = new File(
+      [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../../data/examples/1crn.cif'))],
+      '1crn.cif',
+    );
+    expect(await v.api.particles.targets({})).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await v.api.particles.targets({ file: crambin, target: 'nope' })).toMatchObject({
+      ok: false,
+      code: 'not-found',
+    });
+    const r = await v.api.particles.targets({ file: crambin });
+    expectOk(r);
+    expect(r.did).toMatch(/stand for 1crn.cif/);
+    const list = v.plugin.managers.particles.hierarchy.current.lists[0];
+    const decorated = v.plugin.state.data.select(
+      StateSelection.Generators.byRef(list.cell.transform.ref)
+        .subtree()
+        .filter((c) => c.transform.transformer.id === 'ms-plugin.particle-list-with-targets'),
+    )[0];
+    expect((decorated.obj as any).data.targetMapping.get(0)).toBeDefined();
+    expect(reps(v).sort()).toEqual(['spacefill', 'target']);
+    expectOk(await v.api.history.undo());
+    expect(reps(v)).toEqual(['spacefill']);
   });
 });
