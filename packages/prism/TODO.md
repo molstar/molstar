@@ -110,6 +110,13 @@ section); an entry leaves when it is done (its spec section says so then). The s
   event from `PluginContext.register`; what changed in `cell.stateUpdated`; `layout.setProps` and every
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
+- **Clipping** ([clipping.md](viewer/_spec/clipping.md)), still open:
+  - tests of the gizmo controller (the active cut following renumbering, the cancel paths: Esc, a change under a drag, a
+    failed commit), and a session saved and opened with drawings;
+  - the component manager taking global clip objects away shifts the later ones (`replaceOwned`): their keep-whole
+    layers are not remapped then;
+  - stories for a volume cut and a clip set from code; a mesoscale structure's long Cuts through list measured;
+  - an untagged cut from code is tagged when drawn, so code that set it no longer finds it by its values.
 
 ## Missing: prism-ui
 

@@ -135,27 +135,27 @@ beyond it (README decision 13).
   items, and `selectionActions`: rows of the selection bar's menu (a title, a line, a command or `run`, by `order`; the
   clipping extension's Clip…), part ids `<ext>.selection-action.<name>`, and `nodeActions`: rows of the scene tree's
   node menus (the inspector shows the same menu) on the node kinds given and passing `when`, after the node's own and
-  before Remove, by `order`; `run` gets the node (the clipping extension's Clip this…), part ids
-  `<ext>.node-action.<name>`. No cards or rail buttons of its own. A tab for
-  what is loaded (the Kinemage panel) passes `visible`: on the rail only while it holds, so an app with the extension
-  shows nothing for it until it has content (not the person's hidden tabs). A panel with a tree of its own draws it with
-  `SceneRow` (`children`, `depth`; `onActivate` for a row that is an action, a kinemage's view), so it reads as the
-  Structure panel. A row's eye that turns something on (a row with controls; the viewer's Volume streaming and Unit cell
-  too) picks it: its controls are in the inspector at once. A scene tree row is one row of the tree's height
-  (`SceneRow`; the tree is virtualized, view-models.md §3): its controls go to the inspector, never under it. A row
-  whose `when` holds takes a slot, so its view renders a row whenever `when` holds (one that renders nothing leaves a
-  gap); `when` says what the view would (assembly symmetry: only a PDB entry's assembly). A `when` that follows more
-  than the node and its structure passes `whenChanged`, told when it may answer otherwise (a PAE fetched is a state
-  cell, no change of the scene): the tree asks it again for the rows it shows. Streaming starts in the Auto view (around
-  the whole structure, the selection while there is one). A structure with several frames says how many on its row
-  ("1,231 atoms · 10 models"; `frames` for a simulation's coordinates) and has a row of its own first under it
-  (`views/structure/trajectory-row.tsx`): the frame shown, a scrubber, ‹ ›, play; picked, the same at full width and how
-  it plays (mode, seconds per pass) in the inspector. The row plays that structure (`trajectory.play` with `structure`;
-  without one, the operation plays every structure's frames, and every row says so); starting one stops what played. The
-  canvas' trajectory bar follows the structure that plays (paused, the one that played last): while that structure's row
-  is on screen (the Structure tab shown, the structure open, not under a card), a compact chip while frames play (name,
-  frame, pause); otherwise the full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand
-  (another tab, the panel closed, the canvas expanded).
+  before Remove, by `order`; `run` gets the node (the clipping feature's Clip this…), part ids
+  `<ext>.node-action.<name>`. No cards or rail buttons of its own. A tab for what is loaded (the Kinemage panel) passes
+  `visible`: on the rail only while it holds, so an app with the extension shows nothing for it until it has content
+  (not the person's hidden tabs). A panel with a tree of its own draws it with `SceneRow` (`children`, `depth`;
+  `onActivate` for a row that is an action, a kinemage's view), so it reads as the Structure panel. A row's eye that
+  turns something on (a row with controls; the viewer's Volume streaming and Unit cell too) picks it: its controls are
+  in the inspector at once. A scene tree row is one row of the tree's height (`SceneRow`; the tree is virtualized,
+  view-models.md §3): its controls go to the inspector, never under it. A row whose `when` holds takes a slot, so its
+  view renders a row whenever `when` holds (one that renders nothing leaves a gap); `when` says what the view would
+  (assembly symmetry: only a PDB entry's assembly). A `when` that follows more than the node and its structure passes
+  `whenChanged`, told when it may answer otherwise (a PAE fetched is a state cell, no change of the scene): the tree
+  asks it again for the rows it shows. Streaming starts in the Auto view (around the whole structure, the selection
+  while there is one). A structure with several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for
+  a simulation's coordinates) and has a row of its own first under it (`views/structure/trajectory-row.tsx`): the frame
+  shown, a scrubber, ‹ ›, play; picked, the same at full width and how it plays (mode, seconds per pass) in the
+  inspector. The row plays that structure (`trajectory.play` with `structure`; without one, the operation plays every
+  structure's frames, and every row says so); starting one stops what played. The canvas' trajectory bar follows the
+  structure that plays (paused, the one that played last): while that structure's row is on screen (the Structure tab
+  shown, the structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the
+  full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the
+  canvas expanded).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).
@@ -190,8 +190,9 @@ beyond it (README decision 13).
   `trajectory`, `annotations` (the scene's API; `requires` lists what must come before), `home`, `structure-panel`,
   `particles` (lazy: Mol*'s particles are opt-in, `ParticlesRegistry` is its plugin registry, so a viewer holds no
   particle code until a particle file, an mmCIF holding particles or a session with particles needs it),
-  `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `superposition` (lazy), `state-tree` (lazy),
-  `remote-states` (lazy, behind its setting), `snapshots`, `animation`, `export-image`, `export-session`.
+  `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `clipping` ([clipping.md](clipping.md)),
+  `superposition` (lazy), `state-tree` (lazy), `remote-states` (lazy, behind its setting), `snapshots`, `animation`,
+  `export-image`, `export-session`.
 - Built-in features' areas and operations in core areas are typed as present (`BuiltInApis`,
   `BuiltInOperationFeatures`); left out of a spec, reading one throws, naming the feature ([api.md](api.md) §2).
 - **Panels keep the core's ids** (`home`, `structure`, `selection`, `help`; `core.tab.*` as parts). Built-in features

@@ -422,7 +422,7 @@ export interface ViewerExtensionUI {
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /**
-   * Rows of the selection bar's menu (what to do with the selection: the clipping extension's Clip…), after the
+   * Rows of the selection bar's menu (what to do with the selection: the clipping feature's Clip…), after the
    * viewer's own (Focus, Show in structure tree, Make a component) and before More in the Selection panel; by `order`.
    * Each runs a command by id (its form, as the command menu opens it), or its own `run`.
    */
@@ -437,7 +437,7 @@ export interface ViewerExtensionUI {
     readonly run?: () => void;
   }[];
   /**
-   * Rows of the scene tree's node menus (and the inspector's, which shows the node's menu): the clipping extension's
+   * Rows of the scene tree's node menus (and the inspector's, which shows the node's menu): the clipping feature's
    * Clip this… on a component or a representation. On the nodes of `kinds` that pass `when`, after the node's own rows
    * and before Remove, by `order`; `run` gets the node (its `id` is the state cell's ref for a component or a
    * representation).

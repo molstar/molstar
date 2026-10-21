@@ -37,7 +37,7 @@ import { GaussianSurfaceRepresentationProvider } from '../structure/representati
 import { MolecularSurfaceRepresentationProvider } from '../structure/representation/molecular-surface.js';
 import { IsosurfaceRepresentationProvider } from '../volume/isosurface.js';
 
-// A change of `clip` alone (the clipping extension's live drag, .v6/clipping-extension/plan.md D3) updates uniforms
+// A change of `clip` alone (a clip manager's live drag: Prism's clipping gizmos) updates uniforms
 // and the clip defines only: no render object is made anew and no geometry, color or size data changes. Measured at
 // 0.01-0.12 ms an update on 1cbs (cartoon, ball-and-stick, molecular and gaussian surface), a volume and a shape.
 

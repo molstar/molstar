@@ -129,7 +129,7 @@ export interface SceneMenuItem {
 }
 
 /**
- * A row of the scene tree's node menus that an extension adds (`ui.nodeActions`: the clipping extension's Clip this…),
+ * A row of the scene tree's node menus that an extension adds (`ui.nodeActions`: the clipping feature's Clip this…),
  * on the nodes of its kinds that pass `when`; after the node's own rows, before Remove.
  */
 export interface SceneNodeAction {

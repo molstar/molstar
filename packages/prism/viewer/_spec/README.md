@@ -15,6 +15,7 @@ missing: [../../TODO.md](../../TODO.md).
 | [targets.md](targets.md)         | the address language: keywords, addresses, query texts; MolQL underneath                                      |
 | [nodes.md](nodes.md)             | node selectors over the state tree                                                                            |
 | [marks.md](marks.md)             | marks on the scene: highlights and what views draw over it                                                    |
+| [clipping.md](clipping.md)       | cuts through representations: read from the state, the area, the section, gizmos, keep whole, drawn in scene  |
 | [state.md](state.md)             | the plugin's state area by area: sources, view models                                                         |
 | [journal.md](journal.md)         | the session record, History, what is kept in the browser                                                      |
 | [sequence.md](sequence.md)       | the sequence viewer (Seq\*) beside the 3D view, the link, the history's rules                                 |

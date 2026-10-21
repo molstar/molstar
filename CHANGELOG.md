@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix the bounds of a representation moved by its state's transform (`Representation.setState({ transform })`): they
+  ignored the transform, so the camera's near and far planes and culling used the old place
 - Fix state builders that remove a node writing into the state's tree before they commit: a node added under, updated or
   depended on by a node whose ref hashes like the removed one's (common for generated refs) appeared in the current
   tree, and the next update could fail with "Cannot read properties of undefined (reading 'ref')". Also keep the nodes

@@ -12,7 +12,7 @@ import { story } from '@molstar/prism-ui/testing/index';
 import type { PrismViewer } from '../../../index.js';
 import { ExampleFiles, RealViewerStory } from '../../../testing/real-viewer.js';
 
-// The clipping extension in the Prism viewer: cuts through representations (a plane, a sphere, a box, a cylinder, a
+// The clipping feature (clipping.md): cuts through representations (a plane, a sphere, a box, a cylinder, a
 // cone), made and edited in the Selection tab's Clipping section, from the selection menu's Clip…, or by the API.
 // 1CBS (data/examples): its polymer drawn as a molecular surface over the cartoon, retinoic acid inside. No network.
 
