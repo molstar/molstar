@@ -53,6 +53,7 @@ import { StructureFocusRepresentationId } from '@molstar/plugin/behavior/dynamic
 import { setStructureSubstance } from '../../helpers/structure-substance.js';
 import { Material } from '@molstar/core/util/material';
 import { Clip } from '@molstar/core/util/clip';
+import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 import { setStructureEmissive } from '../../helpers/structure-emissive.js';
 import { setStructureWiggle } from '../../helpers/structure-wiggle.js';
 import { areInteriorPropsEquals, getInteriorParam } from '@molstar/graphics/geo/geometry/interior';
@@ -87,6 +88,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     const changedOptions = (Object.keys(options) as StructureComponentManager.OptionKey[]).filter(
       (k) => options[k] !== this.state.options[k],
     );
+    // The clip objects these options put on every representation, to be replaced by the new ones (a representation's
+    // own objects, set by a clipping editor or by code, are kept: RepresentationClip.replaceOwned)
+    const previousClip = this.state.options.clipObjects.objects;
     this.updateState({ options });
     this.events.optionsUpdated.next(void 0);
 
@@ -94,7 +98,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
     for (const s of this.currentStructures) {
       for (const c of s.components) {
-        this.updateReprParams(update, c);
+        this.updateReprParams(update, c, previousClip);
       }
     }
 
@@ -151,7 +155,11 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     };
   }
 
-  private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
+  private updateReprParams(
+    update: StateBuilder.Root,
+    component: StructureComponentRef,
+    previousClip: readonly RepresentationClip.Object[],
+  ) {
     const {
       hydrogens,
       visualQuality: quality,
@@ -168,6 +176,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
       if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
       const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+      const nextClip = RepresentationClip.replaceOwned(params.type.params.clip, previousClip, clip);
       const isSurface = isSurfaceRepresentationType(params.type.name);
       const pInterior = params.type.params.interior;
       const pAnimation = params.type.params.animation;
@@ -177,7 +186,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         params.type.params.quality !== quality ||
         params.type.params.ignoreLight !== ignoreLight ||
         !Material.areEqual(params.type.params.material, material) ||
-        !PD.areEqual(Clip.Params, params.type.params.clip, clip) ||
+        !PD.areEqual(Clip.Params, params.type.params.clip, nextClip) ||
         (isSurface && params.type.params.solidInterior !== solidSurface) ||
         (pInterior && !areInteriorPropsEquals(pInterior, interior)) ||
         (pAnimation && !areAnimationPropsEqual(pAnimation, animation))
@@ -188,7 +197,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
           old.type.params.quality = quality;
           old.type.params.ignoreLight = ignoreLight;
           old.type.params.material = material;
-          old.type.params.clip = clip;
+          old.type.params.clip = nextClip;
           if (isSurface) old.type.params.solidInterior = solidSurface;
           if (pInterior) old.type.params.interior = interior;
           if (pAnimation) old.type.params.animation = animation;

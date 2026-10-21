@@ -265,7 +265,10 @@ Prism rules apply: the DOM runtime, no rxjs in views, `scoped` attachments, `--m
 
 1. **Spike, measuring D3.** A clip-only `createOrUpdate` on a live representation, for a structure cartoon, a molecular surface on 1cbs, a volume isosurface and a shape mesh: does anything rebuild, and how long does it take?
 2. **`VisualSet` and its tests.**
-3. **Plugin core:** the clip adapters, the manager merge and the click opt-out, with tests.
+3. **Plugin core (done 2026-10-21):**
+   - `RepresentationClip` (`state/helpers/representation-clip.ts`) reads and writes a cell's clip at either path, so no adapter registry is needed: every representation transform holds it at `type.params.clip` or `clip`, and extensions' do too.
+   - The component manager replaces only its own objects (`replaceOwned`).
+   - `PluginContext.clickOwners`: a tool claims its representations' clicks, which then never reach `behaviors.interaction.click` (focus, select, host events). Hover is untouched.
 4. **`extensions/clipping` package wiring:** `inventory.json`, root tsconfig refs, `apps/prism-viewer` deps and `extensions.ts`.
 5. **The `clipping` API area:** derive the cuts, the operations, commands and a skill, and exclusion re-indexing. Quick-lane tests through a headless viewer, including a clip set from code showing up in `list`.
 6. **The Selection section UI.**

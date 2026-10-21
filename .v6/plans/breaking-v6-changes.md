@@ -1120,3 +1120,11 @@ An application that reads particles composes `[...DefaultRegistry, ...ParticlesR
 classic viewer (`apps/viewer`) does not compose it. Prism loads it with its lazy particles feature when a particle file,
 an mmCIF holding particles or a session with particles needs it. `looksLikeMmcifParticles` moved to
 `@molstar/model/formats/particles/mmcif-sniff` (still re-exported by `.../mmcif`).
+
+## The component manager's `clipObjects` no longer replace a representation's clip
+
+`StructureComponentManager` options' `clipObjects` are the clip objects the manager puts on every structure
+representation: an options change replaces the objects it put there before with the new ones and keeps the others (a
+representation's own, from a clipping editor or code; `RepresentationClip.replaceOwned`,
+`@molstar/plugin/state/helpers/representation-clip`). It used to overwrite `type.params.clip` whole, `variant`
+included; a representation with objects of its own now keeps its `variant`.
