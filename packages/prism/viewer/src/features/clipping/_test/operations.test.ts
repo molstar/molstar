@@ -275,6 +275,10 @@ describe('the clipping area', () => {
     // once a cut, and never itself something to cut
     expect(await clipping.show({ cut: 1, on: true })).toMatchObject({ ok: true, unchanged: true });
     expect(clipping.candidates(findCuts(v.plugin)[0]).some((t) => t.label.includes('Cut'))).toBe(false);
+    // the cut moved: drawn again where it is (the shape rebuilt from its parent's clip)
+    const before = state.cells.get(drawn.drawing!)!.obj;
+    ok(await clipping.update({ cut: 1, position: [5, 6, 7] }));
+    expect(state.cells.get(findCuts(v.plugin)[0].drawing!)!.obj).not.toBe(before);
     // its options
     ok(await clipping.show({ cut: 1, on: true, options: { wallOpacity: 0.4, edges: false } }));
     expect(state.cells.get(findCuts(v.plugin)[0].drawing!)!.transform.params).toMatchObject({
