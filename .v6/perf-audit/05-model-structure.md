@@ -204,7 +204,7 @@ Confirmed and plausible findings, ranked.
   glycan-heavy units are affected. Fix: a depth-3 BFS per ring through an atom → ring-element index. Addressed (#2018) as
   suggested: same links in the same order (pinned, plus an all-pairs oracle). Confirmed quadratic on synthetic
   hexose chains (4× the sugars, 16× the time): 1330 sugars in one chain 312 → 6.5 ms, 5320 5.0 s → 41 ms; 7qpd (10
-  sugars) 0.3 ms either way. It matters for polysaccharide chains and MD files without chain ids, not glycoproteins
+  sugars) 0.3 ms either way. Real glycans, same output as master: 21NR (964 sugars in 52 chains of up to 47) 9.5 → 3.7 ms, a 5FYJ crystal cell (1968 units, 7776 sugars, the old cost being cross-unit pair rejections) 99 → 34 ms. It matters for polysaccharide chains and MD files without chain ids, not glycoproteins
   with one chain per glycan.
 - **P11** (confirmed). `set()` only pushes, and entries live as long as the model. They are cacheable for every
   index-pair model, including mmCIF with `molstar_bond_site`. Each focus or selection child adds its element set

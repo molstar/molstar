@@ -31,6 +31,12 @@ async function load(cif: string) {
 
 const glycan = (p: GlycanParams) => load(glycanCif(p));
 
+async function loadBinary(name: string) {
+  const parsed = await CIF.parseBinary(new Uint8Array(fs.readFileSync(path.join(examples, name)))).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  return Structure.ofModel((await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative);
+}
+
 function hash(xs: ArrayLike<number>) {
   return (hashFnv32a(xs) >>> 0).toString(16);
 }
@@ -107,6 +113,14 @@ describe('computeCarbohydrates', () => {
     expect(linkList(c)).toMatchInlineSnapshot(`"0-1 1-0 1-2 2-1 3-4 4-3 4-5 5-4 5-6 6-5 6-7 7-6 7-8 8-7 8-9 9-8"`);
   });
 
+  // a real polysaccharide: 964 sugars in 52 branched chains of up to 47 residues, 104 glycosylation sites
+  it('21nr', async () => {
+    const c = computeCarbohydrates(await loadBinary('21nr.bcif'));
+    expect(signature(c)).toMatchInlineSnapshot(
+      `"elements=964:12b55419 components=4d184827 geometry=6f7c9e18 links=1824:80b60c85 terminal=104:3efc29a5 partial=0:811c9dc5"`,
+    );
+  });
+
   it('a branched polysaccharide in one chain, with links to other chains', async () => {
     const s = await glycan({ strands: 2, length: 10, branchEvery: 3, otherChains: true });
     const c = computeCarbohydrates(s);
@@ -170,6 +184,7 @@ describe('computeCarbohydrates', () => {
     const s7qpd = await load(fs.readFileSync(path.join(examples, '7qpd.fw2.cif'), 'utf8'));
     const structures = [
       s7qpd,
+      await loadBinary('21nr.bcif'),
       await glycan({ strands: 2, length: 10, branchEvery: 3, otherChains: true }),
       await glycan({ strands: 2, length: 8, branchEvery: 3, altEvery: 3 }),
       await glycan({ strands: 2, length: 9, branchEvery: 2, spacer: true }),
