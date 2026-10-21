@@ -29,14 +29,14 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `canvas.settings` | Change canvas settings | needs canvas; ui-only | section, values |
 | `canvas.xr` | Enter or leave XR | view; needs canvas | on |
 | `clipping.add` | Cut… |  | shape, target, node, everything, keepWhole, types, invert |
-| `clipping.apply` | Cut representations or not |  | cut, representation, representations, on |
+| `clipping.apply` | Cut representations or not |  | cut, tag, representation, representations, on |
 | `clipping.clear` | Remove every cut | destructive |  |
-| `clipping.keep` | Keep atoms whole |  | cut, target |
+| `clipping.keep` | Keep atoms whole |  | cut, tag, target |
 | `clipping.list` | List the cuts | read |  |
-| `clipping.release` | Cut atoms kept whole again |  | cut |
-| `clipping.remove` | Remove a cut | destructive | cut |
-| `clipping.show` | Draw a cut in the scene, or not |  | cut, on, options |
-| `clipping.update` | Change a cut |  | cut, shape, position, normal, rotation, scale, invert |
+| `clipping.release` | Cut atoms kept whole again |  | cut, tag |
+| `clipping.remove` | Remove a cut | destructive | cut, tag |
+| `clipping.show` | Draw a cut in the scene, or not |  | cut, tag, on, options |
+| `clipping.update` | Change a cut |  | cut, tag, shape, position, normal, rotation, scale, invert |
 | `component.add` | Add a component |  | target, label, representation, structure, language |
 | `component.list` | List the components | read | structure |
 | `component.modify` | Change what a component holds |  | component, target, mode, structure, language |

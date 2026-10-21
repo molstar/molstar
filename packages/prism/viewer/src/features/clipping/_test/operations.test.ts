@@ -321,6 +321,71 @@ describe('the clipping area', () => {
     expect(cut.kept?.count).toBeGreaterThan(0);
   });
 
+  it('finds a cut by its tag: a run after another that renumbered the cuts changes the cut it meant', async () => {
+    const v = await create(cbs());
+    const { clipping } = v.api;
+    ok(await clipping.add({ shape: 'plane', target: 'A:10-20' }));
+    const second = ok<Cut>(await clipping.add({ shape: 'sphere', target: 'A:10-20' }));
+    const tag = second.object.tag!;
+    // removed twice by its tag (a double click): the second finds it gone, the first cut stays
+    ok(await clipping.remove({ tag }));
+    expect(await clipping.remove({ tag })).toMatchObject({ ok: false, code: 'not-found' });
+    expect(ok<Cut[]>(await clipping.list())).toHaveLength(1);
+  });
+
+  it('refuses numbers that are not a vector, a size not positive and drawing options it does not have', async () => {
+    const v = await create(cbs());
+    const { clipping } = v.api;
+    ok(await clipping.add({ shape: 'cube', target: 'A:10-20' }));
+    expect(await clipping.update({ cut: 1, position: [1, 2] })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await clipping.update({ cut: 1, scale: [0, 1, 1] })).toMatchObject({ ok: false, code: 'invalid' });
+    expect(await clipping.update({ cut: 1, rotation: { axis: [0, 1, 0], angle: Number.NaN } })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
+    expect(await clipping.show({ cut: 1, options: { wallOpacity: 'x' } as never })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
+    expect(await clipping.show({ cut: 1, options: { nope: 1 } as never })).toMatchObject({
+      ok: false,
+      code: 'invalid',
+    });
+  });
+
+  it("keeps a box's twist when its direction changes", async () => {
+    const v = await create(cbs());
+    const { clipping } = v.api;
+    ok(await clipping.add({ shape: 'cube', target: 'A:10-20' }));
+    // twisted 30° about its up (+Y), then its up turned to +X
+    ok(await clipping.update({ cut: 1, rotation: { axis: [0, 1, 0], angle: 30 } }));
+    ok(await clipping.update({ cut: 1, normal: [1, 0, 0] }));
+    const cut = ok<Cut[]>(await clipping.list())[0];
+    const m = Mat4.fromRotation(Mat4(), (cut.object.rotation.angle * Math.PI) / 180, cut.object.rotation.axis);
+    const up = Vec3.transformDirection(Vec3(), Vec3.create(0, 1, 0), m);
+    const side = Vec3.transformDirection(Vec3(), Vec3.create(1, 0, 0), m);
+    [1, 0, 0].forEach((x, i) => expect(up[i]).toBeCloseTo(x, 5));
+    // the twist: its local X stays where the 30° turn put it, carried by the turn of the up (about Z)
+    const twisted = Vec3.transformDirection(
+      Vec3(),
+      Vec3.create(1, 0, 0),
+      Mat4.fromRotation(Mat4(), (30 * Math.PI) / 180, Vec3.create(0, 1, 0)),
+    );
+    const turn = Mat4.fromRotation(Mat4(), -Math.PI / 2, Vec3.create(0, 0, 1));
+    Vec3.transformDirection(twisted, twisted, turn);
+    [0, 1, 2].forEach((i) => expect(side[i]).toBeCloseTo(twisted[i], 5));
+  });
+
+  it('keeps nothing whole for a node selector, and says so', async () => {
+    const v = await create(cbs());
+    const surface = [...v.plugin.state.data.cells.values()].find((c) => RepresentationClip.isClippable(c))!.transform
+      .ref;
+    const r = await v.api.clipping.add({ shape: 'sphere', node: `#${surface}`, keepWhole: true });
+    expect(r).toMatchObject({ ok: true });
+    expect((r as { warnings?: string[] }).warnings?.[0]).toMatch(/Nothing is kept whole/);
+    expect(ok<Cut[]>(await v.api.clipping.list())[0].kept).toBeUndefined();
+  });
+
   it("draws a cut's new shape when its shape changes", async () => {
     const v = await create(cbs());
     const clipping = v.api.clipping;

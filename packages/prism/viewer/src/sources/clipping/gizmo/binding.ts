@@ -155,9 +155,12 @@ export class ClipBinding implements GizmoBinding<CutObject> {
   }
 
   cancel(): void {
+    // what the state holds now (a change under the drag cancels it: the old params would undo that change on screen)
     for (const t of this.#drag?.targets ?? []) {
-      const clip = RepresentationClip.get(t.params);
-      if (clip) void t.repr.createOrUpdate({ ...t.repr.props, clip }).run();
+      const cell = this.plugin.state.data.cells.get(t.ref);
+      const clip = RepresentationClip.get(cell?.transform.params);
+      const repr = (cell?.obj?.data as { repr?: Representation.Any } | undefined)?.repr;
+      if (clip && repr) void repr.createOrUpdate({ ...repr.props, clip }).run();
     }
     this.#drag = undefined;
   }

@@ -5,7 +5,7 @@
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { State, StateBuilder, StateObjectCell } from '@molstar/core/state';
 import { Clip } from '@molstar/core/util/clip';
 import { UUID } from '@molstar/core/util/uuid';
@@ -44,10 +44,12 @@ import {
   representationType,
   representationsSphere,
   reshape,
+  rotated,
   rotationTo,
   shapeAxis,
   withObject,
 } from '../../sources/clipping/cuts.js';
+import { rotationOf } from '../../sources/clipping/gizmo/binding.js';
 import {
   afterRemoval,
   layerCell,
@@ -68,6 +70,10 @@ export const CutTagPrefix = 'clip-';
 export const newCutTag = () => `${CutTagPrefix}${UUID.create22()}`;
 
 const CutParam = () => PD.Numeric(1, { min: 1, step: 1 }, { description: 'The cut by its number (clipping.list)' });
+/** A cut by its tag instead of its number: what a view or a gizmo sends (a number shifts when a cut before it goes, and
+ * runs wait their turn) */
+const CutTagParam = () =>
+  OptionalParam(PD.Text('', { description: 'The cut by its tag (clipping.list), instead of its number' }));
 const Vec3Param = (description: string) => OptionalParam(PD.Value<readonly number[]>([0, 0, 0], { description }));
 
 export class ClippingApi extends ApiArea {
@@ -92,8 +98,9 @@ export class ClippingApi extends ApiArea {
       // by its object: another cut added or removed during the drag shifts the numbers
       const cut = findCuts(this.ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, from));
       if (!cut) return false;
+      // by its tag where it has one: the run may wait its turn behind another that renumbers the cuts
       const r = await api.run('clipping.update', {
-        cut: cut.index,
+        ...(cut.object.tag ? { tag: cut.object.tag } : { cut: cut.index }),
         position: [...next.position],
         rotation: { axis: [...next.rotation.axis], angle: next.rotation.angle },
         scale: [...next.scale],
@@ -214,15 +221,19 @@ export class ClippingApi extends ApiArea {
       if (same) return ApiResult.already(`Cut ${same.index} is that cut already.`, { value: same });
       await commit(ctx, cells, undefined, object);
       let cut = findCuts(ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, object));
-      // and the target kept whole by it (its atoms: not by a node selector, not everything)
-      if (keepWhole && cut && !everything) {
-        const r = await keepAtoms(ctx, cut.index, target);
+      // and the target kept whole by it (its atoms: not by a node selector, not everything); not done: said
+      const warnings: string[] = [];
+      if (keepWhole && (everything || node)) {
+        warnings.push('Nothing is kept whole: keepWhole keeps the target atoms, not a node selector or everything.');
+      } else if (keepWhole && cut) {
+        const r = await keepAtoms(ctx, cut.index, target, object.tag);
         if (r.ok) cut = findCuts(ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, object));
+        else warnings.push(`Nothing is kept whole: ${r.message}`);
       }
       return ApiResult.ok(
         `Cut ${namesOf(ctx, cells)} with a ${CutShapeLabels[shape].toLowerCase()}${cut ? ` (cut ${cut.index})` : ''}.`,
         { nodes: cells.map((c) => c.transform.ref) },
-        { value: cut },
+        { value: cut, ...(warnings.length ? { warnings } : {}) },
       );
     },
   });
@@ -232,6 +243,7 @@ export class ClippingApi extends ApiArea {
     title: 'Change a cut',
     params: {
       cut: CutParam(),
+      tag: CutTagParam(),
       shape: OptionalParam(
         PD.Select<CutShape>(
           'plane',
@@ -254,7 +266,8 @@ export class ClippingApi extends ApiArea {
     },
     async run(v, ctx) {
       const { cut: index } = v;
-      const { shape, position, normal, rotation, scale, invert } = v as {
+      const { tag, shape, position, normal, rotation, scale, invert } = v as {
+        tag?: string;
         shape?: CutShape;
         position?: readonly number[];
         normal?: readonly number[];
@@ -262,8 +275,18 @@ export class ClippingApi extends ApiArea {
         scale?: readonly number[];
         invert?: boolean;
       };
-      const cut = oneCut(ctx, index);
+      const cut = oneCut(ctx, index, tag);
       if (ApiResult.isFailure(cut)) return cut;
+      // three finite numbers each (a size: positive), a finite angle
+      const bad =
+        badVector('position', position) ??
+        badVector('normal', normal) ??
+        badVector('rotation.axis', rotation?.axis) ??
+        badVector('scale', scale, true);
+      if (bad) return bad;
+      if (rotation && !Number.isFinite(rotation.angle)) {
+        return ApiResult.fail('invalid', 'rotation.angle takes a number (degrees).');
+      }
       // a direction has a length (the turn gesture and the shader take a unit axis)
       const zero = (v?: readonly number[]) => !!v && Math.hypot(v[0], v[1], v[2]) < 1e-9;
       if (zero(normal) || zero(rotation?.axis)) {
@@ -285,13 +308,14 @@ export class ClippingApi extends ApiArea {
               },
             }
           : {}),
-        ...(normal ? { rotation: rotationTo(shapeAxis(shaped.type), Vec3.fromArray(Vec3(), normal, 0)) } : {}),
+        // turned from where its axis points now to the normal: its twist about the axis kept (a box's)
+        ...(normal ? { rotation: turnedTo(shaped, Vec3.fromArray(Vec3(), normal, 0)) } : {}),
         ...(scale ? { scale: Vec3.fromArray(Vec3(), scale, 0) } : {}),
         ...(invert !== undefined ? { invert } : {}),
       };
-      if (RepresentationClip.objectsEqual(o, next)) return ApiResult.already(`Cut ${index} is already so.`);
+      if (RepresentationClip.objectsEqual(o, next)) return ApiResult.already(`Cut ${cut.index} is already so.`);
       await commit(ctx, cellsOf(ctx, cut), o, next);
-      return ApiResult.ok(`Changed cut ${index}.`, { nodes: cut.targets.map((t) => t.ref) });
+      return ApiResult.ok(`Changed cut ${cut.index}.`, { nodes: cut.targets.map((t) => t.ref) });
     },
   });
 
@@ -300,14 +324,15 @@ export class ClippingApi extends ApiArea {
     title: 'Cut representations or not',
     params: {
       cut: CutParam(),
+      tag: CutTagParam(),
       representation: PD.Text('', { description: "A representation's node ref (clipping.list: a cut's targets)" }),
       representations: OptionalParam(
         PD.Value<readonly string[]>([], { description: 'Several, as one step (a type of them all at once)' }),
       ),
       on: PD.Boolean(true, { description: 'Cut them (true) or leave them whole (false)' }),
     },
-    async run({ cut: index, representation, representations, on }, ctx) {
-      const cut = oneCut(ctx, index);
+    async run({ cut: index, tag, representation, representations, on }, ctx) {
+      const cut = oneCut(ctx, index, tag);
       if (ApiResult.isFailure(cut)) return cut;
       const state = ctx.plugin.state.data;
       const refs = [
@@ -328,11 +353,11 @@ export class ClippingApi extends ApiArea {
         if (cut.targets.some((t) => t.ref === ref) !== on) cells.push(cell);
       }
       const label = cells.length === 1 ? representationLabel(state, cells[0]) : `${cells.length} representations`;
-      if (!cells.length) return ApiResult.already(`Cut ${index} is ${on ? 'already on them' : 'not on them'}.`);
+      if (!cells.length) return ApiResult.already(`Cut ${cut.index} is ${on ? 'already on them' : 'not on them'}.`);
       if (!on && cells.length >= cut.targets.length) {
         return ApiResult.fail(
           'blocked',
-          `That is all cut ${index} is on.`,
+          `That is all cut ${cut.index} is on.`,
           'Remove the cut instead (clipping.remove).',
         );
       }
@@ -346,7 +371,7 @@ export class ClippingApi extends ApiArea {
         );
       }
       await commit(ctx, cells, on ? undefined : cut.object, on ? cut.object : undefined);
-      return ApiResult.ok(on ? `Cut ${index} now cuts ${label}.` : `Cut ${index} leaves ${label} whole.`, {
+      return ApiResult.ok(on ? `Cut ${cut.index} now cuts ${label}.` : `Cut ${cut.index} leaves ${label} whole.`, {
         nodes: cells.map((c) => c.transform.ref),
       });
     },
@@ -357,19 +382,20 @@ export class ClippingApi extends ApiArea {
     title: 'Keep atoms whole',
     params: {
       cut: CutParam(),
+      tag: CutTagParam(),
       target: TargetParam('The atoms the cut leaves whole (default: the selection)'),
     },
-    run: ({ cut: index, target }, ctx) => keepAtoms(ctx, index, target),
+    run: ({ cut: index, tag, target }, ctx) => keepAtoms(ctx, index, target, tag),
   });
 
   readonly release = this.operation({
     id: 'clipping.release',
     title: 'Cut atoms kept whole again',
-    params: { cut: CutParam() },
-    async run({ cut: index }, ctx) {
-      const cut = oneCut(ctx, index);
+    params: { cut: CutParam(), tag: CutTagParam() },
+    async run({ cut: index, tag }, ctx) {
+      const cut = oneCut(ctx, index, tag);
       if (ApiResult.isFailure(cut)) return cut;
-      if (!cut.kept) return ApiResult.already(`Cut ${index} keeps nothing whole.`);
+      if (!cut.kept) return ApiResult.already(`Cut ${cut.index} keeps nothing whole.`);
       const state = ctx.plugin.state.data;
       const b = state.build();
       for (const cell of cellsOf(ctx, cut)) {
@@ -378,7 +404,7 @@ export class ClippingApi extends ApiArea {
         writeLayer(state, b, cell, withoutKept(layerOf(state, cell), 1 << at));
       }
       await ctx.plugin.runTask(state.updateTree(b));
-      return ApiResult.ok(`Cut ${index} cuts ${cut.kept.label} again.`, { nodes: cut.targets.map((t) => t.ref) });
+      return ApiResult.ok(`Cut ${cut.index} cuts ${cut.kept.label} again.`, { nodes: cut.targets.map((t) => t.ref) });
     },
   });
 
@@ -387,6 +413,7 @@ export class ClippingApi extends ApiArea {
     title: 'Draw a cut in the scene, or not',
     params: {
       cut: CutParam(),
+      tag: CutTagParam(),
       on: PD.Boolean(true, { description: 'Draw it (its walls and edges, saved with the scene) or not' }),
       options: OptionalParam(
         PD.Value<Partial<ClipVolumesProps>>(
@@ -398,39 +425,42 @@ export class ClippingApi extends ApiArea {
         ),
       ),
     },
-    async run({ cut: index, on, options }, ctx) {
-      let cut = oneCut(ctx, index);
+    async run({ cut: index, tag: byTag, on, options }, ctx) {
+      let cut = oneCut(ctx, index, byTag);
       if (ApiResult.isFailure(cut)) return cut;
       // drawn by its tag: an untagged cut (set by code) is tagged first, as this clip manager's
       if (!cut.object.tag) {
-        if (!on) return ApiResult.already(`Cut ${index} is not drawn.`);
-        await commit(ctx, cellsOf(ctx, cut), cut.object, { ...cut.object, tag: newCutTag() });
-        const tagged = oneCut(ctx, index);
-        if (ApiResult.isFailure(tagged)) return tagged;
-        cut = tagged;
+        if (!on) return ApiResult.already(`Cut ${cut.index} is not drawn.`);
+        const tagged = { ...cut.object, tag: newCutTag() };
+        await commit(ctx, cellsOf(ctx, cut), cut.object, tagged);
+        const now = oneCut(ctx, cut.index, tagged.tag);
+        if (ApiResult.isFailure(now)) return now;
+        cut = now;
       }
       const tag = cut.object.tag!;
       const state = ctx.plugin.state.data;
       const b = state.build();
       const drawing = cut.drawing ? state.cells.get(cut.drawing) : undefined;
       const values = (options as Partial<ClipVolumesProps> | undefined) ?? {};
+      const wrong = badOptions(values);
+      if (wrong) return wrong;
       if (!on) {
-        if (!drawing) return ApiResult.already(`Cut ${index} is not drawn.`);
+        if (!drawing) return ApiResult.already(`Cut ${cut.index} is not drawn.`);
         b.delete(drawing.transform.ref);
       } else if (drawing) {
         const current = drawing.transform.params as ClipVolumesProps;
         const next = { ...current, ...values, tags: [tag] };
         if (PD.areEqual(ClipVolumesParams, current, next))
-          return ApiResult.already(`Cut ${index} is drawn so already.`);
+          return ApiResult.already(`Cut ${cut.index} is drawn so already.`);
         b.to(drawing.transform.ref).update(next);
       } else {
         const host = cellsOf(ctx, cut)[0];
-        if (!host) return ApiResult.fail('not-found', `Cut ${index} is on nothing to draw it under.`);
+        if (!host) return ApiResult.fail('not-found', `Cut ${cut.index} is on nothing to draw it under.`);
         addDrawing(b, host, tag, values);
       }
       await ctx.plugin.runTask(state.updateTree(b));
       const said = !on ? 'is no longer drawn' : drawing ? 'is drawn differently' : 'is drawn in the scene';
-      return ApiResult.ok(`Cut ${index} ${said}.`, { nodes: cut.targets.map((t) => t.ref) });
+      return ApiResult.ok(`Cut ${cut.index} ${said}.`, { nodes: cut.targets.map((t) => t.ref) });
     },
   });
 
@@ -446,13 +476,13 @@ export class ClippingApi extends ApiArea {
   readonly remove = this.operation({
     id: 'clipping.remove',
     title: 'Remove a cut',
-    params: { cut: CutParam() },
+    params: { cut: CutParam(), tag: CutTagParam() },
     approval: 'destructive',
-    async run({ cut: index }, ctx) {
-      const cut = oneCut(ctx, index);
+    async run({ cut: index, tag }, ctx) {
+      const cut = oneCut(ctx, index, tag);
       if (ApiResult.isFailure(cut)) return cut;
       await commit(ctx, cellsOf(ctx, cut), cut.object, undefined);
-      return ApiResult.ok(`Removed cut ${index}.`, { nodes: cut.targets.map((t) => t.ref) });
+      return ApiResult.ok(`Removed cut ${cut.index}.`, { nodes: cut.targets.map((t) => t.ref) });
     },
   });
 
@@ -494,8 +524,55 @@ function describe(cut: Cut): string {
     .join(', ')}`;
 }
 
-function oneCut(ctx: ApiContext, index: number): Cut | ApiFailure {
+/** Drawing options that are not the drawing's (an unknown name, a value not of its kind, a number out of its range) */
+function badOptions(values: Record<string, unknown>): ApiFailure | undefined {
+  for (const [name, value] of Object.entries(values)) {
+    const p = (ClipVolumesParams as Record<string, PD.Any>)[name];
+    if (!p || name === 'tags') {
+      return ApiResult.fail(
+        'invalid',
+        `${name} is not a drawing option.`,
+        'walls, wallColor, wallOpacity, edges, edgeColor, edgeWidth, extent.',
+      );
+    }
+    const kind = typeof p.defaultValue;
+    const fits =
+      typeof value === kind &&
+      (kind !== 'number' ||
+        (Number.isFinite(value) &&
+          (p.type !== 'number' ||
+            ((p.min === undefined || (value as number) >= p.min) &&
+              (p.max === undefined || (value as number) <= p.max)))));
+    if (!fits) return ApiResult.fail('invalid', `${name} does not take ${JSON.stringify(value)}.`);
+  }
+  return undefined;
+}
+
+/** A vector param that is not three finite numbers (a size: positive) */
+function badVector(name: string, v: readonly number[] | undefined, positive = false): ApiFailure | undefined {
+  if (v === undefined) return undefined;
+  const ok = Array.isArray(v) && v.length === 3 && v.every((x) => Number.isFinite(x) && (!positive || x > 0));
+  return ok ? undefined : ApiResult.fail('invalid', `${name} takes three ${positive ? 'positive ' : ''}numbers.`);
+}
+
+/** A cut's rotation turned so its axis points along `to`, by the shortest turn from where it points now */
+function turnedTo(o: CutObject, to: Vec3): CutObject['rotation'] {
+  const now = rotated(o.rotation, shapeAxis(o.type));
+  const turn = rotationTo(now, to);
+  const q = Quat.multiply(
+    Quat(),
+    Quat.setAxisAngle(Quat(), turn.axis, (turn.angle * Math.PI) / 180),
+    Quat.setAxisAngle(Quat(), Vec3.normalize(Vec3(), o.rotation.axis), (o.rotation.angle * Math.PI) / 180),
+  );
+  return rotationOf(Quat.normalize(q, q));
+}
+
+function oneCut(ctx: ApiContext, index: number, tag?: string): Cut | ApiFailure {
   const cuts = findCuts(ctx.plugin);
+  if (tag) {
+    const tagged = cuts.find((c) => c.object.tag === tag);
+    return tagged ?? ApiResult.fail('not-found', 'That cut is gone.', 'The cuts: clipping.list.');
+  }
   const cut = cuts.find((c) => c.index === index);
   if (cut) return cut;
   return ApiResult.fail(
@@ -659,8 +736,8 @@ export async function targetCells(
 }
 
 /** The target's atoms (the selection by default) kept whole by cut `index`, on each structure it is on */
-async function keepAtoms(ctx: ApiContext, index: number, target: unknown) {
-  const cut = oneCut(ctx, index);
+async function keepAtoms(ctx: ApiContext, index: number, target: unknown, tag?: string) {
+  const cut = oneCut(ctx, index, tag);
   if (ApiResult.isFailure(cut)) return cut;
   const atoms = await targetAtoms(ctx, target);
   if (ApiResult.isFailure(atoms)) return atoms;
@@ -688,12 +765,12 @@ async function keepAtoms(ctx: ApiContext, index: number, target: unknown) {
           `Only the first ${MaxKeptIndex + 1} cuts on a representation can keep atoms whole.`,
           'Remove an earlier cut from it.',
         )
-      : ApiResult.fail('not-found', `None of it is in what cut ${index} is on (it keeps only atoms whole).`);
+      : ApiResult.fail('not-found', `None of it is in what cut ${cut.index} is on (it keeps only atoms whole).`);
   }
   await ctx.plugin.runTask(state.updateTree(b));
-  const kept = oneCut(ctx, index);
+  const kept = oneCut(ctx, cut.index, cut.object.tag);
   const label = ApiResult.isFailure(kept) ? '' : (kept.kept?.label ?? '');
-  return ApiResult.ok(`Cut ${index} keeps ${label || 'them'} whole.`, { nodes: cut.targets.map((t) => t.ref) });
+  return ApiResult.ok(`Cut ${cut.index} keeps ${label || 'them'} whole.`, { nodes: cut.targets.map((t) => t.ref) });
 }
 
 /** A cut object's index on a representation (its group bit in the clipping layer) */

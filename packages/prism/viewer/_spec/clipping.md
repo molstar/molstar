@@ -23,6 +23,12 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
   `types`; `invert`; `keepWhole`); `update` (`shape`, `position`, `normal` or `rotation`, `scale`, `invert`: only what
   is given); `apply` (one or several representations on or off, one step; never the last off); `keep` / `release` (§5);
   `show` (§6); `remove`; `clear`. Each a person's step, each a command, in the `clipping` skill.
+- **A cut by its number or its tag** (`cut`, `tag`): the views and the gizmos send the tag. Why: runs wait their turn,
+  so a number read at a click can name another cut by the time the run starts (a double click's second remove).
+- **Params checked**: vectors are three finite numbers (a size positive), an angle finite, drawing options the drawing's
+  own (name, kind, range). `keepWhole` keeps atoms: with `node` or `everything` the cut is made and a warning says
+  nothing was kept.
+- **A new direction** (`normal`) turns the cut from where its axis points now (`turnedTo`): a box's twist is kept.
 - **A new cut** is placed by its target's atoms (`placeCut`): a sphere or a box around a small target, with room; a
   window toward the viewer into a large one (one centered inside would show nothing); a plane through the center facing
   the camera; a cylinder a shaft along the view. With nothing selected, everything drawn.
@@ -31,6 +37,7 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
 - **Another shape** keeps the place, the direction (a plane's normal is a cylinder's axis, a cone's opening), the size
   and the flip (`reshape`); a plane or cone has none, so the new one is sized from what it cuts.
 - **Directions** are unit; one of length 0 is refused.
+- **A refused edit** reloads the form from the cut (no state change would).
 
 ## 3. The section
 
@@ -70,8 +77,9 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
 - **Bits on the atoms' flags**: an atom's flags are those of the last layer covering it, so a bit is set or cleared on
   them (`withKept`, `withoutKept`), never by a layer over them.
 - **Removal remaps** in the same step: a cut taken off a representation drops its bit and the later bits move down
-  (`afterRemoval`); the component manager replaces its own objects in place (`replaceOwned`). Why: an index is what a
-  group means.
+  (`afterRemoval`); the component manager replaces its own objects in place (`replaceOwned`), fewer of them leaving a
+  `none` object (clipping nothing, never a cut) to hold a place before one of the representation's own. Why: an index is
+  what a group means.
 
 ## 6. Drawn in the scene
 
@@ -81,4 +89,7 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
   and a cone's reach relative to what they cut, 0.25–4×: in proportion when that changes). Built from its data (objects,
   bounds, options): the shape representation keeps its first `getShape`.
 - **One drawing a cut**, deduplicated by its tag (`clip-volume-<cut tag>`; every cell also `clip-volumes`), under the
-  cut's first representation; it moves when the cut leaves that one and goes with the cut. Saved with the state.
+  cut's first representation; it moves when a `clipping.*` run takes the cut off that one, and goes with the cut. Saved
+  with the state. A representation removed otherwise takes its drawing with it (a child): the cut shows as not drawn,
+  and the scan toggle draws it again. Why: redrawing it outside a step would leave a second one when the removal is
+  undone.

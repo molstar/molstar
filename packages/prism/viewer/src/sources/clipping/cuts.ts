@@ -85,7 +85,8 @@ export function representationLabel(state: State, cell: StateObjectCell): string
 /** The objects a representation's clip holds that are not the component manager's (its "clip everything" objects) */
 function ownObjects(plugin: PluginContext, clip: Clip.Props): CutObject[] {
   const global = plugin.managers.structure.component.state.options.clipObjects.objects;
-  return clip.objects.filter((o) => !global.some((g) => RepresentationClip.objectsEqual(o, g)));
+  // not the canvas-wide objects, nor a place one held (`replaceOwned`: a `none`, clipping nothing)
+  return clip.objects.filter((o) => o.type !== 'none' && !global.some((g) => RepresentationClip.objectsEqual(o, g)));
 }
 
 /** The cuts in the scene: equal objects on several representations are one cut */
@@ -147,14 +148,20 @@ function keptBy(state: State, object: CutObject, targets: readonly CutTarget[]) 
   return { count, label: all.length === 1 ? keptLabel(all[0]) : `${count} atoms` };
 }
 
-/** A representation's layer merged, cached by its cell's params (a layer read again only when it changed) */
-const layers = new WeakMap<object, ReturnType<typeof layerOf>>();
+/**
+ * A representation's layer merged, cached by its cell's params and the structure it is read on (a layer read again
+ * only when either changed: another frame or model keeps the params)
+ */
+const layers = new WeakMap<object, { structure: unknown; layer: ReturnType<typeof layerOf> }>();
 function cachedLayer(state: State, repr: StateObjectCell) {
   const cell = layerCell(state, repr.transform.ref);
   const key = cell?.transform.params as object | undefined;
   if (!key) return layerOf(state, repr);
-  let layer = layers.get(key);
-  if (!layer) layers.set(key, (layer = layerOf(state, repr)));
+  const structure = structureOf(repr)?.root;
+  const cached = layers.get(key);
+  if (cached && cached.structure === structure) return cached.layer;
+  const layer = layerOf(state, repr);
+  layers.set(key, { structure, layer });
   return layer;
 }
 

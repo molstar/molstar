@@ -332,7 +332,9 @@ function CutRow(props: {
   const { ctx, clipping, cut } = props;
   const run = (op: string, values: Record<string, unknown>) => {
     const c = cut.value;
-    return c ? ctx.api.run(op, { cut: c.index, ...values }) : undefined;
+    // by its tag where it has one: a run waits its turn (a double click's second, behind its first), and a number
+    // shifts when a cut before it goes
+    return c ? ctx.api.run(op, { ...(c.object.tag ? { tag: c.object.tag } : { cut: c.index }), ...values }) : undefined;
   };
   return (
     // keyed by its shape (a string, stable): a new `Cut` each state change must not render the row (and a form being
@@ -614,6 +616,9 @@ function DrawingForm(props: {
       await props.run('clipping.show', { on: true, options });
     }
     running = false;
+    // as the drawing is now: an edit refused (or nothing changed) leaves no change to follow
+    const c = cut.value;
+    if (c) form.load(clipping.drawingValues(c) as never);
   };
   const form = new ParamsFormModel(clipping.drawingParams, cut.value ? clipping.drawingValues(cut.value) : undefined, {
     onChange: (values) => {
@@ -636,7 +641,8 @@ function CutForm(props: {
   const { cut, shape } = props;
   const params = formParams(shape);
   // An edit applies at once, one update in flight: fields changed meanwhile go in the next (the latest values win).
-  // Only the changed fields are sent: the others as shown are rounded, and a box's up alone would drop its twist.
+  // Only the changed fields are sent: the others as shown are rounded (a box's up turns it from where it points, its
+  // twist kept: clipping.update).
   let running = false;
   let latest: Record<string, unknown> | undefined;
   const changed = new Set<string>();
@@ -650,6 +656,9 @@ function CutForm(props: {
       await props.run('clipping.update', updateOf(shape, values, fields));
     }
     running = false;
+    // as the cut is now: an edit refused (a zero direction) leaves no change to follow
+    const c = cut.value;
+    if (c) form.load(formValues(c) as never);
   };
   const form = new ParamsFormModel(params, cut.value ? formValues(cut.value) : undefined, {
     onChange: (values, name) => {

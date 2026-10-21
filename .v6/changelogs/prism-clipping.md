@@ -15,9 +15,12 @@
   `ShapeProvider.transparency` gives a shape per-group transparency (applied by `ShapeRepresentation3D`).
 - `VisualSet` (`@molstar/graphics/util/visual-set`) holds representations drawn outside the state tree (gizmos, guides,
   shadow molecules); `PluginContext.clickOwners` lets a tool own its representations' clicks.
-- The component manager's clip objects (its options) are replaced in place, the representations' own kept.
+- The component manager's clip objects (its options) are replaced in place, the representations' own kept; fewer of
+  them leave a `none` object holding a place, so a representation's own objects keep their indices.
 - A representation moved by its transform keeps its bounds (the camera's near and far planes, culling, picking).
 - Prism: `ui.nodeActions` adds rows to the scene tree's node menus; the conformance checks hold for extensions' Prism
   code too (no rxjs in views, scoped attachments, owned subscriptions, the plugin only through operations, a command
   for every operation); the canvas' bottom bar no longer blocks picking beside its items; a trackpad pinch never zooms
   the page.
+- Prism: the `clipping` operations take a cut by its tag too (the views and gizmos use it); vectors, angles and drawing
+  options are checked; a box keeps its twist when its direction changes; a refused edit reloads the form.
