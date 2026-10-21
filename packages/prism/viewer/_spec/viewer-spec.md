@@ -192,7 +192,8 @@ beyond it (README decision 13).
   particle code until a particle file, an mmCIF holding particles or a session with particles needs it),
   `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `clipping` ([clipping.md](clipping.md)),
   `superposition` (lazy), `state-tree` (lazy), `remote-states` (lazy, behind its setting), `snapshots`, `animation`,
-  `export-image`, `export-session`.
+  `export-image`, `export-session`. Opt-in (not in the default spec; the Prism app adds it): `structure-move`
+  ([structure-move.md](structure-move.md)).
 - Built-in features' areas and operations in core areas are typed as present (`BuiltInApis`,
   `BuiltInOperationFeatures`); left out of a spec, reading one throws, naming the feature ([api.md](api.md) §2).
 - **Panels keep the core's ids** (`home`, `structure`, `selection`, `help`; `core.tab.*` as parts). Built-in features
