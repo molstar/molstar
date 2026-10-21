@@ -234,9 +234,11 @@ function CutRow(props: { ctx: ViewerUIContext; clipping: ClippingApi; cut: Reado
     return c ? ctx.api.run(op, { cut: c.index, ...values }) : undefined;
   };
   return (
-    <Show when={cut}>
-      {(c0) => {
-        const shape = c0.object.type as CutShape;
+    // keyed by its shape (a string, stable): a new `Cut` each state change must not render the row (and a form being
+    // edited) again
+    <Show when={derive(cut, (c) => c?.object.type)}>
+      {(type) => {
+        const shape = type as CutShape;
         return (
           <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
             <div style={row}>
@@ -365,21 +367,26 @@ function CutForm(props: {
 }) {
   const { cut, shape } = props;
   const params = formParams(shape);
-  // An edit applies at once, one update in flight: values changed meanwhile go in the next (the latest wins)
+  // An edit applies at once, one update in flight: fields changed meanwhile go in the next (the latest values win).
+  // Only the changed fields are sent: the others as shown are rounded, and a box's up alone would drop its twist.
   let running = false;
   let latest: Record<string, unknown> | undefined;
+  const changed = new Set<string>();
   const flush = async () => {
     running = true;
     while (latest) {
       const values = latest;
+      const fields = new Set(changed);
       latest = undefined;
-      await props.run('clipping.update', updateOf(shape, values));
+      changed.clear();
+      await props.run('clipping.update', updateOf(shape, values, fields));
     }
     running = false;
   };
   const form = new ParamsFormModel(params, cut.value ? formValues(cut.value) : undefined, {
-    onChange: (values) => {
+    onChange: (values, name) => {
       latest = values;
+      changed.add(name);
       if (!running) void flush();
     },
   });
@@ -445,19 +452,25 @@ function formValues(cut: Cut): Record<string, unknown> {
   return {};
 }
 
-/** The form's values as `clipping.update`'s */
-function updateOf(shape: CutShape, v: Record<string, any>): Record<string, unknown> {
-  const position = [...v.position];
+/** The changed fields of the form as `clipping.update`'s values */
+function updateOf(shape: CutShape, v: Record<string, any>, fields: ReadonlySet<string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (fields.has('position')) out.position = [...v.position];
+  const direction = { plane: 'normal', cube: 'up', cylinder: 'axis', infiniteCone: 'axis', sphere: '' }[shape];
+  if (direction && fields.has(direction)) out.normal = [...v[direction]];
   switch (shape) {
-    case 'plane':
-      return { position, normal: [...v.normal] };
     case 'sphere':
-      return { position, scale: [v.diameter, v.diameter, v.diameter] };
+      if (fields.has('diameter')) out.scale = [v.diameter, v.diameter, v.diameter];
+      break;
     case 'cube':
-      return { position, normal: [...v.up], scale: [...v.size] };
+      if (fields.has('size')) out.scale = [...v.size];
+      break;
     case 'cylinder':
-      return { position, normal: [...v.axis], scale: [v.diameter, v.height, v.diameter] };
+      if (fields.has('diameter') || fields.has('height')) out.scale = [v.diameter, v.height, v.diameter];
+      break;
     case 'infiniteCone':
-      return { position, normal: [...v.axis], scale: [...coneScale(v.angle)] };
+      if (fields.has('angle')) out.scale = [...coneScale(v.angle)];
+      break;
   }
+  return out;
 }

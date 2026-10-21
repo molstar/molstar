@@ -18,7 +18,6 @@ import { Shape, ShapeGroup } from '@molstar/model/model/shape';
 import type { PluginContext } from '@molstar/plugin/context';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import type { Subscription } from 'rxjs';
 import { type Cut, type CutObject, representationsSphere } from '../cuts.js';
 import { gizmoGeometry, type GizmoGeometry, HandleGroups, HandleLabels, slideAxis } from './geometry.js';
 import { type DragFrame, gesture, type Handle } from './gestures.js';
@@ -32,8 +31,11 @@ import { type DragFrame, gesture, type Handle } from './gestures.js';
 // number, which shifts when one before it goes: a handled cut is followed by its object, or by its number when its
 // object changed (an edit).
 
-/** One `clipping.update` with the cut's new geometry, through the person's API */
-export type GizmoCommit = (cut: number, next: CutObject) => Promise<unknown>;
+/**
+ * One `clipping.update` of the cut that is `from` (by its object: its number may have shifted during the drag) to
+ * `next`, through the person's API; false when it did not happen (the cut is gone, the call failed)
+ */
+export type GizmoCommit = (from: CutObject, next: CutObject) => Promise<boolean>;
 
 const Colors: Readonly<Record<Handle, Color>> = {
   move: Color(0xf5a623),
@@ -78,10 +80,12 @@ export class ClipGizmos {
   /** The handled cuts by number, and their objects as last seen (to follow them when the numbers shift) */
   readonly #handled = observableState<readonly number[]>([]);
   #handledObjects = new Map<number, CutObject>();
+  /** How many cuts there were when the handled ones were last followed: an edit keeps the count, a removal does not */
+  #followedCount = 0;
   #set: VisualSet | undefined;
   #canvas: Canvas3D | undefined;
   #commit: GizmoCommit | undefined;
-  #subs: Subscription[] = [];
+  #subs: { unsubscribe(): void }[] = [];
   #releaseClicks: (() => void) | undefined;
   readonly #gizmos = new Map<number, Gizmo>();
   #hovered: { index: number; handle: Handle } | undefined;
@@ -120,20 +124,26 @@ export class ClipGizmos {
   }
 
   #publishHandled() {
+    this.#followedCount = this.cuts.value.length;
     const next = [...this.#handledObjects.keys()].sort((a, b) => a - b);
     const prev = this.#handled.value;
     if (next.length !== prev.length || next.some((x, i) => x !== prev[i])) this.#handled.set(next);
     void this.#sync(this.cuts.value);
   }
 
-  /** The handled cuts in `cuts`: each by its object, else by its number when its object is gone (it was edited) */
+  /**
+   * The handled cuts in `cuts`: each by its object, else by its number when its object is gone and the count is the
+   * same (it was edited; a removal shifts the numbers, and the next cut is not the removed one)
+   */
   #followHandled(cuts: readonly Cut[]) {
     const before = this.#handledObjects;
     const next = new Map<number, CutObject>();
+    const sameCount = cuts.length === this.#followedCount;
+    this.#followedCount = cuts.length;
     for (const cut of cuts) {
       const same = [...before.values()].some((o) => RepresentationClip.objectsEqual(o, cut.object));
       const old = before.get(cut.index);
-      const edited = !!old && !cuts.some((c) => RepresentationClip.objectsEqual(c.object, old));
+      const edited = sameCount && !!old && !cuts.some((c) => RepresentationClip.objectsEqual(c.object, old));
       if (same || edited) next.set(cut.index, cut.object);
     }
     this.#handledObjects = next;
@@ -196,9 +206,9 @@ export class ClipGizmos {
       const clip = RepresentationClip.get(t.params);
       if (clip) void t.repr.createOrUpdate({ ...t.repr.props, clip }).run();
     }
-    const g = this.#gizmos.get(d.index);
-    if (g) void this.#place(g, d.from);
     if (!this.#hovered) this.#restoreBindings();
+    // the gizmos as the cuts are now (the drag's skipped its own, and the state may have moved on under it)
+    void this.#sync(this.cuts.value);
     this.#canvas?.requestDraw();
   }
 
@@ -298,6 +308,12 @@ export class ClipGizmos {
       return;
     }
     const made = await this.#make({ ...g.cut, object }, geometry);
+    // remade meanwhile (a sync after the commit) or gone: this one is not drawn
+    if (this.#set !== set || ![...this.#gizmos.values()].includes(g)) {
+      set.remove(made.body);
+      set.remove(made.handles);
+      return;
+    }
     set.remove(g.body);
     set.remove(g.handles);
     Object.assign(g, { geometry, ...made, cut: { ...g.cut, object } });
@@ -334,7 +350,7 @@ export class ClipGizmos {
     d.dx = x - d.x0;
     d.dy = y - d.y0;
     d.next = gesture(d.handle, d.from, d.axis, d.frame, d.dx, d.dy);
-    this.#live(d);
+    this.#live();
   }
 
   #begin(index: number, handle: Handle, x0: number, y0: number) {
@@ -366,18 +382,22 @@ export class ClipGizmos {
     };
   }
 
-  /** The drag's cut on the live representations and the gizmo, at most one update in flight (the latest wins) */
-  #pending = false;
+  /**
+   * The drag's cut on the live representations and the gizmo, at most one update in flight: each round takes the drag
+   * as it is then (the latest move; a new drag's first move too, while the last one's round finishes)
+   */
+  #running: Promise<void> | undefined;
   #again = false;
-  #live(d: Drag) {
-    if (this.#pending) {
+  #live() {
+    if (this.#running) {
       this.#again = true;
       return;
     }
-    this.#pending = true;
     const run = async () => {
       do {
         this.#again = false;
+        const d = this.#drag;
+        if (!d) break;
         const next = d.next;
         await Promise.all(
           d.targets.map((t) => {
@@ -390,16 +410,19 @@ export class ClipGizmos {
         const g = this.#gizmos.get(d.index);
         if (g && this.#drag === d) await this.#place(g, next);
         this.#canvas?.requestDraw();
-      } while (this.#again && this.#drag === d);
-      this.#pending = false;
+      } while (this.#again);
     };
-    void run();
+    this.#running = run().finally(() => {
+      this.#running = undefined;
+    });
   }
 
   async #end() {
     const d = this.#drag;
     if (!d) return;
     this.#drag = undefined;
+    // a live update still running would land after the commit's
+    await this.#running;
     const unchanged = d.targets.every((t) => this.plugin.state.data.cells.get(t.ref)?.transform.params === t.params);
     if (!unchanged || RepresentationClip.objectsEqual(d.from, d.next)) {
       this.#drag = d;
@@ -407,8 +430,12 @@ export class ClipGizmos {
       return;
     }
     if (!this.#hovered) this.#restoreBindings();
-    // the state takes the new cut; the gizmos follow it (sync)
-    await this.#commit?.(d.index, d.next);
+    // the state takes the new cut and the gizmos follow it (sync); not taken, the live representations go back
+    const done = (await this.#commit?.(d.from, d.next)) ?? false;
+    if (!done) {
+      this.#drag = d;
+      this.cancel();
+    }
   }
 
   #takeDrags() {

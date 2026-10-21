@@ -61,14 +61,18 @@ export class ClippingApi extends ApiArea {
 
   /** Shows the gizmos, a drag committing through `api` (the person's: one `clipping.update`, one history step) */
   showGizmos(api: ViewerApi): boolean {
-    return this.gizmos.show((cut, next) =>
-      api.run('clipping.update', {
-        cut,
+    return this.gizmos.show(async (from, next) => {
+      // by its object: another cut added or removed during the drag shifts the numbers
+      const cut = findCuts(this.ctx.plugin).find((c) => RepresentationClip.objectsEqual(c.object, from));
+      if (!cut) return false;
+      const r = await api.run('clipping.update', {
+        cut: cut.index,
         position: [...next.position],
         rotation: { axis: [...next.rotation.axis], angle: next.rotation.angle },
         scale: [...next.scale],
-      }),
-    );
+      });
+      return r.ok;
+    });
   }
 
   /**
@@ -207,11 +211,23 @@ export class ClippingApi extends ApiArea {
       };
       const cut = oneCut(ctx, index);
       if (ApiResult.isFailure(cut)) return cut;
+      // a direction has a length (the turn gesture and the shader take a unit axis)
+      const zero = (v?: readonly number[]) => !!v && Math.hypot(v[0], v[1], v[2]) < 1e-9;
+      if (zero(normal) || zero(rotation?.axis)) {
+        return ApiResult.fail('invalid', `A ${normal ? 'normal' : 'rotation axis'} of length 0 has no direction.`);
+      }
       const o = cut.object;
       const next: CutObject = {
         ...o,
         ...(position ? { position: Vec3.fromArray(Vec3(), position, 0) } : {}),
-        ...(rotation ? { rotation: { axis: Vec3.fromArray(Vec3(), rotation.axis, 0), angle: rotation.angle } } : {}),
+        ...(rotation
+          ? {
+              rotation: {
+                axis: Vec3.normalize(Vec3(), Vec3.fromArray(Vec3(), rotation.axis, 0)),
+                angle: rotation.angle,
+              },
+            }
+          : {}),
         ...(normal ? { rotation: rotationTo(axisOf(o.type), Vec3.fromArray(Vec3(), normal, 0)) } : {}),
         ...(scale ? { scale: Vec3.fromArray(Vec3(), scale, 0) } : {}),
         ...(invert !== undefined ? { invert } : {}),

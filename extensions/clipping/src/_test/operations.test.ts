@@ -134,4 +134,59 @@ describe('the clipping area', () => {
     const cut = ok<Cut>(await v.api.clipping!.add({ shape: 'cube', node: 'shape' }));
     expect(cut.targets.map((t) => t.type)).toEqual(['shape']);
   });
+
+  it('turns a cut on and off for one representation, never off the last', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping!;
+    const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
+      (c) => c.cell.obj?.label === 'Polymer',
+    )!;
+    const cartoon = polymer.representations[0].cell.transform.ref;
+    const ligand = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
+      (c) => c.cell.obj?.label === 'Ligand',
+    )!.representations[0].cell.transform.ref;
+    ok(await clipping.add({ shape: 'plane', target: 'polymer' }));
+    const cut = findCuts(v.plugin)[0];
+    expect(clipping.candidates(cut).map((t) => t.ref)).toContain(ligand);
+
+    ok(await clipping.apply({ cut: 1, representation: ligand, on: true }));
+    expect(findCuts(v.plugin)[0].targets.map((t) => t.ref)).toEqual([cartoon, ligand]);
+    expect(await clipping.apply({ cut: 1, representation: ligand, on: true })).toMatchObject({
+      ok: true,
+      unchanged: true,
+    });
+    ok(await clipping.apply({ cut: 1, representation: cartoon, on: false }));
+    expect(clipOf(v, cartoon).objects).toHaveLength(0);
+    // the last one: removing the cut is clipping.remove's
+    expect(await clipping.apply({ cut: 1, representation: ligand, on: false })).toMatchObject({
+      ok: false,
+      code: 'blocked',
+    });
+  });
+
+  it('refuses a direction of length 0, and keeps a rotation axis unit', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping!;
+    ok(await clipping.add({ shape: 'cube', target: 'polymer' }));
+    expect(await clipping.update({ cut: 1, normal: [0, 0, 0] })).toMatchObject({ ok: false, code: 'invalid' });
+    ok(await clipping.update({ cut: 1, rotation: { axis: [0, 0, 2], angle: 30 } }));
+    const { axis } = findCuts(v.plugin)[0].object.rotation;
+    expect(Math.hypot(axis[0], axis[1], axis[2])).toBeCloseTo(1, 6);
+  });
+
+  it('Clip this… selects what a row draws and narrows the filter to a representation', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping!;
+    const polymer = v.plugin.managers.structure.hierarchy.current.structures[0].components.find(
+      (c) => c.cell.obj?.label === 'Polymer',
+    )!;
+    const cartoon = polymer.representations[0].cell.transform.ref;
+    expect(clipping.canClipThis(cartoon)).toBe(true);
+    expect(await clipping.clipThis(v.api, cartoon)).toBe(true);
+    expect(v.plugin.managers.structure.selection.stats.elementCount).toBe(polymer.cell.obj!.data.elementCount);
+    expect(clipping.filter.value).toEqual({ excluded: [], only: ['cartoon'] });
+    // a component's row: every type
+    expect(await clipping.clipThis(v.api, polymer.cell.transform.ref)).toBe(true);
+    expect(clipping.filter.value).toEqual({ excluded: [] });
+  });
 });

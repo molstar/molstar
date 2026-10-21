@@ -96,7 +96,9 @@ export function resize(from: CutObject, handle: keyof typeof SizeFaces, frame: D
 /** The cut turned about its center: a sideways drag about the screen's up, an upward one about its right */
 export function turn(from: CutObject, frame: DragFrame, dx: number, dy: number): CutObject {
   const rad = (d: number) => (d * TurnPerPixel * Math.PI) / 180;
-  const q = Quat.setAxisAngle(Quat(), from.rotation.axis, (from.rotation.angle * Math.PI) / 180);
+  // a stored axis need not be unit (set from code): a quaternion needs one
+  const axis = Vec3.normalize(Vec3(), from.rotation.axis);
+  const q = Quat.setAxisAngle(Quat(), axis, (from.rotation.angle * Math.PI) / 180);
   const about = Quat.multiply(
     Quat(),
     Quat.setAxisAngle(Quat(), frame.up, rad(dx)),
