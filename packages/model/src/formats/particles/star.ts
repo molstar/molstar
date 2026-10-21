@@ -389,10 +389,10 @@ export function createParticleListFromRelionStar(
       const row = keys[index];
       const tomoName = tomoNameCol.isDefined ? tomoNameCol.value(row) : undefined;
       const micrographName = micrographNameCol.isDefined ? micrographNameCol.value(row) : undefined;
-      const label: string[] = [`#${row + 1}`];
+      const label: string[] = [`Particle ${row + 1}`];
       if (tomoName) label.push(tomoName);
       if (micrographName) label.push(micrographName);
-      return label.join(' | ');
+      return label.join(' · ');
     },
     sourceData: RelionStarFormat.create(data),
     customProperties: new CustomProperties(),

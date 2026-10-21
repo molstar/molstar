@@ -39,6 +39,8 @@
   gap: 1px;
   max-height: var(--cap);
   overflow: hidden;
+  /* A long name with no space (an address, a path) wraps where it must, never cut at the right edge */
+  overflow-wrap: anywhere;
   mask-image: linear-gradient(to bottom, #000 calc(var(--cap) - 2.5em), transparent var(--cap));
 }
 

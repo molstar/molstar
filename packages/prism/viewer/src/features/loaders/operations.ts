@@ -467,8 +467,9 @@ async function loadContent(
   // Asked again in its turn: one queued behind the same load finds it loaded (`load.entry`).
   const loaded = input.kind === 'url' && !ctx.copy ? urlLoaded(input.url, ctx) : undefined;
   if (loaded) return ApiResult.already(loaded);
-  // Data is binary when it is bytes (or base64); a label names it (its extension may tell the format).
-  const label = input.kind === 'url' ? '' : o.label.trim();
+  // Data is binary when it is bytes (or base64); a label names it (its extension may tell the format). A download is
+  // named by its file (what a particle list or a map is called after), not its whole address.
+  const label = input.kind === 'url' ? input.name : o.label.trim();
   const name = label || input.name;
   const choice = await chooseFormat(ctx, {
     format: o.format,

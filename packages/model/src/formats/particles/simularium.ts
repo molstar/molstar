@@ -330,7 +330,7 @@ function createParticleListFromSimulariumWithContext(
     getParticleLabel: (index: number) => {
       const t = particleTypeId[index];
       const id = particleInstanceId[index];
-      return `#${index + 1} | ${typeName(t)} | id ${id}`;
+      return `Particle ${index + 1} · ${typeName(t)} · id ${id}`;
     },
     sourceData: SimulariumFormat.create(file),
     customProperties: new CustomProperties(),

@@ -137,6 +137,7 @@ export interface ParticleList {
    */
   readonly attributes?: ReadonlyMap<string, ParticleAttribute>;
 
+  /** A particle in words, its index from 1 first: "Particle 165 · tomo 1 · class 2 · cc 0.4213" */
   readonly getParticleLabel: (index: number) => string;
 
   readonly sourceData: ModelFormat;
@@ -558,7 +559,7 @@ export namespace Particle {
       const index = OrderedSet.start(loci.indices);
       return loci.particles.getParticleLabel(index);
     }
-    return `${size} Particles`;
+    return `${size.toLocaleString('en')} particles`;
   }
 
   /** Return a copy of `particles` with the given per-target reference objects attached. */

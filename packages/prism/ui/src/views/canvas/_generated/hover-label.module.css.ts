@@ -42,6 +42,7 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
 .msp-canvas-hover-label-body {
   --cap: var(--msp-hover-label-height, 16rem);
   max-height: var(--cap);
+  overflow-wrap: anywhere;
   mask-image: linear-gradient(to bottom, #000 calc(var(--cap) - 2.5em), transparent var(--cap));
   gap: 1px;
   display: grid;

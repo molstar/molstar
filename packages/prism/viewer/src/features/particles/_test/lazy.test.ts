@@ -75,4 +75,16 @@ describe('the particles feature, lazy', () => {
     const extensions = formats.flatMap((f) => [...(f.stringExtensions ?? []), ...(f.binaryExtensions ?? [])]);
     expect([...owns.fileExtensions!, ...owns.sniff!.extensions].sort()).toEqual([...new Set(extensions)].sort());
   });
+
+  it('loads before a .molx session holding particles opens (its state.json read for the transformers)', async () => {
+    const source = await headlessViewer({ files: [particlesFile()] });
+    const saved = await source.api.session.save!({ kind: 'session' });
+    expectOk(saved);
+
+    const v = await headlessViewer();
+    expect(loaded(v)).toBe(false);
+    expectOk(await v.api.session.open({ file: new File([saved.value!.blob], 'particles.molx') }));
+    expect(loaded(v)).toBe(true);
+    expect(v.plugin.managers.particles.hierarchy.current.lists).toHaveLength(1);
+  });
 });

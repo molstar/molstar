@@ -537,7 +537,7 @@ async function buildCellpackStandardParticleList(
         const entity = entityInfo.get(entities[index])?.name;
         const chain = chainMapping.get(targets[index]);
         const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
-        return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
+        return `Particle ${index + 1} · ${entity} · chain ${chain} · ops ${opCombo}`;
       },
       sourceData: MmcifParticleFormat.create(cifFile),
       customProperties: new CustomProperties(),
@@ -717,7 +717,7 @@ async function buildPetworldParticleList(
       getParticleLabel: (index: number) => {
         const entity = entityInfo.get(entities[index])!.name;
         const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
-        return `#${index + 1} | ${entity} | ops ${opCombo}`;
+        return `Particle ${index + 1} · ${entity} · ops ${opCombo}`;
       },
       sourceData: MmcifParticleFormat.create(cifFile),
       customProperties: new CustomProperties(),

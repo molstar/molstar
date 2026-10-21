@@ -82,7 +82,8 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
         `${segmentCount === 1 ? `Segment ${firstSegment}` : `${segmentCount} Segments`}`,
       ].join(' | ');
     case 'particle-loci':
-      return [loci.particles.label || 'Particles', Particle.getLabel(loci)].join(' | ');
+      // The particle (its own words: "Particle 165 · tomo 1 · class 2"), its list beneath, small
+      return `<b>${escapeHtml(Particle.getLabel(loci))}</b></br><small>${escapeHtml(loci.particles.label || 'Particles')}</small>`;
   }
 }
 
@@ -438,4 +439,9 @@ export function dihedralLabel(quad: Loci.Bundle<4>, options: Partial<LabelOption
   if (o.measureOnly) return dihedral;
   const label = bundleLabel(quad, o);
   return o.condensed ? `${dihedral} | ${label}` : `Dihedral ${dihedral}</br>${label}`;
+}
+
+/** Text from a loaded file inside a label's markup */
+function escapeHtml(text: string) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
