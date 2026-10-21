@@ -7,7 +7,19 @@
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
 import type { CutObject } from '../../cuts.js';
-import { type DragFrame, MaxSlideGain, MinExtent, move, resize, size, slide, turn } from '../gestures.js';
+import { coneAngle, coneScale } from '../../cuts.js';
+import {
+  angle,
+  type DragFrame,
+  MaxSlideGain,
+  MinExtent,
+  move,
+  radius,
+  resize,
+  size,
+  slide,
+  turn,
+} from '../gestures.js';
 
 // What a drag does to a cut: the handle stays under the cursor (moves, slides, faces), turns and sizes by rate.
 
@@ -48,7 +60,7 @@ describe('gestures', () => {
   });
 
   it('drags one face of a box, the opposite one staying', () => {
-    const next = resize(box(), 'size-x', frame, 8, 0);
+    const next = resize(box(), [{ axis: 0, sign: 1 }], frame, 8, 0);
     close(next.scale, [14, 10, 10]);
     close(next.position, [2, 0, 0]);
     // −X face where it was
@@ -56,29 +68,52 @@ describe('gestures', () => {
   });
 
   it('drags the bottom (size-y faces −Y): down the screen grows it', () => {
-    const next = resize(box(), 'size-y', frame, 0, 8);
+    const next = resize(box(), [{ axis: 1, sign: -1 }], frame, 0, 8);
     close(next.scale, [10, 14, 10]);
     expect(next.position[1] + next.scale[1] / 2).toBeCloseTo(5, 6);
   });
 
   it('never sizes a face below the minimum', () => {
-    const next = resize(box(), 'size-z', { ...frame, right: Vec3.create(0, 0, 1) }, -1000, 0);
+    const next = resize(box(), [{ axis: 2, sign: 1 }], { ...frame, right: Vec3.create(0, 0, 1) }, -1000, 0);
     expect(next.scale[2]).toBeCloseTo(MinExtent, 6);
     // and moves the center by only what it shrank
     expect(next.position[2] - next.scale[2] / 2).toBeCloseTo(-5, 6);
   });
 
-  it('widens a cylinder about its axis: the diameter twice the drag', () => {
+  it('widens a cylinder about its axis: its rim stays under the cursor', () => {
     const cylinder = { ...box(), type: 'cylinder' as const, scale: Vec3.create(10, 20, 10) };
-    const next = resize(cylinder, 'radius', frame, 4, 0);
-    close(next.scale, [14, 20, 14]);
+    // the rim grabbed 20 px from its center; 10 px further out: half as wide again
+    const next = radius(cylinder, { ...frame, grab: [20, 0] }, 10, 0);
+    close(next.scale, [15, 20, 15]);
     close(next.position, [0, 0, 0]);
+  });
+
+  it("drags a box's edge: the two faces it joins move, the opposite ones stay", () => {
+    // the edge along Z at +X, +Y: dragging right and up grows both
+    const next = resize(
+      box(),
+      [
+        { axis: 0, sign: 1 },
+        { axis: 1, sign: 1 },
+      ],
+      frame,
+      8,
+      -8,
+    );
+    close(next.scale, [14, 14, 10]);
+    close(next.position, [2, 2, 0]);
+  });
+
+  it("widens a cone: its base rim's radius goes as the angle's tangent", () => {
+    const cone = { ...box(), type: 'infiniteCone' as const, scale: coneScale(30) };
+    const next = angle(cone, { ...frame, grab: [20, 0] }, 20, 0);
+    expect(Math.tan((coneAngle(next.scale) * Math.PI) / 180)).toBeCloseTo(2 * Math.tan(Math.PI / 6), 6);
   });
 
   it('follows the cut rotation: a turned box sizes along its own axis', () => {
     const turned = { ...box(), rotation: { axis: Vec3.create(0, 0, 1), angle: 90 } };
     // its local +X is world +Y: dragging up the screen (dy < 0) grows it
-    const next = resize(turned, 'size-x', frame, 0, -8);
+    const next = resize(turned, [{ axis: 0, sign: 1 }], frame, 0, -8);
     expect(next.scale[0]).toBeCloseTo(14, 6);
     close(next.position, [0, 2, 0]);
   });

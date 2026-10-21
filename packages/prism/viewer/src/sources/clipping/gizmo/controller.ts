@@ -6,7 +6,7 @@
 
 import { OrderedSet } from '@molstar/core/data/int';
 import type { Sphere3D } from '@molstar/core/math/geometry';
-import { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Binding } from '@molstar/core/util/binding';
 import { Color } from '@molstar/core/util/color';
 import { MarkerActions } from '@molstar/core/util/marker-action';
@@ -19,7 +19,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { type Cut, type CutObject, representationsSphere } from '../cuts.js';
-import { gizmoGeometry, type GizmoGeometry, HandleGroups, HandleLabels, slideAxis } from './geometry.js';
+import { facingCamera, gizmoGeometry, type GizmoGeometry, slideAxis } from './geometry.js';
 import { type DragFrame, gesture, type Handle } from './gestures.js';
 
 // The gizmos of the cuts (clipping.md §4): one per cut the person handles (`handled`), drawn in the canvas outside the state tree (a `VisualSet`),
@@ -37,16 +37,6 @@ import { type DragFrame, gesture, type Handle } from './gestures.js';
  */
 export type GizmoCommit = (from: CutObject, next: CutObject) => Promise<boolean>;
 
-const Colors: Readonly<Record<Handle, Color>> = {
-  move: Color(0xf5a623),
-  slide: Color(0x4a90e2),
-  turn: Color(0x50b860),
-  size: Color(0xbd10e0),
-  'size-x': Color(0xbd10e0),
-  'size-y': Color(0xbd10e0),
-  'size-z': Color(0xbd10e0),
-  radius: Color(0xbd10e0),
-};
 const BodyColor = Color(0x8fb8ec);
 /** The handles' glow (emissive: the canvas's bloom picks it up) */
 const Glow = 0.35;
@@ -167,6 +157,7 @@ export class ClipGizmos {
       canvas.interaction.hover.subscribe(({ current }) => this.#hover(current)),
       canvas.input.drag.subscribe((e) => this.#onDrag(e.isStart, e.x, e.y, e.dx, e.dy)),
       canvas.input.interactionEnd.subscribe(() => void this.#end()),
+      canvas.didDraw.subscribe(() => this.#faceCamera()),
       canvas.input.keyDown.subscribe((e) => {
         if (e.key === 'Escape' && this.#drag) this.cancel();
       }),
@@ -272,10 +263,10 @@ export class ClipGizmos {
       name,
       {},
       geometry.handles,
-      (g) => Colors[HandleGroups[g]] ?? BodyColor,
+      (g) => geometry.groups[g]?.color ?? BodyColor,
       () => 1,
-      (g) => `${name}: ${HandleLabels[HandleGroups[g]]}`,
-      HandleGroups.length,
+      (g) => `${name}: ${geometry.groups[g]?.label ?? ''}`,
+      Math.max(geometry.groups.length, 1),
     );
     const helper = { markerActions: MarkerActions.Highlighting };
     const [body, handles] = await Promise.all([
@@ -291,9 +282,31 @@ export class ClipGizmos {
       ),
       set.addShape((_, s: Shape<Mesh>) => s, Mesh.Utils, handleShape, { alpha: 1, emissive: Glow }, helper),
     ]);
-    set.setTransform(body, geometry.transform);
-    set.setTransform(handles, geometry.transform);
+    const transform = this.#frameOf(geometry);
+    set.setTransform(body, transform);
+    set.setTransform(handles, transform);
     return { body: body as unknown as Representation.Any, handles: handles as unknown as Representation.Any };
+  }
+
+  /** Where a gizmo is drawn: its cut's frame, or (a sphere's) that place turned to the camera */
+  #frameOf(geometry: GizmoGeometry): Mat4 {
+    const eye = this.#canvas?.camera.state.position;
+    return geometry.facesCamera && eye ? facingCamera(geometry.transform, eye) : geometry.transform;
+  }
+
+  /** After a frame: the gizmos that face the camera turned to it again where it moved (one more frame, then still) */
+  #lastEye = Vec3.create(Number.NaN, 0, 0);
+  #faceCamera() {
+    const set = this.#set;
+    const eye = this.#canvas?.camera.state.position;
+    if (!set || !eye || Vec3.exactEquals(eye, this.#lastEye)) return;
+    Vec3.copy(this.#lastEye, eye);
+    for (const g of this.#gizmos.values()) {
+      if (!g.geometry.facesCamera) continue;
+      const transform = this.#frameOf(g.geometry);
+      set.setTransform(g.body, transform);
+      set.setTransform(g.handles, transform);
+    }
   }
 
   /** A gizmo where `object` is: moved and turned as a whole; remade when its size changed */
@@ -303,8 +316,9 @@ export class ClipGizmos {
     const geometry = gizmoGeometry(object, g.bounds);
     if (sameSize(g.cut.object, object) && g.cut.object.invert === object.invert) {
       g.geometry = geometry;
-      set.setTransform(g.body, geometry.transform);
-      set.setTransform(g.handles, geometry.transform);
+      const transform = this.#frameOf(geometry);
+      set.setTransform(g.body, transform);
+      set.setTransform(g.handles, transform);
       return;
     }
     const made = await this.#make({ ...g.cut, object }, geometry);
@@ -329,7 +343,8 @@ export class ClipGizmos {
       }
       return;
     }
-    const handle = HandleGroups[OrderedSet.start(current.loci.groups[0].ids)];
+    const g = this.#gizmos.get(index);
+    const handle = g?.geometry.groups[OrderedSet.start(current.loci.groups[0].ids)]?.handle;
     if (!handle) return;
     this.#hovered = { index, handle };
     this.#takeDrags();
@@ -361,7 +376,11 @@ export class ClipGizmos {
     const dir = Vec3.normalize(Vec3(), Vec3.sub(Vec3(), camera.state.target, camera.state.position));
     const right = Vec3.normalize(Vec3(), Vec3.cross(Vec3(), dir, camera.state.up));
     const up = Vec3.normalize(Vec3(), Vec3.cross(Vec3(), right, dir));
-    const at = Vec3.fromArray(Vec3(), g.geometry.transform, 12);
+    const transform = this.#frameOf(g.geometry);
+    const at = Vec3.fromArray(Vec3(), transform, 12);
+    // a rim scales about its own center (a cylinder's end, a cone's base), the rest about the cut's
+    const pivot =
+      handle.kind === 'radius' || handle.kind === 'angle' ? Vec3.transformMat4(Vec3(), handle.pivot, transform) : at;
     const targets = g.cut.targets.flatMap((t) => {
       const cell = this.plugin.state.data.cells.get(t.ref);
       const repr = (cell?.obj?.data as { repr?: Representation.Any } | undefined)?.repr;
@@ -372,7 +391,7 @@ export class ClipGizmos {
       handle,
       from: g.cut.object,
       axis: slideAxis(g.cut.object),
-      frame: { right, up, perPixel: perPixel(canvas, at), grab: grabFrom(canvas, at, x0, y0) },
+      frame: { right, up, perPixel: perPixel(canvas, at), grab: grabFrom(canvas, pivot, x0, y0) },
       targets,
       x0,
       y0,

@@ -12,19 +12,25 @@ import { type CutObject, coneAngle, coneScale, rotated } from '../cuts.js';
 // the camera's axes and how many Å a pixel is at the cut. Each gesture starts from the cut as it was when the drag
 // began (`from`) and the drag's total so far, so it never accumulates rounding.
 
-/**
- * A handle of a gizmo: what dragging it does. `size` scales the whole cut; `size-x`, `size-y`, `size-z` drag one face
- * of a box (or a cylinder's bottom) along its axis, the opposite face staying; `radius` widens a cylinder about its axis
- */
-export type Handle = 'move' | 'slide' | 'turn' | 'size' | 'size-x' | 'size-y' | 'size-z' | 'radius';
+/** A face of a box (or a cylinder's end): its local axis and which way it faces */
+export interface Face {
+  readonly axis: 0 | 1 | 2;
+  readonly sign: 1 | -1;
+}
 
-/** The face a sizing handle drags: the local axis and which way it faces (`size-y` is the bottom: +Y has the arrow) */
-export const SizeFaces = {
-  'size-x': { axis: 0, sign: 1 },
-  'size-y': { axis: 1, sign: -1 },
-  'size-z': { axis: 2, sign: 1 },
-  radius: { axis: 0, sign: 1 },
-} as const;
+/**
+ * A handle of a gizmo: what dragging it does. `size` scales the whole cut (a sphere's ring, a box's corner); `faces`
+ * drags faces along their axes, the opposite ones staying (a box's edge: the two it joins; a cylinder's end); `radius`
+ * widens a cylinder and `angle` a cone, about `pivot` (in the cut's frame: a rim's center).
+ */
+export type Handle =
+  | { readonly kind: 'move' }
+  | { readonly kind: 'slide' }
+  | { readonly kind: 'turn' }
+  | { readonly kind: 'size' }
+  | { readonly kind: 'faces'; readonly faces: readonly Face[] }
+  | { readonly kind: 'radius'; readonly pivot: Vec3 }
+  | { readonly kind: 'angle'; readonly pivot: Vec3 };
 
 /** The smallest a cut's extent gets by dragging (Å) */
 export const MinExtent = 0.2;
@@ -81,24 +87,42 @@ export function alongAxis(a: Vec3, frame: DragFrame, dx: number, dy: number): nu
   return Vec3.dot(worldDelta(frame, dx, dy), a) / onScreen;
 }
 
-/** A face of a box (or a cylinder's bottom) dragged along its axis, the opposite face staying; a cylinder widened */
-export function resize(from: CutObject, handle: keyof typeof SizeFaces, frame: DragFrame, dx: number, dy: number) {
-  const { axis, sign } = SizeFaces[handle];
-  const local = Vec3.create(0, 0, 0);
-  local[axis] = sign;
-  const dir = rotated(from.rotation, local);
-  const along = alongAxis(dir, frame, dx, dy);
+/** Faces dragged along their axes, the opposite faces staying: a box's edge moves the two it joins */
+export function resize(from: CutObject, faces: readonly Face[], frame: DragFrame, dx: number, dy: number): CutObject {
   const scale = Vec3.clone(from.scale);
-  if (handle === 'radius') {
-    // about the axis: the diameter grows twice the drag
-    const d = Math.max(MinExtent, from.scale[0] + 2 * along);
-    scale[0] = d;
-    scale[2] = d;
-    return { ...from, scale };
+  const position = Vec3.clone(from.position);
+  for (const { axis, sign } of faces) {
+    const local = Vec3.create(0, 0, 0);
+    local[axis] = sign;
+    const dir = rotated(from.rotation, local);
+    const before = scale[axis];
+    scale[axis] = Math.max(MinExtent, before + alongAxis(dir, frame, dx, dy));
+    Vec3.scaleAndAdd(position, position, dir, (scale[axis] - before) / 2);
   }
-  scale[axis] = Math.max(MinExtent, from.scale[axis] + along);
-  const grown = scale[axis] - from.scale[axis];
-  return { ...from, scale, position: Vec3.scaleAndAdd(Vec3(), from.position, dir, grown / 2) };
+  return { ...from, scale, position };
+}
+
+/** How much farther from the grab's center the cursor is than the grab was; undefined grabbed (nearly) at it */
+export function grabRatio(frame: DragFrame | undefined, dx: number, dy: number): number | undefined {
+  const g = frame?.grab;
+  const reach = g ? Math.hypot(g[0], g[1]) : 0;
+  if (!g || reach < MinGrab) return undefined;
+  return Math.max(Math.hypot(g[0] + dx, g[1] + dy) / reach, 0.01);
+}
+
+/** A cylinder widened about its axis: its rim stays under the cursor */
+export function radius(from: CutObject, frame: DragFrame, dx: number, dy: number): CutObject {
+  const ratio = grabRatio(frame, dx, dy) ?? 2 ** ((dx - dy) / DoublingPixels);
+  const d = Math.max(MinExtent, from.scale[0] * ratio);
+  return { ...from, scale: Vec3.create(d, from.scale[1], d) };
+}
+
+/** A cone widened or narrowed: its base rim stays under the cursor (the rim's radius goes as the angle's tangent) */
+export function angle(from: CutObject, frame: DragFrame, dx: number, dy: number): CutObject {
+  const ratio = grabRatio(frame, dx, dy) ?? 2 ** ((dx - dy) / DoublingPixels);
+  const tan = Math.tan((coneAngle(from.scale) * Math.PI) / 180) * ratio;
+  const a = Math.max(1, Math.min(89, (Math.atan(tan) * 180) / Math.PI));
+  return { ...from, scale: coneScale(a) };
 }
 
 /** The cut turned about its center: a sideways drag about the screen's up, an upward one about its right */
@@ -117,24 +141,15 @@ export function turn(from: CutObject, frame: DragFrame, dx: number, dy: number):
 }
 
 /**
- * The cut sized. Grabbed off its center (`frame.grab`): by the cursor's distance from the center over the grab's, so
- * the ring or corner held stays under the cursor whichever side it is on. Else (or a cone's angle) at a rate: twice as
- * large every `DoublingPixels` up or right.
+ * The cut sized whole. Grabbed off its center (`frame.grab`): by the cursor's distance from the center over the
+ * grab's, so the ring or corner held stays under the cursor whichever side it is on; else at a rate, twice as large
+ * every `DoublingPixels` up or right.
  */
 export function size(from: CutObject, dx: number, dy: number, frame?: DragFrame): CutObject {
   if (from.type === 'plane') return from;
-  const g = frame?.grab;
-  const reach = g ? Math.hypot(g[0], g[1]) : 0;
-  if (from.type !== 'infiniteCone' && g && reach >= MinGrab) {
-    const ratio = Math.max(Math.hypot(g[0] + dx, g[1] + dy) / reach, 0.01);
-    return { ...from, scale: Vec3.scale(Vec3(), from.scale, ratio) };
-  }
-  const steps = (dx - dy) / DoublingPixels;
-  if (from.type === 'infiniteCone') {
-    const angle = Math.max(1, Math.min(89, coneAngle(from.scale) + steps * 15));
-    return { ...from, scale: coneScale(angle) };
-  }
-  return { ...from, scale: Vec3.scale(Vec3(), from.scale, 2 ** steps) };
+  if (from.type === 'infiniteCone') return frame ? angle(from, frame, dx, dy) : from;
+  const ratio = grabRatio(frame, dx, dy) ?? 2 ** ((dx - dy) / DoublingPixels);
+  return { ...from, scale: Vec3.scale(Vec3(), from.scale, ratio) };
 }
 
 /** A unit quaternion as Mol*'s clip rotation (axis, degrees) */
@@ -147,7 +162,7 @@ export function rotationOf(q: Quat): Clip.Rotation {
 
 /** The gesture of a handle */
 export function gesture(handle: Handle, from: CutObject, axis: Vec3, frame: DragFrame, dx: number, dy: number) {
-  switch (handle) {
+  switch (handle.kind) {
     case 'move':
       return move(from, frame, dx, dy);
     case 'slide':
@@ -156,7 +171,11 @@ export function gesture(handle: Handle, from: CutObject, axis: Vec3, frame: Drag
       return turn(from, frame, dx, dy);
     case 'size':
       return size(from, dx, dy, frame);
-    default:
-      return resize(from, handle, frame, dx, dy);
+    case 'faces':
+      return resize(from, handle.faces, frame, dx, dy);
+    case 'radius':
+      return radius(from, frame, dx, dy);
+    case 'angle':
+      return angle(from, frame, dx, dy);
   }
 }
