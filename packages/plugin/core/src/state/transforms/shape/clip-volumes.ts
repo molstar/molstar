@@ -96,11 +96,13 @@ const ClipVolumesShape3D = PluginStateTransform.BuiltIn({
           label,
           data,
           params: Mesh.Params,
-          getShape: (_, d: ClipVolumesData) =>
+          // into the previous shape's mesh: the representation's buffers are that mesh's (an update gives new counts,
+          // not new buffers), so a new mesh would be drawn with the old one's vertices
+          getShape: (_, d: ClipVolumesData, __, previous) =>
             ShapeUtils.create(
               label,
               d,
-              clipVolumesMesh(d.objects, d.around, d.props),
+              clipVolumesMesh(d.objects, d.around, d.props, previous?.geometry as Mesh | undefined),
               (g) => (g % 2 ? d.props.edgeColor : d.props.wallColor),
               () => 1,
               (g) => `${stringToWords(d.objects[g >> 1]?.type ?? '')} (${g % 2 ? 'edges' : 'walls'})`,
@@ -141,10 +143,15 @@ function boundsOf(repr: Representation.Any): Sphere3D {
 }
 
 /** The objects' walls and edges in the world: object i's walls group 2i, its edges 2i + 1 */
-export function clipVolumesMesh(objects: readonly ClipObject[], around: Sphere3D, params: ClipVolumesProps): Mesh {
+export function clipVolumesMesh(
+  objects: readonly ClipObject[],
+  around: Sphere3D,
+  params: ClipVolumesProps,
+  into?: Mesh,
+): Mesh {
   const reach = params.extent > 0 ? params.extent : Math.max(around.radius, 1);
   const width = params.edgeWidth > 0 ? params.edgeWidth : reach * 0.006;
-  const state = MeshBuilder.createState(4096, 2048);
+  const state = MeshBuilder.createState(4096, 2048, into);
   objects.forEach((o, i) => {
     const frame: Mat4 = clipObjectFrame(o, around);
     if (params.walls) {
