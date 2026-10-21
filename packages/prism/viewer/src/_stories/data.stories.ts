@@ -258,7 +258,7 @@ export const ParticlesStar: StoryObj = {
   render: () =>
     viewerStory(async (v) => {
       await loadFile(v, relionStar(400, 200), 'particles.star');
-      await must(person(v).particles.representation({ type: 'spacefill', params: { sizeFactor: 4 } }));
+      await must(person(v).particles!.representation({ type: 'spacefill', params: { sizeFactor: 4 } }));
       // Data that is not a structure does not frame the camera on its own.
       await must(person(v).camera.reset({ animate: false }));
     }),

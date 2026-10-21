@@ -31,6 +31,16 @@ export const ExampleFiles = {
   /** A small protein's trajectory: its model (PDB) and coordinates (DCD). */
   trajectoryModel: new URL('../../../../../data/examples/trajectory/protein.pdb', import.meta.url).href,
   trajectoryCoordinates: new URL('../../../../../data/examples/trajectory/protein.dcd', import.meta.url).href,
+  /** Particles (`data/examples/particles`, sources and licenses in its README): 200 ribosomes (CryoET Data Portal). */
+  cryoetRibosomes: new URL('../../../../../data/examples/particles/cryoet-ribosomes.ndjson', import.meta.url).href,
+  /** 300 HIV capsid picks with their poses, one tomogram (RELION STAR). */
+  relionSubtomo: new URL('../../../../../data/examples/particles/relion-subtomo.star', import.meta.url).href,
+  /** 300 picks in two tomograms (Dynamo table). */
+  dynamo: new URL('../../../../../data/examples/particles/dynamo.tbl', import.meta.url).href,
+  /** 225 ribosomes (Artiatomi motivelist, EM). */
+  artiatomi: new URL('../../../../../data/examples/particles/artiatomi.em', import.meta.url).href,
+  /** Five spheres over five frames (Simularium). */
+  simularium: new URL('../../../../../data/examples/particles/small.simularium', import.meta.url).href,
 };
 
 /** The first scene node the predicate takes, depth first (what a story picks). */

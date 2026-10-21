@@ -343,7 +343,7 @@ describe('the scene: volumes and particles', () => {
       [fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../data/examples/1crn.cif'))],
       '1crn.cif',
     );
-    expectOk(await v.api.particles.targets({ file: crambin }));
+    expectOk(await v.api.particles!.targets({ file: crambin }));
     expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Targets')).toBe('1: target 0: 1CRN');
     expect(list.children.value.map((c) => c.label.value)).toContain('Target');
   });

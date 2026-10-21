@@ -141,7 +141,8 @@ function buildRelionLabel(
   tomograms?: ReadonlyArray<string>,
   micrographs?: ReadonlyArray<string>,
 ) {
-  const base = particleBlockHeader || 'RELION';
+  // `data_particles` is RELION's own block name: "particles particles" says nothing, the format does
+  const base = particleBlockHeader && !/^particles$/i.test(particleBlockHeader) ? particleBlockHeader : 'RELION';
   const filters: string[] = [];
   if (tomograms !== void 0 && tomograms.length > 0) filters.push(tomograms.join(', '));
   if (micrographs !== void 0 && micrographs.length > 0) filters.push(micrographs.join(', '));

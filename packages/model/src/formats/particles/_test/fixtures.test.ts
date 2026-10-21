@@ -68,6 +68,8 @@ describe('particle fixtures in data/examples/particles', () => {
     expect(getRelionStarTomogramNames(cif)).toEqual([]);
 
     const list = createParticleListFromRelionStar(data);
+    // its block is RELION's own `data_particles`: named by the format, not "particles particles"
+    expect(list.label).toBe('RELION particles');
     expect(list.count).toBe(300);
     expectFinite(list);
     expectUnitRotations(list);

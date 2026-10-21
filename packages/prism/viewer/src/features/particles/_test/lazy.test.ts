@@ -57,7 +57,7 @@ describe('the particles feature, lazy', () => {
 
   it('loads when one of its operations is called', async () => {
     const v = await headlessViewer();
-    const r = await v.api.particles.list();
+    const r = await v.api.particles!.list();
     expectOk(r);
     expect(r.did).toMatch(/No particles/);
     expect(loaded(v)).toBe(true);
