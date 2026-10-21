@@ -232,4 +232,28 @@ describe('the clipping area', () => {
     const done = await clipping.clipThis(v.api, ref);
     expect(done && done.cut?.targets.map((t) => t.ref)).toEqual([ref]);
   });
+
+  it('tags its cuts: an edit keeps the tag, and two cuts alike stay two', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping;
+    const first = ok<Cut>(await clipping.add({ shape: 'plane', target: 'polymer' }));
+    expect(first.object.tag).toMatch(/^clip-/);
+    ok(await clipping.update({ cut: 1, position: [1, 2, 3] }));
+    expect(findCuts(v.plugin)[0].object.tag).toBe(first.object.tag);
+    const second = ok<Cut>(await clipping.add({ shape: 'sphere', target: 'polymer' }));
+    expect(second.object.tag).not.toBe(first.object.tag);
+    // the second made a plane where the first is: still two cuts, each removed on its own
+    ok(
+      await clipping.update({
+        cut: 2,
+        shape: 'plane',
+        position: [1, 2, 3],
+        normal: [...findCuts(v.plugin)[0].object.rotation.axis],
+      }),
+    );
+    ok(await clipping.update({ cut: 2, rotation: findCuts(v.plugin)[0].object.rotation }));
+    expect(findCuts(v.plugin)).toHaveLength(2);
+    ok(await clipping.remove({ cut: 2 }));
+    expect(findCuts(v.plugin)).toHaveLength(1);
+  });
 });

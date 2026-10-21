@@ -11,9 +11,8 @@ import { addCylinder, addSimpleCylinder } from '@molstar/graphics/geo/geometry/m
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
-import { Box } from '@molstar/graphics/geo/primitive/box';
-import { Circle } from '@molstar/graphics/geo/primitive/circle';
 import { Torus } from '@molstar/graphics/geo/primitive/torus';
+import { clipWallsMesh } from '@molstar/graphics/geo/clip-volumes';
 import { ConeOpening, type CutObject, coneAngle, LocalUp, rotated } from '../cuts.js';
 import type { Handle } from './gestures.js';
 
@@ -59,7 +58,6 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
   const tube = reach * 0.008;
   const edge = reach * 0.009;
   const rotation = Mat4.fromRotation(Mat4(), (object.rotation.angle * Math.PI) / 180, object.rotation.axis);
-  const body = MeshBuilder.createState(1024, 512);
   const handles = MeshBuilder.createState(4096, 2048);
   const groups: HandleGroup[] = [];
   const group = (handle: Handle, label: string, color: Color) => {
@@ -99,9 +97,6 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
         n,
         -Vec3.dot(n, Vec3.sub(Vec3(), bounds.center, object.position)),
       );
-      body.currentGroup = 0;
-      // `Circle` lies in XZ already (its normal +Y, the plane's)
-      MeshBuilder.addPrimitive(body, Mat4.fromScaling(Mat4(), Vec3.create(reach, 1, reach)), Circle({ segments: 96 }));
       // the knob and the arrow slide it (moving it within itself changes nothing); the arrow points to the side it
       // cuts away
       group({ kind: 'slide' }, 'Drag to slide it along its normal', HandleColors.slide);
@@ -113,8 +108,6 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
     }
     case 'sphere': {
       const r = object.scale[0] / 2;
-      body.currentGroup = 0;
-      addSphere(body, Vec3(), r, 3);
       group({ kind: 'move' }, 'Drag to move it', HandleColors.move);
       knobAt(Vec3());
       group({ kind: 'size' }, 'Drag to size it', HandleColors.outline);
@@ -125,8 +118,6 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
     case 'cube': {
       const [sx, sy, sz] = object.scale;
       const half = [sx / 2, sy / 2, sz / 2];
-      body.currentGroup = 0;
-      MeshBuilder.addPrimitive(body, Mat4.fromScaling(Mat4(), Vec3.create(sx, sy, sz)), Box());
       group({ kind: 'move' }, 'Drag to move it', HandleColors.move);
       knobAt(Vec3());
       // its faces: a knob at the center of each moves that face along its normal (the opposite one stays)
@@ -171,14 +162,6 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
     case 'cylinder': {
       const r = object.scale[0] / 2;
       const h = object.scale[1];
-      body.currentGroup = 0;
-      addCylinder(body, Vec3.create(0, -h / 2, 0), Vec3.create(0, h / 2, 0), 1, {
-        radiusTop: r,
-        radiusBottom: r,
-        radialSegments: 48,
-        topCap: true,
-        bottomCap: true,
-      });
       group({ kind: 'move' }, 'Drag to move it', HandleColors.move);
       knobAt(Vec3());
       group({ kind: 'slide' }, 'Drag to slide it along its axis', HandleColors.slide);
@@ -199,15 +182,6 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
       axis = rotated(object.rotation, ConeOpening);
       const length = reach;
       const rim = length * Math.tan((coneAngle(object.scale) * Math.PI) / 180);
-      body.currentGroup = 0;
-      addCylinder(body, Vec3.create(0, 0, -length), Vec3(), 1, { radiusTop: rim, radiusBottom: 0, radialSegments: 48 });
-      // its base filled: `Circle` lies in XZ, turned to face along Z
-      const base = Mat4.mul(
-        Mat4(),
-        Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, -length)), Mat4.rotX90 as Mat4),
-        Mat4.fromScaling(Mat4(), Vec3.create(rim, 1, rim)),
-      );
-      MeshBuilder.addPrimitive(body, base, Circle({ radius: 1, segments: 96 }));
       group({ kind: 'move' }, 'Drag to move its apex', HandleColors.move);
       knobAt(Vec3());
       group({ kind: 'slide' }, 'Drag to slide it along its opening', HandleColors.slide);
@@ -230,7 +204,8 @@ export function gizmoGeometry(object: CutObject, bounds: Sphere3D): GizmoGeometr
   }
   const transform = Mat4.mul(Mat4(), Mat4.fromTranslation(Mat4(), origin), rotation);
   return {
-    body: twoFaced(MeshBuilder.getMesh(body)),
+    // the walls as the clip volumes shape draws them (graphics geo/clip-volumes.ts)
+    body: clipWallsMesh(object, reach),
     handles: MeshBuilder.getMesh(handles),
     groups,
     transform,
@@ -252,32 +227,6 @@ export function facingCamera(transform: Mat4, eye: Vec3): Mat4 {
 function axisTo(to: Vec3): Vec3 {
   const a = Vec3.cross(Vec3(), LocalUp, to);
   return Vec3.magnitude(a) < 1e-6 ? Vec3.create(1, 0, 0) : Vec3.normalize(a, a);
-}
-
-/**
- * Each triangle twice, once facing each way: both sides of a translucent body draw as its front. A double-sided mesh
- * would draw its back as the inside, darkened (the renderer's interior shading), which on a dark canvas is not seen.
- * The body ignores light, so its normals (one a triangle) do not show.
- */
-export function twoFaced(mesh: Mesh): Mesh {
-  const v = mesh.vertexBuffer.ref.value;
-  const idx = mesh.indexBuffer.ref.value;
-  const groups = mesh.groupBuffer.ref.value;
-  const count = mesh.triangleCount;
-  const out = MeshBuilder.createState(count * 6, count * 2);
-  const a = Vec3();
-  const b = Vec3();
-  const c = Vec3();
-  for (let t = 0; t < count; t++) {
-    const i = idx[3 * t];
-    Vec3.fromArray(a, v, 3 * i);
-    Vec3.fromArray(b, v, 3 * idx[3 * t + 1]);
-    Vec3.fromArray(c, v, 3 * idx[3 * t + 2]);
-    out.currentGroup = groups[i];
-    MeshBuilder.addTriangle(out, a, b, c);
-    MeshBuilder.addTriangle(out, a, c, b);
-  }
-  return MeshBuilder.getMesh(out);
 }
 
 /** The axis a slide follows for a cut: the plane's normal, the box's or cylinder's up, the cone's opening */

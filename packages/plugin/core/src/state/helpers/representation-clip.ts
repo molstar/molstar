@@ -46,8 +46,19 @@ export namespace RepresentationClip {
       Vec3.exactEquals(a.scale, b.scale) &&
       Vec3.exactEquals(a.rotation.axis, b.rotation.axis) &&
       a.rotation.angle === b.rotation.angle &&
-      Mat4.areEqual(a.transform, b.transform, 0)
+      Mat4.areEqual(a.transform, b.transform, 0) &&
+      (a.tag ?? '') === (b.tag ?? '')
     );
+  }
+
+  /**
+   * The same cut, maybe moved or resized: a tagged object (a clip manager's) by its tag, an untagged one by being
+   * equal in every value
+   */
+  export function sameCut(a: Object, b: Object): boolean {
+    const ta = a.tag ?? '';
+    const tb = b.tag ?? '';
+    return ta || tb ? ta === tb : objectsEqual(a, b);
   }
 
   export function areEqual(a: Clip.Props, b: Clip.Props): boolean {

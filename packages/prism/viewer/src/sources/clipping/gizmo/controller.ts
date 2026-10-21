@@ -131,9 +131,9 @@ export class ClipGizmos {
     const sameCount = cuts.length === this.#followedCount;
     this.#followedCount = cuts.length;
     for (const cut of cuts) {
-      const same = [...before.values()].some((o) => RepresentationClip.objectsEqual(o, cut.object));
+      const same = [...before.values()].some((o) => RepresentationClip.sameCut(o, cut.object));
       const old = before.get(cut.index);
-      const edited = sameCount && !!old && !cuts.some((c) => RepresentationClip.objectsEqual(c.object, old));
+      const edited = sameCount && !!old && !cuts.some((c) => RepresentationClip.sameCut(c.object, old));
       if (same || edited) next.set(cut.index, cut.object);
     }
     this.#handledObjects = next;
@@ -422,7 +422,7 @@ export class ClipGizmos {
           d.targets.map((t) => {
             const clip = RepresentationClip.get(t.params);
             if (!clip) return undefined;
-            const objects = clip.objects.map((o) => (RepresentationClip.objectsEqual(o, d.from) ? next : o));
+            const objects = clip.objects.map((o) => (RepresentationClip.sameCut(o, d.from) ? next : o));
             return t.repr.createOrUpdate({ ...t.repr.props, clip: { ...clip, objects } }).run();
           }),
         );

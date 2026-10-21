@@ -71,6 +71,11 @@ export namespace Clip {
         ),
         scale: PD.Vec3(Vec3.create(1, 1, 1)),
         transform: PD.Mat4(Mat4.identity()),
+        /**
+         * Who made it, and which of theirs it is (a clip manager's `clip-<uuid>`): the same object on several
+         * representations is one cut by it. Not used for clipping; empty: untagged.
+         */
+        tag: PD.Optional(PD.Text('', { isHidden: true })),
       },
       (o) => stringToWords(o.type),
     ),

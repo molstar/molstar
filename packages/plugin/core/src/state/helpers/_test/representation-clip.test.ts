@@ -55,4 +55,17 @@ describe('RepresentationClip', () => {
     // nothing of its own: the owner's variant
     expect(RepresentationClip.replaceOwned(clip('instance', globalA), [globalA], clip('pixel')).variant).toBe('pixel');
   });
+
+  it('is the same cut by its tag when tagged, by its values when not', () => {
+    const a = object('plane', 1);
+    const moved = object('plane', 2);
+    expect(RepresentationClip.sameCut(a, a)).toBe(true);
+    expect(RepresentationClip.sameCut(a, moved)).toBe(false);
+    // tagged: the tag, wherever it is
+    expect(RepresentationClip.sameCut({ ...a, tag: 'clip-1' }, { ...moved, tag: 'clip-1' })).toBe(true);
+    expect(RepresentationClip.sameCut({ ...a, tag: 'clip-1' }, { ...a, tag: 'clip-2' })).toBe(false);
+    expect(RepresentationClip.sameCut({ ...a, tag: 'clip-1' }, a)).toBe(false);
+    // equal in every value takes the tag too
+    expect(RepresentationClip.objectsEqual({ ...a, tag: 'clip-1' }, a)).toBe(false);
+  });
 });

@@ -86,7 +86,7 @@ export function findCuts(plugin: PluginContext): Cut[] {
   for (const cell of clippableCells(state)) {
     const clip = RepresentationClip.get(cell.transform.params)!;
     for (const object of ownObjects(plugin, clip)) {
-      let cut = cuts.find((c) => RepresentationClip.objectsEqual(c.object, object));
+      let cut = cuts.find((c) => RepresentationClip.sameCut(c.object, object));
       if (!cut) cuts.push((cut = { object, targets: [] }));
       if (!cut.targets.some((t) => t.ref === cell.transform.ref)) {
         cut.targets.push({
@@ -306,7 +306,7 @@ export const MinPlacedRadius = 12;
 export function withObject(params: unknown, previous: CutObject | undefined, next: CutObject | undefined): unknown {
   const clip = RepresentationClip.get(params);
   if (!clip) return params;
-  const at = previous ? clip.objects.findIndex((o) => RepresentationClip.objectsEqual(o, previous)) : -1;
+  const at = previous ? clip.objects.findIndex((o) => RepresentationClip.sameCut(o, previous)) : -1;
   const objects = [...clip.objects];
   if (at >= 0) {
     if (next) objects[at] = next;

@@ -8,6 +8,7 @@ import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { StateObjectCell } from '@molstar/core/state';
 import { Clip } from '@molstar/core/util/clip';
+import { UUID } from '@molstar/core/util/uuid';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { RepresentationClip } from '@molstar/plugin/state/helpers/representation-clip';
@@ -44,6 +45,10 @@ import {
 // written into those representations' own params (the state tree is the record), read back as cuts. Each run is one
 // step of the history.
 
+/** A new cut's tag (`Clip` objects' `tag`): this clip manager's, unique */
+export const CutTagPrefix = 'clip-';
+export const newCutTag = () => `${CutTagPrefix}${UUID.create22()}`;
+
 const CutParam = () => PD.Numeric(1, { min: 1, step: 1 }, { description: 'The cut by its number (clipping.list)' });
 const Vec3Param = (description: string) => OptionalParam(PD.Value<readonly number[]>([0, 0, 0], { description }));
 
@@ -67,7 +72,7 @@ export class ClippingApi extends ApiArea {
   showGizmos(api: ViewerApi): boolean {
     return this.gizmos.show(async (from, next) => {
       // by its object: another cut added or removed during the drag shifts the numbers
-      const cut = findCuts(this.ctx.plugin).find((c) => RepresentationClip.objectsEqual(c.object, from));
+      const cut = findCuts(this.ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, from));
       if (!cut) return false;
       const r = await api.run('clipping.update', {
         cut: cut.index,
@@ -190,7 +195,8 @@ export class ClippingApi extends ApiArea {
       const camera = ctx.plugin.canvas3d?.camera.state;
       // along the line of sight (not toward the camera's position): pushed toward the viewer, it stays over the target
       const view = camera ? Vec3.sub(Vec3(), camera.position, camera.target) : Vec3.create(0, 0, 1);
-      const object = { ...placeCut(shape, sphere, view, drawn), invert };
+      // tagged as this clip manager's: the same object on its representations is one cut, and two cuts are two
+      const object = { ...placeCut(shape, sphere, view, drawn), invert, tag: newCutTag() };
       // a cut like it on these already (Add pressed again): that one, not another on top of it
       const same = findCuts(ctx.plugin).find(
         (c) =>
@@ -198,7 +204,7 @@ export class ClippingApi extends ApiArea {
       );
       if (same) return ApiResult.already(`Cut ${same.index} is that cut already.`, { value: same });
       await commit(ctx, cells, undefined, object);
-      const cut = findCuts(ctx.plugin).find((c) => RepresentationClip.objectsEqual(c.object, object));
+      const cut = findCuts(ctx.plugin).find((c) => RepresentationClip.sameCut(c.object, object));
       return ApiResult.ok(
         `Cut ${namesOf(ctx, cells)} with a ${CutShapeLabels[shape].toLowerCase()}${cut ? ` (cut ${cut.index})` : ''}.`,
         { nodes: cells.map((c) => c.transform.ref) },
@@ -358,7 +364,7 @@ export class ClippingApi extends ApiArea {
       const objects = cuts.map((c) => c.object);
       for (const cell of clippableCells(state)) {
         const clip = RepresentationClip.get(cell.transform.params)!;
-        const kept = clip.objects.filter((o) => !objects.some((c) => RepresentationClip.objectsEqual(o, c)));
+        const kept = clip.objects.filter((o) => !objects.some((c) => RepresentationClip.sameCut(o, c)));
         if (kept.length !== clip.objects.length) {
           b.to(cell).update(RepresentationClip.set(cell.transform.params, { ...clip, objects: kept }) as never);
         }
