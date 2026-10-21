@@ -29,6 +29,7 @@ import {
   rotated,
 } from '../../sources/clipping/cuts.js';
 import type { ClippingApi } from './operations.js';
+import { classes } from './_generated/clipping.module.css.js';
 import { ClippingSectionId } from './index.js';
 
 // The Clipping section of the Selection tab (clipping.md §3): a cut through what the selection is drawn as, by
@@ -107,7 +108,7 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
     const on = chosen.value.includes(t);
     exclude(types.value.filter((x) => (x === t ? on : !chosen.value.includes(x))));
   };
-  // The cuts whose editor is open (by number): a new one opens, so its shape is a click away
+  // The cuts whose editor is open (by number): a new one opens alone, so its shape is a click away
   const open = observableState<readonly number[]>([]);
   const setOpen = (index: number, on: boolean) =>
     open.set(on ? [...open.value.filter((i) => i !== index), index] : open.value.filter((i) => i !== index));
@@ -116,10 +117,12 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
     // all chosen: no filter, so a type drawn later is cut too
     const only = chosen.value.length === types.value.length ? [] : chosen.value;
     void ctx.api.run('clipping.add', { shape: 'plane', types: only }).then((r) => {
+      // a new cut, or the one like it already there (Add pressed again): either is what is worked on now
       const cut = (r as { value?: Cut }).value;
       if (!r.ok || !cut) return;
       clipping.gizmos.setHandled(cut.index, true);
-      setOpen(cut.index, true);
+      // its editor the only one open: the new cut is what is being worked on
+      open.set([cut.index]);
     });
   };
   // The handled cuts' gizmos show while the section does: closed (or its tab), they go; opened, they come back
@@ -246,10 +249,10 @@ function Check(props: { on: ReadonlyState<boolean>; partly?: ReadonlyState<boole
 function Muted(props: { on: ReadonlyState<boolean>; children?: unknown }) {
   return (
     <span
+      class={classes.fade}
       style={derive(
         props.on,
-        (v) =>
-          `flex: 1; text-align: start; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap${v ? '' : '; color: var(--msp-color-text-muted)'}`,
+        (v) => `flex: 1; text-align: start; min-width: 0${v ? '' : '; color: var(--msp-color-text-muted)'}`,
       )}
     >
       {props.children as never}
@@ -310,13 +313,13 @@ function CutRow(props: {
         const shape = type as CutShape;
         return (
           <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
-            <div style={row}>
-              <Icon name={ShapeIcons[shape]} size={16} />
-              <span style="flex: 1; min-width: 0; display: grid">
-                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
-                  {derive(cut, (c) => (c ? `${CutShapeLabels[shape]} ${c.index}` : ''))}
-                </span>
-                <span style={`${caption}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap`}>
+            <div class={classes.cutRow}>
+              <span class={classes.cutIcon}>
+                <Icon name={ShapeIcons[shape]} size={18} />
+              </span>
+              <span class={classes.cutText}>
+                <span class={classes.fade}>{derive(cut, (c) => (c ? `${CutShapeLabels[shape]} ${c.index}` : ''))}</span>
+                <span class={`${classes.caption} ${classes.fade}`}>
                   {derive(cut, (c) => (c ? targetsSummary(c) : ''))}
                 </span>
               </span>

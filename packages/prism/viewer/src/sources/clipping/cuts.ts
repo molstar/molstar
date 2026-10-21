@@ -245,6 +245,23 @@ function exitDistance(from: Vec3, dir: Vec3, sphere: Sphere3D): number {
   return disc < 0 ? 0 : Math.max(0, -b + Math.sqrt(disc));
 }
 
+/** Within this (Å) positions and sizes count as the same, and directions within ~2.5° (cos 0.999) */
+export const SameWithin = 0.5;
+
+/** Two cuts that are the same to the eye: shape, flip, place, direction and size, up to `SameWithin` */
+export function nearlyEqual(a: CutObject, b: CutObject): boolean {
+  if (a.type !== b.type || a.invert !== b.invert) return false;
+  if (Vec3.distance(a.position, b.position) > SameWithin || Vec3.distance(a.scale, b.scale) > SameWithin) return false;
+  const axis = shapeAxis(a.type);
+  if (Vec3.dot(rotated(a.rotation, axis), rotated(b.rotation, axis)) < 0.999) return false;
+  // a box or a cylinder also by its twist about the axis
+  if (a.type === 'cube' || a.type === 'cylinder') {
+    const side = Vec3.create(1, 0, 0);
+    if (Vec3.dot(rotated(a.rotation, side), rotated(b.rotation, side)) < 0.999) return false;
+  }
+  return true;
+}
+
 /** The local axis a shape's direction is: a plane's normal, a box's or a cylinder's up (+Y), a cone's opening (−Z) */
 export const shapeAxis = (shape: string) => (shape === 'infiniteCone' ? ConeOpening : LocalUp);
 

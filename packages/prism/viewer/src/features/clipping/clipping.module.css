@@ -1,0 +1,44 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Clipping section (clipping.md §3). */
+
+/* A cut's row: its shape's icon apart from its name and what it is on, then its buttons. */
+.cutRow {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+}
+
+.cutIcon {
+  flex: none;
+  display: flex;
+  margin-right: var(--msp-space-1);
+  color: var(--msp-color-text-muted);
+}
+
+.cutText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+/* Cut-off text fades at its end, as everywhere in the app (reset.css: the fade only while it is cut off). */
+.fade {
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--msp-font-size-xs);
+  color: var(--msp-color-text-muted);
+}

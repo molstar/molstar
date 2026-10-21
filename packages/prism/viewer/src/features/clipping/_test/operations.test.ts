@@ -202,4 +202,17 @@ describe('the clipping area', () => {
     expect([...sphere.position]).toEqual([...cut.object.position]);
     expect(sphere.scale[0]).toBeGreaterThan(0);
   });
+
+  it('adds a cut like one already there once: Add again gives that one', async () => {
+    const v = await create(cbs());
+    const clipping = v.api.clipping;
+    const first = ok<Cut>(await clipping.add({ shape: 'plane', target: 'polymer' }));
+    const again = await clipping.add({ shape: 'plane', target: 'polymer' });
+    expect(again).toMatchObject({ ok: true, unchanged: true, value: { index: first.index } });
+    expect(findCuts(v.plugin)).toHaveLength(1);
+    expect(clipOf(v, first.targets[0].ref).objects).toHaveLength(1);
+    // another shape is another cut
+    ok(await clipping.add({ shape: 'sphere', target: 'polymer' }));
+    expect(findCuts(v.plugin)).toHaveLength(2);
+  });
 });

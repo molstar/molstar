@@ -28,6 +28,7 @@ import {
   cutCandidates,
   type CutTarget,
   findCuts,
+  nearlyEqual,
   MinPlacedRadius,
   placeCut,
   representationLabel,
@@ -177,6 +178,12 @@ export class ClippingApi extends ApiArea {
       // along the line of sight (not toward the camera's position): pushed toward the viewer, it stays over the target
       const view = camera ? Vec3.sub(Vec3(), camera.position, camera.target) : Vec3.create(0, 0, 1);
       const object = { ...placeCut(shape, sphere, view, drawn), invert };
+      // a cut like it on these already (Add pressed again): that one, not another on top of it
+      const same = findCuts(ctx.plugin).find(
+        (c) =>
+          nearlyEqual(c.object, object) && cells.some((cell) => c.targets.some((t) => t.ref === cell.transform.ref)),
+      );
+      if (same) return ApiResult.already(`Cut ${same.index} is that cut already.`, { value: same });
       await commit(ctx, cells, undefined, object);
       const cut = findCuts(ctx.plugin).find((c) => RepresentationClip.objectsEqual(c.object, object));
       return ApiResult.ok(
