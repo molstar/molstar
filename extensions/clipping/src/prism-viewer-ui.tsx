@@ -281,33 +281,46 @@ function CutTargets(props: {
 }) {
   const candidates = derive(props.cut, (c) => (c ? props.clipping.candidates(c) : []), sameTargets);
   return (
-    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--msp-space-1); min-width: 0">
-      <span style={`${caption}; margin-right: var(--msp-space-1)`}>Through</span>
-      <div style="display: contents" role="group" aria-label="The representations it cuts">
-        <For each={candidates}>
-          {(t) => {
-            const on = derive(props.cut, (c) => !!c?.targets.some((x) => x.ref === t.ref));
-            const last = derive(props.cut, (c) => !!c && c.targets.length === 1 && c.targets[0].ref === t.ref);
-            return (
-              <Button
-                size="xs"
-                variant="ghost"
-                pressed={on}
-                disabled={last}
-                icon={
-                  <span style={derive(on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
-                    <Icon name="check" size={14} />
-                  </span>
-                }
-                title={derive(on, (v) => (v ? `Leave ${t.label} whole` : `Cut ${t.label} too`))}
-                onClick={() => props.run('clipping.apply', { representation: t.ref, on: !on.value })}
+    <div style="display: grid; gap: 2px; min-width: 0" role="group" aria-label="The representations it cuts">
+      <p style={caption}>Cuts through</p>
+      <For each={candidates}>
+        {(t) => {
+          const on = derive(props.cut, (c) => !!c?.targets.some((x) => x.ref === t.ref));
+          const last = derive(props.cut, (c) => !!c && c.targets.length === 1 && c.targets[0].ref === t.ref);
+          return (
+            <Button
+              size="xs"
+              variant="ghost"
+              block
+              pressed={on}
+              disabled={last}
+              icon={
+                <span style={derive(on, (v) => (v ? 'display: flex' : 'display: flex; visibility: hidden'))}>
+                  <Icon name="check" size={14} />
+                </span>
+              }
+              title={derive([on, last], (v, l) =>
+                l
+                  ? 'The cut is only on this: remove the cut instead'
+                  : v
+                    ? `Leave ${t.label} whole`
+                    : `Cut ${t.label} too`,
+              )}
+              onClick={() => props.run('clipping.apply', { representation: t.ref, on: !on.value })}
+            >
+              <span
+                style={derive(
+                  on,
+                  (v) =>
+                    `flex: 1; text-align: start; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap${v ? '' : '; color: var(--msp-color-text-muted)'}`,
+                )}
               >
-                <span style={derive(on, (v) => (v ? '' : 'color: var(--msp-color-text-muted)'))}>{t.label}</span>
-              </Button>
-            );
-          }}
-        </For>
-      </div>
+                {t.label}
+              </span>
+            </Button>
+          );
+        }}
+      </For>
     </div>
   );
 }
@@ -377,9 +390,14 @@ function formParams(shape: CutShape): PD.Params {
   }
 }
 
+/** Shown to 2 decimals (Å), directions to 3: the fields fit, and nothing finer is meant */
+const round = (v: ArrayLike<number>, digits: number) =>
+  Vec3.create(...([0, 1, 2].map((i) => +v[i].toFixed(digits)) as [number, number, number]));
+
 function formValues(cut: Cut): Record<string, unknown> {
-  const o = cut.object;
-  const up = rotated(o.rotation, LocalUp);
+  const raw = cut.object;
+  const o = { ...raw, position: round(raw.position, 2), scale: round(raw.scale, 2) };
+  const up = round(rotated(raw.rotation, LocalUp), 3);
   switch (o.type as CutShape) {
     case 'plane':
       return { position: o.position, normal: up };
@@ -390,7 +408,11 @@ function formValues(cut: Cut): Record<string, unknown> {
     case 'cylinder':
       return { position: o.position, axis: up, diameter: o.scale[0], height: o.scale[1] };
     case 'infiniteCone':
-      return { position: o.position, axis: rotated(o.rotation, ConeOpening), angle: coneAngle(o.scale) };
+      return {
+        position: o.position,
+        axis: round(rotated(raw.rotation, ConeOpening), 3),
+        angle: +coneAngle(raw.scale).toFixed(1),
+      };
   }
   return {};
 }
