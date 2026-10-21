@@ -71,10 +71,12 @@
   pointer-events: none;
   /* Its theme sets the text color too. */
   color: var(--msp-color-text);
+}
 
-  & > * {
-    pointer-events: auto;
-  }
+/* Its items take events by default, at no specificity: an item that passes them through over its whole box (the
+   canvas bottom's bar, canvas.module.css) says so itself, whichever stylesheet comes later. */
+:where(.layer) > * {
+  pointer-events: auto;
 }
 
 /* The view's chrome follows the canvas: pinned, it lays out against the narrower canvas. */

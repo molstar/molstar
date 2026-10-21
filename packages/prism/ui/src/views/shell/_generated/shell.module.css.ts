@@ -68,10 +68,10 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
   color: var(--msp-color-text);
   position: absolute;
   inset: 0;
+}
 
-  & > * {
-    pointer-events: auto;
-  }
+:where(.msp-shell-layer) > * {
+  pointer-events: auto;
 }
 
 .msp-shell-canvasLayer {
