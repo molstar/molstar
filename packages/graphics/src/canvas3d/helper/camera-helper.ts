@@ -8,7 +8,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 
 import { produce } from '@molstar/core/util/produce';
 import { Interval } from '@molstar/core/data/int/interval';
-import { addCylinder, addSimpleCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
+import { addSimpleCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -320,11 +320,14 @@ function createAxesMesh(props: AxesProps, mesh?: Mesh) {
   const length = axisLength(props);
   const radius = props.radiusScale * 100 * props.scale * 0.6;
   const head = Math.min(radius * 4.5, length * 0.25);
-  const shaft = { radiusTop: radius, radiusBottom: radius, radialSegments: 24 };
+  // closed at the origin's end: a translucent open tube would show its inside
+  const shaft = { radiusTop: radius, radiusBottom: radius, radialSegments: 24, bottomCap: true };
   const cone = { radiusTop: 0, radiusBottom: radius * 2.2, radialSegments: 24, bottomCap: true };
 
+  // the origin: a small sphere the shafts start at, not inside it (an overlap shows through the translucency)
+  const origin = radius * 1.5;
   state.currentGroup = CameraHelperAxis.Origin;
-  addSphere(state, Vec3.origin, radius * 1.8, 2);
+  addSphere(state, Vec3.origin, origin, 3);
 
   const axes = [
     [CameraHelperAxis.X, Vec3.unitX],
@@ -335,7 +338,8 @@ function createAxesMesh(props: AxesProps, mesh?: Mesh) {
     state.currentGroup = group;
     const tip = Vec3.scale(Vec3(), unit, length + radius);
     const base = Vec3.scale(Vec3(), unit, length + radius - head);
-    addCylinder(state, Vec3.origin, base, 1, shaft);
+    // `addSimpleCylinder` takes the start's radius as `radiusBottom` (and caps it): from the origin sphere's surface
+    addSimpleCylinder(state, Vec3.scale(Vec3(), unit, origin), base, shaft);
     // `addSimpleCylinder` puts `radiusBottom` at its start: the head's base at the shaft's end
     addSimpleCylinder(state, base, tip, cone);
   }
