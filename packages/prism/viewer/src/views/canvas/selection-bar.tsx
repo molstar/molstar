@@ -19,7 +19,8 @@ import type { SelectionAction, SelectionModel } from '../../model/selection.js';
 import { classes } from './_generated/selection-bar.module.css.js';
 
 /**
- * The selection, bottom right of the canvas while there is one: what is selected, a button that opens what to do with
+ * Left of the canvas toolbar: Unfocus while something is focused (the selection stays), then the selection while there
+ * is one: what is selected, a button that opens what to do with
  * it (Focus, Show in structure tree, Make a component, the extensions' rows, More in the Selection panel: rows as the
  * canvas stack's menus, a title and a line under it), and Clear. Mol*'s selection toolbar actions, as one menu.
  */
@@ -63,82 +64,100 @@ export function SelectionBar(props: { selection: SelectionModel }) {
     if (e.pointerType !== 'touch' && !open.value) open.set(true);
   };
   return (
-    <Show when={selection.summary}>
-      {(summary) => (
-        <div class={classes.bar} role="toolbar" aria-label="Selection" ref={(e: HTMLElement) => (bar = e)}>
-          <button
-            type="button"
-            class={classes.summary}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            ref={(e: HTMLElement) => (button = e)}
-            onPointerEnter={hoverOpen}
-            onPointerLeave={(e: PointerEvent) => e.pointerType !== 'touch' && open.value && leaveSoon()}
-            onClick={(e: MouseEvent) => {
-              keep();
-              // `detail` 0: Enter or Space, not a press of the pointer
-              byKeyboard = e.detail === 0;
-              open.set(!open.value);
-            }}
-          >
-            <span>{summary}</span>
-            {/* As the canvas stack's buttons with a menu: a corner mark says there is more on hover */}
-            <span class={classes.menuMark} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class={classes.action}
-            aria-label="Clear selection"
-            data-tip="Clear selection"
-            data-tip-side="top"
-            onClick={() => selection.clear()}
-          >
-            <Icon name="x" size={16} />
-          </button>
-          <Show when={open}>
-            {() => {
-              // Escape, or a press outside the bar and the menu, closes it
-              on(
-                document,
-                'keydown',
-                (e: KeyboardEvent) => {
-                  if (e.key !== 'Escape' || e.defaultPrevented) return;
-                  e.preventDefault();
-                  close(true);
-                },
-                { capture: true },
-              );
-              on(
-                document,
-                'pointerdown',
-                (e: PointerEvent) => {
-                  // The path, not the target: inside a shadow root the document sees the host as the target
-                  if (!e.composedPath().includes(bar)) close();
-                },
-                { capture: true },
-              );
-              return (
-                <div
-                  class={classes.menu}
-                  role="menu"
-                  aria-label="What to do with the selection"
-                  ref={(el: HTMLElement) => {
-                    if (byKeyboard) queueMicrotask(() => el.querySelector<HTMLElement>('button')?.focus());
-                  }}
-                  onPointerEnter={keep}
-                  onPointerLeave={(e: PointerEvent) => e.pointerType !== 'touch' && leaveSoon()}
-                >
-                  <div class={classes.menuCard}>
-                    <Show when={selection.actions}>
-                      {(actions) => <ToolMenuRows items={rows(actions)} onRun={() => close()} />}
-                    </Show>
+    <div class={classes.context}>
+      {selection.focused && selection.unfocus ? (
+        <Show when={selection.focused}>
+          {() => (
+            <button
+              type="button"
+              class={classes.unfocus}
+              aria-label="Unfocus"
+              data-tip="Unfocus (the selection stays)"
+              data-tip-side="top"
+              onClick={() => selection.unfocus?.()}
+            >
+              <Icon name="locate-off" size={16} />
+            </button>
+          )}
+        </Show>
+      ) : null}
+      <Show when={selection.summary}>
+        {(summary) => (
+          <div class={classes.bar} role="toolbar" aria-label="Selection" ref={(e: HTMLElement) => (bar = e)}>
+            <button
+              type="button"
+              class={classes.summary}
+              aria-haspopup="menu"
+              aria-expanded={open}
+              ref={(e: HTMLElement) => (button = e)}
+              onPointerEnter={hoverOpen}
+              onPointerLeave={(e: PointerEvent) => e.pointerType !== 'touch' && open.value && leaveSoon()}
+              onClick={(e: MouseEvent) => {
+                keep();
+                // `detail` 0: Enter or Space, not a press of the pointer
+                byKeyboard = e.detail === 0;
+                open.set(!open.value);
+              }}
+            >
+              <span>{summary}</span>
+              {/* As the canvas stack's buttons with a menu: a corner mark says there is more on hover */}
+              <span class={classes.menuMark} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class={classes.action}
+              aria-label="Clear selection"
+              data-tip="Clear selection"
+              data-tip-side="top"
+              onClick={() => selection.clear()}
+            >
+              <Icon name="x" size={16} />
+            </button>
+            <Show when={open}>
+              {() => {
+                // Escape, or a press outside the bar and the menu, closes it
+                on(
+                  document,
+                  'keydown',
+                  (e: KeyboardEvent) => {
+                    if (e.key !== 'Escape' || e.defaultPrevented) return;
+                    e.preventDefault();
+                    close(true);
+                  },
+                  { capture: true },
+                );
+                on(
+                  document,
+                  'pointerdown',
+                  (e: PointerEvent) => {
+                    // The path, not the target: inside a shadow root the document sees the host as the target
+                    if (!e.composedPath().includes(bar)) close();
+                  },
+                  { capture: true },
+                );
+                return (
+                  <div
+                    class={classes.menu}
+                    role="menu"
+                    aria-label="What to do with the selection"
+                    ref={(el: HTMLElement) => {
+                      if (byKeyboard) queueMicrotask(() => el.querySelector<HTMLElement>('button')?.focus());
+                    }}
+                    onPointerEnter={keep}
+                    onPointerLeave={(e: PointerEvent) => e.pointerType !== 'touch' && leaveSoon()}
+                  >
+                    <div class={classes.menuCard}>
+                      <Show when={selection.actions}>
+                        {(actions) => <ToolMenuRows items={rows(actions)} onRun={() => close()} />}
+                      </Show>
+                    </div>
                   </div>
-                </div>
-              );
-            }}
-          </Show>
-        </div>
-      )}
-    </Show>
+                );
+              }}
+            </Show>
+          </div>
+        )}
+      </Show>
+    </div>
   );
 }

@@ -14,13 +14,40 @@ export const classes = {
   'action': 'msp-viewer-selection-bar-action',
   'bar': 'msp-viewer-selection-bar-bar',
   'bar-in': 'msp-viewer-selection-bar-bar-in',
+  'context': 'msp-viewer-selection-bar-context',
   'menu': 'msp-viewer-selection-bar-menu',
   'menuCard': 'msp-viewer-selection-bar-menuCard',
   'menuMark': 'msp-viewer-selection-bar-menuMark',
   'summary': 'msp-viewer-selection-bar-summary',
+  'unfocus': 'msp-viewer-selection-bar-unfocus',
 } as const;
 
 defineStyles('viewer/views/canvas/selection-bar.module.css', `@layer msp.components {
+.msp-viewer-selection-bar-context {
+  align-items: center;
+  gap: var(--msp-space-2);
+  display: flex;
+}
+
+.msp-viewer-selection-bar-unfocus {
+  width: max(34px, var(--msp-touch-target, 0px));
+  height: max(34px, var(--msp-touch-target, 0px));
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  color: var(--msp-color-text-muted);
+  animation: msp-viewer-selection-bar-bar-in var(--msp-motion-base) var(--msp-ease);
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
 .msp-viewer-selection-bar-bar {
   height: max(34px, var(--msp-touch-target, 0px));
   border-radius: var(--msp-radius-lg);

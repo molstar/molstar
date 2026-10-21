@@ -133,4 +133,34 @@ describe('the selection bar', () => {
     expect(shadow.querySelector('[role=menu]')).toBeNull();
     dispose();
   });
+
+  it('offers Unfocus while something is focused, with or without a selection; the selection stays', async () => {
+    const summary = observableState<string | undefined>(undefined);
+    const focused = observableState(true);
+    let unfocused = 0;
+    const model: SelectionModel = {
+      summary: summary.asReadonly,
+      actions: observableState<readonly SelectionAction[]>([]).asReadonly,
+      clear: () => {},
+      focused: focused.asReadonly,
+      unfocus: () => unfocused++,
+    };
+    const container = document.createElement('div');
+    document.body.append(container);
+    const dispose = render(() => <SelectionBar selection={model} />, container);
+    const unfocus = () => container.querySelector<HTMLButtonElement>('[aria-label=Unfocus]');
+    // nothing selected: Unfocus alone (beside the canvas toolbar)
+    expect(unfocus()).not.toBeNull();
+    expect(container.querySelector('[role=toolbar]')).toBeNull();
+    summary.set('8 residues');
+    await tick();
+    expect(unfocus()).not.toBeNull();
+    expect(container.querySelector('[role=toolbar]')).not.toBeNull();
+    unfocus()!.click();
+    expect(unfocused).toBe(1);
+    focused.set(false);
+    await tick();
+    expect(unfocus()).toBeNull();
+    dispose();
+  });
 });

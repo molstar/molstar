@@ -110,7 +110,13 @@ export function selectionModel(
   const actions = o.extra
     ? derive(o.extra, (extra) => [...own, ...extra].sort(byOrder))
     : observableState<readonly SelectionAction[]>(own).asReadonly;
-  return { summary: interaction.selection, actions, clear: () => void api.select.clear() };
+  return {
+    summary: interaction.selection,
+    actions,
+    clear: () => void api.select.clear(),
+    focused: mapState(interaction.focus, (f) => f !== undefined, Object.is),
+    unfocus: () => void api.focus.clear(),
+  };
 }
 
 /** Where in a structure the selection is: "chain A · 60 atoms"; with several structures, "chains A, B · 8 residues · 120 atoms". */

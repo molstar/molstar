@@ -175,13 +175,14 @@ beyond it (README decision 13).
 - **Core** (fixed code; its parts still removable by overrides): the shell (rail, status, History, Settings, theme,
   command menu, the Export card's frame), the canvas and its chrome, drag and drop and `.molx`/`.molj` sessions,
   selection, focus, highlight, targets, the history, the agent's account, the sequence viewer.
-- **The selection bar** (`views/canvas/selection-bar.tsx`, `selectionModel`): what is selected is the button of a menu
-  (hover opens it, as the canvas stack's menus; the stack's corner mark says so), and Clear. The menu: Focus, Show in
-  structure tree, Make a component, the extensions' rows, More in the Selection panel. Show in structure tree turns on
-  the tree's selection filter: its search's non-text part (`SceneModel.selectionFilter`, a chip before the text), the
-  rows that hold the selection (structures; components and their representations it overlaps; Contents' entities and
-  chains), asked per row and cached until the selection changes, followed only while on, off when the selection is
-  cleared; the first component that holds it picked.
+- **The selection bar** (`views/canvas/selection-bar.tsx`, `selectionModel`): Unfocus first while something is focused
+  (`focus.clear`, the selection kept; beside the canvas toolbar when nothing is selected); what is selected is the
+  button of a menu (hover opens it, as the canvas stack's menus; the stack's corner mark says so), and Clear. The menu:
+  Focus, Show in structure tree, Make a component, the extensions' rows, More in the Selection panel. Show in structure
+  tree turns on the tree's selection filter: its search's non-text part (`SceneModel.selectionFilter`, a chip before the
+  text), the rows that hold the selection (structures; components and their representations it overlaps; Contents'
+  entities and chains), asked per row and cached until the selection changes, followed only while on, off when the
+  selection is cleared; the first component that holds it picked.
 - **Built-in features** (`DefaultPrismViewerSpec().extensions`, `src/features/<name>`): `structure`, `volume`,
   `trajectory`, `annotations` (the scene's API; `requires` lists what must come before), `home`, `structure-panel`,
   `particles` (lazy: Mol*'s particles are opt-in, `ParticlesRegistry` is its plugin registry, so a viewer holds no

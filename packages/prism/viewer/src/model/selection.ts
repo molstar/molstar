@@ -31,6 +31,10 @@ export interface SelectionModel {
   summary: ReadonlyState<string | undefined>;
   actions: ReadonlyState<readonly SelectionAction[]>;
   clear(): void;
+  /** Something is focused: the Unfocus button beside the bar (or beside the canvas toolbar with nothing selected) */
+  focused?: ReadonlyState<boolean>;
+  /** Clears the focus, the selection kept (`focus.clear`) */
+  unfocus?(): void;
 }
 
 /** One structure the selection is in: its name, and where in it ("chain A · 60 atoms"). */
