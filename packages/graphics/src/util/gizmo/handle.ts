@@ -22,8 +22,8 @@ export interface Face {
  * - `slide`: along `axis` (local), as the screen shows it;
  * - `plane`: in the plane across `normal` (local);
  * - `turn`: about the screen's axes;
- * - `rotate`: about `axis` (local), the angle read from the cursor around the axis's place on the screen (the part held
- *   stays under it) where the axis faces the viewer; at a rate across it where the axis lies in the screen;
+ * - `rotate`: about `axis` (local), the point grabbed on the ring following the cursor (the cursor taken onto the ring's
+ *   plane; along the ring's tangent there where the plane is edge-on), so either side of a ring turns the cursor's way;
  * - `scale`: `axes` (all when absent) by the cursor's distance from `pivot` (local; the item's origin when absent) over
  *   the grab's: the part held stays under the cursor whichever side it is on;
  * - `faces`: faces dragged along their axes, the opposite ones staying (a box's face, a cylinder's end);

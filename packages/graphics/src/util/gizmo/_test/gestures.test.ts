@@ -134,4 +134,36 @@ describe('gizmo gestures', () => {
     const next = rotateAbout(box(), Vec3.create(0, 1, 0), { ...frame, grab: [20, 0] }, 20, 0);
     expect(Math.abs((Quat.getAxisAngle(Vec3(), next.rotation) * 180) / Math.PI)).toBeCloseTo(10, 4);
   });
+
+  const angleAbout = (pose: GizmoPose, axis: readonly number[]) => {
+    const a = Vec3();
+    const rad = Quat.getAxisAngle(a, pose.rotation);
+    return ((rad * 180) / Math.PI) * Math.sign(Vec3.dot(a, Vec3.create(axis[0], axis[1], axis[2]))) || 0;
+  };
+
+  it('rotates by the grabbed point, facing the viewer: either side of the ring follows the cursor', () => {
+    // Z toward the viewer, the ring of radius 10; a drag up 20 px (10 Å)
+    const right = rotateAbout(box(), Vec3.create(0, 0, 1), { ...frame, grabPoint: Vec3.create(10, 0, 0) }, 0, -20);
+    expect(angleAbout(right, [0, 0, 1])).toBeCloseTo(45, 4);
+    const left = rotateAbout(box(), Vec3.create(0, 0, 1), { ...frame, grabPoint: Vec3.create(-10, 0, 0) }, 0, -20);
+    expect(angleAbout(left, [0, 0, 1])).toBeCloseTo(-45, 4);
+  });
+
+  it('rotates by the grabbed point, edge-on: the near and the far side follow the cursor', () => {
+    // Y in the screen, the ring in X–Z seen edge-on; a drag right 20 px (10 Å) along the radius-10 ring: 1 rad
+    const near = rotateAbout(box(), Vec3.create(0, 1, 0), { ...frame, grabPoint: Vec3.create(0, 0, 10) }, 20, 0);
+    expect(angleAbout(near, [0, 1, 0])).toBeCloseTo(180 / Math.PI, 4);
+    const far = rotateAbout(box(), Vec3.create(0, 1, 0), { ...frame, grabPoint: Vec3.create(0, 0, -10) }, 20, 0);
+    expect(angleAbout(far, [0, 1, 0])).toBeCloseTo(-180 / Math.PI, 4);
+  });
+
+  it('rotates by the grabbed point, oblique: no flip as the cursor crosses the axis', () => {
+    // the axis tilted toward the viewer (cos 0.6); a drag across from a grab on the ring keeps one sign as it grows
+    const axis = Vec3.normalize(Vec3(), Vec3.create(0, 0.8, 0.6));
+    const grabPoint = Vec3.scale(Vec3(), Vec3.normalize(Vec3(), Vec3.cross(Vec3(), axis, Vec3.create(1, 0, 0))), 10);
+    const signs = [5, 20, 40, 80].map((d) =>
+      Math.sign(angleAbout(rotateAbout(box(), axis, { ...frame, grabPoint }, d, 0), axis)),
+    );
+    expect(new Set(signs).size).toBe(1);
+  });
 });

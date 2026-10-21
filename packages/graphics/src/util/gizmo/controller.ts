@@ -105,7 +105,7 @@ export class GizmoController<T> {
   readonly #subs: Subscription[] = [];
   readonly #gizmos = new Map<string, Gizmo<T>>();
   #items: readonly GizmoItem<T>[] = [];
-  #hovered: { key: string; handle: Handle } | undefined;
+  #hovered: { key: string; handle: Handle; position?: Vec3 } | undefined;
   #drag: Drag<T> | undefined;
   /** The trackball's bindings while a handle holds the drags (restored whole: a partial set keeps only its part) */
   #bindings: Canvas3D['attribs']['trackball']['bindings'] | undefined;
@@ -122,7 +122,7 @@ export class GizmoController<T> {
         this.#items = items;
         void this.#sync();
       }),
-      canvas.interaction.hover.subscribe(({ current }) => this.#hover(current)),
+      canvas.interaction.hover.subscribe(({ current, position }) => this.#hover(current, position)),
       canvas.input.drag.subscribe((e) => this.#onDrag(e.isStart, e.x, e.y, e.dx, e.dy)),
       canvas.input.interactionEnd.subscribe(() => void this.#end()),
       canvas.input.keyDown.subscribe((e) => {
@@ -308,7 +308,7 @@ export class GizmoController<T> {
     for (const g of this.#gizmos.values()) if (g.layout.facesCamera) this.#setFrame(g);
   }
 
-  #hover(current: Representation.Loci) {
+  #hover(current: Representation.Loci, position?: Vec3) {
     if (this.#drag) return;
     const entry = [...this.#gizmos].find(([, g]) => g.handles === current.repr);
     if (!entry || !ShapeGroup.isLoci(current.loci) || !current.loci.groups.length) {
@@ -321,7 +321,7 @@ export class GizmoController<T> {
     const [key, g] = entry;
     const handle = g.layout.groups[OrderedSet.start(current.loci.groups[0].ids)]?.handle;
     if (!handle) return;
-    this.#hovered = { key, handle };
+    this.#hovered = { key, handle, ...(position ? { position: Vec3.clone(position) } : {}) };
     this.#takeDrags();
   }
 
@@ -329,7 +329,7 @@ export class GizmoController<T> {
     if (isStart) {
       if (!this.#hovered || this.#drag) return;
       const [x0, y0] = pressPoint(this.#canvas, x, y, fx, fy);
-      this.#begin(this.#hovered.key, this.#hovered.handle, x0, y0);
+      this.#begin(this.#hovered.key, this.#hovered.handle, x0, y0, this.#hovered.position);
     }
     const d = this.#drag;
     if (!d) return;
@@ -337,7 +337,7 @@ export class GizmoController<T> {
     this.#live();
   }
 
-  #begin(key: string, handle: Handle, x0: number, y0: number) {
+  #begin(key: string, handle: Handle, x0: number, y0: number, grabPoint?: Vec3) {
     const g = this.#gizmos.get(key);
     if (!g) return;
     const transform = this.#frameOf(g.layout);
@@ -347,7 +347,8 @@ export class GizmoController<T> {
     const pivot = local ? Vec3.transformMat4(Vec3(), local, transform) : at;
     const from = g.item.value;
     this.#binding.begin?.(key, from);
-    this.#drag = { key, handle, from, frame: dragFrame(this.#canvas, at, pivot, x0, y0), x0, y0, next: from };
+    const frame = { ...dragFrame(this.#canvas, at, pivot, x0, y0), ...(grabPoint ? { grabPoint } : {}) };
+    this.#drag = { key, handle, from, frame, x0, y0, next: from };
     this.dragging.next(key);
   }
 

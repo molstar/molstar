@@ -27,6 +27,8 @@ export interface DragFrame {
   readonly perPixel: number;
   /** Where the drag started from the handle's pivot on the screen (CSS px, x right, y down) */
   readonly grab?: readonly [number, number];
+  /** The point grabbed on the handle, in the world (the hover's pick): what a rotation's grabbed part is */
+  readonly grabPoint?: Vec3;
 }
 
 /** Degrees of turn a pixel of drag */
@@ -93,31 +95,68 @@ export function inPlane(from: GizmoPose, localNormal: Vec3, frame: DragFrame, dx
 }
 
 /**
- * Turned about `local` (as the pose turns it) through its position. Facing the viewer, by the angle the cursor went
- * around the axis's place on the screen (`frame.grab` is the press from there): the part held stays under the cursor.
- * Lying in the screen (where that angle is unstable), by the drag across the axis, `TurnPerPixel` a pixel.
+ * Turned about `local` (as the pose turns it) through its position, so the point grabbed on the ring
+ * (`frame.grabPoint`) follows the cursor:
+ * - the ring's plane facing the viewer (even obliquely): the cursor taken onto that plane along the view, the angle
+ *   from the grabbed point to it about the axis (exact, past large angles too);
+ * - the plane nearly edge-on (that projection runs away): the cursor's way along the ring's tangent at the grabbed point
+ *   (foreshortening corrected, capped) over the ring's radius there.
+ * Both read where the grabbed point goes, so their directions agree (no flip between them, nor between the near and the
+ * far side of a ring). Without a grabbed point: by the angle around the axis's place on the screen, or a rate across it.
  */
 export function rotateAbout(from: GizmoPose, local: Vec3, frame: DragFrame, dx: number, dy: number): GizmoPose {
   const a = worldAxis(from, local);
+  const rad = frame.grabPoint
+    ? angleOfGrab(from.position, a, frame.grabPoint, frame, dx, dy)
+    : angleOnScreen(a, frame, dx, dy);
+  const q = Quat.setAxisAngle(Quat(), a, rad);
+  return { ...from, rotation: Quat.normalize(Quat(), Quat.multiply(Quat(), q, from.rotation)) };
+}
+
+/** The ring's plane facing the viewer at least this much (|cos|) is projected onto; less, the tangent is followed */
+const PlaneFacing = 0.25;
+
+function angleOfGrab(center: Vec3, a: Vec3, grab: Vec3, frame: DragFrame, dx: number, dy: number): number {
+  // the grabbed point from the axis, across it
+  const v = Vec3.sub(Vec3(), grab, center);
+  Vec3.scaleAndAdd(v, v, a, -Vec3.dot(v, a));
+  const r = Vec3.magnitude(v);
+  if (r < 1e-6) return 0;
+  const toViewer = Vec3.cross(Vec3(), frame.right, frame.up);
+  const facing = Vec3.dot(toViewer, a);
+  if (Math.abs(facing) >= PlaneFacing) {
+    // the cursor at the grabbed point's depth, then along the view onto the ring's plane
+    const q = Vec3.add(Vec3(), grab, worldDelta(frame, dx, dy));
+    const s = Vec3.dot(Vec3.sub(Vec3(), center, q), a) / facing;
+    Vec3.scaleAndAdd(q, q, toViewer, s);
+    const w = Vec3.sub(Vec3(), q, center);
+    Vec3.scaleAndAdd(w, w, a, -Vec3.dot(w, a));
+    if (Vec3.magnitude(w) < 1e-6) return 0;
+    // signed angle from v to w about a
+    const cross = Vec3.cross(Vec3(), v, w);
+    return Math.atan2(Vec3.dot(cross, a), Vec3.dot(v, w));
+  }
+  // the way the grabbed point goes when turned (positive about a), on the screen
+  const tangent = Vec3.normalize(Vec3(), Vec3.cross(Vec3(), a, v));
+  return alongAxis(tangent, frame, dx, dy) / r;
+}
+
+function angleOnScreen(a: Vec3, frame: DragFrame, dx: number, dy: number): number {
   const toViewer = Vec3.cross(Vec3(), frame.right, frame.up);
   const facing = Vec3.dot(a, toViewer);
   const g = frame.grab;
-  let rad: number;
   if (g && Math.abs(facing) > 0.2 && Math.hypot(g[0], g[1]) >= MinGrab) {
     // on the screen with y up: the angle from the press to the cursor, counterclockwise; a turn about an axis toward
     // the viewer looks counterclockwise
     const [x0, y0] = [g[0], -g[1]];
     const [x1, y1] = [g[0] + dx, -(g[1] + dy)];
-    rad = Math.atan2(x0 * y1 - y0 * x1, x0 * x1 + y0 * y1) * Math.sign(facing);
-  } else {
-    // the axis across the screen: a drag across it (its perpendicular on the screen, y up) turns it
-    const sx = Vec3.dot(a, frame.right);
-    const sy = Vec3.dot(a, frame.up);
-    const len = Math.hypot(sx, sy) || 1;
-    rad = (((-sy / len) * dx + (sx / len) * -dy) * TurnPerPixel * Math.PI) / 180;
+    return Math.atan2(x0 * y1 - y0 * x1, x0 * x1 + y0 * y1) * Math.sign(facing);
   }
-  const q = Quat.setAxisAngle(Quat(), a, rad);
-  return { ...from, rotation: Quat.normalize(Quat(), Quat.multiply(Quat(), q, from.rotation)) };
+  // the axis across the screen: a drag across it (its perpendicular on the screen, y up) turns it
+  const sx = Vec3.dot(a, frame.right);
+  const sy = Vec3.dot(a, frame.up);
+  const len = Math.hypot(sx, sy) || 1;
+  return (((-sy / len) * dx + (sx / len) * -dy) * TurnPerPixel * Math.PI) / 180;
 }
 
 /** Turned about its position: a sideways drag about the screen's up, an upward one about its right */
