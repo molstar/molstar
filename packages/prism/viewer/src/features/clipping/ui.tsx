@@ -353,15 +353,28 @@ function CutRow(props: {
         return (
           <div style="display: grid; gap: var(--msp-space-2); min-width: 0">
             <div class={classes.cutRow}>
-              <span class={classes.cutIcon}>
-                <Icon name={ShapeIcons[shape]} size={18} />
-              </span>
-              <span class={classes.cutText}>
-                <span class={classes.fade}>{derive(cut, (c) => (c ? `${CutShapeLabels[shape]} ${c.index}` : ''))}</span>
-                <span class={`${classes.caption} ${classes.fade}`}>
-                  {derive(cut, (c) => (c ? targetsSummary(c) : ''))}
+              {/* its icon and name open and close its editor */}
+              <button
+                type="button"
+                class={classes.cutLabel}
+                aria-expanded={derive(props.open, (o) => String(o))}
+                title={derive(props.open, (o) =>
+                  o ? 'Close its editor' : 'Its shape, what it cuts, where, how drawn',
+                )}
+                onClick={() => props.setOpen(!props.open.value)}
+              >
+                <span class={classes.cutIcon}>
+                  <Icon name={ShapeIcons[shape]} size={18} />
                 </span>
-              </span>
+                <span class={classes.cutText}>
+                  <span class={classes.fade}>
+                    {derive(cut, (c) => (c ? `${CutShapeLabels[shape]} ${c.index}` : ''))}
+                  </span>
+                  <span class={`${classes.caption} ${classes.fade}`}>
+                    {derive(cut, (c) => (c ? targetsSummary(c) : ''))}
+                  </span>
+                </span>
+              </button>
               <Button
                 size="xs"
                 variant="ghost"
@@ -392,22 +405,6 @@ function CutRow(props: {
               <Button
                 size="xs"
                 variant="ghost"
-                icon={<Icon name="flip-vertical-2" />}
-                title={shape === 'plane' ? 'Cut away the other side' : 'Cut away the outside instead'}
-                pressed={derive(cut, (c) => !!c?.object.invert)}
-                onClick={() => run('clipping.update', { invert: !cut.value?.object.invert })}
-              />
-              <Button
-                size="xs"
-                variant="ghost"
-                icon={<Icon name="sliders-horizontal" />}
-                title="Its shape, what it cuts, its numbers"
-                pressed={props.open}
-                onClick={() => props.setOpen(!props.open.value)}
-              />
-              <Button
-                size="xs"
-                variant="ghost"
                 icon={<Icon name="trash-2" />}
                 title="Remove the cut"
                 onClick={() => run('clipping.remove', {})}
@@ -417,13 +414,26 @@ function CutRow(props: {
               {() => (
                 <>
                   <ShapeStrip current={shape} pick={(next) => run('clipping.update', { shape: next })} />
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    block
+                    pressed={derive(cut, (c) => !!c?.object.invert)}
+                    icon={<Icon name="flip-vertical-2" />}
+                    title={shape === 'plane' ? 'Which side it cuts away' : 'Its inside cut away, or its outside'}
+                    onClick={() => run('clipping.update', { invert: !cut.value?.object.invert })}
+                  >
+                    <span style="flex: 1; text-align: start">
+                      {shape === 'plane' ? 'Cut away the other side' : 'Cut away the outside instead'}
+                    </span>
+                  </Button>
                   <CutTargets clipping={clipping} cut={cut} run={run} />
+                  <Fold title="Position and size">{() => <CutForm cut={cut} shape={shape} run={run} />}</Fold>
                   <Show when={derive(cut, (c) => !!c?.drawing)}>
                     {() => (
                       <Fold title="In the scene">{() => <DrawingForm clipping={clipping} cut={cut} run={run} />}</Fold>
                     )}
                   </Show>
-                  <CutForm cut={cut} shape={shape} run={run} />
                 </>
               )}
             </Show>

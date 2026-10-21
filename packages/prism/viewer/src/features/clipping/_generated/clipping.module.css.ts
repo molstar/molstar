@@ -13,6 +13,7 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 export const classes = {
   'caption': 'msp-viewer-clipping-caption',
   'cutIcon': 'msp-viewer-clipping-cutIcon',
+  'cutLabel': 'msp-viewer-clipping-cutLabel',
   'cutRow': 'msp-viewer-clipping-cutRow',
   'cutText': 'msp-viewer-clipping-cutText',
   'fade': 'msp-viewer-clipping-fade',
@@ -88,6 +89,32 @@ defineStyles('viewer/features/clipping/clipping.module.css', `@layer msp.compone
 
   [aria-expanded="true"] > & {
     transform: rotate(90deg);
+  }
+}
+
+.msp-viewer-clipping-cutLabel {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--msp-radius-sm);
+  background: none;
+  border: none;
+  flex: 1;
+  padding: 0;
+  display: flex;
+
+  &:hover .msp-viewer-clipping-cutText > :first-child {
+    text-underline-offset: 2px;
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus, currentColor);
+    outline-offset: 2px;
   }
 }
 }

@@ -78,3 +78,30 @@
     transform: rotate(90deg);
   }
 }
+
+/* A cut's icon and name: a button that opens and closes its editor (no button look). */
+.cutLabel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--msp-radius-sm);
+
+  &:hover .cutText > :first-child {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus, currentColor);
+    outline-offset: 2px;
+  }
+}
