@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StructureElement, Unit, Bond, type ElementIndex } from '@molstar/model/model/structure';
@@ -10,6 +11,7 @@ import type { SizeTheme } from '../size.js';
 import { VdwRadius } from '@molstar/model/model/structure/model/properties/atomic';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ThemeDataContext } from '../theme.js';
+import { getInteractionLocationSize } from './interaction-location.js';
 
 const DefaultSize = 1;
 const Description = 'Assigns a physical size, i.e. vdW radius for atoms or given radius for coarse spheres.';
@@ -54,7 +56,9 @@ export function PhysicalSizeTheme(
           getPhysicalRadius(location.bUnit, location.bUnit.elements[location.bIndex]),
         );
     } else {
-      size = scale * DefaultSize;
+      // interactions: the smaller end, as their mesh bakes it (impostors read it from here)
+      const interaction = getInteractionLocationSize(location, getPhysicalRadius);
+      size = scale * (interaction ?? DefaultSize);
     }
     return size;
   }

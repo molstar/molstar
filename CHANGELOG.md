@@ -10,6 +10,17 @@ here.
 
 ## [Unreleased]
 
+- Interactions: a salt bridge (ionic contact) hides the H-bonds between the same atoms instead of being hidden by them,
+  as documented and as in NGL and PLIP (ionic is off by default)
+- Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts
+  within a metal coordination, hydrophobic and cation-pi contacts within pi-stacking); the inter-unit check never
+  matched
+- Interactions: H-bond geometry follows a donor hydrogen bonded across units, as with per-atom symmetry in
+  small-molecule crystals (`closestHydrogen` returns its unit; `closestHydrogenIndex` read its index as an atom of the
+  donor's unit and now stays within the donor's unit); an H-bond whose donor has explicit hydrogens but none toward the
+  acceptor is rejected rather than measured from the heavy atom. The representation draws the dash from that hydrogen
+- Interactions representation: with `includeParent`, intra-unit contacts are shown or hidden by their own atoms
+  (`parentDisplay` read unrelated atoms)
 - MVS: fix a `clip` plane with its normal pointing straight down (e.g. `[0, -1, 0]`), which clipped the upper half
   instead of the lower one
 - Fix state builders that remove a node writing into the state's tree before they commit: a node added under, updated or

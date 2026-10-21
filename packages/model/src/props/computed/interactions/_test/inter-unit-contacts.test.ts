@@ -23,7 +23,10 @@ import { computeInteractions } from '../interactions.js';
 import { BridgeProviderParams, ContactProviderParams, type InteractionsProps } from '../params.js';
 
 // Pins the inter-unit contacts (pairs, types, flags and their order) and bridges of symmetry-expanded structures, as
-// computed before the inter-unit loop fetched A's features from A's grid (06-model-props-script N1).
+// computed before the inter-unit loop fetched A's features from A's grid (06-model-props-script N1). With every
+// provider on, the flags changed once since: the refiners filter inter-unit contacts as intra-unit ones (the inter-unit
+// check never matched), and a salt bridge hides the H-bonds within it rather than itself (as NGL and PLIP). Against the
+// first pins below: 82, 4 and 54 inter-unit H-bonds more flagged; no ionic contact flagged in either.
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
 
@@ -111,7 +114,7 @@ describe('inter-unit contacts', async () => {
       '1cbs 2x2x1 cells',
       () => cells(Structure.ofModel(m1cbs), Vec3.create(1, 1, 0)),
       'count=5802 types=4:5802 ordered=851c5001 sorted=1e4921ad bridges=0',
-      'count=6628 types=1:62,4:5802,6:430,8:334 ordered=2a632bc1 sorted=22b3a09d bridges=1327',
+      'count=6628 types=1:62,4:5802,6:430,8:334 ordered=4243b3b1 sorted=f7df69d1 bridges=1327',
     ],
     // DNA copies
     [
@@ -125,14 +128,14 @@ describe('inter-unit contacts', async () => {
       '7qpd',
       async () => Structure.ofModel(m7qpd),
       'count=94 types=2:6,4:88 ordered=d26d8de5 sorted=26280639 bridges=0',
-      'count=200 types=1:10,2:6,4:88,6:70,8:26 ordered=2e718ba9 sorted=9a6453d1 bridges=0',
+      'count=200 types=1:10,2:6,4:88,6:70,8:26 ordered=71e8eb91 sorted=ff4f819 bridges=0',
     ],
     // contacts within chains split into units, under symmetry operators
     [
       '1cbs split cell',
       () => cells(splitUnits(Structure.ofModel(m1cbs), 300), Vec3.create(1, 0, 0)),
       'count=3690 types=2:16,4:3674 ordered=26b72ab5 sorted=f2211271 bridges=0',
-      'count=5254 types=1:44,2:16,4:3674,6:958,8:562 ordered=7f03d6b5 sorted=24267029 bridges=635',
+      'count=5254 types=1:44,2:16,4:3674,6:958,8:562 ordered=9e8d46e5 sorted=ad43f549 bridges=635',
     ],
   ];
 
