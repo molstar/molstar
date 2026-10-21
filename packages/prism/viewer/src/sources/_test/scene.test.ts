@@ -315,6 +315,10 @@ describe('the scene: volumes and particles', () => {
     const facts = new Map(v.views.scene.inspect(list).facts ?? []);
     expect(facts.get('Particles')).toBe('300');
     expect(facts.get('Orientations')).toBe('yes');
+    // how it is read (RELION's tomograms, micrographs, pixel size, radius) as a form, `particles.source`
+    expect(Object.keys(v.views.scene.inspect(list).form!.params)).toEqual(
+      expect.arrayContaining(['pixelSize', 'particleRadius']),
+    );
 
     const menu = list.menu!;
     expect(menu.map((i) => i.id)).toEqual(expect.arrayContaining(['add', 'color', 'focus']));

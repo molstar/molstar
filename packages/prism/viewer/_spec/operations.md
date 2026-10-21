@@ -80,6 +80,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `particles.list` | Describe the particles | read |  |
 | `particles.remove` | Remove particles | destructive | particles, representation, node |
 | `particles.representation` | Show particles as… |  | type, params, particles |
+| `particles.source` | Set how particles are read |  | params, particles |
 | `particles.targets` | Set what the particles stand for | network (addresses) | file, source, target, particles |
 | `particles.unit-cell` | Show the particle unit cell |  | visible, color, opacity, particles |
 | `particles.update` | Update a particle representation | ui-only | node, params |

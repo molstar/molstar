@@ -195,4 +195,18 @@ describe('particles', () => {
     expectOk(await v.api.history.undo());
     expect(reps(v)).toEqual(['spacefill']);
   });
+
+  it('reads a list again from its file with other params (a tomogram), and says what it does not take', async () => {
+    const v = await headlessViewer({ files: [particleFixture('dynamo.tbl')] });
+    const count = async () => (await infos(v))[0].count;
+    const all = await count();
+    const r = await v.api.particles.source({ params: { tomos: ['2'] } });
+    expectOk(r);
+    expect(await count()).toBe(150);
+    expect(r.did).toMatch(/150 particles/);
+    expect(((await v.api.particles.source({ params: { tomos: ['2'] } })) as any).unchanged).toBe(true);
+    expect(await v.api.particles.source({ params: { nope: 1 } })).toMatchObject({ ok: false, code: 'invalid' });
+    expectOk(await v.api.history.undo());
+    expect(await count()).toBe(all);
+  });
 });

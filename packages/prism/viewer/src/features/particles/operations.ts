@@ -293,6 +293,56 @@ export class ParticlesApi extends ApiArea {
     },
   });
 
+  // How a list is read from its file (the format's own transform: RELION's tomograms and micrographs, the pixel size,
+  // the particle radius, an mmCIF assembly, a trajectory's frame): some of its params, merged; the inspector's Source.
+  readonly source = this.operation({
+    id: 'particles.source',
+    title: 'Set how particles are read',
+    params: {
+      params: PD.Value<Record<string, unknown>>(
+        {},
+        { description: "The format's params, by name: tomograms, micrographs, pixelSize, particleRadius, …" },
+      ),
+      particles: ListParam(),
+    },
+    async run({ params, particles }, ctx) {
+      const l = oneList(ctx, particles || undefined);
+      if (isFailure(l)) return l;
+      const name = listName(ctx, l);
+      const cell = l.cell;
+      const parent = ctx.plugin.state.data.cells.get(cell.transform.parent);
+      const def = cell.transform.transformer.definition.params?.(parent?.obj as never, ctx.plugin) as
+        | PD.Params
+        | undefined;
+      const unknown = Object.keys(params).filter((k) => !def || !(k in def));
+      if (unknown.length) {
+        return ApiResult.fail(
+          'invalid',
+          `${name} is not read with ${unknown.join(', ')}.`,
+          def ? `Its params: ${Object.keys(def).join(', ')}.` : undefined,
+        );
+      }
+      const old = cell.transform.params as Record<string, unknown>;
+      const next = { ...old, ...params };
+      if (def && PD.areEqual(def, old as never, next as never)) return ApiResult.already(`${name} is already read so.`);
+      const state = ctx.plugin.state.data;
+      try {
+        await ctx.plugin.runTask(
+          state.updateTree(
+            state
+              .build()
+              .to(cell)
+              .update(next as never),
+          ),
+        );
+      } catch (e) {
+        return ApiResult.fail('failed', `Could not read ${name} so: ${messageOf(e)}`);
+      }
+      const count = listData(ctx, l)?.count ?? 0;
+      return ApiResult.ok(`${name} now has ${count.toLocaleString('en')} particles.`, { nodes: [cell.transform.ref] });
+    },
+  });
+
   // A representation's color theme (the row menu's Color): the theme with its defaults for the list, or `params`.
   readonly color = this.operation({
     id: 'particles.color',

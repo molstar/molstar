@@ -182,6 +182,7 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.color', title: 'Color particles by…' },
       { id: 'particles.focus', title: 'Focus the particles', history: false },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell' },
+      { id: 'particles.source', title: 'Set how particles are read' },
       {
         id: 'particles.targets',
         title: 'Set what the particles stand for',

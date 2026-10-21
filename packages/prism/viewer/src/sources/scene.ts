@@ -767,6 +767,7 @@ export function createSceneSource(
     n.set(name, data ? particlesText(data) : undefined, !!l.cell.state.isHidden);
     // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
     if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref, openCommand);
+    inspections.get(ref)?.form?.load(l.cell.transform.params as never);
     return n;
   };
 
@@ -2246,7 +2247,16 @@ function inspect(
   }
   if (node.kind === 'particles' && cell?.obj?.data) {
     const data = particleListData(plugin.state.data, node.id) ?? (cell.obj.data as ParticleList);
-    return { node, form: undefined, slot, facts: particlesFacts(data) };
+    // How it is read from its file (the format's transform: tomograms, pixel size, radius, a frame): `particles.source`
+    const parent = plugin.state.data.cells.get(cell.transform.parent);
+    const def = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
+    const form =
+      def && Object.keys(def).length
+        ? new ParamsFormModel(def, cell.transform.params as PD.Values<PD.Params>, {
+            onChange: debounced((values) => void api.run('particles.source', { particles: node.id, params: values })),
+          })
+        : undefined;
+    return { node, form, slot, facts: particlesFacts(data) };
   }
   const updateOperation = UpdateOperations[node.kind];
   if (updateOperation && cell) {

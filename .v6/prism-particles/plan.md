@@ -117,6 +117,7 @@ Clip is not here: the clipping extension covers it, through `type.params.clip`, 
   - the list's Targets fact names what stands for each;
   - the row menu opens the command;
   - operations and the scene read the list at the end of its decorators (`getDecoratorRoot`).
+- P7 is done, as the list's Source form rather than a load-time choice: `particles.source` merges params into the list's format transform (RELION's tomograms and micrographs, Dynamo's and EM's tomograms, the pixel size, the radius, an mmCIF assembly, a trajectory's frame). The list's inspector shows them as a form.
 - Not handled: a `.molx` session holding particles does not load the feature. `session.open` reads transformers only from `.molj`. To do with P9.
 
 
