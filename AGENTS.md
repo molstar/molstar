@@ -64,8 +64,10 @@ npx tsc -b                 # every project, by references
 - **Formatting and lint** are the repository's (`biome.json`, `.prettierrc.json`): run `pnpm format` and `pnpm lint`
   before committing. Biome's per-package `noRestrictedImports` rules are architecture, not style: do not loosen them to
   make an import pass.
-- **Headers**: every source file starts with the Mol\* copyright header and its authors; add yourself to the headers of
-  files you change substantially.
+- **Headers**: every source file starts with the Mol\* copyright header and its authors. Every file a change modifies
+  gets its header updated in the same change: an `@author` line for the change's author (the git user, e.g.
+  `@author David Sehnal <david.sehnal@gmail.com>`), added after the existing ones unless it is already there, and the
+  copyright year range extended to the current year (`2019` → `2019-2026`, `2019-2024` → `2019-2026`).
 - **Tests** are in one of three lanes ([Tests](#tests-three-lanes)) and live in `_test/` folders next to the code, run
   by Vitest (`import { describe, expect, it, vi } from 'vitest'`, no globals; DOM tests opt in with
   `// @vitest-environment jsdom`); they never reach the network. A new `_test/` folder in a published package needs
