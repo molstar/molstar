@@ -8,6 +8,7 @@ import { SortedArray } from '@molstar/core/data/int';
 import { arrayPickIndices } from '@molstar/core/data/util';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
+import type { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import type { StructureElement } from '../../element.js';
 import type { Structure } from '../../structure.js';
@@ -130,8 +131,55 @@ export function subsetIntraUnitBonds(
 }
 
 /**
+ * A test that child unit operators are their parent units' after one common rigid motion `M` (`M · parent`, the
+ * identity included): `Structure.transform` and its components (perf-audit-2 05/P14). Such a motion keeps every
+ * distance between atoms of the units, and `M` keeps operator keys, so their inter-unit bonds are the parent's. `M` is
+ * taken from the first pair and must be rigid; every pair is then checked against it.
+ */
+function rigidMotionTest() {
+  let motion: Mat4 | undefined;
+  const image = Mat4();
+  const test = (parent: SymmetryOperator, child: SymmetryOperator) => {
+    // as `Unit.areOperatorsEqual`, which this module cannot import (unit.ts imports it)
+    const equal = parent === child || Mat4.areEqual(parent.matrix, child.matrix, 1e-6);
+    if (!motion) {
+      if (equal) {
+        motion = Mat4.identity();
+        test.moved = false;
+        return true;
+      }
+      if (parent.key !== child.key) return false;
+      motion = Mat4.mul(Mat4(), child.matrix, parent.inverse);
+      test.moved = true;
+      return Mat4.isRigid(motion, 1e-4);
+    }
+    if (!test.moved) return equal;
+    if (parent.key !== child.key) return false;
+    return Mat4.areEqual(Mat4.mul(image, motion, parent.matrix), child.matrix, 1e-6);
+  };
+  test.moved = false;
+  return test;
+}
+
+/**
+ * Whether every unit of `child` is its `parent` unit (by id, kind and model) after one rigid motion other than the
+ * identity: a moved structure (`Structure.transform`) or a component of one. The parent stays while such children are
+ * made again at every move, so their inter-unit bonds are best restricted from the parent's (perf-audit-2 05/P14).
+ */
+export function isMovedImage(parent: Structure, child: Structure) {
+  const sameMotion = rigidMotionTest();
+  for (const u of child.units) {
+    const p = parent.unitMap.get(u.id);
+    if (!p || p.kind !== u.kind || p.model !== u.model) return false;
+    if (!sameMotion(p.conformation.operator, u.conformation.operator)) return false;
+  }
+  return sameMotion.moved;
+}
+
+/**
  * The inter-unit bonds of `child` restricted from `parent`'s, or `undefined` when `child` has a unit that is not a
- * subset of `parent`'s unit with the same id, model and operator (05-model-structure P5). The caller checks that the
+ * subset of `parent`'s unit with the same id and model, or the units' operators are not the parent's after one rigid
+ * motion (05-model-structure P5, perf-audit-2 05/P14). The caller checks that the
  * bond props (`dynamicBonds`, `interBondsValidUnit(Pair)`, `masterModel`) are the parent's.
  *
  * `computeInterUnitBonds` decides mostly per atom pair (thresholds, struct_conn, index pairs, alt-locs), so this
@@ -147,13 +195,11 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
   // the parent indices of a child unit's elements, or null when it has every element of the parent unit
   const maps = new Map<number, Int32Array | null>();
   let whole = child.units.length === parent.units.length;
+  const sameMotion = rigidMotionTest();
   for (const u of child.units) {
     const p = parent.unitMap.get(u.id);
     if (!p || p.kind !== u.kind || p.model !== u.model) return;
-    const opP = p.conformation.operator;
-    const opU = u.conformation.operator;
-    // as `Unit.areOperatorsEqual`, which this module cannot import (unit.ts imports it)
-    if (opP !== opU && !Mat4.areEqual(opP.matrix, opU.matrix, 1e-6)) return;
+    if (!sameMotion(p.conformation.operator, u.conformation.operator)) return;
     if (p.elements === u.elements || p.elements.length === u.elements.length) {
       if (p.elements !== u.elements && !SortedArray.areEqual(p.elements, u.elements)) return;
       maps.set(u.id, null);

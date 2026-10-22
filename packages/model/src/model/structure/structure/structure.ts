@@ -16,7 +16,7 @@ import { StructureLookup3D } from './util/lookup3d.js';
 import type { CoarseElements } from '../model/properties/coarse.js';
 import { StructureSubsetBuilder } from './util/subset-builder.js';
 import { InterUnitBonds, computeInterUnitBonds, Bond } from './unit/bonds.js';
-import { subsetInterUnitBonds } from './unit/bonds/subset.js';
+import { isMovedImage, subsetInterUnitBonds } from './unit/bonds/subset.js';
 import { StructureSymmetry } from './symmetry.js';
 import { StructureProperties } from './properties.js';
 import type { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing.js';
@@ -240,7 +240,20 @@ class Structure {
   get interUnitBonds() {
     if (this.state.interUnitBonds) return this.state.interUnitBonds;
     const parent = this.parent;
-    const parentBonds = parent?.state.interUnitBonds;
+    let parentBonds = parent?.state.interUnitBonds;
+    if (
+      parent &&
+      !parentBonds &&
+      this.state.dynamicBonds === parent.state.dynamicBonds &&
+      this.state.interBondsValidUnit === parent.state.interBondsValidUnit &&
+      this.state.interBondsValidUnitPair === parent.state.interBondsValidUnitPair &&
+      this.masterModel === parent.masterModel &&
+      isMovedImage(parent, this)
+    ) {
+      // moved (`transform`, its components): made again at every move while the parent stays, so the parent's bonds,
+      // computed once, are restricted (perf-audit-2 05/P14)
+      parentBonds = parent.interUnitBonds;
+    }
     if (parent && parentBonds && this.state.dynamicBonds === parent.state.dynamicBonds && parentBonds.edgeCount === 0) {
       // no need to compute InterUnitBonds if parent's ones are empty
       this.state.interUnitBonds = new InterUnitBonds(new Map());
@@ -923,6 +936,7 @@ namespace Structure {
 
     const cs = s.coordinateSystem;
     const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs), cs);
+    // the inter-unit bonds: the parent's, when the transform is rigid (the getter, perf-audit-2 05/P14)
     return create(units, { parent: s, coordinateSystem: newCS });
   }
 

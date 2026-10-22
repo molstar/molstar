@@ -30,7 +30,7 @@ import path from 'node:path';
 import { PerformanceObserver } from 'node:perf_hooks';
 import v8 from 'node:v8';
 import { Interval } from '@molstar/core/data/int';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
@@ -479,6 +479,24 @@ async function pipeline(results: Record<string, StageResult>): Promise<void> {
     true,
   );
   await stage('component:polymer-derived', results, () => (c ? touchDerived(c) : undefined));
+  // a rigid move (`TransformStructureConformation`: superposition, Prism's structure move): the moved structure and its
+  // polymer component, made again at every move, and the inter-unit bonds their representations need
+  const move = Mat4.fromRotation(Mat4(), Math.PI / 6, Vec3.create(0, 0, 1));
+  let moved = s;
+  await stage('transform', results, () => void (moved = Structure.transform(s, move)), true);
+  await stage('transform:bonds', results, () => `edges=${moved.interUnitBonds.edgeCount}`);
+  await stage(
+    'transform:polymer',
+    results,
+    () => {
+      const polymer = Queries.generators.atoms({
+        entityTest: (l) => StructureProperties.entity.type(l.element) === 'polymer',
+      });
+      c = StructureSelection.unionStructure(polymer(new QueryContext(moved)));
+    },
+    true,
+  );
+  await stage('transform:polymer-bonds', results, () => (c ? `edges=${c.interUnitBonds.edgeCount}` : undefined));
   c = undefined;
 
   for (const name of reprNames) {
