@@ -105,7 +105,7 @@ describe('For', () => {
     const items = observableState<readonly Row[]>([row(1, 'old')]);
     const { container, html } = mount(() => (
       <ul>
-        <For each={items} key={(r) => r.id}>
+        <For each={items} by={(r) => r.id}>
           {(r) => <li>{r.label}</li>}
         </For>
       </ul>
@@ -114,6 +114,24 @@ describe('For', () => {
     items.set([row(1, 'new')]);
     expect(html()).toBe('<ul><li>new</li></ul>');
     expect(container.querySelector('li')).not.toBe(before);
+  });
+
+  it('keys by `by`; `key=` is a type error, as the JSX runtime never passes it (perf audit 11/B1)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { html } = mount(() => (
+      <ul>
+        <For each={[row(1, 'a'), row(1, 'b'), row(2, 'c')]} by={(r) => r.id}>
+          {(r) => <li>{r.label}</li>}
+        </For>
+        {/* @ts-expect-error: `key` is the runtime's own, never a prop */}
+        <For each={[row(1, 'x')]} key={(r: Row) => r.id}>
+          {(r: Row) => <li>{r.label}</li>}
+        </For>
+      </ul>
+    ));
+    // Two items under one key: the later is not rendered.
+    expect(html()).toBe('<ul><li>a</li><li>c</li><li>x</li></ul>');
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it('keeps items with several nodes together and shows a fallback when empty', () => {
@@ -269,6 +287,17 @@ describe('Dynamic and Switch', () => {
     expect(second.html()).toBe('<i>failed</i>');
     error.set(undefined);
     expect(second.html()).toBe('<i>ready</i>');
+  });
+
+  it('renders the fallback with no case, and a case over plain values', () => {
+    expect(mount(() => <Switch fallback={() => <i>none</i>}>{[]}</Switch>).html()).toBe('<i>none</i>');
+    const plain = mount(() => (
+      <Switch>
+        <Match when={0}>{() => <i>zero</i>}</Match>
+        <Match when="two">{(v) => <i>{v}</i>}</Match>
+      </Switch>
+    ));
+    expect(plain.html()).toBe('<i>two</i>');
   });
 });
 

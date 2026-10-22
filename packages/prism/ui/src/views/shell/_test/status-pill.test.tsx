@@ -12,6 +12,7 @@
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
+import { flush } from '../../../dom/scope.js';
 import { NotificationsManager } from '../../../managers/notifications.js';
 import { StatusLine, StatusPill } from '../canvas-chrome.js';
 
@@ -71,5 +72,50 @@ describe('the status column', () => {
     (host.querySelector('button[title="Show the log"]') as HTMLButtonElement).click();
     expect(opened).toHaveBeenCalledTimes(2);
     expect(status.logFilter.value).toBe('all');
+  });
+
+  it('keeps each task pill while its task progresses: the spinner, the bar and Cancel stay (perf audit 11/B3)', () => {
+    const status = new NotificationsManager();
+    const host = mount(() => <StatusLine status={status} />);
+    const aborted: number[] = [];
+    // As the viewer mirrors the plugin's tasks: every task a new object on every progress event.
+    const tasks = (i: number) => [
+      { id: '1', label: `Loading ${i}`, progress: i / 10, abort: () => aborted.push(i) },
+      { id: '2', label: 'Computing' },
+    ];
+    status.setTasks(tasks(0));
+    flush();
+    const spinners = () => [...host.querySelectorAll('svg')];
+    const cancel = () => host.querySelectorAll<HTMLButtonElement>('button[title="Cancel"]:not([hidden])');
+    const first = spinners();
+    const button = cancel()[0];
+    // Two spinners and the two Cancels' ✕ (the second's hidden).
+    expect(first).toHaveLength(4);
+    expect(cancel()).toHaveLength(1);
+    let idsTold = 0;
+    const unlisten = status.lineTaskIds.listen!(() => idsTold++);
+    for (let i = 1; i <= 5; i++) {
+      status.setTasks(tasks(i));
+      flush();
+    }
+    unlisten();
+    // Progress tells the pill, not the list.
+    expect(idsTold).toBe(0);
+    expect(spinners()).toEqual(first);
+    expect(cancel()[0]).toBe(button);
+    expect(host.textContent).toContain('Loading 5');
+    const bars = host.querySelectorAll<HTMLElement>('[style*="width"]');
+    expect(bars[0].style.width).toBe('50%');
+    // The second task has no progress and no Cancel (its pill keeps its end padding: no button shown in it).
+    // The label's span (the last span reading it: the pill reads it too) and its pill.
+    const computing = [...host.querySelectorAll('span')].filter((e) => e.textContent === 'Computing').at(-1);
+    expect(computing?.parentElement?.querySelector('button:not([hidden])')).toBeNull();
+    // Cancel runs the task's latest abort.
+    button.click();
+    expect(aborted).toEqual([5]);
+    status.setTasks([tasks(6)[1]]);
+    flush();
+    expect(cancel()).toHaveLength(0);
+    expect(host.textContent).not.toContain('Loading');
   });
 });

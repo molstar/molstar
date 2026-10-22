@@ -39,6 +39,8 @@ class Binding<T> extends Live {
   constructor(
     readonly stream: Observable<T>,
     readonly fn: (value: T) => void,
+    /** Told when it stops after it ran (its scope paused or gone): what a subscription's teardown would do. */
+    readonly stopped?: () => void,
   ) {
     super();
   }
@@ -78,11 +80,13 @@ class Binding<T> extends Live {
   }
 
   stop() {
+    const was = this.#live;
     this.#live = false;
     const stop = this.#stop;
     this.#stop = undefined;
     if (typeof stop === 'function') stop();
     else stop?.unsubscribe();
+    if (was) this.stopped?.();
   }
 
   unsubscribe() {
@@ -464,7 +468,7 @@ export class Scope {
    * Subscribes `fn` to `stream` for as long as the scope is active (`bind` does this): the subscription goes while it
    * is paused and comes back, with the stream's current value, when it resumes.
    */
-  bind<T>(stream: Observable<T>, fn: (value: T) => void, sideEffect = false): void {
+  bind<T>(stream: Observable<T>, fn: (value: T) => void, sideEffect = false, stopped?: () => void): void {
     const probe = RuntimeProbe.on;
     const run = sideEffect ? undefined : RuntimeProbe.run;
     const site = run ? (new Error().stack ?? '') : '';
@@ -478,6 +482,7 @@ export class Scope {
             write(v);
           }
         : write,
+      stopped,
     );
     if (run) binding.site = site;
     this.own(binding);
@@ -673,6 +678,37 @@ export type WatchSource = ReadonlyState<unknown> | ObservableState<unknown> | Ob
  */
 export function watch(sources: readonly WatchSource[], render: () => void): WatchHandle {
   return requireScope('watch').watch(sources, render);
+}
+
+/**
+ * `bind` for what keeps state per subscription (`Show`'s closing, `Switch`'s cases; rendering.md §2.2): `fn` is told
+ * whether the value is the first since the binding started (made, or resumed after a pause), and `stopped` runs when it
+ * stops (paused or gone), as a stream's teardown would. A plain value is applied once, as the first. No rxjs on a state.
+ */
+export function follow<T>(
+  source: MaybeReactive<T>,
+  fn: (value: T, first: boolean) => void,
+  stopped?: () => void,
+): void {
+  const stream = toStream(source);
+  if (!stream) {
+    fn(source as T, true);
+    return;
+  }
+  let first = true;
+  requireScope('follow').bind(
+    stream,
+    (v) => {
+      const was = first;
+      first = false;
+      fn(v, was);
+    },
+    false,
+    () => {
+      first = true;
+      stopped?.();
+    },
+  );
 }
 
 /**

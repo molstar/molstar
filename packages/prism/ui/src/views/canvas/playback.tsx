@@ -380,7 +380,7 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
       </Show>
       <ScrollArea class={classes.listRows} contentClass={classes.listRowsContent} role="listbox" aria-label="Snapshots">
         {/* The current one, told to the two rows it moves between (view-models.md §3). */}
-        <For each={rows} key={(r) => r.index}>
+        <For each={rows} by={(r) => r.index}>
           {(r) => (
             <button
               type="button"

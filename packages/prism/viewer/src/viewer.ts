@@ -495,12 +495,12 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           return;
         }
         // The state's own lines, one per transform it created or updated, with its time (v5's log): the Log's
-        // Transforms, the latest kept. Never on the canvas.
+        // Transforms, within the Log's one bound. Never on the canvas.
         const transform = TransformLine.exec(String(e.message));
         if (transform) {
           // `12ms`, `1.204s` (core's `formatTimespan`) as the runs' are said: `12 ms`, `1.204 s`.
           const detail = transform[2].replace(/^([\d.]+)(ms|s)$/, '$1 $2');
-          notifications.log(transform[1], 'info', 'Transforms', { detail, keep: TransformsKept });
+          notifications.log(transform[1], 'info', 'Transforms', { detail });
         } else if (e.type === 'warning') {
           notifications.log(String(e.message), 'warning', 'Plugin');
         }
@@ -595,9 +595,6 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
 /** The layout's and navigation's starting state from the spec (viewer-spec.md §2.5, §2.2). */
 /** A state transform's log line (`Created Model in 12ms.`): what it did, and how long it took. */
 const TransformLine = /^((?:Created|Updated) .+) in (\S+)\.$/;
-
-/** The latest transforms the Log keeps (David, 2026-10-20). */
-const TransformsKept = 100;
 
 /** A run's duration as the Log says it: "120 ms", "2.4 s". */
 function durationOf(ms: number | undefined): string | undefined {

@@ -47,7 +47,7 @@ export function SectionList(props: {
   const inner = (id: string) => (focus?.startsWith(`${id}/`) ? focus.slice(id.length + 1) : undefined);
   return (
     <div class={classes.list} data-flat={props.flat ? '' : undefined} data-bare={props.bare ? '' : undefined}>
-      <For each={sections} key={(s) => s.id}>
+      <For each={sections} by={(s) => s.id}>
         {(section) => (
           <SectionBlock
             ctx={inner(section.id) ? { ...ctx, focus: inner(section.id) } : ctx}

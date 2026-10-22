@@ -47,7 +47,7 @@ export function ContentsSummaryView(props: { summary: ContentsSummary }) {
       </dl>
       <div class={classes.entities}>
         <div class={classes.list} role="list" aria-label="Entities">
-          <For each={shown} key={(e) => e.id}>
+          <For each={shown} by={(e) => e.id}>
             {(e) => {
               const kind = Kinds[e.type];
               return (

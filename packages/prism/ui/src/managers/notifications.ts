@@ -7,6 +7,7 @@
  */
 
 import { type Observable, Subject } from 'rxjs';
+import { keyedState } from '../reactive/keyed-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { ReactiveModel } from '../reactive/reactive-model.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -32,8 +33,6 @@ export type LogFilter = 'all' | 'messages' | 'problems' | `source:${string}`;
 
 export interface LogOptions {
   readonly detail?: string;
-  /** Entries kept of this source, the newest (default: the history's size). */
-  readonly keep?: number;
 }
 
 export interface StatusTask {
@@ -58,6 +57,11 @@ export interface StatusChip {
   dismiss?(): void;
 }
 
+/** A warning or an error: what the Log's Problems filter shows, and what its bound drops last. */
+function isProblem(m: StatusMessage): boolean {
+  return m.kind === 'warning' || m.kind === 'error';
+}
+
 /**
  * What the status line on the canvas shows: the latest message (it fades after a while; errors stay until dismissed),
  * running tasks, and chips (selection, focus). Keeps a bounded history for the log overlay. The viewer's
@@ -68,6 +72,9 @@ export class NotificationsManager extends ReactiveModel {
   readonly #history = observableState<readonly StatusMessage[]>([]);
   readonly #log = observableState<readonly StatusMessage[]>([]);
   readonly #tasks = observableState<readonly StatusTask[]>([]);
+  /** The status line's tasks (not `overlay`) by id, and their ids: a pill follows its task (perf audit 2, 11/B3). */
+  readonly #lineTasks = keyedState<string, StatusTask>();
+  readonly #lineTaskIds = observableState<readonly string[]>([]);
   /** The tasks put one by one (`putTask`), by id: `setTasks` leaves them. */
   readonly #put = new Set<string>();
   readonly #chips = observableState<readonly StatusChip[]>([]);
@@ -77,11 +84,19 @@ export class NotificationsManager extends ReactiveModel {
   #serial = 0;
   #fade: ReturnType<typeof setTimeout> | undefined;
   /** Log-only entries waiting for the end of the task: a burst (a load's hundreds of transforms) is one change. */
-  #pending: { message: StatusMessage; keep: number | undefined }[] = [];
-  /** The sources with their own bound (`log`'s `keep`). */
-  readonly #keep = new Map<string, number>();
+  #pending: StatusMessage[] = [];
+  /** The log-only sources written, sorted: the Log's filters (told only when one is new). */
+  readonly #sources = observableState<readonly string[]>([]);
 
-  constructor(readonly options: { fadeMs?: number; historySize?: number } = {}) {
+  constructor(
+    readonly options: {
+      fadeMs?: number;
+      /** Messages kept in `history` (200). */
+      historySize?: number;
+      /** Entries kept in the Log (`logged`), of every source together (300). */
+      logSize?: number;
+    } = {},
+  ) {
     super();
   }
 
@@ -97,10 +112,15 @@ export class NotificationsManager extends ReactiveModel {
 
   /**
    * What the Log shows, newest first: the messages (`history`) and what was written to the log only (`log`: the
-   * plugin's transforms, for one), each source within its bound.
+   * plugin's transforms, for one), within one bound (`logSize`) where warnings and errors go last (`#bounded`).
    */
   get logged(): ReadonlyState<readonly StatusMessage[]> {
     return this.#log.asReadonly;
+  }
+
+  /** The log-only sources written so far, sorted (the Log's filter per source); told only when one is new. */
+  get logSources(): ReadonlyState<readonly string[]> {
+    return this.#sources.asReadonly;
   }
 
   /** The Log's filter, one for every Log view: the status line sets it when it opens the Log (an error: the problems). */
@@ -114,6 +134,19 @@ export class NotificationsManager extends ReactiveModel {
 
   get tasks(): ReadonlyState<readonly StatusTask[]> {
     return this.#tasks.asReadonly;
+  }
+
+  /**
+   * The ids of the tasks the status line shows (all but `overlay` ones), in order; told only when they change, not on a
+   * task's progress. Each task by `lineTask(id)`.
+   */
+  get lineTaskIds(): ReadonlyState<readonly string[]> {
+    return this.#lineTaskIds.asReadonly;
+  }
+
+  /** A status-line task by id: told when that task's record changes (its progress), undefined once it is gone. */
+  lineTask(id: string): ReadonlyState<StatusTask | undefined> {
+    return this.#lineTasks.key(id);
   }
 
   get chips(): ReadonlyState<readonly StatusChip[]> {
@@ -162,8 +195,7 @@ export class NotificationsManager extends ReactiveModel {
 
   /**
    * Writes `text` to the log only (`logged`, the Log tab, filtered by `source`): never on show, never said, not in
-   * `history`. Entries of one source past `keep` drop the oldest of that source. Written once a task, so a burst is
-   * one change.
+   * `history`. Written once a task, so a burst is one change.
    */
   log(text: string, kind: MessageKind, source: string, options: LogOptions = {}): void {
     const message: StatusMessage = {
@@ -175,35 +207,42 @@ export class NotificationsManager extends ReactiveModel {
       ...(options.detail ? { detail: options.detail } : {}),
     };
     if (!this.#pending.length) queueMicrotask(() => this.#flush());
-    this.#pending.push({ message, keep: options.keep });
+    this.#pending.push(message);
   }
 
   #flush() {
     if (!this.#pending.length) return;
     const pending = this.#pending;
     this.#pending = [];
-    for (const { message, keep } of pending) if (keep !== undefined) this.#keep.set(message.source!, keep);
     const next: StatusMessage[] = [];
-    for (let i = pending.length - 1; i >= 0; i--) next.push(pending[i].message);
+    let sources: string[] | undefined;
+    for (let i = pending.length - 1; i >= 0; i--) {
+      const m = pending[i];
+      next.push(m);
+      if (!(sources ?? this.#sources.value).includes(m.source!)) (sources ??= [...this.#sources.value]).push(m.source!);
+    }
     for (const m of this.#log.value) next.push(m);
     this.#log.set(this.#bounded(next));
+    if (sources) this.#sources.set(sources.sort());
   }
 
   /**
-   * The log within its bounds, newest kept: a source with its own (`keep`) to that many, the rest (the messages) to the
-   * history's size, so a burst of transforms does not push the messages out.
+   * The log within its one bound, `logSize` (perf audit 2, 11/B5): past it, the oldest entries go, warnings and errors
+   * last, so a burst (a load's transforms, a run of plugin warnings) never pushes a problem out while anything else is
+   * left to drop. Only when the problems alone fill the bound do the oldest problems go.
    */
   #bounded(list: StatusMessage[]): StatusMessage[] {
-    const size = this.options.historySize ?? 200;
-    if (!this.#keep.size) return list.length > size ? list.slice(0, size) : list;
-    const counts = new Map<string | undefined, number>();
-    return list.filter((m) => {
-      const own = m.source === undefined ? undefined : this.#keep.get(m.source);
-      const key = own === undefined ? undefined : m.source;
-      const n = (counts.get(key) ?? 0) + 1;
-      counts.set(key, n);
-      return n <= (own ?? size);
-    });
+    const size = this.options.logSize ?? 300;
+    if (list.length <= size) return list;
+    let problems = 0;
+    for (const m of list) if (isProblem(m)) problems++;
+    // Newest first: the first `left` of each kind are kept.
+    if (problems >= size) {
+      let left = size;
+      return list.filter((m) => isProblem(m) && left-- > 0);
+    }
+    let left = size - problems;
+    return list.filter((m) => isProblem(m) || left-- > 0);
   }
 
   /** Adds or replaces a task by id; it stays until `removeTask`, whatever `setTasks` sets. */
@@ -211,12 +250,12 @@ export class NotificationsManager extends ReactiveModel {
     this.#put.add(task.id);
     const tasks = this.#tasks.value;
     const i = tasks.findIndex((t) => t.id === task.id);
-    this.#tasks.set(i < 0 ? [...tasks, task] : tasks.map((t, j) => (j === i ? task : t)));
+    this.#setTasks(i < 0 ? [...tasks, task] : tasks.map((t, j) => (j === i ? task : t)));
   }
 
   removeTask(id: string): void {
     this.#put.delete(id);
-    if (this.#tasks.value.some((t) => t.id === id)) this.#tasks.set(this.#tasks.value.filter((t) => t.id !== id));
+    if (this.#tasks.value.some((t) => t.id === id)) this.#setTasks(this.#tasks.value.filter((t) => t.id !== id));
   }
 
   /** Hides the message on show (only that one, if `id` is given). */
@@ -232,7 +271,22 @@ export class NotificationsManager extends ReactiveModel {
    */
   setTasks(tasks: readonly StatusTask[]): void {
     const put = this.#tasks.value.filter((t) => this.#put.has(t.id) && !tasks.some((n) => n.id === t.id));
-    this.#tasks.set(put.length ? [...tasks, ...put] : tasks);
+    this.#setTasks(put.length ? [...tasks, ...put] : tasks);
+  }
+
+  /** The tasks, and the status line's by id: the records first, so a pill made for a new id reads its task. */
+  #setTasks(tasks: readonly StatusTask[]): void {
+    const byId = new Map<string, StatusTask>();
+    const ids: string[] = [];
+    for (const t of tasks) {
+      if (t.overlay || byId.has(t.id)) continue;
+      byId.set(t.id, t);
+      ids.push(t.id);
+    }
+    this.#lineTasks.replace(byId);
+    // Compared item by item: the same ids tell nothing.
+    this.#lineTaskIds.set(ids);
+    this.#tasks.set(tasks);
   }
 
   setChips(chips: readonly StatusChip[]): void {

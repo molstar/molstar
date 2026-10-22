@@ -33,7 +33,7 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
           <span class={classes.value}>{labelOf(model.types, model.type)}</span>
         </div>
         <div class={classes.segments} role="radiogroup" aria-label="Type">
-          <For each={model.types} key={(c) => c.id}>
+          <For each={model.types} by={(c) => c.id}>
             {(c) => (
               <button
                 type="button"
@@ -59,7 +59,7 @@ export function RepresentationQuick(props: { model: RepresentationQuickModel }) 
           <span class={classes.value}>{labelOf(model.themes, model.theme)}</span>
         </div>
         <div class={classes.tiles} role="radiogroup" aria-label="Color">
-          <For each={model.themes} key={(c) => c.id}>
+          <For each={model.themes} by={(c) => c.id}>
             {(c) => (
               <button
                 type="button"

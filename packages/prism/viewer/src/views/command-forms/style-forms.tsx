@@ -111,7 +111,7 @@ export function ShowAsForm(props: FormProps) {
         <Show when={derive(options, (o) => o.length > 0)}>
           {() => (
             <section class={classes.options} aria-label="Options">
-              <For each={options} key={(o) => `${type.value}:${o.name}`}>
+              <For each={options} by={(o) => `${type.value}:${o.name}`}>
                 {(o) => <OptionControl option={o} patch={patch} onChange={setOption} />}
               </For>
             </section>
@@ -333,7 +333,7 @@ function Picker(
       }}
     >
       <div role="radiogroup" aria-label={props.label}>
-        <For each={groups} key={(g) => g.category} fallback={() => <p class={classes.empty}>Nothing matches.</p>}>
+        <For each={groups} by={(g) => g.category} fallback={() => <p class={classes.empty}>Nothing matches.</p>}>
           {(g) => (
             <div role="group" aria-label={g.category || props.label}>
               {/* Ungrouped choices (the types) are captioned by what they are. */}
@@ -345,7 +345,7 @@ function Picker(
                     (gs) => gs.find((x) => x.category === g.category)?.items ?? NoChoices,
                     sameChoices,
                   )}
-                  key={(c) => c.id}
+                  by={(c) => c.id}
                 >
                   {(c) => (
                     <button

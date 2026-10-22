@@ -115,9 +115,14 @@ export class TreeNavigation<R> {
     this.#focusActive();
   }
 
+  /** The last index first (the active row, where every arrow key starts), then its neighbors, then a scan (11/P9). */
   #indexOf(key: string | undefined): number {
     if (key === undefined) return -1;
     const rows = this.#o.rows();
+    const last = this.#index;
+    for (let i = Math.max(0, last - 1); i <= last + 1 && i < rows.length; i++) {
+      if (this.#o.key(rows[i]) === key) return i;
+    }
     for (let i = 0; i < rows.length; i++) if (this.#o.key(rows[i]) === key) return i;
     return -1;
   }

@@ -54,6 +54,12 @@ buttons) is the app's. The code is the truth for how.
   first button ends. A selected rail button is its background only (an outline drew 1px lines beside the panel's edges).
 - **The canvas never shrinks for the floating panel or the rail**: the app's camera framing keeps the scene in the
   visible area.
+- **A pinch is the canvas's over the canvas only**: its ctrl+wheel is held (not passive) on the canvas box, which the
+  splash lets the pointer through to, and on the bar along its bottom (status, toolbar, chips: nothing there scrolls);
+  over a panel, a card, the sequence band or the rail the browser zooms the page. Why: a wheel listener that is not
+  passive makes every wheel gesture under it wait for the main thread, and on the shell's root it held every panel's
+  scroll for as long as a load held the thread (perf audit 2, 11/P10). Safari's `gesture*` events do not hold scrolling:
+  the shell's root keeps them.
 - **Rail.** Full height at the right edge, buttons edge to edge, no labels (tooltips name them): the `head` tab, the tab
   strip by `order`, the toolbar sections by `group` (in the order of their first item), then at the foot the `foot` tabs
   and the items without a group (the theme switch, the command menu with its ⌘K `caption`). Rail buttons are
@@ -132,14 +138,21 @@ buttons) is the app's. The code is the truth for how.
 - **Status column** (`NotificationsManager`, `managers/notifications.ts`; `StatusLine`, `StatusPill`): one line per
   item, growing upward, frameless ink with a halo: the latest message (fades after 4 s, held while hovered; an error
   stays until its ✕; a click opens the log, `onOpenLog`, an error's at Problems, another's at All), then each running
-  task (spinner, progress, ✕ to cancel), then the `agent` slot. The model keeps 200 messages.
+  task (spinner, progress, ✕ to cancel), then the `agent` slot. The model keeps 200 messages. A task pill follows its
+  task by id (`lineTaskIds`, `lineTask(id)`: the model's keyed view of `tasks`), made once and written on progress. Why:
+  the viewer replaces every task record on every progress event (up to 10 a second); a pill made anew restarted its
+  spinner and replaced Cancel under a press.
 - **The log** (`LogView`, the History panel's Log): the messages the status line showed, each with its `detail` (how
   long its run took; the status line never shows it), and what was written to the log only (`log(text, kind, source)`:
-  never on show, never said, never in `history`, which stays the messages shown; the Log reads `logged`; a source keeps
-  its own bound, `keep`, so a burst does not push the messages out; written once a task, a burst one change). One sticky
-  line above the entries: the filters as icon toggles (All, Messages, one per source written, Problems: warnings and
-  errors; each named in its tooltip; the filter is the model's, `logFilter`, so every Log view and the status line share
-  it), then a text filter (Escape empties it).
+  never on show, never said, never in `history`, which stays the messages shown; the Log reads `logged`; written once a
+  task, a burst one change). **One bound** for every source together (`logSize`, 300; David 2026-10-22): past it the
+  oldest entries go, warnings and errors last, so a burst (a load's transforms, plugin warnings) never pushes a problem
+  out while anything else is left to drop. Why: one number says how much the Log holds, and the problems are what a
+  person opens it for. The entries are a virtual list (`RecycledList`, one-line recycled rows; a long line fades and its
+  tooltip has the rest), filling the Log's parent (a flex column). One line above the entries: the filters as icon
+  toggles (All, Messages, one per source written, `logSources`, Problems: warnings and errors; each named in its
+  tooltip; the filter is the model's, `logFilter`, so every Log view and the status line share it), then a text filter
+  (Escape empties it).
 - **Busy overlay**: a task with `overlay` holds the app: a scrim and one card with its progress and Cancel.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.

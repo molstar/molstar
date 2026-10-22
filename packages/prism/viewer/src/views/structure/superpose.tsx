@@ -27,7 +27,7 @@ export function Superpose(props: { model: SuperpositionModel }) {
     <div class={classes.superpose}>
       <ParamsForm form={model.form} />
       <div class={classes.entries}>
-        <For each={model.entries} key={(e) => e.id} fallback={() => <p class={classes.hint}>{model.hint}</p>}>
+        <For each={model.entries} by={(e) => e.id} fallback={() => <p class={classes.hint}>{model.hint}</p>}>
           {(entry, index) => (
             <button
               type="button"

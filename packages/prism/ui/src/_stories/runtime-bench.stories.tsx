@@ -144,7 +144,7 @@ function mountBench(host: HTMLElement): Bench {
     () => (
       <table>
         <tbody>
-          <For each={rows.asReadonly} key={(r) => r.id}>
+          <For each={rows.asReadonly} by={(r) => r.id}>
             {(row) =>
               (window as any).__mspStaticRows ? (
                 <StaticRow row={row} />
