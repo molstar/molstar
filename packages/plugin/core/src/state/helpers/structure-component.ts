@@ -189,15 +189,22 @@ export function updateStructureComponent(
       if (oldParams.type.params !== newParams.type.params) {
         return StateTransformer.UpdateResult.Recreate;
       }
-      if (!Structure.areEquivalent(a, cache.source)) {
+      // A static query reads topology only, and a remapped unit keeps its bonds (unit.md §3): a trajectory frame (the
+      // same units and elements on another model's coordinates) remaps the component rather than running the query.
+      const equivalent = Structure.areEquivalent(a, cache.source);
+      if (!equivalent && !Structure.areHierarchiesEqual(a, cache.source)) {
         return StateTransformer.UpdateResult.Recreate;
       }
       // The same model, or none (an empty substructure): nothing to remap, but the label may have changed (below).
-      if (b.data.model === a.model || !b.data.model) break;
+      if (equivalent && (b.data.model === a.model || !b.data.model)) break;
+      // a new structure on the same model: nothing to remap it to
+      if (!b.data.model || b.data.model === a.model) return StateTransformer.UpdateResult.Recreate;
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
-      b.data = b.data.remapModel(a.model);
-      cache.isSource = false; // (a copy)
+      // onto the root `a` belongs to, remapped already: the components share it (T2, structure.md §3)
+      b.data = cache.isSource ? a : b.data.remapModel(a.model, a.root);
+      cache.source = a;
+      cache.isSource = b.data === a;
       updated = true;
       break;
     }

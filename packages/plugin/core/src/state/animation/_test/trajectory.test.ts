@@ -12,6 +12,8 @@ import { CustomModelProperty } from '@molstar/model/props/common/custom-model-pr
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { PluginContext } from '@molstar/plugin/context';
 import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { Color } from '@molstar/core/util/color';
+import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { createPlaybackPlugin, pdbEnsemble } from './harness.js';
 
 async function loadEnsemble(plugin: PluginContext, models = 3, residues = 4) {
@@ -113,6 +115,33 @@ describe('the components of a trajectory frame', () => {
     const r = root().unitMap.get(u.id);
     expect(u.conformation.x(u.elements[0])).toBe(r.conformation.x(u.elements[0]));
     expect(u.model).toBe(root().model);
+  });
+});
+
+describe('a trajectory frame with the default preset and an overpaint', () => {
+  it('updates every cell in place (T3)', async () => {
+    const { plugin, counts } = await createPlaybackPlugin(DefaultPluginSpec());
+    const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 6, true), label: 'ensemble' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    const hierarchy = () => plugin.managers.structure.hierarchy.current;
+    await setStructureOverpaint(plugin, hierarchy().structures[0].components, Color(0xff0000), async (s) =>
+      StructureElement.Loci(s, [{ unit: s.units[0], indices: OrderedSet.ofBounds(0, 5) as any }]),
+    );
+    const recreated = counts.recreated;
+    const created = counts.created;
+    await setFrame(plugin, hierarchy().models[0].cell.transform.ref, 2);
+    expect(counts.recreated - recreated).toBe(0);
+    expect(counts.created - created).toBe(0);
+    const root = hierarchy().structures[0].cell.obj!.data;
+    expect(root.model.modelNum).toBe(3);
+    for (const c of hierarchy().structures[0].components) {
+      expect(c.cell.obj!.data.root).toBe(root);
+      for (const o of c.representations[0].overpaint ? [c.representations[0].overpaint] : []) {
+        const overpaint = (o.cell.obj!.data.state as any).overpaint;
+        expect(overpaint.layers[0].loci.structure.root).toBe(root);
+      }
+    }
   });
 });
 

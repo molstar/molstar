@@ -406,8 +406,12 @@ class Structure {
     return this.models.indexOf(m);
   }
 
-  remapModel(m: Model): Structure {
-    const { dynamicBonds, interUnitBonds, parent } = this.state;
+  /**
+   * This structure on the conformation of `m`, a model with the same hierarchy. `parent`: the parent already remapped
+   * to `m` (a component below a remapped root shares it: structure.md §3); without it the parent is remapped too.
+   */
+  remapModel(m: Model, parent?: Structure): Structure {
+    const { dynamicBonds, interUnitBonds } = this.state;
     const units: Unit[] = [];
     for (const ug of this.unitSymmetryGroups) {
       const unit = ug.units[0].remapModel(m, dynamicBonds);
@@ -418,7 +422,7 @@ class Structure {
       }
     }
     return Structure.create(units, {
-      parent: parent?.remapModel(m),
+      parent: this.state.parent ? (parent ?? this.state.parent.remapModel(m)) : undefined,
       label: this.label,
       interUnitBonds: dynamicBonds ? undefined : interUnitBonds,
       dynamicBonds,

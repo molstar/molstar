@@ -63,7 +63,8 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -73,9 +74,11 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
 
     const oldSubstance = b.data.state.substance!;
     const newSubstance = Substance.ofScript(newParams.layers, newStructure);
-    if (Substance.areEqual(oldSubstance, newSubstance)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Substance.areEqual(oldSubstance, newSubstance))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.substance = newSubstance;
     b.data.repr = a.data.repr;
     b.label = `Substance (${newSubstance.layers.length} Layers)`;
@@ -132,7 +135,8 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -142,9 +146,11 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
 
     const oldSubstance = b.data.state.substance!;
     const newSubstance = Substance.ofBundle(newParams.layers, newStructure);
-    if (Substance.areEqual(oldSubstance, newSubstance)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Substance.areEqual(oldSubstance, newSubstance))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.substance = newSubstance;
     b.data.repr = a.data.repr;
     b.label = `Substance (${newSubstance.layers.length} Layers)`;

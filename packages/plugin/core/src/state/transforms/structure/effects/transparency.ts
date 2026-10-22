@@ -60,7 +60,8 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -70,9 +71,11 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
 
     const oldTransparency = b.data.state.transparency!;
     const newTransparency = Transparency.ofScript(newParams.layers, newStructure);
-    if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Transparency.areEqual(oldTransparency, newTransparency))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.transparency = newTransparency;
     b.data.repr = a.data.repr;
     b.label = `Transparency (${newTransparency.layers.length} Layers)`;
@@ -127,7 +130,8 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -137,9 +141,11 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
 
     const oldTransparency = b.data.state.transparency!;
     const newTransparency = Transparency.ofBundle(newParams.layers, newStructure);
-    if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Transparency.areEqual(oldTransparency, newTransparency))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.transparency = newTransparency;
     b.data.repr = a.data.repr;
     b.label = `Transparency (${newTransparency.layers.length} Layers)`;

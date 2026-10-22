@@ -369,17 +369,21 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     });
   },
   update({ a, b, oldParams, newParams }, ctx: PluginContext) {
-    if (a.data !== b.data) return StateTransformer.UpdateResult.Recreate;
-
     return Task.create('Custom Props', async (taskCtx) => {
+      if (a.data !== b.data) {
+        // A new structure (a trajectory frame): the old one's properties go with it, and the new one's are attached
+        // below. A recreate did the same, and also recreated everything below.
+        b.data.customPropertyDescriptors.dispose();
+      } else {
+        for (const name of oldParams.autoAttach) {
+          const property = ctx.customStructureProperties.get(name);
+          if (!property) continue;
+          a.data.customPropertyDescriptors.reference(property.descriptor, false);
+        }
+      }
       b.data = a.data;
       b.label = a.label;
       b.description = a.description;
-      for (const name of oldParams.autoAttach) {
-        const property = ctx.customStructureProperties.get(name);
-        if (!property) continue;
-        a.data.customPropertyDescriptors.reference(property.descriptor, false);
-      }
       await attachStructureProps(a.data.root, ctx, taskCtx, newParams);
       return StateTransformer.UpdateResult.Updated;
     });

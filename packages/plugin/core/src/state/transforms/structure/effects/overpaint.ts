@@ -64,7 +64,8 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -74,9 +75,11 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
 
     const oldOverpaint = b.data.state.overpaint!;
     const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
-    if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Overpaint.areEqual(oldOverpaint, newOverpaint))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.overpaint = newOverpaint;
     b.data.repr = a.data.repr;
     b.label = `Overpaint (${newOverpaint.layers.length} Layers)`;
@@ -133,7 +136,8 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -143,9 +147,11 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
 
     const oldOverpaint = b.data.state.overpaint!;
     const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
-    if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Overpaint.areEqual(oldOverpaint, newOverpaint))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.overpaint = newOverpaint;
     b.data.repr = a.data.repr;
     b.label = `Overpaint (${newOverpaint.layers.length} Layers)`;

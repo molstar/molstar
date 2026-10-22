@@ -59,14 +59,16 @@ const WiggleStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
     const newWiggle = Wiggle.ofScript(newParams.layers, newStructure);
-    if (Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = a.data.repr.geometryVersion;
+    info.structure = newStructure;
     b.data.state.wiggle = newWiggle;
     b.data.repr = a.data.repr;
     b.label = `Wiggle (${newWiggle.layers.length} Layers)`;
@@ -121,14 +123,16 @@ const WiggleStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
     const newWiggle = Wiggle.ofBundle(newParams.layers, newStructure);
-    if (Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = a.data.repr.geometryVersion;
+    info.structure = newStructure;
     b.data.state.wiggle = newWiggle;
     b.data.repr = a.data.repr;
     b.label = `Wiggle (${newWiggle.layers.length} Layers)`;

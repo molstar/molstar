@@ -146,6 +146,21 @@ One line per id as it lands: the commit's before → after on the bench (median 
   frame's work is now in one tick: 10.85 → 11.84 ms/applied); nmr+focus+select 2,547 → 2,014 KB/tick. Tests: two in
   `trajectory.test.ts` (2 updates per frame, and the throw after dispose, before).
 
+- **T3 and T2** (no cell is recreated on a trajectory frame). `CustomStructureProperties` updates in place on a new
+  structure: it disposes the old structure's own properties and attaches the new one's. A static component remaps
+  when the new source has the same hierarchy (its query reads topology only, and remapped units keep their bonds) onto
+  `a.root`, the root already remapped (T2: `Structure.remapModel(m, parent?)`, model `_spec/structure.md` §3). A
+  whole-source component takes the new source. The effect transforms (overpaint, transparency, substance, emissive,
+  clipping, wiggle) put the layers on the new structure in place. Recreated cells per tick → 0 in every scene (from
+  0.97–2.92). ms/applied: synth preset 9.69 → 9.22, +overpaint 9.74 → 9.20, cartoon 8.75 → 8.29, ball-and-stick 5.08
+  → 5.07; nmr+focus+select 6.44 → 4.48. KB/tick: synth preset 4,989 → 4,139, +overpaint 4,772 → 4,161, nmr+focus+select
+  5,258 → 1,936. Measured before and after back to back. Tests: `trajectory.test.ts` (3 recreates per frame before;
+  without the shared root the T2 test fails once components remap). Changed: a whole-source static component stays its
+  source on a new frame (it was a remapped copy), in `structure-component-element-schema.test.ts`.
+  **Dropped: expression components** (`structure-component.ts`, `expression`/`script`). An expression may read
+  coordinates (`includeSurroundings`, distances), so running it again is the only safe answer without analyzing the
+  expression.
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip

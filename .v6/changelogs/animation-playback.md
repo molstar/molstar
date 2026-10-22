@@ -17,3 +17,7 @@
   disposed their assets (11.5k atoms, the default preset: 13.2 → 9.5 ms and 8.9 → 4.4 MB allocated per frame)
 - With a focus, a trajectory frame is one state update: the focus representation committed a second one per frame,
   and disposing the plugin right after a frame threw in the focus interactions
+- A trajectory frame recreates no state cell: the structure's properties, the static components and the overpaint,
+  transparency, substance, emissive, clipping and wiggle layers update in place, and the components share the new frame's
+  root structure (root-level properties computed once per frame, not once per component)
+- `Structure.remapModel(m, parent?)` takes the parent already remapped

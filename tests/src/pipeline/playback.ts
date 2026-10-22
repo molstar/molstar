@@ -20,7 +20,7 @@
 // mmCIF path), traj:synth (7qpd topology and --frames jittered coordinate frames, the topology + coordinates path;
 // --traj-source <cif> for another), each with a representation set: preset (the default preset: components,
 // cartoon and ball-and-stick), cartoon, ball-and-stick, gaussian-surface; +focus and +select add a focused residue
-// and a selected chain. mvs:<file> plays one snapshot's transition of a local MVSX story.
+// and a selected chain, +overpaint an overpainted chain (a bundle layer on every component). mvs:<file> plays one snapshot's transition of a local MVSX story.
 //
 // Per scene: ticks played, frames applied (ticks whose state changed), ms per tick (median and max, and the median of
 // the applied ticks), KB allocated per tick over the range (V8 total_allocated_bytes, Node 25+; read once per range,
@@ -36,6 +36,8 @@ import { Task } from '@molstar/core/task';
 import { Coordinates, Time } from '@molstar/model/model/structure/coordinates';
 import { type Model, StructureElement, Unit, type Structure } from '@molstar/model/model/structure';
 import { OrderedSet } from '@molstar/core/data/int';
+import { Color } from '@molstar/core/util/color';
+import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVSX } from '@molstar/mvs/components/formats';
@@ -84,7 +86,7 @@ const allocated = () => (hasAllocCounter ? ((v8.getHeapStatistics() as any).tota
 const graphics = graphicsStub(meshMode);
 
 type Reprs = 'preset' | 'cartoon' | 'ball-and-stick' | 'gaussian-surface';
-type Scene = { name: string; reprs?: Reprs; focus?: boolean; select?: boolean };
+type Scene = { name: string; reprs?: Reprs; focus?: boolean; select?: boolean; overpaint?: boolean };
 
 async function createPlugin() {
   const spec = DefaultPluginSpec();
@@ -124,6 +126,10 @@ async function addInteractive(plugin: PluginContext, scene: Scene) {
   if (!s) return;
   if (scene.select) plugin.managers.interactivity.lociSelects.select({ loci: unitLoci(s) });
   if (scene.focus) plugin.managers.structure.focus.setFromLoci(residueLoci(s, 3));
+  if (scene.overpaint) {
+    const components = plugin.managers.structure.hierarchy.current.structures[0].components;
+    await setStructureOverpaint(plugin, components, Color(0xff0000), async (s) => unitLoci(s));
+  }
 }
 
 /** an MD-like trajectory: the topology of `source` and `n` frames of its coordinates, each jittered by up to 0.5 Å */
@@ -435,6 +441,7 @@ const scenes: Scene[] = [
   { name: 'traj:nmr:preset+focus', reprs: 'preset', focus: true },
   { name: 'traj:synth:preset', reprs: 'preset' },
   { name: 'traj:synth:preset+focus+select', reprs: 'preset', focus: true, select: true },
+  { name: 'traj:synth:preset+overpaint', reprs: 'preset', overpaint: true },
   { name: 'traj:synth:cartoon', reprs: 'cartoon' },
   { name: 'traj:synth:ball-and-stick', reprs: 'ball-and-stick' },
   { name: 'traj:synth:gaussian-surface', reprs: 'gaussian-surface' },

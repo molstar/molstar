@@ -60,7 +60,8 @@ const EmissiveStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -70,9 +71,11 @@ const EmissiveStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
 
     const oldEmissive = b.data.state.emissive!;
     const newEmissive = Emissive.ofScript(newParams.layers, newStructure);
-    if (Emissive.areEqual(oldEmissive, newEmissive)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Emissive.areEqual(oldEmissive, newEmissive))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.emissive = newEmissive;
     b.data.repr = a.data.repr;
     b.label = `Emissive (${newEmissive.layers.length} Layers)`;
@@ -127,7 +130,8 @@ const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place (T3)
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -137,9 +141,11 @@ const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
 
     const oldEmissive = b.data.state.emissive!;
     const newEmissive = Emissive.ofBundle(newParams.layers, newStructure);
-    if (Emissive.areEqual(oldEmissive, newEmissive)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Emissive.areEqual(oldEmissive, newEmissive))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.emissive = newEmissive;
     b.data.repr = a.data.repr;
     b.label = `Emissive (${newEmissive.layers.length} Layers)`;
