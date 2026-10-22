@@ -31,6 +31,12 @@ export interface ContactProvider<P extends PD.Params> {
 export interface ContactTester {
   readonly maxDistance: number;
   readonly requiredFeatures: ReadonlySet<FeatureType>;
+  /**
+   * The feature type pairs `getType` may accept: it returns `undefined` for any `(infoA, infoB)` whose types fail this
+   * test. Without it, any two of `requiredFeatures`. The contact loops skip the other pairs before `validPair`, and
+   * query a feature no farther than its type's partners need (perf-audit-2 06/P4, 06/P10).
+   */
+  readonly acceptsTypes?: (typeA: FeatureType, typeB: FeatureType) => boolean;
   getType: (
     structure: Structure,
     infoA: Features.Info,
@@ -138,6 +144,61 @@ function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Fea
   return true;
 }
 
+/** Feature types are below 16 (`FeatureType`): a type set is a 16-bit mask, a type pair `typeA * 16 + typeB`. */
+const TypeCount = 16;
+
+/** The testers of one computation by the feature type pairs they accept (`ContactTester.acceptsTypes`) */
+interface TesterTable {
+  /** per tester: for each type, the mask of the types it accepts with it */
+  readonly partners: readonly Uint16Array[];
+  /** per type pair: the testers accepting it, in order */
+  readonly pairTesters: readonly (readonly ContactTester[])[];
+  /** per type pair: the longest `maxDistance` of its testers (0: none) */
+  readonly pairDistance: Float64Array;
+}
+
+const testerTables = new WeakMap<ReadonlyArray<ContactTester>, TesterTable>();
+
+function getTesterTable(testers: ReadonlyArray<ContactTester>) {
+  let table = testerTables.get(testers);
+  if (table) return table;
+  const partners: Uint16Array[] = [];
+  const pairTesters: ContactTester[][] = [];
+  const pairDistance = new Float64Array(TypeCount * TypeCount);
+  for (let p = 0; p < TypeCount * TypeCount; p++) pairTesters.push([]);
+  for (const tester of testers) {
+    const { requiredFeatures: required, acceptsTypes } = tester;
+    const accepts = acceptsTypes ?? ((a: FeatureType, b: FeatureType) => required.has(a) && required.has(b));
+    const masks = new Uint16Array(TypeCount);
+    for (let a = 0; a < TypeCount; a++) {
+      for (let b = 0; b < TypeCount; b++) {
+        if (!accepts(a as FeatureType, b as FeatureType)) continue;
+        masks[a] |= 1 << b;
+        const p = a * TypeCount + b;
+        pairTesters[p].push(tester);
+        pairDistance[p] = Math.max(pairDistance[p], tester.maxDistance);
+      }
+    }
+    partners.push(masks);
+  }
+  table = { partners, pairTesters, pairDistance };
+  testerTables.set(testers, table);
+  return table;
+}
+
+const featureTypeMasks = new WeakMap<Features, number>();
+
+/** The mask of the types of `features` */
+function featureTypes(features: Features) {
+  let mask = featureTypeMasks.get(features);
+  if (mask !== undefined) return mask;
+  mask = 0;
+  const { types, count } = features;
+  for (let i = 0; i < count; i++) mask |= 1 << types[i];
+  featureTypeMasks.set(features, mask);
+  return mask;
+}
+
 /**
  * Add all intra-unit contacts, i.e. pairs of features
  */
@@ -149,8 +210,19 @@ export function addUnitContacts(
   testers: ReadonlyArray<ContactTester>,
   props: ContactsProps,
 ) {
-  for (const tester of testers) {
-    _addUnitContacts(structure, unit, features, builder, tester, props);
+  const { partners } = getTesterTable(testers);
+  const present = featureTypes(features);
+  for (let k = 0; k < testers.length; k++) {
+    // a tester with no accepted pair of the unit's types adds nothing
+    const masks = partners[k];
+    let partnered = false;
+    for (let t = 0; t < TypeCount; t++) {
+      if (present & (1 << t) && masks[t] & present) {
+        partnered = true;
+        break;
+      }
+    }
+    if (partnered) _addUnitContacts(structure, unit, features, builder, testers[k], masks, props);
   }
 }
 
@@ -160,9 +232,11 @@ function _addUnitContacts(
   features: Features,
   builder: IntraContactsBuilder,
   tester: ContactTester,
+  partners: Uint16Array,
   props: ContactsProps,
 ) {
-  const { x, y, z } = features;
+  const { x, y, z, types } = features;
+  const present = featureTypes(features);
   const { lookup3d, indices: subsetIndices } = features.subset(tester.requiredFeatures);
 
   const infoA = Features.Info(structure, unit, features);
@@ -172,6 +246,8 @@ function _addUnitContacts(
 
   for (let t = 0, tl = OrderedSet.size(subsetIndices); t < tl; ++t) {
     const i = OrderedSet.getAt(subsetIndices, t);
+    const partnersA = partners[types[i]];
+    if ((partnersA & present) === 0) continue;
     const { count, indices, squaredDistances } = lookup3d.find(x[i], y[i], z[i], tester.maxDistance);
     if (count === 0) continue;
 
@@ -179,7 +255,7 @@ function _addUnitContacts(
 
     for (let r = 0; r < count; ++r) {
       const j = OrderedSet.getAt(subsetIndices, indices[r]);
-      if (j <= i) continue;
+      if (j <= i || (partnersA & (1 << types[j])) === 0) continue;
 
       infoB.feature = j;
       if (!validPair(structure, infoA, infoB)) continue;
@@ -193,6 +269,8 @@ function _addUnitContacts(
 }
 
 const _imageTransform = Mat4();
+/** per type of A: the longest distance of a tester accepting it with a type B has */
+const _queryRadius = new Float64Array(TypeCount);
 const _bToA = Mat4();
 const _bCenterInA = Vec3();
 // not the lookup's own result: symmetry copies share one Features object, so the inner query on B's lookup would
@@ -249,8 +327,26 @@ export function addStructureContacts(
   testers: ReadonlyArray<ContactTester>,
   props: ContactsProps,
 ) {
-  const { x: xA, y: yA, z: zA } = featuresA;
-  const { lookup3d } = featuresB;
+  const { x: xA, y: yA, z: zA, types: typesA } = featuresA;
+  const { lookup3d, types: typesB } = featuresB;
+
+  // query each feature of A only as far as a tester needs for its type and a type in B, skip types with no partner
+  // there; then the hits only of accepted type pairs, before `validPair` (perf-audit-2 06/P4, 06/P10)
+  const { pairTesters, pairDistance } = getTesterTable(testers);
+  const presentA = featureTypes(featuresA);
+  const presentB = featureTypes(featuresB);
+  let maxDistance = 0;
+  for (let a = 0; a < TypeCount; a++) {
+    let r = 0;
+    if (presentA & (1 << a)) {
+      for (let b = 0; b < TypeCount; b++) {
+        if (presentB & (1 << b)) r = Math.max(r, pairDistance[a * TypeCount + b]);
+      }
+    }
+    _queryRadius[a] = r;
+    maxDistance = Math.max(maxDistance, r);
+  }
+  if (maxDistance === 0) return;
 
   // the lookup queries need to happen in the "unitB space".
   // that means imageA = inverseOperB(operA(i))
@@ -262,7 +358,6 @@ export function addStructureContacts(
   const isNotIdentity = !Mat4.isIdentity(imageTransform);
   const imageA = Vec3();
 
-  const maxDistance = Math.max(...testers.map((t) => t.maxDistance));
   const { center, radius } = lookup3d.boundary.sphere;
   const testDistanceSq = (radius + maxDistance) * (radius + maxDistance);
 
@@ -276,22 +371,30 @@ export function addStructureContacts(
   const candidates = getCandidates(featuresA, unitA, unitB, lookup3d.boundary.sphere, radius + maxDistance);
   for (let ci = 0, cl = candidates.length; ci < cl; ++ci) {
     const i = candidates[ci] as Features.FeatureIndex;
+    const queryRadius = _queryRadius[typesA[i]];
+    if (queryRadius === 0) continue;
     Vec3.set(imageA, xA[i], yA[i], zA[i]);
     if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
     if (Vec3.squaredDistance(imageA, center) > testDistanceSq) continue;
 
-    const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], maxDistance);
+    // a smaller radius finds a subsequence of the hits, in the same order (the grid's cells and buckets)
+    const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], queryRadius);
     if (count === 0) continue;
 
     infoA.feature = i;
+    const pairA = typesA[i] * TypeCount;
 
     for (let r = 0; r < count; ++r) {
       const j = indices[r];
+      const pair = pairA + typesB[j];
+      const pairMax = pairDistance[pair];
+      const distanceSq = squaredDistances[r];
+      if (distanceSq >= pairMax * pairMax) continue;
+
       infoB.feature = j;
       if (!validPair(structure, infoA, infoB)) continue;
 
-      const distanceSq = squaredDistances[r];
-      for (const tester of testers) {
+      for (const tester of pairTesters[pair]) {
         if (distanceSq < tester.maxDistance * tester.maxDistance) {
           const type = tester.getType(structure, infoA, infoB, distanceSq);
           if (type && checkLineOfSight(structure, infoA, infoB, distFactor)) {

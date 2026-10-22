@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -375,6 +376,7 @@ export const IonicProvider: ContactProvider<IonicParams> = {
     return {
       maxDistance: props.distanceMax,
       requiredFeatures: new Set([FeatureType.NegativeCharge, FeatureType.PositiveCharge]),
+      acceptsTypes: isIonic,
       getType: (structure, infoA, infoB, distanceSq) => testIonic(structure, infoA, infoB, distanceSq, opts),
     };
   },
@@ -388,6 +390,7 @@ export const PiStackingProvider: ContactProvider<PiStackingParams> = {
     return {
       maxDistance: props.distanceMax,
       requiredFeatures: new Set([FeatureType.AromaticRing]),
+      acceptsTypes: isPiStacking,
       getType: (structure, infoA, infoB, distanceSq) => testPiStacking(structure, infoA, infoB, distanceSq, opts),
     };
   },
@@ -401,6 +404,7 @@ export const CationPiProvider: ContactProvider<CationPiParams> = {
     return {
       maxDistance: props.distanceMax,
       requiredFeatures: new Set([FeatureType.AromaticRing, FeatureType.PositiveCharge]),
+      acceptsTypes: isCationPi,
       getType: (structure, infoA, infoB, distanceSq) => testCationPi(structure, infoA, infoB, distanceSq, opts),
     };
   },

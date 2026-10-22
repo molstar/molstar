@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -125,6 +126,7 @@ export const HalogenBondsProvider: ContactProvider<HalogenBondsParams> = {
     return {
       maxDistance: props.distanceMax,
       requiredFeatures: new Set([FeatureType.HalogenDonor, FeatureType.HalogenAcceptor]),
+      acceptsTypes: isHalogenBond,
       getType: (structure, infoA, infoB) => testHalogenBond(structure, infoA, infoB, opts),
     };
   },

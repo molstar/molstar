@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -344,6 +345,7 @@ export const HydrogenBondsProvider: ContactProvider<HydrogenBondsParams> = {
     return {
       maxDistance,
       requiredFeatures: new Set([FeatureType.HydrogenDonor, FeatureType.HydrogenAcceptor]),
+      acceptsTypes: isHydrogenBond,
       getType: (structure, infoA, infoB, distanceSq) => testHydrogenBond(structure, infoA, infoB, distanceSq, opts),
     };
   },
@@ -357,6 +359,7 @@ export const WeakHydrogenBondsProvider: ContactProvider<WeakHydrogenBondsParams>
     return {
       maxDistance: props.distanceMax,
       requiredFeatures: new Set([FeatureType.WeakHydrogenDonor, FeatureType.HydrogenAcceptor]),
+      acceptsTypes: isWeakHydrogenBond,
       getType: (structure, infoA, infoB, distanceSq) => testWeakHydrogenBond(structure, infoA, infoB, distanceSq, opts),
     };
   },
