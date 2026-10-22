@@ -38,6 +38,7 @@ import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import type { PluginContext } from '@molstar/plugin/context';
+import { unregisteredBondProviderMessage } from '@molstar/plugin/state/bonds/registry';
 
 export { PluginState };
 
@@ -51,6 +52,10 @@ const RepresentationTransformerScopes: { [id: string]: RepresentationScope | und
   'ms-plugin.particles-representation-3d': 'particles',
 };
 
+/** The transformers that choose a structure's bond provider (ids only, as above). */
+const StructureFromModelId = 'ms-plugin.structure-from-model';
+const StructureFromTrajectoryId = 'ms-plugin.structure-from-trajectory';
+
 /** How long a scrubbed transition (`setAnimationSnapshot`) rests before it emits `canvas3d.settingsUpdated`. */
 const SettingsUpdatedDebounceMs = 100;
 
@@ -58,6 +63,8 @@ const SettingsUpdatedDebounceMs = 100;
 interface UsedNames {
   readonly transformers: ReadonlySet<string>;
   readonly providers: ReadonlyArray<readonly [RepresentationScope, ProviderKind, string]>;
+  /** The bond providers the structure transforms name (bond-providers plan §4) */
+  readonly bondProviders: ReadonlySet<string>;
 }
 
 /**
@@ -71,6 +78,7 @@ function usedNames(key: object, trees: ReadonlyArray<State.Snapshot | undefined>
   if (cached) return cached;
   const transformers = new Set<string>();
   const providers: [RepresentationScope, ProviderKind, string][] = [];
+  const bondProviders = new Set<string>();
   const seen = new Set<string>();
   const add = (scope: RepresentationScope, kind: ProviderKind, name: unknown) => {
     if (typeof name !== 'string') return;
@@ -82,6 +90,13 @@ function usedNames(key: object, trees: ReadonlyArray<State.Snapshot | undefined>
   for (const tree of trees) {
     for (const t of tree?.tree?.transforms ?? []) {
       transformers.add(t.transformer);
+      const bonds =
+        t.transformer === StructureFromModelId
+          ? t.params?.type?.params?.bonds?.name
+          : t.transformer === StructureFromTrajectoryId
+            ? t.params?.bonds?.name
+            : undefined;
+      if (typeof bonds === 'string') bondProviders.add(bonds);
       const scope = RepresentationTransformerScopes[t.transformer];
       if (!scope || !t.params) continue;
       add(scope, 'representation', t.params.type?.name);
@@ -89,12 +104,12 @@ function usedNames(key: object, trees: ReadonlyArray<State.Snapshot | undefined>
       add(scope, 'size theme', t.params.sizeTheme?.name);
     }
   }
-  const names = { transformers, providers };
+  const names = { transformers, providers, bondProviders };
   usedNamesCache.set(key, names);
   return names;
 }
 
-const NoNames: UsedNames = { transformers: new Set(), providers: [] };
+const NoNames: UsedNames = { transformers: new Set(), providers: [], bondProviders: new Set() };
 const treeNames = (tree: State.Snapshot | undefined) => (tree ? usedNames(tree, [tree]) : NoNames);
 const frameNames = (snapshot: PluginState.Snapshot) => {
   const frames = snapshot.transition?.frames;
@@ -242,6 +257,13 @@ class PluginState extends PluginComponent {
               ? themes.colorThemeRegistry
               : themes.sizeThemeRegistry;
         warnIfUnregistered(this.plugin, scopeName, kind, r as Parameters<typeof warnIfUnregistered>[3], name);
+      }
+      // a bond provider the plugin lacks: normalization replaces it by the built-in bonds (bond-providers plan §4)
+      for (const name of names.bondProviders) {
+        const key = `bonds|${name}`;
+        if (reported.has(key) || this.plugin.bondProviders.has(name)) continue;
+        reported.add(key);
+        this.plugin.log.warn(unregisteredBondProviderMessage(name));
       }
     }
   }

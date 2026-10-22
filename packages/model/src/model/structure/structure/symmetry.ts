@@ -34,6 +34,7 @@ namespace StructureSymmetry {
         coordinateSystem,
         label: structure.label,
         dynamicBonds: structure.dynamicBonds,
+        bondProvider: structure.bondProvider,
       });
 
       const queryCtx = new QueryContext(structure);
@@ -68,6 +69,7 @@ namespace StructureSymmetry {
         label: structure.label,
         representativeModel: models[0],
         dynamicBonds: structure.dynamicBonds,
+        bondProvider: structure.bondProvider,
       });
 
       const queryCtx = new QueryContext(structure);
@@ -256,6 +258,7 @@ function assembleOperators(structure: Structure, operators: ReadonlyArray<Symmet
   const assembler = Structure.Builder({
     label: structure.label,
     dynamicBonds: structure.dynamicBonds,
+    bondProvider: structure.bondProvider,
   });
   const { units } = structure;
   for (const oper of operators) {
@@ -317,6 +320,7 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
   const assembler = Structure.Builder({
     label: structure.label,
     dynamicBonds: structure.dynamicBonds,
+    bondProvider: structure.bondProvider,
   });
 
   const { units } = structure;

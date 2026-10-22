@@ -15,7 +15,7 @@ import type { mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';
 import { SortedArray } from '@molstar/core/data/int';
 import { CifWriter } from '@molstar/io/writer/cif';
 import type { ChainIndex, ElementIndex, ResidueIndex } from '@molstar/model/model/structure/model/indexing';
-import { getInterBondOrderFromTable } from '@molstar/model/model/structure/model/properties/atomic/bonds';
+import { findInterBondOrderInTable } from '@molstar/model/model/structure/model/properties/atomic/bonds';
 import { FormatPropertyProvider } from '../../common/property.js';
 
 export interface StructConn {
@@ -180,6 +180,8 @@ export namespace StructConn {
       const orderType = pdbx_value_order.value(i) || '';
       let flags = BondType.Flag.None;
       let order = 1;
+      // no order in the file and none in the table: 1, flagged for providers that perceive orders (bond-providers plan §2)
+      let orderUnknown = false;
 
       switch (orderType) {
         case 'sing':
@@ -194,13 +196,16 @@ export namespace StructConn {
         case 'quad':
           order = 4;
           break;
-        default:
-          order = getInterBondOrderFromTable(
+        default: {
+          const fromTable = findInterBondOrderInTable(
             struct_conn.ptnr1_label_comp_id.value(i),
             struct_conn.ptnr1_label_atom_id.value(i),
             struct_conn.ptnr2_label_comp_id.value(i),
             struct_conn.ptnr2_label_atom_id.value(i),
           );
+          order = fromTable ?? 1;
+          orderUnknown = fromTable === undefined;
+        }
       }
 
       switch (type) {
@@ -217,6 +222,7 @@ export namespace StructConn {
           flags = BondType.Flag.MetallicCoordination;
           break;
       }
+      if (orderUnknown && BondType.isCovalent(flags)) flags |= BondType.Flag.OrderUnknown;
 
       entries.push({
         rowIndex: i,

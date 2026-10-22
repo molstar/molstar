@@ -40,6 +40,8 @@ import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-ca
 import { subsetIntraUnitBonds } from './unit/bonds/subset.js';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { getResonance, type UnitResonance } from './unit/resonance.js';
+import { BondProvider } from './unit/bonds/provider.js';
+import { Structure } from './structure.js';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -84,6 +86,8 @@ namespace Unit {
     operator: SymmetryOperator,
     elements: StructureElement.Set,
     props?: K extends Kind.Atomic ? AtomicProperties : CoarseProperties,
+    /** Atomic units only: where its bonds come from; the built-in bonds by default (bond-providers plan §2.1). */
+    bondProvider: BondProvider.Instance = BondProvider.DefaultInstance,
   ): Unit {
     switch (kind) {
       case Kind.Atomic:
@@ -96,6 +100,8 @@ namespace Unit {
           elements,
           SymmetryOperator.createMapping(operator, model.atomicConformation, getAtomicRadiusFunc(model)),
           props ?? AtomicProperties(),
+          undefined,
+          bondProvider,
         );
       case Kind.Spheres:
         return createCoarse(
@@ -303,6 +309,12 @@ namespace Unit {
     readonly chainIndex: ArrayLike<ChainIndex>;
 
     readonly parent: Atomic | undefined;
+    /**
+     * Where the unit's intra-unit bonds come from: fixed at construction and passed on to children, copies and
+     * remapped units (bond-providers plan §2.1). Not a static prop: units with the same props may differ in it only
+     * when made by `Unit.create`, which never shares props.
+     */
+    readonly bondProvider: BondProvider.Instance;
     private readonly _props: AtomicProperties;
     get props(): Readonly<AtomicProperties> {
       return this._props;
@@ -326,6 +338,7 @@ namespace Unit {
         this.conformation,
         AtomicProperties(),
         this.parent ?? this,
+        this.bondProvider,
       );
     }
 
@@ -340,6 +353,7 @@ namespace Unit {
         this.conformation,
         this._props,
         this.parent,
+        this.bondProvider,
       );
       if (options?.propagateTransientCache) {
         unit._transientCache = this._transientCache;
@@ -359,6 +373,7 @@ namespace Unit {
         SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r),
         this._props,
         this.parent,
+        this.bondProvider,
       );
     }
 
@@ -407,6 +422,8 @@ namespace Unit {
         props,
         // the parent belongs to the old model (unit.md §3)
         model === this.model ? this.parent : undefined,
+        // model-independent: a frame keeps the structure's provider (bond-providers plan §4)
+        this.bondProvider,
       );
     }
 
@@ -434,22 +451,27 @@ namespace Unit {
       return this._props.principalAxes;
     }
 
-    get bonds() {
+    get bonds(): IntraUnitBonds {
       if (this._props.bonds) return this._props.bonds;
 
-      // a child restricts its parent's bonds if they exist, and never computes them (unit.md §4)
-      const { parent } = this;
-      const parentBonds = parent?.props.bonds;
-      let bonds =
-        parentBonds &&
-        canRestrictParentBonds(parent!, this) &&
-        subsetIntraUnitBonds(parentBonds, parent!.elements, this.elements);
+      // a child restricts its parent's bonds if they exist, and never computes them (unit.md §4), unless its provider
+      // asks for the root's bonds (`childBonds: 'root'`, bond-providers plan §2.3); only bonds of the same provider
+      const { parent, bondProvider } = this;
+      const canRestrict = !!parent && parent.bondProvider === bondProvider && canRestrictParentBonds(parent, this);
+      const parentBonds: IntraUnitBonds | undefined = canRestrict
+        ? bondProvider.childBonds === 'root'
+          ? parent!.bonds
+          : parent!.props.bonds
+        : undefined;
+      let bonds: IntraUnitBonds | undefined =
+        parentBonds && subsetIntraUnitBonds(parentBonds, parent!.elements, this.elements);
       if (!bonds) {
-        const cache = ElementSetIntraBondCache.get(this.model);
-        bonds = cache.get(this.elements);
+        const cacheKey = intraCacheKey(bondProvider);
+        const cache = cacheKey !== undefined ? ElementSetIntraBondCache.get(this.model, cacheKey) : undefined;
+        bonds = cache?.get(this.elements);
         if (!bonds) {
-          bonds = computeIntraUnitBonds(this);
-          if (bonds.props?.cacheable) {
+          bonds = bondProvider.intra ? bondProvider.intra(this, intraContext(this)) : computeIntraUnitBonds(this);
+          if (cache && bonds.props?.cacheable) {
             cache.set(this.elements, bonds);
           }
         }
@@ -530,6 +552,7 @@ namespace Unit {
       conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
       props: AtomicProperties,
       parent?: Atomic,
+      bondProvider: BondProvider.Instance = BondProvider.DefaultInstance,
     ) {
       this.id = id;
       this.invariantId = invariantId;
@@ -543,7 +566,38 @@ namespace Unit {
       this.chainIndex = model.atomicHierarchy.chainAtomSegments.index;
       this._props = props;
       this.parent = parent;
+      this.bondProvider = bondProvider;
     }
+  }
+
+  /**
+   * The provider's cache key under its name, so two providers never share a cache by choosing the same key; the
+   * built-in bonds keep the model's original cache (bond-providers plan §2.1).
+   */
+  function intraCacheKey(instance: BondProvider.Instance): string | undefined {
+    if (BondProvider.isDefault(instance)) return BondProvider.DefaultName;
+    if (instance.cacheKey === undefined) return undefined;
+    return `${instance.provider.name}:${instance.cacheKey}`;
+  }
+
+  function intraContext(unit: Atomic): BondProvider.IntraContext {
+    return {
+      builtIn: (props) => computeIntraUnitBonds(unit, props),
+      modelStructure: () => modelStructureOf(unit.model),
+    };
+  }
+
+  /**
+   * A model as a structure with the built-in bonds, for providers (`IntraContext.modelStructure`), kept with the
+   * model's other derived data. Its units are the default provider's, so reading its bonds never reaches back into a
+   * provider.
+   */
+  function modelStructureOf(model: Model): Structure {
+    const data = model._dynamicPropertyData;
+    if (!data.BondProviderModelStructure) {
+      data.BondProviderModelStructure = Structure.ofModel(model, { bondProvider: BondProvider.DefaultInstance });
+    }
+    return data.BondProviderModelStructure;
   }
 
   /**

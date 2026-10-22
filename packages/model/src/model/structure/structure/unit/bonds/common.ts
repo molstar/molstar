@@ -13,11 +13,17 @@ export const DefaultBondMaxRadius = 4;
 export interface BondComputationProps {
   forceCompute: boolean;
   noCompute: boolean;
+  /**
+   * Only the bonds the format states (index pairs, struct_conn, the component dictionary): no bonds from distance
+   * thresholds, and no hydrogens bonded by distance where the dictionary lacks them (bond-providers plan §2.4).
+   */
+  noDistance: boolean;
   maxRadius: number;
 }
 export const DefaultBondComputationProps: BondComputationProps = {
   forceCompute: false,
   noCompute: false,
+  noDistance: false,
   maxRadius: DefaultBondMaxRadius,
 };
 

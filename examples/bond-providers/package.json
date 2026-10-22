@@ -1,0 +1,33 @@
+{
+  "name": "@molstar/bond-providers-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* Prism: bond providers, two naive ones of the example's own beside the built-in, 'none' and 'per-unit'",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "node ../../scripts/esbuild/app.mjs examples/bond-providers --prd",
+    "typecheck": "tsc -b",
+    "dev": "node ../../scripts/esbuild/app.mjs examples/bond-providers --dev"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "typescript": "catalog:"
+  },
+  "molstar": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "filename": "index.js"
+  }
+}

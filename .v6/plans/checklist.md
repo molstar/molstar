@@ -136,6 +136,10 @@ allow the caller to choose timestamps that are reproducible across time zones.
       builder and the JSON schema). Settle the semantics in the MolViewSpec spec first: with a code on a bound, a range
       is a range of residues in the order of the input file, in each auth chain, not of `auth_seq_id` values (see
       [the ledger](breaking-v6-changes.md#mvs-selectors-through-model-indices-the-molql-generator-element-schema)).
+- [ ] Give bond providers a MolViewSpec schema field once the interface has settled. Until then the structure node
+      takes them through `custom.molstar_bond_provider` only ([bond-providers plan §4.2](bond-providers.md)). The
+      field is the structure node's `bonds` (`{ name, params? }`) in the schemas, the builder and the JSON schema. The
+      MVS registry test (`mvs/runtime/src/_test/registry.test.ts`) then checks the names a file emits.
 
 ## Deferred beyond v6
 

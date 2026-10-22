@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -8,6 +8,7 @@ import type { StructureElement } from '../../element.js';
 import type { IntraUnitBonds } from './data.js';
 import { SortedArray } from '@molstar/core/data/int';
 import type { Model } from '../../../model.js';
+import { LRUCache } from '@molstar/core/util/lru-cache';
 
 export class ElementSetIntraBondCache {
   private data = new Map<number, [StructureElement.Set, IntraUnitBonds][]>();
@@ -36,10 +37,26 @@ export class ElementSetIntraBondCache {
     }
   }
 
-  static get(model: Model): ElementSetIntraBondCache {
-    if (!model._dynamicPropertyData.ElementSetIntraBondCache) {
-      model._dynamicPropertyData.ElementSetIntraBondCache = new ElementSetIntraBondCache();
+  /**
+   * The model's cache for the bonds of one provider instance's key (`BondProvider.Instance.cacheKey`): two structures
+   * of a model with different providers never share bonds. The default key is the model's original cache, kept for
+   * the model's life; of the others only the `MaxProviderKeys` used last are kept, as a key per param value (a cutoff
+   * slider) would otherwise keep every value's bonds. Units hold the bonds they have, so a dropped key costs only a
+   * recompute.
+   */
+  static get(model: Model, key = 'default'): ElementSetIntraBondCache {
+    const data = model._dynamicPropertyData;
+    if (key === 'default') {
+      if (!data.ElementSetIntraBondCache) data.ElementSetIntraBondCache = new ElementSetIntraBondCache();
+      return data.ElementSetIntraBondCache;
     }
-    return model._dynamicPropertyData.ElementSetIntraBondCache;
+    let byKey: LRUCache<ElementSetIntraBondCache> | undefined = data.ElementSetIntraBondCacheByKey;
+    if (!byKey) data.ElementSetIntraBondCacheByKey = byKey = LRUCache.create(ElementSetIntraBondCache.MaxProviderKeys);
+    let cache = LRUCache.get(byKey, key);
+    if (!cache) LRUCache.set(byKey, key, (cache = new ElementSetIntraBondCache()));
+    return cache;
   }
+
+  /** How many provider keys a model keeps caches for besides the default. */
+  static readonly MaxProviderKeys = 4;
 }

@@ -184,12 +184,12 @@ function atomOf(model: Model, compId: string, seqId: number, atomId: string) {
 
 describe('intra-unit bonds', () => {
   it('from distances (1crn, no dictionary)', async () => {
-    expect(signature(await parseCif(readExample('1crn.cif')))).toEqual({ count: 337, hash: 'a90f7cc' });
+    expect(signature(await parseCif(readExample('1crn.cif')))).toEqual({ count: 337, hash: '3a35ad0c' });
   });
 
   it('from the dictionary and distances (1cbs, 1grm)', async () => {
     expect(signature(await parseCif(readExample('1cbs_updated.cif')))).toEqual({ count: 1129, hash: 'c9e64fb5' });
-    expect(signature(await parseCif(readExample('1grm_updated.cif')))).toEqual({ count: 286, hash: '6623881c' });
+    expect(signature(await parseCif(readExample('1grm_updated.cif')))).toEqual({ count: 286, hash: 'f7aea59c' });
   });
 
   it('from distances only (forceCompute)', async () => {
@@ -221,7 +221,7 @@ describe('intra-unit bonds', () => {
     const m = await parseCif(syntheticCif());
     const units = Structure.ofModel(m).units.map((u) => u.elements.length);
     expect(units).toEqual([18, 300]);
-    expect(signature(m)).toEqual({ count: 317, hash: 'ef0d11b5' });
+    expect(signature(m)).toEqual({ count: 317, hash: '774bf775' });
     expect(signature(m, { forceCompute: true })).toEqual({ count: 315, hash: '13902604' });
   });
 });

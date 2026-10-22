@@ -19,6 +19,12 @@ selections) have their own. It is filled lazily by the getters of the units that
 | `bonds`                                                                                   | elements, model, coordinates |
 | `rings`, `resonance`                                                                      | `bonds`                      |
 
+**The bond provider** (`unit.bondProvider`, atomic units; `unit/bonds/provider.ts`) says where the unit's intra-unit
+bonds come from. It is a constructor argument, not a static prop: fixed when the unit is made, passed on by `getChild`,
+`getCopy`, `applyOperator` and `remapModel`, and given by `Unit.create` (the built-in `BondProvider.DefaultInstance`
+when not). Why: two reads of `unit.bonds` must return the same object, so the provider cannot be looked up when bonds
+are read; and it is model-independent, so a remapped frame keeps it.
+
 **Dynamic data** belongs to one unit instance: `conformation` (the operator mapping) and `transientCache` (valence
 model, interaction features; keyed by the caller). Never inherited by children; `getCopy({ propagateTransientCache })`
 is the one way to share it.
@@ -37,7 +43,7 @@ flattened to the root. A child holds at most one other unit; no chains of ancest
   unit (an assembly's chains out of merged waters) applies operators to a child, which keeps the asymmetric unit's unit
   as its parent.
 - A child peeks at `parent.props` and never calls the parent's getters: a one-residue child must not compute the bonds
-  of a 186k-atom unit.
+  of a 186k-atom unit. The one exception is a provider that asks for it (`childBonds: 'root'`, §4).
 - Flattened, not immediate: a grandchild cannot use bonds only the intermediate unit computed, but holding the immediate
   parent would keep every ancestor's props alive. Bonds are usually computed on the root (full-unit components share the
   root's `Unit` objects).
@@ -67,14 +73,26 @@ the remapped root (structure.md §3); passing the root's unit with the same id a
 
 ## 4. What a child derives from its parent
 
-- **Bonds**: the induced subgraph of `parent.props.bonds` when they exist (`subsetIntraUnitBonds`,
-  `unit/bonds/subset.ts`); else `ElementSetIntraBondCache`, else `computeIntraUnitBonds`. Exact: every decision of the
-  computation is per atom pair (struct_conn, the component dictionary, the hydrogen fallback, alt-locs, thresholds,
+- **Bonds**: the induced subgraph of `parent.props.bonds` when they exist and the parent has the same bond provider
+  (`subsetIntraUnitBonds`, `unit/bonds/subset.ts`); else `ElementSetIntraBondCache` under the provider's `cacheKey`,
+  else the provider's `intra`, or `computeIntraUnitBonds` without one. Exact for the built-in bonds: every decision of
+  the computation is per atom pair (struct_conn, the component dictionary, the hydrogen fallback, alt-locs, thresholds,
   index pairs). The exception is index-pair bonds listed per operator (`molstar_bond_site` with operator ids:
   `findIndexPairBonds`, `getIndexPairBonds`), which depend on the unit's operator: with index pairs, a child restricts
   only a parent of the same operator key. Edge order is the parent's; `canRemap` and `cacheable` are the parent's; bonds
   the parent carried over from another frame are carried over to the child. Restricted bonds are not put in
   `ElementSetIntraBondCache`: cheap to redo, and that cache never evicts.
+- **Bonds of a provider** (bond-providers plan §2.3): a provider whose decisions are per atom pair keeps the rule above
+  (`childBonds: 'self'`, the default). One whose decisions span rings or conjugated systems sets `childBonds: 'root'`: a
+  child without restricted bonds computes the root unit's (`parent.bonds`) and restricts them, so a residue never
+  differs from its chain, at the cost of the root unit once. `intra(unit)` depends on the model, the elements and its
+  props only, which is what makes a `cacheKey` sound. The cache is one per model and key, the key under the provider's
+  name (`intraCacheKey`), so two providers never share bonds; the built-in bonds keep the model's original cache for its
+  life, the other keys only the last `MaxProviderKeys` (an LRU: a key per param value, a slider, would keep every
+  value's bonds). No key caches nothing. A provider reads its unit's links to other units from `ctx.modelStructure()`
+  (the model as a structure with the built-in bonds, once per model), never from a structure of its own (a unit is
+  shared by structures), and finds rings over the graph it is building with `UnitRings.create(unit, bonds)`, as
+  `unit.bonds` is not set while it runs.
 - **Cost O(child)**: the parent index of each child element by binary search in the parent's elements, each neighbour's
   child index by binary search among those; a child with `n·log2(p) ≥ p` uses a merged walk and a parent-sized map
   instead, O(p). A parent-sized pass per small child is the hazard: 2000 one-residue children of a 186k-atom unit took

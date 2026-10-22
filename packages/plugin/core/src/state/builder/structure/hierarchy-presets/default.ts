@@ -20,7 +20,7 @@ const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
 const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
   model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(ModelFromTrajectory, a, plugin))),
   showUnitcell: PD.Optional(PD.Boolean(false)),
-  structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
+  structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly', plugin).type),
   representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
   ...CommonParams(a, plugin),
 });
