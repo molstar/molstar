@@ -71,9 +71,6 @@ const EmissiveStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
       return StateTransformer.UpdateResult.Recreate;
 
     const oldEmissive = b.data.state.emissive!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
-    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
-      return StateTransformer.UpdateResult.Unchanged;
     const newEmissive = Emissive.ofScript(newParams.layers, newStructure);
     if (!structureChanged && Emissive.areEqual(oldEmissive, newEmissive))
       return StateTransformer.UpdateResult.Unchanged;
@@ -144,7 +141,8 @@ const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
       return StateTransformer.UpdateResult.Recreate;
 
     const oldEmissive = b.data.state.emissive!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work (S7)
     if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
       return StateTransformer.UpdateResult.Unchanged;
     const newEmissive = Emissive.ofBundle(newParams.layers, newStructure);

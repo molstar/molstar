@@ -74,9 +74,6 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
       return StateTransformer.UpdateResult.Recreate;
 
     const oldSubstance = b.data.state.substance!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
-    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
-      return StateTransformer.UpdateResult.Unchanged;
     const newSubstance = Substance.ofScript(newParams.layers, newStructure);
     if (!structureChanged && Substance.areEqual(oldSubstance, newSubstance))
       return StateTransformer.UpdateResult.Unchanged;
@@ -149,7 +146,8 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
       return StateTransformer.UpdateResult.Recreate;
 
     const oldSubstance = b.data.state.substance!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work (S7)
     if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
       return StateTransformer.UpdateResult.Unchanged;
     const newSubstance = Substance.ofBundle(newParams.layers, newStructure);

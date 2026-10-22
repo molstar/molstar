@@ -71,9 +71,6 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
       return StateTransformer.UpdateResult.Recreate;
 
     const oldTransparency = b.data.state.transparency!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
-    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
-      return StateTransformer.UpdateResult.Unchanged;
     const newTransparency = Transparency.ofScript(newParams.layers, newStructure);
     if (!structureChanged && Transparency.areEqual(oldTransparency, newTransparency))
       return StateTransformer.UpdateResult.Unchanged;
@@ -144,7 +141,8 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
       return StateTransformer.UpdateResult.Recreate;
 
     const oldTransparency = b.data.state.transparency!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work (S7)
     if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
       return StateTransformer.UpdateResult.Unchanged;
     const newTransparency = Transparency.ofBundle(newParams.layers, newStructure);

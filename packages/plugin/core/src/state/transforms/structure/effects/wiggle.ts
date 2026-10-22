@@ -65,9 +65,6 @@ const WiggleStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
-    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
-      return StateTransformer.UpdateResult.Unchanged;
     const newWiggle = Wiggle.ofScript(newParams.layers, newStructure);
     if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 
@@ -132,7 +129,8 @@ const WiggleStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
-    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work (S7)
     if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
       return StateTransformer.UpdateResult.Unchanged;
     const newWiggle = Wiggle.ofBundle(newParams.layers, newStructure);

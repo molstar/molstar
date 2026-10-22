@@ -18,7 +18,7 @@
 //
 // Scenes:
 // - snapshots:plain: 1cbs, a transition of 3 states × 10 frames with a camera move; snapshots:effects: the same with a
-//   script overpaint and transparency below each representation, the states differing in alpha.
+//   bundle overpaint and a script transparency below each representation, the states differing in alpha.
 // - traj:nmr: 1grm (5 models, the mmCIF path); traj:synth: 7qpd's topology and --frames jittered coordinate frames
 //   (the topology + coordinates path; --traj-source <cif> for another). Each with a representation set: preset (the
 //   default preset: components, cartoon and ball-and-stick), cartoon, ball-and-stick, gaussian-surface; +focus and
@@ -44,7 +44,7 @@ import { OrderedSet } from '@molstar/core/data/int';
 import { Color } from '@molstar/core/util/color';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { Script } from '@molstar/model/script/script';
-import { OverpaintStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
+import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import { TransparencyStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/transparency';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
@@ -218,7 +218,7 @@ async function loadTrajectory(plugin: PluginContext, scene: Scene) {
 
 /**
  * 1cbs with three looks played as a transition of 30 frames of 100 ms. plain: the preset, chain-id colors, element
- * colors. effects: each representation has a script overpaint and a script transparency below it, and the looks
+ * colors. effects: each representation has a bundle overpaint and a script transparency below it, and the looks
  * change the representations' alpha only (what an effect below an updated representation does again: S7).
  */
 async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof stubCanvas>, effects = false) {
@@ -236,8 +236,10 @@ async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof st
     const reprs = () => components().flatMap((c) => c.representations.map((r) => r.cell));
     const b = plugin.build();
     for (const r of reprs()) {
-      b.to(r).apply(OverpaintStructureRepresentation3DFromScript, {
-        layers: [{ script, color: Color(0xff0000), clear: false }],
+      const s = r.obj!.data.sourceData as Structure;
+      const bundle = StructureElement.Bundle.fromLoci(residueLoci(s, 10));
+      b.to(r).apply(OverpaintStructureRepresentation3DFromBundle, {
+        layers: [{ bundle, color: Color(0xff0000), clear: false }],
       });
       b.to(r).apply(TransparencyStructureRepresentation3DFromScript, { layers: [{ script, value: 0.5 }] });
     }
@@ -356,7 +358,7 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
     const effects = scene.name === 'snapshots:effects';
     const { durationMs } = await loadPlainSnapshots(plugin, c, effects);
     ticks = ticksArg ? +ticksArg : Math.ceil(durationMs / TickMs) + 2;
-    info = `1cbs, 30 frames × 100 ms (3 looks${effects ? ' of alpha, with script overpaint and transparency' : ''}), camera move 400 ms`;
+    info = `1cbs, 30 frames × 100 ms (3 looks${effects ? ' of alpha, with a bundle overpaint and a script transparency' : ''}), camera move 400 ms`;
   } else if (scene.name.startsWith('mvs:')) {
     const { durationMs, frames, index, checksMs } = await loadMvs(plugin);
     ticks = ticksArg ? +ticksArg : Math.min(600, Math.ceil(durationMs / TickMs) + 2);
