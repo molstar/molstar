@@ -156,7 +156,7 @@ audit's bench scripts re-pointed at the branch.
 
 | Id  | Fix                                                                                                                       | Before → after                                                                  | Test                                                     |
 | --- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| P10 | The non-passive wheel guard on the canvas box only (the splash lets the pointer through); `gesture*` stay on the root     | code (not measurable in jsdom): no wheel listener that is not passive over a panel | shell-watch.test.tsx                                   |
+| P10 | The non-passive wheel guard on the canvas box (the splash lets the pointer through) and its bottom bar; `gesture*` stay on the root     | code (not measurable in jsdom): no wheel listener that is not passive over a panel | shell-watch.test.tsx                                   |
 | P11 | The Log a `RecycledList` of one-line recycled rows; its sources kept by the manager (`logSources`)                       | per flush of 1 / 10 / 100 lines, net of a macrotask: 0.16 / 0.58 / 4.5 → 0.11 / 0.25 / 0.39 ms; 300 → 54 rows in the DOM | log-view.test.tsx                     |
 | P3  | `Show`, `Switch`, `Dynamic` follow their sources with `follow()` and write through `regionWriter()`: no rxjs on a state | 4.1 → 2.8 KB retained a `Show` (4000 over states), made in 55 → 39-49 ms        | activity.test.tsx, control-flow.test.tsx, leaks.heap     |
 | P2  | Overview: a column per turn id, a block per step id (keyed states); list: a `For` per turn over the model's `rowGroups`   | blocks made over 30 steps of the running turn: 495 → 30; a settle at 300 turns (2432 rows): 1.26 → 0.64 ms | views.test.tsx               |
@@ -183,7 +183,7 @@ Decisions and departures from the suggested fixes:
 - **P3**: a region source is followed by `follow()` (a `bind` told whether a value is the first since it started, and
   when it stops), not by a `derive`-based region as suggested: `Show` keeps per-subscription state (a closing animation,
   the value it resumed with) that a `derive` does not have.
-- **P10**: over a panel, a card or the rail a pinch zooms the page again (before #2021); ⌘0 or a pinch back over a panel
+- **P10**: over a panel, a card, the sequence band or the rail a pinch zooms the page again (before #2021); ⌘0 or a pinch back over a panel
   undoes it. Not checked on a trackpad in Chrome and Safari.
 - **B4**: absolute times, not a minute tick: a clock re-rendering every row would keep an idle app busy (Prism's "idle
   is idle").

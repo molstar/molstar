@@ -121,13 +121,16 @@ describe('the pinch guard (perf audit 11/P10)', () => {
     const v = mount();
     spy.mockRestore();
     const canvas = v.root.querySelector<HTMLElement>('[data-msp-canvas]')!;
-    expect(blocking).toEqual([canvas]);
+    const bottom = v.root.querySelector<HTMLElement>('[data-keeps-card]')!;
+    expect(blocking).toEqual([canvas, bottom]);
     const pinch = (at: Element) => {
       const e = new WheelEvent('wheel', { ctrlKey: true, bubbles: true, cancelable: true });
       at.dispatchEvent(e);
       return e.defaultPrevented;
     };
     expect(pinch(canvas.firstElementChild!)).toBe(true);
+    // The status line and the canvas toolbar along the bottom (nothing there scrolls).
+    expect(pinch(bottom.firstElementChild!)).toBe(true);
     const panel = [...v.root.querySelectorAll('i')].find((e) => e.textContent === 'panel')!;
     expect(pinch(panel)).toBe(false);
   });

@@ -7,7 +7,8 @@
   the Log shown 4.5 → 0.39 ms, 300 → 54 rows in the DOM; the sources it filters by are `logSources`
 - Prism: a running task's pill is made once and follows its task by id (`NotificationsManager.lineTaskIds`,
   `lineTask(id)`): its spinner no longer restarts on every progress event, and Cancel is no longer replaced under a press
-- Prism: a pinch (ctrl+wheel) is held over the canvas only; over a panel, a card or the rail it zooms the page. Panels
+- Prism: a pinch (ctrl+wheel) is held over the canvas and its bottom bar only; over a panel, a card, the sequence band
+  or the rail it zooms the page. Panels
   scroll on the compositor again while a load or a rebuild holds the main thread
 - Prism: `<For key={…}>` is a type error (the JSX runtime never passed `key`, so those lists were keyed by identity); pass
   `by={…}`. The 49 lists in the repository do

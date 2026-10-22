@@ -134,7 +134,7 @@ export function CanvasToolbar(props: {
   });
   return (
     <div class={classes.sections}>
-      <For each={sections} by={(s) => s.group ?? ''}>
+      <For each={sections} by={(s) => s.group}>
         {(section) => (
           <div
             class={classes.toolbar}

@@ -204,7 +204,7 @@ Next tier (medium, in the slice reports): 07/P12 serial id field per CPU isosurf
 - **10/P12** (frozen): ship the caller-side batching (one `canvas3d.update()` after `setState` on every representation)
   now, or wait for the WebGPU rewrite?
 - **11/P10**: scope the pinch guard to the canvas and splash and accept browser zoom over panels? Done in #PRNUM (the
-  canvas box; a pinch over a panel zooms the page); revert there if panels must keep the pinch.
+  canvas box and its bottom bar; a pinch over a panel zooms the page); revert there if panels must keep the pinch.
 - **12/H8**: `PauseLoopWhenIdle` on by default in the classic apps?
 - **07/P7**: unmerging large members needs a GPU frame-time measurement first; who runs it?
 - **04/P16**: dictionary-encoded string columns span `io` and core `Column`: worth a design note?

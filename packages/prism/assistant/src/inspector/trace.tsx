@@ -237,24 +237,19 @@ function Column(props: {
 }) {
   const { model, turn, steps } = props;
   // What a turn is made with stays: its id and its request.
-  const { id, prompt } = turn.value;
+  const { id } = turn.value;
   const request = `req:${id}`;
   const stepIds = derive(turn, (t) => t.steps.map((st) => st.id), sameShallow);
+  // Its label follows the turn (a turn read before its request was recorded says so until it is).
+  const block = pressable(
+    (
+      <button type="button" class={classes.block} data-kind="request" onClick={() => model.select(request)} />
+    ) as HTMLElement,
+    model.isSelected(request),
+  );
   const root = (
     <div class={classes.column}>
-      {pressable(
-        (
-          <button
-            type="button"
-            class={classes.block}
-            data-kind="request"
-            aria-label={`Turn ${props.index + 1}: ${prompt}`}
-            data-tip={`Turn ${props.index + 1}: ${prompt}`}
-            onClick={() => model.select(request)}
-          />
-        ) as HTMLElement,
-        model.isSelected(request),
-      )}
+      {block}
       <For each={stepIds}>{(stepId) => <StepBlock model={model} step={held(steps.key(stepId), present)} />}</For>
     </div>
   ) as HTMLElement;
@@ -264,6 +259,9 @@ function Column(props: {
   watch([model.scale, selected, turn], () => {
     setAttr(root, 'data-selected', selected.value);
     const t = turn.value;
+    const label = `Turn ${props.index + 1}: ${t.prompt}`;
+    setAttr(block, 'aria-label', label);
+    setAttr(block, 'data-tip', label);
     if (scale === model.scale.value && of === t) return;
     scale = model.scale.value;
     of = t;

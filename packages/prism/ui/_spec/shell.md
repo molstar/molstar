@@ -55,10 +55,11 @@ buttons) is the app's. The code is the truth for how.
 - **The canvas never shrinks for the floating panel or the rail**: the app's camera framing keeps the scene in the
   visible area.
 - **A pinch is the canvas's over the canvas only**: its ctrl+wheel is held (not passive) on the canvas box, which the
-  splash lets the pointer through to; over a panel, a card or the rail the browser zooms the page. Why: a wheel listener
-  that is not passive makes every wheel gesture under it wait for the main thread, and on the shell's root it held every
-  panel's scroll for as long as a load held the thread (perf audit 2, 11/P10). Safari's `gesture*` events do not hold
-  scrolling: the shell's root keeps them.
+  splash lets the pointer through to, and on the bar along its bottom (status, toolbar, chips: nothing there scrolls);
+  over a panel, a card, the sequence band or the rail the browser zooms the page. Why: a wheel listener that is not
+  passive makes every wheel gesture under it wait for the main thread, and on the shell's root it held every panel's
+  scroll for as long as a load held the thread (perf audit 2, 11/P10). Safari's `gesture*` events do not hold scrolling:
+  the shell's root keeps them.
 - **Rail.** Full height at the right edge, buttons edge to edge, no labels (tooltips name them): the `head` tab, the tab
   strip by `order`, the toolbar sections by `group` (in the order of their first item), then at the foot the `foot` tabs
   and the items without a group (the theme switch, the command menu with its ⌘K `caption`). Rail buttons are
