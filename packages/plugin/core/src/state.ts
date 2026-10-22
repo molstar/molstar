@@ -302,7 +302,8 @@ class PluginState extends PluginComponent {
     if (!transition) return;
     const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
     const frame = transition.frames[finalIndex] ?? snapshot.data;
-    if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
+    // scrubbed at the pointer's rate: the frames' timing would fill the log
+    if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data, { doNotLogTiming: true }));
     if (frame.canvas3d?.props && this.plugin.canvas3d) {
       // A scrubbed transition sets every frame's props silently and says so once the scrubbing settles: emitting per
       // frame would wake every settings reader at the scrub's rate.

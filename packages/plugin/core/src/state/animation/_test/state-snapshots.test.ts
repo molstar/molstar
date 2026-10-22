@@ -47,6 +47,23 @@ describe('a playing snapshot transition', () => {
     expect(counts.recreated).toBe(0);
   });
 
+  it('does not log the timing of the frames', async () => {
+    const { plugin } = await transitionPlugin();
+    const log = plugin.log.entries.size;
+    await plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+    await play(plugin, 700);
+    expect(plugin.log.entries.size - log).toBe(0);
+  });
+
+  it('does not log the timing of a scrubbed frame', async () => {
+    const { plugin } = await transitionPlugin();
+    const log = plugin.log.entries.size;
+    const snapshot = plugin.managers.snapshot.current!.snapshot;
+    for (const frame of [2, 3, 5]) await plugin.state.setAnimationSnapshot(snapshot, frame);
+    expect(plugin.state.data.cells.get('node0')?.obj?.label).toBe('c0');
+    expect(plugin.log.entries.size - log).toBe(0);
+  });
+
   it('stays on the last frame when it ends', async () => {
     const { plugin, counts } = await transitionPlugin();
     await plugin.managers.animation.play(AnimateStateSnapshotTransition, {});

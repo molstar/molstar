@@ -32,8 +32,8 @@ async function setPartialSnapshot(
   frame = false,
 ) {
   if (entry.data) {
-    await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
-    // update the canvas3d trackball with the snapshot
+    // frames are applied at the frame rate: their timing would fill the log
+    await plugin.runTask(plugin.state.data.setSnapshot(entry.data, { doNotLogTiming: true }));
   }
 
   if (entry.canvas3d?.props) {

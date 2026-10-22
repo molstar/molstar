@@ -93,6 +93,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   `setSnapshot` per 600 ticks; ms/tick within noise (3.98 → 4.32 med), since the skipped applies changed no cell. Test:
   `plugin/core/src/state/animation/_test/state-snapshots.test.ts` (36 and 30 applies before, 5 and 4 after).
 
+- **S2** (`State.setSnapshot(snapshot, options)`; the playing and the scrubbed frames pass `doNotLogTiming`). exosome:
+  10,515 → 0 log entries per 600 ticks, 4.32 → 3.12 ms/tick med, 5.33 → 4.63 ms/applied; plain: 9 → 0 entries.
+  Tests: two in `state-snapshots.test.ts` (12 and 8 entries before).
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip
