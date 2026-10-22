@@ -16,27 +16,55 @@ import { Assembly, Symmetry } from '@molstar/model/model/structure/model/propert
 import { PluginStateObject as SO } from '../objects.js';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
+import { BondProviderRegistry } from '../bonds/registry.js';
 
-const CommonStructureParams = {
-  dynamicBonds: PD.Optional(
-    PD.Boolean(false, {
-      description:
-        'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules and ions.',
-    }),
-  ),
-  mergeBySymmetry: PD.Optional(
-    PD.Boolean(false, {
-      description: 'Merge structure units that share the same symmetry operator into a single unit.',
-    }),
-  ),
-};
-type CommonStructureProps = PD.ValuesFor<typeof CommonStructureParams>;
+/** The bonds param without a plugin: the built-in bonds only. */
+const EmptyBondProviders = new BondProviderRegistry();
+
+/**
+ * The params every mode shares. `bonds` offers the plugin's bond providers applicable to the model; without a plugin
+ * only the built-in bonds (bond-providers plan §4).
+ */
+function commonStructureParams(model?: Model, plugin?: PluginContext) {
+  return {
+    dynamicBonds: PD.Optional(
+      PD.Boolean(false, {
+        description:
+          'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules and ions.',
+      }),
+    ),
+    mergeBySymmetry: PD.Optional(
+      PD.Boolean(false, {
+        description: 'Merge structure units that share the same symmetry operator into a single unit.',
+      }),
+    ),
+    bonds: PD.Optional((plugin?.bondProviders ?? EmptyBondProviders).getParam(model)),
+  };
+}
+type CommonStructureProps = PD.ValuesFor<ReturnType<typeof commonStructureParams>>;
+
+/** What the builders below take: the common params, with the bond choice resolved to an instance. */
+type StructureProps = Omit<CommonStructureProps, 'bonds'> & Pick<Structure.Props, 'bondProvider'>;
+
+/** Resolves the bond choice once per apply: one instance for the structure and every unit it builds (§4). */
+function structureProps(
+  plugin: PluginContext,
+  model: Model,
+  props: CommonStructureProps | undefined,
+): StructureProps | undefined {
+  if (!props) return undefined;
+  // an unregistered name is 'default' by now (normalization); `resolve` falls back for raw params too
+  const { bonds, ...rest } = props;
+  return { ...rest, bondProvider: plugin.bondProviders.resolve(bonds, model) };
+}
 
 export namespace RootStructureDefinition {
   export function getParams(
     model?: Model,
     defaultValue?: 'auto' | 'model' | 'assembly' | 'symmetry' | 'symmetry-mates' | 'symmetry-assembly',
+    plugin?: PluginContext,
   ) {
+    const CommonStructureParams = commonStructureParams(model, plugin);
     const symmetry = model && ModelSymmetry.Provider.get(model);
 
     const assemblyIds = symmetry
@@ -163,7 +191,7 @@ export namespace RootStructureDefinition {
     ctx: RuntimeContext,
     model: Model,
     id?: string,
-    props?: CommonStructureProps,
+    props?: StructureProps,
   ) {
     let asm: Assembly | undefined = void 0;
 
@@ -196,13 +224,7 @@ export namespace RootStructureDefinition {
     return new SO.Molecule.Structure(s, objProps);
   }
 
-  async function buildSymmetry(
-    ctx: RuntimeContext,
-    model: Model,
-    ijkMin: Vec3,
-    ijkMax: Vec3,
-    props?: CommonStructureProps,
-  ) {
+  async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3, props?: StructureProps) {
     const base = Structure.ofModel(model, props);
     let s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
     if (props?.mergeBySymmetry) s = Structure.mergeUnitsByOperator(s);
@@ -210,7 +232,7 @@ export namespace RootStructureDefinition {
     return new SO.Molecule.Structure(s, objProps);
   }
 
-  async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number, props?: CommonStructureProps) {
+  async function buildSymmetryMates(ctx: RuntimeContext, model: Model, radius: number, props?: StructureProps) {
     const base = Structure.ofModel(model, props);
     let s = await StructureSymmetry.builderSymmetryMates(base, radius).runInContext(ctx);
     if (props?.mergeBySymmetry) s = Structure.mergeUnitsByOperator(s);
@@ -223,7 +245,7 @@ export namespace RootStructureDefinition {
     model: Model,
     generators: StructureSymmetry.Generators,
     symmetry: Symmetry,
-    props?: CommonStructureProps,
+    props?: StructureProps,
   ) {
     const base = Structure.ofModel(model, props);
     let s = await StructureSymmetry.buildSymmetryAssembly(base, generators, symmetry).runInContext(ctx);
@@ -238,7 +260,7 @@ export namespace RootStructureDefinition {
     model: Model,
     params?: Params,
   ): Promise<SO.Molecule.Structure> {
-    const props = params?.params;
+    const props = structureProps(plugin, model, params?.params);
     const symmetry = ModelSymmetry.Provider.get(model);
     if (!symmetry || !params || params.name === 'model') {
       const s = Structure.ofModel(model, props);

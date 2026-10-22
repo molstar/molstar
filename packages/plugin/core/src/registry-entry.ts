@@ -69,7 +69,7 @@ function registryTarget<P>(label: string, registry: ThemeRegistryLike<P>): Targe
 function targets(plugin: PluginContext) {
   const { structure, volume, particles } = plugin.representation;
   const { hierarchy, representation } = plugin.builders.structure;
-  const { dataFormats } = plugin;
+  const { dataFormats, bondProviders } = plugin;
   const { lociLabels, markdownExtensions, dragAndDrop, animation } = plugin.managers;
   const queries = plugin.query.structure.registry;
   const actions = plugin.state.data.actions;
@@ -93,6 +93,7 @@ function targets(plugin: PluginContext) {
       },
     },
     formats: registryTarget('Data format', dataFormats),
+    bondProviders: registryTarget('Bond provider', bondProviders),
     hierarchyPresets: {
       label: 'Trajectory hierarchy preset',
       scope: hierarchy,
@@ -167,6 +168,8 @@ function entryRegistrations(t: Targets, entry: PluginRegistryEntry, out: Registr
   }
 
   for (const p of entry.formats ?? []) out.push(registration(t.formats, p, p, [p.name]));
+  // before the presets, which build structures with them (bond-providers plan §3)
+  for (const p of entry.structure?.bondProviders ?? []) out.push(registration(t.bondProviders, p, p, [p.name]));
 
   for (const p of entry.structure?.presets?.hierarchy ?? []) {
     out.push(registration(t.hierarchyPresets, p, p, p.alias === undefined ? [p.id] : [p.id, p.alias]));

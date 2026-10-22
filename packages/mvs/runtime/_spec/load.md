@@ -108,3 +108,12 @@ Top nodes load every frame; some read their whole subtree, through caches:
   object. An item depends only on its node, its parent (inside the unit) and annotation ids (a function of params), and
   converted subtrees are never changed. Without `context.units`, nothing is cached.
 - `root`: `context.nearestReprMap` is computed on its first `get`.
+
+## 6. Mol\*-specific `custom` keys
+
+Mol\* reads some keys of a node's `custom` that MVS does not define, prefixed `molstar_`: on a representation
+`molstar_representation_params` (merged into its type params), `molstar_color_theme_name` and
+`molstar_use_default_coloring`; on the root `molstar_on_load_markdown_commands`; on a shape `molstar_mesh_params`; on a
+structure `molstar_bond_provider` (`{ name, params? }`, `structureProps`): the structure's bond provider, a name the
+plugin lacks falling back to the built-in bonds with a warning when the snapshot is applied (bond-providers plan §4.2).
+A key is the way in for a Mol\* feature before (or instead of) a schema field.

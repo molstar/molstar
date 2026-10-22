@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bond providers</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font: 14px system-ui, sans-serif;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #ccc;
+      }
+      header input[type='text'] {
+        width: 8em;
+      }
+      header span {
+        flex: 1;
+        min-width: 12em;
+        color: #666;
+      }
+      #app {
+        position: relative;
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <form id="load">
+        <input id="source" type="text" value="1HSG" aria-label="PDB ID" />
+        <button type="submit">Load</button>
+      </form>
+      <strong>Bonds:</strong>
+      <button data-bonds="default">Default</button>
+      <button data-bonds="none">None (format only)</button>
+      <button data-bonds="naive-distance">Naive distance</button>
+      <button data-bonds="naive-orders">Naive orders</button>
+      <button data-bonds="random">Random</button>
+      <button data-bonds="per-unit">By unit (ligands: naive orders)</button>
+      <button id="toggle">Unregister naive orders</button>
+      <span id="status"></span>
+    </header>
+    <div id="app"></div>
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

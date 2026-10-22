@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -31,6 +31,32 @@ export type IntraUnitBonds = IntAdjacencyGraph<
 
 export namespace IntraUnitBonds {
   export const Empty: IntraUnitBonds = IntAdjacencyGraph.create([], [], [], 0, { flags: [], order: [], key: [] });
+
+  /**
+   * The bonds of `atomCount` atoms from a list of pairs, each once (`atomA[i]`–`atomB[i]`, unit indices), with their
+   * order, flags and key (-1: none): what the built-in computation builds, and what a bond provider can use.
+   */
+  export function fromPairs(
+    atomA: ArrayLike<StructureElement.UnitIndex>,
+    atomB: ArrayLike<StructureElement.UnitIndex>,
+    order: ArrayLike<number>,
+    flags: ArrayLike<number>,
+    key: ArrayLike<number>,
+    atomCount: number,
+    props?: IntraUnitBondProps,
+  ): IntraUnitBonds {
+    const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
+    const flagsOut = new Uint16Array(builder.slotCount);
+    const orderOut = new Int8Array(builder.slotCount);
+    const keyOut = new Uint32Array(builder.slotCount);
+    for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
+      builder.addNextEdge();
+      builder.assignProperty(flagsOut, flags[i]);
+      builder.assignProperty(orderOut, order[i]);
+      builder.assignProperty(keyOut, key[i]);
+    }
+    return builder.createGraph({ flags: flagsOut, order: orderOut, key: keyOut }, props);
+  }
 }
 
 export type InterUnitEdgeProps = { readonly order: number; readonly flag: BondType.Flag; readonly key: number };

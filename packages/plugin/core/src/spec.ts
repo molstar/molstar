@@ -22,6 +22,7 @@ import type { StructureRepresentationPresetProvider } from '@molstar/plugin/stat
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
 import type { MarkdownExtension } from '@molstar/plugin/state/manager/markdown-extensions';
 import type { PluginDragAndDropEntry } from '@molstar/plugin/state/manager/drag-and-drop';
+import type { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
 import type { AssetManager } from '@molstar/core/util/assets';
 
 export { PluginSpec };
@@ -52,6 +53,8 @@ export interface PluginRegistryEntry {
       readonly representation?: readonly StructureRepresentationPresetProvider<any, any>[];
     };
     readonly selectionQueries?: readonly StructureSelectionQuery[];
+    /** Where bonds can come from besides the built-in computation (`PluginContext.bondProviders`). */
+    readonly bondProviders?: readonly BondProvider<any>[];
   };
   readonly volume?: {
     readonly themes?: PluginRegistryEntry.Themes;

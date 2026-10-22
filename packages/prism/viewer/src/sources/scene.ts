@@ -87,6 +87,8 @@ import {
   type RepresentationQuickSource,
 } from './representation-quick.js';
 import type { RepresentationQuickChange } from '../model/representation-quick.js';
+import { BondProvider } from '@molstar/model/model/structure/structure/unit/bonds/provider';
+import type { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
 
 // The scene as the Structure tab shows it (state.md §1, row 2; view-models.md §3): one record per node, keyed by state
 // ref, so a node keeps its identity across hierarchy rebuilds, and each field its own state, so a row updates only where
@@ -1943,9 +1945,15 @@ interface SourceValues {
   type: string;
   radius: number;
   cells: number;
+  bonds: BondProvider.Choice;
 }
 
-type StructureType = { name: string; params?: { id?: string; radius?: number; ijkMax?: Vec3 } };
+type StructureType = {
+  name: string;
+  params?: { id?: string; radius?: number; ijkMax?: Vec3; bonds?: BondProvider.Choice };
+};
+
+const DefaultBondChoice: BondProvider.Choice = { name: BondProvider.DefaultName, params: {} };
 
 const typeOf = (s: StructureRef) => (s.cell.transform.params as { type: StructureType } | undefined)?.type;
 
@@ -1985,8 +1993,11 @@ function typeValue(s: StructureRef, data: Structure): string {
   }
 }
 
-function sourceForm(s: StructureRef, data: Structure): PD.Params {
+function sourceForm(s: StructureRef, data: Structure, bondProviders: BondProviderRegistry): PD.Params {
   const types = structureTypes(s, data);
+  // bond-providers plan §4.1: hidden with the built-in bonds as the only choice, so such a viewer looks as before
+  const model = s.model?.cell.obj?.data;
+  const bondOptions = bondProviders.options(model).length;
   // The model shown is not here: a structure with several has a row of its own under it (its frames, a scrubber and
   // play; views/structure/trajectory-row.tsx), its controls in the inspector when picked.
   return {
@@ -2005,6 +2016,7 @@ function sourceForm(s: StructureRef, data: Structure): PD.Params {
       { min: 0, max: 3, step: 1 },
       { label: 'Cells around', description: '1 is the cells −1 to 1 on each axis', hideIf: (v) => v.type !== 'cells' },
     ),
+    bonds: bondProviders.getParam(model, { isHidden: bondOptions < 2 || typeOf(s) === undefined }),
   };
 }
 
@@ -2015,6 +2027,7 @@ function structureValues(s: StructureRef, data: Structure): SourceValues & PD.Va
     type: typeValue(s, data),
     radius: t?.name === 'symmetry-mates' ? (t.params?.radius ?? 5) : 5,
     cells: t?.name === 'symmetry' && t.params?.ijkMax ? t.params.ijkMax[0] : 1,
+    bonds: t?.params?.bonds ?? DefaultBondChoice,
     transform: transformValues(currentTransform(s, data), data),
   };
 }
@@ -2031,6 +2044,9 @@ function sourceChanges(
   const structure = s.cell.transform.ref;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const apply = async (v: SourceValues, name: string) => {
+    if (name === 'bonds') {
+      return api.run('structure.bonds', { structure, provider: v.bonds.name, params: v.bonds.params });
+    }
     if (v.type.startsWith('assembly:')) {
       return api.run('structure.assembly', { structure, id: v.type.slice('assembly:'.length) });
     }
@@ -2048,7 +2064,9 @@ function sourceChanges(
   return (values, name) => {
     clearTimeout(timer);
     const run = () => void apply(values, name).finally(reload);
-    if (name === 'radius' || name === 'cells') timer = setTimeout(run, 150);
+    // a provider's own params (sliders) a moment after the last; a change of provider at once
+    const bondParams = name === 'bonds' && values.bonds.name === (typeOf(s)?.params?.bonds ?? DefaultBondChoice).name;
+    if (name === 'radius' || name === 'cells' || bondParams) timer = setTimeout(run, 150);
     else run();
   };
 }
@@ -2279,7 +2297,7 @@ function inspect(
           center: 'centroid',
         }),
     );
-    const params = { ...(structureRef ? sourceForm(structureRef, s) : {}), ...TransformForm };
+    const params = { ...(structureRef ? sourceForm(structureRef, s, plugin.bondProviders) : {}), ...TransformForm };
     const values = structureRef ? structureValues(structureRef, s) : { transform: transformValues(now, s) };
     // After a source change that did nothing (a failure), the form shows what the structure is again.
     const reload = () => {

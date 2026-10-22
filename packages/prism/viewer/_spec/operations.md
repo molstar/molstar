@@ -160,6 +160,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `state.update` | Update state cells | agent-only | node, params |
 | `state.visibility` | Show or hide state cells |  | node, visible |
 | `structure.assembly` | Show an assembly |  | id, structure |
+| `structure.bonds` | Choose where bonds come from |  | provider, params, structure |
 | `structure.list` | Describe the scene | read |  |
 | `structure.preset` | Apply a representation preset |  | preset, structure |
 | `structure.remove` | Remove a structure | destructive | structure |
