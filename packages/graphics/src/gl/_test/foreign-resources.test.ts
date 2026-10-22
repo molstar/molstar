@@ -4,12 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ValueCell } from '@molstar/core/util';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import type { StorageBuffer } from '../compute.js';
 import type { GraphicsContext } from '../context.js';
-import { createRenderObject, hasForeignResources, transferTextures } from '../render-object.js';
+import {
+  createForeignResourcesCheck,
+  createRenderObject,
+  hasForeignResources,
+  transferTextures,
+} from '../render-object.js';
 import { createNullTexture } from '../texture.js';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -84,5 +89,36 @@ describe('foreign resources of render objects', () => {
     expect(mesh.isoPositions.ref.value).toBeUndefined();
     expect(mesh.isoNormals.ref.value).toBeUndefined();
     expect(mesh.drawIndirect.ref.value).toBeUndefined();
+  });
+});
+
+// a visual checks its render object on every update: a clean one is remembered for the context
+describe('the foreign resources check of a visual', () => {
+  it('walks the values once while the render object and the context stay', () => {
+    const o = createTextureMesh();
+    const table = fakeBuffer();
+    (o.values as unknown as { sIsoTable: ValueCell<StorageBuffer | undefined> }).sIsoTable.ref.value = table;
+    const graphics = fakeGraphics([table]);
+    const owns = vi.spyOn(graphics.compute!, 'ownsBuffer');
+    const check = createForeignResourcesCheck();
+    expect(check(o, graphics)).toBe(false);
+    expect(owns).toHaveBeenCalledTimes(1);
+    expect(check(o, graphics)).toBe(false);
+    expect(check(o, graphics)).toBe(false);
+    expect(owns).toHaveBeenCalledTimes(1);
+  });
+
+  it('checks again for another context (a restore, a backend switch) or another render object', () => {
+    const o = createTextureMesh();
+    const table = fakeBuffer();
+    const check = createForeignResourcesCheck();
+    expect(check(o, fakeGraphics([table]))).toBe(false);
+    (o.values as unknown as { sIsoTable: ValueCell<StorageBuffer | undefined> }).sIsoTable.ref.value = table;
+    // the buffer is of the previous context
+    expect(check(o, fakeGraphics([]))).toBe(true);
+    // a foreign result is not remembered: checked again until it is clean
+    const next = fakeGraphics([table]);
+    expect(check(o, next)).toBe(false);
+    expect(check(createTextureMesh(), fakeGraphics([]))).toBe(false);
   });
 });

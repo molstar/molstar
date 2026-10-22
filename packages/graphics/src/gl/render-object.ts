@@ -229,6 +229,26 @@ export function hasForeignResources(o: GraphicsRenderObject, graphics: GraphicsC
 }
 
 /**
+ * `hasForeignResources` for the render objects of one visual, remembered while clean: a visual creates its resources
+ * with the context it is given, and a restore or a backend switch gives a new `GraphicsContext` (`setGraphics`; the
+ * previous one is destroyed and never given again). So a render object found clean for a context stays clean until the
+ * render object or the context changes. A foreign result is not remembered: the visual creates the geometry again and
+ * the next check walks the values again. The walk (every value cell, and every merged member) on each update was about
+ * a fifth of an MVS animation frame.
+ */
+export function createForeignResourcesCheck() {
+  let cleanObject: GraphicsRenderObject | undefined;
+  let cleanGraphics: GraphicsContext | undefined;
+  return (o: GraphicsRenderObject, graphics: GraphicsContext): boolean => {
+    if (o === cleanObject && graphics === cleanGraphics) return false;
+    const foreign = hasForeignResources(o, graphics);
+    cleanObject = foreign ? undefined : o;
+    cleanGraphics = foreign ? undefined : graphics;
+    return foreign;
+  };
+}
+
+/**
  * Replaces textures of another context in the values of `o` by textures of `graphics` with the same contents, where
  * they were loaded from data (see `transferTexture`); false if some were rendered or computed (e.g. GPU surfaces), or
  * storage buffers are of another context, which their producers create again
