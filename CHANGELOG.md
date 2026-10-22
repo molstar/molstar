@@ -10,6 +10,11 @@ here.
 
 ## [Unreleased]
 
+- State snapshot transitions: a frame shows for its own duration; each frame showed during the slot of the one before
+  it, so the second frame never showed and a held frame showed the next one (also when scrubbing)
+- State snapshot animations: each transition frame is applied once; it was applied again on every animation tick, and
+  during the first frame the camera transition restarted on every tick
+- State snapshot animations: playing or scrubbing frames does not log their update timing
 - Interactions: a salt bridge (ionic contact) hides the H-bonds between the same atoms instead of being hidden by them,
   as documented and as in NGL and PLIP (ionic is off by default)
 - Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts

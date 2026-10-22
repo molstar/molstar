@@ -97,6 +97,11 @@ One line per id as it lands: the commit's before → after on the bench (median 
   10,515 → 0 log entries per 600 ticks, 4.32 → 3.12 ms/tick med, 5.33 → 4.63 ms/applied; plain: 9 → 0 entries.
   Tests: two in `state-snapshots.test.ts` (12 and 8 entries before).
 
+- **B2** (`getStateTransitionFrameIndex`: frame `i` from the end of the frames before it until its own end). A fix of
+  what is shown, not of the cost; S1's test now applies 6 and 5 frames (frame 1 included). Test:
+  `plugin/core/src/state/_test/transition-frames.test.ts` (failed before: the hold of a 100/1000/100 ms transition
+  showed frame 2). Also in 5.x: in the root `CHANGELOG.md` with S1 and S2.
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip

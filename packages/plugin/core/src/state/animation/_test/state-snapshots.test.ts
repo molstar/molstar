@@ -36,9 +36,8 @@ describe('a playing snapshot transition', () => {
     const setup = counts.setSnapshot;
     const ticks = await play(plugin, 700);
     expect(ticks).toBe(37);
-    // a frame index change applies its frame: frame 0 once with the camera (setup applied it without), then 2, 3, 4, 5
-    // (frame 1 is skipped: B2)
-    expect(counts.setSnapshot - setup).toBe(5);
+    // a frame index change applies its frame: frame 0 once with the camera (setup applied it without), then 1 to 5
+    expect(counts.setSnapshot - setup).toBe(6);
     // the camera of the snapshot is set with frame 0, once: a reset per tick would restart the transition
     expect(canvas3d.requestCameraReset).toHaveBeenCalledTimes(1);
     expect(canvas3d.requestCameraReset.mock.calls[0][0]).toMatchObject({ durationMs: 250 });
@@ -82,8 +81,8 @@ describe('playing the snapshots', () => {
     await plugin.managers.animation.play(AnimateStateSnapshots, {});
     const setup = counts.setSnapshot;
     await play(plugin, 590);
-    // frames 2..5 (frame 1 is skipped: B2); frame 0 of the first snapshot is the snapshot itself, which setup applied
-    expect(counts.setSnapshot - setup).toBe(4);
+    // frames 1 to 5; frame 0 of the first snapshot is the snapshot itself, which setup applied
+    expect(counts.setSnapshot - setup).toBe(5);
     expect(canvas3d.requestCameraReset).toHaveBeenCalledTimes(1);
   });
 });

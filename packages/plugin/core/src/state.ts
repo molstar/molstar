@@ -527,12 +527,11 @@ namespace PluginState {
       t %= getStateTransitionDuration(snapshot) ?? 1;
     }
 
-    let currentDuration = 0;
-    if (t <= transition.frames[0].durationInMs) return 0;
+    // frame i is shown from the end of the frames before it until its own end
+    let end = 0;
     for (let i = 0; i < transition.frames.length; i++) {
-      if (currentDuration >= t) return i;
-      const frame = transition.frames[i];
-      currentDuration += frame.durationInMs;
+      end += transition.frames[i].durationInMs;
+      if (t < end) return i;
     }
     return transition.frames.length - 1;
   }
