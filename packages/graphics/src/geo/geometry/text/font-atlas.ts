@@ -54,7 +54,7 @@ export function getFontAtlas(props: Partial<FontAtlasProps>) {
     atlas = new FontAtlas(p);
     LRUCache.set(FontAtlasCache, key, atlas);
     // drawn with fallback glyphs while a web font loads: dropped when it arrives (`loadFont`)
-    if (loadFont(key)) FallbackAtlases.set(key, atlas);
+    loadFont(key);
   }
   return atlas;
 }
@@ -80,14 +80,15 @@ export function setFontFamilyFonts(family: FontFamily, fonts: string) {
   (FontFamilyFonts as { [F in FontFamily]: string })[family] = fonts;
 }
 
-/** How long text visuals wait for a web font; past it they draw a fallback, replaced when the font arrives. */
+/**
+ * How long text visuals wait for a web font; past it they draw a fallback, which stays until they rebuild after the font
+ * arrived (labels.md §3).
+ */
 const FontLoadTimeoutMs = 3000;
 /** What waiting on a font in flight resolves with: its arrival, or the timeout. */
 const FontLoads = new Map<string, Promise<void>>();
 /** Fonts whose download failed (or that loaded and still do not match): the fallback stays, nothing to wait for. */
 const FailedFonts = new Set<string>();
-/** Atlases drawn while their font was in flight, by font. */
-const FallbackAtlases = new Map<string, FontAtlas>();
 
 function isFontLoaded(fontFaces: FontFaceSet, font: string) {
   try {
@@ -106,17 +107,16 @@ function loadFont(font: string): Promise<void> | undefined {
   if (isFontLoaded(fontFaces, font)) return;
 
   // runs as the reaction that settles `arrived`, before anything awaiting it: a visual that waited builds with the
-  // font, never with an atlas drawn while it was in flight
+  // font. Any atlas cached for it was drawn before it arrived: while it was in flight, or before the page knew the
+  // face at all (`check` is true for a family with no face yet), so it is dropped.
   const settle = () => {
     FontLoads.delete(font);
-    const fallback = FallbackAtlases.get(font);
-    FallbackAtlases.delete(font);
     clearTimeout(timer);
     if (!isFontLoaded(fontFaces, font)) {
       FailedFonts.add(font);
       return;
     }
-    if (fallback && LRUCache.get(FontAtlasCache, font) === fallback) LRUCache.remove(FontAtlasCache, font);
+    LRUCache.remove(FontAtlasCache, font);
   };
   let timer: ReturnType<typeof setTimeout> | undefined;
   const arrived = fontFaces.load(font).then(settle, settle);
@@ -143,6 +143,16 @@ export function loadFontAtlasFonts(props: Partial<FontAtlasProps>): Promise<void
 export function withFontAtlasFonts<T>(props: Partial<FontAtlasProps>, build: () => T): T | Promise<T> {
   const loading = loadFontAtlasFonts(props);
   return loading ? loading.then(build) : build();
+}
+
+/**
+ * Drops every cached atlas and what is known about web fonts (in flight, failed): texts built from then on draw new
+ * atlases. For tests, which restore the module state they change, and for an app that changed its fonts.
+ */
+export function clearFontAtlasCache() {
+  while (FontAtlasCache.entries.count > 0) FontAtlasCache.entries.removeFirst();
+  FontLoads.clear();
+  FailedFonts.clear();
 }
 
 export type FontFamily = 'sans-serif' | 'monospace' | 'serif' | 'cursive';

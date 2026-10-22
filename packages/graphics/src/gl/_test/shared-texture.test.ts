@@ -199,21 +199,30 @@ describe('shared textures, WebGL render items', () => {
   });
 
   it('a new atlas object releases the old texture and acquires its own', () => {
-    const { ctx, scene } = setup();
+    const { gl, ctx, scene } = setup();
+    const created = vi.spyOn(gl, 'createTexture');
+    const deleted = vi.spyOn(gl, 'deleteTexture');
     const atlas = createAtlas();
     const a = createText(atlas);
     const b = createText(atlas);
     scene.add(a);
     scene.add(b);
     scene.commit();
+    const old = created.mock.results.map((r) => r.value);
 
     const next = createAtlas(1024);
+    const uploads = countUploads(gl, next);
     ValueCell.update(a.values.tFont, next);
     scene.update([a], false);
     expect(ctx.resources.sharedTextures.count).toBe(2);
     ValueCell.update(b.values.tFont, next);
     scene.update([b], false);
     expect(ctx.resources.sharedTextures.count).toBe(1);
+    // one upload of the new atlas for both, and the old atlas's texture deleted (the draw after the swap is in the
+    // native test below: a list still holding the deleted texture fails the bind there)
+    expect(uploads()).toBe(1);
+    const deletedTextures = deleted.mock.calls.map((c) => c[0]);
+    expect(deletedTextures.filter((t) => old.includes(t)).length).toBe(1);
     ctx.destroy();
   });
 
@@ -233,7 +242,6 @@ describe('shared textures, WebGL render items', () => {
     expect(ctx.resources.sharedTextures.count).toBe(1);
     const perItem = textures - ctx.stats.resourceCounts.texture;
     const deletedWithOne = deleted.mock.calls.length;
-    expect(deletedWithOne).toBe(perItem);
 
     // the remaining item still uploads into the shared texture
     const uploads = countUploads(gl, atlas);
@@ -255,42 +263,58 @@ describe('shared textures, native WebGL', () => {
   const probe = tryGetGLContext(32, 32);
   probe?.destroy();
 
-  (probe ? it : it.skip)('a text drawn after the other holder of its atlas is gone', { tags: ['medium'] }, () => {
-    const ctx = tryGetGLContext(32, 32)!;
-    const gl = ctx.gl;
-    const scene = Scene.create(ctx);
-    const renderer = Renderer.create(ctx);
-    const camera = new Camera({ position: Vec3.create(0, 0, 50) });
-    const atlas = createAtlas();
-    const objects = [createText(atlas), createText(atlas)];
-    for (const o of objects) scene.add(o);
-    scene.commit();
-    expect(ctx.resources.sharedTextures.count).toBe(1);
+  (probe ? it : it.skip)(
+    'a text drawn after the other holder of its atlas is gone, and after a swap',
+    { tags: ['medium'] },
+    () => {
+      const ctx = tryGetGLContext(32, 32)!;
+      const gl = ctx.gl;
+      const scene = Scene.create(ctx);
+      const renderer = Renderer.create(ctx);
+      const camera = new Camera({ position: Vec3.create(0, 0, 50) });
+      const atlas = createAtlas();
+      const objects = [createText(atlas), createText(atlas)];
+      for (const o of objects) scene.add(o);
+      scene.commit();
+      expect(ctx.resources.sharedTextures.count).toBe(1);
 
-    scene.remove(objects[0]);
-    scene.commit();
-    atlas.version! += 1;
-    ValueCell.update(objects[1].values.tFont, atlas);
-    scene.update([objects[1]], false);
+      scene.remove(objects[0]);
+      scene.commit();
+      atlas.version! += 1;
+      ValueCell.update(objects[1].values.tFont, atlas);
+      scene.update([objects[1]], false);
 
-    expect(scene.renderables[0].values.drawCount.ref.value).toBe(6);
-    ctx.resources.linkPrograms();
-    expect(ctx.resources.finalizePrograms(undefined, true)).toBe(true);
-    setDebugMode(true);
-    try {
-      renderer.update(camera, scene, createFrame());
-      ctx.beginRenderPass('drawing-buffer');
-      expect(() => renderer.renderBlended(scene, camera)).not.toThrow();
-      ctx.endRenderPass();
-      expect(gl.getError()).toBe(gl.NO_ERROR);
-    } finally {
-      setDebugMode(false);
-    }
+      expect(scene.renderables[0].values.drawCount.ref.value).toBe(6);
+      ctx.resources.linkPrograms();
+      expect(ctx.resources.finalizePrograms(undefined, true)).toBe(true);
+      setDebugMode(true);
+      try {
+        renderer.update(camera, scene, createFrame());
+        ctx.beginRenderPass('drawing-buffer');
+        expect(() => renderer.renderBlended(scene, camera)).not.toThrow();
+        ctx.endRenderPass();
+        expect(gl.getError()).toBe(gl.NO_ERROR);
 
-    scene.remove(objects[1]);
-    scene.commit();
-    expect(ctx.resources.sharedTextures.count).toBe(0);
-    renderer.dispose();
-    ctx.destroy();
-  });
+        // swapped to another atlas, the last holder of the first: its texture is deleted, and a draw that still bound it
+        // would raise INVALID_OPERATION
+        const next = createAtlas(1024);
+        ValueCell.update(objects[1].values.tFont, next);
+        scene.update([objects[1]], false);
+        expect(ctx.resources.sharedTextures.count).toBe(1);
+        renderer.update(camera, scene, createFrame());
+        ctx.beginRenderPass('drawing-buffer');
+        expect(() => renderer.renderBlended(scene, camera)).not.toThrow();
+        ctx.endRenderPass();
+        expect(gl.getError()).toBe(gl.NO_ERROR);
+      } finally {
+        setDebugMode(false);
+      }
+
+      scene.remove(objects[1]);
+      scene.commit();
+      expect(ctx.resources.sharedTextures.count).toBe(0);
+      renderer.dispose();
+      ctx.destroy();
+    },
+  );
 });

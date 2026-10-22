@@ -32,10 +32,15 @@ the camera helper's axes. A label is one quad per glyph from a signed-distance-f
   loci shapes (label, distance, angle, dihedral), MVS custom and annotation labels and MVS primitives; their
   `createGeometry` / `getShape` may return a promise.
 - The wait is at most 3 s (`FontLoadTimeoutMs`): a font behind a slow or silent network must not hold the state
-  update that builds labels. Past it, labels draw a fallback until the font arrives and they rebuild.
-- A text built while its font is in flight (the camera helper, which does not wait; a visual past the timeout) gets an
-  atlas of fallback glyphs. That atlas is dropped from the cache when the font arrives, in the reaction that settles
-  the download, before any waiting visual runs: a visual that waited never gets the fallback atlas.
+  update that builds labels. Past it, labels draw a fallback, and keep it until something rebuilds them after the font
+  arrived: nothing triggers that rebuild.
+- A text built before its font arrived gets an atlas of fallback glyphs: built while the font was in flight (the
+  camera helper, which does not wait; a visual past the timeout), or before the page knew the face at all (a
+  stylesheet or `FontFace` added later: `check` is true for a family with no face). Whatever atlas is cached for the
+  font is dropped when it arrives, in the reaction that settles the download, before any waiting visual runs: a
+  visual that waited never gets a fallback atlas.
+- `clearFontAtlasCache()` drops every atlas and the load state: tests restore the module with it, and an app that
+  changed its fonts can call it.
 - A download that fails (or loads and still does not match) marks the font failed: no more waiting, and the fallback
   atlas stays cached. Why: `check` stays false after a failure, so without the mark every rebuild would wait again and
   draw a new 43 MB atlas.
@@ -43,8 +48,10 @@ the camera helper's axes. A label is one quad per glyph from a signed-distance-f
   leaves the canvas at its 10 px default; the atlas warns and draws the generic family instead.
 - No `document` (Node, workers): nothing to wait for. node-canvas resolves the family list itself (Pango); register a
   font file with its `registerFont` before drawing.
-- `load` is asked with the default text, so a Google Fonts subset
-  by `unicode-range` other than the first loads only when a glyph in it is drawn, which then draws a fallback once.
+- `load` is asked with the default text, so of a font split by `unicode-range` (Google Fonts) only the first subset is
+  waited for. A glyph from another subset (`Ř` from latin-ext) is drawn with a fallback, which starts its download;
+  the glyph stays a fallback for that atlas's life, and pairs measured after the subset arrived use the real font.
+  Open: load with the label's text.
 
 ## 4. Layout
 
@@ -55,7 +62,9 @@ the camera helper's axes. A label is one quad per glyph from a signed-distance-f
   together less the first, so the pair's kerning is in it. Widths are cached per atlas. Why: advancing by the atlas
   cell width (rounded up, clamped) put no kerning and uneven gaps in every label.
 - A glyph's cell holds its ink (`actualBoundingBoxLeft/Right`) plus the field's buffer on both sides; `FontAtlasMap.left`
-  is where the pen starts in it. Why: ink left of the pen (`j`) or past the advance (`f`, italics) was clipped.
+  is where the pen starts in it. Why: ink left of the pen (`j`) or past the advance (`f`, italics) was clipped. A cell
+  is at most 1.5 lineheights wide: wider ink (`﷽`, an emoji sequence drawn as several emoji) is still clipped on the
+  right, while the advance stays right.
 - Spaces get a quad like any glyph. Why: skipping them leaves fewer quads than groups, and `createGroupMapping` sizes
   its buckets by the quad count (perf-audit-2 08/B2).
 - Not done: shaping across graphemes (ligatures, Arabic joining, Indic clusters), bidi, line breaks.

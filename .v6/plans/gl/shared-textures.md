@@ -23,14 +23,17 @@
    counts and `getByteCounts` see it once.
 3. **Content version**: `TextureImage.version`, incremented by whoever writes `array` in place (`FontAtlas.get`
    appending a glyph). `sync` uploads only when it differs from the version of the last upload, so N items whose cells
-   changed upload once, and a rebuild with no new glyph uploads nothing. Images without a version upload on every
+   changed upload once, and a rebuild with no new glyph uploads nothing, when it updates the render objects in place (a
+   visual that replaces its only text object releases the texture to zero holders first, and the new one uploads it
+   again). Images without a version upload on every
    `acquire` and `sync`: correct, shared memory, no saved uploads.
 4. **Render items** (`webgl/render-item.ts`, `webgpu/render-item.ts`): `createTextures` acquires the shared ones. On a
    version change of the cell: the same image object → `sync`; another object → release the old, acquire the new and
    replace it in the item's texture list (WebGPU: as a replaced texture, the bind groups and linear-read programs are
    resolved again). `destroy` releases instead of destroying.
 5. **Byte counts**: `RenderItem.getByteCount` counts a shared texture's bytes divided by its holders, so the sum over
-   the scene's renderables counts it once; `resources.getByteCounts` sees one texture.
+   all its holders counts it once. Holders are per context, so a sum over one scene (Canvas3D's main scene, without the
+   helper scene's camera axes) can come out a share short; `resources.getByteCounts` sees one texture.
 6. **Context loss**: restore is a rebuild on a new context (`GraphicsContext.recreate`,
    [backend-switch-followups.md](backend-switch-followups.md)): the new context has a new cache, the render items of the old one are destroyed and
    release into the old cache, whose textures are gone with their context (the WebGL wrapper skips deleting them on a
@@ -46,10 +49,15 @@ settled, before (`shared` off on `tFont`) → after; the same on WebGL and WebGP
 | 1cbs, 10 distance measurements                            | 10           | 983.7 MiB | 613.8 MiB |
 | MVS story, 6 structures with 3 labels each (1st snapshot) | 6            | 819.3 MiB | 613.8 MiB |
 
-The saving is (text objects − 1) × 41.1 MiB, one atlas at `fontQuality` 3. A rebuild of the texts without new glyphs
-uploads nothing (it uploaded the atlas once per text object).
+The saving is (text objects − 1) × 41.1 MiB, one atlas at `fontQuality` 3. A rebuild of the texts in place without new
+glyphs uploads nothing (it uploaded the atlas once per text object).
 
 ## Open
 
 - Uploads are of the whole atlas: a new glyph uploads 43 MB once. A sub-image upload of the rows written since the last
   upload would cut that; the atlas would record a dirty range next to `version`.
+- WebGPU render items are not covered by tests (no WebGPU context in the test lanes): acquire, the swap that resolves
+  bind groups again, release and the byte share were checked by hand in Chrome only.
+- A render item whose constructor throws after `createTextures` keeps its holders: the texture is never freed before
+  its context (per-item textures leaked the same way before; a shared one pins the atlas).
+- The native test checks a draw raises no GL error, not the pixels: a skipped upload after a version bump would pass.

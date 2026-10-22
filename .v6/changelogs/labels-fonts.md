@@ -4,11 +4,11 @@
   hard at the distance field's middle: stair-stepped edges, broken strokes in small text) (#2030)
 - Labels are kerned and spaced by the font's measured advances (they advanced by each glyph's atlas cell, rounded up:
   `AV`, `To`, `LT` had wide gaps); glyphs reaching left of the pen or past their advance (`j`, `f`, italics) are no
-  longer clipped; emoji, accented letters with combining marks and astral characters are one glyph each (#2030)
+  longer clipped (up to 1.5 lineheights of ink); emoji, accented letters with combining marks and astral characters are one glyph each (#2030)
 - `FontFamilyFonts` maps each label font family (`sans-serif`, `monospace`, `serif`, `cursive`) to the fonts it draws
   with (Prism's theme stacks by default); `setFontFamilyFonts` points one at other fonts, web fonts included (CSS
   `@font-face`, Google Fonts, a `FontFace`), which download only when a label needs them: text visuals wait for them
-  (`loadFontAtlasFonts`, `withFontAtlasFonts`) (#2030)
+  (`loadFontAtlasFonts`, `withFontAtlasFonts`; `clearFontAtlasCache` drops cached atlases) (#2030)
 - `TextMeasure` and `splitGraphemes` in `@molstar/core/util/text-measure`: graphemes and kerned pen positions of a text
   from a measure function, adapted from pretext (MIT) (#2030)
 - Labels, measurements and MVS labels share one GPU texture per font atlas instead of one per text object (WebGL and

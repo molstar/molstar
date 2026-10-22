@@ -7,6 +7,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
+  clearFontAtlasCache,
   FontFamilyFonts,
   getFontAtlas,
   getFontAtlasFont,
@@ -39,8 +40,12 @@ function createContext() {
 }
 beforeAll(() => {
   setCanvasModule({ createCanvas: () => ({ getContext: createContext }) });
+  clearFontAtlasCache();
 });
-afterAll(() => setCanvasModule(undefined));
+afterAll(() => {
+  setCanvasModule(undefined);
+  clearFontAtlasCache(); // atlases drawn with the stand-in context, a failed font
+});
 
 describe('getFontAtlas', () => {
   // the smallest atlas (a few MB), so the test does not allocate 43 MB per atlas
@@ -99,13 +104,20 @@ describe('font family table and web fonts', () => {
       };
       fail = () => reject(new Error('404'));
     });
-    const fonts = { check: vi.fn(() => loaded), load: vi.fn(() => arrived.then(() => [])) };
+    // `known`: the page has the face (a stylesheet or `FontFace` added later); `check` is true for a family with none
+    let known = true;
+    const fonts = { check: vi.fn(() => !known || loaded), load: vi.fn(() => arrived.then(() => [])) };
     vi.stubGlobal('document', { fonts });
     const settled = async () => {
       await arrived.catch(() => {});
       for (let i = 0; i < 4; ++i) await Promise.resolve();
     };
-    return { fonts, arrive: async () => (arrive(), await settled()), fail: async () => (fail(), await settled()) };
+    return {
+      fonts,
+      arrive: async () => (arrive(), await settled()),
+      fail: async () => (fail(), await settled()),
+      setKnown: (value: boolean) => (known = value),
+    };
   }
 
   it('draws a family with the fonts of its table entry', () => {
@@ -160,6 +172,17 @@ describe('font family table and web fonts', () => {
     expect((await waited) === fallback).toBe(false);
   });
 
+  it('drops an atlas drawn before the page knew the face, when the face arrives', async () => {
+    setFontFamilyFonts('serif', '"Later Serif", serif');
+    const { arrive, setKnown } = stubFontFaceSet();
+    setKnown(false);
+    const early = getFontAtlas(font); // nothing to load yet: drawn with the generic family
+    setKnown(true); // the stylesheet arrives
+    const waited = withFontAtlasFonts(font, () => getFontAtlas(font));
+    await arrive();
+    expect((await waited) === early).toBe(false);
+  });
+
   it('keeps the fallback of a font that fails to download, and stops waiting for it', async () => {
     setFontFamilyFonts('serif', '"Missing Serif", serif');
     const { fonts, fail } = stubFontFaceSet();
@@ -177,8 +200,11 @@ describe('font family table and web fonts', () => {
     try {
       setFontFamilyFonts('serif', '"Slow Serif", serif');
       const { arrive } = stubFontFaceSet();
-      const waited = withFontAtlasFonts(font, () => getFontAtlas(font));
-      await vi.advanceTimersByTimeAsync(3000);
+      const build = vi.fn(() => getFontAtlas(font));
+      const waited = withFontAtlasFonts(font, build);
+      await vi.advanceTimersByTimeAsync(2999);
+      expect(build).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
       const fallback = await waited;
       expect(getFontAtlas(font)).toBe(fallback);
       await arrive();
