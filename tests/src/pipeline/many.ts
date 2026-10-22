@@ -21,6 +21,8 @@
 //
 // options: --count N (structures)  --transaction none|each|stage (default none: every commit notifies the managers)
 //          --only a,b / --skip a,b (as bench.ts)  --preset <representation preset> (auto)
+//          --represet <representation preset> (polymer-cartoon: the `represet` stage applies it to every structure, as
+//          the UI's preset menu does; each structure's commit removes its old components and representations)
 //          --mesh (no impostors)  --out <file.json>  --quality <visual quality>
 //
 // Stages over all N structures; the per-item column divides by N (or by the number of interactive events). Single
@@ -54,6 +56,7 @@ const profileDir = arg('profile');
 const allocMode = args.includes('--alloc');
 const meshMode = args.includes('--mesh');
 const preset = arg('preset', 'auto')!;
+const represet = arg('represet', 'polymer-cartoon')!;
 /** none: every commit notifies (plugin API scripts); each: one data transaction per structure; stage: one per stage (Prism's load.files) */
 const transaction = arg('transaction', 'none') as 'none' | 'each' | 'stage';
 const quality = arg('quality');
@@ -257,6 +260,18 @@ async function pipeline(results: Record<string, StageResult>) {
   await stage('show:all', results, () => plugin.managers.structure.hierarchy.toggleVisibility(hierarchy(), 'show'), {
     count,
   });
+
+  await stage(
+    'represet',
+    results,
+    async () => {
+      const provider = plugin.builders.structure.representation.resolveProvider(represet as any);
+      if (!provider) throw new Error(`unknown representation preset '${represet}'`);
+      await plugin.managers.structure.component.applyPreset(hierarchy(), provider);
+      return sceneInfo(c, plugin);
+    },
+    { count },
+  );
 
   await stage('remove:one', results, async () => {
     const one = loaded.splice(Math.floor(loaded.length / 2), 1)[0];
