@@ -15,8 +15,9 @@ here.
 - State snapshot animations: each transition frame is applied once; it was applied again on every animation tick, and
   during the first frame the camera transition restarted on every tick
 - State snapshot animations: playing or scrubbing frames does not log their update timing
-- Trajectories: a new frame updates the model in place and keeps the custom properties the frames share; every frame
-  recreated the model and disposed their assets
+- Trajectories: a new frame updates the model in place and keeps the custom properties that frames of the same topology
+  share; every frame recreated the model and disposed their assets
+- State snapshot transitions: a transition ends on its last frame also when that frame is shorter than an animation tick
 - Interactions: a salt bridge (ionic contact) hides the H-bonds between the same atoms instead of being hidden by them,
   as documented and as in NGL and PLIP (ionic is off by default)
 - Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts
