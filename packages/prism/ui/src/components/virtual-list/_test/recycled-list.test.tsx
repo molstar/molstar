@@ -34,7 +34,7 @@ interface Item {
   readonly special?: boolean;
 }
 
-function mount(options: { count?: number; keyed?: boolean } = {}) {
+function mount(options: { count?: number; keyed?: boolean; reveal?: boolean } = {}) {
   const items = observableState<readonly Item[]>(
     Array.from({ length: options.count ?? 5000 }, (_, i) => ({
       id: `r${i}`,
@@ -95,6 +95,7 @@ function mount(options: { count?: number; keyed?: boolean } = {}) {
         }}
         slot={slot}
         recycle={(r) => !r.special}
+        reveal={options.reveal}
       >
         {(r) => {
           keyedMade++;
@@ -270,6 +271,29 @@ describe('RecycledList', () => {
       expect(domOrder()).toEqual(t.shown());
       expect(document.activeElement).toBe(row);
       t.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('a reveal (a node opened)', () => {
+  it('shows no skeleton behind the rows fading in, and the skeleton again once they are in', async () => {
+    vi.useFakeTimers();
+    try {
+      const m = mount({ count: 10, reveal: true });
+      await flushFrame();
+      const revealing = () => !!document.querySelector('[data-revealing]');
+      expect(revealing()).toBe(false);
+      const now = m.items.value;
+      const opened = [0, 1, 2].map((i) => ({ id: `c${i}`, label: `Child ${i}` }));
+      m.items.set([...now.slice(0, 3), ...opened, ...now.slice(3)]);
+      flush();
+      await flushFrame();
+      expect(revealing()).toBe(true);
+      vi.advanceTimersByTime(1000);
+      expect(revealing()).toBe(false);
+      m.dispose();
     } finally {
       vi.useRealTimers();
     }

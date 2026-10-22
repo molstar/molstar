@@ -449,12 +449,11 @@ apps compose subsets by identity:
 
 ```ts
 export const DefaultRegistry: readonly PluginRegistryEntry[] = [
-  DefaultThemes, // every built-in theme in all three scopes, as today, plus external-structure/-volume
+  DefaultThemes, // the built-in themes but the particle ones in the structure and volume scopes, plus external-structure/-volume
   DefaultStructureRepresentations,
   DefaultVolumeRepresentations,
-  DefaultParticleRepresentations,
-  DefaultActions, // today's full action list in today's order; before DefaultFormats (below)
-  DefaultFormats, // today's order: volume, topology, coordinates, shape, particles, trajectory
+  DefaultActions, // today's action list in today's order, without the particle ones; before DefaultFormats (below)
+  DefaultFormats, // today's order: volume, topology, coordinates, shape, trajectory
   DefaultBonds, // the 'none' and 'per-unit' bond providers; the built-in bonds are not an entry
   DefaultPresets,
   DefaultSelectionQueries, // today's catalog and residue queries, in today's order (§7)
@@ -464,7 +463,7 @@ export const DefaultRegistry: readonly PluginRegistryEntry[] = [
 ];
 ```
 
-The module, these twelve export names, and their order are part of the public contract; migration examples, apps, and
+The module, these eleven export names, and their order are part of the public contract; migration examples, apps, and
 the migration tool refer to them. `DefaultActions` comes before `DefaultFormats` because format entries carry actions
 and actions are listed per type in registration order; this way the format entries' actions are already registered
 (counted by id) and the 5.x action order is kept. `DefaultPresets` holds today's hierarchy and representation presets;
@@ -472,6 +471,12 @@ the new `BallAndStickPreset` (§12) is not added to it. The module also imports 
 `@molstar/query-language/transpilers/all` (§7) for their side effects. `DefaultPluginSpec()` in
 `@molstar/plugin/default-spec` returns `{ registry: DefaultRegistry, behaviors }`; the default custom-property behaviors
 stay behaviors, with unchanged runtime registration.
+
+**Particles are opt-in**: `ParticlesRegistry` (`@molstar/plugin/particles-registry`, a default-composition module)
+holds the particle formats, transformers, representations, the `particles` theme scope (the built-in themes and the
+`particle-*` ones) and the particle trajectory animation; an app composes `[...DefaultRegistry, ...ParticlesRegistry]`.
+Importing it registers the particle transformers, which the transformer catalog no longer does. Why: most apps never
+read particles, and a registry entry is how an app says what it reads.
 
 A theme is available only in the scopes it is listed for.
 
@@ -527,7 +532,10 @@ ids and names only; transition frames carry their own data trees.
 - **`PluginState.validateSnapshotTransformers(snapshot)` (fatal).** It collects transformer ids from the behavior tree,
   the data tree, and every `transition.frames[i].data`, and throws one error listing the ids missing from the global
   registry. `setSnapshot` calls it first, before `animation.stop()`; `setStateSnapshot` calls it for every entry before
-  `clear()`. A failing snapshot leaves the plugin unchanged.
+  `clear()`. A failing snapshot leaves the plugin unchanged. Both checks read the ids and names of a tree, or of a
+  transition's frames array, once (`usedNames`, a `WeakMap` by the object): snapshots are values, never changed in
+  place once built (MVS assigns a transition's frames when they are complete); the registries are checked on every
+  call.
 - **`PluginState.reportUnregisteredNames(snapshot)` (warning).** `setSnapshot` calls it after the behavior tree is
   applied and before the data tree is applied. It collects the type, color, and size names from
   `StructureRepresentation3D`, `VolumeRepresentation3D`, and `ParticlesRepresentation3D` params in the data tree and

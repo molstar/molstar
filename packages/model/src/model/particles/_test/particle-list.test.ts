@@ -2,12 +2,15 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { CustomProperties } from '../../custom-property.js';
-import { getParticleTransforms, ParticleList } from '../particle-list.js';
+import { OrderedSet } from '@molstar/core/data/int';
+import { lociLabel } from '../../label.js';
+import { getParticleSpacingRadius, getParticleTransforms, Particle, ParticleList } from '../particle-list.js';
 
 function createParticles(coordinates: Float32Array, rotations?: Float32Array): ParticleList {
   const count = coordinates.length / 3;
@@ -74,5 +77,38 @@ describe('getParticleTransforms', () => {
   it('caches the result on the particle list', () => {
     const particles = createParticles(new Float32Array([1, 2, 3]));
     expect(getParticleTransforms(particles)).toBe(getParticleTransforms(particles));
+  });
+});
+
+describe('getParticleSpacingRadius', () => {
+  it('is half the distance to the nearest particle, for particles on a lattice', () => {
+    const coords: number[] = [];
+    for (let i = 0; i < 6; i++)
+      for (let j = 0; j < 6; j++) for (let k = 0; k < 6; k++) coords.push(i * 10, j * 10, k * 10);
+    const list = createParticles(new Float32Array(coords));
+    expect(getParticleSpacingRadius(list)).toBeCloseTo(5, 4);
+    // cached
+    expect(getParticleSpacingRadius(list)).toBe(getParticleSpacingRadius(list));
+  });
+
+  it('is 1 for a single particle or particles all at one point', () => {
+    expect(getParticleSpacingRadius(createParticles(new Float32Array([1, 2, 3])))).toBe(1);
+    expect(getParticleSpacingRadius(createParticles(new Float32Array([1, 2, 3, 1, 2, 3])))).toBe(1);
+  });
+});
+
+describe('a particle loci label', () => {
+  it('says the particle in bold, its list beneath, the list name escaped', () => {
+    const list = { ...createParticles(new Float32Array([0, 0, 0, 5, 0, 0])), label: 'picks <1>.em' };
+    const one = lociLabel(Particle.Loci(list, OrderedSet.ofSingleton(1)));
+    expect(one).toBe('<b>1</b></br><small>picks &lt;1&gt;.em</small>');
+    expect(lociLabel(Particle.Loci(list, OrderedSet.ofBounds(0, 2)))).toBe(
+      '<b>2 particles</b></br><small>picks &lt;1&gt;.em</small>',
+    );
+  });
+
+  it('is plain text when asked (no tags, nothing escaped)', () => {
+    const list = { ...createParticles(new Float32Array([0, 0, 0, 5, 0, 0])), label: 'picks <1>.em' };
+    expect(lociLabel(Particle.Loci(list, OrderedSet.ofSingleton(1)), { htmlStyling: false })).toBe('1 | picks <1>.em');
   });
 });

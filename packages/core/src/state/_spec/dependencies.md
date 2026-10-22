@@ -11,7 +11,11 @@ them is.
 1. explicit `dependsOn` (`apply(..., { dependsOn })`, `StateBuilder.To.dependsOn`);
 2. `transformer.definition.getDependencies(params)`;
 3. the refs of `PD.ValueRef` / `PD.DataRef` values in the params (`PD.collectRefs` over the transformer's default
-   schema; without one, a structural scan for `{ ref, getValue }` values).
+   schema; without one, a structural scan for `{ ref, getValue }` values). The default schema is
+   `params(undefined, undefined)`, built once per transformer and kept (`tryGetDefaultParamDefinition`): without a
+   source or a context it must not read anything that changes (a registry), and a transformer's must not depend on when
+   it is first asked. The transforms of a snapshot's frames are new objects on every frame, so a cache on the transform
+   did not hold.
 
 Only (1) is in the tree (`tree.dependencies`): removing a node removes the nodes that name it in `dependsOn`, not those
 that reach it through params.

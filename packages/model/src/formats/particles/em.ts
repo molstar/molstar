@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -239,14 +240,14 @@ export function createParticleListFromArtiatomiEm(
     getParticleLabel: (index: number) => {
       const p = finalKeys[index];
       const base = p * ArtiatomiMotivelistRowCount;
-      const parts: string[] = [`#${p + 1}`];
+      const parts: string[] = [`Particle ${p + 1}`];
       const tomo = vals[base + ROW_TOMO];
       if (tomo > 0) parts.push(`tomo ${tomo}`);
       const classNo = vals[base + ROW_CLASS];
       if (classNo > 0) parts.push(`class ${classNo}`);
       const cc = vals[base + ROW_CC];
       parts.push(`cc ${cc.toFixed(4)}`);
-      return parts.join(' | ');
+      return parts.join(' · ');
     },
     sourceData: ArtiatomiEmFormat.create(data),
     customProperties: new CustomProperties(),

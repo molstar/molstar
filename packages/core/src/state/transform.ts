@@ -182,23 +182,27 @@ namespace Transform {
   }
 
   /**
-   * Returns the default param schema for the transform's transformer, caching
-   * the result on the transform instance. Returns `undefined` if the transformer
-   * has no `params` definition or if calling it throws.
+   * The default param schemas (`params(undefined, undefined)`) by transformer: without a source or a context the schema
+   * depends on the transformer only, and the transforms of a snapshot's frames are new objects on every frame.
+   */
+  const defaultSchemas = new WeakMap<StateTransformer, PD.Params | undefined>();
+
+  /**
+   * Returns the default param schema for the transform's transformer, caching the result per transformer. Returns
+   * `undefined` if the transformer has no `params` definition or if calling it throws.
    */
   export function tryGetDefaultParamDefinition(t: Transform): PD.Params | undefined {
-    const any = t as any;
-    if (any._defaultSchemaSet) return any._defaultSchema;
-    any._defaultSchemaSet = true;
+    const transformer = t.transformer;
+    if (defaultSchemas.has(transformer)) return defaultSchemas.get(transformer);
+    let schema: PD.Params | undefined;
     try {
-      const def = t.transformer.definition;
-      if (def.params) {
-        any._defaultSchema = def.params(undefined as any, undefined) as PD.Params;
-      }
+      const def = transformer.definition;
+      if (def.params) schema = def.params(undefined as any, undefined) as PD.Params;
     } catch {
       // Schema could not be obtained.
     }
-    return any._defaultSchema;
+    defaultSchemas.set(transformer, schema);
+    return schema;
   }
 
   /**

@@ -20,6 +20,9 @@
   font-size: var(--msp-font-size-xs);
   line-height: 1.3;
   white-space: nowrap;
+  /* one line: a hint longer than the card ends in an ellipsis, never past the card */
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
   animation: tooltip-in var(--msp-motion-fast) var(--msp-ease);
 
@@ -42,6 +45,8 @@
   font-size: var(--msp-font-size-sm);
   line-height: 1.4;
   white-space: normal;
+  /* the whole text, wrapped: a long name with no space (an address, a path) breaks where it must */
+  overflow-wrap: anywhere;
 }
 
 .muted {

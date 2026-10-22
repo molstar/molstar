@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
@@ -60,7 +61,8 @@ const EmissiveStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -70,9 +72,11 @@ const EmissiveStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
 
     const oldEmissive = b.data.state.emissive!;
     const newEmissive = Emissive.ofScript(newParams.layers, newStructure);
-    if (Emissive.areEqual(oldEmissive, newEmissive)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Emissive.areEqual(oldEmissive, newEmissive))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.emissive = newEmissive;
     b.data.repr = a.data.repr;
     b.label = `Emissive (${newEmissive.layers.length} Layers)`;
@@ -127,7 +131,8 @@ const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -136,10 +141,16 @@ const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
       return StateTransformer.UpdateResult.Recreate;
 
     const oldEmissive = b.data.state.emissive!;
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newEmissive = Emissive.ofBundle(newParams.layers, newStructure);
-    if (Emissive.areEqual(oldEmissive, newEmissive)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Emissive.areEqual(oldEmissive, newEmissive))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.emissive = newEmissive;
     b.data.repr = a.data.repr;
     b.label = `Emissive (${newEmissive.layers.length} Layers)`;

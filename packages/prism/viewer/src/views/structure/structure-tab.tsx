@@ -29,7 +29,7 @@ import { ContentsSummaryView } from './contents-summary.js';
 import { RepresentationQuick } from './representation-quick.js';
 import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
-import { NodeActions, SceneTree } from './scene-tree.js';
+import { menuOf, NodeActions, RowMenu, SceneTree } from './scene-tree.js';
 import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 
 export interface StructureTabProps {
@@ -99,9 +99,15 @@ export function StructureTab(props: StructureTabProps) {
       cancelTyping = undefined;
     }
   });
+  // The search's non-text part: the tree filtered by the selection (the selection bar's Show in structure tree), a
+  // chip before the text; the search field shows while either is on.
+  const selectionFilter = scene.selectionFilter;
+  const filterOn = selectionFilter ? selectionFilter.on : observableState(false).asReadonly;
+  const searchShown = derive([searchOpen.asReadonly, filterOn], (open, on) => open || on);
   const closeSearch = () => {
     search.set('');
     searchOpen.set(false);
+    selectionFilter?.set(false);
   };
   return (
     <div class={classes.tab}>
@@ -132,8 +138,8 @@ export function StructureTab(props: StructureTabProps) {
           class={classes.searchButton}
           icon={<Icon name="search" />}
           title="Search the scene"
-          pressed={searchOpen.asReadonly}
-          onClick={() => (searchOpen.value ? closeSearch() : searchOpen.set(true))}
+          pressed={searchShown}
+          onClick={() => (searchShown.value ? closeSearch() : searchOpen.set(true))}
         />
         {props.options ? (
           <Button
@@ -161,13 +167,42 @@ export function StructureTab(props: StructureTabProps) {
           ) : null
         }
       </Show>
-      <Show when={searchOpen.asReadonly}>
+      <Show when={searchShown}>
         {() => (
-          <div class={classes.search} ref={(el) => queueMicrotask(() => el.querySelector('input')?.focus())}>
+          <div
+            class={classes.search}
+            ref={(el) => queueMicrotask(() => el.querySelector('input')?.focus())}
+            onKeyDown={(e: KeyboardEvent) => {
+              // Backspace in an empty field takes the chip, as a token field does
+              if (e.key !== 'Backspace' || !filterOn.value) return;
+              if ((e.target as HTMLInputElement).value === '') selectionFilter?.set(false);
+            }}
+          >
+            <Show when={filterOn}>
+              {() => (
+                <span class={classes.searchChip}>
+                  <Icon name="mouse-pointer-click" size={12} />
+                  In the selection
+                  <button
+                    type="button"
+                    class={classes.searchChipRemove}
+                    aria-label="Show every row, not only those in the selection"
+                    data-tip="Show every row"
+                    onClick={() => selectionFilter?.set(false)}
+                  >
+                    <Icon name="x" size={12} />
+                  </button>
+                </span>
+              )}
+            </Show>
             <TextInput
               size="sm"
               search
-              placeholder="Search the scene: an entity, a chain, a component…"
+              placeholder={derive(filterOn, (on) =>
+                on
+                  ? 'Narrow it: an entity, a chain, a component…'
+                  : 'Search the scene: an entity, a chain, a component…',
+              )}
               aria-label="Search the scene"
               value={search.asReadonly}
               onInput={(v) => search.set(v)}
@@ -431,7 +466,10 @@ function Inspector(props: {
   );
 }
 
-/** A component's representations in its inspector: icon, name, what it is colored by, its eye; a click opens it. */
+/**
+ * A component's representations in its inspector: icon, name, what it is colored by, its eye and its ⋯ (the tree row's
+ * menu: Remove, its type, …); a click opens it.
+ */
 function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
   const reprs = derive(props.node.children, (c) => c.filter((n) => n.kind === 'representation'));
   return (
@@ -440,36 +478,66 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
         <section class={classes.children} aria-label="Representations">
           <span class={classes.childrenTitle}>Representations</span>
           <For each={reprs} key={(n) => n.id}>
-            {(n) => (
-              <div class={classes.child} classList={{ [classes.childHidden]: n.isHidden }}>
-                <button
-                  type="button"
-                  class={classes.childOpen}
-                  onClick={() => {
-                    // In the tree too: the component's row opens, the representation's is picked (and brought into
-                    // view), so where it is shows.
-                    if (!props.node.isExpanded.value) props.node.toggleExpanded();
-                    props.onPick(n);
-                  }}
-                >
-                  <Icon name={n.icon} size={15} class={classes.childIcon} />
-                  <span class={classes.childLabel}>{n.label}</span>
-                  <span class={classes.childDescription}>{n.description}</span>
-                  <Icon name="chevron-right" size={14} class={classes.childChevron} />
-                </button>
-                <button
-                  type="button"
-                  class={classes.childEye}
-                  aria-label={derive(n.isHidden, (h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`))}
-                  data-tip={derive(n.isHidden, (h) => (h ? 'Show' : 'Hide'))}
-                  onClick={() => n.toggleVisibility()}
-                >
-                  <Show when={n.isHidden} fallback={() => <Icon name="eye" size={14} />}>
-                    {() => <Icon name="eye-off" size={14} />}
+            {(n) => {
+              const menuOpen = observableState(false);
+              let menuButton: HTMLElement | undefined;
+              // In the tree too: the component's row opens, the representation's is picked (and brought into view), so
+              // where it is shows.
+              const open = () => {
+                if (!props.node.isExpanded.value) props.node.toggleExpanded();
+                props.onPick(n);
+              };
+              return (
+                <div class={classes.child} classList={{ [classes.childHidden]: n.isHidden }}>
+                  <button type="button" class={classes.childOpen} onClick={open}>
+                    <Icon name={n.icon} size={15} class={classes.childIcon} />
+                    <span class={classes.childLabel}>{n.label}</span>
+                    <span class={classes.childDescription}>{n.description}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class={classes.childEye}
+                    aria-label={derive(n.isHidden, (h) => (h ? `Show ${n.label.value}` : `Hide ${n.label.value}`))}
+                    data-tip={derive(n.isHidden, (h) => (h ? 'Show' : 'Hide'))}
+                    onClick={() => n.toggleVisibility()}
+                  >
+                    <Show when={n.isHidden} fallback={() => <Icon name="eye" size={14} />}>
+                      {() => <Icon name="eye-off" size={14} />}
+                    </Show>
+                  </button>
+                  <button
+                    type="button"
+                    class={classes.childEye}
+                    aria-label={derive(n.label, (l) => `${l}: more`)}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    data-tip="More"
+                    ref={(e: HTMLElement) => {
+                      menuButton = e;
+                    }}
+                    onClick={() => menuOpen.set(!menuOpen.value)}
+                  >
+                    <Icon name="ellipsis" size={14} />
+                  </button>
+                  {/* At the row's edge, always shown: the row opens (as its label does; one tab stop, the label's). */}
+                  <button type="button" class={classes.childChevron} tabIndex={-1} aria-hidden="true" onClick={open}>
+                    <Icon name="chevron-right" size={14} />
+                  </button>
+                  <Show when={menuOpen}>
+                    {() => (
+                      <RowMenu
+                        items={menuOf(n)}
+                        anchor={menuButton!}
+                        onDone={(refocus) => {
+                          menuOpen.set(false);
+                          if (refocus) menuButton?.focus();
+                        }}
+                      />
+                    )}
                   </Show>
-                </button>
-              </div>
-            )}
+                </div>
+              );
+            }}
           </For>
         </section>
       )}

@@ -31,8 +31,6 @@ import path from 'node:path';
 import { OrderedSet } from '@molstar/core/data/int';
 import { type ButtonsType, ModifiersKeys } from '@molstar/core/util/input/input-observer';
 import { Color } from '@molstar/core/util/color';
-import type { MarkerAction } from '@molstar/core/util/marker-action';
-import type { Representation } from '@molstar/graphics/repr/representation';
 import { EmptyLoci } from '@molstar/model/model/loci';
 import { type Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { SecondaryStructureProvider } from '@molstar/model/props/computed/secondary-structure';
@@ -40,6 +38,7 @@ import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { setStructureOverpaint, clearStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
+import { graphicsStub, stubCanvas } from './canvas-stub.js';
 import { ROOT } from './common.js';
 import { createStageRunner, type StageResult, summarize } from './stage.js';
 
@@ -67,85 +66,7 @@ if (!existsSync(files[count - 1]))
   throw new Error(`missing ${files[count - 1]}: run 'pipeline-bench.mjs many-fixtures'`);
 const data = files.map((f) => new Uint8Array(readFileSync(f)));
 
-/** the parts of a GraphicsContext the CPU geometry paths read (bench.ts): impostors on, no GPU compute */
-const graphicsStub = meshMode
-  ? undefined
-  : ({
-      capabilities: { fragDepth: true, flatInterpolation: true, texture: true },
-      resources: {
-        limits: { maxTextureSize: 16384, max3dTextureSize: 2048 },
-        texture: () => new Proxy({} as any, { get: (t, k) => (k === 'then' ? undefined : k in t ? t[k] : () => {}) }),
-        ownsTexture: () => true,
-      },
-      namedTextures: {},
-    } as any);
-
-/**
- * What Canvas3D does with representations (canvas3d.ts `add`, `remove`, `mark`/`resolveMarking`, `update`), without a
- * scene. `scene*` count the renderables a real scene would walk: `scene.update(void 0)` after a mark goes over all of them.
- */
-function stubCanvas() {
-  const reprs = new Map<Representation.Any, number>();
-  const counts = {
-    add: 0,
-    remove: 0,
-    update: 0,
-    mark: 0,
-    markChanged: 0,
-    sceneUpdateAll: 0,
-    syncVisibility: 0,
-    commit: 0,
-  };
-  let renderObjects = 0;
-  const canvas = {
-    graphics: graphicsStub,
-    props: { renderer: {}, camera: { manualReset: false } },
-    add(repr: Representation.Any) {
-      counts.add++;
-      renderObjects += repr.renderObjects.length - (reprs.get(repr) ?? 0);
-      reprs.set(repr, repr.renderObjects.length);
-    },
-    remove(repr: Representation.Any) {
-      counts.remove++;
-      renderObjects -= reprs.get(repr) ?? 0;
-      reprs.delete(repr);
-    },
-    update() {
-      counts.update++;
-    },
-    mark(reprLoci: Representation.Loci, action: MarkerAction) {
-      counts.mark++;
-      let changed = false;
-      if (reprLoci.repr) changed = reprLoci.repr.mark(reprLoci.loci, action);
-      else for (const r of reprs.keys()) changed = r.mark(reprLoci.loci, action) || changed;
-      if (changed) {
-        counts.markChanged++;
-        counts.sceneUpdateAll += renderObjects;
-      }
-    },
-    syncVisibility() {
-      counts.syncVisibility++;
-    },
-    commit() {
-      counts.commit++;
-    },
-    requestDraw() {},
-    dispose() {},
-    requestCameraReset() {},
-    setProps() {},
-    get boundingSphere() {
-      return { center: [0, 0, 0], radius: 0 };
-    },
-  };
-  return {
-    canvas,
-    counts,
-    reprs,
-    get renderObjects() {
-      return renderObjects;
-    },
-  };
-}
+const graphics = graphicsStub(meshMode);
 
 type Loaded = { data: any; trajectory: any; structureProperties?: any };
 
@@ -178,7 +99,7 @@ function sceneInfo(c: ReturnType<typeof stubCanvas>, plugin: PluginContext) {
 async function pipeline(results: Record<string, StageResult>) {
   const plugin = new PluginContext(DefaultPluginSpec());
   await plugin.init();
-  const c = stubCanvas();
+  const c = stubCanvas(graphics);
   (plugin as any).canvas3d = c.canvas;
   const builder = plugin.builders.structure;
   const loaded: Loaded[] = [];

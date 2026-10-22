@@ -68,8 +68,8 @@ flattened to the root. A child holds at most one other unit; no chains of ancest
   without `dynamicBonds`, else only on the same coordinates;
 - `rings`, `resonance` exactly when it keeps `bonds`, as they are computed from them.
 
-A remapped unit loses its parent because the parent still belongs to the old model. Once `Structure.remapModel` receives
-the remapped root (05-model-structure B1), it can pass the root's unit with the same id instead.
+A remapped unit loses its parent because the parent still belongs to the old model. `Structure.remapModel` can receive
+the remapped root (structure.md §3); passing the root's unit with the same id as the unit's parent is still open.
 
 ## 4. What a child derives from its parent
 

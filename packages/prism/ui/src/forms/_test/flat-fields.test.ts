@@ -46,8 +46,9 @@ describe('formFields', () => {
     expect(fields[3]).toMatchObject({ min: 0, max: 20, step: 0.5 });
   });
 
-  it('leaves non-string selects, colors and groups to the full form, and hidden params out', () => {
-    expect(formOnlyParams(params, fields)).toEqual(['level', 'color', 'options', 'secret']);
+  it('leaves non-string selects, colors and groups to the full form, and hidden params out of both', () => {
+    // A hidden param is offered nowhere ("+ N more options" does not count it); a command's own form may set it.
+    expect(formOnlyParams(params, fields)).toEqual(['level', 'color', 'options']);
   });
 });
 

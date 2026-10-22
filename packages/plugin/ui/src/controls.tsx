@@ -137,6 +137,8 @@ export class StateSnapshotViewportControls extends PluginUIComponent<
 
   componentDidMount() {
     this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
+    // the transition slider
+    this.subscribe(this.plugin.managers.snapshot.events.animationTimeChanged, () => this.forceUpdate());
     this.subscribe(this.plugin.behaviors.state.isBusy, (isBusy) => this.setState({ isBusy }));
     this.subscribe(this.plugin.behaviors.state.isAnimating, (isBusy) => this.setState({ isBusy }));
   }

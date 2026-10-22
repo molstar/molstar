@@ -11,7 +11,7 @@ import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynam
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
-import type { StateObjectCell } from '@molstar/core/state';
+import { type State, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
@@ -28,7 +28,7 @@ import {
 import { Script } from '@molstar/model/script/script';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { PluginStateObject } from '@molstar/plugin/state/objects';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import type {
   ModelUnitcellRef,
   StructureComponentRef,
@@ -50,7 +50,9 @@ import type {
   SceneMenuItem,
   SceneModel,
   SceneNode,
+  SceneNodeAction,
   SceneNodeKind,
+  SceneSelectionFilter,
   SceneTrajectory,
 } from '../model/scene.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
@@ -93,7 +95,7 @@ import type { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry'
 // it changed. A structure's contents (entities, then chains) are computed when first expanded. Every action goes through
 // the API, bound to the person (api.md §11): the tree changes state only by operations.
 
-const ReprIcons: Readonly<Record<string, IconName>> = {
+export const ReprIcons: Readonly<Record<string, IconName>> = {
   cartoon: 'cartoon',
   'ball-and-stick': 'ball-and-stick',
   spacefill: 'spacefill',
@@ -129,11 +131,16 @@ class NodeMap extends Map<string, Node> {
   /** Ids put in since `fresh` was last cleared. */
   readonly fresh = new Set<string>();
   readonly #byOwner = new Map<string, Set<string>>();
-  constructor(readonly log: SceneChangeLog) {
+  constructor(
+    readonly log: SceneChangeLog,
+    /** The rows the extensions add to the node menus, each node reads them when its menu opens */
+    readonly actions?: ReadonlyState<readonly SceneNodeAction[]>,
+  ) {
     super();
   }
   override set(key: string, node: Node): this {
     node.log = this.log;
+    node.added = this.actions;
     if (!super.has(key)) {
       this.fresh.add(key);
       const owner = ownerOf(key);
@@ -221,6 +228,8 @@ class Node implements SceneNode {
   #menu?: readonly SceneMenuItem[];
   /** Builds the menu when read, for one that follows the state (a representation's current type marked). */
   menuSource?: () => readonly SceneMenuItem[] | undefined;
+  /** The extensions' rows for every node (`ui.nodeActions`): this node's are those of its kind that take it */
+  added?: ReadonlyState<readonly SceneNodeAction[]>;
   removable?: boolean;
   lazy?: boolean;
   load?: (peek?: boolean) => void;
@@ -244,10 +253,20 @@ class Node implements SceneNode {
   }
 
   get menu(): readonly SceneMenuItem[] | undefined {
-    return this.menuSource?.() ?? this.#menu;
+    const own = this.menuSource?.() ?? this.#menu;
+    const added = this.#addedItems();
+    return added.length ? [...(own ?? []), ...added] : own;
   }
   get hasMenu(): boolean {
-    return this.menuSource !== undefined || (this.#menu?.length ?? 0) > 0;
+    return this.menuSource !== undefined || (this.#menu?.length ?? 0) > 0 || this.#addedItems().length > 0;
+  }
+  #addedItems(): SceneMenuItem[] {
+    const actions = this.added?.value;
+    if (!actions?.length) return [];
+    return actions
+      .filter((a) => a.kinds.includes(this.kind) && (a.when?.(this) ?? true))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((a) => ({ id: a.id, label: a.label, ...(a.icon ? { icon: a.icon } : {}), run: () => a.run(this) }));
   }
   set menu(items: readonly SceneMenuItem[] | undefined) {
     this.#menu = items;
@@ -335,7 +354,8 @@ export function createSceneSource(
 ): SceneSource {
   // The scene's structure as one stream, told once a sync (a Mol* transaction) or a toggle (model/scene-changes.ts).
   const log = new SceneChangeLog();
-  const nodes = new NodeMap(log);
+  const nodeActions = observableState<readonly SceneNodeAction[]>([]);
+  const nodes = new NodeMap(log, nodeActions.asReadonly);
   // Nothing selected: what acts on the selection is unavailable (a component's Modify by selection).
   const selection = plugin.managers.structure.selection;
   // Read once a task (a select over many structures tells `changed` once a structure, and each read sums the whole
@@ -343,9 +363,76 @@ export function createSceneSource(
   const noSelection = fromChanged(scope, () => selection.stats.elementCount === 0, onceATask(selection.events.changed));
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
+  // The tree filtered by the selection (the selection bar's Show in structure tree): which rows hold it, asked by the
+  // tree's search per row and kept until the selection changes; followed only while the filter is on (idle is idle).
+  const filterOn = observableState(false);
+  const filterVersion = observableState(0);
+  const holding = new Map<string, boolean>();
+  scope.add(
+    selection.events.changed.subscribe(() => {
+      holding.clear();
+      if (!filterOn.value) return;
+      // Cleared: the filter goes with it (nothing would show)
+      if (selection.stats.elementCount === 0) filterOn.set(false);
+      else filterVersion.set(filterVersion.value + 1);
+    }),
+  );
+  const selectedIn = (structureRef: string | undefined) => {
+    const data = structureRef ? dataOf(plugin, structureRef) : undefined;
+    const l = data && selection.getLoci(data);
+    return l && StructureElement.Loci.is(l) && !StructureElement.Loci.isEmpty(l) ? l : undefined;
+  };
+  const holdsNow = (node: SceneNode): boolean => {
+    const refs = plugin.managers.structure.hierarchy.current.refs;
+    switch (node.kind) {
+      case 'structure':
+        return !!selectedIn(node.id);
+      case 'contents':
+        return !!selectedIn(node.id.slice(0, node.id.indexOf('#')));
+      case 'component':
+      case 'representation': {
+        const ref = refs.get(node.id);
+        const component = ref?.kind === 'structure-representation' ? ref.component : ref;
+        if (component?.kind !== 'structure-component') return false;
+        const sel = selectedIn(component.structure.cell.transform.ref);
+        const data = component.cell.obj?.data;
+        return !!sel && !!data && !StructureElement.Loci.isEmpty(StructureElement.Loci.remap(sel, data));
+      }
+      case 'entity':
+      case 'chain': {
+        const at = node.id.indexOf('#');
+        const structureRef = node.id.slice(0, at);
+        const sel = selectedIn(structureRef);
+        const data = dataOf(plugin, structureRef);
+        if (!sel || !data) return false;
+        const [, entity, chain] = node.id.slice(at + 1).split(':');
+        return StructureElement.Loci.areIntersecting(
+          sel,
+          contentsLoci(data, entity, node.kind === 'chain' ? chain : undefined),
+        );
+      }
+    }
+    return false;
+  };
+  const selectionFilter: SceneSelectionFilter = {
+    on: filterOn.asReadonly,
+    version: filterVersion.asReadonly,
+    set(on) {
+      if (on && selection.stats.elementCount === 0) on = false;
+      holding.clear();
+      if (filterOn.value !== on) filterOn.set(on);
+    },
+    holds(node) {
+      let h = holding.get(node.id);
+      if (h === undefined) holding.set(node.id, (h = holdsNow(node)));
+      return h;
+    },
+  };
   // The frames of the structures that have several (made when the first such structure is shown; its states listen to
   // the plugin only while a row or the inspector reads them).
   const trajectories = () => trajectorySourceOf(plugin);
+  /** The frames of particle lists read from a trajectory (Simularium), by list ref */
+  const particleTrajectories = new Map<string, ParticleSceneTrajectory>();
   // Inspections by node id, each with what it was built from (`inspectionKey`): a sync refreshes what they hold, and
   // builds one anew when that changed. Only the picked node's is kept once the pick changes (every sync refreshes the
   // ones kept); `inspection` is the picked node's, the inspector's (view-models.md §4.3).
@@ -765,8 +852,44 @@ export function createSceneSource(
       n.removable = true;
       nodes.set(ref, n);
     }
-    const count = l.cell.obj?.data.count;
-    n.set(name, count !== undefined ? `${count.toLocaleString('en')} particles` : undefined, !!l.cell.state.isHidden);
+    const data = particleListData(plugin.state.data, ref);
+    n.set(name, data ? particlesText(data) : undefined, !!l.cell.state.isHidden);
+    // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
+    if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref, openCommand);
+    inspections.get(ref)?.form?.load(l.cell.transform.params as never);
+    // A trajectory's frames (Simularium): a row under it shows and plays them, as a structure's (`particles.frame`)
+    const frames = particleFrames(plugin, l.cell);
+    const before = n.trajectory;
+    if (!frames) {
+      n.trajectory = undefined;
+      particleTrajectories.delete(ref);
+    } else {
+      let t = particleTrajectories.get(ref);
+      if (!t) particleTrajectories.set(ref, (t = particleTrajectory(plugin, api, ref)));
+      t.refresh(frames);
+      n.trajectory = t;
+    }
+    if (n.trajectory !== before) n.log?.touch(n.id);
+    return n;
+  };
+
+  /** A particle list's unit cell (its periodic box): its eye and inspector through `particles.unit-cell`. */
+  const particlesUnitCellNode = (cell: StateObjectCell, listRef: string): Node => {
+    const ref = cell.transform.ref;
+    unitCellOwners.set(ref, listRef);
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'unit-cell', 'box', 'Unit cell', false, {
+        visibility: (hide) => {
+          if (!hide) picked.set(nodes.get(ref));
+          void api.run('particles.unit-cell', { particles: listRef, visible: !hide });
+        },
+      });
+      n.removable = false;
+      nodes.set(ref, n);
+    }
+    n.set('Unit cell', undefined, !!cell.state.isHidden);
+    inspections.get(ref)?.form?.load(unitCellValues(cell));
     return n;
   };
 
@@ -781,7 +904,17 @@ export function createSceneSource(
       n.removable = true;
       nodes.set(ref, n);
     }
-    n.set(r.cell.obj?.label ?? 'Representation', undefined, !!r.cell.state.isHidden);
+    const p = r.cell.transform.params as
+      | { type?: { name: string }; colorTheme?: { name: string; params?: { value?: number } } }
+      | undefined;
+    const { themes } = plugin.representation.particles;
+    const theme = p?.colorTheme?.name;
+    const themeLabel =
+      theme && themes.colorThemeRegistry.has(theme) ? themes.colorThemeRegistry.get(theme).label : theme;
+    n.set(r.cell.obj?.label ?? 'Representation', themeLabel, !!r.cell.state.isHidden);
+    n.setSwatch(theme === 'uniform' ? p?.colorTheme?.params?.value : undefined);
+    if (!n.menuSource)
+      n.menuSource = () => particlesRepresentationMenu(plugin, api, ref, () => picked.set(nodes.get(ref)));
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
     return n;
   };
@@ -1030,13 +1163,18 @@ export function createSceneSource(
       const ref = l.cell.transform.ref;
       const ln = particlesNode(l, listLabels.get(ref) ?? ref);
       rest.push(ref);
-      ln.setChildren(
-        l.representations.map((r) => {
+      const unitCell = particleUnitCellOf(plugin.state.data, ref);
+      ln.setChildren([
+        ...l.representations.map((r) => {
           const rn = particlesReprNode(r, ref);
           rest.push(rn.id);
           return rn;
         }),
-      );
+        ...(unitCell ? [particlesUnitCellNode(unitCell, ref)] : []).map((un) => {
+          rest.push(un.id);
+          return un;
+        }),
+      ]);
       top.push(ln);
     }
     // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
@@ -1069,6 +1207,7 @@ export function createSceneSource(
       inspections.delete(id);
       inspectionKeys.delete(id);
       unitCellOwners.delete(id);
+      particleTrajectories.delete(id);
       streamingOwners.delete(id);
       streamingShown.delete(id);
       if (picked.value === n) picked.set(undefined);
@@ -1133,6 +1272,12 @@ export function createSceneSource(
     }),
   );
 
+  // Whether particle frames play follows the animation (played, stopped), not the frame shown
+  scope.add(
+    plugin.managers.animation.events.updated.subscribe(() => {
+      for (const t of particleTrajectories.values()) t.refreshPlaying();
+    }),
+  );
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
@@ -1217,6 +1362,8 @@ export function createSceneSource(
     roots: roots.asReadonly,
     picked: picked.asReadonly,
     pick: (n) => picked.set(n === picked.value ? undefined : n),
+    selectionFilter,
+    nodeActions,
     reveal(id) {
       const path = (list: readonly SceneNode[]): SceneNode[] | undefined => {
         for (const n of list) {
@@ -1262,6 +1409,9 @@ function inspectionKey(plugin: PluginContext, node: SceneNode): unknown {
     }
     case 'volume-representation':
       return typeName(plugin.state.data.cells.get(node.id)?.transform.params);
+    case 'particles':
+      // its facts follow the list as its representations see it (a target attached)
+      return particleListData(plugin.state.data, node.id);
   }
   return undefined;
 }
@@ -2071,6 +2221,21 @@ function inspect(
 ): SceneInspection {
   const cell = plugin.state.data.cells.get(node.id);
   const slot = `inspector:${node.kind}`;
+  if (node.kind === 'unit-cell' && cell && isParticleList(plugin.state.data.cells.get(cell.transform.parent)?.obj)) {
+    const list = plugin.state.data.cells.get(cell.transform.parent)!.obj!.data as ParticleList;
+    const form = new ParamsFormModel(UnitCellForm, unitCellValues(cell), {
+      onChange: debounced((values) => {
+        const now = plugin.state.data.cells.get(node.id);
+        void api.run('particles.unit-cell', {
+          particles: cell.transform.parent,
+          visible: !now?.state.isHidden,
+          color: Color.toHexStyle(values.color),
+          opacity: values.opacity,
+        });
+      }),
+    });
+    return { node, form, slot, facts: list.cell ? cellFacts(list.cell) : [] };
+  }
   if (node.kind === 'unit-cell' && cell) {
     const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj as PluginStateObject.Molecule.Model;
     const symmetry = parent?.data && ModelSymmetry.Provider.get(parent.data as Model);
@@ -2208,16 +2373,17 @@ function inspect(
     if (s) return { node, form: undefined, slot, contents: contentsSummary(s, reveal) };
   }
   if (node.kind === 'particles' && cell?.obj?.data) {
-    const data = cell.obj.data as ParticleList;
-    return {
-      node,
-      form: undefined,
-      slot,
-      facts: [
-        ['Particles', data.count.toLocaleString('en')],
-        ['Targets', String(data.targetInfo.size)],
-      ],
-    };
+    const data = particleListData(plugin.state.data, node.id) ?? (cell.obj.data as ParticleList);
+    // How it is read from its file (the format's transform: tomograms, pixel size, radius, a frame): `particles.source`
+    const parent = plugin.state.data.cells.get(cell.transform.parent);
+    const def = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
+    const form =
+      def && Object.keys(def).length
+        ? new ParamsFormModel(def, cell.transform.params as PD.Values<PD.Params>, {
+            onChange: debounced((values) => void api.run('particles.source', { particles: node.id, params: values })),
+          })
+        : undefined;
+    return { node, form, slot, facts: particlesFacts(data) };
   }
   const updateOperation = UpdateOperations[node.kind];
   if (updateOperation && cell) {
@@ -2274,4 +2440,262 @@ function inspect(
     };
   }
   return { node, form: undefined, slot };
+}
+
+// Particles (the lazy particles feature's operations, by id: this module imports none of its code).
+
+const ParticleListUnitcell = 'ms-plugin.particle-list-unitcell-3d';
+
+/** A particle list's unit cell cell (`ParticleListUnitcell3D` below it), if any */
+function particleUnitCellOf(state: State, listRef: string): StateObjectCell | undefined {
+  return state.select(
+    StateSelection.Generators.byRef(listRef)
+      .subtree()
+      .filter((c) => c.transform.transformer.id === ParticleListUnitcell),
+  )[0];
+}
+
+function isParticleList(obj: unknown): obj is PluginStateObject.Particle.List {
+  return PluginStateObject.Particle.List.is(obj as never);
+}
+
+/** A list's row description: its count, and its targets when it has some ("1,200 particles · 3 targets"). */
+function particlesText(data: ParticleList): string {
+  const targets = data.targetInfo.size;
+  return `${data.count.toLocaleString('en')} particles${targets > 1 ? ` · ${targets} targets` : ''}`;
+}
+
+/** What stands for a target: a structure's entry, a shape's or a volume's name */
+function targetLabel(
+  target: NonNullable<ParticleList['targetMapping']> extends ReadonlyMap<number, infer T> ? T : never,
+) {
+  switch (target.kind) {
+    case 'structure':
+      return target.structure.model.entryId || target.structure.label;
+    case 'shape':
+      return target.shape.name;
+    case 'volume':
+      return target.volume.sourceData.name || 'a volume';
+  }
+}
+
+/** A list as its representations see it: the data at the end of its decorators (targets attached) */
+function particleListData(state: State, ref: string): ParticleList | undefined {
+  const root = StateTree.getDecoratorRoot(state.tree, ref);
+  return (state.cells.get(root)?.obj?.data ?? state.cells.get(ref)?.obj?.data) as ParticleList | undefined;
+}
+
+const listOf = (names: readonly string[], max = 3) =>
+  names.length <= max ? names.join(', ') : `${names.slice(0, max).join(', ')} and ${names.length - max} more`;
+
+/** What a particle list is, at a glance: count, source, poses, targets, entities, compartments, attributes, cell. */
+function particlesFacts(data: ParticleList): [string, string][] {
+  const facts: [string, string][] = [['Particles', data.count.toLocaleString('en')]];
+  if (data.sourceData?.kind) facts.push(['Source', data.sourceData.kind]);
+  facts.push(['Orientations', data.rotations ? 'yes' : 'none']);
+  // Each target by name (its entity's), and what stands for it once one is attached ("ribosome: 1crn")
+  const targets = [...data.targetInfo].map(([id, t]) => {
+    const name =
+      t.name ?? (t.entity !== undefined ? data.entityInfo?.get(t.entity)?.name : undefined) ?? `target ${id}`;
+    const object = data.targetMapping?.get(id);
+    return object ? `${name}: ${targetLabel(object)}` : name;
+  });
+  if (targets.length) facts.push(['Targets', `${targets.length}: ${listOf(targets)}`]);
+  if (data.entityInfo?.size) {
+    facts.push(['Entities', `${data.entityInfo.size}: ${listOf([...data.entityInfo.values()].map((e) => e.name))}`]);
+  }
+  if (data.compartmentInfo?.size) facts.push(['Compartments', String(data.compartmentInfo.size)]);
+  if (data.fibers?.count) facts.push(['Fibers', data.fibers.count.toLocaleString('en')]);
+  for (const a of data.attributes?.values() ?? [])
+    facts.push([a.label, `${shortNumber(a.min)} … ${shortNumber(a.max)}`]);
+  if (data.cell) facts.push(...cellFacts(data.cell));
+  return facts;
+}
+
+function cellFacts(cell: { size: ArrayLike<number>; anglesInRadians: ArrayLike<number> }): [string, string][] {
+  const deg = (r: number) => `${Math.round(((r * 180) / Math.PI) * 100) / 100}°`;
+  return [
+    ['Cell', `${[...Array.from(cell.size)].map((x) => Math.round(x * 100) / 100).join(' × ')} Å`],
+    ['Angles', Array.from(cell.anglesInRadians).map(deg).join(', ')],
+  ];
+}
+
+/** A particle list's row menu: a representation added, all colored by a theme, the camera to it, its unit cell. */
+function particlesMenu(
+  plugin: PluginContext,
+  api: ViewerApi,
+  ref: string,
+  openCommand: OpenCommand | undefined,
+): SceneMenuItem[] | undefined {
+  const l = plugin.managers.particles.hierarchy.current.lists.find((x) => x.cell.transform.ref === ref);
+  const data = l && particleListData(plugin.state.data, ref);
+  if (!l || !data) return undefined;
+  const { registry, themes } = plugin.representation.particles;
+  const present = new Set(
+    l.representations.map((r) => (r.cell.transform.params as { type?: { name: string } } | undefined)?.type?.name),
+  );
+  const types = registry.getApplicableList(data).filter((t) => !present.has(t.name));
+  const colors = themes.colorThemeRegistry.getApplicableList({ particles: data });
+  const items: SceneMenuItem[] = [];
+  if (types.length) {
+    items.push({
+      id: 'add',
+      label: 'Add representation',
+      icon: 'plus',
+      items: types.map((t) => ({
+        id: t.name,
+        label: t.provider.label,
+        run: () => void api.run('particles.representation', { particles: ref, type: t.name }),
+      })),
+    });
+  }
+  if (l.representations.length && colors.length) {
+    items.push({
+      id: 'color',
+      label: 'Color by',
+      icon: 'palette',
+      items: colors.map((t) => ({
+        id: t.name,
+        label: t.provider.label,
+        run: () => void api.run('particles.color', { particles: ref, theme: t.name }),
+      })),
+    });
+  }
+  items.push({
+    id: 'focus',
+    label: 'Focus',
+    icon: 'focus',
+    run: () => void api.run('particles.focus', { particles: ref }),
+  });
+  if (data.cell) {
+    const cell = particleUnitCellOf(plugin.state.data, ref);
+    const shown = !!cell && !cell.state.isHidden;
+    items.push({
+      id: 'unit-cell',
+      label: shown ? 'Hide unit cell' : 'Show unit cell',
+      icon: 'box',
+      run: () => void api.run('particles.unit-cell', { particles: ref, visible: !shown }),
+    });
+  }
+  return items;
+}
+
+/** A particle representation's row menu: its color (the current one checked), then the whole form in the inspector. */
+function particlesRepresentationMenu(
+  plugin: PluginContext,
+  api: ViewerApi,
+  ref: string,
+  edit: () => void,
+): SceneMenuItem[] {
+  const cell = plugin.state.data.cells.get(ref);
+  const list = plugin.managers.particles.hierarchy.current.lists.find((l) =>
+    l.representations.some((r) => r.cell.transform.ref === ref),
+  );
+  const data = list && particleListData(plugin.state.data, list.cell.transform.ref);
+  const current = (cell?.transform.params as { colorTheme?: { name: string } } | undefined)?.colorTheme?.name;
+  const colors = data
+    ? plugin.representation.particles.themes.colorThemeRegistry.getApplicableList({ particles: data })
+    : [];
+  return [
+    ...(colors.length
+      ? [
+          {
+            id: 'color',
+            label: 'Color',
+            icon: 'palette' as const,
+            items: colors.map((t) => ({
+              id: t.name,
+              label: t.provider.label,
+              checked: t.name === current,
+              run: () => void api.run('particles.color', { node: ref, theme: t.name }),
+            })),
+          },
+        ]
+      : []),
+    { id: 'edit', label: 'Edit…', icon: 'sliders-horizontal' as const, run: edit },
+  ];
+}
+
+const ParticleListFromTrajectory = 'ms-plugin.particle-list-from-trajectory';
+const ParticleTrajectoryAnimation = 'built-in.animate-particle-trajectory';
+
+/** A list read from a trajectory's frame: its frame count and the frame shown; none with one frame */
+function particleFrames(plugin: PluginContext, cell: StateObjectCell): { count: number; index: number } | undefined {
+  if (cell.transform.transformer.id !== ParticleListFromTrajectory) return undefined;
+  const parent = plugin.state.data.cells.get(cell.transform.parent)?.obj;
+  const count = (parent?.data as { frameCount?: number } | undefined)?.frameCount ?? 0;
+  if (count < 2) return undefined;
+  return { count, index: (cell.transform.params as { frameIndex?: number }).frameIndex ?? 0 };
+}
+
+function isPlayingParticleFrames(plugin: PluginContext, ref: string): boolean {
+  const animation = plugin.managers.animation;
+  if (!animation.isAnimating || animation.current?.anim.name !== ParticleTrajectoryAnimation) return false;
+  const refs = (animation.current.paramValues as { refs?: readonly string[] }).refs;
+  return !refs?.length || refs.includes(ref);
+}
+
+interface ParticleSceneTrajectory extends SceneTrajectory {
+  refresh(frames: { count: number; index: number }): void;
+  refreshPlaying(): void;
+}
+
+/** A particle trajectory's frames as the tree's frame row shows them, acting through `particles.frame`, `.play`, `.stop` */
+function particleTrajectory(plugin: PluginContext, api: ViewerApi, ref: string): ParticleSceneTrajectory {
+  const count = observableState(0);
+  const index = observableState(0);
+  const playing = observableState(false);
+  const mode = observableState<'loop' | 'palindrome' | 'once'>('loop');
+  const seconds = observableState(5);
+  /** The frame to show next (not sent yet), and the one being shown (sent, not done): the latest seek wins */
+  let wanted: number | undefined;
+  let sending: number | undefined;
+  const flush = async () => {
+    if (sending !== undefined) return;
+    try {
+      while (wanted !== undefined) {
+        sending = wanted;
+        wanted = undefined;
+        await api.run('particles.frame', { particles: ref, index: sending });
+      }
+    } finally {
+      sending = undefined;
+    }
+  };
+  return {
+    unit: 'frames',
+    count: count.asReadonly,
+    index: index.asReadonly,
+    playing: playing.asReadonly,
+    mode,
+    seconds,
+    seek(i) {
+      wanted = i;
+      void flush();
+    },
+    step(by) {
+      const c = count.value;
+      if (c < 2) return;
+      wanted = ((((wanted ?? sending ?? index.value) + by) % c) + c) % c;
+      void flush();
+    },
+    togglePlay() {
+      void (playing.value
+        ? api.run('particles.stop')
+        : api.run('particles.play', { particles: ref, mode: mode.value, seconds: seconds.value }));
+    },
+    // The canvas' frame bar steps back while the row is on screen, as for a structure's (the trajectory source)
+    markShown(on) {
+      trajectorySourceOf(plugin).markRowShown(ref, on);
+    },
+    refresh(frames) {
+      if (count.value !== frames.count) count.set(frames.count);
+      if (index.value !== frames.index) index.set(frames.index);
+      this.refreshPlaying();
+    },
+    refreshPlaying() {
+      const now = isPlayingParticleFrames(plugin, ref);
+      if (playing.value !== now) playing.set(now);
+    },
+  };
 }

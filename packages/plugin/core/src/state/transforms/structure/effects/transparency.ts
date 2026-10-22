@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
@@ -60,7 +61,8 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -70,9 +72,11 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
 
     const oldTransparency = b.data.state.transparency!;
     const newTransparency = Transparency.ofScript(newParams.layers, newStructure);
-    if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Transparency.areEqual(oldTransparency, newTransparency))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.transparency = newTransparency;
     b.data.repr = a.data.repr;
     b.label = `Transparency (${newTransparency.layers.length} Layers)`;
@@ -127,7 +131,8 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const newGeometryVersion = a.data.repr.geometryVersion;
@@ -136,10 +141,16 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
       return StateTransformer.UpdateResult.Recreate;
 
     const oldTransparency = b.data.state.transparency!;
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newTransparency = Transparency.ofBundle(newParams.layers, newStructure);
-    if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Transparency.areEqual(oldTransparency, newTransparency))
+      return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = newGeometryVersion;
+    info.structure = newStructure;
     b.data.state.transparency = newTransparency;
     b.data.repr = a.data.repr;
     b.label = `Transparency (${newTransparency.layers.length} Layers)`;

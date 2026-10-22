@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat4, Quat } from '@molstar/core/math/linear-algebra';
@@ -119,7 +120,7 @@ export function createParticleListFromCryoEtDataPortalNdjson(
     getParticleLabel: (index: number) => {
       const i = keys[index];
       const record = data.records[i];
-      return `#${i + 1} | ${record.type}`;
+      return record.type ? `Particle ${i + 1} · ${record.type}` : `Particle ${i + 1}`;
     },
     sourceData: CryoEtDataPortalNdjsonFormat.create(data),
     customProperties: new CustomProperties(),

@@ -8,21 +8,26 @@
 
 import { type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { CommandDefinition } from '@molstar/prism-ui/core';
+import { RuntimeContext } from '@molstar/core/task';
+import { ungzip } from '@molstar/core/util/zip/zip';
 import { type Observable, Subject } from 'rxjs';
 import type { AnnotationsApi } from '../api/annotations.js';
 import {
   type ApiAreaContext,
   ApiArea,
   ApiResult,
+  type ExtensionNeed,
   memberName,
   type OperationDefinition,
   type ViewerApi,
 } from '../api/area.js';
 import type { ViewerApiHost } from '../api/index.js';
+import { extensionOf } from '../api/input.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type {
   LazyOperationStub,
   LazyViewerExtension,
+  LazyViewerExtensionStub,
   PrismViewerPluginParts,
   SequenceBehavior,
   ViewerExtension,
@@ -203,21 +208,24 @@ export class ExtensionHost {
   }
 
   /** Loads the lazy extensions that own any of these (a session's transformers, a file's extension) first. */
-  async ensureFor(need: {
-    readonly transformers?: readonly string[];
-    readonly formats?: readonly string[];
-    readonly fileExtensions?: readonly string[];
-  }): Promise<void> {
+  async ensureFor(need: ExtensionNeed): Promise<void> {
     const lower = (xs: readonly string[] | undefined) => xs?.map((x) => x.toLowerCase().replace(/^\./, ''));
     const files = lower(need.fileExtensions);
+    // A file's content is read once, and only for a stub that sniffs its extension
+    const contents = new Map<object, Promise<string | Uint8Array>>();
+    const contentOf = (f: NonNullable<ExtensionNeed['files']>[number]) => {
+      if (!contents.has(f)) contents.set(f, f.content());
+      return contents.get(f)!;
+    };
     for (const entry of [...this.#entries.values()]) {
       const owns = entry.lazy?.stub.owns;
       if (!owns || entry.ext) continue;
       const owned = lower(owns.fileExtensions);
-      const hit =
+      let hit =
         need.transformers?.some((t) => owns.transformers?.includes(t)) ||
         need.formats?.some((f) => owns.formats?.includes(f)) ||
         files?.some((x) => owned?.includes(x));
+      if (!hit && owns.sniff && need.files?.length) hit = await sniffs(owns.sniff, need.files, contentOf);
       if (hit) await this.load(entry.id);
     }
   }
@@ -439,6 +447,8 @@ export class ExtensionHost {
             overlays: overrides.parts(checked.overlays),
             pages: overrides.parts(checked.pages),
             rows: overrides.parts(checked.rows),
+            selectionActions: overrides.parts(checked.selectionActions),
+            nodeActions: overrides.parts(checked.nodeActions),
             toolbar: overrides.parts(checked.toolbar),
           });
           replaces?.();
@@ -460,6 +470,32 @@ export class ExtensionHost {
 }
 
 /** Whether a stub's declared flags are the definition's (read, history, undoable, approval, addresses, modules). */
+/** Whether a stub's sniff claims one of the files (a failure to read or sniff one is no claim) */
+async function sniffs(
+  sniff: NonNullable<NonNullable<LazyViewerExtensionStub['owns']>['sniff']>,
+  files: NonNullable<ExtensionNeed['files']>,
+  contentOf: (f: NonNullable<ExtensionNeed['files']>[number]) => Promise<string | Uint8Array>,
+): Promise<boolean> {
+  const extensions = sniff.extensions.map((x) => x.toLowerCase().replace(/^\./, ''));
+  for (const f of files) {
+    const ext = extensionOf(f.name);
+    if (!extensions.includes(ext)) continue;
+    try {
+      if (sniff.test({ name: f.name, ext }, await gunzipped(await contentOf(f)))) return true;
+    } catch {
+      // not claimed
+    }
+  }
+  return false;
+}
+
+/** A gzipped file's bytes inflated (its name, `.gz`, is read without the suffix: `hiv.cif.gz` is sniffed as mmCIF) */
+async function gunzipped(content: string | Uint8Array): Promise<string | Uint8Array> {
+  if (typeof content === 'string' || content.length < 2 || content[0] !== 0x1f || content[1] !== 0x8b) return content;
+  const bytes = new Uint8Array(content);
+  return ungzip(RuntimeContext.Synchronous, bytes);
+}
+
 function sameFlags(stub: LazyOperationStub, def: OperationDefinition<any, any>): boolean {
   return (
     !!stub.read === !!def.read &&
@@ -508,6 +544,8 @@ const ViewKinds = {
   overlays: 'overlay',
   pages: 'page',
   rows: 'row',
+  selectionActions: 'selection-action',
+  nodeActions: 'node-action',
   toolbar: 'toolbar',
 } as const;
 

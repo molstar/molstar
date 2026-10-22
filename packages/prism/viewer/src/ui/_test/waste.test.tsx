@@ -32,7 +32,9 @@ import { personSession } from './waste-session.js';
 // session or in it: its shell derives that come out the same (7) are budgeted, so the run does not depend on when.
 // The shell's rail and dock gates (`derive`s that keep a panel from rendering when its part did not change: the head,
 // strip and foot, hidden, overflow) replaced rxjs `distinctUntilChanged`s the audit could not see: their same results
-// (8, `prism/ui/shell/shell.ts`) are budgeted as the gates they are.
+// (8, `prism/ui/shell/shell.ts`) are budgeted as the gates they are. So is the viewer's `state.working` (the splash's
+// wait): the plugin's updating flag flips under a running operation and the gate comes out the same (16,
+// `prism/viewer/sources/state.ts`, its input).
 
 class NoResize {
   observe() {}

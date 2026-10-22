@@ -426,19 +426,31 @@ class Structure {
     return this.models.indexOf(m);
   }
 
-  remapModel(m: Model): Structure {
-    const { dynamicBonds, interUnitBonds, parent } = this.state;
+  /**
+   * This structure on the conformation of `m`, a model with the same hierarchy. `parent`: the parent already remapped
+   * to `m` (a component below a remapped root shares it: structure.md §3); without it the parent is remapped too.
+   */
+  remapModel(m: Model, parent?: Structure): Structure {
+    const { dynamicBonds, interUnitBonds } = this.state;
     const units: Unit[] = [];
+    // a whole unit of the parent is the parent's remapped unit (as `getChild` gives the parent's unit), so its
+    // coordinate-derived data (boundary, lookup) is computed once per frame, not once per component (structure.md §3)
+    const ofParent = (u: Unit) => {
+      if (!parent || !this.state.parent) return;
+      const p = parent.unitMap.get(u.id);
+      return p && p.elements === u.elements ? p : undefined;
+    };
     for (const ug of this.unitSymmetryGroups) {
-      const unit = ug.units[0].remapModel(m, dynamicBonds);
+      const first = ug.units[0];
+      const unit = ofParent(first) ?? first.remapModel(m, dynamicBonds);
       units.push(unit);
       for (let i = 1, il = ug.units.length; i < il; ++i) {
         const u = ug.units[i];
-        units.push(u.remapModel(m, dynamicBonds, unit.props));
+        units.push(ofParent(u) ?? u.remapModel(m, dynamicBonds, unit.props));
       }
     }
     return Structure.create(units, {
-      parent: parent?.remapModel(m),
+      parent: this.state.parent ? (parent ?? this.state.parent.remapModel(m)) : undefined,
       label: this.label,
       interUnitBonds: dynamicBonds ? undefined : interUnitBonds,
       dynamicBonds,

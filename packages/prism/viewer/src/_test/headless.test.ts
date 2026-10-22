@@ -11,6 +11,7 @@ import * as path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DefaultPrismViewerSpec } from '../default-spec.js';
 import { createPrismViewerHeadless } from '../headless.js';
+import { particlesFile } from '../api/_test/volume-fixtures.js';
 import type { PrismViewer } from '../viewer.js';
 
 // The headless viewer (viewer-spec.md §6): the same API as on a page, with no DOM and no canvas.
@@ -55,6 +56,24 @@ describe('the headless viewer', () => {
     expect(undone.ok).toBe(true);
     expect(v.state.empty.value).toBe(true);
     expect(v.api.structure.loaded.value).toHaveLength(0);
+  });
+
+  it('is working from the start of a load to its end, before the plugin is (the splash waits on it)', async () => {
+    const v = await create();
+    expect(v.state.working.value).toBe(false);
+    // A particle file: the lazy particles feature loads first, before any plugin work (`busy` is the plugin's)
+    const seen: boolean[] = [];
+    const sub = v.state.working.subscribe((w) => seen.push(w));
+    const loading = v.api.load.files({ files: [particlesFile()] as never });
+    await Promise.resolve();
+    expect(v.state.working.value).toBe(true);
+    expect(v.state.busy.value).toBe(false);
+    expect((await loading).ok).toBe(true);
+    expect(v.state.working.value).toBe(false);
+    sub.unsubscribe();
+    // one stretch of work, no gap the splash would take for idle
+    expect(seen.filter((w) => w).length).toBeGreaterThan(0);
+    expect(seen.join(',')).not.toMatch(/true,false,true/);
   });
 
   it('checks values: unknown names and wrong types are refused with a hint', async () => {

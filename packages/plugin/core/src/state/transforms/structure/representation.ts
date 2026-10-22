@@ -8,6 +8,7 @@
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import type { PluginContext } from '@molstar/plugin/context';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { arrayEqual, deepEqual } from '@molstar/core/util';
 import { Structure } from '@molstar/model/model/structure';
 import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
@@ -23,6 +24,27 @@ import { getRepresentationSignatures, registerTransformSignatures } from '@molst
 
 export { StructureRepresentation3D };
 type StructureRepresentation3D = typeof StructureRepresentation3D;
+
+type ThemeCache = { themeProperties?: unknown[] };
+
+/**
+ * The property data the themes of a representation of `s` may read: the structure's, its root's and its models', as
+ * the containers holding the values with their versions (a property computed again or with other props puts a new
+ * container). Equal arrays: nothing a theme reads was computed again.
+ */
+function propertyState(s: Structure): unknown[] {
+  const out: unknown[] = [];
+  const add = (bag: { [name: string]: any }) => {
+    for (const name of Object.keys(bag)) out.push(name, bag[name], bag[name]?.data?.version);
+  };
+  add(s.currentPropertyData);
+  if (s.parent) add(s.inheritedPropertyData);
+  for (const m of s.models) {
+    add(m._staticPropertyData);
+    add(m._dynamicPropertyData);
+  }
+  return out;
+}
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({
   name: 'structure-representation-3d',
   display: '3D Representation',
@@ -123,6 +145,8 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
 
       const props = params.type.params || {};
       await repr.createOrUpdate(props, data).runInContext(ctx);
+      // after the visuals: a theme or a visual may read a property only then (its container made on first read)
+      (cache as ThemeCache).themeProperties = propertyState(data);
       return new SO.Molecule.Structure.Representation3D({ repr, sourceData: a.data }, { label: provider.label });
     });
   },
@@ -139,19 +163,33 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
 
-      // TODO: if themes had a .needsUpdate method the following block could
-      //       be optimized and only executed conditionally
-      Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.sourceData }, oldParams);
-      await Theme.ensureDependencies(
-        propertyCtx,
-        plugin.representation.structure.themes,
-        { structure: data },
-        newParams,
-      );
-      b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, newParams));
+      // An animation frame that changes the representation's own params (opacity, emissive, clipping) on the same
+      // structure keeps the themes, and their dependencies' references. A theme holds the version of a property it
+      // reads (secondary structure, ASA, a validation report): with any property of the structure or its models
+      // computed again since the themes were made, they are made again, and so they are when the representation is
+      // evaluated with its params as they were (an ancestor or a dependency, e.g. a volume a theme refers to, changed).
+      const themeCache = cache as ThemeCache;
+      const sameThemes =
+        a.data === b.data.sourceData &&
+        !deepEqual(oldParams.type, newParams.type) &&
+        deepEqual(oldParams.colorTheme, newParams.colorTheme) &&
+        deepEqual(oldParams.sizeTheme, newParams.sizeTheme) &&
+        !!themeCache.themeProperties &&
+        arrayEqual(themeCache.themeProperties, propertyState(data));
+      if (!sameThemes) {
+        Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.sourceData }, oldParams);
+        await Theme.ensureDependencies(
+          propertyCtx,
+          plugin.representation.structure.themes,
+          { structure: data },
+          newParams,
+        );
+        b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, newParams));
+      }
 
       const props = { ...b.data.repr.props, ...newParams.type.params };
       await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+      if (!sameThemes) themeCache.themeProperties = propertyState(data);
       b.data.sourceData = a.data;
       return StateTransformer.UpdateResult.Updated;
     });

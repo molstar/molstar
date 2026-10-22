@@ -320,11 +320,12 @@ export interface MockRowSpec {
   children(values: any, info: MockStructureInfo, make: MockRowChildren, id: string): MockNode[];
 }
 
-export type MockScenePreset = 'single' | 'many' | 'em';
+export type MockScenePreset = 'single' | 'many' | 'em' | 'particles';
 
 /**
  * Scenes as the plugin would show them: `single` is 1TQN with the default preset (components, representations, a
- * measurement); `many` is four CYP3A4 structures superposed; `em` is an EMDB map with its fitted model. Forms change
+ * measurement); `many` is four CYP3A4 structures superposed; `em` is an EMDB map with its fitted model; `particles` is
+ * cryo-ET ribosome picks (spacefill, orientation, the unit cell) beside a Simularium trajectory. Forms change
  * the nodes as the plugin would.
  */
 export function mockScene(
@@ -335,7 +336,7 @@ export function mockScene(
     onAction?: (text: string) => void;
     /** Extensions' structure rows (volume streaming, assembly symmetry by default). */
     rows?: readonly MockRowSpec[];
-    /** Adding a measurement: the Selection tab's Measure section. */
+    /** Adding a measurement: the Selection tab's Measure and Label section. */
     onMeasure?: () => void;
   } = {},
 ): MockScene {
@@ -706,6 +707,24 @@ export function mockScene(
       cyp('1w0g', '1W0G', 'HEM · METYRAPONE', 'Superposed · RMSD 0.35 Å', false),
       measurements(),
     ]);
+  } else if (preset === 'particles') {
+    // Particle lists (the lazy particles feature's rows): picks with their representations and unit cell, and a
+    // trajectory's list.
+    const picks = node('ribosomes', 'particles', 'shapes', 'cryoet-ribosomes.ndjson', '200 particles').add(
+      node('ribosomes-spacefill', 'particles-representation', 'shapes', 'Spacefill', 'Particle Index', false),
+      node('ribosomes-orientation', 'particles-representation', 'shapes', 'Orientation', 'Particle Index', false),
+      node('ribosomes-cell', 'unit-cell', 'box', 'Unit cell', undefined, false),
+    );
+    facts.set('ribosomes', [
+      ['Particles', '200'],
+      ['Source', 'cryoet-data-portal-ndjson'],
+      ['Orientations', 'yes'],
+      ['Targets', '1: target 0: 1CRN'],
+    ]);
+    const trajectory = node('simularium', 'particles', 'shapes', 'small.simularium', '5 particles · 2 targets').add(
+      node('simularium-spacefill', 'particles-representation', 'shapes', 'Spacefill', 'Particle Entity', false),
+    );
+    roots.set([picks, trajectory, measurements()]);
   } else {
     // An EMDB entry: the map (top level, like a structure) and the model fitted into it.
     const map = volume('emd-2984', 'EMD-2984', 'β-galactosidase · 2.2 Å', [

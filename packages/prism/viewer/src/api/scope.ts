@@ -187,7 +187,10 @@ export function oneStructure(
 }
 
 /** The named structure, or every loaded one. */
-export function someStructures(ctx: ApiContext, name: string | undefined): readonly StructureRef[] | ApiFailure {
+export function someStructures(
+  ctx: Pick<ApiContext, 'plugin'>,
+  name: string | undefined,
+): readonly StructureRef[] | ApiFailure {
   const list = loadedStructures(ctx);
   if (!list.length) return ApiResult.fail('not-found', 'Nothing is loaded.', 'Load a structure first.');
   if (!name) return list;
@@ -210,7 +213,7 @@ export interface FoundComponent {
 
 /** One component among these structures' (by state ref or key, else by name), by the one rule. */
 export function findComponent(
-  ctx: ApiContext,
+  ctx: Pick<ApiContext, 'plugin'>,
   structures: readonly StructureRef[],
   name: string | undefined,
 ): FoundComponent | ApiFailure {
@@ -233,7 +236,11 @@ export function findComponent(
 }
 
 /** One component by the one rule, in the named structure or in all of them (a component ref is unique among them). */
-export function inStructures(ctx: ApiContext, name: string, structure: string): FoundComponent | ApiFailure {
+export function inStructures(
+  ctx: Pick<ApiContext, 'plugin'>,
+  name: string,
+  structure: string,
+): FoundComponent | ApiFailure {
   const structures = someStructures(ctx, structure || undefined);
   return isFailure(structures) ? structures : findComponent(ctx, structures, name);
 }

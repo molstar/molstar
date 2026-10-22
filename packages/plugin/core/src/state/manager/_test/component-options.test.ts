@@ -212,3 +212,49 @@ describe('StructureComponentManager default selection query', () => {
     plugin.dispose();
   });
 });
+
+describe('StructureComponentManager clip objects', () => {
+  it("replaces its own objects on every representation and keeps a representation's own", async () => {
+    const { Vec3, Mat4 } = await import('@molstar/core/math/linear-algebra');
+    const { DefaultRegistry } = await import('@molstar/plugin/default-registry');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const plugin = new PluginContext({ behaviors: [], registry: DefaultRegistry });
+    await plugin.init();
+    const data = await plugin.builders.data.rawData({
+      data: fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../../../data/examples/1crn.cif'), 'utf8'),
+    });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    const repr = () =>
+      plugin.managers.structure.hierarchy.current.structures[0].components[0].representations[0].cell.transform
+        .params as any;
+    const object = (x: number) => ({
+      type: 'plane' as const,
+      invert: false,
+      position: Vec3.create(x, 0, 0),
+      rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+      scale: Vec3.create(1, 1, 1),
+      transform: Mat4.identity(),
+    });
+    // a representation's own object (a clipping editor's, code's)
+    const ref = plugin.managers.structure.hierarchy.current.structures[0].components[0].representations[0].cell;
+    await plugin
+      .build()
+      .to(ref)
+      .update((old: any) => {
+        old.type.params.clip = { variant: 'instance', objects: [object(5)] };
+      })
+      .commit();
+    const manager = plugin.managers.structure.component;
+    const xs = () => repr().type.params.clip.objects.map((o: any) => o.position[0]);
+    await manager.setOptions({ ...manager.state.options, clipObjects: { variant: 'pixel', objects: [object(1)] } });
+    expect(xs()).toEqual([5, 1]);
+    await manager.setOptions({ ...manager.state.options, clipObjects: { variant: 'pixel', objects: [object(2)] } });
+    expect(xs()).toEqual([5, 2]);
+    expect(repr().type.params.clip.variant).toBe('instance');
+    await manager.setOptions({ ...manager.state.options, clipObjects: { variant: 'pixel', objects: [] } });
+    expect(xs()).toEqual([5]);
+    plugin.dispose();
+  });
+});

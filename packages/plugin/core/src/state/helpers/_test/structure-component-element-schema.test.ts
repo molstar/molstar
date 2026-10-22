@@ -171,7 +171,7 @@ describe('StructureComponent with the expression of a schema', async () => {
       expect(obj.data).toBe(only);
       expect(cache.isSource).toBe(true);
     });
-    it('a static component which is made a copy of its source when the model changes does not dispose the properties of the source', () => {
+    it('a static component which is its source stays its source when the model changes, and does not dispose its properties', () => {
       // (the frames of a trajectory: models with the same hierarchy)
       const nAtoms = structure.model.atomicHierarchy.atoms._rowCount;
       const frames: Frame[] = [0, 1].map((i) => ({
@@ -193,21 +193,13 @@ describe('StructureComponent with the expression of a schema', async () => {
       const obj = createStructureComponent(first, all, cache) as any;
       expect(obj.data).toBe(first);
       expect(cache.isSource).toBe(true);
-      // (a structure with the same units and elements but another model: the frames have other conformations, which is not "equivalent" for a
-      // structure, so the equivalence is given here, as it is for a model which was replaced by one with the same conformation)
-      const equivalent = vi.spyOn(Structure, 'areEquivalent').mockReturnValue(true);
-      try {
-        expect(updateStructureComponent(second, obj, all, all, cache)).toBe(StateTransformer.UpdateResult.Updated);
-      } finally {
-        equivalent.mockRestore();
-      }
-      expect(obj.data).not.toBe(second);
-      expect(obj.data.model).toBe(second.model); // (a copy of the source with the model of the new one)
-      expect(cache.isSource).toBe(false);
-      const own = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
+      // the same units and elements on another model's coordinates: remapped, not queried again (a remap of the
+      // source is the new source)
+      expect(updateStructureComponent(second, obj, all, all, cache)).toBe(StateTransformer.UpdateResult.Updated);
+      expect(obj.data).toBe(second);
+      expect(cache.isSource).toBe(true);
       const theirs = vi.spyOn(second.customPropertyDescriptors, 'dispose');
       dispose(obj, cache);
-      expect(own).toHaveBeenCalledTimes(1);
       expect(theirs).not.toHaveBeenCalled();
     });
     it('does not dispose those of the structure when every element satisfies the schema (the component is the structure)', () => {

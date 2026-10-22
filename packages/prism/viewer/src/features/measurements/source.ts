@@ -22,10 +22,10 @@ import { watchedState } from '../../sources/watched.js';
 import { debounce } from '../../ui/debounce.js';
 
 // The measurements as the views read them (state.md §1, `managers.structure.measurement` ↔ `MeasurementsModel`): the
-// measurement manager's cells described in words, and the Measure section's model over them and over the selection's
-// additions history (the ordered picks). Reads the plugin, as `sources/` does; every change of measurements goes
-// through `measure.*`. The picks themselves are view state, not steps (state.md §3): ordering and dropping them is done
-// here on the selection manager, and nothing records it.
+// measurement manager's cells described in words, and the Measure and Label section's model over them and over the
+// selection's additions history (the ordered picks). Reads the plugin, as `sources/` does; every change of measurements
+// goes through `measure.*`. The picks themselves are view state, not steps (state.md §3): ordering and dropping them
+// is done here on the selection manager, and nothing records it.
 
 export {
   findMeasurement,
@@ -128,8 +128,9 @@ const sameEntries = (a: { id: string; label: string }, b: { id: string; label: s
   a.id === b.id && a.label === b.label;
 
 /**
- * The model of the Measure section over the plugin. `api` is bound to the person: adding, removing and showing or
- * hiding a measurement are its operations; the points are the selection's additions history (Mol*'s, newest first).
+ * The model of the Measure and Label section over the plugin. `api` is bound to the person: adding, removing and
+ * showing or hiding a measurement are its operations; the points are the selection's additions history (Mol*'s, newest
+ * first).
  *
  * Nothing here listens to the plugin until a view binds to it (prism AGENTS.md, hidden UI): `points`, `added` and the
  * options' values are watched states, `added` re-read once per animation frame however many events a transaction (or a

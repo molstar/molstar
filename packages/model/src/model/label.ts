@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -8,7 +8,7 @@
 import { Unit, StructureElement, StructureProperties as Props, type Bond } from './structure.js';
 import { Loci } from './loci.js';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
-import { capitalize, stripTags } from '@molstar/core/util/string';
+import { capitalize, escapeHtml, stripTags } from '@molstar/core/util/string';
 import { Column } from '@molstar/core/data/db/column';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { radToDeg } from '@molstar/core/math/misc';
@@ -81,8 +81,14 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
         `${loci.volume.label || 'Volume'}`,
         `${segmentCount === 1 ? `Segment ${firstSegment}` : `${segmentCount} Segments`}`,
       ].join(' | ');
-    case 'particle-loci':
-      return [loci.particles.label || 'Particles', Particle.getLabel(loci)].join(' | ');
+    case 'particle-loci': {
+      // The particle (its own words: "Particle 165 · tomo 1 · class 2"), its list beneath, small; plain text joined as
+      // the volumes' labels are
+      const particle = Particle.getLabel(loci);
+      const list = loci.particles.label || 'Particles';
+      if (options.htmlStyling === false) return `${particle} | ${list}`;
+      return `<b>${escapeHtml(particle)}</b></br><small>${escapeHtml(list)}</small>`;
+    }
   }
 }
 

@@ -58,4 +58,18 @@ describe('the status column', () => {
     (host.querySelector('button[aria-label="Dismiss"]') as HTMLButtonElement).click();
     expect(line()).toBeNull();
   });
+
+  it('opens the log at the problems from an error, at everything from another message', () => {
+    const status = new NotificationsManager();
+    const opened = vi.fn();
+    const host = mount(() => <StatusLine status={status} onOpenLog={opened} />);
+    status.post('volume streaming failed', 'error');
+    (host.querySelector('button[title="Show the problems in the log"]') as HTMLButtonElement).click();
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(status.logFilter.value).toBe('problems');
+    status.post('loaded 1iep', 'info');
+    (host.querySelector('button[title="Show the log"]') as HTMLButtonElement).click();
+    expect(opened).toHaveBeenCalledTimes(2);
+    expect(status.logFilter.value).toBe('all');
+  });
 });

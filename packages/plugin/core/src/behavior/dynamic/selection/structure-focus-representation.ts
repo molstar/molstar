@@ -225,7 +225,8 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
   }
 
   private currentSource: StructureElement.Loci | undefined = void 0;
-  private async focus(sourceLoci: StructureElement.Loci) {
+  /** `force`: commit even when the residues are those focused already (the params of the selections changed) */
+  private async focus(sourceLoci: StructureElement.Loci, force = false) {
     const parent = this.plugin.helpers.substructureParent.get(sourceLoci.structure);
     if (!parent || !parent.obj) return;
 
@@ -250,6 +251,20 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
     }
 
     const { state, builder, refs } = this.ensureShape(parent);
+
+    // The same residues (a trajectory frame: the focus manager remaps its loci to the new structure): the selections
+    // below the structure followed it in the update that moved it. A commit would build a new surroundings
+    // expression, recreate that selection and update the three representations again, after that update.
+    const targetCell = state.cells.get(refs[StructureFocusRepresentationTags.TargetSel]!);
+    const targetBundle = targetCell?.transform.params?.bundle as StructureElement.Bundle | undefined;
+    if (
+      !force &&
+      builder.editInfo.count === 0 &&
+      targetBundle &&
+      StructureElement.Bundle.areEqual(targetBundle, residueBundle)
+    ) {
+      return;
+    }
 
     builder
       .to(refs[StructureFocusRepresentationTags.TargetSel]!)
@@ -280,7 +295,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 
     if (old.excludeTargetFromSurroundings !== params.excludeTargetFromSurroundings) {
       if (this.currentSource) {
-        this.focus(this.currentSource);
+        this.focus(this.currentSource, true);
       }
       return true;
     }
@@ -329,7 +344,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 
     if (params.expandRadius !== old.expandRadius) {
       if (this.currentSource) {
-        this.focus(this.currentSource);
+        this.focus(this.currentSource, true);
       }
       return true;
     }

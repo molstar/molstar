@@ -424,7 +424,12 @@ export class PluginContext {
       this.animationLoop.start();
       (this.helpers.viewportScreenshot as ViewportScreenshotHelper) = new ViewportScreenshotHelper(this);
 
-      this.subs.push(this.canvas3d!.interaction.click.subscribe((e) => this.behaviors.interaction.click.next(e)));
+      this.subs.push(
+        this.canvas3d!.interaction.click.subscribe((e) => {
+          // a tool's own representations' clicks are its own (`InteractivityManager.clickOwners`)
+          if (!this.managers.interactivity?.clickOwners.owns(e.current.repr)) this.behaviors.interaction.click.next(e);
+        }),
+      );
       this.subs.push(this.canvas3d!.interaction.drag.subscribe((e) => this.behaviors.interaction.drag.next(e)));
       this.subs.push(this.canvas3d!.interaction.hover.subscribe((e) => this.behaviors.interaction.hover.next(e)));
       this.subs.push(

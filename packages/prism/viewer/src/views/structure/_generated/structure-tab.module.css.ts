@@ -44,6 +44,8 @@ export const classes = {
   'renameTitle': 'msp-viewer-structure-tab-renameTitle',
   'search': 'msp-viewer-structure-tab-search',
   'searchButton': 'msp-viewer-structure-tab-searchButton',
+  'searchChip': 'msp-viewer-structure-tab-searchChip',
+  'searchChipRemove': 'msp-viewer-structure-tab-searchChipRemove',
   'tab': 'msp-viewer-structure-tab-tab',
   'tree': 'msp-viewer-structure-tab-tree',
 } as const;
@@ -238,8 +240,41 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 }
 
 .msp-viewer-structure-tab-search {
+  align-items: center;
+  gap: var(--msp-space-2);
   padding: 0 var(--msp-space-2);
+  display: flex;
+
+  & > :last-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.msp-viewer-structure-tab-searchChip {
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding: 0 0 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-accent-muted);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  flex: none;
+  display: inline-flex;
+}
+
+.msp-viewer-structure-tab-searchChipRemove {
+  border-radius: var(--msp-radius-md);
+  width: 20px;
+  height: 20px;
+  color: inherit;
+  place-items: center;
   display: grid;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
 .msp-viewer-structure-tab-optionsButton {
@@ -313,19 +348,32 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 }
 
 .msp-viewer-structure-tab-childChevron {
-  color: var(--msp-color-text-subtle);
-  flex: none;
-}
-
-.msp-viewer-structure-tab-childEye {
-  width: 28px;
+  width: 24px;
   height: 28px;
   margin-right: var(--msp-space-1);
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-muted);
+  color: var(--msp-color-text-subtle);
   flex: none;
   place-items: center;
   display: grid;
+}
+
+.msp-viewer-structure-tab-childEye {
+  border-radius: var(--msp-radius-sm);
+  width: 28px;
+  height: 28px;
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  .msp-viewer-structure-tab-child:hover &, .msp-viewer-structure-tab-child:focus-within &, &[aria-expanded="true"], .msp-viewer-structure-tab-childHidden & {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--msp-color-text);

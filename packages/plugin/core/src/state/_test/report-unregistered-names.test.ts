@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { StateTransformer } from '@molstar/core/state';
 import { PluginState } from '@molstar/plugin/state';
 import { StructureRepresentation3D } from '../transforms/structure/representation.js';
 import { VolumeRepresentation3D } from '../transforms/volume/representation.js';
@@ -123,5 +124,28 @@ describe('PluginState.reportUnregisteredNames', () => {
       'size-themes',
     ]);
     expect(warnings.length).toBe(3);
+  });
+});
+
+describe('the checks of a snapshot with a transition', () => {
+  const frames = (n: number, color = 'chain-id') =>
+    Array.from({ length: n }, () => ({ durationInMs: 10, data: tree(node(Structure, 'a', { color })) }));
+
+  it('read each tree once, however often the snapshot is applied', () => {
+    const snapshot: PluginState.Snapshot = { id: 'id' as any, data: tree(), transition: { frames: frames(50) } };
+    const has = vi.spyOn(StateTransformer, 'has');
+    PluginState.validateSnapshotTransformers(snapshot);
+    const first = has.mock.calls.length;
+    PluginState.validateSnapshotTransformers(snapshot);
+    PluginState.validateSnapshotTransformers({ ...snapshot });
+    // the second and third read the transformers the first one found: one here
+    expect(has.mock.calls.length - first).toBe(2);
+  });
+
+  it('warn for the same names on every call', () => {
+    const snapshot = { transition: { frames: [...frames(3), ...frames(2, 'not-a-theme')] } };
+    const first = report(snapshot);
+    expect(first).toHaveLength(1);
+    expect(report(snapshot)).toEqual(first);
   });
 });

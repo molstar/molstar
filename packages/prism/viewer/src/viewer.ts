@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { AnnotationsApi } from './api/annotations.js';
 import { createQueryLanguages } from './targets/languages.js';
 import type { ThreadRows } from '@molstar/ai';
@@ -141,7 +142,14 @@ export interface PrismViewer {
   readonly camera: ViewerCamera;
   readonly state: {
     readonly ready: ReadonlyState<boolean>;
+    /** The plugin has been working for a while (its `isBusy`, debounced: a status that does not flicker). */
     readonly busy: ReadonlyState<boolean>;
+    /**
+     * Something is in progress now: an operation (from its start, a lazy extension's load and a file's download
+     * included), an extension loading, or the plugin updating its state. Not debounced: what the empty canvas waits on
+     * before it shows the splash, so a slow load never shows it.
+     */
+    readonly working: ReadonlyState<boolean>;
     /** Nothing loaded. */
     readonly empty: ReadonlyState<boolean>;
   };
@@ -402,6 +410,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const restore = spec.persist?.restore
       ? createLightRestore(viewScope, plugin, history, spec.persist.restore, {
           notify: (message) => notifications.post(message, 'info'),
+          // late-bound: the port is wired once the extensions are added (below)
+          ensureFor: (need) => extensionPort.ensureFor(need),
         })
       : undefined;
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
@@ -533,7 +543,15 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       // Read-only (api.md §6): the marks' writers are the API's (`highlight.mark`).
       sources: publicSources(sources),
       camera: viewerCamera.camera,
-      state: { ready: ready.asReadonly, busy: sources.busy, empty },
+      state: {
+        ready: ready.asReadonly,
+        busy: sources.busy,
+        working: derive(
+          [sources.updating, host.runner.running, managers.notifications.tasks],
+          (updating, running, tasks) => updating || running.length > 0 || tasks.length > 0,
+        ),
+        empty,
+      },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,
       record,

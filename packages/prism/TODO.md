@@ -66,8 +66,8 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - `project()` and `selectionItems()` in `viewer/src/targets/evaluate.ts` read atomic-only properties (unused).
 - The drop overlay and Home read `sources.formats` once, when the shell mounts (`viewer/src/ui/shell.tsx`,
   `viewer/src/features/home/shell.tsx`).
-- Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`), kinds for shapes and particle lists; `node` on the
-  structure-scoped operations ([nodes.md §5](viewer/_spec/nodes.md)).
+- Node selectors: `:has(...)`, positions (`:first`, `:nth(n)`); `node` on the structure-scoped operations
+  ([nodes.md §5](viewer/_spec/nodes.md)).
 - Themes and presets that fetch as they apply carry no addresses (only known services today;
   `viewer/src/agent/policies.ts`); the pLDDT track reads B-factors where the 3D theme reads ModelCIF scores
   (`extensions/model-archive/src/prism-viewer.ts`).
@@ -116,6 +116,23 @@ section); an entry leaves when it is done (its spec section says so then). The s
   event from `PluginContext.register`; what changed in `cell.stateUpdated`; `layout.setProps` and every
   `canvas3d.setProps` path emitting; running tasks as a behavior with one id space
   (`plugin/core/src/util/task-manager.ts`); stable string ids beside `PluginCommands`.
+- **Clipping** ([clipping.md](viewer/_spec/clipping.md)), still open:
+  - tests of the gizmo controller (the active cut following renumbering, the cancel paths: Esc, a change under a drag, a
+    failed commit), and a session saved and opened with drawings;
+  - the component manager taking global clip objects away shifts the later ones (`replaceOwned`): their keep-whole
+    layers are not remapped then;
+  - stories for a volume cut and a clip set from code; a mesoscale structure's long Cuts through list measured;
+  - an untagged cut from code is tagged when drawn, so code that set it no longer finds it by its values.
+- **Gizmo handles behind what is drawn cannot be grabbed** (`@molstar/graphics/util/gizmo`): picking takes the nearest
+  object, so a ring or an arrow inside a structure is hidden from the pointer by it; 3D tools draw handles on top. Do it
+  as render layers, not an "on top" flag: a representation's layer (its state), the layers drawn in order, each with its
+  own depth (cleared, or kept), picked from the top layer down. Handles are one layer above the scene; the same takes
+  later effects (an overlay, a highlight layer, a layer with its own post-processing). Canvas3D's helper scenes (the
+  corner axes, `helper.handle`) are the model. A first layer can grow out of `HandleHelper`'s scene
+  (`canvas3d/helper/handle-helper.ts`: drawn after the scene's depth is detached, picked after the scene, its own loci):
+  any number of render objects in it instead of its one built-in handle, `VisualSet` adding gizmos there, and the pick
+  pass's depth cleared before it if a handle behind a structure still loses the pick. A renderer change: Alex, after the
+  WebGPU backend lands.
 
 ## Missing: prism-ui
 
@@ -165,7 +182,10 @@ section); an entry leaves when it is done (its spec section says so then). The s
 The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bulk operations). Open, by reach:
 
 - **Mol\*'s particle hierarchy** (`managers.particles.hierarchy.current`, `packages/plugin`) is rebuilt over the whole
-  state tree on its first read after a change (about 82 ms over 64 loads).
+  state tree on its first read after a change (about 82 ms over 64 loads); a Simularium frame step reads it (1.4 ms with
+  20 structures, 2026-10-21).
+- **Particles in `PluginContext`**: `representation.particles` and `managers.particles` are built whatever the registry
+  composes (their code imported); they move into `ParticlesRegistry` with the PluginContext rewrite.
 - **`representation.set` across many components** (an `api.group` of one call per component) is one commit per
   component; only the updates inside one call are batched.
 - **FIFO retirement in a projection** (`ui/src/reactive/transaction.ts`): retiring K in order refolds what is left each

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -33,42 +34,12 @@ import {
   readParticleOperators,
 } from './operators.js';
 import type { ModelFormat } from '../format.js';
-import { binaryCifHasColumn, getBinaryCifHeader } from '@molstar/io/common/binary-cif';
-import type { StringLike } from '@molstar/core/util/string-like';
-import type { FileNameInfo } from '@molstar/core/util/file-info';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 
 export type MmcifVariant = 'auto' | 'cellpack' | 'petworld' | 'standard';
 
-const PETWORLD_CATEGORY = '_pdbx_struct_assembly_gen';
-const PETWORLD_COLUMN = 'PDB_model_num';
-const PETWORLD_FIELD = `${PETWORLD_CATEGORY}.${PETWORLD_COLUMN}`;
-
-/**
- * Content-sniff a `.cif`/`.bcif` file (before full parsing) to detect whether it looks like
- * a CellPack or PetWorld mmCIF particle assembly, for use as a `DataFormatProvider.isApplicable`.
- * Returns `false` for ordinary/standard mmCIF structure files so those keep loading as
- * regular trajectories by default.
- */
-export function looksLikeMmcifParticles(info: FileNameInfo, data: StringLike | Uint8Array): boolean {
-  if (info.ext === 'bcif') {
-    try {
-      const bcifHeader = getBinaryCifHeader(data as Uint8Array);
-      const header = bcifHeader.dataBlocks[0]?.header;
-      if (header && header.toLowerCase().includes('cellpack')) return true;
-      if (binaryCifHasColumn(bcifHeader, PETWORLD_CATEGORY, PETWORLD_COLUMN)) return true;
-    } catch (e) {
-      console.error(e);
-    }
-    return false;
-  } else if (info.ext === 'cif') {
-    const str = data as StringLike;
-    const header = str.substring(0, 400);
-    if (header.toLowerCase().includes('cellpack')) return true;
-    if (str.includes(PETWORLD_FIELD)) return true;
-  }
-  return false;
-}
+// The content sniff lives apart (mmcif-sniff.ts): a host can ask it without loading the particle code.
+export { looksLikeMmcifParticles } from './mmcif-sniff.js';
 
 export interface MmcifAssemblyParticleListOptions {
   /** Assembly identifier from `_pdbx_struct_assembly.id`. */
@@ -567,7 +538,7 @@ async function buildCellpackStandardParticleList(
         const entity = entityInfo.get(entities[index])?.name;
         const chain = chainMapping.get(targets[index]);
         const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
-        return `#${index + 1} | ${entity} | chain ${chain} | ops ${opCombo}`;
+        return `Particle ${index + 1} · ${entity} · chain ${chain} · ops ${opCombo}`;
       },
       sourceData: MmcifParticleFormat.create(cifFile),
       customProperties: new CustomProperties(),
@@ -747,7 +718,7 @@ async function buildPetworldParticleList(
       getParticleLabel: (index: number) => {
         const entity = entityInfo.get(entities[index])!.name;
         const opCombo = formatOperatorCombination(operatorIds, combinations[labelEntry[index]], labelCombo[index]);
-        return `#${index + 1} | ${entity} | ops ${opCombo}`;
+        return `Particle ${index + 1} · ${entity} · ops ${opCombo}`;
       },
       sourceData: MmcifParticleFormat.create(cifFile),
       customProperties: new CustomProperties(),

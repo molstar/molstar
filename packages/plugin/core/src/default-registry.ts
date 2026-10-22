@@ -34,15 +34,10 @@ import { Dot } from '@molstar/plugin/registry/volume/dot';
 import { Isosurface } from '@molstar/plugin/registry/volume/isosurface';
 import { Segment } from '@molstar/plugin/registry/volume/segment';
 import { Slice } from '@molstar/plugin/registry/volume/slice';
-import { ParticleSpacefill } from '@molstar/plugin/registry/particles/spacefill';
-import { ParticleOrientation } from '@molstar/plugin/registry/particles/orientation';
-import { ParticleFibers } from '@molstar/plugin/registry/particles/fibers';
-import { ParticleTarget } from '@molstar/plugin/registry/particles/target';
 import { BuiltInVolumeFormats } from '@molstar/plugin/state/formats/volume/catalog';
 import { BuiltInTopologyFormats } from '@molstar/plugin/state/formats/topology/catalog';
 import { BuiltInCoordinatesFormats } from '@molstar/plugin/state/formats/coordinates/catalog';
 import { BuiltInShapeFormats } from '@molstar/plugin/state/formats/shape/catalog';
-import { BuiltInParticlesFormats } from '@molstar/plugin/state/formats/particles/catalog';
 import { BuiltInTrajectoryFormats } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { DefaultHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/default';
 import { AllModelsHierarchyPresetEntry } from '@molstar/plugin/state/builder/structure/hierarchy-presets/all-models';
@@ -70,7 +65,6 @@ import { ExternalColorThemes } from '@molstar/plugin/themes/external';
 import { AnimateAssemblyUnwind } from '@molstar/plugin/state/animation/built-in/assembly-unwind';
 import { AnimateCameraSpin } from '@molstar/plugin/state/animation/built-in/camera-spin';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
-import { AnimateParticleTrajectory } from '@molstar/plugin/state/animation/built-in/particles';
 import {
   AnimateStateSnapshotTransition,
   AnimateStateSnapshots,
@@ -118,15 +112,6 @@ import { VolumeFromCube } from '@molstar/plugin/state/formats/volume/cube';
 import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
-import { ParticleListFromRelionStar } from '@molstar/plugin/state/formats/particles/star';
-import { ParticleListFromDynamoTbl } from '@molstar/plugin/state/formats/particles/tbl';
-import { ParticleListFromCryoEtDataPortalNdjson } from '@molstar/plugin/state/formats/particles/ndjson';
-import { ParticleListFromArtiatomiEm } from '@molstar/plugin/state/formats/particles/em';
-import { ParticleListFromMmcifAssembly } from '@molstar/plugin/state/formats/particles/mmcif-assembly';
-import { ParticleTrajectoryFromSimularium } from '@molstar/plugin/state/formats/particles/simularium';
-import { ParticleListFromTrajectory, ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
-import { ParticleListUnitcell3D } from '@molstar/plugin/state/transforms/particles/unitcell';
-import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import {
   BoxifyVolumeStreaming,
   CreateVolumeStreamingBehavior,
@@ -146,17 +131,24 @@ import {
  * for example `DefaultRegistry.filter((e) => e !== DefaultAnimations)`.
  */
 
+// The themes made for particles come with `ParticlesRegistry` (particles-registry.ts), not here
+const isParticleTheme = (p: { name: string }) => p.name.startsWith('particle-');
 const ColorThemes = [
-  ...Object.values(BuiltInColorThemes),
+  ...Object.values(BuiltInColorThemes).filter((p) => !isParticleTheme(p)),
   ...(ExternalColorThemes.structure?.themes?.color ?? []),
 ] as readonly ColorTheme.Provider<any, any>[];
-const SizeThemes = Object.values(BuiltInSizeThemes) as readonly SizeTheme.Provider<any, any>[];
+const SizeThemes = Object.values(BuiltInSizeThemes).filter((p) => !isParticleTheme(p)) as readonly SizeTheme.Provider<
+  any,
+  any
+>[];
 
-/** Every built-in color and size theme in all three scopes, plus the external structure and volume color themes. */
+/**
+ * The built-in color and size themes in the structure and volume scopes, plus the external structure and volume color
+ * themes. Particles are not in the default registry: `ParticlesRegistry` brings their scope's themes.
+ */
 export const DefaultThemes: PluginRegistryEntry = {
   structure: { themes: { color: ColorThemes, size: SizeThemes } },
   volume: { themes: { color: ColorThemes, size: SizeThemes } },
-  particles: { themes: { color: ColorThemes, size: SizeThemes } },
 };
 
 /*
@@ -191,14 +183,6 @@ export const DefaultStructureRepresentations: PluginRegistryEntry = {
 export const DefaultVolumeRepresentations: PluginRegistryEntry = {
   volume: {
     representations: [DirectVolume, Dot, Isosurface, Segment, Slice].flatMap((e) => e.volume!.representations!),
-  },
-};
-
-export const DefaultParticleRepresentations: PluginRegistryEntry = {
-  particles: {
-    representations: [ParticleSpacefill, ParticleOrientation, ParticleFibers, ParticleTarget].flatMap(
-      (e) => e.particles!.representations!,
-    ),
   },
 };
 
@@ -257,17 +241,6 @@ export const DefaultActions: PluginRegistryEntry = {
     VolumeRepresentation3D,
     VolumeTransform,
     VolumeInstances,
-
-    ParticleListFromRelionStar,
-    ParticleListFromDynamoTbl,
-    ParticleListFromCryoEtDataPortalNdjson,
-    ParticleListFromArtiatomiEm,
-    ParticleListFromMmcifAssembly,
-    ParticleTrajectoryFromSimularium,
-    ParticleListFromTrajectory,
-    ParticleListWithTargets,
-    ParticleListUnitcell3D,
-    ParticlesRepresentation3D,
   ],
 };
 
@@ -277,7 +250,6 @@ export const DefaultFormats: PluginRegistryEntry = {
     ...BuiltInTopologyFormats,
     ...BuiltInCoordinatesFormats,
     ...BuiltInShapeFormats,
-    ...BuiltInParticlesFormats,
     ...BuiltInTrajectoryFormats,
   ],
 };
@@ -338,7 +310,6 @@ export const DefaultDragAndDrop: PluginRegistryEntry = {
 export const DefaultAnimations: PluginRegistryEntry = {
   animations: [
     AnimateModelIndex,
-    AnimateParticleTrajectory,
     AnimateCameraSpin,
     AnimateCameraRock,
     AnimateStateSnapshots,
@@ -363,7 +334,6 @@ export const DefaultRegistry: readonly PluginRegistryEntry[] = [
   DefaultThemes,
   DefaultStructureRepresentations,
   DefaultVolumeRepresentations,
-  DefaultParticleRepresentations,
   DefaultActions, // before DefaultFormats: format entries carry actions, which keep the 5.x registration order
   DefaultFormats,
   DefaultBonds,

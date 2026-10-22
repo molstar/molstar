@@ -101,7 +101,10 @@ export class LoadApi extends ApiArea {
       const warnings: string[] = [];
       if (data.length) {
         // A lazy extension that reads one of these formats loads first (viewer-spec.md §3).
-        await ctx.extensions.ensureFor({ fileExtensions: data.map((f) => extensionOf(f.name)) });
+        await ctx.extensions.ensureFor({
+          fileExtensions: data.map((f) => extensionOf(f.name)),
+          files: data.map((f) => ({ name: f.name, content: async () => new Uint8Array(await f.arrayBuffer()) })),
+        });
         // One data transaction for all of them: the viewer's sources (the scene, the structures' lists, the commands)
         // sync once at its end, not once a file over every structure loaded so far (files × structures).
         await ctx.plugin.dataTransaction(async () => {

@@ -8,9 +8,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mapState } from '@molstar/prism-ui/core';
+import { mapState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
+import { derive } from '@molstar/prism-ui/reactive/state';
 import type { ViewerApi } from '../api/area.js';
-import type { SelectionModel, SelectionPart, SelectionSummaryModel } from '../model/selection.js';
+import type { SelectionAction, SelectionModel, SelectionPart, SelectionSummaryModel } from '../model/selection.js';
 import type { InteractionSources } from '../sources/interaction.js';
 import type { PickedStructure } from '../sources/selection.js';
 import { sameItems } from '../sources/state.js';
@@ -44,30 +45,77 @@ export function modeSwitchProps(interaction: InteractionSources, api: ViewerApi)
   };
 }
 
-/** The selection bar: quick actions, and the Selection tab for the rest (`openPanel`). */
+/**
+ * The selection bar's menu: Focus, Show in structure tree (`showInTree`: the Structure panel with its tree filtered by
+ * the selection), Make a component, the extensions' rows (`extra`, by order), and the Selection tab for the rest
+ * (`openPanel`).
+ */
 export function selectionModel(
   interaction: InteractionSources,
   api: ViewerApi,
-  openPanel?: () => void,
+  o: {
+    openPanel?: () => void;
+    showInTree?: () => void;
+    extra?: ReadonlyState<readonly SelectionAction[]>;
+  } = {},
 ): SelectionModel {
+  const own: SelectionAction[] = [
+    {
+      id: 'focus',
+      label: 'Focus',
+      hint: 'Bring the selection into view',
+      icon: 'focus',
+      order: 0,
+      run: () => void api.focus.set({ target: 'selection' }),
+    },
+    ...(o.showInTree
+      ? [
+          {
+            id: 'show-in-tree',
+            label: 'Show in structure tree',
+            hint: 'Only the rows that hold it',
+            icon: 'list-tree' as const,
+            order: 1,
+            run: o.showInTree,
+          },
+        ]
+      : []),
+    // Without the structure feature there is no component area to add to (api.md §6).
+    ...(api.area('component')
+      ? [
+          {
+            id: 'component',
+            label: 'Make a component',
+            hint: 'A copy of it, as its own component',
+            icon: 'layers' as const,
+            order: 2,
+            run: () => void api.component.add({ target: 'selection', label: 'Selection' }, { copy: true }),
+          },
+        ]
+      : []),
+    ...(o.openPanel
+      ? [
+          {
+            id: 'more',
+            label: 'More in the Selection panel…',
+            hint: 'Color, measure, superpose',
+            icon: 'mouse-pointer-click' as const,
+            order: 1000,
+            run: o.openPanel,
+          },
+        ]
+      : []),
+  ];
+  const byOrder = (a: SelectionAction, b: SelectionAction) => (a.order ?? 500) - (b.order ?? 500);
+  const actions = o.extra
+    ? derive(o.extra, (extra) => [...own, ...extra].sort(byOrder))
+    : observableState<readonly SelectionAction[]>(own).asReadonly;
   return {
     summary: interaction.selection,
-    actions: [
-      { id: 'focus', label: 'Focus', icon: 'focus', run: () => void api.focus.set({ target: 'selection' }) },
-      // Without the structure feature there is no component area to add to (api.md §6).
-      ...(api.area('component')
-        ? [
-            {
-              id: 'component',
-              label: 'Component',
-              icon: 'layers' as const,
-              run: () => void api.component.add({ target: 'selection', label: 'Selection' }, { copy: true }),
-            },
-          ]
-        : []),
-      ...(openPanel ? [{ id: 'more', label: 'More…', icon: 'mouse-pointer-click' as const, run: openPanel }] : []),
-    ],
+    actions,
     clear: () => void api.select.clear(),
+    focused: mapState(interaction.focus, (f) => f !== undefined, Object.is),
+    unfocus: () => void api.focus.clear(),
   };
 }
 

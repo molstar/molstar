@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
@@ -59,14 +60,16 @@ const WiggleStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
     const newWiggle = Wiggle.ofScript(newParams.layers, newStructure);
-    if (Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = a.data.repr.geometryVersion;
+    info.structure = newStructure;
     b.data.state.wiggle = newWiggle;
     b.data.repr = a.data.repr;
     b.label = `Wiggle (${newWiggle.layers.length} Layers)`;
@@ -121,14 +124,20 @@ const WiggleStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
   update({ a, b, newParams, oldParams }) {
     const info = b.data.info as { structure: Structure; geometryVersion: number };
     const newStructure = a.data.sourceData;
-    if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structureChanged = newStructure !== info.structure;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newWiggle = Wiggle.ofBundle(newParams.layers, newStructure);
-    if (Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 
     info.geometryVersion = a.data.repr.geometryVersion;
+    info.structure = newStructure;
     b.data.state.wiggle = newWiggle;
     b.data.repr = a.data.repr;
     b.label = `Wiggle (${newWiggle.layers.length} Layers)`;

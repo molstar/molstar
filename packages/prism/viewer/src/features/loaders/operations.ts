@@ -427,6 +427,19 @@ function structureOptionsProblem(provider: DataFormatProvider | undefined, optio
  * The input as a data cell of the plugin's state (a ghost: the parsed nodes are what the scene shows): a download, a
  * file read, or raw data. A download is what `load.url`'s identity reads (`liveDownloads`).
  */
+/** The format chosen again with the downloaded content (the format asked for, or the one by the name, otherwise) */
+async function withContent(
+  ctx: ApiContext,
+  choice: FormatChoice,
+  o: { format: string; binary: boolean | undefined },
+  name: string,
+  content: unknown,
+): Promise<FormatChoice> {
+  if (typeof content !== 'string' && !(content instanceof Uint8Array)) return choice;
+  const again = await chooseFormat(ctx, { format: o.format, name, binary: choice.binary, content });
+  return ApiResult.isFailure(again) ? choice : again;
+}
+
 async function dataCellOf(ctx: ApiContext, input: Input, binary: boolean, label: string) {
   const plugin = ctx.plugin;
   const ghost = { state: { isGhost: true } };
@@ -467,8 +480,9 @@ async function loadContent(
   // Asked again in its turn: one queued behind the same load finds it loaded (`load.entry`).
   const loaded = input.kind === 'url' && !ctx.copy ? urlLoaded(input.url, ctx) : undefined;
   if (loaded) return ApiResult.already(loaded);
-  // Data is binary when it is bytes (or base64); a label names it (its extension may tell the format).
-  const label = input.kind === 'url' ? '' : o.label.trim();
+  // Data is binary when it is bytes (or base64); a label names it (its extension may tell the format). A download is
+  // named by its file (what a particle list or a map is called after), not its whole address.
+  const label = input.kind === 'url' ? input.name : o.label.trim();
   const name = label || input.name;
   const choice = await chooseFormat(ctx, {
     format: o.format,
@@ -490,7 +504,11 @@ async function loadContent(
       plugin.dataTransaction(
         async () => {
           const cell = await dataCellOf(ctx, input, choice.binary, label);
-          const provider = providerFor(ctx, choice, name, objOf(cell, what));
+          const obj = objOf(cell, what);
+          // A download is told by its content too once it is here: a lazy feature that claims it by a sniff (an
+          // mmCIF holding particles) loads, and the format is chosen again with it (viewer-spec.md §3).
+          const chosen = input.kind === 'url' ? await withContent(ctx, choice, o, name, obj.data) : choice;
+          const provider = providerFor(ctx, chosen, name, obj);
           if (!provider) throw new Error(`could not tell the format of ${what}`);
           const problem = structureOptionsProblem(provider, options);
           if (problem) throw new Error(problem.message);

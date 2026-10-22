@@ -53,21 +53,23 @@ snapshots.tab.snapshots
 core.toolbar.reset              (the core's own parts have the owner core)
 ```
 
-The kinds are `tab`, `section`, `row`, `toolbar`, `overlay`, `command`, `tool`, `skill`, `sequence`, `api` and
-`settings`. Operation ids and command ids are their own: `<area>.<verb>`. A duplicate id is an error at creation, and
-the message names both owners.
+The kinds are `tab`, `section`, `row`, `selection-action`, `node-action`, `toolbar`, `overlay`, `command`, `tool`,
+`skill`, `sequence`, `api` and `settings`. Operation ids and command ids are their own: `<area>.<verb>`. A duplicate id
+is an error at creation, and the message names both owners.
 
 ### Views
 
 `ui` returns any of these. Each id is a part id with the matching kind.
 
-| Field      | What it is                                                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `sections` | A section `{ id, slot, title, icon?, order?, keywords?, render }` in one of the viewer's slots.                                       |
-| `tabs`     | A tab `{ id, title, icon, dock?, order?, render }` for a large view of its own.                                                       |
-| `overlays` | A card over the canvas `{ id, title, render }`, opened by a toolbar item or a command.                                                |
-| `toolbar`  | An item `{ id, icon, title, command?, overlay?, group?, order?, place?, visible? }` that runs a command or opens one of its overlays. |
-| `rows`     | Rows in the Structure tab. They are in the types and the viewer does not show them yet.                                               |
+| Field              | What it is                                                                                                                                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sections`         | A section `{ id, slot, title, icon?, order?, keywords?, render }` in one of the viewer's slots.                                                                                                                                                     |
+| `tabs`             | A tab `{ id, title, icon, dock?, order?, render }` for a large view of its own.                                                                                                                                                                     |
+| `overlays`         | A card over the canvas `{ id, title, render }`, opened by a toolbar item or a command.                                                                                                                                                              |
+| `toolbar`          | An item `{ id, icon, title, command?, overlay?, group?, order?, place?, visible? }` that runs a command or opens one of its overlays.                                                                                                               |
+| `rows`             | Rows in the Structure tab's tree `{ id, when(node), whenChanged?, render }`, under the nodes `when` holds for (a structure's assembly symmetry).                                                                                                    |
+| `selectionActions` | Rows of the selection bar's menu `{ id, title, hint?, icon?, order?, command?, run? }`: what to do with the selection, run as a command or by `run`.                                                                                                |
+| `nodeActions`      | Rows of the scene tree's node menus, which the inspector shows too, `{ id, title, icon?, order?, kinds, when?(node), run(node) }`: on the node kinds in `kinds` that pass `when`, after the node's own rows and before Remove. `run` gets the node. |
 
 The slots are a closed list that the viewer owns. An extension cannot add rail buttons or cards of its own beyond these.
 

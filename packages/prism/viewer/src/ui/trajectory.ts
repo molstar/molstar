@@ -14,7 +14,7 @@ import type { ViewerApi } from '../api/area.js';
 import { trajectorySourceOf } from '../sources/trajectory.js';
 
 // The canvas' trajectory bar's model (prism-ui's `TrajectoryControlsModel`) over the shared trajectory source and the
-// person's API. It follows the structure that plays (paused, the one that played last; else the focused one's, else the
+// person's API. It follows what plays (a structure's frames, or a particle trajectory's: `particles.*`) (paused, the one that played last; else the focused one's, else the
 // first with several models) and acts through `trajectory.frame`, `trajectory.play` and `trajectory.stop`, never the
 // plugin. Where it shows is the shell's (shell.tsx): a compact chip while frames play and that structure's row is on
 // screen in the Structure panel, else the full bar, playing or not.
@@ -48,7 +48,8 @@ export function createTrajectoryControls(
         const index = wanted;
         wanted = undefined;
         const shown = followed.value;
-        if (shown) await api.trajectory.frame({ structure: shown.ref, index });
+        if (shown?.kind === 'particles') await api.run('particles.frame', { particles: shown.ref, index });
+        else if (shown) await api.trajectory.frame({ structure: shown.ref, index });
       }
     } finally {
       seeking = false;
@@ -66,7 +67,12 @@ export function createTrajectoryControls(
     },
     togglePlay() {
       const shown = followed.value;
-      void (source.playing.value ? api.trajectory.stop() : api.trajectory.play({ structure: shown?.ref ?? '' }));
+      // A particle trajectory's frames through the particles feature (`particles.*`, its animation), else a structure's
+      if (shown?.kind === 'particles') {
+        void (source.playing.value ? api.run('particles.stop') : api.run('particles.play', { particles: shown.ref }));
+      } else {
+        void (source.playing.value ? api.trajectory.stop() : api.trajectory.play({ structure: shown?.ref ?? '' }));
+      }
     },
   };
   const rowShown = derive([followed, source.rowsShown], (f, rows) => !!f && rows.has(f.ref));

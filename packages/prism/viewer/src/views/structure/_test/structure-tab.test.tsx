@@ -11,7 +11,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { flush } from '@molstar/prism-ui/dom/scope';
-import { mockScene } from '../../../testing/scene.js';
+import { type MockScenePreset, mockScene } from '../../../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { StructureTab } from '../structure-tab.js';
@@ -19,11 +19,12 @@ import { domView } from '@molstar/prism-ui/dom/view';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { SceneRow } from '../scene-row.js';
 import { SceneRowSlot } from '../scene-tree.js';
-import type { SceneInspection } from '../../../model/scene.js';
+import type { SceneInspection, SceneModel, SceneNode } from '../../../model/scene.js';
 import { shownInOrder } from '@molstar/prism-ui/testing/virtual-list';
 
-function mount() {
-  const scene = mockScene();
+function mount(preset?: MockScenePreset, withScene?: (scene: SceneModel) => SceneModel) {
+  const base = mockScene(preset ? { preset } : {});
+  const scene = withScene ? withScene(base) : base;
   const container = document.createElement('div');
   document.body.append(container);
   const dispose = render(() => <StructureTab shell={new ShellModel()} scene={scene} />, container);
@@ -50,6 +51,20 @@ describe('StructureTab', () => {
     expect(menu()).not.toBeNull();
     document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
     expect(menu()).toBeNull();
+  });
+
+  it("gives a component's representations in its inspector their row's ⋯ menu (Remove among it)", () => {
+    const { container, row } = mount();
+    row('Polymer').click();
+    const reprs = container.querySelector('[aria-label=Representations]')!;
+    const more = reprs.querySelector<HTMLButtonElement>('button[aria-haspopup=menu]')!;
+    expect(more).not.toBeNull();
+    more.click();
+    const menu = container.querySelector('[role=menu] [data-popover]');
+    expect(menu?.textContent).toContain('Remove');
+    expect(more.getAttribute('aria-expanded')).toBe('true');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(container.querySelector('[role=menu] [data-popover]')).toBeNull();
   });
 
   it('renders the scene as a tree; hidden nodes keep their eye; collapsing hides children', () => {
@@ -200,5 +215,46 @@ describe('StructureTab', () => {
     (polymer.querySelector('button[title=Hide]') as HTMLButtonElement).click();
     expect(row('Polymer').querySelector('button[title=Show]')).not.toBeNull();
     expect(scene.picked.value).toBeUndefined();
+  });
+
+  it("shows particle lists as the tree's own rows: their representations and unit cell under them", () => {
+    const { rows, dispose } = mount('particles');
+    const labels = rows().map((r) => r.querySelector('span')?.textContent);
+    expect(labels).toEqual(
+      expect.arrayContaining(['cryoet-ribosomes.ndjson', 'Spacefill', 'Orientation', 'Unit cell', 'small.simularium']),
+    );
+    dispose();
+  });
+
+  it('filtered by the selection: only the rows that hold it, a chip in the search; its × or Backspace shows all again', async () => {
+    const on = observableState(true);
+    const held = new Set(['Ligand', 'Ball & stick']);
+    const { rows, container, dispose } = mount(undefined, (scene) => ({
+      ...scene,
+      selectionFilter: {
+        on: on.asReadonly,
+        version: observableState(0).asReadonly,
+        set: (v: boolean) => on.set(v),
+        holds: (n: SceneNode) => held.has(n.label.value),
+      },
+    }));
+    const labels = () => rows().map((r) => r.querySelector('span')?.textContent);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(labels()).toContain('Ligand');
+    expect(labels()).not.toContain('Water');
+    const chip = () => container.querySelector('[aria-label="Show every row, not only those in the selection"]');
+    expect(chip()).not.toBeNull();
+
+    (chip() as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(on.value).toBe(false);
+    expect(labels()).toContain('Water');
+
+    on.set(true);
+    await new Promise((r) => setTimeout(r, 0));
+    const input = container.querySelector('input')!;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    expect(on.value).toBe(false);
+    dispose();
   });
 });

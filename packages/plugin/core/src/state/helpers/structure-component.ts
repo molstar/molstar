@@ -15,6 +15,7 @@ import {
   Queries,
   QueryContext,
   Model,
+  Unit,
 } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from './structure-query.js';
 import { PluginStateObject as SO } from '../objects.js';
@@ -189,15 +190,27 @@ export function updateStructureComponent(
       if (oldParams.type.params !== newParams.type.params) {
         return StateTransformer.UpdateResult.Recreate;
       }
-      if (!Structure.areEquivalent(a, cache.source)) {
+      // A static query reads topology and bonds, and a remapped unit keeps its bonds without dynamic bonds (unit.md
+      // §3): a trajectory frame (the same units and elements on another model's coordinates) remaps the component
+      // rather than running the query.
+      // (the remap keeps the units' operators: a frame that also moves the structure runs the query again; with
+      // bonds computed per frame, the "plus connected" queries follow them: run again too)
+      const equivalent = Structure.areEquivalent(a, cache.source);
+      const remappable =
+        !a.dynamicBonds && Structure.areHierarchiesEqual(a, cache.source) && areUnitOperatorsEqual(a, cache.source);
+      if (!equivalent && !remappable) {
         return StateTransformer.UpdateResult.Recreate;
       }
       // The same model, or none (an empty substructure): nothing to remap, but the label may have changed (below).
-      if (b.data.model === a.model || !b.data.model) break;
+      if (equivalent && (b.data.model === a.model || !b.data.model)) break;
+      // a new structure on the same model: nothing to remap it to
+      if (!b.data.model || b.data.model === a.model) return StateTransformer.UpdateResult.Recreate;
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
-      b.data = b.data.remapModel(a.model);
-      cache.isSource = false; // (a copy)
+      // onto the root `a` belongs to, remapped already: the components share it (structure.md §3)
+      b.data = cache.isSource ? a : b.data.remapModel(a.model, a.root);
+      cache.source = a;
+      cache.isSource = b.data === a;
       updated = true;
       break;
     }
@@ -255,4 +268,13 @@ export function updateStructureComponent(
   }
 
   return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
+}
+
+/** Whether each unit of `a` has the operator of the unit with its id in `b` */
+function areUnitOperatorsEqual(a: Structure, b: Structure) {
+  for (const u of a.units) {
+    const v = b.unitMap.get(u.id);
+    if (!v || !Unit.areOperatorsEqual(u, v)) return false;
+  }
+  return true;
 }

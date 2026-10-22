@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { getFileNameInfo } from '@molstar/core/util/file-info';
+import { looksLikeMmcifParticles } from '@molstar/model/formats/particles/mmcif-sniff';
 import type { LazyViewerExtension } from '../../spec.js';
 
 // The heavier features as lazy stubs (viewer-spec.md §3.1): each declares every part, operation and command
@@ -148,9 +150,90 @@ export const LazyRemoteStates: LazyViewerExtension = {
   load: async () => (await import('../remote-states/index.js')).RemoteStatesFeature,
 };
 
+/** Mol*'s particle transformers (`ParticlesRegistry`), by id: a session holding one loads the particles feature */
+const ParticleTransformers = [
+  'parse-artiatomi-em',
+  'particle-list-from-artiatomi-em',
+  'particle-list-from-mmcif-assembly',
+  'parse-cryoet-data-portal-ndjson',
+  'particle-list-from-cryoet-data-portal-ndjson',
+  'parse-simularium',
+  'particle-trajectory-from-simularium',
+  'particle-list-from-relion-star',
+  'parse-dynamo-tbl',
+  'particle-list-from-dynamo-tbl',
+  'particle-list-from-trajectory',
+  'particle-list-with-targets',
+  'particles-representation-3d',
+  'particle-list-unitcell-3d',
+].map((name) => `ms-plugin.${name}`);
+
+export const LazyParticles: LazyViewerExtension = {
+  id: 'particles',
+  title: 'Particles',
+  builtIn: true,
+  stub: {
+    parts: [],
+    operations: [
+      { id: 'particles.list', title: 'Describe the particles', read: true },
+      { id: 'particles.representation', title: 'Show particles as…' },
+      { id: 'particles.visibility', title: 'Show or hide particles' },
+      { id: 'particles.remove', title: 'Remove particles', approval: 'destructive' },
+      { id: 'particles.color', title: 'Color particles by…' },
+      { id: 'particles.focus', title: 'Focus the particles', history: false },
+      { id: 'particles.unit-cell', title: 'Show the particle unit cell' },
+      { id: 'particles.source', title: 'Set how particles are read' },
+      { id: 'particles.frame', title: 'Show a particle frame', history: false },
+      { id: 'particles.play', title: 'Play the particle frames', history: false, modules: ['canvas'] },
+      { id: 'particles.stop', title: 'Stop playing the particle frames', history: false },
+      {
+        id: 'particles.targets',
+        title: 'Set what the particles stand for',
+        approval: 'network',
+        addresses: ({ source }) => (/^https?:/i.test(String(source ?? '').trim()) ? [String(source).trim()] : []),
+      },
+    ],
+    commands: [
+      { id: 'particles.representation', title: 'Show particles as…', category: 'Particles', icon: 'layers' },
+      { id: 'particles.visibility', title: 'Show or hide particles', category: 'Particles', icon: 'eye' },
+      { id: 'particles.remove', title: 'Remove particles', category: 'Particles', icon: 'trash-2' },
+      { id: 'particles.color', title: 'Color particles by…', category: 'Particles', icon: 'palette' },
+      { id: 'particles.focus', title: 'Focus the particles', category: 'Particles', icon: 'focus' },
+      { id: 'particles.unit-cell', title: 'Show the particle unit cell', category: 'Particles', icon: 'box' },
+      { id: 'particles.targets', title: 'Set what the particles stand for…', category: 'Particles', icon: 'shapes' },
+      { id: 'particles.frame', title: 'Show a particle frame…', category: 'Particles', icon: 'trajectory' },
+      { id: 'particles.play', title: 'Play the particle frames', category: 'Particles', icon: 'play' },
+      { id: 'particles.stop', title: 'Stop playing the particle frames', category: 'Particles', icon: 'square' },
+    ],
+    owns: {
+      transformers: ParticleTransformers,
+      formats: [
+        'relion_star_particles',
+        'dynamo_tbl_particles',
+        'cryoet_ndjson_particles',
+        'artiatomi_em_particles',
+        'mmcif_particles',
+        'simularium_particles',
+      ],
+      fileExtensions: ['star', 'tbl', 'ndjson', 'em', 'simularium'],
+      // CellPack and PetWorld assemblies are mmCIF: claimed by their content, other mmCIF stays a structure
+      sniff: {
+        extensions: ['cif', 'bcif'],
+        test: (file, content) =>
+          looksLikeMmcifParticles(
+            getFileNameInfo(file.name),
+            file.ext === 'cif' && typeof content !== 'string' ? new TextDecoder().decode(content) : content,
+          ),
+      },
+    },
+  },
+  load: async () => (await import('../particles/index.js')).ParticlesFeature,
+};
+
 /** The lazy features, by id. */
 export const LazyFeatures = {
   superposition: LazySuperposition,
   'state-tree': LazyStateTree,
   'remote-states': LazyRemoteStates,
+  particles: LazyParticles,
 } as const;

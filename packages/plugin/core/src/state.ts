@@ -59,6 +59,68 @@ const StructureFromTrajectoryId = 'ms-plugin.structure-from-trajectory';
 /** How long a scrubbed transition (`setAnimationSnapshot`) rests before it emits `canvas3d.settingsUpdated`. */
 const SettingsUpdatedDebounceMs = 100;
 
+/** The transformer ids and the provider names (by scope and kind) that some trees use */
+interface UsedNames {
+  readonly transformers: ReadonlySet<string>;
+  readonly providers: ReadonlyArray<readonly [RepresentationScope, ProviderKind, string]>;
+  /** The bond providers the structure transforms name (bond-providers plan §4) */
+  readonly bondProviders: ReadonlySet<string>;
+}
+
+/**
+ * Names by tree, or by a transition's frames array: snapshots are values, so the checks read a story's thousands of
+ * frame trees once rather than on every apply of the snapshot.
+ */
+const usedNamesCache = new WeakMap<object, UsedNames>();
+
+function usedNames(key: object, trees: ReadonlyArray<State.Snapshot | undefined>): UsedNames {
+  const cached = usedNamesCache.get(key);
+  if (cached) return cached;
+  const transformers = new Set<string>();
+  const providers: [RepresentationScope, ProviderKind, string][] = [];
+  const bondProviders = new Set<string>();
+  const seen = new Set<string>();
+  const add = (scope: RepresentationScope, kind: ProviderKind, name: unknown) => {
+    if (typeof name !== 'string') return;
+    const k = `${scope}|${kind}|${name}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    providers.push([scope, kind, name]);
+  };
+  for (const tree of trees) {
+    for (const t of tree?.tree?.transforms ?? []) {
+      transformers.add(t.transformer);
+      const bonds =
+        t.transformer === StructureFromModelId
+          ? t.params?.type?.params?.bonds?.name
+          : t.transformer === StructureFromTrajectoryId
+            ? t.params?.bonds?.name
+            : undefined;
+      if (typeof bonds === 'string') bondProviders.add(bonds);
+      const scope = RepresentationTransformerScopes[t.transformer];
+      if (!scope || !t.params) continue;
+      add(scope, 'representation', t.params.type?.name);
+      add(scope, 'color theme', t.params.colorTheme?.name);
+      add(scope, 'size theme', t.params.sizeTheme?.name);
+    }
+  }
+  const names = { transformers, providers, bondProviders };
+  usedNamesCache.set(key, names);
+  return names;
+}
+
+const NoNames: UsedNames = { transformers: new Set(), providers: [], bondProviders: new Set() };
+const treeNames = (tree: State.Snapshot | undefined) => (tree ? usedNames(tree, [tree]) : NoNames);
+const frameNames = (snapshot: PluginState.Snapshot) => {
+  const frames = snapshot.transition?.frames;
+  return frames
+    ? usedNames(
+        frames,
+        frames.map((f) => f.data),
+      )
+    : NoNames;
+};
+
 class PluginState extends PluginComponent {
   private get animation() {
     return this.plugin.managers.animation;
@@ -163,14 +225,11 @@ class PluginState extends PluginComponent {
    */
   static validateSnapshotTransformers(snapshot: PluginState.Snapshot) {
     const missing = new Set<string>();
-    const visit = (tree: State.Snapshot | undefined) => {
-      for (const t of tree?.tree?.transforms ?? []) {
-        if (!StateTransformer.has(t.transformer)) missing.add(t.transformer);
+    for (const names of [treeNames(snapshot.behaviour), treeNames(snapshot.data), frameNames(snapshot)]) {
+      for (const id of names.transformers) {
+        if (!StateTransformer.has(id)) missing.add(id);
       }
-    };
-    visit(snapshot.behaviour);
-    visit(snapshot.data);
-    for (const frame of snapshot.transition?.frames ?? []) visit(frame.data);
+    }
     if (missing.size === 0) return;
     throw new Error(
       `Snapshot uses transformers that are not available in this plugin: ${Array.from(missing).join(', ')}. Import the modules that define them.`,
@@ -185,40 +244,28 @@ class PluginState extends PluginComponent {
    */
   reportUnregisteredNames(snapshot: PluginState.Snapshot) {
     const reported = new Set<string>();
-    const check = (
-      scopeName: RepresentationScope,
-      kind: ProviderKind,
-      registry: Parameters<typeof warnIfUnregistered>[3],
-      name: unknown,
-    ) => {
-      if (typeof name !== 'string') return;
-      const key = `${scopeName}|${kind}|${name}`;
-      if (reported.has(key)) return;
-      reported.add(key);
-      warnIfUnregistered(this.plugin, scopeName, kind, registry, name);
-    };
-    const checkBonds = (name: unknown) => {
-      if (typeof name !== 'string' || this.plugin.bondProviders.has(name)) return;
-      const key = `bonds|${name}`;
-      if (reported.has(key)) return;
-      reported.add(key);
-      this.plugin.log.warn(unregisteredBondProviderMessage(name));
-    };
-    const visit = (tree: State.Snapshot | undefined) => {
-      for (const t of tree?.tree?.transforms ?? []) {
-        // the structure transforms' bond provider, which normalization replaces by the default (bond-providers plan §4)
-        if (t.transformer === StructureFromModelId) checkBonds(t.params?.type?.params?.bonds?.name);
-        else if (t.transformer === StructureFromTrajectoryId) checkBonds(t.params?.bonds?.name);
-        const scopeName = RepresentationTransformerScopes[t.transformer];
-        if (!scopeName || !t.params) continue;
+    for (const names of [treeNames(snapshot.data), frameNames(snapshot)]) {
+      for (const [scopeName, kind, name] of names.providers) {
+        const key = `${scopeName}|${kind}|${name}`;
+        if (reported.has(key)) continue;
+        reported.add(key);
         const { registry, themes } = this.plugin.representation[scopeName];
-        check(scopeName, 'representation', registry, t.params.type?.name);
-        check(scopeName, 'color theme', themes.colorThemeRegistry, t.params.colorTheme?.name);
-        check(scopeName, 'size theme', themes.sizeThemeRegistry, t.params.sizeTheme?.name);
+        const r =
+          kind === 'representation'
+            ? registry
+            : kind === 'color theme'
+              ? themes.colorThemeRegistry
+              : themes.sizeThemeRegistry;
+        warnIfUnregistered(this.plugin, scopeName, kind, r as Parameters<typeof warnIfUnregistered>[3], name);
       }
-    };
-    visit(snapshot.data);
-    for (const frame of snapshot.transition?.frames ?? []) visit(frame.data);
+      // a bond provider the plugin lacks: normalization replaces it by the built-in bonds (bond-providers plan §4)
+      for (const name of names.bondProviders) {
+        const key = `bonds|${name}`;
+        if (reported.has(key) || this.plugin.bondProviders.has(name)) continue;
+        reported.add(key);
+        this.plugin.log.warn(unregisteredBondProviderMessage(name));
+      }
+    }
   }
 
   async setSnapshot(snapshot: PluginState.Snapshot) {
@@ -317,7 +364,8 @@ class PluginState extends PluginComponent {
     if (!transition) return;
     const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
     const frame = transition.frames[finalIndex] ?? snapshot.data;
-    if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
+    // scrubbed at the pointer's rate: the frames' timing would fill the log
+    if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data, { doNotLogTiming: true }));
     if (frame.canvas3d?.props && this.plugin.canvas3d) {
       // A scrubbed transition sets every frame's props silently and says so once the scrubbing settles: emitting per
       // frame would wake every settings reader at the scrub's rate.
@@ -541,12 +589,11 @@ namespace PluginState {
       t %= getStateTransitionDuration(snapshot) ?? 1;
     }
 
-    let currentDuration = 0;
-    if (t <= transition.frames[0].durationInMs) return 0;
+    // frame i is shown from the end of the frames before it until its own end
+    let end = 0;
     for (let i = 0; i < transition.frames.length; i++) {
-      if (currentDuration >= t) return i;
-      const frame = transition.frames[i];
-      currentDuration += frame.durationInMs;
+      end += transition.frames[i].durationInMs;
+      if (t < end) return i;
     }
     return transition.frames.length - 1;
   }

@@ -63,6 +63,34 @@ describe('the viewer', () => {
     expect(offending).toEqual([]);
   });
 
+  // The extensions' Prism views (`.tsx` on prism-ui) hold to it too: they reach the plugin through their operations
+  // (the extension's api areas), so the views of a viewer and of its extensions read alike (prism AGENTS.md).
+  it("keeps the plugin out of the extensions' Prism views", () => {
+    const repo = path.resolve(src, '../../../..');
+    const offending: string[] = [];
+    let scanned = 0;
+    const walk = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (!entry.name.startsWith('_') && entry.name !== 'node_modules' && entry.name !== 'lib') walk(full);
+        } else if (entry.name.endsWith('.tsx')) {
+          const text = fs.readFileSync(full, 'utf8');
+          if (!text.includes('@molstar/prism-ui')) continue;
+          scanned++;
+          for (const spec of valueImports(text)) {
+            if (Plugin.test(spec)) offending.push(`${path.relative(repo, full)} imports ${spec}`);
+          }
+        }
+      }
+    };
+    for (const ext of fs.readdirSync(path.join(repo, 'extensions'))) walk(path.join(repo, 'extensions', ext, 'src'));
+    // the extensions have Prism views (the walk found them)
+    expect(scanned).toBeGreaterThan(3);
+    expect(offending).toEqual([]);
+  });
+
   it('finds value imports and skips type-only ones', () => {
     expect(valueImports(`import { a } from '@molstar/plugin/context';`)).toEqual(['@molstar/plugin/context']);
     expect(valueImports(`import type { A } from '@molstar/plugin/context';`)).toEqual([]);

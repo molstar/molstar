@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -173,12 +174,12 @@ export function createParticleListFromDynamoTbl(
     attributes,
     getParticleLabel: (index: number) => {
       const row = keys[index];
-      const parts: string[] = [`#${row + 1}`];
+      const parts: string[] = [`Particle ${row + 1}`];
       if (tomo.valueKind(row) === Column.ValueKinds.Present) parts.push(`tomo ${tomo.value(row)}`);
       if (reg.valueKind(row) === Column.ValueKinds.Present) parts.push(`reg ${reg.value(row)}`);
       if (classCol.valueKind(row) === Column.ValueKinds.Present) parts.push(`class ${classCol.value(row)}`);
       if (annotationCol.valueKind(row) === Column.ValueKinds.Present) parts.push(`ann ${annotationCol.value(row)}`);
-      return parts.join(' | ');
+      return parts.join(' · ');
     },
     sourceData: DynamoTblFormat.create(data),
     customProperties: new CustomProperties(),

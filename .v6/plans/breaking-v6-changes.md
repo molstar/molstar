@@ -1108,3 +1108,30 @@ same behavior), so a plugin can take another one from `PluginSpec.assetManager`.
 `new DefaultAssetManager()`; code that only takes or calls one is unchanged. `get` and `assets` return
 `AssetManager.Entry` (`asset`, `file`, `isStatic`, `tag`), without the reference count; `urlCacheSize` is on
 `DefaultAssetManager` only.
+
+## Particles are opt-in: `ParticlesRegistry`
+
+`DefaultRegistry` (`@molstar/plugin/default-registry`) no longer holds particles: no particle formats, transformers,
+representations, `particles` theme scope or particle trajectory animation, and its structure and volume scopes no
+longer list the `particle-*` color and size themes. `DefaultParticleRepresentations` is gone (now
+`ParticleRepresentations`). `@molstar/plugin/state/transforms/catalog` no longer imports the particle transformers.
+An application that reads particles composes `[...DefaultRegistry, ...ParticlesRegistry]`
+(`@molstar/plugin/particles-registry`), whose import also registers the particle transformers a session needs. The
+classic viewer (`apps/viewer`) composes it, so it reads particles as 5.12 did. Prism loads it with its lazy particles feature when a particle file,
+an mmCIF holding particles or a session with particles needs it. `looksLikeMmcifParticles` moved to
+`@molstar/model/formats/particles/mmcif-sniff` (still re-exported by `.../mmcif`).
+
+## The component manager's `clipObjects` no longer replace a representation's clip
+
+`StructureComponentManager` options' `clipObjects` are the clip objects the manager puts on every structure
+representation: an options change replaces the objects it put there before with the new ones and keeps the others (a
+representation's own, from a clipping editor or code; `RepresentationClip.replaceOwned`,
+`@molstar/plugin/state/helpers/representation-clip`). It used to overwrite `type.params.clip` whole, `variant`
+included; a representation with objects of its own now keeps its `variant`.
+
+## The snapshot manager's time has its own event
+
+`PluginStateSnapshotManager.events.changed` no longer emits when only `state.currentAnimationTimeMs` moves (every tick
+of a playing transition, a scrub): `events.animationTimeChanged` does. A view that shows the time subscribes to both
+(`changed` still covers a new current snapshot, which resets the time). Every reader of the entries used to wake at the
+frame rate.

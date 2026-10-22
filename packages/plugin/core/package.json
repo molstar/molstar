@@ -26,6 +26,7 @@
     "./registry/_test/*": null,
     "./state/_test/*": null,
     "./state/actions/_test/*": null,
+    "./state/animation/_test/*": null,
     "./state/bonds/_test/*": null,
     "./state/builder/structure/_test/*": null,
     "./state/formats/_test/*": null,

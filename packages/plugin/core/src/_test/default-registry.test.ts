@@ -12,7 +12,6 @@ import {
   DefaultDragAndDrop,
   DefaultFormats,
   DefaultMarkdownExtensions,
-  DefaultParticleRepresentations,
   DefaultPresets,
   DefaultRegistry,
   DefaultSelectionQueries,
@@ -25,12 +24,11 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ExternalColorThemes } from '@molstar/plugin/themes/external';
 
 describe('DefaultRegistry', () => {
-  it('lists the twelve named entries in order', () => {
+  it('lists the eleven named entries in order', () => {
     expect(DefaultRegistry).toEqual([
       DefaultThemes,
       DefaultStructureRepresentations,
       DefaultVolumeRepresentations,
-      DefaultParticleRepresentations,
       DefaultActions,
       DefaultFormats,
       DefaultBonds,
@@ -45,11 +43,12 @@ describe('DefaultRegistry', () => {
 
   it('keeps the format order and registers the open-files drag and drop fallback', () => {
     const names = DefaultFormats.formats!.map((f) => f.name);
-    // volume, topology, coordinates, shape, particles, trajectory
+    // volume, topology, coordinates, shape, trajectory (particles: `ParticlesRegistry`)
     expect(names.slice(0, 2)).toEqual(['ccp4', 'dsn6']);
     expect(names.indexOf('psf')).toBeGreaterThan(names.indexOf('mtz'));
     expect(names.indexOf('ply')).toBeGreaterThan(names.indexOf('psf'));
-    expect(names.indexOf('mmcif')).toBeGreaterThan(names.indexOf('simularium'));
+    expect(names.indexOf('mmcif')).toBeGreaterThan(names.indexOf('ply'));
+    expect(names.filter((n) => n.includes('particles'))).toEqual([]);
     expect(new Set(names).size).toBe(names.length);
     expect(DefaultDragAndDrop.dragAndDrop!.map((e) => [e.name, e.fallback])).toEqual([['open-files', true]]);
   });
@@ -59,11 +58,15 @@ describe('DefaultRegistry', () => {
     expect(DefaultPresets.structure!.presets!.representation!.length).toBe(11);
   });
 
-  it('DefaultThemes includes the external color themes in all three scopes', () => {
-    for (const scope of ['structure', 'volume', 'particles'] as const) {
+  it('DefaultThemes includes the external color themes in the structure and volume scopes, no particle themes', () => {
+    expect(DefaultThemes.particles).toBeUndefined();
+    for (const scope of ['structure', 'volume'] as const) {
       const names = DefaultThemes[scope]!.themes!.color!.map((t) => t.name);
       expect(names).toEqual(expect.arrayContaining(['external-structure', 'external-volume']));
-      expect(DefaultThemes[scope]!.themes!.size!.length).toBeGreaterThan(0);
+      expect(names.filter((n) => n.startsWith('particle-'))).toEqual([]);
+      const sizes = DefaultThemes[scope]!.themes!.size!.map((t) => t.name);
+      expect(sizes.length).toBeGreaterThan(0);
+      expect(sizes).not.toContain('particle-size');
     }
   });
 
@@ -79,9 +82,11 @@ describe('DefaultRegistry', () => {
 
     expect(plugin.representation.structure.registry.default?.name).toBe('cartoon');
     expect(plugin.representation.volume.registry.default?.name).toBe('direct-volume');
-    expect(plugin.representation.particles.registry.default?.name).toBe('spacefill');
+    // particles are opt-in (`ParticlesRegistry`)
+    expect(plugin.representation.particles.registry.list).toEqual([]);
+    expect(plugin.dataFormats.has('relion_star_particles')).toBe(false);
     expect(plugin.managers.animation.animations[0].name).toBe('built-in.animate-model-index');
-    for (const scope of ['structure', 'volume', 'particles'] as const) {
+    for (const scope of ['structure', 'volume'] as const) {
       const themes = plugin.representation[scope].themes;
       expect(themes.colorThemeRegistry.has('external-structure')).toBe(true);
       expect(themes.colorThemeRegistry.has('external-volume')).toBe(true);

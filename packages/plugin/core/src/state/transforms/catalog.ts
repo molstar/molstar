@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Registers every built-in transformer id (for snapshot restore and tools such as state-docs).
+// Registers every built-in transformer id (for snapshot restore and tools such as state-docs), except the particle
+// ones: importing `@molstar/plugin/particles-registry` registers those (particles are opt-in).
 // Importing this module has side effects only; it exports nothing.
 
 import '@molstar/plugin/state/formats/cif';
@@ -13,12 +14,6 @@ import '@molstar/plugin/state/formats/coordinates/lammps';
 import '@molstar/plugin/state/formats/coordinates/nctraj';
 import '@molstar/plugin/state/formats/coordinates/trr';
 import '@molstar/plugin/state/formats/coordinates/xtc';
-import '@molstar/plugin/state/formats/particles/em';
-import '@molstar/plugin/state/formats/particles/mmcif-assembly';
-import '@molstar/plugin/state/formats/particles/ndjson';
-import '@molstar/plugin/state/formats/particles/simularium';
-import '@molstar/plugin/state/formats/particles/star';
-import '@molstar/plugin/state/formats/particles/tbl';
 import '@molstar/plugin/state/formats/shape/obj';
 import '@molstar/plugin/state/formats/shape/ply';
 import '@molstar/plugin/state/formats/shape/vtp';
@@ -45,9 +40,6 @@ import '@molstar/plugin/state/formats/volume/structure-factors';
 import '@molstar/plugin/state/transforms/data/fetch';
 import '@molstar/plugin/state/transforms/data/json';
 import '@molstar/plugin/state/transforms/misc/group';
-import '@molstar/plugin/state/transforms/particles/ops';
-import '@molstar/plugin/state/transforms/particles/representation';
-import '@molstar/plugin/state/transforms/particles/unitcell';
 import '@molstar/plugin/state/transforms/shape/box';
 import '@molstar/plugin/state/transforms/shape/representation';
 import '@molstar/plugin/state/transforms/structure/animation';

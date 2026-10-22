@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -10,12 +10,19 @@ import { StateTransformer, StateObject } from '@molstar/core/state';
 import { StringBuilder } from '@molstar/core/util';
 import * as fs from 'fs';
 import { paramsToMd } from '@molstar/state-docs-cli/pd-to-md';
+import type { PluginSpec } from '@molstar/plugin/spec';
+
+const withParticles = (spec: PluginSpec): PluginSpec => ({
+  ...spec,
+  registry: [...(spec.registry ?? []), ...ParticlesRegistry],
+});
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
 
-// The default plugin, so the docs list every built-in representation and theme
-const ctx = new PluginContext(DefaultPluginSpec());
+// The default plugin and the opt-in particles, so the docs list every built-in representation and theme
+const ctx = new PluginContext(withParticles(DefaultPluginSpec()));
 await ctx.init();
 
 const builder = StringBuilder.create();

@@ -87,6 +87,19 @@ describe('representation', () => {
     expect(themeNames(v).every((n) => n === 'element-symbol')).toBe(false);
   });
 
+  it('gives the uniform theme its color, again when only the color changes', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const values = () => reprs(v).map((r) => (r.cell.transform.params as any).colorTheme.params.value as number);
+    expectOk(await v.api.representation.color({ target: 'all', theme: 'uniform', color: 'red' }));
+    expect(themeNames(v).every((n) => n === 'uniform')).toBe(true);
+    expect(values().every((c) => c === 0xff0000)).toBe(true);
+    expectOk(await v.api.representation.color({ target: 'all', theme: 'uniform', color: '#0000ff' }));
+    expect(values().every((c) => c === 0x0000ff)).toBe(true);
+    const same = await v.api.representation.color({ target: 'all', theme: 'uniform', color: 'blue' });
+    expectOk(same);
+    expect(same.unchanged).toBe(true);
+  });
+
   it('sets transparency on a target, resets it, and says when there is nothing to reset', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     expect(await v.api.representation.reset({ layer: 'transparency' })).toMatchObject({ ok: true, unchanged: true });

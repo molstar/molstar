@@ -9,12 +9,20 @@ import '@molstar/plugin/state/transforms/catalog';
 import { StateTransformer } from '@molstar/core/state';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { paramsToMd } from '@molstar/state-docs-cli/pd-to-md';
+import type { PluginSpec } from '@molstar/plugin/spec';
 
-// Mirrors cli/state-docs/src/index.ts: the parameters of every transformer are documented with the default plugin
+const withParticles = (spec: PluginSpec): PluginSpec => ({
+  ...spec,
+  registry: [...(spec.registry ?? []), ...ParticlesRegistry],
+});
+
+// Mirrors cli/state-docs/src/index.ts: the parameters of every transformer are documented with the default plugin and
+// the opt-in particles
 describe('state-docs with the default plugin', () => {
   it('documents the parameters of every transformer, listing every registered provider', async () => {
-    const ctx = new PluginContext(DefaultPluginSpec());
+    const ctx = new PluginContext(withParticles(DefaultPluginSpec()));
     await ctx.init();
 
     const transformers = StateTransformer.getAll();

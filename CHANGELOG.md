@@ -10,6 +10,17 @@ here.
 
 ## [Unreleased]
 
+- Volume streaming: a state that streams other maps than the one before (a snapshot, an MVS state) recreates the
+  streaming behavior; it updated the old one and failed on the new entry's name (`emDefaultContourLevel` of undefined)
+  (#2023)
+- State snapshot transitions: a frame shows for its own duration; each frame showed during the slot of the one before
+  it, so the second frame never showed and a held frame showed the next one (also when scrubbing)
+- State snapshot animations: each transition frame is applied once; it was applied again on every animation tick, and
+  during the first frame the camera transition restarted on every tick
+- State snapshot animations: playing or scrubbing frames does not log their update timing
+- Trajectories: a new frame updates the model in place and keeps the custom properties that frames of the same topology
+  share; every frame recreated the model and disposed their assets
+- State snapshot transitions: a transition ends on its last frame also when that frame is shorter than an animation tick
 - Interactions: a salt bridge (ionic contact) hides the H-bonds between the same atoms instead of being hidden by them,
   as documented and as in NGL and PLIP (ionic is off by default)
 - Interactions: the overlap refiners also filter inter-unit contacts (H-bonds within a salt bridge, ionic contacts
@@ -23,6 +34,8 @@ here.
   (`parentDisplay` read unrelated atoms)
 - MVS: fix a `clip` plane with its normal pointing straight down (e.g. `[0, -1, 0]`), which clipped the upper half
   instead of the lower one
+- Fix the bounds of a representation moved by its state's transform (`Representation.setState({ transform })`): they
+  ignored the transform, so the camera's near and far planes and culling used the old place
 - Fix state builders that remove a node writing into the state's tree before they commit: a node added under, updated or
   depended on by a node whose ref hashes like the removed one's (common for generated refs) appeared in the current
   tree, and the next update could fail with "Cannot read properties of undefined (reading 'ref')". Also keep the nodes

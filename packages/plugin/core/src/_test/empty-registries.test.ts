@@ -112,19 +112,21 @@ describe('the default spec', () => {
         'cross-link-restraint',
       ],
       volume: ['direct-volume', 'dot', 'isosurface', 'segment', 'slice', 'streamlines'],
-      particles: ['spacefill', 'orientation', 'fibers', 'target'],
+      particles: [],
     });
 
-    // 5.x built-in themes (37 color in the volume and particle scopes, 41 in the structure scope with the themes the
-    // behaviors add), plus the external structure and volume themes in every scope
-    expect(c.themes.structure.color).toHaveLength(43);
-    expect(c.themes.volume.color).toHaveLength(39);
-    expect(c.themes.particles.color).toHaveLength(39);
-    for (const scope of Scopes) {
+    // 5.x built-in themes without the particle ones (32 color in the volume scope, 36 in the structure scope with the
+    // themes the behaviors add), plus the external structure and volume themes; particles are opt-in
+    // (`ParticlesRegistry`), so their scope is empty
+    expect(c.themes.structure.color).toHaveLength(38);
+    expect(c.themes.volume.color).toHaveLength(34);
+    expect(c.themes.particles.color).toEqual([]);
+    expect(c.themes.particles.size).toEqual([]);
+    for (const scope of ['structure', 'volume'] as const) {
       expect(c.themes[scope].color).toEqual(
         expect.arrayContaining(['uniform', 'external-structure', 'external-volume']),
       );
-      expect(c.themes[scope].size).toHaveLength(6);
+      expect(c.themes[scope].size).toHaveLength(5);
     }
 
     expect(c.formats).toEqual([
@@ -147,12 +149,6 @@ describe('the default spec', () => {
       'ply',
       'obj',
       'vtp',
-      'relion_star_particles',
-      'dynamo_tbl_particles',
-      'cryoet_ndjson_particles',
-      'artiatomi_em_particles',
-      'mmcif_particles',
-      'simularium_particles',
       'mmcif',
       'cifCore',
       'pdb',
@@ -207,7 +203,6 @@ describe('the default spec', () => {
     expect(c.dragAndDrop).toEqual(['open-files']);
     expect(c.animations).toEqual([
       'built-in.animate-model-index',
-      'built-in.animate-particle-trajectory',
       'built-in.animate-camera-spin',
       'built-in.animate-camera-rock',
       'built-in.animate-state-snapshots',
@@ -217,7 +212,7 @@ describe('the default spec', () => {
       'built-in.animate-state-interpolation',
       'built-in.animate-time',
     ]);
-    expect(c.dataActions).toBe(58);
+    expect(c.dataActions).toBe(48);
     expect(c.lociLabelProviders).toBe(5);
     plugin.dispose();
   });

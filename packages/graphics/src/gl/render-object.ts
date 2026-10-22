@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { RenderableState, Renderable } from './renderable.js';
@@ -226,6 +227,26 @@ function hasForeignBuffers(o: GraphicsRenderObject, graphics: GraphicsContext): 
 /** Whether values of `o` hold textures or storage buffers of another graphics context than `graphics` */
 export function hasForeignResources(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
   return getForeignTextureCells(o, graphics).length > 0 || hasForeignBuffers(o, graphics);
+}
+
+/**
+ * `hasForeignResources` for the render objects of one visual, remembered while clean: a visual creates its resources
+ * with the context it is given, and a restore or a backend switch gives a new `GraphicsContext` (`setGraphics`; the
+ * previous one is destroyed and never given again). So a render object found clean for a context stays clean until the
+ * render object or the context changes. A foreign result is not remembered: the visual creates the geometry again and
+ * the next check walks the values again. The walk (every value cell, and every merged member) on each update was about
+ * a fifth of an MVS animation frame.
+ */
+export function createForeignResourcesCheck() {
+  let cleanObject: GraphicsRenderObject | undefined;
+  let cleanGraphics: GraphicsContext | undefined;
+  return (o: GraphicsRenderObject, graphics: GraphicsContext): boolean => {
+    if (o === cleanObject && graphics === cleanGraphics) return false;
+    const foreign = hasForeignResources(o, graphics);
+    cleanObject = foreign ? undefined : o;
+    cleanGraphics = foreign ? undefined : graphics;
+    return foreign;
+  };
 }
 
 /**

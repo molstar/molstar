@@ -94,7 +94,7 @@ export class MeasureApi extends ApiArea {
     });
   }
 
-  /** The model of the Measure section, over the plugin (made once; released with the area). */
+  /** The model of the Measure and Label section, over the plugin (made once; released with the area). */
   model(api: ViewerApi): import('../../model/measurements.js').MeasurementsModel {
     this.#source ??= createMeasurementsSource(this.ctx.plugin, api);
     return this.#source.model;

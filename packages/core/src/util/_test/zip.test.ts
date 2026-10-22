@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -102,6 +103,17 @@ describe('zip', () => {
       const deflated = await deflate(SyncRuntimeContext, data);
       const inflated = await inflate(SyncRuntimeContext, deflated, new Uint8Array(100));
       expect(inflated.length).toBe(data.length);
+    });
+
+    it('reads only the entries `only` accepts, not inflating the rest', async () => {
+      const z = await make({ 'state.json': enc('{}') });
+      // A damaged entry it skips does not fail the read (its bytes are never looked at)
+      const { v, central } = layout(z);
+      v.setUint32(central[0] + 16, 0, true); // a.txt's CRC-32
+      await expect(read(z)).rejects.toThrow(/fails its CRC-32/);
+      const r = await unzip(SyncRuntimeContext, z.buffer as ArrayBuffer, false, undefined, (n) => n === 'state.json');
+      expect(Object.keys(r)).toEqual(['state.json']);
+      expect(new TextDecoder().decode(r['state.json'] as Uint8Array)).toBe('{}');
     });
   });
 });

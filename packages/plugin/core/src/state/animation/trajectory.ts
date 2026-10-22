@@ -165,46 +165,42 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
         if (!parent || !parent.obj) continue;
         const len = getFrameCount(parent.obj.data);
         if (len <= 1) continue;
+        allSingles = false;
 
-        update.to(c).update((old) => {
-          if (len === 1) return old;
-          allSingles = false;
+        const old = c.transform.params!;
+        const currentIndex = getFrameIndex(old);
+        let frameIndex: number;
 
-          const currentIndex = getFrameIndex(old);
-
-          if (params.duration.name === 'sequential') {
-            let dir: -1 | 1 = 1;
-            if (params.mode.name === 'once') {
-              dir = params.mode.params.direction === 'backward' ? -1 : 1;
-              // if we are at start or end already, do nothing.
-              if ((dir === -1 && currentIndex === 0) || (dir === 1 && currentIndex === len - 1)) {
-                isEnd = true;
-                return old;
-              }
-            } else if (params.mode.name === 'palindrome') {
-              if (currentIndex === 0) dir = 1;
-              else if (currentIndex === len - 1) dir = -1;
-              else dir = palindromeDirections[c.transform.ref] || 1;
-            }
-            palindromeDirections[c.transform.ref] = dir;
-
-            let frameIndex = (currentIndex + dir) % len;
-            if (frameIndex < 0) frameIndex += len;
-
-            isEnd = isEnd || (dir === -1 && frameIndex === 0) || (dir === 1 && frameIndex === len - 1);
-
-            return { ...old, ...setFrameIndex(frameIndex) };
-          } else {
-            const durationInMs =
-              params.duration.name === 'fixed'
-                ? params.duration.params.durationInS * 1000
-                : Math.ceil((1000 * len) / params.duration.params.targetFps);
-
-            if (params.mode.name === 'once' && t.current >= durationInMs) {
+        if (params.duration.name === 'sequential') {
+          let dir: -1 | 1 = 1;
+          if (params.mode.name === 'once') {
+            dir = params.mode.params.direction === 'backward' ? -1 : 1;
+            // if we are at start or end already, do nothing.
+            if ((dir === -1 && currentIndex === 0) || (dir === 1 && currentIndex === len - 1)) {
               isEnd = true;
-              return { ...old, ...setFrameIndex(len - 1) };
+              continue;
             }
+          } else if (params.mode.name === 'palindrome') {
+            if (currentIndex === 0) dir = 1;
+            else if (currentIndex === len - 1) dir = -1;
+            else dir = palindromeDirections[c.transform.ref] || 1;
+          }
+          palindromeDirections[c.transform.ref] = dir;
 
+          frameIndex = (currentIndex + dir) % len;
+          if (frameIndex < 0) frameIndex += len;
+
+          isEnd = isEnd || (dir === -1 && frameIndex === 0) || (dir === 1 && frameIndex === len - 1);
+        } else {
+          const durationInMs =
+            params.duration.name === 'fixed'
+              ? params.duration.params.durationInS * 1000
+              : Math.ceil((1000 * len) / params.duration.params.targetFps);
+
+          if (params.mode.name === 'once' && t.current >= durationInMs) {
+            isEnd = true;
+            frameIndex = len - 1;
+          } else {
             let phase: number = (t.current % durationInMs) / durationInMs;
             if (params.mode.name === 'loop') {
               if (params.mode.params.direction === 'backward') {
@@ -215,14 +211,15 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
               phase = 2 * phase;
               if (phase > 1) phase = 2 - phase;
             }
-
-            const frameIndex = Math.min(Math.floor(len * phase), len - 1);
-            return { ...old, ...setFrameIndex(frameIndex) };
+            frameIndex = Math.min(Math.floor(len * phase), len - 1);
           }
-        });
+        }
+
+        // a tick within the frame shown: no update (it went through the task manager and toggled isUpdating)
+        if (frameIndex !== currentIndex) update.to(c).update({ ...old, ...setFrameIndex(frameIndex) });
       }
 
-      if (!allSingles) {
+      if (update.editInfo.count > 0) {
         await PluginCommands.State.Update(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
       }
 
