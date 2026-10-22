@@ -105,11 +105,36 @@ export function stubCanvas(graphics: any) {
       return { center: [0, 0, 0], radius: 0 };
     },
   };
+  /** the value cells' versions at the last `changedBytes` call */
+  const versions = new WeakMap<object, number>();
+  /**
+   * Bytes of the typed arrays in the representations' render objects whose value cell changed since the last call:
+   * what the renderer would upload again (a proxy: the GPU is not here)
+   */
+  function changedBytes() {
+    let bytes = 0;
+    for (const repr of reprs.keys()) {
+      for (const ro of repr.renderObjects) {
+        const values = ro.values as Record<string, any>;
+        for (const k in values) {
+          const cell = values[k];
+          if (!cell?.ref) continue;
+          const v = cell.ref.value;
+          const array = ArrayBuffer.isView(v) ? v : v && ArrayBuffer.isView(v.array) ? v.array : undefined;
+          if (!array) continue;
+          if (versions.get(cell) !== cell.ref.version) bytes += array.byteLength;
+          versions.set(cell, cell.ref.version);
+        }
+      }
+    }
+    return bytes;
+  }
   return {
     canvas,
     counts,
     reprs,
     clock,
+    changedBytes,
     get renderObjects() {
       return renderObjects;
     },

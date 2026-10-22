@@ -26,7 +26,8 @@
 // the applied ticks), KB allocated per tick over the range (V8 total_allocated_bytes, Node 25+; read once per range,
 // since a read itself allocates ~165 KB), the state events per tick (cells created, updated in place, recreated,
 // removed), camera resets and restarted transitions, setProps on the canvas, log entries added, marks, whole-tree
-// `setSnapshot` calls and the snapshot manager's `changed` emits.
+// `setSnapshot` calls, the snapshot manager's `changed` emits, and the KB of render-object arrays whose value cell
+// changed per applied tick (what the renderer would upload again; read outside the timed part).
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { Session } from 'node:inspector/promises';
@@ -269,7 +270,15 @@ async function loadMvs(plugin: PluginContext) {
   };
 }
 
-type Tick = { ms: number; applied: boolean; created: number; updated: number; recreated: number; removed: number };
+type Tick = {
+  ms: number;
+  applied: boolean;
+  created: number;
+  updated: number;
+  recreated: number;
+  removed: number;
+  changedKB: number;
+};
 type SceneResult = {
   scene: string;
   info: string;
@@ -291,6 +300,8 @@ type SceneResult = {
   marks: number;
   /** whole-tree `State.setSnapshot` calls */
   setSnapshot: number;
+  /** KB of render-object arrays whose value cell changed, per applied tick (median): what would be uploaded again */
+  changedKBApplied: number;
   /** `managers.snapshot.events.changed` emits */
   snapshotChanged: number;
 };
@@ -359,6 +370,7 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
     });
   } else if (session) await session.post('Profiler.start');
   const perTick: Tick[] = [];
+  c.changedBytes();
   // one read per range: a read of the counter itself allocates ~165 KB (v8.getHeapStatistics)
   const alloc0 = allocated();
   for (let k = 0; k < ticks; k++) {
@@ -379,6 +391,8 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
       updated,
       recreated,
       removed,
+      // outside the timed part (a walk over every render object's values)
+      changedKB: c.changedBytes() / 1024,
     });
     if (!plugin.managers.animation.isAnimating) break;
   }
@@ -413,6 +427,7 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
     logEntries: plugin.log.entries.size - log0,
     marks: c.counts.mark - counts0.mark,
     setSnapshot: cellEvents.setSnapshot,
+    changedKBApplied: +median(perTick.filter((x) => x.applied).map((x) => x.changedKB)).toFixed(0),
     snapshotChanged: cellEvents.snapshotChanged,
   };
   if (profileDir && profile) {
@@ -428,7 +443,7 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
       `${String(r.kbPerTick).padStart(7)} KB/tick ${r.mbTotal.toFixed(1).padStart(7)} MB ` +
       `cells c/u/R/r ${r.createdPerTick}/${r.updatedPerTick}/${r.recreatedPerTick}/${r.removedPerTick} ` +
       `cam ${r.cameraReset}/${r.cameraRestarts} setProps ${r.setProps} log ${r.logEntries} marks ${r.marks} ` +
-      `setSnapshot ${r.setSnapshot} changed ${r.snapshotChanged}  ${r.info}`,
+      `setSnapshot ${r.setSnapshot} changed ${r.snapshotChanged} arrays ${r.changedKBApplied} KB/applied  ${r.info}`,
   );
   return r;
 }

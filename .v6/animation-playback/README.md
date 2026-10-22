@@ -18,8 +18,8 @@ relative to `packages/`.
 | 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped |
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: themes and the param definition; multilayer selectors open |
-| 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | open   |
-| 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | open   |
+| 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept |
+| 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) |
 | 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | open   |
 | 8    | S8                     | State interpolation: equality and the ref match                           | open   |
 
@@ -194,6 +194,22 @@ One line per id as it lands: the commit's before → after on the bench (median 
   surroundings, whose residues change with the coordinates). Time within noise in Node, where the stub canvas makes a
   mark cheap; in the browser a mark rewrites the marker data and walks the scene. Test: in `trajectory.test.ts` (2 mark
   calls per frame before).
+
+- **T5 (Prism marks): kept.** Correctness needs it. A frame updates a representation's own overpaint cells in place
+  (T3), and they set its overpaint to their layers only. The marks paint over those, so they paint again once per
+  animation frame, on the changed representations only. Not measured: Prism, not the Node bench.
+- **T6: dropped, open for a browser measurement.** The bench now prints the KB of render-object arrays whose value cell
+  changed per applied frame, what the renderer would upload again: cartoon 14,127, ball-and-stick 4,831, gaussian
+  surface 31,152 (synth). In the cartoon, indices and groups are 6.8 of the 14.1 MB. They are equal across frames, but
+  the builders write the new frame into the old arrays (`ChunkedArray.create` with the cell's array as the first
+  chunk), so the cell gets the same array back and must update. A content compare finds nothing (tried: unchanged on
+  every scene). Saving the upload needs the builders to allocate fresh topology arrays and compare them: CPU and
+  allocation for upload, which only a browser can weigh. `ComplexVisual`'s forced color and size update is in none of
+  the profiles.
+- **Open, `gl/` (frozen; for the WebGPU work).** Of an exosome frame after step 4: `prepareUpdate` →
+  `hasForeignResources` 22% (a walk over every value cell of the render object and its merged members, on every visual
+  update, for the backend switch), and render-object merging (`repr/merged.ts` → `canMergeRenderObjects`) 16%. The
+  callers are in `repr/`, but what they check is the backend-switch logic.
 
 ## Snapshot and MVS playback
 
