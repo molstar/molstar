@@ -12,6 +12,8 @@ import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { RuntimeContext } from '@molstar/core/task';
+import { SecondaryStructureProvider } from '@molstar/model/props/computed/secondary-structure';
 import { pdbEnsemble } from '../../animation/_test/harness.js';
 
 async function representation() {
@@ -45,6 +47,21 @@ describe('a structure representation update', () => {
     const { create, update } = await representation();
     // (equal params, other objects: a shallow-equal update is dropped by the builder)
     await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params } } }));
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes the themes again when a property of the structure was computed again in the same update', async () => {
+    // e.g. one snapshot frame that changes the secondary structure type of the structure's properties and the alpha
+    const { plugin, repr, create, update } = await representation();
+    const structure = plugin.state.data.cells.get(repr.ref)!.obj!.data.sourceData;
+    await SecondaryStructureProvider.attach(
+      { runtime: RuntimeContext.Synchronous, assetManager: plugin.managers.asset },
+      structure,
+      { type: { name: 'dssp', params: {} } } as any,
+      true,
+    );
+    create.mockClear();
+    await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params, alpha: 0.5 } } }));
     expect(create).toHaveBeenCalledTimes(1);
   });
 
