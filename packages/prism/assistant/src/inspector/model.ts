@@ -129,6 +129,11 @@ export class InspectorModel {
   readonly turns: ReadonlyState<readonly TurnView[]>;
   /** The trace's rows (re-read once a burst of changes settles): a row is kept while what it shows is the same. */
   readonly rows: ReadonlyState<readonly TraceRow[]>;
+  /**
+   * The same rows a turn at a time (its header first): a turn's list is the same array while the turn is the same, so
+   * a view of them by turn redoes only the running one's at a settle (perf audit 2, 11/P2).
+   */
+  readonly rowGroups: ReadonlyState<readonly (readonly TraceRow[])[]>;
   /** The selected row's key: the chosen one while it is there, else the latest row. */
   readonly selected: ReadonlyState<string | undefined>;
   readonly row: ReadonlyState<TraceRow | undefined>;
@@ -151,6 +156,7 @@ export class InspectorModel {
     // The same turns and rows in a new array (a re-read that changed none of them) are not a change.
     this.turns = derive(trace, (t) => t?.turns ?? NoRows, sameItems);
     this.rows = derive(trace, (t) => this.#rowsOf(t));
+    this.rowGroups = derive(trace, (t) => (t ? (this.#rowsOf(t), this.#partsRead.get(t)!) : NoRows), sameItems);
     const pick = <R extends { key: string }>(rows: readonly R[], key: string | undefined, fallback: R | undefined) =>
       rows.find((r) => r.key === key) ?? fallback;
     this.row = derive([this.rows, this.#selected.asReadonly], (rows, key) => pick(rows, key, rows.at(-1)));
@@ -277,6 +283,7 @@ export class InspectorModel {
   // `@molstar/ai/trace` keeps the views of what did not change): a re-read of a long conversation builds the rows of
   // the turn that changed, and a row of it is kept while what it shows is.
   readonly #rowsRead = new WeakMap<TraceData, readonly TraceRow[]>();
+  readonly #partsRead = new WeakMap<TraceData, readonly (readonly TraceRow[])[]>();
   #turnRows = new Map<string, TurnRows>();
   #parts: readonly (readonly TraceRow[])[] = [];
   #rowsAll: readonly TraceRow[] = NoRows;
@@ -302,6 +309,7 @@ export class InspectorModel {
     this.#parts = parts;
     this.#rowsAll = rows;
     this.#rowsRead.set(data, rows);
+    this.#partsRead.set(data, parts);
     return rows;
   }
 

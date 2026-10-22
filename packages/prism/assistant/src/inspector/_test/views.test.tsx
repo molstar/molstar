@@ -12,8 +12,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '@molstar/prism-ui/dom/render';
 import { flush } from '@molstar/prism-ui/dom/scope';
-import { mockInspector } from '../../testing/mock-inspector.js';
-import { findLimit, type InspectorModel } from '../model.js';
+import type { ToolStepView, TraceData, TurnView } from '@molstar/ai/trace';
+import { observableState } from '@molstar/prism-ui';
+import { MockTools, mockInspector, mockLimits } from '../../testing/mock-inspector.js';
+import { findLimit, InspectorModel } from '../model.js';
 import { InspectorBody, InspectorHeader } from '../page.js';
 
 function mount(model: InspectorModel) {
@@ -136,6 +138,63 @@ describe('Inspector views', () => {
     flush();
     expect(input.value).toBe('24');
     expect(shown()).toBe(false);
+  });
+
+  it('a settle of the running turn makes only its new step: the blocks and rows of the rest stay (perf audit 11/P2)', () => {
+    const step = (id: string): ToolStepView => ({
+      kind: 'tool',
+      id,
+      callId: id,
+      toolId: 'echo',
+      name: 'echo',
+      args: { id },
+      status: 'succeeded',
+      attempts: [{ ordinal: 1, start: 0, end: 5, status: 'succeeded' }],
+      result: 'ok',
+    });
+    const turn = (id: string, steps: number, status: TurnView['status']): TurnView => ({
+      id,
+      prompt: `Turn ${id}`,
+      status,
+      start: 0,
+      tokens: { input: 1, output: 1 },
+      steps: Array.from({ length: steps }, (_, i) => step(`${id}-s${i}`)),
+      milestones: [],
+    });
+    const trace = (turns: TurnView[]) =>
+      ({
+        harnessId: 'h',
+        execution: { seq: 1, headId: 'h' },
+        budget: { consumed: 0, ceiling: 0 },
+        preamble: { guidance: '', guidanceTokens: 0, tools: [], toolsTokens: 0 },
+        loaded: [],
+        declared: [],
+        turns,
+      }) as TraceData;
+    const done = [turn('a', 4, 'done'), turn('b', 4, 'done')];
+    let running = turn('run', 2, 'working');
+    const state = observableState<TraceData | undefined>(trace([...done, running]));
+    const model = new InspectorModel({
+      trace: state.asReadonly,
+      tools: observableState(MockTools).asReadonly,
+      limits: observableState(mockLimits(undefined)).asReadonly,
+      settle: 0,
+    });
+    const { container } = mount(model);
+    const nodes = () => new Set(container.querySelectorAll('[data-kind], [data-row]'));
+    const before = nodes();
+    running = { ...running, steps: [...running.steps, step('run-s2')] };
+    state.set(trace([...done, running]));
+    flush();
+    const after = nodes();
+    const made = [...after].filter((n) => !before.has(n)).map((n) => (n as HTMLElement).dataset.row ?? 'block');
+    // The new step's block and row, and the running turn's header row (its record changed): nothing else.
+    expect(made.sort()).toEqual(['block', 'step:run-s2', 'turn:run']);
+    expect([...container.querySelectorAll<HTMLElement>('[data-row]')].map((r) => r.dataset.row).slice(-3)).toEqual([
+      'step:run-s0',
+      'step:run-s1',
+      'step:run-s2',
+    ]);
   });
 
   it('says so before the agent has run', () => {
