@@ -212,12 +212,9 @@ export const SelectLoci = PluginBehavior.create({
           const structure: Structure = obj.data;
           const oldStructure: Structure | undefined =
             action === 'recreate' ? oldObj?.data : action === 'in-place' ? oldData : undefined;
-          if (
-            oldStructure &&
-            Structure.areEquivalent(structure, oldStructure) &&
-            Structure.areHierarchiesEqual(structure, oldStructure)
-          )
-            return;
+          // The same hierarchy (a trajectory frame: new coordinates, the same units and elements): the visuals update
+          // in place and keep their marks (`updateTransform` is not set), so they are not marked again (T5).
+          if (oldStructure && Structure.areHierarchiesEqual(structure, oldStructure)) return;
 
           const reprs = this.ctx.state.data.select(
             StateSelection.children(ref).ofType(SO.Molecule.Structure.Representation3D),

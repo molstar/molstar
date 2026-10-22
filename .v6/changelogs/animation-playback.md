@@ -27,3 +27,5 @@
   the representation and theme registries have a `version` that changes when a provider is added or removed
 - A playing trajectory commits a state update only on the ticks that show a new frame; the ticks in between went through
   the task manager and toggled the busy state
+- A trajectory frame no longer clears and marks the selection again on every representation; the visuals keep their
+  marks

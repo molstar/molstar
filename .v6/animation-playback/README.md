@@ -187,6 +187,14 @@ One line per id as it lands: the commit's before → after on the bench (median 
   ms/tick med in every trajectory scene; `isUpdating` toggled 61 → 2 times over 60 ticks of 3 frames; mutative's
   warning per tick is gone. Test: in `trajectory.test.ts` (61 toggles before).
 
+- **T5 (SelectLoci)** (`behavior/dynamic/representation.ts`: no re-marking when the updated structure has the same
+  hierarchy). The visuals keep their marks through such an update: `prepareUpdate` resets the markers only with
+  `updateTransform`, which an equal hierarchy does not set (units and complex visuals). `canvas3d.mark` calls: synth
+  preset 117 → 0 over 80 ticks, cartoon 39 → 0, nmr preset 27 → 0, synth+focus+select 468 → 132 (left: the focus
+  surroundings, whose residues change with the coordinates). Time within noise in Node, where the stub canvas makes a
+  mark cheap; in the browser a mark rewrites the marker data and walks the scene. Test: in `trajectory.test.ts` (2 mark
+  calls per frame before).
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip

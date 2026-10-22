@@ -185,6 +185,26 @@ describe('a focused trajectory frame', () => {
   });
 });
 
+describe('a selection on a trajectory frame', () => {
+  it('is not marked again: the visuals keep their marks (T5)', async () => {
+    const { plugin, canvas3d } = await createPlaybackPlugin(DefaultPluginSpec());
+    const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 6, true), label: 'ensemble' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    const hierarchy = () => plugin.managers.structure.hierarchy.current;
+    const s = hierarchy().structures[0].cell.obj!.data;
+    plugin.managers.interactivity.lociSelects.select({
+      loci: StructureElement.Loci(s, [{ unit: s.units[0], indices: OrderedSet.ofBounds(0, 5) as any }]),
+    });
+    canvas3d.mark.mockClear();
+    await setFrame(plugin, hierarchy().models[0].cell.transform.ref, 1);
+    expect(canvas3d.mark).not.toHaveBeenCalled();
+    // the selection is still there, on the new frame's structure
+    const loci = plugin.managers.structure.selection.getLoci(hierarchy().structures[0].cell.obj!.data);
+    expect(StructureElement.Loci.size(loci as StructureElement.Loci)).toBe(5);
+  });
+});
+
 describe('a playing trajectory', () => {
   it('commits an update only on the ticks whose frame changes (T5)', async () => {
     const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
