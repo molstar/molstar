@@ -9,7 +9,8 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { getFontAtlas, setCanvasModule } from '../font-atlas.js';
 import { Text } from '../text.js';
 
-// Node has no canvas: a stand-in context that draws nothing.
+// Node has no canvas: a stand-in context that draws nothing. Atlases are compared by identity (`a === b`): `not.toBe`
+// deep-compares the two on success, megabytes of texture.
 beforeAll(() => {
   const context = {
     measureText: () => ({ width: 8 }),
@@ -47,13 +48,13 @@ describe('getFontAtlas', () => {
   it('builds a new atlas for each font and keeps the 4 most recently used', () => {
     const serif = getFontAtlas({ ...font, fontFamily: 'serif' });
     const mono = getFontAtlas({ ...font, fontFamily: 'monospace' });
-    expect(mono).not.toBe(serif);
+    expect(mono === serif).toBe(false);
     getFontAtlas({ ...font, fontFamily: 'cursive' });
     getFontAtlas({ ...font, fontFamily: 'serif', fontWeight: 'bold' });
     // serif is the oldest entry; using it makes monospace the least recently used
     expect(getFontAtlas({ ...font, fontFamily: 'serif' })).toBe(serif);
     getFontAtlas({ ...font, fontFamily: 'serif', fontStyle: 'italic' });
     expect(getFontAtlas({ ...font, fontFamily: 'serif' })).toBe(serif);
-    expect(getFontAtlas({ ...font, fontFamily: 'monospace' })).not.toBe(mono);
+    expect(getFontAtlas({ ...font, fontFamily: 'monospace' }) === mono).toBe(false);
   });
 });
