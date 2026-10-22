@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { common } from './chunks/common.glsl.js';
@@ -32,6 +33,12 @@ ${common_clip}
 varying vec2 vTexCoord;
 
 void main(){
+    // anti-aliased SDF text (.v6/designs/labels.md §5)
+    // sampled and differentiated before anything can discard: derivatives need every fragment of the 2x2 block
+    float rawSdf = texture2D(tFont, vTexCoord).r;
+    // how much the distance field changes across one pixel, at any label size
+    float sdfPerPixel = max(length(vec2(dFdx(rawSdf), dFdy(rawSdf))), 1e-4);
+
     ${fade_lod}
     ${clip_pixel}
 
@@ -45,12 +52,20 @@ void main(){
         if (isBackground) discard;
     #endif
 
-    // SDF test for glyph fragments — discard pixels outside glyph+border
-    float rawSdf = 0.0;
+    // glyph + border coverage: in color and tracing, anti-aliased over one pixel (the fractional edge is drawn in the
+    // transparent pass, check_transparency); in the other variants, the edge at the field's middle as before
+    float edgeAlpha = 1.0;
+    float fillAlpha = 1.0;
     if (!isBackground) {
-        rawSdf = texture2D(tFont, vTexCoord).r;
         float sdf = rawSdf + min(uBorderWidth, 0.49); // clamp to avoid exceeding max SDF range
-        if (sdf < 0.5) discard;
+        #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+            // edges a quarter pixel out: keeps one-pixel stems of small text solid, invisible on large text
+            edgeAlpha = clamp((sdf - 0.5) / sdfPerPixel + 0.75, 0.0, 1.0);
+            fillAlpha = clamp((rawSdf - 0.5) / sdfPerPixel + 0.75, 0.0, 1.0);
+            if (edgeAlpha < 1.0 / 255.0) discard;
+        #else
+            if (sdf < 0.5) discard;
+        #endif
     }
 
     #ifdef enabledFragDepth
@@ -68,9 +83,9 @@ void main(){
         #endif
     } else {
         #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-            if (uBorderWidth > 0.0 && rawSdf < 0.5) {
-                material.xyz = uBorderColor;
-            } else {
+            material.a *= edgeAlpha;
+            if (uBorderWidth > 0.0) material.xyz = mix(uBorderColor, material.xyz, fillAlpha);
+            if (uBorderWidth == 0.0 || fillAlpha >= 0.5) {
                 // push text fragments forward in depth so they render in front of border (depth is reversed)
                 #ifdef enabledFragDepth
                     gl_FragDepthEXT = fragmentDepth + 0.0001;

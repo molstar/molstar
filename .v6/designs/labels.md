@@ -1,0 +1,96 @@
+# Labels: fonts, layout and rendering
+
+Text geometry (`packages/graphics/src/geo/geometry/text/`): structure labels, measurements, MVS labels and primitives,
+the camera helper's axes. A label is one quad per glyph from a signed-distance-field (SDF) font atlas, drawn by
+`text.frag` / `text.wgsl`.
+
+## 1. One atlas per font
+
+- `getFontAtlas(props)` keys by the CSS font the atlas draws with (`getFontAtlasFont`: style, variant, weight, size from
+  `fontQuality`, the family's fonts) and gives the atlas only those five props. Why: keyed by every Text prop, each
+  label size step or MVS label set (its `items` are props) kept a new 43 MB atlas (perf-audit-2 08/B6).
+- The cache is an LRU of 4. An evicted atlas lives on in the texts built with it (each `Text` holds its texture);
+  texts built later get a new one. More than 4 fonts in use at once rebuild atlases when all their texts rebuild: time,
+  not memory.
+
+## 2. Fonts
+
+- `fontFamily` stays a `PD.Select` of the generic families (`sans-serif`, `monospace`, `serif`, `cursive`): states, MVS
+  and the UIs are unchanged. What a family draws with is `FontFamilyFonts[family]`, a CSS font-family list, generic
+  last. Defaults are Prism's theme stacks (`--msp-font-sans`, `--msp-font-mono`). Why not a free font param: the
+  maintainers chose a table over extending `PD.Select` (2026-10-22).
+- `setFontFamilyFonts(family, fonts)` changes an entry, at startup: texts already built keep their glyphs until they
+  rebuild.
+- A family string not in the table (an old state, a value set through the API) is used as is.
+
+## 3. Web fonts load when an atlas needs them
+
+- An entry may name a web font: CSS `@font-face`, a Google Fonts stylesheet, a `FontFace` added to `document.fonts`.
+  None downloads until used; adding a `FontFace` is how a font by URL is offered.
+- Text visuals wait before building (`withFontAtlasFonts(props, build)`): `document.fonts.check(font)`, else
+  `document.fonts.load(font)`, one download per font however many wait. Wired into the structure label visual, the
+  loci shapes (label, distance, angle, dihedral), MVS custom and annotation labels and MVS primitives; their
+  `createGeometry` / `getShape` may return a promise.
+- The wait is at most 3 s (`FontLoadTimeoutMs`): a font behind a slow or silent network must not hold the state
+  update that builds labels. Past it, labels draw a fallback, and keep it until something rebuilds them after the font
+  arrived: nothing triggers that rebuild.
+- A text built before its font arrived gets an atlas of fallback glyphs: built while the font was in flight (the
+  camera helper, which does not wait; a visual past the timeout), or before the page knew the face at all (a
+  stylesheet or `FontFace` added later: `check` is true for a family with no face). Whatever atlas is cached for the
+  font is dropped when it arrives, in the reaction that settles the download, before any waiting visual runs: a
+  visual that waited never gets a fallback atlas.
+- `clearFontAtlasCache()` drops every atlas and the load state: tests restore the module with it, and an app that
+  changed its fonts can call it.
+- A download that fails (or loads and still does not match) marks the font failed: no more waiting, and the fallback
+  atlas stays cached. Why: `check` stays false after a failure, so without the mark every rebuild would wait again and
+  draw a new 43 MB atlas.
+- A font list the canvas cannot parse (`Source Serif 4, serif`: an unquoted name with a token starting with a digit)
+  leaves the canvas at its 10 px default; the atlas warns and draws the generic family instead.
+- No `document` (Node, workers): nothing to wait for. node-canvas resolves the family list itself (Pango); register a
+  font file with its `registerFont` before drawing.
+- `load` is asked with the default text, so of a font split by `unicode-range` (Google Fonts) only the first subset is
+  waited for. A glyph from another subset (`Ř` from latin-ext) is drawn with a fallback, which starts its download;
+  the glyph stays a fallback for that atlas's life, and pairs measured after the subset arrived use the real font.
+  Open: load with the label's text.
+
+## 4. Layout
+
+- A label's text is split into graphemes (`splitGraphemes`, `Intl.Segmenter`; ASCII by code unit): an emoji with its
+  modifiers, a letter with combining marks, an astral character are one glyph each.
+- Each grapheme's pen position comes from `TextMeasure` (`@molstar/core/util/text-measure`, adapted from pretext's
+  `pair-context` fit, MIT, attribution in the file): the advance of a grapheme after another is the two measured
+  together less the first, so the pair's kerning is in it. Widths are cached per atlas. Why: advancing by the atlas
+  cell width (rounded up, clamped) put no kerning and uneven gaps in every label.
+- A glyph's cell holds its ink (`actualBoundingBoxLeft/Right`) plus the field's buffer on both sides; `FontAtlasMap.left`
+  is where the pen starts in it. Why: ink left of the pen (`j`) or past the advance (`f`, italics) was clipped. A cell
+  is at most 1.5 lineheights wide: wider ink (`﷽`, an emoji sequence drawn as several emoji) is still clipped on the
+  right, while the advance stays right.
+- Spaces get a quad like any glyph. Why: skipping them leaves fewer quads than groups, and `createGroupMapping` sizes
+  its buckets by the quad count (perf-audit-2 08/B2).
+- Not done: shaping across graphemes (ligatures, Arabic joining, Indic clusters), bidi, line breaks.
+
+## 5. Rendering (WebGL and WebGPU alike)
+
+- Coverage is anti-aliased over one pixel: `sdfPerPixel` is the screen-space change of the field
+  (`length(dFdx, dFdy)`, sampled at the top of `main`, before anything can discard: derivatives need uniform control
+  flow, WGSL rejects them otherwise), coverage
+  `clamp((sdf - 0.5) / sdfPerPixel + 0.75, 0, 1)`. Why: a hard `sdf < 0.5` discard gave stair-stepped edges and broken
+  thin strokes at small sizes.
+- The +0.75 (not +0.5) puts the edge a quarter pixel out: one-pixel stems of small text stay solid, large text is
+  unchanged to the eye.
+- The fractional edge has alpha < 1 and is drawn in the transparent pass (`check_transparency` splits by alpha; text
+  counts as half transparent in `opacityAverage`, so the pass runs whenever text is shown). Interior fragments stay in
+  the opaque pass with depth.
+- The border mixes into the fill by the fill's coverage; fill fragments at coverage ≥ 0.5 are pushed forward in depth
+  as before, so a neighbouring glyph's border never covers them.
+- Pick, marking, emissive and depth variants keep the hard edge at the field's middle.
+
+## Open
+
+- Atlas memory: 350 × lineHeight × 0.75 lineHeight bytes allocated up front (43 MB at `fontQuality` 3, 256 px glyphs),
+  once per font on the CPU and, since the render items share `tFont`
+  ([shared-textures.md](../plans/gl/shared-textures.md)), once per font and context on the GPU. A new glyph uploads the
+  whole atlas once; a sub-image upload of the rows written since would cut that.
+- Minification: no mipmaps on `tFont`; text a few pixels tall samples the 256 px field sparsely.
+- Multi-channel SDF (MSDF) would keep corners sharp on very large labels; not needed at today's sizes.
+- Multi-line labels (`\n`) and shaping (§4).

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
@@ -117,6 +118,12 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
     ${clip_flag_wgsl('in.vClipping')}
 
+    // anti-aliased SDF text (.v6/designs/labels.md §5)
+    // sampled and differentiated before anything can discard: derivatives need uniform control flow
+    let rawSdf = sample_tFont(in.vTexCoord).r;
+    // how much the distance field changes across one pixel, at any label size
+    let sdfPerPixel = max(length(vec2<f32>(dpdx(rawSdf), dpdy(rawSdf))), 1e-4);
+
     if (fadeLod(in.position, in.vModelPosition)) {
         discard;
     }
@@ -135,15 +142,25 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         }
     #endif
 
-    // SDF test for glyph fragments: discard pixels outside glyph+border
-    var rawSdf = 0.0;
+    // glyph + border coverage: in color and tracing, anti-aliased over one pixel (the fractional edge is drawn in the
+    // transparent pass, check_transparency); in the other variants, the edge at the field's middle as before
+    var edgeAlpha = 1.0;
+    var fillAlpha = 1.0;
     if (!isBackground) {
-        rawSdf = sample_tFont(in.vTexCoord).r;
         // clamp to avoid exceeding max SDF range
         let sdf = rawSdf + min(uMaterial.uBorderWidth, 0.49);
-        if (sdf < 0.5) {
-            discard;
-        }
+        #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+            // edges a quarter pixel out: keeps one-pixel stems of small text solid, invisible on large text
+            edgeAlpha = clamp((sdf - 0.5) / sdfPerPixel + 0.75, 0.0, 1.0);
+            fillAlpha = clamp((rawSdf - 0.5) / sdfPerPixel + 0.75, 0.0, 1.0);
+            if (edgeAlpha < 1.0 / 255.0) {
+                discard;
+            }
+        #else
+            if (sdf < 0.5) {
+                discard;
+            }
+        #endif
     }
 
     out.fragDepth = fragmentDepth;
@@ -156,9 +173,11 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         #endif
     } else {
         #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-            if (uMaterial.uBorderWidth > 0.0 && rawSdf < 0.5) {
-                material = vec4<f32>(uMaterial.uBorderColor, material.a);
-            } else {
+            material = vec4<f32>(material.rgb, material.a * edgeAlpha);
+            if (uMaterial.uBorderWidth > 0.0) {
+                material = vec4<f32>(mix(uMaterial.uBorderColor, material.rgb, fillAlpha), material.a);
+            }
+            if (uMaterial.uBorderWidth == 0.0 || fillAlpha >= 0.5) {
                 // push text fragments forward in depth so they render in front of border (depth is reversed)
                 out.fragDepth = fragmentDepth + 0.0001;
             }

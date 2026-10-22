@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ReversedZeroToOne } from '../depth-range.js';
@@ -23,11 +24,13 @@ import {
   DefineSpec,
   getValueVersions,
   splitValues,
+  type TextureSpec,
   type UniformSpec,
 } from '../renderable/schema.js';
 import type { TextureImage, TextureVolume } from '../renderable/util.js';
 import type { DefineValues, ShaderCode } from '../shader-code.js';
-import type { Texture, Textures, TextureValues } from '../texture.js';
+import type { Texture, TextureKind, Textures, TextureValues } from '../texture.js';
+import { type SharedTexture, type SharedTextureImage, updateSharedTexture } from '../shared-texture.js';
 import type { UniformKind, UniformsList } from '../uniform.js';
 import {
   createUniformBlockData,
@@ -202,7 +205,13 @@ function interleave(arrays: readonly Float32Array[], itemSizes: readonly number[
   return out;
 }
 
-function createTextures(ctx: WebGPUDrawContext, schema: RenderableSchema, values: TextureValues): Textures {
+/** `shared` receives the textures of specs with `shared`, by name (`.v6/plans/gl/shared-textures.md` §4) */
+function createTextures(
+  ctx: WebGPUDrawContext,
+  schema: RenderableSchema,
+  values: TextureValues,
+  shared: Map<string, SharedTexture>,
+): Textures {
   const textures: Textures = [];
   for (const k of Object.keys(schema)) {
     const spec = schema[k];
@@ -211,6 +220,10 @@ function createTextures(ctx: WebGPUDrawContext, schema: RenderableSchema, values
     if (!value) continue;
     if (spec.kind === 'texture') {
       textures.push([k, value.ref.value as Texture]);
+    } else if (spec.shared) {
+      const held = ctx.sharedTextures.acquire(spec, value.ref.value as SharedTextureImage);
+      shared.set(k, held);
+      textures.push([k, held.texture]);
     } else {
       const texture = createWebGPUTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter);
       texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
@@ -406,8 +419,10 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   }
   createIndexBuffer();
 
-  const textures = createTextures(ctx, schema, textureValues);
-  const materialTextures = createTextures(ctx, schema, materialTextureValues);
+  // the textures of specs with `shared`, by name, released instead of destroyed (`.v6/plans/gl/shared-textures.md` §4)
+  const sharedTextures = new Map<string, SharedTexture>();
+  const textures = createTextures(ctx, schema, textureValues, sharedTextures);
+  const materialTextures = createTextures(ctx, schema, materialTextureValues, sharedTextures);
 
   let drawCount: number = values.drawCount.ref.value;
   let instanceCount: number = values.instanceCount.ref.value;
@@ -640,8 +655,9 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       let count = 0;
       for (const b of vertexBuffers.values()) count += b.data?.size ?? 0;
       if (indexBuffer) count += indexBuffer.size;
-      for (const [, t] of textures) count += t.getByteCount();
-      for (const [, t] of materialTextures) count += t.getByteCount();
+      // a shared texture by the item's share (§5)
+      for (const [k, t] of textures) count += sharedTextures.get(k)?.getByteCount() ?? t.getByteCount();
+      for (const [k, t] of materialTextures) count += sharedTextures.get(k)?.getByteCount() ?? t.getByteCount();
       return count;
     },
     getProgram: getGraphicsProgram,
@@ -754,8 +770,22 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
           const [k, texture] = list[i];
           const value = textureValues[k];
           if (value.ref.version === versions[k]) continue;
-          // textures of kind 'texture' are managed externally
-          if (schema[k].kind !== 'texture') {
+          const held = sharedTextures.get(k);
+          if (held) {
+            // the same image uploads once for all its items, another image is another texture (§4)
+            const next = updateSharedTexture(
+              ctx.sharedTextures,
+              held,
+              schema[k] as TextureSpec<TextureKind>,
+              value.ref.value as SharedTextureImage,
+            );
+            if (next !== held) {
+              sharedTextures.set(k, next);
+              list[i][1] = next.texture;
+              texturesReplaced = true;
+            }
+          } else if (schema[k].kind !== 'texture') {
+            // textures of kind 'texture' are managed externally
             texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
           } else if (list[i][1] !== value.ref.value) {
             list[i][1] = value.ref.value as Texture;
@@ -774,8 +804,12 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       if (destroyed) return;
       for (const b of vertexBuffers.values()) if (b.data) releaseGPUData(ctx, b.data);
       if (indexBuffer) releaseGPUData(ctx, indexBuffer);
-      for (const [k, t] of textures) if (schema[k].kind !== 'texture') t.destroy();
-      for (const [k, t] of materialTextures) if (schema[k].kind !== 'texture') t.destroy();
+      for (const [k, t] of [...textures, ...materialTextures]) {
+        const held = sharedTextures.get(k);
+        if (held) held.release();
+        else if (schema[k].kind !== 'texture') t.destroy();
+      }
+      sharedTextures.clear();
       stats.drawCount -= drawCount;
       stats.instanceCount -= instanceCount;
       stats.instancedDrawCount -= instanceCount * drawCount;

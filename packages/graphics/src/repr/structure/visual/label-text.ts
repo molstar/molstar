@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,6 +12,7 @@ import { type Structure, StructureElement, StructureProperties } from '@molstar/
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
+import { withFontAtlasFonts } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { ComplexTextVisual, ComplexTextParams, type ComplexVisual } from '../complex-visual.js';
 import { ElementIterator, getSerialElementLoci, eachSerialElement } from './util/element.js';
 import { ColorNames } from '@molstar/core/util/color/names';
@@ -49,7 +50,8 @@ export function LabelTextVisual(materialId: number): ComplexVisual<LabelTextPara
   return ComplexTextVisual<LabelTextParams>(
     {
       defaultProps: PD.getDefaultValues(LabelTextParams),
-      createGeometry: createLabelText,
+      createGeometry: (ctx, structure, theme, props, text) =>
+        withFontAtlasFonts(props, () => createLabelText(ctx, structure, theme, props, text)),
       createLocationIterator: ElementIterator.fromStructure,
       getLoci: getSerialElementLoci,
       eachLocation: eachSerialElement,

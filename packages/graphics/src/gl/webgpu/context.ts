@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { createWebGPUComputeContext } from './compute.js';
@@ -67,6 +68,7 @@ import {
 import { createWebGPURenderbuffer } from './renderbuffer.js';
 import { createRenderTargetFromResources, type RenderTarget } from '../render-target.js';
 import { type CubeFaces, createNullTexture, decodeImage, type Texture } from '../texture.js';
+import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
 import { createPendingWork } from '../pending-work.js';
 import { ValueCell } from '@molstar/core/util';
 import { createUniformRing } from './uniform-ring.js';
@@ -122,6 +124,8 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
   warnUnsupported: (message: string) => void;
   /** Render items whose programs `linkPrograms` creates ahead of their first draw */
   readonly linkables: WebGPULinkables;
+  /** Textures shared by render items (`.v6/plans/gl/shared-textures.md` §2), gone with the device */
+  readonly sharedTextures: SharedTextures;
 }
 
 /**
@@ -1027,6 +1031,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       warned.add(message);
       console.warn(`${message}, not drawn`);
     },
+    sharedTextures: createSharedTextures((spec) =>
+      createWebGPUTexture(drawContext, spec.kind, spec.format, spec.dataType, spec.filter),
+    ),
   };
 
   // stubs

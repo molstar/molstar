@@ -20,6 +20,7 @@ import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
+import { withFontAtlasFonts } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { Box, BoxCage } from '@molstar/graphics/geo/primitive/box';
 import { Circle } from '@molstar/graphics/geo/primitive/circle';
 import type { Primitive } from '@molstar/graphics/geo/primitive/primitive';
@@ -274,7 +275,8 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             ...snapshotKey,
             ...markdownCommands,
           },
-          getShape: (_, data, props, prev: any) => buildPrimitiveLabels(data, prev?.geometry, props),
+          getShape: (_, data, props, prev: any) =>
+            withFontAtlasFonts(props, () => buildPrimitiveLabels(data, prev?.geometry, props)),
           geometryUtils: Text.Utils,
         },
         { label },

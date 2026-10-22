@@ -51,6 +51,9 @@ Open follow-ups from the review of the WebGPU branch (correctness, memory, one d
   context in params, fallback to the next backend when a context is lost for good (without loops), and restore as a
   rebuild on a new context (`GraphicsContext.recreate`, in-place resets removed).
 
+- [shared-textures.md](shared-textures.md): render items share one texture per image object for specs that opt in
+  (`tFont`): one GPU copy of a font atlas per context, uploaded once per change.
+
 ## In progress or paused
 
 - [backend-selection.md](backend-selection.md): the Viewer defaults to `auto` (WebGPU where capable), the plugin default

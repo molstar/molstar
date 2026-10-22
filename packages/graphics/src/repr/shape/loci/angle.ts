@@ -1,8 +1,9 @@
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Loci } from '@molstar/model/model/loci';
@@ -16,6 +17,7 @@ import { Representation, type RepresentationParamsGetter, type RepresentationCon
 import type { Shape } from '@molstar/model/model/shape';
 import { LinesBuilder } from '@molstar/graphics/geo/geometry/lines/lines-builder';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
+import { withFontAtlasFonts } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
@@ -73,7 +75,12 @@ const AngleVisuals = {
       modifyState: (s) => ({ ...s, markerActions: MarkerActions.Highlighting }),
     }),
   text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, LociLabelTextParams>) =>
-    ShapeRepresentation(getTextShape, Text.Utils, { modifyState: (s) => ({ ...s, markerActions: MarkerAction.None }) }),
+    ShapeRepresentation(
+      (ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Text>) =>
+        withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
+      Text.Utils,
+      { modifyState: (s) => ({ ...s, markerActions: MarkerAction.None }) },
+    ),
 };
 
 export const AngleParams = {

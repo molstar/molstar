@@ -12,11 +12,13 @@ import { edt } from '@molstar/core/math/geometry/distance-transform';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
 import { RUNNING_IN_NODEJS } from '@molstar/core/util/nodejs-shims';
 import { LRUCache } from '@molstar/core/util/lru-cache';
+import { TextMeasure } from '@molstar/core/util/text-measure';
 
 /**
- * Atlases are tens of MB each (43 MB at the default quality), so the cache is keyed by the font fields only and keeps
- * the few most recently used. An evicted atlas lives on in the texts built with it; texts built later get a new one.
- * With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory).
+ * Atlases are tens of MB each (43 MB at the default quality), so the cache is keyed by the font (its CSS string) only
+ * and keeps the few most recently used. An evicted atlas lives on in the texts built with it; texts built later get a
+ * new one. With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory;
+ * .v6/designs/labels.md §1).
  */
 const FontAtlasCacheCapacity = 4;
 const FontAtlasCache = LRUCache.create<FontAtlas>(FontAtlasCacheCapacity);
@@ -33,18 +35,128 @@ function fontAtlasProps(props: Partial<FontAtlasProps>): FontAtlasProps {
   };
 }
 
+function fontAtlasFontSize(fontQuality: number) {
+  return 64 * (fontQuality + 1);
+}
+
+/** The CSS font the atlas for `props` draws its glyphs with (`ctx.font`), at the atlas's size. */
+export function getFontAtlasFont(props: Partial<FontAtlasProps>) {
+  const p = fontAtlasProps(props);
+  const fonts = FontFamilyFonts[p.fontFamily] ?? p.fontFamily;
+  return `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontAtlasFontSize(p.fontQuality)}px ${fonts}`;
+}
+
 export function getFontAtlas(props: Partial<FontAtlasProps>) {
   const p = fontAtlasProps(props);
-  const key = `${p.fontFamily}|${p.fontQuality}|${p.fontStyle}|${p.fontVariant}|${p.fontWeight}`;
+  const key = getFontAtlasFont(p);
   let atlas = LRUCache.get(FontAtlasCache, key);
   if (!atlas) {
     atlas = new FontAtlas(p);
     LRUCache.set(FontAtlasCache, key, atlas);
+    // drawn with fallback glyphs while a web font loads: dropped when it arrives (`loadFont`)
+    loadFont(key);
   }
   return atlas;
 }
 
+/**
+ * The fonts each generic family draws with: a CSS font-family list, tried in order, the generic family last (Prism's
+ * theme stacks for sans-serif and monospace; labels.md §2). An entry
+ * may name a web font (CSS `@font-face`, a Google Fonts stylesheet, a `FontFace` added to `document.fonts`): it is
+ * downloaded only when an atlas needs it (`loadFontAtlasFonts`). Change entries with `setFontFamilyFonts`.
+ */
+export const FontFamilyFonts: { readonly [F in FontFamily]: string } = {
+  'sans-serif': '"Helvetica Neue", "Segoe UI", Helvetica, "Source Sans Pro", Arial, sans-serif',
+  monospace: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+  serif: 'Georgia, Cambria, "Times New Roman", "Liberation Serif", serif',
+  cursive: 'cursive',
+};
+
+/**
+ * Sets the fonts `family` draws with (a CSS font-family list, e.g. `'Inter, sans-serif'`). Texts built from then on use
+ * them; existing texts keep their glyphs until rebuilt, so set the table before the first labels are drawn.
+ */
+export function setFontFamilyFonts(family: FontFamily, fonts: string) {
+  (FontFamilyFonts as { [F in FontFamily]: string })[family] = fonts;
+}
+
+/**
+ * How long text visuals wait for a web font; past it they draw a fallback, which stays until they rebuild after the font
+ * arrived (labels.md §3).
+ */
+const FontLoadTimeoutMs = 3000;
+/** What waiting on a font in flight resolves with: its arrival, or the timeout. */
+const FontLoads = new Map<string, Promise<void>>();
+/** Fonts whose download failed (or that loaded and still do not match): the fallback stays, nothing to wait for. */
+const FailedFonts = new Set<string>();
+
+function isFontLoaded(fontFaces: FontFaceSet, font: string) {
+  try {
+    return fontFaces.check(font);
+  } catch {
+    return true; // not a valid CSS font: nothing to load (the atlas draws the generic family)
+  }
+}
+
+/** A promise while any font of `font` (a CSS font) is a web font not loaded yet; undefined in Node and once loaded or failed (labels.md §3). */
+function loadFont(font: string): Promise<void> | undefined {
+  const fontFaces = typeof document !== 'undefined' ? document.fonts : undefined;
+  if (!fontFaces || FailedFonts.has(font)) return;
+  const pending = FontLoads.get(font);
+  if (pending) return pending;
+  if (isFontLoaded(fontFaces, font)) return;
+
+  // runs as the reaction that settles `arrived`, before anything awaiting it: a visual that waited builds with the
+  // font. Any atlas cached for it was drawn before it arrived: while it was in flight, or before the page knew the
+  // face at all (`check` is true for a family with no face yet), so it is dropped.
+  const settle = () => {
+    FontLoads.delete(font);
+    clearTimeout(timer);
+    if (!isFontLoaded(fontFaces, font)) {
+      FailedFonts.add(font);
+      return;
+    }
+    LRUCache.remove(FontAtlasCache, font);
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arrived = fontFaces.load(font).then(settle, settle);
+  const waited = Promise.race([
+    arrived,
+    new Promise<void>((resolve) => (timer = setTimeout(resolve, FontLoadTimeoutMs))),
+  ]);
+  FontLoads.set(font, waited);
+  return waited;
+}
+
+/**
+ * Downloads the web fonts the atlas for `props` draws with, if any is not loaded yet; undefined when there is nothing
+ * to wait for (system fonts, loaded fonts, Node). Await it before building texts so they get the font, not a fallback.
+ */
+export function loadFontAtlasFonts(props: Partial<FontAtlasProps>): Promise<void> | undefined {
+  return loadFont(getFontAtlasFont(props));
+}
+
+/**
+ * `build()`, after the fonts of the atlas for `props` are loaded (`loadFontAtlasFonts`), or failed, or 3 s passed;
+ * synchronous when there is nothing to wait for.
+ */
+export function withFontAtlasFonts<T>(props: Partial<FontAtlasProps>, build: () => T): T | Promise<T> {
+  const loading = loadFontAtlasFonts(props);
+  return loading ? loading.then(build) : build();
+}
+
+/**
+ * Drops every cached atlas and what is known about web fonts (in flight, failed): texts built from then on draw new
+ * atlases. For tests, which restore the module state they change, and for an app that changed its fonts.
+ */
+export function clearFontAtlasCache() {
+  while (FontAtlasCache.entries.count > 0) FontAtlasCache.entries.removeFirst();
+  FontLoads.clear();
+  FailedFonts.clear();
+}
+
 export type FontFamily = 'sans-serif' | 'monospace' | 'serif' | 'cursive';
+const GenericFamilies = new Set<string>(['sans-serif', 'monospace', 'serif', 'cursive']);
 export type FontStyle = 'normal' | 'italic' | 'oblique';
 export type FontVariant = 'normal' | 'small-caps';
 export type FontWeight = 'normal' | 'bold';
@@ -88,6 +200,8 @@ export type FontAtlasMap = {
   h: number;
   nw: number;
   nh: number; // normalized to lineheight
+  /** Where the pen starts in the cell, from its left edge, normalized to lineheight: ink left of the pen fits. */
+  left: number;
 };
 
 export class FontAtlas {
@@ -98,6 +212,7 @@ export class FontAtlas {
 
   private scratchW = 0;
   private scratchH = 0;
+  private scratchLeft = 0;
   private currentX = 0;
   private currentY = 0;
   private readonly scratchData: Uint8Array;
@@ -117,29 +232,43 @@ export class FontAtlas {
 
   readonly lineHeight: number;
 
+  /** The widest glyph cell: an em dash, a wide emoji, with the buffer on both sides. */
   private readonly maxWidth: number;
   private readonly middle: number;
+  /** Widths of text in this font, normalized to lineheight (`layout`). */
+  private readonly measure: TextMeasure;
 
   constructor(props: Partial<FontAtlasProps> = {}) {
     const p = fontAtlasProps(props);
     this.props = p;
 
     // create measurements
-    const fontSize = 64 * (p.fontQuality + 1);
+    const fontSize = fontAtlasFontSize(p.fontQuality);
     this.buffer = fontSize / 8;
     this.radius = fontSize / 3;
     this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius);
-    this.maxWidth = Math.round(this.lineHeight * 0.75);
+    this.maxWidth = Math.round(this.lineHeight * 1.5);
 
-    // create texture (for ~350 characters)
-    this.texture = createTextureImage(350 * this.lineHeight * this.maxWidth, 1, Uint8Array);
+    // create texture (for ~350 characters, a cell 0.75 lineheight wide on average)
+    this.texture = createTextureImage(350 * this.lineHeight * Math.round(this.lineHeight * 0.75), 1, Uint8Array);
 
     // prepare scratch canvas
     this.scratchContext = createCanvasContext(this.maxWidth, this.lineHeight, { willReadFrequently: true })!;
 
-    this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${p.fontFamily}`;
+    this.scratchContext.font = getFontAtlasFont(p);
+    if (!String(this.scratchContext.font).includes(`${fontSize}px`)) {
+      // not a valid CSS font, so the canvas kept its 10px default: draw the generic family instead
+      const generic = GenericFamilies.has(p.fontFamily) ? p.fontFamily : 'sans-serif';
+      console.warn(`Font atlas: invalid CSS font '${getFontAtlasFont(p)}', drawing ${generic}`);
+      this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${generic}`;
+    }
     this.scratchContext.fillStyle = 'black';
     this.scratchContext.textBaseline = 'middle';
+    // kerning on where the canvas has the setting (not node-canvas, which kerns by default)
+    if ('fontKerning' in this.scratchContext) this.scratchContext.fontKerning = 'normal';
+    const ctx = this.scratchContext;
+    const lineHeight = this.lineHeight;
+    this.measure = new TextMeasure((text) => ctx.measureText(text).width / lineHeight);
 
     // SDF scratch values
     this.scratchData = new Uint8Array(this.lineHeight * this.maxWidth);
@@ -181,6 +310,7 @@ export class FontAtlas {
         h: this.scratchH,
         nw: this.scratchW / this.lineHeight,
         nh: this.scratchH / this.lineHeight,
+        left: this.scratchLeft / this.lineHeight,
       };
 
       for (let y = 0; y < this.scratchH; ++y) {
@@ -190,9 +320,19 @@ export class FontAtlas {
       }
 
       this.currentX += this.scratchW;
+      // written in place: shared textures of the atlas upload it again (`.v6/plans/gl/shared-textures.md` §3)
+      this.texture.version = (this.texture.version ?? 0) + 1;
     }
 
     return this.mapped[char];
+  }
+
+  /**
+   * The graphemes of `text` and where each glyph's pen starts, normalized to lineheight: advances measured in this
+   * font with the kerning of each pair (`TextMeasure`). Place a glyph's cell `get(grapheme).left` before its pen.
+   */
+  layout(text: string) {
+    return this.measure.layout(text);
   }
 
   draw(char: string) {
@@ -200,13 +340,17 @@ export class FontAtlas {
     const ctx = this.scratchContext;
     const data = this.scratchData;
 
-    // measure text
+    // the cell holds the ink, which may reach left of the pen or right of the advance ('j', 'f', italics), and the
+    // buffer for the distance field on both sides
     const m = ctx.measureText(char);
-    const w = Math.min(this.maxWidth, Math.ceil(m.width + 2 * this.buffer));
+    const inkLeft = Math.max(0, Math.ceil(m.actualBoundingBoxLeft ?? 0));
+    const inkRight = Math.max(m.width, m.actualBoundingBoxRight ?? 0);
+    const w = Math.min(this.maxWidth, Math.ceil(inkLeft + inkRight + 2 * this.buffer));
     const n = w * h;
+    const x = this.buffer + inkLeft;
 
     ctx.clearRect(0, 0, w, h); // clear scratch area
-    ctx.fillText(char, this.buffer, this.middle); // draw text
+    ctx.fillText(char, x, this.middle); // draw text
     const imageData = ctx.getImageData(0, 0, w, h);
 
     for (let i = 0; i < n; i++) {
@@ -225,6 +369,7 @@ export class FontAtlas {
 
     this.scratchW = w;
     this.scratchH = h;
+    this.scratchLeft = x;
   }
 }
 
