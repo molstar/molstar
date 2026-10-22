@@ -7,28 +7,32 @@
  */
 
 import { Scheduler } from '@molstar/core/task/util/scheduler';
-import { combineLatest, distinctUntilChanged, map, Observable, of } from 'rxjs';
 import { type ObservableState, observableState } from '../reactive/observable-state.js';
 import { sameShallow } from '../reactive/same-shallow.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import type { Child, Component } from './jsx-types.js';
 import { playClose, swapIn } from './motion.js';
-import { insert, insertRegion, Passthrough, removeBetween } from './render.js';
-import { bind, type MaybeReactive, onCleanup, requireScope, runInScope, type Scope, toStream } from './scope.js';
-
-function toObservable<T>(value: MaybeReactive<T>): Observable<T> {
-  return toStream(value) ?? of(value as T);
-}
+import { insert, Passthrough, regionWriter, removeBetween } from './render.js';
+import {
+  bind,
+  follow,
+  type MaybeReactive,
+  onCleanup,
+  requireScope,
+  runInScope,
+  type Scope,
+  toStream,
+} from './scope.js';
 
 /**
- * A fragment holding a region that follows `source`. Its content is kept when the region's subscription is dropped and
- * made again (the scope was paused, `Scope.setActive`): the sources below emit the same render function while their
- * content stays, and the region does not render it twice.
+ * A fragment holding a region, and its write. Its content is kept when the region's sources are dropped and followed
+ * again (the scope was paused, `Scope.setActive`): the regions below write the same render function while their content
+ * stays, and the region does not render it twice. They follow their sources with `follow`, not an rxjs chain: a `Show`
+ * is in every other view, and its chain was a third of what it kept (perf audit 2, 11/P3).
  */
-function region(source: Observable<Child>): Node {
-  const fragment = document.createDocumentFragment();
-  insertRegion(fragment, source, null, true);
-  return fragment;
+function region(): { node: Node; write: (child: Child) => void } {
+  const node = document.createDocumentFragment();
+  return { node, write: regionWriter(node, null, true) };
 }
 
 /**
@@ -67,70 +71,75 @@ export function Show<T>(props: {
       for (const el of tops) el.setAttribute('data-reveal', props.reveal === true ? '' : String(props.reveal));
     return child;
   };
-  return region(
-    new Observable<Child>((subscriber) => {
-      let closing: Animation[] | undefined;
-      // The first value of this subscription: the one a subscription made again after a pause starts with.
-      let fresh = true;
-      const sub = toObservable(props.when)
-        .pipe(distinctUntilChanged())
-        .subscribe((v) => {
-          // Reopened while closing: the closing stops, the content is rendered anew.
-          if (closing) for (const a of closing) a.cancel();
+  const { node, write } = region();
+  let closing: Animation[] | undefined;
+  // What `when` was last (distinct values only, as of each start), and how many times the binding stopped: a swap or a
+  // closing that ends after a pause does not write.
+  let last: unknown;
+  let stops = 0;
+  const stopClosing = () => {
+    if (closing) for (const a of closing) a.cancel();
+    closing = undefined;
+  };
+  follow(
+    props.when,
+    (v, resumed) => {
+      if (!resumed && v === last) return;
+      last = v;
+      // Reopened while closing: the closing stops, the content is rendered anew.
+      stopClosing();
+      const wasShown = shown;
+      const opening = !first && !wasShown && !!v;
+      const closingNow = !first && wasShown && !v;
+      first = false;
+      shown = !!v;
+      if (v) {
+        // Resumed with the value it was showing (a value derived anew on subscribing, like `{ section }`, is the same
+        // when its fields are): the content stays.
+        const same = wasShown && shownFn && (Object.is(v, shownValue) || (resumed && sameShallow(v, shownValue)));
+        if (!same) {
+          shownValue = v;
+          shownFn = content(v as NonNullable<T>, !!props.reveal && opening);
+          // A value replacing another: swapped in, if asked (the content rendered when the transition has the old state,
+          // unless something newer came by then).
+          if (wasShown && props.swap) {
+            const fn = shownFn;
+            const at = stops;
+            swapIn(props.swap(), () => {
+              if (shownFn === fn && stops === at) write(fn);
+            });
+            return;
+          }
+        }
+        write(shownFn);
+        return;
+      }
+      shownValue = shownFn = undefined;
+      const kind = props.reveal === true ? 'grow' : props.reveal;
+      const animations = closingNow && kind ? tops.map((el) => playClose(el, kind)) : [];
+      if (animations.length === 0 || animations.some((a) => !a)) {
+        write(props.fallback ?? null);
+        return;
+      }
+      const these = animations as Animation[];
+      closing = these;
+      // Still on screen for the length of the animation, but gone for the pointer, the keyboard and assistive tech.
+      for (const el of tops) setInert(el, true);
+      Promise.all(these.map((a) => a.finished)).then(
+        () => {
+          if (closing !== these) return;
           closing = undefined;
-          const wasShown = shown;
-          const opening = !first && !wasShown && !!v;
-          const closingNow = !first && wasShown && !v;
-          first = false;
-          shown = !!v;
-          const resumed = fresh;
-          fresh = false;
-          if (v) {
-            // Resumed with the value it was showing (a value derived anew on subscribing, like `{ section }`, is the
-            // same when its fields are): the content stays.
-            const same = wasShown && shownFn && (Object.is(v, shownValue) || (resumed && sameShallow(v, shownValue)));
-            if (!same) {
-              shownValue = v;
-              shownFn = content(v as NonNullable<T>, !!props.reveal && opening);
-              // A value replacing another: swapped in, if asked (the content rendered when the transition has the old
-              // state, unless something newer came by then).
-              if (wasShown && props.swap) {
-                const fn = shownFn;
-                swapIn(props.swap(), () => {
-                  if (shownFn === fn) subscriber.next(fn);
-                });
-                return;
-              }
-            }
-            subscriber.next(shownFn);
-            return;
-          }
-          shownValue = shownFn = undefined;
-          const kind = props.reveal === true ? 'grow' : props.reveal;
-          const animations = closingNow && kind ? tops.map((el) => playClose(el, kind)) : [];
-          if (animations.length === 0 || animations.some((a) => !a)) {
-            subscriber.next(props.fallback ?? null);
-            return;
-          }
-          const these = animations as Animation[];
-          closing = these;
-          // Still on screen for the length of the animation, but gone for the pointer, the keyboard and assistive tech.
-          for (const el of tops) setInert(el, true);
-          Promise.all(these.map((a) => a.finished)).then(
-            () => {
-              if (closing !== these || subscriber.closed) return;
-              closing = undefined;
-              subscriber.next(props.fallback ?? null);
-            },
-            () => {},
-          );
-        });
-      return () => {
-        sub.unsubscribe();
-        if (closing) for (const a of closing) a.cancel();
-      };
-    }),
+          write(props.fallback ?? null);
+        },
+        () => {},
+      );
+    },
+    () => {
+      stops++;
+      stopClosing();
+    },
   );
+  return node;
 }
 
 function setInert(el: Element, inert: boolean) {
@@ -183,23 +192,22 @@ export function Dynamic<P>(props: { component: MaybeReactive<Component<P> | unde
   const { component, ...rest } = props;
   let shown: Component<P> | undefined;
   let render: (() => Child) | undefined;
-  return region(
-    toObservable(component).pipe(
-      distinctUntilChanged(),
-      map((C) => {
-        if (!C) {
-          shown = render = undefined;
-          return null;
-        }
-        // The same component as before (a new subscription after a pause): the same function, which is not rendered again.
-        if (C !== shown || !render) {
-          shown = C;
-          render = () => C(rest as P);
-        }
-        return render;
-      }),
-    ),
-  );
+  const { node, write } = region();
+  follow(component, (C, first) => {
+    if (!first && C === shown) return;
+    if (!C) {
+      shown = render = undefined;
+      write(null);
+      return;
+    }
+    // The same component as before (followed again after a pause): the same function, which is not rendered again.
+    if (C !== shown || !render) {
+      shown = C;
+      render = () => C(rest as P);
+    }
+    write(render);
+  });
+  return node;
 }
 
 interface MatchCaseValue {
@@ -218,34 +226,67 @@ export function Switch(props: { fallback?: () => Child; children: Child }): Node
   const cases = (Array.isArray(props.children) ? props.children : [props.children]).filter(
     (c): c is MatchCaseValue => !!c && typeof c === 'object' && (c as Partial<MatchCaseValue>)[Passthrough] === 'match',
   ) as MatchCaseValue[];
-  const active = combineLatest(cases.map((c) => toObservable(c.when))).pipe(
-    map((values) => {
-      const index = values.findIndex((v) => !!v);
-      return { index, value: index < 0 ? undefined : values[index] };
-    }),
-    distinctUntilChanged((a, b) => a.index === b.index && Object.is(a.value, b.value)),
-  );
   let shownIndex = -1;
   let shownValue: unknown;
   let render: (() => Child) | undefined;
-  return region(
-    active.pipe(
-      map(({ index, value }) => {
-        if (index < 0) {
-          render = undefined;
-          shownIndex = -1;
-          return props.fallback ?? null;
+  const { node, write } = region();
+  // As a `combineLatest` of the cases would: a decision once every case has a value, again after each (distinct as of
+  // each start). A case that stops (paused) waits for its value again, so a resume decides once, on all of them.
+  const values: unknown[] = new Array(cases.length);
+  const has: boolean[] = new Array(cases.length).fill(false);
+  let missing = cases.length;
+  let fresh = true;
+  let decided = -2;
+  let decidedValue: unknown;
+  const decide = () => {
+    let index = -1;
+    for (let i = 0; i < values.length; i++) {
+      if (values[i]) {
+        index = i;
+        break;
+      }
+    }
+    const value = index < 0 ? undefined : values[index];
+    if (!fresh && index === decided && Object.is(value, decidedValue)) return;
+    fresh = false;
+    decided = index;
+    decidedValue = value;
+    if (index < 0) {
+      render = undefined;
+      shownIndex = -1;
+      write(props.fallback ?? null);
+      return;
+    }
+    // The same case and value as before (followed again after a pause): the same function, not rendered again.
+    if (index !== shownIndex || !Object.is(value, shownValue) || !render) {
+      shownIndex = index;
+      shownValue = value;
+      render = () => cases[index].children(value);
+    }
+    write(render);
+  };
+  if (cases.length === 0) write(props.fallback ?? null);
+  for (let i = 0; i < cases.length; i++) {
+    follow(
+      cases[i].when,
+      (v) => {
+        values[i] = v;
+        if (!has[i]) {
+          has[i] = true;
+          missing--;
         }
-        // The same case and value as before (a new subscription after a pause): the same function, not rendered again.
-        if (index !== shownIndex || !Object.is(value, shownValue) || !render) {
-          shownIndex = index;
-          shownValue = value;
-          render = () => cases[index].children(value);
+        if (missing === 0) decide();
+      },
+      () => {
+        if (has[i]) {
+          has[i] = false;
+          missing++;
         }
-        return render;
-      }),
-    ),
-  );
+        fresh = true;
+      },
+    );
+  }
+  return node;
 }
 
 /**

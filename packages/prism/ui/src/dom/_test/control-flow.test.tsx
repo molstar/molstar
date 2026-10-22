@@ -270,6 +270,17 @@ describe('Dynamic and Switch', () => {
     error.set(undefined);
     expect(second.html()).toBe('<i>ready</i>');
   });
+
+  it('renders the fallback with no case, and a case over plain values', () => {
+    expect(mount(() => <Switch fallback={() => <i>none</i>}>{[]}</Switch>).html()).toBe('<i>none</i>');
+    const plain = mount(() => (
+      <Switch>
+        <Match when={0}>{() => <i>zero</i>}</Match>
+        <Match when="two">{(v) => <i>{v}</i>}</Match>
+      </Switch>
+    ));
+    expect(plain.html()).toBe('<i>two</i>');
+  });
 });
 
 describe('Show swap', () => {

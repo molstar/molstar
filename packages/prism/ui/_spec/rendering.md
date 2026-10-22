@@ -263,7 +263,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 `dom/control-flow.ts`; each renders into its own range and disposes what it leaves.
 
 - **`Show`** renders again, in a fresh scope, whenever the value changes identity (a flag: when it flips). Narrow the
-  stream first (`map`, `distinctUntilChanged`) when the content should stay.
+  value first (`derive`) when the content should stay.
+- **No rxjs inside the regions**: `Show`, `Switch` and `Dynamic` follow their sources with `follow` (`dom/scope.ts`: a
+  binding told whether a value is the first since it started, and when it stops) and write through `regionWriter`
+  (`dom/render.ts`); a state is followed by its `listen`, only a foreign stream by a subscription. Why: a `Show` is in
+  most views, and its `pipe(distinctUntilChanged())` chain kept 4.1 KB a `Show` against 2.8 KB without (perf audit 2,
+  11/P3). `Switch` decides as `combineLatest` did: once every case has a value, and once on a resume.
 - **`For each key`**: an entry keeps its nodes and scope while its key stays **and** its item is the same value; a new
   value under the same key renders it anew. `index` is a state. A duplicate key warns once. A long list renders over
   time slices (`timeSlicing`): a slice makes only the entries the last one deferred, each before the next entry placed,

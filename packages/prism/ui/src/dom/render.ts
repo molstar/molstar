@@ -154,6 +154,14 @@ function isText(value: unknown): value is string | number | bigint | boolean | n
  * paused and resumed (`Scope.setActive`) keeps what is on screen instead of rebuilding it.
  */
 export function insertRegion(parent: Node, source: Observable<Child>, before: Node | null, memo = false): void {
+  bind(source, regionWriter(parent, before, memo));
+}
+
+/**
+ * The write of a region (`insertRegion`), for a caller that follows its own sources (`Show`, `Switch`, `Dynamic`): its
+ * place is inserted now, before `before`; each call renders a value there.
+ */
+export function regionWriter(parent: Node, before: Node | null, memo = false): (value: Child) => void {
   const owner = requireScope('A reactive child');
   // Text first (the common case: a label, a count): one Text node is its own place. Anchors come only when the value
   // is nodes, around wherever the text was.
@@ -163,7 +171,7 @@ export function insertRegion(parent: Node, source: Observable<Child>, before: No
   let end: Comment | undefined;
   let scope: Scope | undefined;
   let rendered: unknown;
-  bind(source, (value) => {
+  return (value) => {
     if (memo && typeof value === 'function' && value === rendered) return;
     rendered = value;
     if (isText(value)) {
@@ -194,7 +202,7 @@ export function insertRegion(parent: Node, source: Observable<Child>, before: No
     const fragment = document.createDocumentFragment();
     runInScope(next, () => insert(fragment, value, null));
     end!.parentNode!.insertBefore(fragment, end!);
-  });
+  };
 
   function clearNodes() {
     scope?.dispose();

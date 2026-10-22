@@ -334,6 +334,61 @@ describe('activity', () => {
     expect(container.querySelector('b')).toBeNull();
   });
 
+  it('a Switch decides once on resume, on all its cases (perf audit 11/P3: no combineLatest)', () => {
+    const shown = observableState(true);
+    const mode = observableState('a');
+    const made: string[] = [];
+    const { container } = mount(() =>
+      activity(shown, () => (
+        <div>
+          <Switch
+            fallback={() => {
+              made.push('none');
+              return <u />;
+            }}
+          >
+            <Match when={derive(mode.asReadonly, (m) => m === 'a')}>
+              {() => {
+                made.push('a');
+                return <b>a</b>;
+              }}
+            </Match>
+            <Match when={derive(mode.asReadonly, (m) => m === 'b')}>
+              {() => {
+                made.push('b');
+                return <i>b</i>;
+              }}
+            </Match>
+          </Switch>
+        </div>
+      )),
+    );
+    shown.set(false);
+    mode.set('b');
+    shown.set(true);
+    // The first case's false did not decide alone (the second still held its value from before the pause).
+    expect(made).toEqual(['a', 'b']);
+    expect(container.querySelector('i')?.textContent).toBe('b');
+  });
+
+  it('a Show over a foreign stream follows it while active, and leaves no subscription when disposed', () => {
+    const shown = observableState(true);
+    const source = new BehaviorSubject<string | undefined>('x');
+    const { container, dispose } = mount(() =>
+      activity(shown, () => <div>{<Show when={source}>{(v) => <b>{v}</b>}</Show>}</div>),
+    );
+    expect(container.querySelector('b')?.textContent).toBe('x');
+    shown.set(false);
+    expect(source.observed).toBe(false);
+    source.next(undefined);
+    shown.set(true);
+    expect(container.querySelector('b')).toBeNull();
+    source.next('y');
+    expect(container.querySelector('b')?.textContent).toBe('y');
+    dispose();
+    expect(source.observed).toBe(false);
+  });
+
   it('is disposed with its owner while paused, leaving no subscription', () => {
     const shown = observableState(false);
     const source = new BehaviorSubject('x');
