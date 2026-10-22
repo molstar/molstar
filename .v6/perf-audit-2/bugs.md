@@ -1,17 +1,15 @@
 # Performance audit v2: bugs
 
 Every open bug found or re-verified by the v2 slice audits ([README.md](README.md)), confirmed or plausible after the
-verify pass, ranked by severity, then by reach (reachable in the apps before latent API defects). 106 distinct entries
-(01/B1 = 04/B1 in one row; slice 12's re-listings of 03/B7, 03/B8 and 06/B9 merged into the owning slice): **1 high, 24
-medium, 81 low**. 40 new (1 high, 11 medium, 28 low), 66 v1 bugs still open (13 medium, 53 low). 7 plausible (04/B12,
+verify pass, ranked by severity, then by reach (reachable in the apps before latent API defects). 105 distinct entries
+(01/B1 = 04/B1 in one row; slice 12's re-listings of 03/B7, 03/B8 and 06/B9 merged into the owning slice): **0 high, 24
+medium, 81 low**. 39 new (0 high, 11 medium, 28 low), 66 v1 bugs still open (13 medium, 53 low). 7 plausible (04/B12,
 04/B13, 04/B14, 05/B3, 05/B13, 06/B9, 07/B9). Ids are `slice/id`; the slice report's Bugs section has the probe and the
 fix.
 
 ## High
 
-| Id    | Status vs v1 | Title                                                                    | File                                                                                    | Failure scenario                                                                                                                                                                           | Verdict   | Report                                       |
-| ----- | ------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------- |
-| 08/B6 | new          | `getFontAtlas` caches by every Text prop, never evicts: 43 MB per atlas | [text-builder.ts:50](../../packages/graphics/src/geo/geometry/text/text-builder.ts#L50) | Each distinct label prop set (a size-slider step, a new MVS label set: its `items` are in the props) retains a new 43.1 MB atlas: 20 slider steps 0.86 GB, for the session | confirmed | [08](08-graphics-geo.md#bugs)                |
+None open: 08/B6 is fixed (below).
 
 ## Medium
 
@@ -147,6 +145,7 @@ Reachable today first, then latent (no in-repo trigger).
 | 14/N7  | #2014 | builder removal no longer writes into `state.tree` (`renewOwner`)                              |
 | 02/B5  | #2025 | no coordinate read without a backbone atom (v2 bug; root of 02/P10)                     |
 | 12/B2  | #2026 | v2 bug: the ESM entry's budget is on its start closure (5.5 MB; Prism now 5.16 MB)             |
+| 08/B6  | this PR | v2 bug (high): font atlas cache keyed by the font fields only, LRU of 4                      |
 
 Partly fixed: 01/B5 (#2007, padding half; `is` still open, listed above). Dropped: 13/B1 (text mmCIF above ~4.8M atoms:
 app paths decode to a `ChunkedBigString` since #2019; cost is now speed, 12/H5).
