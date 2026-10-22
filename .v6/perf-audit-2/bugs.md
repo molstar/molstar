@@ -145,7 +145,7 @@ Reachable today first, then latent (no in-repo trigger).
 | 14/N7  | #2014 | builder removal no longer writes into `state.tree` (`renewOwner`)                              |
 | 02/B5  | #2025 | no coordinate read without a backbone atom (v2 bug; root of 02/P10)                     |
 | 12/B2  | #2026 | v2 bug: the ESM entry's budget is on its start closure (5.5 MB; Prism now 5.16 MB)             |
-| 08/B6  | this PR | v2 bug (high): font atlas cache keyed by the font fields only, LRU of 4                      |
+| 08/B6  | #2028 | v2 bug (high): font atlas cache keyed by the font fields only, LRU of 4                        |
 
 Partly fixed: 01/B5 (#2007, padding half; `is` still open, listed above). Dropped: 13/B1 (text mmCIF above ~4.8M atoms:
 app paths decode to a `ChunkedBigString` since #2019; cost is now speed, 12/H5).
