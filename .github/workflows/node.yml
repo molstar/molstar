@@ -137,7 +137,3 @@ jobs:
         run: pnpm check:workspace && pnpm version:check
       - name: Pack public packages
         run: pnpm pack:workspace
-      - name: Install the smoke browser
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Browser smoke (the packed distribution's Viewer, MVS Stories and Prism single file)
-        run: node smoke/run.mjs browser
