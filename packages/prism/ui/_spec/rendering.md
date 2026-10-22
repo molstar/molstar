@@ -270,10 +270,11 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   most views, and its `pipe(distinctUntilChanged())` chain kept 4.1 KB a `Show` against 2.8 KB without (perf audit 2,
   11/P3). `Switch` decides as `combineLatest` did: once every case has a value, and once on a resume.
 - **`For each by`**: an entry keeps its nodes and scope while its key (`by`, else the item) stays **and** its item is
-  the same value; a new value under the same key renders it anew. Not `key=`: the JSX runtime keeps `key` for itself,
-  so `For` has no such prop and TypeScript rejects it (it was silently dropped). `index` is a state. A duplicate key warns once. A long list renders over
-  time slices (`timeSlicing`): a slice makes only the entries the last one deferred, each before the next entry placed,
-  never a reconcile of the whole list again (that was quadratic over the slices; `dom/_test/for-slices.scaling.tsx`).
+  the same value; a new value under the same key renders it anew. Not `key=`: the JSX runtime keeps `key` for itself, so
+  `For` has no such prop and TypeScript rejects it (it was silently dropped). `index` is a state. A duplicate key warns
+  once. A long list renders over time slices (`timeSlicing`): a slice makes only the entries the last one deferred, each
+  before the next entry placed, never a reconcile of the whole list again (that was quadratic over the slices;
+  `dom/_test/for-slices.scaling.tsx`).
 - **`Switch`/`Match`**, **`Dynamic`**: the first truthy case; the current component.
 - **Views follow records by id.** Where a list's records are replaced on every change (an agent turn's runs, History),
   run `For` over the ids (`distinctUntilChanged` on their contents) and give each row a stream of its record, so a row

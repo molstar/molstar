@@ -225,7 +225,11 @@ describe('delegated events', () => {
     render(
       () => (
         <div class="list" onPointerOver={(e) => seen.push(`over:${(e.currentTarget as Element).className}`)}>
-          <button type="button" class="row" onPointerMove={(e) => seen.push(`move:${(e.currentTarget as Element).className}`)} />
+          <button
+            type="button"
+            class="row"
+            onPointerMove={(e) => seen.push(`move:${(e.currentTarget as Element).className}`)}
+          />
           <span class="plain" />
         </div>
       ),

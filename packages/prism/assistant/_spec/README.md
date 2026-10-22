@@ -78,12 +78,13 @@ is the truth for how.
   `ui/_spec/rendering.md` §2): the trace is read with a `TraceCache`, so a running turn's re-read maps its new call and
   keeps the views of the rest; the model's rows are kept per turn and per row while what a row shows is the same (a step
   row by its step, a request row by its words, which is why a request row holds `{ id, prompt, focus }`, not the turn),
-  so the trace list, the Overview and the detail rebuild only the tail. The views follow them by turn id: the Overview
-  a column per turn and a block per step (keyed states), the list a `For` per turn over `rowGroups` (a turn's rows, the
+  so the trace list, the Overview and the detail rebuild only the tail. The views follow them by turn id: the Overview a
+  column per turn and a block per step (keyed states), the list a `For` per turn over `rowGroups` (a turn's rows, the
   same array while the turn is), so a settle (80 ms) while a turn runs makes only its new steps' blocks and rows and
-  reconciles only its rows (a column made anew was its steps² a turn; perf audit 2, 11/P2). The list is not virtual:
-  its rows differ in height and a turn's header is sticky over its rows. The model exposes states (`rows`,
-  `rowGroups`, `turns`, `selected`, `row`: `derive` over a lazily connected, settled trace; a row's selected flag is a
-  `keyedSelector` key), never streams. The views are `view = f(state)`: the DOM made once, one `watch` per component writing what changed
-  (`dom/writes.ts`), `Show` and `For` for structure; a state given to a library component (`Select`, `TextInput`,
-  `StatusPill`) is that component's API. Guarded by `test:scaling` (`inspector/_test/rows.scaling.ts`, the run list's).
+  reconciles only its rows (a column made anew was its steps² a turn; perf audit 2, 11/P2). The list is not virtual: its
+  rows differ in height and a turn's header is sticky over its rows. The model exposes states (`rows`, `rowGroups`,
+  `turns`, `selected`, `row`: `derive` over a lazily connected, settled trace; a row's selected flag is a
+  `keyedSelector` key), never streams. The views are `view = f(state)`: the DOM made once, one `watch` per component
+  writing what changed (`dom/writes.ts`), `Show` and `For` for structure; a state given to a library component
+  (`Select`, `TextInput`, `StatusPill`) is that component's API. Guarded by `test:scaling`
+  (`inspector/_test/rows.scaling.ts`, the run list's).

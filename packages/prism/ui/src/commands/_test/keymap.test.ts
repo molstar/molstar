@@ -165,7 +165,10 @@ describe('keys by index (perf audit 11/P4)', () => {
     expect(shortcut).not.toHaveBeenCalled();
     shortcut.mockRestore();
     // A command registered later on the same key and scope: the first registered still takes it.
-    m.register([cmd('second', { shortcut: { key: 'k', alt: true } }), cmd('late', { shortcut: { key: 'l', alt: true } })]);
+    m.register([
+      cmd('second', { shortcut: { key: 'k', alt: true } }),
+      cmd('late', { shortcut: { key: 'l', alt: true } }),
+    ]);
     expect(m.handleKey({ key: 'k', altKey: true }, false)).toBe(true);
     await settle();
     expect(m.handleKey({ key: 'l', altKey: true }, false)).toBe(true);
