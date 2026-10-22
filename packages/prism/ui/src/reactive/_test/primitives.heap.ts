@@ -19,6 +19,7 @@ import {
   frameOffers,
   keyedSelectorMove,
   keyedStateSet,
+  recordSetSame,
   stateSet,
   watchRender,
   workFrameRun,
@@ -56,6 +57,7 @@ const cases = {
   frameOffers,
   workWant,
   workFrameRun,
+  recordSetSame,
 };
 
 describe('primitives heap guards', () => {
