@@ -21,3 +21,5 @@
   transparency, substance, emissive, clipping and wiggle layers update in place, and the components share the new frame's
   root structure (root-level properties computed once per frame, not once per component)
 - `Structure.remapModel(m, parent?)` takes the parent already remapped
+- A representation update that changes neither the structure nor the themes' params keeps the color and size themes
+  (an MVS frame changing opacity or emissive: exosome story 3.7 → 3.0 ms per frame)

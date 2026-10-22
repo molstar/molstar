@@ -167,6 +167,13 @@ One line per id as it lands: the commit's before → after on the bench (median 
   ball-and-stick) and the unit boundaries (15–20%), which read coordinates. A unit's `transientCache` (valence model,
   interaction features) reads coordinates too, so nothing there can be carried over.
 
+- **R1 (themes)** (`representation.ts` update: the color and size themes are kept when the structure and their params are
+  unchanged, with their dependencies' references). exosome: 3.72 → 2.95 ms/applied, 3,632 → 2,812 KB/tick, 2.94 → 2.40
+  ms/tick med. Trajectories are unchanged by it: a new structure makes the themes again. Tests:
+  `plugin/core/src/state/transforms/_test/representation-update.test.ts` (a theme made on an alpha change before).
+  Method note: a trajectory scene measured in the same process after the exosome scene reads up to 40% slower (the
+  exosome allocates 2.3 GB first), so trajectory numbers come from runs of their own.
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip

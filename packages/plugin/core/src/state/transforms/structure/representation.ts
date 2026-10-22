@@ -8,6 +8,7 @@
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import type { PluginContext } from '@molstar/plugin/context';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { deepEqual } from '@molstar/core/util';
 import { Structure } from '@molstar/model/model/structure';
 import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
@@ -139,16 +140,22 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
 
-      // TODO: if themes had a .needsUpdate method the following block could
-      //       be optimized and only executed conditionally
-      Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.sourceData }, oldParams);
-      await Theme.ensureDependencies(
-        propertyCtx,
-        plugin.representation.structure.themes,
-        { structure: data },
-        newParams,
-      );
-      b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, newParams));
+      // The themes read the structure and their params only: an animation frame that changes the representation's
+      // own params (opacity, emissive, clipping) keeps them, which also keeps their dependencies' references.
+      const sameThemes =
+        a.data === b.data.sourceData &&
+        deepEqual(oldParams.colorTheme, newParams.colorTheme) &&
+        deepEqual(oldParams.sizeTheme, newParams.sizeTheme);
+      if (!sameThemes) {
+        Theme.releaseDependencies(plugin.representation.structure.themes, { structure: b.data.sourceData }, oldParams);
+        await Theme.ensureDependencies(
+          propertyCtx,
+          plugin.representation.structure.themes,
+          { structure: data },
+          newParams,
+        );
+        b.data.repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, newParams));
+      }
 
       const props = { ...b.data.repr.props, ...newParams.type.params };
       await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
