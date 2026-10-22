@@ -3,7 +3,7 @@
 Goal: make the per-frame work of playback proportional to what the frame changes. Two kinds of playback are covered:
 state-snapshot and MVS animations, and trajectory (model-index) playback. The load side (building MVS frames, the
 state tree, representations) is covered by [mvs-optimizations](../mvs-optimizations/research/README.md) and
-[perf-audit](../perf-audit/README.md); this is what happens once playback runs. Branch: `v6-animation-playback`.
+[perf-audit](../perf-audit/README.md); this is what happens once playback runs. Branch: `v6-animation-playback`, PR #2022.
 
 The findings below come from two read-only traces of master at `93e710836` (2026-10-22). They are claims until the
 bench (step 0) or a test confirms them; ids are `S` for snapshot/MVS playback and `T` for trajectory playback. Paths are
@@ -13,15 +13,15 @@ relative to `packages/`.
 
 | Step | Ids                    | What                                                                      | Status |
 | ---- | ---------------------- | ------------------------------------------------------------------------- | ------ |
-| 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) |
-| 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped |
-| 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 |
-| 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped |
-| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: the themes; the param definition cache removed (review gate 2); multilayer selectors open |
-| 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept |
-| 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) |
-| 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | done: S7 in the effect transforms, bundle layers; S6 dropped (2.3% of a frame) |
-| 8    | S8                     | State interpolation: equality and the ref match                           | done |
+| 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) (#2022) |
+| 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped (#2022) |
+| 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 (#2022) |
+| 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped (#2022) |
+| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: the themes; the param definition cache removed (review gate 2); multilayer selectors open (#2022) |
+| 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept (#2022) |
+| 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) (#2022) |
+| 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | done: S7 in the effect transforms, bundle layers; S6 dropped (2.3% of a frame) (#2022) |
+| 8    | S8                     | State interpolation: equality and the ref match                           | done (#2022) |
 
 Order: the bench, then the bugs (1, 2), then the work per frame from the bottom of the tree to the top (3–6), then the
 state-level change (7). Step 7 changes how a snapshot is applied, so it needs the core state spec, and the steps before
