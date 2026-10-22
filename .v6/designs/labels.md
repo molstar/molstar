@@ -31,11 +31,19 @@ the camera helper's axes. A label is one quad per glyph from a signed-distance-f
   `document.fonts.load(font)`, one download per font however many wait. Wired into the structure label visual, the
   loci shapes (label, distance, angle, dihedral), MVS custom and annotation labels and MVS primitives; their
   `createGeometry` / `getShape` may return a promise.
-- A text built without waiting while its font loads (the camera helper) gets an atlas of fallback glyphs; that atlas
-  is dropped from the cache when the font arrives, so the next build draws the font.
+- The wait is at most 3 s (`FontLoadTimeoutMs`): a font behind a slow or silent network must not hold the state
+  update that builds labels. Past it, labels draw a fallback until the font arrives and they rebuild.
+- A text built while its font is in flight (the camera helper, which does not wait; a visual past the timeout) gets an
+  atlas of fallback glyphs. That atlas is dropped from the cache when the font arrives, in the reaction that settles
+  the download, before any waiting visual runs: a visual that waited never gets the fallback atlas.
+- A download that fails (or loads and still does not match) marks the font failed: no more waiting, and the fallback
+  atlas stays cached. Why: `check` stays false after a failure, so without the mark every rebuild would wait again and
+  draw a new 43 MB atlas.
+- A font list the canvas cannot parse (`Source Serif 4, serif`: an unquoted name with a token starting with a digit)
+  leaves the canvas at its 10 px default; the atlas warns and draws the generic family instead.
 - No `document` (Node, workers): nothing to wait for. node-canvas resolves the family list itself (Pango); register a
   font file with its `registerFont` before drawing.
-- A failed download resolves: the fallback fonts stay. `load` is asked with the default text, so a Google Fonts subset
+- `load` is asked with the default text, so a Google Fonts subset
   by `unicode-range` other than the first loads only when a glyph in it is drawn, which then draws a fallback once.
 
 ## 4. Layout
@@ -48,13 +56,15 @@ the camera helper's axes. A label is one quad per glyph from a signed-distance-f
   cell width (rounded up, clamped) put no kerning and uneven gaps in every label.
 - A glyph's cell holds its ink (`actualBoundingBoxLeft/Right`) plus the field's buffer on both sides; `FontAtlasMap.left`
   is where the pen starts in it. Why: ink left of the pen (`j`) or past the advance (`f`, italics) was clipped.
-- Spaces advance but get no quad.
+- Spaces get a quad like any glyph. Why: skipping them leaves fewer quads than groups, and `createGroupMapping` sizes
+  its buckets by the quad count (perf-audit-2 08/B2).
 - Not done: shaping across graphemes (ligatures, Arabic joining, Indic clusters), bidi, line breaks.
 
 ## 5. Rendering (WebGL and WebGPU alike)
 
 - Coverage is anti-aliased over one pixel: `sdfPerPixel` is the screen-space change of the field
-  (`length(dFdx, dFdy)`, sampled before any branch: derivatives need uniform control flow), coverage
+  (`length(dFdx, dFdy)`, sampled at the top of `main`, before anything can discard: derivatives need uniform control
+  flow, WGSL rejects them otherwise), coverage
   `clamp((sdf - 0.5) / sdfPerPixel + 0.75, 0, 1)`. Why: a hard `sdf < 0.5` discard gave stair-stepped edges and broken
   thin strokes at small sizes.
 - The +0.75 (not +0.5) puts the edge a quarter pixel out: one-pixel stems of small text stay solid, large text is

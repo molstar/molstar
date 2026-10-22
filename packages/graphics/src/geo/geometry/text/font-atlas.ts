@@ -53,14 +53,8 @@ export function getFontAtlas(props: Partial<FontAtlasProps>) {
   if (!atlas) {
     atlas = new FontAtlas(p);
     LRUCache.set(FontAtlasCache, key, atlas);
-    // drawn with fallback glyphs while a web font loads: texts built after it arrives get a new atlas
-    const loading = loadFont(key);
-    if (loading) {
-      const drawn = atlas;
-      loading.then(() => {
-        if (LRUCache.get(FontAtlasCache, key) === drawn) LRUCache.remove(FontAtlasCache, key);
-      });
-    }
+    // drawn with fallback glyphs while a web font loads: dropped when it arrives (`loadFont`)
+    if (loadFont(key)) FallbackAtlases.set(key, atlas);
   }
   return atlas;
 }
@@ -86,27 +80,52 @@ export function setFontFamilyFonts(family: FontFamily, fonts: string) {
   (FontFamilyFonts as { [F in FontFamily]: string })[family] = fonts;
 }
 
+/** How long text visuals wait for a web font; past it they draw a fallback, replaced when the font arrives. */
+const FontLoadTimeoutMs = 3000;
+/** What waiting on a font in flight resolves with: its arrival, or the timeout. */
 const FontLoads = new Map<string, Promise<void>>();
+/** Fonts whose download failed (or that loaded and still do not match): the fallback stays, nothing to wait for. */
+const FailedFonts = new Set<string>();
+/** Atlases drawn while their font was in flight, by font. */
+const FallbackAtlases = new Map<string, FontAtlas>();
 
-/** A promise while any font of `font` (a CSS font) is a web font not loaded yet; undefined in Node and once loaded (labels.md §3). */
+function isFontLoaded(fontFaces: FontFaceSet, font: string) {
+  try {
+    return fontFaces.check(font);
+  } catch {
+    return true; // not a valid CSS font: nothing to load (the atlas draws the generic family)
+  }
+}
+
+/** A promise while any font of `font` (a CSS font) is a web font not loaded yet; undefined in Node and once loaded or failed (labels.md §3). */
 function loadFont(font: string): Promise<void> | undefined {
   const fontFaces = typeof document !== 'undefined' ? document.fonts : undefined;
-  if (!fontFaces) return;
+  if (!fontFaces || FailedFonts.has(font)) return;
   const pending = FontLoads.get(font);
   if (pending) return pending;
-  try {
-    if (fontFaces.check(font)) return;
-  } catch {
-    return; // not a valid CSS font: the canvas ignores it too
-  }
-  // a failed download leaves the fallback fonts: nothing to wait for
-  const loading = fontFaces.load(font).then(
-    () => {},
-    () => {},
-  );
-  FontLoads.set(font, loading);
-  loading.then(() => FontLoads.delete(font));
-  return loading;
+  if (isFontLoaded(fontFaces, font)) return;
+
+  // runs as the reaction that settles `arrived`, before anything awaiting it: a visual that waited builds with the
+  // font, never with an atlas drawn while it was in flight
+  const settle = () => {
+    FontLoads.delete(font);
+    const fallback = FallbackAtlases.get(font);
+    FallbackAtlases.delete(font);
+    clearTimeout(timer);
+    if (!isFontLoaded(fontFaces, font)) {
+      FailedFonts.add(font);
+      return;
+    }
+    if (fallback && LRUCache.get(FontAtlasCache, font) === fallback) LRUCache.remove(FontAtlasCache, font);
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arrived = fontFaces.load(font).then(settle, settle);
+  const waited = Promise.race([
+    arrived,
+    new Promise<void>((resolve) => (timer = setTimeout(resolve, FontLoadTimeoutMs))),
+  ]);
+  FontLoads.set(font, waited);
+  return waited;
 }
 
 /**
@@ -117,13 +136,17 @@ export function loadFontAtlasFonts(props: Partial<FontAtlasProps>): Promise<void
   return loadFont(getFontAtlasFont(props));
 }
 
-/** `build()`, after the fonts of the atlas for `props` are loaded (`loadFontAtlasFonts`); synchronous when loaded. */
+/**
+ * `build()`, after the fonts of the atlas for `props` are loaded (`loadFontAtlasFonts`), or failed, or 3 s passed;
+ * synchronous when there is nothing to wait for.
+ */
 export function withFontAtlasFonts<T>(props: Partial<FontAtlasProps>, build: () => T): T | Promise<T> {
   const loading = loadFontAtlasFonts(props);
   return loading ? loading.then(build) : build();
 }
 
 export type FontFamily = 'sans-serif' | 'monospace' | 'serif' | 'cursive';
+const GenericFamilies = new Set<string>(['sans-serif', 'monospace', 'serif', 'cursive']);
 export type FontStyle = 'normal' | 'italic' | 'oblique';
 export type FontVariant = 'normal' | 'small-caps';
 export type FontWeight = 'normal' | 'bold';
@@ -223,6 +246,12 @@ export class FontAtlas {
     this.scratchContext = createCanvasContext(this.maxWidth, this.lineHeight, { willReadFrequently: true })!;
 
     this.scratchContext.font = getFontAtlasFont(p);
+    if (!String(this.scratchContext.font).includes(`${fontSize}px`)) {
+      // not a valid CSS font, so the canvas kept its 10px default: draw the generic family instead
+      const generic = GenericFamilies.has(p.fontFamily) ? p.fontFamily : 'sans-serif';
+      console.warn(`Font atlas: invalid CSS font '${getFontAtlasFont(p)}', drawing ${generic}`);
+      this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${generic}`;
+    }
     this.scratchContext.fillStyle = 'black';
     this.scratchContext.textBaseline = 'middle';
     // kerning on where the canvas has the setting (not node-canvas, which kerns by default)

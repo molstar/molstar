@@ -261,10 +261,7 @@ export namespace TextBuilder {
         yShift += outline;
 
         for (let iChar = 0, nChar = graphemes.length; iChar < nChar; ++iChar) {
-          const g = graphemes[iChar];
-          if (g === ' ') continue; // nothing to draw
-
-          const c = fontAtlas.get(g);
+          const c = fontAtlas.get(graphemes[iChar]);
           const left = (offsets[iChar] - c.left - xShift) * scale;
           const right = left + c.nw * scale;
           const top = (c.nh - yShift) * scale;

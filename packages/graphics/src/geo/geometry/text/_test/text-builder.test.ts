@@ -68,10 +68,10 @@ describe('TextBuilder', () => {
     expect(jLeft).toBeCloseTo(40 / atlas.lineHeight - j.left);
   });
 
-  it('draws no quad for a space, which still advances', () => {
+  it('advances by spaces', () => {
     const atlas = getFontAtlas(props);
     const lefts = glyphLefts('A X');
-    expect(lefts.length).toBe(2);
-    expect(lefts[1]).toBeCloseTo(80 / atlas.lineHeight - atlas.get('X').left);
+    expect(lefts.length).toBe(3);
+    expect(lefts[2]).toBeCloseTo(80 / atlas.lineHeight - atlas.get('X').left);
   });
 });

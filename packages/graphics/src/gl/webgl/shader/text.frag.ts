@@ -33,6 +33,12 @@ ${common_clip}
 varying vec2 vTexCoord;
 
 void main(){
+    // anti-aliased SDF text (.v6/designs/labels.md §5)
+    // sampled and differentiated before anything can discard: derivatives need every fragment of the 2x2 block
+    float rawSdf = texture2D(tFont, vTexCoord).r;
+    // how much the distance field changes across one pixel, at any label size
+    float sdfPerPixel = max(length(vec2(dFdx(rawSdf), dFdy(rawSdf))), 1e-4);
+
     ${fade_lod}
     ${clip_pixel}
 
@@ -45,12 +51,6 @@ void main(){
     #if !defined(dRenderVariant_color) && !defined(dRenderVariant_tracing) && !defined(dRenderVariant_depth)
         if (isBackground) discard;
     #endif
-
-    // anti-aliased SDF text (.v6/designs/labels.md §5)
-    // sampled and differentiated outside any branch: derivatives need every fragment of the 2x2 block
-    float rawSdf = texture2D(tFont, vTexCoord).r;
-    // how much the distance field changes across one pixel, at any label size
-    float sdfPerPixel = max(length(vec2(dFdx(rawSdf), dFdy(rawSdf))), 1e-4);
 
     // glyph + border coverage: in color and tracing, anti-aliased over one pixel (the fractional edge is drawn in the
     // transparent pass, check_transparency); in the other variants, the edge at the field's middle as before

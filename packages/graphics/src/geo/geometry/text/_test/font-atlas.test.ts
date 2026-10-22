@@ -17,16 +17,28 @@ import {
 } from '../font-atlas.js';
 import { Text } from '../text.js';
 
-// Node has no canvas: a stand-in context that draws nothing. Atlases are compared by identity (`a === b`): `not.toBe`
-// deep-compares the two on success, megabytes of texture.
-beforeAll(() => {
-  const context = {
+// Node has no canvas: a stand-in context that draws nothing and, as a canvas does, ignores a font it cannot parse
+// (here: one naming 'Invalid'). Atlases are compared by identity (`a === b`): `not.toBe` deep-compares the two on
+// success, megabytes of texture.
+const fontsSet: string[] = [];
+function createContext() {
+  let font = '10px sans-serif';
+  return {
+    get font() {
+      return font;
+    },
+    set font(value: string) {
+      fontsSet.push(value);
+      if (!value.includes('Invalid')) font = value;
+    },
     measureText: () => ({ width: 8 }),
     clearRect() {},
     fillText() {},
     getImageData: (_x: number, _y: number, w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4) }),
   };
-  setCanvasModule({ createCanvas: () => ({ getContext: () => context }) });
+}
+beforeAll(() => {
+  setCanvasModule({ createCanvas: () => ({ getContext: createContext }) });
 });
 afterAll(() => setCanvasModule(undefined));
 
@@ -70,21 +82,30 @@ describe('getFontAtlas', () => {
 describe('font family table and web fonts', () => {
   const font = { fontQuality: 0, fontFamily: 'serif' as const };
   const serif = FontFamilyFonts.serif;
-  afterEach(() => setFontFamilyFonts('serif', serif));
+  afterEach(() => {
+    setFontFamilyFonts('serif', serif);
+    vi.unstubAllGlobals();
+  });
 
-  /** A `document.fonts` whose faces load when `arrive()` is called. */
+  /** A `document.fonts` whose faces load when `arrive()` is called, or fail to with `fail()`. */
   function stubFontFaceSet() {
     let loaded = false;
     let arrive = () => {};
-    const arrived = new Promise<void>((resolve) => {
+    let fail = () => {};
+    const arrived = new Promise<void>((resolve, reject) => {
       arrive = () => {
         loaded = true;
         resolve();
       };
+      fail = () => reject(new Error('404'));
     });
     const fonts = { check: vi.fn(() => loaded), load: vi.fn(() => arrived.then(() => [])) };
     vi.stubGlobal('document', { fonts });
-    return { fonts, arrive: async () => (arrive(), await arrived, await Promise.resolve()) };
+    const settled = async () => {
+      await arrived.catch(() => {});
+      for (let i = 0; i < 4; ++i) await Promise.resolve();
+    };
+    return { fonts, arrive: async () => (arrive(), await settled()), fail: async () => (fail(), await settled()) };
   }
 
   it('draws a family with the fonts of its table entry', () => {
@@ -105,8 +126,11 @@ describe('font family table and web fonts', () => {
   it('waits for a web font, then builds', async () => {
     setFontFamilyFonts('serif', '"Lazy Serif A", serif');
     const { fonts, arrive } = stubFontFaceSet();
-    const built = withFontAtlasFonts(font, () => 'built');
+    const build = vi.fn(() => 'built');
+    const built = withFontAtlasFonts(font, build);
     expect(built).toBeInstanceOf(Promise);
+    await Promise.resolve();
+    expect(build).not.toHaveBeenCalled();
     // one download per font, however many wait for it
     expect(loadFontAtlasFonts(font)).toBe(loadFontAtlasFonts(font));
     expect(fonts.load).toHaveBeenCalledTimes(1);
@@ -127,9 +151,49 @@ describe('font family table and web fonts', () => {
     expect(getFontAtlas(font)).toBe(loaded);
   });
 
-  it('does not wait for a font that fails to download', async () => {
+  it('builds a visual that waited with the font, though a text built meanwhile drew a fallback atlas', async () => {
+    setFontFamilyFonts('serif', '"Lazy Serif C", serif');
+    const { arrive } = stubFontFaceSet();
+    const waited = withFontAtlasFonts(font, () => getFontAtlas(font));
+    const fallback = getFontAtlas(font); // the camera helper, say: does not wait
+    await arrive();
+    expect((await waited) === fallback).toBe(false);
+  });
+
+  it('keeps the fallback of a font that fails to download, and stops waiting for it', async () => {
     setFontFamilyFonts('serif', '"Missing Serif", serif');
-    vi.stubGlobal('document', { fonts: { check: () => false, load: () => Promise.reject(new Error('404')) } });
-    expect(await withFontAtlasFonts(font, () => 'fallback')).toBe('fallback');
+    const { fonts, fail } = stubFontFaceSet();
+    const waited = withFontAtlasFonts(font, () => 'fallback');
+    const fallback = getFontAtlas(font);
+    await fail();
+    expect(await waited).toBe('fallback');
+    expect(getFontAtlas(font)).toBe(fallback);
+    expect(withFontAtlasFonts(font, () => 'now')).toBe('now');
+    expect(fonts.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops waiting after 3 s; the font replaces the fallback when it arrives', async () => {
+    vi.useFakeTimers();
+    try {
+      setFontFamilyFonts('serif', '"Slow Serif", serif');
+      const { arrive } = stubFontFaceSet();
+      const waited = withFontAtlasFonts(font, () => getFontAtlas(font));
+      await vi.advanceTimersByTimeAsync(3000);
+      const fallback = await waited;
+      expect(getFontAtlas(font)).toBe(fallback);
+      await arrive();
+      expect(getFontAtlas(font) === fallback).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('draws the generic family when the table has a font list the canvas cannot parse', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setFontFamilyFonts('serif', 'Invalid 4, serif');
+    fontsSet.length = 0;
+    getFontAtlas(font);
+    expect(fontsSet).toEqual(['normal normal normal 64px Invalid 4, serif', 'normal normal normal 64px serif']);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });
