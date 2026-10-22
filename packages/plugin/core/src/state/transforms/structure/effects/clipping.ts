@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
@@ -67,6 +68,9 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldClipping = b.data.state.clipping!;
+    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newClipping = Clipping.ofScript(newParams.layers, structure);
     if (!structureChanged && Clipping.areEqual(oldClipping, newClipping))
       return StateTransformer.UpdateResult.Unchanged;
@@ -133,6 +137,9 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldClipping = b.data.state.clipping!;
+    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newClipping = Clipping.ofBundle(newParams.layers, structure);
     if (!structureChanged && Clipping.areEqual(oldClipping, newClipping))
       return StateTransformer.UpdateResult.Unchanged;

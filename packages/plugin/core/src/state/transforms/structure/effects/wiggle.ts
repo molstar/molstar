@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
@@ -64,6 +65,9 @@ const WiggleStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
+    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newWiggle = Wiggle.ofScript(newParams.layers, newStructure);
     if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 
@@ -128,6 +132,9 @@ const WiggleStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldWiggle = b.data.state.wiggle!;
+    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newWiggle = Wiggle.ofBundle(newParams.layers, newStructure);
     if (!structureChanged && Wiggle.areEqual(oldWiggle, newWiggle)) return StateTransformer.UpdateResult.Unchanged;
 

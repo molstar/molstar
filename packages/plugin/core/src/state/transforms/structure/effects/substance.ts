@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
@@ -73,6 +74,9 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
       return StateTransformer.UpdateResult.Recreate;
 
     const oldSubstance = b.data.state.substance!;
+    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newSubstance = Substance.ofScript(newParams.layers, newStructure);
     if (!structureChanged && Substance.areEqual(oldSubstance, newSubstance))
       return StateTransformer.UpdateResult.Unchanged;
@@ -145,6 +149,9 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
       return StateTransformer.UpdateResult.Recreate;
 
     const oldSubstance = b.data.state.substance!;
+    // the layers and the structure it last ran on: the same result, without running the scripts again (S7)
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newSubstance = Substance.ofBundle(newParams.layers, newStructure);
     if (!structureChanged && Substance.areEqual(oldSubstance, newSubstance))
       return StateTransformer.UpdateResult.Unchanged;

@@ -16,11 +16,15 @@
 //                                                                               the first snapshot with a transition)
 //   node scripts/pipeline-bench.mjs playback --profile <dir> [--alloc]         # one profile per scene (played range)
 //
-// Scenes: snapshots:plain (1cbs, a transition of 3 states × 10 with a camera move), traj:nmr (1grm, 10 models, the
-// mmCIF path), traj:synth (7qpd topology and --frames jittered coordinate frames, the topology + coordinates path;
-// --traj-source <cif> for another), each with a representation set: preset (the default preset: components,
-// cartoon and ball-and-stick), cartoon, ball-and-stick, gaussian-surface; +focus and +select add a focused residue
-// and a selected chain, +overpaint an overpainted chain (a bundle layer on every component). mvs:<file> plays one snapshot's transition of a local MVSX story.
+// Scenes:
+// - snapshots:plain: 1cbs, a transition of 3 states × 10 frames with a camera move; snapshots:effects: the same with a
+//   script overpaint and transparency below each representation, the states differing in alpha.
+// - traj:nmr: 1grm (5 models, the mmCIF path); traj:synth: 7qpd's topology and --frames jittered coordinate frames
+//   (the topology + coordinates path; --traj-source <cif> for another). Each with a representation set: preset (the
+//   default preset: components, cartoon and ball-and-stick), cartoon, ball-and-stick, gaussian-surface; +focus and
+//   +select add a focused residue and a selected chain, +overpaint an overpainted chain (a bundle layer on every
+//   component).
+// - mvs:<file>: one snapshot's transition of a local MVSX story.
 //
 // Per scene: ticks played, frames applied (ticks whose state changed), ms per tick (median and max, and the median of
 // the applied ticks), KB allocated per tick over the range (V8 total_allocated_bytes, Node 25+; read once per range,
@@ -39,6 +43,10 @@ import { type Model, StructureElement, Unit, type Structure } from '@molstar/mod
 import { OrderedSet } from '@molstar/core/data/int';
 import { Color } from '@molstar/core/util/color';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
+import { Script } from '@molstar/model/script/script';
+import { OverpaintStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
+import { TransparencyStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/transparency';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVSX } from '@molstar/mvs/components/formats';
@@ -208,8 +216,12 @@ async function loadTrajectory(plugin: PluginContext, scene: Scene) {
   await addInteractive(plugin, scene);
 }
 
-/** 1cbs with three looks (the preset, chain-id colors, element colors), played as a transition of 30 frames of 100 ms */
-async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof stubCanvas>) {
+/**
+ * 1cbs with three looks played as a transition of 30 frames of 100 ms. plain: the preset, chain-id colors, element
+ * colors. effects: each representation has a script overpaint and a script transparency below it, and the looks
+ * change the representations' alpha only (what an effect below an updated representation does again: S7).
+ */
+async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof stubCanvas>, effects = false) {
   const B = plugin.builders;
   const data = await B.data.rawData({
     data: new Uint8Array(readFileSync(path.join(ROOT, 'data/examples/1cbs_full.bcif'))),
@@ -219,11 +231,35 @@ async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof st
   await B.structure.hierarchy.applyPreset(trajectory, 'default');
   const components = () => plugin.managers.structure.hierarchy.current.structures[0].components;
   const looks: PluginState.Snapshot['data'][] = [];
-  looks.push(plugin.state.data.getSnapshot());
-  await plugin.managers.structure.component.updateRepresentationsTheme(components(), { color: 'chain-id' });
-  looks.push(plugin.state.data.getSnapshot());
-  await plugin.managers.structure.component.updateRepresentationsTheme(components(), { color: 'element-symbol' });
-  looks.push(plugin.state.data.getSnapshot());
+  if (effects) {
+    const script = Script('(sel.atom.res (= atom.resno 10))', 'mol-script');
+    const reprs = () => components().flatMap((c) => c.representations.map((r) => r.cell));
+    const b = plugin.build();
+    for (const r of reprs()) {
+      b.to(r).apply(OverpaintStructureRepresentation3DFromScript, {
+        layers: [{ script, color: Color(0xff0000), clear: false }],
+      });
+      b.to(r).apply(TransparencyStructureRepresentation3DFromScript, { layers: [{ script, value: 0.5 }] });
+    }
+    await b.commit();
+    for (const alpha of [1, 0.8, 0.6]) {
+      const u = plugin.build();
+      for (const r of reprs()) {
+        u.to(r).update(StructureRepresentation3D, (old: any) => ({
+          ...old,
+          type: { ...old.type, params: { ...old.type.params, alpha } },
+        }));
+      }
+      await u.commit();
+      looks.push(plugin.state.data.getSnapshot());
+    }
+  } else {
+    looks.push(plugin.state.data.getSnapshot());
+    await plugin.managers.structure.component.updateRepresentationsTheme(components(), { color: 'chain-id' });
+    looks.push(plugin.state.data.getSnapshot());
+    await plugin.managers.structure.component.updateRepresentationsTheme(components(), { color: 'element-symbol' });
+    looks.push(plugin.state.data.getSnapshot());
+  }
   const camera = c.canvas.camera.getSnapshot();
   const frames = Array.from({ length: 30 }, (_, i) => ({ durationInMs: 100, data: looks[Math.floor(i / 10)]! }));
   const snapshot: PluginState.Snapshot = {
@@ -316,10 +352,11 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
   const { plugin, c } = await createPlugin();
   let info = '';
   let ticks = ticksArg ? +ticksArg : 240;
-  if (scene.name === 'snapshots:plain') {
-    const { durationMs } = await loadPlainSnapshots(plugin, c);
+  if (scene.name === 'snapshots:plain' || scene.name === 'snapshots:effects') {
+    const effects = scene.name === 'snapshots:effects';
+    const { durationMs } = await loadPlainSnapshots(plugin, c, effects);
     ticks = ticksArg ? +ticksArg : Math.ceil(durationMs / TickMs) + 2;
-    info = '1cbs, 30 frames × 100 ms (3 looks), camera move 400 ms';
+    info = `1cbs, 30 frames × 100 ms (3 looks${effects ? ' of alpha, with script overpaint and transparency' : ''}), camera move 400 ms`;
   } else if (scene.name.startsWith('mvs:')) {
     const { durationMs, frames, index, checksMs } = await loadMvs(plugin);
     ticks = ticksArg ? +ticksArg : Math.min(600, Math.ceil(durationMs / TickMs) + 2);
@@ -450,6 +487,7 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
 
 const scenes: Scene[] = [
   { name: 'snapshots:plain' },
+  { name: 'snapshots:effects' },
   ...(mvsx ? [{ name: `mvs:${path.basename(path.dirname(mvsx))}/${path.basename(mvsx, '.mvsx')}` }] : []),
   { name: 'traj:nmr:preset', reprs: 'preset' },
   { name: 'traj:nmr:preset+focus+select', reprs: 'preset', focus: true, select: true },

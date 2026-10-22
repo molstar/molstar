@@ -30,3 +30,5 @@
 - A trajectory frame without a selection no longer clears the selection marks of every representation
 - The state interpolation animation updates a node only when its interpolated params change (it updated every node
   that differs between the snapshots on every tick) and matches the snapshots' nodes by ref in linear time
+- The overpaint, transparency, substance, emissive, clipping and wiggle layers below a representation do not run their
+  queries again when the representation updates and their layers and structure are unchanged

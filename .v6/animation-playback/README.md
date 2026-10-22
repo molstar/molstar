@@ -20,7 +20,7 @@ relative to `packages/`.
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: themes and the param definition; multilayer selectors open |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept |
 | 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) |
-| 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | open   |
+| 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | done: S7 in the effect transforms; S6 dropped (2.3% of a frame) |
 | 8    | S8                     | State interpolation: equality and the ref match                           | done |
 
 Order: the bench, then the bugs (1, 2), then the work per frame from the bottom of the tree to the top (3–6), then the
@@ -220,6 +220,40 @@ One line per id as it lands: the commit's before → after on the bench (median 
   transform was updated on every tick. Over 58 ticks of two 4-node snapshots: 58 → 1 commits, the same 4 nodes
   changed. Not in the bench: an experimental animation with no scene. Test:
   `plugin/core/src/state/animation/_test/state-interpolation.test.ts` (58 commits before).
+
+- **S7** (in the effect transforms, as decided: overpaint, transparency, substance, emissive, clipping and wiggle skip
+  `ofScript`/`ofBundle` in `update` when the layers' params and the structure are those they last ran on; no
+  reconciler or spec change). The bench gets `snapshots:effects` (1cbs, a script overpaint and transparency below each
+  representation, frames changing the alpha): 1.00 → 0.74 ms/applied, 55 → 38 KB/tick. MVS does not use these
+  transforms (its opacity and emissive are representation params), so the exosome is unchanged. Test:
+  `plugin/core/src/state/transforms/_test/effects-update.test.ts` (one `ofScript` per update before).
+- **S6: dropped**, by the rule decided before step 7. `fromJSON` + `findDeletes` + `findUpdateRoots` + `syncNewStates`
+  are 39.5 of 1,709 ms sampled over 600 exosome ticks after steps 1–5: 2.3% of a frame, under the 10% line.
+  `reconcile.md` is unchanged.
+
+## Review gate 1 (after step 6)
+
+A fresh reviewer read `master...23940ded6`. Findings and what was done:
+
+1. **SelectLoci dropped the marks after a transform** (bug). `areHierarchiesEqual` ignores operators, and an operator
+   change resets a units visual's markers. Fixed: no re-marking only without a selection (`5d9f852f3`).
+2. **A static component kept stale operators when remapped** (bug): a frame that also moves the structure. Fixed: the
+   remap needs equal unit operators (`e3b036401`).
+3. **Kept themes went stale when a dependency was computed again** (bug): an ancestor's update (the structure's
+   properties) evaluates the representation with equal params, while the theme holds the old property version. Fixed:
+   the themes are kept only on the representation's own update (`d109014d0`).
+4. **Stale marks where bonds or contacts change per frame** (risk: dynamic bonds, interactions). Covered by the fix
+   of 1: with a selection, marking again.
+5. **ModelFromTrajectory leaked a new trajectory's predecessor's properties** (risk): a re-read trajectory kept the
+   cell in place. Fixed: another trajectory recreates the cell (`c1952c0f6`).
+6. **The per-transformer default schema is computed once per process** (nit). Kept: `params(undefined, undefined)`
+   has no source and no context, and the reviewer found no transformer whose default schema reads a registry.
+7. **S8 skips a cell whose interpolated params equal what it set last**, so a change made by someone else in the
+   middle of the animation is not reset (nit). Kept: the animation does not fight an edit.
+
+The reviewer checked as correct: the snapshot skip, the camera, the frame index function, the time event's readers,
+`CustomStructureProperties` in place, the effects in place, the shared root, the focus skip, the registry versions,
+the snapshot names cache, the trajectory apply loop, and that the other tests and the model `_spec` edits are right.
 
 ## Snapshot and MVS playback
 
