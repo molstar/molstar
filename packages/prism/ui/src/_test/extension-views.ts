@@ -32,7 +32,7 @@ function* sourceFiles(dir: string): Generator<string> {
  */
 export function extensionPrismFiles(which: 'views' | 'all' = 'views'): string[] {
   const out: string[] = [];
-  const extensions = path.join(RepoRoot, 'extensions');
+  const extensions = path.join(RepoRoot, 'packages/extensions');
   for (const ext of fs.readdirSync(extensions)) {
     for (const f of sourceFiles(path.join(extensions, ext, 'src'))) {
       if (which === 'views' && !f.endsWith('.tsx')) continue;

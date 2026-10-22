@@ -85,7 +85,7 @@ describe('the viewer', () => {
         }
       }
     };
-    for (const ext of fs.readdirSync(path.join(repo, 'extensions'))) walk(path.join(repo, 'extensions', ext, 'src'));
+    for (const ext of fs.readdirSync(path.join(repo, 'packages/extensions'))) walk(path.join(repo, 'packages/extensions', ext, 'src'));
     // the extensions have Prism views (the walk found them)
     expect(scanned).toBeGreaterThan(3);
     expect(offending).toEqual([]);
