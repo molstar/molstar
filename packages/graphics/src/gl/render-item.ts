@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Textures } from './texture.js';
@@ -67,6 +68,7 @@ export interface GlobalBindings {
 export interface RenderItem<T extends string> {
   readonly id: number;
   readonly materialId: number;
+  /** GPU bytes of the item, a shared texture by the item's share (`.v6/plans/gl/shared-textures.md` §5) */
   getByteCount(): number;
   getProgram: (variant: T) => GraphicsProgram;
   /**

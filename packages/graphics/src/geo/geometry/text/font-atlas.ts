@@ -310,6 +310,8 @@ export class FontAtlas {
       }
 
       this.currentX += this.scratchW;
+      // written in place: shared textures of the atlas upload it again (`.v6/plans/gl/shared-textures.md` §3)
+      this.texture.version = (this.texture.version ?? 0) + 1;
     }
 
     return this.mapped[char];

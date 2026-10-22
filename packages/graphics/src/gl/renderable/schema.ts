@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { ValueCell } from '@molstar/core/util';
@@ -271,6 +272,8 @@ export type TextureSpec<K extends TextureKind> = {
   dimension: TextureDimension | { readonly define: string };
   sampleType: TextureSampleType;
   usedIf?: UsedIf;
+  /** see `TextureSpecOptions.shared` */
+  shared?: boolean;
 };
 export type TextureSpecOptions = {
   /** defaults to '3d' for 'volume-*' kinds, '2d' otherwise */
@@ -278,6 +281,12 @@ export type TextureSpecOptions = {
   /** defaults from `format`, `dataType` and `filter`, see `getDefaultSampleType` */
   sampleType?: TextureSampleType;
   usedIf?: UsedIf;
+  /**
+   * Render items of a context share one texture per image object (`TextureImage`, `TextureVolume`), for images shared
+   * by many objects (the font atlas); not for kind 'texture' (owned outside the items), see
+   * `.v6/plans/gl/shared-textures.md`
+   */
+  shared?: boolean;
 };
 export function TextureSpec<K extends TextureKind>(
   kind: K,
@@ -289,7 +298,22 @@ export function TextureSpec<K extends TextureKind>(
 ): TextureSpec<K> {
   const dimension = options?.dimension ?? (kind.startsWith('volume-') ? '3d' : '2d');
   const sampleType = options?.sampleType ?? getDefaultSampleType(format, dataType, filter);
-  return { type: 'texture', kind, format, dataType, filter, variant, dimension, sampleType, usedIf: options?.usedIf };
+  const spec: TextureSpec<K> = {
+    type: 'texture',
+    kind,
+    format,
+    dataType,
+    filter,
+    variant,
+    dimension,
+    sampleType,
+    usedIf: options?.usedIf,
+  };
+  if (options?.shared) {
+    if (kind === 'texture') throw new Error("textures of kind 'texture' cannot be shared");
+    spec.shared = true;
+  }
+  return spec;
 }
 
 function getDefaultSampleType(format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSampleType {

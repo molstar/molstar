@@ -79,7 +79,9 @@ the camera helper's axes. A label is one quad per glyph from a signed-distance-f
 ## Open
 
 - Atlas memory: 350 × lineHeight × 0.75 lineHeight bytes allocated up front (43 MB at `fontQuality` 3, 256 px glyphs),
-  and each text renderable uploads its own copy of `tFont`. A growing atlas and a shared texture would cut both.
+  once per font on the CPU and, since the render items share `tFont`
+  ([shared-textures.md](../plans/gl/shared-textures.md)), once per font and context on the GPU. A new glyph uploads the
+  whole atlas once; a sub-image upload of the rows written since would cut that.
 - Minification: no mipmaps on `tFont`; text a few pixels tall samples the 256 px field sparsely.
 - Multi-channel SDF (MSDF) would keep corners sharp on very large labels; not needed at today's sizes.
 - Multi-line labels (`\n`) and shaping (§4).

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
@@ -37,7 +38,8 @@ export const TextSchema = {
   elements: ElementsSpec('uint32'),
 
   aTexCoord: AttributeSpec('float32', 2, 0),
-  tFont: TextureSpec('image-uint8', 'r', 'ubyte', 'linear'),
+  // one font atlas per font, shared by the texts (`.v6/plans/gl/shared-textures.md`)
+  tFont: TextureSpec('image-uint8', 'r', 'ubyte', 'linear', undefined, { shared: true }),
   padding: ValueSpec('number'),
 
   uBorderWidth: UniformSpec('f', 'material'),
