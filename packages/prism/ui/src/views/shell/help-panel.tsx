@@ -125,7 +125,7 @@ export function HelpPanel(props: {
           </Button>
         </div>
         <dl class={classes.list}>
-          <For each={listed} key={(c) => c.id}>
+          <For each={listed} by={(c) => c.id}>
             {(c) => (
               <CommandKeys
                 manager={manager}

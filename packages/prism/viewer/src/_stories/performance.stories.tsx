@@ -318,7 +318,7 @@ async function stableRows(host: HTMLElement, out: Result[]) {
   );
   const dispose = render(
     () => (
-      <For each={list} key={(r) => r.ref}>
+      <For each={list} by={(r) => r.ref}>
         {(row) => <Line row={row} record={records.get(row.ref)!.asReadonly} />}
       </For>
     ),

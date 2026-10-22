@@ -46,11 +46,11 @@ export function HomeTab(props: HomeTabProps) {
         {home.annotationOffer ? <AnnotationOfferLine model={home.annotationOffer} /> : null}
         <section class={classes.group} aria-label="Actions">
           {/* The first action (Download Structure, open), then Open Files, then the rest (folded). */}
-          <For each={derive(home.actions, (a) => a.slice(0, 1))} key={(a) => a.id}>
+          <For each={derive(home.actions, (a) => a.slice(0, 1))} by={(a) => a.id}>
             {(action) => <ActionBlock action={action} open />}
           </For>
           <OpenFiles home={home} />
-          <For each={derive(home.actions, (a) => a.slice(1))} key={(a) => a.id}>
+          <For each={derive(home.actions, (a) => a.slice(1))} by={(a) => a.id}>
             {(action) => <ActionBlock action={action} open={false} />}
           </For>
           {/* Extensions' loaders (Zenodo): among the actions, folded, as one of them. */}
@@ -315,7 +315,7 @@ export function RemoteStatesList(props: { model: RemoteStatesModel; caption?: bo
       <ScrollArea class={classes.states} contentClass={classes.statesContent}>
         <For
           each={model.states}
-          key={(r) => r.id}
+          by={(r) => r.id}
           fallback={() => <p class={classes.none}>No states on this server.</p>}
         >
           {(state) => (

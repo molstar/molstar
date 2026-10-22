@@ -72,9 +72,13 @@ function mount(selected?: string) {
   };
   const picks: string[] = [];
   let list: VirtualListHandle | undefined;
+  const lookups = { count: 0 };
   const nav = new TreeNavigation<FlatNode<N>>({
     rows: () => rows.value,
-    key: (r) => r.node.id,
+    key: (r) => {
+      lookups.count++;
+      return r.node.id;
+    },
     level: (r) => r.depth + 1,
     scrollTo: (i) => list?.scrollToIndex(i),
     selected: () => selected,
@@ -124,7 +128,7 @@ function mount(selected?: string) {
   const key = (k: string) =>
     (document.activeElement as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
   const focused = () => (document.activeElement as HTMLElement).id;
-  return { tree, el, key, focused, picks, rows, reflow, roots, list: () => list!, dispose };
+  return { tree, el, key, focused, picks, rows, reflow, roots, lookups, list: () => list!, dispose };
 }
 
 describe('VirtualList', () => {
@@ -160,6 +164,19 @@ describe('the tree keyboard', () => {
     t.key('ArrowUp');
     expect(t.focused()).toBe('g49c97');
     expect(t.tree.querySelectorAll('[role=treeitem]').length).toBeLessThan(100);
+    t.dispose();
+  });
+
+  it('finds the active row where it was, not by a scan of every row (perf audit 11/P9)', () => {
+    const t = mount();
+    t.tree.focus();
+    t.key('End');
+    expect(t.focused()).toBe('g49c98');
+    t.lookups.count = 0;
+    for (let i = 0; i < 10; i++) t.key('ArrowUp');
+    expect(t.focused()).toBe('g49c88');
+    // About five lookups a key (the row and its neighbor, on the key and on the focus), not a scan of 5,000 rows.
+    expect(t.lookups.count).toBeLessThanOrEqual(10 * 6);
     t.dispose();
   });
 

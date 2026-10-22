@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Subject } from 'rxjs';
 import { observableState } from '../../reactive/observable-state.js';
 import type { Child } from '../jsx-types.js';
@@ -216,6 +216,36 @@ describe('delegated events', () => {
     seen.length = 0;
     (container.querySelector('.stopper') as HTMLElement).click();
     expect(seen).toEqual(['stopper']);
+  });
+
+  it('leaves the pointer moves native: no root walks a move, a handler gets its own (perf audit 11/P6)', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const seen: string[] = [];
+    render(
+      () => (
+        <div class="list" onPointerOver={(e) => seen.push(`over:${(e.currentTarget as Element).className}`)}>
+          <button
+            type="button"
+            class="row"
+            onPointerMove={(e) => seen.push(`move:${(e.currentTarget as Element).className}`)}
+          />
+          <span class="plain" />
+        </div>
+      ),
+      container,
+    );
+    const paths = vi.spyOn(Event.prototype, 'composedPath');
+    const plain = container.querySelector('.plain') as HTMLElement;
+    plain.dispatchEvent(new Event('pointermove', { bubbles: true }));
+    plain.dispatchEvent(new Event('mousemove', { bubbles: true }));
+    expect(paths).not.toHaveBeenCalled();
+    (container.querySelector('.row') as HTMLElement).dispatchEvent(new Event('pointermove', { bubbles: true }));
+    plain.dispatchEvent(new Event('pointerover', { bubbles: true }));
+    expect(seen).toEqual(['move:row', 'over:list']);
+    expect(paths).not.toHaveBeenCalled();
+    paths.mockRestore();
+    container.remove();
   });
 
   it('runs each handler once across nested roots, and reaches what is rendered outside a root', () => {

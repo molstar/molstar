@@ -429,7 +429,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
           />
           <path class={classes.curve} d={curve} />
         </svg>
-        <For each={indices(points)} key={(i) => i}>
+        <For each={indices(points)} by={(i) => i}>
           {(i) => {
             const point = pointAt(i);
             return (
@@ -468,7 +468,7 @@ export function VolumeTransfer(props: { model: VolumeTransferModel }) {
         )}
         ref={(el: HTMLElement) => dragOn(el, (e) => onStripDown(el, e))}
       >
-        <For each={indices(stops)} key={(i) => i}>
+        <For each={indices(stops)} by={(i) => i}>
           {(i) => {
             const stop = stopAt(i);
             return (

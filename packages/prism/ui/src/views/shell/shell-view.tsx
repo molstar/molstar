@@ -179,6 +179,7 @@ export function ShellView(props: ShellViewProps) {
   const canvasShown = (shown: boolean) => canvasBox.toggleAttribute('data-quiet', !shown);
   let viewport!: HTMLElement;
   let canvasLayer!: HTMLElement;
+  let canvasBottom!: HTMLElement;
   let chromeLayer!: HTMLElement;
   const root = (
     <div class={classes.shell}>
@@ -226,7 +227,7 @@ export function ShellView(props: ShellViewProps) {
               selection) to the left of the canvas toolbar on its row. Compact too: on the canvas, so a message or a selection
               coming and going moves nothing. */}
           {/* It acts on the scene as the canvas does: a press on it leaves an open card open (`OverlayCard`). */}
-          <div class={canvasClasses.bottom} data-keeps-card="">
+          <div class={canvasClasses.bottom} data-keeps-card="" ref={(el: HTMLElement) => (canvasBottom = el)}>
             <div class={canvasClasses.bottomGrid}>
               <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
               <div class={canvasClasses.corner}>
@@ -376,13 +377,18 @@ export function ShellView(props: ShellViewProps) {
     }
   };
   on(document, 'keydown', onKeyDown);
-  // A pinch (a trackpad's ctrl+wheel, Safari's gestures) is the app's, over all of it: the canvas zooms its camera, and
-  // elsewhere (the splash, a panel) it does nothing. Left to the browser it zooms the page, which the canvas then keeps
-  // from zooming back (it takes the pinch too). ⌘+ / ⌘− still zoom the page.
+  // A pinch (a trackpad's ctrl+wheel, Safari's gestures) over the canvas (and the splash, which lets the pointer through
+  // to it) and over the bar along its bottom (the status, the toolbar, the chips: nothing in it scrolls) is the app's:
+  // the canvas zooms its camera, and the page does not zoom under it. Only there: a wheel listener that is not passive
+  // makes every wheel gesture over what it covers wait for the main thread, and on the shell's root that was every
+  // panel's scroll, which then stopped for as long as a load or a rebuild held the thread (perf audit 2, 11/P10). Over a
+  // panel, a card, the sequence band or the rail a pinch is the browser's (it zooms the page; ⌘0 or a pinch back over a
+  // panel undoes it). Safari's gestures do not hold scrolling: the whole shell keeps them. ⌘+ / ⌘− still zoom the page.
   const keepPinch = (e: Event) => {
     if (e.type !== 'wheel' || (e as WheelEvent).ctrlKey) e.preventDefault();
   };
-  on(root, 'wheel', keepPinch, { passive: false });
+  on(canvasBox, 'wheel', keepPinch, { passive: false });
+  on(canvasBottom, 'wheel', keepPinch, { passive: false });
   on(root, 'gesturestart', keepPinch);
   on(root, 'gesturechange', keepPinch);
   // Tooltips for the icon buttons of the rail and the canvas stack.

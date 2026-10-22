@@ -51,7 +51,7 @@ export const Rows: StoryObj = {
               list = el;
             }}
           >
-            <For each={rows.asReadonly} key={(r) => r}>
+            <For each={rows.asReadonly} by={(r) => r}>
               {(label) => (
                 <div class="story-reorder-item" data-id={label}>
                   <span

@@ -24,7 +24,11 @@ import { cachedShare, formatUsage, k, ms } from '@molstar/ai/trace';
 import { type Child, For, formatChord, type KeyedValue, observableState, ScrollArea, Show } from '@molstar/prism-ui';
 import { effect, watch } from '@molstar/prism-ui/dom/scope';
 import { setAttr, setStyle } from '@molstar/prism-ui/dom/writes';
+import { type KeyedState, keyedState } from '@molstar/prism-ui/reactive/keyed-state';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import { sameShallow } from '@molstar/prism-ui/reactive/same-shallow';
 import { derive } from '@molstar/prism-ui/reactive/state';
+import { held, present } from '../held.js';
 import { classes as layout } from './_generated/inspector.module.css.js';
 import { classes } from './_generated/trace.module.css.js';
 import type { DetailTabs, InspectorModel, TraceRow, TurnRequest } from './model.js';
@@ -92,9 +96,7 @@ function Trace(props: { model: InspectorModel }) {
           role="listbox"
           aria-label="Trace"
         >
-          <For each={model.rows} key={(r) => r.key}>
-            {(r) => <Row model={model} row={r} />}
-          </For>
+          <TraceRows model={model} />
         </ScrollArea>
         <ScrollArea class={layout.detail} contentClass={layout.detailContent}>
           <Show when={model.row}>{(r) => <Detail model={model} row={r} />}</Show>
@@ -114,6 +116,35 @@ function Trace(props: { model: InspectorModel }) {
     queueMicrotask(() => reveal(viewport, key, how, how === 'nearest' ? HeadHeight : 0));
   });
   return root;
+}
+
+/**
+ * The rows, a turn at a time (perf audit 2, 11/P2): a settle while a turn runs reconciles that turn's rows only, not the
+ * whole conversation's (1 ms at 2,400 rows, every 80 ms). The rows stay siblings in the list (no element per turn), so
+ * a turn's header stays sticky as before. Not virtual: rows differ in height and the headers are sticky.
+ */
+function TraceRows(props: { model: InspectorModel }) {
+  const { model } = props;
+  // A group's first row is its turn's header.
+  const turnOf = (group: readonly TraceRow[]) => (group[0] as Extract<TraceRow, { kind: 'turn' }>).turn.id;
+  const ids = derive(model.rowGroups, (groups) => groups.map(turnOf), sameShallow);
+  const groups = keyedState<string, readonly TraceRow[]>();
+  let count = 0;
+  effect(model.rowGroups, (gs) => {
+    // Fewer turns (a new session): all anew; else each turn's list, told only where it is a new one.
+    if (gs.length < count) groups.replace(new Map(gs.map((g) => [turnOf(g), g])));
+    else for (const g of gs) groups.set(turnOf(g), g);
+    count = gs.length;
+  });
+  return (
+    <For each={ids}>
+      {(id) => (
+        <For each={held(groups.key(id), present)} by={(r) => r.key}>
+          {(r) => <Row model={model} row={r} />}
+        </For>
+      )}
+    </For>
+  );
 }
 
 // ------------------------------------------------------------------------------------------------- overview strip
@@ -141,6 +172,30 @@ const unit = (scale: 'steps' | 'time', s: StepView) => (scale === 'steps' ? 1 : 
 
 function Overview(props: { model: InspectorModel }) {
   const { model } = props;
+  // By id (perf audit 2, 11/P2): the running turn is a new record at every settle (80 ms), and a column made anew made
+  // all its blocks again, its steps² over a turn. A column follows its turn, a block its step; a settle tells the ones
+  // that changed and makes only the new steps' blocks.
+  const turnIds = derive(model.turns, (ts) => ts.map((t) => t.id), sameShallow);
+  const turns = keyedState<string, TurnView>();
+  const steps = keyedState<string, StepView>();
+  let last: readonly TurnView[] = [];
+  effect(model.turns, (ts) => {
+    if (ts.length < last.length) {
+      // Fewer turns (a new session): all anew.
+      steps.replace(new Map(ts.flatMap((t) => t.steps.map((st) => [st.id, st] as const))));
+      turns.replace(new Map(ts.map((t) => [t.id, t])));
+    } else {
+      // The turns that ended are the same records (the trace cache): only the others' steps are looked at. The steps
+      // first: a turn told makes the blocks of its new steps, which read them.
+      for (let i = 0; i < ts.length; i++) {
+        const t = ts[i];
+        if (last[i] === t) continue;
+        for (const st of t.steps) steps.set(st.id, st);
+        turns.set(t.id, t);
+      }
+    }
+    last = ts;
+  });
   return (
     <div class={classes.overview}>
       <div class={classes.lanes} aria-hidden="true">
@@ -148,8 +203,10 @@ function Overview(props: { model: InspectorModel }) {
         <span>tools</span>
       </div>
       <div class={classes.track}>
-        <For each={model.turns} key={(t) => t.id}>
-          {(turn, index) => <Column model={model} turn={turn} index={index.value} />}
+        <For each={turnIds}>
+          {(id, index) => (
+            <Column model={model} turn={held(turns.key(id), present)} steps={steps} index={index.value} />
+          )}
         </For>
       </div>
       <TextTabs
@@ -172,67 +229,74 @@ function pressable(el: HTMLElement, selected: KeyedValue<boolean>) {
 }
 
 /** A turn's column: as wide as its steps (by the scale), marked while its header is the selected row. */
-function Column(props: { model: InspectorModel; turn: TurnView; index: number }) {
-  const { model, turn } = props;
-  const request = `req:${turn.id}`;
+function Column(props: {
+  model: InspectorModel;
+  turn: ReadonlyState<TurnView>;
+  steps: KeyedState<string, StepView>;
+  index: number;
+}) {
+  const { model, turn, steps } = props;
+  // What a turn is made with stays: its id and its request.
+  const { id } = turn.value;
+  const request = `req:${id}`;
+  const stepIds = derive(turn, (t) => t.steps.map((st) => st.id), sameShallow);
+  // Its label follows the turn (a turn read before its request was recorded says so until it is).
+  const block = pressable(
+    (
+      <button type="button" class={classes.block} data-kind="request" onClick={() => model.select(request)} />
+    ) as HTMLElement,
+    model.isSelected(request),
+  );
   const root = (
     <div class={classes.column}>
-      {pressable(
-        (
-          <button
-            type="button"
-            class={classes.block}
-            data-kind="request"
-            aria-label={`Turn ${props.index + 1}: ${turn.prompt}`}
-            data-tip={`Turn ${props.index + 1}: ${turn.prompt}`}
-            onClick={() => model.select(request)}
-          />
-        ) as HTMLElement,
-        model.isSelected(request),
-      )}
-      {turn.steps.map((s) => (
-        <StepBlock model={model} step={s} />
-      ))}
+      {block}
+      <For each={stepIds}>{(stepId) => <StepBlock model={model} step={held(steps.key(stepId), present)} />}</For>
     </div>
   ) as HTMLElement;
-  const selected = model.isSelected(`turn:${turn.id}`);
+  const selected = model.isSelected(`turn:${id}`);
   let scale: 'steps' | 'time' | undefined;
-  watch([model.scale, selected], () => {
+  let of: TurnView | undefined;
+  watch([model.scale, selected, turn], () => {
     setAttr(root, 'data-selected', selected.value);
-    if (scale === model.scale.value) return;
+    const t = turn.value;
+    const label = `Turn ${props.index + 1}: ${t.prompt}`;
+    setAttr(block, 'aria-label', label);
+    setAttr(block, 'data-tip', label);
+    if (scale === model.scale.value && of === t) return;
     scale = model.scale.value;
-    const grow = turn.steps.reduce((a, s) => a + unit(scale as 'steps' | 'time', s), 0.6);
+    of = t;
+    const grow = t.steps.reduce((a, st) => a + unit(scale as 'steps' | 'time', st), 0.6);
     setStyle(root, 'flex-grow', String(grow));
   });
   return root;
 }
 
-/** A step's block: its width follows the scale, whether it is pressed the selection. */
-function StepBlock(props: { model: InspectorModel; step: StepView }) {
-  const { model, step: s } = props;
-  const key = `step:${s.id}`;
-  const label = `${stepLabel(s)} · ${runningStep(s) ? 'running' : ms(duration(s))}`;
+/** A step's block, made once: its state and width follow the step and the scale, whether it is pressed the selection. */
+function StepBlock(props: { model: InspectorModel; step: ReadonlyState<StepView> }) {
+  const { model, step } = props;
+  const first = step.value;
+  const key = `step:${first.id}`;
   const el = (
     <button
       type="button"
       class={classes.block}
-      data-kind={s.kind}
-      data-nested={s.under !== undefined ? '' : undefined}
-      data-failed={failedStep(s) ? '' : undefined}
-      data-retried={s.attempts.length > 1 ? '' : undefined}
-      data-running={runningStep(s) ? '' : undefined}
-      aria-label={label}
-      data-tip={label}
+      data-kind={first.kind}
+      data-nested={first.under !== undefined ? '' : undefined}
       onClick={() => model.select(key)}
     />
   ) as HTMLElement;
   const pressed = model.isSelected(key);
-  let scale: 'steps' | 'time' | undefined;
-  watch([model.scale, pressed], () => {
+  watch([model.scale, pressed, step], () => {
+    const s = step.value;
+    const running = runningStep(s);
+    const label = `${stepLabel(s)} · ${running ? 'running' : ms(duration(s))}`;
     setAttr(el, 'aria-pressed', String(pressed.value));
-    if (scale === model.scale.value) return;
-    scale = model.scale.value;
-    setStyle(el, 'flex-grow', String(unit(scale, s)));
+    setAttr(el, 'data-failed', failedStep(s) ? '' : undefined);
+    setAttr(el, 'data-retried', s.attempts.length > 1 ? '' : undefined);
+    setAttr(el, 'data-running', running ? '' : undefined);
+    setAttr(el, 'aria-label', label);
+    setAttr(el, 'data-tip', label);
+    setStyle(el, 'flex-grow', String(unit(model.scale.value, s)));
   });
   return el;
 }

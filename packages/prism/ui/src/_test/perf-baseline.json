@@ -7,6 +7,7 @@
   "primitives: frameOffers": 0,
   "primitives: keyedSelectorMove": 0,
   "primitives: keyedStateSet": 0,
+  "primitives: recordSetSame": 32,
   "primitives: stateSet": 0,
   "primitives: watchRender": 0,
   "primitives: workFrameRun": 0,

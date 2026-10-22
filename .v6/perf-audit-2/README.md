@@ -97,7 +97,7 @@ two slices). New = new findings after verification.
 | 08        |     7 |      2 |   11 |         1 |       0 |     3 |        3 | #1987, #1990, #1991, #2005, #2012, #2007       |
 | 09        |     4 |      0 |    7 |         0 |       0 |     4 |        3 | #2004, #2005, #2012                            |
 | 10        |    12 |      1 |    1 |         0 |       1 |     5 |        3 | #2008, #2013                                   |
-| 11        |     2 |      0 |    7 |         0 |       2 |     2 |        3 | #2008                                          |
+| 11        |     2 |      0 |    7 |         0 |       2 |     2 |        3 | #2008; all open fixed in #2029            |
 | 12        |     3 |      5 |   10 |         0 |       2 | 9 + 10 H |      4 | #2008, #2013, #2022, #2005, #2012, #2014       |
 | **Total** |  **63** | **22** | **144** | **1** | **8** | **61 + 10 H** | **40** |                                          |
 
@@ -144,7 +144,7 @@ cylinder impostor attributes 6× per cylinder (L; 4.46 GB of ball-and-stick buff
 in `gl/renderable/merged.ts`; 12/H8 adaptive resolution (Canvas3D).
 
 Next tier (medium, in the slice reports): 07/P12 serial id field per CPU isosurface (256 MB at 400³), 08/P16
-`CylindersBuilder.add` ~3×, 08/P6, 01/P1 ungzip JS CRC, 05/P15 extrema allocation, 11/P10 non-passive wheel listener,
+`CylindersBuilder.add` ~3×, 08/P6, 01/P1 ungzip JS CRC, 05/P15 extrema allocation, 11/P10 non-passive wheel listener (fixed #2029),
 06/P3 per-class inter contacts (L), 06/P13 contact storage 510 B/edge, 06/P2, 09/P17 instanced inter interactions (L),
 09/P6, 04/P16 BCIF retention 320 B/atom (L), 04/P4, 04/P2, 04/P3, 02/P11, 02/P12, 03/P2, 12/P3, 12/P4, 12/P5.
 
@@ -185,7 +185,7 @@ Next tier (medium, in the slice reports): 07/P12 serial id field per CPU isosurf
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | 1    | One-liners and exact S fixes: 02/B5 (`return false`, fixes 02/P10), 07/P11 (drop one ×6), 09/P16, 05/P14, 12/10/P4, 08/B6 (key by font props), 08/P12 + 08/P15 (anchor maps), 06/P4, 12/P1, 12/P9 + 12/B2                                                             | stage table A/B (molsurf alloc, boundaries, interactions, 7qpd cartoon); Prism start bytes |
 | 2    | Regression guard (12/H10): fix 12/B1, 12/B4; counters and exactness probes (edges, areas, MC checksum, molsurf field) in the quick lane; nightly pipeline bench with baselines                                                                                       | the guard flags R1 and 07/P11 when reverted                                               |
-| 3    | Medium bugs (bugs.md): 05/B14, 05/B9, 07/B2, 08/B8, 04/B8 + 04/B9, 04/B10, 06/B12, 03/B11, 03/B6, 10/B4, 11/B3, 09/B7, 01/B1                                                                                                                                         | probes from the slice reports turn into tests                                            |
+| 3    | Medium bugs (bugs.md): 05/B14, 05/B9, 07/B2, 08/B8, 04/B8 + 04/B9, 04/B10, 06/B12, 03/B11, 03/B6, 10/B4, 11/B3 (fixed #2029), 09/B7, 01/B1                                                                                                                                         | probes from the slice reports turn into tests                                            |
 | 4    | Algorithmic M with identical output: 03/P1, 05/P13 (then 06/P3), 06/P10, 05/P18, 05/P21, 03/P15, 08/P1, 06/P7, 14/N1 + 14/N2                                                                                                                                          | `bonds-inter` on asm, interactions, preset sync at N = 500/1000, many bench               |
 | 5    | Decisions and memory: 02/P2 + 02/P3 (memory vs time, order change), 05/P2 + 06/P5 (pad), 12/P2, 07/P2, 01/P10 + 04/P5, 07/P7 (GPU check), 04/P16 (design note); hand 10/P12, 08/P7, 07/P7 member release to the WebGPU owners                                      | retained MB, render-buffer bytes, a browser frame-time check                              |
 | 6    | App level: H1 worker pool (molsurf, ASA), H3 checkpoints and coalescing, H8 idle loop                                                                                                                                                                                | main-thread block length, wall time with workers                                          |
@@ -203,11 +203,13 @@ Next tier (medium, in the slice reports): 07/P12 serial id field per CPU isosurf
 - **03/B11**: a reset mark on non-builder trees, against reconcile.md §6 as written?
 - **10/P12** (frozen): ship the caller-side batching (one `canvas3d.update()` after `setState` on every representation)
   now, or wait for the WebGPU rewrite?
-- **11/P10**: scope the pinch guard to the canvas and splash and accept browser zoom over panels?
+- **11/P10**: scope the pinch guard to the canvas and splash and accept browser zoom over panels? Done in #2029 (the
+  canvas box and its bottom bar; a pinch over a panel zooms the page); revert there if panels must keep the pinch.
 - **12/H8**: `PauseLoopWhenIdle` on by default in the classic apps?
 - **07/P7**: unmerging large members needs a GPU frame-time measurement first; who runs it?
 - **04/P16**: dictionary-encoded string columns span `io` and core `Column`: worth a design note?
 - **04/P15**: `missingResidues` is read by the classic sequence panel: a lazy object is fine?
 - **11/B1**: drop `key?` from `For`'s props and migrate the 49 sites to `by=` (with `keyedState` where values change)?
+  Done in #2029; the task pills and the Inspector's overview follow their records by id (`keyedState`).
 - **12/H10**: where does the guard live: quick-lane counters plus a nightly heavy-lane bench, with baselines in
   `.v6/baselines`?

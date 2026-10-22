@@ -35,7 +35,7 @@ import {
   watch,
 } from '../../dom/scope.js';
 import { frame, on } from '../../dom/scoped.js';
-import { setAttr, setClass, setStyle, setText } from '../../dom/writes.js';
+import { setAttr, setClass, setShown, setStyle, setText } from '../../dom/writes.js';
 import { keyedSelector } from '../../reactive/keyed-selector.js';
 import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, NotificationsManager, StatusTask } from '../../managers/notifications.js';
@@ -134,7 +134,7 @@ export function CanvasToolbar(props: {
   });
   return (
     <div class={classes.sections}>
-      <For each={sections} key={(s) => s.group ?? ''}>
+      <For each={sections} by={(s) => s.group}>
         {(section) => (
           <div
             class={classes.toolbar}
@@ -740,7 +740,7 @@ export function RailMenu(props: { shell: ShellModel }) {
   let more!: HTMLElement;
   const root = (
     <div class={classes.railMenu}>
-      <For each={lead} key={(i) => i.id}>
+      <For each={lead} by={(i) => i.id}>
         {(item) => {
           const face = faceOf(item);
           const title = face ? undefined : staticTitle(item);
@@ -806,7 +806,7 @@ export function RailMenu(props: { shell: ShellModel }) {
                   open.set(false);
                 }}
               >
-                <For each={tabs} key={(t) => t.id}>
+                <For each={tabs} by={(t) => t.id}>
                   {(tab) => (
                     <button
                       type="button"
@@ -826,7 +826,7 @@ export function RailMenu(props: { shell: ShellModel }) {
                 <Show when={derive([tabs, actions], (t, a) => t.length > 0 && a.length > 0)}>
                   {() => <div class={classes.railMenuDivider} />}
                 </Show>
-                <For each={actions} key={(i) => i.id}>
+                <For each={actions} by={(i) => i.id}>
                   {(item) => {
                     const face = faceOf(item);
                     const visible = item.visible ? stateOf(item.visible, true) : undefined;
@@ -1137,9 +1137,7 @@ export function StatusLine(props: { status: NotificationsManager; onOpenLog?: ()
           )
         }
       </Show>
-      <For each={derive(status.tasks, (tasks) => tasks.filter((t) => !t.overlay))}>
-        {(task) => <TaskPill task={task} />}
-      </For>
+      <TaskPills status={status} />
       {props.after}
     </div>
   );
@@ -1270,24 +1268,47 @@ export function ContextChips(props: { status: NotificationsManager; lead?: Child
   );
 }
 
-function TaskPill(props: { task: StatusTask }) {
+/**
+ * The status line's tasks, each pill following its task by id (perf audit 2, 11/B3): a task's record is replaced on
+ * every progress event (up to ten a second), and a pill made anew restarted its spinner and replaced its Cancel button
+ * under a press. The manager keeps them by id (`lineTaskIds`, `lineTask`), so a progress event tells one pill.
+ */
+function TaskPills(props: { status: NotificationsManager }) {
+  const { status } = props;
+  return <For each={status.lineTaskIds}>{(id) => <TaskPill task={status.lineTask(id)} />}</For>;
+}
+
+/** One task: made once; one render writes its label, its progress and whether it can be cancelled. */
+function TaskPill(props: { task: ReadonlyState<StatusTask | undefined> }) {
   const { task } = props;
-  return (
+  const label = document.createTextNode('');
+  const fill = (<div />) as HTMLElement;
+  const bar = (<span class={classes.progress}>{fill}</span>) as HTMLElement;
+  // Hidden by its attribute, not removed: whether a task can be cancelled may change as it runs. The click reads the
+  // task's latest `abort`.
+  const cancel = (
+    <button type="button" class={classes.pillButton} title="Cancel" onClick={() => task.value?.abort?.()}>
+      <Icon name="x" size={14} />
+    </button>
+  ) as HTMLElement;
+  const root = (
     <span class={classes.pill}>
       <Icon name="loader-circle" size={14} class={classes.spin} />
-      <span class={classes.text}>{task.label}</span>
-      {task.progress !== undefined ? (
-        <span class={classes.progress}>
-          <div style={{ width: `${Math.round(task.progress * 100)}%` }} />
-        </span>
-      ) : null}
-      {task.abort ? (
-        <button type="button" class={classes.pillButton} title="Cancel" onClick={() => task.abort?.()}>
-          <Icon name="x" size={14} />
-        </button>
-      ) : null}
+      <span class={classes.text}>{label}</span>
+      {bar}
+      {cancel}
     </span>
-  );
+  ) as HTMLElement;
+  watch([task], () => {
+    // Gone (the list drops its pill in the same flush): what it showed last stays.
+    const t = task.value;
+    if (!t) return;
+    setText(label, t.label);
+    setShown(bar, t.progress !== undefined);
+    setStyle(fill, 'width', `${Math.round((t.progress ?? 0) * 100)}%`);
+    setAttr(cancel, 'hidden', !t.abort);
+  });
+  return root;
 }
 
 /**

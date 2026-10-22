@@ -11,7 +11,7 @@
 
 import { setFlagsFromString } from 'node:v8';
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../_test/perf.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking, retainedScaling } from '../../_test/perf.js';
 import {
   bindWrite,
   deriveRecompute,
@@ -19,6 +19,7 @@ import {
   frameOffers,
   keyedSelectorMove,
   keyedStateSet,
+  recordSetSame,
   stateSet,
   watchRender,
   workFrameRun,
@@ -68,6 +69,16 @@ describe('primitives heap guards', () => {
       expect(sink()).not.toBe(0.5);
     });
   }
+
+  // A record's compare allocates by design (the two empty symbol arrays of `shallowEqual`): what it keeps, after
+  // collections.
+  it('recordSetSame', () => {
+    const { step, sink } = recordSetSame();
+    settle(step);
+    const r = retainedScaling(N, step);
+    expect(isFlat(r), describeScaling(r, N)).toBe(true);
+    expect(sink()).not.toBe(0.5);
+  });
 
   it('the same step allocating an object each is caught (positive control)', () => {
     const { step } = stateSet();

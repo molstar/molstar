@@ -1062,7 +1062,7 @@ function FormMode(props: {
         {input}
       </div>
       <div class={classes.sentence} aria-label="Arguments">
-        <For each={derive(state, (s) => s.fields)} key={(f) => f.id}>
+        <For each={derive(state, (s) => s.fields)} by={(f) => f.id}>
           {(f) => (
             <FieldToken
               field={f}
