@@ -9,3 +9,5 @@
 - [Breaking] The snapshot manager's `changed` no longer emits for the time of a playing transition:
   `events.animationTimeChanged` does, on every tick (the time also moves while a frame holds), so the snapshot list and
   the descriptions no longer re-render at the frame rate
+- Applying a snapshot with a long transition checks its frames' transformers and theme names once, not on every apply
+  (an exosome story step: 18.8 → 0.02 ms)

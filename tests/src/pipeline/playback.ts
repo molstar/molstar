@@ -47,7 +47,7 @@ import { PluginStateObject as SO, PluginStateTransform } from '@molstar/plugin/s
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
-import type { PluginState } from '@molstar/plugin/state';
+import { PluginState } from '@molstar/plugin/state';
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { graphicsStub, stubCanvas } from './canvas-stub.js';
 import { ROOT } from './common.js';
@@ -246,8 +246,21 @@ async function loadMvs(plugin: PluginContext) {
   plugin.managers.snapshot.setCurrent(entry.snapshot.id);
   const { transition } = entry.snapshot;
   await plugin.state.setSnapshot({ ...entry.snapshot, transition: transition && { ...transition, autoplay: false } });
+  // the checks a snapshot apply runs over the snapshot and all its frames (S4): the median of 5 calls
+  const checks: number[] = [];
+  for (let k = 0; k < 5; k++) {
+    const t0 = performance.now();
+    PluginState.validateSnapshotTransformers(entry.snapshot);
+    plugin.state.reportUnregisteredNames(entry.snapshot);
+    checks.push(performance.now() - t0);
+  }
   const frames = entry.snapshot.transition?.frames ?? [];
-  return { durationMs: frames.reduce((a, f) => a + f.durationInMs, 0), frames: frames.length, index };
+  return {
+    durationMs: frames.reduce((a, f) => a + f.durationInMs, 0),
+    frames: frames.length,
+    index,
+    checksMs: median(checks),
+  };
 }
 
 type Tick = { ms: number; applied: boolean; created: number; updated: number; recreated: number; removed: number };
@@ -291,9 +304,9 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
     ticks = ticksArg ? +ticksArg : Math.ceil(durationMs / TickMs) + 2;
     info = '1cbs, 30 frames × 100 ms (3 looks), camera move 400 ms';
   } else if (scene.name.startsWith('mvs:')) {
-    const { durationMs, frames, index } = await loadMvs(plugin);
+    const { durationMs, frames, index, checksMs } = await loadMvs(plugin);
     ticks = ticksArg ? +ticksArg : Math.min(600, Math.ceil(durationMs / TickMs) + 2);
-    info = `${path.basename(mvsx!)} snapshot ${index}: ${frames} frames, ${(durationMs / 1000).toFixed(1)} s`;
+    info = `${path.basename(mvsx!)} snapshot ${index}: ${frames} frames, ${(durationMs / 1000).toFixed(1)} s; snapshot checks ${checksMs.toFixed(2)} ms`;
   } else {
     await loadTrajectory(plugin, scene);
     const s = plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data as Structure;

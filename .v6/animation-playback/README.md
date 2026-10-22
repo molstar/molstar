@@ -110,6 +110,11 @@ One line per id as it lands: the commit's before → after on the bench (median 
   **Dropped: the binary search.** The scan is 0.38 µs per call over 1,022 frames (0.06 µs binary), two calls per tick
   against 3–4 ms. Test: in `state-snapshots.test.ts` (failed before: no event).
 
+- **S4** (`state.ts`: the transformer ids and provider names a snapshot uses, read once per tree and per frames array,
+  `usedNames`). The checks of exosome's snapshot 2 (1,022 frames) on each apply: 18.75 → 0.02 ms (the bench's MVS
+  scene prints them). Same warnings in the same order. Tests: in `report-unregistered-names.test.ts` (100
+  `StateTransformer.has` calls for two repeat checks before, 2 after).
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip
