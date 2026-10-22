@@ -131,11 +131,13 @@ browsed, §5), `count?` (how much it would do, on its highlighted row, §5), `ch
   closed. Ignored: repeats, IME composition, handled events. In a text field only ⌘/Ctrl chords without Alt run; a
   control that steps with arrows keeps plain keys. The key is matched first, then its `code` when the key is not a plain
   letter or digit (⌥T is "†" on macOS). A refused command is a `blocked` outcome, except a plain key, which is then not
-  taken.
+  taken. The commands are indexed by their key's letter once per list of commands and keymap, so a keydown checks only
+  the commands on its key and allocates no list. Why: every keydown in the app comes here (17 µs at 437 commands before).
 - **Scopes** (`CommandDefinition.scope`): `global` (the default) works anywhere in the app; a scope id (`canvas`,
   `panel:<tab id>`, any name a view gives) works only while the key's target is inside an element with that
   `data-msp-scope` (read from the event's composed path, across shadow roots). The shell marks the canvas (`canvas`) and
-  each dock panel (`panel:<id>`). Among commands on one key, the nearest scope comes first, global last; the first that
+  each dock panel (`panel:<id>`). Among commands on one key, the nearest scope comes first, global last, then the first
+  registered; the first that
   can run takes it, else the nearest is refused. Why: a key can mean one thing in a panel and another elsewhere without
   either losing it, and a scoped command that cannot run never swallows the global one.
 - **The keymap** (`commands/keymap.ts`, `manager.keymap`), three layers, last wins: the command's `shortcut`, the app's

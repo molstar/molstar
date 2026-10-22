@@ -337,12 +337,13 @@ export class CommandManager<Ctx> {
     let stale = false;
     for (const lazy of this.#lazy) if (lazy.stale) stale = true;
     if (!stale) return false;
-    const { app, user } = this.keymap.layers.value;
-    for (const layer of [user, app])
-      for (const id in layer) {
-        const chord = layer[id];
-        if (chord && chordMatches(chord, e, mac)) return true;
-      }
+    const { bound } = this.#keyIndex();
+    const key = e.key.toLowerCase();
+    const code = codeKey(e, key);
+    for (let pass = 0; pass < 2; pass++) {
+      const bucket = pass === 0 ? bound.get(key) : code !== undefined && code !== key ? bound.get(code) : undefined;
+      if (bucket) for (const chord of bucket) if (chordMatches(chord, e, mac)) return true;
+    }
     return false;
   }
 
@@ -431,6 +432,41 @@ export class CommandManager<Ctx> {
   }
   /** The commands by id, made once per list of commands. */
   #commandIndex: { of: readonly CommandDefinition<Ctx>[]; byId: Map<string, CommandDefinition<Ctx>> } | undefined;
+
+  /**
+   * The commands by their key's letter (`chord.key`, lower case: what `chordMatches` compares the event's key and code
+   * with), and the layers' chords the same way; made once per list of commands and keymap.
+   */
+  #keyIndex(): KeyIndex<Ctx> {
+    const all = this.#commands.asReadonly.value;
+    const layers = this.keymap.layers.value;
+    const at = this.#keys;
+    if (at?.of === all && at.layers === layers) return at;
+    const byKey = new Map<string, KeyEntry<Ctx>[]>();
+    for (let order = 0; order < all.length; order++) {
+      const c = all[order];
+      const chord = this.keymap.shortcut(c);
+      if (!chord) continue;
+      const k = chord.key.toLowerCase();
+      const entry: KeyEntry<Ctx> = { c, chord, scope: scopeOf(c), order };
+      const bucket = byKey.get(k);
+      if (bucket) bucket.push(entry);
+      else byKey.set(k, [entry]);
+    }
+    const bound = new Map<string, KeyChord[]>();
+    for (const layer of [layers.user, layers.app])
+      for (const id in layer) {
+        const chord = layer[id];
+        if (!chord) continue;
+        const k = chord.key.toLowerCase();
+        const bucket = bound.get(k);
+        if (bucket) bucket.push(chord);
+        else bound.set(k, [chord]);
+      }
+    this.#keys = { of: all, layers, byKey, bound };
+    return this.#keys;
+  }
+  #keys: KeyIndex<Ctx> | undefined;
 
   /** Why the command cannot run now (its `when`, or the error it threw), if it cannot. */
   blocked(command: CommandDefinition<Ctx>): string | undefined {
@@ -731,29 +767,40 @@ export class CommandManager<Ctx> {
     const scopes = scopesAround(path.length ? path : target);
     // A key the spec or the person bound may name a lazy command (a Select command per structure): made first.
     if (this.#boundKey(e, mac)) this.#fresh();
-    // Nearer scopes first (0 = the innermost), global last; a scope that is not around the focus: not at all.
-    const rank = (c: CommandDefinition<Ctx>) => {
-      const s = scopeOf(c);
-      return s === 'global' ? scopes.length : scopes.indexOf(s);
-    };
-    const hits = this.#commands.asReadonly.value
-      .map((c) => ({ c, chord: this.keymap.shortcut(c), rank: rank(c) }))
-      .filter(
-        ({ chord, rank }) =>
-          !!chord &&
-          rank >= 0 &&
-          (!typing || typesNothing(chord)) &&
-          (!owns || !isPlain(chord)) &&
-          chordMatches(chord, e, mac),
-      )
-      .sort((a, b) => a.rank - b.rank);
-    // The nearest that can run; else the nearest, refused.
-    const hit = hits.find((h) => !this.blocked(h.c)) ?? hits[0];
+    // Only the commands on this key (by its letter, or its code's), each checked in full: nearer scopes first (0 = the
+    // innermost), global last, then registration order; a scope that is not around the focus: not at all. The nearest
+    // that can run, else the nearest, refused. No list made per keydown (perf audit 11/P4).
+    const { byKey } = this.#keyIndex();
+    const key = e.key.toLowerCase();
+    const code = codeKey(e, key);
+    let hit: KeyEntry<Ctx> | undefined;
+    let hitRank = 0;
+    let runnable: KeyEntry<Ctx> | undefined;
+    let runnableRank = 0;
+    for (let pass = 0; pass < 2; pass++) {
+      const bucket = pass === 0 ? byKey.get(key) : code !== undefined && code !== key ? byKey.get(code) : undefined;
+      if (!bucket) continue;
+      for (const at of bucket) {
+        const { chord, scope } = at;
+        if ((typing && !typesNothing(chord)) || (owns && isPlain(chord)) || !chordMatches(chord, e, mac)) continue;
+        const rank = scope === 'global' ? scopes.length : scopes.indexOf(scope);
+        if (rank < 0) continue;
+        if (!hit || before(rank, at, hitRank, hit)) {
+          hit = at;
+          hitRank = rank;
+        }
+        if ((!runnable || before(rank, at, runnableRank, runnable)) && !this.blocked(at.c)) {
+          runnable = at;
+          runnableRank = rank;
+        }
+      }
+    }
+    hit = runnable ?? hit;
     if (!hit) return false;
     const command = hit.c;
     // A plain key (an arrow: the next snapshot) is ambient: where its command cannot run, the key is not taken, and
     // nothing says it was refused.
-    if (isPlain(hit.chord!) && this.blocked(command)) return false;
+    if (isPlain(hit.chord) && this.blocked(command)) return false;
     const r = this.open(command.id);
     if (r.kind === 'blocked') this.#outcomes.next({ kind: 'blocked', command, message: r.reason });
     return true;
@@ -900,6 +947,33 @@ function scopesAround(path: readonly unknown[] | unknown): string[] {
     node = (node.parentNode ?? node.host) as typeof node;
   }
   return out;
+}
+
+interface KeyEntry<Ctx> {
+  c: CommandDefinition<Ctx>;
+  chord: KeyChord;
+  scope: string;
+  /** Its place in the list of commands: the order among hits of one rank. */
+  order: number;
+}
+
+interface KeyIndex<Ctx> {
+  of: readonly CommandDefinition<Ctx>[];
+  layers: unknown;
+  byKey: Map<string, KeyEntry<Ctx>[]>;
+  bound: Map<string, KeyChord[]>;
+}
+
+/** Is `a` at `rank` nearer than `b` at `bRank`: a nearer scope, else registered first. */
+function before(rank: number, a: KeyEntry<unknown>, bRank: number, b: KeyEntry<unknown>): boolean {
+  return rank < bRank || (rank === bRank && a.order < b.order);
+}
+
+/** The letter or digit of the event's `code`, where `chordMatches` falls back to it (⌥F on macOS is "ƒ"). */
+function codeKey(e: KeyEventLike, key: string): string | undefined {
+  if (/^[a-z0-9]$/.test(key) || !e.code) return undefined;
+  const m = /^(?:Key([A-Z])|Digit([0-9]))$/.exec(e.code);
+  return m ? (m[1] ?? m[2] ?? '').toLowerCase() : undefined;
 }
 
 function chordMatches(chord: KeyChord, e: KeyEventLike, mac: boolean): boolean {
