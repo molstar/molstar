@@ -182,6 +182,11 @@ One line per id as it lands: the commit's before → after on the bench (median 
   theme's per-layer selectors could be cached by structure and selector. It matters for color animations only, and the
   fixtures that have them (features, motm1) need PDBe files, so it can't be measured here.
 
+- **T5 (the empty update)** (`animation/trajectory.ts`: a cell is updated only when its frame index changes, with the
+  params object rather than a recipe; nothing is committed when none changes). The ticks within a frame: 0.12 → 0.03
+  ms/tick med in every trajectory scene; `isUpdating` toggled 61 → 2 times over 60 ticks of 3 frames; mutative's
+  warning per tick is gone. Test: in `trajectory.test.ts` (61 toggles before).
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip

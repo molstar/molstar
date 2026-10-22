@@ -14,7 +14,8 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { Color } from '@molstar/core/util/color';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
-import { createPlaybackPlugin, pdbEnsemble } from './harness.js';
+import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
+import { createPlaybackPlugin, pdbEnsemble, play } from './harness.js';
 
 async function loadEnsemble(plugin: PluginContext, models = 3, residues = 4) {
   const data = await plugin.builders.data.rawData({ data: pdbEnsemble(models, residues, true), label: 'ensemble' });
@@ -181,6 +182,28 @@ describe('a focused trajectory frame', () => {
     plugin.dispose();
     await new Promise((r) => setTimeout(r, 20));
     expect(errors.mock.calls.map((c) => String(c[0]))).toEqual([]);
+  });
+});
+
+describe('a playing trajectory', () => {
+  it('commits an update only on the ticks whose frame changes (T5)', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    await loadEnsemble(plugin, 3);
+    const updates = vi.fn();
+    plugin.state.data.events.changed.subscribe(updates);
+    const busy = vi.fn();
+    plugin.behaviors.state.isUpdating.subscribe(busy);
+    busy.mockClear();
+    // 3 frames over 1 s at 60 Hz: 60 ticks (the last at 983 ms), the frame changes twice (0 -> 1 -> 2)
+    await plugin.managers.animation.play(AnimateModelIndex, {
+      mode: { name: 'loop', params: { direction: 'forward' } },
+      duration: { name: 'fixed', params: { durationInS: 1 } },
+    } as any);
+    const warn = vi.spyOn(console, 'warn');
+    await play(plugin, 1000);
+    expect(updates).toHaveBeenCalledTimes(2);
+    expect(busy.mock.calls.filter((c) => c[0] === true)).toHaveLength(2);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 
