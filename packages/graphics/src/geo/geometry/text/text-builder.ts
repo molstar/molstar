@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -59,14 +60,8 @@ export namespace TextBuilder {
 
     return {
       add: (str: string, x: number, y: number, z: number, depth: number, scale: number, group: number) => {
-        let bWidth = 0;
-        const nChar = str.length;
-
-        // calculate width
-        for (let iChar = 0; iChar < nChar; ++iChar) {
-          const c = fontAtlas.get(str[iChar]);
-          bWidth += c.nw - 2 * outline;
-        }
+        // graphemes placed by measured advances with pair kerning, not by the widths of their atlas cells (labels.md §4)
+        const { graphemes, offsets, width: bWidth } = fontAtlas.layout(str);
 
         const bHeight = 1 / 1.25;
 
@@ -263,15 +258,15 @@ export namespace TextBuilder {
           caAdd3(indices, offset, offset + 3, offset + 2);
         }
 
-        xShift += outline;
         yShift += outline;
-        let xadvance = 0;
 
-        for (let iChar = 0; iChar < nChar; ++iChar) {
-          const c = fontAtlas.get(str[iChar]);
+        for (let iChar = 0, nChar = graphemes.length; iChar < nChar; ++iChar) {
+          const g = graphemes[iChar];
+          if (g === ' ') continue; // nothing to draw
 
-          const left = (xadvance - xShift) * scale;
-          const right = (xadvance + c.nw - xShift) * scale;
+          const c = fontAtlas.get(g);
+          const left = (offsets[iChar] - c.left - xShift) * scale;
+          const right = left + c.nw * scale;
           const top = (c.nh - yShift) * scale;
           const bottom = -yShift * scale;
 
@@ -287,8 +282,6 @@ export namespace TextBuilder {
           caAdd2(tcoords, c.x / texWidth, (c.y + c.h) / texHeight); // bottom left
           caAdd2(tcoords, (c.x + c.w) / texWidth, c.y / texHeight); // top right
           caAdd2(tcoords, (c.x + c.w) / texWidth, (c.y + c.h) / texHeight); // bottom right
-
-          xadvance += c.nw - 2 * outline;
 
           const offset = centers.elementCount;
           for (let i = 0; i < 4; ++i) add(x, y, z, depth, group);

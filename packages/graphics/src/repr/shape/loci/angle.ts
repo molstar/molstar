@@ -76,7 +76,8 @@ const AngleVisuals = {
     }),
   text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, LociLabelTextParams>) =>
     ShapeRepresentation(
-      (ctx, data, props, shape) => withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
+      (ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Text>) =>
+        withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
       Text.Utils,
       { modifyState: (s) => ({ ...s, markerActions: MarkerAction.None }) },
     ),

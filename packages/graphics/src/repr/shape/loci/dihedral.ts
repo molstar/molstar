@@ -92,7 +92,8 @@ const DihedralVisuals = {
     }),
   text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, LociLabelTextParams>) =>
     ShapeRepresentation(
-      (ctx, data, props, shape) => withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
+      (ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Text>) =>
+        withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
       Text.Utils,
       { modifyState: (s) => ({ ...s, markerActions: MarkerAction.None }) },
     ),

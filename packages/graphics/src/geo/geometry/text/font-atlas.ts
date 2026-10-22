@@ -12,11 +12,13 @@ import { edt } from '@molstar/core/math/geometry/distance-transform';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
 import { RUNNING_IN_NODEJS } from '@molstar/core/util/nodejs-shims';
 import { LRUCache } from '@molstar/core/util/lru-cache';
+import { TextMeasure } from '@molstar/core/util/text-measure';
 
 /**
  * Atlases are tens of MB each (43 MB at the default quality), so the cache is keyed by the font (its CSS string) only
  * and keeps the few most recently used. An evicted atlas lives on in the texts built with it; texts built later get a
- * new one. With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory).
+ * new one. With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory;
+ * .v6/designs/labels.md §1).
  */
 const FontAtlasCacheCapacity = 4;
 const FontAtlasCache = LRUCache.create<FontAtlas>(FontAtlasCacheCapacity);
@@ -64,12 +66,13 @@ export function getFontAtlas(props: Partial<FontAtlasProps>) {
 }
 
 /**
- * The fonts each generic family draws with: a CSS font-family list, tried in order, the generic family last. An entry
+ * The fonts each generic family draws with: a CSS font-family list, tried in order, the generic family last (Prism's
+ * theme stacks for sans-serif and monospace; labels.md §2). An entry
  * may name a web font (CSS `@font-face`, a Google Fonts stylesheet, a `FontFace` added to `document.fonts`): it is
  * downloaded only when an atlas needs it (`loadFontAtlasFonts`). Change entries with `setFontFamilyFonts`.
  */
 export const FontFamilyFonts: { readonly [F in FontFamily]: string } = {
-  'sans-serif': '"Helvetica Neue", Helvetica, "Segoe UI", Roboto, Arial, "Liberation Sans", sans-serif',
+  'sans-serif': '"Helvetica Neue", "Segoe UI", Helvetica, "Source Sans Pro", Arial, sans-serif',
   monospace: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
   serif: 'Georgia, Cambria, "Times New Roman", "Liberation Serif", serif',
   cursive: 'cursive',
@@ -85,7 +88,7 @@ export function setFontFamilyFonts(family: FontFamily, fonts: string) {
 
 const FontLoads = new Map<string, Promise<void>>();
 
-/** A promise while any font of `font` (a CSS font) is a web font not loaded yet; undefined in Node and once loaded. */
+/** A promise while any font of `font` (a CSS font) is a web font not loaded yet; undefined in Node and once loaded (labels.md §3). */
 function loadFont(font: string): Promise<void> | undefined {
   const fontFaces = typeof document !== 'undefined' ? document.fonts : undefined;
   if (!fontFaces) return;
@@ -164,6 +167,8 @@ export type FontAtlasMap = {
   h: number;
   nw: number;
   nh: number; // normalized to lineheight
+  /** Where the pen starts in the cell, from its left edge, normalized to lineheight: ink left of the pen fits. */
+  left: number;
 };
 
 export class FontAtlas {
@@ -174,6 +179,7 @@ export class FontAtlas {
 
   private scratchW = 0;
   private scratchH = 0;
+  private scratchLeft = 0;
   private currentX = 0;
   private currentY = 0;
   private readonly scratchData: Uint8Array;
@@ -193,8 +199,11 @@ export class FontAtlas {
 
   readonly lineHeight: number;
 
+  /** The widest glyph cell: an em dash, a wide emoji, with the buffer on both sides. */
   private readonly maxWidth: number;
   private readonly middle: number;
+  /** Widths of text in this font, normalized to lineheight (`layout`). */
+  private readonly measure: TextMeasure;
 
   constructor(props: Partial<FontAtlasProps> = {}) {
     const p = fontAtlasProps(props);
@@ -205,10 +214,10 @@ export class FontAtlas {
     this.buffer = fontSize / 8;
     this.radius = fontSize / 3;
     this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius);
-    this.maxWidth = Math.round(this.lineHeight * 0.75);
+    this.maxWidth = Math.round(this.lineHeight * 1.5);
 
-    // create texture (for ~350 characters)
-    this.texture = createTextureImage(350 * this.lineHeight * this.maxWidth, 1, Uint8Array);
+    // create texture (for ~350 characters, a cell 0.75 lineheight wide on average)
+    this.texture = createTextureImage(350 * this.lineHeight * Math.round(this.lineHeight * 0.75), 1, Uint8Array);
 
     // prepare scratch canvas
     this.scratchContext = createCanvasContext(this.maxWidth, this.lineHeight, { willReadFrequently: true })!;
@@ -216,6 +225,11 @@ export class FontAtlas {
     this.scratchContext.font = getFontAtlasFont(p);
     this.scratchContext.fillStyle = 'black';
     this.scratchContext.textBaseline = 'middle';
+    // kerning on where the canvas has the setting (not node-canvas, which kerns by default)
+    if ('fontKerning' in this.scratchContext) this.scratchContext.fontKerning = 'normal';
+    const ctx = this.scratchContext;
+    const lineHeight = this.lineHeight;
+    this.measure = new TextMeasure((text) => ctx.measureText(text).width / lineHeight);
 
     // SDF scratch values
     this.scratchData = new Uint8Array(this.lineHeight * this.maxWidth);
@@ -257,6 +271,7 @@ export class FontAtlas {
         h: this.scratchH,
         nw: this.scratchW / this.lineHeight,
         nh: this.scratchH / this.lineHeight,
+        left: this.scratchLeft / this.lineHeight,
       };
 
       for (let y = 0; y < this.scratchH; ++y) {
@@ -271,18 +286,30 @@ export class FontAtlas {
     return this.mapped[char];
   }
 
+  /**
+   * The graphemes of `text` and where each glyph's pen starts, normalized to lineheight: advances measured in this
+   * font with the kerning of each pair (`TextMeasure`). Place a glyph's cell `get(grapheme).left` before its pen.
+   */
+  layout(text: string) {
+    return this.measure.layout(text);
+  }
+
   draw(char: string) {
     const h = this.lineHeight;
     const ctx = this.scratchContext;
     const data = this.scratchData;
 
-    // measure text
+    // the cell holds the ink, which may reach left of the pen or right of the advance ('j', 'f', italics), and the
+    // buffer for the distance field on both sides
     const m = ctx.measureText(char);
-    const w = Math.min(this.maxWidth, Math.ceil(m.width + 2 * this.buffer));
+    const inkLeft = Math.max(0, Math.ceil(m.actualBoundingBoxLeft ?? 0));
+    const inkRight = Math.max(m.width, m.actualBoundingBoxRight ?? 0);
+    const w = Math.min(this.maxWidth, Math.ceil(inkLeft + inkRight + 2 * this.buffer));
     const n = w * h;
+    const x = this.buffer + inkLeft;
 
     ctx.clearRect(0, 0, w, h); // clear scratch area
-    ctx.fillText(char, this.buffer, this.middle); // draw text
+    ctx.fillText(char, x, this.middle); // draw text
     const imageData = ctx.getImageData(0, 0, w, h);
 
     for (let i = 0; i < n; i++) {
@@ -301,6 +328,7 @@ export class FontAtlas {
 
     this.scratchW = w;
     this.scratchH = h;
+    this.scratchLeft = x;
   }
 }
 

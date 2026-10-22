@@ -55,7 +55,8 @@ const DistanceVisuals = {
     }),
   text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<DistanceData, TextParams>) =>
     ShapeRepresentation(
-      (ctx, data, props, shape) => withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
+      (ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Text>) =>
+        withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
       Text.Utils,
       { modifyState: (s) => ({ ...s, markerActions: MarkerAction.None }) },
     ),

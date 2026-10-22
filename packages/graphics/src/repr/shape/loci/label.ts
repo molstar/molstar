@@ -31,7 +31,8 @@ type TextParams = typeof TextParams;
 const LabelVisuals = {
   text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) =>
     ShapeRepresentation(
-      (ctx, data, props, shape) => withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
+      (ctx: RuntimeContext, data: LabelData, props: LabelProps, shape?: Shape<Text>) =>
+        withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
       Text.Utils,
     ),
 };
