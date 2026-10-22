@@ -386,9 +386,10 @@ export function createLinkCylinderImpostors(
 
   const oldBoundingSphere = cylinders?.hasBoundingSphere() ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
 
-  // CylindersBuilder sizes its arrays in vertices, six per cylinder
+  // CylindersBuilder counts cylinders (and multiplies by its six vertices itself): an exact count fills one chunk, which
+  // is kept without a copy (perf-audit-2 07/P11)
   const builder = linkBuilder.cylinderCount
-    ? CylindersBuilder.create(linkBuilder.cylinderCount() * 6, linkCount, cylinders)
+    ? CylindersBuilder.create(linkBuilder.cylinderCount(), Math.max(1024, linkCount / 4), cylinders)
     : CylindersBuilder.create(linkCount * 2, (linkCount * 2) / 4, cylinders);
 
   const va = Vec3();
