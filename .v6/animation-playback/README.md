@@ -84,6 +84,15 @@ What the baseline confirms and what it adds:
     (`trajectory.ts:169`), so every tick goes through `produce`, and mutative warns "The return value does not contain
     any draft".
 
+## Results
+
+One line per id as it lands: the commit's before → after on the bench (median of 3 runs, same machine as the baseline).
+
+- **S1** (state-snapshots.ts: the skip reads `currentTransitionFrame`, which the animations now write). plain: 181 → 30
+  `setSnapshot` per 181 ticks, camera resets 7 (6 restarts) → 1 (0), 98 → 43 KB/tick. exosome: 601 → 418
+  `setSnapshot` per 600 ticks; ms/tick within noise (3.98 → 4.32 med), since the skipped applies changed no cell. Test:
+  `plugin/core/src/state/animation/_test/state-snapshots.test.ts` (36 and 30 applies before, 5 and 4 after).
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip
@@ -91,6 +100,10 @@ What the baseline confirms and what it adds:
   `currentAnimationFrame` (:157, :165, :258), so the skip never fires. Every animation-loop tick then runs a full
   `setSnapshot`. During frame 0 it also re-applies the camera and canvas props and calls `requestCameraReset`, which
   restarts the camera transition on every tick: the move is stretched, not only wasted.
+- **B2, frames shown one slot early (found with S1's test).** `getStateTransitionFrameIndex` returns `i` for the first
+  `i` whose start (the sum of the durations before it) is at least `t`, so during frame `i`'s slot it returns `i + 1`.
+  Frame 1 is never shown, and during an MVS hold (a long frame) the frame after it is shown. Scrubbing
+  (`setSnapshotAnimationFrame`) has the same offset. Fixed with S3, which replaces the scan.
 - **S2, log growth (checked).** The snapshot animations do not pass `doNotLogTiming`, unlike the trajectory, spin,
   explode, unwind and interpolation animations. So every frame logs "Updated X in N ms" for each updated cell, without
   limit (`context.ts:692`), and re-renders the log view.
