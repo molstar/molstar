@@ -38,7 +38,7 @@ The v6 prototype separates code into pnpm workspace packages:
 - `packages/{core,io,model,graphics}` own the shared library layers.
 - `packages/plugin/{core,ui,headless}` own plugin runtime, React UI and Node capture.
 - `packages/mvs/{builder,runtime}` separate standalone MVS construction from plugin loading.
-- `extensions/`, `apps/`, `examples/`, `servers/` and `cli/` own their dependencies and builds.
+- `packages/extensions/`, `apps/`, `examples/`, `servers/` and `cli/` own their dependencies and builds.
 - `distributions/molstar/` assembles the classic and browser ESM distribution.
 - `smoke/` checks isolated package consumers and browser rendering.
 

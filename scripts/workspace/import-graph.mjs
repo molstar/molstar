@@ -30,7 +30,7 @@ import { exclusionErrors, findExcluded, globToRegExp, loadExclusions } from './s
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const APP_ROOTS = ['apps/', 'examples/', 'cli/', 'servers/', 'smoke/'];
-const SCAN_ROOTS = ['packages/', 'extensions/', ...APP_ROOTS];
+const SCAN_ROOTS = ['packages/', ...APP_ROOTS];
 const SKIP_DIRS = new Set(['node_modules', 'lib', '_test', '.claude', 'dist', 'build', '.git']);
 const SOURCE_EXTENSIONS = ['.ts', '.tsx'];
 

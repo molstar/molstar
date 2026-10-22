@@ -12,7 +12,7 @@
       "path": "../../packages/plugin/ui"
     },
     {
-      "path": "../../extensions/alpha-orbitals"
+      "path": "../../packages/extensions/alpha-orbitals"
     },
     {
       "path": "../../packages/graphics"

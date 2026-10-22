@@ -12,7 +12,7 @@
       "path": "../../apps/viewer"
     },
     {
-      "path": "../../extensions/model-archive"
+      "path": "../../packages/extensions/model-archive"
     },
     {
       "path": "../../packages/model"

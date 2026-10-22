@@ -64,7 +64,7 @@ Checks to migrate (outside `gl/webgl/`):
 - Format choices inside passes (`isWebGL2 ? 'depth32f-stencil8' : ...`, `'alpha'` vs. `'rgba'` targets, integer textures
   in compute) are not feature checks; they move behind backend resource/render-target creation in step 3, not to
   capabilities.
-- Backend-specific readback (`extensions/geo-export`: `isWebGL2 ? Uint8Array : Float32Array`) needs a neutral
+- Backend-specific readback (`packages/extensions/geo-export`: `isWebGL2 ? Uint8Array : Float32Array`) needs a neutral
   `readPixels` contract (step 3).
 - Visual tests: `tests/src/visual/framework/capabilities.ts` derives its `Capabilities` from `capabilities` (plus the
   derived features) and its report limits from `resources.limits`; `floatTexture` and `blendMinMax` (now required) are

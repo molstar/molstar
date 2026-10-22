@@ -185,7 +185,7 @@ packages/
   mvs/
     builder/                  # @molstar/mvs-builder
     runtime/                  # @molstar/mvs
-extensions/<name>/            # @molstar/<name>-extension
+  extensions/<name>/          # @molstar/<name>-extension
 apps/
   viewer/                     # published @molstar/viewer
   docking-viewer/             # private workspace apps
@@ -211,7 +211,7 @@ packages:
   - 'packages/*'
   - 'packages/plugin/*'
   - 'packages/mvs/*'
-  - 'extensions/*'
+  - 'packages/extensions/*'
   - 'apps/*'
   - 'examples/*'
   - 'servers/*'

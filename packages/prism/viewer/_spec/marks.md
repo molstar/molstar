@@ -2,7 +2,7 @@
 
 A view's residue ranges shown in the 3D view and the sequence until cleared (the PAE plot's box; later a contact map, an
 alignment). The code is the truth for how (`src/sources/marks.ts`, `api/highlight.ts`, `sequence/link.ts`,
-`extensions/model-archive/src/pae/`).
+`packages/extensions/model-archive/src/pae/`).
 
 - **View state**: not the selection, the highlight or a style layer; never a history step, never in the state tree, a
   snapshot or a session.

@@ -3,7 +3,7 @@
 Scope: [`packages/model/src/formats`](../../packages/model/src/formats) (structure, volume, shape and topology
 converters, format properties) and [`packages/model/src/model`](../../packages/model/src/model) without
 `model/structure` (sequence, alignment, volume grid, loci, custom properties); the kinemage reader
-([`extensions/kinemage/src/reader`](../../extensions/kinemage/src/reader)) is included because nothing else covers it.
+([`packages/extensions/kinemage/src/reader`](../../packages/extensions/kinemage/src/reader)) is included because nothing else covers it.
 HEAD `0944823d4`, 2026-10-22, Node 25.6, Apple M4, moderate shared load (±10–20 % on times). v1:
 [../perf-audit/04-model-formats.md](../perf-audit/04-model-formats.md). Method and fixtures: [00-profile.md](00-profile.md). No
 finding touches Canvas3D or `gl`. MVS loading is in [mvs-optimizations](../mvs-optimizations/research/README.md).
@@ -77,7 +77,7 @@ regressed 0, dropped 1**. Every v1 probe still open was rerun at HEAD and gives 
 | P2 | still-open | Multi-frame GRO (and multi-molecule MOL2) build a full model per frame | [gro.ts:137](../../packages/model/src/formats/structure/gro.ts#L137) | memory | medium | 200 → ~15–25 B/atom/frame; 10k poses ~330 MB → a few MB | S | confirmed | no |
 | P3 | still-open | IHM ensembles rebuild coarse hierarchy, sequence, ranges, static props per model | [parser.ts:280](../../packages/model/src/formats/structure/basic/parser.ts#L280) | time+memory | medium | ~720 → ~60–100 KB/model; ~2× faster load | M | confirmed | no |
 | P15 | new | `missingResidues` computed eagerly on every load | [parser.ts:49](../../packages/model/src/formats/structure/basic/parser.ts#L49) | time | low | −18–31 ms at 1.1M, −150–190 ms at 5M | S | confirmed | no |
-| P17 | new | Kinemage parser: a tag array per point, JS arrays for positions | [kinparser.ts:114](../../extensions/kinemage/src/reader/kinparser.ts#L114) | memory | low | 316 → 208 B/point shared tags; ~60–80 with typed arrays | S | confirmed | no |
+| P17 | new | Kinemage parser: a tag array per point, JS arrays for positions | [kinparser.ts:114](../../packages/extensions/kinemage/src/reader/kinparser.ts#L114) | memory | low | 316 → 208 B/point shared tags; ~60–80 with typed arrays | S | confirmed | no |
 | P19 | new | `molstar_bond_site` bonds rebuilt per model over every model's rows, and per coordinate frame | [mmcif.ts:98](../../packages/model/src/formats/structure/mmcif.ts#L98) | time | low | O(M·(A + M·B)) → O(A + M·B) per file | S | plausible | no |
 | P13 | still-open | Cube and DX volumes as Float64; cube orbitals copied again | [cube.ts:21](../../packages/model/src/formats/volume/cube.ts#L21) | memory | low | −50 % volume memory | S | confirmed | no |
 | 12/T1 | still-open | Trilinear interpolation: 8 `get()` calls through a closure per sample | [grid.ts:214](../../packages/model/src/model/volume/grid.ts#L214) | time | low | ~1.4× per sample | S | plausible | no |
@@ -192,7 +192,7 @@ regressed 0, dropped 1**. Every v1 probe still open was rerun at HEAD and gives 
 | B6 | still-open | low | Granularity options grouped under 'With Symmetry' | [loci.ts:304](../../packages/model/src/model/loci.ts#L304) | confirmed |
 | B12 | new | low | MOL2 bonds assume atom ids 1..N in file order | [mol2.ts:163](../../packages/model/src/formats/structure/mol2.ts#L163) | plausible |
 | B13 | new | low | Segmentation load throws on a voxel label without a table set | [segmentation.ts:105](../../packages/model/src/formats/volume/segmentation.ts#L105) | plausible |
-| B14 | new | low | Kinemage: a re-opened `@group` keeps the previous group's masters | [kinparser.ts:767](../../extensions/kinemage/src/reader/kinparser.ts#L767) | plausible |
+| B14 | new | low | Kinemage: a re-opened `@group` keeps the previous group's masters | [kinparser.ts:767](../../packages/extensions/kinemage/src/reader/kinparser.ts#L767) | plausible |
 
 ### B8: `molstar_bond_site` index space
 

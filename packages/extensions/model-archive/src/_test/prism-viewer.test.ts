@@ -1,0 +1,122 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { readFileSync } from 'node:fs';
+import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
+import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
+import { checkSpec } from '@molstar/prism-viewer/spec-check';
+import type { PrismViewer } from '@molstar/prism-viewer/viewer';
+import { afterEach, describe, expect, it } from 'vitest';
+import { ModelArchiveExtension, PlddtTrack } from '../prism-viewer.js';
+
+// Model Archive's quality in the Prism viewer on a headless viewer (parity.md §6): AlphaFold DB's P04637 model
+// (recorded, the Prism viewer's Mol* adapter fixture; pLDDT in `ma_qa_metric_local`) and 1CBS (an experimental structure). No network.
+
+const fixture = (path: string, name: string) => new File([readFileSync(new URL(path, import.meta.url))], name);
+const alphafold = () =>
+  fixture(
+    '../../../../../packages/prism/viewer/src/sequence/molstar/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif',
+    'AF-P04637-F1.bcif',
+  );
+const cbs = () => fixture('../../../../../data/examples/1cbs_updated.cif', '1cbs.cif');
+
+const viewers: PrismViewer[] = [];
+afterEach(async () => {
+  for (const v of viewers.splice(0)) await v.dispose();
+});
+
+async function viewer(files: File[], withExtension = true) {
+  const base = DefaultPrismViewerSpec();
+  const v = await createPrismViewerHeadless({
+    spec: { ...base, extensions: [...(base.extensions ?? []), ...(withExtension ? [ModelArchiveExtension] : [])] },
+  });
+  viewers.push(v);
+  for (const f of files) {
+    const r = await v.api.load.files({ files: [f] });
+    if (!r.ok) throw new Error(r.message);
+  }
+  return v;
+}
+
+async function until(check: () => boolean, ms = 5000): Promise<void> {
+  const t0 = Date.now();
+  while (!check()) {
+    if (Date.now() - t0 > ms) throw new Error(`timed out after ${ms} ms`);
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+const polymerThemes = (v: PrismViewer) =>
+  v.plugin.managers.structure.hierarchy.current.structures.flatMap((s) =>
+    s.components.flatMap((c) =>
+      c.representations.map((r) => (r.cell.transform.params as { colorTheme: { name: string } }).colorTheme.name),
+    ),
+  );
+
+describe('the model-archive extension in the Prism viewer', () => {
+  it('opens a predicted model colored by its pLDDT out of the box, and leaves other structures as they were', async () => {
+    const predicted = await viewer([alphafold()]);
+    const themes = polymerThemes(predicted);
+    expect(themes.length).toBeGreaterThan(0);
+    expect(new Set(themes)).toEqual(new Set(['plddt-confidence']));
+    const experimental = await viewer([cbs()]);
+    expect(polymerThemes(experimental)).not.toContain('plddt-confidence');
+    // Without the extension the viewer knows nothing of pLDDT.
+    expect(polymerThemes(await viewer([alphafold()], false))).not.toContain('plddt-confidence');
+  });
+
+  it('lists pLDDT for a predicted model and colors the polymer by it, as one step', async () => {
+    const v = await viewer([alphafold()]);
+    const list = await v.api.annotations.list({});
+    expect(list.ok && JSON.stringify(list.value)).toMatch(/plddt/);
+    // It opens colored by pLDDT: recolored by chain first, so applying pLDDT is a change.
+    expect((await v.api.representation.color({ target: 'polymer', theme: 'chain-id' })).ok).toBe(true);
+    expect(polymerThemes(v)).not.toContain('plddt-confidence');
+    const steps = v.managers.history.steps.value.length;
+    const r = await v.api.annotations.apply({ annotation: 'plddt' });
+    expect(r.ok, r.ok ? '' : r.message).toBe(true);
+    expect(polymerThemes(v)).toContain('plddt-confidence');
+    expect(v.managers.history.steps.value.length).toBe(steps + 1);
+    // QMEAN is not what an AlphaFold model carries.
+    expect((await v.api.annotations.apply({ annotation: 'qmean' })).ok).toBe(false);
+  });
+
+  it('adds the pLDDT track to the sequence, with its menu and its bands, only for a model that carries it', async () => {
+    const v = await viewer([alphafold()]);
+    const seq = (await v.views.sequence!.load()).viewers.get();
+    await until(() => JSON.stringify(seq.seq.document.shown.value).includes(`"ref":"${PlddtTrack}"`));
+    expect(seq.legend.value.sections?.map((s) => s.title)).toEqual(['Secondary structure', 'Model confidence']);
+    expect(seq.trackActions(PlddtTrack).map((a) => a.label)).toEqual(['Color by pLDDT']);
+    seq.trackActions(PlddtTrack)[0].run();
+    await until(() => polymerThemes(v).includes('plddt-confidence'));
+    // An experimental structure: no track, no bands.
+    const other = await viewer([cbs()]);
+    const plain = (await other.views.sequence!.load()).viewers.get();
+    await until(() => plain.shown.value !== undefined);
+    expect(JSON.stringify(plain.seq.document.shown.value)).not.toContain(PlddtTrack);
+    expect(plain.legend.value.sections?.map((s) => s.title)).toEqual(['Secondary structure']);
+  });
+
+  it('brings its commands, and without it the viewer has no pLDDT at all', async () => {
+    const v = await viewer([]);
+    expect(v.managers.commands.get('model-archive.color-plddt')).toBeDefined();
+    const bare = await viewer([alphafold()], false);
+    expect((await bare.api.annotations.apply({ annotation: 'plddt' })).ok).toBe(false);
+  });
+
+  it('still activates in a viewer without the annotations feature, and asks for the structure feature', async () => {
+    const base = DefaultPrismViewerSpec();
+    const extensions = [...(base.extensions ?? []).filter((e) => e.id !== 'annotations'), ModelArchiveExtension];
+    const v = await createPrismViewerHeadless({ spec: { ...base, extensions } });
+    viewers.push(v);
+    expect(v.api['model-archive']).toBeDefined();
+    expect(v.managers.commands.get('model-archive.show-pae')).toBeDefined();
+    expect(v.managers.commands.get('model-archive.color-plddt')).toBeUndefined();
+    expect(() => checkSpec({ ...base, extensions: [ModelArchiveExtension] })).toThrow(/needs 'structure'/);
+  });
+});

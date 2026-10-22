@@ -17,7 +17,7 @@ not).
 | `packages/prism/*`                   | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [_spec](packages/prism/viewer/_spec/README.md))                                                                       |
 | `packages/ai/*`                      | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [_spec](packages/ai/_spec/README.md))                                                                |
 | `packages/sequences/*`               | Seq\*, the sequence viewer and SeqViewSpec ([AGENTS.md](packages/sequences/AGENTS.md), [_spec](packages/sequences/_spec/README.md))                                             |
-| `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                                                                                            |
+| `packages/extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                                                                                            |
 | `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                                                                                                      |
 | `smoke/`                             | packed-consumer and browser checks                                                                                                                                              |
 | `apps/docs`                          | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                                                                                             |

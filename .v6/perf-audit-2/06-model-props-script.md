@@ -226,7 +226,7 @@ candidates from A's grid), #2004 (H-bond hydrogen across units, `filterInter`, s
   `interactions.unitsContacts.get(acc.unit.id)` (undefined). Failure (`b12.ts`, re-run on 7qpd): weak H-bonds on +
   `{ skipIntraContacts: true }` → "TypeError: Cannot destructure property 'edgeProps' of
   'interactions.unitsContacts.get(...)' as it is undefined." (the full computation finds 120 inter edges). Only caller:
-  `extensions/interactions/src/compute.ts:52`, which forwards the user's interaction options, so the extension crashes
+  `packages/extensions/interactions/src/compute.ts:52`, which forwards the user's interaction options, so the extension crashes
   whenever weak H-bonds are enabled. The other refiners read `unitsContacts` only from `handleIntraContact` (loop over
   its keys) and are safe. Fix: skip the intra check when there is no entry; test `computeInteractions` with
   `skipIntraContacts` and every provider on.

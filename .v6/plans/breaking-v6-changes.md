@@ -86,7 +86,7 @@ ID; the loader checks that stable ID without importing the behavior module. Seri
 ## Video export (breaking)
 
 The MP4 extension is renamed from `@molstar/mp4-export-extension` to `@molstar/video-export-extension`
-(`extensions/video-export`). Viewer and Mesoscale Explorer extension options use `video-export` instead of `mp4-export`.
+(`packages/extensions/video-export`). Viewer and Mesoscale Explorer extension options use `video-export` instead of `mp4-export`.
 Public names change from `Mp4Export`, `Mp4Controls`, `Mp4EncoderUI`, `Mp4EncoderParams`, and `Mp4HeadlessPluginContext`
 to their `Video` equivalents. `Mp4AnimationParams` is replaced by backend-generated `PD.Params` exposed through
 `VideoControls.behaviors.paramsSchema`. The serialized behavior ID `ms-plugin.extension-mp4-export` is retained so

@@ -9,5 +9,5 @@
     "types": ["node", "webxr"],
     "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*", "../../extensions/backgrounds/src/typings.d.ts"]
+  "include": ["src/**/*", "../../packages/extensions/backgrounds/src/typings.d.ts"]
 }

@@ -17,7 +17,7 @@ const output = resolve(root, 'build/smoke-video/video.js');
 await mkdir(resolve(root, 'build/smoke-video'), { recursive: true });
 const bundle = await build({
   absWorkingDir: root,
-  entryPoints: ['extensions/video-export/src/_test/browser.ts'],
+  entryPoints: ['packages/extensions/video-export/src/_test/browser.ts'],
   outfile: output,
   bundle: true,
   format: 'iife',

@@ -55,7 +55,7 @@ test('classification: catalog, default-composition, app and base modules', () =>
   for (const dir of ['apps/a', 'examples/b', 'cli/c', 'servers/d', 'smoke/e'])
     assert.equal(classify(`${dir}/src/x.ts`, manifest), 'app');
   assert.equal(classify(`${LIB}/src/context.ts`, manifest), 'base');
-  assert.equal(classify('extensions/x/src/index.ts', manifest), 'base');
+  assert.equal(classify('packages/extensions/x/src/index.ts', manifest), 'base');
 });
 
 test('catalogs, default-composition modules and apps may value-import catalogs', async () => {

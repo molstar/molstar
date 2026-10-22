@@ -44,7 +44,7 @@ describe('ESM start closure (perf audit 2, 12/B2)', () => {
     // the reader is in Prism's start code (model-archive's PAE operations); the Seq* barrel would add ~1.1 MB to it
     const r = await esbuild.build({
       absWorkingDir: root,
-      entryPoints: ['extensions/model-archive/src/pae/afdb.ts'],
+      entryPoints: ['packages/extensions/model-archive/src/pae/afdb.ts'],
       bundle: true,
       write: false,
       metafile: true,

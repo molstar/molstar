@@ -15,7 +15,7 @@
       "path": "../common"
     },
     {
-      "path": "../../extensions/anvil"
+      "path": "../../packages/extensions/anvil"
     },
     {
       "path": "../../packages/io"
