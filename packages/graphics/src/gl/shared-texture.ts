@@ -16,7 +16,7 @@ export interface SharedTexture {
   readonly image: SharedTextureImage;
   /** Uploads the image again when its `version` changed since the last upload, always for images without one */
   sync: () => void;
-  /** The holder's share of the texture's bytes: the byte counts of the items sharing it add up to it once */
+  /** The holder's share of the texture's bytes (fractional): the byte counts of the items sharing it add up to it once */
   getByteCount: () => number;
   /** Destroys the texture when it was the last holder; idempotent */
   release: () => void;
@@ -39,8 +39,11 @@ type Entry = {
   holders: number;
 };
 
+/** What the GPU texture depends on */
 function getSpecKey(spec: TextureSpec<TextureKind>) {
-  return `${spec.kind}|${spec.format}|${spec.dataType}|${spec.filter}`;
+  const { kind, format, dataType, filter, dimension, sampleType } = spec;
+  const dim = typeof dimension === 'string' ? dimension : dimension.define;
+  return `${kind}|${format}|${dataType}|${filter}|${dim}|${sampleType}`;
 }
 
 /** `create` gives an unloaded texture from the backend's factory, so that resource and byte counts see it once */
@@ -69,7 +72,12 @@ export function createSharedTextures(create: (spec: TextureSpec<TextureKind>) =>
         sync(entry, image);
       } else {
         entry = { texture: create(spec), uploaded: undefined, holders: 0 };
-        load(entry, image);
+        try {
+          load(entry, image);
+        } catch (e) {
+          entry.texture.destroy();
+          throw e;
+        }
         byImage.set(key, entry);
         count += 1;
       }

@@ -34,27 +34,36 @@ function createAtlas(n = 4096) {
   return image;
 }
 
+/** A text of one glyph quad sampling `atlas`, so that drawing it binds the texture */
 function createText(atlas: TextureImage<Uint8Array>) {
+  const text = Text.create(
+    atlas,
+    new Float32Array(12),
+    new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]),
+    new Float32Array(4),
+    new Uint32Array([0, 1, 2, 0, 2, 3]),
+    new Float32Array(4),
+    new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]),
+    1,
+  );
   const props = PD.getDefaultValues(Text.Params);
-  const values = Text.Utils.createValuesSimple(Text.createEmpty(), props, ColorNames.orange, 1);
-  ValueCell.update(values.tFont, atlas);
+  const values = Text.Utils.createValuesSimple(text, props, ColorNames.orange, 1);
   return createRenderObject('text', values, Text.Utils.createRenderableState(props), -1);
 }
 
-/** Uploads of `image`'s size, full or sub-image (`texImage2D` and `texSubImage2D` take width and height at 3 and 4) */
+/** Uploads of `image`'s size: whole (`texImage2D`, width and height at 3 and 4) or sub-image (`texSubImage2D`, at 4 and 5) */
 function countUploads(gl: WebGLRenderingContext, image: TextureImage<any>) {
-  const calls: unknown[][] = [];
-  const record =
-    <F extends (...args: any[]) => any>(f: F) =>
-    (...args: Parameters<F>) => {
-      calls.push(args);
+  let count = 0;
+  const wrap = (name: 'texImage2D' | 'texSubImage2D', at: number) => {
+    const f = gl[name] as (...args: any[]) => any;
+    (gl as any)[name] = (...args: any[]) => {
+      if (args[at] === image.width && args[at + 1] === image.height) count += 1;
       return f.apply(gl, args);
     };
-  for (const name of ['texImage2D', 'texSubImage2D'] as const) {
-    const f = gl[name] as (...args: any[]) => any;
-    (gl as any)[name] = record(f);
-  }
-  return () => calls.filter((a) => a[3] === image.width && a[4] === image.height).length;
+  };
+  wrap('texImage2D', 3);
+  wrap('texSubImage2D', 4);
+  return () => count;
 }
 
 describe('shared textures, the cache', () => {
@@ -264,6 +273,9 @@ describe('shared textures, native WebGL', () => {
     ValueCell.update(objects[1].values.tFont, atlas);
     scene.update([objects[1]], false);
 
+    expect(scene.renderables[0].values.drawCount.ref.value).toBe(6);
+    ctx.resources.linkPrograms();
+    expect(ctx.resources.finalizePrograms(undefined, true)).toBe(true);
     setDebugMode(true);
     try {
       renderer.update(camera, scene, createFrame());
