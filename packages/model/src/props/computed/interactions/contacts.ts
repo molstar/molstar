@@ -46,7 +46,8 @@ export interface ContactTester {
   ) => InteractionType | undefined;
 }
 
-function validPair(structure: Structure, infoA: Features.Info, infoB: Features.Info): boolean {
+/** Whether two features may form a contact at all (exported for the contact loops' tests) */
+export function validPair(structure: Structure, infoA: Features.Info, infoB: Features.Info): boolean {
   const indexA = infoA.members[infoA.offsets[infoA.feature]];
   const indexB = infoB.members[infoB.offsets[infoB.feature]];
   if (indexA === indexB && infoA.unit === infoB.unit) return false; // no self interaction
@@ -95,7 +96,8 @@ const tmpVecB = Vec3();
 // need to use a separate context for structure.lookup3d.find because of nested queries
 const lineOfSightLookupCtx = StructureLookup3DResultContext();
 
-function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Features.Info, distFactor: number) {
+/** Whether no atom blocks the line between two features (exported for the contact loops' tests) */
+export function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Features.Info, distFactor: number) {
   const featureA = infoA.feature;
   const featureB = infoB.feature;
   const indexA = infoA.members[infoA.offsets[featureA]];
