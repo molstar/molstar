@@ -3,11 +3,13 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { WebGLContext } from './context.js';
 import type { TextureImage, TextureVolume } from '../renderable/util.js';
 import type { RenderableSchema } from '../renderable/schema.js';
+import type { SharedTexture, SharedTextureImage } from '../shared-texture.js';
 import type { Framebuffer } from '../framebuffer.js';
 import { getFramebufferHeight, setFramebufferHeight, setIntegerColorAttachment } from './framebuffer.js';
 import { endRenderPass } from './render-pass.js';
@@ -538,7 +540,13 @@ export function createTexture(
   };
 }
 
-export function createTextures(ctx: WebGLContext, schema: RenderableSchema, values: TextureValues) {
+/** `shared` receives the textures of specs with `shared`, by name (`.v6/plans/gl/shared-textures.md` §4) */
+export function createTextures(
+  ctx: WebGLContext,
+  schema: RenderableSchema,
+  values: TextureValues,
+  shared: Map<string, SharedTexture>,
+) {
   const { resources } = ctx;
   const textures: Textures = [];
   Object.keys(schema).forEach((k) => {
@@ -548,6 +556,10 @@ export function createTextures(ctx: WebGLContext, schema: RenderableSchema, valu
       if (value) {
         if (spec.kind === 'texture') {
           textures[textures.length] = [k, value.ref.value as Texture];
+        } else if (spec.shared) {
+          const held = resources.sharedTextures.acquire(spec, value.ref.value as SharedTextureImage);
+          shared.set(k, held);
+          textures[textures.length] = [k, held.texture];
         } else {
           const texture = resources.texture(spec.kind, spec.format, spec.dataType, spec.filter);
           texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);

@@ -3,13 +3,15 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { UniformBlockWriter } from '../uniform-layout.js';
 import { createAttributeBuffers, type ElementsBuffer, type AttributeBuffers } from './buffer.js';
 import type { AttributeKind } from '../buffer.js';
 import { createTextures, type GLTexture } from './texture.js';
-import type { Texture } from '../texture.js';
+import type { Texture, TextureKind } from '../texture.js';
+import { type SharedTexture, type SharedTextureImage, updateSharedTexture } from '../shared-texture.js';
 import {
   ComputeRenderVariants,
   type ComputeRenderVariant,
@@ -36,6 +38,7 @@ import {
   splitValues,
   DefineSpec,
   type UniformSpec,
+  type TextureSpec,
 } from '../renderable/schema.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import { ValueCell } from '@molstar/core/util';
@@ -343,8 +346,12 @@ export function createRenderItem<T extends string>(
     programs[rv] = createProgramVariant(ctx, getRenderVariant(rv, transparency), defineValues, shaderCode, schema);
   }
 
-  const textures = createTextures(ctx, schema, textureValues);
-  const materialTextures = createTextures(ctx, schema, materialTextureValues);
+  // the textures of specs with `shared`, by name, released instead of destroyed (`.v6/plans/gl/shared-textures.md` §4)
+  const sharedTextures = new Map<string, SharedTexture>();
+  const textures = createTextures(ctx, schema, textureValues, sharedTextures);
+  const materialTextures = createTextures(ctx, schema, materialTextureValues, sharedTextures);
+  const getTextureByteCount = (k: string, texture: Texture) =>
+    sharedTextures.get(k)?.getByteCount() ?? texture.getByteCount();
   const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues, contextDefines);
   const instanceBuffers: AttributeBuffers = [];
   for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
@@ -386,11 +393,12 @@ export function createRenderItem<T extends string>(
       }
       if (elementsBuffer) count += elementsBuffer.getByteCount();
       if (objectUniforms) count += objectUniforms.buffer.getByteCount();
+      // a shared texture by the item's share (§5)
       for (let i = 0, il = textures.length; i < il; ++i) {
-        count += textures[i][1].getByteCount();
+        count += getTextureByteCount(textures[i][0], textures[i][1]);
       }
       for (let i = 0, il = materialTextures.length; i < il; ++i) {
-        count += materialTextures[i][1].getByteCount();
+        count += getTextureByteCount(materialTextures[i][0], materialTextures[i][1]);
       }
       return count;
     },
@@ -696,8 +704,22 @@ export function createRenderItem<T extends string>(
         const [k, texture] = textures[i];
         const value = textureValues[k];
         if (value.ref.version !== versions[k]) {
-          // update of textures with kind 'texture' is done externally
-          if (schema[k].kind !== 'texture') {
+          const held = sharedTextures.get(k);
+          if (held) {
+            // the same image uploads once for all its items, another image is another texture (§4)
+            const next = updateSharedTexture(
+              resources.sharedTextures,
+              held,
+              schema[k] as TextureSpec<TextureKind>,
+              value.ref.value as SharedTextureImage,
+            );
+            if (next !== held) {
+              sharedTextures.set(k, next);
+              textures[i][1] = next.texture;
+            }
+            valueChanges.textures = true;
+          } else if (schema[k].kind !== 'texture') {
+            // update of textures with kind 'texture' is done externally
             // console.log('texture version changed, uploading image', k);
             texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
             valueChanges.textures = true;
@@ -712,8 +734,22 @@ export function createRenderItem<T extends string>(
         const [k, texture] = materialTextures[i];
         const value = materialTextureValues[k];
         if (value.ref.version !== versions[k]) {
-          // update of textures with kind 'texture' is done externally
-          if (schema[k].kind !== 'texture') {
+          const held = sharedTextures.get(k);
+          if (held) {
+            // the same image uploads once for all its items, another image is another texture (§4)
+            const next = updateSharedTexture(
+              resources.sharedTextures,
+              held,
+              schema[k] as TextureSpec<TextureKind>,
+              value.ref.value as SharedTextureImage,
+            );
+            if (next !== held) {
+              sharedTextures.set(k, next);
+              materialTextures[i][1] = next.texture;
+            }
+            valueChanges.textures = true;
+          } else if (schema[k].kind !== 'texture') {
+            // update of textures with kind 'texture' is done externally
             // console.log('materialTexture version changed, uploading image', k);
             texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
             valueChanges.textures = true;
@@ -739,14 +775,15 @@ export function createRenderItem<T extends string>(
           programs[k].destroy();
         }
         if (vertexArray) vertexArray.destroy();
-        textures.forEach(([k, texture]) => {
-          // lifetime of textures with kind 'texture' is defined externally
-          if (schema[k].kind !== 'texture') texture.destroy();
-        });
-        materialTextures.forEach(([k, texture]) => {
-          // lifetime of textures with kind 'texture' is defined externally
-          if (schema[k].kind !== 'texture') texture.destroy();
-        });
+        for (const list of [textures, materialTextures]) {
+          for (const [k, texture] of list) {
+            const held = sharedTextures.get(k);
+            if (held) held.release();
+            // lifetime of textures with kind 'texture' is defined externally
+            else if (schema[k].kind !== 'texture') texture.destroy();
+          }
+        }
+        sharedTextures.clear();
         attributeBuffers.forEach(([_, buffer]) => buffer.destroy());
         if (elementsBuffer) elementsBuffer.destroy();
         if (objectUniforms) {

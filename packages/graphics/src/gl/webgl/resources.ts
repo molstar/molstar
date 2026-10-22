@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { type ProgramProps, createProgram, type Program } from './program.js';
@@ -51,6 +52,7 @@ import type { UniformBuffer } from '../uniform.js';
 import type { UniformBlockLayout } from '../uniform-layout.js';
 import type { AttributeLayout } from '../attribute-layout.js';
 import { getShaderDeclarations } from './shader-declarations.js';
+import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
 import { getDefineLookup, getDefineValueNames } from '../renderable/schema.js';
 import { now } from '@molstar/core/util/now';
 import type { ProgramVariant, RenderItem } from '../render-item.js';
@@ -88,6 +90,8 @@ export interface WebGLResources extends GraphicsResources {
   shader: (type: ShaderType, source: string) => Shader;
   texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => GLTexture;
   cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => GLTexture;
+  /** Textures shared by render items, from `texture` (`.v6/plans/gl/shared-textures.md` §2) */
+  sharedTextures: SharedTextures;
   vertexArray: (
     layout: AttributeLayout,
     attributeBuffers: AttributeBuffers,
@@ -254,6 +258,17 @@ export function createResources(
     maxTextureImageUnits: parameters.maxTextureImageUnits,
   };
 
+  function texture(kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) {
+    const texture = registerGLTexture(
+      wrap('texture', createTexture(gl, extensions, kind, format, type, filter, state)),
+    );
+    ownTextures.add(texture);
+    return texture;
+  }
+
+  // gone with the resources: a restored context gets new ones (§6)
+  const sharedTextures = createSharedTextures((spec) => texture(spec.kind, spec.format, spec.dataType, spec.filter));
+
   return {
     limits,
     attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => {
@@ -287,13 +302,8 @@ export function createResources(
       return wrap('renderbuffer', createRenderbuffer(gl, format, attachment, width, height, state));
     },
     shader: getShader,
-    texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => {
-      const texture = registerGLTexture(
-        wrap('texture', createTexture(gl, extensions, kind, format, type, filter, state)),
-      );
-      ownTextures.add(texture);
-      return texture;
-    },
+    texture,
+    sharedTextures,
     ownsTexture: (texture: Texture) => ownTextures.has(texture),
     cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => {
       // settles once: a face that fails to load reports an error of its own

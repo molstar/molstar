@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
@@ -29,6 +30,11 @@ export interface TextureImage<T extends Uint8Array | Float32Array | Int32Array> 
   readonly height: number;
   readonly flipY?: boolean;
   readonly filter?: TextureFilter;
+  /**
+   * Incremented by whoever writes `array` in place (the font atlas appending a glyph): a shared texture
+   * (`TextureSpecOptions.shared`) uploads the image again only when it changed, see `.v6/plans/gl/shared-textures.md` §3
+   */
+  version?: number;
 }
 
 export interface TextureVolume<T extends Uint8Array | Float32Array> {
