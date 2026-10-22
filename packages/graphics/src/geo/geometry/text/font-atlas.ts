@@ -14,9 +14,9 @@ import { RUNNING_IN_NODEJS } from '@molstar/core/util/nodejs-shims';
 import { LRUCache } from '@molstar/core/util/lru-cache';
 
 /**
- * Atlases are tens of MB each (43 MB at the default quality), so the cache is keyed by the font fields only and keeps
- * the few most recently used. An evicted atlas lives on in the texts built with it; texts built later get a new one.
- * With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory).
+ * Atlases are tens of MB each (43 MB at the default quality), so the cache is keyed by the font (its CSS string) only
+ * and keeps the few most recently used. An evicted atlas lives on in the texts built with it; texts built later get a
+ * new one. With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory).
  */
 const FontAtlasCacheCapacity = 4;
 const FontAtlasCache = LRUCache.create<FontAtlas>(FontAtlasCacheCapacity);
@@ -33,15 +33,91 @@ function fontAtlasProps(props: Partial<FontAtlasProps>): FontAtlasProps {
   };
 }
 
+function fontAtlasFontSize(fontQuality: number) {
+  return 64 * (fontQuality + 1);
+}
+
+/** The CSS font the atlas for `props` draws its glyphs with (`ctx.font`), at the atlas's size. */
+export function getFontAtlasFont(props: Partial<FontAtlasProps>) {
+  const p = fontAtlasProps(props);
+  const fonts = FontFamilyFonts[p.fontFamily] ?? p.fontFamily;
+  return `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontAtlasFontSize(p.fontQuality)}px ${fonts}`;
+}
+
 export function getFontAtlas(props: Partial<FontAtlasProps>) {
   const p = fontAtlasProps(props);
-  const key = `${p.fontFamily}|${p.fontQuality}|${p.fontStyle}|${p.fontVariant}|${p.fontWeight}`;
+  const key = getFontAtlasFont(p);
   let atlas = LRUCache.get(FontAtlasCache, key);
   if (!atlas) {
     atlas = new FontAtlas(p);
     LRUCache.set(FontAtlasCache, key, atlas);
+    // drawn with fallback glyphs while a web font loads: texts built after it arrives get a new atlas
+    const loading = loadFont(key);
+    if (loading) {
+      const drawn = atlas;
+      loading.then(() => {
+        if (LRUCache.get(FontAtlasCache, key) === drawn) LRUCache.remove(FontAtlasCache, key);
+      });
+    }
   }
   return atlas;
+}
+
+/**
+ * The fonts each generic family draws with: a CSS font-family list, tried in order, the generic family last. An entry
+ * may name a web font (CSS `@font-face`, a Google Fonts stylesheet, a `FontFace` added to `document.fonts`): it is
+ * downloaded only when an atlas needs it (`loadFontAtlasFonts`). Change entries with `setFontFamilyFonts`.
+ */
+export const FontFamilyFonts: { readonly [F in FontFamily]: string } = {
+  'sans-serif': '"Helvetica Neue", Helvetica, "Segoe UI", Roboto, Arial, "Liberation Sans", sans-serif',
+  monospace: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+  serif: 'Georgia, Cambria, "Times New Roman", "Liberation Serif", serif',
+  cursive: 'cursive',
+};
+
+/**
+ * Sets the fonts `family` draws with (a CSS font-family list, e.g. `'Inter, sans-serif'`). Texts built from then on use
+ * them; existing texts keep their glyphs until rebuilt, so set the table before the first labels are drawn.
+ */
+export function setFontFamilyFonts(family: FontFamily, fonts: string) {
+  (FontFamilyFonts as { [F in FontFamily]: string })[family] = fonts;
+}
+
+const FontLoads = new Map<string, Promise<void>>();
+
+/** A promise while any font of `font` (a CSS font) is a web font not loaded yet; undefined in Node and once loaded. */
+function loadFont(font: string): Promise<void> | undefined {
+  const fontFaces = typeof document !== 'undefined' ? document.fonts : undefined;
+  if (!fontFaces) return;
+  const pending = FontLoads.get(font);
+  if (pending) return pending;
+  try {
+    if (fontFaces.check(font)) return;
+  } catch {
+    return; // not a valid CSS font: the canvas ignores it too
+  }
+  // a failed download leaves the fallback fonts: nothing to wait for
+  const loading = fontFaces.load(font).then(
+    () => {},
+    () => {},
+  );
+  FontLoads.set(font, loading);
+  loading.then(() => FontLoads.delete(font));
+  return loading;
+}
+
+/**
+ * Downloads the web fonts the atlas for `props` draws with, if any is not loaded yet; undefined when there is nothing
+ * to wait for (system fonts, loaded fonts, Node). Await it before building texts so they get the font, not a fallback.
+ */
+export function loadFontAtlasFonts(props: Partial<FontAtlasProps>): Promise<void> | undefined {
+  return loadFont(getFontAtlasFont(props));
+}
+
+/** `build()`, after the fonts of the atlas for `props` are loaded (`loadFontAtlasFonts`); synchronous when loaded. */
+export function withFontAtlasFonts<T>(props: Partial<FontAtlasProps>, build: () => T): T | Promise<T> {
+  const loading = loadFontAtlasFonts(props);
+  return loading ? loading.then(build) : build();
 }
 
 export type FontFamily = 'sans-serif' | 'monospace' | 'serif' | 'cursive';
@@ -125,7 +201,7 @@ export class FontAtlas {
     this.props = p;
 
     // create measurements
-    const fontSize = 64 * (p.fontQuality + 1);
+    const fontSize = fontAtlasFontSize(p.fontQuality);
     this.buffer = fontSize / 8;
     this.radius = fontSize / 3;
     this.lineHeight = Math.round(fontSize + 2 * this.buffer + this.radius);
@@ -137,7 +213,7 @@ export class FontAtlas {
     // prepare scratch canvas
     this.scratchContext = createCanvasContext(this.maxWidth, this.lineHeight, { willReadFrequently: true })!;
 
-    this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${p.fontFamily}`;
+    this.scratchContext.font = getFontAtlasFont(p);
     this.scratchContext.fillStyle = 'black';
     this.scratchContext.textBaseline = 'middle';
 

@@ -1,6 +1,6 @@
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 /**
- * Copyright (c) 2019-24 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -14,6 +14,7 @@ import { ShapeRepresentation } from '../representation.js';
 import { Representation, type RepresentationParamsGetter, type RepresentationContext } from '../../representation.js';
 import type { Shape } from '@molstar/model/model/shape';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
+import { withFontAtlasFonts } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { lociLabel } from '@molstar/model/model/label';
 import { LociLabelTextParams } from './common.js';
@@ -29,7 +30,10 @@ type TextParams = typeof TextParams;
 
 const LabelVisuals = {
   text: (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) =>
-    ShapeRepresentation(getTextShape, Text.Utils),
+    ShapeRepresentation(
+      (ctx, data, props, shape) => withFontAtlasFonts(props, () => getTextShape(ctx, data, props, shape)),
+      Text.Utils,
+    ),
 };
 
 export const LabelParams = {

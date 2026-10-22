@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { SortedArray } from '@molstar/core/data/int';
 import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
+import { withFontAtlasFonts } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { Structure } from '@molstar/model/model/structure';
 import { ComplexTextVisual, ComplexVisual } from '@molstar/graphics/repr/structure/complex-visual';
 import * as Original from '@molstar/graphics/repr/structure/visual/label-text';
@@ -58,7 +60,8 @@ export function CustomLabelTextVisual(materialId: number): ComplexVisual<CustomL
   return ComplexTextVisual<CustomLabelTextParams>(
     {
       defaultProps: PD.getDefaultValues(CustomLabelTextParams),
-      createGeometry: createLabelText,
+      createGeometry: (ctx, structure, theme, props, text) =>
+        withFontAtlasFonts(props, () => createLabelText(ctx, structure, theme, props, text)),
       createLocationIterator: ElementIterator.fromStructure,
       getLoci: getSerialElementLoci,
       eachLocation: eachSerialElement,
