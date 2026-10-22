@@ -21,6 +21,7 @@
     "./formats/writer/ccp4/_test/*": null,
     "./model/particles/_test/*": null,
     "./model/sequence/alignment/_test/*": null,
+    "./model/structure/model/properties/utils/_test/*": null,
     "./model/structure/query/utils/_test/*": null,
     "./model/structure/structure/_test/*": null,
     "./model/structure/structure/carbohydrates/_test/*": null,

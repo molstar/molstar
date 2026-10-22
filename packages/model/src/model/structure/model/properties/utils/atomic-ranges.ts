@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { AtomicRanges, AtomicIndex, AtomicHierarchy, AtomicDerivedData } from '../atomic/hierarchy.js';
@@ -11,7 +12,6 @@ import { isPolymer, PolymerType } from '../../types.js';
 import type { ElementIndex, ResidueIndex } from '../../indexing.js';
 import { getAtomIdForAtomRole } from '../../../util.js';
 import type { AtomicConformation } from '../atomic/conformation.js';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Entities } from '../common.js';
 import type { StructureSequence } from '../sequence.js';
 
@@ -36,15 +36,20 @@ function areBackboneConnected(
     eiEnd = index.findAtomsOnResidue(riEnd, getAtomIdForAtomRole(ptEnd, 'coarseBackbone'));
   }
 
+  // no backbone atom to measure from; reading x[-1] gave false too, but put undefined into a Vec3, after which V8 made
+  // Vec3s generic arrays for the session (perf-audit-2 02/B5, 02/P10)
+  if (eiStart === -1 || eiEnd === -1) return false;
+
   const { x, y, z } = conformation;
-  const pStart = Vec3.create(x[eiStart], y[eiStart], z[eiStart]);
-  const pEnd = Vec3.create(x[eiEnd], y[eiEnd], z[eiEnd]);
+  const dx = x[eiEnd] - x[eiStart];
+  const dy = y[eiEnd] - y[eiStart];
+  const dz = z[eiEnd] - z[eiStart];
   const isCoarse =
     directionFromElementIndex[riStart] === -1 ||
     directionToElementIndex[riStart] === -1 ||
     directionFromElementIndex[riEnd] === -1 ||
     directionToElementIndex[riEnd] === -1;
-  return Vec3.distance(pStart, pEnd) < (isCoarse ? 10 : 3);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz) < (isCoarse ? 10 : 3);
 }
 
 export function getAtomicRanges(
