@@ -14,27 +14,19 @@ import { LipidNames } from './types/lipids.js';
 import { IonNames } from './types/ions.js';
 import type { mmCIF_chemComp_schema } from '@molstar/io/reader/cif/schema/mmcif-extras';
 
-const _esCache = (function () {
-  const cache = Object.create(null);
-  const letters: string[] = [];
-  for (let i = 'A'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i++) letters[letters.length] = String.fromCharCode(i);
-  for (let i = 'a'.charCodeAt(0); i <= 'z'.charCodeAt(0); i++) letters[letters.length] = String.fromCharCode(i);
-  for (let i = '0'.charCodeAt(0); i <= '9'.charCodeAt(0); i++) letters[letters.length] = String.fromCharCode(i);
-
-  for (const k of letters) {
-    cache[k] = k.toUpperCase();
-    for (const l of letters) {
-      cache[k + l] = (k + l).toUpperCase();
-      for (const m of letters) {
-        cache[k + l + m] = (k + l + m).toUpperCase();
-      }
-    }
-  }
-  return cache;
-})();
+// Upper-cased symbols as read, memoized lazily: a file has ~100 distinct ones. The memo stops growing at 4096 entries
+// (hostile input); past that a symbol is upper-cased per call. Was a table of every 1-3 character string over [A-Za-z0-9]
+// built at module load: 242k keys, 50-75 ms and 21.5 MB in every realm (perf audit 2, 12/P1).
+const _esCache = new Map<string, ElementSymbol>();
+const _esCacheMax = 4096;
 export type ElementSymbol = string & { '@type': 'element-symbol' };
 export function ElementSymbol(s: string): ElementSymbol {
-  return _esCache[s] || s.toUpperCase();
+  let e = _esCache.get(s);
+  if (e === undefined) {
+    e = s.toUpperCase() as ElementSymbol;
+    if (_esCache.size < _esCacheMax) _esCache.set(s, e);
+  }
+  return e;
 }
 
 const _elementByAtomicNumber = new Map(

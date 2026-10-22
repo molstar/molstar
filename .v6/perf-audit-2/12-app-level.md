@@ -33,13 +33,13 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 
 ## v1 → now
 
-20 v1 items: **fixed 3, partly fixed 5, still open 10, regressed 0, dropped 2**.
+20 v1 items: **fixed 3, partly fixed 5, still open 10, regressed 0, dropped 2** at the audit; since, #NNNN fixed 10/P4 and 10/P5 (fixed 5, partly fixed 3).
 
 | v1 id | Title | Status | PR | Note |
 | --- | --- | --- | --- | --- |
 | 07/P7 | Merge policy by count; merged objects keep a second CPU copy | still open | | `resolveRenderMerged` `n > 100` ([base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127)); flat-32 gaussian 145.9 MB for 72.8 MB of geometry |
-| 10/P4 | StructureInfo work per created object, O(N²) | partly fixed | #2008, #2013 | walks gone; `setMaxIndices` still runs for every component Structure ([structure-info.ts:223](../../packages/plugin/core/src/behavior/dynamic/custom-props/structure-info.ts#L223)): 8 % of `repr:auto` at N = 500 |
-| 10/P5 | Measurement sync: six walks per change | partly fixed | #2008, #2013 | one `findTagInSubtree` miss per change (cache key `tree.transforms` is new on every edit); comment at `measurement.ts:448` wrong |
+| 10/P4 | StructureInfo work per created object, O(N²) | **fixed** | #2008, #2013, #NNNN | walks gone; `setMaxIndices` still runs for every component Structure ([structure-info.ts:223](../../packages/plugin/core/src/behavior/dynamic/custom-props/structure-info.ts#L223)): 8 % of `repr:auto` at N = 500 |
+| 10/P5 | Measurement sync: six walks per change | **fixed** | #2008, #2013, #NNNN | one `findTagInSubtree` miss per change (cache key `tree.transforms` is new on every edit); comment at `measurement.ts:448` wrong |
 | 13/P1 | Instanced-surface smoothing spans every instance | fixed | #2005, #2012 | asm-864-low one chain 12.6 s → 31 ms (slices 08, 09) |
 | 13/P2 | quality `auto` by total atoms | still open | | [util.ts:148](../../packages/graphics/src/repr/util.ts#L148) scores `data.root`; blocker 13/P1 is fixed |
 | 13/P3 | Unshared 5M: per-element allocation | partly fixed | #2007, #2017 | flat-864 model 2.7 → 2.1 GB, cartoon 6.0 → 5.5 GB, bonds-intra 1.15 → 0.84 GB allocated |
@@ -62,9 +62,9 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 
 | Rank | Id | Hypothesis | Today | What it takes | Expected win | Effort | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | H7 | Startup and bundle size per app | 126–136 ms eval; Prism start closure 6.31 MB raw / 1.96 MB gzip | P1, P9, B2; webgl variant of the Viewer | −50–75 ms and −21.5 MB per realm; −1.1 MB raw from Prism's start | S | confirmed |
-| 2 | H9 | Event storms and per-action whole-state walks | 3 `stateUpdated` per cell; classic tree O(nodes) per event; hierarchy + measurement walks per change | 10/P4, P3, 10/P5 (S); 14/N2 (M) | `repr:auto` −8 % at N = 500; single actions 39 → ~15 ms; −0.5 s per bulk action with a 5k-node tree | S–M | confirmed |
-| 3 | H6 | CPU copies after GPU upload | merged copy 2×; 32–50 KB extrema per visual | P2 (S), merge policy 07/P7 (S, needs a GPU check) | flat-192 ball-and-stick retained 2.3 → ~1.3 GB; −80–125 MB per representation at flat-192 | S–M | confirmed |
+| 1 | H7 | Startup and bundle size per app | 126–136 ms eval; Prism start closure 6.31 MB raw / 1.96 MB gzip | P1, P9, B2; webgl variant of the Viewer | −50–75 ms and −21.5 MB per realm; −1.1 MB raw from Prism's start | S | confirmed; **P1, P9, B2 fixed** (#NNNN): −22 MB heap, eval ~2× faster; start 6.31 → 5.16 MB raw |
+| 2 | H9 | Event storms and per-action whole-state walks | 3 `stateUpdated` per cell; classic tree O(nodes) per event; hierarchy + measurement walks per change | 10/P4, P3, 10/P5 (S); 14/N2 (M) | `repr:auto` −8 % at N = 500; single actions 39 → ~15 ms; −0.5 s per bulk action with a 5k-node tree | S–M | confirmed; **10/P4, 10/P5 fixed** (#NNNN): `repr:auto` −6 %, single actions −20–35 %; 14/N2, P3 open |
+| 3 | H6 | CPU copies after GPU upload | merged copy 2×; 32–50 KB extrema per visual | P2 (S), merge policy 07/P7 (S, needs a GPU check) | flat-192 ball-and-stick retained 2.3 → ~1.3 GB; −80–125 MB per representation at flat-192 | S–M | **P2 refuted** (#NNNN: kept extrema are distinct); 07/P7 open (GPU check) |
 | 4 | H8 | Render loop policy | classic apps tick at 60 Hz forever; no adaptive resolution | P4 (S); adaptive resolution is Canvas3D (frozen) | idle wakeups 60/s → 0 after 250 ms | S | confirmed (not measurable headless) |
 | 5 | H10 | Perf regression guard | bench in repo, run by nothing; no baselines; errors read as speedups | B1, B4, counters in quick/medium, nightly bench vs baseline | catches R1-like (×2.1 alloc) and O(N²) regressions | M | plausible |
 | 6 | H1 | Worker pool for surfaces, ASA, then bonds/interactions | no Worker anywhere | ComputePool + typed-array protocol; stage 1 surfaces/ASA | flat-192 molsurf 19.9 → ~3–4 s wall; responsive main thread | L | plausible |
@@ -88,6 +88,11 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 - **Risks.** None for P1/P9; a lazy WebGPU backend in Prism makes backend selection async (descriptor modules in `gl`,
   frozen).
 - **First step.** P1 and P9 in one PR, with B2's closure budget so the next static Seq\* import fails the build.
+- **Done (#NNNN).** P1: lazy memo (≤ 4096 symbols). Import of PluginContext + DefaultPluginSpec (bundled, Node 25, 8
+  interleaved pairs at load 6–10): heap after GC 35.3 → 13.3 MB, eval 152–230 → 79–119 ms (median 200 → 93; 128–140 ms
+  before at load ~3). P9: `readPae` in `sequence/molstar/pae-matrix` (no imports), imported narrowly: start closure
+  6.31 → 5.16 MB raw, 1.96 → 1.55 MB gzip. B2: the entry's budget is on its start closure (5.5 MB); the old 3.2 MB
+  budget fails the build at 5.16 MB, the barrel import back (6.31 MB) fails 5.5 MB. Viewer `webgl` variant not done.
 
 ### H9 Event storms and whole-state walks
 
@@ -102,6 +107,11 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   walks; bulk actions −0.5 s with a 5k-node classic tree.
 - **Risks.** 14/N2 must match the walk's ref lists exactly (Prism and the classic UI consume them).
 - **First step.** 10/P4 with a test counting root visits per created component (0).
+- **Done (#NNNN): 10/P4, 10/P5.** many N = 500, stage mode, 3 interleaved pairs at load 5–6 (medians): `repr:auto` 8.89
+  → 8.32 s (−6 %; profile: `setMaxIndices` 796 ms = 8.6 % → 0); theme:one 58 → 46 ms, overpaint:one 57 → 37, remove:one
+  52 → 37; allocated per single action 21 → 16–17 MB. The measurement walk is gone (theme:one 5.2 → 0, remove:one 5.9
+  → 0 ms profiled); the hierarchy walk (14/N2) is now 12–16 ms, 50–66 % of a profiled single action: the rest of the
+  "~15 ms". 14/N2 and P3 open.
 
 ### H6 CPU copies after GPU upload
 
@@ -121,6 +131,16 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   flat-192 ball-and-stick 991 MB buffers / 2,335 MB retained → ~1.3 GB without the merged copy; flat-864 10.6 → ~6 GB.
 - **Risks.** Hundreds of unmerged draw calls (GPU frame time unmeasured).
 - **First step.** P2.
+- **P2 refuted (#NNNN, measured).** The extrema spheres keep are distinct points: unit spheres include atomic radii
+  (98 of 98 distinct on flat-32's 416 units), visual spheres are padded (`Sphere3D.expand`) or over mesh vertices
+  (flat-32 spacefill: 834 spheres, 81,732 extrema, 81,720 distinct values). The probe's ~30 of 98 were spheres of atom
+  centers without radii. Sharing equal points by reference (bit-identical, kept by copies and transforms) was built and
+  measured: flat-192 retained spacefill 245 → 247, cartoon 337 → 338, ball-and-stick 2,345 → 2,348, gaussian 181 → 183
+  MB (no change); not shipped. What would cut it: packed `Float64Array` extrema (the Sphere3D type, read in frozen
+  `gl/renderable/util.ts`) or fewer extrema on visual spheres (14 instead of 98: other bounds, a maintainers' call).
+- **07/P7 open.** The policy trades CPU memory for draw calls: it needs a browser frame-time check on a GPU, which this
+  headless setup cannot run; `resolveRenderMerged(value, unitCount)` sees no member sizes, so the size input is a
+  change at its callers; releasing member arrays after merging is `gl/renderable/merged.ts` (frozen).
 
 ### H8 Render loop policy
 
@@ -210,17 +230,17 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 
 | Rank | Id | Status vs v1 | Title | File | Kind | Impact | Estimate | Effort | Verdict | Frozen |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 10/P4 | partly fixed | `setMaxIndices` on every component Structure (O(N²)) | [structure-info.ts:223](../../packages/plugin/core/src/behavior/dynamic/custom-props/structure-info.ts#L223) | time | medium | `repr:auto` −617 ms (8 %) at N = 500, ~16 % at N = 1000 | S | confirmed | no |
-| 2 | P1 | new | ElementSymbol table of 242k strings at module load | [types.ts:17](../../packages/model/src/model/structure/model/types.ts#L17) | time+memory | medium | −50–75 ms and −21.5 MB per realm | S | confirmed | no |
-| 3 | P9 | new | AFDB PAE reader pulls all of Seq\* into Prism's start closure | [afdb.ts:9](../../extensions/model-archive/src/pae/afdb.ts#L9) | bundle | medium | −1.14 MB raw (~−0.3 MB gzip) from the start closure | S | confirmed | no |
+| 1 | 10/P4 | **fixed** (#NNNN) | `setMaxIndices` on every component Structure (O(N²)) | [structure-info.ts:223](../../packages/plugin/core/src/behavior/dynamic/custom-props/structure-info.ts#L223) | time | medium | `repr:auto` −617 ms (8 %) at N = 500, ~16 % at N = 1000 | S | confirmed | no |
+| 2 | P1 | **fixed** (#NNNN) | ElementSymbol table of 242k strings at module load | [types.ts:17](../../packages/model/src/model/structure/model/types.ts#L17) | time+memory | medium | −50–75 ms and −21.5 MB per realm | S | confirmed | no |
+| 3 | P9 | **fixed** (#NNNN) | AFDB PAE reader pulls all of Seq\* into Prism's start closure | [afdb.ts:9](../../extensions/model-archive/src/pae/afdb.ts#L9) | bundle | medium | −1.14 MB raw (~−0.3 MB gzip) from the start closure | S | confirmed | no |
 | 4 | 07/P7 | still open | Merge by count only; members keep a full CPU copy | [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127) | memory | high | unshared 1M ball-and-stick retained −1 GB, 5M −4.5 GB | S | confirmed | no (release path is) |
 | 5 | 14/N1 | still open | Hover/select mark every representation | [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54) | time | medium | hover ~5 → <1 ms, select 4.9 → <0.5 ms at N = 500 (before the frozen scene update) | M | confirmed | no |
 | 6 | 14/N2 | still open | Hierarchy rebuilt by a whole-state walk per change | [hierarchy.ts:253](../../packages/plugin/core/src/state/manager/structure/hierarchy.ts#L253) | time | medium | single actions at N = 500 39 → ~15 ms | M | confirmed | no |
-| 7 | P2 | new | Sphere extrema: 98 Vec3 arrays per sphere, ~30 unique | [boundary-helper.ts:139](../../packages/core/src/math/geometry/boundary-helper.ts#L139) | memory | medium | −2/3 of extrema (spacefill flat-32 −9 MB; −80–125 MB per repr at flat-192); unions 5.9× faster | S | confirmed | no |
+| 7 | P2 | **refuted** (#NNNN) | Sphere extrema: 98 Vec3 arrays per sphere, ~30 unique | [boundary-helper.ts:139](../../packages/core/src/math/geometry/boundary-helper.ts#L139) | memory | medium | none: kept extrema are 98 distinct points (H6) | S | refuted | no |
 | 8 | P4 | new | Classic apps never pause the render loop | [plugin-spec.ts:84](../../apps/viewer/src/plugin-spec.ts#L84) | time | medium | idle 60 ticks/s → 0 | S | confirmed | no |
 | 9 | P3 | new | Classic state tree: every node subscribes to every state event | [tree.tsx:79](../../packages/plugin/ui/src/state/tree.tsx#L79) | time | medium | −0.5 s per bulk action with 5k mounted nodes | S | confirmed | no |
 | 10 | P5 | new | Synchronous blocks without yield/abort (inter-unit contacts, bond getters, valence) | [interactions.ts:398](../../packages/model/src/props/computed/interactions/interactions.ts#L398) | time | medium | seconds-long blocks → ≤100 ms slices; abort works | M | confirmed | no |
-| 11 | 10/P5 | partly fixed | Measurement manager walks the whole tree per change | [measurement.ts:426](../../packages/plugin/core/src/state/manager/structure/measurement.ts#L426) | time | low | −1.2–1.7 ms per change at 4–6k cells | S | confirmed | no |
+| 11 | 10/P5 | **fixed** (#NNNN) | Measurement manager walks the whole tree per change | [measurement.ts:426](../../packages/plugin/core/src/state/manager/structure/measurement.ts#L426) | time | low | −1.2–1.7 ms per change at 4–6k cells | S | confirmed | no |
 | 12 | P7 | new | Focus recipes return new objects: mutative deep walk + `console.warn` | [structure-focus-representation.ts:212](../../packages/plugin/core/src/behavior/dynamic/selection/structure-focus-representation.ts#L212) | time | low | one warn and one walk per focus change and playback frame | S | confirmed | no |
 | 13 | P8 | new | `getCartoonParams` clones the param tree ~6× per update | [cartoon.ts:96](../../packages/graphics/src/repr/structure/representation/cartoon.ts#L96) | time | low | −1.6 % of `repr:auto` | S | confirmed | no |
 | 14 | 14/N4 | still open | Cartoon meshes reserve ~1.4× vertices | [polymer-trace-mesh.ts:86](../../packages/graphics/src/repr/structure/visual/polymer-trace-mesh.ts#L86) | memory | low | −3–5 % of `repr:auto` on many small structures | S | confirmed | no |
@@ -245,6 +265,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   decorators nothing. Root-model creation stays O(N) (every root's MaxIndex moves), once per loaded entry in the model
   stage. Test: root visits per created component = 0.
 - **Risk.** Low; the StructureInfo tests pin the index semantics.
+- **Fixed (#NNNN)** as above; test: index, max index reads per component and representation 0, per root structure 1. Numbers under H9.
 
 ### P1 ElementSymbol table (medium)
 
@@ -256,6 +277,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 - **Fix.** Lazy memo: `Map<string, string>`, `toUpperCase` on a miss, insert while `size < 4096` (bounds hostile
   input). Same strings out.
 - **Risk.** None.
+- **Fixed (#NNNN)**: heap −22.0 MB, eval ~2× faster (numbers under H7).
 
 ### P9 Seq\* in Prism's start closure (medium, new)
 
@@ -270,6 +292,9 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 - **Fix.** Load the reader lazily where a PAE JSON is read (`await spec.sequence.runtime()` or
   `await import('@molstar/prism-viewer/sequence/molstar')` in the async PAE operation); B2's closure budget keeps it out.
 - **Risk.** None (the PAE card is async already).
+- **Fixed (#NNNN)** with a narrow import instead: `PaeMatrix` and `readPae` moved to `sequence/molstar/pae-matrix.ts`
+  (no imports; `pae.ts` re-exports them), exported as `@molstar/prism-viewer/sequence/molstar/pae-matrix`. Start closure
+  6.31 → 5.16 MB raw, 1.96 → 1.55 MB gzip. Test: esbuild bundle of `afdb.ts` has no Seq\* input (`scripts/esbuild/_test`).
 
 ### 07/P7 Merge policy by count (high at scale)
 
@@ -323,6 +348,9 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   occurrence either way), and `radiusSphere` takes a max. Packed `Float64Array` extrema later (changes the Sphere3D type
   used in frozen gl code).
 - **Risk.** Low; snapshot tests on bounds should not move (bit-identical in the probe).
+- **Refuted (#NNNN).** Dropping points is not bit-identical: `Box3D.fromSphere3D` (≥ 14), `Sphere3D.expand` (moments
+  over all entries) and the merged spheres' quality (`loci.ts`, `util/boundary.ts`) read the count. Sharing by
+  reference keeps it, but the kept spheres have no equal points (H6): no memory to win.
 
 ### P4 Classic apps never pause (medium)
 
@@ -360,6 +388,8 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 - **10/P5** `groupRef()` caches by `tree.transforms`, new on every edit, and `findTagInSubtree` never stops (03/B10): one
   full walk per change with no group (Prism slice: 1.15 ms at 4,201 cells; theme:one at N = 500: 12 of 64 ms profiled).
   Track the group ref from cell events (tag on created/removed cells); fix the comment at `measurement.ts:448`.
+  **Fixed (#NNNN):** the ref from `cell.created`/`cell.stateUpdated` tags, checked O(1) per sync, one search after the
+  group is removed or untagged; the comment is rewritten.
 - **P7** `(old) => ({ ...old, bundle })` recipes (`:212,217,271,272`; also `volume-tools/segmentor/manager.ts:251,269,324`)
   return a non-draft object: mutative 1.3.0's `handleReturnValue` walks it recursively (typed arrays of the bundle by
   key) and `console.warn`s with no production guard. Mutate the draft or pass the params object.
@@ -377,7 +407,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 
 | Id | Status vs v1 | Severity | Title | File | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B2 | new | low | Prism's size budget is on the 7 KB entry stub | [package.json:67](../../apps/prism-viewer/package.json#L67) | confirmed |
+| B2 | **fixed** (#NNNN) | low | Prism's size budget is on the 7 KB entry stub | [package.json:67](../../apps/prism-viewer/package.json#L67) | confirmed |
 | 06/B9 | still open | low | `CustomStructureProperty.attach` has no in-flight dedup | [custom-structure-property.ts:70](../../packages/model/src/props/common/custom-structure-property.ts#L70) | plausible |
 | B4 | new | low | Bench stages record errors as fast results | [stage.ts:99](../../tests/src/pipeline/stage.ts#L99) | confirmed |
 | B1 | new | low | Pipeline bench crashes on coarse-only entries | [bench.ts:324](../../tests/src/pipeline/bench.ts#L324) | confirmed |
@@ -389,7 +419,8 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   `splitting: true`, `index.js` is a 7,385 B stub of imports; the start code is in 86 static chunks (6.31 MB). The budget
   can never fail; P9 (1.1 MB of Seq\* moved into the start closure) went unnoticed. The single-file budget
   (`prism-viewer.js` 8.0 MB, now 7.11 MB) does catch total growth. Fix: sum the entry's static `import-statement`
-  closure from the metafile and budget that.
+  closure from the metafile and budget that. **Fixed (#NNNN):** `scripts/esbuild/start-closure.mjs` sums it; an ESM
+  entry's budget is on that (Prism 5.5 MB, closure now 5.16 MB).
 - **06/B9.** `attach` returns early only when a value exists, before `await builder.obtain`. Two overlapping attaches
   (a selection query's `ensureCustomProperties`, `queries/structure/query.ts:78`, outside the state queue, while an
   ASA-colored representation builds) both compute: 0.9 s at 186k, 5.5 s at 1M; the last `set` wins. Fix: a pending
@@ -418,6 +449,8 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 - H7 "the classic Viewer carries both backends": true for the default build, but `molstar.variants` single-backend
   builds exist (not deployed).
 - P2 caveat "merged spheres not bit-identical after dedupe": refuted for order-preserving dedupe (probe identical).
+- P2 itself (#NNNN): the probe's spheres had no atomic radii; the extrema units and visuals keep are distinct points,
+  and dropping duplicates would change the counts other code reads (H6).
 - P1 impact "high": lowered to medium (50–75 ms of a page start, 21.5 MB heap); still rank 2 for its effort.
 - B2 impact "medium": lowered to low (the single-file budget catches total growth; only moves into the start closure
   escape).

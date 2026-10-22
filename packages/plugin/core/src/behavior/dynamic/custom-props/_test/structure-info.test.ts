@@ -265,4 +265,22 @@ describe('structure info behavior', () => {
     expect(select).not.toHaveBeenCalled();
     plugin.dispose();
   });
+
+  it('visits the roots for a root model only: a component or a root structure visits none (perf audit 2, 10/P4)', async () => {
+    const plugin = await createPlugin();
+    const a = await load(plugin, 'a', 2);
+    await load(plugin, 'b', 1);
+    await load(plugin, 'c', 3);
+    const index = vi.spyOn(Model.Index, 'get');
+    const modelMax = vi.spyOn(Model.MaxIndex, 'get');
+    const structureMax = vi.spyOn(Structure.MaxIndex, 'get');
+    const polymer = await plugin.builders.structure.tryCreateComponentStatic(a.structure, 'polymer');
+    await plugin.builders.structure.representation.addRepresentation(polymer!, { type: 'cartoon' });
+    await plugin.build().delete(polymer!).commit();
+    expect([index, modelMax, structureMax].map((s) => s.mock.calls.length)).toEqual([0, 0, 0]);
+    // a second root structure of a model: its own max, no other root's
+    await plugin.builders.structure.createStructure(a.structure.cell!.transform.parent);
+    expect([index, modelMax, structureMax].map((s) => s.mock.calls.length)).toEqual([0, 0, 1]);
+    plugin.dispose();
+  });
 });

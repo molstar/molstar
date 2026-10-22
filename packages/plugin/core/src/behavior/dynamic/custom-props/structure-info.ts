@@ -10,9 +10,6 @@ import { Structure, Model } from '@molstar/model/model/structure';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { StateSelection, StateObject, StateTransform } from '@molstar/core/state';
 
-const isModelOrStructure = (obj: StateObject | undefined) =>
-  !!obj && (PluginStateObject.Molecule.Model.is(obj) || PluginStateObject.Molecule.Structure.is(obj));
-
 export const StructureInfo = PluginBehavior.create({
   name: 'structure-info-prop',
   category: 'custom-props',
@@ -92,7 +89,11 @@ export const StructureInfo = PluginBehavior.create({
     /** The max model index last set: what a model or structure replaced in place (`updated`) is given. */
     private maxIndex = -1;
 
-    /** After a model or structure was created or removed: over the roots, not a walk of the state */
+    /**
+     * After a root model was created or removed: over the roots, not a walk of the state. Only a root model moves the
+     * max (it is over root models' indices), so nothing else calls it: per component it made `repr:auto` over N
+     * structures O(N²) (perf audit 2, 10/P4).
+     */
     private setMaxIndices() {
       const value = this.maxModelIndex;
       this.maxIndex = value;
@@ -138,6 +139,10 @@ export const StructureInfo = PluginBehavior.create({
     private setMaxIndexOf(obj: StateObject) {
       const value = this.maxIndex;
       if (value < 0) return;
+      this.setMaxIndexTo(obj, value);
+    }
+
+    private setMaxIndexTo(obj: StateObject, value: number) {
       if (PluginStateObject.Molecule.Model.is(obj)) {
         if (Model.MaxIndex.get(obj.data).value !== value) Model.MaxIndex.set(obj.data, { value }, value);
       } else if (PluginStateObject.Molecule.Structure.is(obj) && obj.data.parent === undefined) {
@@ -201,6 +206,8 @@ export const StructureInfo = PluginBehavior.create({
       for (const c of data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure))) {
         this.rootStructures.add(c.transform.ref);
       }
+      // what a root structure created before the next root model is given
+      this.maxIndex = this.maxModelIndex;
 
       this.subscribeObservable(data.events.cell.created, (o) => this.pending.add(o.ref));
       // After the object events of an update: a cell with an object and no event (its update threw after making it)
@@ -218,15 +225,17 @@ export const StructureInfo = PluginBehavior.create({
         this.pending.delete(o.ref);
         this.trackIfRoot(o.ref, o.obj);
         this.handle(o.ref, o.obj);
-        // Only a model or a structure can move the max indices or need them set: anything else (a representation, a
-        // layer) skips them, which made an op over N structures O(N²).
-        if (isModelOrStructure(o.obj)) this.setMaxIndices();
+        // A root model moves the max of every root; a root structure only takes it; anything else (a component, a
+        // decorator, a representation) neither.
+        if (this.rootModels.has(o.ref)) this.setMaxIndices();
+        else if (this.rootStructures.has(o.ref)) this.setMaxIndexTo(o.obj, this.maxIndex);
       });
 
-      // A removed model lowers the max at once (before, the next created object of any kind did it).
+      // A removed root model lowers the max at once (before, the next created object of any kind did it).
       this.subscribeObservable(data.events.object.removed, (o) => {
+        const rootModel = this.rootModels.has(o.ref);
         this.untrack(o.ref);
-        if (isModelOrStructure(o.obj)) this.setMaxIndices();
+        if (rootModel) this.setMaxIndices();
       });
 
       this.subscribeObservable(data.events.object.updated, (o) => {
