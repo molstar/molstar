@@ -166,7 +166,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   scope, its first render waits for the resume.
 - **`flush()`** renders now what is waiting: for code that sets state and then reads the DOM in the same task.
   `VirtualList.scrollToIndex` and `TreeNavigation`'s keys flush; so does every delegated event's dispatch at its end (a
-  click's change is rendered when the dispatch returns, as a click by code in a test is).
+  click's change is rendered when the dispatch returns, as a click by code in a test is). The pointer's move, over and
+  out are not delegated (`dom/render.ts`): they come at pointer rate over the whole page and few elements take them, so
+  their handlers are native listeners and render in the microtask.
 - **A render owns nothing**: it runs outside any scope (a reactive `bind` in it throws), reads `.value`, writes through
   `dom/writes.ts` (`setText`, `setAttr`, `setClass`, `setStyle`, `setShown`: each compares with the DOM, reads no
   layout).
@@ -261,11 +263,18 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 `dom/control-flow.ts`; each renders into its own range and disposes what it leaves.
 
 - **`Show`** renders again, in a fresh scope, whenever the value changes identity (a flag: when it flips). Narrow the
-  stream first (`map`, `distinctUntilChanged`) when the content should stay.
-- **`For each key`**: an entry keeps its nodes and scope while its key stays **and** its item is the same value; a new
-  value under the same key renders it anew. `index` is a state. A duplicate key warns once. A long list renders over
-  time slices (`timeSlicing`): a slice makes only the entries the last one deferred, each before the next entry placed,
-  never a reconcile of the whole list again (that was quadratic over the slices; `dom/_test/for-slices.scaling.tsx`).
+  value first (`derive`) when the content should stay.
+- **No rxjs inside the regions**: `Show`, `Switch` and `Dynamic` follow their sources with `follow` (`dom/scope.ts`: a
+  binding told whether a value is the first since it started, and when it stops) and write through `regionWriter`
+  (`dom/render.ts`); a state is followed by its `listen`, only a foreign stream by a subscription. Why: a `Show` is in
+  most views, and its `pipe(distinctUntilChanged())` chain kept 4.1 KB a `Show` against 2.8 KB without (perf audit 2,
+  11/P3). `Switch` decides as `combineLatest` did: once every case has a value, and once on a resume.
+- **`For each by`**: an entry keeps its nodes and scope while its key (`by`, else the item) stays **and** its item is
+  the same value; a new value under the same key renders it anew. Not `key=`: the JSX runtime keeps `key` for itself, so
+  `For` has no such prop and TypeScript rejects it (it was silently dropped). `index` is a state. A duplicate key warns
+  once. A long list renders over time slices (`timeSlicing`): a slice makes only the entries the last one deferred, each
+  before the next entry placed, never a reconcile of the whole list again (that was quadratic over the slices;
+  `dom/_test/for-slices.scaling.tsx`).
 - **`Switch`/`Match`**, **`Dynamic`**: the first truthy case; the current component.
 - **Views follow records by id.** Where a list's records are replaced on every change (an agent turn's runs, History),
   run `For` over the ids (`distinctUntilChanged` on their contents) and give each row a stream of its record, so a row

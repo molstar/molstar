@@ -32,34 +32,34 @@ keystroke in a target field (11k units at flat-192) and keeps 40.
 
 ## v1 → now
 
-Fixed 2, partly fixed 0, still open 7, regressed 0, dropped 2.
+Fixed 2, partly fixed 0, still open 7, regressed 0, dropped 2 (as audited; all 7 fixed since in #2029, see [Fixed in #2029](#fixed-in-2029)).
 
 | v1 id | Title                                                                            | Status     | PR    | Note                                                                                                                                                                                                                                                                   |
 | ----- | -------------------------------------------------------------------------------- | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P1    | History: full snapshot + JSON size on every run, also in a turn and past the hard limit | fixed      | #2008 | `SerializedTrees` (checkpoint.ts:99) serializes and measures each transform object once and shares it: size 0.04 ms, checkpoint 1.7 ms at 4201 cells / 3.2 MB (full stringify 14 ms). Size counted in ms (history.ts:654-657), 30 s pause (:650), cap of 10 (`#setEntries` :627). |
-| P2    | Inspector rebuilds the running turn's column every settle; trace not virtualized | still-open | –     | trace.tsx:151 identity-keyed `For`, `turn.steps.map` (:193); trace.tsx:95 mounts every row.                                                                                                                                                                            |
-| P3    | `Show`/`Switch`/`Dynamic` built on rxjs chains                                   | still-open | –     | control-flow.ts unchanged since v1.                                                                                                                                                                                                                                    |
-| P4    | `handleKey` maps every command to an object per keydown                          | still-open | –     | manager.ts:739-749; 27 µs at 437 commands (re-measured shape).                                                                                                                                                                                                         |
-| P5    | `shallowEqual` allocates four arrays per compare                                 | still-open | –     | shallow-equal.ts:13-14 unchanged.                                                                                                                                                                                                                                      |
-| P6    | Delegated dispatch calls `composedPath()` per root for every pointermove         | still-open | –     | render.ts:243-251, :269, :293 unchanged.                                                                                                                                                                                                                               |
+| P2    | Inspector rebuilds the running turn's column every settle; trace not virtualized | fixed      | #2029 | trace.tsx:151 identity-keyed `For`, `turn.steps.map` (:193); trace.tsx:95 mounts every row.                                                                                                                                                                            |
+| P3    | `Show`/`Switch`/`Dynamic` built on rxjs chains                                   | fixed      | #2029 | control-flow.ts unchanged since v1.                                                                                                                                                                                                                                    |
+| P4    | `handleKey` maps every command to an object per keydown                          | fixed      | #2029 | manager.ts:739-749; 27 µs at 437 commands (re-measured shape).                                                                                                                                                                                                         |
+| P5    | `shallowEqual` allocates four arrays per compare                                 | fixed      | #2029 | shallow-equal.ts:13-14 unchanged.                                                                                                                                                                                                                                      |
+| P6    | Delegated dispatch calls `composedPath()` per root for every pointermove         | fixed      | #2029 | render.ts:243-251, :269, :293 unchanged.                                                                                                                                                                                                                               |
 | P7    | ScrollArea per scroll event                                                      | dropped    | –     | Dropped in v1: scroll events already come once per frame per target.                                                                                                                                                                                                  |
 | P8    | `presetIndex` JSON compare                                                       | dropped    | –     | Dropped in v1: 1.5 µs on the listened path; the rest runs only while the popover is open.                                                                                                                                                                              |
-| P9    | `TreeNavigation.#indexOf` scans all rows per key                                 | still-open | –     | tree-keys.ts:118-123 unchanged.                                                                                                                                                                                                                                        |
-| B1    | `key=` on `<For>` is dropped by the JSX runtime                                  | still-open | –     | control-flow.ts:369 still declares `key?`; 49 `key=` sites vs 2 `by=` (multi-line count, incl. stories and tests).                                                                                                                                                    |
+| P9    | `TreeNavigation.#indexOf` scans all rows per key                                 | fixed      | #2029 | tree-keys.ts:118-123 unchanged.                                                                                                                                                                                                                                        |
+| B1    | `key=` on `<For>` is dropped by the JSX runtime                                  | fixed      | #2029 | control-flow.ts:369 still declares `key?`; 49 `key=` sites vs 2 `by=` (multi-line count, incl. stories and tests).                                                                                                                                                    |
 | B2    | Past the hard limit, every agent tool call still snapshots and measures          | fixed      | #2008 | history.ts:650: within 30 s of a snapshot over the hard limit, no snapshot; reset by `clear()`, `setCheckpointing(true)`, any checkpoint under the limit. Tests in history.test.ts.                                                                                   |
 
-## Open performance findings
+## Performance findings (all fixed in #2029)
 
 | Rank | Id  | vs v1      | Title                                                                    | Where                                                                                      | Kind        | Impact | Estimate                                                                         | Effort | Verdict   | Frozen |
 | ---- | --- | ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ----------- | ------ | -------------------------------------------------------------------------------- | ------ | --------- | ------ |
-| 1    | P10 | new        | Non-passive wheel listener on the shell root blocks every panel's scroll | [shell-view.tsx:385](../../packages/prism/ui/src/views/shell/shell-view.tsx#L385)          | time        | medium | panels scroll on the compositor during long main-thread tasks (0.5-20 s)         | S      | confirmed | no     |
-| 2    | P11 | new        | Log tab redoes its list on every log flush, unvirtualized                | [log-view.tsx:103](../../packages/prism/ui/src/views/shell/log-view.tsx#L103)              | time        | low    | 0.03 / 0.5 / 4.3 ms per flush of 1 / 10 / 100 lines (jsdom) → O(new rows)       | M      | confirmed | no     |
-| 3    | P3  | still-open | `Show`/`Switch`/`Dynamic` built on rxjs chains                           | [control-flow.ts:75](../../packages/prism/ui/src/dom/control-flow.ts#L75)                  | memory      | low    | −1.3 KB per mounted `Show` (0.3-3 MB total)                                      | M      | confirmed | no     |
-| 4    | P2  | still-open | Inspector rebuilds the running turn's column every settle                | [trace.tsx:151](../../packages/prism/assistant/src/inspector/trace.tsx#L151)               | time+memory | low    | O(S) block builds per settle → O(new steps); trace DOM bounded to a window       | M      | confirmed | no     |
-| 5    | P4  | still-open | `handleKey` maps, filters and sorts every command per keydown            | [manager.ts:739](../../packages/prism/ui/src/commands/manager.ts#L739)                     | time+memory | low    | 27 µs → O(commands on the chord) per keydown, no allocation                      | S      | confirmed | no     |
-| 6    | P5  | still-open | `shallowEqual` allocates four arrays per compare                         | [shallow-equal.ts:13](../../packages/prism/ui/src/reactive/shallow-equal.ts#L13)           | time+memory | low    | ~20x faster compares, zero allocation                                            | S      | confirmed | no     |
-| 7    | P6  | still-open | Delegated dispatch calls `composedPath()` per root per pointermove       | [render.ts:293](../../packages/prism/ui/src/dom/render.ts#L293)                            | time+memory | low    | no allocation per pointer move while no handler of that type is mounted          | S      | confirmed | no     |
-| 8    | P9  | still-open | `TreeNavigation.#indexOf` scans all rows per key                         | [tree-keys.ts:118](../../packages/prism/ui/src/dom/tree-keys.ts#L118)                      | time        | low    | O(rows) → O(1) per arrow key (µs today)                                          | S      | confirmed | no     |
+| 1    | P10 | new        | Non-passive wheel listener on the shell root blocks every panel's scroll | [shell-view.tsx:385](../../packages/prism/ui/src/views/shell/shell-view.tsx#L385)          | time        | medium | panels scroll on the compositor during long main-thread tasks (0.5-20 s)         | S      | fixed #2029 | no     |
+| 2    | P11 | new        | Log tab redoes its list on every log flush, unvirtualized                | [log-view.tsx:103](../../packages/prism/ui/src/views/shell/log-view.tsx#L103)              | time        | low    | 0.03 / 0.5 / 4.3 ms per flush of 1 / 10 / 100 lines (jsdom) → O(new rows)       | M      | fixed #2029 | no     |
+| 3    | P3  | still-open | `Show`/`Switch`/`Dynamic` built on rxjs chains                           | [control-flow.ts:75](../../packages/prism/ui/src/dom/control-flow.ts#L75)                  | memory      | low    | −1.3 KB per mounted `Show` (0.3-3 MB total)                                      | M      | fixed #2029 | no     |
+| 4    | P2  | still-open | Inspector rebuilds the running turn's column every settle                | [trace.tsx:151](../../packages/prism/assistant/src/inspector/trace.tsx#L151)               | time+memory | low    | O(S) block builds per settle → O(new steps); trace DOM bounded to a window       | M      | fixed #2029 | no     |
+| 5    | P4  | still-open | `handleKey` maps, filters and sorts every command per keydown            | [manager.ts:739](../../packages/prism/ui/src/commands/manager.ts#L739)                     | time+memory | low    | 27 µs → O(commands on the chord) per keydown, no allocation                      | S      | fixed #2029 | no     |
+| 6    | P5  | still-open | `shallowEqual` allocates four arrays per compare                         | [shallow-equal.ts:13](../../packages/prism/ui/src/reactive/shallow-equal.ts#L13)           | time+memory | low    | ~20x faster compares, zero allocation                                            | S      | fixed #2029 | no     |
+| 7    | P6  | still-open | Delegated dispatch calls `composedPath()` per root per pointermove       | [render.ts:293](../../packages/prism/ui/src/dom/render.ts#L293)                            | time+memory | low    | no allocation per pointer move while no handler of that type is mounted          | S      | fixed #2029 | no     |
+| 8    | P9  | still-open | `TreeNavigation.#indexOf` scans all rows per key                         | [tree-keys.ts:118](../../packages/prism/ui/src/dom/tree-keys.ts#L118)                      | time        | low    | O(rows) → O(1) per arrow key (µs today)                                          | S      | fixed #2029 | no     |
 
 ### P10: pinch guard makes every panel's wheel scroll wait for the main thread
 
@@ -113,14 +113,14 @@ Fixed 2, partly fixed 0, still open 7, regressed 0, dropped 2.
 - **P9**: linear scan of `rows()` per arrow/focus/expand (tree-keys.ts:118); state-tree tab only, µs. Fix: check
   `rows[#index]` first.
 
-## Bugs
+## Bugs (all fixed in #2029)
 
 | Id  | vs v1      | Severity | Title                                                                         | Where                                                                                      | Verdict            |
 | --- | ---------- | -------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------ |
-| B3  | new        | medium   | Task pills rebuilt on every progress event: spinner restarts, Cancel misses   | [canvas-chrome.tsx:1130](../../packages/prism/ui/src/views/shell/canvas-chrome.tsx#L1130)  | confirmed          |
-| B5  | new        | low      | Log: Plugin warnings share the messages' bound and push the messages out      | [notifications.ts:188](../../packages/prism/ui/src/managers/notifications.ts#L188)         | confirmed          |
-| B1  | still-open | low      | `key=` on `<For>` is dropped by the JSX runtime: 49 lists keyed by identity   | [control-flow.ts:369](../../packages/prism/ui/src/dom/control-flow.ts#L369)                | confirmed (latent) |
-| B4  | new        | low      | History tab 'just now' / 'N min ago' labels never refresh                     | [history-tab.tsx:97](../../packages/prism/assistant/src/views/history-tab.tsx#L97)         | confirmed (latent) |
+| B3  | new        | medium   | Task pills rebuilt on every progress event: spinner restarts, Cancel misses   | [canvas-chrome.tsx:1130](../../packages/prism/ui/src/views/shell/canvas-chrome.tsx#L1130)  | fixed #2029 |
+| B5  | new        | low      | Log: Plugin warnings share the messages' bound and push the messages out      | [notifications.ts:188](../../packages/prism/ui/src/managers/notifications.ts#L188)         | fixed #2029 |
+| B1  | still-open | low      | `key=` on `<For>` is dropped by the JSX runtime: 49 lists keyed by identity   | [control-flow.ts:369](../../packages/prism/ui/src/dom/control-flow.ts#L369)                | fixed #2029 |
+| B4  | new        | low      | History tab 'just now' / 'N min ago' labels never refresh                     | [history-tab.tsx:97](../../packages/prism/assistant/src/views/history-tab.tsx#L97)         | fixed #2029 |
 
 - **B3**: `StatusLine` renders `<For each={derive(status.tasks, filter)}>` keyed by identity; `TaskPill` (:1263) builds
   its DOM once from a plain object. Each Mol\* progress event (task-manager.ts:59, 100 ms rate) makes
@@ -148,6 +148,45 @@ Fixed 2, partly fixed 0, still open 7, regressed 0, dropped 2.
   and nothing re-reads the time, so 'just now' stays 'just now' for an hour while newer rows say '12 min ago'. Latent:
   `HistoryTab` is exported by `@molstar/prism-assistant` but no app in the repo mounts it. Fix: absolute times (as the
   Log), or one scoped minute tick while the tab is shown.
+
+## Fixed in #2029
+
+Each finding fixed with a test in its lane; numbers before → after on the same machine (Node 25, jsdom, Apple M4), the
+audit's bench scripts re-pointed at the branch.
+
+| Id  | Fix                                                                                                                       | Before → after                                                                  | Test                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| P10 | The non-passive wheel guard on the canvas box (the splash lets the pointer through) and its bottom bar; `gesture*` stay on the root     | code (not measurable in jsdom): no wheel listener that is not passive over a panel | shell-watch.test.tsx                                   |
+| P11 | The Log a `RecycledList` of one-line recycled rows; its sources kept by the manager (`logSources`)                       | per flush of 1 / 10 / 100 lines, net of a macrotask: 0.16 / 0.58 / 4.5 → 0.11 / 0.25 / 0.39 ms; 300 → 54 rows in the DOM | log-view.test.tsx                     |
+| P3  | `Show`, `Switch`, `Dynamic` follow their sources with `follow()` and write through `regionWriter()`: no rxjs on a state | 4.1 → 2.8 KB retained a `Show` (4000 over states), made in 55 → 39-49 ms        | activity.test.tsx, control-flow.test.tsx, leaks.heap     |
+| P2  | Overview: a column per turn id, a block per step id (keyed states); list: a `For` per turn over the model's `rowGroups`   | blocks made over 30 steps of the running turn: 495 → 30; a settle at 300 turns (2432 rows): 1.26 → 0.64 ms | views.test.tsx               |
+| P4  | Commands indexed by their key's letter once per list of commands and keymap; a keydown reads its key's bucket            | 17 → 0.06 µs a keydown at 437 commands (125 → 0.05 µs at 3000)                  | keymap.test.ts                                           |
+| P5  | `for…in` with an own-key count; symbols by `getOwnPropertySymbols`                                                         | 925 → 120 ns, 656 → 32 B a compare (12 keys; the 32 B are the two empty symbol arrays) | lib.test.ts, primitives.quick (`recordSetSame`)    |
+| P6  | Pointer and mouse move, over and out handlers native, not delegated                                                      | `composedPath()` per move: 4 → 0 (two roots) while no handler is under the pointer | render.test.tsx                                       |
+| P9  | `#indexOf` checks the last index and its neighbours before a scan                                                         | 9,991 → 5 key lookups an arrow key at the end of a 5,000-row tree               | tree-keys.test.tsx                                       |
+| B1  | `For` has no `key` prop (TypeScript rejects `key=`); the 49 sites pass `by=` (ids or indices, unique in their lists)      | –                                                                               | control-flow.test.tsx (`@ts-expect-error`)               |
+| B3  | `NotificationsManager.lineTaskIds` / `lineTask(id)`; a `TaskPill` made once, a watch writes it, Cancel reads `abort` at the click | spinners made anew over 100 progress events of 2 tasks: 200 → 0            | status-pill.test.tsx                                     |
+| B4  | The time of day (as the Log), not "N min ago"                                                                             | –                                                                               | history-tab.test.tsx                                     |
+| B5  | One bound for the whole Log (`logSize`, 300; the per-source `keep` and the 100 transforms go); warnings and errors dropped last | 5 messages + 300 Plugin warnings: the bound holds 300, all problems             | notifications.test.ts                                    |
+
+Decisions and departures from the suggested fixes:
+
+- **B5** (the user's direction, 2026-10-22): the Log keeps the last 300 entries of every source together, as one bound,
+  in a virtual list. Warnings and errors stay visible inside it by being dropped last: past the bound the oldest info and
+  success entries go first, and problems only when they alone fill it. So a load's burst of transforms never pushes a
+  problem out; a burst of 300 plugin warnings does fill the Log with warnings (the messages stay in `history`). The
+  suggested per-source key (`#keep.get(source) ?? size`) is not done: there is one bound now.
+- **P2**: the trace list is not virtualized. Its rows differ in height and a turn's header is sticky over its rows; a
+  `RecycledList` needs one row height and positions rows absolutely (no sticky). What cost per settle was the `For`
+  reconciling every row (1 ms at 2,400 rows, every 80 ms): grouping by turn makes it the running turn's rows only. The
+  first mount of a long trace stays O(rows), time-sliced by `For`.
+- **P3**: a region source is followed by `follow()` (a `bind` told whether a value is the first since it started, and
+  when it stops), not by a `derive`-based region as suggested: `Show` keeps per-subscription state (a closing animation,
+  the value it resumed with) that a `derive` does not have.
+- **P10**: over a panel, a card, the sequence band or the rail a pinch zooms the page again (before #2021); ⌘0 or a pinch back over a panel
+  undoes it. Not checked on a trackpad in Chrome and Safari.
+- **B4**: absolute times, not a minute tick: a clock re-rendering every row would keep an idle app busy (Prism's "idle
+  is idle").
 
 ## Checked and dropped
 

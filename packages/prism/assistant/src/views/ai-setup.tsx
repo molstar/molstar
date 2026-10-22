@@ -90,7 +90,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
       </Show>
       <p class={classes.caption}>Keys</p>
       <div class={classes.providers}>
-        <For each={settings.providers} key={(p) => p.id}>
+        <For each={settings.providers} by={(p) => p.id}>
           {(p) => <ProviderRow settings={settings} provider={p} editing={editing} />}
         </For>
       </div>

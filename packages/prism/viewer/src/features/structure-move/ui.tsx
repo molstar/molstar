@@ -78,7 +78,7 @@ function MoveSection(props: { ctx: ViewerUIContext; move: MoveApi }) {
             <Show when={many}>
               {() => (
                 <div style="display: grid; gap: 2px; min-width: 0" role="radiogroup" aria-label="The structure to move">
-                  <For each={move.structures} key={(s) => s.ref}>
+                  <For each={move.structures} by={(s) => s.ref}>
                     {(s) => (
                       <Button
                         size="xs"

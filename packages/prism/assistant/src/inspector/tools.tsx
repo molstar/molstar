@@ -41,7 +41,7 @@ export function ToolsView(props: { model: InspectorModel }) {
           role="listbox"
           aria-label="Tools"
         >
-          <For each={model.toolRows} key={(r) => r.key}>
+          <For each={model.toolRows} by={(r) => r.key}>
             {(r) => (r.kind === 'group' ? <GroupRow model={model} row={r} /> : <ToolRow model={model} row={r} />)}
           </For>
         </ScrollArea>

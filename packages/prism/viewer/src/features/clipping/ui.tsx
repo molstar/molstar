@@ -515,7 +515,7 @@ function CutTargets(props: {
               />
             )}
           </Show>
-          <For each={shown} key={(t) => t.ref}>
+          <For each={shown} by={(t) => t.ref}>
             {(t) => {
               const checked = derive(on, (o) => o.has(t.ref));
               return (

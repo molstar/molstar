@@ -673,8 +673,12 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   border-radius: var(--msp-radius-md);
 }
 
-.msp-shell-canvas-pill:not(:has(.msp-shell-canvas-pillButton)) {
+.msp-shell-canvas-pill:not(:has(.msp-shell-canvas-pillButton:not([hidden]))) {
   padding-right: var(--msp-space-3);
+}
+
+.msp-shell-canvas-pillButton[hidden] {
+  display: none;
 }
 
 .msp-shell-canvas-railMenu {

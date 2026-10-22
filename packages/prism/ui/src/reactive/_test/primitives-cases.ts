@@ -15,6 +15,7 @@ import { bind, createRoot, flush, frameState, watch } from '../../dom/scope.js';
 import { flushFrame } from '../frame-state.js';
 import { keyedSelector } from '../keyed-selector.js';
 import { keyedState } from '../keyed-state.js';
+import { observableState } from '../observable-state.js';
 import { derive, State } from '../state.js';
 import { createWorkQueue } from '../work-queue.js';
 
@@ -151,4 +152,14 @@ export function workFrameRun(): Case {
     },
     sink: () => target.v,
   };
+}
+
+/** A record state set to an equal copy of its value: compared (`sameShallow`, 12 keys), not told (11/P5). */
+export function recordSetSame(): Case {
+  const make = (i: number) => ({ a: i, b: 'x', c: true, d: null, e: 2, f: 'y', g: 3, h: 4, i: 5, j: 6, k: 7, l: 8 });
+  const copies = [make(0), make(0)];
+  const s = observableState(copies[0]);
+  let told = 0;
+  s.asReadonly.listen!(() => (told = (told + 1) & 0xffff));
+  return { step: (i) => s.set(copies[i & 1]), sink: () => told + 1 };
 }

@@ -696,9 +696,13 @@
   border-radius: var(--msp-radius-md);
 }
 
-/* A pill without a button at its end keeps its padding on the right too. */
-.pill:not(:has(.pillButton)) {
+/* A pill without a button at its end keeps its padding on the right too (a task's Cancel is hidden while it cannot). */
+.pill:not(:has(.pillButton:not([hidden]))) {
   padding-right: var(--msp-space-3);
+}
+
+.pillButton[hidden] {
+  display: none;
 }
 
 /* Compact: More at the end of the bottom tab bar; its list opens just above it. */

@@ -44,7 +44,7 @@ export function Superposed(props: {
             </Show>
           </div>
           <ScrollArea class={classes.list} contentClass={classes.listContent}>
-            <For each={props.made} key={(e) => e.id}>
+            <For each={props.made} by={(e) => e.id}>
               {(entry) => (
                 <div class={classes.row} title={entry.line}>
                   <span class={classes.lead}>

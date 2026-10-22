@@ -37,7 +37,7 @@ export function StyleLayers(props: { model: StyleLayersModel }) {
             </button>
           </div>
           <ScrollArea class={classes.list} contentClass={classes.listContent}>
-            <For each={model.items} key={(i) => i.key}>
+            <For each={model.items} by={(i) => i.key}>
               {(item) => <LayerRow item={item} />}
             </For>
           </ScrollArea>

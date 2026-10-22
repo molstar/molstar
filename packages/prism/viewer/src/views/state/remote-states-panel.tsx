@@ -71,7 +71,7 @@ export function RemoteStatesPanel(props: { model: RemoteStatesModel }) {
           />
         </div>
         <ScrollArea class={classes.list} contentClass={classes.listContent}>
-          <For each={model.states} key={(s) => s.id} fallback={() => <p class={classes.empty}>No states yet.</p>}>
+          <For each={model.states} by={(s) => s.id} fallback={() => <p class={classes.empty}>No states yet.</p>}>
             {(state) => <StateRow model={model} state={state} />}
           </For>
         </ScrollArea>

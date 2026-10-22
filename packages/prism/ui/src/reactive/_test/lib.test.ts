@@ -51,6 +51,22 @@ describe('shallowEqual', () => {
     expect(shallowEqual(left, right)).toBe(true);
     expect(shallowEqual(left, { a: 1, b: 'three' })).toBe(false);
   });
+
+  it('counts own enumerable keys only, on both sides', () => {
+    expect(shallowEqual({ a: 1 }, { a: 1, b: undefined } as { a: number })).toBe(false);
+    expect(shallowEqual({ a: 1, b: undefined } as { a: number }, { a: 1 })).toBe(false);
+    expect(shallowEqual({ a: Number.NaN }, { a: Number.NaN })).toBe(true);
+    expect(shallowEqual({ a: 0 }, { a: -0 })).toBe(false);
+    const inherited = Object.assign(Object.create({ b: 2 }), { a: 1 });
+    expect(shallowEqual(inherited, { a: 1 })).toBe(true);
+    expect(shallowEqual({ a: 1, b: 2 }, inherited)).toBe(false);
+    const hidden = Object.defineProperty({ a: 1 }, 'b', { value: 2, enumerable: false });
+    expect(shallowEqual(hidden, { a: 1 })).toBe(true);
+    const field = Symbol('state');
+    expect(shallowEqual({ a: 1, [field]: 1 }, { a: 1 })).toBe(false);
+    expect(shallowEqual({ a: 1 }, { a: 1, [field]: 1 })).toBe(false);
+    expect(shallowEqual({ a: 1, [field]: 1 }, { a: 1, [field]: 1 })).toBe(true);
+  });
 });
 
 describe('createDisposableGroup', () => {

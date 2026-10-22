@@ -29,7 +29,7 @@ export function StoryTab(props: { story: StoryModel }) {
         </Button>
       </header>
       <ScrollArea edge class={classes.scenes} role="listbox" aria-label="Scenes">
-        <For each={story.scenes} key={(s) => s.id}>
+        <For each={story.scenes} by={(s) => s.id}>
           {(scene, index) => (
             <div
               role="option"

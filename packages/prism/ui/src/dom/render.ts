@@ -154,6 +154,14 @@ function isText(value: unknown): value is string | number | bigint | boolean | n
  * paused and resumed (`Scope.setActive`) keeps what is on screen instead of rebuilding it.
  */
 export function insertRegion(parent: Node, source: Observable<Child>, before: Node | null, memo = false): void {
+  bind(source, regionWriter(parent, before, memo));
+}
+
+/**
+ * The write of a region (`insertRegion`), for a caller that follows its own sources (`Show`, `Switch`, `Dynamic`): its
+ * place is inserted now, before `before`; each call renders a value there.
+ */
+export function regionWriter(parent: Node, before: Node | null, memo = false): (value: Child) => void {
   const owner = requireScope('A reactive child');
   // Text first (the common case: a label, a count): one Text node is its own place. Anchors come only when the value
   // is nodes, around wherever the text was.
@@ -163,7 +171,7 @@ export function insertRegion(parent: Node, source: Observable<Child>, before: No
   let end: Comment | undefined;
   let scope: Scope | undefined;
   let rendered: unknown;
-  bind(source, (value) => {
+  return (value) => {
     if (memo && typeof value === 'function' && value === rendered) return;
     rendered = value;
     if (isText(value)) {
@@ -194,7 +202,7 @@ export function insertRegion(parent: Node, source: Observable<Child>, before: No
     const fragment = document.createDocumentFragment();
     runInScope(next, () => insert(fragment, value, null));
     end!.parentNode!.insertBefore(fragment, end!);
-  });
+  };
 
   function clearNodes() {
     scope?.dispose();
@@ -225,9 +233,12 @@ export function removeBetween(start: Node, end: Node): void {
  * `currentTarget` as their own element; `stopPropagation` ends the walk as it ends propagation. A nested root goes
  * first and the next one (an outer root, then the document, for anything rendered outside a root) continues above it,
  * so nothing runs twice. The walk ends with a `flush`: what the handlers changed is rendered when the dispatch returns
- * (a discrete event, as a click dispatched by code, is on screen before the next line), not a microtask later. Events that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch,
- * wheel: they must stay passive) stay native, and so does anything given as `on:type`. Measured: one listener per root
- * instead of one per handler (Internals › Performance › Runtime).
+ * (a discrete event, as a click dispatched by code, is on screen before the next line), not a microtask later. Events
+ * that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch, wheel: they must stay passive)
+ * stay native, and so does anything given as `on:type`. Measured: one listener per root instead of one per handler
+ * (Internals › Performance › Runtime). The pointer's move, over and out (pointer and mouse) stay native too: they come
+ * at pointer rate over the whole page and a handful of elements take them, so a root walking each one's composed path
+ * was all waste (perf audit 2, 11/P6); a native listener runs only where one is.
  */
 const DelegatedEvents = new Set([
   'click',
@@ -240,15 +251,9 @@ const DelegatedEvents = new Set([
   'keyup',
   'pointerdown',
   'pointerup',
-  'pointermove',
-  'pointerover',
-  'pointerout',
   'pointercancel',
   'mousedown',
   'mouseup',
-  'mousemove',
-  'mouseover',
-  'mouseout',
   'focusin',
   'focusout',
 ]);

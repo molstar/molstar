@@ -152,6 +152,34 @@ describe('keys through the keymap', () => {
   });
 });
 
+describe('keys by index (perf audit 11/P4)', () => {
+  it('reads no command per keydown once indexed; a register or a remap is seen; one rank goes by registration', async () => {
+    const many = Array.from({ length: 500 }, (_, i) => cmd(`c${i}`, { shortcut: { key: `F${i}`, alt: true } }));
+    const { m, log } = manager([...many, cmd('first', { shortcut: { key: 'k', alt: true } })]);
+    const settle = () => new Promise((r) => setTimeout(r));
+    expect(m.handleKey({ key: 'k', altKey: true }, false)).toBe(true);
+    await settle();
+    const shortcut = vi.spyOn(m.keymap, 'shortcut');
+    expect(m.handleKey({ key: 'k', altKey: true }, false)).toBe(true);
+    await settle();
+    expect(shortcut).not.toHaveBeenCalled();
+    shortcut.mockRestore();
+    // A command registered later on the same key and scope: the first registered still takes it.
+    m.register([
+      cmd('second', { shortcut: { key: 'k', alt: true } }),
+      cmd('late', { shortcut: { key: 'l', alt: true } }),
+    ]);
+    expect(m.handleKey({ key: 'k', altKey: true }, false)).toBe(true);
+    await settle();
+    expect(m.handleKey({ key: 'l', altKey: true }, false)).toBe(true);
+    await settle();
+    m.keymap.remap('first', { key: 'q', alt: true });
+    expect(m.handleKey({ key: 'k', altKey: true }, false)).toBe(true);
+    await settle();
+    expect(log).toEqual(['first', 'first', 'first', 'late', 'second']);
+  });
+});
+
 describe('keybinding scopes', () => {
   it('takes a scoped key only inside its scope, and there before a global one', async () => {
     const { m, log } = manager([

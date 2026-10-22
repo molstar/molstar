@@ -26,21 +26,23 @@ export const classes = {
 
 defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 .msp-shell-log-view-log {
+  --msp-scroll-edge: var(--msp-panel-inset);
   gap: var(--msp-space-2);
-  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  min-height: 0;
+  padding: 0 var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
-  display: grid;
+  flex-direction: column;
+  flex: 1 1 0;
+  display: flex;
 }
 
 .msp-shell-log-view-filters {
-  z-index: 1;
   align-items: center;
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-3);
   background: var(--msp-color-panel);
+  flex: none;
   display: flex;
-  position: sticky;
-  top: 0;
 }
 
 .msp-shell-log-view-kinds {
@@ -55,15 +57,18 @@ defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 }
 
 .msp-shell-log-view-entries {
-  display: grid;
+  min-height: 0;
 }
 
 .msp-shell-log-view-empty {
   padding: var(--msp-space-4);
   color: var(--msp-color-text-muted);
+  flex: none;
+  margin: 0;
 }
 
 .msp-shell-log-view-entry {
+  white-space: nowrap;
   align-items: baseline;
   gap: var(--msp-space-3);
   padding: var(--msp-space-2) var(--msp-space-3);
@@ -94,7 +99,11 @@ defineStyles('views/shell/log-view.module.css', `@layer msp.components {
 }
 
 .msp-shell-log-view-text {
-  overflow-wrap: anywhere;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 
 .msp-shell-log-view-detail {

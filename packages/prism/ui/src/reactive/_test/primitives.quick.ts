@@ -17,6 +17,7 @@ import {
   frameOffers,
   keyedSelectorMove,
   keyedStateSet,
+  recordSetSame,
   stateSet,
   watchRender,
   workFrameRun,
@@ -34,6 +35,7 @@ const cases = {
   frameOffers,
   workWant,
   workFrameRun,
+  recordSetSame,
 };
 
 for (const [name, make] of Object.entries(cases)) {

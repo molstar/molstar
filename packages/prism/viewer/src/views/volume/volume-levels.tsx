@@ -181,7 +181,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
           <path d={derive(model.histogram, histogramPath)} />
         </svg>
         <span class={classes.mean} style={{ transform: `translateX(${at(stats.mean) * 100}%)` }} aria-hidden="true" />
-        <For each={ids} key={(id) => id}>
+        <For each={ids} by={(id) => id}>
           {(id) => {
             const level = levelOf(id);
             const color = derive(level, (l) => (l.color === undefined ? undefined : colorToHex(l.color)));
@@ -224,7 +224,7 @@ export function VolumeLevels(props: { model: VolumeLevelsModel }) {
         <span>{derive(model.unit, (u) => formatIn(u, stats.min, stats))}</span>
         <span>{derive(model.unit, (u) => formatIn(u, stats.max, stats))}</span>
       </div>
-      <For each={ids} key={(id) => id}>
+      <For each={ids} by={(id) => id}>
         {(id) => <LevelRow model={model} id={id} level={levelOf(id)} />}
       </For>
     </section>
