@@ -17,7 +17,7 @@ relative to `packages/`.
 | 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped (#2022) |
 | 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 (#2022) |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped (#2022) |
-| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: the themes; the param definition cache removed (review gate 2); multilayer selectors open (#2022) |
+| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: the themes; the param definition cache removed (review gate 2); multilayer selectors measured, dropped (#2022) |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept (#2022) |
 | 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) (#2022) |
 | 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | done: S7 in the effect transforms, bundle layers; S6 dropped (2.3% of a frame) (#2022) |
@@ -36,7 +36,7 @@ between frames included).
 | Scene                          |    ms/applied | ms/tick med |        KB/tick | Cells/tick u / R            | setSnapshot |       Log |     Marks |
 | ------------------------------ | ------------: | ----------: | -------------: | --------------------------- | ----------: | --------: | --------: |
 | snapshots:plain                |     1.1 → 0.9 | 0.03 → 0.00 |       98 → 47  | 0.05 / 0 → 0.05 / 0         |   181 → 31  |    9 → 0  |         0 |
-| mvs:exosome                    |     4.7 → 3.0 | 3.98 → 2.78 | 3,946 → 2,724  | 17.52 / 0 → 17.58 / 0       |  601 → 419  | 10,515 → 0 |         0 |
+| mvs:exosome                    |     4.7 → 2.1 | 3.98 → 1.89 | 3,946 → 2,761  | 17.52 / 0 → 17.58 / 0       |  601 → 419  | 10,515 → 0 |         0 |
 | traj:nmr:preset                |     2.2 → 1.8 | 0.45 → 0.03 | 1,347 → 926    | 2.25 / 2.25 → 4.5 / 0       |           0 |         0 |   27 → 0  |
 | traj:nmr:preset+focus+select   |     5.8 → 4.7 | 2.63 → 0.03 | 6,435 → 1,985  | 5.7 / 2.65 → 6.75 / 0       |           0 |         0 |       108 |
 | traj:synth:preset              |    13.2 → 9.2 | 0.16 → 0.03 | 8,919 → 4,068  | 2.44 / 1.95 → 4.39 / 0      |           0 |         0 |  117 → 0  |
@@ -47,7 +47,7 @@ between frames included).
 
 New scenes (no baseline): snapshots:effects 0.72 ms/applied; traj:nmr:preset+focus 4.64; traj:synth:preset+overpaint
 9.17. With a selection the marks stay (they are applied again on every frame: review gate 1). What is left in a frame:
-the geometry for the new coordinates (trajectories), and on the exosome the `gl/` checks and merging (Open).
+the geometry for the new coordinates (trajectories), and on the exosome the render-object merging (Open). The exosome row includes the foreign-resources change.
 
 ## Baseline (step 0)
 
@@ -209,9 +209,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   the `version` are gone, the 6% below with them. Measured while it was in: exosome: 2.95 → 2.76 ms/applied, 2,812 →
   2,411 KB/tick. Trajectories unchanged (a new structure per frame). Tests: in `representation-update.test.ts`
   (`getApplicableTypes` 3 times for 3 updates before; a registration builds it again).
-  **Not done:** `computeChildAwareTransformGroups` is in none of the profiles. **Open:** the MVS multilayer color
-  theme's per-layer selectors could be cached by structure and selector. It matters for color animations only, and the
-  fixtures that have them (features, motm1) need PDBe files, so it can't be measured here.
+  **Not done:** `computeChildAwareTransformGroups` is in none of the profiles. **Dropped after measuring:** the MVS
+  multilayer color theme's per-layer selectors. With the PDBe files (`--assets`, below), features snapshot 45 and 47
+  (the color animations; motm1 has none) cost 0.14 and 0.94 ms per frame, and the theme is not in the profile of 47
+  (its top is the labels' font atlas, which needs a canvas in Node and is tried again each frame).
 
 - **T5 (the empty update)** (`animation/trajectory.ts`: a cell is updated only when its frame index changes, with the
   params object rather than a recipe; nothing is committed when none changes). The ticks within a frame: 0.12 → 0.03
@@ -238,10 +239,20 @@ One line per id as it lands: the commit's before → after on the bench (median 
   every scene). Saving the upload needs the builders to allocate fresh topology arrays and compare them: CPU and
   allocation for upload, which only a browser can weigh. `ComplexVisual`'s forced color and size update is in none of
   the profiles.
-- **Open, `gl/` (frozen; for the WebGPU work).** Of an exosome frame after step 4: `prepareUpdate` →
-  `hasForeignResources` 22% (a walk over every value cell of the render object and its merged members, on every visual
-  update, for the backend switch), and render-object merging (`repr/merged.ts` → `canMergeRenderObjects`) 16%. The
-  callers are in `repr/`, but what they check is the backend-switch logic.
+- **Foreign resources** (done after the PR opened, with the user's go-ahead to touch `gl/`). `prepareUpdate` →
+  `hasForeignResources` was 22% of an exosome frame: a walk over every value cell of the render object and its merged
+  members, on every visual update, for the backend switch. A restore or a backend switch gives a new `GraphicsContext`
+  (`setGraphics`; the previous one is destroyed and never given again), and a visual creates its resources with the
+  context it is given, so `createForeignResourcesCheck` (`gl/render-object.ts`) remembers a render object found clean
+  for a context; a foreign result is not remembered. exosome: 3.03 → 2.05 ms/applied, 2.78 → 1.89 ms/tick; the other
+  scenes unchanged. Tests: `graphics/src/gl/_test/foreign-resources.test.ts` (one walk for three checks; a new context
+  or render object walks again).
+- **Open, `gl/`:** render-object merging (`repr/merged.ts` → `canMergeRenderObjects`), 16% of an exosome frame before
+  the foreign-resources change.
+- **The PDBe files** of motm1 and features (13 entries, one volume-server box, one `wwwdev` entry: 5 MB) are in
+  `tests/build/pipeline/fixtures/pdbe` (git-ignored, with `manifest.json`); `--assets <dir>` serves them to the
+  bench, and `--mvsx a.mvsx#45,b.mvsx` takes several stories and a snapshot each. motm1 (snapshots 1–3) and features
+  (36, 45, 47) cost 0.1–0.9 ms per frame. Their labels need a canvas in Node, so they are not representative there.
 
 - **S8** (`state-interpolation.ts`: targets by ref in a map; a node is updated when its interpolated params differ from
   the cell's params or from what the animation set last; nothing is committed on a tick that changes nothing). The

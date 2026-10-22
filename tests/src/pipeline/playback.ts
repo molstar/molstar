@@ -12,8 +12,10 @@
 // usage (through scripts/pipeline-bench.mjs, which bundles this file):
 //   node scripts/pipeline-bench.mjs playback [--runs 2]                        # every scene below
 //   node scripts/pipeline-bench.mjs playback --only traj:* --ticks 120
-//   node scripts/pipeline-bench.mjs playback --mvsx <story.mvsx> [--snapshot i]  # also an MVS story (local file;
-//                                                                               the first snapshot with a transition)
+//   node scripts/pipeline-bench.mjs playback --mvsx <a.mvsx>,<b.mvsx> [--snapshot i] [--assets <dir>]
+//       also MVS stories (local files; the first snapshot with a transition). --assets serves the stories' remote
+//       files from <dir> (manifest.json: URL → file name), e.g. the PDBe files of motm1 and features downloaded to
+//       tests/build/pipeline/fixtures/pdbe; other remote URLs fail
 //   node scripts/pipeline-bench.mjs playback --profile <dir> [--alloc]         # one profile per scene (played range)
 //
 // Scenes:
@@ -77,7 +79,24 @@ const allocMode = args.includes('--alloc');
 const meshMode = args.includes('--mesh');
 const nFrames = +arg('frames', '20')!;
 const trajSource = arg('traj-source', path.join(ROOT, 'data/examples/7qpd.fw2.cif'))!;
-const mvsx = arg('mvsx');
+const mvsxFiles = list('mvsx');
+const assetsDir = arg('assets');
+
+/**
+ * `--assets <dir>`: the remote files of the MVS stories, downloaded once (`manifest.json`: URL → file name), served to
+ * the plugin's downloads instead of the network; other remote URLs fail, so a run never reaches the network
+ */
+if (assetsDir) {
+  const manifest = JSON.parse(readFileSync(path.join(assetsDir, 'manifest.json'), 'utf8')) as Record<string, string>;
+  const fetch0 = globalThis.fetch;
+  globalThis.fetch = (async (input: any, init?: any) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    const file = manifest[url];
+    if (file) return new Response(readFileSync(path.join(assetsDir, file)));
+    if (/^https?:/.test(url)) throw new Error(`playback bench: '${url}' is not in ${assetsDir}/manifest.json`);
+    return fetch0(input, init);
+  }) as typeof fetch;
+}
 const mvsSnapshotArg = arg('snapshot');
 const only = list('only');
 const skip = list('skip');
@@ -95,7 +114,15 @@ const allocated = () => (hasAllocCounter ? ((v8.getHeapStatistics() as any).tota
 const graphics = graphicsStub(meshMode);
 
 type Reprs = 'preset' | 'cartoon' | 'ball-and-stick' | 'gaussian-surface';
-type Scene = { name: string; reprs?: Reprs; focus?: boolean; select?: boolean; overpaint?: boolean };
+type Scene = {
+  name: string;
+  reprs?: Reprs;
+  focus?: boolean;
+  select?: boolean;
+  overpaint?: boolean;
+  mvsx?: string;
+  snapshot?: number;
+};
 
 async function createPlugin() {
   const spec = DefaultPluginSpec();
@@ -279,14 +306,14 @@ async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof st
   return { durationMs: 3000 };
 }
 
-async function loadMvs(plugin: PluginContext) {
-  const data = new Uint8Array(readFileSync(mvsx!));
+async function loadMvs(plugin: PluginContext, mvsx: string, snapshot?: number) {
+  const data = new Uint8Array(readFileSync(mvsx));
   const parsed = await plugin.runTask(Task.create('load', (ctx) => loadMVSX(plugin, ctx, data)));
   await loadMVS(plugin, parsed.mvsData as MVSData, { sourceUrl: parsed.sourceUrl, keepCamera: true });
   await plugin.managers.animation.stop();
   // the snapshot's start without its autoplay: the bench starts the transition itself
   const entries = plugin.managers.snapshot.state.entries;
-  const index = mvsSnapshotArg ? +mvsSnapshotArg : entries.findIndex((e) => !!e.snapshot.transition);
+  const index = snapshot ?? (mvsSnapshotArg ? +mvsSnapshotArg : entries.findIndex((e) => !!e.snapshot.transition));
   const entry = entries.get(index)!;
   plugin.managers.snapshot.setCurrent(entry.snapshot.id);
   const { transition } = entry.snapshot;
@@ -360,9 +387,9 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
     ticks = ticksArg ? +ticksArg : Math.ceil(durationMs / TickMs) + 2;
     info = `1cbs, 30 frames × 100 ms (3 looks${effects ? ' of alpha, with a bundle overpaint and a script transparency' : ''}), camera move 400 ms`;
   } else if (scene.name.startsWith('mvs:')) {
-    const { durationMs, frames, index, checksMs } = await loadMvs(plugin);
+    const { durationMs, frames, index, checksMs } = await loadMvs(plugin, scene.mvsx!, scene.snapshot);
     ticks = ticksArg ? +ticksArg : Math.min(600, Math.ceil(durationMs / TickMs) + 2);
-    info = `${path.basename(mvsx!)} snapshot ${index}: ${frames} frames, ${(durationMs / 1000).toFixed(1)} s; snapshot checks ${checksMs.toFixed(2)} ms`;
+    info = `${path.basename(path.dirname(scene.mvsx!))} snapshot ${index}: ${frames} frames, ${(durationMs / 1000).toFixed(1)} s; snapshot checks ${checksMs.toFixed(2)} ms`;
   } else {
     await loadTrajectory(plugin, scene);
     const s = plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data as Structure;
@@ -490,7 +517,12 @@ async function playScene(scene: Scene, session?: Session): Promise<SceneResult |
 const scenes: Scene[] = [
   { name: 'snapshots:plain' },
   { name: 'snapshots:effects' },
-  ...(mvsx ? [{ name: `mvs:${path.basename(path.dirname(mvsx))}/${path.basename(mvsx, '.mvsx')}` }] : []),
+  // `story.mvsx#45`: snapshot 45 of the story
+  ...mvsxFiles.map((f) => {
+    const [file, index] = f.split('#');
+    const name = `mvs:${path.basename(path.dirname(file))}${index ? `#${index}` : ''}`;
+    return { name, mvsx: file, snapshot: index === undefined ? undefined : +index };
+  }),
   { name: 'traj:nmr:preset', reprs: 'preset' },
   { name: 'traj:nmr:preset+focus+select', reprs: 'preset', focus: true, select: true },
   { name: 'traj:nmr:preset+focus', reprs: 'preset', focus: true },
