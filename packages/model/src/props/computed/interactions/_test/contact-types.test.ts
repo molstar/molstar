@@ -153,4 +153,25 @@ describe('contact testers by feature type pair', () => {
     expect(rows.length).toBeGreaterThan(500);
     expect(rows).toEqual(contactRows(s, unitsFeatures, everyPair(ts)));
   });
+
+  it('test every pair for a tester without acceptsTypes, and follow a reused testers array', async () => {
+    const s = await split(await load1cbs(), true);
+    const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
+    const { unitsFeatures } = await computeInteractions(ctx, s, {});
+    const hbonds = HydrogenBondsProvider.createTester(PD.getDefaultValues(HydrogenBondsProvider.params));
+    const inter = (rows: number[][]) => rows.filter((r) => r.length === 5);
+    const expected = inter(contactRows(s, unitsFeatures, [hbonds]));
+    expect(expected.length).toBeGreaterThan(100);
+    // the inter-unit loop gives such a tester every pair, whatever its `requiredFeatures` say
+    const { acceptsTypes: _, ...custom } = hbonds;
+    const donorsOnly = { ...custom, requiredFeatures: new Set([hbonds.requiredFeatures.values().next().value!]) };
+    expect(inter(contactRows(s, unitsFeatures, [donorsOnly]))).toEqual(expected);
+    // the same array with another tester
+    const ts = [HydrophobicProvider.createTester(PD.getDefaultValues(HydrophobicProvider.params))];
+    contactRows(s, unitsFeatures, ts);
+    ts[0] = hbonds;
+    expect(inter(contactRows(s, unitsFeatures, ts))).toEqual(expected);
+    ts.push(donorsOnly);
+    expect(() => contactRows(s, unitsFeatures, ts)).not.toThrow();
+  });
 });

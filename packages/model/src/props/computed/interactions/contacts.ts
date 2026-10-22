@@ -33,8 +33,9 @@ export interface ContactTester {
   readonly requiredFeatures: ReadonlySet<FeatureType>;
   /**
    * The feature type pairs `getType` may accept: it returns `undefined` for any `(infoA, infoB)` whose types fail this
-   * test. Without it, any two of `requiredFeatures`. The contact loops skip the other pairs before `validPair`, and
-   * query a feature no farther than its type's partners need (perf-audit-2 06/P4, 06/P10).
+   * test. The contact loops skip the other pairs before `validPair`, and query a feature no farther than its type's
+   * partners need (perf-audit-2 06/P4, 06/P10). Without it, every pair is tested (the intra-unit loop only within
+   * `requiredFeatures`, as always).
    */
   readonly acceptsTypes?: (typeA: FeatureType, typeB: FeatureType) => boolean;
   getType: (
@@ -149,6 +150,8 @@ const TypeCount = 16;
 
 /** The testers of one computation by the feature type pairs they accept (`ContactTester.acceptsTypes`) */
 interface TesterTable {
+  /** the testers the table was made for, in order: a caller may reuse and change its array */
+  readonly testers: readonly ContactTester[];
   /** per tester: for each type, the mask of the types it accepts with it */
   readonly partners: readonly Uint16Array[];
   /** per type pair: the testers accepting it, in order */
@@ -161,14 +164,13 @@ const testerTables = new WeakMap<ReadonlyArray<ContactTester>, TesterTable>();
 
 function getTesterTable(testers: ReadonlyArray<ContactTester>) {
   let table = testerTables.get(testers);
-  if (table) return table;
+  if (table && sameTesters(table.testers, testers)) return table;
   const partners: Uint16Array[] = [];
   const pairTesters: ContactTester[][] = [];
   const pairDistance = new Float64Array(TypeCount * TypeCount);
   for (let p = 0; p < TypeCount * TypeCount; p++) pairTesters.push([]);
   for (const tester of testers) {
-    const { requiredFeatures: required, acceptsTypes } = tester;
-    const accepts = acceptsTypes ?? ((a: FeatureType, b: FeatureType) => required.has(a) && required.has(b));
+    const accepts = tester.acceptsTypes ?? (() => true);
     const masks = new Uint16Array(TypeCount);
     for (let a = 0; a < TypeCount; a++) {
       for (let b = 0; b < TypeCount; b++) {
@@ -181,9 +183,15 @@ function getTesterTable(testers: ReadonlyArray<ContactTester>) {
     }
     partners.push(masks);
   }
-  table = { partners, pairTesters, pairDistance };
+  table = { testers: testers.slice(), partners, pairTesters, pairDistance };
   testerTables.set(testers, table);
   return table;
+}
+
+function sameTesters(a: readonly ContactTester[], b: ReadonlyArray<ContactTester>) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 const featureTypeMasks = new WeakMap<Features, number>();
