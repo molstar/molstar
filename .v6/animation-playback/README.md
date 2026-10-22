@@ -115,6 +115,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   scene prints them). Same warnings in the same order. Tests: in `report-unregistered-names.test.ts` (100
   `StateTransformer.has` calls for two repeat checks before, 2 after).
 
+- **S9** (`transform.ts`: the default param schema cached per transformer, not per transform). exosome: 4.62 → 3.72
+  ms/applied, 4.23 → 2.94 ms/tick med; plain 0.94 → 0.81 ms/applied. Test:
+  `core/src/state/_test/snapshot-frames.test.ts` (4 schema builds for 4 frames before, 1 after).
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip

@@ -11,3 +11,5 @@
   the descriptions no longer re-render at the frame rate
 - Applying a snapshot with a long transition checks its frames' transformers and theme names once, not on every apply
   (an exosome story step: 18.8 → 0.02 ms)
+- A frame of a snapshot transition no longer builds every evaluated node's param definition to find its dependencies
+  (exosome story: 4.6 → 3.7 ms per frame)
