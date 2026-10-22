@@ -6,7 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { readPae } from '@molstar/prism-viewer/sequence/molstar';
+// The reader alone (no Seq*): the barrel would put all of Seq* into Prism's start code (perf audit 2, 12/P9).
+import { readPae } from '@molstar/prism-viewer/sequence/molstar/pae-matrix';
 
 // AlphaFold DB's PAE (parity.md §6, "PAE plot"): which entry a structure is, where its PAE JSON is, and the JSON as the
 // card's matrix. No plugin here, so it is tested on plain values. The PAE file is AlphaFold DB's, apart from the model.

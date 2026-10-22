@@ -6,6 +6,7 @@ import https from 'node:https';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sassPlugin } from 'esbuild-sass-plugin';
 import { getBackendSetAlias } from './backend-sets.mjs';
+import { startBytes } from './start-closure.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2).filter((arg) => arg !== '--');
@@ -215,6 +216,7 @@ async function buildPackage(rawPkg, variant) {
       }
     : { format: 'iife', globalName: cfg.globalName ?? 'molstar', outfile };
   if (esm) await fs.promises.rm(path.join(outdir, 'chunks'), { recursive: true, force: true });
+  let startMeta;
   const options = {
     absWorkingDir: root,
     entryPoints: [entry],
@@ -263,12 +265,14 @@ async function buildPackage(rawPkg, variant) {
     await ctx.watch();
     contexts.push(ctx);
   } else {
-    const result = await esbuild.build({ ...options, metafile });
+    // an ESM build's metafile always: its entry's budget is on its start closure (below)
+    const result = await esbuild.build({ ...options, metafile: metafile || esm });
     if (metafile)
       await fs.promises.writeFile(
         path.join(outdir, `${path.basename(filename, '.js')}.meta.json`),
         JSON.stringify(result.metafile),
       );
+    if (esm) startMeta = result.metafile;
   }
   // `single` (the single-file Prism viewer, app.md §2): one more entry built as one ES module, its lazy parts inlined
   // (no splitting: esbuild bundles dynamic imports into the file), so a page imports it with no other request.
@@ -301,11 +305,16 @@ async function buildPackage(rawPkg, variant) {
       }
     }
   }
-  // Size budgets (app.md §1): a production build fails when a file outgrows its budget (bytes, `molstar.budgets`).
+  // Size budgets (app.md §1): a production build fails when a file outgrows its budget (bytes, `molstar.budgets`). An
+  // ESM entry's budget is on what loads at start: the entry (a stub of imports) and every chunk it imports statically.
   if (!dev) {
     for (const f of fs.readdirSync(outdir)) if (f.endsWith('.js.map')) await fs.promises.rm(path.join(outdir, f));
+    const sizeOf = (file) =>
+      startMeta && file === filename
+        ? startBytes(startMeta, path.relative(root, path.join(outdir, file)))
+        : fs.statSync(path.join(outdir, file)).size;
     const over = Object.entries(cfg.budgets ?? {})
-      .map(([file, budget]) => [file, budget, fs.statSync(path.join(outdir, file)).size])
+      .map(([file, budget]) => [file, budget, sizeOf(file)])
       .filter(([, budget, size]) => size > budget);
     if (over.length) {
       throw new Error(

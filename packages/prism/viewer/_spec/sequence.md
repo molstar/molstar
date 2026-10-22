@@ -31,7 +31,8 @@ The code is the truth for how.
 
 - **A runtime chunk.** Seq\* and everything over it is `sequence/runtime.ts`, loaded (`spec.sequence.runtime`,
   viewer-spec.md §2.3) when a structure is first shown, or an operation or a saved state needs it. The core holds only
-  the plugin side (`sources/sequence.ts`); a spec without a sequence bundles none of it.
+  the plugin side (`sources/sequence.ts`); a spec without a sequence bundles none of it. Code at start imports no Seq\*
+  module: AlphaFold DB's PAE reader is `sequence/molstar/pae-matrix` (no imports), not the adapter's barrel.
 - **One parse.** The document names its structure by host file `structure:<key>`; the loaders' `parsed` answers it with
   a `StructureSource` over the trajectory the 3D view drew, so `StructureLink` maps the very `Structure` the 3D view
   draws. One source per trajectory, with the CIF block it was parsed from (`cifFrameOf`: SIFTS numberings, a predicted
