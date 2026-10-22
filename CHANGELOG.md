@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Volume streaming: a state that streams other maps than the one before (a snapshot, an MVS state) recreates the
+  streaming behavior; it updated the old one and failed on the new entry's name (`emDefaultContourLevel` of undefined)
 - State snapshot transitions: a frame shows for its own duration; each frame showed during the slot of the one before
   it, so the second frame never showed and a held frame showed the next one (also when scrubbing)
 - State snapshot animations: each transition frame is applied once; it was applied again on every animation tick, and
