@@ -117,7 +117,7 @@ viewer again. Several on a page each own their viewer, and one leaving the page 
 | `help`            | Help.                                                                                                                |
 | `loaders`         | `load.entry`, `load.url`, `load.data`, `load.mvs`, `load.svs`, `load.snapshot`, `load.trajectory`, `load.volume`.    |
 | `canvas-settings` | The canvas settings card and `canvas.lighting` (illumination too), `.camera`, `.clipping`.                           |
-| `measurements`    | The `measure` area and the Measure section.                                                                          |
+| `measurements`    | The `measure` area and the Measure and Label section.                                                                |
 | `superposition`   | The `superpose` area and the Superpose section. Lazy.                                                                |
 | `state-tree`      | The `state` area and the State tree tab. Lazy.                                                                       |
 | `remote-states`   | Remote states in the `session` area. Lazy, and left out unless `options.ui.showRemoteStates` is on.                  |

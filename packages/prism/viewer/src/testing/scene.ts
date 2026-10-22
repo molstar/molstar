@@ -336,7 +336,7 @@ export function mockScene(
     onAction?: (text: string) => void;
     /** Extensions' structure rows (volume streaming, assembly symmetry by default). */
     rows?: readonly MockRowSpec[];
-    /** Adding a measurement: the Selection tab's Measure section. */
+    /** Adding a measurement: the Selection tab's Measure and Label section. */
     onMeasure?: () => void;
   } = {},
 ): MockScene {

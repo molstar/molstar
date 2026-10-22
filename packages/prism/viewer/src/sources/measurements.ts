@@ -21,12 +21,12 @@ import type { StructureMeasurementCell } from '@molstar/plugin/state/manager/str
 import type { IconName } from '@molstar/prism-ui/core';
 
 // The measurements in words (state.md §1, `managers.structure.measurement`): what the scene tree, the `measurements`
-// feature's operations and its Measure section read.
+// feature's operations and its Measure and Label section read.
 
 export type MeasureKind = 'distance' | 'angle' | 'dihedral' | 'label' | 'orientation' | 'plane';
 
 /**
- * What each kind is called and drawn as, once: the scene tree's nodes, the Measure section's buttons and the
+ * What each kind is called and drawn as, once: the scene tree's nodes, the Measure and Label section's buttons and the
  * operations' texts read it. `points` is how many picks it takes (0: the selection as a whole).
  */
 export const MeasureKinds: Readonly<Record<MeasureKind, { title: string; icon: IconName; points: number }>> = {

@@ -7,8 +7,8 @@
  */
 
 /* What a Selection section made (style layers, superpositions): a caption with Clear all, then rows in the well, as the
-   Measure section's Added list. Under the section's action footer, which reaches into the bottom padding: the block
-   gives that room back. */
+   Measure and Label section's Added list. Under the section's action footer, which reaches into the bottom padding: the
+   block gives that room back. */
 .block {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
