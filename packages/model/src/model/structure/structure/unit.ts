@@ -41,6 +41,7 @@ import { subsetIntraUnitBonds } from './unit/bonds/subset.js';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { getResonance, type UnitResonance } from './unit/resonance.js';
 import { BondProvider } from './unit/bonds/provider.js';
+import { Structure } from './structure.js';
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -580,7 +581,23 @@ namespace Unit {
   }
 
   function intraContext(unit: Atomic): BondProvider.IntraContext {
-    return { builtIn: (props) => computeIntraUnitBonds(unit, props) };
+    return {
+      builtIn: (props) => computeIntraUnitBonds(unit, props),
+      modelStructure: () => modelStructureOf(unit.model),
+    };
+  }
+
+  /**
+   * A model as a structure with the built-in bonds, for providers (`IntraContext.modelStructure`), kept with the
+   * model's other derived data. Its units are the default provider's, so reading its bonds never reaches back into a
+   * provider.
+   */
+  function modelStructureOf(model: Model): Structure {
+    const data = model._dynamicPropertyData;
+    if (!data.BondProviderModelStructure) {
+      data.BondProviderModelStructure = Structure.ofModel(model, { bondProvider: BondProvider.DefaultInstance });
+    }
+    return data.BondProviderModelStructure;
   }
 
   /**

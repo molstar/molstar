@@ -874,6 +874,8 @@ export namespace BondType {
     Disulfide = 0x8,
     Aromatic = 0x10,
     Computed = 0x20,
+    /** A covalent bond whose order the source did not state: 1, to be perceived (bond-providers plan §2). */
+    OrderUnknown = 0x40,
     // currently at most 16 flags are supported!!
   }
 
@@ -885,6 +887,7 @@ export namespace BondType {
     return (flags & BondType.Flag.Covalent) !== 0;
   }
 
+  /** Every bond type of `Names` (`OrderUnknown` is a property of a bond, not a type to select). */
   export function isAll(flags: BondType.Flag) {
     return flags === Math.pow(2, 6) - 1;
   }

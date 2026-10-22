@@ -22,6 +22,8 @@ import type { IntraUnitBonds } from '../data.js';
 import { computeIntraUnitBonds } from '../intra-compute.js';
 import { BondProvider } from '../provider.js';
 import { NoComputedBondsProvider } from '../providers.js';
+import { StructConn } from '@molstar/model/formats/structure/property/bonds/struct_conn';
+import { UnitRings } from '../../rings.js';
 import { ElementSetIntraBondCache } from '../element-set-intra-bond-cache.js';
 import { Interval } from '@molstar/core/data/int';
 import { BondType } from '../../../../model/types.js';
@@ -267,6 +269,82 @@ describe('bond providers', async () => {
       const other = Structure.create(s.units.slice(0, 2), { parent: s, bondProvider: q.instance });
       void other.interUnitBonds;
       expect(q.interCalls).toEqual([other]);
+    });
+  });
+
+  describe('what a perceiving provider reads (molstar/molstar#2016 review)', async () => {
+    const m7qpd = await loadCif('7qpd.fw2.cif');
+
+    it('ctx.modelStructure(): one structure per model, with the built-in bonds, and the links between units', () => {
+      const model = fresh(m7qpd);
+      const seen: Structure[] = [];
+      const provider = { name: 'reads-model', label: 'Reads the model' } as BondProvider;
+      const instance: BondProvider.Instance = {
+        provider,
+        cacheKey: undefined,
+        intra(_, ctx) {
+          seen.push(ctx.modelStructure());
+          return ctx.builtIn();
+        },
+      };
+      const s = Structure.ofModel(model, { bondProvider: instance });
+      for (const u of atomic(s)) void u.bonds;
+      expect(seen.length).toBe(atomic(s).length);
+      expect(new Set(seen).size).toBe(1);
+      const ms = seen[0];
+      expect(ms).not.toBe(s);
+      expect(ms.model).toBe(model);
+      expect(ms.bondProvider).toBe(BondProvider.DefaultInstance);
+      for (const u of atomic(ms)) expect(u.bondProvider).toBe(BondProvider.DefaultInstance);
+      // 7qpd's covalent links between units (struct_conn) are there to read
+      expect(ms.interUnitBonds.edgeCount).toBeGreaterThan(0);
+      // another structure of the model gets the same one
+      const again: Structure[] = [];
+      const reads = {
+        ...instance,
+        intra: (u: Unit.Atomic, ctx: BondProvider.IntraContext) => (again.push(ctx.modelStructure()), ctx.builtIn()),
+      };
+      for (const u of atomic(Structure.ofModel(model, { bondProvider: reads }))) void u.bonds;
+      expect(again[0]).toBe(ms);
+    });
+
+    it('struct_conn covalent bonds without an order are flagged OrderUnknown; stated ones and others are not', () => {
+      const entries = StructConn.Provider.get(m7qpd)!.entries;
+      const covalent = entries.filter((e) => BondType.isCovalent(e.flags));
+      expect(covalent.length).toBeGreaterThan(0);
+      const { pdbx_value_order } = StructConn.Provider.get(m7qpd)!.data;
+      for (const e of entries) {
+        const stated = ['sing', 'doub', 'trip', 'quad'].includes(pdbx_value_order.value(e.rowIndex) || '');
+        const unknown = BondType.is(e.flags, BondType.Flag.OrderUnknown);
+        expect(unknown).toBe(BondType.isCovalent(e.flags) && !stated);
+      }
+      expect(covalent.some((e) => BondType.is(e.flags, BondType.Flag.OrderUnknown))).toBe(true);
+    });
+
+    it('rings over a graph a provider is building, without reading unit.bonds', () => {
+      const model = fresh(m1cbs);
+      const fromProvider: number[][] = [];
+      const provider = { name: 'rings', label: 'Rings' } as BondProvider;
+      const instance: BondProvider.Instance = {
+        provider,
+        cacheKey: undefined,
+        intra(unit, ctx) {
+          const provisional = ctx.builtIn();
+          // unit.bonds is not set yet: reading it here would compute the bonds again
+          expect(unit.props.bonds).toBeUndefined();
+          const rings = UnitRings.create(unit, provisional);
+          fromProvider.push([rings.all.length, rings.aromaticRings.length]);
+          expect(unit.props.bonds).toBeUndefined();
+          return provisional;
+        },
+      };
+      for (const u of atomic(Structure.ofModel(model, { bondProvider: instance }))) void u.bonds;
+      const byDefault = atomic(Structure.ofModel(fresh(m1cbs))).map((u) => [
+        u.rings.all.length,
+        u.rings.aromaticRings.length,
+      ]);
+      expect(fromProvider).toEqual(byDefault);
+      expect(fromProvider.some(([n]) => n > 0)).toBe(true);
     });
   });
 

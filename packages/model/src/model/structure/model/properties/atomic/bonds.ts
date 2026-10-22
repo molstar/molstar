@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { AminoAcidNames, BaseNames } from '../../types.js';
@@ -82,9 +83,19 @@ const InterBondOrderTable = new Map([
  * Get order for bonds between component assuming PDBx/mmCIF naming.
  */
 export function getInterBondOrderFromTable(compId1: string, atomId1: string, compId2: string, atomId2: string) {
+  return findInterBondOrderInTable(compId1, atomId1, compId2, atomId2) ?? 1;
+}
+
+/** The order of a bond between components if the table knows it, else `undefined` (PDBx/mmCIF naming). */
+export function findInterBondOrderInTable(
+  compId1: string,
+  atomId1: string,
+  compId2: string,
+  atomId2: string,
+): number | undefined {
   if (compId1 > compId2) {
     [compId1, compId2] = [compId2, compId1];
     [atomId1, atomId2] = [atomId2, atomId1];
   }
-  return InterBondOrderTable.get(`${compId1}|${atomId1}|${compId2}|${atomId2}`) || 1;
+  return InterBondOrderTable.get(`${compId1}|${atomId1}|${compId2}|${atomId2}`);
 }

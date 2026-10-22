@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -14,9 +14,13 @@ import { sortArray } from '@molstar/core/data/util';
 import type { Column } from '@molstar/core/data/db';
 import { arraySetAdd, arraySetRemove } from '@molstar/core/util/array';
 
-export function computeRings(unit: Unit.Atomic) {
+/**
+ * The rings of a unit over `bonds`, by default the unit's own. A bond provider passes the graph it is building
+ * (bond-providers plan §2): reading `unit.bonds` from inside the provider would compute them again.
+ */
+export function computeRings(unit: Unit.Atomic, bonds: IntraUnitBonds = unit.bonds) {
   const size = largestResidue(unit);
-  const state = State(unit, size);
+  const state = State(unit, size, bonds);
 
   const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
   while (residuesIt.hasNext) {
@@ -56,7 +60,7 @@ interface State {
   altLoc: Column<string>;
 }
 
-function State(unit: Unit.Atomic, capacity: number): State {
+function State(unit: Unit.Atomic, capacity: number, bonds: IntraUnitBonds): State {
   return {
     startVertex: 0,
     endVertex: 0,
@@ -75,7 +79,7 @@ function State(unit: Unit.Atomic, capacity: number): State {
     rings: [],
     currentRings: [],
     unit,
-    bonds: unit.bonds,
+    bonds,
     altLoc: unit.model.atomicHierarchy.atoms.label_alt_id,
   };
 }

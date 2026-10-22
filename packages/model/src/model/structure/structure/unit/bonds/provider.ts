@@ -67,6 +67,14 @@ export namespace BondProvider {
   export interface IntraContext {
     /** The built-in computation for the unit (`computeIntraUnitBonds`). */
     builtIn(props?: Partial<BondComputationProps>): IntraUnitBonds;
+    /**
+     * The unit's model as a structure (`Structure.ofModel`, the built-in bonds), built once per model and kept with
+     * it. Its `interUnitBonds` say which atoms of the unit bond to other units (a covalent ligand's link to its
+     * protein), which perceiving bond orders needs. A unit has no structure of its own (it is shared by every
+     * structure that holds it, and its bonds are cached by its elements), so this is the one a provider may read:
+     * a function of the model, it keeps `intra` one of the model, the elements and the props.
+     */
+    modelStructure(): Structure;
   }
 
   export interface InterContext {

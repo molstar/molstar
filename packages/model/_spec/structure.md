@@ -68,7 +68,8 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
   component dictionary per residue (not at microheterogeneity; pairs within `maxRadius`, from the residue's atoms or,
   above 256 atoms, the grid), then distance thresholds (`common.ts`) over the unit's grid, queried at 3.1 Å, above every
   threshold (coarse-grained models: `maxRadius`). Edge order follows the grid. Edge props `order`, `flags`, `key` (the
-  struct_conn row, index-pair key or dictionary key; -1 computed).
+  struct_conn row, index-pair key or dictionary key; -1 computed). `OrderUnknown`: a covalent struct_conn bond whose
+  order neither the file nor the inter-residue table gives (order 1), for providers that perceive orders.
 - Both come from the bond provider when it has `intra` (a unit's) or `inter` (the structure's), which may call the
   built-in computation through its context (`ctx.builtIn(props)`); else from the built-in computation below. The generic
   providers are in `unit/bonds/providers.ts`: `'none'` (the built-in computation with `noDistance`) and `'per-unit'`

@@ -89,7 +89,10 @@ the remapped root (structure.md §3); passing the root's unit with the same id a
   props only, which is what makes a `cacheKey` sound. The cache is one per model and key, the key under the provider's
   name (`intraCacheKey`), so two providers never share bonds; the built-in bonds keep the model's original cache for its
   life, the other keys only the last `MaxProviderKeys` (an LRU: a key per param value, a slider, would keep every
-  value's bonds). No key caches nothing.
+  value's bonds). No key caches nothing. A provider reads its unit's links to other units from `ctx.modelStructure()`
+  (the model as a structure with the built-in bonds, once per model), never from a structure of its own (a unit is
+  shared by structures), and finds rings over the graph it is building with `UnitRings.create(unit, bonds)`, as
+  `unit.bonds` is not set while it runs.
 - **Cost O(child)**: the parent index of each child element by binary search in the parent's elements, each neighbour's
   child index by binary search among those; a child with `n·log2(p) ≥ p` uses a merged walk and a parent-sized map
   instead, O(p). A parent-sized pass per small child is the hazard: 2000 one-residue children of a 186k-atom unit took

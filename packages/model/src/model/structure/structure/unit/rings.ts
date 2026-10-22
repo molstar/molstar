@@ -15,6 +15,7 @@ import { Elements } from '../../model/properties/atomic/types.js';
 import { getPositions } from '../../util.js';
 import { PrincipalAxes } from '@molstar/core/math/linear-algebra/matrix/principal-axes';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
+import type { IntraUnitBonds } from './bonds/data.js';
 
 type UnitRing = SortedArray<StructureElement.UnitIndex>;
 
@@ -63,13 +64,15 @@ class UnitRings {
 
   get aromaticRings() {
     if (this._aromaticRings) return this._aromaticRings;
-    this._aromaticRings = getAromaticRings(this.unit, this.all);
+    this._aromaticRings = getAromaticRings(this.unit, this.all, this.bonds);
     return this._aromaticRings;
   }
 
   constructor(
     all: ReadonlyArray<UnitRing>,
     public unit: Unit.Atomic,
+    /** The bonds the rings were found over; `undefined`: the unit's own. */
+    private readonly bonds?: IntraUnitBonds,
   ) {
     this.all = all;
   }
@@ -125,15 +128,14 @@ namespace UnitRing {
   ] as ElementSymbol[]);
   const AromaticRingPlanarityThreshold = 0.05;
 
-  export function isAromatic(unit: Unit.Atomic, ring: UnitRing): boolean {
+  /** `bonds`: the graph to read, by default the unit's own (`computeRings`). */
+  export function isAromatic(unit: Unit.Atomic, ring: UnitRing, bonds: IntraUnitBonds = unit.bonds): boolean {
+    const { elements } = unit;
     const {
-      elements,
-      bonds: {
-        b,
-        offset,
-        edgeProps: { flags, order },
-      },
-    } = unit;
+      b,
+      offset,
+      edgeProps: { flags, order },
+    } = bonds;
     const { type_symbol, label_comp_id } = unit.model.atomicHierarchy.atoms;
 
     // ignore Proline (can be flat because of bad geometry)
@@ -204,12 +206,16 @@ namespace UnitRings {
   export type Index = { readonly '@type': 'unit-ring-index' } & number;
   export type ComponentIndex = { readonly '@type': 'unit-ring-component-index' } & number;
 
-  export function create(unit: Unit.Atomic): UnitRings {
+  /**
+   * The rings of a unit, over `bonds` when given: a bond provider perceiving orders passes the graph it is building, as
+   * reading `unit.bonds` from inside the provider would compute them again (bond-providers plan §2).
+   */
+  export function create(unit: Unit.Atomic, bonds?: IntraUnitBonds): UnitRings {
     if (Unit.Traits.is(unit.traits, Unit.Trait.Water) || Unit.Traits.is(unit.traits, Unit.Trait.CoarseGrained)) {
-      return new UnitRings([], unit);
+      return new UnitRings([], unit, bonds);
     }
-    const rings = computeRings(unit);
-    return new UnitRings(rings, unit);
+    const rings = computeRings(unit, bonds ?? unit.bonds);
+    return new UnitRings(rings, unit, bonds);
   }
 
   /** Creates a mapping ResidueIndex -> list or rings that are on that residue and have one of the specified fingerprints. */
@@ -260,10 +266,15 @@ function addSingleResidueRings(rings: UnitRings, fp: UnitRing.Fingerprint, map: 
   }
 }
 
-function getAromaticRings(unit: Unit.Atomic, rings: ReadonlyArray<UnitRing>): ReadonlyArray<UnitRings.Index> {
+function getAromaticRings(
+  unit: Unit.Atomic,
+  rings: ReadonlyArray<UnitRing>,
+  bonds?: IntraUnitBonds,
+): ReadonlyArray<UnitRings.Index> {
   const aromaticRings: UnitRings.Index[] = [];
+  const graph = bonds ?? unit.bonds;
   for (let i = 0 as UnitRings.Index, il = rings.length; i < il; ++i) {
-    if (UnitRing.isAromatic(unit, rings[i])) aromaticRings.push(i);
+    if (UnitRing.isAromatic(unit, rings[i], graph)) aromaticRings.push(i);
   }
   return aromaticRings;
 }

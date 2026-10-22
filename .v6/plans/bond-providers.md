@@ -61,6 +61,8 @@ export namespace BondProvider {
   export interface IntraContext {
     /** The built-in computation for this unit (computeIntraUnitBonds), computed on demand; `noDistance` §2.4. */
     builtIn(props?: { noDistance?: boolean }): IntraUnitBonds;
+    /** The unit's model as a structure with the built-in bonds, once per model (§2.5). */
+    modelStructure(): Structure;
   }
   export interface InterContext {
     builtIn(props?: Partial<InterBondComputationProps>): InterUnitBonds;
@@ -76,8 +78,8 @@ export namespace BondProvider {
   provider that only refines orders implements `intra` as `refine(ctx.builtIn())`; one that perceives across
   struct_conn links (glycans, covalent ligands) implements `inter` too.
 - `Instance` is not bound to a model or a structure (the POC's `context.structure` assignment after building is what
-  this replaces). A provider that needs neighbours outside the unit reads them from the unit's model; one that needs
-  the structure implements `inter`.
+  this replaces). A provider that needs neighbours outside the unit reads them from the unit's model
+  (`ctx.modelStructure()`, §2.5); one that needs the structure implements `inter`.
 - `getParams(model)` may depend on the model (Q5): the transform has the model when it builds its params (§4).
 
 ### 2.1 Unit
@@ -157,6 +159,22 @@ Two built-in providers, neither with params:
 - Each has its own `cacheKey`, so cached bonds of one never serve the other.
 - `ctx.builtIn({ noDistance: true })` gives a perceiving provider the format's bonds alone, e.g. to assign orders
   without the distance guesses.
+
+### 2.5 What a perceiving provider reads (molstar/molstar#2016 review)
+
+Perceiving bond orders (#1939) needs, besides the unit's bonds:
+
+- **The unit's links to other units** (a covalent ligand's to its protein). `intra` has no structure: a unit is shared
+  by every structure that holds it and its bonds are cached by its elements, so a structure passed in would make the
+  bonds depend on which structure asked first. `ctx.modelStructure()` is the unit's model as a structure
+  (`Structure.ofModel`, the built-in bonds, default instances), built once per model and kept in its dynamic data: its
+  `interUnitBonds` are the links, and a function of the model keeps `intra` one of the model, the elements and the
+  props. Links made by symmetry operators are not in it. `inter` already receives the structure.
+- **Which orders are unknown.** `BondType.Flag.OrderUnknown`: a covalent struct_conn bond whose order the file does not
+  state and the inter-residue table does not know (order 1 then). Not one of `BondType.Names`: a property of a bond, not
+  a type to select.
+- **Rings over the graph being built.** `computeRings(unit, bonds)` and `UnitRings.create(unit, bonds)` (and
+  `UnitRing.isAromatic(unit, ring, bonds)`): reading `unit.bonds` from inside `intra` would compute them again.
 
 ## 3. Plugin layer: registry and spec
 
