@@ -104,3 +104,31 @@ describe('the shell frame as a view of the layout', () => {
     expect(v.tab('settings').getAttribute('aria-selected')).toBe('true');
   });
 });
+
+describe('the pinch guard (perf audit 11/P10)', () => {
+  it('holds the wheel over the canvas only: a panel scrolls without waiting for the main thread', () => {
+    const blocking: EventTarget[] = [];
+    const add = EventTarget.prototype.addEventListener;
+    const spy = vi.spyOn(EventTarget.prototype, 'addEventListener').mockImplementation(function (
+      this: EventTarget,
+      type: string,
+      fn: EventListenerOrEventListenerObject | null,
+      options?: boolean | AddEventListenerOptions,
+    ) {
+      if (type === 'wheel' && typeof options === 'object' && options.passive === false) blocking.push(this);
+      return add.call(this, type, fn, options);
+    });
+    const v = mount();
+    spy.mockRestore();
+    const canvas = v.root.querySelector<HTMLElement>('[data-msp-canvas]')!;
+    expect(blocking).toEqual([canvas]);
+    const pinch = (at: Element) => {
+      const e = new WheelEvent('wheel', { ctrlKey: true, bubbles: true, cancelable: true });
+      at.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    expect(pinch(canvas.firstElementChild!)).toBe(true);
+    const panel = [...v.root.querySelectorAll('i')].find((e) => e.textContent === 'panel')!;
+    expect(pinch(panel)).toBe(false);
+  });
+});
