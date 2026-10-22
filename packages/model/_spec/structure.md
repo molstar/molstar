@@ -41,8 +41,9 @@ child (`applyOperator(id, op, true)`). Graphics draws a group as one geometry wi
   whole.
 - `remapModel(m, parent?)`: remaps each symmetry group's first unit and passes its props to the others; keeps
   `interUnitBonds` unless `dynamicBonds`. `parent` is the root already remapped to `m`: the components of a trajectory
-  frame share it, and with it the root-scoped properties and `areRootsEquivalent`. Without it the parent is remapped
-  too, a root of the component's own.
+  frame share it, and with it the root-scoped properties and `areRootsEquivalent`; a unit with the elements of the
+  parent's unit of its id is that unit (as `getChild` gives it), so a whole-unit component shares the root's units and
+  their boundaries and lookups. Without it the parent is remapped too, a root of the component's own.
 
 ## 4. Lazy data
 
