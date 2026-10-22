@@ -84,7 +84,7 @@ Outside `gl/webgl/` and `gl/webgpu/`, excluding tests:
 | `canvas3d/passes/hi-z.ts`                                                                                           | fences and pixel pack buffers; unsupported elsewhere                           | E: same; Hi-Z is off on WebGPU           |
 | `geo/geometry/texture-mesh/texture-mesh.ts`                                                                         | `meta.webgl` for the position iterator's `readPixels`                          | G: missing neutral float readback        |
 | `geo/gaussian-density/gpu.ts`                                                                                       | `GaussianDensityGPU` and `fieldFromTexture2d` (sync readback)                  | H: no callers                            |
-| `extensions/geo-export/src/mesh-exporter.ts`                                                                        | texture readback of GPU surfaces                                               | C3 (also the default-backend blocker)    |
+| `packages/extensions/geo-export/src/mesh-exporter.ts`                                                                        | texture readback of GPU surfaces                                               | C3 (also the default-backend blocker)    |
 
 ## Findings
 

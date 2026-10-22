@@ -224,8 +224,8 @@ nodes refs that start with its id, and make `patch` insert them. The next exampl
 
 ## An example: model quality
 
-`extensions/model-archive/src/prism-viewer.ts` is the `model-archive` extension, shown in the app. It makes the quality
-scores of predicted models visible: pLDDT and QMEAN.
+`packages/extensions/model-archive/src/prism-viewer.ts` is the `model-archive` extension, shown in the app. It makes the
+quality scores of predicted models visible: pLDDT and QMEAN.
 
 ```ts
 export const ModelArchiveExtension: ViewerExtension = {

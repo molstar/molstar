@@ -45,7 +45,7 @@ function getSourceRoots(parents: string[]) {
 
 describe('backend-neutral feature checks', () => {
   const matches = new Map<string, string[]>();
-  for (const root of getSourceRoots(['packages/plugin', 'extensions'])) {
+  for (const root of getSourceRoots(['packages/plugin', 'packages/extensions'])) {
     const patterns = root === 'packages/graphics/src' ? [...MemberPatterns, ...DestructurePatterns] : MemberPatterns;
     for (const file of getSourceFiles(root)) {
       const lines = fs.readFileSync(file, 'utf8').split('\n');
@@ -123,7 +123,7 @@ describe('backend import resolution', () => {
 
 describe('backend-neutral imports', () => {
   const imports = new Map<string, string[]>();
-  for (const root of getSourceRoots(['packages/plugin', 'extensions', 'apps'])) {
+  for (const root of getSourceRoots(['packages/plugin', 'packages/extensions', 'apps'])) {
     for (const file of getSourceFiles(root)) {
       const lines = fs.readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, i) => {
@@ -156,7 +156,7 @@ const NarrowingPatterns = [/\bis(WebGL|WebGPU)Context\(/, /\bas (WebGL|WebGPU)Co
 describe('backend narrowing', () => {
   it('no narrowing to a backend outside gl/webgl/ and gl/webgpu/', () => {
     const violations: string[] = [];
-    for (const root of getSourceRoots(['packages/plugin', 'extensions', 'apps'])) {
+    for (const root of getSourceRoots(['packages/plugin', 'packages/extensions', 'apps'])) {
       for (const file of getSourceFiles(root)) {
         fs.readFileSync(file, 'utf8')
           .split('\n')
@@ -226,7 +226,7 @@ const TargetBindAllowlist: { [file: string]: string } = {
 describe('backend-neutral render state', () => {
   const stateViolations: string[] = [];
   const binds = new Map<string, string[]>();
-  for (const root of getSourceRoots(['packages/plugin', 'extensions', 'apps'])) {
+  for (const root of getSourceRoots(['packages/plugin', 'packages/extensions', 'apps'])) {
     for (const file of getSourceFiles(root)) {
       const lines = fs.readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, i) => {

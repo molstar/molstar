@@ -24,7 +24,7 @@
       "path": "../../packages/plugin/core"
     },
     {
-      "path": "../../extensions/video-export"
+      "path": "../../packages/extensions/video-export"
     },
     {
       "path": "../../packages/mvs/runtime"

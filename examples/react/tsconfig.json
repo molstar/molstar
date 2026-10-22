@@ -9,7 +9,7 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
-      "path": "../../extensions/plugin"
+      "path": "../../packages/extensions/plugin"
     },
     {
       "path": "../../packages/plugin/core"

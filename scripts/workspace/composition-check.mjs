@@ -58,7 +58,7 @@ const [{ DefaultPluginSpec }, { PluginContext }, { createViewerSpec }, { ViewerA
     import(lib('apps/viewer/lib/presets.js')),
     import(lib('packages/plugin/ui/lib/context.js')),
   ]);
-const loaders = await import(lib('extensions/plugin/lib/loaders.js'));
+const loaders = await import(lib('packages/extensions/plugin/lib/loaders.js'));
 const { Script } = await import(lib('packages/model/lib/script/script.js'));
 const { StructureElement } = await import(lib('packages/model/lib/model/structure.js'));
 const { StateTransform } = await import(lib('packages/core/lib/state/transform.js'));

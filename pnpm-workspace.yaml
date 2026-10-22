@@ -5,7 +5,7 @@ packages:
   - 'packages/ai'
   - 'packages/mvs/*'
   - 'packages/sequences/*'
-  - 'extensions/*'
+  - 'packages/extensions/*'
   - 'apps/*'
   - 'examples/*'
   - 'servers/*'

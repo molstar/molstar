@@ -200,91 +200,91 @@
     },
     {
       "name": "@molstar/alpha-orbitals-extension",
-      "path": "extensions/alpha-orbitals",
+      "path": "packages/extensions/alpha-orbitals",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/anvil-extension",
-      "path": "extensions/anvil",
+      "path": "packages/extensions/anvil",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/assembly-symmetry-extension",
-      "path": "extensions/assembly-symmetry",
+      "path": "packages/extensions/assembly-symmetry",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/backgrounds-extension",
-      "path": "extensions/backgrounds",
+      "path": "packages/extensions/backgrounds",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/debug-helpers-extension",
-      "path": "extensions/debug-helpers",
+      "path": "packages/extensions/debug-helpers",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/dnatco-extension",
-      "path": "extensions/dnatco",
+      "path": "packages/extensions/dnatco",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/g3d-extension",
-      "path": "extensions/g3d",
+      "path": "packages/extensions/g3d",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/geo-export-extension",
-      "path": "extensions/geo-export",
+      "path": "packages/extensions/geo-export",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/interactions-extension",
-      "path": "extensions/interactions",
+      "path": "packages/extensions/interactions",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/json-cif-extension",
-      "path": "extensions/json-cif",
+      "path": "packages/extensions/json-cif",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/kinemage-extension",
-      "path": "extensions/kinemage",
+      "path": "packages/extensions/kinemage",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/meshes-extension",
-      "path": "extensions/meshes",
+      "path": "packages/extensions/meshes",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/model-archive-extension",
-      "path": "extensions/model-archive",
+      "path": "packages/extensions/model-archive",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/model-export-extension",
-      "path": "extensions/model-export",
+      "path": "packages/extensions/model-export",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/video-export-extension",
-      "path": "extensions/video-export",
+      "path": "packages/extensions/video-export",
       "kind": "extension",
       "private": false
     },
@@ -296,49 +296,49 @@
     },
     {
       "name": "@molstar/pdbe-extension",
-      "path": "extensions/pdbe",
+      "path": "packages/extensions/pdbe",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/plugin-extension",
-      "path": "extensions/plugin",
+      "path": "packages/extensions/plugin",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/rcsb-extension",
-      "path": "extensions/rcsb",
+      "path": "packages/extensions/rcsb",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/sb-ncbr-extension",
-      "path": "extensions/sb-ncbr",
+      "path": "packages/extensions/sb-ncbr",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/volume-tools-extension",
-      "path": "extensions/volume-tools",
+      "path": "packages/extensions/volume-tools",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/volumes-and-segmentations-extension",
-      "path": "extensions/volumes-and-segmentations",
+      "path": "packages/extensions/volumes-and-segmentations",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/wwpdb-extension",
-      "path": "extensions/wwpdb",
+      "path": "packages/extensions/wwpdb",
       "kind": "extension",
       "private": false
     },
     {
       "name": "@molstar/zenodo-extension",
-      "path": "extensions/zenodo",
+      "path": "packages/extensions/zenodo",
       "kind": "extension",
       "private": false
     },
@@ -476,7 +476,7 @@
     },
     {
       "name": "@molstar/volseg-api-extension",
-      "path": "extensions/volseg-api",
+      "path": "packages/extensions/volseg-api",
       "kind": "extension",
       "private": false
     },

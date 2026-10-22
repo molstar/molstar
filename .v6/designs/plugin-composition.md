@@ -829,7 +829,7 @@ decision needed to remove it; there are none. The pinned exclusions:
 | Other presets          | Every representation preset module except `ball-and-stick` and `types`, every hierarchy preset module except `default`, `crystal-symmetry` (a helper) and `types`                                                                                           |
 | Catalogs               | Every `catalog.ts` (including the preset catalogs and the selection-query catalog, `StructureSelectionQueries`), `default-spec.ts`, `default-registry.ts`, `behavior.ts`, `behavior/dynamic/custom-props.ts`, `state/actions.ts`                            |
 | Script transpilers     | `@molstar/query-language/transpilers/**` (`all`, `pymol`, `vmd`, `jmol`, and the parsers under them)                                                                                                                                                        |
-| Video export           | `@molstar/video-export-extension` (`extensions/video-export/**`)                                                                                                                                                                                            |
+| Video export           | `@molstar/video-export-extension` (`packages/extensions/video-export/**`)                                                                                                                                                                                            |
 
 Beyond the slim target, the default compositions must register the same providers as the step-0 baseline (apart from
 listed intentional differences), existing snapshots must restore in the Viewer, and the error and warning behavior of

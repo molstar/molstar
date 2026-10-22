@@ -9,7 +9,7 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
-      "path": "../../extensions/interactions"
+      "path": "../../packages/extensions/interactions"
     },
     {
       "path": "../../packages/mvs/runtime"

@@ -73,7 +73,7 @@ The code is the truth for how.
 - **Refs start with the behavior's id**; ids are `<owner>.sequence.<name>`, unique (a taken id throws). The spec's own
   behaviors come from `spec.sequence.behaviors`; an extension brings its own (`ViewerExtension.sequence`, viewer-spec.md
   §3; `extensions/host.ts` checks the prefix), overridable by id as any part: model-archive's pLDDT track (README
-  decision 27, `extensions/model-archive/src/prism-viewer.ts`).
+  decision 27, `packages/extensions/model-archive/src/prism-viewer.ts`).
 
 ## 4. Interaction: the link
 

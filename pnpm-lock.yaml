@@ -520,7 +520,7 @@ importers:
     dependencies:
       '@molstar/backgrounds-extension':
         specifier: workspace:*
-        version: link:../../extensions/backgrounds
+        version: link:../../packages/extensions/backgrounds
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -541,7 +541,7 @@ importers:
         version: link:../../packages/plugin/ui
       '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/video-export
+        version: link:../../packages/extensions/video-export
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -618,37 +618,37 @@ importers:
     dependencies:
       '@molstar/anvil-extension':
         specifier: workspace:*
-        version: link:../../extensions/anvil
+        version: link:../../packages/extensions/anvil
       '@molstar/assembly-symmetry-extension':
         specifier: workspace:*
-        version: link:../../extensions/assembly-symmetry
+        version: link:../../packages/extensions/assembly-symmetry
       '@molstar/backgrounds-extension':
         specifier: workspace:*
-        version: link:../../extensions/backgrounds
+        version: link:../../packages/extensions/backgrounds
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@molstar/dnatco-extension':
         specifier: workspace:*
-        version: link:../../extensions/dnatco
+        version: link:../../packages/extensions/dnatco
       '@molstar/g3d-extension':
         specifier: workspace:*
-        version: link:../../extensions/g3d
+        version: link:../../packages/extensions/g3d
       '@molstar/geo-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/geo-export
+        version: link:../../packages/extensions/geo-export
       '@molstar/kinemage-extension':
         specifier: workspace:*
-        version: link:../../extensions/kinemage
+        version: link:../../packages/extensions/kinemage
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
       '@molstar/model-archive-extension':
         specifier: workspace:*
-        version: link:../../extensions/model-archive
+        version: link:../../packages/extensions/model-archive
       '@molstar/model-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/model-export
+        version: link:../../packages/extensions/model-export
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -657,13 +657,13 @@ importers:
         version: link:../../packages/mvs/builder
       '@molstar/pdbe-extension':
         specifier: workspace:*
-        version: link:../../extensions/pdbe
+        version: link:../../packages/extensions/pdbe
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-extension':
         specifier: workspace:*
-        version: link:../../extensions/plugin
+        version: link:../../packages/extensions/plugin
       '@molstar/prism-assistant':
         specifier: workspace:*
         version: link:../../packages/prism/assistant
@@ -675,19 +675,19 @@ importers:
         version: link:../../packages/query-language
       '@molstar/rcsb-extension':
         specifier: workspace:*
-        version: link:../../extensions/rcsb
+        version: link:../../packages/extensions/rcsb
       '@molstar/sb-ncbr-extension':
         specifier: workspace:*
-        version: link:../../extensions/sb-ncbr
+        version: link:../../packages/extensions/sb-ncbr
       '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/video-export
+        version: link:../../packages/extensions/video-export
       '@molstar/wwpdb-extension':
         specifier: workspace:*
-        version: link:../../extensions/wwpdb
+        version: link:../../packages/extensions/wwpdb
       '@molstar/zenodo-extension':
         specifier: workspace:*
-        version: link:../../extensions/zenodo
+        version: link:../../packages/extensions/zenodo
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -712,43 +712,43 @@ importers:
     dependencies:
       '@molstar/anvil-extension':
         specifier: workspace:*
-        version: link:../../extensions/anvil
+        version: link:../../packages/extensions/anvil
       '@molstar/assembly-symmetry-extension':
         specifier: workspace:*
-        version: link:../../extensions/assembly-symmetry
+        version: link:../../packages/extensions/assembly-symmetry
       '@molstar/backgrounds-extension':
         specifier: workspace:*
-        version: link:../../extensions/backgrounds
+        version: link:../../packages/extensions/backgrounds
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@molstar/debug-helpers-extension':
         specifier: workspace:*
-        version: link:../../extensions/debug-helpers
+        version: link:../../packages/extensions/debug-helpers
       '@molstar/dnatco-extension':
         specifier: workspace:*
-        version: link:../../extensions/dnatco
+        version: link:../../packages/extensions/dnatco
       '@molstar/g3d-extension':
         specifier: workspace:*
-        version: link:../../extensions/g3d
+        version: link:../../packages/extensions/g3d
       '@molstar/geo-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/geo-export
+        version: link:../../packages/extensions/geo-export
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../../packages/graphics
       '@molstar/kinemage-extension':
         specifier: workspace:*
-        version: link:../../extensions/kinemage
+        version: link:../../packages/extensions/kinemage
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
       '@molstar/model-archive-extension':
         specifier: workspace:*
-        version: link:../../extensions/model-archive
+        version: link:../../packages/extensions/model-archive
       '@molstar/model-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/model-export
+        version: link:../../packages/extensions/model-export
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -757,13 +757,13 @@ importers:
         version: link:../../packages/mvs/builder
       '@molstar/pdbe-extension':
         specifier: workspace:*
-        version: link:../../extensions/pdbe
+        version: link:../../packages/extensions/pdbe
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-extension':
         specifier: workspace:*
-        version: link:../../extensions/plugin
+        version: link:../../packages/extensions/plugin
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
@@ -772,19 +772,19 @@ importers:
         version: link:../../packages/query-language
       '@molstar/rcsb-extension':
         specifier: workspace:*
-        version: link:../../extensions/rcsb
+        version: link:../../packages/extensions/rcsb
       '@molstar/sb-ncbr-extension':
         specifier: workspace:*
-        version: link:../../extensions/sb-ncbr
+        version: link:../../packages/extensions/sb-ncbr
       '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/video-export
+        version: link:../../packages/extensions/video-export
       '@molstar/wwpdb-extension':
         specifier: workspace:*
-        version: link:../../extensions/wwpdb
+        version: link:../../packages/extensions/wwpdb
       '@molstar/zenodo-extension':
         specifier: workspace:*
-        version: link:../../extensions/zenodo
+        version: link:../../packages/extensions/zenodo
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -930,7 +930,7 @@ importers:
         version: link:../../packages/plugin/headless
       '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/video-export
+        version: link:../../packages/extensions/video-export
       '@types/argparse':
         specifier: 'catalog:'
         version: 2.0.17
@@ -1044,7 +1044,7 @@ importers:
     dependencies:
       '@molstar/alpha-orbitals-extension':
         specifier: workspace:*
-        version: link:../../extensions/alpha-orbitals
+        version: link:../../packages/extensions/alpha-orbitals
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1090,7 +1090,7 @@ importers:
         version: link:../../packages/model
       '@molstar/model-archive-extension':
         specifier: workspace:*
-        version: link:../../extensions/model-archive
+        version: link:../../packages/extensions/model-archive
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
@@ -1133,7 +1133,7 @@ importers:
         version: link:../../packages/model
       '@molstar/pdbe-extension':
         specifier: workspace:*
-        version: link:../../extensions/pdbe
+        version: link:../../packages/extensions/pdbe
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
@@ -1220,7 +1220,7 @@ importers:
         version: link:../../packages/core
       '@molstar/geo-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/geo-export
+        version: link:../../packages/extensions/geo-export
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../../packages/graphics
@@ -1334,7 +1334,7 @@ importers:
         version: link:../../packages/core
       '@molstar/interactions-extension':
         specifier: workspace:*
-        version: link:../../extensions/interactions
+        version: link:../../packages/extensions/interactions
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
@@ -1383,7 +1383,7 @@ importers:
         version: link:../../packages/io
       '@molstar/json-cif-extension':
         specifier: workspace:*
-        version: link:../../extensions/json-cif
+        version: link:../../packages/extensions/json-cif
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
@@ -1589,7 +1589,7 @@ importers:
         version: link:../../packages/plugin/core
       '@molstar/plugin-extension':
         specifier: workspace:*
-        version: link:../../extensions/plugin
+        version: link:../../packages/extensions/plugin
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
@@ -1685,7 +1685,7 @@ importers:
         version: link:../../packages/plugin/ui
       '@molstar/volume-tools-extension':
         specifier: workspace:*
-        version: link:../../extensions/volume-tools
+        version: link:../../packages/extensions/volume-tools
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -1711,825 +1711,6 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 18.3.1(react@18.3.1)
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/alpha-orbitals:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/anvil:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/assembly-symmetry:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/backgrounds:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/debug-helpers:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/dnatco:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/g3d:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/geo-export:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/interactions:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/json-cif:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/kinemage:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      '@types/react':
-        specifier: 'catalog:'
-        version: 18.3.31
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      react:
-        specifier: 'catalog:'
-        version: 18.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/meshes:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/volseg-api-extension':
-        specifier: workspace:*
-        version: link:../volseg-api
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/model-archive:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      '@types/react':
-        specifier: 'catalog:'
-        version: 18.3.31
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      react:
-        specifier: 'catalog:'
-        version: 18.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/model-export:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      '@types/react':
-        specifier: 'catalog:'
-        version: 18.3.31
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      react:
-        specifier: 'catalog:'
-        version: 18.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/pdbe:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/io':
-        specifier: workspace:*
-        version: link:../../packages/io
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/plugin:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/mvs':
-        specifier: workspace:*
-        version: link:../../packages/mvs/runtime
-      '@molstar/mvs-builder':
-        specifier: workspace:*
-        version: link:../../packages/mvs/builder
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      '@types/react':
-        specifier: 'catalog:'
-        version: 18.3.31
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      react:
-        specifier: 'catalog:'
-        version: 18.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/rcsb:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/sb-ncbr:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/meshes-extension':
-        specifier: workspace:*
-        version: link:../meshes
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/video-export:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-headless':
-        specifier: workspace:*
-        version: link:../../packages/plugin/headless
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      h264-mp4-encoder:
-        specifier: 'catalog:'
-        version: 1.0.12
-      mediabunny:
-        specifier: 'catalog:'
-        version: 1.61.3
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/volseg-api:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/volume-tools:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/volumes-and-segmentations:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/meshes-extension':
-        specifier: workspace:*
-        version: link:../meshes
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/volseg-api-extension':
-        specifier: workspace:*
-        version: link:../volseg-api
-      '@types/react':
-        specifier: 'catalog:'
-        version: 18.3.31
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      react:
-        specifier: 'catalog:'
-        version: 18.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/wwpdb:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
-  extensions/zenodo:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      '@molstar/prism-ui':
-        specifier: workspace:*
-        version: link:../../packages/prism/ui
-      '@molstar/prism-viewer':
-        specifier: workspace:*
-        version: link:../../packages/prism/viewer
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2592,6 +1773,825 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/alpha-orbitals:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/anvil:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/assembly-symmetry:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/backgrounds:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/debug-helpers:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/dnatco:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/g3d:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/geo-export:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/interactions:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/json-cif:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/kinemage:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/meshes:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/volseg-api-extension':
+        specifier: workspace:*
+        version: link:../volseg-api
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/model-archive:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/model-export:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/pdbe:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/plugin:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/mvs':
+        specifier: workspace:*
+        version: link:../../mvs/runtime
+      '@molstar/mvs-builder':
+        specifier: workspace:*
+        version: link:../../mvs/builder
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/rcsb:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/sb-ncbr:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/meshes-extension':
+        specifier: workspace:*
+        version: link:../meshes
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/video-export:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-headless':
+        specifier: workspace:*
+        version: link:../../plugin/headless
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      h264-mp4-encoder:
+        specifier: 'catalog:'
+        version: 1.0.12
+      mediabunny:
+        specifier: 'catalog:'
+        version: 1.61.3
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/volseg-api:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/volume-tools:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/volumes-and-segmentations:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/meshes-extension':
+        specifier: workspace:*
+        version: link:../meshes
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/volseg-api-extension':
+        specifier: workspace:*
+        version: link:../volseg-api
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/wwpdb:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/zenodo:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../plugin/ui
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../../prism/viewer
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
@@ -3304,7 +3304,7 @@ importers:
         version: link:../packages/model
       '@molstar/pdbe-extension':
         specifier: workspace:*
-        version: link:../extensions/pdbe
+        version: link:../packages/extensions/pdbe
       '@molstar/query-language':
         specifier: workspace:*
         version: link:../packages/query-language
@@ -3378,7 +3378,7 @@ importers:
     dependencies:
       '@molstar/anvil-extension':
         specifier: workspace:*
-        version: link:../../extensions/anvil
+        version: link:../../packages/extensions/anvil
       '@molstar/common-server':
         specifier: workspace:*
         version: link:../common
@@ -3439,7 +3439,7 @@ importers:
         version: link:../../packages/model
       '@molstar/pdbe-extension':
         specifier: workspace:*
-        version: link:../../extensions/pdbe
+        version: link:../../packages/extensions/pdbe
       '@types/argparse':
         specifier: 'catalog:'
         version: 2.0.17
@@ -3610,16 +3610,16 @@ importers:
     dependencies:
       '@molstar/alpha-orbitals-extension':
         specifier: workspace:*
-        version: link:../extensions/alpha-orbitals
+        version: link:../packages/extensions/alpha-orbitals
       '@molstar/anvil-extension':
         specifier: workspace:*
-        version: link:../extensions/anvil
+        version: link:../packages/extensions/anvil
       '@molstar/core':
         specifier: workspace:*
         version: link:../packages/core
       '@molstar/geo-export-extension':
         specifier: workspace:*
-        version: link:../extensions/geo-export
+        version: link:../packages/extensions/geo-export
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../packages/graphics

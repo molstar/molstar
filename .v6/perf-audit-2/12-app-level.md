@@ -232,7 +232,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 10/P4 | **fixed** (#2026) | `setMaxIndices` on every component Structure (O(N²)) | [structure-info.ts:223](../../packages/plugin/core/src/behavior/dynamic/custom-props/structure-info.ts#L223) | time | medium | `repr:auto` −617 ms (8 %) at N = 500, ~16 % at N = 1000 | S | confirmed | no |
 | 2 | P1 | **fixed** (#2026) | ElementSymbol table of 242k strings at module load | [types.ts:17](../../packages/model/src/model/structure/model/types.ts#L17) | time+memory | medium | −50–75 ms and −21.5 MB per realm | S | confirmed | no |
-| 3 | P9 | **fixed** (#2026) | AFDB PAE reader pulls all of Seq\* into Prism's start closure | [afdb.ts:9](../../extensions/model-archive/src/pae/afdb.ts#L9) | bundle | medium | −1.14 MB raw (~−0.3 MB gzip) from the start closure | S | confirmed | no |
+| 3 | P9 | **fixed** (#2026) | AFDB PAE reader pulls all of Seq\* into Prism's start closure | [afdb.ts:9](../../packages/extensions/model-archive/src/pae/afdb.ts#L9) | bundle | medium | −1.14 MB raw (~−0.3 MB gzip) from the start closure | S | confirmed | no |
 | 4 | 07/P7 | still open | Merge by count only; members keep a full CPU copy | [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127) | memory | high | unshared 1M ball-and-stick retained −1 GB, 5M −4.5 GB | S | confirmed | no (release path is) |
 | 5 | 14/N1 | still open | Hover/select mark every representation | [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54) | time | medium | hover ~5 → <1 ms, select 4.9 → <0.5 ms at N = 500 (before the frozen scene update) | M | confirmed | no |
 | 6 | 14/N2 | still open | Hierarchy rebuilt by a whole-state walk per change | [hierarchy.ts:253](../../packages/plugin/core/src/state/manager/structure/hierarchy.ts#L253) | time | medium | single actions at N = 500 39 → ~15 ms | M | confirmed | no |
@@ -281,7 +281,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 
 ### P9 Seq\* in Prism's start closure (medium, new)
 
-- **Mechanism.** `extensions/model-archive/src/pae/afdb.ts:9` imports `readPae` from the barrel
+- **Mechanism.** `packages/extensions/model-archive/src/pae/afdb.ts:9` imports `readPae` from the barrel
   `@molstar/prism-viewer/sequence/molstar` (`export *` of 14 modules, `link-views` → `@molstar/seq-viewer`). The chain
   `index.ts → spec → full-spec → extensions → model-archive/prism-viewer → pae/operations → pae/afdb → sequence/molstar`
   is all static, so Seq\* loads at start although the spec says it is its own chunk, loaded when a structure is first

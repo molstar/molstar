@@ -18,7 +18,7 @@
       "path": "../../packages/model"
     },
     {
-      "path": "../../extensions/volume-tools"
+      "path": "../../packages/extensions/volume-tools"
     },
     {
       "path": "../../packages/plugin/ui"

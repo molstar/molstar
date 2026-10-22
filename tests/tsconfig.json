@@ -24,13 +24,13 @@
       "path": "../packages/plugin/core"
     },
     {
-      "path": "../extensions/anvil"
+      "path": "../packages/extensions/anvil"
     },
     {
-      "path": "../extensions/alpha-orbitals"
+      "path": "../packages/extensions/alpha-orbitals"
     },
     {
-      "path": "../extensions/geo-export"
+      "path": "../packages/extensions/geo-export"
     },
     {
       "path": "../packages/mvs/runtime"

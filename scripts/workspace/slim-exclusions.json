@@ -50,7 +50,7 @@
     },
     {
       "name": "Video export",
-      "paths": ["extensions/video-export/**"]
+      "paths": ["packages/extensions/video-export/**"]
     },
     {
       "name": "Catalogs and default compositions",

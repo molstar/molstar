@@ -87,7 +87,7 @@ test('the checked-in exclusions pin the spec §12 table', () => {
       'packages/plugin/core/src/state/queries/structure/catalog.ts',
       'packages/query-language/src/transpilers/all.ts',
       'packages/query-language/src/transpilers/pymol/parser.ts',
-      'extensions/video-export/src/index.ts',
+      'packages/extensions/video-export/src/index.ts',
       'packages/graphics/src/theme/color/catalog.ts',
       'packages/plugin/core/src/default-spec.ts',
       'packages/plugin/core/src/default-registry.ts',

@@ -24,7 +24,7 @@
       "path": "../../packages/graphics"
     },
     {
-      "path": "../../extensions/pdbe"
+      "path": "../../packages/extensions/pdbe"
     },
     {
       "path": "../../packages/query-language"

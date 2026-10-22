@@ -24,7 +24,7 @@
       "path": "../cli/structure-info"
     },
     {
-      "path": "../extensions/pdbe"
+      "path": "../packages/extensions/pdbe"
     }
   ]
 }

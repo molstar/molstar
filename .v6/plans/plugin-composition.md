@@ -61,8 +61,8 @@ listed for verification. Keys do not overlap between the two builders.
   `state/manager/structure/hierarchy.ts:229` (`'auto'`, `updateStructure`).
 - `state/actions/structure.ts:308, 321` (`'default'`, `DownloadStructure`), `:501` (`'auto'`, `AddTrajectory`), `:654`
   (`'auto'`, `LoadTrajectory`).
-- `extensions/plugin/src/loaders.ts:80` (`'all-models'`), `:95` (`'default'`), `:390` (`params.preset ?? 'default'`).
-- `extensions/volumes-and-segmentations/src/entry-models.ts:31` (`'default'`).
+- `packages/extensions/plugin/src/loaders.ts:80` (`'all-models'`), `:95` (`'default'`), `:390` (`params.preset ?? 'default'`).
+- `packages/extensions/volumes-and-segmentations/src/entry-models.ts:31` (`'default'`).
 - `examples/interactions/src/index.tsx:155, 161, 250, 254, 309, 313` (`'default'`).
 - `examples/basic-wrapper/src/index.ts:82` (`'default'`).
 - `smoke/headless/capture.mjs:54` and `smoke/browser/library/index.html:15` (`'default'`).
@@ -71,7 +71,7 @@ Documentation examples with `applyPreset(trajectory, 'default')` (unchanged; res
 `docs/docs/plugin/custom-library.md:54, 144`, `docs/docs/plugin/instance.md:151, 201-204, 311`,
 `docs/docs/plugin/transforms/custom-conformation.md:12`, and `docs/docs/plugin/transforms/custom-trajectory.md:47, 73`.
 
-Short keys in `representationPreset` values (6): `extensions/volumes-and-segmentations/src/entry-models.ts:32`
+Short keys in `representationPreset` values (6): `packages/extensions/volumes-and-segmentations/src/entry-models.ts:32`
 (`'polymer-cartoon'`), `examples/interactions/src/index.tsx:156` (`'polymer-cartoon'`), `:162, 255, 314`
 (`'atomic-detail'`), `examples/basic-wrapper/src/index.ts:93` (`'auto'`).
 
@@ -84,7 +84,7 @@ Short-key types, defaults, and lookups:
 - `state/builder/structure/hierarchy-preset.ts:40`:
   `representationPreset: PD.Text<keyof PresetStructureRepresentations>('auto')`; the
   `PresetStructureRepresentations.auto.id` fallbacks at `:80-82`, `:143-145`, `:182-184`, `:275-277`.
-- `extensions/plugin/src/loaders.ts:513`: `LoadTrajectoryParams.preset?: keyof PresetTrajectoryHierarchy`, and the
+- `packages/extensions/plugin/src/loaders.ts:513`: `LoadTrajectoryParams.preset?: keyof PresetTrajectoryHierarchy`, and the
   `preset: 'all-models' // or 'default'` doc comments at `loaders.ts:330` and `apps/viewer/src/app.ts:204` (Viewer API,
   §3.1).
 - `state/actions/structure.ts:41, 290-291`: `PresetStructureRepresentations.auto.id`/`.empty.id`.
@@ -93,11 +93,11 @@ Short-key types, defaults, and lookups:
 
 Value calls into the representation-preset catalog outside it (`PresetStructureRepresentations.auto.apply`), which
 import the auto preset's defining module instead; `auto` pulls in the presets it composes (spec §5.1):
-`extensions/dnatco/src/confal-pyramids/behavior.ts:45`, `extensions/dnatco/src/ntc-tube/behavior.ts:45`,
-`extensions/sb-ncbr/src/tunnels/behavior.ts:96`, `extensions/sb-ncbr/src/partial-charges/preset.ts:26`,
-`extensions/model-archive/src/quality-assessment/behavior.ts:229, 254`,
-`extensions/assembly-symmetry/src/behavior.ts:222`, `extensions/anvil/src/behavior.ts:198`,
-`extensions/rcsb/src/validation-report/behavior.ts:335, 405, 442`, and `apps/viewer/src/presets.ts:47` (an app, allowed
+`packages/extensions/dnatco/src/confal-pyramids/behavior.ts:45`, `packages/extensions/dnatco/src/ntc-tube/behavior.ts:45`,
+`packages/extensions/sb-ncbr/src/tunnels/behavior.ts:96`, `packages/extensions/sb-ncbr/src/partial-charges/preset.ts:26`,
+`packages/extensions/model-archive/src/quality-assessment/behavior.ts:229, 254`,
+`packages/extensions/assembly-symmetry/src/behavior.ts:222`, `packages/extensions/anvil/src/behavior.ts:198`,
+`packages/extensions/rcsb/src/validation-report/behavior.ts:335, 405, 442`, and `apps/viewer/src/presets.ts:47` (an app, allowed
 to keep the catalog, but switched for consistency).
 
 ### 1.4 Data-format `get` checks
@@ -107,7 +107,7 @@ to keep the catalog, but switched for consistency).
 - `state/actions/structure.ts:318` (`DownloadStructure`) and `:591` (`LoadTrajectory`).
 - `state/actions/file.ts:134` (`DownloadFile`).
 - `state/builder/structure.ts:40` (`parseTrajectory`).
-- `extensions/plugin/src/loaders.ts:244` (`loadVolumeFromUrl`).
+- `packages/extensions/plugin/src/loaders.ts:244` (`loadVolumeFromUrl`).
 
 These stay, because they follow a possible `auto()` result: the `'auto'`-or-`get` helper at the top of
 `state/actions/file.ts` (`:20-22`) and the `auto` branch of `state/helpers/particle-targets.ts:180-183`.
@@ -165,7 +165,7 @@ Sites that name a specific preset or provider and change in step 3 (spec §5.2):
 - `packages/plugin/ui/src`: `spec.ts`, new `default-spec.tsx`, `index.ts`, `plugin.tsx`/`ControlsWrapper`, minimal
   structure tools, quick styles, volume controls, script-param control, snapshot controls.
 - `packages/mvs/runtime/src`: `behavior.ts`, `MVSRuntimeRegistry` catalog module, MVSJ/MVSX providers.
-- `extensions/*`: behaviors listed in §1.3, §3.8; `extensions/plugin` loaders and view models; g3d provider.
+- `packages/extensions/*`: behaviors listed in §1.3, §3.8; `packages/extensions/plugin` loaders and view models; g3d provider.
 - `apps/*`, `examples/*`, `cli/*`, `smoke/*`: §3.
 - `scripts/workspace/`: `registry-dump.mjs`, `import-graph.mjs`, `catalogs.json`; `.v6/baselines/*.json`.
 
@@ -303,7 +303,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 - [x] Representation-name handling (spec §4.3): the nine param-definition sites fall back to empty mapped params for
       empty registries; the eight helper sites and `buildRepresentation` check names with `has` and warn with provider
       and scope; they throw for empty registries when given data, and return empty mapped params when called without
-      data (as `StructureFocusRepresentation` and `extensions/meshes/src/examples.ts:148` do); the three representation
+      data (as `StructureFocusRepresentation` and `packages/extensions/meshes/src/examples.ts:148` do); the three representation
       transformers throw in `apply`/`update` for empty registries. No core-state change.
 - [x] `PluginConfig.Structure.DefaultHierarchyPreset`.
 - [x] Add catalogs and `DefaultRegistry` (spec §5.3) and register it alongside the existing constructor preloads;
@@ -407,7 +407,7 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
 ## 3. Per-consumer migration
 
 `check:publish` runs or builds `cli/mvs-render`, `examples/image-renderer`, `examples/glb-export`, the
-`extensions/plugin` view models, and the smoke fixtures, so step 1 and step 2 must migrate them (§3.5–§3.8).
+`packages/extensions/plugin` view models, and the smoke fixtures, so step 1 and step 2 must migrate them (§3.5–§3.8).
 
 ### 3.1 Viewer (`apps/viewer`)
 
@@ -491,11 +491,11 @@ Each step keeps the build, in-repo apps, and the full default Viewer working. St
       keeps the action when the behavior is toggled off. `apps/viewer/src/_test/extension-registry.test.ts` pins this
       for assembly symmetry, tunnels and g3d (count 1 with the behavior, 2 with an app entry listing the same action, 1
       after the behavior is removed, 0 after the entry's undo);
-      `extensions/volumes-and-segmentations/src/_test/behavior.test.ts` does the same for `LoadVolseg`.
-- [x] `extensions/plugin` view models and hooks require an explicit spec; the hooks' `spec: (defaultSpec) => spec` form
+      `packages/extensions/volumes-and-segmentations/src/_test/behavior.test.ts` does the same for `LoadVolseg`.
+- [x] `packages/extensions/plugin` view models and hooks require an explicit spec; the hooks' `spec: (defaultSpec) => spec` form
       is removed, and callers import the default themselves.
 - [x] Replace catalog value imports with defining-module imports (§1.3): nothing remained in `extensions/` (the
-      `AutoPreset` imports were switched in step 1; `extensions/plugin` only has `import type` of catalog modules, which
+      `AutoPreset` imports were switched in step 1; `packages/extensions/plugin` only has `import type` of catalog modules, which
       the import-graph check allows).
 - [x] Replace hand-written provider registration with one `plugin.register(entry)` call and its undo, built in
       `register()` (so it can close over the behavior, as the loci label providers do) and undone in `unregister()`:
@@ -666,7 +666,7 @@ workspace checks (`registry-compare.mjs`, `composition-check.mjs`) after the exi
    (item 3) and the unchanged snapshot format are what make older snapshots restore.
 5. Aliases and errors: `state/builder/structure/_test/preset-aliases.test.ts` (every catalog key and id resolves in the
    default plugin; "give a clear error for an unknown id or alias"), `preset-names.test.ts`, `preset-registry.test.ts`
-   ("resolves by id, then alias", "throws for an unresolved string"); `extensions/plugin/src/_test/loaders.test.ts`
+   ("resolves by id, then alias", "throws for an unresolved string"); `packages/extensions/plugin/src/_test/loaders.test.ts`
    ("applies the 'all-models' preset through its alias, with one structure per frame", "fails with a clear error for an
    unknown preset", "fails with a clear error naming the unregistered format"); `_test/empty-registries.test.ts` ("does
    not use a built-in provider when a name is requested").
