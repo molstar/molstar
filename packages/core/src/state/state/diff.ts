@@ -27,13 +27,35 @@ function checkDeleteVisitor(n: StateTransform, _: any, ctx: FindDeletesCtx) {
 }
 
 /**
- * `findDeletes` when the builder removed at most one node (`TransientTree.Edits.removed`, no dependents removed with
- * it): only that node's subtree in the old tree can be gone, and post-order of a subtree is a run of the whole tree's
+ * `findDeletes` when the builder only removed the nodes `removed` (`TransientTree.Edits.removed`, dependents removed
+ * with one included; reconcile.md §2): only their subtrees in the old tree can be gone. Each topmost one's subtree, in
+ * the old tree's pre-order of those roots: post-order of disjoint subtrees is a run of the whole tree's each, in that
+ * order.
  */
 export function findEditedDeletes(oldTree: StateTree, newTree: StateTree, cells: Cells, removed: readonly Ref[]) {
   const deleteCtx: FindDeletesCtx = { newTree, cells, deletes: [] };
-  if (removed.length === 0 || !oldTree.transforms.has(removed[0])) return deleteCtx.deletes;
-  StateTree.doPostOrder(oldTree, oldTree.transforms.get(removed[0]), deleteCtx, checkDeleteVisitor);
+  if (removed.length === 0) return deleteCtx.deletes;
+  const removedSet = new Set<Ref>();
+  for (const r of removed) if (oldTree.transforms.has(r)) removedSet.add(r);
+  const paths = new Map<Ref, Ref[]>();
+  for (const r of removedSet) {
+    const path = pathOf(oldTree, r);
+    // below another removed node: in that one's subtree
+    let nested = false;
+    for (let i = 0; i < path.length - 1; i++) {
+      if (removedSet.has(path[i])) {
+        nested = true;
+        break;
+      }
+    }
+    if (!nested) paths.set(r, path);
+  }
+  const roots = Array.from(paths.keys());
+  if (roots.length > 1) {
+    const order = childOrder(oldTree);
+    roots.sort((a, b) => comparePreOrder(order, paths.get(a)!, paths.get(b)!));
+  }
+  for (const r of roots) StateTree.doPostOrder(oldTree, oldTree.transforms.get(r), deleteCtx, checkDeleteVisitor);
   return deleteCtx.deletes;
 }
 

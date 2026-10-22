@@ -330,15 +330,56 @@ describe('structure building', async () => {
       expect(b.getStructure().interUnitBonds.edgeCount).toBe(0);
     });
 
-    it('computes when the units are transformed', async () => {
+    // perf-audit-2 05/P14: a rigid motion of every unit keeps every distance between them
+    const motion = () => {
+      const m = Mat4.fromRotation(Mat4(), Math.PI / 3, Vec3.create(1, 2, 3));
+      return Mat4.setTranslation(m, Vec3.create(10, -5, 2));
+    };
+    const stateBonds = (s: Structure) => (s as unknown as { state: { interUnitBonds?: InterUnitBonds } }).state;
+
+    it('restricts them under a common rigid motion, with its components', async () => {
       const root = await rootWithMadeUpBond();
       void root.interUnitBonds;
-      // same unit ids, other operators: computed, so the made-up bond is gone and 7qpd's own 6 are there
-      const moved = Structure.transform(root, Mat4.fromTranslation(Mat4(), Vec3.create(10, 0, 0)));
+      const moved = Structure.transform(root, motion());
       expect(moved.parent).toBe(root);
-      expect(interSignature(moved.interUnitBonds).sorted).toBe(
-        interSignature(Structure.ofModel(m7qpd).interUnitBonds).sorted,
+      // the made-up bond, which a computation would not find
+      expect(moved.interUnitBonds).toBe(root.interUnitBonds);
+      const component = subsetChild(moved, () => false);
+      expect(component.parent).toBe(root);
+      expect(component.interUnitBonds.getEdge(0 as any, root.units[0].id, 0 as any, root.units[1].id)).toBeDefined();
+    });
+
+    it("computes the parent's for a moved structure or component, once", async () => {
+      const root = Structure.ofModel(m1bna);
+      const copies = await cell(root);
+      const moved = Structure.transform(copies, motion());
+      const component = subsetChild(moved, () => false);
+      expect(stateBonds(copies).interUnitBonds).toBeUndefined();
+      const bonds = component.interUnitBonds;
+      expect(stateBonds(copies).interUnitBonds).toBeDefined();
+      expect(Structure.transform(copies, motion()).interUnitBonds).toBe(copies.interUnitBonds);
+      // what the moved structure and its component would compute themselves (symmetry copies, struct_conn)
+      for (const [s, b] of [
+        [moved, moved.interUnitBonds],
+        [component, bonds],
+      ] as const) {
+        const own = computeInterUnitBonds(s, { ignoreWater: true, ignoreIon: true });
+        expect(own.edgeCount).toBeGreaterThan(0);
+        expect(interSignature(b).sorted).toBe(interSignature(own).sorted);
+      }
+    });
+
+    it('computes when the units move apart', async () => {
+      const root = await rootWithMadeUpBond();
+      void root.interUnitBonds;
+      // unit 0 alone moved: the made-up bond is gone and 7qpd's own 6 are there
+      const away = SymmetryOperator.create('away', Mat4.fromTranslation(Mat4(), Vec3.create(100, 0, 0)));
+      const units = root.units.map((u, i) => (i === 0 ? u.applyOperator(u.id, away) : u));
+      const apart = Structure.create(units, { parent: root });
+      expect(interSignature(apart.interUnitBonds).sorted).toBe(
+        interSignature(computeInterUnitBonds(apart, { ignoreWater: true, ignoreIon: true })).sorted,
       );
+      expect(apart.interUnitBonds.getEdge(0 as any, root.units[0].id, 0 as any, root.units[1].id)).toBeUndefined();
     });
   });
 

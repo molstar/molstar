@@ -633,18 +633,12 @@ async function update(ctx: UpdateContext) {
     ctx.editInfo.lastUpdate &&
     ctx.editInfo.sourceTree === ctx.oldTree
   );
-  // a builder on the current tree that only added or updated nodes, with the cells in line with that tree: the
-  // roots of the whole-tree diff are among its edits (reconcile.md §2)
+  // a builder on the current tree that moved no node, with the cells in line with that tree: the deletes of the
+  // whole-tree diff are the subtrees it removed, the roots are among its edits (reconcile.md §2)
   const parent = ctx.parent as unknown as { cellsInSync: boolean };
   const cellsInSync = parent.cellsInSync;
   const edits = ctx.editInfo?.edits;
-  const editsOnly =
-    !fastTrack &&
-    cellsInSync &&
-    !!edits &&
-    !edits.moved &&
-    edits.removed.length <= 1 &&
-    ctx.editInfo!.sourceTree === ctx.oldTree;
+  const editsOnly = !fastTrack && cellsInSync && !!edits && !edits.moved && ctx.editInfo!.sourceTree === ctx.oldTree;
   // until this pass completes: a throw leaves cells behind the tree, which only the whole-tree diff finds
   parent.cellsInSync = false;
 

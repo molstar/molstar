@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -213,6 +213,34 @@ namespace SymmetryOperator {
   export function compose(first: SymmetryOperator, second: SymmetryOperator) {
     const matrix = Mat4.mul(Mat4(), second.matrix, first.matrix);
     return create(second.name, matrix, second);
+  }
+
+  /**
+   * A test, pair by pair, that operators `b` are operators `a` after one common rigid motion `M` (`b = M · a`, the
+   * identity included): `M` is taken from the first pair whose matrices differ, or is the identity when the first
+   * pair's are equal (within 1e-6), and must be rigid (`Mat4.isRigid`, 1e-4); every later pair is checked against it.
+   * Such a motion keeps every distance between points mapped by different operators. `moved`: `M` is not the identity.
+   * Only the matrices are compared. Stop at the first `false`: later pairs are compared with the `M` that failed.
+   */
+  export function rigidMotionTest() {
+    let motion: Mat4 | undefined;
+    const image = Mat4();
+    const test = (a: SymmetryOperator, b: SymmetryOperator) => {
+      const equal = a === b || Mat4.areEqual(a.matrix, b.matrix, 1e-6);
+      if (!motion) {
+        if (equal) {
+          motion = Mat4.identity();
+          return true;
+        }
+        motion = Mat4.mul(Mat4(), b.matrix, a.inverse);
+        test.moved = true;
+        return Mat4.isRigid(motion, 1e-4);
+      }
+      if (!test.moved) return equal;
+      return Mat4.areEqual(Mat4.mul(image, motion, a.matrix), b.matrix, 1e-6);
+    };
+    test.moved = false;
+    return test;
   }
 
   export interface CoordinateMapper<T extends number> {

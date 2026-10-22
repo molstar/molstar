@@ -60,7 +60,7 @@ open 15, regressed 0, dropped 0. The B1 fix introduced a new bug (B11).
 
 | Rank | Id | vs v1 | Title | File | Kind | Impact | Estimate | Effort | Verdict | Frozen |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | P1 | partly fixed | Commits removing 2+ nodes (or moving, or rebased) diff both trees: O(N²) per-structure | [state.ts:646](../../packages/core/src/state/state.ts#L646) | time | high | preset re-apply over N=500 structures 1.4 s → a few ms of diff; N=1000 6.1 s → ~10 ms | M | confirmed | no |
+| 1 | P1 | partly fixed; **fixed** #2025 | Commits removing 2+ nodes (or moving, or rebased) diff both trees: O(N²) per-structure | [state.ts:646](../../packages/core/src/state/state.ts#L646) | time | high | preset re-apply over N=500 structures 1.4 s → a few ms of diff; N=1000 6.1 s → ~10 ms; **measured**: `many --count 500` `represet` (the preset menu over all) 4.1–15.1 → 0.5–0.7 s, alloc 3.08 → 0.37 GB; `remove:all` unchanged | M | confirmed | no |
 | 2 | P15 | new | Every snapshot frame rebuilds and diffs the whole tree | [state.ts:203](../../packages/core/src/state/state.ts#L203) | time | medium | 20-23 ms → ~0.1-0.3 ms per frame at 10k nodes (1.4-1.9 ms at 1k) | M | confirmed | no |
 | 3 | P2 | partly fixed | Whole-tree walks: 2 Immutable lookups per node | [immutable.ts:134](../../packages/core/src/state/tree/immutable.ts#L134) | time | medium | 2.4-2.9 ms per walk at 10k; 20-50x with a memoized pre-order index | L | confirmed | no |
 | 4 | P17 | new | `carryFlagWrites` scans every ref ever flagged | [state.ts:117](../../packages/core/src/state/state.ts#L117) | time | low | 2.6 ms per queued commit at 10k flagged refs, 0.31 ms at 1k | S | confirmed | no |

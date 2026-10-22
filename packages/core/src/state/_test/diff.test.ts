@@ -10,8 +10,7 @@ import { findDeletes, findEditedDeletes, findEditedRoots, findUpdateRoots } from
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
-// A builder on the current tree that added or updated nodes and removed at most one finds its deletes and update roots
-// from its edits (reconcile.md §2); they must be those of the whole-tree diff, in the same order.
+// A builder on the current tree that moved no node finds its deletes and update roots from its edits (reconcile.md §2); they must be those of the whole-tree diff, in the same order.
 
 interface TypeInfo {
   name: string;
@@ -57,6 +56,7 @@ describe('the diff from the edits of a builder', () => {
   it('is the whole-tree diff, in the same order, over random edits', async () => {
     let compared = 0;
     let withRemoval = 0;
+    let withRemovals = 0;
     for (let seed = 1; seed <= 40; seed++) {
       const rnd = random(seed);
       const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
@@ -76,18 +76,24 @@ describe('the diff from the edits of a builder', () => {
           else if (op < 0.65) b.to(pick(nonRoot)).update({ value: value() });
           else if (op < 0.75) b.to(pick(nonRoot)).updateState({ isHidden: rnd() < 0.5 });
           else if (op < 0.83) b.to(pick(nonRoot)).tag(`t${Math.floor(rnd() * 3)}`);
-          else if (op < 0.9) b.currentTree.setTags(pick(nonRoot), [`d${Math.floor(rnd() * 3)}`]);
-          else if (op < 0.95)
+          else if (op < 0.88) b.currentTree.setTags(pick(nonRoot), [`d${Math.floor(rnd() * 3)}`]);
+          else if (op < 0.92)
             b.to(pick(nonRoot)).update({ value: 1 }); // often unchanged
-          else b.delete(pick(nonRoot));
+          else if (op < 0.97) b.delete(pick(nonRoot));
+          else {
+            // a node and one of its ancestors, or two unrelated ones, in either order
+            const r = pick(nonRoot);
+            const t = b.currentTree.transforms.get(r);
+            b.delete(rnd() < 0.5 ? r : pick(nonRoot));
+            if (b.currentTree.transforms.has(t.parent)) b.delete(t.parent);
+          }
         }
         const tree = b.getTree();
         const info = b.editInfo;
-        // the cases the reconciler takes the edits for: not the fast track, nothing moved, at most one removal, cells
-        // in line with the tree
+        // the cases the reconciler takes the edits for: not the fast track, nothing moved, cells in line with the tree
         const inSync = (state as unknown as { cellsInSync: boolean }).cellsInSync;
         const edits = info.edits!;
-        if (inSync && !edits.moved && edits.removed.length <= 1 && info.count !== 1) {
+        if (inSync && !edits.moved && info.count !== 1) {
           const cells = state.cells;
           expect(findEditedDeletes(state.tree, tree, cells, edits.removed)).toEqual(
             findDeletes(state.tree, tree, cells),
@@ -95,12 +101,14 @@ describe('the diff from the edits of a builder', () => {
           expect(findEditedRoots(cells, tree, edits.refs)).toEqual(findUpdateRoots(cells, tree));
           compared++;
           if (edits.removed.length) withRemoval++;
+          if (edits.removed.length > 1) withRemovals++;
         }
         await state.runTask(state.updateTree(b, { doNotLogTiming: true }));
       }
     }
     expect(compared).toBeGreaterThan(300);
     expect(withRemoval).toBeGreaterThan(20);
+    expect(withRemovals).toBeGreaterThan(20);
   });
 
   it('finds the cells an update that threw left behind, as the whole-tree diff does', async () => {
@@ -151,6 +159,7 @@ describe('the diff from the edits of a builder', () => {
 
   it('gives the same cells and events as the whole-tree diff, through updateTree', async () => {
     let fromEdits = 0;
+    let withRemovals = 0;
     for (let seed = 1; seed <= 30; seed++) {
       const rnd = random(1000 + seed);
       const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)];
@@ -219,8 +228,11 @@ describe('the diff from the edits of a builder', () => {
             await s.runTask(s.updateTree(other, { doNotLogTiming: true })).catch(() => {});
           }
           if (s === twin) (s as unknown as { cellsInSync: boolean }).cellsInSync = false;
-          else if (!rebase && b.editInfo.count !== 1 && (s as unknown as { cellsInSync: boolean }).cellsInSync)
+          else if (!rebase && b.editInfo.count !== 1 && (s as unknown as { cellsInSync: boolean }).cellsInSync) {
             fromEdits++;
+            // several removals, or one that removed its dependents too
+            if (b.editInfo.edits!.removed.length > 1) withRemovals++;
+          }
           await s.runTask(s.updateTree(b, { doNotLogTiming: true })).catch(() => {});
         }
         const cells = (s: State) =>
@@ -236,5 +248,6 @@ describe('the diff from the edits of a builder', () => {
       }
     }
     expect(fromEdits).toBeGreaterThan(200);
+    expect(withRemovals).toBeGreaterThan(20);
   });
 });

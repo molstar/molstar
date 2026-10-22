@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
@@ -183,6 +184,7 @@ export const MetalCoordinationProvider: ContactProvider<MetalCoordinationParams>
         FeatureType.IonicTypePartner,
         FeatureType.DativeBondPartner,
       ]),
+      acceptsTypes: (a, b) => !!(isMetalCoordination(a, b) || isMetalCoordination(b, a)),
       getType: (structure, infoA, infoB, distanceSq) => testMetalCoordination(structure, infoA, infoB, distanceSq),
     };
   },
