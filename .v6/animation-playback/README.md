@@ -27,6 +27,28 @@ Order: the bench, then the bugs (1, 2), then the work per frame from the bottom 
 state-level change (7). Step 7 changes how a snapshot is applied, so it needs the core state spec, and the steps before
 it make its gain measurable on its own.
 
+## Summary: baseline → the branch
+
+The bench at the end (median of 3 runs, the MVS and snapshot scenes in one process and the trajectory scenes in
+another), against the baseline below. ms/applied: per frame that changed the state; ms/tick: the median tick (ticks
+between frames included).
+
+| Scene                          |    ms/applied | ms/tick med |        KB/tick | Cells/tick u / R            | setSnapshot |       Log |     Marks |
+| ------------------------------ | ------------: | ----------: | -------------: | --------------------------- | ----------: | --------: | --------: |
+| snapshots:plain                |     1.1 → 0.9 | 0.03 → 0.00 |       98 → 47  | 0.05 / 0 → 0.05 / 0         |   181 → 31  |    9 → 0  |         0 |
+| mvs:exosome                    |     4.7 → 3.0 | 3.98 → 2.78 | 3,946 → 2,724  | 17.52 / 0 → 17.58 / 0       |  601 → 419  | 10,515 → 0 |         0 |
+| traj:nmr:preset                |     2.2 → 1.8 | 0.45 → 0.03 | 1,347 → 926    | 2.25 / 2.25 → 4.5 / 0       |           0 |         0 |   27 → 0  |
+| traj:nmr:preset+focus+select   |     5.8 → 4.7 | 2.63 → 0.03 | 6,435 → 1,985  | 5.7 / 2.65 → 6.75 / 0       |           0 |         0 |       108 |
+| traj:synth:preset              |    13.2 → 9.2 | 0.16 → 0.03 | 8,919 → 4,068  | 2.44 / 1.95 → 4.39 / 0      |           0 |         0 |  117 → 0  |
+| traj:synth:preset+focus+select |   14.5 → 12.7 | 9.07 → 0.03 | 10,746 → 5,303 | 6.3 / 2.42 → 6.83 / 0       |           0 |         0 |       468 |
+| traj:synth:cartoon             |    11.9 → 8.4 | 0.15 → 0.03 | 6,689 → 3,629  | 1.46 / 1.46 → 2.92 / 0      |           0 |         0 |   39 → 0  |
+| traj:synth:ball-and-stick      |     8.0 → 5.1 | 0.17 → 0.03 | 6,266 → 1,361  | 1.46 / 1.46 → 2.92 / 0      |           0 |         0 |   39 → 0  |
+| traj:synth:gaussian-surface    | 296.0 → 292.6 | 0.23 → 0.03 | 11,699 → 11,381 | 1.46 / 1.46 → 2.92 / 0     |           0 |         0 |   39 → 0  |
+
+New scenes (no baseline): snapshots:effects 0.72 ms/applied; traj:nmr:preset+focus 4.64; traj:synth:preset+overpaint
+9.17. With a selection the marks stay (they are applied again on every frame: review gate 1). What is left in a frame:
+the geometry for the new coordinates (trajectories), and on the exosome the `gl/` checks and merging (Open).
+
 ## Baseline (step 0)
 
 `tests/src/pipeline/playback.ts`, run by `node scripts/pipeline-bench.mjs playback` (its header has the options). A real
