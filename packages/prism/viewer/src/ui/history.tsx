@@ -138,10 +138,15 @@ export function historyTab(
     render: domView<ShellViewContext>(({ ctx }) => {
       const compact = derive(ctx.shell.mode, (m) => m === 'compact');
       // Split, both halves are always in view (the log at `log` too).
-      const half = (title: string, body: () => Child) => (
+      // The log scrolls on its own (a virtual list under its filters): its half only holds it.
+      const half = (title: string, body: () => Child, scrolls = false) => (
         <section class={classes.half} aria-label={title}>
           <h3 class={classes.halfTitle}>{title}</h3>
-          <ScrollArea class={classes.halfBody}>{body()}</ScrollArea>
+          {scrolls ? (
+            <div class={classes.halfFill}>{body()}</div>
+          ) : (
+            <ScrollArea class={classes.halfBody}>{body()}</ScrollArea>
+          )}
         </section>
       );
       // A kept record opened from Home shows in its place, read-only, until "Back to this session".
@@ -158,7 +163,7 @@ export function historyTab(
           fallback={() => (
             <div class={classes.split}>
               {half('Steps', steps)}
-              {half('Log', log)}
+              {half('Log', log, true)}
             </div>
           )}
         >

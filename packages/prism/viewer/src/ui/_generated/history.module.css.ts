@@ -19,6 +19,7 @@ export const classes = {
   'empty': 'msp-viewer-history-empty',
   'half': 'msp-viewer-history-half',
   'halfBody': 'msp-viewer-history-halfBody',
+  'halfFill': 'msp-viewer-history-halfFill',
   'halfTitle': 'msp-viewer-history-halfTitle',
   'history': 'msp-viewer-history-history',
   'kept': 'msp-viewer-history-kept',
@@ -299,10 +300,19 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
   min-height: 0;
 }
 
+.msp-viewer-history-halfFill {
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+}
+
 .msp-viewer-history-tabs {
   gap: var(--msp-space-2);
   padding-inline: var(--msp-panel-inset);
-  display: grid;
+  flex-direction: column;
+  flex: 1 0 auto;
+  display: flex;
 }
 }
 `);

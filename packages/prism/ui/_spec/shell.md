@@ -138,11 +138,15 @@ buttons) is the app's. The code is the truth for how.
   spinner and replaced Cancel under a press.
 - **The log** (`LogView`, the History panel's Log): the messages the status line showed, each with its `detail` (how
   long its run took; the status line never shows it), and what was written to the log only (`log(text, kind, source)`:
-  never on show, never said, never in `history`, which stays the messages shown; the Log reads `logged`; a source keeps
-  its own bound, `keep`, so a burst does not push the messages out; written once a task, a burst one change). One sticky
-  line above the entries: the filters as icon toggles (All, Messages, one per source written, Problems: warnings and
-  errors; each named in its tooltip; the filter is the model's, `logFilter`, so every Log view and the status line share
-  it), then a text filter (Escape empties it).
+  never on show, never said, never in `history`, which stays the messages shown; the Log reads `logged`; written once a
+  task, a burst one change). **One bound** for every source together (`logSize`, 300; David 2026-10-22): past it the
+  oldest entries go, warnings and errors last, so a burst (a load's transforms, plugin warnings) never pushes a problem
+  out while anything else is left to drop. Why: one number says how much the Log holds, and the problems are what a
+  person opens it for. The entries are a virtual list (`RecycledList`, one-line recycled rows; a long line fades and its
+  tooltip has the rest), filling the Log's parent (a flex column). One line above the entries: the filters as icon
+  toggles (All, Messages, one per source written, `logSources`, Problems: warnings and errors; each named in its
+  tooltip; the filter is the model's, `logFilter`, so every Log view and the status line share it), then a text filter
+  (Escape empties it).
 - **Busy overlay**: a task with `overlay` holds the app: a scrim and one card with its progress and Cancel.
 - **Dropping files** anywhere shows the drop overlay (`dropFormats`) and hands the files to `onDropFiles`; without
   `onDropFiles`, no overlay.

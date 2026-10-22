@@ -6,18 +6,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+/* Fills its parent (a flex column): the filters, then the entries, a virtual list that scrolls on its own. */
 .log {
-  display: grid;
+  --msp-scroll-edge: var(--msp-panel-inset);
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
   gap: var(--msp-space-2);
-  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  min-height: 0;
+  padding: 0 var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
 }
 
 .filters {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: flex;
+  flex: none;
   align-items: center;
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-3);
@@ -36,18 +39,22 @@
 }
 
 .entries {
-  display: grid;
+  min-height: 0;
 }
 
 .empty {
+  flex: none;
+  margin: 0;
   padding: var(--msp-space-4);
   color: var(--msp-color-text-muted);
 }
 
+/* One line (rows of one height, a virtual list's): a long text fades at its end, its tooltip has the rest. */
 .entry {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: baseline;
+  white-space: nowrap;
   gap: var(--msp-space-3);
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
@@ -75,7 +82,12 @@
 }
 
 .text {
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
 }
 
 .detail {

@@ -282,9 +282,19 @@
   min-height: 0;
 }
 
-/* Compact: Steps or Log, one at a time. */
+/* A half whose view scrolls on its own (the Log): a flex column it fills. */
+.halfFill {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Compact: Steps or Log, one at a time; at least the panel's height, so the Log (a virtual list) fills it. */
 .tabs {
-  display: grid;
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
   gap: var(--msp-space-2);
   padding-inline: var(--msp-panel-inset);
 }
