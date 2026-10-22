@@ -432,6 +432,7 @@ const scenes: Scene[] = [
   ...(mvsx ? [{ name: `mvs:${path.basename(path.dirname(mvsx))}/${path.basename(mvsx, '.mvsx')}` }] : []),
   { name: 'traj:nmr:preset', reprs: 'preset' },
   { name: 'traj:nmr:preset+focus+select', reprs: 'preset', focus: true, select: true },
+  { name: 'traj:nmr:preset+focus', reprs: 'preset', focus: true },
   { name: 'traj:synth:preset', reprs: 'preset' },
   { name: 'traj:synth:preset+focus+select', reprs: 'preset', focus: true, select: true },
   { name: 'traj:synth:cartoon', reprs: 'cartoon' },

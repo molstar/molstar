@@ -15,7 +15,7 @@ relative to `packages/`.
 | ---- | ---------------------- | ------------------------------------------------------------------------- | ------ |
 | 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) |
 | 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped |
-| 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | open   |
+| 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | open   |
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | open   |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | open   |
@@ -131,6 +131,20 @@ One line per id as it lands: the commit's before → after on the bench (median 
   2 with one representation). Gaussian surface unchanged (296 → 301, the surface itself). Tests:
   `plugin/core/src/state/animation/_test/trajectory.test.ts` (the asset disposed, the cell recreated before). Also in
   5.x: root `CHANGELOG.md`.
+
+- **T2: not reached today, done with T3.** A static component never gets to its remap path during playback:
+  `Structure.areEquivalent(a, cache.source)` compares unit conformations by identity, so every frame recreates the
+  component and runs its query again (T3). Once T3 remaps the component, the separate roots of `remapModel` would
+  appear, so T3's commit passes the shared root. The test (`trajectory.test.ts`, "share the remapped root") passes
+  before and after.
+- **T5 (focus) and B1** (`structure-focus-representation.ts`: `focus()` commits nothing when the target's residue bundle
+  is the one its selection has; the param changes force it). Per frame the focus manager remaps its loci and the
+  behavior committed a second update, which rebuilt the surroundings expression, recreated that selection and updated
+  the three focus representations, after the frame's own update had already moved them. B1 was that second update
+  still queued when the plugin is disposed: it rebuilt the interactions on a structure whose properties the dispose
+  had cleared. synth+focus+select: 77 → 39 ticks with updates, 7,028 → 5,727 KB/tick, 2.16 → 0.14 ms/tick med (the
+  frame's work is now in one tick: 10.85 → 11.84 ms/applied); nmr+focus+select 2,547 → 2,014 KB/tick. Tests: two in
+  `trajectory.test.ts` (2 updates per frame, and the throw after dispose, before).
 
 ## Snapshot and MVS playback
 

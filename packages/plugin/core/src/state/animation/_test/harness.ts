@@ -8,6 +8,7 @@
 // animation manager synchronously (`tick(t, true)` awaits each frame). What a tick did is read from the counters.
 
 import { vi } from 'vitest';
+import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import type { PluginState } from '@molstar/plugin/state';
@@ -21,6 +22,8 @@ export async function createPlaybackPlugin(spec: PluginSpec = { behaviors: [] })
   await plugin.init();
   const canvas3d = {
     props: {},
+    camera: new Camera(),
+    boundingSphere: { center: [0, 0, 0], radius: 0 },
     setProps: vi.fn(),
     requestCameraReset: vi.fn(),
     requestDraw: vi.fn(),
@@ -30,6 +33,7 @@ export async function createPlaybackPlugin(spec: PluginSpec = { behaviors: [] })
     mark: vi.fn(),
     commit: vi.fn(),
     syncVisibility: vi.fn(),
+    dispose: vi.fn(),
   };
   (plugin as any).canvas3d = canvas3d;
   const counts = { setSnapshot: 0, changed: 0, updated: 0, recreated: 0, created: 0, removed: 0 };

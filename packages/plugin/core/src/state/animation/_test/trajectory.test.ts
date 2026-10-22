@@ -6,7 +6,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
-import type { Model } from '@molstar/model/model/structure';
+import { type Model, Structure, StructureElement } from '@molstar/model/model/structure';
+import { OrderedSet } from '@molstar/core/data/int';
 import { CustomModelProperty } from '@molstar/model/props/common/custom-model-property';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -72,3 +73,92 @@ describe('a trajectory frame', () => {
     expect(counts.recreated - recreated).toBe(0);
   });
 });
+
+describe('the components of a trajectory frame', () => {
+  async function components() {
+    const env = await createPlaybackPlugin(DefaultPluginSpec());
+    const { plugin } = env;
+    const { model } = await loadEnsemble(plugin);
+    const structure = await plugin.builders.structure.createStructure(model);
+    const polymer = await plugin.builders.structure.tryCreateComponentStatic(structure, 'polymer');
+    const water = await plugin.builders.structure.tryCreateComponentStatic(structure, 'water');
+    const data = (ref: string) => plugin.state.data.cells.get(ref)!.obj!.data as Structure;
+    return {
+      ...env,
+      model,
+      root: () => data(structure.ref),
+      polymer: () => data(polymer!.ref),
+      water: () => data(water!.ref),
+    };
+  }
+
+  it('share the remapped root (T2)', async () => {
+    const { plugin, model, root, polymer, water } = await components();
+    expect(polymer().root).toBe(root());
+    for (const i of [1, 2]) {
+      await setFrame(plugin, model.ref, i);
+      expect(root().model.modelNum).toBe(i + 1);
+      expect(polymer().root).toBe(root());
+      expect(water().root).toBe(root());
+      expect(Structure.areRootsEquivalent(polymer(), water())).toBe(true);
+      // the root's property data, which components inherit (secondary structure, ASA)
+      expect(polymer().inheritedPropertyData).toBe(root().inheritedPropertyData);
+    }
+  });
+
+  it("take the frame's coordinates", async () => {
+    const { plugin, model, root, polymer } = await components();
+    await setFrame(plugin, model.ref, 2);
+    const u = polymer().units[0];
+    const r = root().unitMap.get(u.id);
+    expect(u.conformation.x(u.elements[0])).toBe(r.conformation.x(u.elements[0]));
+    expect(u.model).toBe(root().model);
+  });
+});
+
+describe('a focused trajectory frame', () => {
+  async function focused() {
+    const env = await createPlaybackPlugin(DefaultPluginSpec());
+    const { plugin } = env;
+    const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 6, true), label: 'ensemble' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    const s = plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data;
+    const unit = s.units[0];
+    plugin.managers.structure.focus.setFromLoci(
+      StructureElement.Loci(s, [{ unit, indices: OrderedSet.ofBounds(10, 15) as any }]),
+    );
+    await flush(plugin);
+    const model = plugin.managers.structure.hierarchy.current.models[0].cell.transform.ref;
+    return { ...env, model };
+  }
+
+  it('commits one update, not a second one for the focus (T5)', async () => {
+    const { plugin, model } = await focused();
+    const updates = vi.fn();
+    plugin.state.data.events.changed.subscribe(updates);
+    await setFrame(plugin, model, 1);
+    await flush(plugin);
+    expect(updates).toHaveBeenCalledTimes(1);
+    // the target selection followed the frame in that update
+    const target = [...plugin.state.data.cells.values()].find((c) => c.obj?.label === '[Focus] Target')!;
+    expect((target.obj!.data as Structure).model.modelNum).toBe(2);
+  });
+
+  it('can be disposed right after a frame (B1)', async () => {
+    const { plugin, model } = await focused();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await setFrame(plugin, model, 1);
+    plugin.dispose();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(errors.mock.calls.map((c) => String(c[0]))).toEqual([]);
+  });
+});
+
+/** until the state has no update queued */
+async function flush(plugin: PluginContext) {
+  for (let i = 0; i < 10; i++) {
+    await new Promise((r) => setTimeout(r, 0));
+    if (!plugin.state.data.behaviors.isUpdating.value) return;
+  }
+}

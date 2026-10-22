@@ -15,3 +15,5 @@
   (exosome story: 4.6 → 3.7 ms per frame)
 - Playing a trajectory updates the model in place and keeps the custom properties its frames share; every frame
   disposed their assets (11.5k atoms, the default preset: 13.2 → 9.5 ms and 8.9 → 4.4 MB allocated per frame)
+- With a focus, a trajectory frame is one state update: the focus representation committed a second one per frame,
+  and disposing the plugin right after a frame threw in the focus interactions
