@@ -89,3 +89,50 @@ export async function play(plugin: PluginContext, untilMs: number) {
   }
   return ticks;
 }
+
+/**
+ * A PDB ensemble of `models` models of a `residues`-residue alanine chain A (N, CA, C, O, CB) and, with `ligand`, a
+ * water; each model moves every atom by up to 0.3 Å (a fixed sequence, so every run reads the same file).
+ */
+export function pdbEnsemble(models: number, residues: number, ligand = false) {
+  let seed = 11;
+  const jitter = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 0.6;
+  const atoms: [string, string][] = [
+    ['N', 'N'],
+    ['CA', 'C'],
+    ['C', 'C'],
+    ['O', 'O'],
+    ['CB', 'C'],
+  ];
+  const offsets = [
+    [0, 0, 0],
+    [1.46, 0, 0],
+    [2.0, 1.42, 0],
+    [1.25, 2.4, 0],
+    [2.0, -0.77, 1.2],
+  ];
+  const coord = (v: number) => v.toFixed(3).padStart(8);
+  const lines: string[] = [];
+  for (let m = 1; m <= models; m++) {
+    lines.push(`MODEL     ${String(m).padStart(4)}`);
+    let serial = 1;
+    for (let r = 1; r <= residues; r++) {
+      for (let k = 0; k < atoms.length; k++) {
+        const [name, element] = atoms[k];
+        const [x, y, z] = offsets[k];
+        lines.push(
+          `ATOM  ${String(serial++).padStart(5)}  ${name.padEnd(3)} ALA A${String(r).padStart(4)}    ` +
+            `${coord(x + 3.8 * r + jitter())}${coord(y + jitter())}${coord(z + jitter())}  1.00  0.00          ${element.padStart(2)}`,
+        );
+      }
+    }
+    if (ligand) {
+      lines.push(
+        `HETATM${String(serial++).padStart(5)}  O   HOH B   1    ${coord(3.8 + jitter())}${coord(5 + jitter())}${coord(jitter())}  1.00  0.00           O`,
+      );
+    }
+    lines.push('ENDMDL');
+  }
+  lines.push('END');
+  return lines.join('\n');
+}

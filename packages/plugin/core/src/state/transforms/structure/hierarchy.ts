@@ -11,7 +11,7 @@ import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/s
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type StateTransform, StateTransformer } from '@molstar/core/state';
 import { Task, type RuntimeContext } from '@molstar/core/task';
-import { type Coordinates, Structure, Model, type Frame } from '@molstar/model/model/structure';
+import { type Coordinates, Structure, Model, type Frame, type Trajectory } from '@molstar/model/model/structure';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -60,6 +60,15 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
 const plus1 = (v: number) => v + 1,
   minus1 = (v: number) => v - 1;
 
+async function modelAtIndex(trajectory: Trajectory, index: number, ctx: RuntimeContext) {
+  let modelIndex = Math.round(index) % trajectory.frameCount;
+  if (modelIndex < 0) modelIndex += trajectory.frameCount;
+  const model = await Task.resolveInContext(trajectory.getFrameAtIndex(modelIndex), ctx);
+  const label = `Model ${modelIndex + 1}`;
+  const description = trajectory.frameCount === 1 ? undefined : `of ${trajectory.frameCount}`;
+  return { model, label, description };
+}
+
 export { ModelFromTrajectory };
 type ModelFromTrajectory = typeof ModelFromTrajectory;
 const ModelFromTrajectory = PluginStateTransform.BuiltIn({
@@ -87,12 +96,20 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
   isApplicable: (a) => a.data.frameCount > 0,
   apply({ a, params }) {
     return Task.create('Model from Trajectory', async (ctx) => {
-      let modelIndex = Math.round(params.modelIndex) % a.data.frameCount;
-      if (modelIndex < 0) modelIndex += a.data.frameCount;
-      const model = await Task.resolveInContext(a.data.getFrameAtIndex(modelIndex), ctx);
-      const label = `Model ${modelIndex + 1}`;
-      const description = a.data.frameCount === 1 ? undefined : `of ${a.data.frameCount}`;
+      const { model, label, description } = await modelAtIndex(a.data, params.modelIndex, ctx);
       return new SO.Molecule.Model(model, { label, description });
+    });
+  },
+  update({ a, b, newParams }) {
+    // A new frame updates the cell in place: recreating it disposed the old frame's custom properties, which the
+    // trajectory's frames share (`{ ...previous }`), on every frame of a playing trajectory.
+    return Task.create('Model from Trajectory', async (ctx) => {
+      const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx);
+      if (model === b.data) return StateTransformer.UpdateResult.Unchanged;
+      b.data = model;
+      b.label = label;
+      b.description = description;
+      return StateTransformer.UpdateResult.Updated;
     });
   },
   interpolate(a, b, t) {

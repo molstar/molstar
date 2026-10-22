@@ -124,6 +124,14 @@ One line per id as it lands: the commit's before → after on the bench (median 
   exosome it changes nothing: `normalizeParams` ran 10,520 times over 300 ticks with and without it, and ms/applied
   stayed at 3.72 → 3.74. The nodes a frame evaluates there have new versions. Not worth a new rule in `tree.md`.
 
+- **T1** (`ModelFromTrajectory.update`: the new frame's model in place, nothing disposed; `dispose` on delete stays).
+  Confirmed first: a frame change disposed the assets of a property attached to any frame. ms/applied: synth preset
+  13.17 → 9.53, cartoon 11.94 → 8.35, ball-and-stick 8.01 → 5.05, preset+focus+select 14.47 → 10.85; nmr+focus 5.75 →
+  3.40. KB/tick: synth preset 8,919 → 4,351, ball-and-stick 6,266 → 1,443. Recreated cells per frame: one fewer (3 →
+  2 with one representation). Gaussian surface unchanged (296 → 301, the surface itself). Tests:
+  `plugin/core/src/state/animation/_test/trajectory.test.ts` (the asset disposed, the cell recreated before). Also in
+  5.x: root `CHANGELOG.md`.
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip
