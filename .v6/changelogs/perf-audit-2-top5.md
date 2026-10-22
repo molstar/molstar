@@ -10,7 +10,8 @@
   and each feature is queried only as far as its type's partners need. Contacts are the same, in the same order.
   Interactions: 1tup ×32 0.71–0.73 → 0.41–0.54 s, asm-192 2.3–2.7 → 1.1–1.5 s (#2025)
 - Model: a moved structure (`Structure.transform`: superposition, Prism's structure move) and its components restrict
-  the root's inter-unit bonds instead of computing their own at every move. If the root has none yet, it computes them
+  the root's inter-unit bonds instead of computing their own at every move (the test is the new
+  `SymmetryOperator.rigidMotionTest`). If the root has none yet, it computes them
   once. asm-192: 320–730 → 0.6–1.8 ms for the moved structure, 310–540 → 17–38 ms for its polymer component (#2025)
 - State: a builder commit that removes several nodes (or one with dependents) is diffed from its edits, not from both
   whole trees. Re-applying a representation preset to 500 structures: 4.1–15.1 → 0.5–0.7 s, 3.1 → 0.4 GB allocated (#2025)
