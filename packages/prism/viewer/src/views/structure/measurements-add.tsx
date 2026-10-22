@@ -23,9 +23,9 @@ import { reorderRows } from '@molstar/prism-ui/components/reorder/drag-to-reorde
 const MaxPoints = 4;
 
 /**
- * Adding measurements (the Selection tab's Measure section, after Mol*'s measurement controls): the points (the latest
- * selections, in order, the first four used; reorder, remove, a click focuses one), what can be measured from them
- * (each enabled once there are enough points), and the options.
+ * Adding measurements (the Selection tab's Measure and Label section, after Mol*'s measurement controls): the points
+ * (the latest selections, in order, the first four used; reorder, remove, a click focuses one), what can be measured
+ * from them (each enabled once there are enough points), and the options.
  */
 export function MeasurementsAdd(props: { model: MeasurementsModel }) {
   const { model } = props;

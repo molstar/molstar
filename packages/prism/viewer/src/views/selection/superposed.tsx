@@ -17,8 +17,9 @@ import type { SuperposedEntry } from '../../model/superposition.js';
 import { classes } from './_generated/selection-lists.module.css.js';
 
 /**
- * The superpositions made (under the Superpose section's footer, as the Measure section's Added list): a row each, the
- * moved structure and how it was superposed, ✕ puts it back where it was loaded; Clear all with more than one.
+ * The superpositions made (under the Superpose section's footer, as the Measure and Label section's Added list): a row
+ * each, the moved structure and how it was superposed, ✕ puts it back where it was loaded; Clear all with more than
+ * one.
  */
 export function Superposed(props: {
   made: ReadonlyState<readonly SuperposedEntry[]>;

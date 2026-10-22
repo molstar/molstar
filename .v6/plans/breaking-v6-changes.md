@@ -1128,3 +1128,10 @@ representation: an options change replaces the objects it put there before with 
 representation's own, from a clipping editor or code; `RepresentationClip.replaceOwned`,
 `@molstar/plugin/state/helpers/representation-clip`). It used to overwrite `type.params.clip` whole, `variant`
 included; a representation with objects of its own now keeps its `variant`.
+
+## The snapshot manager's time has its own event
+
+`PluginStateSnapshotManager.events.changed` no longer emits when only `state.currentAnimationTimeMs` moves (every tick
+of a playing transition, a scrub): `events.animationTimeChanged` does. A view that shows the time subscribes to both
+(`changed` still covers a new current snapshot, which resets the time). Every reader of the entries used to wake at the
+frame rate.

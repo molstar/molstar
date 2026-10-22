@@ -5,12 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { deepEqual } from '@molstar/core/util';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Script } from '@molstar/model/script/script';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
-import { type Structure, StructureElement } from '@molstar/model/model/structure';
+import { StructureElement } from '@molstar/model/model/structure';
 import { StateTransformer } from '@molstar/core/state';
 import { registerTransformLayer } from '@molstar/plugin/state/precompile';
 
@@ -61,15 +62,18 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     );
   },
   update({ a, b, newParams, oldParams }) {
-    const structure = b.data.info as Structure;
-    if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structure = a.data.sourceData;
+    const structureChanged = structure !== b.data.info;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldClipping = b.data.state.clipping!;
     const newClipping = Clipping.ofScript(newParams.layers, structure);
-    if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Clipping.areEqual(oldClipping, newClipping))
+      return StateTransformer.UpdateResult.Unchanged;
 
     b.data.state.clipping = newClipping;
+    b.data.info = structure;
     b.data.repr = a.data.repr;
     b.label = `Clipping (${newClipping.layers.length} Layers)`;
     return StateTransformer.UpdateResult.Updated;
@@ -124,15 +128,22 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     );
   },
   update({ a, b, newParams, oldParams }) {
-    const structure = b.data.info as Structure;
-    if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+    // a trajectory frame: the layers again on the new structure, in place
+    const structure = a.data.sourceData;
+    const structureChanged = structure !== b.data.info;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldClipping = b.data.state.clipping!;
+    // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
+    // custom property, which an ancestor's update computes again on the same structure), without the work
+    if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
+      return StateTransformer.UpdateResult.Unchanged;
     const newClipping = Clipping.ofBundle(newParams.layers, structure);
-    if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
+    if (!structureChanged && Clipping.areEqual(oldClipping, newClipping))
+      return StateTransformer.UpdateResult.Unchanged;
 
     b.data.state.clipping = newClipping;
+    b.data.info = structure;
     b.data.repr = a.data.repr;
     b.label = `Clipping (${newClipping.layers.length} Layers)`;
     return StateTransformer.UpdateResult.Updated;

@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PluginCommands } from '@molstar/plugin/commands';
 import { StateTransform } from '@molstar/core/state';
-import { shallowEqual } from '@molstar/core/util';
+import { deepEqual } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginStateAnimation } from '../model.js';
 
@@ -19,8 +19,9 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
   canApply(plugin) {
     return { canApply: plugin.managers.snapshot.state.entries.size > 1 };
   },
-  initialState: () => ({}),
+  initialState: () => ({ last: new Map<string, unknown>() }),
   async apply(animState, t, ctx) {
+    const last = animState.last ?? new Map<string, unknown>();
     const snapshots = ctx.plugin.managers.snapshot.state.entries;
     if (snapshots.size < 2) return { kind: 'finished' };
 
@@ -42,34 +43,37 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
     const state = ctx.plugin.state.data;
     const update = state.build();
 
+    // TODO: support for adding/removing nodes
+    const targets = new Map<string, StateTransform.Serialized>();
+    for (const t of tar) targets.set(t.ref, t);
+
     for (const s of src) {
-      for (const t of tar) {
-        // TODO: better than quadratic alg.
-        // TODO: support for adding/removing nodes
-        if (t.ref !== s.ref) continue;
-        if (t.version === s.version) continue;
+      const t = targets.get(s.ref);
+      if (!t || t.version === s.version) continue;
 
-        const e = StateTransform.fromJSON(s),
-          f = StateTransform.fromJSON(t);
+      const cell = state.cells.get(s.ref);
+      if (!cell) continue;
 
-        const oldState = state.cells.get(s.ref);
-        if (!oldState) continue;
+      const e = StateTransform.fromJSON(s),
+        f = StateTransform.fromJSON(t);
 
-        let newState;
-        if (!e.transformer.definition.interpolate) {
-          newState = currentT <= 0.5 ? e.params : f.params;
-        } else {
-          newState = e.transformer.definition.interpolate(e.params, f.params, currentT, ctx.plugin);
-        }
+      const newParams = e.transformer.definition.interpolate
+        ? e.transformer.definition.interpolate(e.params, f.params, currentT, ctx.plugin)
+        : currentT <= 0.5
+          ? e.params
+          : f.params;
 
-        if (!shallowEqual(oldState, newState)) {
-          update.to(s.ref).update(newState);
-        }
-      }
+      // the cell's params (normalized), or what this animation set last (as in the snapshot), not the cell itself: a
+      // tick that leaves them as they are updates nothing
+      if (deepEqual(last.get(s.ref), newParams) || deepEqual(cell.transform.params, newParams)) continue;
+      update.to(s.ref).update(newParams);
+      last.set(s.ref, newParams);
     }
 
-    await PluginCommands.State.Update(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+    if (update.editInfo.count > 0) {
+      await PluginCommands.State.Update(ctx.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+    }
 
-    return { kind: 'next', state: {} };
+    return { kind: 'next', state: { last } };
   },
 });

@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -16,7 +17,7 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   type RenderObjectValues,
-  hasForeignResources,
+  createForeignResourcesCheck,
 } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
@@ -135,6 +136,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
   } = builder;
   const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
   const updateState = VisualUpdateState.create();
+  const foreignResources = createForeignResourcesCheck();
   const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
 
   let renderObject: GraphicsRenderObject<G['kind']> | undefined;
@@ -173,7 +175,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
     // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
-    if (graphics && renderObject && hasForeignResources(renderObject, graphics)) updateState.createGeometry = true;
+    if (graphics && renderObject && foreignResources(renderObject, graphics)) updateState.createGeometry = true;
     if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
       updateState.createGeometry = true;
     }

@@ -212,10 +212,15 @@ export const SelectLoci = PluginBehavior.create({
           const structure: Structure = obj.data;
           const oldStructure: Structure | undefined =
             action === 'recreate' ? oldObj?.data : action === 'in-place' ? oldData : undefined;
+          // Nothing selected on a structure of the same hierarchy (a trajectory frame, usually): nothing to mark again,
+          // whatever the visuals reset. With a selection the marks are applied again: an operator change resets a
+          // units visual's markers, and bonds or contacts computed per frame change the groups the marks are on.
+          // (And as before: the same data, e.g. a property change of the structure, keeps the marks.)
           if (
             oldStructure &&
-            Structure.areEquivalent(structure, oldStructure) &&
-            Structure.areHierarchiesEqual(structure, oldStructure)
+            Structure.areHierarchiesEqual(structure, oldStructure) &&
+            (Structure.areEquivalent(structure, oldStructure) ||
+              Loci.isEmpty(this.ctx.managers.structure.selection.getLoci(structure)))
           )
             return;
 

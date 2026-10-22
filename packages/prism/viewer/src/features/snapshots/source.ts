@@ -150,7 +150,7 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
   const transition = fromChanged(
     scope,
     () => readTransition(plugin),
-    merge(manager.events.changed, plugin.managers.animation.events.updated),
+    merge(manager.events.changed, manager.events.animationTimeChanged, plugin.managers.animation.events.updated),
     sameTransition,
   );
   scope.add(() => {

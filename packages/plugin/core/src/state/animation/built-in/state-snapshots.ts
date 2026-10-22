@@ -32,8 +32,8 @@ async function setPartialSnapshot(
   frame = false,
 ) {
   if (entry.data) {
-    await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
-    // update the canvas3d trackball with the snapshot
+    // frames are applied at the frame rate: their timing would fill the log
+    await plugin.runTask(plugin.state.data.setSnapshot(entry.data, { doNotLogTiming: true }));
   }
 
   if (entry.canvas3d?.props) {
@@ -154,7 +154,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
         await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex], false, true);
       }
 
-      return { kind: 'next', state: { ...animState, currentIndex: i, currentAnimationFrame: frameIndex } };
+      return { kind: 'next', state: { ...animState, currentIndex: i, currentTransitionFrame: frameIndex } };
     }
 
     if (i === animState.currentIndex) {
@@ -162,7 +162,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
     }
 
     await setPartialSnapshot(ctx.plugin, animState.snapshots[i].snapshot);
-    return { kind: 'next', state: { ...animState, currentIndex: i, currentAnimationFrame: undefined } };
+    return { kind: 'next', state: { ...animState, currentIndex: i, currentTransitionFrame: undefined } };
   },
 });
 
@@ -220,8 +220,9 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
     const snapshot = animState.snapshots[0]?.snapshot;
 
     if (t.current >= animState.totalDuration) {
-      if (snapshot?.transition && animState.isInitial) {
-        const frameIndex = snapshot.transition.frames.length - 1;
+      // the last frame, unless it is shown already: its slot may be shorter than a tick
+      const frameIndex = (snapshot?.transition?.frames.length ?? 0) - 1;
+      if (snapshot?.transition && (animState.isInitial || animState.currentTransitionFrame !== frameIndex)) {
         ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(animState.totalDuration, false);
         await setPartialSnapshot(ctx.plugin, snapshot.transition.frames[frameIndex], false, true);
       }
@@ -236,11 +237,12 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
       return { kind: 'finished' };
     }
 
+    // the time moves on every tick, also while a frame holds
+    ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(t.current, false);
     if (frameIndex === animState.currentTransitionFrame) {
       return { kind: 'skip' };
     }
 
-    ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(t.current, false);
     if (frameIndex === 0) {
       await setPartialSnapshot(
         ctx.plugin,
@@ -255,6 +257,6 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
     } else {
       await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex], false, true);
     }
-    return { kind: 'next', state: { ...animState, currentAnimationFrame: frameIndex, isInitial: false } };
+    return { kind: 'next', state: { ...animState, currentTransitionFrame: frameIndex, isInitial: false } };
   },
 });

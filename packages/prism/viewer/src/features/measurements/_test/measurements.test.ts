@@ -294,7 +294,7 @@ describe('measure', () => {
   });
 });
 
-describe('the Measure section model', () => {
+describe('the Measure and Label section model', () => {
   it('measures from the picks and follows the measurements made', async () => {
     const v = await setup();
     const model = v.api.measure!.model(v.api);
@@ -397,7 +397,7 @@ describe('the Measure section model', () => {
 });
 
 describe('the feature', () => {
-  it('brings commands for its operations and one that opens the Measure section', async () => {
+  it('brings commands for its operations and one that opens the Measure and Label section', async () => {
     const v = await setup();
     const ids = ['distance', 'angle', 'dihedral', 'label', 'orientation', 'plane', 'remove', 'options', 'open'].map(
       (n) => `measure.${n}`,
@@ -420,11 +420,11 @@ describe('the feature', () => {
     expect(v.managers.commands.get('measure.open')!.when?.(context)).toBe(true);
   });
 
-  it('puts the Measure section in the Selection tab', async () => {
+  it('puts the Measure and Label section in the Selection tab', async () => {
     const v = await setup();
     const ui = await MeasurementsFeature.ui!({ api: v.api, sources: undefined as never, managers: v.managers });
     expect(ui.sections?.map((s) => [s.id, s.slot, s.title, s.icon, s.order])).toEqual([
-      ['measurements.section.measure', 'selection', 'Measure', 'ruler', 2],
+      ['measurements.section.measure', 'selection', 'Measure and Label', 'ruler', 2],
     ]);
   });
 });

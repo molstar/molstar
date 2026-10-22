@@ -200,9 +200,9 @@ class State {
     return { tree: StateTree.toJSON(this._tree) };
   }
 
-  setSnapshot(snapshot: State.Snapshot) {
+  setSnapshot(snapshot: State.Snapshot, options?: Partial<State.UpdateOptions>) {
     const tree = StateTree.fromJSON(snapshot.tree);
-    return this.updateTree(tree);
+    return this.updateTree(tree, options);
   }
 
   setCurrent(ref: StateTransform.Ref) {
