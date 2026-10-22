@@ -58,7 +58,7 @@ async function representationWithEffects() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('an effect below an updated representation', () => {
-  it('does not apply its bundles again when they and the structure are those it last ran on (S7)', async () => {
+  it('does not apply its bundles again when they and the structure are those it last ran on', async () => {
     const { plugin, fromBundle, updateAlpha } = await representationWithEffects();
     const bundles = vi.spyOn(Overpaint, 'ofBundle');
     for (const alpha of [0.5, 0.6]) await updateAlpha(alpha);

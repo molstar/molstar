@@ -207,7 +207,7 @@ export function updateStructureComponent(
       if (!b.data.model || b.data.model === a.model) return StateTransformer.UpdateResult.Recreate;
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
-      // onto the root `a` belongs to, remapped already: the components share it (T2, structure.md §3)
+      // onto the root `a` belongs to, remapped already: the components share it (structure.md §3)
       b.data = cache.isSource ? a : b.data.remapModel(a.model, a.root);
       cache.source = a;
       cache.isSource = b.data === a;

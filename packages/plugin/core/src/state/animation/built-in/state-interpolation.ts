@@ -64,7 +64,7 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
           : f.params;
 
       // the cell's params (normalized), or what this animation set last (as in the snapshot), not the cell itself: a
-      // tick that leaves them as they are updates nothing (S8)
+      // tick that leaves them as they are updates nothing
       if (deepEqual(last.get(s.ref), newParams) || deepEqual(cell.transform.params, newParams)) continue;
       update.to(s.ref).update(newParams);
       last.set(s.ref, newParams);

@@ -215,7 +215,7 @@ export function createTrajectoryAnimation<A extends StateTransformer, TTraj exte
           }
         }
 
-        // a tick within the frame shown: no update (it went through the task manager and toggled isUpdating, T5)
+        // a tick within the frame shown: no update (it went through the task manager and toggled isUpdating)
         if (frameIndex !== currentIndex) update.to(c).update({ ...old, ...setFrameIndex(frameIndex) });
       }
 

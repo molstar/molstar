@@ -72,7 +72,7 @@ describe('frames applied with setSnapshot', () => {
     expect(b.update).toHaveBeenCalledTimes(3);
   });
 
-  it('build the default param definition of a transformer once (S9)', async () => {
+  it('build the default param definition of a transformer once', async () => {
     const state = newState();
     const { a, b, snapshots } = frames(4);
     for (const s of snapshots) await state.setSnapshot(s).run();

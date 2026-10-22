@@ -62,7 +62,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     );
   },
   update({ a, b, newParams, oldParams }) {
-    // a trajectory frame: the layers again on the new structure, in place (T3)
+    // a trajectory frame: the layers again on the new structure, in place
     const structure = a.data.sourceData;
     const structureChanged = structure !== b.data.info;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
@@ -128,14 +128,14 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     );
   },
   update({ a, b, newParams, oldParams }) {
-    // a trajectory frame: the layers again on the new structure, in place (T3)
+    // a trajectory frame: the layers again on the new structure, in place
     const structure = a.data.sourceData;
     const structureChanged = structure !== b.data.info;
     if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
     const oldClipping = b.data.state.clipping!;
     // bundles and the structure it last ran on: the same result (a bundle reads topology only; a script may read a
-    // custom property, which an ancestor's update computes again on the same structure), without the work (S7)
+    // custom property, which an ancestor's update computes again on the same structure), without the work
     if (!structureChanged && deepEqual(oldParams.layers, newParams.layers))
       return StateTransformer.UpdateResult.Unchanged;
     const newClipping = Clipping.ofBundle(newParams.layers, structure);

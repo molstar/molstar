@@ -7,7 +7,7 @@
 // Headless bench of playback: what one animation frame costs once a scene is loaded. A real PluginContext (the default
 // spec and the MVS behavior) with the stub canvas of many.ts (canvas-stub.ts), driven tick by tick on a synthetic
 // 60 Hz clock through `managers.animation.tick(t, true)`: every tick awaits its frame, so the per-tick numbers are
-// what the browser's animation loop would pay when it keeps up. Plan and results: .v6/animation-playback/README.md.
+// what the browser's animation loop would pay when it keeps up. Results: PR #2022 (molstar/molstar).
 //
 // usage (through scripts/pipeline-bench.mjs, which bundles this file):
 //   node scripts/pipeline-bench.mjs playback [--runs 2]                        # every scene below
@@ -246,7 +246,7 @@ async function loadTrajectory(plugin: PluginContext, scene: Scene) {
 /**
  * 1cbs with three looks played as a transition of 30 frames of 100 ms. plain: the preset, chain-id colors, element
  * colors. effects: each representation has a bundle overpaint and a script transparency below it, and the looks
- * change the representations' alpha only (what an effect below an updated representation does again: S7).
+ * change the representations' alpha only (what an effect below an updated representation does again).
  */
 async function loadPlainSnapshots(plugin: PluginContext, c: ReturnType<typeof stubCanvas>, effects = false) {
   const B = plugin.builders;
@@ -318,7 +318,7 @@ async function loadMvs(plugin: PluginContext, mvsx: string, snapshot?: number) {
   plugin.managers.snapshot.setCurrent(entry.snapshot.id);
   const { transition } = entry.snapshot;
   await plugin.state.setSnapshot({ ...entry.snapshot, transition: transition && { ...transition, autoplay: false } });
-  // the checks a snapshot apply runs over the snapshot and all its frames (S4): the median of 5 calls
+  // the checks a snapshot apply runs over the snapshot and all its frames: the median of 5 calls
   const checks: number[] = [];
   for (let k = 0; k < 5; k++) {
     const t0 = performance.now();

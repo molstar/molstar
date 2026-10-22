@@ -34,7 +34,7 @@ async function representation() {
 }
 
 describe('a structure representation update', () => {
-  it('keeps its themes when only its own params change (R1)', async () => {
+  it('keeps its themes when only its own params change', async () => {
     const { plugin, repr, create, update } = await representation();
     await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params, alpha: 0.5 } } }));
     expect(create).not.toHaveBeenCalled();

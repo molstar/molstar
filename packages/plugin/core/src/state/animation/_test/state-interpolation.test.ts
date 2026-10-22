@@ -25,7 +25,7 @@ async function twoSnapshots() {
 }
 
 describe('the state interpolation animation', () => {
-  it('updates a node when its interpolated params change, not on every tick (S8)', async () => {
+  it('updates a node when its interpolated params change, not on every tick', async () => {
     const { plugin, counts } = await twoSnapshots();
     const updated = counts.updated;
     const busy: boolean[] = [];

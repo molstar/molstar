@@ -57,7 +57,7 @@ function propertyWithAsset(type: 'static' | 'dynamic' = 'static') {
 }
 
 describe('a trajectory frame', () => {
-  it('keeps the custom properties the frames share (T1)', async () => {
+  it('keeps the custom properties the frames share', async () => {
     const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
     const { model } = await loadEnsemble(plugin);
     const { provider, dispose } = propertyWithAsset();
@@ -172,7 +172,7 @@ describe('the components of a trajectory frame', () => {
     };
   }
 
-  it('share the remapped root (T2)', async () => {
+  it('share the remapped root', async () => {
     const { plugin, model, root, polymer, water } = await components();
     expect(polymer().root).toBe(root());
     for (const i of [1, 2]) {
@@ -201,7 +201,7 @@ describe('the components of a trajectory frame', () => {
     expect(recreated).toContain(water!.ref);
   });
 
-  it("share the root's units where they are whole (T2)", async () => {
+  it("share the root's units where they are whole", async () => {
     const { plugin, model, root, polymer } = await components();
     expect(polymer().units[0]).toBe(root().unitMap.get(polymer().units[0].id));
     await setFrame(plugin, model.ref, 1);
@@ -221,7 +221,7 @@ describe('the components of a trajectory frame', () => {
 });
 
 describe('a trajectory frame that also moves the structure', () => {
-  it('puts the components where the structure is (T3)', async () => {
+  it('puts the components where the structure is', async () => {
     const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
     const { model } = await loadEnsemble(plugin);
     const structure = await plugin.builders.structure.createStructure(model);
@@ -253,7 +253,7 @@ describe('a trajectory frame that also moves the structure', () => {
 });
 
 describe('a trajectory frame with the default preset and an overpaint', () => {
-  it('updates every cell in place (T3)', async () => {
+  it('updates every cell in place', async () => {
     const { plugin, counts } = await createPlaybackPlugin(DefaultPluginSpec());
     const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 6, true), label: 'ensemble' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
@@ -300,7 +300,7 @@ describe('a focused trajectory frame', () => {
     return { ...env, model };
   }
 
-  it('commits one update, not a second one for the focus (T5)', async () => {
+  it('commits one update, not a second one for the focus', async () => {
     const { plugin, model } = await focused();
     const updates = vi.fn();
     plugin.state.data.events.changed.subscribe(updates);
@@ -312,7 +312,7 @@ describe('a focused trajectory frame', () => {
     expect((target.obj!.data as Structure).model.modelNum).toBe(2);
   });
 
-  it('can be disposed right after a frame (B1)', async () => {
+  it('can be disposed right after a frame', async () => {
     const { plugin, model } = await focused();
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     await setFrame(plugin, model, 1);
@@ -335,7 +335,7 @@ describe('the selection marks on a trajectory frame', () => {
     return { ...env, hierarchy, frame };
   }
 
-  it('are not cleared and set again without a selection (T5)', async () => {
+  it('are not cleared and set again without a selection', async () => {
     const { canvas3d, frame } = await ensemble();
     canvas3d.mark.mockClear();
     await frame(1);
@@ -362,7 +362,7 @@ describe('the selection marks on a trajectory frame', () => {
 });
 
 describe('a playing trajectory', () => {
-  it('commits an update only on the ticks whose frame changes (T5)', async () => {
+  it('commits an update only on the ticks whose frame changes', async () => {
     const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
     await loadEnsemble(plugin, 3);
     const updates = vi.fn();
