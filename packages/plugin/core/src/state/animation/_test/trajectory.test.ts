@@ -21,6 +21,8 @@ import {
 import { Time } from '@molstar/model/model/structure/coordinates';
 import { Color } from '@molstar/core/util/color';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
+import { OverpaintStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
+import type { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { RawData } from '@molstar/plugin/state/transforms/data/fetch';
 import { createPlaybackPlugin, pdbEnsemble, play } from './harness.js';
@@ -39,13 +41,13 @@ const setFrame = (plugin: PluginContext, ref: string, modelIndex: number) =>
     .update(ModelFromTrajectory, () => ({ modelIndex }))
     .commit();
 
-/** A static model property whose value holds an asset */
-function propertyWithAsset() {
+/** A model property whose value holds an asset: static (the frames share it) or dynamic (each frame its own) */
+function propertyWithAsset(type: 'static' | 'dynamic' = 'static') {
   const dispose = vi.fn();
   const provider = CustomModelProperty.createProvider({
     label: 'With asset',
     descriptor: CustomPropertyDescriptor({ name: `with-asset-${Math.random()}` }),
-    type: 'static',
+    type,
     defaultParams: {},
     getParams: () => ({}),
     isApplicable: () => true,
@@ -68,6 +70,15 @@ describe('a trajectory frame', () => {
     expect(dispose).not.toHaveBeenCalled();
     // deleting the model cell still disposes them
     await plugin.build().delete(model.ref).commit();
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("disposes the old frame's own (dynamic) property assets", async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await loadEnsemble(plugin);
+    const { provider, dispose } = propertyWithAsset('dynamic');
+    await provider.attach({ runtime: undefined as any, assetManager: plugin.managers.asset }, model.obj!.data as Model);
+    await setFrame(plugin, model.ref, 1);
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
@@ -183,11 +194,20 @@ describe('the components of a trajectory frame', () => {
       params: { dynamicBonds: true },
     } as any);
     // any static component (the "plus connected" queries, ligand and branched, follow the bonds)
-    const ligand = await plugin.builders.structure.tryCreateComponentStatic(structure, 'water');
+    const water = await plugin.builders.structure.tryCreateComponentStatic(structure, 'water');
     const recreated: string[] = [];
     plugin.state.data.events.object.updated.subscribe((e) => e.action === 'recreate' && recreated.push(e.ref));
     await setFrame(plugin, model.ref, 1);
-    expect(recreated).toContain(ligand!.ref);
+    expect(recreated).toContain(water!.ref);
+  });
+
+  it("share the root's units where they are whole (T2)", async () => {
+    const { plugin, model, root, polymer } = await components();
+    expect(polymer().units[0]).toBe(root().unitMap.get(polymer().units[0].id));
+    await setFrame(plugin, model.ref, 1);
+    const u = polymer().units[0];
+    // a whole unit of the root is the root's unit: its boundary and lookup are computed once per frame
+    expect(u).toBe(root().unitMap.get(u.id));
   });
 
   it("take the frame's coordinates", async () => {
@@ -249,12 +269,16 @@ describe('a trajectory frame with the default preset and an overpaint', () => {
     expect(counts.created - created).toBe(0);
     const root = hierarchy().structures[0].cell.obj!.data;
     expect(root.model.modelNum).toBe(3);
-    for (const c of hierarchy().structures[0].components) {
-      expect(c.cell.obj!.data.root).toBe(root);
-      for (const o of c.representations[0].overpaint ? [c.representations[0].overpaint] : []) {
-        const overpaint = (o.cell.obj!.data.state as any).overpaint;
-        expect(overpaint.layers[0].loci.structure.root).toBe(root);
-      }
+    for (const c of hierarchy().structures[0].components) expect(c.cell.obj!.data.root).toBe(root);
+    // the overpaint layers are on the new frame's structure (updated in place on it: the effects' structure change)
+    const overpaints = [...plugin.state.data.cells.values()].filter(
+      (c) => c.transform.transformer === OverpaintStructureRepresentation3DFromBundle,
+    );
+    expect(overpaints.length).toBeGreaterThan(0);
+    for (const o of overpaints) {
+      const overpaint = (o.obj!.data.state as { overpaint: Overpaint }).overpaint;
+      expect(overpaint.layers).toHaveLength(1);
+      expect((overpaint.layers[0].loci as StructureElement.Loci).structure.root).toBe(root);
     }
   });
 });
@@ -293,7 +317,8 @@ describe('a focused trajectory frame', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     await setFrame(plugin, model, 1);
     plugin.dispose();
-    await new Promise((r) => setTimeout(r, 20));
+    // the update the focus queued runs after the dispose, if any
+    for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
     expect(errors.mock.calls.map((c) => String(c[0]))).toEqual([]);
   });
 });

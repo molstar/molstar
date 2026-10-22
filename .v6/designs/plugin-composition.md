@@ -529,7 +529,10 @@ ids and names only; transition frames carry their own data trees.
 - **`PluginState.validateSnapshotTransformers(snapshot)` (fatal).** It collects transformer ids from the behavior tree,
   the data tree, and every `transition.frames[i].data`, and throws one error listing the ids missing from the global
   registry. `setSnapshot` calls it first, before `animation.stop()`; `setStateSnapshot` calls it for every entry before
-  `clear()`. A failing snapshot leaves the plugin unchanged.
+  `clear()`. A failing snapshot leaves the plugin unchanged. Both checks read the ids and names of a tree, or of a
+  transition's frames array, once (`usedNames`, a `WeakMap` by the object): snapshots are values, never changed in
+  place once built (MVS assigns a transition's frames when they are complete); the registries are checked on every
+  call.
 - **`PluginState.reportUnregisteredNames(snapshot)` (warning).** `setSnapshot` calls it after the behavior tree is
   applied and before the data tree is applied. It collects the type, color, and size names from
   `StructureRepresentation3D`, `VolumeRepresentation3D`, and `ParticlesRepresentation3D` params in the data tree and

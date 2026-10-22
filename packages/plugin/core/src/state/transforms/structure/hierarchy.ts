@@ -109,8 +109,11 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     return Task.create('Model from Trajectory', async (ctx) => {
       const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx);
       if (model === b.data) return StateTransformer.UpdateResult.Unchanged;
-      // frames of the same topology share them (`{ ...previous }`); a frame of another has its own
-      if (model.customProperties !== b.data.customProperties) b.data.customProperties.dispose();
+      // Frames of the same topology share them (`{ ...previous }`): only the old frame's own assets go (a dynamic
+      // property's, kept by the model id); a frame of another topology has its own properties, all of which go.
+      const props = b.data.customProperties;
+      if (model.customProperties !== props) props.dispose();
+      else for (const desc of props.all) props.assets(desc, undefined, b.data.id);
       b.data = model;
       b.label = label;
       b.description = description;

@@ -33,3 +33,5 @@
 - A snapshot transition ends on its last frame also when that frame is shorter than an animation tick (#2022)
 - A visual checks its render object for another graphics context's resources once per context, not on every update
   (exosome story: 3.0 → 2.1 ms per frame) (#2022)
+- A static component of whole units shares the root's units on a trajectory frame, so their boundaries and lookups
+  are computed once per frame (#2022)

@@ -322,6 +322,29 @@ The reviewer checked as correct: the snapshot skip and camera, the frame index f
 cache, the names cache, the trajectory identity check, `CustomStructureProperties`, the static remap and shared root,
 the effects in place, the kept themes, the focus skip, the trajectory loop, S8, and the spec and breaking-change edits.
 
+## Independent review (after the PR opened)
+
+A third reviewer, given only the diff and the repository's rules (not this file's claims), found no user-visible bug
+in the common paths. Its findings and what was done:
+
+1. **A T3 test assertion never ran** (risk): it looped over a field `StructureRepresentationRef` does not have. The
+   test now finds the overpaint cells in the state and checks that their layers are on the new frame's root.
+2. **Kept themes could go stale when one update changes both a property and the representation** (risk: a frame
+   that changes the secondary structure type and an alpha). The themes are now kept only when, in addition, the
+   property containers of the structure, its root and its models are the ones the themes were made with (taken after
+   the visuals, which may read a property first); an update with the params as they were still makes them again (a
+   dependency such as a referenced volume may have changed). Test: in `representation-update.test.ts`.
+3. **Remapped whole-unit components no longer shared the root's `Unit` objects** (risk: boundaries and lookups
+   computed per component and per frame; `unit.md` §2 says they share them). `Structure.remapModel(m, parent)` now
+   takes the parent's unit where the unit has its elements (`structure.md` §3). synth+focus+select: 12.94 → 11.31
+   ms/applied; the other scenes within noise. Test: in `trajectory.test.ts`.
+4. **Dynamic model-property assets piled up during playback** (nit: kept per model id in the shared properties).
+   A new frame disposes the old frame's own assets, as the recreate did; the shared static ones stay.
+5. **Two identity-keyed caches had no recorded rule** (nit). Written down: the per-transformer default schema in
+   `core/src/state/_spec/dependencies.md` §1, the snapshot names cache in `.v6/designs/plugin-composition.md`.
+6. **Test hygiene** (nit): the B1 test waits on `setImmediate`, not a 20 ms timer (it still fails without the fix);
+   a variable renamed.
+
 ## Snapshot and MVS playback
 
 - **S1, bug (checked in the code).** `plugin/core/src/state/animation/built-in/state-snapshots.ts`: both animations skip
