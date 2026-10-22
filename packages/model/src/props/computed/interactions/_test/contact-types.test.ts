@@ -261,7 +261,10 @@ function contactRows(
     const builder = IntraContactsBuilder.create(features, u.elements.length);
     loops.addUnitContacts(s, u, features, builder, ts, props);
     const c = builder.getContacts();
-    for (let i = 0; i < c.edgeCount; i++) rows.push([u.id, c.a[i], c.b[i], c.edgeProps.type[i]]);
+    // an IntAdjacencyGraph lists each edge in both directions, one slot each: take the one with a < b
+    for (let i = 0, il = c.a.length; i < il; i++) {
+      if (c.a[i] < c.b[i]) rows.push([u.id, c.a[i], c.b[i], c.edgeProps.type[i]]);
+    }
   }
   const builder = InterContactsBuilder.create();
   Structure.eachUnitPair(
@@ -330,7 +333,7 @@ describe('contact testers by feature type pair', () => {
     // types: 1 ionic, 2 cation-pi, 3 pi-stacking, 4 H-bond, 6 hydrophobic, 7 metal coordination, 8 weak H-bond
     expect(InteractionType.MetalCoordination).toBe(7);
     expect(await checkedTypes(await load1tup())).toEqual({
-      intra: ['3:46', '4:883', '8:320'],
+      intra: ['1:39', '2:7', '3:50', '4:542', '6:416', '8:195'],
       inter: ['1:10', '2:2', '4:1232', '6:8', '7:24', '8:158'],
     });
   });

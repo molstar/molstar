@@ -220,7 +220,7 @@ namespace SymmetryOperator {
    * identity included): `M` is taken from the first pair whose matrices differ, or is the identity when the first
    * pair's are equal (within 1e-6), and must be rigid (`Mat4.isRigid`, 1e-4); every later pair is checked against it.
    * Such a motion keeps every distance between points mapped by different operators. `moved`: `M` is not the identity.
-   * Only the matrices are compared.
+   * Only the matrices are compared. Stop at the first `false`: later pairs are compared with the `M` that failed.
    */
   export function rigidMotionTest() {
     let motion: Mat4 | undefined;

@@ -88,7 +88,9 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
   root has none: such children are made again at every move, the root stays. The restriction keeps what the root shows
   where a recompute could differ (struct_conn partners outside the child, which unit of a pair is iterated, water and
   ion pairing by a unit's first element) and for bonds the root carried over from another frame: a child shows a subset
-  of its root.
+  of its root. A provider's `inter` must allow both: its bonds of a subset are among those of the whole, and a common
+  rigid motion of all units keeps them (no absolute coordinates: a box, a slab, `structure.boundary`). The shipped
+  providers do.
 - `IntraUnitBonds` store both directions (`edgeCount` undirected); `InterUnitBonds` list a pair under both units
   (`edgeCount` directed; `Structure.bondCount` halves it).
 
