@@ -6,15 +6,20 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
-import { type Model, Structure, StructureElement } from '@molstar/model/model/structure';
+import { type Model, Structure, StructureElement, Unit } from '@molstar/model/model/structure';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { OrderedSet } from '@molstar/core/data/int';
 import { CustomModelProperty } from '@molstar/model/props/common/custom-model-property';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { PluginContext } from '@molstar/plugin/context';
-import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import {
+  ModelFromTrajectory,
+  TransformStructureConformation,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { Color } from '@molstar/core/util/color';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
+import { RawData } from '@molstar/plugin/state/transforms/data/fetch';
 import { createPlaybackPlugin, pdbEnsemble, play } from './harness.js';
 
 async function loadEnsemble(plugin: PluginContext, models = 3, residues = 4) {
@@ -60,6 +65,22 @@ describe('a trajectory frame', () => {
     expect(dispose).not.toHaveBeenCalled();
     // deleting the model cell still disposes them
     await plugin.build().delete(model.ref).commit();
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('disposes them when the trajectory is a new one (the data read again)', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 4, true), label: 'ensemble' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const model = await plugin.builders.structure.createModel(trajectory);
+    const { provider, dispose } = propertyWithAsset();
+    await provider.attach({ runtime: undefined as any, assetManager: plugin.managers.asset }, model.obj!.data as Model);
+    await plugin
+      .build()
+      .to(data)
+      .update(RawData, (old) => ({ ...old, data: pdbEnsemble(3, 5, true) }))
+      .commit();
+    expect((plugin.state.data.cells.get(model.ref)!.obj!.data as Model).atomicHierarchy.residues._rowCount).toBe(6);
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
@@ -116,6 +137,38 @@ describe('the components of a trajectory frame', () => {
     const r = root().unitMap.get(u.id);
     expect(u.conformation.x(u.elements[0])).toBe(r.conformation.x(u.elements[0]));
     expect(u.model).toBe(root().model);
+  });
+});
+
+describe('a trajectory frame that also moves the structure', () => {
+  it('puts the components where the structure is (T3)', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await loadEnsemble(plugin);
+    const structure = await plugin.builders.structure.createStructure(model);
+    const moved = await plugin
+      .build()
+      .to(structure)
+      .apply(TransformStructureConformation, {
+        transform: { name: 'matrix', params: { data: Mat4.identity(), transpose: false } },
+      })
+      .commit();
+    const polymer = await plugin.builders.structure.tryCreateComponentStatic(moved, 'polymer');
+    // one update: the next frame, and a translation of the structure
+    const b = plugin.build();
+    b.to(model).update(ModelFromTrajectory, () => ({ modelIndex: 1 }));
+    b.to(moved).update(TransformStructureConformation, () => ({
+      transform: {
+        name: 'matrix',
+        params: { data: Mat4.fromTranslation(Mat4(), Vec3.create(10, 0, 0)), transpose: false },
+      },
+    }));
+    await b.commit();
+    const root = plugin.state.data.cells.get(moved.ref)!.obj!.data as Structure;
+    const component = plugin.state.data.cells.get(polymer!.ref)!.obj!.data as Structure;
+    const u = component.units[0];
+    expect(Unit.areOperatorsEqual(u, root.unitMap.get(u.id))).toBe(true);
+    expect(u.conformation.x(u.elements[0])).toBeCloseTo(root.unitMap.get(u.id).conformation.x(u.elements[0]), 5);
+    expect(u.model).toBe(root.model);
   });
 });
 
@@ -185,21 +238,35 @@ describe('a focused trajectory frame', () => {
   });
 });
 
-describe('a selection on a trajectory frame', () => {
-  it('is not marked again: the visuals keep their marks (T5)', async () => {
-    const { plugin, canvas3d } = await createPlaybackPlugin(DefaultPluginSpec());
+describe('the selection marks on a trajectory frame', () => {
+  async function ensemble() {
+    const env = await createPlaybackPlugin(DefaultPluginSpec());
+    const { plugin } = env;
     const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 6, true), label: 'ensemble' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     const hierarchy = () => plugin.managers.structure.hierarchy.current;
+    const frame = (i: number) => setFrame(plugin, hierarchy().models[0].cell.transform.ref, i);
+    return { ...env, hierarchy, frame };
+  }
+
+  it('are not cleared and set again without a selection (T5)', async () => {
+    const { canvas3d, frame } = await ensemble();
+    canvas3d.mark.mockClear();
+    await frame(1);
+    expect(canvas3d.mark).not.toHaveBeenCalled();
+  });
+
+  it('are set again with a selection, on the new frame', async () => {
+    const { plugin, canvas3d, hierarchy, frame } = await ensemble();
     const s = hierarchy().structures[0].cell.obj!.data;
     plugin.managers.interactivity.lociSelects.select({
       loci: StructureElement.Loci(s, [{ unit: s.units[0], indices: OrderedSet.ofBounds(0, 5) as any }]),
     });
     canvas3d.mark.mockClear();
-    await setFrame(plugin, hierarchy().models[0].cell.transform.ref, 1);
-    expect(canvas3d.mark).not.toHaveBeenCalled();
-    // the selection is still there, on the new frame's structure
+    await frame(1);
+    // a visual may have reset its markers (an operator change) or moved its groups (bonds, contacts of the frame)
+    expect(canvas3d.mark).toHaveBeenCalled();
     const loci = plugin.managers.structure.selection.getLoci(hierarchy().structures[0].cell.obj!.data);
     expect(StructureElement.Loci.size(loci as StructureElement.Loci)).toBe(5);
   });

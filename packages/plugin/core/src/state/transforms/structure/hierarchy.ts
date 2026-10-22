@@ -94,13 +94,16 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
   },
 })({
   isApplicable: (a) => a.data.frameCount > 0,
-  apply({ a, params }) {
+  apply({ a, params, cache }) {
     return Task.create('Model from Trajectory', async (ctx) => {
       const { model, label, description } = await modelAtIndex(a.data, params.modelIndex, ctx);
+      (cache as { trajectory?: Trajectory }).trajectory = a.data;
       return new SO.Molecule.Model(model, { label, description });
     });
   },
-  update({ a, b, newParams }) {
+  update({ a, b, newParams, cache }) {
+    // Another trajectory (the data read again): recreated, which disposes the old model's custom properties.
+    if ((cache as { trajectory?: Trajectory }).trajectory !== a.data) return StateTransformer.UpdateResult.Recreate;
     // A new frame updates the cell in place: recreating it disposed the old frame's custom properties, which the
     // trajectory's frames share (`{ ...previous }`), on every frame of a playing trajectory.
     return Task.create('Model from Trajectory', async (ctx) => {

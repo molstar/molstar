@@ -167,8 +167,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   ball-and-stick) and the unit boundaries (15–20%), which read coordinates. A unit's `transientCache` (valence model,
   interaction features) reads coordinates too, so nothing there can be carried over.
 
-- **R1 (themes)** (`representation.ts` update: the color and size themes are kept when the structure and their params are
-  unchanged, with their dependencies' references). exosome: 3.72 → 2.95 ms/applied, 3,632 → 2,812 KB/tick, 2.94 → 2.40
+- **R1 (themes)** (`representation.ts` update: the color and size themes are kept when the representation's own `type`
+  params changed and the structure and the themes' params did not, with their dependencies' references). After review
+  gate 1, an update with the params as they were (an ancestor changed, e.g. the secondary structure type of the
+  structure's properties) makes the themes again: a theme holds the version of a property it reads. exosome: 3.72 → 2.95 ms/applied, 3,632 → 2,812 KB/tick, 2.94 → 2.40
   ms/tick med. Trajectories are unchanged by it: a new structure makes the themes again. Tests:
   `plugin/core/src/state/transforms/_test/representation-update.test.ts` (a theme made on an alpha change before).
   Method note: a trajectory scene measured in the same process after the exosome scene reads up to 40% slower (the
@@ -188,12 +190,13 @@ One line per id as it lands: the commit's before → after on the bench (median 
   warning per tick is gone. Test: in `trajectory.test.ts` (61 toggles before).
 
 - **T5 (SelectLoci)** (`behavior/dynamic/representation.ts`: no re-marking when the updated structure has the same
-  hierarchy). The visuals keep their marks through such an update: `prepareUpdate` resets the markers only with
-  `updateTransform`, which an equal hierarchy does not set (units and complex visuals). `canvas3d.mark` calls: synth
-  preset 117 → 0 over 80 ticks, cartoon 39 → 0, nmr preset 27 → 0, synth+focus+select 468 → 132 (left: the focus
-  surroundings, whose residues change with the coordinates). Time within noise in Node, where the stub canvas makes a
-  mark cheap; in the browser a mark rewrites the marker data and walks the scene. Test: in `trajectory.test.ts` (2 mark
-  calls per frame before).
+  hierarchy and nothing selected; with a selection the marks are applied again, as before). Narrowed after review gate
+  1: an operator change resets a units visual's markers (`updateTransform`), and bonds or contacts computed per frame
+  (dynamic bonds, interactions) move the groups the marks are on, so with a selection only re-marking is right.
+  `canvas3d.mark` calls without a selection: synth preset 117 → 0 over 80 ticks, cartoon 39 → 0, nmr preset 27 → 0,
+  nmr+focus 54 → 8; with one, unchanged (synth+focus+select 468). Time within noise in Node, where the stub canvas
+  makes a mark cheap; in the browser a mark rewrites the marker data and walks the scene. Tests: in
+  `trajectory.test.ts` (2 mark calls per frame without a selection before; with one, marked again).
 
 - **T5 (Prism marks): kept.** Correctness needs it. A frame updates a representation's own overpaint cells in place
   (T3), and they set its overpaint to their layers only. The marks paint over those, so they paint again once per
