@@ -166,7 +166,9 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   scope, its first render waits for the resume.
 - **`flush()`** renders now what is waiting: for code that sets state and then reads the DOM in the same task.
   `VirtualList.scrollToIndex` and `TreeNavigation`'s keys flush; so does every delegated event's dispatch at its end (a
-  click's change is rendered when the dispatch returns, as a click by code in a test is).
+  click's change is rendered when the dispatch returns, as a click by code in a test is). The pointer's move, over and
+  out are not delegated (`dom/render.ts`): they come at pointer rate over the whole page and few elements take them, so
+  their handlers are native listeners and render in the microtask.
 - **A render owns nothing**: it runs outside any scope (a reactive `bind` in it throws), reads `.value`, writes through
   `dom/writes.ts` (`setText`, `setAttr`, `setClass`, `setStyle`, `setShown`: each compares with the DOM, reads no
   layout).

@@ -225,9 +225,12 @@ export function removeBetween(start: Node, end: Node): void {
  * `currentTarget` as their own element; `stopPropagation` ends the walk as it ends propagation. A nested root goes
  * first and the next one (an outer root, then the document, for anything rendered outside a root) continues above it,
  * so nothing runs twice. The walk ends with a `flush`: what the handlers changed is rendered when the dispatch returns
- * (a discrete event, as a click dispatched by code, is on screen before the next line), not a microtask later. Events that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch,
- * wheel: they must stay passive) stay native, and so does anything given as `on:type`. Measured: one listener per root
- * instead of one per handler (Internals › Performance › Runtime).
+ * (a discrete event, as a click dispatched by code, is on screen before the next line), not a microtask later. Events
+ * that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch, wheel: they must stay passive)
+ * stay native, and so does anything given as `on:type`. Measured: one listener per root instead of one per handler
+ * (Internals › Performance › Runtime). The pointer's move, over and out (pointer and mouse) stay native too: they come
+ * at pointer rate over the whole page and a handful of elements take them, so a root walking each one's composed path
+ * was all waste (perf audit 2, 11/P6); a native listener runs only where one is.
  */
 const DelegatedEvents = new Set([
   'click',
@@ -240,15 +243,9 @@ const DelegatedEvents = new Set([
   'keyup',
   'pointerdown',
   'pointerup',
-  'pointermove',
-  'pointerover',
-  'pointerout',
   'pointercancel',
   'mousedown',
   'mouseup',
-  'mousemove',
-  'mouseover',
-  'mouseout',
   'focusin',
   'focusout',
 ]);
