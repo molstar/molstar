@@ -190,11 +190,15 @@ export function updateStructureComponent(
       if (oldParams.type.params !== newParams.type.params) {
         return StateTransformer.UpdateResult.Recreate;
       }
-      // A static query reads topology only, and a remapped unit keeps its bonds (unit.md §3): a trajectory frame (the
-      // same units and elements on another model's coordinates) remaps the component rather than running the query.
-      // (the remap keeps the units' operators: a frame that also moves the structure runs the query again)
+      // A static query reads topology and bonds, and a remapped unit keeps its bonds without dynamic bonds (unit.md
+      // §3): a trajectory frame (the same units and elements on another model's coordinates) remaps the component
+      // rather than running the query.
+      // (the remap keeps the units' operators: a frame that also moves the structure runs the query again; with
+      // bonds computed per frame, the "plus connected" queries follow them: run again too)
       const equivalent = Structure.areEquivalent(a, cache.source);
-      if (!equivalent && !(Structure.areHierarchiesEqual(a, cache.source) && areUnitOperatorsEqual(a, cache.source))) {
+      const remappable =
+        !a.dynamicBonds && Structure.areHierarchiesEqual(a, cache.source) && areUnitOperatorsEqual(a, cache.source);
+      if (!equivalent && !remappable) {
         return StateTransformer.UpdateResult.Recreate;
       }
       // The same model, or none (an empty substructure): nothing to remap, but the label may have changed (below).

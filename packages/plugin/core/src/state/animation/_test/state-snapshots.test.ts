@@ -77,6 +77,24 @@ describe('a playing snapshot transition', () => {
     expect(plugin.log.entries.size - log).toBe(0);
   });
 
+  it('ends on its last frame when that is shorter than a tick', async () => {
+    const env = await createPlaybackPlugin();
+    const { plugin } = env;
+    const a = await rawDataTree(plugin, 2, 'a');
+    const b = await rawDataTree(plugin, 2, 'b');
+    const c = await rawDataTree(plugin, 2, 'c');
+    await rawDataTree(plugin, 2, 'a');
+    addTransition(plugin, [
+      { durationInMs: 100, data: a },
+      { durationInMs: 100, data: b },
+      { durationInMs: 5, data: c },
+    ]);
+    await plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+    await play(plugin, 1000);
+    expect(plugin.managers.animation.isAnimating).toBe(false);
+    expect(plugin.state.data.cells.get('node0')!.obj!.label).toBe('c0');
+  });
+
   it('stays on the last frame when it ends', async () => {
     const { plugin, counts } = await transitionPlugin();
     await plugin.managers.animation.play(AnimateStateSnapshotTransition, {});

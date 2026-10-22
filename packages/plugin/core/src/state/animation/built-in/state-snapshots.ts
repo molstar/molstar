@@ -220,8 +220,9 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
     const snapshot = animState.snapshots[0]?.snapshot;
 
     if (t.current >= animState.totalDuration) {
-      if (snapshot?.transition && animState.isInitial) {
-        const frameIndex = snapshot.transition.frames.length - 1;
+      // the last frame, unless it is shown already: its slot may be shorter than a tick
+      const frameIndex = (snapshot?.transition?.frames.length ?? 0) - 1;
+      if (snapshot?.transition && (animState.isInitial || animState.currentTransitionFrame !== frameIndex)) {
         ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(animState.totalDuration, false);
         await setPartialSnapshot(ctx.plugin, snapshot.transition.frames[frameIndex], false, true);
       }

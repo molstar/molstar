@@ -9,13 +9,16 @@ import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 import { type Model, Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { OrderedSet } from '@molstar/core/data/int';
+import { MarkerAction } from '@molstar/core/util/marker-action';
 import { CustomModelProperty } from '@molstar/model/props/common/custom-model-property';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { PluginContext } from '@molstar/plugin/context';
 import {
   ModelFromTrajectory,
+  ModelWithCoordinates,
   TransformStructureConformation,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { Time } from '@molstar/model/model/structure/coordinates';
 import { Color } from '@molstar/core/util/color';
 import { setStructureOverpaint } from '@molstar/plugin/state/helpers/structure-overpaint';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
@@ -68,6 +71,24 @@ describe('a trajectory frame', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
+  it('disposes the properties of a frame that does not share them (another topology)', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    // two models of 4 and 5 residues: each has its own custom properties
+    const text = [pdbEnsemble(1, 4), pdbEnsemble(1, 5).replace('MODEL        1', 'MODEL        2')]
+      .map((t) => t.replace(/\nEND$/, ''))
+      .join('\n');
+    const data = await plugin.builders.data.rawData({ data: `${text}\nEND`, label: 'two topologies' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const model = await plugin.builders.structure.createModel(trajectory);
+    const first = model.obj!.data as Model;
+    const { provider, dispose } = propertyWithAsset();
+    await provider.attach({ runtime: undefined as any, assetManager: plugin.managers.asset }, first);
+    await setFrame(plugin, model.ref, 1);
+    const second = plugin.state.data.cells.get(model.ref)!.obj!.data as Model;
+    expect(second.customProperties).not.toBe(first.customProperties);
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
   it('disposes them when the trajectory is a new one (the data read again)', async () => {
     const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
     const data = await plugin.builders.data.rawData({ data: pdbEnsemble(3, 4, true), label: 'ensemble' });
@@ -82,6 +103,30 @@ describe('a trajectory frame', () => {
       .commit();
     expect((plugin.state.data.cells.get(model.ref)!.obj!.data as Model).atomicHierarchy.residues._rowCount).toBe(6);
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('reaches a model-with-coordinates decorator below it', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await loadEnsemble(plugin);
+    const m = model.obj!.data as Model;
+    const n = m.atomicHierarchy.atoms._rowCount;
+    const frame = {
+      elementCount: n,
+      time: Time(0, 'step'),
+      x: new Float32Array(n).fill(1),
+      y: new Float32Array(n),
+      z: new Float32Array(n),
+      xyzOrdering: { isIdentity: true },
+    };
+    const withCoordinates = await plugin
+      .build()
+      .to(model)
+      .apply(ModelWithCoordinates, { atomicCoordinateFrame: frame, frameIndex: 0, frameCount: 1 })
+      .commit();
+    await setFrame(plugin, model.ref, 2);
+    const decorated = plugin.state.data.cells.get(withCoordinates.ref)!.obj!.data as Model;
+    expect(decorated.modelNum).toBe(3);
+    expect(decorated.atomicConformation.x[0]).toBe(1);
   });
 
   it('updates the model cell in place', async () => {
@@ -128,6 +173,21 @@ describe('the components of a trajectory frame', () => {
       // the root's property data, which components inherit (secondary structure, ASA)
       expect(polymer().inheritedPropertyData).toBe(root().inheritedPropertyData);
     }
+  });
+
+  it('run the query again with bonds computed per frame (dynamic bonds)', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await loadEnsemble(plugin);
+    const structure = await plugin.builders.structure.createStructure(model, {
+      name: 'model',
+      params: { dynamicBonds: true },
+    } as any);
+    // any static component (the "plus connected" queries, ligand and branched, follow the bonds)
+    const ligand = await plugin.builders.structure.tryCreateComponentStatic(structure, 'water');
+    const recreated: string[] = [];
+    plugin.state.data.events.object.updated.subscribe((e) => e.action === 'recreate' && recreated.push(e.ref));
+    await setFrame(plugin, model.ref, 1);
+    expect(recreated).toContain(ligand!.ref);
   });
 
   it("take the frame's coordinates", async () => {
@@ -265,8 +325,12 @@ describe('the selection marks on a trajectory frame', () => {
     });
     canvas3d.mark.mockClear();
     await frame(1);
-    // a visual may have reset its markers (an operator change) or moved its groups (bonds, contacts of the frame)
-    expect(canvas3d.mark).toHaveBeenCalled();
+    // a visual may have reset its markers (an operator change) or moved its groups (bonds, contacts of the frame): the
+    // selection is marked again, on the new frame's structure
+    const root = hierarchy().structures[0].cell.obj!.data;
+    const selects = canvas3d.mark.mock.calls.filter((c: any[]) => c[1] === MarkerAction.Select);
+    expect(selects.length).toBeGreaterThan(0);
+    for (const [reprLoci] of selects) expect((reprLoci as any).loci.structure.root).toBe(root);
     const loci = plugin.managers.structure.selection.getLoci(hierarchy().structures[0].cell.obj!.data);
     expect(StructureElement.Loci.size(loci as StructureElement.Loci)).toBe(5);
   });

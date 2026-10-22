@@ -105,10 +105,12 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     // Another trajectory (the data read again): recreated, which disposes the old model's custom properties.
     if ((cache as { trajectory?: Trajectory }).trajectory !== a.data) return StateTransformer.UpdateResult.Recreate;
     // A new frame updates the cell in place: recreating it disposed the old frame's custom properties, which the
-    // trajectory's frames share (`{ ...previous }`), on every frame of a playing trajectory.
+    // frames of the same topology share (`{ ...previous }`), on every frame of a playing trajectory.
     return Task.create('Model from Trajectory', async (ctx) => {
       const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx);
       if (model === b.data) return StateTransformer.UpdateResult.Unchanged;
+      // frames of the same topology share them (`{ ...previous }`); a frame of another has its own
+      if (model.customProperties !== b.data.customProperties) b.data.customProperties.dispose();
       b.data = model;
       b.label = label;
       b.description = description;
@@ -265,7 +267,8 @@ const ModelWithCoordinates = PluginStateTransform.BuiltIn({
   },
   isDecorator: true,
 })({
-  apply({ a, params }) {
+  apply({ a, params, cache }) {
+    (cache as { source?: Model }).source = a.data;
     if (!params.atomicCoordinateFrame) {
       return a;
     }
@@ -276,16 +279,19 @@ const ModelWithCoordinates = PluginStateTransform.BuiltIn({
     Model.TrajectoryInfo.set(model, { index: params.frameIndex ?? 0, size: params.frameCount ?? 1 });
     return new SO.Molecule.Model(model, { label: a.label, description: a.description });
   },
-  update: ({ a, b, oldParams, newParams }) => {
-    if (oldParams.atomicCoordinateFrame === newParams.atomicCoordinateFrame) {
+  update: ({ a, b, oldParams, newParams, cache }) => {
+    // the parent model updated in place (a trajectory frame) is a new source, also with the frame as it was
+    const sourceChanged = (cache as { source?: Model }).source !== a.data;
+    if (!sourceChanged && oldParams.atomicCoordinateFrame === newParams.atomicCoordinateFrame) {
       return StateTransformer.UpdateResult.Unchanged;
     }
+    (cache as { source?: Model }).source = a.data;
     if (!newParams.atomicCoordinateFrame) {
       b.data = a.data;
     } else {
       b.data = {
-        ...b.data,
-        atomicConformation: Model.getAtomicConformationFromFrame(b.data, newParams.atomicCoordinateFrame),
+        ...a.data,
+        atomicConformation: Model.getAtomicConformationFromFrame(a.data, newParams.atomicCoordinateFrame),
       };
     }
     Model.TrajectoryInfo.set(b.data, { index: newParams.frameIndex ?? 0, size: newParams.frameCount ?? 1 });
@@ -313,14 +319,15 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
   },
   update({ a, b, oldParams, newParams }, ctx: PluginContext) {
     return Task.create('Custom Props', async (taskCtx) => {
-      b.data = a.data;
-      b.label = a.label;
-      b.description = a.description;
+      // the references are on the model they were added to (a new frame of another topology has its own properties)
       for (const name of oldParams.autoAttach) {
         const property = ctx.customModelProperties.get(name);
         if (!property) continue;
-        a.data.customProperties.reference(property.descriptor, false);
+        b.data.customProperties.reference(property.descriptor, false);
       }
+      b.data = a.data;
+      b.label = a.label;
+      b.description = a.description;
       await attachModelProps(a.data, ctx, taskCtx, newParams);
       return StateTransformer.UpdateResult.Updated;
     });
