@@ -47,8 +47,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
   }
 
   readonly events = {
+    /** The entries, the current one, or whether they play changed (the time of a playing transition does not emit it) */
     changed: this.ev(),
     opened: this.ev(),
+    /** `state.currentAnimationTimeMs` moved: every tick of a playing transition, or a scrub */
+    animationTimeChanged: this.ev(),
   };
 
   get current() {
@@ -205,8 +208,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
 
     const frameIndex = PluginState.getStateTransitionFrameIndex(entry.snapshot, currentAnimationTimeMs) ?? 0;
 
+    // at the frame rate: `changed` would wake every reader of the entries
     if (this.updateState({ currentAnimationTimeMs })) {
-      this.events.changed.next(void 0);
+      this.events.animationTimeChanged.next(void 0);
     }
 
     if (load) {

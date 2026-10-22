@@ -14,8 +14,8 @@ relative to `packages/`.
 | Step | Ids                    | What                                                                      | Status |
 | ---- | ---------------------- | ------------------------------------------------------------------------- | ------ |
 | 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) |
-| 1    | S1–S5, S9              | Snapshot playback: the per-tick re-apply bug and per-tick waste           | open   |
-| 2    | T1, T2                 | Trajectory: the model cell and the shared root (correctness first)        | open   |
+| 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | open   |
+| 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | open   |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | open   |
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | open   |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | open   |
@@ -101,6 +101,14 @@ One line per id as it lands: the commit's before → after on the bench (median 
   what is shown, not of the cost; S1's test now applies 6 and 5 frames (frame 1 included). Test:
   `plugin/core/src/state/_test/transition-frames.test.ts` (failed before: the hold of a 100/1000/100 ms transition
   showed frame 2). Also in 5.x: in the root `CHANGELOG.md` with S1 and S2.
+
+- **S3** (`events.animationTimeChanged` for the time; `changed` for the entries, the current one, playing). exosome:
+  416 → 0 `changed` per 600 ticks; ms within noise (4.23 med). The transition now sets the time before its skip, so
+  the time also moves while a frame holds (after S1 it moved on frame changes only). Readers of the time: the classic
+  viewport controls and Prism's transition source; the others (the snapshot list, two markdown descriptions,
+  mvs-stories' markdown, video export) no longer wake per tick. Breaking: in `.v6/plans/breaking-v6-changes.md`.
+  **Dropped: the binary search.** The scan is 0.38 µs per call over 1,022 frames (0.06 µs binary), two calls per tick
+  against 3–4 ms. Test: in `state-snapshots.test.ts` (failed before: no event).
 
 ## Snapshot and MVS playback
 

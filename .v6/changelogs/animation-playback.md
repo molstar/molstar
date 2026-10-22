@@ -6,3 +6,6 @@
   → 0); `State.setSnapshot` takes the update options
 - Snapshot transitions show a frame for its own duration: each frame showed during the slot of the one before it, so the
   second frame never showed and an MVS hold showed the frame after it (also when scrubbing)
+- [Breaking] The snapshot manager's `changed` no longer emits for the time of a playing transition:
+  `events.animationTimeChanged` does, on every tick (the time also moves while a frame holds), so the snapshot list and
+  the descriptions no longer re-render at the frame rate

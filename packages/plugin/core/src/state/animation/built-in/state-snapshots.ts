@@ -236,11 +236,12 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
       return { kind: 'finished' };
     }
 
+    // the time moves on every tick, also while a frame holds
+    ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(t.current, false);
     if (frameIndex === animState.currentTransitionFrame) {
       return { kind: 'skip' };
     }
 
-    ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(t.current, false);
     if (frameIndex === 0) {
       await setPartialSnapshot(
         ctx.plugin,

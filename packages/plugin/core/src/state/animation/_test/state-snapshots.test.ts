@@ -10,7 +10,7 @@ import {
   AnimateStateSnapshots,
   AnimateStateSnapshotTransition,
 } from '@molstar/plugin/state/animation/built-in/state-snapshots';
-import { addTransition, createPlaybackPlugin, play, rawDataTree } from './harness.js';
+import { addTransition, createPlaybackPlugin, play, rawDataTree, TickMs } from './harness.js';
 
 /** Three looks of a 4-node tree, as frames of 100 ms each: a, a, b, b, c, c (holds share the frame's data) */
 async function transitionPlugin(durationInMs?: number) {
@@ -44,6 +44,20 @@ describe('a playing snapshot transition', () => {
     // setup goes back from look c to a, then b and c: the frames that change the tree update its four nodes
     expect(counts.updated - updated).toBe(12);
     expect(counts.recreated).toBe(0);
+  });
+
+  it('moves the time on every tick, and says so without `changed`', async () => {
+    const { plugin, counts } = await transitionPlugin();
+    const manager = plugin.managers.snapshot;
+    const times: number[] = [];
+    manager.events.animationTimeChanged.subscribe(() => times.push(manager.state.currentAnimationTimeMs!));
+    await plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+    const changed = counts.changed;
+    const ticks = await play(plugin, 450);
+    // the first tick is at time 0, the time the manager already has
+    expect(times.length).toBe(ticks - 1);
+    expect(times[times.length - 1]).toBeCloseTo((ticks - 1) * TickMs, 6);
+    expect(counts.changed - changed).toBe(0);
   });
 
   it('does not log the timing of the frames', async () => {
