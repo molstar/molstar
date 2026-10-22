@@ -11,7 +11,9 @@ truth for how.
 - **On the web, so**: remote states on (the library's default is off), Home at start only when the URL loads nothing,
   the assistant a chunk loaded on first use.
 - **Build**: ESM with splitting, content-hashed chunks, no stylesheet (CSS is in the JS), relative chunk URLs so any
-  base path works (`scripts/esbuild/app.mjs`). Per-file size budgets (`molstar.budgets`) fail a production build.
+  base path works (`scripts/esbuild/app.mjs`). Size budgets (`molstar.budgets`) fail a production build: the entry's on
+  its start closure (`index.js` and every chunk it imports statically: what a page loads before the viewer runs; the
+  entry itself is a stub of imports), the single file's on the file. A static import of a lazy part fails it.
 - **Deployment** (`scripts/distribution.mjs`, `scripts/deploy.js`): GitHub Pages at `prism/`; a publish adds files, so
   earlier hashed chunks stay for open tabs (journal.md §7).
 - **`window.molstar = { viewer, api, lib }`**: `lib` is v5's `molstar.lib` where the app has the parts (not the classic

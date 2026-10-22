@@ -420,18 +420,32 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
   }
 
   private _empty: any[] = [];
-  /** The measurement group's ref, found once per tree (its nodes and tags change only with a new transforms map). */
-  private group: { transforms: unknown; ref: StateTransform.Ref | undefined } | undefined;
+  /**
+   * The measurement group's ref, kept from cell events (`trackGroup`) instead of a walk of the tree per state change
+   * (perf audit 2, 10/P5). `groupStale`: the tree is searched once more (at start, after the group went or lost its
+   * tag), for another group made before.
+   */
+  private group: StateTransform.Ref | undefined = undefined;
+  private groupStale = true;
 
   private groupRef(): StateTransform.Ref | undefined {
     const tree = this.plugin.state.data.tree;
-    if (this.group?.transforms !== tree.transforms) {
-      this.group = {
-        transforms: tree.transforms,
-        ref: StateSelection.findTagInSubtree(tree, StateTransform.RootRef, MeasurementGroupTag),
-      };
+    if (this.group !== undefined) {
+      const t = tree.transforms.get(this.group);
+      if (t && StateTransform.hasTag(t, MeasurementGroupTag)) return this.group;
+      this.group = undefined;
+      this.groupStale = true;
     }
-    return this.group.ref;
+    if (this.groupStale) {
+      this.groupStale = false;
+      this.group = StateSelection.findTagInSubtree(tree, StateTransform.RootRef, MeasurementGroupTag);
+    }
+    return this.group;
+  }
+
+  /** A cell made or updated with the group's tag (an update in place may tag it) is the group, when there is none. */
+  private trackGroup(ref: StateTransform.Ref, transform: StateTransform) {
+    if (this.group === undefined && StateTransform.hasTag(transform, MeasurementGroupTag)) this.group = ref;
   }
 
   private getTransforms<
@@ -445,8 +459,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
   }
 
   private sync() {
-    // On every state change: with no measurement group (the usual case), no walk of the tree at all; with one, a single
-    // search for it per tree, not one per kind (each visited every node when there was none).
+    // On every state change: no walk of the tree for the group (`groupRef`); with one, a select per kind below it.
     const groupRef = this.groupRef();
     if (!groupRef) {
       const e = this._empty;
@@ -489,6 +502,15 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
       orientations: [],
       planes: [],
       options: DefaultStructureMeasurementOptions,
+    });
+
+    const { events } = plugin.state.data;
+    events.cell.created.subscribe((e) => this.trackGroup(e.ref, e.cell.transform));
+    events.cell.stateUpdated.subscribe((e) => this.trackGroup(e.ref, e.cell.transform));
+    events.cell.removed.subscribe((e) => {
+      if (e.ref !== this.group) return;
+      this.group = undefined;
+      this.groupStale = true;
     });
 
     plugin.state.data.events.changed.subscribe((e) => {

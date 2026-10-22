@@ -119,6 +119,11 @@
       "types": "./lib/sequence/molstar/index.d.ts",
       "import": "./lib/sequence/molstar/index.js"
     },
+    "./sequence/molstar/pae-matrix": {
+      "molstar-src": "./src/sequence/molstar/pae-matrix.ts",
+      "types": "./lib/sequence/molstar/pae-matrix.d.ts",
+      "import": "./lib/sequence/molstar/pae-matrix.js"
+    },
     "./sequence/runtime": {
       "molstar-src": "./src/sequence/runtime.ts",
       "types": "./lib/sequence/runtime.d.ts",

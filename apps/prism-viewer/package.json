@@ -64,7 +64,7 @@
       "filename": "prism-viewer.js"
     },
     "budgets": {
-      "index.js": 3200000,
+      "index.js": 5500000,
       "prism-viewer.js": 8000000
     }
   }

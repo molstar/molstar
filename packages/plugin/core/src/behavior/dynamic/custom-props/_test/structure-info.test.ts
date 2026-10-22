@@ -90,6 +90,34 @@ describe('StructureInfo', () => {
     plugin.dispose();
   });
 
+  it('gives the max at once to a model recreated by an update after its update failed', async () => {
+    const plugin = await createPluginWithBehavior();
+    const a = await loadPdb(plugin, 'a');
+    const twoModels = ['MODEL        1', pdb, 'ENDMDL', 'MODEL        2', pdb, 'ENDMDL'].join('\n');
+    const data = await plugin.builders.data.rawData({ data: twoModels, label: 'b' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const modelCell = await plugin.builders.structure.createModel(trajectory);
+    const structureCell = await plugin.builders.structure.createStructure(modelCell);
+    // the update throws once: the model's object goes (the max drops), the next update recreates it
+    vi.spyOn(ModelFromTrajectory.definition, 'update').mockImplementationOnce(() => {
+      throw new Error('failed');
+    });
+    const toFrame = (modelIndex: number) =>
+      plugin
+        .build()
+        .to(modelCell.ref)
+        .update(ModelFromTrajectory, (old: any) => ({ ...old, modelIndex }))
+        .commit();
+    await toFrame(1).catch(() => {});
+    await toFrame(0);
+    const model = plugin.state.data.cells.get(modelCell.ref)!.obj!.data as Model;
+    const structure = plugin.state.data.cells.get(structureCell.ref)!.obj!.data as Structure;
+    expect(Model.Index.get(model).value).toBe(1);
+    expect([a.model, model].map((m) => Model.MaxIndex.get(m).value)).toEqual([1, 1]);
+    expect([a.structure, structure].map((s) => Structure.MaxIndex.get(s).value)).toEqual([1, 1]);
+    plugin.dispose();
+  });
+
   it('walks the tree for no object created, models and structures included', async () => {
     const plugin = await createPluginWithBehavior();
     await loadPdb(plugin, 'a');
@@ -263,6 +291,24 @@ describe('structure info behavior', () => {
     const polymer = await plugin.builders.structure.tryCreateComponentStatic(a.structure, 'polymer');
     await plugin.builders.structure.representation.addRepresentation(polymer!, { type: 'cartoon' });
     expect(select).not.toHaveBeenCalled();
+    plugin.dispose();
+  });
+
+  it('visits the roots for a root model only: a component or a root structure visits none (perf audit 2, 10/P4)', async () => {
+    const plugin = await createPlugin();
+    const a = await load(plugin, 'a', 2);
+    await load(plugin, 'b', 1);
+    await load(plugin, 'c', 3);
+    const index = vi.spyOn(Model.Index, 'get');
+    const modelMax = vi.spyOn(Model.MaxIndex, 'get');
+    const structureMax = vi.spyOn(Structure.MaxIndex, 'get');
+    const polymer = await plugin.builders.structure.tryCreateComponentStatic(a.structure, 'polymer');
+    await plugin.builders.structure.representation.addRepresentation(polymer!, { type: 'cartoon' });
+    await plugin.build().delete(polymer!).commit();
+    expect([index, modelMax, structureMax].map((s) => s.mock.calls.length)).toEqual([0, 0, 0]);
+    // a second root structure of a model: its own max, no other root's
+    await plugin.builders.structure.createStructure(a.structure.cell!.transform.parent);
+    expect([index, modelMax, structureMax].map((s) => s.mock.calls.length)).toEqual([0, 0, 1]);
     plugin.dispose();
   });
 });
