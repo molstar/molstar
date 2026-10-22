@@ -17,7 +17,7 @@ relative to `packages/`.
 | 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped |
 | 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped |
-| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | open   |
+| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: themes and the param definition; multilayer selectors open |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | open   |
 | 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | open   |
 | 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | open   |
@@ -173,6 +173,14 @@ One line per id as it lands: the commit's before → after on the bench (median 
   `plugin/core/src/state/transforms/_test/representation-update.test.ts` (a theme made on an alpha change before).
   Method note: a trajectory scene measured in the same process after the exosome scene reads up to 40% slower (the
   exosome allocates 2.3 GB first), so trajectory numbers come from runs of their own.
+
+- **R1 (param definition)** (`representation.ts`: the definition cached by structure, checked against a new `version` of
+  the representation and theme registries, which changes on add and remove). exosome: 2.95 → 2.76 ms/applied, 2,812 →
+  2,411 KB/tick. Trajectories unchanged (a new structure per frame). Tests: in `representation-update.test.ts`
+  (`getApplicableTypes` 3 times for 3 updates before; a registration builds it again).
+  **Not done:** `computeChildAwareTransformGroups` is in none of the profiles. **Open:** the MVS multilayer color
+  theme's per-layer selectors could be cached by structure and selector. It matters for color animations only, and the
+  fixtures that have them (features, motm1) need PDBe files, so it can't be measured here.
 
 ## Snapshot and MVS playback
 

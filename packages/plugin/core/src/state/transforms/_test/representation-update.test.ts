@@ -55,4 +55,29 @@ describe('a structure representation update', () => {
       .commit();
     expect(create).toHaveBeenCalledTimes(1);
   });
+
+  it('builds its param definition once for a structure (R1)', async () => {
+    const { plugin, update } = await representation();
+    const applicable = vi.spyOn(plugin.representation.structure.registry, 'getApplicableTypes');
+    for (const alpha of [0.5, 0.6, 0.7]) {
+      await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params, alpha } } }));
+    }
+    // built when the representation was made
+    expect(applicable).not.toHaveBeenCalled();
+  });
+
+  it('builds it again when a representation is registered', async () => {
+    const { plugin, repr, update } = await representation();
+    const registry = plugin.representation.structure.registry;
+    await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params, alpha: 0.5 } } }));
+    const provider = { ...registry.get('ball-and-stick'), name: 'another-ball-and-stick', label: 'Another' } as any;
+    registry.add(provider);
+    try {
+      await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params, alpha: 0.6 } } }));
+      const def = plugin.state.data.cells.get(repr.ref)!.params!.definition as any;
+      expect(def.type.select.options.map((o: any) => o[0])).toContain('another-ball-and-stick');
+    } finally {
+      registry.remove(provider);
+    }
+  });
 });

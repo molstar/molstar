@@ -129,6 +129,12 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     return getTypes(this._list);
   }
 
+  private _version = 0;
+  /** Changes when a provider is added or removed: what was derived from the list (param definitions) is stale. */
+  get version() {
+    return this._version;
+  }
+
   private _warned = new Set<string>();
 
   /**
@@ -174,6 +180,7 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     this._map.set(name, provider);
     this._name.set(provider, name);
     this._count.set(provider, 1);
+    this._version++;
     this.sort();
   }
 
@@ -191,6 +198,7 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     this._name.delete(provider);
     const i = this._list.findIndex((e) => e.provider === provider);
     if (i >= 0) this._list.splice(i, 1);
+    this._version++;
   }
 
   has(nameOrProvider: string | ThemeProvider<T, any>): boolean {
@@ -231,5 +239,6 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     this._map.clear();
     this._name.clear();
     this._count.clear();
+    this._version++;
   }
 }

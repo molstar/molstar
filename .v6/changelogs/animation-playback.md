@@ -23,3 +23,5 @@
 - `Structure.remapModel(m, parent?)` takes the parent already remapped
 - A representation update that changes neither the structure nor the themes' params keeps the color and size themes
   (an MVS frame changing opacity or emissive: exosome story 3.7 → 3.0 ms per frame)
+- The structure representation's param definition is built once per structure (exosome story: 3.0 → 2.8 ms per frame);
+  the representation and theme registries have a `version` that changes when a provider is added or removed

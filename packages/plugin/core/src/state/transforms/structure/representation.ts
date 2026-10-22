@@ -8,7 +8,7 @@
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import type { PluginContext } from '@molstar/plugin/context';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { deepEqual } from '@molstar/core/util';
+import { arrayEqual, deepEqual } from '@molstar/core/util';
 import { Structure } from '@molstar/model/model/structure';
 import { Task } from '@molstar/core/task';
 import { Theme } from '@molstar/graphics/theme/theme';
@@ -24,6 +24,11 @@ import { getRepresentationSignatures, registerTransformSignatures } from '@molst
 
 export { StructureRepresentation3D };
 type StructureRepresentation3D = typeof StructureRepresentation3D;
+/** The param definitions by structure, with the registries' versions they were built with */
+const definitions = new WeakMap<
+  Structure,
+  { scope: PluginContext['representation']['structure']; versions: number[]; definition: PD.Params }
+>();
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({
   name: 'structure-representation-3d',
   display: '3D Representation',
@@ -69,6 +74,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       };
     }
 
+    // The definition depends on the structure and the registries only: an animation frame updates the same
+    // representation of the same structure on every tick (R1)
+    const versions = [registry.version, themeCtx.colorThemeRegistry.version, themeCtx.sizeThemeRegistry.version];
+    const cached = definitions.get(a.data);
+    if (cached && cached.scope === scope && arrayEqual(cached.versions, versions)) return cached.definition;
+
     const dataCtx = { structure: a.data };
     const colorThemeInfo = {
       help: (value: { name: string; params: {} }) => {
@@ -79,7 +90,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       },
     };
 
-    return {
+    const definition = {
       type: registry.default
         ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
             PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
@@ -99,6 +110,8 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
           )
         : emptyMappedParams(),
     };
+    definitions.set(a.data, { scope, versions, definition });
+    return definition;
   },
 })({
   canAutoUpdate({ a, oldParams, newParams }) {
