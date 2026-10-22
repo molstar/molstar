@@ -132,7 +132,10 @@ buttons) is the app's. The code is the truth for how.
 - **Status column** (`NotificationsManager`, `managers/notifications.ts`; `StatusLine`, `StatusPill`): one line per
   item, growing upward, frameless ink with a halo: the latest message (fades after 4 s, held while hovered; an error
   stays until its ✕; a click opens the log, `onOpenLog`, an error's at Problems, another's at All), then each running
-  task (spinner, progress, ✕ to cancel), then the `agent` slot. The model keeps 200 messages.
+  task (spinner, progress, ✕ to cancel), then the `agent` slot. The model keeps 200 messages. A task pill follows its
+  task by id (`lineTaskIds`, `lineTask(id)`: the model's keyed view of `tasks`), made once and written on progress. Why:
+  the viewer replaces every task record on every progress event (up to 10 a second); a pill made anew restarted its
+  spinner and replaced Cancel under a press.
 - **The log** (`LogView`, the History panel's Log): the messages the status line showed, each with its `detail` (how
   long its run took; the status line never shows it), and what was written to the log only (`log(text, kind, source)`:
   never on show, never said, never in `history`, which stays the messages shown; the Log reads `logged`; a source keeps

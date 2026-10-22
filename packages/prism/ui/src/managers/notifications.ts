@@ -7,6 +7,7 @@
  */
 
 import { type Observable, Subject } from 'rxjs';
+import { keyedState } from '../reactive/keyed-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { ReactiveModel } from '../reactive/reactive-model.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
@@ -68,6 +69,9 @@ export class NotificationsManager extends ReactiveModel {
   readonly #history = observableState<readonly StatusMessage[]>([]);
   readonly #log = observableState<readonly StatusMessage[]>([]);
   readonly #tasks = observableState<readonly StatusTask[]>([]);
+  /** The status line's tasks (not `overlay`) by id, and their ids: a pill follows its task (perf audit 2, 11/B3). */
+  readonly #lineTasks = keyedState<string, StatusTask>();
+  readonly #lineTaskIds = observableState<readonly string[]>([]);
   /** The tasks put one by one (`putTask`), by id: `setTasks` leaves them. */
   readonly #put = new Set<string>();
   readonly #chips = observableState<readonly StatusChip[]>([]);
@@ -114,6 +118,19 @@ export class NotificationsManager extends ReactiveModel {
 
   get tasks(): ReadonlyState<readonly StatusTask[]> {
     return this.#tasks.asReadonly;
+  }
+
+  /**
+   * The ids of the tasks the status line shows (all but `overlay` ones), in order; told only when they change, not on a
+   * task's progress. Each task by `lineTask(id)`.
+   */
+  get lineTaskIds(): ReadonlyState<readonly string[]> {
+    return this.#lineTaskIds.asReadonly;
+  }
+
+  /** A status-line task by id: told when that task's record changes (its progress), undefined once it is gone. */
+  lineTask(id: string): ReadonlyState<StatusTask | undefined> {
+    return this.#lineTasks.key(id);
   }
 
   get chips(): ReadonlyState<readonly StatusChip[]> {
@@ -211,12 +228,12 @@ export class NotificationsManager extends ReactiveModel {
     this.#put.add(task.id);
     const tasks = this.#tasks.value;
     const i = tasks.findIndex((t) => t.id === task.id);
-    this.#tasks.set(i < 0 ? [...tasks, task] : tasks.map((t, j) => (j === i ? task : t)));
+    this.#setTasks(i < 0 ? [...tasks, task] : tasks.map((t, j) => (j === i ? task : t)));
   }
 
   removeTask(id: string): void {
     this.#put.delete(id);
-    if (this.#tasks.value.some((t) => t.id === id)) this.#tasks.set(this.#tasks.value.filter((t) => t.id !== id));
+    if (this.#tasks.value.some((t) => t.id === id)) this.#setTasks(this.#tasks.value.filter((t) => t.id !== id));
   }
 
   /** Hides the message on show (only that one, if `id` is given). */
@@ -232,7 +249,22 @@ export class NotificationsManager extends ReactiveModel {
    */
   setTasks(tasks: readonly StatusTask[]): void {
     const put = this.#tasks.value.filter((t) => this.#put.has(t.id) && !tasks.some((n) => n.id === t.id));
-    this.#tasks.set(put.length ? [...tasks, ...put] : tasks);
+    this.#setTasks(put.length ? [...tasks, ...put] : tasks);
+  }
+
+  /** The tasks, and the status line's by id: the records first, so a pill made for a new id reads its task. */
+  #setTasks(tasks: readonly StatusTask[]): void {
+    const byId = new Map<string, StatusTask>();
+    const ids: string[] = [];
+    for (const t of tasks) {
+      if (t.overlay || byId.has(t.id)) continue;
+      byId.set(t.id, t);
+      ids.push(t.id);
+    }
+    this.#lineTasks.replace(byId);
+    // Compared item by item: the same ids tell nothing.
+    this.#lineTaskIds.set(ids);
+    this.#tasks.set(tasks);
   }
 
   setChips(chips: readonly StatusChip[]): void {
