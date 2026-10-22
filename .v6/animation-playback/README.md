@@ -21,7 +21,7 @@ relative to `packages/`.
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept |
 | 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) |
 | 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | open   |
-| 8    | S8                     | State interpolation: equality and the ref match                           | open   |
+| 8    | S8                     | State interpolation: equality and the ref match                           | done |
 
 Order: the bench, then the bugs (1, 2), then the work per frame from the bottom of the tree to the top (3–6), then the
 state-level change (7). Step 7 changes how a snapshot is applied, so it needs the core state spec, and the steps before
@@ -210,6 +210,13 @@ One line per id as it lands: the commit's before → after on the bench (median 
   `hasForeignResources` 22% (a walk over every value cell of the render object and its merged members, on every visual
   update, for the backend switch), and render-object merging (`repr/merged.ts` → `canMergeRenderObjects`) 16%. The
   callers are in `repr/`, but what they check is the backend-switch logic.
+
+- **S8** (`state-interpolation.ts`: targets by ref in a map; a node is updated when its interpolated params differ from
+  the cell's params or from what the animation set last; nothing is committed on a tick that changes nothing). The
+  comparison was of the cell with the params (`shallowEqual(cell, params)`, always false), so every differing
+  transform was updated on every tick. Over 58 ticks of two 4-node snapshots: 58 → 1 commits, the same 4 nodes
+  changed. Not in the bench: an experimental animation with no scene. Test:
+  `plugin/core/src/state/animation/_test/state-interpolation.test.ts` (58 commits before).
 
 ## Snapshot and MVS playback
 

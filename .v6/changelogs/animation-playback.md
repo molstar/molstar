@@ -29,3 +29,5 @@
   the task manager and toggled the busy state
 - A trajectory frame no longer clears and marks the selection again on every representation; the visuals keep their
   marks
+- The state interpolation animation updates a node only when its interpolated params change (it updated every node
+  that differs between the snapshots on every tick) and matches the snapshots' nodes by ref in linear time
