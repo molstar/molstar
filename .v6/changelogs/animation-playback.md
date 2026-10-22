@@ -13,8 +13,8 @@
   (an exosome story step: 18.8 → 0.02 ms)
 - A frame of a snapshot transition no longer builds every evaluated node's param definition to find its dependencies
   (exosome story: 4.6 → 3.7 ms per frame)
-- Playing a trajectory updates the model in place and keeps the custom properties its frames share; every frame
-  disposed their assets (11.5k atoms, the default preset: 13.2 → 9.5 ms and 8.9 → 4.4 MB allocated per frame)
+- Playing a trajectory updates the model in place and keeps the custom properties that frames of the same topology
+  share; every frame disposed their assets (11.5k atoms, the default preset: 13.2 → 9.5 ms and 8.9 → 4.4 MB allocated per frame)
 - With a focus, a trajectory frame is one state update: the focus representation committed a second one per frame,
   and disposing the plugin right after a frame threw in the focus interactions
 - A trajectory frame recreates no state cell: the structure's properties, the static components and the overpaint,
@@ -23,12 +23,11 @@
 - `Structure.remapModel(m, parent?)` takes the parent already remapped
 - A representation update that changes the representation's own params but neither the structure nor the themes' params
   keeps the color and size themes (an MVS frame changing opacity or emissive: exosome story 3.7 → 3.0 ms per frame)
-- The structure representation's param definition is built once per structure (exosome story: 3.0 → 2.8 ms per frame);
-  the representation and theme registries have a `version` that changes when a provider is added or removed
 - A playing trajectory commits a state update only on the ticks that show a new frame; the ticks in between went through
   the task manager and toggled the busy state
 - A trajectory frame without a selection no longer clears the selection marks of every representation
 - The state interpolation animation updates a node only when its interpolated params change (it updated every node
   that differs between the snapshots on every tick) and matches the snapshots' nodes by ref in linear time
-- The overpaint, transparency, substance, emissive, clipping and wiggle layers below a representation do not run their
-  queries again when the representation updates and their layers and structure are unchanged
+- The overpaint, transparency, substance, emissive, clipping and wiggle bundle layers below a representation are not
+  applied again when the representation updates and their layers and structure are unchanged
+- A snapshot transition ends on its last frame also when that frame is shorter than an animation tick

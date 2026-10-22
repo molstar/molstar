@@ -17,10 +17,10 @@ relative to `packages/`.
 | 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped |
 | 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped |
-| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: themes and the param definition; multilayer selectors open |
+| 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | done: the themes; the param definition cache removed (review gate 2); multilayer selectors open |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | done: the empty update, SelectLoci, the focus (with B1); Prism marks kept |
 | 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | dropped (measured; open for a browser) |
-| 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | done: S7 in the effect transforms; S6 dropped (2.3% of a frame) |
+| 7    | S6, S7                 | A frame applied as a diff of the changed refs; unchanged children skipped | done: S7 in the effect transforms, bundle layers; S6 dropped (2.3% of a frame) |
 | 8    | S8                     | State interpolation: equality and the ref match                           | done |
 
 Order: the bench, then the bugs (1, 2), then the work per frame from the bottom of the tree to the top (3–6), then the
@@ -130,7 +130,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   3.40. KB/tick: synth preset 8,919 → 4,351, ball-and-stick 6,266 → 1,443. Recreated cells per frame: one fewer (3 →
   2 with one representation). Gaussian surface unchanged (296 → 301, the surface itself). Tests:
   `plugin/core/src/state/animation/_test/trajectory.test.ts` (the asset disposed, the cell recreated before). Also in
-  5.x: root `CHANGELOG.md`.
+  5.x: root `CHANGELOG.md`. After the review gates: another trajectory (the data read again) recreates the cell (gate
+  1); a frame that does not share the properties (another topology: only `sameAsPrevious` frames share
+  `{ ...previous }`) disposes the old ones, and `CustomModelProperties` releases its references on the model that held
+  them; `ModelWithCoordinates` below builds again from the new model (gate 2).
 
 - **T2: not reached today, done with T3.** A static component never gets to its remap path during playback:
   `Structure.areEquivalent(a, cache.source)` compares unit conformations by identity, so every frame recreates the
@@ -156,7 +159,9 @@ One line per id as it lands: the commit's before → after on the bench (median 
   → 5.07; nmr+focus+select 6.44 → 4.48. KB/tick: synth preset 4,989 → 4,139, +overpaint 4,772 → 4,161, nmr+focus+select
   5,258 → 1,936. Measured before and after back to back. Tests: `trajectory.test.ts` (3 recreates per frame before;
   without the shared root the T2 test fails once components remap). Changed: a whole-source static component stays its
-  source on a new frame (it was a remapped copy), in `structure-component-element-schema.test.ts`.
+  source on a new frame (it was a remapped copy), in `structure-component-element-schema.test.ts`. After the review
+  gates, the remap also needs equal unit operators (gate 1: a frame that also moves the structure) and no dynamic bonds
+  (gate 2: the "plus connected" queries follow bonds computed per frame); otherwise the query runs again.
   **Dropped: expression components** (`structure-component.ts`, `expression`/`script`). An expression may read
   coordinates (`includeSurroundings`, distances), so running it again is the only safe answer without analyzing the
   expression.
@@ -176,8 +181,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   Method note: a trajectory scene measured in the same process after the exosome scene reads up to 40% slower (the
   exosome allocates 2.3 GB first), so trajectory numbers come from runs of their own.
 
-- **R1 (param definition)** (`representation.ts`: the definition cached by structure, checked against a new `version` of
-  the representation and theme registries, which changes on add and remove). exosome: 2.95 → 2.76 ms/applied, 2,812 →
+- **R1 (param definition): removed after review gate 2.** It was: the definition cached by structure, checked against a
+  new `version` of the representation and theme registries. Stale when a theme's `getParams` reads property data its
+  own `ensureCustomProperties` attaches in the update (the PDBe structure quality report's issue types); the cache and
+  the `version` are gone, the 6% below with them. Measured while it was in: exosome: 2.95 → 2.76 ms/applied, 2,812 →
   2,411 KB/tick. Trajectories unchanged (a new structure per frame). Tests: in `representation-update.test.ts`
   (`getApplicableTypes` 3 times for 3 updates before; a registration builds it again).
   **Not done:** `computeChildAwareTransformGroups` is in none of the profiles. **Open:** the MVS multilayer color
@@ -226,7 +233,10 @@ One line per id as it lands: the commit's before → after on the bench (median 
   reconciler or spec change). The bench gets `snapshots:effects` (1cbs, a script overpaint and transparency below each
   representation, frames changing the alpha): 1.00 → 0.74 ms/applied, 55 → 38 KB/tick. MVS does not use these
   transforms (its opacity and emissive are representation params), so the exosome is unchanged. Test:
-  `plugin/core/src/state/transforms/_test/effects-update.test.ts` (one `ofScript` per update before).
+  `plugin/core/src/state/transforms/_test/effects-update.test.ts` (one `ofScript` per update before). **Narrowed after
+  review gate 2 to bundle layers:** a script may read a custom property that an ancestor's update computes again on the
+  same structure (ASA's `is-buried`), so script layers run again. The scene's overpaint is now a bundle (its
+  transparency a script): 0.86 → 0.80 ms/applied, 55 → 42 KB/tick.
 - **S6: dropped**, by the rule decided before step 7. `fromJSON` + `findDeletes` + `findUpdateRoots` + `syncNewStates`
   are 39.5 of 1,709 ms sampled over 600 exosome ticks after steps 1–5: 2.3% of a frame, under the 10% line.
   `reconcile.md` is unchanged.
@@ -254,6 +264,30 @@ A fresh reviewer read `master...23940ded6`. Findings and what was done:
 The reviewer checked as correct: the snapshot skip, the camera, the frame index function, the time event's readers,
 `CustomStructureProperties` in place, the effects in place, the shared root, the focus skip, the registry versions,
 the snapshot names cache, the trajectory apply loop, and that the other tests and the model `_spec` edits are right.
+
+## Review gate 2 (after step 7)
+
+A fresh reviewer read `master...5fd5a1acb`. Findings and what was done:
+
+1. **S7 left script effects stale** when a script reads a custom property recomputed on the same structure (bug).
+   Fixed: the early return is for bundle layers only (`8f5bb4603`).
+2. **The R1 param definition cache went stale** when a theme's params read property data (bug: the PDBe quality
+   report). Fixed by removing the cache and the registries' `version` (`20c00fd0a`).
+3. **Frames that do not share custom properties** (another topology) kept their assets and references (risk). Fixed:
+   disposed when not shared, references released on the model that held them (`22ae67ff5`).
+4. **Static components with dynamic bonds** kept frame 0's connected elements (risk). Fixed: the query runs again
+   (`22ae67ff5`).
+5. **`ModelWithCoordinates` below a model updated in place** kept the old model (risk). Fixed: it builds again from
+   the new one (`22ae67ff5`).
+6. **SelectLoci re-marked on updates with the same data** (nit). Fixed: those keep the marks again (`22ae67ff5`).
+7. **Two tests checked less than their names** (nit). The re-marking test now checks that the marks are on the new
+   frame's structure; the S7 test covers script layers.
+8. **A transition ended without its last frame when that slot is shorter than a tick** (not a regression). Fixed:
+   the end applies the last frame unless it is shown (`22ae67ff5`).
+
+The reviewer checked as correct: the snapshot skip and camera, the frame index function, the time event, the S9
+cache, the names cache, the trajectory identity check, `CustomStructureProperties`, the static remap and shared root,
+the effects in place, the kept themes, the focus skip, the trajectory loop, S8, and the spec and breaking-change edits.
 
 ## Snapshot and MVS playback
 
