@@ -146,7 +146,7 @@ Reachable today first, then latent (no in-repo trigger).
 | 10/B3  | #2008 | one interval per touched chain instance (10/B5 is a different gap there)                       |
 | 11/B2  | #2008 | no snapshot within 30 s of one over the hard limit                                             |
 | 14/N7  | #2014 | builder removal no longer writes into `state.tree` (`renewOwner`)                              |
-| 12/B2  | #NNNN | v2 bug: the ESM entry's budget is on its start closure (5.5 MB; Prism now 5.16 MB)             |
+| 12/B2  | #2026 | v2 bug: the ESM entry's budget is on its start closure (5.5 MB; Prism now 5.16 MB)             |
 
 Partly fixed: 01/B5 (#2007, padding half; `is` still open, listed above). Dropped: 13/B1 (text mmCIF above ~4.8M atoms:
 app paths decode to a `ChunkedBigString` since #2019; cost is now speed, 12/H5).

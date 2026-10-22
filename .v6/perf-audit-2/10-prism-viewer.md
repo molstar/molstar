@@ -36,8 +36,8 @@ Counts: 15 v1 items (P1-P11, B1-B3, 14/NF2 Prism part): fixed 12, partly fixed 1
 | P1 | Checkpoint size = full `JSON.stringify` per undoable step | fixed | #2008 | per-`Serialized` size memo ([checkpoint.ts:136](../../packages/prism/viewer/src/sources/checkpoint.ts#L136)); 5.00 → 0.27 ms at 1401 cells, 13.65 → 0.71 ms at 4201; counted in the history budget |
 | P2 | Each checkpoint re-serializes every transform | fixed | #2008 | `WeakMap<StateTransform, Serialized>` shared across checkpoints, flags re-checked per read; 100 checkpoints 14.8 → 1.6 MB; undo capped at 10 |
 | P3 | Frame step rebuilds the Seq\* document and reattaches the link | fixed | #2008 | `sameAtoms` keeps the key ([sequence.ts:179](../../packages/prism/viewer/src/sources/sequence.ts#L179)); `StructureLink.rebind`; 20 steps, 0 registrations. Views still restart per step: P13/B6 |
-| P4 | (plugin) StructureInfo 3 `rootsOfType` walks per created object | fixed | #2008, #2013, #NNNN | roots tracked from events; `rootObjects` 1.0 %, `setMaxIndices` 0.4 % of a load at N=300; #NNNN: `setMaxIndices` for root models only (12: 8.6 % of many-500 `repr:auto` → 0) |
-| P5 | (plugin) measurement sync walks the tree 6× per change | **fixed** | #2008, #2013, #NNNN | 6 walks → 1 (#2008); #NNNN: group ref from cell events, no walk per change (many-500 theme:one 5.2 → 0 ms profiled) |
+| P4 | (plugin) StructureInfo 3 `rootsOfType` walks per created object | fixed | #2008, #2013, #2026 | roots tracked from events; `rootObjects` 1.0 %, `setMaxIndices` 0.4 % of a load at N=300; #2026: `setMaxIndices` for root models only (12: 8.6 % of many-500 `repr:auto` → 0) |
+| P5 | (plugin) measurement sync walks the tree 6× per change | **fixed** | #2008, #2013, #2026 | 6 walks → 1 (#2008); #2026: group ref from cell events, no walk per change (many-500 theme:one 5.2 → 0 ms profiled) |
 | P6 | `readStyleLayers` 5 selects per representation on a memo hit | fixed | #2008 | one `doPreOrder` per representation, kinds by transformer Map ([style-layers.ts:127](../../packages/prism/viewer/src/sources/style-layers.ts#L127)) |
 | P7 | Superpose `picked` recomputes `pickedOf` per state change | fixed | #2008 | `pickedMemo` per selection loci ([interaction.ts:67](../../packages/prism/viewer/src/sources/interaction.ts#L67)) |
 | P8 | `trajectory.frame` seeks written to the record | fixed | #2008 | `record: false` ([trajectory.ts:80](../../packages/prism/viewer/src/api/trajectory.ts#L80)); the link's replay now writes `select.set` per step instead (B6) |
@@ -55,7 +55,7 @@ Counts: 15 v1 items (P1-P11, B1-B3, 14/NF2 Prism part): fixed 12, partly fixed 1
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | P12 | new | `Canvas3D.update(repr)` re-records every renderable's precompile signature; callers loop per representation | [canvas3d.ts:2240](../../packages/graphics/src/canvas3d/canvas3d.ts#L2240) | time | high | drag N=100 ~12 ms → <0.5 ms per move; color over all O(N²) → O(N): ~0.3 s at N=100, ~8 s at N=500 | S | confirmed | yes |
 | 2 | P13 | new | Frame step restarts the link views: `highlight.clear` per frame, `select.set` replay with a Seq\* selection | [link.ts:104](../../packages/prism/viewer/src/sequence/link.ts#L104) | time | low | 1-2 API runs and mark passes per frame fewer | S | confirmed | no |
-| 3 | P5 | **fixed** (#NNNN) | (plugin) measurement sync: one full walk per state change with no group | [measurement.ts:426](../../packages/plugin/core/src/state/manager/structure/measurement.ts#L426) | time | low | ~1.15 ms per change at 4201 cells | S | confirmed | no |
+| 3 | P5 | **fixed** (#2026) | (plugin) measurement sync: one full walk per state change with no group | [measurement.ts:426](../../packages/plugin/core/src/state/manager/structure/measurement.ts#L426) | time | low | ~1.15 ms per change at 4201 cells | S | confirmed | no |
 | 4 | P15 | new | `findCuts` gathers targets with a linear `.some`: O(K²) per read | [cuts.ts:101](../../packages/prism/viewer/src/sources/clipping/cuts.ts#L101) | time | low | 8 ms → 0.1 ms at K=1500 per state change while shown | S | confirmed | no |
 | 5 | P14 | new | `trajectory.frame`/`particles.frame` log ~9 transform lines per seek | [trajectory.ts:102](../../packages/prism/viewer/src/api/trajectory.ts#L102) | time+memory | low | 9 log entries per seek fewer; plugin log stops growing with scrubbing | S | confirmed | no |
 | 6 | P16 | new | Bulk runs' `did` is one line per structure, kept uncut in the record and status | [record.ts:520](../../packages/prism/viewer/src/journal/record.ts#L520) | memory | low | ~10 KB at N=200 → O(1) per entry | S | confirmed | no |
@@ -107,7 +107,7 @@ Counts: 15 v1 items (P1-P11, B1-B3, 14/NF2 Prism part): fixed 12, partly fixed 1
   [measurement.ts:448](../../packages/plugin/core/src/state/manager/structure/measurement.ts#L448) ("no walk of the
   tree at all") is wrong. Fix: keep the cached ref while `tree.transforms.get(ref)` still has the tag; with none, rescan
   only when a cell tagged `MeasurementGroupTag` was created (an `events.cell.created` flag). Correct the comment.
-  **Fixed (#NNNN):** the ref from tagged `cell.created`/`cell.stateUpdated`, checked O(1) per sync, one search after
+  **Fixed (#2026):** the ref from tagged `cell.created`/`cell.stateUpdated`, checked O(1) per sync, one search after
   the group goes or loses its tag; comment rewritten. many-500 theme:one 58 → 46 ms, remove:one 52 → 37 (medians, with
   12/10/P4).
 - **P15**: per clippable cell, `cuts.find` (O(cuts)) and `cut.targets.some` (O(targets)); `clipping.add` with
