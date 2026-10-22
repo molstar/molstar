@@ -311,9 +311,12 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     }),
   update({ a, b, oldParams, newParams }) {
     return Task.create('Update Volume Streaming', async (_) => {
+      // A new info (another entry list: a state or snapshot that streams other maps) is a new behavior: the old one
+      // knows only the old entries.
+      if (a.data !== b.data.data) return StateTransformer.UpdateResult.Recreate;
       if (oldParams.entry.name !== newParams.entry.name) {
         if ('em' in newParams.entry.params.channels) {
-          const { emDefaultContourLevel } = b.data.infoMap.get(newParams.entry.name)!;
+          const emDefaultContourLevel = b.data.infoMap.get(newParams.entry.name)?.emDefaultContourLevel;
           if (emDefaultContourLevel) {
             newParams.entry.params.channels['em'].isoValue = emDefaultContourLevel;
           }

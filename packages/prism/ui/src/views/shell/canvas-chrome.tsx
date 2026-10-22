@@ -1085,6 +1085,11 @@ export const KindIcons: Record<MessageKind, IconName> = {
 /** The bottom left of the canvas: the latest message, running tasks, and under them `after` (the assistant's turn). */
 export function StatusLine(props: { status: NotificationsManager; onOpenLog?: () => void; after?: Child }) {
   const { status } = props;
+  // An error opens the Log at the problems; another message, at everything (it may be in no other filter).
+  const openLog = (kind: MessageKind) => {
+    status.setLogFilter(kind === 'error' ? 'problems' : 'all');
+    props.onOpenLog?.();
+  };
   const spokenText = document.createTextNode('');
   watch([status.spoken], () => setText(spokenText, status.spoken.value));
   // One polite live region for results (accessibility.md): the latest message only, not the tasks' progress or the
@@ -1099,7 +1104,12 @@ export function StatusLine(props: { status: NotificationsManager; onOpenLog?: ()
           // An error stays until it is dismissed: its ✕ does (the others fade).
           m.kind === 'error' ? (
             <span class={`${classes.pill} ${classes.message}`} data-kind={m.kind}>
-              <button type="button" class={classes.pillMain} title="Show the log" onClick={() => props.onOpenLog?.()}>
+              <button
+                type="button"
+                class={classes.pillMain}
+                title="Show the problems in the log"
+                onClick={() => openLog(m.kind)}
+              >
                 <Icon name={KindIcons[m.kind]} size={14} />
                 <span class={classes.text}>{m.text}</span>
               </button>
@@ -1119,7 +1129,7 @@ export function StatusLine(props: { status: NotificationsManager; onOpenLog?: ()
               class={`${classes.pill} ${classes.message}`}
               data-kind={m.kind}
               title="Show the log"
-              onClick={() => props.onOpenLog?.()}
+              onClick={() => openLog(m.kind)}
             >
               <Icon name={KindIcons[m.kind]} size={14} />
               <span class={classes.text}>{m.text}</span>

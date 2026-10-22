@@ -27,6 +27,9 @@ export interface StatusMessage {
   source?: string;
 }
 
+/** What the Log shows: everything, the messages the status line showed, one log-only source, or the problems. */
+export type LogFilter = 'all' | 'messages' | 'problems' | `source:${string}`;
+
 export interface LogOptions {
   readonly detail?: string;
   /** Entries kept of this source, the newest (default: the history's size). */
@@ -70,6 +73,7 @@ export class NotificationsManager extends ReactiveModel {
   readonly #chips = observableState<readonly StatusChip[]>([]);
   readonly #posted = new Subject<StatusMessage>();
   readonly #spoken = observableState('');
+  readonly #logFilter = observableState<LogFilter>('all');
   #serial = 0;
   #fade: ReturnType<typeof setTimeout> | undefined;
   /** Log-only entries waiting for the end of the task: a burst (a load's hundreds of transforms) is one change. */
@@ -97,6 +101,15 @@ export class NotificationsManager extends ReactiveModel {
    */
   get logged(): ReadonlyState<readonly StatusMessage[]> {
     return this.#log.asReadonly;
+  }
+
+  /** The Log's filter, one for every Log view: the status line sets it when it opens the Log (an error: the problems). */
+  get logFilter(): ReadonlyState<LogFilter> {
+    return this.#logFilter.asReadonly;
+  }
+
+  setLogFilter(filter: LogFilter): void {
+    this.#logFilter.set(filter);
   }
 
   get tasks(): ReadonlyState<readonly StatusTask[]> {
