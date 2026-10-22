@@ -16,7 +16,7 @@ relative to `packages/`.
 | 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) |
 | 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped |
 | 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | done: T1, B1 (with T5's focus fix); T2 with T3 |
-| 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | open   |
+| 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | done: T3 (and T2); T4 dropped |
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | open   |
 | 5    | T5                     | Behaviors: selection, focus, the empty update, Prism marks                | open   |
 | 6    | T6                     | Visuals: unchanged buffers stay, complex visuals keep colors              | open   |
@@ -160,6 +160,12 @@ One line per id as it lands: the commit's before → after on the bench (median 
   **Dropped: expression components** (`structure-component.ts`, `expression`/`script`). An expression may read
   coordinates (`includeSurroundings`, distances), so running it again is the only safe answer without analyzing the
   expression.
+
+- **T4: dropped.** Profiled after T3 (synth preset, 50 frames; and 1tup-flat-32 with ball-and-stick, 288 units,
+  186k atoms): `unitSymmetryGroups`, `hashCode`, `models` and `carbohydrates` of the remapped structure are not in the
+  top 60 entries. The frame is the new geometry (the cartoon mesh 77%; bond cylinders and spheres 70% with
+  ball-and-stick) and the unit boundaries (15–20%), which read coordinates. A unit's `transientCache` (valence model,
+  interaction features) reads coordinates too, so nothing there can be carried over.
 
 ## Snapshot and MVS playback
 
