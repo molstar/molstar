@@ -4,21 +4,44 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { edt } from '@molstar/core/math/geometry/distance-transform';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
 import { RUNNING_IN_NODEJS } from '@molstar/core/util/nodejs-shims';
+import { LRUCache } from '@molstar/core/util/lru-cache';
 
-const TextAtlasCache: { [k: string]: FontAtlas } = {};
+/**
+ * Atlases are tens of MB each (43 MB at the default quality), so the cache is keyed by the font fields only and keeps
+ * the few most recently used. An evicted atlas lives on in the texts built with it; texts built later get a new one.
+ * With more fonts than that in use at once, rebuilding all their texts rebuilds atlases too (time, not memory).
+ */
+const FontAtlasCacheCapacity = 4;
+const FontAtlasCache = LRUCache.create<FontAtlas>(FontAtlasCacheCapacity);
+
+/** Only the props the atlas depends on, whatever else `props` carries (all of Text's params, say). */
+function fontAtlasProps(props: Partial<FontAtlasProps>): FontAtlasProps {
+  const d = FontAtlasDefaults;
+  return {
+    fontFamily: props.fontFamily ?? d.fontFamily,
+    fontQuality: props.fontQuality ?? d.fontQuality,
+    fontStyle: props.fontStyle ?? d.fontStyle,
+    fontVariant: props.fontVariant ?? d.fontVariant,
+    fontWeight: props.fontWeight ?? d.fontWeight,
+  };
+}
 
 export function getFontAtlas(props: Partial<FontAtlasProps>) {
-  const hash = JSON.stringify(props);
-  if (TextAtlasCache[hash] === undefined) {
-    TextAtlasCache[hash] = new FontAtlas(props);
+  const p = fontAtlasProps(props);
+  const key = `${p.fontFamily}|${p.fontQuality}|${p.fontStyle}|${p.fontVariant}|${p.fontWeight}`;
+  let atlas = LRUCache.get(FontAtlasCache, key);
+  if (!atlas) {
+    atlas = new FontAtlas(p);
+    LRUCache.set(FontAtlasCache, key, atlas);
   }
-  return TextAtlasCache[hash];
+  return atlas;
 }
 
 export type FontFamily = 'sans-serif' | 'monospace' | 'serif' | 'cursive';
@@ -56,6 +79,7 @@ export const FontAtlasParams = {
 };
 export type FontAtlasParams = typeof FontAtlasParams;
 export type FontAtlasProps = PD.Values<FontAtlasParams>;
+const FontAtlasDefaults = PD.getDefaultValues(FontAtlasParams);
 
 export type FontAtlasMap = {
   x: number;
@@ -97,7 +121,7 @@ export class FontAtlas {
   private readonly middle: number;
 
   constructor(props: Partial<FontAtlasProps> = {}) {
-    const p = { ...PD.getDefaultValues(FontAtlasParams), ...props };
+    const p = fontAtlasProps(props);
     this.props = p;
 
     // create measurements

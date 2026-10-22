@@ -19,6 +19,7 @@
     "./geo/_test/*": null,
     "./geo/geometry/_test/*": null,
     "./geo/geometry/mesh/_test/*": null,
+    "./geo/geometry/text/_test/*": null,
     "./geo/geometry/texture-mesh/_test/*": null,
     "./geo/util/marching-cubes/_test/*": null,
     "./gl/_test/*": null,

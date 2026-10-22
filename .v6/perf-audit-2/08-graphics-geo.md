@@ -17,7 +17,7 @@ by a second pass. The disputed ones were re-measured: P15, P12, P16, P17, B9.
 | `addTube` / `addSheet` (cartoon)                           | `createPolymerTraceMesh` (repr)                                                            | scalar loops (#1993). Cold after every major GC (P12): 7qpd `repr:cartoon` 39 ms, 78 MB    |
 | `calcMeshColorSmoothing` / `splatVertex`                   | every color, overpaint, transparency, emissive or substance change on smoothed surfaces   | tight kernel (#1991), only the instances reached (#2005, #2012). Re-splats the same weights on each recolor (P1): 7qpd 66–82 ms |
 | `CylindersBuilder.add` / `addFixedCountDashes`             | impostor ball-and-stick, backbone, interactions (impostors since #2004)                    | 36 polymorphic ChunkedArray calls per cylinder (P16): flat-192 `add` 324 ms self            |
-| `getFontAtlas`                                             | every `TextBuilder.create`: labels, measurements, MVS labels, camera helper               | a new 43 MB atlas for each distinct prop set, never evicted (B6)                           |
+| `getFontAtlas`                                             | every `TextBuilder.create`: labels, measurements, MVS labels, camera helper               | one atlas per font, the 4 most recent kept (B6, fixed)                                    |
 
 Since v1: #1987 (MC strides, corner reuse), #1990 (inline `addPrimitive`, cylinder without UV duplicates), #1991 (smoothing
 kernel, AABB grid, scratch), #1993 (scalar cartoon loops), #2005 and #2012 (smoothing only over reached instances), #2007
@@ -55,7 +55,7 @@ Fixed 7, partly fixed 2, still open 11, regressed 1, dropped 0.
 
 | Rank | Id  | vs v1        | Title                                                                         | Where                                                                                                      | Kind        | Impact | Estimate                                                    | Effort | Verdict   | Frozen |
 | ---- | --- | ------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----------------------------------------------------------- | ------ | --------- | ------ |
-| 1    | B6  | new          | `getFontAtlas` keys its never-evicted cache by every Text prop (43 MB each)   | [text-builder.ts:50](../../packages/graphics/src/geo/geometry/text/text-builder.ts#L50)                    | bug         | high   | 43 MB retained per distinct label prop set → 1 per font     | S      | confirmed | no     |
+| 1    | B6  | new; **fixed** | `getFontAtlas` keys its never-evicted cache by every Text prop (43 MB each)   | [text-builder.ts:50](../../packages/graphics/src/geo/geometry/text/text-builder.ts#L50)                    | bug         | high   | 43 MB retained per distinct label prop set → 1 per font     | S      | confirmed | no     |
 | 2    | P15 | new          | MC re-tiers after every major GC (the optimized code embeds the per-run state map) | [algorithm.ts:117](../../packages/graphics/src/geo/util/marching-cubes/algorithm.ts#L117)              | time+memory | medium | 7qpd gaussian surface alloc 76 → 40 MB, −8 % time; MC up to 2× | S   | confirmed | no     |
 | 3    | P12 | regressed    | Cartoon tube/sheet code dropped at every major GC (State map)                 | [mesh-builder.ts:120](../../packages/graphics/src/geo/geometry/mesh/mesh-builder.ts#L120)                  | time+memory | medium | 7qpd cartoon 39 → 30 ms, 78 → 47 MB (v1 base)               | S      | confirmed | no     |
 | 4    | P1  | partly-fixed | Surface recolor re-splats the color-independent weights                       | [color-smoothing.ts:414](../../packages/graphics/src/geo/geometry/mesh/color-smoothing.ts#L414)            | time+memory | medium | recolor ~3× (7qpd 66–82 → ~25 ms)                           | M      | confirmed | no     |
@@ -177,7 +177,7 @@ See Bugs.
 
 | Id  | vs v1      | Severity | Title                                                                       | Where                                                                                              | Verdict   |
 | --- | ---------- | -------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------- |
-| B6  | new        | high     | `getFontAtlas` caches by every Text prop: 43 MB per distinct set, never evicted | [text-builder.ts:50](../../packages/graphics/src/geo/geometry/text/text-builder.ts#L50), [font-atlas.ts:16](../../packages/graphics/src/geo/geometry/text/font-atlas.ts#L16) | confirmed |
+| B6  | new; **fixed** | high     | `getFontAtlas` caches by every Text prop: 43 MB per distinct set, never evicted | [text-builder.ts:50](../../packages/graphics/src/geo/geometry/text/text-builder.ts#L50), [font-atlas.ts:16](../../packages/graphics/src/geo/geometry/text/font-atlas.ts#L16) | confirmed |
 | B8  | new        | medium   | Smoothed `volumeInstance` colors/layers not recomputed by `setTransform`    | [visual.ts:744](../../packages/graphics/src/repr/visual.ts#L744)                                   | confirmed |
 | B7  | new        | low      | `addFixedCountDashedCylinder` mutates the caller's `props.topCap`           | [builder/cylinder.ts:141](../../packages/graphics/src/geo/geometry/mesh/builder/cylinder.ts#L141)  | confirmed |
 | B1  | still-open | low      | `fillEdges` never adds a triangle (`< 2` filter, then `bnd[1]`)             | [mesh.ts:566](../../packages/graphics/src/geo/geometry/mesh/mesh.ts#L566)                          | confirmed |
@@ -198,6 +198,8 @@ See Bugs.
     snapshot of a labelled story with different labels gets its own atlas, and so does every structure.
   - Fix: `getFontAtlas({ fontFamily, fontQuality, fontStyle, fontVariant, fontWeight })`, or pick the five fields
     inside `getFontAtlas`. Add a test that props differing only outside the font fields share one atlas.
+  - **Fixed**: `getFontAtlas` keys by the five font fields and gives the atlas only those; the cache is an LRU of 4
+    (an evicted atlas lives on in the texts built with it). Test: `text/_test/font-atlas.test.ts`.
 - **B8**: for colors or layers of an instance type, the smoothing grid is built in `aTransform` space
   (`getVertexBox`, `splatVertex` :335; texture-mesh likewise), and the shader samples it at `vModelPosition`
   (= uModel·aTransform·position). Overpaint, transparency, emissive and substance smoothing is always `groupInstance`
