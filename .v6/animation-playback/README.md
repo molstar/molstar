@@ -14,7 +14,7 @@ relative to `packages/`.
 | Step | Ids                    | What                                                                      | Status |
 | ---- | ---------------------- | ------------------------------------------------------------------------- | ------ |
 | 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) |
-| 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | open   |
+| 1    | S1–S5, S9, B2          | Snapshot playback: the per-tick re-apply bug and per-tick waste           | done: S1–S4, S9, B2; S5 dropped |
 | 2    | T1, T2, B1             | Trajectory: the model cell and the shared root (correctness first)        | open   |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | open   |
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | open   |
@@ -118,6 +118,11 @@ One line per id as it lands: the commit's before → after on the bench (median 
 - **S9** (`transform.ts`: the default param schema cached per transformer, not per transform). exosome: 4.62 → 3.72
   ms/applied, 4.23 → 2.94 ms/tick med; plain 0.94 → 0.81 ms/applied. Test:
   `core/src/state/_test/snapshot-frames.test.ts` (4 schema builds for 4 frames before, 1 after).
+
+- **S5: dropped.** It holds in a test: a child whose serialized transform the frames share is normalized again on each
+  frame, because `fromJSON` makes a new `Transform`. A per-state memo of the read transforms fixed that. But on the
+  exosome it changes nothing: `normalizeParams` ran 10,520 times over 300 ticks with and without it, and ms/applied
+  stayed at 3.72 → 3.74. The nodes a frame evaluates there have new versions. Not worth a new rule in `tree.md`.
 
 ## Snapshot and MVS playback
 
