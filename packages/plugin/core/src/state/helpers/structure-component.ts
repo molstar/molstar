@@ -15,6 +15,7 @@ import {
   Queries,
   QueryContext,
   Model,
+  Unit,
 } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from './structure-query.js';
 import { PluginStateObject as SO } from '../objects.js';
@@ -191,8 +192,9 @@ export function updateStructureComponent(
       }
       // A static query reads topology only, and a remapped unit keeps its bonds (unit.md §3): a trajectory frame (the
       // same units and elements on another model's coordinates) remaps the component rather than running the query.
+      // (the remap keeps the units' operators: a frame that also moves the structure runs the query again)
       const equivalent = Structure.areEquivalent(a, cache.source);
-      if (!equivalent && !Structure.areHierarchiesEqual(a, cache.source)) {
+      if (!equivalent && !(Structure.areHierarchiesEqual(a, cache.source) && areUnitOperatorsEqual(a, cache.source))) {
         return StateTransformer.UpdateResult.Recreate;
       }
       // The same model, or none (an empty substructure): nothing to remap, but the label may have changed (below).
@@ -262,4 +264,13 @@ export function updateStructureComponent(
   }
 
   return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
+}
+
+/** Whether each unit of `a` has the operator of the unit with its id in `b` */
+function areUnitOperatorsEqual(a: Structure, b: Structure) {
+  for (const u of a.units) {
+    const v = b.unitMap.get(u.id);
+    if (!v || !Unit.areOperatorsEqual(u, v)) return false;
+  }
+  return true;
 }
