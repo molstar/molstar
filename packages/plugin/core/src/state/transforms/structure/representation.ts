@@ -153,10 +153,13 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
 
-      // The themes read the structure and their params only: an animation frame that changes the representation's
-      // own params (opacity, emissive, clipping) keeps them, which also keeps their dependencies' references.
+      // An animation frame that changes the representation's own params (opacity, emissive, clipping) on the same
+      // structure keeps the themes, and their dependencies' references. Evaluated with its params as they were, an
+      // ancestor changed: a theme holds the version of a property it reads (secondary structure, ASA, a validation
+      // report), which may have been computed again, so the themes are made again.
       const sameThemes =
         a.data === b.data.sourceData &&
+        !deepEqual(oldParams.type, newParams.type) &&
         deepEqual(oldParams.colorTheme, newParams.colorTheme) &&
         deepEqual(oldParams.sizeTheme, newParams.sizeTheme);
       if (!sameThemes) {

@@ -40,6 +40,14 @@ describe('a structure representation update', () => {
     expect(obj.data.repr.props.alpha).toBe(0.5);
   });
 
+  it('makes the themes again when it is evaluated with its params as they were (an ancestor changed)', async () => {
+    // e.g. the secondary structure type of the structure's properties: a theme holds the version of what it reads
+    const { create, update } = await representation();
+    // (equal params, other objects: a shallow-equal update is dropped by the builder)
+    await update((old) => ({ ...old, type: { ...old.type, params: { ...old.type.params } } }));
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   it('makes the themes again when their params change', async () => {
     const { create, update } = await representation();
     await update((old) => ({ ...old, colorTheme: { name: 'element-symbol', params: {} } }));
