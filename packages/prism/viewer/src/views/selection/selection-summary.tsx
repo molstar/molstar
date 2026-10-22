@@ -87,7 +87,7 @@ export function SelectionSummary(props: { model: SelectionSummaryModel }) {
                 <Icon name="x" size={15} />
               </button>
             </div>
-            <For each={shown} key={(p) => p.id}>
+            <For each={shown} by={(p) => p.id}>
               {(part) => (
                 <div class={classes.part}>
                   <span class={classes.partName}>{part.label}</span>

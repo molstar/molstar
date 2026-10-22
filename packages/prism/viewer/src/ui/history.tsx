@@ -304,7 +304,7 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
       <div class={classes.list}>
         <For
           each={model.rows}
-          key={(r) => r.key}
+          by={(r) => r.key}
           fallback={() => (
             <p class={classes.empty}>
               Nothing has happened yet. Each change to the scene shows here; <strong>Undo</strong> takes the latest
@@ -399,7 +399,7 @@ function KeptRecordView(props: { viewer: Pick<PrismViewer, 'keptRecords'>; opene
         </Button>
       </div>
       <div class={classes.list}>
-        <For each={model.rows} key={(r) => r.key} fallback={() => <p class={classes.empty}>Nothing in it.</p>}>
+        <For each={model.rows} by={(r) => r.key} fallback={() => <p class={classes.empty}>Nothing in it.</p>}>
           {(row) => <Row row={row} opened={opens} latestTurn={none} confirm={none} onUndoTurn={() => {}} />}
         </For>
       </div>

@@ -477,7 +477,7 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
       {() => (
         <section class={classes.children} aria-label="Representations">
           <span class={classes.childrenTitle}>Representations</span>
-          <For each={reprs} key={(n) => n.id}>
+          <For each={reprs} by={(n) => n.id}>
             {(n) => {
               const menuOpen = observableState(false);
               let menuButton: HTMLElement | undefined;

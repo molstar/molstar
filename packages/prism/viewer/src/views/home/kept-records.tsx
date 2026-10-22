@@ -55,7 +55,7 @@ export function KeptRecordsList(props: { model: KeptRecordsHomeModel }) {
         <section class={classes.group} aria-label="Kept records">
           <h3 class={classes.caption}>Kept records</h3>
           <div class={classes.listContent} role="list">
-            <For each={model.list} key={(r) => r.id}>
+            <For each={model.list} by={(r) => r.id}>
               {(r) => {
                 const isAsking = askingKey.key(r.id);
                 return (

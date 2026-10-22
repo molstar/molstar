@@ -68,7 +68,7 @@ function StorageBody(props: { storage: StorageModel }) {
   return (
     <div class={classes.body}>
       <p class={classes.where}>{where} Nothing here leaves it.</p>
-      <For each={storage.sources} key={(s) => s.id}>
+      <For each={storage.sources} by={(s) => s.id}>
         {(source) => (
           <Source source={source} busy={busy.asReadonly} onForget={(id) => run(() => storage.forget(source.id, id))} />
         )}

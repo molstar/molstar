@@ -398,7 +398,7 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
               {m.item ? (
                 <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
               ) : (
-                <For each={rail.overflow} key={(e) => e.id}>
+                <For each={rail.overflow} by={(e) => e.id}>
                   {(entry) => <OverflowRow entry={entry} onRun={() => run(entry, m.anchor)} />}
                 </For>
               )}

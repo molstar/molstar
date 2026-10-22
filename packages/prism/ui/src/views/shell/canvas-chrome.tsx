@@ -134,7 +134,7 @@ export function CanvasToolbar(props: {
   });
   return (
     <div class={classes.sections}>
-      <For each={sections} key={(s) => s.group ?? ''}>
+      <For each={sections} by={(s) => s.group ?? ''}>
         {(section) => (
           <div
             class={classes.toolbar}
@@ -740,7 +740,7 @@ export function RailMenu(props: { shell: ShellModel }) {
   let more!: HTMLElement;
   const root = (
     <div class={classes.railMenu}>
-      <For each={lead} key={(i) => i.id}>
+      <For each={lead} by={(i) => i.id}>
         {(item) => {
           const face = faceOf(item);
           const title = face ? undefined : staticTitle(item);
@@ -806,7 +806,7 @@ export function RailMenu(props: { shell: ShellModel }) {
                   open.set(false);
                 }}
               >
-                <For each={tabs} key={(t) => t.id}>
+                <For each={tabs} by={(t) => t.id}>
                   {(tab) => (
                     <button
                       type="button"
@@ -826,7 +826,7 @@ export function RailMenu(props: { shell: ShellModel }) {
                 <Show when={derive([tabs, actions], (t, a) => t.length > 0 && a.length > 0)}>
                   {() => <div class={classes.railMenuDivider} />}
                 </Show>
-                <For each={actions} key={(i) => i.id}>
+                <For each={actions} by={(i) => i.id}>
                   {(item) => {
                     const face = faceOf(item);
                     const visible = item.visible ? stateOf(item.visible, true) : undefined;

@@ -39,7 +39,7 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
       <div class={classes.points} ref={(el: HTMLElement) => (list = el)}>
         <For
           each={used}
-          key={(p) => p.id}
+          by={(p) => p.id}
           fallback={() => (
             <p class={classes.hint}>
               Select atoms or residues (Select mode, Shift adds): the latest ones become the points to measure.
@@ -64,7 +64,7 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
           <>
             <p class={classes.caption}>Added</p>
             <div class={classes.added}>
-              <For each={model.added} key={(n) => n.id}>
+              <For each={model.added} by={(n) => n.id}>
                 {(node) => <AddedRow model={model} node={node} />}
               </For>
             </div>

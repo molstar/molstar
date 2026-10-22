@@ -34,7 +34,7 @@ export function forUnchanged(): Case {
   const box = document.createElement('div');
   render(
     () => (
-      <For each={list} key={(r) => r.id}>
+      <For each={list} by={(r) => r.id}>
         {(r) => <div>{r.label}</div>}
       </For>
     ),

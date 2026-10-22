@@ -70,7 +70,7 @@ export function LogView(props: { status: NotificationsManager }) {
       {/* One line, kept in view while the entries scroll under it: the filters as icons, then the text filter. */}
       <div class={classes.filters}>
         <div class={classes.kinds} role="group" aria-label="Show">
-          <For each={choices} key={(c) => c.id}>
+          <For each={choices} by={(c) => c.id}>
             {(c) => (
               <Button
                 variant="ghost"
@@ -96,7 +96,7 @@ export function LogView(props: { status: NotificationsManager }) {
       <div class={classes.entries} role="log" aria-live="off" aria-label="Log">
         <For
           each={shown}
-          key={(m) => m.id}
+          by={(m) => m.id}
           fallback={() => (
             <p class={classes.empty}>
               {derive(props.status.logged, (h) => (h.length ? 'Nothing matches.' : 'No messages yet.'))}

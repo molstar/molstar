@@ -92,7 +92,7 @@ function Trace(props: { model: InspectorModel }) {
           role="listbox"
           aria-label="Trace"
         >
-          <For each={model.rows} key={(r) => r.key}>
+          <For each={model.rows} by={(r) => r.key}>
             {(r) => <Row model={model} row={r} />}
           </For>
         </ScrollArea>
@@ -148,7 +148,7 @@ function Overview(props: { model: InspectorModel }) {
         <span>tools</span>
       </div>
       <div class={classes.track}>
-        <For each={model.turns} key={(t) => t.id}>
+        <For each={model.turns} by={(t) => t.id}>
           {(turn, index) => <Column model={model} turn={turn} index={index.value} />}
         </For>
       </div>

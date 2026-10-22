@@ -80,7 +80,7 @@ export function SnapshotsPanel(props: {
       >
         <For
           each={model.entries}
-          key={(e) => e.id}
+          by={(e) => e.id}
           fallback={() => (
             <p class={classes.empty}>
               No snapshots yet. <strong>Add</strong> saves the current view; saved ones play back in order.
