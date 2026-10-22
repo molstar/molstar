@@ -28,11 +28,19 @@ import { setAttr, setText } from '@molstar/prism-ui/dom/writes';
 import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
 
-function ago(time: Date) {
-  const s = Math.max(0, (Date.now() - time.getTime()) / 1000);
-  if (s < 45) return 'just now';
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  return time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const clock = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+
+/**
+ * When an item ran, as the time of day (as the Log says it): a relative "just now" / "N min ago" was written once, when
+ * the row was made, and never again, so it went stale while newer rows said later times (perf audit 2, 11/B4). A clock
+ * ticking every row would keep a loaded, idle app busy.
+ */
+function When(props: { time: Date }) {
+  return (
+    <time class={classes.when} dateTime={props.time.toISOString()} title={props.time.toLocaleString()}>
+      {clock.format(props.time)}
+    </time>
+  );
 }
 
 /**
@@ -94,7 +102,7 @@ export function HistoryTab(props: { agent: AgentModel; status: NotificationsMana
                 return item.kind === 'run' ? (
                   <div class={classes.item}>
                     <RunRow run={derive(live(id), (x) => (x as Extract<HistoryItem, { kind: 'run' }>).run)} />
-                    <span class={classes.when}>{ago(item.run.time)}</span>
+                    <When time={item.run.time} />
                   </div>
                 ) : (
                   <TurnItem
@@ -132,7 +140,7 @@ function TurnItem(props: { agent: AgentModel; turn: ReadonlyState<AgentTurn>; id
       <div class={classes.turnHead}>
         <Icon name="sparkles" size={14} class={classes.spark} />
         <span class={classes.who}>{whoText}</span>
-        <span class={classes.when}>{ago(props.time)}</span>
+        <When time={props.time} />
       </div>
       <p class={classes.prompt}>“{promptText}”</p>
       <Show when={derive(turn, (t) => (isRunning(t) ? '' : t.text))}>
