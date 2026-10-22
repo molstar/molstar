@@ -12,10 +12,11 @@
 //        node scripts/pipeline-bench.mjs run --fixture <name> [bench options]       # stage table (bench.ts)
 //        node scripts/pipeline-bench.mjs many-fixtures [--count 500]                # N small entries, once
 //        node scripts/pipeline-bench.mjs many --count 300 [many options]            # N structures (many.ts)
+//        node scripts/pipeline-bench.mjs playback [playback options]                # per-frame playback (playback.ts)
 //        node scripts/pipeline-bench.mjs analyze <profile dir> [topN]               # hotspots of a --profile run
 //                                                                                    (CPU, or allocations with --alloc)
 //
-// `run` and `many` pass --heap <MB> as --max-old-space-size (default 14000) and everything else to bench.ts / many.ts.
+// `run`, `many` and `playback` pass --heap <MB> as --max-old-space-size (default 14000) and everything else to bench.ts / many.ts / playback.ts.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -57,7 +58,7 @@ function node(file, args, heapMB) {
 /** Per stage profile: top self and total functions mapped back to the TS sources by the bundle's source map */
 function analyze(dir, topN) {
   // the map of the bundle that wrote the profiles (copied by `run --profile`); a later run rebuilds tests/build
-  const own = ['bench', 'many'].map((b) => path.join(dir, `${b}.mjs.map`)).find((f) => fs.existsSync(f));
+  const own = ['bench', 'many', 'playback'].map((b) => path.join(dir, `${b}.mjs.map`)).find((f) => fs.existsSync(f));
   const map = new SourceMap(JSON.parse(fs.readFileSync(own ?? path.join(outdir, 'bench.mjs.map'), 'utf8')));
   const cache = new Map();
   const loc = (cf) => {
@@ -65,7 +66,7 @@ function analyze(dir, topN) {
     if (cache.has(k)) return cache.get(k);
     let r;
     if (!cf.url) r = `(${cf.functionName || 'native'})`;
-    else if (!/(bench|many)\.mjs/.test(cf.url))
+    else if (!/(bench|many|playback)\.mjs/.test(cf.url))
       r = `${cf.functionName || '(anon)'} ${cf.url.replace(/^.*node_modules\//, '')}:${cf.lineNumber + 1}`;
     else {
       const e = map.findEntry(cf.lineNumber, cf.columnNumber);
@@ -180,8 +181,8 @@ if (command === 'fixtures') {
   node(await bundle('fixtures'), rest, 14000);
 } else if (command === 'many-fixtures') {
   node(await bundle('many-fixtures'), rest, 14000);
-} else if (command === 'run' || command === 'many') {
-  const name = command === 'run' ? 'bench' : 'many';
+} else if (command === 'run' || command === 'many' || command === 'playback') {
+  const name = command === 'run' ? 'bench' : command;
   const i = rest.indexOf('--heap');
   const heap = i >= 0 ? +rest.splice(i, 2)[1] : 14000;
   const file = await bundle(name);
@@ -195,7 +196,7 @@ if (command === 'fixtures') {
   analyze(rest[0], +(rest[1] ?? 10));
 } else {
   console.error(
-    'usage: node scripts/pipeline-bench.mjs fixtures|run|many-fixtures|many|analyze ... (see the header of this file)',
+    'usage: node scripts/pipeline-bench.mjs fixtures|run|many-fixtures|many|playback|analyze ... (see the header of this file)',
   );
   process.exit(1);
 }

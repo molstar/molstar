@@ -31,6 +31,12 @@
     },
     {
       "path": "../extensions/geo-export"
+    },
+    {
+      "path": "../packages/mvs/runtime"
+    },
+    {
+      "path": "../packages/mvs/builder"
     }
   ]
 }

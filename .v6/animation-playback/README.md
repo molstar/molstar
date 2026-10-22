@@ -13,8 +13,8 @@ relative to `packages/`.
 
 | Step | Ids                    | What                                                                      | Status |
 | ---- | ---------------------- | ------------------------------------------------------------------------- | ------ |
-| 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | open   |
-| 1    | S1, S2, S3, S4, S5     | Snapshot playback: the per-tick re-apply bug and per-tick waste           | open   |
+| 0    | —                      | Playback bench: ms and bytes allocated per frame, both kinds              | done: [Baseline](#baseline-step-0) |
+| 1    | S1–S5, S9              | Snapshot playback: the per-tick re-apply bug and per-tick waste           | open   |
 | 2    | T1, T2                 | Trajectory: the model cell and the shared root (correctness first)        | open   |
 | 3    | T3, T4                 | Trajectory: remap instead of recreate; keep the topology caches           | open   |
 | 4    | R1                     | Representations: no theme or params rebuild when nothing they read moved  | open   |
@@ -26,6 +26,63 @@ relative to `packages/`.
 Order: the bench, then the bugs (1, 2), then the work per frame from the bottom of the tree to the top (3–6), then the
 state-level change (7). Step 7 changes how a snapshot is applied, so it needs the core state spec, and the steps before
 it make its gain measurable on its own.
+
+## Baseline (step 0)
+
+`tests/src/pipeline/playback.ts`, run by `node scripts/pipeline-bench.mjs playback` (its header has the options). A real
+`PluginContext` (the default spec and the MVS behavior) with the stub canvas of `many.ts`, now shared
+(`canvas-stub.ts`), driven by `managers.animation.tick(t, true)` on a synthetic 60 Hz clock: every tick awaits its
+frame, so a tick costs what the browser's loop pays when it keeps up. Trajectories play `AnimateModelIndex` at 30
+frames/s (`computed`), so every other tick has no new frame; snapshots play `AnimateStateSnapshotTransition`.
+
+- **Columns.** Applied: ticks with any cell event. ms: per tick, median and max, and the median of the applied ticks.
+  KB/tick: V8 `total_allocated_bytes` over the range, divided by the ticks; one read per range, because a read itself
+  allocates ~165 KB. u / R: cells updated in place and recreated (`object.updated`), per tick. Camera: resets, and
+  restarts (a reset with a duration while the previous transition still runs). setSnapshot: whole-tree
+  `State.setSnapshot` calls. `changed`: the snapshot manager's `changed` emits. Marks: `canvas3d.mark` calls.
+- **Scenes.** snapshots:plain is 1cbs as a transition of 30 frames of 100 ms over three looks (preset, chain-id,
+  element colors), with a 400 ms camera move. mvs:exosome is snapshot 2 of the exosome story (1,022 frames, 27 s; the
+  first 600 ticks), from `mol-view-stories/.../examples/exosome/story.mvsx` (local only: `--mvsx <file>`; motm1 needs
+  the PDBe files, so it is not in the table). traj:nmr is 1grm (`data/examples`, 5 models of 272 atoms, the mmCIF
+  path). traj:synth is 7qpd's topology with 20 frames of jittered coordinates (11.5k atoms, the topology + coordinates
+  path, as a DCD). Representations: the default preset (components, cartoon and ball-and-stick), or one representation
+  on everything; +focus+select adds a focused residue and a selected chain.
+- **Machine.** Apple M4, Node 25.6, master `93e710836` plus the bench; median of 3 runs.
+
+| Scene                          | Ticks | Applied | ms/tick med (max) | ms/applied med | KB/tick | Cells/tick u / R | Camera (restarts) |    Log | setSnapshot | `changed` | Marks |
+| ------------------------------ | ----: | ------: | ----------------: | -------------: | ------: | ---------------: | ----------------: | -----: | ----------: | --------: | ----: |
+| snapshots:plain                |   181 |       3 |         0.03 (2) |            1.1 |      98 |         0.05 / 0 |             7 (6) |      9 |         181 |       179 |     0 |
+| mvs:exosome                    |   600 |     417 |        3.98 (18) |            4.7 |   3,946 |        17.52 / 0 |             0 (0) | 10,515 |         601 |       599 |     0 |
+| traj:nmr:preset                |    20 |       9 |         0.45 (4) |            2.2 |   1,347 |      2.25 / 2.25 |                 0 |      0 |           0 |         0 |    27 |
+| traj:nmr:preset+focus+select   |    20 |      17 |        2.63 (18) |            5.8 |   6,435 |       5.7 / 2.65 |                 1 |      0 |           0 |         0 |   108 |
+| traj:synth:preset              |    80 |      39 |        0.16 (34) |           13.2 |   8,919 |      2.44 / 1.95 |                 0 |      0 |           0 |         0 |   117 |
+| traj:synth:preset+focus+select |    80 |      77 |        9.07 (26) |           14.5 |  10,746 |       6.3 / 2.42 |                 1 |      0 |           0 |         0 |   468 |
+| traj:synth:cartoon             |    80 |      39 |        0.15 (23) |           11.9 |   6,689 |      1.46 / 1.46 |                 0 |      0 |           0 |         0 |    39 |
+| traj:synth:ball-and-stick      |    80 |      39 |        0.17 (23) |            8.0 |   6,266 |      1.46 / 1.46 |                 0 |      0 |           0 |         0 |    39 |
+| traj:synth:gaussian-surface    |    80 |      39 |       0.23 (333) |          296.0 |  11,699 |      1.46 / 1.46 |                 0 |      0 |           0 |         0 |    39 |
+
+What the baseline confirms and what it adds:
+
+- **S1, S2, S3 hold.** Every tick runs a whole-tree `setSnapshot` (181 of 181, 601 of 600), and the manager emits
+  `changed` on each. During frame 0 (100 ms, 6 ticks) the camera is reset 7 times and the transition restarted 6 times.
+  The exosome logs 10,515 entries in 10 s.
+- **The trajectory recreates cells** on every frame (R, about 3 per frame with one representation, 4 with the preset):
+  T1 and T3. With a focus and a selection, the ticks without a new frame also update (77 of 80 ticks applied, not 39):
+  T5.
+- **Profile of the exosome frames** (`--profile`, 2.1 s sampled over 600 ticks): the tree diff and `fromJSON` are not
+  where the time goes at this size (75 nodes). Shares of the sampled time:
+  - render-object merging in `prepareUpdate` (`repr/merged.ts` over `gl/render-object.ts`): 22%;
+  - `relinkCells` → `getEffectiveDependsOn` → `tryGetDefaultParamDefinition`: 14%. For each scheduled cell, it builds
+    the transformer's whole param definition (the representation's `getApplicableTypes`) only to find its refs. This
+    one is new: **S9** (below);
+  - the representation's `params` in `resolveParams`: 10%, and theme creation: 7% (R1).
+- **New findings:**
+  - **B1.** With a focus, playing 1grm throws in the focus representation's interactions
+    (`interactions-intra-unit-cylinder.ts:66`, `InteractionsProvider.get(structure).value` is undefined after a frame).
+    To be checked with T2 and T5.
+  - **T5, more.** The trajectory animation updates each model cell with a recipe that returns a new object
+    (`trajectory.ts:169`), so every tick goes through `produce`, and mutative warns "The return value does not contain
+    any draft".
 
 ## Snapshot and MVS playback
 
@@ -62,6 +119,11 @@ it make its gain measurable on its own.
 - **S8, state interpolation.** `AnimateStateInterpolation` (`state-interpolation.ts:39-71`) compares a cell that holds
   params with `shallowEqual`, which is always false, so every differing transform is updated on every tick; its ref
   match is quadratic.
+
+- **S9, param definitions for dependencies (found by the bench).** `relinkCells` → `getEffectiveDependsOn` →
+  `tryGetDefaultParamDefinition` (`core/src/state/transform.ts:189`) calls `params(undefined, undefined)` for each
+  scheduled cell, cached on the `Transform`: as with S5, every frame's transforms are new, so the cache never holds. The
+  schema without a source depends only on the transformer: cache it there.
 
 ## Trajectory playback
 
@@ -120,6 +182,21 @@ it make its gain measurable on its own.
     (`hierarchy.ts:165-183`), so the whole subtree re-runs where instance matrices would do. It is a candidate after
     step 3.
   - MVS step 5, frames computed at playback.
+
+## Questions
+
+- **S6: keep it?** The exosome profile does not show `fromJSON` or the three walks among its top entries; the cost is in
+  the evaluated subtrees. Proposal: decide after steps 1–5, by measuring `fromJSON` + `findDeletes` +
+  `findUpdateRoots` + `syncNewStates` per frame; drop S6 if they stay under ~10% of a frame. If it is kept, one
+  semantic question for `core/src/state/_spec/reconcile.md` §6: `setSnapshot` (a tree passed in) resets every cell's
+  state flags to the frame's, while a builder keeps the cells' flags. Applied as a builder, a component the user hides
+  during playback stays hidden; today the next frame shows it again. Which one is wanted?
+- **S7: in the reconciler, or in the transformers?** `reconcile.md` §5 evaluates every child of an evaluated node.
+  Skipping a child whose version equals its cell's when its source returned Unchanged would be safe. But it does not
+  cover the case in the finding: the transparency child of a representation updated in place has a changed source, so
+  it must run. Proposal: no reconciler change. Instead, the effect transformers' `update` (overpaint, transparency,
+  clipping, substance, emissive) skips `ofScript` when the layers' params and the structure are those it last ran on.
+  That needs no spec change. Agree?
 
 ## How
 
