@@ -90,9 +90,9 @@ export const StructureInfo = PluginBehavior.create({
     private maxIndex = -1;
 
     /**
-     * After a root model was created or removed: over the roots, not a walk of the state. Only a root model moves the
-     * max (it is over root models' indices), so nothing else calls it: per component it made `repr:auto` over N
-     * structures O(N²) (perf audit 2, 10/P4).
+     * After a root model was created, removed, or joined or left the roots by an update: over the roots, not a walk of
+     * the state. Only a root model moves the max (it is over root models' indices), so nothing else calls it: per
+     * component it made `repr:auto` over N structures O(N²) (perf audit 2, 10/P4).
      */
     private setMaxIndices() {
       const value = this.maxModelIndex;
@@ -239,12 +239,21 @@ export const StructureInfo = PluginBehavior.create({
       });
 
       this.subscribeObservable(data.events.object.updated, (o) => {
+        const wasRootModel = this.rootModels.has(o.ref);
         this.untrack(o.ref);
         this.trackIfRoot(o.ref, o.obj);
         // An in-place update gives the old data, not the old object (a structure remapped onto a trajectory's next
         // model): its index carries over all the same.
         const old = o.oldObj ?? (o.oldData !== undefined ? ({ data: o.oldData } as StateObject) : undefined);
         this.handle(o.ref, o.obj, old);
+        // A root model that joins or leaves the roots (recreated after its update failed, or replaced by a Null object)
+        // or comes back with a new index above the max moves the max of every root, as a created or removed one does.
+        const isRootModel = this.rootModels.has(o.ref);
+        const index = isRootModel ? Model.Index.get(o.obj.data).value : undefined;
+        if (wasRootModel !== isRootModel || (index !== undefined && index > this.maxIndex)) {
+          this.setMaxIndices();
+          return;
+        }
         // A model or a structure made anew or remapped in place (a trajectory frame, other params) has the max at once,
         // without a walk (before, the next created object of any kind set it).
         this.setMaxIndexOf(o.obj);

@@ -265,7 +265,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   decorators nothing. Root-model creation stays O(N) (every root's MaxIndex moves), once per loaded entry in the model
   stage. Test: root visits per created component = 0.
 - **Risk.** Low; the StructureInfo tests pin the index semantics.
-- **Fixed (#2026)** as above; test: index, max index reads per component and representation 0, per root structure 1. Numbers under H9.
+- **Fixed (#2026)** as above, plus a recompute when an update brings a root model back or takes it out of the roots (a model recreated after its update failed; found in review); test: index, max index reads per component and representation 0, per root structure 1. Numbers under H9.
 
 ### P1 ElementSymbol table (medium)
 

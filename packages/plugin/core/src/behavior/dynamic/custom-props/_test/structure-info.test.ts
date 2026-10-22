@@ -90,6 +90,34 @@ describe('StructureInfo', () => {
     plugin.dispose();
   });
 
+  it('gives the max at once to a model recreated by an update after its update failed', async () => {
+    const plugin = await createPluginWithBehavior();
+    const a = await loadPdb(plugin, 'a');
+    const twoModels = ['MODEL        1', pdb, 'ENDMDL', 'MODEL        2', pdb, 'ENDMDL'].join('\n');
+    const data = await plugin.builders.data.rawData({ data: twoModels, label: 'b' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const modelCell = await plugin.builders.structure.createModel(trajectory);
+    const structureCell = await plugin.builders.structure.createStructure(modelCell);
+    // the update throws once: the model's object goes (the max drops), the next update recreates it
+    vi.spyOn(ModelFromTrajectory.definition, 'update').mockImplementationOnce(() => {
+      throw new Error('failed');
+    });
+    const toFrame = (modelIndex: number) =>
+      plugin
+        .build()
+        .to(modelCell.ref)
+        .update(ModelFromTrajectory, (old: any) => ({ ...old, modelIndex }))
+        .commit();
+    await toFrame(1).catch(() => {});
+    await toFrame(0);
+    const model = plugin.state.data.cells.get(modelCell.ref)!.obj!.data as Model;
+    const structure = plugin.state.data.cells.get(structureCell.ref)!.obj!.data as Structure;
+    expect(Model.Index.get(model).value).toBe(1);
+    expect([a.model, model].map((m) => Model.MaxIndex.get(m).value)).toEqual([1, 1]);
+    expect([a.structure, structure].map((s) => Structure.MaxIndex.get(s).value)).toEqual([1, 1]);
+    plugin.dispose();
+  });
+
   it('walks the tree for no object created, models and structures included', async () => {
     const plugin = await createPluginWithBehavior();
     await loadPdb(plugin, 'a');

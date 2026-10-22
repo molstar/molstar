@@ -36,6 +36,10 @@ describe('ESM start closure (perf audit 2, 12/B2)', () => {
     expect(startBytes(meta, 'build/chunks/lazy.js')).toBe(11100);
   });
 
+  it('throws on an entry the metafile does not have, instead of counting 0 bytes', () => {
+    expect(() => startBytes(meta, 'build/other.js')).toThrow(/no output/);
+  });
+
   it("keeps Seq* out of the AFDB PAE reader's imports (12/P9)", async () => {
     // the reader is in Prism's start code (model-archive's PAE operations); the Seq* barrel would add ~1.1 MB to it
     const r = await esbuild.build({

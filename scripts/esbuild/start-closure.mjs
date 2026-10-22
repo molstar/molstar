@@ -11,7 +11,10 @@ import path from 'node:path';
  * `entry` is the output's path relative to the build's working directory). Dynamic imports are lazy chunks: not counted.
  */
 export function startBytes(meta, entry) {
-  const stack = [entry.split(path.sep).join('/')];
+  const key = entry.split(path.sep).join('/');
+  // an unknown entry would count 0 bytes and pass any budget
+  if (!meta.outputs[key]) throw new Error(`start closure: no output '${key}' in the metafile`);
+  const stack = [key];
   const seen = new Set();
   let bytes = 0;
   while (stack.length) {

@@ -25,4 +25,8 @@ describe('ElementSymbol', () => {
       expect(ElementSymbol(s)).toBe(ElementSymbol(s));
     }
   });
+
+  it('takes a number as its digits, as a MolScript literal may give it', () => {
+    expect(ElementSymbol(6 as unknown as string)).toBe('6');
+  });
 });

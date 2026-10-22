@@ -23,7 +23,8 @@ export type ElementSymbol = string & { '@type': 'element-symbol' };
 export function ElementSymbol(s: string): ElementSymbol {
   let e = _esCache.get(s);
   if (e === undefined) {
-    e = s.toUpperCase() as ElementSymbol;
+    // `String`: a MolScript literal may be a number (`(struct.type.elementSymbol 6)`), which the table took as '6'
+    e = String(s).toUpperCase() as ElementSymbol;
     if (_esCache.size < _esCacheMax) _esCache.set(s, e);
   }
   return e;
