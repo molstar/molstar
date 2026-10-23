@@ -111,6 +111,9 @@ export namespace Model {
     const elementCount = model.atomicHierarchy.atoms._rowCount;
     // fall back to the symmetry of the model if a frame has no cell
     const symmetry = ModelSymmetry.Provider.get(model);
+    // the frames have the model's topology: its explicit bonds, also ones set with `Provider.set` (no format provider
+    // gives them again: SDF, MOL, MOL2, CIF core, LAMMPS), obtained once for every frame
+    const indexPairBonds = IndexPairBonds.Provider.get(model);
 
     for (let i = 0, il = frames.length; i < il; ++i) {
       const f = frames[i];
@@ -132,6 +135,7 @@ export namespace Model {
       } else if (symmetry) {
         ModelSymmetry.Provider.set(m, symmetry);
       }
+      if (indexPairBonds) IndexPairBonds.Provider.set(m, indexPairBonds);
 
       TrajectoryInfo.set(m, { index: i, size: frames.length });
       CoarseGrained.set(m, coarseGrained);
