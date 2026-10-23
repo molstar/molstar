@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -91,6 +91,80 @@ export function parseFloat(str: StringLike, start: number, end: number) {
     } else if (c === 53 || c === 21) {
       // 'e'/'E'
       return parseScientific(neg * ret, str, _start + 1, end);
+    } else {
+      break;
+    }
+  }
+  return neg * ret;
+}
+
+/** `parseInt` over the bytes of ASCII or UTF-8 text: the same arithmetic, so the same results. */
+export function parseIntBytes(data: Uint8Array, start: number, end: number) {
+  let _start = start,
+    ret = 0,
+    neg = 1;
+
+  if (data[_start] === 45 /* - */) {
+    neg = -1;
+    ++_start;
+  } else if (data[_start] === 43 /* + */) {
+    ++_start;
+  }
+
+  for (; _start < end; _start++) {
+    const c = data[_start] - 48;
+    if (c > 9 || c < 0) return (neg * ret) | 0;
+    else ret = (10 * ret + c) | 0;
+  }
+  return neg * ret;
+}
+
+function parseScientificBytes(main: number, data: Uint8Array, start: number, end: number) {
+  // handle + in '1e+1' separately.
+  if (data[start] === 43 /* + */) start++;
+  return main * Math.pow(10.0, parseIntBytes(data, start, end));
+}
+
+/** `parseFloat` over the bytes of ASCII or UTF-8 text: the same arithmetic, so bit-identical results. */
+export function parseFloatBytes(data: Uint8Array, start: number, end: number) {
+  let _start = start,
+    neg = 1.0,
+    ret = 0.0,
+    point = 0.0,
+    div = 1.0;
+
+  if (data[_start] === 45 /* - */) {
+    neg = -1;
+    ++_start;
+  } else if (data[_start] === 43 /* + */) {
+    ++_start;
+  }
+
+  while (_start < end) {
+    let c = data[_start] - 48;
+    if (c >= 0 && c < 10) {
+      ret = ret * 10 + c;
+      ++_start;
+    } else if (c === -2) {
+      // .
+      ++_start;
+      while (_start < end) {
+        c = data[_start] - 48;
+        if (c >= 0 && c < 10) {
+          point = 10.0 * point + c;
+          div = 10.0 * div;
+          ++_start;
+        } else if (c === 53 || c === 21) {
+          // 'e'/'E'
+          return parseScientificBytes(neg * (ret + point / div), data, _start + 1, end);
+        } else {
+          return neg * (ret + point / div);
+        }
+      }
+      return neg * (ret + point / div);
+    } else if (c === 53 || c === 21) {
+      // 'e'/'E'
+      return parseScientificBytes(neg * ret, data, _start + 1, end);
     } else {
       break;
     }

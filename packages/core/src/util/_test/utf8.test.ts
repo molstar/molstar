@@ -32,4 +32,30 @@ describe('utf8', () => {
   it('writes a lone surrogate as 3 bytes', () => {
     expect(utf8ByteCount('\ud800')).toBe(3);
   });
+
+  it('reads short ASCII as TextDecoder does, and falls back for the rest', () => {
+    const decoder = new TextDecoder();
+    for (const s of [
+      '',
+      'a',
+      'CA',
+      'HOH',
+      'ATOM',
+      "C1'",
+      'abcdefgh',
+      'pdbx_PDB_model_num',
+      'x'.repeat(24),
+      'x'.repeat(25),
+    ]) {
+      const data = new TextEncoder().encode(` ${s} `);
+      expect(utf8Read(data, 1, data.length - 2)).toBe(s);
+    }
+    for (const s of ['é', 'aé', '☃b', '🧬', '\ufeffdata_']) {
+      const data = new TextEncoder().encode(s);
+      expect(utf8Read(data, 0, data.length)).toBe(decoder.decode(data));
+    }
+    // a range past the end reads what is there, as the decoder of a subarray does
+    const data = new TextEncoder().encode('abc');
+    expect(utf8Read(data, 1, 5)).toBe('bc');
+  });
 });

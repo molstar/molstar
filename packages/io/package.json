@@ -18,6 +18,7 @@
     "./common/msgpack/_test/*": null,
     "./reader/_test/*": null,
     "./reader/cif/binary/_test/*": null,
+    "./reader/cif/text/_test/*": null,
     "./writer/_test/*": null
   },
   "files": [
