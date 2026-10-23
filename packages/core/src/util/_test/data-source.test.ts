@@ -169,6 +169,48 @@ describe('ajaxGet', () => {
     expect(pulls).toBeLessThanOrEqual(2);
   });
 
+  it("rejects as aborted when the caller's signal aborts while waiting for the server", async () => {
+    // as fetch does: the request rejects with the signal's reason, at once when it is aborted already
+    const waiting = vi.fn((_url: string, init: RequestInit) => {
+      const signal = init.signal!;
+      return new Promise<Response>((_, reject) => {
+        if (signal.aborted) reject(signal.reason);
+        else signal.addEventListener('abort', () => reject(signal.reason));
+      });
+    });
+    vi.stubGlobal('fetch', waiting);
+    const controller = new AbortController();
+    const run = ajaxGet({ url: 'https://example.org/x', signal: controller.signal }).run();
+    controller.abort('closed');
+    await expect(run).rejects.toSatisfy((e) => Task.isAbort(e) && e.reason === 'closed');
+    expect(waiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects as aborted when the caller's signal aborts a stalled body", async () => {
+    // as fetch does: an aborted request errors its body
+    let signal: AbortSignal | undefined;
+    let pulls = 0;
+    const stalled = new ReadableStream<Uint8Array>({
+      pull(c) {
+        if (pulls++ === 0) c.enqueue(encode('aaaa'));
+        else if (signal!.aborted) c.error(signal!.reason);
+        else return new Promise<void>(() => signal!.addEventListener('abort', () => c.error(signal!.reason)));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        signal = init.signal!;
+        return new Response(stalled);
+      }),
+    );
+    const controller = new AbortController();
+    const run = ajaxGet({ url: 'https://example.org/x', signal: controller.signal }).run((p) => {
+      if (p.root.progress.message.startsWith('Downloading')) controller.abort();
+    }, -1);
+    await expect(run).rejects.toSatisfy((e) => Task.isAbort(e) && e.reason === 'This operation was aborted');
+  });
+
   it('reads a body with a Content-Length too large to allocate in chunks', async () => {
     stubFetch(() => streamed([encode('aaaa')], { 'Content-Length': String(Number.MAX_SAFE_INTEGER) }));
     expect(await ajaxGet('https://example.org/x').run()).toBe('aaaa');

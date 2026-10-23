@@ -4,6 +4,8 @@
   for browsers and Node.js; `file://` URLs in Node.js are still read through `setFSModule`. Progress comes from the
   response stream against `Content-Length` (bytes only when the length is unknown or the body is compressed); an
   abort, seen between chunks as with XHR, cancels the request
+- `AjaxGetParams.signal`: an `AbortSignal` that cancels the download also while it waits for the server or on a stalled
+  body; the task then rejects as aborted
 - Every download is read as bytes and decoded in JS, as opened files are: a `string` download past the 512 MB string
   limit comes back as a `ChunkedBigString` instead of failing. Text is always UTF-8 (XHR followed a `charset` in
   `Content-Type`); JSON and XML parse from it

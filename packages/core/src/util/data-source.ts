@@ -41,6 +41,11 @@ export interface AjaxGetParams<T extends DataType = 'string'> {
   title?: string;
   headers?: Record<string, string>;
   body?: string;
+  /**
+   * Cancels the download, also while it waits for the server or on a stalled body, which the task's own abort (seen
+   * between chunks) cannot; the task then rejects as aborted, with the signal's reason
+   */
+  signal?: AbortSignal;
 }
 
 export function readStringFromFile(file: File) {
@@ -59,7 +64,7 @@ export function ajaxGet(url: string): Task<DataValue>;
 export function ajaxGet<T extends DataType>(params: AjaxGetParams<T>): Task<DataResponse<T>>;
 export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
   if (typeof params === 'string') return ajaxGetInternal(params, params, 'string');
-  return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body, params.headers);
+  return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body, params.headers, params.signal);
 }
 
 export type AjaxTask = typeof ajaxGet;
@@ -219,6 +224,7 @@ function ajaxGetInternal<T extends DataType>(
   type: T,
   body?: string,
   headers?: Record<string, string>,
+  signal?: AbortSignal,
 ): Task<DataResponse<T>> {
   // Node.js's `fetch` has no `file:` scheme
   if (RUNNING_IN_NODEJS && url.startsWith('file://')) return ajaxGetInternal_file_NodeJS(title, url, type);
@@ -227,18 +233,20 @@ function ajaxGetInternal<T extends DataType>(
     // the task runtime sees an abort only in `ctx.update` and `ctx.shouldUpdate`, between chunks as with XHR; the
     // abort error leaves through the `finally` below, which cancels the request (no `onAbort`: it runs after `f` throws)
     const aborter = new AbortController();
+    const requestSignal = signal ? AbortSignal.any([aborter.signal, signal]) : aborter.signal;
     try {
       await ctx.update({ message: 'Waiting for server...', canAbort: true });
       let response: Response;
       try {
-        response = await fetch(url, { signal: aborter.signal, method: body ? 'POST' : 'GET', body, headers });
+        response = await fetch(url, { signal: requestSignal, method: body ? 'POST' : 'GET', body, headers });
       } catch (e) {
-        throw networkError(e);
+        throw downloadError(e, signal);
       }
       if (!(response.status >= 200 && response.status < 400)) {
         throw new Error(`Download failed with status code ${response.status}`);
       }
-      const data = await readResponseBody(ctx, 'Downloading...', response);
+      const data = await readResponseBody(ctx, 'Downloading...', response, signal);
+      if (signal?.aborted) throw signalAborted(signal);
 
       await ctx.update({ message: 'Parsing response...', canAbort: false });
       try {
@@ -255,9 +263,18 @@ function ajaxGetInternal<T extends DataType>(
   });
 }
 
-/** A browser hides why a request failed (XHR gave the generic message); Node.js says why, as its path did before */
-function networkError(e: unknown) {
+/**
+ * The caller's signal aborts the task; otherwise a network failure. A browser hides why a request failed (XHR gave the
+ * generic message); Node.js says why, as its path did before.
+ */
+function downloadError(e: unknown, signal: AbortSignal | undefined) {
+  if (signal?.aborted) return signalAborted(signal);
   return RUNNING_IN_NODEJS ? e : new Error(genericError(true), { cause: e });
+}
+
+function signalAborted(signal: AbortSignal) {
+  const { reason } = signal;
+  return Task.Aborted(typeof reason === 'string' ? reason : reason instanceof Error ? reason.message : '');
 }
 
 /**
@@ -265,7 +282,12 @@ function networkError(e: unknown) {
  * which `Content-Length` does not count, so it reports bytes only, as does a body that outgrows the length: a
  * cross-origin response hides `Content-Encoding` but not `Content-Length`, so a compressed one shows as that.
  */
-async function readResponseBody(ctx: RuntimeContext, action: string, response: Response): Promise<ArrayBuffer> {
+async function readResponseBody(
+  ctx: RuntimeContext,
+  action: string,
+  response: Response,
+  signal: AbortSignal | undefined,
+): Promise<ArrayBuffer> {
   const encoding = response.headers.get('Content-Encoding');
   const length = encoding && encoding !== 'identity' ? -1 : contentLength(response);
   // a known length reads into one buffer, without a copy at the end
@@ -279,7 +301,7 @@ async function readResponseBody(ctx: RuntimeContext, action: string, response: R
     try {
       next = await reader.read();
     } catch (e) {
-      throw networkError(e);
+      throw downloadError(e, signal);
     }
     if (next.done) break;
 
