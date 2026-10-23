@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ChunkedArray } from '@molstar/core/data/util';
@@ -117,14 +118,67 @@ export namespace CylindersBuilder {
       colorMode: number,
       group: number,
     ) => {
-      for (let i = 0; i < 6; ++i) {
-        caAdd3(starts, startX, startY, startZ);
-        caAdd3(ends, endX, endY, endZ);
-        caAdd(groups, group);
-        caAdd(scales, radiusScale);
-        caAdd(caps, (topCap ? 1 : 0) + (bottomCap ? 2 : 0));
-        caAdd(colorModes, colorMode);
+      const cap = (topCap ? 1 : 0) + (bottomCap ? 2 : 0);
+      if (
+        starts.currentIndex + 18 > starts.currentSize ||
+        ends.currentIndex + 18 > ends.currentSize ||
+        groups.currentIndex + 6 > groups.currentSize ||
+        scales.currentIndex + 6 > scales.currentSize ||
+        caps.currentIndex + 6 > caps.currentSize ||
+        colorModes.currentIndex + 6 > colorModes.currentSize
+      ) {
+        // a chunk ends: the generic adders allocate the next one
+        for (let i = 0; i < 6; ++i) {
+          caAdd3(starts, startX, startY, startZ);
+          caAdd3(ends, endX, endY, endZ);
+          caAdd(groups, group);
+          caAdd(scales, radiusScale);
+          caAdd(caps, cap);
+          caAdd(colorModes, colorMode);
+        }
+        return;
       }
+
+      // the 6 vertices straight into the current chunks: one capacity check per array, not 36 adder calls, each with
+      // its own (perf-audit-2 08/P16)
+      const sc = starts.currentChunk as Float32Array;
+      const ec = ends.currentChunk as Float32Array;
+      const gc = groups.currentChunk as Float32Array;
+      const ac = scales.currentChunk as Float32Array;
+      const cc = caps.currentChunk as Float32Array;
+      const mc = colorModes.currentChunk as Float32Array;
+      const si = starts.currentIndex;
+      const ei = ends.currentIndex;
+      const gi = groups.currentIndex;
+      const ai = scales.currentIndex;
+      const ci = caps.currentIndex;
+      const mi = colorModes.currentIndex;
+      for (let i = 0; i < 6; ++i) {
+        const s3 = si + 3 * i;
+        const e3 = ei + 3 * i;
+        sc[s3] = startX;
+        sc[s3 + 1] = startY;
+        sc[s3 + 2] = startZ;
+        ec[e3] = endX;
+        ec[e3 + 1] = endY;
+        ec[e3 + 2] = endZ;
+        gc[gi + i] = group;
+        ac[ai + i] = radiusScale;
+        cc[ci + i] = cap;
+        mc[mi + i] = colorMode;
+      }
+      starts.currentIndex = si + 18;
+      ends.currentIndex = ei + 18;
+      groups.currentIndex = gi + 6;
+      scales.currentIndex = ai + 6;
+      caps.currentIndex = ci + 6;
+      colorModes.currentIndex = mi + 6;
+      starts.elementCount += 6;
+      ends.elementCount += 6;
+      groups.elementCount += 6;
+      scales.elementCount += 6;
+      caps.elementCount += 6;
+      colorModes.elementCount += 6;
     };
 
     const addFixedCountDashes = (

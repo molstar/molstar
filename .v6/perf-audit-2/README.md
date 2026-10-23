@@ -87,18 +87,18 @@ two slices). New = new findings after verification.
 
 | Slice     | Fixed | Partly | Open | Regressed | Dropped | New P | New bugs | Main PRs                                       |
 | --------- | ----: | -----: | ---: | --------: | ------: | ----: | -------: | ---------------------------------------------- |
-| 01        |     1 |      2 |   17 |         0 |       0 |     3 |        5 | #2007, #2017; #2032 (small fixes) |
-| 02        |     3 |      1 |   11 |         0 |       1 |     4 |        1 | #1988, #1987, #1990, #2004; #1992 (partly)     |
-| 03        |     3 |      3 |   15 |         0 |       0 |     3 |        2 | #2013, #1989, #2014, #2022                     |
-| 04        |     9 |      4 |   13 |         0 |       1 |     5 |        7 | #2017, #2007, #1989; #2032 (small fixes) |
-| 05        |     8 |      2 |   10 |         0 |       1 |    10 |        6 | #1994, #2007, #2018, #2022; #2032 (small fixes) |
-| 06        |     3 |      0 |   20 |         0 |       0 |     4 |        2 | #1986, #1996, #1989; #2032 (small fixes) |
-| 07        |     8 |      2 |   22 |         0 |       0 |     9 |        1 | #1995, #2005, #2012, #1987, #2004; #2022; #2032 (small fixes) |
-| 08        |     7 |      2 |   11 |         1 |       0 |     3 |        3 | #1987, #1990, #1991, #2005, #2012, #2007       |
-| 09        |     4 |      0 |    7 |         0 |       0 |     4 |        3 | #2004, #2005, #2012; #2032 (small fixes) |
-| 10        |    12 |      1 |    1 |         0 |       1 |     5 |        3 | #2008, #2013; #2032 (small fixes) |
+| 01        |     1 |      2 |   17 |         0 |       0 |     3 |        5 | #2007, #2017; #2032 (small fixes); #2033 (small fixes 2) |
+| 02        |     3 |      1 |   11 |         0 |       1 |     4 |        1 | #1988, #1987, #1990, #2004; #1992 (partly); #2033 (small fixes 2); #2034 (small fixes 3) |
+| 03        |     3 |      3 |   15 |         0 |       0 |     3 |        2 | #2013, #1989, #2014, #2022; #2033 (small fixes 2); #2034 (small fixes 3) |
+| 04        |     9 |      4 |   13 |         0 |       1 |     5 |        7 | #2017, #2007, #1989; #2032 (small fixes); #2033 (small fixes 2) |
+| 05        |     8 |      2 |   10 |         0 |       1 |    10 |        6 | #1994, #2007, #2018, #2022; #2032 (small fixes); #2034 (small fixes 3) |
+| 06        |     3 |      0 |   20 |         0 |       0 |     4 |        2 | #1986, #1996, #1989; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3) |
+| 07        |     8 |      2 |   22 |         0 |       0 |     9 |        1 | #1995, #2005, #2012, #1987, #2004; #2022; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3) |
+| 08        |     7 |      2 |   11 |         1 |       0 |     3 |        3 | #1987, #1990, #1991, #2005, #2012, #2007; #2033 (small fixes 2); #2034 (small fixes 3) |
+| 09        |     4 |      0 |    7 |         0 |       0 |     4 |        3 | #2004, #2005, #2012; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3) |
+| 10        |    12 |      1 |    1 |         0 |       1 |     5 |        3 | #2008, #2013; #2032 (small fixes); #2034 (small fixes 3) |
 | 11        |     2 |      0 |    7 |         0 |       2 |     2 |        3 | #2008; all open fixed in #2029            |
-| 12        |     3 |      5 |   10 |         0 |       2 | 9 + 10 H |      4 | #2008, #2013, #2022, #2005, #2012, #2014       |
+| 12        |     3 |      5 |   10 |         0 |       2 | 9 + 10 H |      4 | #2008, #2013, #2022, #2005, #2012, #2014; #2034 (small fixes 3) |
 | **Total** |  **63** | **22** | **144** | **1** | **8** | **61 + 10 H** | **40** |                                          |
 
 Regressed: **08/P12** (cartoon tube/sheet scalar loops, #1993): faster on large entries, but small builds lose their
@@ -144,9 +144,9 @@ cylinder impostor attributes 6× per cylinder (L; 4.46 GB of ball-and-stick buff
 in `gl/renderable/merged.ts`; 12/H8 adaptive resolution (Canvas3D).
 
 Next tier (medium, in the slice reports): 07/P12 serial id field per CPU isosurface (256 MB at 400³), 08/P16
-`CylindersBuilder.add` ~3×, 08/P6, 01/P1 ungzip JS CRC, 05/P15 extrema allocation, 11/P10 non-passive wheel listener (fixed #2029),
+`CylindersBuilder.add` ~3× (fixed #2033), 08/P6, 01/P1 ungzip JS CRC, 05/P15 extrema allocation, 11/P10 non-passive wheel listener (fixed #2029),
 06/P3 per-class inter contacts (L), 06/P13 contact storage 510 B/edge, 06/P2, 09/P17 instanced inter interactions (L),
-09/P6, 04/P16 BCIF retention 320 B/atom (L), 04/P4, 04/P2, 04/P3, 02/P11, 02/P12, 03/P2, 12/P3, 12/P4, 12/P5.
+09/P6 (fixed #2034), 04/P16 BCIF retention 320 B/atom (L), 04/P4, 04/P2, 04/P3, 02/P11 (fixed #2033), 02/P12, 03/P2, 12/P3, 12/P4, 12/P5.
 
 ## Cross-cutting themes
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -21,7 +21,7 @@ export function merge(queries: ArrayLike<StructureQuery>): StructureQuery {
     for (let i = 0; i < queries.length; i++) {
       StructureSelection.forEach(queries[i](ctx), (s, j) => {
         ret.add(s);
-        if (i % 100) ctx.throwIfTimedOut();
+        if (j % 100 === 0) ctx.throwIfTimedOut();
       });
     }
     return ret.getSelection();

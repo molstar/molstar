@@ -17,6 +17,7 @@ import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, Unit } from '@molstar/model/model/structure';
 import type { Model } from '@molstar/model/model/structure/model';
 import type { ElementIndex } from '@molstar/model/model/structure/model/indexing';
+import { MoleculeType } from '@molstar/model/model/structure/model/types';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { computeInteractions } from '../interactions.js';
@@ -123,12 +124,12 @@ describe('inter-unit contacts', async () => {
       'count=1498 types=4:1498 ordered=3f8d3109 sorted=87123ec1 bridges=0',
       'count=1604 types=4:1498,8:106 ordered=6ac3c81 sorted=f4b97265 bridges=33',
     ],
-    // identity operators
+    // identity operators (the NAG N features gone, 06/B11: the same contacts, feature indices shifted)
     [
       '7qpd',
       async () => Structure.ofModel(m7qpd),
       'count=94 types=2:6,4:88 ordered=d26d8de5 sorted=26280639 bridges=0',
-      'count=200 types=1:10,2:6,4:88,6:70,8:26 ordered=71e8eb91 sorted=ff4f819 bridges=0',
+      'count=200 types=1:10,2:6,4:88,6:70,8:26 ordered=9242e4b9 sorted=968a8ad5 bridges=0',
     ],
     // contacts within chains split into units, under symmetry operators
     [
@@ -142,5 +143,49 @@ describe('inter-unit contacts', async () => {
   it.each(cases)('%s', async (_name, structure, defaults, all) => {
     expect(await signature(await structure(), {})).toBe(defaults);
     expect(await signature(await structure(), AllProviders)).toBe(all);
+  });
+});
+
+describe('water bridges', async () => {
+  // two models of one entry, e.g. an ensemble shown as all models
+  const mA = await loadCif('1cbs_updated.cif');
+  const mB = await loadCif('1cbs_updated.cif');
+  const isWater = (u: Unit) =>
+    Unit.isAtomic(u) &&
+    u.model.atomicHierarchy.derived.residue.moleculeType[u.residueIndex[u.elements[0]]] === MoleculeType.Water;
+  const WaterBridgesOnly: Partial<InteractionsProps> = {
+    providers: Object.fromEntries(
+      Object.keys(ContactProviderParams).map((k) => [k, { name: 'off', params: {} }]),
+    ) as InteractionsProps['providers'],
+    bridges: allOn(BridgeProviderParams) as InteractionsProps['bridges'],
+  };
+
+  /** The non-water units of `a` and the water units of `b`, renumbered */
+  function mixed(a: Model, b: Model) {
+    const units: Unit[] = [];
+    const add = (u: Unit) =>
+      units.push(
+        Unit.create(
+          units.length,
+          units.length,
+          units.length,
+          u.traits,
+          u.kind,
+          u.model,
+          u.conformation.operator,
+          u.elements,
+        ),
+      );
+    for (const u of Structure.ofModel(a).units) if (!isWater(u)) add(u);
+    for (const u of Structure.ofModel(b).units) if (isWater(u)) add(u);
+    return Structure.create(units);
+  }
+
+  it('do not join the atoms of one model through the water of another (perf-audit-2 06/B7)', async () => {
+    const ctx = { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() };
+    const same = await computeInteractions(ctx, mixed(mA, mA), WaterBridgesOnly);
+    expect(same.bridges.length).toBeGreaterThan(0);
+    const across = await computeInteractions(ctx, mixed(mA, mB), WaterBridgesOnly);
+    expect(across.bridges.length).toBe(0);
   });
 });

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ryan DiRisio <rjdiris@gmail.com>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -439,5 +440,44 @@ describe('PDB entities with SEQRES', () => {
     expect(entity.rowCount).toBe(1);
     expect(entity.getField('type')!.str(0)).toBe('polymer');
     expect(entity.getField('pdbx_description')!.str(0)).toBe('Polymer 1');
+  });
+});
+
+describe('PDB CONECT', () => {
+  /** Three atoms of a ligand and the given CONECT records (serials 1..3) */
+  async function structConn(conect: string[]) {
+    const pdb = makePdb(
+      [
+        'HETATM    1  C1  LIG A   1       0.000   0.000   0.000  1.00  0.00           C  ',
+        'HETATM    2  C2  LIG A   1       1.300   0.000   0.000  1.00  0.00           C  ',
+        'HETATM    3  O3  LIG A   1       2.600   0.000   0.000  1.00  0.00           O  ',
+        ...conect,
+        'END                                                                             ',
+      ].join('\n'),
+    );
+    const cif = await pdbToMmCif(pdb);
+    const conn = cif.categories['struct_conn'];
+    const rows: string[] = [];
+    for (let i = 0; i < conn.rowCount; i++) {
+      const a = conn.getField('ptnr1_label_atom_id')!.str(i);
+      const b = conn.getField('ptnr2_label_atom_id')!.str(i);
+      rows.push(`${a}-${b} ${conn.getField('pdbx_value_order')?.str(i) ?? 'sing'}`);
+    }
+    return rows;
+  }
+
+  it('keeps a bond listed on either atom only, once (perf-audit-2 04/B11)', async () => {
+    expect(await structConn(['CONECT    2    1'])).toEqual(['C1-C2 sing']);
+    expect(await structConn(['CONECT    1    2', 'CONECT    2    1    3', 'CONECT    3    2'])).toEqual([
+      'C1-C2 sing',
+      'C2-O3 sing',
+    ]);
+    // listed twice on the higher serial's record only: a double bond
+    expect(await structConn(['CONECT    3    2    2'])).toEqual(['C2-O3 doub']);
+    expect(await structConn(['CONECT    2    3    3', 'CONECT    3    2'])).toEqual(['C2-O3 doub']);
+  });
+
+  it('writes a triple bond as the mmCIF value order (perf-audit-2 04/B5)', async () => {
+    expect(await structConn(['CONECT    1    2    2    2'])).toEqual(['C1-C2 trip']);
   });
 });

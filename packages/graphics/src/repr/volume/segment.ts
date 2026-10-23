@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -22,6 +23,7 @@ import { fillSerial } from '@molstar/core/util/array';
 import {
   createSegmentTexture2d,
   eachVolumeLoci,
+  getSegmentMaskValue,
   getVolumeGpuFallbackReason,
   getVolumeTexture2dLayout,
 } from './util.js';
@@ -129,17 +131,10 @@ export function eachSegment(
 //
 
 function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
-  const data = cells.data;
-  const o = cells.space.dataOffset;
-
   const dim = Box3D.size(Vec3(), bbox);
   const [xn, yn, zn] = dim;
-  const xn1 = xn - 1;
-  const yn1 = yn - 1;
-  const zn1 = zn - 1;
-
   const [minx, miny, minz] = bbox.min;
-  const [maxx, maxy, maxz] = bbox.max;
+  const value = getSegmentMaskValue(cells, set);
 
   const axisOrder = [...cells.space.axisOrderSlowToFast];
   const segmentSpace = Tensor.Space(dim, axisOrder, Uint8Array);
@@ -151,15 +146,7 @@ function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
   for (let z = 0; z < zn; ++z) {
     for (let y = 0; y < yn; ++y) {
       for (let x = 0; x < xn; ++x) {
-        const v0 = set.includes(data[o(x + minx, y + miny, z + minz)]) ? 255 : 0;
-        const xp = set.includes(data[o(Math.min(xn1 + maxx, x + 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-        const xn = set.includes(data[o(Math.max(0, x - 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-        const yp = set.includes(data[o(x + minx, Math.min(yn1 + maxy, y + 1 + miny), z + minz)]) ? 255 : 0;
-        const yn = set.includes(data[o(x + minx, Math.max(0, y - 1 + miny), z + minz)]) ? 255 : 0;
-        const zp = set.includes(data[o(x + minx, y + miny, Math.min(zn1 + maxz, z + 1 + minz))]) ? 255 : 0;
-        const zn = set.includes(data[o(x + minx, y + miny, Math.max(0, z - 1 + minz))]) ? 255 : 0;
-
-        segSet(segData, x, y, z, Math.round((v0 + v0 + xp + xn + yp + yn + zp + zn) / 8));
+        segSet(segData, x, y, z, value(x + minx, y + miny, z + minz));
       }
     }
   }

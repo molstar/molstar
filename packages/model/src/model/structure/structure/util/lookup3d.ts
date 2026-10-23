@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -225,11 +225,12 @@ export class StructureLookup3D {
     builder: StructureUniqueSubsetBuilder,
   ) {
     const { units } = this.structure;
-    const closeUnits = this.unitLookup.find(x, y, z, radius);
+    // units within reach of the largest radii, not only of `radius` (perf-audit-2 05/B12)
+    const queryRadius = pivotR + maxRadius + radius;
+    const closeUnits = this.unitLookup.find(x, y, z, queryRadius);
     if (closeUnits.count === 0) return;
 
     const se = StructureElement.Location.create(this.structure);
-    const queryRadius = pivotR + maxRadius + radius;
 
     for (let t = 0, _t = closeUnits.count; t < _t; t++) {
       const unit = units[closeUnits.indices[t]];
@@ -294,7 +295,10 @@ export class StructureLookup3D {
     const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
     if (closeUnits.count === 0) return ctx.result;
 
+    // one result, the nearest over the units (perf-audit-2 02/B1: each closer one was added, the nearest last)
     let minDistSq = Number.MAX_VALUE;
+    let nearestUnit: Unit | undefined;
+    let nearestIndex = -1;
     for (let t = 0, _t = closeUnits.count; t < _t; t++) {
       const unit = units[closeUnits.indices[t]];
       Vec3.set(this.pivot, x, y, z);
@@ -311,11 +315,14 @@ export class StructureLookup3D {
       );
       for (let j = 0, _j = groupResult.count; j < _j; j++) {
         if (groupResult.squaredDistances[j] < minDistSq) {
-          StructureResult.add(ctx.result, unit, groupResult.indices[j], groupResult.squaredDistances[j]);
+          nearestUnit = unit;
+          nearestIndex = groupResult.indices[j];
           minDistSq = groupResult.squaredDistances[j];
         }
       }
     }
+    if (nearestUnit)
+      StructureResult.add(ctx.result, nearestUnit, nearestIndex as StructureElement.UnitIndex, minDistSq);
 
     return ctx.result;
   }

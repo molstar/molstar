@@ -64,7 +64,7 @@ open 15, regressed 0, dropped 0. The B1 fix introduced a new bug (B11).
 | 2 | P15 | new | Every snapshot frame rebuilds and diffs the whole tree | [state.ts:203](../../packages/core/src/state/state.ts#L203) | time | medium | 20-23 ms → ~0.1-0.3 ms per frame at 10k nodes (1.4-1.9 ms at 1k) | M | confirmed | no |
 | 3 | P2 | partly fixed | Whole-tree walks: 2 Immutable lookups per node | [immutable.ts:134](../../packages/core/src/state/tree/immutable.ts#L134) | time | medium | 2.4-2.9 ms per walk at 10k; 20-50x with a memoized pre-order index | L | confirmed | no |
 | 4 | P17 | new | `carryFlagWrites` scans every ref ever flagged | [state.ts:117](../../packages/core/src/state/state.ts#L117) | time | low | 2.6 ms per queued commit at 10k flagged refs, 0.31 ms at 1k | S | confirmed | no |
-| 5 | P16 | new | `update(recipe)` returning a new object: mutative walks the returned params | [builder.ts:341](../../packages/core/src/state/state/builder.ts#L341) | time | low | 0.07 / 0.63 / 2.25 ms for 1k / 100k / 1M-int bundles vs 0.002-0.01 ms mutating | S | confirmed | no |
+| 5 | P16 | new; partly fixed #2034 (focus callers, 12/P7) | `update(recipe)` returning a new object: mutative walks the returned params | [builder.ts:341](../../packages/core/src/state/state/builder.ts#L341) | time | low | 0.07 / 0.63 / 2.25 ms for 1k / 100k / 1M-int bundles vs 0.002-0.01 ms mutating | S | confirmed | no |
 | 6 | P3 | still open | Counter refs: 22 chars (string-hash cache) and 31-hash collisions | [transform.ts:114](../../packages/core/src/state/transform.ts#L114) | time | low | Immutable get 153-161 vs 125 ns (random 22) vs 50 ns (16 chars); end to end within noise | S | confirmed | no |
 | 7 | P4 | still open | `collectScheduled` repeats the `initCellStatus` walk | [state.ts:1285](../../packages/core/src/state/state.ts#L1285) | time | low | one walk of the evaluated subtrees, ~2.5 ms at 10k evaluated nodes | S | confirmed | no |
 | 8 | P5 | still open | No batched `updateCellState` | [state.ts:212](../../packages/core/src/state/state.ts#L212) | time | low | k `syncVisibility` → 1 for hide-all | M | plausible | no |
@@ -156,10 +156,10 @@ open 15, regressed 0, dropped 0. The B1 fix introduced a new bug (B11).
 | --- | --- | --- | --- | --- | --- |
 | B11 | new | medium | Carried flags override a tree passed in after them (setSnapshot, undo, revert): tree and cell disagree | [state.ts:467](../../packages/core/src/state/state.ts#L467) | confirmed |
 | B6 | still open | medium | `doError` clears objects and caches without `dispose` | [state.ts:1257](../../packages/core/src/state/state.ts#L1257) | confirmed |
-| B9 | still open | low | `subtree()`/`children()` return undefined cells; chained filters throw | [selection.ts:278](../../packages/core/src/state/state/selection.ts#L278) | confirmed |
-| B12 | new | low | `applyOrUpdateTagged` drops extra tags when the params changed | [builder.ts:318](../../packages/core/src/state/state/builder.ts#L318) | confirmed |
+| B9 | still open; **fixed** #2034 | low | `subtree()`/`children()` return undefined cells; chained filters throw | [selection.ts:278](../../packages/core/src/state/state/selection.ts#L278) | confirmed |
+| B12 | new; **fixed** #2033 | low | `applyOrUpdateTagged` drops extra tags when the params changed | [builder.ts:318](../../packages/core/src/state/state/builder.ts#L318) | confirmed |
 | B5 | still open | low | Hash versions cover params only | [transform.ts:281](../../packages/core/src/state/transform.ts#L281) | confirmed |
-| B10 | still open | low | `findTagInSubtree` never stops, returns the last match | [selection.ts:448](../../packages/core/src/state/state/selection.ts#L448) | confirmed |
+| B10 | still open; **fixed** #2034 | low | `findTagInSubtree` never stops, returns the last match | [selection.ts:448](../../packages/core/src/state/state/selection.ts#L448) | confirmed |
 | B7 | still open | low | A late abort discards a completed result, undisposed | [observable.ts:106](../../packages/core/src/task/execution/observable.ts#L106) | confirmed |
 | B8 | still open | low | `chunkedSubtask` sizing compounds | [chunked.ts:35](../../packages/core/src/task/util/chunked.ts#L35) | confirmed |
 | B3 | still open | low | Rebase replays `tag`/`dependsOn`/`updateState` as `setParams` | [builder.ts:89](../../packages/core/src/state/state/builder.ts#L89) | confirmed (mostly latent) |

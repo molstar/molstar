@@ -315,7 +315,10 @@ namespace StateBuilder {
     }
 
     private updateTagged(params: any, tags: string | string[] | undefined) {
-      if (this.state.tree.setParams(this.ref, params) || this.state.tree.setTags(this.ref, tags)) {
+      // both, not `setParams(...) || setTags(...)`: changed params skipped the tags (perf-audit-2 03/B12)
+      const paramsChanged = this.state.tree.setParams(this.ref, params);
+      const tagsChanged = this.state.tree.setTags(this.ref, tags);
+      if (paramsChanged || tagsChanged) {
         this.editInfo.count++;
         this.editInfo.lastUpdate = this.ref;
         this.state.actions.push({ kind: 'update', ref: this.ref, params });

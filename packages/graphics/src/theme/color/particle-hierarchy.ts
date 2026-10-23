@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -131,14 +132,41 @@ function getEntityGroups(particles: HierarchicalParticleList, by: Props['by']): 
   return { groups: entities, getLabel: (g) => entityInfo?.get(g)?.name ?? `Entity ${g}` };
 }
 
-function buildHierarchyColors(particles: HierarchicalParticleList, props: Props): HierarchyColors {
-  const { count, compartments, compartmentInfo } = particles;
-  const entityGroups = getEntityGroups(particles, props.by);
+/** What the colors index by: per particle, a slot in the color list; per compartment, its slots. */
+interface HierarchyIndex {
+  /** Per-particle index into the color list, -1 for particles without a compartment. */
+  colorIndex: Int32Array;
+  /** Per dense compartment: its raw index, whether it has particles without an entity, its distinct entity count. */
+  compartmentIds: number[];
+  hasNoEntity: boolean[];
+  entityCounts: number[];
+}
 
-  const groups = entityGroups.groups;
+/**
+ * The O(particles) part, the same for every palette: per particle list and `by`, made once. The particle transforms
+ * create the theme on every update (perf-audit-2 09/P6). The arrays of a list do not change; its `entityInfo` may
+ * grow (Simularium frames share one and add types met later), so the index is remade when its size changed.
+ */
+const hierarchyIndexCache = new WeakMap<
+  ParticleList,
+  Map<Props['by'], { entityInfoSize: number; index: HierarchyIndex }>
+>();
+
+function getHierarchyIndex(particles: HierarchicalParticleList, by: Props['by']): HierarchyIndex {
+  let byList = hierarchyIndexCache.get(particles);
+  if (!byList) hierarchyIndexCache.set(particles, (byList = new Map()));
+  const entityInfoSize = particles.entityInfo?.size ?? 0;
+  let cached = byList.get(by);
+  if (!cached || cached.entityInfoSize !== entityInfoSize) {
+    byList.set(by, (cached = { entityInfoSize, index: buildHierarchyIndex(particles, by) }));
+  }
+  return cached.index;
+}
+
+function buildHierarchyIndex(particles: HierarchicalParticleList, by: Props['by']): HierarchyIndex {
+  const { count, compartments } = particles;
+  const groups = getEntityGroups(particles, by).groups;
   const colorIndex = new Int32Array(count).fill(-1);
-  const colors: Color[] = [];
-  const baseLabels: string[] = [];
 
   // Map raw compartment indices to dense sequential indices and collect the
   // distinct entities of each compartment.
@@ -167,26 +195,17 @@ function buildHierarchyColors(particles: HierarchicalParticleList, props: Props)
     }
   }
 
+  // the color list: per compartment its base color (if it has particles without an entity), then its entities
   const compartmentCount = compartmentMap.size;
-  const baseColors = getBaseColors(compartmentCount, props);
   const entityOffsets = new Int32Array(compartmentCount);
   const noEntitySlots = new Int32Array(compartmentCount).fill(-1);
-
+  const entityCounts: number[] = [];
+  let slots = 0;
   for (let ci = 0; ci < compartmentCount; ++ci) {
-    const compartmentLabel = compartmentInfo?.get(compartmentIds[ci])?.name ?? `Compartment ${compartmentIds[ci]}`;
-    baseLabels.push(compartmentLabel);
-
-    if (hasNoEntity[ci]) {
-      noEntitySlots[ci] = colors.length;
-      colors.push(baseColors[ci]);
-    }
-
-    entityOffsets[ci] = colors.length;
-    const entityCount = entityMaps[ci].size;
-    const groupColors = getDistinctGroupColors(entityCount, baseColors[ci], props.variability, props.shift);
-    for (let ei = 0; ei < entityCount; ++ei) {
-      colors.push(groupColors[ei]);
-    }
+    if (hasNoEntity[ci]) noEntitySlots[ci] = slots++;
+    entityOffsets[ci] = slots;
+    entityCounts.push(entityMaps[ci].size);
+    slots += entityMaps[ci].size;
   }
 
   for (let i = 0; i < count; ++i) {
@@ -196,6 +215,31 @@ function buildHierarchyColors(particles: HierarchicalParticleList, props: Props)
     const ci = compartmentMap.get(c)!;
     const e = groups[i];
     colorIndex[i] = e < 0 ? noEntitySlots[ci] : entityOffsets[ci] + entityMaps[ci].get(e)!;
+  }
+
+  return { colorIndex, compartmentIds, hasNoEntity, entityCounts };
+}
+
+function buildHierarchyColors(particles: HierarchicalParticleList, props: Props): HierarchyColors {
+  const { compartmentInfo } = particles;
+  const { colorIndex, compartmentIds, hasNoEntity, entityCounts } = getHierarchyIndex(particles, props.by);
+
+  const colors: Color[] = [];
+  const baseLabels: string[] = [];
+  const compartmentCount = compartmentIds.length;
+  const baseColors = getBaseColors(compartmentCount, props);
+
+  for (let ci = 0; ci < compartmentCount; ++ci) {
+    const compartmentLabel = compartmentInfo?.get(compartmentIds[ci])?.name ?? `Compartment ${compartmentIds[ci]}`;
+    baseLabels.push(compartmentLabel);
+
+    if (hasNoEntity[ci]) colors.push(baseColors[ci]);
+
+    const entityCount = entityCounts[ci];
+    const groupColors = getDistinctGroupColors(entityCount, baseColors[ci], props.variability, props.shift);
+    for (let ei = 0; ei < entityCount; ++ei) {
+      colors.push(groupColors[ei]);
+    }
   }
 
   return { colorIndex, colors, baseColors, baseLabels };

@@ -19,18 +19,6 @@ import { Vec3 } from '../linear-algebra/3d/vec3.js';
 import { Tensor } from '../linear-algebra/tensor.js';
 import { Mat4 } from '../linear-algebra/3d/mat4.js';
 
-function normalToLine(out: Vec3, p: Vec3) {
-  out[0] = out[1] = out[2] = 1.0;
-  if (p[0] !== 0) {
-    out[0] = (p[1] + p[2]) / -p[0];
-  } else if (p[1] !== 0) {
-    out[1] = (p[0] + p[2]) / -p[1];
-  } else if (p[2] !== 0) {
-    out[2] = (p[0] + p[1]) / -p[2];
-  }
-  return out;
-}
-
 type AnglesTables = { cosTable: Float32Array; sinTable: Float32Array };
 function getAngleTables(probePositions: number): AnglesTables {
   let theta = 0.0;
@@ -90,8 +78,7 @@ export async function calcMolecularSurface(
   let nbZ = new Float64Array(0);
   let nbR = new Float64Array(0);
   let nbRSq = new Float64Array(0);
-  /** Neighbours that can reach the probe circle of the current torus: centre, radius². */
-  let tCount = 0;
+  /** Neighbours that can reach the probe circle of the current torus (`projectTorus` keeps the count): centre, radius². */
   let tX = new Float64Array(0);
   let tY = new Float64Array(0);
   let tZ = new Float64Array(0);
@@ -271,20 +258,20 @@ export async function calcMolecularSurface(
     }
   }
 
-  // Vectors for Torus Projection
-  const atob = Vec3();
-  const mid = Vec3();
-  const n1 = Vec3();
-  const n2 = Vec3();
   /**
-   * `a` and `b` must be resolved indices, `idA` and `idB` their ids; the neighbours of `a` are loaded
+   * `a` and `b` must be resolved indices, `idA` and `idB` their ids; the neighbours of `a` are loaded.
+   *
+   * Scalar locals for the a→b axis, the two circle normals and the centre, computed as `Vec3.normalize`, `cross` and
+   * `scale` compute them (same operations, same order: the same field to the bit), and a branchless gather of the
+   * neighbours that can reach the probe circle (perf-audit-2 02/P11: the Vec3 helpers boxed ~24 numbers per torus once
+   * their call sites went generic, and the gather mispredicted on about half of ~44 neighbours).
    */
   function projectTorus(a: number, b: number, idA: number, idB: number) {
     const rA = radius[a];
     const rB = radius[b];
-    const dx = (atob[0] = px[b] - px[a]);
-    const dy = (atob[1] = py[b] - py[a]);
-    const dz = (atob[2] = pz[b] - pz[a]);
+    const dx = px[b] - px[a];
+    const dy = py[b] - py[a];
+    const dz = pz[b] - pz[a];
     const dSq = dx * dx + dy * dy + dz * dz;
 
     // This check now redundant as already done in AVHash.withinRadii
@@ -299,48 +286,86 @@ export async function calcMolecularSurface(
     // distance along a->b at intersection
     const dmp = rA * cosA;
 
-    Vec3.normalize(atob, atob);
+    // the unit a->b vector
+    let ax = dx,
+      ay = dy,
+      az = dz;
+    let len = ax * ax + ay * ay + az * az;
+    if (len > 0) {
+      len = 1 / Math.sqrt(len);
+      ax *= len;
+      ay *= len;
+      az *= len;
+    }
 
     // Create normal to line
-    normalToLine(n1, atob);
-    Vec3.normalize(n1, n1);
+    let n1x = 1.0,
+      n1y = 1.0,
+      n1z = 1.0;
+    if (ax !== 0) {
+      n1x = (ay + az) / -ax;
+    } else if (ay !== 0) {
+      n1y = (ax + az) / -ay;
+    } else if (az !== 0) {
+      n1z = (ax + ay) / -az;
+    }
+    len = n1x * n1x + n1y * n1y + n1z * n1z;
+    if (len > 0) {
+      len = 1 / Math.sqrt(len);
+      n1x *= len;
+      n1y *= len;
+      n1z *= len;
+    }
 
     // Cross together for second normal vector
-    Vec3.cross(n2, atob, n1);
-    Vec3.normalize(n2, n2);
+    let n2x = ay * n1z - az * n1y,
+      n2y = az * n1x - ax * n1z,
+      n2z = ax * n1y - ay * n1x;
+    len = n2x * n2x + n2y * n2y + n2z * n2z;
+    if (len > 0) {
+      len = 1 / Math.sqrt(len);
+      n2x *= len;
+      n2y *= len;
+      n2z *= len;
+    }
 
     // r is radius of circle of intersection
     const rInt = Math.sqrt(rA * rA - dmp * dmp);
 
-    Vec3.scale(n1, n1, rInt);
-    Vec3.scale(n2, n2, rInt);
-    Vec3.scale(atob, atob, dmp);
+    n1x *= rInt;
+    n1y *= rInt;
+    n1z *= rInt;
+    n2x *= rInt;
+    n2y *= rInt;
+    n2z *= rInt;
+    // a->b scaled to the circle's centre
+    ax *= dmp;
+    ay *= dmp;
+    az *= dmp;
 
-    mid[0] = atob[0] + px[a];
-    mid[1] = atob[1] + py[a];
-    mid[2] = atob[2] + pz[a];
+    const mx = ax + px[a],
+      my = ay + py[a],
+      mz = az + pz[a];
 
     // Probe positions lie on the circle (centre `mid`, radius `rInt`), so only neighbours with
     // |c - mid| < rInt + r_c can obscure one. The margin covers rounding, mostly the Float32 cos/sin
     // tables (|p - mid| <= rInt * (1 + 6e-8) + coordinate rounding). A NaN `rInt` (no intersection) keeps none, as before
     // nothing is obscured and no voxel is written.
-    const mx = mid[0],
-      my = mid[1],
-      mz = mid[2];
-    tCount = 0;
+    let tc = 0;
     for (let j = 0; j < nbCount; ++j) {
-      if (nbIndex[j] === b) continue;
-      const cdx = nbX[j] - mx;
-      const cdy = nbY[j] - my;
-      const cdz = nbZ[j] - mz;
+      const cx = nbX[j],
+        cy = nbY[j],
+        cz = nbZ[j];
+      const cdx = cx - mx;
+      const cdy = cy - my;
+      const cdz = cz - mz;
       const reach = rInt * (1 + 1e-6) + nbR[j] + 1e-4;
-      if (cdx * cdx + cdy * cdy + cdz * cdz < reach * reach) {
-        tX[tCount] = nbX[j];
-        tY[tCount] = nbY[j];
-        tZ[tCount] = nbZ[j];
-        tRSq[tCount] = nbRSq[j];
-        ++tCount;
-      }
+      // written always, kept by advancing the count
+      tX[tc] = cx;
+      tY[tc] = cy;
+      tZ[tc] = cz;
+      tRSq[tc] = nbRSq[j];
+      tc += cdx * cdx + cdy * cdy + cdz * cdz < reach * reach && nbIndex[j] !== b ? 1 : 0;
     }
     lastClip = -1;
 
@@ -348,11 +373,11 @@ export async function calcMolecularSurface(
       const cost = cosTable[i];
       const sint = sinTable[i];
 
-      const px = mid[0] + cost * n1[0] + sint * n2[0];
-      const py = mid[1] + cost * n1[1] + sint * n2[1];
-      const pz = mid[2] + cost * n1[2] + sint * n2[2];
+      const px = mx + cost * n1x + sint * n2x;
+      const py = my + cost * n1y + sint * n2y;
+      const pz = mz + cost * n1z + sint * n2z;
 
-      if (!obscured(px, py, pz, tX, tY, tZ, tRSq, tCount)) {
+      if (!obscured(px, py, pz, tX, tY, tZ, tRSq, tc)) {
         const iax = Math.floor(scaleFactor * (px - minX));
         const iay = Math.floor(scaleFactor * (py - minY));
         const iaz = Math.floor(scaleFactor * (pz - minZ));
@@ -385,7 +410,7 @@ export async function calcMolecularSurface(
                 data[idx] = Math.sqrt(dSq);
                 // Is this grid point closer to a or b?
                 // Take dot product of atob and gridpoint->p (dx, dy, dz)
-                const dp = dx * atob[0] + dy * atob[1] + dz * atob[2];
+                const dp = dx * ax + dy * ay + dz * az;
                 idData[idx] = dp < 0.0 ? idB : idA;
               }
             }
@@ -459,7 +484,9 @@ export async function calcMolecularSurface(
   const gridy = fillGridDim(dimY, minY, resolution);
   const gridz = fillGridDim(dimZ, minZ, resolution);
 
-  const updateChunk = Math.ceil(100000 / (Math.pow(Math.pow(maxRadius, 3), 3) * scaleFactor));
+  // atoms per yield by the voxels an atom visits; `1e5 / (maxRadius⁹ · scale)` gave whole structures for small radii
+  // (perf-audit-2 02/B2)
+  const updateChunk = Math.max(1, Math.ceil(2e6 / Math.pow(2 * (maxRadius + probeRadius) * scaleFactor + 2, 3)));
   // console.timeEnd('MolecularSurface createState')
 
   // console.time('MolecularSurface projectPoints')

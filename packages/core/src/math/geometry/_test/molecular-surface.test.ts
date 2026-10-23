@@ -4,10 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { RuntimeContext } from '@molstar/core/task';
+import { Vec3 } from '../../linear-algebra/3d/vec3.js';
 import { getBoundary } from '../boundary.js';
 import { calcMolecularSurface, type MolecularSurfaceCalculationProps } from '../molecular-surface.js';
 
@@ -136,7 +137,7 @@ type Case = {
   /** atoms of a blob, or the `clashes` input */
   atoms: number | 'clashes';
   props: MolecularSurfaceCalculationProps;
-  /** overrides the max VdW radius (also sets the update chunk) */
+  /** overrides the max VdW radius (also sets the pad, the lookup cell and the update chunk) */
   maxRadius?: number;
   nullBox?: boolean;
   expected: { dim: number[]; field: string; idField: string; inside: number; ids: number };
@@ -172,14 +173,14 @@ const Cases: Case[] = [
     expected: { dim: [63, 63, 61], field: 'f2bc7a6c', idField: 'd4564a5d', inside: 28529, ids: 120 },
   },
   {
-    name: 'large probe, res 0.6, small chunks',
+    name: 'large probe, res 0.6, max radius 3',
     atoms: 160,
     props: { probeRadius: 3, resolution: 0.6, probePositions: 48 },
     maxRadius: 3,
     expected: { dim: [56, 56, 55], field: '634c0741', idField: 'bbc20a6e', inside: 38308, ids: 83 },
   },
   {
-    name: 'extended, res 1.3, small chunks',
+    name: 'extended, res 1.3, max radius 3.2',
     atoms: 220,
     props: { probeRadius: 1.4, resolution: 1.3, probePositions: 24 },
     maxRadius: 3.2,
@@ -243,7 +244,7 @@ async function compute(ctx: RuntimeContext, c: Case) {
   };
 }
 
-/** Yields on every check: concurrent calculations interleave between chunks (many in the `small chunks` cases). */
+/** Yields on every check: concurrent calculations interleave between chunks and passes. */
 function yieldingContext(): RuntimeContext {
   return {
     shouldUpdate: true,
@@ -259,8 +260,62 @@ describe('calcMolecularSurface', () => {
     });
   }
 
+  it('projects the torii without the Vec3 helpers (perf-audit-2 02/P11)', async () => {
+    const normalize = vi.spyOn(Vec3, 'normalize');
+    const cross = vi.spyOn(Vec3, 'cross');
+    try {
+      expect(await compute(RuntimeContext.Synchronous, Cases[0])).toEqual(Cases[0].expected);
+      expect(normalize).not.toHaveBeenCalled();
+      expect(cross).not.toHaveBeenCalled();
+    } finally {
+      normalize.mockRestore();
+      cross.mockRestore();
+    }
+  });
+
   it('concurrent calculations with yields give the same fields', async () => {
     const results = await Promise.all(Cases.map((c) => compute(yieldingContext(), c)));
     expect(results).toEqual(Cases.map((c) => c.expected));
+  });
+});
+
+/** `n`³ atoms on a lattice with `spacing` Å, ids = ordinals; with a spacing above 2 · (r + probe) no torus is made */
+function lattice(n: number, spacing: number, r: number, probeRadius: number) {
+  const count = n * n * n;
+  const x = new Float32Array(count),
+    y = new Float32Array(count),
+    z = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    x[i] = (i % n) * spacing;
+    y[i] = (Math.floor(i / n) % n) * spacing;
+    z[i] = Math.floor(i / (n * n)) * spacing;
+  }
+  const radius = new Float32Array(count).fill(r + probeRadius);
+  const id = new Int32Array(count);
+  for (let i = 0; i < count; i++) id[i] = i;
+  const position = { indices: OrderedSet.ofBounds(0, count), x, y, z, id, radius };
+  return { position, boundary: getBoundary(position), count };
+}
+
+/** Counts the progress updates by message; asks for one at every check */
+function countingContext(counts: Map<string, number>): RuntimeContext {
+  return {
+    shouldUpdate: true,
+    isSynchronous: false,
+    update: async (p) => {
+      const message = typeof p === 'string' ? p : (p?.message ?? '');
+      counts.set(message, (counts.get(message) ?? 0) + 1);
+    },
+  };
+}
+
+describe('calcMolecularSurface progress', () => {
+  it('yields within a pass for small radii (perf-audit-2 02/B2)', async () => {
+    // 15,625 atoms of radius 0.3: about 12.7k atoms of work per chunk at resolution 1 (1e5 / r⁹ gave billions)
+    const { position, boundary } = lattice(25, 4, 0.3, 1.4);
+    const props = { probeRadius: 1.4, resolution: 1, probePositions: 12 };
+    const counts = new Map<string, number>();
+    await calcMolecularSurface(countingContext(counts), position, boundary, 0.3, boundary.box, props);
+    expect(counts.get('projecting points')).toBe(2);
   });
 });

@@ -188,6 +188,40 @@ export namespace Bundle {
     return Loci(structure, elements);
   }
 
+  /** The element indices of a bundle element in a unit with the elements `ue` */
+  function toElementIndices(e: BundleElement, ue: SortedArray<ElementIndex>): SortedArray<ElementIndex> {
+    const rangesSize = SortedRanges.size(e.ranges);
+    const setSize = e.set.length;
+    const _indices = new Int32Array(setSize + rangesSize);
+    if (rangesSize === 0) {
+      for (let i = 0, il = setSize; i < il; ++i) {
+        _indices[i] = ue[e.set[i]];
+      }
+      return SortedArray.ofSortedArray(_indices);
+    } else if (setSize === 0) {
+      SortedRanges.forEach(e.ranges, (v, i) => (_indices[i] = ue[v]));
+      return SortedArray.ofSortedArray(_indices);
+    } else if (SortedArray.min(e.set) > SortedRanges.max(e.ranges)) {
+      SortedRanges.forEach(e.ranges, (v, i) => (_indices[i] = ue[v]));
+      for (let i = 0, il = setSize; i < il; ++i) {
+        _indices[i + rangesSize] = ue[e.set[i]];
+      }
+      return SortedArray.ofSortedArray(_indices);
+    } else if (SortedRanges.min(e.ranges) > SortedArray.max(e.set)) {
+      for (let i = 0, il = setSize; i < il; ++i) {
+        _indices[i] = ue[e.set[i]];
+      }
+      SortedRanges.forEach(e.ranges, (v, i) => (_indices[i + setSize] = ue[v]));
+      return SortedArray.ofSortedArray(_indices);
+    } else {
+      SortedRanges.forEach(e.ranges, (v, i) => (_indices[i] = ue[v]));
+      for (let i = 0, il = setSize; i < il; ++i) {
+        _indices[i + rangesSize] = ue[e.set[i]];
+      }
+      return SortedArray.ofUnsortedArray(_indices); // requires sort
+    }
+  }
+
   export function toStructure(bundle: Bundle, parent: Structure): Structure {
     if (bundle.hash !== -1 && bundle.hash !== parent.hashCode) {
       new Error('Bundle not compatible with given structure');
@@ -198,40 +232,10 @@ export namespace Bundle {
         const _units = getUnitsFromIds(g, parent);
         if (_units.length === 0) continue;
 
-        const ue = _units[0].elements; // the elements are grouped by unit.invariantId
-        const rangesSize = SortedRanges.size(e.ranges);
-        const setSize = e.set.length;
-        const _indices = new Int32Array(setSize + rangesSize);
-        let indices: SortedArray<ElementIndex>;
-        if (rangesSize === 0) {
-          for (let i = 0, il = setSize; i < il; ++i) {
-            _indices[i] = ue[e.set[i]];
-          }
-          indices = SortedArray.ofSortedArray(_indices);
-        } else if (setSize === 0) {
-          SortedRanges.forEach(e.ranges, (v, i) => (_indices[i] = ue[v]));
-          indices = SortedArray.ofSortedArray(_indices);
-        } else {
-          if (SortedArray.min(e.set) > SortedRanges.max(e.ranges)) {
-            SortedRanges.forEach(e.ranges, (v, i) => (_indices[i] = ue[v]));
-            for (let i = 0, il = setSize; i < il; ++i) {
-              _indices[i + rangesSize] = ue[e.set[i]];
-            }
-            indices = SortedArray.ofSortedArray(_indices);
-          } else if (SortedRanges.min(e.ranges) > SortedArray.max(e.set)) {
-            for (let i = 0, il = setSize; i < il; ++i) {
-              _indices[i] = ue[e.set[i]];
-            }
-            SortedRanges.forEach(e.ranges, (v, i) => (_indices[i + setSize] = ue[v]));
-            indices = SortedArray.ofSortedArray(_indices);
-          } else {
-            SortedRanges.forEach(e.ranges, (v, i) => (_indices[i] = ue[v]));
-            for (let i = 0, il = setSize; i < il; ++i) {
-              _indices[i + rangesSize] = ue[e.set[i]];
-            }
-            indices = SortedArray.ofUnsortedArray(_indices); // requires sort
-          }
-        }
+        // the units are grouped by unit.invariantId; copies in a child structure may hold different elements, and
+        // then the unit indices are into each one's own (perf-audit-2 05/B10)
+        const ue = _units[0].elements;
+        const indices = toElementIndices(e, ue);
 
         // copies of one invariant unit share the child's props (lookups, bonds, boundary), as the subset builder's
         // children do (05-model-structure P3)
@@ -239,7 +243,9 @@ export namespace Bundle {
         units.push(first);
         for (let i = 1, il = _units.length; i < il; ++i) {
           const unit = _units[i];
-          if (first === _units[0]) units.push(unit);
+          if (unit.elements !== ue && !SortedArray.areEqual(unit.elements, ue)) {
+            units.push(unit.getChild(toElementIndices(e, unit.elements)));
+          } else if (first === _units[0]) units.push(unit);
           else if (unit.elements === ue && unit.model === first.model) {
             units.push(first.applyOperator(unit.id, unit.conformation.operator, true));
           } else units.push(unit.getChild(indices));

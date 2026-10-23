@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Table, Column } from '@molstar/core/data/db';
@@ -47,20 +48,24 @@ namespace AtomSiteAnisotrop {
     },
   };
 
-  export const Provider = FormatPropertyProvider.create<AtomSiteAnisotrop>(Descriptor);
+  /**
+   * Dynamic: the mapping is from a model's own atom ids, and models with the topology of the previous one share its
+   * static data (perf-audit-2 04/B3)
+   */
+  export const Provider = FormatPropertyProvider.create<AtomSiteAnisotrop>(Descriptor, { asDynamic: true });
 
   export function getElementToAnsiotrop(atomId: Column<number>, ansioId: Column<number>) {
-    const atomIdToElement = new Int32Array(atomId.rowCount);
-    atomIdToElement.fill(-1);
+    // a map, not an array indexed by id: ids are any numbers, not 0..N-1 (perf-audit-2 04/B3)
+    const atomIdToElement = new Map<number, number>();
     for (let i = 0, il = atomId.rowCount; i < il; i++) {
-      atomIdToElement[atomId.value(i)] = i;
+      atomIdToElement.set(atomId.value(i), i);
     }
 
     const elementToAnsiotrop = new Int32Array(atomId.rowCount);
     elementToAnsiotrop.fill(-1);
     for (let i = 0, il = ansioId.rowCount; i < il; ++i) {
-      const ei = atomIdToElement[ansioId.value(i)];
-      if (ei !== -1) elementToAnsiotrop[ei] = i;
+      const ei = atomIdToElement.get(ansioId.value(i));
+      if (ei !== undefined) elementToAnsiotrop[ei] = i;
     }
 
     return elementToAnsiotrop;

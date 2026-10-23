@@ -665,9 +665,8 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Text
       Vec3.floor(v0, v);
       Vec3.ceil(v1, v);
 
+      // the cell is 1 wide, or 0 on a grid plane, where the weight is 0: not 0/0 (perf-audit-2 08/B3)
       Vec3.sub(vd, v, v0);
-      Vec3.sub(v, v1, v0);
-      Vec3.div(vd, vd, v);
 
       const [x0, y0, z0] = v0;
       const [x1, y1, z1] = v1;

@@ -33,6 +33,8 @@ export interface ChainInstance {
   readonly labels: Int32Array;
   /** Per element, its residue. */
   readonly residues: Int32Array;
+  /** All the chain's atoms in `unit.elements` (hydrogens and repeated names too): [start, end). */
+  readonly span: readonly [start: number, end: number];
 }
 
 /** Per Mol* unit (by `unit.id`): each position's chain instance (an index into the list) and element, -1 for none. */
@@ -124,6 +126,7 @@ export function chainsOf(structure: Structure): ChainIndex {
         end: Int32Array.from(b.end),
         labels: Int32Array.from(b.labels),
         residues: Int32Array.from(b.residues),
+        span: [p, q],
       });
       for (let x = 0; x < b.start.length; x++) {
         for (let i = b.start[x]; i < b.end[x]; i++) {

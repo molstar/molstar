@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { degToRad } from '@molstar/core/math/misc';
@@ -144,7 +145,8 @@ export function calcPlaneAngle(
       Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
     }
   });
-  if (ni === 1 && unitX1 && indexX1) {
+  // index 0 is a neighbour too (perf-audit-2 06/B4)
+  if (ni === 1 && unitX1 && indexX1 !== undefined) {
     eachBondedAtom(structure, unitX1, indexX1, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
       if (ni > 1) return;
       if (unitX === unitA && indexX === indexA) return;

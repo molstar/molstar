@@ -16,6 +16,31 @@ here.
   coordinates go through the tilt
 - Fix GRO reading a triclinic box (the rhombic dodecahedron, the truncated octahedron) as a rectangular one: all nine
   box values are read
+- Fix state selections `subtree()` and `children()` returning undefined cells for nodes below a Null or failed node
+- Fix `StateSelection.findTagInSubtree` returning the last match and walking the whole tree
+- Fix `Bundle.toStructure` mapping every copy of a unit through the first copy's elements
+- Fix MolScript `include-surroundings` with `atom-radius` missing small units within the radii's reach
+- Fix the out-of-plane H-bond check being skipped when the only heavy neighbour is the first atom of its unit
+- Fix water bridges joining one model's atoms through another model's water (an ensemble shown as all models)
+- Fix impostor double, triple and aromatic bond offsets not following a size theme change
+- Fix CPU mesh color smoothing giving black vertices on grid planes (0/0 weights)
+- Fix molecular surface and CPU gaussian density running in one chunk, without progress or abort, for small radii
+- Fix a nested MolScript `pick` clobbering the outer query's current structure
+- Fix volume and particle representations dropping their state (visibility, alpha, overpaint, transparency, clipping,
+  transform) on a new render object, e.g. each streamed volume box
+- Fix segmentation surfaces at a face of the grid: reads past the face wrapped into the next row
+- Fix anisotropic ADP mapping: the last atom and atom ids not near 0 had no ellipsoid; models sharing the first model's
+  topology showed its ellipsoids
+- Fix `ColorTheme.Palette` 'set' with offsets: integer offsets and the part after the last stop were undefined (black)
+- Fix `approxNearest` (grid and structure lookups) returning the nearest candidate last; callers (external-structure
+  color theme, blob surfaces) read the first
+- Fix ionic interactions taking every non-backbone nitrogen of a ligand for a negative charge
+- Fix PDB `CONECT` bonds listed only on the higher-serial atom being dropped, and triple bonds written as 'trpl' (read
+  back as single)
+- Fix `AssetManager.resolve` keeping an asset held when reading it fails
+- Fix `applyOrUpdateTagged` dropping the extra tags when the params change
+- Fix `Loci.GranularityOptions` listing plain granularities under 'With Symmetry'
+- Fix `addFixedCountDashedCylinder` changing the caller's `topCap` (mirrored aromatic dashes lost their top caps)
 - Fix `ungzip` of gzip files with an extra field (`FLG.FEXTRA`, e.g. a single BGZF block): the field's 2-byte length was
   not skipped
 - Fix accessible surface area (its color theme, `is-buried`, `is-accessible`) throwing on structures with coarse units;
