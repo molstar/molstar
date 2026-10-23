@@ -223,7 +223,7 @@ class DefaultAssetManager implements AssetManager {
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
           entry.refCount++;
-          return Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
+          return this._readHeld(ctx, asset, entry.file, type);
         }
 
         if (!store) {
@@ -235,7 +235,7 @@ class DefaultAssetManager implements AssetManager {
           const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
           const file = new File([data], 'raw-data');
           this._assets.set(asset.id, { asset, file, refCount: 1 });
-          return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+          return this._readHeld(ctx, asset, file, type);
         }
 
         // read through the byte cache: the asset takes one hold of the entry, given back when it leaves the manager
@@ -249,28 +249,37 @@ class DefaultAssetManager implements AssetManager {
           this._assets.set(asset.id, { asset, file: held.file!, refCount: 1, cacheKey: key });
         }
         const file = (existing ?? this._assets.get(asset.id)!).file;
-        try {
-          return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
-        } catch (e) {
-          this.release(asset);
-          throw e;
-        }
+        return this._readHeld(ctx, asset, file, type);
       });
     } else {
       return Task.create(`Read ${asset.name}`, async (ctx) => {
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
           entry.refCount++;
-          return Asset.Wrapper(await readFromFile(entry.file, type).runInContext(ctx), asset, this);
+          return this._readHeld(ctx, asset, entry.file, type);
         }
         if (!(asset.file instanceof File)) {
           throw new Error(`Cannot resolve file asset '${asset.name}' (${asset.id})`);
         }
-        if (store) {
-          this._assets.set(asset.id, { asset, file: asset.file, refCount: 1 });
-        }
-        return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
+        if (!store) return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
+        this._assets.set(asset.id, { asset, file: asset.file, refCount: 1 });
+        return this._readHeld(ctx, asset, asset.file, type);
       });
+    }
+  }
+
+  /** Reads the file of an entry the caller took a hold of; a failed read gives the hold back (perf-audit-2 01/B12) */
+  private async _readHeld<T extends DataType>(
+    ctx: RuntimeContext,
+    asset: Asset,
+    file: File,
+    type: T,
+  ): Promise<Asset.Wrapper<T>> {
+    try {
+      return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
+    } catch (e) {
+      this.release(asset);
+      throw e;
     }
   }
 
