@@ -181,6 +181,7 @@ export const MmcifProvider = TrajectoryFormatProvider({
   description: 'mmCIF',
   category: TrajectoryFormatCategory,
   stringExtensions: ['cif', 'mmcif', 'mcif'],
+  readsResponse: true,
   binaryExtensions: ['bcif'],
   isApplicable: (info, data) => {
     if (info.ext === 'mmcif' || info.ext === 'mcif') return true;

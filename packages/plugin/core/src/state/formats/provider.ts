@@ -7,6 +7,7 @@
 
 import { binaryCifHasCategory, binaryCifHasColumn, getBinaryCifHeader } from '@molstar/io/common/binary-cif';
 import type { StringLike } from '@molstar/core/util/string-like';
+import { asciiIndexOf, asciiStartsWith } from '@molstar/core/util/utf8';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObject, StateObjectRef, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
@@ -29,10 +30,19 @@ export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id exten
    * variant of a shared file extension).
    */
   priority?: number;
+  /** Sniffs the data; text read as a response (`readsResponse`) comes as its UTF-8 bytes. */
   isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean;
+  /**
+   * `parse` takes Response Data too (`Download` / `ReadFile` with `asResponse`), and `isApplicable` text as bytes:
+   * `OpenFiles` and `DownloadStructure` then read the data as a response, and the parser chooses its form (CIF reads the
+   * bytes, never decoding them to a string).
+   */
+  readsResponse?: boolean;
   parse(
     plugin: PluginContext,
-    data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>,
+    data: StateObjectRef<
+      PluginStateObject.Data.Binary | PluginStateObject.Data.String | PluginStateObject.Data.Response
+    >,
     params?: P,
   ): Promise<R>;
   /**
@@ -129,23 +139,37 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLik
       console.error(e);
     }
   } else if (info.ext === 'cif') {
-    const str = data as StringLike;
-    if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
-    if (str.startsWith('data_SERVER\n#\ndata_SEGMENTATION_DATA')) return 'segcif';
+    // text CIF as a string, or as its bytes (Response Data): searched without decoding them
+    const text = data instanceof Uint8Array ? bytesText(data) : (data as StringLike);
+    if (text.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
+    if (text.startsWith('data_SERVER\n#\ndata_SEGMENTATION_DATA')) return 'segcif';
 
-    if (cifHasCategory(str, 'volume_data_3d_info')) {
-      if (cifHasCategory(str, 'volume_data_3d')) return 'dscif';
-      if (cifHasCategory(str, 'segmentation_data_3d')) return 'segcif';
+    if (cifHasCategory(text, 'volume_data_3d_info')) {
+      if (cifHasCategory(text, 'volume_data_3d')) return 'dscif';
+      if (cifHasCategory(text, 'segmentation_data_3d')) return 'segcif';
     }
 
     // Structure factor CIF: has _refln category with map coefficients
-    if (str.includes('_refln.pdbx_FWT') || str.includes('_refln.pdbx_DELFWT')) return 'sfcif';
+    if (text.includes('_refln.pdbx_FWT') || text.includes('_refln.pdbx_DELFWT')) return 'sfcif';
 
-    if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif';
+    if (text.includes('atom_site_fract_x') || text.includes('atom_site.fract_x')) return 'coreCif';
   }
   return -1;
 }
 
-function cifHasCategory(file: StringLike, categoryName: string): boolean {
+/** The searches the sniffing makes, on a string or on UTF-8 bytes. */
+interface SniffText {
+  startsWith(needle: string): boolean;
+  includes(needle: string): boolean;
+}
+
+function bytesText(data: Uint8Array): SniffText {
+  return {
+    startsWith: (needle) => asciiStartsWith(data, needle),
+    includes: (needle) => asciiIndexOf(data, needle) >= 0,
+  };
+}
+
+function cifHasCategory(file: SniffText, categoryName: string): boolean {
   return file.includes(`_${categoryName}.`);
 }

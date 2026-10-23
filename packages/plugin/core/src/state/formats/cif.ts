@@ -67,13 +67,16 @@ export { ParseCif };
 type ParseCif = typeof ParseCif;
 const ParseCif = PluginStateTransform.BuiltIn({
   name: 'parse-cif',
-  display: { name: 'Parse CIF', description: 'Parse CIF from String or Binary data' },
-  from: [SO.Data.String, SO.Data.Binary],
+  display: { name: 'Parse CIF', description: 'Parse CIF from String, Binary or Response data' },
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Cif,
 })({
   apply({ a }) {
     return Task.create('Parse CIF', async (ctx) => {
-      const parsed = await CIF.parse(a.data).runInContext(ctx);
+      // a response's bytes as they are held: text CIF is tokenized from them, never decoded to a string, and the
+      // parsed file shares them (`.v6/designs/cif-parsing.md`)
+      const data = a instanceof SO.Data.Response ? a.data.bytes : a.data;
+      const parsed = await CIF.parse(data).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       if (parsed.result.blocks.length === 0) return StateObject.Null;
       return new SO.Format.Cif(parsed.result);

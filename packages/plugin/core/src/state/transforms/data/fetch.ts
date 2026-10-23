@@ -9,7 +9,7 @@
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
-import { Task } from '@molstar/core/task';
+import { type RuntimeContext, Task } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { ajaxGetMany } from '@molstar/core/util/data-source';
@@ -18,24 +18,44 @@ import { utf8ReadLong } from '@molstar/core/util/utf8';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { ColorNames } from '@molstar/core/util/color/names';
 
+const AsResponseDescription =
+  'If true, hold the bytes and let the parser read them as text or binary (Response Data); isBinary is ignored.';
+
+/**
+ * `asResponse`: reads the asset eagerly, as `fetch()` starts its request, and holds one shared view of its bytes
+ * (`util/_spec/assets.md`) for the node's lifetime; the reader chooses the form (`SO.Data.ResponseBody`).
+ */
+async function readResponse(ctx: RuntimeContext, plugin: PluginContext, asset: Asset, cache: any, label: string) {
+  const held = await plugin.managers.asset.resolve(asset, 'binary', { shared: true }).runInContext(ctx);
+  cache.asset = held;
+  return new SO.Data.Response(new SO.Data.ResponseBody(held.data), { label });
+}
+
 export { Download };
 type Download = typeof Download;
 const Download = PluginStateTransform.BuiltIn({
   name: 'download',
   display: { name: 'Download', description: 'Download string or binary data from the specified URL' },
   from: [SO.Root],
-  to: [SO.Data.String, SO.Data.Binary],
+  to: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   params: {
     url: PD.Url('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', {
       description: 'Resource URL. Must be the same domain or support CORS.',
     }),
     label: PD.Optional(PD.Text('')),
-    isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })),
+    isBinary: PD.Optional(
+      PD.Boolean(false, {
+        description: 'If true, download data as binary (string otherwise). Ignored with asResponse.',
+        hideIf: (p) => !!p.asResponse,
+      }),
+    ),
+    asResponse: PD.Optional(PD.Boolean(false, { description: AsResponseDescription })),
   },
 })({
   apply({ params: p, cache }, plugin: PluginContext) {
     return Task.create('Download', async (ctx) => {
       const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
+      if (p.asResponse) return readResponse(ctx, plugin, url, cache, p.label || url.url);
       const asset = await plugin.managers.asset.resolve(url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
       (cache as any).asset = asset;
       return p.isBinary
@@ -47,7 +67,11 @@ const Download = PluginStateTransform.BuiltIn({
     ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
   },
   update({ oldParams, newParams, b }) {
-    if (oldParams.url !== newParams.url || oldParams.isBinary !== newParams.isBinary)
+    if (
+      oldParams.url !== newParams.url ||
+      oldParams.isBinary !== newParams.isBinary ||
+      oldParams.asResponse !== newParams.asResponse
+    )
       return StateTransformer.UpdateResult.Recreate;
     if (oldParams.label !== newParams.label) {
       b.label = newParams.label || (typeof newParams.url === 'string' ? newParams.url : newParams.url.url);
@@ -223,11 +247,17 @@ const ReadFile = PluginStateTransform.BuiltIn({
   name: 'read-file',
   display: { name: 'Read File', description: 'Read string or binary data from the specified file' },
   from: SO.Root,
-  to: [SO.Data.String, SO.Data.Binary],
+  to: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   params: {
     file: PD.File(),
     label: PD.Optional(PD.Text('')),
-    isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' })),
+    isBinary: PD.Optional(
+      PD.Boolean(false, {
+        description: 'If true, open file as as binary (string otherwise). Ignored with asResponse.',
+        hideIf: (p) => !!p.asResponse,
+      }),
+    ),
+    asResponse: PD.Optional(PD.Boolean(false, { description: AsResponseDescription })),
   },
 })({
   apply({ params: p, cache }, plugin: PluginContext) {
@@ -237,6 +267,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
         return StateObject.Null;
       }
 
+      if (p.asResponse) return readResponse(ctx, plugin, p.file, cache, p.label || p.file.name);
       const asset = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
       (cache as any).asset = asset;
       const o = p.isBinary
@@ -250,6 +281,8 @@ const ReadFile = PluginStateTransform.BuiltIn({
     ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
   },
   update({ oldParams, newParams, b }) {
+    if (oldParams.isBinary !== newParams.isBinary || oldParams.asResponse !== newParams.asResponse)
+      return StateTransformer.UpdateResult.Recreate;
     if (oldParams.label !== newParams.label) {
       (b.label as string) = newParams.label || oldParams.file?.name || '';
       return StateTransformer.UpdateResult.Updated;
@@ -257,6 +290,34 @@ const ReadFile = PluginStateTransform.BuiltIn({
     return StateTransformer.UpdateResult.Unchanged;
   },
   isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user loaded files.' }),
+});
+
+export { ReadResponse };
+type ReadResponse = typeof ReadResponse;
+/** Response Data as String or Binary Data, for transforms that do not read a response. */
+const ReadResponse = PluginStateTransform.BuiltIn({
+  name: 'read-response',
+  display: { name: 'Read Response', description: 'Read Response Data as string or binary data' },
+  from: SO.Data.Response,
+  to: [SO.Data.String, SO.Data.Binary],
+  params: {
+    isBinary: PD.Optional(PD.Boolean(false, { description: 'If true, read as binary (string otherwise)' })),
+  },
+})({
+  apply({ a, params: p }) {
+    return Task.create('Read Response', async (ctx) => {
+      const props = { label: a.label, description: a.description };
+      // a copy: Binary Data may be changed by its readers, the held bytes may not
+      return p.isBinary
+        ? new SO.Data.Binary(a.data.bytes.slice(), props)
+        : new SO.Data.String(await a.data.text(ctx), props);
+    });
+  },
+  update({ oldParams, newParams }) {
+    return oldParams.isBinary !== newParams.isBinary
+      ? StateTransformer.UpdateResult.Recreate
+      : StateTransformer.UpdateResult.Unchanged;
+  },
 });
 
 export { ImportString };

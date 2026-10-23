@@ -8,6 +8,7 @@
 import { binaryCifHasColumn, getBinaryCifHeader } from '@molstar/io/common/binary-cif';
 import type { StringLike } from '@molstar/core/util/string-like';
 import type { FileNameInfo } from '@molstar/core/util/file-info';
+import { asciiIndexOf, utf8Read } from '@molstar/core/util/utf8';
 
 // Kept apart from mmcif.ts, which builds the particle lists: a host decides whether a file holds particles (and loads
 // the particle code then) with this module alone.
@@ -34,6 +35,11 @@ export function looksLikeMmcifParticles(info: FileNameInfo, data: StringLike | U
     }
     return false;
   } else if (info.ext === 'cif') {
+    // text CIF as a string, or as its bytes (Response Data): searched without decoding them
+    if (data instanceof Uint8Array) {
+      if (utf8Read(data, 0, Math.min(400, data.length)).toLowerCase().includes('cellpack')) return true;
+      return asciiIndexOf(data, PETWORLD_FIELD) >= 0;
+    }
     const str = data as StringLike;
     const header = str.substring(0, 400);
     if (header.toLowerCase().includes('cellpack')) return true;

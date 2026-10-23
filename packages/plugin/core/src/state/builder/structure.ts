@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -42,7 +42,7 @@ export class StructureBuilder {
   }
 
   private async parseTrajectoryData(
-    data: StateObjectRef<SO.Data.Binary | SO.Data.String>,
+    data: StateObjectRef<SO.Data.Binary | SO.Data.String | SO.Data.Response>,
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ) {
     if (typeof format === 'string' && !this.plugin.dataFormats.has(format)) {
@@ -72,7 +72,7 @@ export class StructureBuilder {
   readonly representation = new StructureRepresentationBuilder(this.plugin);
 
   parseTrajectory(
-    data: StateObjectRef<SO.Data.Binary | SO.Data.String>,
+    data: StateObjectRef<SO.Data.Binary | SO.Data.String | SO.Data.Response>,
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(

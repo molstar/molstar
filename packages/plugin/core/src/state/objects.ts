@@ -48,6 +48,8 @@ import type { Asset } from '@molstar/core/util/assets';
 import type { PrmtopFile } from '@molstar/io/reader/prmtop/parser';
 import type { TopFile } from '@molstar/io/reader/top/parser';
 import type { StringLike } from '@molstar/core/util/string-like';
+import { type DataResponse, type DataType, decodeData } from '@molstar/core/util/data-source';
+import type { RuntimeContext } from '@molstar/core/task';
 
 export type TypeClass = 'root' | 'data' | 'prop';
 
@@ -88,6 +90,33 @@ export namespace PluginStateObject {
   export namespace Data {
     export class String extends Create<StringLike>({ name: 'String Data', typeClass: 'Data' }) {}
     export class Binary extends Create<Uint8Array<ArrayBuffer>>({ name: 'Binary Data', typeClass: 'Data' }) {}
+
+    /**
+     * The body of a `Download` or `ReadFile` with `asResponse`: the bytes, read eagerly and held once (shared with the
+     * asset manager), and the form chosen by the reader, like a `fetch` `Response`. Unlike one, it reads any number of
+     * times, in any form; each read decodes again.
+     */
+    export class ResponseBody {
+      /** The bytes themselves, not a copy: read-only (a reader that writes copies them first). */
+      readonly bytes: Uint8Array<ArrayBuffer>;
+
+      read<T extends DataType>(ctx: RuntimeContext, type: T): Promise<DataResponse<T>> {
+        return decodeData(ctx, this.bytes, type);
+      }
+
+      text(ctx: RuntimeContext): Promise<StringLike> {
+        return this.read(ctx, 'string');
+      }
+
+      json(ctx: RuntimeContext): Promise<any> {
+        return this.read(ctx, 'json');
+      }
+
+      constructor(bytes: Uint8Array<ArrayBuffer>) {
+        this.bytes = bytes;
+      }
+    }
+    export class Response extends Create<ResponseBody>({ name: 'Response Data', typeClass: 'Data' }) {}
 
     export type BlobEntry = { id: string } & (
       | { kind: 'string'; data: string }

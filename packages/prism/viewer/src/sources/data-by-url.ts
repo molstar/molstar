@@ -82,7 +82,8 @@ export function createDataByUrl(scope: SourceScope, plugin: PluginContext): Data
             ? params.file.name
             : undefined;
       const data = cell.obj?.data;
-      if (!address || !(typeof data === 'string' || data instanceof Uint8Array) || map.has(address)) continue;
+      const held = typeof data === 'string' || data instanceof Uint8Array || data instanceof SO.Data.ResponseBody;
+      if (!address || !held || map.has(address)) continue;
       const trajectoryCell = parseUnder(cell.transform.ref);
       map.set(address, {
         address,
@@ -103,6 +104,8 @@ export function createDataByUrl(scope: SourceScope, plugin: PluginContext): Data
     bytes(address) {
       const data = lookup(address)?.cell.obj?.data;
       if (data instanceof Uint8Array) return data;
+      // a response's held bytes, as a binary cell's: no copy, and not encoded again as a string cell is
+      if (data instanceof SO.Data.ResponseBody) return data.bytes;
       return typeof data === 'string' ? new TextEncoder().encode(data) : undefined;
     },
     structure(address) {

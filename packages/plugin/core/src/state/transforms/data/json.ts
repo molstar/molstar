@@ -42,13 +42,14 @@ export { ParseJson };
 type ParseJson = typeof ParseJson;
 const ParseJson = PluginStateTransform.BuiltIn({
   name: 'parse-json',
-  display: { name: 'Parse JSON', description: 'Parse JSON from String data' },
-  from: [SO.Data.String],
+  display: { name: 'Parse JSON', description: 'Parse JSON from String or Response data' },
+  from: [SO.Data.String, SO.Data.Response],
   to: SO.Format.Json,
 })({
   apply({ a }) {
     return Task.create('Parse JSON', async (ctx) => {
-      const json = await new Response(StringLike.toString(a.data)).json(); // async JSON parsing via fetch API
+      const json =
+        a instanceof SO.Data.Response ? await a.data.json(ctx) : await new Response(StringLike.toString(a.data)).json(); // async JSON parsing via fetch API
       return new SO.Format.Json(json);
     });
   },

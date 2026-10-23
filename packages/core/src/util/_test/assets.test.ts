@@ -7,6 +7,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task } from '@molstar/core/task';
 import { Asset, DefaultAssetManager } from '../assets.js';
+import { Zip } from '../zip/zip.js';
+import { gzipSync } from 'node:zlib';
 
 // the byte cache is tested against a stubbed download: nothing here reaches the network
 vi.mock('../data-source.js', async (importOriginal) => ({
@@ -226,5 +228,95 @@ describe('DefaultAssetManager failed reads (perf-audit-2 01/B12)', () => {
     text.dispose();
     expect(m.has(asset)).toBe(false);
     expect(m.urlCacheSize).toBe(0);
+  });
+});
+
+describe('DefaultAssetManager held bytes (util/_spec/assets.md)', () => {
+  beforeEach(() => {
+    ajaxMock.mockReset();
+  });
+
+  it('a shared binary read returns the held bytes, other reads a copy', async () => {
+    serve('abc');
+    const m = new DefaultAssetManager();
+    const asset = Asset.Url('https://x.org/a');
+    const a = await m.resolve(asset, 'binary', { shared: true }).run();
+    const b = await m.resolve(asset, 'binary', { shared: true }).run();
+    const c = await m.resolve(asset, 'binary').run();
+    expect(b.data).toBe(a.data);
+    expect(c.data).not.toBe(a.data);
+    expect(Array.from(c.data)).toEqual(Array.from(a.data));
+    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    for (const w of [a, b, c]) w.dispose();
+    expect(m.has(asset)).toBe(false);
+    expect(m.urlCacheSize).toBe(0);
+  });
+
+  it('options store: false bypasses the cache', async () => {
+    serve('abc');
+    const m = new DefaultAssetManager();
+    await m.resolve(Asset.Url('https://x.org/a'), 'string', { store: false }).run();
+    expect(m.urlCacheSize).toBe(0);
+    expect(m.assets.length).toBe(0);
+  });
+
+  it('a file read without shared is not held in memory', async () => {
+    const m = new DefaultAssetManager();
+    const file = new File([enc.encode('abc')], 'x.txt');
+    const spy = vi.spyOn(file, 'arrayBuffer');
+    const asset = Asset.File(file);
+    const a = await m.resolve(asset, 'string').run();
+    const b = await m.resolve(asset, 'binary').run();
+    expect(`${a.data}`).toBe('abc');
+    expect(Array.from(b.data)).toEqual(Array.from(enc.encode('abc')));
+    // read from the file each time, as before: nothing but the file is kept
+    expect(spy.mock.calls.length).toBe(2);
+  });
+
+  it('a gzipped file is read and decompressed once, then read in every form', async () => {
+    const m = new DefaultAssetManager();
+    const file = new File([gzipSync(enc.encode('{"a":1}'))], 'x.json.gz');
+    const spy = vi.spyOn(file, 'arrayBuffer');
+    const asset = Asset.File(file);
+    const a = await m.resolve(asset, 'binary', { shared: true }).run();
+    const s = await m.resolve(asset, 'string').run();
+    const j = await m.resolve(asset, 'json').run();
+    const b = await m.resolve(asset, 'binary', { shared: true }).run();
+    expect(`${s.data}`).toBe('{"a":1}');
+    expect(j.data).toEqual({ a: 1 });
+    expect(b.data).toBe(a.data);
+    expect(spy.mock.calls.length).toBeLessThanOrEqual(1);
+    for (const w of [a, s, j, b]) w.dispose();
+    expect(m.has(asset)).toBe(false);
+  });
+
+  it('a zip file read as zip keeps its entries', async () => {
+    const m = new DefaultAssetManager();
+    const zipped = await Zip({ 'a.txt': enc.encode('a'), 'b.txt': enc.encode('b') }).run();
+    const asset = Asset.File(new File([zipped], 'x.zip'));
+    const z = await m.resolve(asset, 'zip').run();
+    expect(Object.keys(z.data).sort()).toEqual(['a.txt', 'b.txt']);
+  });
+
+  it('a static file lets go of its bytes after its last holder and reads them again', async () => {
+    const m = new DefaultAssetManager();
+    const asset = Asset.Url('https://x.org/static');
+    m.set(asset, new File([enc.encode('abc')], 'static.txt'), { isStatic: true });
+    const a = await m.resolve(asset, 'string').run();
+    a.dispose();
+    expect(m.has(asset)).toBe(true);
+    const b = await m.resolve(asset, 'string').run();
+    expect(`${b.data}`).toBe('abc');
+    expect(ajaxMock).not.toHaveBeenCalled();
+  });
+
+  it('an entry of a download gives a file made of its bytes', async () => {
+    serve('abc');
+    const m = new DefaultAssetManager();
+    const asset = Asset.Url('https://x.org/a');
+    await m.resolve(asset, 'string').run();
+    const entry = m.get(asset)!;
+    expect(new Uint8Array(await entry.file.arrayBuffer())).toEqual(enc.encode('abc'));
+    expect(m.tryFindFilename('raw-data')).toBe(asset);
   });
 });

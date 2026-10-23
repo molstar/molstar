@@ -159,9 +159,19 @@ async function processFile<T extends DataType>(
   compression: DataCompressionMethod,
 ): Promise<DataResponse<T>> {
   if (fileContent === null) throw new Error('no data given');
+  return decodeData(ctx, new Uint8Array(fileContent), type, compression);
+}
 
-  let data = new Uint8Array(fileContent);
-
+/**
+ * Reads `data` as `type`, decompressing it first (`compression`, not for `'zip'`, which unzips). A `'binary'` read of
+ * uncompressed data is `data` itself, not a copy.
+ */
+export async function decodeData<T extends DataType>(
+  ctx: RuntimeContext,
+  data: Uint8Array<ArrayBuffer>,
+  type: T,
+  compression: DataCompressionMethod = DataCompressionMethod.None,
+): Promise<DataResponse<T>> {
   if (compression !== DataCompressionMethod.None && type !== 'zip') {
     // if type==='zip', data will be decompressed later
     data = await decompress(ctx, data, compression);
@@ -170,7 +180,9 @@ async function processFile<T extends DataType>(
   if (type === 'binary') {
     return data as DataResponse<T>;
   } else if (type === 'zip') {
-    return (await unzip(ctx, data.buffer)) as DataResponse<T>;
+    const buffer =
+      data.byteOffset === 0 && data.byteLength === data.buffer.byteLength ? data.buffer : data.slice().buffer;
+    return (await unzip(ctx, buffer)) as DataResponse<T>;
   } else if (type === 'string') {
     return utf8ReadLong(data) as DataResponse<T>;
   } else if (type === 'xml') {

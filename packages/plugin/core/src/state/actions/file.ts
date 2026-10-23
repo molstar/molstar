@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
@@ -16,7 +17,12 @@ import { PluginStateObject } from '../objects.js';
 async function processFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
   const info = getFileNameInfo(file.file?.name ?? '');
   const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
-  const { data } = await plugin.builders.data.readFile({ file, isBinary });
+  // a response when whichever provider reads the file takes one
+  const asResponse =
+    format === 'auto'
+      ? plugin.dataFormats.responseExtensions.has(info.ext)
+      : !!plugin.dataFormats.get(format)?.readsResponse;
+  const { data } = await plugin.builders.data.readFile({ file, isBinary, asResponse });
   const provider = format === 'auto' ? plugin.dataFormats.auto(info, data.cell?.obj!) : plugin.dataFormats.get(format);
 
   if (!provider) {
@@ -155,7 +161,11 @@ export const DownloadFile = StateAction.build({
             }
             const provider = plugin.dataFormats.get(params.format)!;
 
-            const data = await plugin.builders.data.download({ url: params.url, isBinary: params.isBinary });
+            const data = await plugin.builders.data.download({
+              url: params.url,
+              isBinary: params.isBinary,
+              asResponse: !!provider.readsResponse,
+            });
             const parsed = await provider.parse(plugin, data);
             if (params.visuals) {
               await provider.visuals?.(plugin, parsed);

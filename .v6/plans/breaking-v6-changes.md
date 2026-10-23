@@ -1149,3 +1149,14 @@ the data under masked rows, so a reader first checks `typeof value(0)` against i
 now take another form (a BinaryCIF string column as indices into its distinct strings), which a reader of an array of
 values would have misread; a method also says that asking may decode (a BinaryCIF field decodes on first access).
 Readers in the repository were core's `Column` helpers and `sortAtomSite`.
+
+## `Download` and `ReadFile` may give Response Data (TypeScript only)
+
+`Download` and `ReadFile` (`@molstar/plugin/state/transforms/data/fetch`) have an optional `asResponse` param: with it
+they hold the bytes and give `PluginStateObject.Data.Response`, whose reader chooses the form (`ParseCif` parses text
+CIF from the bytes, never decoding them to a string). Without it they give `Data.String` or `Data.Binary` as before, so
+nothing changes at run time. Their `to` lists `Data.Response` too, so their output's inferred type is
+`String | Binary | Response`: code that writes it out as `String | Binary` (`StateBuilder.To<PSO.Data.Binary |
+PSO.Data.String>` for the result of `b.apply(Download, ...)`) no longer compiles; it adds `PSO.Data.Response` to the
+type. `builders.data.download` and `readFile` are overloaded: without `asResponse: true` they keep their
+`String | Binary` type. The one case in the repository was `examples/proteopedia-wrapper`.

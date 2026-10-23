@@ -342,9 +342,12 @@ const DownloadStructure = StateAction.build({
           });
         } else {
           for (const download of downloadParams) {
-            const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
             if (!plugin.dataFormats.has(format)) throw new Error('unknown file format');
             const provider = plugin.dataFormats.get(format)!;
+            const data = await plugin.builders.data.download(
+              { ...download, asResponse: !!provider.readsResponse },
+              { state: { isGhost: true } },
+            );
             const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
 
             await plugin.builders.structure.hierarchy.applyPreset(trajectory, hierarchyPreset, {
@@ -622,14 +625,14 @@ export const LoadTrajectory = StateAction.build({
         }
 
         const processUrl = async (url: string | Asset.Url, format: string, isBinary: boolean) => {
-          const data = await ctx.builders.data.download({ url, isBinary });
-
           if (!ctx.dataFormats.has(format)) {
             ctx.log.warn(`LoadTrajectory: could not find data provider for '${format}'`);
             return;
           }
 
-          return ctx.dataFormats.get(format)!.parse(ctx, data);
+          const provider = ctx.dataFormats.get(format)!;
+          const data = await ctx.builders.data.download({ url, isBinary, asResponse: !!provider.readsResponse });
+          return provider.parse(ctx, data);
         };
 
         const processFile = async (file: Asset.File | null) => {
@@ -637,7 +640,8 @@ export const LoadTrajectory = StateAction.build({
 
           const info = getFileNameInfo(file.file?.name ?? '');
           const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
-          const { data } = await ctx.builders.data.readFile({ file, isBinary });
+          const asResponse = ctx.dataFormats.responseExtensions.has(info.ext);
+          const { data } = await ctx.builders.data.readFile({ file, isBinary, asResponse });
           const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
 
           if (!provider) {

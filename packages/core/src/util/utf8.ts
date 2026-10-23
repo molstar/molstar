@@ -242,3 +242,28 @@ export function utf8ByteCount(str: string) {
   }
   return count;
 }
+
+/**
+ * The index of ASCII `needle` in UTF-8 `data` at or after `from`, or -1: `String.indexOf` on the text the bytes decode
+ * to, without decoding them (an ASCII byte never occurs inside a multi-byte sequence). The index is a byte index.
+ */
+export function asciiIndexOf(data: Uint8Array, needle: string, from = 0): number {
+  const n = needle.length;
+  if (n === 0) return Math.min(from, data.length);
+  const first = needle.charCodeAt(0);
+  const last = data.length - n;
+  // the native search finds the candidates
+  for (let i = data.indexOf(first, from); i >= 0 && i <= last; i = data.indexOf(first, i + 1)) {
+    let j = 1;
+    while (j < n && data[i + j] === needle.charCodeAt(j)) j++;
+    if (j === n) return i;
+  }
+  return -1;
+}
+
+/** Whether UTF-8 `data` starts with ASCII `needle` (at byte `position`). */
+export function asciiStartsWith(data: Uint8Array, needle: string, position = 0): boolean {
+  if (position + needle.length > data.length) return false;
+  for (let j = 0; j < needle.length; j++) if (data[position + j] !== needle.charCodeAt(j)) return false;
+  return true;
+}
