@@ -137,7 +137,8 @@ export function parseConect(
   }
 
   if (hasMultipleBonds) {
-    const valueOrder = ['sing', 'doub', 'trpl', 'quad'];
+    // the mmCIF value_order enumeration (perf-audit-2 04/B5: 'trpl' read back as order 1)
+    const valueOrder = ['sing', 'doub', 'trip', 'quad'];
     struct_conn.pdbx_value_order = CifField.ofStrings(bondOrder.map((bo) => valueOrder[bo - 1] || 'sing'));
   }
 

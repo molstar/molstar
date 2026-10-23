@@ -476,4 +476,8 @@ describe('PDB CONECT', () => {
     expect(await structConn(['CONECT    3    2    2'])).toEqual(['C2-O3 doub']);
     expect(await structConn(['CONECT    2    3    3', 'CONECT    3    2'])).toEqual(['C2-O3 doub']);
   });
+
+  it('writes a triple bond as the mmCIF value order (perf-audit-2 04/B5)', async () => {
+    expect(await structConn(['CONECT    1    2    2    2'])).toEqual(['C1-C2 trip']);
+  });
 });
