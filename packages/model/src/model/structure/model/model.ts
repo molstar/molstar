@@ -134,7 +134,7 @@ export namespace Model {
       if (f.cell) {
         ModelSymmetry.Provider.set(m, ModelSymmetry.fromCell(f.cell.size, f.cell.anglesInRadians));
         // a frame's cell is its simulation box, not a crystal's (model.md §4 "Periodic frames")
-        const box = PeriodicBoxData.fromCell(f.cell);
+        const box = f.box ?? PeriodicBoxData.fromCell(f.cell);
         if (PeriodicBoxData.isValid(box)) PeriodicBox.set(m, box);
       } else if (symmetry) {
         ModelSymmetry.Provider.set(m, symmetry);

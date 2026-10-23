@@ -62,17 +62,19 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
 - `Topology` (`topology/topology.ts`): `BasicData` plus bonds as index pairs; combined with coordinates into a
   trajectory whose frames share one `IndexPairBonds`.
 - **Periodic frames** (`model/periodic.ts`, `.v6/periodic-trajectories/`): `Model.PeriodicBox` (dynamic) is a frame's
-  simulation box, set only by readers of simulation output (frames from coordinates with a cell, GRO); a crystal's cell
-  (`ModelSymmetry`) is never one, so no crystal or NMR model is moved. `ModelPeriodicity.makeWhole(frame)` moves each
-  atom by a lattice vector next to its parent in a plan built once per topology (a BFS forest over `IndexPairBonds`,
-  else the hierarchy: the atom before in a residue, the previous polymer residue in a chain; not distances, since the
-  topology's own frame may be split). The whole frame is `Model.withAtomicConformation`: new coordinates, the ranges
-  found again on whole coordinates (shared by the topology's whole frames), the reader's dynamic data without
-  `__Center__`; one model per recent source frame and mode (an LRU of 16 frames: caching every frame would hold a
-  trajectory twice). `apply(frame, { kind: 'box', center? })` then moves each whole molecule by a lattice vector so its
-  center is in the box (at the box's origin); with `center` atoms, their molecules are kept together, everything is
-  translated so their mean is at the box's center, and every other molecule is moved into the box around them.
-  `Unit.remapModel` drops polymer and gap elements when the ranges differ.
+  simulation box, set only by readers of simulation output (frames from coordinates with a cell or a `Frame.box`, GRO,
+  LAMMPS); a crystal's cell (`ModelSymmetry`) is never one, so no crystal or NMR model is moved.
+  `ModelPeriodicity.makeWhole(frame)` moves each atom by a lattice vector next to its parent in a plan built once per
+  topology (a BFS forest over `IndexPairBonds`, else the hierarchy: the atom before in a residue, the previous polymer
+  residue in a chain; not distances, since the topology's own frame may be split). The whole frame is
+  `Model.withAtomicConformation`: new coordinates, the ranges found again on whole coordinates (shared by the topology's
+  whole frames), the reader's dynamic data without `__Center__`; one model per recent source frame and mode (an LRU of
+  16 frames: caching every frame would hold a trajectory twice). `apply(frame, { kind: 'box', center? })` then moves
+  each whole molecule by a lattice vector so its center is in the box (at the box's origin); with `center` atoms, their
+  molecules are kept together, everything is translated so their mean is at the box's center, and every other molecule
+  is moved into the box around them. `applyNoJump(trajectory, index)` keeps each molecule's center from moving a box
+  length between frames: shifts in box vectors walked from the last frame asked or a checkpoint every 64 frames
+  (sequential by nature). `Unit.remapModel` drops polymer and gap elements when the ranges differ.
 
 ## 5. Other models
 

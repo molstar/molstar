@@ -195,8 +195,14 @@ export interface LammpsDataFile {
 }
 
 export interface LammpsBox {
+  /** The box's corner (xlo, ylo, zlo) */
   lower: [number, number, number];
+  /** Its edge lengths (xhi - xlo, yhi - ylo, zhi - zlo) */
   length: [number, number, number];
+  /** A triclinic box's tilt factors xy, xz, yz: its vectors a = (lx, 0, 0), b = (xy, ly, 0), c = (xz, yz, lz); 0 for an
+   * orthogonal one */
+  tilt: [number, number, number];
+  /** Per dimension: pp (periodic), f (fixed), s or m (shrink-wrapped) */
   periodicity: [string, string, string];
 }
 

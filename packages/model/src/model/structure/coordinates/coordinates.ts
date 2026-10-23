@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,6 +7,7 @@
 
 import { arrayEqual, UUID } from '@molstar/core/util';
 import type { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
+import type { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
 import type { AtomicConformation } from '../model/properties/atomic.js';
 import { Column } from '@molstar/core/data/db';
 
@@ -21,6 +22,9 @@ export interface Frame {
 
   // optional cell
   readonly cell?: Cell;
+
+  /** The simulation box with its origin, when the reader knows it (LAMMPS); else the cell's, at the origin */
+  readonly box?: PeriodicBox;
 
   // optional velocities
   readonly velocities?: {

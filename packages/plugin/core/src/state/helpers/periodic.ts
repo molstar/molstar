@@ -6,14 +6,15 @@
 
 import { OrderedSet } from '@molstar/core/data/int';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { type Model, Structure } from '@molstar/model/model/structure';
+import { type RuntimeContext, Task } from '@molstar/core/task';
+import { type Model, Structure, type Trajectory } from '@molstar/model/model/structure';
 import type { AtomicHierarchy } from '@molstar/model/model/structure/model/properties/atomic';
 import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
 import { Script } from '@molstar/model/script/script';
 
 // What a frame in a simulation box shows (.v6/periodic-trajectories/plan.md §1): `ModelFromTrajectory`'s params.
 
-export type Periodic = 'whole' | 'box' | 'off';
+export type Periodic = 'whole' | 'box' | 'nojump' | 'off';
 
 /** Polymers: the protein (and nucleic acids) of a simulation. */
 export const PolymerCenter = Script('(sel.atom.atom-groups :entity-test (= atom.entity-type polymer))', 'mol-script');
@@ -25,12 +26,13 @@ export const PeriodicParams = {
       [
         ['whole', 'Molecules whole'],
         ['box', 'Molecules in the box'],
+        ['nojump', 'No jumps between frames'],
         ['off', 'As in the file'],
       ],
       {
         label: 'Periodic box',
         description:
-          'For a frame in a simulation box: each molecule split across the box made whole again; also moved into the box; or the coordinates as in the file',
+          'For a frame in a simulation box: each molecule split across the box made whole again; also moved into the box; or kept from jumping a box length between frames (molecules leave the box as they diffuse); or the coordinates as in the file',
       },
     ),
   ),
@@ -79,10 +81,24 @@ function centerOf(frame: Model, script: Script): ModelPeriodicity.Center | undef
   return byScript.get(key) ?? undefined;
 }
 
-/** The frame as the params show it: absent (an older state) is whole, the default. */
+/**
+ * The trajectory's frame as the params show it: absent (an older state) is whole, the default. No jump walks the
+ * frames before it (`ModelPeriodicity.applyNoJump`).
+ */
+export async function periodicFrame(
+  trajectory: Trajectory,
+  index: number,
+  props: PeriodicProps,
+  ctx: RuntimeContext,
+): Promise<Model> {
+  if (props.periodic === 'nojump') return ModelPeriodicity.applyNoJump(trajectory, index, ctx);
+  return applyPeriodic(await Task.resolveInContext(trajectory.getFrameAtIndex(index), ctx), props);
+}
+
+/** The frame as the params show it (but no jump, which needs the trajectory: `periodicFrame`). */
 export function applyPeriodic(frame: Model, props: PeriodicProps): Model {
   const periodic = props.periodic ?? 'whole';
-  if (periodic === 'off' || !ModelPeriodicity.isApplicable(frame)) return frame;
+  if (periodic === 'off' || periodic === 'nojump' || !ModelPeriodicity.isApplicable(frame)) return frame;
   if (periodic === 'whole') return ModelPeriodicity.makeWhole(frame);
   const c = props.periodicCenter;
   const center = c?.name === 'selection' ? centerOf(frame, c.params.script) : undefined;

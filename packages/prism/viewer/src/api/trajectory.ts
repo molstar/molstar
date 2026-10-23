@@ -10,9 +10,12 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
+import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { type Periodic, PolymerCenter } from '@molstar/plugin/state/helpers/periodic';
 import {
   isPlayingAll,
   isPlayingFrames,
+  periodicInfos,
   type TrajectoryInfo,
   trajectoryInfos,
   seekWhileViewing,
@@ -25,6 +28,9 @@ import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
 // Its frame is the model index of the structure's model. Moving through frames is viewing, as the classic's arrows are:
 // no history step (sequence.md §7.3), and playing is the plugin's animation of the model index. A structure with one
 // model has no frames: it is not listed, and the operations say `not-found` when no structure has any.
+// `trajectory.periodic` says how a simulation's box is shown (.v6/periodic-trajectories): molecules whole (the
+// default), in the box (centered on the polymers or not), without jumps between frames, or as in the file. A setting,
+// so a history step. Operations: get, frame, play, stop, periodic.
 
 /** What `trajectory.get` gives back. */
 export interface TrajectoryValue {
@@ -35,6 +41,23 @@ export interface TrajectoryValue {
 /** Whether any structure has several models (the operations' `when`: the command menu greys them out otherwise). */
 const hasFrames = (ctx: { plugin: PluginContext }): true | string =>
   trajectoryInfos(ctx.plugin).length ? true : 'No structure has several models.';
+
+/** Whether any structure's frames are in a simulation box (`trajectory.periodic`'s `when`). */
+const hasBox = (ctx: { plugin: PluginContext }): true | string =>
+  periodicInfos(ctx.plugin).length ? true : 'No structure is in a simulation box.';
+
+const PeriodicModes: [Periodic, string][] = [
+  ['whole', 'Whole'],
+  ['box', 'In the box'],
+  ['nojump', 'No jumps'],
+  ['off', 'As in the file'],
+];
+const PeriodicWords: Record<Periodic, string> = {
+  whole: 'its molecules whole',
+  box: 'its molecules in the box',
+  nojump: 'its molecules without jumps between frames',
+  off: 'its coordinates as in the file',
+};
 
 const noFrames = () =>
   ApiResult.fail('not-found', 'No structure has several models.', 'Load an ensemble or a trajectory first.');
@@ -152,6 +175,67 @@ export class TrajectoryApi extends ApiArea {
         view: true,
         ...(one ? { nodes: [one.ref] } : {}),
       });
+    },
+  });
+
+  readonly periodic = this.operation({
+    id: 'trajectory.periodic',
+    title: 'Show the periodic box',
+    params: {
+      structure: StructureParam('A structure by label or state ref; empty: the one in a simulation box'),
+      mode: PD.Select<Periodic>('whole', PeriodicModes, {
+        label: 'Molecules',
+        description:
+          'whole: each molecule split across the box joined again; box: also moved into the box; nojump: kept from jumping a box length between frames (they leave the box as they diffuse); off: as in the file',
+      }),
+      center: OptionalParam(
+        PD.Select<'box' | 'polymers'>(
+          'box',
+          [
+            ['box', 'The box'],
+            ['polymers', 'The polymers'],
+          ],
+          { label: 'Centered on', description: 'With box: the box as it is, or the protein (polymers) at its center' },
+        ),
+      ),
+    },
+    when: hasBox,
+    async run(v, ctx) {
+      const { structure, mode } = v;
+      const { center } = v as { center?: 'box' | 'polymers' };
+      const all = periodicInfos(ctx.plugin);
+      if (!all.length) return ApiResult.fail('not-found', 'No structure is in a simulation box.');
+      let info = all.length === 1 && !structure ? all[0] : undefined;
+      if (!info) {
+        if (!structure) {
+          return ApiResult.fail(
+            'ambiguous',
+            `Which structure? ${all.length} are in a simulation box.`,
+            `Name one: ${all.map((s) => `${s.label} (${s.ref})`).join(', ')}.`,
+          );
+        }
+        const found = oneStructure(ctx, structure);
+        if (isFailure(found)) return found;
+        info = all.find((s) => s.ref === found.cell.transform.ref);
+        if (!info) return ApiResult.fail('blocked', `${labelOf(ctx, found)} is not in a simulation box.`);
+      }
+      const current = info.params;
+      const currentCenter = current.periodicCenter?.name === 'selection' ? 'polymers' : 'box';
+      const nextCenter = center ?? currentCenter;
+      if ((current.periodic ?? 'whole') === mode && nextCenter === currentCenter) {
+        return ApiResult.already(`${info.label} already shows ${PeriodicWords[mode]}.`);
+      }
+      const periodicCenter =
+        nextCenter === 'polymers'
+          ? { name: 'selection' as const, params: { script: PolymerCenter } }
+          : { name: 'box' as const, params: {} };
+      await ctx.plugin
+        .build()
+        .to(info.model)
+        .update(ModelFromTrajectory, (p) => ({ ...p, periodic: mode, periodicCenter }))
+        .commit();
+      const centered = mode === 'box' && nextCenter === 'polymers' ? ', centered on the polymers' : '';
+      return ApiResult.ok(`${info.label} shows ${PeriodicWords[mode]}${centered}.`, { nodes: [info.ref] });
     },
   });
 

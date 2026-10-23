@@ -8,32 +8,32 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
-import { PolymerCenter } from '@molstar/plugin/state/helpers/periodic';
-import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import type { PrismViewer } from '../../viewer.js';
 import { ExampleFiles, openAt, RealViewerStory } from '../../testing/real-viewer.js';
 
-// Frames from a periodic simulation: molecules split across the box by the engine, made whole by the trajectory's
-// models (`ModelFromTrajectory`'s `periodic`, .v6/periodic-trajectories/plan.md), and moved into the box (`box`),
-// centered on the polymers (`center: polymers`). `periodic: off` shows the frames as the file has them: bonds and the
-// backbone stretched across the box. Split chain is the repository's (no network);
+// Frames from a periodic simulation (`trajectory.periodic`, .v6/periodic-trajectories/plan.md): molecules split across
+// the box by the engine made whole (`whole`), moved into the box (`box`, centered on the polymers with `center`), kept
+// from jumping between frames (`nojump`: play it), or as the file has them (`off`: bonds and the backbone stretched
+// across the box). Split chain is the repository's (no network);
 // AdK in water is MDAnalysis's test data (47 681 atoms, 10 frames, 3.8 MB), fetched from GitHub.
 
 interface Args {
-  periodic: 'whole' | 'box' | 'off';
+  periodic: 'whole' | 'box' | 'nojump' | 'off';
   /** With `box`: the box as it is, or the polymers at its center */
   center: 'box' | 'polymers';
   /** The frame shown, from 0 */
   frame: number;
   unitCell: boolean;
+  /** Play the frames, looping */
+  play: boolean;
 }
 
 const meta: Meta<Args> = {
   title: 'Viewer/Simulations/Periodic box',
   parameters: { layout: 'fullscreen' },
-  args: { periodic: 'box', center: 'polymers', frame: 0, unitCell: true },
+  args: { periodic: 'box', center: 'polymers', frame: 0, unitCell: true, play: false },
   argTypes: {
-    periodic: { control: 'inline-radio', options: ['whole', 'box', 'off'] },
+    periodic: { control: 'inline-radio', options: ['whole', 'box', 'nojump', 'off'] },
     center: { control: 'inline-radio', options: ['box', 'polymers'] },
   },
 };
@@ -45,21 +45,12 @@ const MDAnalysis = (name: string) =>
 async function show(v: PrismViewer, load: () => Promise<{ ok: boolean; message?: string }>, args: Args) {
   const r = await load();
   if (!r.ok) console.error(`[story] ${r.message}`);
-  const update = v.plugin.build();
-  for (const m of v.plugin.managers.structure.hierarchy.current.models) {
-    update.to(m.cell).update(ModelFromTrajectory, (p) => ({
-      ...p,
-      modelIndex: args.frame,
-      periodic: args.periodic,
-      periodicCenter:
-        args.center === 'polymers'
-          ? { name: 'selection' as const, params: { script: PolymerCenter } }
-          : { name: 'box' as const, params: {} },
-    }));
-  }
-  await update.commit();
+  const p = await v.api.trajectory.periodic({ mode: args.periodic, center: args.center });
+  if (!p.ok) console.error(`[story] ${p.message}`);
+  if (args.frame) await v.api.trajectory.frame({ index: args.frame });
   if (args.unitCell) await v.api.structure.unitCell({});
   await v.api.camera.reset({ animate: false });
+  if (args.play) await v.api.trajectory.play({ mode: 'loop', seconds: 5 });
   openAt(v, (n) => n.kind === 'structure');
 }
 

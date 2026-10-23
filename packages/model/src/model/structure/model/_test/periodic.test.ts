@@ -215,4 +215,72 @@ describe('ModelPeriodicity', () => {
       for (const f of centers.slice(1)) for (const v of f) expect(v >= 0 && v < 1).toBe(true);
     }
   });
+
+  /** The peptide's mean (its first 20 atoms), Å. */
+  function peptideCenter(m: Model) {
+    const { x, y, z } = m.atomicConformation;
+    const c = Vec3();
+    for (let i = 0; i < 20; i++) Vec3.add(c, c, Vec3.create(x[i], y[i], z[i]));
+    return Vec3.scale(c, c, 1 / 20);
+  }
+
+  it('keeps molecules from jumping between frames', async () => {
+    const steps = (made: Model[]) =>
+      made.slice(1).map((m, i) => Vec3.distance(peptideCenter(m), peptideCenter(made[i])));
+    // made whole, the peptide jumps a box length where it crosses a face; without jumps it drifts 4.5 Å a frame
+    const whole = frames.map((f) => ModelPeriodicity.makeWhole(f));
+    expect(Math.max(...steps(whole))).toBeGreaterThan(15);
+    const sequential: Model[] = [];
+    for (let i = 0; i < frames.length; i++) sequential.push(await ModelPeriodicity.applyNoJump(trajectory, i));
+    expect(Math.max(...steps(sequential))).toBeLessThan(8);
+    for (const m of sequential) expect(longestHop(m)).toBeLessThan(4);
+    // frame 0 is as made whole
+    expect(Array.from(sequential[0].atomicConformation.x)).toEqual(Array.from(whole[0].atomicConformation.x));
+
+    // a trajectory read again: frame 7 first, then back to frame 3, the same as walked in order
+    const again = await trajectoryFromGRO(parsed.result).run();
+    for (const i of [7, 3, 5]) {
+      const m = await ModelPeriodicity.applyNoJump(again, i);
+      expect(Vec3.distance(peptideCenter(m), peptideCenter(sequential[i]))).toBeLessThan(1e-3);
+    }
+  });
+
+  it('seeks without jumps past its checkpoints', async () => {
+    // 150 frames of the first one drifting 3 Å a frame along a, every atom wrapped into the box as an engine writes it
+    const topology = frames[0];
+    const box = Model.PeriodicBox.get(topology)!;
+    const cell = Cell.fromBasis(
+      Vec3.create(box.basis[0], box.basis[1], box.basis[2]),
+      Vec3.create(box.basis[3], box.basis[4], box.basis[5]),
+      Vec3.create(box.basis[6], box.basis[7], box.basis[8]),
+    );
+    const whole = ModelPeriodicity.makeWhole(topology).atomicConformation;
+    const n = whole.x.length;
+    const drifting = Array.from({ length: 150 }, (_, t): Frame => {
+      const x = new Float32Array(n);
+      const y = new Float32Array(n);
+      const z = new Float32Array(n);
+      const p = Vec3();
+      for (let i = 0; i < n; i++) {
+        Vec3.set(p, whole.x[i] + 3 * t, whole.y[i], whole.z[i]);
+        Vec3.transformMat3(p, p, box.inverse);
+        Vec3.set(p, p[0] - Math.floor(p[0]), p[1] - Math.floor(p[1]), p[2] - Math.floor(p[2]));
+        Vec3.transformMat3(p, p, box.basis);
+        [x[i], y[i], z[i]] = [p[0], p[1], p[2]];
+      }
+      return { elementCount: n, time: Time(t, 'step'), x, y, z, cell, xyzOrdering: { isIdentity: true } };
+    });
+    const coordinates = () => Coordinates.create(drifting, Time(1, 'step'), Time(0, 'step'));
+    const walked = Model.trajectoryFromModelAndCoordinates(topology, coordinates());
+    const inOrder: Vec3[] = [];
+    for (let i = 0; i < 150; i++) inOrder.push(peptideCenter(await ModelPeriodicity.applyNoJump(walked, i)));
+    // 3 Å a frame along x, no jumps
+    for (let i = 1; i < 150; i++) expect(inOrder[i][0] - inOrder[i - 1][0]).toBeCloseTo(3, 3);
+
+    const seeked = Model.trajectoryFromModelAndCoordinates(topology, coordinates());
+    for (const i of [140, 70, 130, 65, 0, 149]) {
+      const c = peptideCenter(await ModelPeriodicity.applyNoJump(seeked, i));
+      expect(Vec3.distance(c, inOrder[i])).toBeLessThan(1e-2);
+    }
+  });
 });

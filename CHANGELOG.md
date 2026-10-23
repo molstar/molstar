@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix LAMMPS triclinic boxes: the tilt factors are read, a dump's bounding-box bounds are corrected, and scaled
+  coordinates go through the tilt
 - Fix GRO reading a triclinic box (the rhombic dodecahedron, the truncated octahedron) as a rectangular one: all nine
   box values are read
 - Fix `ungzip` of gzip files with an extra field (`FLG.FEXTRA`, e.g. a single BGZF block): the field's 2-byte length was

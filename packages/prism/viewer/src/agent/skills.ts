@@ -260,13 +260,15 @@ export const Skills: readonly SkillDeclaration[] = [
     id: 'animation',
     title: 'Animation and trajectories',
     summary: 'spin, rock, wiggle; trajectory frames',
-    guidance: 'Skill animation: frames of a trajectory or an NMR ensemble are shown by index (from 0).',
+    guidance:
+      'Skill animation: frames of a trajectory or an NMR ensemble are shown by index (from 0). A simulation in a periodic box shows its molecules whole by default; periodic_box moves them into the box (centered on the protein with center: polymers), keeps them from jumping between frames (nojump), or shows the file as written (off).',
     tools: [
       { id: 'play_animation', operation: 'animation.play' },
       { id: 'stop_animation', operation: 'animation.stop' },
       { id: 'wiggle', operation: 'animation.wiggle' },
       { id: 'show_frame', operation: 'trajectory.frame' },
       { id: 'get_trajectory', operation: 'trajectory.get' },
+      { id: 'periodic_box', operation: 'trajectory.periodic' },
     ],
   },
   {

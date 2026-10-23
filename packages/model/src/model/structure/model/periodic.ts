@@ -8,6 +8,8 @@ import { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { UUID } from '@molstar/core/util/uuid';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
+import { type RuntimeContext, Task } from '@molstar/core/task';
+import type { Trajectory } from '../trajectory.js';
 import { Model } from './model.js';
 import type { AtomicConformation, AtomicHierarchy, AtomicRanges } from './properties/atomic.js';
 import { getAtomicRanges } from './properties/utils/atomic-ranges.js';
@@ -15,7 +17,8 @@ import { isPolymer } from './types.js';
 
 // Molecules split by a simulation's periodic box made whole again (.v6/periodic-trajectories/plan.md §3): every atom
 // moved by a lattice vector to the image nearest to its parent in a spanning forest of the topology, built once. Then,
-// optionally, each whole molecule moved by a lattice vector into the box (plan.md §1, wrap), around a selection.
+// optionally, each whole molecule moved by a lattice vector into the box (plan.md §1, wrap), around a selection, or
+// kept from jumping a box length between frames (no jump).
 
 export { ModelPeriodicity };
 
@@ -159,22 +162,8 @@ namespace ModelPeriodicity {
     const z = Float32Array.from(whole.z);
     const n = x.length;
 
-    // molecule centers, then each molecule's shift into them
-    const centers = new Float64Array(moleculeCount * 3);
-    const counts = new Int32Array(moleculeCount);
-    for (let i = 0; i < n; i++) {
-      const m = molecule[i] * 3;
-      centers[m] += x[i];
-      centers[m + 1] += y[i];
-      centers[m + 2] += z[i];
-      counts[molecule[i]]++;
-    }
-    for (let m = 0; m < moleculeCount; m++) {
-      const c = counts[m] || 1;
-      centers[3 * m] /= c;
-      centers[3 * m + 1] /= c;
-      centers[3 * m + 2] /= c;
-    }
+    // molecule centers, then each molecule's shift into the box
+    const centers = moleculeCenters(plan, whole);
     const shift = new Float64Array(moleculeCount * 3);
     const { basis, inverse, origin } = box;
     const boxCenter = Vec3.add(Vec3(), origin, Vec3.transformMat3(Vec3(), Vec3.create(0.5, 0.5, 0.5), basis));
@@ -229,6 +218,157 @@ namespace ModelPeriodicity {
       z[i] += t[2] + shift[m + 2];
     }
     return { ...whole, id: UUID.create22(), x, y, z };
+  }
+
+  /** Each molecule's center, the mean of its atoms: x, y, z per molecule. */
+  export function moleculeCenters(plan: UnwrapPlan, conformation: AtomicConformation): Float64Array {
+    const { molecule, moleculeCount } = plan;
+    const { x, y, z } = conformation;
+    const centers = new Float64Array(moleculeCount * 3);
+    const counts = new Int32Array(moleculeCount);
+    for (let i = 0, n = molecule.length; i < n; i++) {
+      const m = molecule[i] * 3;
+      centers[m] += x[i];
+      centers[m + 1] += y[i];
+      centers[m + 2] += z[i];
+      counts[molecule[i]]++;
+    }
+    for (let m = 0; m < moleculeCount; m++) {
+      const c = counts[m] || 1;
+      centers[3 * m] /= c;
+      centers[3 * m + 1] /= c;
+      centers[3 * m + 2] /= c;
+    }
+    return centers;
+  }
+
+  // No jump (plan.md §1): each molecule's lattice shift, in box vectors, chosen so its center moves less than half a
+  // box from one frame to the next. Sequential by nature: frame k's shifts need frame k - 1's. Kept per trajectory:
+  // the last frame's (a playing trajectory steps one frame, either way) and a checkpoint every `NoJumpEvery` frames
+  // (a seek walks at most that far), not every frame's (a molecule count of shifts per frame).
+  export const NoJumpEvery = 64;
+
+  interface NoJumpState {
+    readonly checkpoints: Map<number, Int32Array>;
+    last?: {
+      readonly index: number;
+      readonly shifts: Int32Array;
+      readonly centers: Float64Array;
+      readonly box?: PeriodicBox;
+    };
+  }
+  const noJumpStates = new WeakMap<Trajectory, NoJumpState>();
+
+  /**
+   * The trajectory's frame made whole, each molecule moved by whole box vectors so its center never jumps a box
+   * length from the frame before: molecules leave the box as they diffuse. Frame 0 is as made whole. A frame without
+   * a simulation box is returned as it is.
+   */
+  export async function applyNoJump(trajectory: Trajectory, index: number, ctx?: RuntimeContext): Promise<Model> {
+    const frame = await frameAt(trajectory, index, ctx);
+    const box = boxOf(frame);
+    if (!box) return frame;
+    const hit = cached(frame, 'nojump');
+    if (hit) return hit;
+
+    const shifts = await noJumpShifts(trajectory, index, ctx);
+    const whole = apply(frame, Whole);
+    const plan = getPlan(frame);
+    const x = Float32Array.from(whole.atomicConformation.x);
+    const y = Float32Array.from(whole.atomicConformation.y);
+    const z = Float32Array.from(whole.atomicConformation.z);
+    const b = box.basis;
+    const { molecule } = plan;
+    for (let i = 0, n = x.length; i < n; i++) {
+      const m = 3 * molecule[i];
+      const na = shifts[m],
+        nb = shifts[m + 1],
+        nc = shifts[m + 2];
+      if (na === 0 && nb === 0 && nc === 0) continue;
+      x[i] += na * b[0] + nb * b[3] + nc * b[6];
+      y[i] += na * b[1] + nb * b[4] + nc * b[7];
+      z[i] += na * b[2] + nb * b[5] + nc * b[8];
+    }
+    const made = Model.withAtomicConformation(whole, { ...whole.atomicConformation, id: UUID.create22(), x, y, z });
+    remember(frame, 'nojump', made);
+    return made;
+  }
+
+  async function frameAt(trajectory: Trajectory, index: number, ctx?: RuntimeContext) {
+    const f = trajectory.getFrameAtIndex(index);
+    return ctx ? Task.resolveInContext(f, ctx) : Task.is(f) ? f.run() : f;
+  }
+
+  /** The centers of the frame's whole molecules, and its box. */
+  async function wholeCenters(trajectory: Trajectory, index: number, ctx?: RuntimeContext) {
+    const frame = await frameAt(trajectory, index, ctx);
+    const box = boxOf(frame);
+    const whole = apply(frame, Whole);
+    return { centers: moleculeCenters(getPlan(frame), whole.atomicConformation), box };
+  }
+
+  /** Frame `index`'s shifts: walked from the nearest frame known, the last one or a checkpoint. */
+  async function noJumpShifts(trajectory: Trajectory, index: number, ctx?: RuntimeContext): Promise<Int32Array> {
+    let state = noJumpStates.get(trajectory);
+    if (!state) {
+      state = { checkpoints: new Map() };
+      noJumpStates.set(trajectory, state);
+    }
+    const { checkpoints } = state;
+    if (state.last?.index === index) return state.last.shifts;
+    const known = checkpoints.get(index);
+    if (known) return known;
+
+    // the nearest start: the last frame, a checkpoint, or frame 0 (no shifts)
+    let start = 0;
+    let shifts: Int32Array | undefined;
+    let centers: Float64Array | undefined;
+    let box: PeriodicBox | undefined;
+    for (const c of checkpoints.keys()) if (Math.abs(c - index) < Math.abs(start - index)) start = c;
+    const last = state.last;
+    if (last && Math.abs(last.index - index) <= Math.abs(start - index)) {
+      start = last.index;
+      shifts = Int32Array.from(last.shifts);
+      centers = last.centers;
+      box = last.box;
+    } else {
+      const atStart = await wholeCenters(trajectory, start, ctx);
+      centers = atStart.centers;
+      box = atStart.box;
+      shifts = start === 0 ? new Int32Array(centers.length) : Int32Array.from(checkpoints.get(start)!);
+      if (start === 0) checkpoints.set(0, Int32Array.from(shifts));
+    }
+
+    const step = index > start ? 1 : -1;
+    for (let k = start + step; step > 0 ? k <= index : k >= index; k += step) {
+      const next = await wholeCenters(trajectory, k, ctx);
+      // a frame of another topology (molecule count) or without a box: no continuity to keep
+      if (!next.box || next.centers.length !== centers.length) {
+        shifts = new Int32Array(next.centers.length);
+      } else {
+        // the jump between the frames in box vectors of the later one: rounded, it is a lattice move to undo
+        // the later frame's box: this one going forward, the one before it (k + 1) going back
+        const later = step > 0 ? next.box : (box ?? next.box);
+        const inv = later.inverse;
+        for (let m = 0, n = centers.length; m < n; m += 3) {
+          // forward: n_k = n_(k-1) - round(inv (c_k - c_(k-1))); backward the same move undone
+          const dx = (next.centers[m] - centers[m]) * step,
+            dy = (next.centers[m + 1] - centers[m + 1]) * step,
+            dz = (next.centers[m + 2] - centers[m + 2]) * step;
+          const ra = Math.round(dx * inv[0] + dy * inv[3] + dz * inv[6]);
+          const rb = Math.round(dx * inv[1] + dy * inv[4] + dz * inv[7]);
+          const rc = Math.round(dx * inv[2] + dy * inv[5] + dz * inv[8]);
+          shifts[m] -= step * ra;
+          shifts[m + 1] -= step * rb;
+          shifts[m + 2] -= step * rc;
+        }
+      }
+      centers = next.centers;
+      box = next.box;
+      if (k % NoJumpEvery === 0 && !checkpoints.has(k)) checkpoints.set(k, Int32Array.from(shifts));
+    }
+    state.last = { index, shifts, centers, box };
+    return shifts;
   }
 
   /** Each atom's molecule, by the forest's trees: parents are visited first, roots start molecules. */

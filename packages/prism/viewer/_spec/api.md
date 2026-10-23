@@ -61,7 +61,7 @@ command menu, the tools, the run log and the docs.
 | `styles`, `annotations`        | representation presets and looks; what extensions can apply         | `structure`; `annotations`    |
 | `volume`                       | `managers.volume`                                                   | `volume`                      |
 | `particles`                    | `managers.particles`                                                | `particles` (lazy)            |
-| `trajectory`                   | the model-index transforms                                          | `trajectory`                  |
+| `trajectory`                   | the model-index transforms; a simulation box's display (`periodic`) | `trajectory`                  |
 | `select`, `focus`, `highlight` | `managers.structure.selection`, `.focus`, `managers.interactivity`  | core                          |
 | `measure`                      | `managers.structure.measurement`                                    | `measurements`                |
 | `superpose`                    | the superposition algorithms                                        | `superposition` (lazy)        |

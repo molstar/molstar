@@ -6,8 +6,14 @@
   as written. Crystal and NMR models are never changed.
 - `periodic: 'box'` also moves each molecule into the drawn box, and `periodicCenter` centers the box on a selection
   (polymers by default): the protein in the middle, the solvent around it, in every frame.
+- `periodic: 'nojump'` keeps each molecule from jumping a box length between frames (molecules leave the box as they
+  diffuse): seeks walk from a checkpoint every 64 frames, playing steps one frame.
+- Prism: `trajectory.periodic` (whole, in the box, centered on the polymers, no jumps, as in the file) and its command
+  ("periodic box", "pbc", "unwrap", "center protein in box"); the assistant's `periodic_box` tool.
+- LAMMPS: triclinic boxes (tilt factors, the dump's bounding-box bounds corrected), the box's corner as its origin
+  (the unit cell is drawn there), scaled coordinates through the tilt; frames get a box only when periodic in x, y, z.
 - GRO reads triclinic boxes (all nine box values: the rhombic dodecahedron, the truncated octahedron); it read a
   rectangular box before. `GroHeader.boxVectors` holds them.
 - Library: `PeriodicBox` (`@molstar/core/math/geometry/periodic-box`), `Model.PeriodicBox`,
-  `Model.withAtomicConformation`, `ModelPeriodicity` (`makeWhole`, `apply`) (`@molstar/model/model/structure/model/periodic`).
+  `Model.withAtomicConformation`, `Frame.box`, `ModelPeriodicity` (`makeWhole`, `apply`, `applyNoJump`) (`@molstar/model/model/structure/model/periodic`).
 - Prism stories: `Viewer › Simulations` (Periodic box, Trajectories per format, Simularium moved there).

@@ -231,6 +231,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     yhi = NaN,
     zlo = NaN,
     zhi = NaN;
+  let tilt: [number, number, number] = [0, 0, 0];
   // full list of atom_style
   // https://docs.lammps.org/atom_style.html
   while (tokenizer.tokenEnd < tokenizer.length) {
@@ -253,6 +254,10 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
       const parts = line.split(reWhitespace);
       zlo = parseFloat(parts[0]);
       zhi = parseFloat(parts[1]);
+    } else if (line.includes('xy xz yz')) {
+      // a triclinic box's tilt factors
+      const parts = line.split(reWhitespace);
+      tilt = [parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2])];
     } else if (line.includes('Masses')) {
       masses = await handleMasses(state, numAtomTypes);
     } else if (line.includes('Atoms')) {
@@ -291,6 +296,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
       ? {
           lower: [xlo, ylo, zlo] as [number, number, number],
           length: [xhi - xlo, yhi - ylo, zhi - zlo] as [number, number, number],
+          tilt,
           periodicity: ['p', 'p', 'p'] as [string, string, string],
         }
       : undefined;

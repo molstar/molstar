@@ -13,7 +13,7 @@ import { type StateTransform, StateTransformer } from '@molstar/core/state';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { type Coordinates, Structure, Model, type Frame, type Trajectory } from '@molstar/model/model/structure';
 import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
-import { applyPeriodic, PeriodicParams, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
+import { periodicFrame, PeriodicParams, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
 import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
@@ -66,9 +66,8 @@ const plus1 = (v: number) => v + 1,
 async function modelAtIndex(trajectory: Trajectory, index: number, ctx: RuntimeContext, periodic: PeriodicProps) {
   let modelIndex = Math.round(index) % trajectory.frameCount;
   if (modelIndex < 0) modelIndex += trajectory.frameCount;
-  const frame = await Task.resolveInContext(trajectory.getFrameAtIndex(modelIndex), ctx);
   // the same model for the same recent frame (cached): an unchanged frame stays `Unchanged`
-  const model = applyPeriodic(frame, periodic);
+  const model = await periodicFrame(trajectory, modelIndex, periodic, ctx);
   const label = `Model ${modelIndex + 1}`;
   const description = trajectory.frameCount === 1 ? undefined : `of ${trajectory.frameCount}`;
   return { model, label, description };

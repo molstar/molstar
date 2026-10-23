@@ -25,6 +25,7 @@ import { createModels } from './basic/parser.js';
 import { MoleculeType } from '@molstar/model/model/structure/model/types';
 import type { ModelFormat } from '../format.js';
 import { ModelSymmetry } from './property/symmetry.js';
+import { lammpsPeriodicBox } from './common/lammps-box.js';
 
 /**
  * A LAMMPS dump may list atoms in a different order in every frame: LAMMPS splits
@@ -81,45 +82,47 @@ export function coordinatesFromLammpsTrajectory(
     const scale = lammpsUnitStyles[unitsStyle].scale;
     const deltaTime = Time(file.deltaTime, 'step');
     const offsetTime = Time(file.timeOffset, deltaTime.unit);
-    const offset_pos = { x: 0.0, y: 0.0, z: 0.0 };
-    const offset_scale = { x: 1.0, y: 1.0, z: 1.0 };
     const atomsMode = file.frames[0].atomMode;
     const isScaled = atomsMode.includes('s');
     const frames: Frame[] = [];
     for (let i = 0, il = file.frames.length; i < il; ++i) {
       const box = file.bounds[i];
-      if (isScaled) {
-        offset_scale.x = box.length[0];
-        offset_scale.y = box.length[1];
-        offset_scale.z = box.length[2];
-        offset_pos.x = box.lower[0];
-        offset_pos.y = box.lower[1];
-        offset_pos.z = box.lower[2];
-      }
       const frame = file.frames[i];
       const count = frame.count;
       const order = getCanonicalOrder(frame);
       const cx = new Float32Array(count);
       const cy = new Float32Array(count);
       const cz = new Float32Array(count);
-      // fold the loop-invariant `* scale` into the per-frame scale/offset factors
-      const sx = offset_scale.x * scale,
-        sy = offset_scale.y * scale,
-        sz = offset_scale.z * scale;
-      const ox = offset_pos.x * scale,
-        oy = offset_pos.y * scale,
-        oz = offset_pos.z * scale;
-      for (let j = 0; j < count; j++) {
-        const dst = order ? order[j] : j;
-        cx[dst] = frame.x.value(j) * sx + ox;
-        cy[dst] = frame.y.value(j) * sy + oy;
-        cz[dst] = frame.z.value(j) * sz + oz;
+      if (isScaled) {
+        // fractional coordinates of the box: corner + xs a + ys b + zs c (a triclinic box's tilt in b and c)
+        const [lx, ly, lz] = box.length;
+        const [xy, xz, yz] = box.tilt ?? [0, 0, 0];
+        const [ox, oy, oz] = box.lower;
+        for (let j = 0; j < count; j++) {
+          const dst = order ? order[j] : j;
+          const xs = frame.x.value(j),
+            ys = frame.y.value(j),
+            zs = frame.z.value(j);
+          cx[dst] = (ox + xs * lx + ys * xy + zs * xz) * scale;
+          cy[dst] = (oy + ys * ly + zs * yz) * scale;
+          cz[dst] = (oz + zs * lz) * scale;
+        }
+      } else {
+        for (let j = 0; j < count; j++) {
+          const dst = order ? order[j] : j;
+          cx[dst] = frame.x.value(j) * scale;
+          cy[dst] = frame.y.value(j) * scale;
+          cz[dst] = frame.z.value(j) * scale;
+        }
       }
+      // the frame's simulation box (model.md §4 "Periodic frames"): with its corner, which LAMMPS need not put at 0
+      const periodic = box ? lammpsPeriodicBox(box, scale) : undefined;
       frames.push({
         elementCount: count,
         x: cx,
         y: cy,
         z: cz,
+        ...(periodic ? { cell: periodic.cell, box: periodic.box } : {}),
         xyzOrdering: { isIdentity: true },
         time: Time(offsetTime.value + deltaTime.value * i, deltaTime.unit),
       });
@@ -223,13 +226,18 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
   const first = _models.representative;
 
   if (mol.bounds.length > 0) {
-    const bounds = mol.bounds[0];
-    const [lx, ly, lz] = bounds.length;
-    const symmetry = ModelSymmetry.fromCell(
-      Vec3.create(lx * scale, ly * scale, lz * scale),
-      Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2),
+    const periodic = lammpsPeriodicBox(mol.bounds[0], scale);
+    const [lx, ly, lz] = mol.bounds[0].length;
+    const cell = periodic?.cell;
+    ModelSymmetry.Provider.set(
+      first,
+      cell
+        ? ModelSymmetry.fromCell(cell.size, cell.anglesInRadians)
+        : ModelSymmetry.fromCell(
+            Vec3.create(lx * scale, ly * scale, lz * scale),
+            Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2),
+          ),
     );
-    ModelSymmetry.Provider.set(first, symmetry);
   }
 
   const coordinates = await coordinatesFromLammpsTrajectory(mol, unitsStyle).runInContext(ctx);

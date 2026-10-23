@@ -8,8 +8,7 @@
  */
 
 import { Column, Table } from '@molstar/core/data/db';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
-import type { Model } from '@molstar/model/model/structure/model';
+import { Model } from '@molstar/model/model/structure/model';
 import { type LammpsDataFile, lammpsUnitStyles, type UnitStyle } from '@molstar/io/reader/lammps/schema';
 import { type Trajectory, ArrayTrajectory } from '@molstar/model/model/structure';
 import { BondType, MoleculeType } from '@molstar/model/model/structure/model/types';
@@ -22,6 +21,7 @@ import { EntityBuilder } from './common/entity.js';
 import { IndexPairBonds } from './property/bonds/index-pair.js';
 import { AtomPartialCharge } from './property/partial-charge.js';
 import { ModelSymmetry } from './property/symmetry.js';
+import { lammpsPeriodicBox } from './common/lammps-box.js';
 import { getElementSymbolFromMass } from './common/element-mass.js';
 import { AtomicNumbers } from '@molstar/model/model/structure/model/properties/atomic';
 
@@ -161,12 +161,12 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     });
 
     if (mol.box) {
-      const [lx, ly, lz] = mol.box.length;
-      const symmetry = ModelSymmetry.fromCell(
-        Vec3.create(lx * scale, ly * scale, lz * scale),
-        Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2),
-      );
-      ModelSymmetry.Provider.set(first, symmetry);
+      // a data file's box: periodic, with its corner and tilt (model.md §4 "Periodic frames")
+      const periodic = lammpsPeriodicBox(mol.box, scale);
+      if (periodic) {
+        ModelSymmetry.Provider.set(first, ModelSymmetry.fromCell(periodic.cell.size, periodic.cell.anglesInRadians));
+        Model.PeriodicBox.set(first, periodic.box);
+      }
     }
 
     models.push(first);

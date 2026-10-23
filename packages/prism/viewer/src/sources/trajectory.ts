@@ -6,7 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
 import { PluginCommands } from '@molstar/plugin/commands';
+import type { PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
 import type { PluginContext } from '@molstar/plugin/context';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -64,6 +66,38 @@ export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
       count,
       index: (cell.transform.params as { modelIndex: number }).modelIndex,
       unit: s.model.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models',
+    });
+  }
+  return out;
+}
+
+/** A structure whose frames are in a simulation box (`trajectory.periodic`). */
+export interface PeriodicInfo {
+  readonly ref: string;
+  readonly label: string;
+  /** The model's state ref (the cell whose `periodic` params say how the box is shown) */
+  readonly model: string;
+  /** Its `ModelFromTrajectory` params now */
+  readonly params: PeriodicProps & { modelIndex: number };
+}
+
+const ModelFromTrajectoryName = 'model-from-trajectory';
+
+/** The structures whose model is a frame in a simulation box (.v6/periodic-trajectories). */
+export function periodicInfos(plugin: PluginContext): PeriodicInfo[] {
+  const list = plugin.managers.structure.hierarchy.current.structures;
+  const names = structureNames(list);
+  const out: PeriodicInfo[] = [];
+  for (const s of list) {
+    if (!s.model) continue;
+    const cell = plugin.state.data.cells.get(s.model.cell.transform.ref) ?? s.model.cell;
+    if (cell.transform.transformer.definition.name !== ModelFromTrajectoryName || !cell.obj) continue;
+    if (!ModelPeriodicity.isApplicable(cell.obj.data)) continue;
+    out.push({
+      ref: s.cell.transform.ref,
+      label: names.get(s.cell.transform.ref) ?? s.cell.transform.ref,
+      model: cell.transform.ref,
+      params: cell.transform.params as PeriodicInfo['params'],
     });
   }
   return out;

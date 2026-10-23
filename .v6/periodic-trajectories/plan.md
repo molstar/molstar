@@ -95,8 +95,11 @@ with phase 1.
 
 ## 7. Phases
 
-0. **Readers** (the `Viewer/Simulations` stories of §6 and the GRO box are done; the rest open): GRO triclinic box (nine values); LAMMPS frames get a box (bounds, tilt factors) and
-   use image flags or unwrapped coordinates when present; `Frame.box` from every reader (XTC, TRR keep their basis).
+0. **Readers** (done): GRO triclinic box (nine values); LAMMPS dumps and data files: the true bounds and tilt factors
+   of a triclinic box, its corner as the box origin (`Frame.box`, `common/lammps-box.ts`), scaled coordinates through
+   the tilt, no box when a dimension is not periodic; the unit cell drawn at the box's origin (`UnitcellData.origin`).
+   Open: LAMMPS image flags (`ix iy iz`: exact whole and no jump), NAMD `.xsc` origins, XTC/TRR keeping their own
+   basis (theirs is already the standard frame).
 1. **Whole** (done): core box, plan, `makeWhole`, the `ModelFromTrajectory` param, tests over
    `data/examples/trajectory/periodic/split-peptide.gro` (11.6 KB, generated), the Periodic box stories (§6). The bug fix users see.
 2. **Wrap** (done): `periodic: 'box'`, each molecule's center into the drawn box, or around a selection
@@ -104,10 +107,15 @@ with phase 1.
    the box), everything translated so the selection's mean is at the box's center. A selection spread over more than
    half a box is not clustered (GROMACS's `-pbc cluster`): a known limit. Why not the default: it translates every
    frame (the protein's diffusion is gone) and changes distances between molecules.
-3. **No jump**: shifts per molecule per frame, computed lazily up to the highest frame asked and cached (frames are in
-   memory for every reader; only molecule centers are needed per step).
-4. **Exposure**: Prism operation and panel, the assistant skill text, MVS, docs. Later: periodic images (a P1 supercell
-   from the box, through the existing symmetry structure).
+3. **No jump** (done): `periodic: 'nojump'`, `ModelPeriodicity.applyNoJump(trajectory, index)`: each molecule's
+   shift in box vectors, so its center moves under half a box from frame to frame, in the later frame's box (an NPT
+   box changes). Kept per trajectory: the last frame's shifts (playing steps once, either way) and a checkpoint every
+   64 frames (a seek walks at most 64 frames, from frame 0 the first time), not every frame's.
+4. **Exposure** (done for Prism): `trajectory.periodic` (mode whole, box, nojump, off; center box or polymers; a
+   history step), its command (aliases: periodic box, pbc, unwrap, wrap into box, center protein in box, no jump) and
+   the animation skill's `periodic_box` tool; the stories drive it. Open: a toggle in the trajectory bar, MVS (a spec
+   extension of the trajectory node), the all-models (ensemble) preset (`StructureFromTrajectory`), periodic images (a
+   P1 supercell from the box, through the existing symmetry structure).
 
 Each phase: an entry in `.v6/changelogs/`, `model.md §3–4` and `formats.md` updated in the same commit.
 

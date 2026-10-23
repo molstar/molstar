@@ -105,4 +105,23 @@ describe('ModelFromTrajectory in a periodic box', () => {
       for (const v of peptide(cell())) expect(v).toBeCloseTo(0.5, 4);
     }
   });
+
+  it('keeps the molecules from jumping as the frames play', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await load(plugin);
+    const center = () => {
+      const { x, y, z } = (plugin.state.data.cells.get(model.ref)!.obj!.data as Model).atomicConformation;
+      const c = Vec3();
+      for (let i = 0; i < 20; i++) Vec3.add(c, c, Vec3.create(x[i], y[i], z[i]));
+      return Vec3.scale(c, c, 1 / 20);
+    };
+    let previous: Vec3 | undefined;
+    for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 6, 5]) {
+      await setModel(plugin, model.ref, { modelIndex: i, periodic: 'nojump' });
+      expect(caca(plugin.state.data.cells.get(model.ref)!.obj!.data as Model)).toBeLessThan(4);
+      const c = center();
+      if (previous) expect(Vec3.distance(c, previous)).toBeLessThan(8);
+      previous = c;
+    }
+  });
 });
