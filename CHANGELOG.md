@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix GRO reading a triclinic box (the rhombic dodecahedron, the truncated octahedron) as a rectangular one: all nine
+  box values are read
 - Fix `ungzip` of gzip files with an extra field (`FLG.FEXTRA`, e.g. a single BGZF block): the field's 2-byte length was
   not skipped
 - Fix accessible surface area (its color theme, `is-buried`, `is-accessible`) throwing on structures with coarse units;

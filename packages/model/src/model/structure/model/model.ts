@@ -16,6 +16,7 @@ import type { SaccharideComponentMap } from '../structure/carbohydrates/constant
 import type { ModelFormat } from '@molstar/model/formats/format';
 import { calcModelCenter, getAsymIdCount } from './util.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { PeriodicBox as PeriodicBoxData } from '@molstar/core/math/geometry/periodic-box';
 import { Coordinates, type Frame } from '../coordinates.js';
 import type { Topology } from '../topology.js';
 import { Task } from '@molstar/core/task';
@@ -132,6 +133,9 @@ export namespace Model {
 
       if (f.cell) {
         ModelSymmetry.Provider.set(m, ModelSymmetry.fromCell(f.cell.size, f.cell.anglesInRadians));
+        // a frame's cell is its simulation box, not a crystal's (model.md §4 "Periodic frames")
+        const box = PeriodicBoxData.fromCell(f.cell);
+        if (PeriodicBoxData.isValid(box)) PeriodicBox.set(m, box);
       } else if (symmetry) {
         ModelSymmetry.Provider.set(m, symmetry);
       }
@@ -248,6 +252,40 @@ export namespace Model {
       return (model._dynamicPropertyData[TrajectoryInfoProp] = trajectoryInfo);
     },
   };
+
+  const PeriodicBoxProp = '__PeriodicBox__';
+  /**
+   * A frame's simulation box, set by the readers of simulation output (frames from coordinates with a cell, GRO):
+   * what the frame's coordinates repeat on. Not a crystal's cell (`ModelSymmetry`), which is never made whole.
+   */
+  export const PeriodicBox = {
+    get(model: Model): PeriodicBoxData | undefined {
+      return model._dynamicPropertyData[PeriodicBoxProp];
+    },
+    set(model: Model, box: PeriodicBoxData) {
+      return (model._dynamicPropertyData[PeriodicBoxProp] = box);
+    },
+  };
+
+  /**
+   * The frame with other atomic coordinates (and ranges, when given): a new model with the frame's topology and what
+   * its reader set (trajectory info, symmetry, box, index pair bonds), without what was computed from its coordinates.
+   */
+  export function withAtomicConformation(
+    model: Model,
+    conformation: AtomicConformation,
+    atomicRanges?: AtomicRanges,
+  ): Model {
+    const dynamic = Object.assign(Object.create(null), model._dynamicPropertyData);
+    delete dynamic[CenterProp];
+    return {
+      ...model,
+      id: UUID.create22(),
+      atomicConformation: conformation,
+      atomicRanges: atomicRanges ?? model.atomicRanges,
+      _dynamicPropertyData: dynamic,
+    };
+  }
 
   const AsymIdCountProp = '__AsymIdCount__';
   export type AsymIdCount = { readonly auth: number; readonly label: number };

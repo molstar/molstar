@@ -5,5 +5,5 @@ a face is written partly on one side and partly on the other. Mol\* draws the fr
 stretch across the whole box ("portalling"). This folder holds the analysis ([analysis.md](analysis.md)) and the plan
 ([plan.md](plan.md)).
 
-Status: analysis and plan; nothing implemented. Open questions for the maintainers are at the end of
+Status: phase 1 (molecules whole) done, and the GRO triclinic box; wrap, no jump, LAMMPS boxes and the Prism command are open. Open questions for the maintainers are at the end of
 [plan.md](plan.md#open-questions).

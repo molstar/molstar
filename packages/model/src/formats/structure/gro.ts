@@ -2,9 +2,10 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Model } from '@molstar/model/model/structure/model';
+import { Model } from '@molstar/model/model/structure/model';
 import { Task } from '@molstar/core/task';
 import type { ModelFormat } from '../format.js';
 import type { GroFile, GroAtoms } from '@molstar/io/reader/gro/schema';
@@ -20,6 +21,8 @@ import { createModels } from './basic/parser.js';
 import type { Trajectory } from '@molstar/model/model/structure';
 import { ArrayTrajectory } from '@molstar/model/model/structure/trajectory';
 import { ModelSymmetry } from './property/symmetry.js';
+import { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
+import { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
 
 function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
   const auth_atom_id = atoms.atomName;
@@ -138,13 +141,16 @@ export function trajectoryFromGRO(gro: GroFile): Task<Trajectory> {
       const m = await createModels(basic, format, ctx);
       if (m.frameCount === 1) {
         const model = m.representative;
-        const [bx, by, bz] = gro.structures[i].header.box;
-        if (bx !== 0 && by !== 0 && bz !== 0) {
-          const symmetry = ModelSymmetry.fromCell(
-            Vec3.create(bx * 10, by * 10, bz * 10),
-            Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2),
-          );
-          ModelSymmetry.Provider.set(model, symmetry);
+        // nm to Å; a triclinic box has its off-diagonal values (the rhombic dodecahedron, the truncated octahedron)
+        const v = gro.structures[i].header.boxVectors;
+        const a = Vec3.create(v[0] * 10, v[1] * 10, v[2] * 10);
+        const b = Vec3.create(v[3] * 10, v[4] * 10, v[5] * 10);
+        const c = Vec3.create(v[6] * 10, v[7] * 10, v[8] * 10);
+        const box = PeriodicBox.create(a, b, c);
+        if (PeriodicBox.isValid(box)) {
+          const cell = Cell.fromBasis(a, b, c);
+          ModelSymmetry.Provider.set(model, ModelSymmetry.fromCell(cell.size, cell.anglesInRadians));
+          Model.PeriodicBox.set(model, box);
         }
         models.push(model);
       }

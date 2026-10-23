@@ -33,6 +33,7 @@ registry from `ModelFormat.kind` to an `obtain(model)`.
 | Provider                  | Bag                 | From                                                                         |
 | ------------------------- | ------------------- | ---------------------------------------------------------------------------- |
 | `ModelSymmetry`           | dynamic, per format | mmCIF (assemblies, spacegroup, NCS); `fromCell` by other readers, frames     |
+| `Model.PeriodicBox`       | dynamic             | frames from coordinates with a cell; GRO (all nine box values: triclinic)    |
 | `ModelSecondaryStructure` | static              | mmCIF `struct_conf`, `struct_sheet_range`                                    |
 | `StructConn`              | static              | mmCIF `struct_conn`                                                          |
 | `ComponentBond`           | static, per format  | mmCIF `chem_comp_bond`; set by CCD                                           |

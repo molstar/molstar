@@ -44,17 +44,17 @@ Per frame: `for i of order: if parent[i] >= 0: x[i] = x[p] + minimumImage(x[i] -
 
 ## 4. Where it lives
 
-- **Library** (`packages/model`, `coordinates/periodic.ts`): `UnwrapPlan`, `applyWhole`, `applyWrap`, and
-  `PeriodicTrajectory.create(trajectory, params): Trajectory`, a lazy wrapper: `getFrameAtIndex(i)` gets the source
-  frame and returns `{ ...frame, id, atomicConformation: fixed }`; frames without a box pass through. The representative
+- **Library** (done for whole: `model/periodic.ts`, `ModelPeriodicity`; spec in `packages/model/_spec/model.md` §4):
+  `makeWhole(frame)` returns `{ ...frame, id, atomicConformation: fixed }` (cached per frame); frames without a
+  `Model.PeriodicBox` pass through. The box is explicit, set only by simulation readers, never a crystal cell. The representative
   is fixed too, and gets `atomicRanges` recomputed: polymer gaps are computed from the conformation at model creation
   (`basic/parser.ts`) and shared by frames, so a split topology frame would keep its false gaps. Bonds need nothing:
   topology bonds are right once molecules are whole, and distance bonds are computed per structure from the fixed
   representative. Covers every source, and headless and MVS get it without the plugin.
-- **Plugin**: a transform `TrajectoryPeriodicity` (Trajectory → Trajectory, params `{ whole, wrap: off | box | selection,
-  center: selection, noJump }`), inserted by the trajectory presets when the representative has a box. To check first:
-  that the hierarchy manager and the trajectory animation accept a trajectory under a trajectory (else: a param group
-  on `ModelFromTrajectory`, Q3).
+- **Plugin** (done): a param of `ModelFromTrajectory`, `periodic: 'whole' | 'off'` (optional, absent: whole; hidden
+  when the trajectory has no box), applied per frame in `modelAtIndex`. Not a Trajectory → Trajectory node: the
+  hierarchy manager makes every trajectory cell a `TrajectoryRef`, so a nested one would list each trajectory twice.
+  Every preset gets it through `createModel`; the animation's `{ modelIndex }` updates keep the default.
 - **Prism**: an operation `trajectory.periodicity` (aliases "fix periodic boundary", "make molecules whole", "center
   protein in box") next to the animation feature, and a toggle in the trajectory panel. **MVS**: a later spec extension
   of the trajectory node.
@@ -93,9 +93,10 @@ with phase 1.
 
 ## 7. Phases
 
-0. **Readers** (small, independent; the `Viewer/Simulations` stories of §6 are done): GRO triclinic box (nine values); LAMMPS frames get a box (bounds, tilt factors) and
+0. **Readers** (the `Viewer/Simulations` stories of §6 and the GRO box are done; the rest open): GRO triclinic box (nine values); LAMMPS frames get a box (bounds, tilt factors) and
    use image flags or unwrapped coordinates when present; `Frame.box` from every reader (XTC, TRR keep their basis).
-1. **Whole**: core box, plan, library wrapper, plugin transform, tests, the Periodic box stories (§6). The bug fix users see.
+1. **Whole** (done): core box, plan, `makeWhole`, the `ModelFromTrajectory` param, tests over
+   `data/examples/trajectory/periodic/split-peptide.gro` (11.6 KB, generated), the Periodic box stories (§6). The bug fix users see.
 2. **Wrap** around the box or a selection (protein centered, solvent around it). A selection of several molecules
    wraps around the first one's center, iteratively; a complex split across the box needs GROMACS-style clustering:
    documented as a limit.
@@ -112,8 +113,7 @@ Each phase: an entry in `.v6/changelogs/`, `model.md §3–4` and `formats.md` u
    costs one O(N) pass per frame, and distances within a molecule do not change (distances between molecules can: a
    different image).
 2. **`PeriodicBox`**, a new core type, or basis and origin added to `Cell`?
-3. **Where the plugin applies it**: a Trajectory → Trajectory node (recommended: one place, composes) or a param of
-   `ModelFromTrajectory`?
+3. ~~Where the plugin applies it~~: a param of `ModelFromTrajectory` (§4: a nested trajectory node would show twice).
 4. **No bonds**: the hierarchy heuristic (§3), or periodic-aware distance bonds as well (finds bonds across the face, so
    ligands with several residues are handled too; more work in `intra-compute.ts`)?
 5. **Storybook group** (§6): `Viewer/Simulations`, with only Simularium moved into it, or also the ensembles from
