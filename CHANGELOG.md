@@ -10,6 +10,21 @@ here.
 
 ## [Unreleased]
 
+- Fix volume and particle representations dropping their state (visibility, alpha, overpaint, transparency, clipping,
+  transform) on a new render object, e.g. each streamed volume box
+- Fix segmentation surfaces at a face of the grid: reads past the face wrapped into the next row
+- Fix anisotropic ADP mapping: the last atom and atom ids not near 0 had no ellipsoid; models sharing the first model's
+  topology showed its ellipsoids
+- Fix `ColorTheme.Palette` 'set' with offsets: integer offsets and the part after the last stop were undefined (black)
+- Fix `approxNearest` (grid and structure lookups) returning the nearest candidate last; callers (external-structure
+  color theme, blob surfaces) read the first
+- Fix ionic interactions taking every non-backbone nitrogen of a ligand for a negative charge
+- Fix PDB `CONECT` bonds listed only on the higher-serial atom being dropped, and triple bonds written as 'trpl' (read
+  back as single)
+- Fix `AssetManager.resolve` keeping an asset held when reading it fails
+- Fix `applyOrUpdateTagged` dropping the extra tags when the params change
+- Fix `Loci.GranularityOptions` listing plain granularities under 'With Symmetry'
+- Fix `addFixedCountDashedCylinder` changing the caller's `topCap` (mirrored aromatic dashes lost their top caps)
 - Fix `ungzip` of gzip files with an extra field (`FLG.FEXTRA`, e.g. a single BGZF block): the field's 2-byte length was
   not skipped
 - Fix accessible surface area (its color theme, `is-buried`, `is-accessible`) throwing on structures with coarse units;
