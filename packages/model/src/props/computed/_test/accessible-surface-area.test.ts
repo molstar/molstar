@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
@@ -11,6 +13,7 @@ import { type ElementIndex, Structure, StructureElement } from '@molstar/model/m
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import { SortedArray } from '@molstar/core/data/int';
 import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley.js';
+import { AccessibleSurfaceAreaProvider } from '../accessible-surface-area.js';
 
 const Residue = [
   ['N', 0.0, 1.4, 0.0],
@@ -133,5 +136,24 @@ describe('AccessibleSurfaceArea.getValue', () => {
     for (const unit of sub.units) {
       expect(got.get(unit.id)).toEqual(exp.get(unit.id)!.slice(5, 10));
     }
+  });
+});
+
+describe('AccessibleSurfaceArea on coarse units', () => {
+  it('gives coarse elements no value instead of throwing, and does not apply to coarse-only structures', async () => {
+    const examples = path.resolve(import.meta.dirname, '../../../../../../data/examples');
+    const parsed = await CIF.parseText(fs.readFileSync(path.join(examples, 'ihm-coarse-8zzh.cif'), 'utf8')).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const model = (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative;
+    const structure = Structure.ofModel(model);
+    expect(structure.units.length).toBeGreaterThan(0);
+
+    const asa = await AccessibleSurfaceArea.compute(structure).run();
+    expect(asa.area.length).toBe(0);
+    const l = StructureElement.Location.create(structure, structure.units[0], structure.units[0].elements[0]);
+    expect(AccessibleSurfaceArea.getFlag(l, asa)).toBe(AccessibleSurfaceArea.Flags.NA);
+
+    expect(AccessibleSurfaceAreaProvider.isApplicable(structure)).toBe(false);
+    expect(AccessibleSurfaceAreaProvider.isApplicable(await assembly())).toBe(true);
   });
 });

@@ -1,16 +1,17 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { MaxAsa, type ShrakeRupleyContext, VdWLookup } from './common.js';
 import { getElementIdx, isHydrogen } from '@molstar/model/model/structure/structure/unit/bonds/common';
 import { isPolymer, isNucleic, MoleculeType, type ElementSymbol } from '@molstar/model/model/structure/model/types';
 import { VdwRadius } from '@molstar/model/model/structure/model/properties/atomic';
-import { StructureElement, StructureProperties } from '@molstar/model/model/structure/structure';
+import { StructureElement, StructureProperties, Unit } from '@molstar/model/model/structure/structure';
 import { getElementMoleculeType } from '@molstar/model/model/structure/util';
 
 export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
@@ -28,6 +29,14 @@ export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
     const unit = structure.units[i];
     const { elements } = unit;
     l.unit = unit;
+
+    // coarse elements have no atom names or residues: no radius, no residue (06/B3)
+    if (!Unit.isAtomic(unit)) {
+      atomRadiusType.fill(0, m, m + elements.length);
+      serialResidueIndex.fill(-1, m, m + elements.length);
+      m += elements.length;
+      continue;
+    }
 
     prevResidueIdx = -1;
 
