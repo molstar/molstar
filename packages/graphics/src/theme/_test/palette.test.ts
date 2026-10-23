@@ -46,4 +46,27 @@ describe('ColorTheme.Palette with offsets', () => {
     expect(at(p, 0.2)).toBe(0x00ff00);
     expect(at(p, 0.9)).toBe(0xff0000);
   });
+
+  it('gives a set with integer offsets, and the part after its last stop, colors (perf-audit-2 09/B3)', () => {
+    const ends = ColorTheme.Palette(
+      [
+        [Color(0x0000ff), 0],
+        [Color(0xff0000), 1],
+      ],
+      'set',
+    );
+    expect(ends.colors).toEqual([0x0000ff, 0xff0000]);
+
+    const inside = ColorTheme.Palette(
+      [
+        [Color(0x0000ff), 0.2],
+        [Color(0xff0000), 0.6],
+      ],
+      'set',
+    );
+    expect(inside.colors.length).toBe(10);
+    expect(inside.colors.every((c) => c !== undefined)).toBe(true);
+    expect(at(inside, 0)).toBe(0x0000ff);
+    expect(at(inside, 1)).toBe(0xff0000);
+  });
 });

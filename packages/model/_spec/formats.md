@@ -37,7 +37,7 @@ registry from `ModelFormat.kind` to an `obtain(model)`.
 | `StructConn`              | static              | mmCIF `struct_conn`                                                          |
 | `ComponentBond`           | static, per format  | mmCIF `chem_comp_bond`; set by CCD                                           |
 | `IndexPairBonds`          | dynamic             | mmCIF `molstar_bond_site`; set by MOL/SDF/MOL2, CIF core, LAMMPS, topologies |
-| `AtomSiteAnisotrop`       | static              | mmCIF, CIF core                                                              |
+| `AtomSiteAnisotrop`       | dynamic             | mmCIF (by each model's atom ids), CIF core (by atom label)                   |
 | `AtomPartialCharge`       | static              | set by PDBQT, MOL2, LAMMPS                                                   |
 
 `IndexPairBonds` index atoms by source index (`atomSourceIndex`); `maxDistance` (default -1: an element-based threshold;

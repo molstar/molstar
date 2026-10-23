@@ -123,12 +123,12 @@ describe('inter-unit contacts', async () => {
       'count=1498 types=4:1498 ordered=3f8d3109 sorted=87123ec1 bridges=0',
       'count=1604 types=4:1498,8:106 ordered=6ac3c81 sorted=f4b97265 bridges=33',
     ],
-    // identity operators
+    // identity operators (the NAG N features gone, 06/B11: the same contacts, feature indices shifted)
     [
       '7qpd',
       async () => Structure.ofModel(m7qpd),
       'count=94 types=2:6,4:88 ordered=d26d8de5 sorted=26280639 bridges=0',
-      'count=200 types=1:10,2:6,4:88,6:70,8:26 ordered=71e8eb91 sorted=ff4f819 bridges=0',
+      'count=200 types=1:10,2:6,4:88,6:70,8:26 ordered=9242e4b9 sorted=968a8ad5 bridges=0',
     ],
     // contacts within chains split into units, under symmetry operators
     [

@@ -4,8 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Yakov Pechersky <ffxen158@gmail.com>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { sortedCantorPairing } from '@molstar/core/data/util';
 import { CifCategory, CifField } from '@molstar/io/reader/cif';
 import type { mmCIF_Schema } from '@molstar/io/reader/cif/schema/mmcif';
 import type { Tokens } from '@molstar/io/reader/common/text/tokenizer';
@@ -46,38 +48,39 @@ export function parseConect(
   const pos = [11, 16, 21, 26];
 
   let k = 1;
-  let currentIdxA = -1;
-  let bondIndex: { [k: number]: number } = {};
-  let hasMultipleBonds = false;
+  // One bond per atom pair, from the records of either atom: files list a bond on both atoms' records or on one, either
+  // of them (perf-audit-2 04/B11: one listed on the higher serial's record only was dropped). A partner given several
+  // times makes a double or triple bond (CONECT 1529 1528 1528 is a double bond): the order is the larger count of the
+  // two atoms' records.
+  const bondIndex = new Map<number, number>();
+  /** per bond, the times the first and the second partner's records list it */
+  const sideCounts: number[] = [];
 
   for (let i = lineStart; i < lineEnd; i++) {
     const line = getLine(i);
-    const idxA = idMap[parseInt(line.substr(6, 5))];
+    const idxRecord = idMap[parseInt(line.substr(6, 5))];
 
-    if (idxA === undefined) continue;
-
-    if (currentIdxA !== idxA) {
-      currentIdxA = idxA;
-      bondIndex = {};
-    }
+    if (idxRecord === undefined) continue;
 
     for (let j = 0; j < 4; ++j) {
       const idB = parseInt(line.substr(pos[j], 5));
       if (Number.isNaN(idB)) continue;
 
-      const idxB = idMap[idB];
-      if (idxB === undefined) continue;
-      if (idxA > idxB) continue;
+      const idxPartner = idMap[idB];
+      if (idxPartner === undefined) continue;
 
-      // Records where a 'idxB' atom is given multiple times are interpreted
-      // as double/triple bonds, e.g. CONECT 1529 1528 1528 is a double bond
-      if (bondIndex[idxB] !== undefined) {
-        bondOrder[bondIndex[idxB]] += 1;
-        hasMultipleBonds = true;
+      const side = idxRecord <= idxPartner ? 0 : 1;
+      const key = sortedCantorPairing(idxRecord, idxPartner);
+      const b = bondIndex.get(key);
+      if (b !== undefined) {
+        sideCounts[2 * b + side] += 1;
         continue;
       }
-      bondIndex[idxB] = k - 1;
+      bondIndex.set(key, k - 1);
+      sideCounts.push(1 - side, side);
 
+      const idxA = Math.min(idxRecord, idxPartner);
+      const idxB = Math.max(idxRecord, idxPartner);
       const atomIdA = sites.type_symbol!.str(idxA) as ElementSymbol;
       const atomIdB = sites.type_symbol!.str(idxB) as ElementSymbol;
 
@@ -88,7 +91,6 @@ export function parseConect(
         id.push(`covale${k}`);
         conn_type_id.push('covale');
       }
-      bondOrder.push(1);
 
       ptnr1_label_asym_id.push(sites.label_asym_id!.str(idxA));
       ptnr1_label_seq_id.push(sites.label_seq_id!.int(idxA));
@@ -127,8 +129,16 @@ export function parseConect(
     pdbx_ptnr2_PDB_ins_code: CifField.ofStrings(ptnr2_PDB_ins_code),
   };
 
+  let hasMultipleBonds = false;
+  for (let b = 0, il = k - 1; b < il; ++b) {
+    const order = Math.max(sideCounts[2 * b], sideCounts[2 * b + 1]);
+    bondOrder.push(order);
+    if (order > 1) hasMultipleBonds = true;
+  }
+
   if (hasMultipleBonds) {
-    const valueOrder = ['sing', 'doub', 'trpl', 'quad'];
+    // the mmCIF value_order enumeration (perf-audit-2 04/B5: 'trpl' read back as order 1)
+    const valueOrder = ['sing', 'doub', 'trip', 'quad'];
     struct_conn.pdbx_value_order = CifField.ofStrings(bondOrder.map((bo) => valueOrder[bo - 1] || 'sing'));
   }
 

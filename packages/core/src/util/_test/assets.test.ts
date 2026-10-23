@@ -195,3 +195,36 @@ describe('DefaultAssetManager URL cache', () => {
     expect(m.urlCacheSize).toBe(0);
   });
 });
+
+describe('DefaultAssetManager failed reads (perf-audit-2 01/B12)', () => {
+  const notJson = () => Asset.File(new File(['<html>error</html>'], 'error.json'));
+
+  it('a file that fails to read is not held', async () => {
+    const m = new DefaultAssetManager();
+    const asset = notJson();
+    await expect(m.resolve(asset, 'json').run()).rejects.toThrow();
+    expect(m.has(asset)).toBe(false);
+  });
+
+  it('a failed read of a held file gives its hold back', async () => {
+    const m = new DefaultAssetManager();
+    const asset = notJson();
+    const text = await m.resolve(asset, 'string').run();
+    await expect(m.resolve(asset, 'json').run()).rejects.toThrow();
+    text.dispose();
+    expect(m.has(asset)).toBe(false);
+  });
+
+  it('a URL whose bytes fail to read is not held', async () => {
+    serve('<html>error</html>');
+    const m = new DefaultAssetManager();
+    const asset = Asset.Url('https://x.org/a.json');
+    await expect(m.resolve(asset, 'json').run()).rejects.toThrow();
+    expect(m.has(asset)).toBe(false);
+    const text = await m.resolve(asset, 'string').run();
+    await expect(m.resolve(asset, 'json').run()).rejects.toThrow();
+    text.dispose();
+    expect(m.has(asset)).toBe(false);
+    expect(m.urlCacheSize).toBe(0);
+  });
+});

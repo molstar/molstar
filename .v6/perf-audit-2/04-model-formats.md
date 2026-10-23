@@ -183,13 +183,13 @@ regressed 0, dropped 1**. Every v1 probe still open was rerun at HEAD and gives 
 | B10 | new | medium | Volume sigma is RMS, not standard deviation (CCP4 without ARMS, DX, Cube, DSN6) | [ccp4.ts:122](../../packages/model/src/formats/volume/ccp4.ts#L122) | confirmed |
 | B1 | still-open | medium | Leak: `getUniqueComponentNames` `memoize1` keeps every `BasicData` | [properties.ts:189](../../packages/model/src/formats/structure/basic/properties.ts#L189) | confirmed |
 | B7 | still-open; **fixed** #2032 | medium | Coordinate-trajectory frames lose bonds set with `IndexPairBonds.Provider.set` | [model.ts:127](../../packages/model/src/model/structure/model/model.ts#L127) | confirmed |
-| B3 | still-open | medium | ADP mapping drops the last atom and ids not 1..N; shared-hierarchy models get model 1's ADPs | [anisotropic.ts:53](../../packages/model/src/formats/structure/property/anisotropic.ts#L53) | confirmed |
+| B3 | still-open; **fixed** #2033 | medium | ADP mapping drops the last atom and ids not 1..N; shared-hierarchy models get model 1's ADPs | [anisotropic.ts:53](../../packages/model/src/formats/structure/property/anisotropic.ts#L53) | confirmed |
 | 12/B3 | still-open; **fixed** #2032 | medium | Periodic trilinear interpolation reads unwrapped indices | [grid.ts:250](../../packages/model/src/model/volume/grid.ts#L250) | confirmed |
 | B9 | new | low | Models sharing the previous hierarchy also get its `atomSourceIndex` | [atomic.ts:244](../../packages/model/src/formats/structure/basic/atomic.ts#L244) | confirmed |
-| B11 | new | low | One-sided PDB CONECT (higher serial only) dropped | [conect.ts:70](../../packages/model/src/formats/structure/pdb/conect.ts#L70) | confirmed |
+| B11 | new; **fixed** #2033 | low | One-sided PDB CONECT (higher serial only) dropped | [conect.ts:70](../../packages/model/src/formats/structure/pdb/conect.ts#L70) | confirmed |
 | B4 | still-open | low | `Sequence.ofSequenceRanges` off by one; last coarse element dropped | [sequence.ts:212](../../packages/model/src/model/sequence/sequence.ts#L212) | confirmed |
-| B5 | still-open | low | CONECT triple bonds written as `'trpl'` | [conect.ts:131](../../packages/model/src/formats/structure/pdb/conect.ts#L131) | confirmed |
-| B6 | still-open | low | Granularity options grouped under 'With Symmetry' | [loci.ts:304](../../packages/model/src/model/loci.ts#L304) | confirmed |
+| B5 | still-open; **fixed** #2033 | low | CONECT triple bonds written as `'trpl'` | [conect.ts:131](../../packages/model/src/formats/structure/pdb/conect.ts#L131) | confirmed |
+| B6 | still-open; **fixed** #2033 | low | Granularity options grouped under 'With Symmetry' | [loci.ts:304](../../packages/model/src/model/loci.ts#L304) | confirmed |
 | B12 | new | low | MOL2 bonds assume atom ids 1..N in file order | [mol2.ts:163](../../packages/model/src/formats/structure/mol2.ts#L163) | plausible |
 | B13 | new | low | Segmentation load throws on a voxel label without a table set | [segmentation.ts:105](../../packages/model/src/formats/volume/segmentation.ts#L105) | plausible |
 | B14 | new | low | Kinemage: a re-opened `@group` keeps the previous group's masters | [kinparser.ts:767](../../packages/extensions/kinemage/src/reader/kinparser.ts#L767) | plausible |

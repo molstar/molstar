@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -117,7 +118,8 @@ namespace ColorTheme {
         }
       } else {
         // A set: each stop's color up to the middle between it and the next. Offsets' precision sets the samples
-        // (capped: an offset with many decimals does not make a huge texture).
+        // (capped: an offset with many decimals does not make a huge texture; at least 2: integer offsets have no
+        // decimals). After the last stop, its color (perf-audit-2 09/B3: `undefined`, black).
         let maxPrecision = 0;
         for (const e of list) {
           if (Array.isArray(e)) {
@@ -125,7 +127,7 @@ namespace ColorTheme {
             if (p > maxPrecision) maxPrecision = p;
           }
         }
-        const count = Math.min(Math.pow(10, maxPrecision), MaxPaletteSamples);
+        const count = Math.max(2, Math.min(Math.pow(10, maxPrecision), MaxPaletteSamples));
 
         const _off: number[] = [];
         for (let i = 0, il = values.length - 1; i < il; ++i) {
@@ -136,7 +138,7 @@ namespace ColorTheme {
 
         for (let i = 0, il = Math.max(count, list.length); i < il; ++i) {
           const t = normalize(i, 0, count - 1);
-          const j = SortedArray.findPredecessorIndex(off, t);
+          const j = Math.min(SortedArray.findPredecessorIndex(off, t), src.length - 1);
           colors[i] = src[j];
         }
       }
