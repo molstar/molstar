@@ -148,5 +148,7 @@ Done after the phases: **periodic images** are the existing symmetry structure (
 the frame's P1 cell from its box; `Unit.remapModel` places the copies from each frame's cell, so they follow an NPT
 box), found as "periodic images" and in the trajectory bar's box menu; **NAMD box origins** from `.xsc`/`.xst` files
 (`parseXsc`, `coordinatesWithXsc`, the plugin's `CoordinatesWithBoxes`, `load.trajectory`'s `boxes`), matched to a
-DCD's frames by step (`Frame.step` from `ISTART`, `NSAVC`). Open: `.xsc` in MVS and as a dropped file (no format
-provider), the cell drawn in the standard frame for a box whose vectors are rotated.
+DCD's frames by step (`Frame.step` from `ISTART`, `NSAVC`). A dropped `.xsc`/`.xst` (the plugin's `xsc` format, category
+"Periodic boxes": `ParseXsc`, then `attachPeriodicBoxes` gives it to the last trajectory from coordinates, replacing
+boxes it had) and MVS's `custom.molstar_boxes` on a coordinates node. Left as is: the cell drawn in the standard frame
+for a box whose vectors are rotated. Open: the Python `molviewspec` keys (the v6 checklist).

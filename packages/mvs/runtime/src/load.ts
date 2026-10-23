@@ -27,6 +27,7 @@ import { CoordinatesFromXtc } from '@molstar/plugin/state/formats/coordinates/xt
 import {
   CustomModelProperties,
   CustomStructureProperties,
+  CoordinatesWithBoxes,
   ModelFromTrajectory,
   StructureFromModel,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
@@ -488,6 +489,25 @@ export const MolstarLoadingContext = {
 };
 
 /** Loading actions for loading a `MolstarTree`, per node kind. */
+/** Coordinates of the given format parsed from `updateParent`'s data. */
+function parseCoordinates(updateParent: UpdateTarget, format: string): UpdateTarget | undefined {
+  switch (format) {
+    case 'nctraj':
+      return UpdateTarget.apply(updateParent, CoordinatesFromNctraj);
+    case 'dcd':
+      return UpdateTarget.apply(updateParent, CoordinatesFromDcd);
+    case 'trr':
+      return UpdateTarget.apply(updateParent, CoordinatesFromTrr);
+    case 'xtc':
+      return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
+    case 'lammpstrj':
+      return UpdateTarget.apply(updateParent, CoordinatesFromLammpstraj);
+    default:
+      console.error(`Unknown format in "coordinates" node: "${format}"`);
+      return undefined;
+  }
+}
+
 const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> = {
   root(updateParent: UpdateTarget, node: MolstarNode<'root'>, context: MolstarLoadingContext): UpdateTarget {
     // (walks the whole tree: only when a label needs it, `load.md §5`)
@@ -542,22 +562,15 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     }
   },
   coordinates(updateParent: UpdateTarget, node: MolstarNode<'coordinates'>): UpdateTarget | undefined {
-    const format = node.params.format;
-    switch (format) {
-      case 'nctraj':
-        return UpdateTarget.apply(updateParent, CoordinatesFromNctraj);
-      case 'dcd':
-        return UpdateTarget.apply(updateParent, CoordinatesFromDcd);
-      case 'trr':
-        return UpdateTarget.apply(updateParent, CoordinatesFromTrr);
-      case 'xtc':
-        return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
-      case 'lammpstrj':
-        return UpdateTarget.apply(updateParent, CoordinatesFromLammpstraj);
-      default:
-        console.error(`Unknown format in "coordinates" node: "${format}"`);
-        return undefined;
+    const parsed = parseCoordinates(updateParent, node.params.format);
+    // a NAMD box file for them (`custom.molstar_boxes`, load.md §6): the frames' boxes with their origins
+    const boxes = (node.custom as { molstar_boxes?: { url?: unknown } } | undefined)?.molstar_boxes;
+    if (!parsed || boxes === undefined) return parsed;
+    if (typeof boxes?.url !== 'string') {
+      console.warn('MVS: custom.molstar_boxes needs a url, skipped.');
+      return parsed;
     }
+    return UpdateTarget.apply(parsed, CoordinatesWithBoxes, { url: boxes.url });
   },
   trajectory(updateParent: UpdateTarget, node: MolstarNode<'trajectory'>): UpdateTarget | undefined {
     const format = node.params.format;

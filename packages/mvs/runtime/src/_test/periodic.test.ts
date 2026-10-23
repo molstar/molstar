@@ -78,4 +78,27 @@ describe('custom.molstar_periodic', () => {
     expect(models).toHaveLength(1);
     expect(models[0].custom).toEqual({ molstar_periodic: 'box' });
   });
+
+  it("resolves custom.molstar_boxes's url relative to the view's, leaving the given tree as it is", () => {
+    const coordinates = { kind: 'coordinates', params: {}, custom: { molstar_boxes: { url: 'protein.xsc' } } };
+    const tree = {
+      kind: 'root',
+      children: [
+        {
+          kind: 'download',
+          params: { url: 'protein.dcd' },
+          children: [{ kind: 'parse', params: { format: 'dcd' }, children: [coordinates] }],
+        },
+      ],
+    };
+    const converted = convertMvsToMolstar(tree as never, 'https://files.test/views/view.mvsj');
+    let found: unknown;
+    const walk = (n: MolstarNode & { children?: MolstarNode[] }) => {
+      if (n.kind === 'coordinates') found = n.custom?.molstar_boxes;
+      for (const c of n.children ?? []) walk(c as never);
+    };
+    walk(converted as never);
+    expect(found).toEqual({ url: 'https://files.test/views/protein.xsc' });
+    expect(coordinates.custom.molstar_boxes.url).toBe('protein.xsc');
+  });
 });

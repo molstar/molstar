@@ -158,11 +158,24 @@ const molstarNodesToCondense = new Set<MolstarKind>([
 export function convertMvsToMolstar(mvsTree: MVSTree, sourceUrl: string | undefined): MolstarTree {
   const full = addDefaults<typeof MVSTreeSchema>(mvsTree, MVSTreeSchema) as FullMVSTree;
   if (sourceUrl) resolveUris(full, sourceUrl, ['uri', 'url']);
+  if (sourceUrl) resolveCustomUrls(full, sourceUrl);
   const converted = convertTree<FullMVSTree, MolstarTree>(full, mvsToMolstarConversionRules);
   if (converted.kind !== 'root')
     throw new Error("Root's type is not 'root' after conversion from MVS tree to Molstar tree.");
   const condensed = condenseTree<MolstarTree>(converted, molstarNodesToCondense);
   return condensed;
+}
+
+/**
+ * Mol*-specific keys with addresses resolved as `url` params are (load.md §6): `custom.molstar_boxes.url` on a
+ * `coordinates` node. A new `custom` object: the caller's tree is not changed.
+ */
+function resolveCustomUrls(tree: MVSTree, sourceUrl: string) {
+  dfs(tree, (node) => {
+    const boxes = (node.custom as { molstar_boxes?: { url?: unknown } } | undefined)?.molstar_boxes;
+    if (!boxes || typeof boxes.url !== 'string') return;
+    node.custom = { ...node.custom, molstar_boxes: { ...boxes, url: resolveUri(boxes.url, sourceUrl, windowUrl()) } };
+  });
 }
 
 /** Kinds whose children are converted by the rules (split, condensed); below them a node converts on its own, and so

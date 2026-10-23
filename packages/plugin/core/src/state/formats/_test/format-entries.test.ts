@@ -39,6 +39,7 @@ import { Xtc } from '../coordinates/xtc.js';
 import { Trr } from '../coordinates/trr.js';
 import { Nctraj } from '../coordinates/nctraj.js';
 import { LammpsTrajectory } from '../coordinates/lammps.js';
+import { Xsc } from '../coordinates/xsc.js';
 import { Ply } from '../shape/ply.js';
 import { Obj } from '../shape/obj.js';
 import { Vtp } from '../shape/vtp.js';
@@ -92,6 +93,7 @@ const Coordinates: Spec[] = [
   { entry: Trr, provider: BuiltInCoordinatesFormats[2] },
   { entry: Nctraj, provider: BuiltInCoordinatesFormats[3] },
   { entry: LammpsTrajectory, provider: BuiltInCoordinatesFormats[4] },
+  { entry: Xsc, provider: BuiltInCoordinatesFormats[5] },
 ];
 const Shape: Spec[] = [
   { entry: Ply, provider: BuiltInShapeFormats[0] },

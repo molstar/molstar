@@ -120,4 +120,7 @@ On a structure also `molstar_periodic` (`periodicModelProps`, .v6/periodic-traje
 `'whole' | 'box' | 'nojump' | 'off'` or `{ mode, center? }` with center `'box'`, `'polymers'` or
 `{ expression, language? }`; the conversion carries it to the structure's shown `model` node (not a topology's), whose
 `ModelFromTrajectory` takes it as `periodic` and `periodicCenter`. Absent: molecules whole (the plugin's default); an
-unknown mode is skipped with a warning. A key is the way in for a Mol\* feature before (or instead of) a schema field.
+unknown mode is skipped with a warning. On a `coordinates` node `molstar_boxes` (`{ url }`): a NAMD `.xsc`/`.xst` file
+giving the frames their periodic boxes with origins, by step; `CoordinatesWithBoxes` fetches it behind the coordinates
+and carries the node's ref, and the conversion resolves the `url` against the view's as `url` params are
+(`resolveCustomUrls`). A key is the way in for a Mol\* feature before (or instead of) a schema field.

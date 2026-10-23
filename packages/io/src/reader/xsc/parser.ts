@@ -5,6 +5,7 @@
  */
 
 import { Task } from '@molstar/core/task';
+import type { StringLike } from '@molstar/core/util/string-like';
 import { ReaderResult as Result } from '../result.js';
 
 // NAMD's extended system files: `.xsc` (one line, the last step's box) and `.xst` (a line per saved step). A header
@@ -59,6 +60,7 @@ function parseInternal(data: string): Result<XscFile> {
   return Result.success({ entries });
 }
 
-export function parseXsc(data: string) {
-  return Task.create<Result<XscFile>>('Parse NAMD XSC', async () => parseInternal(data));
+export function parseXsc(data: StringLike) {
+  // a small text file: as one string
+  return Task.create<Result<XscFile>>('Parse NAMD XSC', async () => parseInternal(data.toString()));
 }

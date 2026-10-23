@@ -17,6 +17,7 @@ import { DownloadStructure, PdbDownloadProvider } from '@molstar/plugin/state/ac
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
 import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
+import { ParseXsc } from '@molstar/plugin/state/formats/coordinates/xsc';
 import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume/category';
@@ -963,10 +964,11 @@ async function loadTrajectory(
       if (p.boxes) {
         const boxesName = fileNameOf(p.boxes) || p.boxes;
         const boxesData = await plugin.builders.data.download({ url: p.boxes, isBinary: false, label: boxesName });
+        const boxes = await plugin.build().to(boxesData).apply(ParseXsc).commit();
         coords = await plugin
           .build()
           .to(coords)
-          .apply(CoordinatesWithBoxes, { boxesRef: boxesData.ref }, { dependsOn: [boxesData.ref] })
+          .apply(CoordinatesWithBoxes, { boxesRef: boxes.ref }, { dependsOn: [boxes.ref] })
           .commit();
       }
       const trajectory = await plugin

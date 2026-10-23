@@ -11,6 +11,7 @@ import type { ArtiatomiEmFile } from '@molstar/io/reader/artiatomi/em';
 import type { CryoEtDataPortalNdjsonFile } from '@molstar/io/reader/cryoet/ndjson';
 import type { SimulariumFile } from '@molstar/io/reader/simularium/schema';
 import type { MtzFile } from '@molstar/io/reader/mtz/schema';
+import type { XscFile } from '@molstar/io/reader/xsc/parser';
 import type { DcdFile } from '@molstar/io/reader/dcd/parser';
 import type { DynamoTblFile } from '@molstar/io/reader/dynamo/tbl';
 import type { Dsn6File } from '@molstar/io/reader/dsn6/schema';
@@ -117,6 +118,8 @@ export namespace PluginStateObject {
     export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) {}
     export class Dx extends Create<DxFile>({ name: 'DX File', typeClass: 'Data' }) {}
     export class Mtz extends Create<MtzFile>({ name: 'MTZ File', typeClass: 'Data' }) {}
+    /** A NAMD extended system file: the periodic boxes of a DCD's frames (`CoordinatesWithBoxes`) */
+    export class Xsc extends Create<XscFile>({ name: 'NAMD XSC File', typeClass: 'Data' }) {}
 
     export type BlobEntry = { id: string } & (
       | { kind: 'json'; data: unknown }

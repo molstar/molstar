@@ -10,7 +10,14 @@ import { describe, expect, it } from 'vitest';
 import { Model, type Structure } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
-import { ModelFromTrajectory, StructureFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import {
+  CoordinatesWithBoxes,
+  ModelFromTrajectory,
+  StructureFromTrajectory,
+  TrajectoryFromModelAndCoordinates,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StateSelection } from '@molstar/core/state';
+import { getFileNameInfo } from '@molstar/core/util/file-info';
 import { PolymerCenter, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { createPlaybackPlugin } from '../../../animation/_test/harness.js';
@@ -173,5 +180,45 @@ describe('ModelFromTrajectory in a periodic box', () => {
     expect(a()).toBeCloseTo(20, 3);
     await setModel(plugin, model.ref, { modelIndex: 1 });
     expect(a()).toBeCloseTo(22, 3);
+  });
+
+  it('gives a dropped NAMD box file to the last trajectory from coordinates, replacing boxes it had', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const example = (name: string) =>
+      fs.readFileSync(path.resolve(import.meta.dirname, `../../../../../../../../data/examples/trajectory/${name}`));
+    const pdb = await plugin.builders.data.rawData({
+      data: example('protein.pdb').toString('utf8'),
+      label: 'protein.pdb',
+    });
+    const model = await plugin.builders.structure.createModel(
+      await plugin.builders.structure.parseTrajectory(pdb, 'pdb'),
+    );
+    const dcd = await plugin.builders.data.rawData({
+      data: new Uint8Array(example('protein.dcd')),
+      label: 'protein.dcd',
+    });
+    const coordinates = await plugin.dataFormats.get('dcd')!.parse(plugin, dcd);
+    const trajectory = await plugin
+      .build()
+      .toRoot()
+      .apply(TrajectoryFromModelAndCoordinates, { modelRef: model.ref, coordinatesRef: coordinates.ref })
+      .commit();
+    const frame = await plugin.build().to(trajectory).apply(ModelFromTrajectory, { modelIndex: 0 }).commit();
+
+    const drop = async (text: string, name: string) => {
+      const data = await plugin.builders.data.rawData({ data: text, label: name });
+      const provider = plugin.dataFormats.auto(getFileNameInfo(name), data.cell!.obj!)!;
+      expect(provider.name).toBe('xsc');
+      await provider.visuals!(plugin, await provider.parse(plugin, data));
+    };
+    const origin = () =>
+      Array.from(Model.PeriodicBox.get(plugin.state.data.cells.get(frame.ref)!.obj!.data as Model)!.origin);
+
+    await drop('0 40 0 0 0 40 0 0 0 40 5 -3 2\n', 'a.xsc');
+    expect(origin()).toEqual([5 - 20, -3 - 20, 2 - 20]);
+    await drop('0 50 0 0 0 50 0 0 0 50 0 0 0\n', 'b.xsc');
+    expect(origin()).toEqual([-25, -25, -25]);
+    // one boxes step, the second file's
+    expect(plugin.state.data.select(StateSelection.Generators.ofTransformer(CoordinatesWithBoxes))).toHaveLength(1);
   });
 });

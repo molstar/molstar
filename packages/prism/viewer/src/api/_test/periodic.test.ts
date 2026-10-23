@@ -224,4 +224,89 @@ describe('trajectory.periodic', () => {
     expect(mean).toBeGreaterThan(-15);
     expect(mean).toBeLessThan(25);
   });
+
+  it('gives a dropped NAMD box file to the trajectory loaded', async () => {
+    const data = (name: string) =>
+      fs.readFileSync(path.resolve(import.meta.dirname, `../../../../../../data/examples/trajectory/${name}`));
+    const served: Record<string, BodyInit> = {
+      'files.test/protein.pdb': data('protein.pdb'),
+      'files.test/protein.dcd': data('protein.dcd'),
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(typeof input === 'object' && 'url' in input ? input.url : input);
+        const hit = Object.keys(served).find((k) => url.includes(k));
+        return hit ? new Response(served[hit], { status: 200 }) : new Response('not found', { status: 404 });
+      }),
+    );
+    const v = await headlessViewer({});
+    expectOk(
+      await v.api.load.trajectory!({
+        model: 'https://files.test/protein.pdb',
+        modelFormat: 'pdb',
+        coordinates: 'https://files.test/protein.dcd',
+        coordinatesFormat: 'dcd',
+      }),
+    );
+    expectOk(
+      await v.api.load.files({ files: [new File(['0 40 0 0 0 40 0 0 0 40 5 -3 2\n'], 'protein.xsc')] as never }),
+    );
+    expect(Array.from(Model.PeriodicBox.get(model(v))!.origin)).toEqual([5 - 20, -3 - 20, 2 - 20]);
+  });
+
+  it("reads a MolViewSpec coordinates node's custom.molstar_boxes, its address relative to the view's", async () => {
+    const data = (name: string) =>
+      fs.readFileSync(path.resolve(import.meta.dirname, `../../../../../../data/examples/trajectory/${name}`));
+    const download = (url: string, format: string, child: object) => ({
+      kind: 'download',
+      params: { url },
+      children: [{ kind: 'parse', params: { format }, children: [child] }],
+    });
+    const mvs = JSON.stringify({
+      metadata: { version: '1', timestamp: '2026-10-23T00:00:00Z' },
+      root: {
+        kind: 'root',
+        children: [
+          download('protein.dcd', 'dcd', {
+            kind: 'coordinates',
+            ref: 'frames',
+            params: {},
+            custom: { molstar_boxes: { url: 'protein.xsc' } },
+          }),
+          download('protein.pdb', 'pdb', {
+            kind: 'structure',
+            params: { type: 'model', coordinates_ref: 'frames' },
+            children: [
+              {
+                kind: 'component',
+                params: { selector: 'all' },
+                children: [{ kind: 'representation', params: { type: 'ball_and_stick' } }],
+              },
+            ],
+          }),
+        ],
+      },
+    });
+    const served: Record<string, BodyInit> = {
+      'files.test/views/view.mvsj': mvs,
+      'files.test/views/protein.pdb': data('protein.pdb'),
+      'files.test/views/protein.dcd': data('protein.dcd'),
+      'files.test/views/protein.xsc': '0 40 0 0 0 40 0 0 0 40 5 -3 2\n',
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(typeof input === 'object' && 'url' in input ? input.url : input);
+        const hit = Object.keys(served).find((k) => url.includes(k));
+        return hit ? new Response(served[hit], { status: 200 }) : new Response('not found', { status: 404 });
+      }),
+    );
+    const v = await headlessViewer({});
+    expectOk(await v.api.load.mvs!({ url: 'https://files.test/views/view.mvsj', keepCamera: true }));
+    // the structure's own model: MVS builds model, trajectory with coordinates, model (the hierarchy names the first)
+    const shown = (v.plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data as { model: Model })
+      .model;
+    expect(Array.from(Model.PeriodicBox.get(shown)!.origin)).toEqual([5 - 20, -3 - 20, 2 - 20]);
+  });
 });

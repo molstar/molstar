@@ -20,6 +20,7 @@ import {
   type PeriodicProps,
 } from '@molstar/plugin/state/helpers/periodic';
 import { parseXsc } from '@molstar/io/reader/xsc/parser';
+import { Asset } from '@molstar/core/util/assets';
 import { coordinatesWithXsc } from '@molstar/model/formats/structure/namd-xsc';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
@@ -47,12 +48,30 @@ const CoordinatesWithBoxes = PluginStateTransform.BuiltIn({
   },
   from: SO.Molecule.Coordinates,
   to: SO.Molecule.Coordinates,
-  params: { boxesRef: PD.Text('', { isHidden: true }) },
+  params: {
+    /** The parsed file's cell (`ParseXsc`: a dropped or downloaded file) */
+    boxesRef: PD.Text('', { isHidden: true }),
+    /** Or its address, fetched here (MolViewSpec's `custom.molstar_boxes`: no data cell of its own) */
+    url: PD.Text('', { isHidden: true }),
+  },
 })({
   getDependencies: ({ boxesRef }: { boxesRef: string }) => (boxesRef ? [boxesRef as StateTransform.Ref] : []),
-  apply({ a, params, dependencies }) {
+  apply({ a, params, dependencies, cache }, plugin: PluginContext) {
     return Task.create('Coordinates with boxes', async (ctx) => {
-      const text = dependencies![params.boxesRef].data as string;
+      let text: string;
+      if (params.boxesRef) {
+        // a parsed file (`ParseXsc`: a dropped or downloaded file)
+        return new SO.Molecule.Coordinates(
+          coordinatesWithXsc(a.data, (dependencies![params.boxesRef] as SO.Format.Xsc).data),
+          { label: a.label, description: 'Coordinates with boxes' },
+        );
+      } else {
+        const asset = await plugin.managers.asset
+          .resolve(Asset.getUrlAsset(plugin.managers.asset, params.url), 'string')
+          .runInContext(ctx);
+        (cache as { asset?: Asset.Wrapper }).asset = asset;
+        text = asset.data as string;
+      }
       const parsed = await parseXsc(text).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Molecule.Coordinates(coordinatesWithXsc(a.data, parsed.result), {
@@ -60,6 +79,9 @@ const CoordinatesWithBoxes = PluginStateTransform.BuiltIn({
         description: 'Coordinates with boxes',
       });
     });
+  },
+  dispose({ cache }) {
+    (cache as { asset?: Asset.Wrapper } | undefined)?.asset?.dispose();
   },
 });
 
