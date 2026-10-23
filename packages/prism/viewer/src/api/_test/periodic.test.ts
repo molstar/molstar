@@ -8,7 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Model } from '@molstar/model/model/structure';
-import { expectOk, headlessViewer } from '../../_test/harness.js';
+import { expectOk, headlessViewer, until } from '../../_test/harness.js';
+import { createTrajectoryControls } from '../../ui/trajectory.js';
 import type { PrismViewer } from '../../viewer.js';
 import { ensemble } from './trajectory-fixtures.js';
 
@@ -75,5 +76,25 @@ describe('trajectory.periodic', () => {
     const r = await v.api.trajectory.periodic({ mode: 'box' });
     expect(r).toMatchObject({ ok: false });
     expect(r.ok ? '' : r.message).toMatch(/simulation box/);
+  });
+
+  it("drives the trajectory bar's box menu", async () => {
+    const v = await headlessViewer({ files: [gro()] });
+    const bar = createTrajectoryControls(v.plugin, v.api);
+    const periodic = bar.model.periodic!;
+    const off = periodic.mode.listen?.(() => {});
+    await until(() => periodic.mode.value === 'whole');
+    periodic.set('box-centered');
+    await until(() => periodic.mode.value === 'box-centered');
+    expect(params(v).periodic).toBe('box');
+    periodic.set('nojump');
+    await until(() => periodic.mode.value === 'nojump');
+    off?.();
+    bar.dispose();
+
+    // an ensemble has no box: no menu
+    const plain = await headlessViewer({ files: [ensemble()] });
+    const none = createTrajectoryControls(plain.plugin, plain.api);
+    expect(none.model.periodic!.mode.value).toBeUndefined();
   });
 });

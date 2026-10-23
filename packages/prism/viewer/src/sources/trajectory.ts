@@ -103,6 +103,16 @@ export function periodicInfos(plugin: PluginContext): PeriodicInfo[] {
   return out;
 }
 
+function samePeriodic(a: ReadonlyMap<string, PeriodicInfo>, b: ReadonlyMap<string, PeriodicInfo>) {
+  if (a.size !== b.size) return false;
+  for (const [ref, p] of a) {
+    const q = b.get(ref);
+    if (!q || q.label !== p.label || q.params.periodic !== p.params.periodic) return false;
+    if (q.params.periodicCenter?.name !== p.params.periodicCenter?.name) return false;
+  }
+  return true;
+}
+
 const ParticleListFromTrajectory = 'ms-plugin.particle-list-from-trajectory';
 /** The animation that steps a particle trajectory (the particles feature's, `ParticlesRegistry`). */
 export const ParticleTrajectoryAnimation = 'built-in.animate-particle-trajectory';
@@ -261,6 +271,8 @@ export interface TrajectorySource {
   readonly rowsShown: ReadonlyState<ReadonlySet<string>>;
   /** A row of `structure` is on screen (`true`) or no longer (`false`); counted, rows may be made twice. */
   markRowShown(structure: string, on: boolean): void;
+  /** The structures in a simulation box, by structure ref: how their frames show it (`trajectory.periodic`). */
+  readonly periodicByRef: ReadonlyState<ReadonlyMap<string, PeriodicInfo>>;
 }
 
 const sources = new WeakMap<PluginContext, TrajectorySource>();
@@ -326,6 +338,13 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
       ),
     { coalesce: 'none', compare: sameSet },
   );
+  // Changes with the structures and with a periodic param, read once a frame; equal while those stay (a playing
+  // trajectory changes the frame, not them).
+  const periodicByRef = watchedState(
+    () => new Map(periodicInfos(plugin).map((p) => [p.ref, p])),
+    () => merge(hierarchy.behaviors.selection, plugin.state.data.events.changed),
+    { compare: samePeriodic },
+  );
   const counts = new Map<string, number>();
   const rowsShown = observableState<ReadonlySet<string>>(NoneShown);
   const markRowShown = (structure: string, on: boolean) => {
@@ -336,6 +355,7 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
     if (!sameSet(next, rowsShown.value)) rowsShown.set(next);
   };
   return {
+    periodicByRef,
     frames,
     byRef,
     indexByRef,

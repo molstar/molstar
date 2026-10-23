@@ -104,3 +104,30 @@ export function applyPeriodic(frame: Model, props: PeriodicProps): Model {
   const center = c?.name === 'selection' ? centerOf(frame, c.params.script) : undefined;
   return ModelPeriodicity.apply(frame, center ? { kind: 'box', center } : ModelPeriodicity.InBox);
 }
+
+/**
+ * The trajectory with every frame as the params show it (`StructureFromTrajectory`: an ensemble of all its frames); the
+ * trajectory itself when off or without a simulation box.
+ */
+export function periodicTrajectory(trajectory: Trajectory, props: PeriodicProps): Trajectory {
+  if (props.periodic === 'off' || !ModelPeriodicity.isApplicable(trajectory.representative)) return trajectory;
+  const representative =
+    props.periodic === 'nojump'
+      ? ModelPeriodicity.makeWhole(trajectory.representative)
+      : applyPeriodic(trajectory.representative, props);
+  return {
+    duration: trajectory.duration,
+    frameCount: trajectory.frameCount,
+    representative,
+    getFrameAtIndex: (i) => Task.create('Periodic frame', (ctx) => periodicFrame(trajectory, i, props, ctx)),
+  };
+}
+
+/** The periodic params, hidden when the trajectory has no simulation box. */
+export function periodicParamsFor(trajectory: Trajectory | undefined): typeof PeriodicParams {
+  if (!trajectory || ModelPeriodicity.isApplicable(trajectory.representative)) return PeriodicParams;
+  return {
+    periodic: { ...PeriodicParams.periodic, isHidden: true },
+    periodicCenter: { ...PeriodicParams.periodicCenter, isHidden: true },
+  };
+}

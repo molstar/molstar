@@ -9,7 +9,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { mockSnapshots, mockTrajectory, mockTransition } from '../../../testing/playback.js';
+import { mockPeriodicTrajectory, mockSnapshots, mockTrajectory, mockTransition } from '../../../testing/playback.js';
 import { story } from '../../../testing/story-root.js';
 import { PlaybackDeck, SnapshotCard, SnapshotRow, TrajectoryRow, TransitionRow } from '../playback.js';
 
@@ -31,6 +31,18 @@ export const Card: StoryObj = {
           <SnapshotRow model={mockSnapshots(post)} />
           <TransitionRow model={mockTransition()} />
           <TrajectoryRow model={mockTrajectory(50, '6M0J')} />
+        </PlaybackDeck>
+      </div>
+    )),
+};
+
+/** A simulation in a periodic box: its frames, and the box menu (molecules whole, in the box, no jumps, as read). */
+export const PeriodicBox: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style={frame}>
+        <PlaybackDeck>
+          <TrajectoryRow model={mockPeriodicTrajectory()} />
         </PlaybackDeck>
       </div>
     )),

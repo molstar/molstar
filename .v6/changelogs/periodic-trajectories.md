@@ -9,7 +9,9 @@
 - `periodic: 'nojump'` keeps each molecule from jumping a box length between frames (molecules leave the box as they
   diffuse): seeks walk from a checkpoint every 64 frames, playing steps one frame.
 - Prism: `trajectory.periodic` (whole, in the box, centered on the polymers, no jumps, as in the file) and its command
-  ("periodic box", "pbc", "unwrap", "center protein in box"); the assistant's `periodic_box` tool.
+  ("periodic box", "pbc", "unwrap", "center protein in box"); the assistant's `periodic_box` tool; a box menu at the end
+  of the trajectory bar for a structure in a simulation box.
+- The ensemble structure of all frames (`StructureFromTrajectory`) takes the same `periodic` params: whole by default.
 - LAMMPS: triclinic boxes (tilt factors, the dump's bounding-box bounds corrected), the box's corner as its origin
   (the unit cell is drawn there), scaled coordinates through the tilt; frames get a box only when periodic in x, y, z.
 - GRO reads triclinic boxes (all nine box values: the rhombic dodecahedron, the truncated octahedron); it read a

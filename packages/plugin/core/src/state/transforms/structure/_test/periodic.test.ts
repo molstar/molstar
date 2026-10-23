@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { Model, type Structure } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
-import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { ModelFromTrajectory, StructureFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PolymerCenter, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { createPlaybackPlugin } from '../../../animation/_test/harness.js';
@@ -123,5 +123,29 @@ describe('ModelFromTrajectory in a periodic box', () => {
       if (previous) expect(Vec3.distance(c, previous)).toBeLessThan(8);
       previous = c;
     }
+  });
+
+  it('builds an ensemble of all frames from whole frames, or from the file as read', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const data = await plugin.builders.data.rawData({ data: gro, label: 'split-peptide.gro' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'gro');
+    /** The longest CA–CA distance of residues 2 and 3 over the ensemble's frames. */
+    const longest = async (periodic: 'whole' | 'off') => {
+      const cell = await plugin.build().to(trajectory).apply(StructureFromTrajectory, { periodic }).commit();
+      const s = cell.obj!.data as Structure;
+      let max = 0;
+      for (const u of s.units) {
+        if (u.elements.length < 20) continue;
+        const a = Vec3(),
+          b = Vec3();
+        u.conformation.position(u.elements[6], a);
+        u.conformation.position(u.elements[11], b);
+        max = Math.max(max, Vec3.distance(a, b));
+      }
+      await plugin.build().delete(cell.ref).commit();
+      return max;
+    };
+    expect(await longest('whole')).toBeLessThan(4);
+    expect(await longest('off')).toBeGreaterThan(10);
   });
 });

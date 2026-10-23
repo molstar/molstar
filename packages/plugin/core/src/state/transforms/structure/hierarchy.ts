@@ -12,8 +12,13 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type StateTransform, StateTransformer } from '@molstar/core/state';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { type Coordinates, Structure, Model, type Frame, type Trajectory } from '@molstar/model/model/structure';
-import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
-import { periodicFrame, PeriodicParams, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
+import {
+  PeriodicParams,
+  periodicFrame,
+  periodicParamsFor,
+  periodicTrajectory,
+  type PeriodicProps,
+} from '@molstar/plugin/state/helpers/periodic';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
 import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
@@ -97,12 +102,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
           { description: 'Model Index', immediateUpdate: true },
         ),
       ),
-      ...(ModelPeriodicity.isApplicable(a.data.representative)
-        ? PeriodicParams
-        : {
-            periodic: { ...PeriodicParams.periodic, isHidden: true },
-            periodicCenter: { ...PeriodicParams.periodicCenter, isHidden: true },
-          }),
+      ...periodicParamsFor(a.data),
     };
   },
 })({
@@ -152,13 +152,14 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
   params(a, plugin: PluginContext | undefined) {
     // the same choice as `StructureFromModel`'s, for the frames' representative model (bond-providers plan §4)
     const registry = plugin?.bondProviders ?? new BondProviderRegistry();
-    return { bonds: PD.Optional(registry.getParam(a?.data.representative)) };
+    // the frames as `ModelFromTrajectory` shows them (.v6/periodic-trajectories): whole by default
+    return { bonds: PD.Optional(registry.getParam(a?.data.representative)), ...periodicParamsFor(a?.data) };
   },
 })({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Build Structure', async (ctx) => {
       const bondProvider = plugin.bondProviders.resolve(params?.bonds, a.data.representative);
-      const s = await Structure.ofTrajectory(a.data, ctx, { bondProvider });
+      const s = await Structure.ofTrajectory(periodicTrajectory(a.data, params ?? {}), ctx, { bondProvider });
       const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
       return new SO.Molecule.Structure(s, props);
     });

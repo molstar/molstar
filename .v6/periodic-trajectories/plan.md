@@ -111,11 +111,16 @@ with phase 1.
    shift in box vectors, so its center moves under half a box from frame to frame, in the later frame's box (an NPT
    box changes). Kept per trajectory: the last frame's shifts (playing steps once, either way) and a checkpoint every
    64 frames (a seek walks at most 64 frames, from frame 0 the first time), not every frame's.
-4. **Exposure** (done for Prism): `trajectory.periodic` (mode whole, box, nojump, off; center box or polymers; a
-   history step), its command (aliases: periodic box, pbc, unwrap, wrap into box, center protein in box, no jump) and
-   the animation skill's `periodic_box` tool; the stories drive it. Open: a toggle in the trajectory bar, MVS (a spec
-   extension of the trajectory node), the all-models (ensemble) preset (`StructureFromTrajectory`), periodic images (a
-   P1 supercell from the box, through the existing symmetry structure).
+4. **Exposure** (done for Prism and the plugin): `trajectory.periodic` (mode whole, box, nojump, off; center box or
+   polymers; a history step), its command (aliases: periodic box, pbc, unwrap, wrap into box, center protein in box, no
+   jump), the animation skill's `periodic_box` tool, and the trajectory bar's box menu (prism-ui `PeriodicBoxModel`;
+   only for a structure in a box); `StructureFromTrajectory` (an ensemble of all frames) takes the same params. Open:
+   MVS (a spec extension of the trajectory node: ask first, a public format), periodic images (a P1 supercell from the
+   box, through the existing symmetry structure).
+5. **LAMMPS image flags** (open, a question): `ix iy iz` give exact unwrapped coordinates (a molecule longer than half a
+   box, no jump from the first frame). Applied when read, "As in the file" would show unwrapped coordinates, not the
+   file's; kept as a fourth source of shifts, they need a place in `Frame`. Whole and no jump cover them but for such
+   molecules.
 
 Each phase: an entry in `.v6/changelogs/`, `model.md §3–4` and `formats.md` updated in the same commit.
 
