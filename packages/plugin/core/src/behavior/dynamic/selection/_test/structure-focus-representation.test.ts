@@ -6,6 +6,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { StateSelection } from '@molstar/core/state';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { Structure } from '@molstar/model/model/structure';
 import { PluginBehaviors } from '@molstar/plugin/behavior';
 import {
@@ -117,4 +118,24 @@ describe('structure focus representation behavior', () => {
     expect(update).not.toHaveBeenCalled();
     plugin.dispose();
   });
+
+  it('sets the focus selections by mutating the params, without a whole-value walk and its warning (perf-audit-2 12/P7)', async () => {
+    const warn = vi.spyOn(console, 'warn');
+    const plugin = await createPlugin([PluginSpec.Behavior(StructureFocusRepresentation)]);
+    const select = await focusStructure(plugin);
+    const bundleOf = () => select(StructureFocusRepresentationTags.TargetSel)[0].transform.params.bundle;
+    expect(bundleOf().elements.length).toBeGreaterThan(0);
+
+    plugin.managers.structure.focus.clear();
+    for (let i = 0; i < 200 && bundleOf().elements.length > 0; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    expect(bundleOf().elements).toEqual([]);
+    const surroundings = select(StructureFocusRepresentationTags.SurrSel)[0].transform.params;
+    expect(surroundings.expression).toEqual(MS.struct.generator.empty());
+
+    const draftWarnings = warn.mock.calls.filter((c) => String(c[0]).includes('draft'));
+    expect(draftWarnings).toEqual([]);
+    plugin.dispose();
+  }, 30000);
 });
