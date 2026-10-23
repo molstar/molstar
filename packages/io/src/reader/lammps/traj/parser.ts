@@ -32,7 +32,7 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
   // xs,ys,zs = scaled atom coordinates this need the boundary box
   // xu,yu,zu = unwrapped atom coordinates
   // xsu,ysu,zsu = scaled unwrapped atom coordinates
-  // ix,iy,iz = box image that the atom is in
+  // ix,iy,iz = box image that the atom is in: read when given, with wrapped coordinates they give the unwrapped ones
   // how should we handle the different scenario ?
   const xCol = parts.findIndex((p) => p[0] === 'x');
   const yCol = parts.findIndex((p) => p[0] === 'y');
@@ -45,6 +45,10 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
   const x = TokenBuilder.create(tokenizer.data, count * 2);
   const y = TokenBuilder.create(tokenizer.data, count * 2);
   const z = TokenBuilder.create(tokenizer.data, count * 2);
+  const hasImages = 'ix' in columnIndexMap && 'iy' in columnIndexMap && 'iz' in columnIndexMap;
+  const ix = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
+  const iy = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
+  const iz = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
 
   const { position } = tokenizer;
   tokenizer.position = position;
@@ -83,6 +87,15 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
             case zCol:
               TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd);
               break;
+            case columnIndexMap['ix']:
+              TokenBuilder.addUnchecked(ix, tokenizer.tokenStart, tokenizer.tokenEnd);
+              break;
+            case columnIndexMap['iy']:
+              TokenBuilder.addUnchecked(iy, tokenizer.tokenStart, tokenizer.tokenEnd);
+              break;
+            case columnIndexMap['iz']:
+              TokenBuilder.addUnchecked(iz, tokenizer.tokenStart, tokenizer.tokenEnd);
+              break;
           }
         }
         // ignore any extra columns
@@ -104,6 +117,15 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
     x: TokenColumn(x)(Column.Schema.float),
     y: TokenColumn(y)(Column.Schema.float),
     z: TokenColumn(z)(Column.Schema.float),
+    ...(hasImages
+      ? {
+          image: {
+            ix: TokenColumn(ix)(Column.Schema.int),
+            iy: TokenColumn(iy)(Column.Schema.int),
+            iz: TokenColumn(iz)(Column.Schema.int),
+          },
+        }
+      : {}),
   };
 }
 

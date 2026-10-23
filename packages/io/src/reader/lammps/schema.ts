@@ -215,6 +215,8 @@ export interface LammpsFrame {
   x: Column<number>;
   y: Column<number>;
   z: Column<number>;
+  /** The box image each atom is in (`ix iy iz`, when dumped): how many box vectors it crossed since the run's start */
+  image?: { ix: Column<number>; iy: Column<number>; iz: Column<number> };
 }
 
 export interface LammpsTrajectoryFile {

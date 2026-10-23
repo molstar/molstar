@@ -16,6 +16,9 @@
 - The ensemble structure of all frames (`StructureFromTrajectory`) takes the same `periodic` params: whole by default.
 - LAMMPS: triclinic boxes (tilt factors, the dump's bounding-box bounds corrected), the box's corner as its origin
   (the unit cell is drawn there), scaled coordinates through the tilt; frames get a box only when periodic in x, y, z.
+- LAMMPS image flags (`ix iy iz`) are read: frames keep the file's wrapped coordinates, and whole and no jump use the
+  unwrapped ones, exact (`Frame.unwrapped`, `Model.UnwrappedConformation`). The dump-only topology's scaled coordinates
+  go through the box tilt too.
 - GRO reads triclinic boxes (all nine box values: the rhombic dodecahedron, the truncated octahedron); it read a
   rectangular box before. `GroHeader.boxVectors` holds them.
 - Library: `PeriodicBox` (`@molstar/core/math/geometry/periodic-box`), `Model.PeriodicBox`,

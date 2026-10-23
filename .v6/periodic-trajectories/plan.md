@@ -98,8 +98,8 @@ with phase 1.
 0. **Readers** (done): GRO triclinic box (nine values); LAMMPS dumps and data files: the true bounds and tilt factors
    of a triclinic box, its corner as the box origin (`Frame.box`, `common/lammps-box.ts`), scaled coordinates through
    the tilt, no box when a dimension is not periodic; the unit cell drawn at the box's origin (`UnitcellData.origin`).
-   Open: LAMMPS image flags (`ix iy iz`: exact whole and no jump), NAMD `.xsc` origins, XTC/TRR keeping their own
-   basis (theirs is already the standard frame).
+   Image flags: phase 5. Open: NAMD `.xsc` origins, XTC/TRR keeping their own basis (theirs is already the standard
+   frame).
 1. **Whole** (done): core box, plan, `makeWhole`, the `ModelFromTrajectory` param, tests over
    `data/examples/trajectory/periodic/split-peptide.gro` (11.6 KB, generated), the Periodic box stories (§6). The bug fix users see.
 2. **Wrap** (done): `periodic: 'box'`, each molecule's center into the drawn box, or around a selection
@@ -118,10 +118,11 @@ with phase 1.
    through a Mol\*-specific key, `custom.molstar_periodic` on a structure node (no schema change; mvs runtime load.md
    §6). Open: periodic images (a P1 supercell from the
    box, through the existing symmetry structure).
-5. **LAMMPS image flags** (open, a question): `ix iy iz` give exact unwrapped coordinates (a molecule longer than half a
-   box, no jump from the first frame). Applied when read, "As in the file" would show unwrapped coordinates, not the
-   file's; kept as a fourth source of shifts, they need a place in `Frame`. Whole and no jump cover them but for such
-   molecules.
+5. **LAMMPS image flags** (done): a dump's `ix iy iz` on wrapped coordinates (`x`, `xs`) give the unwrapped ones,
+   `x + ix a + iy b + iz c` (`lammpsFrameCoordinates`), kept beside the frame (`Frame.unwrapped`,
+   `Model.UnwrappedConformation`): "As in the file" stays the file's. Whole uses them (exact where the plan's hops
+   would cross half a box: atoms of one molecule in no bond order, as a dump-only topology may have), no jump applies
+   frame 0's shifts to them (any frame directly). Tested over `long-chain.lammpstrj` (2.1 KB, generated).
 
 Each phase: an entry in `.v6/changelogs/`, `model.md §3–4` and `formats.md` updated in the same commit.
 

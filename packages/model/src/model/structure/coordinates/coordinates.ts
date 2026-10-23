@@ -26,6 +26,17 @@ export interface Frame {
   /** The simulation box with its origin, when the reader knows it (LAMMPS); else the cell's, at the origin */
   readonly box?: PeriodicBox;
 
+  /**
+   * The atoms as they moved, not wrapped into the box, when the file says so beside its wrapped coordinates (LAMMPS
+   * image flags): what makes molecules whole and keeps them from jumping exactly (model.md §4 "Periodic frames").
+   */
+  readonly unwrapped?: {
+    readonly x: ArrayLike<number>;
+    readonly y: ArrayLike<number>;
+    readonly z: ArrayLike<number>;
+    readonly xyzOrdering: Frame['xyzOrdering'];
+  };
+
   // optional velocities
   readonly velocities?: {
     readonly vx: ArrayLike<number>;

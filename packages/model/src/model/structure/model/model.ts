@@ -136,6 +136,12 @@ export namespace Model {
         // a frame's cell is its simulation box, not a crystal's (model.md §4 "Periodic frames")
         const box = f.box ?? PeriodicBoxData.fromCell(f.cell);
         if (PeriodicBoxData.isValid(box)) PeriodicBox.set(m, box);
+        // the file's unwrapped coordinates, in the model's atom order as the frame's, made when first asked
+        const { unwrapped } = f;
+        if (unwrapped) {
+          let made: AtomicConformation | undefined;
+          UnwrappedConformation.set(m, () => (made ??= getAtomicConformationFromFrame(model, { ...f, ...unwrapped })));
+        }
       } else if (symmetry) {
         ModelSymmetry.Provider.set(m, symmetry);
       }
@@ -250,6 +256,20 @@ export namespace Model {
     },
     set(model: Model, trajectoryInfo: TrajectoryInfo) {
       return (model._dynamicPropertyData[TrajectoryInfoProp] = trajectoryInfo);
+    },
+  };
+
+  const UnwrappedConformationProp = '__UnwrappedConformation__';
+  /**
+   * A frame's coordinates as the atoms moved, not wrapped into the box, when its file gives them beside the wrapped
+   * ones (LAMMPS image flags): a frame made whole or without jumps uses them (`ModelPeriodicity`). Made when first asked.
+   */
+  export const UnwrappedConformation = {
+    get(model: Model): AtomicConformation | undefined {
+      return (model._dynamicPropertyData[UnwrappedConformationProp] as (() => AtomicConformation) | undefined)?.();
+    },
+    set(model: Model, get: () => AtomicConformation) {
+      model._dynamicPropertyData[UnwrappedConformationProp] = get;
     },
   };
 

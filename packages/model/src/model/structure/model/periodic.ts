@@ -129,7 +129,11 @@ namespace ModelPeriodicity {
     const plan = getPlan(model);
     let made: Model;
     if (mode.kind === 'whole') {
-      const conformation = applyWhole(plan, box, model.atomicConformation);
+      // the file's unwrapped coordinates (LAMMPS image flags) are exact: no plan hop can be wrong
+      const unwrapped = Model.UnwrappedConformation.get(model);
+      const conformation = unwrapped
+        ? applyWholeFromUnwrapped(plan, model.atomicConformation, unwrapped)
+        : applyWhole(plan, box, model.atomicConformation);
       // polymer gaps were found on the topology's coordinates, which may have been split: found again on whole ones
       if (!plan.ranges) {
         plan.ranges = getAtomicRanges(model.atomicHierarchy, model.entities, conformation, model.sequence);
@@ -271,6 +275,16 @@ namespace ModelPeriodicity {
     const hit = cached(frame, 'nojump');
     if (hit) return hit;
 
+    // the file's unwrapped coordinates (LAMMPS image flags) have no jumps: each molecule moved once, as frame 0 shows it
+    const unwrapped = Model.UnwrappedConformation.get(frame);
+    const fromStart = unwrapped && (await unwrappedShifts(trajectory, ctx));
+    if (unwrapped && fromStart && fromStart.length === 3 * getPlan(frame).moleculeCount) {
+      const whole = apply(frame, Whole);
+      const made = Model.withAtomicConformation(whole, shifted(getPlan(frame), unwrapped, fromStart));
+      remember(frame, 'nojump', made);
+      return made;
+    }
+
     const shifts = await noJumpShifts(trajectory, index, ctx);
     const whole = apply(frame, Whole);
     const plan = getPlan(frame);
@@ -292,6 +306,69 @@ namespace ModelPeriodicity {
     const made = Model.withAtomicConformation(whole, { ...whole.atomicConformation, id: UUID.create22(), x, y, z });
     remember(frame, 'nojump', made);
     return made;
+  }
+
+  /**
+   * Whole from the file's unwrapped coordinates: each molecule moved by the lattice vector that puts its root where the
+   * frame has it, so a frame made whole this way is where the plan's would be, but exact.
+   */
+  export function applyWholeFromUnwrapped(
+    plan: UnwrapPlan,
+    wrapped: AtomicConformation,
+    unwrapped: AtomicConformation,
+  ): AtomicConformation {
+    const shifts = new Float64Array(plan.moleculeCount * 3);
+    const { parent, molecule } = plan;
+    for (let i = 0, n = parent.length; i < n; i++) {
+      if (parent[i] >= 0) continue;
+      const m = 3 * molecule[i];
+      shifts[m] = wrapped.x[i] - unwrapped.x[i];
+      shifts[m + 1] = wrapped.y[i] - unwrapped.y[i];
+      shifts[m + 2] = wrapped.z[i] - unwrapped.z[i];
+    }
+    return shifted(plan, unwrapped, shifts);
+  }
+
+  /** The coordinates with each molecule moved by its shift (x, y, z per molecule), in new arrays. */
+  function shifted(plan: UnwrapPlan, conformation: AtomicConformation, shifts: Float64Array): AtomicConformation {
+    const { molecule } = plan;
+    const n = molecule.length;
+    const x = new Float32Array(n);
+    const y = new Float32Array(n);
+    const z = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const m = 3 * molecule[i];
+      x[i] = conformation.x[i] + shifts[m];
+      y[i] = conformation.y[i] + shifts[m + 1];
+      z[i] = conformation.z[i] + shifts[m + 2];
+    }
+    return { ...conformation, id: UUID.create22(), x, y, z };
+  }
+
+  // a trajectory's shifts from its unwrapped coordinates to frame 0 made whole (molecules as frame 0 shows them)
+  const unwrappedStarts = new WeakMap<Trajectory, Float64Array | null>();
+
+  async function unwrappedShifts(trajectory: Trajectory, ctx?: RuntimeContext): Promise<Float64Array | undefined> {
+    if (!unwrappedStarts.has(trajectory)) {
+      const first = await frameAt(trajectory, 0, ctx);
+      const unwrapped = Model.UnwrappedConformation.get(first);
+      if (!unwrapped || !boxOf(first)) {
+        unwrappedStarts.set(trajectory, null);
+      } else {
+        const plan = getPlan(first);
+        const whole = apply(first, Whole).atomicConformation;
+        const shifts = new Float64Array(plan.moleculeCount * 3);
+        for (let i = 0, n = plan.parent.length; i < n; i++) {
+          if (plan.parent[i] >= 0) continue;
+          const m = 3 * plan.molecule[i];
+          shifts[m] = whole.x[i] - unwrapped.x[i];
+          shifts[m + 1] = whole.y[i] - unwrapped.y[i];
+          shifts[m + 2] = whole.z[i] - unwrapped.z[i];
+        }
+        unwrappedStarts.set(trajectory, shifts);
+      }
+    }
+    return unwrappedStarts.get(trajectory) ?? undefined;
   }
 
   async function frameAt(trajectory: Trajectory, index: number, ctx?: RuntimeContext) {
