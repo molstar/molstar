@@ -157,7 +157,7 @@ open 15, regressed 0, dropped 0. The B1 fix introduced a new bug (B11).
 | B11 | new | medium | Carried flags override a tree passed in after them (setSnapshot, undo, revert): tree and cell disagree | [state.ts:467](../../packages/core/src/state/state.ts#L467) | confirmed |
 | B6 | still open | medium | `doError` clears objects and caches without `dispose` | [state.ts:1257](../../packages/core/src/state/state.ts#L1257) | confirmed |
 | B9 | still open | low | `subtree()`/`children()` return undefined cells; chained filters throw | [selection.ts:278](../../packages/core/src/state/state/selection.ts#L278) | confirmed |
-| B12 | new | low | `applyOrUpdateTagged` drops extra tags when the params changed | [builder.ts:318](../../packages/core/src/state/state/builder.ts#L318) | confirmed |
+| B12 | new; **fixed** #2033 | low | `applyOrUpdateTagged` drops extra tags when the params changed | [builder.ts:318](../../packages/core/src/state/state/builder.ts#L318) | confirmed |
 | B5 | still open | low | Hash versions cover params only | [transform.ts:281](../../packages/core/src/state/transform.ts#L281) | confirmed |
 | B10 | still open | low | `findTagInSubtree` never stops, returns the last match | [selection.ts:448](../../packages/core/src/state/state/selection.ts#L448) | confirmed |
 | B7 | still open | low | A late abort discards a completed result, undisposed | [observable.ts:106](../../packages/core/src/task/execution/observable.ts#L106) | confirmed |
