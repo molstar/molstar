@@ -208,9 +208,9 @@ candidates from A's grid), #2004 (H-bond hydrogen across units, `filterInter`, s
 
 | Id | vs v1 | Severity | Title | File | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B12 | new | medium | Weak-H-bond refiner throws when intra contacts are skipped (interactions extension) | [refine.ts:165](../../packages/model/src/props/computed/interactions/refine.ts#L165) | confirmed |
+| B12 | new; **fixed** #2032 | medium | Weak-H-bond refiner throws when intra contacts are skipped (interactions extension) | [refine.ts:165](../../packages/model/src/props/computed/interactions/refine.ts#L165) | confirmed |
 | B2 | still open | medium | Interaction features cached on shared Units but computed from the local substructure's bonds | [interactions.ts:406](../../packages/model/src/props/computed/interactions/interactions.ts#L406) | confirmed |
-| B3 | still open | medium | ASA throws on any structure with coarse units | [radii.ts:39](../../packages/model/src/props/computed/accessible-surface-area/shrake-rupley/radii.ts#L39) | confirmed |
+| B3 | still open; **fixed** #2032 | medium | ASA throws on any structure with coarse units | [radii.ts:39](../../packages/model/src/props/computed/accessible-surface-area/shrake-rupley/radii.ts#L39) | confirmed |
 | B11 | new | low | Every non-backbone N of a non-polymer residue becomes a `NegativeCharge` feature | [charged.ts:156](../../packages/model/src/props/computed/interactions/charged.ts#L156) | confirmed |
 | N2 | still open | low | Refiners write per-member decisions into a group's shared intra flags | [refine.ts:190](../../packages/model/src/props/computed/interactions/refine.ts#L190) | confirmed (code) |
 | B4 | still open | low | `calcPlaneAngle` skips the second-neighbour search when the neighbour is UnitIndex 0 | [geometry.ts:147](../../packages/model/src/props/computed/chemistry/geometry.ts#L147) | confirmed |

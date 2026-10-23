@@ -46,6 +46,16 @@ describe('trajectory', () => {
     expect(modelIndex(v)).toBe(1);
   });
 
+  it('logs no transform timing line for a frame shown (perf-audit-2 10/P14)', async () => {
+    const v = await headlessViewer({ files: [ensemble()] });
+    const lines: string[] = [];
+    const sub = v.plugin.events.log.subscribe((e) => lines.push(String(e.message)));
+    for (const by of [1, 1, -1]) expectOk(await v.api.trajectory.frame({ by }));
+    sub.unsubscribe();
+    expect(modelIndex(v)).toBe(1);
+    expect(lines.filter((l) => /^Updated /.test(l))).toEqual([]);
+  });
+
   it('runs under its former ids too (api.md §1 "Words"), listed once', async () => {
     const v = await headlessViewer({ files: [ensemble()] });
     expectOk(await v.api.run('structure.model', { index: 1 }));

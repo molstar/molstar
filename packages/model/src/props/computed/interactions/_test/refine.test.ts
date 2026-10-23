@@ -130,4 +130,17 @@ describe('interactions refinement', async () => {
     expect(overlaps.intra).toBeGreaterThan(0);
     expect(overlaps.saltBridgeHBonds).toBeGreaterThan(0);
   });
+
+  it('refines weak H-bonds without intra-unit contacts (`skipIntraContacts`, the interactions extension)', async () => {
+    const s = await StructureSymmetry.buildSymmetryRange(
+      Structure.ofModel(m1cbs),
+      Vec3.create(0, 0, 0),
+      Vec3.create(1, 1, 0),
+    ).run();
+    const { contacts, unitsContacts } = await computeInteractions(ctx, s, AllProviders, { skipIntraContacts: true });
+    expect(unitsContacts.size).toBe(0);
+    const types = new Set(contacts.edges.map((e) => e.props.type));
+    expect(types.has(InteractionType.WeakHydrogenBond)).toBe(true);
+    expect(types.has(InteractionType.HydrogenBond)).toBe(true);
+  });
 });

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ColorTheme } from '../color.js';
@@ -55,9 +56,10 @@ export function VolumeValueColorTheme(
   if (ctx.volume) {
     const { min, max, mean, sigma } = ctx.volume.grid.stats;
     const domain: [number, number] = props.domain.name === 'custom' ? props.domain.params : [min, max];
-    const { colorList, defaultColor } = props;
+    const { colorList, defaultColor, isRelative } = props;
 
-    if (props.domain.name === 'auto' && props.isRelative) {
+    // with `isRelative` the domain is in sigma units, custom or auto, and so are the values (perf-audit-2 09/B7)
+    if (props.domain.name === 'auto' && isRelative) {
       domain[0] = (domain[0] - mean) / sigma;
       domain[1] = (domain[1] - mean) / sigma;
     }
@@ -72,7 +74,9 @@ export function VolumeValueColorTheme(
       // this is for direct-volume rendering where the location is the volume grid cell
       // and we only need to provide the domain and palette here
 
-      const normalizedDomain = [normalize(domain[0], min, max), normalize(domain[1], min, max)] as [number, number];
+      // the shader normalizes absolute values by the grid's min and max
+      const [d0, d1] = isRelative ? [domain[0] * sigma + mean, domain[1] * sigma + mean] : domain;
+      const normalizedDomain = [normalize(d0, min, max), normalize(d1, min, max)] as [number, number];
 
       const palette = ColorTheme.Palette(colorList.colors, colorList.kind, normalizedDomain, defaultColor);
 
@@ -84,7 +88,10 @@ export function VolumeValueColorTheme(
         palette,
       };
     } else {
-      const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(ctx.volume.grid, 'none');
+      const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(
+        ctx.volume.grid,
+        isRelative ? 'relative' : 'none',
+      );
 
       const color = (location: Location): Color => {
         if (!isPositionLocation(location)) {

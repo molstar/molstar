@@ -103,6 +103,13 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     newStructure: Structure,
     currentStructure: Structure,
   ): void;
+  /** on creation: the state `setUpdateState` compares against later (as the units visual's) */
+  initUpdateState?: (
+    state: VisualUpdateState,
+    newProps: PD.Values<P>,
+    newTheme: Theme,
+    newStructure: Structure,
+  ) => void;
   mustRecreate?: (structure: Structure, props: PD.Values<P>) => boolean;
   processValues?: (
     values: RenderObjectValues<G['kind']>,
@@ -130,6 +137,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     getLoci,
     eachLocation,
     setUpdateState,
+    initUpdateState,
     mustRecreate,
     processValues,
     dispose,
@@ -166,6 +174,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     VisualUpdateState.reset(updateState);
 
     if (!renderObject || !currentStructure) {
+      initUpdateState?.(updateState, newProps, newTheme, newStructure);
       updateState.createNew = true;
       updateState.createGeometry = true;
       return;

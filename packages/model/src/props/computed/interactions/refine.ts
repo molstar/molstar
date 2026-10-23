@@ -160,14 +160,17 @@ function weakHydrogenBondsRefiner(structure: Structure, interactions: Interactio
   const hasHydrogenBond = (infoA: Features.Info, infoB: Features.Info) => {
     const acc = infoA.types[infoA.feature] === FeatureType.WeakHydrogenDonor ? infoB : infoA;
 
-    // check intra
-    const eI = acc.members[acc.offsets[acc.feature]];
-    const {
-      edgeProps: { type },
-      elementsIndex: { offsets, indices },
-    } = interactions.unitsContacts.get(acc.unit.id);
-    for (let i = offsets[eI], il = offsets[eI + 1]; i < il; ++i) {
-      if (type[indices[i]] === InteractionType.HydrogenBond) return true;
+    // check intra (none with `skipIntraContacts`)
+    const intra = interactions.unitsContacts.get(acc.unit.id);
+    if (intra) {
+      const eI = acc.members[acc.offsets[acc.feature]];
+      const {
+        edgeProps: { type },
+        elementsIndex: { offsets, indices },
+      } = intra;
+      for (let i = offsets[eI], il = offsets[eI + 1]; i < il; ++i) {
+        if (type[indices[i]] === InteractionType.HydrogenBond) return true;
+      }
     }
 
     // check inter

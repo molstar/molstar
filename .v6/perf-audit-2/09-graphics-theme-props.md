@@ -51,7 +51,7 @@ defect inside the P1 fix, recorded as new.
 | Id | vs v1 | Title | File | Kind | Impact | Estimate | Effort | Verdict | Frozen |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P15 | new; **fixed** #2025 (= 07/P11) | Impostor interactions: exact cylinder count multiplied by 6 twice; 6× first chunk, then copied | [link.ts:391](../../packages/graphics/src/repr/structure/visual/util/link.ts#L391) | time+memory | medium | fresh build: typed-array alloc ÷4–6 (flat-192 −2 GB transient), build −15–30 %; **measured**: see 07/P11 | S | confirmed | no |
-| P16 | new | Impostor interactions rebuild geometry on `sizeFactor`, a uniform there | [interactions-intra-unit-cylinder.ts:269](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L269) | time | medium | size slider 64–410 ms per step → ~1–3 ms | S | confirmed | no |
+| P16 | new; **fixed** #2032 | Impostor interactions rebuild geometry on `sizeFactor`, a uniform there | [interactions-intra-unit-cylinder.ts:269](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L269) | time | medium | size slider 64–410 ms per step → ~1–3 ms | S | confirmed | no |
 | P17 | new | Inter-unit interactions on assemblies: one non-instanced visual, within-copy contacts repeated per operator | [interactions-inter-unit-cylinder.ts:47](../../packages/graphics/src/props/computed/representations/interactions-inter-unit-cylinder.ts#L47) | architecture | medium | 1tup asm fixtures: inter-unit buffers ÷~17 (asm-192 265 → ~20 MB, asm-864 1.2 GB → ~70 MB); real capsids with between-copy interfaces ÷1–3 | L | confirmed | no |
 | P6 | still-open | `particle-hierarchy` (and `particle-entity`) rebuild their O(N) index per `Theme.create` | [particle-hierarchy.ts:134](../../packages/graphics/src/theme/color/particle-hierarchy.ts#L134) | time+memory | medium | ~360–390 ms + 40–80 MB per update at 10M particles → ~0 | S | confirmed | no |
 | P4 | still-open | Per-element `Color.lighten` and string keys (illustrative, entity-id, chain-id multi-model, entity-source) | [illustrative.ts:80](../../packages/graphics/src/theme/color/illustrative.ts#L80) | time | low | illustrative 20 → ~5 ms per 186k elements; entity/chain-id 2–3× | S | confirmed | no |
@@ -165,8 +165,8 @@ defect inside the P1 fix, recorded as new.
 
 | Id | vs v1 | Severity | Title | File | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B2 | still-open | medium | entity-source indexes polymer-only `sequence.sequences` by entity index | [entity-source.ts:81](../../packages/graphics/src/theme/color/entity-source.ts#L81) | confirmed |
-| B7 | new | medium | volume-value `isRelative`: sigma-unit domain against absolute values | [volume-value.ts:87](../../packages/graphics/src/theme/color/volume-value.ts#L87) | confirmed |
+| B2 | still-open; **fixed** #2032 | medium | entity-source indexes polymer-only `sequence.sequences` by entity index | [entity-source.ts:81](../../packages/graphics/src/theme/color/entity-source.ts#L81) | confirmed |
+| B7 | new; **fixed** #2032 | medium | volume-value `isRelative`: sigma-unit domain against absolute values | [volume-value.ts:87](../../packages/graphics/src/theme/color/volume-value.ts#L87) | confirmed |
 | B6 | new | low | Bridge visual ignores the child with `includeParent` | [interactions-bridge-cylinder.ts:141](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L141) | confirmed |
 | B3 | still-open | low | `ColorTheme.Palette` 'set' with offsets writes `undefined` (black) | [color.ts:128](../../packages/graphics/src/theme/color.ts#L128) | confirmed |
 | B5 | new | low | Impostor-capable visuals' mesh fallback recreated on every update without `fragDepth` | [interactions-intra-unit-cylinder.ts:325](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L325) | confirmed |

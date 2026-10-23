@@ -266,7 +266,6 @@ function setUpdateState(
   currentStructureGroup: StructureGroup,
 ) {
   state.createGeometry =
-    newProps.sizeFactor !== currentProps.sizeFactor ||
     newProps.dashCount !== currentProps.dashCount ||
     newProps.dashScale !== currentProps.dashScale ||
     newProps.dashCap !== currentProps.dashCap ||
@@ -285,11 +284,25 @@ function setUpdateState(
   }
 }
 
-/** The mesh bakes the radius and the radial segments; impostors take them from uniforms and the size theme */
+/** The interactions version the new geometry is built from: the first update after a build does not rebuild it */
+function initUpdateState(
+  state: VisualUpdateState,
+  newProps: PD.Values<InteractionsIntraUnitParams>,
+  newTheme: Theme,
+  newStructureGroup: StructureGroup,
+) {
+  state.info.interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version;
+}
+
+/**
+ * The mesh bakes the radius (`sizeFactor`, `sizeAspectRatio`) and the radial segments; impostors take them from
+ * uniforms and the size theme, so a size slider rebuilds no impostor geometry (perf-audit-2 09/P16)
+ */
 function setMeshUpdateState(...args: Parameters<typeof setUpdateState>) {
   setUpdateState(...args);
   const [state, newProps, currentProps] = args;
   if (
+    newProps.sizeFactor !== currentProps.sizeFactor ||
     newProps.radialSegments !== currentProps.radialSegments ||
     newProps.sizeAspectRatio !== currentProps.sizeAspectRatio
   ) {
@@ -306,6 +319,7 @@ export function InteractionsIntraUnitImpostorVisual(materialId: number): UnitsVi
       getLoci: getInteractionLoci,
       eachLocation: eachInteraction,
       setUpdateState,
+      initUpdateState,
       mustRecreate: (_: StructureGroup, props: PD.Values<InteractionsIntraUnitParams>, graphics?: GraphicsContext) =>
         !props.tryUseImpostor || !graphics,
     },
@@ -322,6 +336,7 @@ export function InteractionsIntraUnitMeshVisual(materialId: number): UnitsVisual
       getLoci: getInteractionLoci,
       eachLocation: eachInteraction,
       setUpdateState: setMeshUpdateState,
+      initUpdateState,
       mustRecreate: (_: StructureGroup, props: PD.Values<InteractionsIntraUnitParams>, graphics?: GraphicsContext) =>
         props.tryUseImpostor && !!graphics,
     },

@@ -18,9 +18,6 @@ decided or fixed. Spec: [\_spec](_spec/README.md). Performance items and bugs of
   `props/` imports `model/`: one layer or two?
 - **Format properties set by readers are not registered.** `FormatPropertyProvider.set` writes the bag but not
   `customProperties`, so `cifExport` skips values a reader set (CCD `ComponentBond`); the volume provider registers.
-- **Readers' bonds on coordinate frames.** `IndexPairBonds` is dynamic and set on the representative only by MOL/SDF,
-  MOL2, CIF core and LAMMPS data, so frames made with `trajectoryFromModelAndCoordinates` lack them (topologies set them
-  on every frame).
 - **`focus-first-residue.ts` reads `unit.props.polymerElements`** (plugin core), so it sees only units whose polymer
   elements happen to be computed; `unit.polymerElements` was likely meant.
 

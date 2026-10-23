@@ -42,7 +42,8 @@ registry from `ModelFormat.kind` to an `obtain(model)`.
 
 `IndexPairBonds` index atoms by source index (`atomSourceIndex`); `maxDistance` (default -1: an element-based threshold;
 `Infinity`: trust the table; a per-bond `distance` takes precedence), `cacheable`, and operators per bond (assemblies
-written with operator ids).
+written with operator ids). The frames of `trajectoryFromModelAndCoordinates` share the model's value: no format
+provider gives a value a reader set.
 
 ## 3. Volumes and particles
 

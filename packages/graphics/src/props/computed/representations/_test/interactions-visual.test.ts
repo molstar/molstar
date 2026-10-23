@@ -270,6 +270,26 @@ describe('interactions representation', async () => {
     }
   });
 
+  it('sizeFactor: impostors update the uniform only, the mesh rebuilds (perf-audit-2 09/P16)', async () => {
+    const impostors = await createRepr(structure, graphicsStub);
+    const mesh = await createRepr(structure, undefined);
+    const versions = (repr: Representation.Any, name: string) =>
+      repr.renderObjects.map((ro) => (ro.values as any)[name].ref.version as number);
+    const starts = versions(impostors, 'aStart');
+    const positions = versions(mesh, 'aPosition');
+    // the first update after a build keeps the geometry (the interactions version it was built from is known)
+    await impostors.createOrUpdate({ alpha: 0.5 }, structure).run();
+    await mesh.createOrUpdate({ alpha: 0.5 }, structure).run();
+    expect(versions(impostors, 'aStart')).toEqual(starts);
+    expect(versions(mesh, 'aPosition')).toEqual(positions);
+    await impostors.createOrUpdate({ sizeFactor: 0.5 }, structure).run();
+    await mesh.createOrUpdate({ sizeFactor: 0.5 }, structure).run();
+    expect(versions(impostors, 'aStart')).toEqual(starts);
+    for (const ro of impostors.renderObjects) expect((ro.values as any).uSizeFactor.ref.value).toBeCloseTo(0.5);
+    const after = versions(mesh, 'aPosition');
+    expect(after.every((v, i) => v > positions[i])).toBe(true);
+  });
+
   it('switches between impostors and mesh with tryUseImpostor', async () => {
     const repr = await createRepr(structure, graphicsStub, { tryUseImpostor: false });
     expect(repr.renderObjects.every((ro) => ro.type === 'mesh')).toBe(true);

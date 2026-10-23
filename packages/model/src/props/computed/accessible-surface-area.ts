@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -59,7 +60,8 @@ export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<
   type: 'root',
   defaultParams: AccessibleSurfaceAreaParams,
   getParams: (data: Structure) => AccessibleSurfaceAreaParams,
-  isApplicable: (data: Structure) => true,
+  // coarse elements have no surface area (06/B3)
+  isApplicable: (data: Structure) => data.units.some(Unit.isAtomic),
   obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<AccessibleSurfaceAreaProps>) => {
     const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props };
     return { value: await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime) };

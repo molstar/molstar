@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * from https://github.com/dsehnal/CIFTools.js
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -36,11 +36,49 @@ export function createRangeArray(start: number, end: number, ctor?: ArrayCtor<nu
   return array;
 }
 
-export function arrayPickIndices<T>(array: ArrayLike<T>, indices: ArrayLike<number>) {
+/**
+ * `array[indices[i]]` for each i, in an array of `array`'s kind. The common kinds have a loop each, so each keeps its
+ * own type feedback: gathering columns of every kind (a sorted `atom_site`: floats, ints and strings) does not make one
+ * loop's keyed loads and stores polymorphic for all of them (perf-audit-2 01/P10).
+ */
+export function arrayPickIndices<T>(
+  array: ArrayLike<T>,
+  indices: ArrayLike<number>,
+): { [i: number]: T; length: number } {
+  if (array instanceof Float32Array) return pickFloat32(array, indices) as any;
+  if (array instanceof Float64Array) return pickFloat64(array, indices) as any;
+  if (array instanceof Int32Array) return pickInt32(array, indices) as any;
+  if (Array.isArray(array)) return pickArray(array, indices);
+  return pickAny(array, indices);
+}
+
+function pickFloat32(array: Float32Array, indices: ArrayLike<number>) {
+  const ret = new Float32Array(indices.length);
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
+  return ret;
+}
+
+function pickFloat64(array: Float64Array, indices: ArrayLike<number>) {
+  const ret = new Float64Array(indices.length);
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
+  return ret;
+}
+
+function pickInt32(array: Int32Array, indices: ArrayLike<number>) {
+  const ret = new Int32Array(indices.length);
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
+  return ret;
+}
+
+function pickArray<T>(array: readonly T[], indices: ArrayLike<number>) {
+  const ret = new Array<T>(indices.length);
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
+  return ret;
+}
+
+function pickAny<T>(array: ArrayLike<T>, indices: ArrayLike<number>) {
   const ret = new (arrayGetCtor(array))(indices.length);
-  for (let i = 0, _i = indices.length; i < _i; i++) {
-    ret[i] = array[indices[i]];
-  }
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
   return ret;
 }
 

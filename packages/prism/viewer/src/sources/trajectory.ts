@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { PluginCommands } from '@molstar/plugin/commands';
 import type { PluginContext } from '@molstar/plugin/context';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -170,6 +171,19 @@ export async function whileViewing<T>(plugin: PluginContext, work: () => Promise
     if (n > 0) viewing.set(plugin, n);
     else viewing.delete(plugin);
   }
+}
+
+/**
+ * Sets the params of the cell `ref` (a frame to show) as viewing (`whileViewing`), with no "Updated X in N ms" log
+ * line per cell it updates: about 9 a seek, which a scrub would repeat until no other line was left in the Log's
+ * Transforms (perf-audit-2 10/P14).
+ */
+export function seekWhileViewing(plugin: PluginContext, ref: string, params: object): Promise<void> {
+  const state = plugin.state.data;
+  const tree = state.build().to(ref).update(params);
+  return whileViewing(plugin, () =>
+    PluginCommands.State.Update(plugin, { state, tree, options: { doNotLogTiming: true } }),
+  );
 }
 
 /** The data tree is changing as the person views it: frames stepped through, or an animation playing. */

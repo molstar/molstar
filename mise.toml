@@ -1,6 +1,6 @@
 [tools]
-# Node 24 (LTS); pnpm matches `packageManager` in package.json.
-node = "24"
+# Node 24 (LTS), its latest minor (patches float); pnpm matches `packageManager` in package.json.
+node = "24.22"
 pnpm = "11.25.0"
 
 # The tasks wrap the package.json scripts; extra arguments are passed through,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,6 +9,7 @@ import * as ColumnHelpers from './column-helpers.js';
 import { Tensor as Tensors } from '@molstar/core/math/linear-algebra/tensor';
 import type { Tokens } from '@molstar/core/util/token-ranges';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '@molstar/core/util/number-parser';
+import { arrayPickIndices } from '@molstar/core/data/util/array';
 
 interface Column<T> {
   readonly schema: Column.Schema;
@@ -483,9 +484,7 @@ function columnView<T>(c: Column<T>, map: ArrayLike<number>, checkIdentity: bool
 }
 
 function arrayView<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
-  const array = c.__array!;
-  const ret = new (array as any).constructor(map.length);
-  for (let i = 0, _i = map.length; i < _i; i++) ret[i] = array[map[i]];
+  const ret = arrayPickIndices(c.__array!, map) as ArrayLike<T>;
   const vk = c.valueKind;
   return arrayColumn({ array: ret, schema: c.schema, valueKind: (row) => vk(map[row]) });
 }

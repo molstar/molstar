@@ -204,10 +204,10 @@ unchanged apart from #1987.
 
 | Id | vs v1 | Severity | Bug | Where | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B2 | still-open | medium | New units visuals never get the representation transform (also on `mustRecreate`) | [units-representation.ts:394](../../packages/graphics/src/repr/structure/units-representation.ts#L394) | confirmed (measured) |
+| B2 | still-open; **fixed** #2032 | medium | New units visuals never get the representation transform (also on `mustRecreate`) | [units-representation.ts:394](../../packages/graphics/src/repr/structure/units-representation.ts#L394) | confirmed (measured) |
 | B1 | still-open | medium | Volume and particle visuals lose state on new data or recreate | [volume/representation.ts:79](../../packages/graphics/src/repr/volume/representation.ts#L79) | confirmed (code; v1 measured) |
 | N1 | still-open | medium | Segment mask reads wrapped or out-of-grid voxels at grid faces | [segment.ts:154](../../packages/graphics/src/repr/volume/segment.ts#L154) | confirmed (code; v1 measured) |
-| B3 | still-open | medium | Label representation throws on coarse units | [label-text.ts:118](../../packages/graphics/src/repr/structure/visual/label-text.ts#L118) | confirmed (code; v1 measured) |
+| B3 | still-open; **fixed** #2032 | medium | Label representation throws on coarse units | [label-text.ts:118](../../packages/graphics/src/repr/structure/visual/label-text.ts#L118) | confirmed (code; v1 measured) |
 | B5 | still-open | low | Impostor multi-bond/aromatic offsets stale after a size-theme change | [bond-intra-unit-cylinder.ts:339](../../packages/graphics/src/repr/structure/visual/bond-intra-unit-cylinder.ts#L339) | confirmed (code; v1 measured) |
 | B4 | still-open | low | Segment voxel loci use bbox-local ids as global cells | [segment.ts:111](../../packages/graphics/src/repr/volume/segment.ts#L111) | confirmed |
 | B8 | still-open | low | Highlight removal on reused visuals writes `tMarker` without a cell update | [units-representation.ts:169](../../packages/graphics/src/repr/structure/units-representation.ts#L169) | confirmed |

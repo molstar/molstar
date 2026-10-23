@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { VisualUpdateState } from '../../util.js';
 import type { VisualContext } from '../../visual.js';
-import { type Structure, StructureElement, StructureProperties } from '@molstar/model/model/structure';
+import { type Structure, StructureElement, StructureProperties, Unit } from '@molstar/model/model/structure';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
@@ -105,6 +105,7 @@ function createChainText(
   const l = StructureElement.Location.create(structure);
   const { units, serialMapping } = structure;
   const { auth_asym_id, label_asym_id } = StructureProperties.chain;
+  const { asym_id } = StructureProperties.coarse;
   const { cumulativeUnitElementCount } = serialMapping;
 
   const count = units.length;
@@ -117,9 +118,14 @@ function createChainText(
     l.element = unit.elements[0];
     const { center, radius } = unit.lookup3d.boundary.sphere;
     Vec3.transformMat4(tmpVec, center, unit.conformation.operator.matrix);
-    const authId = auth_asym_id(l);
-    const labelId = label_asym_id(l);
-    const text = authId === labelId ? labelId : `${labelId} [${authId}]`;
+    let text: string;
+    if (Unit.isAtomic(unit)) {
+      const authId = auth_asym_id(l);
+      const labelId = label_asym_id(l);
+      text = authId === labelId ? labelId : `${labelId} [${authId}]`;
+    } else {
+      text = asym_id(l);
+    }
     builder.add(text, tmpVec[0], tmpVec[1], tmpVec[2], radius, chainScale, cumulativeUnitElementCount[i]);
   }
 
@@ -145,6 +151,8 @@ function createResidueText(
 
   for (let i = 0, il = units.length; i < il; ++i) {
     const unit = units[i];
+    // coarse elements have no residue or atom names to show
+    if (!Unit.isAtomic(unit)) continue;
     const c = unit.conformation;
     const { elements } = unit;
     l.unit = unit;
@@ -206,6 +214,7 @@ function createElementText(
 
   for (let i = 0, il = units.length; i < il; ++i) {
     const unit = units[i];
+    if (!Unit.isAtomic(unit)) continue;
     const c = unit.conformation;
     const { elements } = unit;
     l.unit = unit;

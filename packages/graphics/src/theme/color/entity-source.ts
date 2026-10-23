@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StructureProperties, StructureElement, Bond, type Model } from '@molstar/model/model/structure';
@@ -77,9 +78,11 @@ function addSrc(
     const mK = modelEntityKey(modelIndex, entityId);
     let seqToSrc: Int16Array;
     if (!seqToSrcByModelEntity.has(mK)) {
-      const entityIndex = model.entities.getEntityIndex(entityId);
-      const seq = model.sequence.sequences[entityIndex].sequence;
-      seqToSrc = new Int16Array(seq.length);
+      // `sequences` holds the polymer entities only: look the entity up by its index (perf-audit-2 09/B2)
+      const entitySeq = model.sequence.byEntityKey[model.entities.getEntityIndex(entityId)];
+      // a source row of an entity with no polymer sequence (a ligand, a branched entity): nothing to color by it
+      if (!entitySeq) continue;
+      seqToSrc = new Int16Array(entitySeq.sequence.length);
       seqToSrcByModelEntity.set(mK, seqToSrc);
     } else {
       seqToSrc = seqToSrcByModelEntity.get(mK)!;
@@ -175,8 +178,8 @@ export function EntitySourceColorTheme(
       const mK = modelEntityKey(modelIndex, entityId);
       const seqToSrc = seqToSrcByModelEntity.get(mK);
       if (seqToSrc) {
-        // minus 1 to convert seqId to array index
-        const src = seqToSrc[StructureProperties.residue.label_seq_id(location) - 1] - 1;
+        // minus 1 to convert seqId to array index; a seqId outside the sequence (0 for a ligand) has no source
+        const src = (seqToSrc[StructureProperties.residue.label_seq_id(location) - 1] ?? 0) - 1;
         // check for -1 as not all sequence ids have a src given
         return src === -1 ? DefaultColor : palette.color(src);
       } else {

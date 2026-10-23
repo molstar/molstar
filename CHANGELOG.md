@@ -10,6 +10,17 @@ here.
 
 ## [Unreleased]
 
+- Fix `ungzip` of gzip files with an extra field (`FLG.FEXTRA`, e.g. a single BGZF block): the field's 2-byte length was
+  not skipped
+- Fix accessible surface area (its color theme, `is-buried`, `is-accessible`) throwing on structures with coarse units;
+  coarse elements have no value
+- Fix the label representation throwing on coarse units: coarse chains are labelled by their asym id
+- Fix visuals created after a representation transform was set (a new group, or recreated) staying at the identity
+- Fix trilinear interpolation of periodic volumes (MTZ, structure factors, whole-cell CCP4) reading wrong voxels or NaN
+  outside the unit cell
+- Fix the volume-value color theme with `isRelative`: values are relative to mean and sigma like the domain (a custom
+  domain is in sigma units too)
+- Fix the entity-source color theme throwing when a non-polymer entity comes before a polymer one
 - Volume streaming: a state that streams other maps than the one before (a snapshot, an MVS state) recreates the
   streaming behavior; it updated the old one and failed on the new entry's name (`emDefaultContourLevel` of undefined)
   (#2023)

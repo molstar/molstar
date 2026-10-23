@@ -114,6 +114,11 @@ export function themeDomain(params: ValueThemeParams, stats: Volume['grid']['sta
     d[0] = -m;
     d[1] = m;
   }
+  // with `isRelative` the domain is in sigma units: back to values, which the shader normalizes by min and max
+  if (params.isRelative) {
+    d[0] = d[0] * sigma + mean;
+    d[1] = d[1] * sigma + mean;
+  }
   const span = max - min || 1;
   return [(d[0] - min) / span, (d[1] - min) / span];
 }

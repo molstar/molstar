@@ -15,7 +15,7 @@ import {
   isPlayingFrames,
   type TrajectoryInfo,
   trajectoryInfos,
-  whileViewing,
+  seekWhileViewing,
 } from '../sources/trajectory.js';
 import { ApiArea, type ApiContext, ApiResult } from './area.js';
 import { StructureParam, OptionalParam } from './params.js';
@@ -98,12 +98,7 @@ export class TrajectoryApi extends ApiArea {
       if (to === s.index) return ApiResult.already(`${s.label} already shows model ${to + 1} of ${s.count}.`);
       // The model cell, not `UpdateTrajectory`: that moves every trajectory in the scene.
       const cell = ctx.plugin.state.data.cells.get(s.model)!;
-      await whileViewing(ctx.plugin, () =>
-        ctx.plugin.state.updateTransform(ctx.plugin.state.data, s.model, {
-          ...(cell.transform.params as object),
-          modelIndex: to,
-        }),
-      );
+      await seekWhileViewing(ctx.plugin, s.model, { ...(cell.transform.params as object), modelIndex: to });
       return ApiResult.ok(
         `${s.label} shows model ${to + 1} of ${s.count}.`,
         { nodes: [s.ref] },

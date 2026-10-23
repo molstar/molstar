@@ -250,6 +250,32 @@ describe('a trajectory frame that also moves the structure', () => {
     expect(u.conformation.x(u.elements[0])).toBeCloseTo(root.unitMap.get(u.id).conformation.x(u.elements[0]), 5);
     expect(u.model).toBe(root.model);
   });
+
+  it('keeps a whole-unit component of a moved structure where the structure is (perf-audit-2 05/B9)', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await loadEnsemble(plugin);
+    const structure = await plugin.builders.structure.createStructure(model);
+    const moved = await plugin
+      .build()
+      .to(structure)
+      .apply(TransformStructureConformation, {
+        transform: {
+          name: 'matrix',
+          params: { data: Mat4.fromTranslation(Mat4(), Vec3.create(10, 0, 0)), transpose: false },
+        },
+      })
+      .commit();
+    const polymer = await plugin.builders.structure.tryCreateComponentStatic(moved, 'polymer');
+    // only the frame changes: the component is remapped, not recreated
+    await setFrame(plugin, model.ref, 1);
+    const root = plugin.state.data.cells.get(moved.ref)!.obj!.data as Structure;
+    const component = plugin.state.data.cells.get(polymer!.ref)!.obj!.data as Structure;
+    expect(component.model.modelNum).toBe(root.model.modelNum);
+    const u = component.units[0];
+    const r = root.unitMap.get(u.id);
+    expect(Unit.areOperatorsEqual(u, r)).toBe(true);
+    expect(u.conformation.x(u.elements[0])).toBeCloseTo(r.conformation.x(u.elements[0]), 5);
+  });
 });
 
 describe('a trajectory frame with the default preset and an overpaint', () => {
