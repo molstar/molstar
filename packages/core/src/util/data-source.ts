@@ -41,6 +41,11 @@ export interface AjaxGetParams<T extends DataType = 'string'> {
   title?: string;
   headers?: Record<string, string>;
   body?: string;
+  /**
+   * Cancels the download, also while it waits for the server or on a stalled body, which the task's own abort (seen
+   * between chunks) cannot; the task then rejects as aborted, with the signal's reason
+   */
+  signal?: AbortSignal;
 }
 
 export function readStringFromFile(file: File) {
@@ -59,19 +64,14 @@ export function ajaxGet(url: string): Task<DataValue>;
 export function ajaxGet<T extends DataType>(params: AjaxGetParams<T>): Task<DataResponse<T>>;
 export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
   if (typeof params === 'string') return ajaxGetInternal(params, params, 'string');
-  return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body, params.headers);
+  return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body, params.headers, params.signal);
 }
 
 export type AjaxTask = typeof ajaxGet;
 
-function isDone(data: XMLHttpRequest | FileReader) {
-  if (RUNNING_IN_NODEJS) throw new Error('`isDone` should not be used when running in Node.js'); // XMLHttpRequest and FileReader are not available in Node.js
-  if (data instanceof FileReader) {
-    return data.readyState === FileReader.DONE;
-  } else if (data instanceof XMLHttpRequest) {
-    return data.readyState === XMLHttpRequest.DONE;
-  }
-  throw new Error('unknown data type');
+function isDone(data: FileReader) {
+  if (RUNNING_IN_NODEJS) throw new Error('`isDone` should not be used when running in Node.js'); // FileReader is not available in Node.js
+  return data.readyState === FileReader.DONE;
 }
 
 function genericError(isDownload: boolean) {
@@ -80,14 +80,14 @@ function genericError(isDownload: boolean) {
   return 'Failed to open file.';
 }
 
-function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T): Promise<T> {
-  if (RUNNING_IN_NODEJS) throw new Error('`readData` should not be used when running in Node.js'); // XMLHttpRequest is not available in Node.js
-  return new Promise<T>((resolve, reject) => {
+function readData(ctx: RuntimeContext, action: string, data: FileReader): Promise<FileReader> {
+  if (RUNNING_IN_NODEJS) throw new Error('`readData` should not be used when running in Node.js'); // FileReader is not available in Node.js
+  return new Promise<FileReader>((resolve, reject) => {
     // first check if data reading is already done
     if (isDone(data)) {
-      const { error } = data as FileReader;
+      const { error } = data;
       if (error !== null && error !== undefined) {
-        reject(error ?? genericError(data instanceof XMLHttpRequest));
+        reject(error);
       } else {
         resolve(data);
       }
@@ -100,7 +100,7 @@ function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, ac
       if (hasError) return;
 
       const { error } = e.target as FileReader;
-      reject(error ?? genericError(data instanceof XMLHttpRequest));
+      reject(error ?? genericError(false));
     };
 
     data.onprogress = (e: ProgressEvent) => {
@@ -218,113 +218,140 @@ function readFromFileInternal_NodeJS<T extends DataType>(file: File, type: T): T
   });
 }
 
-class RequestPool {
-  private static pool: XMLHttpRequest[] = [];
-  private static poolSize = 15;
-
-  static get() {
-    if (RUNNING_IN_NODEJS) throw new Error('`RequestPool.get` should not be used when running in Node.js'); // XMLHttpRequest is not available in Node.js
-    if (this.pool.length) {
-      return this.pool.pop()!;
-    }
-    return new XMLHttpRequest();
-  }
-
-  static emptyFunc() {}
-
-  static deposit(req: XMLHttpRequest) {
-    if (this.pool.length < this.poolSize) {
-      req.onabort = RequestPool.emptyFunc;
-      req.onerror = RequestPool.emptyFunc;
-      req.onload = RequestPool.emptyFunc;
-      req.onprogress = RequestPool.emptyFunc;
-      this.pool.push(req);
-    }
-  }
-}
-
-function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResponse<T> {
-  if (req.status >= 200 && req.status < 400) {
-    const { response } = req;
-    RequestPool.deposit(req);
-
-    if ((type === 'binary' || type === 'zip') && response instanceof ArrayBuffer) {
-      return new Uint8Array(response) as DataResponse<T>;
-    } else if (type === 'string' && typeof response === 'string') {
-      return response as DataResponse<T>;
-    } else if (type === 'xml' && response instanceof XMLDocument) {
-      return response as DataResponse<T>;
-    } else if (type === 'json' && typeof response === 'object') {
-      return response as DataResponse<T>;
-    }
-    throw new Error(`could not get requested response data '${type}'`);
-  } else {
-    RequestPool.deposit(req);
-    throw new Error(`Download failed with status code ${req.status}`);
-  }
-}
-
-function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
-  switch (type) {
-    case 'json':
-      return 'json';
-    case 'xml':
-      return 'document';
-    case 'string':
-      return 'text';
-    case 'binary':
-      return 'arraybuffer';
-    case 'zip':
-      return 'arraybuffer';
-  }
-}
-
 function ajaxGetInternal<T extends DataType>(
   title: string | undefined,
   url: string,
   type: T,
   body?: string,
   headers?: Record<string, string>,
+  signal?: AbortSignal,
 ): Task<DataResponse<T>> {
-  if (RUNNING_IN_NODEJS) {
-    if (url.startsWith('file://')) {
-      return ajaxGetInternal_file_NodeJS(title, url, type, body, headers);
+  // Node.js's `fetch` has no `file:` scheme
+  if (RUNNING_IN_NODEJS && url.startsWith('file://')) return ajaxGetInternal_file_NodeJS(title, url, type);
+
+  return Task.create(title ? title : 'Download', async (ctx) => {
+    // the task runtime sees an abort only in `ctx.update` and `ctx.shouldUpdate`, between chunks as with XHR; the
+    // abort error leaves through the `finally` below, which cancels the request (no `onAbort`: it runs after `f` throws)
+    const aborter = new AbortController();
+    if (signal?.aborted) throw signalAborted(signal);
+    // a listener, not `AbortSignal.any`: on Node.js 22 a long-lived caller signal keeps every combined signal alive
+    const onCallerAbort = () => aborter.abort(signal!.reason);
+    signal?.addEventListener('abort', onCallerAbort, { once: true });
+    try {
+      await ctx.update({ message: 'Waiting for server...', canAbort: true });
+      let response: Response;
+      try {
+        response = await fetch(url, { signal: aborter.signal, method: body ? 'POST' : 'GET', body, headers });
+      } catch (e) {
+        throw downloadError(e, signal);
+      }
+      if (signal?.aborted) throw signalAborted(signal);
+      if (!(response.status >= 200 && response.status < 400)) {
+        throw new Error(`Download failed with status code ${response.status}`);
+      }
+      const data = await readResponseBody(ctx, 'Downloading...', response, signal);
+
+      await ctx.update({ message: 'Parsing response...', canAbort: false });
+      let result: DataResponse<T>;
+      try {
+        result = await processFile(ctx, data, type, DataCompressionMethod.None);
+      } catch (e) {
+        // XHR's `responseType: 'json'` gave null for a body that is not JSON, and callers fall back on it (`?? []`)
+        if (!(type === 'json' && e instanceof SyntaxError)) throw e;
+        result = null as DataResponse<T>;
+      }
+      if (signal?.aborted) throw signalAborted(signal);
+      return result;
+    } finally {
+      signal?.removeEventListener('abort', onCallerAbort);
+      // stops a body an error or an abort left unread; a no-op once it is read
+      aborter.abort();
+    }
+  });
+}
+
+/**
+ * The caller's signal aborts the task; otherwise a network failure. A browser hides why a request failed (XHR gave the
+ * generic message); Node.js says why, as its path did before.
+ */
+function downloadError(e: unknown, signal: AbortSignal | undefined) {
+  if (signal?.aborted) return signalAborted(signal);
+  return RUNNING_IN_NODEJS ? e : new Error(genericError(true), { cause: e });
+}
+
+function signalAborted(signal: AbortSignal) {
+  const { reason } = signal;
+  return Task.Aborted(typeof reason === 'string' ? reason : reason instanceof Error ? reason.message : '');
+}
+
+/**
+ * The bytes of a response body, with progress against `Content-Length`. A compressed body streams its decoded bytes,
+ * which `Content-Length` does not count, so it reports bytes only, as does a body that outgrows the length: a
+ * cross-origin response hides `Content-Encoding` but not `Content-Length`, so a compressed one shows as that.
+ */
+async function readResponseBody(
+  ctx: RuntimeContext,
+  action: string,
+  response: Response,
+  signal: AbortSignal | undefined,
+): Promise<ArrayBuffer> {
+  const encoding = response.headers.get('Content-Encoding');
+  const length = encoding && encoding !== 'identity' ? -1 : contentLength(response);
+  // a known length reads into one buffer, without a copy at the end
+  let buffer = length >= 0 ? tryAllocate(length) : void 0;
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+
+  const reader = response.body?.getReader();
+  while (reader) {
+    let next: ReadableStreamReadResult<Uint8Array>;
+    try {
+      next = await reader.read();
+    } catch (e) {
+      throw downloadError(e, signal);
+    }
+    if (next.done) break;
+
+    const chunk = next.value;
+    if (buffer && loaded + chunk.length <= buffer.length) {
+      buffer.set(chunk, loaded);
     } else {
-      return ajaxGetInternal_http_NodeJS(title, url, type, body, headers);
+      if (buffer) chunks.push(buffer.subarray(0, loaded));
+      buffer = void 0;
+      chunks.push(chunk);
+    }
+    loaded += chunk.length;
+
+    if (ctx.shouldUpdate) {
+      if (buffer) {
+        await ctx.update({ message: action, isIndeterminate: false, current: loaded, max: length });
+      } else {
+        await ctx.update({ message: `${action} ${(loaded / 1024 / 1024).toFixed(2)} MB`, isIndeterminate: true });
+      }
     }
   }
 
-  let xhttp: XMLHttpRequest | undefined = void 0;
-  return Task.create(
-    title ? title : 'Download',
-    async (ctx) => {
-      xhttp = RequestPool.get();
+  if (buffer) return loaded === buffer.length ? buffer.buffer : buffer.slice(0, loaded).buffer;
+  const out = new Uint8Array(loaded);
+  for (let i = 0, offset = 0; i < chunks.length; offset += chunks[i].length, i++) out.set(chunks[i], offset);
+  return out.buffer;
+}
 
-      xhttp.open(body ? 'post' : 'get', url, true);
-      if (headers) {
-        for (const [name, value] of Object.entries(headers)) {
-          xhttp.setRequestHeader(name, value);
-        }
-      }
-      xhttp.responseType = getRequestResponseType(type);
-      xhttp.send(body);
+/** A buffer of `length` bytes, or none when that is more than can be allocated: a bogus length reads in chunks */
+function tryAllocate(length: number) {
+  try {
+    return new Uint8Array(length);
+  } catch (e) {
+    if (e instanceof RangeError) return void 0;
+    throw e;
+  }
+}
 
-      await ctx.update({ message: 'Waiting for server...', canAbort: true });
-      const req = await readData(ctx, 'Downloading...', xhttp);
-      xhttp = void 0; // guard against reuse, help garbage collector
-
-      await ctx.update({ message: 'Parsing response...', canAbort: false });
-      const result = processAjax(req, type);
-
-      return result;
-    },
-    () => {
-      if (xhttp) {
-        xhttp.abort();
-        xhttp = void 0; // guard against reuse, help garbage collector
-      }
-    },
-  );
+/** `Content-Length` in bytes, or -1 when the response has none */
+function contentLength(response: Response) {
+  const header = response.headers.get('Content-Length');
+  const length = header === null ? NaN : Number(header);
+  return Number.isSafeInteger(length) && length >= 0 ? length : -1;
 }
 
 // NOTE: a workaround for using this in Node.js
@@ -356,8 +383,6 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(
   title: string | undefined,
   url: string,
   type: T,
-  body?: string,
-  headers?: Record<string, string>,
 ): Task<DataResponse<T>> {
   if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
   if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
@@ -371,42 +396,6 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(
     const result = await processFile(ctx, data.buffer, type, DataCompressionMethod.None);
     return result;
   });
-}
-
-/** Alternative implementation of ajaxGetInternal for NodeJS for http(s):// protocol */
-function ajaxGetInternal_http_NodeJS<T extends DataType>(
-  title: string | undefined,
-  url: string,
-  type: T,
-  body?: string,
-  headers?: Record<string, string>,
-): Task<DataResponse<T>> {
-  if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
-
-  const aborter = new AbortController();
-  return Task.create(
-    title ?? 'Download',
-    async (ctx) => {
-      await ctx.update({ message: 'Downloading...', canAbort: true });
-      const response = await fetch(url, {
-        signal: aborter.signal,
-        method: body ? 'POST' : 'GET',
-        body,
-        headers,
-      });
-      if (!(response.status >= 200 && response.status < 400)) {
-        throw new Error(`Download failed with status code ${response.status}`);
-      }
-      const fileContent = await response.bytes();
-
-      await ctx.update({ message: 'Parsing response...', canAbort: false });
-      const result = await processFile(ctx, fileContent.buffer, type, DataCompressionMethod.None);
-      return result;
-    },
-    () => {
-      aborter.abort();
-    },
-  );
 }
 
 export type AjaxGetManyEntry =
