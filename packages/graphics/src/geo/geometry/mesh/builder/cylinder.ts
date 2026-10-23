@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
@@ -138,8 +139,8 @@ export function addFixedCountDashedCylinder(
     Vec3.add(tmpCylinderStart, tmpCylinderStart, tmpCylinderDir);
     if (isOdd && j === s - 1) {
       if (!stubCap && props.topCap) {
-        props.topCap = false;
-        cylinder = getCylinder(props);
+        // a copy: the caller passes the same props again (MirroredAromatic's second row, perf-audit-2 08/B7)
+        cylinder = getCylinder({ ...props, topCap: false });
       }
       step /= 2;
     }
