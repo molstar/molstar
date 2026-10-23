@@ -43,6 +43,11 @@ describe('the transfer function on its axis', () => {
     expect(themeDomain({ ...base, domain: { name: 'auto', params: { symmetric: false } } }, stats)).toEqual([0, 1]);
     expect(themeDomain({ ...base, domain: { name: 'custom', params: [0, 4] } }, stats)).toEqual([0.2, 0.6]);
     expect(themeDomain({ ...base, domain: { name: 'auto', params: { symmetric: true } } }, stats)).toEqual([-0.6, 1]);
+    // relative: the domain in sigma units, back to values (perf-audit-2 09/B7); a mean and sigma that are not 0 and 1
+    const shifted = { min: -2, max: 8, mean: 1, sigma: 2 };
+    const rel = { ...base, isRelative: true };
+    expect(themeDomain({ ...rel, domain: { name: 'auto', params: { symmetric: false } } }, shifted)).toEqual([0, 1]);
+    expect(themeDomain({ ...rel, domain: { name: 'custom', params: [0, 2] } }, shifted)).toEqual([0.3, 0.7]);
   });
 
   it('paints the stops interpolated, a set in steps, the ends clamped, within the domain', () => {
