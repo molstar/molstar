@@ -33,6 +33,9 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   `0xde`, `0xdf`) is BinaryCIF, anything else text (a UTF-8 byte order mark is skipped). A BinaryCIF file always starts
   with a map marker, so only input that failed before (text CIF as bytes) reads differently. The plugin's `ParseCif`
   goes through it, so a Binary data cell holding text CIF parses.
+- Bytes that are neither (gzip, say) now fail as text, "Unexpected token", where they failed as MessagePack.
+- A file parsed from bytes reads them in place: a caller that reuses the buffer changes the values (a string could not
+  change).
 - `CIF.parseBinary` stays strict, no sniffing: `ParseBlob` calls it for its binary entries.
 - The plugin keeps reading `.cif` and `.mmcif` files as strings (the maintainers' decision): reading them as binary
   would skip the encode copy and the 512 MB string limit, but would change the Data node's type of opened files. The
@@ -51,8 +54,9 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   loop copies, numbers and strings: one function writing typed and JS arrays went megamorphic.
 - **Float32 straight**: a quantized column read with `toFloatArray({ array: Float32Array })` decodes to Float32 (each
   value computed in double, rounded once); the other accessors decode to the source type, so writers see exact
-  values. Sorted and windowed models gather Float32 coordinates from that array. The conformation of a BinaryCIF model
-  is therefore Float32, like a text one's; it was Float64 because `typedArrayWindow` ignores `array`.
+  values. Sorted and windowed models gather the coordinates from that array, of its type, reading only their own rows. The
+  conformation of a quantized BinaryCIF model (the PDB's coordinates) is therefore Float32, like a text one's; it was
+  Float64 because `typedArrayWindow` ignores `array`. A raw Float64 column stays Float64 in every path.
 - **Not done: dictionary-encoded string columns** (04/P16): keep a StringArray column as its indices and strings
   (`value(i) = strings[indices[i] + 1]`, equality on indices, sorting gathers 4-byte indices). It would save the 8 B
   per value pointer array (flat-192: ~9 MB per string column, 15 of the 26 `atom_site` columns) and the sorted copies,

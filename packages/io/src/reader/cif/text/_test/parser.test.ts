@@ -46,6 +46,8 @@ const Cases: Record<string, string> = {
   semicolonInLine: `data_s\n_a.x 1;2 _a.y ;x\n`,
   bom: `﻿data_bom\n_a.x 1\n`,
   long: `data_l\nloop_\n_a.x\n_a.y\n${'x'.repeat(300)} ${'y'.repeat(254)}\n${'z'.repeat(255)} 1\n`,
+  // values of 255+ bytes in a loop that grows: the ends' map is re-keyed
+  longGrow: `data_g\nloop_\n_a.x\n_a.y\n${Array.from({ length: 200 }, (_, i) => `${String(i).repeat(100 + i)} ${i}`).join('\n')}\n`,
   empty: ``,
   whitespace: `  \n\t\n`,
 };

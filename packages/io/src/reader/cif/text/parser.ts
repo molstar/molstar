@@ -701,15 +701,16 @@ function readLoopChunk(chunkSize: number, state: LoopReadState) {
 }
 
 /**
- * The rows the rest of the file would hold at the density read so far, plus 5 %: a big loop (`atom_site`) grows once or
- * twice instead of by 1.61 at a time, and `trim` drops what the estimate overshoots.
+ * The rows the rest of the file would hold at the density read so far, plus 5 %, at most 4x the room: a big loop
+ * (`atom_site`) grows in a few steps instead of by 1.61 at a time, and `trim` drops what the estimate overshoots.
  */
 function estimateLoopRows(state: LoopReadState) {
   const { tokenizer, tokens } = state;
   const read = tokenizer.position - state.start;
   const rows = Math.floor(tokens.count / tokens.fieldCount);
   if (rows < 64 || read <= 0) return 0;
-  return Math.ceil((1.05 * rows * (tokenizer.length - state.start)) / read);
+  // at most 4x the room: a small loop near the top of a large file must not reserve the file's size
+  return Math.min(Math.ceil((1.05 * rows * (tokenizer.length - state.start)) / read), 4 * tokens.capacity);
 }
 
 function updateLoopChunk(ctx: RuntimeContext, state: LoopReadState) {

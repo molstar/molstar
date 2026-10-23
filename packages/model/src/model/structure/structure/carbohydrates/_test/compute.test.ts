@@ -114,11 +114,10 @@ describe('computeCarbohydrates', () => {
   });
 
   // a real polysaccharide: 964 sugars in 52 branched chains of up to 47 residues, 104 glycosylation sites
-  // geometry from Float32 coordinates since BinaryCIF conformations are Float32 like text CIF's (the hash rounds to 1e-5)
   it('21nr', async () => {
     const c = computeCarbohydrates(await loadBinary('21nr.bcif'));
     expect(signature(c)).toMatchInlineSnapshot(
-      `"elements=964:12b55419 components=4d184827 geometry=29784ed5 links=1824:80b60c85 terminal=104:3efc29a5 partial=0:811c9dc5"`,
+      `"elements=964:12b55419 components=4d184827 geometry=6f7c9e18 links=1824:80b60c85 terminal=104:3efc29a5 partial=0:811c9dc5"`,
     );
   });
 

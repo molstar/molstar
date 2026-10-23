@@ -10,5 +10,6 @@
 - BinaryCIF: a field decodes on its first access, sorted and windowed `atom_site` columns are made on first read, the
   common encoding chains decode in one pass, and coordinates decode straight to Float32. 1.12M atoms: model retained
   342 → 244 MB, ~50 MB less allocated; all `atom_site` columns decode in 67.5 ms instead of 84.5.
-- Behaviour: the coordinates of a BinaryCIF model are Float32, as a text CIF model's (they were Float64).
+- Behaviour: the coordinates of a BinaryCIF model with quantized coordinates (FixedPoint, the usual encoding) are
+  Float32, as a text CIF model's (they were Float64); raw Float64 coordinates stay Float64.
 - core: `parseIntBytes`, `parseFloatBytes` (number-parser), `utf8Encode`; `utf8Read` is faster for short ASCII.

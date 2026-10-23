@@ -59,8 +59,7 @@ export async function sortAtomSite(
           },
           (params) => {
             const { start: s, end: e } = ColumnHelpers.getArrayBounds(indices.length, params);
-            const rows = c.toArray({ array: Float32Array, start: start + s, end: start + e });
-            return rows instanceof Float32Array ? rows : Float32Array.from(rows);
+            return c.toArray({ array: Float32Array, start: start + s, end: start + e });
           },
         ),
       ),
@@ -75,10 +74,22 @@ export async function sortAtomSite(
         indices.length,
         () => Column.view(c, indices),
         (params) => {
-          const source = c.toArray({ array: Float32Array });
           const { start, end } = ColumnHelpers.getArrayBounds(indices.length, params);
-          const out = new Float32Array(end - start);
-          for (let i = start; i < end; i++) out[i - start] = source[indices[i]];
+          if (end <= start) return new Float32Array(0);
+          // the model's rows only, `[min, max]` of its sources: a model of a text trajectory parses its own values
+          let min = indices[start];
+          let max = min;
+          for (let i = start + 1; i < end; i++) {
+            const k = indices[i];
+            if (k < min) min = k;
+            else if (k > max) max = k;
+          }
+          const source = c.toArray({ array: Float32Array, start: min, end: max + 1 });
+          // of the type the source reads as: Float32 for text and quantized BinaryCIF, a raw Float64 column stays so
+          const out = ColumnHelpers.isTypedArray(source)
+            ? new (source.constructor as Float32ArrayConstructor)(end - start)
+            : new Float32Array(end - start);
+          for (let i = start; i < end; i++) out[i - start] = source[indices[i] - min];
           return out;
         },
       ),
@@ -111,15 +122,16 @@ function lazyTable(atom_site: AtomSite, rowCount: number, column: (c: Column<any
 }
 
 /**
- * A float column's rows: `toArray({ array: Float32Array })` reads them through `float32` from the source's own Float32
- * array (a BinaryCIF column decodes straight to Float32: the conformation's coordinates, perf-audit-2 04/P5 part 2),
+ * A float column's rows: `toArray({ array: Float32Array })` reads them through `float32` from the source's own
+ * `toArray({ array: Float32Array })` (a quantized BinaryCIF column decodes straight to Float32: the conformation's
+ * coordinates, perf-audit-2 04/P5 part 2; the result has the type of the source's, as in an in-order model),
  * everything else through the `rows` column, made on first use. Other columns are `rows()` as they are.
  */
 function floatRows(
   c: Column<any>,
   rowCount: number,
   rows: () => Column<any>,
-  float32: (params?: Column.ToArrayParams<number>) => Float32Array,
+  float32: (params?: Column.ToArrayParams<number>) => ArrayLike<number>,
 ): Column<any> {
   if (c.schema.valueType !== 'float' || !c.isDefined || c.rowCount === 0) return rows();
   let column: Column<any> | undefined;
