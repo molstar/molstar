@@ -114,8 +114,9 @@ with phase 1.
 4. **Exposure** (done for Prism and the plugin): `trajectory.periodic` (mode whole, box, nojump, off; center box or
    polymers; a history step), its command (aliases: periodic box, pbc, unwrap, wrap into box, center protein in box, no
    jump), the animation skill's `periodic_box` tool, and the trajectory bar's box menu (prism-ui `PeriodicBoxModel`;
-   only for a structure in a box); `StructureFromTrajectory` (an ensemble of all frames) takes the same params. Open:
-   MVS (a spec extension of the trajectory node: ask first, a public format), periodic images (a P1 supercell from the
+   only for a structure in a box); `StructureFromTrajectory` (an ensemble of all frames) takes the same params; MVS
+   through a Mol\*-specific key, `custom.molstar_periodic` on a structure node (no schema change; mvs runtime load.md
+   §6). Open: periodic images (a P1 supercell from the
    box, through the existing symmetry structure).
 5. **LAMMPS image flags** (open, a question): `ix iy iz` give exact unwrapped coordinates (a molecule longer than half a
    box, no jump from the first frame). Applied when read, "As in the file" would show unwrapped coordinates, not the

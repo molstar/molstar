@@ -105,6 +105,7 @@ import {
   isPhantomComponent,
   labelFromXProps,
   makeNearestReprMap,
+  periodicModelProps,
   prettyNameFromSelector,
   representationProps,
   structureProps,
@@ -624,6 +625,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     const annotations = collectAnnotationReferences(node, context);
     const model = UpdateTarget.apply(updateParent, ModelFromTrajectory, {
       modelIndex: node.params.model_index,
+      // a simulation's periodic box (load.md §6): molecules whole unless the structure says otherwise
+      ...periodicModelProps(node.custom),
     });
     UpdateTarget.apply(model, CustomModelProperties, {
       properties: {

@@ -6,8 +6,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
-import type { Model } from '@molstar/model/model/structure';
+import { describe, expect, it, vi } from 'vitest';
+import { Model } from '@molstar/model/model/structure';
 import { expectOk, headlessViewer, until } from '../../_test/harness.js';
 import { createTrajectoryControls } from '../../ui/trajectory.js';
 import type { PrismViewer } from '../../viewer.js';
@@ -96,5 +96,73 @@ describe('trajectory.periodic', () => {
     const plain = await headlessViewer({ files: [ensemble()] });
     const none = createTrajectoryControls(plain.plugin, plain.api);
     expect(none.model.periodic!.mode.value).toBeUndefined();
+  });
+
+  it("reads a MolViewSpec structure's custom.molstar_periodic", async () => {
+    const text = fs.readFileSync(
+      path.resolve(import.meta.dirname, '../../../../../../data/examples/trajectory/periodic/split-peptide.gro'),
+      'utf8',
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(typeof input === 'object' && 'url' in input ? input.url : input);
+        return url.includes('files.test/split-peptide.gro')
+          ? new Response(text, { status: 200 })
+          : new Response('not found', { status: 404 });
+      }),
+    );
+    const mvs = JSON.stringify({
+      metadata: { version: '1', timestamp: '2026-10-23T00:00:00Z' },
+      root: {
+        kind: 'root',
+        children: [
+          {
+            kind: 'download',
+            params: { url: 'https://files.test/split-peptide.gro' },
+            children: [
+              {
+                kind: 'parse',
+                params: { format: 'gro' },
+                children: [
+                  {
+                    kind: 'structure',
+                    params: { type: 'model' },
+                    custom: { molstar_periodic: { mode: 'box', center: 'polymers' } },
+                    children: [
+                      {
+                        kind: 'component',
+                        params: { selector: 'all' },
+                        children: [{ kind: 'representation', params: { type: 'ball_and_stick' } }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const v = await headlessViewer({});
+    expectOk(await v.api.load.mvs!({ data: mvs, keepCamera: true }));
+    expect(params(v).periodic).toBe('box');
+    expect(caca(model(v))).toBeLessThan(4);
+    // the peptide's mean at the box's center
+    const m = model(v);
+    const box = Model.PeriodicBox.get(m)!;
+    const { x, y, z } = m.atomicConformation;
+    let cx = 0,
+      cy = 0,
+      cz = 0;
+    for (let i = 0; i < 20; i++) {
+      cx += x[i] / 20;
+      cy += y[i] / 20;
+      cz += z[i] / 20;
+    }
+    const b = box.basis;
+    expect(cx).toBeCloseTo((b[0] + b[3] + b[6]) / 2, 3);
+    expect(cy).toBeCloseTo((b[1] + b[4] + b[7]) / 2, 3);
+    expect(cz).toBeCloseTo((b[2] + b[5] + b[8]) / 2, 3);
   });
 });

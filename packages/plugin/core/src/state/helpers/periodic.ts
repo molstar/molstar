@@ -57,7 +57,7 @@ export const PeriodicParams = {
 
 export type PeriodicProps = {
   periodic?: Periodic;
-  periodicCenter?: { name: 'box'; params: unknown } | { name: 'selection'; params: { script: Script } };
+  periodicCenter?: { name: 'box'; params: Record<string, never> } | { name: 'selection'; params: { script: Script } };
 };
 
 // a selection's atoms, once per topology (its hierarchy) and script: their identity keys the frames made

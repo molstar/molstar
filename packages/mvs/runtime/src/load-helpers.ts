@@ -17,6 +17,8 @@ import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/stru
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
 import { StateTransformer } from '@molstar/core/state';
+import { type Periodic, type PeriodicProps, PolymerCenter } from '@molstar/plugin/state/helpers/periodic';
+import { Script } from '@molstar/model/script/script';
 import { arrayDistinct } from '@molstar/core/util/array';
 import { Clip } from '@molstar/core/util/clip';
 import { canonicalJsonString } from '@molstar/core/util/json';
@@ -427,6 +429,41 @@ export function isPhantomComponent(node: MolstarSubtree<'component' | 'component
   if (node.custom !== undefined && Object.keys(node.custom).length > 0) return false;
   return node.children && node.children.every((child) => child.kind === 'tooltip' || child.kind === 'label');
   // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
+}
+
+const PeriodicModes: readonly Periodic[] = ['whole', 'box', 'nojump', 'off'];
+
+/**
+ * A structure's periodic box (`custom.molstar_periodic` on its `structure` node, load.md §6) as `ModelFromTrajectory`'s
+ * params: a mode (`'whole' | 'box' | 'nojump' | 'off'`) or `{ mode, center? }`, center `'box'`, `'polymers'` or a
+ * selection `{ expression, language? }`. Absent: the default (molecules whole). An unknown value is skipped, with a
+ * warning.
+ */
+export function periodicModelProps(custom: { [key: string]: unknown } | undefined): PeriodicProps {
+  const value = custom?.molstar_periodic;
+  if (value === undefined) return {};
+  const given = (typeof value === 'string' ? { mode: value } : value) as {
+    mode?: unknown;
+    center?: unknown;
+  } | null;
+  if (!given || !PeriodicModes.includes(given.mode as Periodic)) {
+    console.warn(`MVS: custom.molstar_periodic: unknown mode ${JSON.stringify(given?.mode)}, kept the default.`);
+    return {};
+  }
+  const mode = given.mode as Periodic;
+  const center = given.center as { expression?: unknown; language?: unknown } | string | undefined;
+  if (center === undefined || center === 'box') return { periodic: mode, periodicCenter: { name: 'box', params: {} } };
+  if (center === 'polymers')
+    return { periodic: mode, periodicCenter: { name: 'selection', params: { script: PolymerCenter } } };
+  if (typeof center === 'object' && typeof center.expression === 'string') {
+    const language = (typeof center.language === 'string' ? center.language : 'mol-script') as Script['language'];
+    return {
+      periodic: mode,
+      periodicCenter: { name: 'selection', params: { script: Script(center.expression, language) } },
+    };
+  }
+  console.warn(`MVS: custom.molstar_periodic: unknown center ${JSON.stringify(center)}, centered on the box.`);
+  return { periodic: mode, periodicCenter: { name: 'box', params: {} } };
 }
 
 /**
