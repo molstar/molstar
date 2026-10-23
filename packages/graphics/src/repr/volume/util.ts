@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Grid, Volume } from '@molstar/model/model/volume';
@@ -364,26 +365,45 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
   return textureVolume;
 }
 
+/**
+ * The smoothed segment mask at grid cell (i, j, k): the cell twice and its 6 neighbours, 255 each when in the segment
+ * `set`, over 8. Cells outside the grid count as not in the segment: a segment's expanded box reaches past the grid's
+ * faces, where a read wrapped into the next row or gave undefined (perf-audit-2 07/N1).
+ */
+export function getSegmentMaskValue(cells: Tensor, set: number[]) {
+  const data = cells.data;
+  const o = cells.space.dataOffset;
+  const [gx, gy, gz] = cells.space.dimensions;
+  const mask = (x: number, y: number, z: number) =>
+    x < 0 || y < 0 || z < 0 || x >= gx || y >= gy || z >= gz ? 0 : set.includes(data[o(x, y, z)]) ? 255 : 0;
+  return (i: number, j: number, k: number) => {
+    const v0 = mask(i, j, k);
+    const n =
+      mask(i + 1, j, k) +
+      mask(i - 1, j, k) +
+      mask(i, j + 1, k) +
+      mask(i, j - 1, k) +
+      mask(i, j, k + 1) +
+      mask(i, j, k - 1);
+    return Math.round((v0 + v0 + n) / 8);
+  };
+}
+
 export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3D, padding = 0) {
-  const data = volume.grid.cells.data;
   const dim = Box3D.size(Vec3(), bbox);
-  const o = volume.grid.cells.space.dataOffset;
   const { width, height } = getVolumeTexture2dLayout(dim, padding);
+  const value = getSegmentMaskValue(volume.grid.cells, set);
 
   const itemSize = 1;
   const array = new Uint8Array(width * height * itemSize);
   const textureImage = { array, width, height };
 
   const [xn, yn, zn] = dim;
-  const xn1 = xn - 1;
-  const yn1 = yn - 1;
-  const zn1 = zn - 1;
 
   const xnp = xn + padding;
   const ynp = yn + padding;
 
   const [minx, miny, minz] = bbox.min;
-  const [maxx, maxy, maxz] = bbox.max;
 
   for (let z = 0; z < zn; ++z) {
     for (let y = 0; y < yn; ++y) {
@@ -393,15 +413,7 @@ export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3
         const px = column * xnp + x;
         const index = itemSize * (row * ynp * width + y * width + px);
 
-        const v0 = set.includes(data[o(x + minx, y + miny, z + minz)]) ? 255 : 0;
-        const xp = set.includes(data[o(Math.min(xn1 + maxx, x + 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-        const xn = set.includes(data[o(Math.max(0, x - 1 + minx), y + miny, z + minz)]) ? 255 : 0;
-        const yp = set.includes(data[o(x + minx, Math.min(yn1 + maxy, y + 1 + miny), z + minz)]) ? 255 : 0;
-        const yn = set.includes(data[o(x + minx, Math.max(0, y - 1 + miny), z + minz)]) ? 255 : 0;
-        const zp = set.includes(data[o(x + minx, y + miny, Math.min(zn1 + maxz, z + 1 + minz))]) ? 255 : 0;
-        const zn = set.includes(data[o(x + minx, y + miny, Math.max(0, z - 1 + minz))]) ? 255 : 0;
-
-        array[index] = Math.round((v0 + v0 + xp + xn + yp + yn + zp + zn) / 8);
+        array[index] = value(x + minx, y + miny, z + minz);
       }
     }
   }
