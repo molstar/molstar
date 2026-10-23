@@ -182,9 +182,9 @@ regressed 0, dropped 1**. Every v1 probe still open was rerun at HEAD and gives 
 | B8 | new | medium | `molstar_bond_site` bonds built in element order, read as source rows; models 2..N with their own topology get none | [mmcif.ts:106](../../packages/model/src/formats/structure/mmcif.ts#L106) | confirmed |
 | B10 | new | medium | Volume sigma is RMS, not standard deviation (CCP4 without ARMS, DX, Cube, DSN6) | [ccp4.ts:122](../../packages/model/src/formats/volume/ccp4.ts#L122) | confirmed |
 | B1 | still-open | medium | Leak: `getUniqueComponentNames` `memoize1` keeps every `BasicData` | [properties.ts:189](../../packages/model/src/formats/structure/basic/properties.ts#L189) | confirmed |
-| B7 | still-open; **fixed** | medium | Coordinate-trajectory frames lose bonds set with `IndexPairBonds.Provider.set` | [model.ts:127](../../packages/model/src/model/structure/model/model.ts#L127) | confirmed |
+| B7 | still-open; **fixed** #2032 | medium | Coordinate-trajectory frames lose bonds set with `IndexPairBonds.Provider.set` | [model.ts:127](../../packages/model/src/model/structure/model/model.ts#L127) | confirmed |
 | B3 | still-open | medium | ADP mapping drops the last atom and ids not 1..N; shared-hierarchy models get model 1's ADPs | [anisotropic.ts:53](../../packages/model/src/formats/structure/property/anisotropic.ts#L53) | confirmed |
-| 12/B3 | still-open; **fixed** | medium | Periodic trilinear interpolation reads unwrapped indices | [grid.ts:250](../../packages/model/src/model/volume/grid.ts#L250) | confirmed |
+| 12/B3 | still-open; **fixed** #2032 | medium | Periodic trilinear interpolation reads unwrapped indices | [grid.ts:250](../../packages/model/src/model/volume/grid.ts#L250) | confirmed |
 | B9 | new | low | Models sharing the previous hierarchy also get its `atomSourceIndex` | [atomic.ts:244](../../packages/model/src/formats/structure/basic/atomic.ts#L244) | confirmed |
 | B11 | new | low | One-sided PDB CONECT (higher serial only) dropped | [conect.ts:70](../../packages/model/src/formats/structure/pdb/conect.ts#L70) | confirmed |
 | B4 | still-open | low | `Sequence.ofSequenceRanges` off by one; last coarse element dropped | [sequence.ts:212](../../packages/model/src/model/sequence/sequence.ts#L212) | confirmed |
