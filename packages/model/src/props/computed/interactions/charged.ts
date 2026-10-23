@@ -153,13 +153,9 @@ function addUnitNegativeCharges(structure: Structure, unit: Unit.Atomic, builder
         }
       }
     } else if (!PolymerNames.has(compId)) {
+      // acid groups only: a ligand's N is not a negative charge (perf-audit-2 06/B11: a copy of the positive-charge
+      // code made one of every non-backbone N); atoms with a negative formal charge follow below
       for (let j = start as StructureElement.UnitIndex; j < end; ++j) {
-        builder.startState();
-        if (typeSymbol(unit, j) === Elements.N && !ProteinBackboneAtoms.has(atomId(unit, j))) {
-          builder.pushMember(x[elements[j]], y[elements[j]], z[elements[j]], j);
-        }
-        builder.finishState(FeatureType.NegativeCharge, FeatureGroup.None);
-
         let group = FeatureGroup.None;
         if (isSulfonicAcid(structure, unit, j)) {
           group = FeatureGroup.SulfonicAcid;
