@@ -21,7 +21,14 @@ function atoms(t) {
   const x0 = -0.49 + 0.3 * t;
   // a zigzag chain of 8 carbons, 1.49 Å bonds: LG1 has the first four (and O1 on C1), LG2 the last four
   for (let k = 0; k < 8; k++) {
-    out.push([k < 4 ? 1 : 2, k < 4 ? 'LG1' : 'LG2', `C${(k % 4) + 1}`, x0 + 0.14 * k, 1.25 + (k % 2 ? 0.025 : -0.025), 1.25]);
+    out.push([
+      k < 4 ? 1 : 2,
+      k < 4 ? 'LG1' : 'LG2',
+      `C${(k % 4) + 1}`,
+      x0 + 0.14 * k,
+      1.25 + (k % 2 ? 0.025 : -0.025),
+      1.25,
+    ]);
     if (k === 0) out.push([1, 'LG1', 'O1', x0, 1.25 - 0.025 - 0.143, 1.25]);
   }
   // a water 3 Å above LG2 C2 and a sodium 2.3 Å below LG2 C4
