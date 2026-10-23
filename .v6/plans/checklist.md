@@ -140,6 +140,10 @@ allow the caller to choose timestamps that are reproducible across time zones.
       takes them through `custom.molstar_bond_provider` only ([bond-providers plan §4.2](bond-providers.md)). The
       field is the structure node's `bonds` (`{ name, params? }`) in the schemas, the builder and the JSON schema. The
       MVS registry test (`mvs/runtime/src/_test/registry.test.ts`) then checks the names a file emits.
+- [ ] Add the periodic box keys to the Python `molviewspec` package (the builder's `custom` helpers and docs):
+      `custom.molstar_periodic` on a structure node (`'whole' | 'box' | 'nojump' | 'off'`, or `{ mode, center }` with
+      center `'box'`, `'polymers'` or `{ expression, language? }`) and `custom.molstar_boxes` on a coordinates node
+      (`{ url }`, a NAMD `.xsc`/`.xst`, relative to the view). Their semantics: the MVS runtime's load.md §6.
 
 ## Deferred beyond v6
 

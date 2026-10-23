@@ -6,7 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../model/playback.js';
+import type {
+  PeriodicBoxMode,
+  SnapshotStepperModel,
+  SnapshotTransitionModel,
+  TrajectoryControlsModel,
+} from '../model/playback.js';
 import { observableState } from '../reactive/observable-state.js';
 
 const Story = [
@@ -85,6 +90,21 @@ export function mockTrajectory(count = 20, label = '1TQN'): TrajectoryControlsMo
       isPlaying.set(!isPlaying.value);
       clearInterval(timer);
       if (isPlaying.value) timer = setInterval(() => index.set((index.value + 1) % count), 150);
+    },
+  };
+}
+
+/** A simulation's frames in a periodic box: the trajectory with the box menu. */
+export function mockPeriodicTrajectory(count = 100, label = 'AdK in water'): TrajectoryControlsModel {
+  const mode = observableState<PeriodicBoxMode | undefined>('whole');
+  const images = observableState(false);
+  return {
+    ...mockTrajectory(count, label),
+    unit: observableState<'models' | 'frames'>('frames').asReadonly,
+    periodic: {
+      mode: mode.asReadonly,
+      set: (m) => mode.set(m),
+      images: { shown: images.asReadonly, set: (on) => images.set(on) },
     },
   };
 }

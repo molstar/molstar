@@ -3,6 +3,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Model } from '@molstar/model/model/structure';
@@ -26,10 +27,13 @@ const unitCage = transformCage(cloneCage(BoxCage()), translate05);
 
 const tmpRef = Vec3();
 const tmpTranslate = Mat4();
+const tmpPlaced = Mat4();
 
 interface UnitcellData {
   cell: Cell;
   ref: Vec3;
+  /** Where the cell's corner is (a simulation box's, e.g. a LAMMPS box's lower bounds); absent: at 0 */
+  origin?: Vec3;
 }
 
 const CellRef = {
@@ -65,7 +69,10 @@ export type UnitcellProps = PD.Values<UnitcellParams>;
 function getUnitcellMesh(data: UnitcellData, props: UnitcellProps, mesh?: Mesh) {
   const state = MeshBuilder.createState(256, 128, mesh);
 
-  const { fromFractional } = data.cell;
+  // the cell's fractional frame, moved to its origin
+  const fromFractional = data.origin
+    ? Mat4.mul(tmpPlaced, Mat4.fromTranslation(tmpPlaced, data.origin), data.cell.fromFractional)
+    : data.cell.fromFractional;
 
   Vec3.copy(tmpRef, data.ref);
   if (props.attachment === 'center') {
@@ -112,10 +119,14 @@ function getUnitcellShape(ctx: RuntimeContext, data: UnitcellData, props: Unitce
 
 export function getUnitcellData(model: Model, cell: Cell, props: UnitcellProps) {
   const ref = Vec3();
+  // a simulation box's corner (model.md §4 "Periodic frames"): the cell drawn where the frame's lattice is
+  const origin = Model.PeriodicBox.get(model)?.origin;
+  const placed = origin && Vec3.magnitude(origin) > 0 ? origin : undefined;
   if (props.ref === 'model') {
-    Vec3.transformMat4(ref, Model.getCenter(model), cell.toFractional);
+    const center = Model.getCenter(model);
+    Vec3.transformMat4(ref, placed ? Vec3.sub(ref, center, placed) : center, cell.toFractional);
   }
-  return { cell, ref };
+  return { cell, ref, ...(placed ? { origin: placed } : {}) };
 }
 
 /**

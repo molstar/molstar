@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -32,7 +32,7 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
   // xs,ys,zs = scaled atom coordinates this need the boundary box
   // xu,yu,zu = unwrapped atom coordinates
   // xsu,ysu,zsu = scaled unwrapped atom coordinates
-  // ix,iy,iz = box image that the atom is in
+  // ix,iy,iz = box image that the atom is in: read when given, with wrapped coordinates they give the unwrapped ones
   // how should we handle the different scenario ?
   const xCol = parts.findIndex((p) => p[0] === 'x');
   const yCol = parts.findIndex((p) => p[0] === 'y');
@@ -45,6 +45,10 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
   const x = TokenBuilder.create(tokenizer.data, count * 2);
   const y = TokenBuilder.create(tokenizer.data, count * 2);
   const z = TokenBuilder.create(tokenizer.data, count * 2);
+  const hasImages = 'ix' in columnIndexMap && 'iy' in columnIndexMap && 'iz' in columnIndexMap;
+  const ix = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
+  const iy = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
+  const iz = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
 
   const { position } = tokenizer;
   tokenizer.position = position;
@@ -83,6 +87,15 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
             case zCol:
               TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd);
               break;
+            case columnIndexMap['ix']:
+              TokenBuilder.addUnchecked(ix, tokenizer.tokenStart, tokenizer.tokenEnd);
+              break;
+            case columnIndexMap['iy']:
+              TokenBuilder.addUnchecked(iy, tokenizer.tokenStart, tokenizer.tokenEnd);
+              break;
+            case columnIndexMap['iz']:
+              TokenBuilder.addUnchecked(iz, tokenizer.tokenStart, tokenizer.tokenEnd);
+              break;
           }
         }
         // ignore any extra columns
@@ -104,6 +117,15 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
     x: TokenColumn(x)(Column.Schema.float),
     y: TokenColumn(y)(Column.Schema.float),
     z: TokenColumn(z)(Column.Schema.float),
+    ...(hasImages
+      ? {
+          image: {
+            ix: TokenColumn(ix)(Column.Schema.int),
+            iy: TokenColumn(iy)(Column.Schema.int),
+            iz: TokenColumn(iz)(Column.Schema.int),
+          },
+        }
+      : {}),
   };
 }
 
@@ -123,6 +145,11 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
  * xlo xhi
  * ylo yhi
  * zlo zhi
+ * or, for a triclinic box:
+ * ITEM: BOX BOUNDS xy xz yz xx yy zz
+ * xlo_bound xhi_bound xy
+ * ylo_bound yhi_bound xz
+ * zlo_bound zhi_bound yz
  */
 async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
   const tokenizer = Tokenizer(data);
@@ -150,25 +177,25 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
       const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
       frames.push(frame);
     } else if (line.includes('ITEM: BOX BOUNDS')) {
-      const tokens = line.split('ITEM: BOX BOUNDS ')[1].split(' ');
-      // Periodicity of the box
-      const px = tokens[0];
-      const py = tokens[1];
-      const pz = tokens[2];
-      // the actual box bounds
-      const xbound = readLine(state.tokenizer).trim().split(' ');
-      const ybound = readLine(state.tokenizer).trim().split(' ');
-      const zbound = readLine(state.tokenizer).trim().split(' ');
-      const xlo = parseFloat(xbound[0]);
-      const xhi = parseFloat(xbound[1]);
-      const ylo = parseFloat(ybound[0]);
-      const yhi = parseFloat(ybound[1]);
-      const zlo = parseFloat(zbound[0]);
-      const zhi = parseFloat(zbound[1]);
+      // `ITEM: BOX BOUNDS pp pp pp`, or for a triclinic box `ITEM: BOX BOUNDS xy xz yz pp pp pp`: then each line has
+      // its tilt factor third and the bounds are of the box's bounding box (the LAMMPS manual, `dump`)
+      const tokens = line.split('ITEM: BOX BOUNDS ')[1].trim().split(/\s+/);
+      const triclinic = tokens[0] === 'xy';
+      const flags = tokens.slice(-3);
+      const bound = () => readLine(state.tokenizer).trim().split(/\s+/).map(parseFloat);
+      const [xlb, xhb, xy = 0] = bound();
+      const [ylb, yhb, xz = 0] = bound();
+      const [zlo, zhi, yz = 0] = bound();
+      const tilt: [number, number, number] = triclinic ? [xy, xz, yz] : [0, 0, 0];
+      const xlo = xlb - Math.min(0, tilt[0], tilt[1], tilt[0] + tilt[1]);
+      const xhi = xhb - Math.max(0, tilt[0], tilt[1], tilt[0] + tilt[1]);
+      const ylo = ylb - Math.min(0, tilt[2]);
+      const yhi = yhb - Math.max(0, tilt[2]);
       f.bounds.push({
         lower: [xlo, ylo, zlo],
         length: [xhi - xlo, yhi - ylo, zhi - zlo],
-        periodicity: [px, py, pz],
+        tilt,
+        periodicity: [flags[0], flags[1], flags[2]],
       });
     }
   }

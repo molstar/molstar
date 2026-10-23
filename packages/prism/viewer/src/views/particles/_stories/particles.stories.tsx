@@ -12,8 +12,9 @@ import type { PrismViewer } from '../../../viewer.js';
 import { ExampleFiles, openAt, RealViewerStory } from '../../../testing/real-viewer.js';
 
 // Particles in the real viewer, over the repository's particle files (`data/examples/particles`, real and small; their
-// sources in its README): each format, the list's inspector (its facts and how it is read), targets, a trajectory's
-// frames. The particles feature is lazy: the first particle file loads it. No network.
+// sources in its README): each format, the list's inspector (its facts and how it is read), targets. A trajectory's
+// frames (Simularium) are under Viewer › Simulations. The particles feature is lazy: the first particle file loads it.
+// No network.
 
 const meta: Meta = { title: 'Viewer/Particles', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -111,35 +112,6 @@ export const TargetsAtPicks: StoryObj = {
           // 100×: a few picks across the view, each crambin as it sits
           await v.api.camera.zoom({ factor: 10, animate: false });
           await v.api.camera.zoom({ factor: 10, animate: false });
-          pickList(v);
-        }}
-      />
-    )),
-};
-
-/** A Simularium trajectory: its frames' row under the list (seek, step, play) and its unit cell as a row. */
-export const SimulariumFrames: StoryObj = {
-  render: () =>
-    story(() => (
-      <RealViewerStory
-        setup={async (v) => {
-          await load(v, ExampleFiles.simularium);
-          await v.api.particles!.unitCell({});
-          await v.api.particles!.frame({ index: 2 });
-          pickList(v);
-        }}
-      />
-    )),
-};
-
-/** Playing a Simularium trajectory (`particles.play`), looping. */
-export const SimulariumPlaying: StoryObj = {
-  render: () =>
-    story(() => (
-      <RealViewerStory
-        setup={async (v) => {
-          await load(v, ExampleFiles.simularium);
-          await v.api.particles!.play({ mode: 'loop', seconds: 3 });
           pickList(v);
         }}
       />

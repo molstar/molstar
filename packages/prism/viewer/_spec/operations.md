@@ -70,7 +70,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `load.mvs` | Load a MolViewSpec | destructive | url, data, file, format, keepCamera, append, keepCameraOrientation, snapshot, extensions |
 | `load.snapshot` | Load a session (as session.open) | destructive | url, data, file, id, type |
 | `load.svs` | Load a SeqViewSpec | network (asks) | url, data, file |
-| `load.trajectory` | Load a trajectory | network (addresses); needs network | model, modelFormat, modelBinary, coordinates, coordinatesFormat, coordinatesBinary, preset |
+| `load.trajectory` | Load a trajectory | network (addresses); needs network | model, modelFormat, modelBinary, coordinates, coordinatesFormat, coordinatesBinary, boxes, preset |
 | `load.url` | Load from a URL | network (addresses); needs network | url, format, binary, models, assembly |
 | `load.viewport` | Load a viewport state | needs canvas | file, json |
 | `load.volume` | Load a volume | network (addresses) | url, data, file, format, binary, isovalues, entryId, lazy |
@@ -164,7 +164,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `structure.list` | Describe the scene | read |  |
 | `structure.preset` | Apply a representation preset |  | preset, structure |
 | `structure.remove` | Remove a structure | destructive | structure |
-| `structure.symmetry` | Show crystal symmetry |  | kind, radius, cells, structure |
+| `structure.symmetry` | Show symmetry or periodic images |  | kind, radius, cells, structure |
 | `structure.transform` | Move or rotate a structure |  | translation, axis, angle, center, matrix, compose, structure |
 | `structure.transform-reset` | Reset a structure’s transform |  | structure |
 | `structure.unit-cell` | Show the unit cell |  | visible, color, opacity, structure |
@@ -179,6 +179,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `superpose.tm-align` | Superpose by TM-align |  | language, targets, traceOnly |
 | `trajectory.frame` | Show a frame | view | structure, index, by |
 | `trajectory.get` | Describe the trajectories | read |  |
+| `trajectory.periodic` | Show the periodic box |  | structure, mode, center |
 | `trajectory.play` | Play the frames | view; needs canvas | structure, mode, seconds |
 | `trajectory.stop` | Stop playing the frames | view |  |
 | `view.close` | Close the open panel and card | view; agent-only |  |

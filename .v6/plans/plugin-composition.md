@@ -719,3 +719,4 @@ The registry dump comparison allows only these differences. A step that introduc
 | ------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Color themes  | `external-structure` and `external-volume` are present in all three scopes, as in 5.x; the prototype dropped them |
 | Drag and drop | The open-anything handler is listed as `open-files` (`DefaultDragAndDrop`, fallback) instead of being hard-coded  |
+| Formats       | `xsc` (NAMD extended system files: periodic boxes for coordinates), after the coordinates |

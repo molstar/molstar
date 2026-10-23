@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -21,6 +21,11 @@ import {
 import { type FullMVSTree, type MVSTree, MVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import { MolstarParseFormatT, ParseFormatT } from '@molstar/mvs-builder/tree/mvs/param-types';
 import type { MolstarKind, MolstarNode, MolstarSubtree, MolstarTree } from './molstar-tree.js';
+
+/** The structure's keys its shown model reads (`molstar_periodic`, load.md §6); none: no custom. */
+function modelCustom(custom: { [key: string]: unknown } | undefined): { [key: string]: unknown } | undefined {
+  return custom && 'molstar_periodic' in custom ? { molstar_periodic: custom.molstar_periodic } : undefined;
+}
 
 /** Convert `format` parameter of `parse` node in `MolstarTree`
  * into `format` and `is_binary` parameters in `MolstarTree` */
@@ -100,7 +105,7 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
       return {
         subtree: [
           { kind: 'topology_with_coordinates', params: { format, coordinates_ref: node.params.coordinates_ref } },
-          { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
+          { kind: 'model', params: pickObjectKeys(node.params, ['model_index']), custom: modelCustom(node.custom) },
           {
             kind: 'structure',
             params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']),
@@ -115,7 +120,7 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
           { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
           { kind: 'model', params: { model_index: 0 } },
           { kind: 'trajectory_with_coordinates', params: { coordinates_ref: node.params.coordinates_ref } },
-          { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
+          { kind: 'model', params: pickObjectKeys(node.params, ['model_index']), custom: modelCustom(node.custom) },
           {
             kind: 'structure',
             params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']),
@@ -128,7 +133,7 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
       return {
         subtree: [
           { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
-          { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
+          { kind: 'model', params: pickObjectKeys(node.params, ['model_index']), custom: modelCustom(node.custom) },
           {
             kind: 'structure',
             params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']),
@@ -153,11 +158,24 @@ const molstarNodesToCondense = new Set<MolstarKind>([
 export function convertMvsToMolstar(mvsTree: MVSTree, sourceUrl: string | undefined): MolstarTree {
   const full = addDefaults<typeof MVSTreeSchema>(mvsTree, MVSTreeSchema) as FullMVSTree;
   if (sourceUrl) resolveUris(full, sourceUrl, ['uri', 'url']);
+  if (sourceUrl) resolveCustomUrls(full, sourceUrl);
   const converted = convertTree<FullMVSTree, MolstarTree>(full, mvsToMolstarConversionRules);
   if (converted.kind !== 'root')
     throw new Error("Root's type is not 'root' after conversion from MVS tree to Molstar tree.");
   const condensed = condenseTree<MolstarTree>(converted, molstarNodesToCondense);
   return condensed;
+}
+
+/**
+ * Mol*-specific keys with addresses resolved as `url` params are (load.md §6): `custom.molstar_boxes.url` on a
+ * `coordinates` node. A new `custom` object: the caller's tree is not changed.
+ */
+function resolveCustomUrls(tree: MVSTree, sourceUrl: string) {
+  dfs(tree, (node) => {
+    const boxes = (node.custom as { molstar_boxes?: { url?: unknown } } | undefined)?.molstar_boxes;
+    if (!boxes || typeof boxes.url !== 'string') return;
+    node.custom = { ...node.custom, molstar_boxes: { ...boxes, url: resolveUri(boxes.url, sourceUrl, windowUrl()) } };
+  });
 }
 
 /** Kinds whose children are converted by the rules (split, condensed); below them a node converts on its own, and so

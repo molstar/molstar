@@ -17,13 +17,17 @@ import { DownloadStructure, PdbDownloadProvider } from '@molstar/plugin/state/ac
 import { DownloadDensity } from '@molstar/plugin/state/actions/volume';
 import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import { CoordinatesFormatCategory } from '@molstar/plugin/state/formats/coordinates/category';
+import { ParseXsc } from '@molstar/plugin/state/formats/coordinates/xsc';
 import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/category';
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume/category';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
-import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import {
+  CoordinatesWithBoxes,
+  TrajectoryFromModelAndCoordinates,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
 import {
@@ -898,6 +902,10 @@ export const TrajectoryParams = {
     description: "Its format: xtc, dcd, trr, nctraj, lammpstrj; 'auto': from its extension",
   }),
   coordinatesBinary: BinaryParam(),
+  boxes: PD.Text('', {
+    description:
+      "The address of a NAMD extended system file (.xsc, .xst): each frame's periodic box with its origin, which a DCD lacks; empty: none",
+  }),
   preset: PD.Text('default', { description: "The structure preset: 'default' or 'all-models'" }),
 };
 
@@ -909,7 +917,14 @@ const CoordinatesFormats: FormatScope = { categories: [CoordinatesFormatCategory
 
 async function loadTrajectory(
   ctx: ApiContext,
-  p: { model: string; modelFormat: FormatChoice; coordinates: string; coordinatesFormat: FormatChoice; preset: string },
+  p: {
+    model: string;
+    modelFormat: FormatChoice;
+    coordinates: string;
+    coordinatesFormat: FormatChoice;
+    boxes?: string;
+    preset: string;
+  },
 ) {
   const plugin = ctx.plugin;
   await plugin.initialized;
@@ -944,7 +959,18 @@ async function loadTrajectory(
         objOf(coordData, coordinatesName),
       );
       if (!coordinatesProvider) throw new Error(`could not tell the format of ${coordinatesName}`);
-      const coords = await coordinatesProvider.parse(plugin, coordData);
+      let coords: StateObjectSelector = await coordinatesProvider.parse(plugin, coordData);
+      // the frames' boxes from a NAMD extended system file: their origins and orientation
+      if (p.boxes) {
+        const boxesName = fileNameOf(p.boxes) || p.boxes;
+        const boxesData = await plugin.builders.data.download({ url: p.boxes, isBinary: false, label: boxesName });
+        const boxes = await plugin.build().to(boxesData).apply(ParseXsc).commit();
+        coords = await plugin
+          .build()
+          .to(coords)
+          .apply(CoordinatesWithBoxes, { boxesRef: boxes.ref }, { dependsOn: [boxes.ref] })
+          .commit();
+      }
       const trajectory = await plugin
         .build()
         .toRoot()
@@ -964,7 +990,7 @@ const trajectory: OperationDefinition<typeof TrajectoryParams, Loaded> = {
   id: 'load.trajectory',
   title: 'Load a trajectory',
   params: TrajectoryParams,
-  addresses: ({ model, coordinates }) => [model, coordinates],
+  addresses: ({ model, coordinates, boxes }) => [model, coordinates, ...(boxes?.trim() ? [boxes.trim()] : [])],
   ...network,
   async run(values, ctx) {
     const model = values.model.trim();
@@ -989,7 +1015,14 @@ const trajectory: OperationDefinition<typeof TrajectoryParams, Loaded> = {
     const before = refsOf(ctx);
     try {
       await guarded(ctx, () =>
-        loadTrajectory(ctx, { model, modelFormat, coordinates, coordinatesFormat, preset: values.preset }),
+        loadTrajectory(ctx, {
+          model,
+          modelFormat,
+          coordinates,
+          coordinatesFormat,
+          boxes: values.boxes?.trim() || undefined,
+          preset: values.preset,
+        }),
       );
     } catch (e) {
       return pluginFailure(`${model} with ${coordinates}`, e);

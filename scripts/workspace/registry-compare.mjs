@@ -12,6 +12,8 @@
  * Requires compiled library output (`pnpm build:lib`).
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { execFileSync } from 'node:child_process';
@@ -29,6 +31,8 @@ const Allowed = {
   externalThemes: ['external-structure', 'external-volume'],
   /** The open-anything handler is the registered `DefaultDragAndDrop` fallback instead of being hard-coded. */
   dragAndDrop: ['open-files'],
+  /** Formats new in v6: NAMD extended system files (periodic boxes for coordinates). */
+  formats: ['xsc'],
 };
 
 /**
@@ -95,6 +99,7 @@ function withoutAllowed(target) {
     scope.color = scope.color.filter((n) => !Allowed.externalThemes.includes(n));
   }
   copy.dragAndDrop = copy.dragAndDrop.filter((n) => !Allowed.dragAndDrop.includes(n));
+  copy.formats = copy.formats.filter((n) => !Allowed.formats.includes(n));
   return copy;
 }
 
@@ -146,6 +151,9 @@ try {
     }
     for (const name of Allowed.dragAndDrop) {
       if (!c.dragAndDrop.includes(name)) problems.push(`${target}.dragAndDrop: expected '${name}'`);
+    }
+    for (const name of Allowed.formats) {
+      if (!c.formats.includes(name)) problems.push(`${target}.formats: expected '${name}'`);
     }
 
     const have = new Set(currentIds.targets[target]);

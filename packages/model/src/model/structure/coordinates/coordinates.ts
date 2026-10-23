@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,12 +7,15 @@
 
 import { arrayEqual, UUID } from '@molstar/core/util';
 import type { Cell } from '@molstar/core/math/geometry/spacegroup/cell';
+import type { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
 import type { AtomicConformation } from '../model/properties/atomic.js';
 import { Column } from '@molstar/core/data/db';
 
 export interface Frame {
   readonly elementCount: number;
   readonly time: Time;
+  /** The simulation step it was saved at, when the file says (DCD: `ISTART` and `NSAVC`): to match box files by */
+  readonly step?: number;
 
   // positions
   readonly x: ArrayLike<number>;
@@ -21,6 +24,20 @@ export interface Frame {
 
   // optional cell
   readonly cell?: Cell;
+
+  /** The simulation box with its origin, when the reader knows it (LAMMPS); else the cell's, at the origin */
+  readonly box?: PeriodicBox;
+
+  /**
+   * The atoms as they moved, not wrapped into the box, when the file says so beside its wrapped coordinates (LAMMPS
+   * image flags): what makes molecules whole and keeps them from jumping exactly (model.md §4 "Periodic frames").
+   */
+  readonly unwrapped?: {
+    readonly x: ArrayLike<number>;
+    readonly y: ArrayLike<number>;
+    readonly z: ArrayLike<number>;
+    readonly xyzOrdering: Frame['xyzOrdering'];
+  };
 
   // optional velocities
   readonly velocities?: {

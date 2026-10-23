@@ -64,6 +64,19 @@ export interface TrajectoryControlsModel {
   isPlaying: ReadonlyState<boolean>;
   seek(index: number): void;
   togglePlay(): void;
+  /** A simulation's periodic box: how its frames show it, when the structure is in one (the bar's box menu). */
+  periodic?: PeriodicBoxModel;
+}
+
+/** How a simulation box's frames are shown: molecules whole, in the box (centered on the polymers), without jumps. */
+export type PeriodicBoxMode = 'whole' | 'box' | 'box-centered' | 'nojump' | 'off';
+
+export interface PeriodicBoxModel {
+  /** The mode now; absent: the structure is not in a simulation box (no menu). */
+  mode: ReadonlyState<PeriodicBoxMode | undefined>;
+  set(mode: PeriodicBoxMode): void;
+  /** The neighbouring boxes (periodic images): shown or not, and the switch. */
+  images?: { shown: ReadonlyState<boolean>; set(shown: boolean): void };
 }
 
 /** A run of a hover label's line: text with its emphasis (never markup: the view builds elements from these). */

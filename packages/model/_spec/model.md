@@ -58,9 +58,30 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
 
 - `Trajectory`: `frameCount`, `duration`, `representative`, `getFrameAtIndex(i)` (a model or a task). `ArrayTrajectory`
   holds models.
-- `Coordinates` (`coordinates/coordinates.ts`): frames of `x/y/z` with optional cell, velocities, forces and a time.
+- `Coordinates` (`coordinates/coordinates.ts`): frames of `x/y/z` with optional cell, velocities, forces and a time;
+  `step` when the file says which simulation step a frame is (DCD), to match box files by: `coordinatesWithXsc`
+  (`formats/structure/namd-xsc.ts`) gives frames a NAMD `.xsc`/`.xst` file's boxes, the last entry at or before their
+  step, the corner the file's center less half of a + b + c.
 - `Topology` (`topology/topology.ts`): `BasicData` plus bonds as index pairs; combined with coordinates into a
   trajectory whose frames share one `IndexPairBonds`.
+- **Periodic frames** (`model/periodic.ts`): `Model.PeriodicBox` (dynamic) is a frame's simulation box, set only by
+  readers of simulation output (frames from coordinates with a cell or a `Frame.box`, GRO, LAMMPS); a crystal's cell
+  (`ModelSymmetry`) is never one, so no crystal or NMR model is moved. `ModelPeriodicity.makeWhole(frame)` moves each
+  atom by a lattice vector next to its parent in a plan built once per topology (a BFS forest over `IndexPairBonds`,
+  else over the hierarchy's hops, the atom before in a residue and the previous polymer residue in a chain, joined
+  across the molecules it leaves apart by distance links: element pairing thresholds under the minimum image, found with
+  a cell list that wraps at the box's faces, never to water, ions or metals; `planFromHierarchyAndDistances`). The whole
+  frame is `Model.withAtomicConformation`: new coordinates, the ranges found again on whole coordinates (shared by the
+  topology's whole frames), the reader's dynamic data without `__Center__`; one model per recent source frame and mode
+  (an LRU of 16 frames: caching every frame would hold a trajectory twice). `apply(frame, { kind: 'box', center? })`
+  then moves each whole molecule by a lattice vector so its center is in the box (at the box's origin); with `center`
+  atoms, their molecules are kept together, everything is translated so their mean is at the box's center, and every
+  other molecule is moved into the box around them. `applyNoJump(trajectory, index)` keeps each molecule's center from
+  moving a box length between frames: shifts in box vectors walked from the last frame asked or a checkpoint every 64
+  frames (sequential by nature). A frame whose file gives unwrapped coordinates beside the wrapped ones
+  (`Frame.unwrapped`: LAMMPS image flags) has `Model.UnwrappedConformation` (made when first asked): whole moves each
+  molecule's unwrapped coordinates so its root is where the frame has it, and no jump is frame 0's shifts on them, no
+  walk; the frame itself stays as read. `Unit.remapModel` drops polymer and gap elements when the ranges differ.
 
 ## 5. Other models
 

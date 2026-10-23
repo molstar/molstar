@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task } from '@molstar/core/task';
@@ -32,6 +33,8 @@ export function coordinatesFromDcd(dcdFile: DcdFile): Task<Coordinates> {
       const frame: Mutable<Frame> = {
         elementCount: dcdFrame.elementCount,
         time: Time(offsetTime.value + deltaTime.value * i, deltaTime.unit),
+        // the step it was saved at: the first saved step, then every NSAVC steps (NAMD's and CHARMM's header)
+        ...(header.NSAVC > 0 ? { step: header.ISTART + i * header.NSAVC } : {}),
 
         x: dcdFrame.x,
         y: dcdFrame.y,

@@ -391,6 +391,11 @@ namespace Unit {
           props.rings = undefined;
           props.resonance = undefined;
         }
+        // a frame made whole has the ranges found on whole coordinates (model periodic.ts)
+        if (this.model.atomicRanges !== model.atomicRanges) {
+          props.polymerElements = undefined;
+          props.gapElements = undefined;
+        }
         if (!Unit.isSameConformation(this, model)) {
           props.boundary = undefined;
           props.lookup3d = undefined;

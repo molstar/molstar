@@ -195,8 +195,14 @@ export interface LammpsDataFile {
 }
 
 export interface LammpsBox {
+  /** The box's corner (xlo, ylo, zlo) */
   lower: [number, number, number];
+  /** Its edge lengths (xhi - xlo, yhi - ylo, zhi - zlo) */
   length: [number, number, number];
+  /** A triclinic box's tilt factors xy, xz, yz: its vectors a = (lx, 0, 0), b = (xy, ly, 0), c = (xz, yz, lz); 0 for an
+   * orthogonal one */
+  tilt: [number, number, number];
+  /** Per dimension: pp (periodic), f (fixed), s or m (shrink-wrapped) */
   periodicity: [string, string, string];
 }
 
@@ -209,6 +215,8 @@ export interface LammpsFrame {
   x: Column<number>;
   y: Column<number>;
   z: Column<number>;
+  /** The box image each atom is in (`ix iy iz`, when dumped): how many box vectors it crossed since the run's start */
+  image?: { ix: Column<number>; iy: Column<number>; iz: Column<number> };
 }
 
 export interface LammpsTrajectoryFile {

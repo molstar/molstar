@@ -10,6 +10,12 @@ here.
 
 ## [Unreleased]
 
+- Fix the structure hierarchy for a trajectory below a model (MolViewSpec's structure with `coordinates_ref`): its
+  structure's model is the one it is built from, so the trajectory's frames are listed and played
+- Fix LAMMPS triclinic boxes: the tilt factors are read, a dump's bounding-box bounds are corrected, and scaled
+  coordinates go through the tilt
+- Fix GRO reading a triclinic box (the rhombic dodecahedron, the truncated octahedron) as a rectangular one: all nine
+  box values are read
 - Fix state selections `subtree()` and `children()` returning undefined cells for nodes below a Null or failed node
 - Fix `StateSelection.findTagInSubtree` returning the last match and walking the whole tree
 - Fix `Bundle.toStructure` mapping every copy of a unit through the first copy's elements

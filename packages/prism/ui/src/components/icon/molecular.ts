@@ -44,6 +44,9 @@ export const MolecularIcons = {
   /** Stacked frames. */
   trajectory:
     '<rect x="3" y="10" width="12" height="11" rx="2"/><path d="M6 7h10a2 2 0 0 1 2 2v9"/><path d="M9 4h10a2 2 0 0 1 2 2v9"/>',
+  /** A box with a molecule crossing its face: a simulation's periodic box. */
+  'periodic-box':
+    '<path d="M4 7h12v12H4z"/><path d="M4 7l4-4h12v12l-4 4M16 7l4-4"/><circle cx="16" cy="13" r="1.6"/><circle cx="19.5" cy="11" r="1.2"/>',
   /** A wireframe cube around a density contour. */
   volume:
     '<path d="M12 2.5l8.5 4.75v9.5L12 21.5l-8.5-4.75v-9.5z"/><path d="M8.5 12.5c0-2.5 2-4 3.5-4s3.5 1.5 3.5 4-1.5 3-3.5 3-3.5-.5-3.5-3z"/>',

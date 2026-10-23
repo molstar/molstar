@@ -480,8 +480,9 @@ export function createSceneSource(
     const data = s.cell.obj?.data;
     // Several frames (an ensemble, a simulation): its row says how many, and a row under it shows and plays them.
     const frames = s.model?.trajectory?.cell.obj?.data.frameCount ?? 1;
-    const unit =
-      s.model?.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models';
+    const unit = FromCoordinates.has(s.model?.trajectory?.cell.transform.transformer.definition.name ?? '')
+      ? 'frames'
+      : 'models';
     // Gained, lost or changed (its unit): told as a change of the node, so the tree flattens it again (its frames' row).
     const before = n.trajectory;
     if (frames < 2) n.trajectory = undefined;
@@ -1430,7 +1431,8 @@ function Structure_toLoci(s: Structure): StructureElement.Loci {
 }
 
 /** The transformer that adds coordinates (a simulation's frames) to a model: its frames are `frames`, not `models`. */
-const FromCoordinates = 'trajectory-from-model-and-coordinates';
+// (MolViewSpec's `trajectory-with-coordinates` too: the same trajectory, built from an MVS coordinates node)
+const FromCoordinates = new Set(['trajectory-from-model-and-coordinates', 'trajectory-with-coordinates']);
 
 /**
  * A structure's frames as its row and the inspector use them (model/scene.ts, `SceneTrajectory`): read from the shared

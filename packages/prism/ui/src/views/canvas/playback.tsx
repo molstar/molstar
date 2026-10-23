@@ -21,7 +21,14 @@ import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import { derive, State } from '../../reactive/state.js';
 import type { Child } from '../../dom/jsx-types.js';
-import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../../model/playback.js';
+import type {
+  PeriodicBoxMode,
+  PeriodicBoxModel,
+  SnapshotStepperModel,
+  SnapshotTransitionModel,
+  TrajectoryControlsModel,
+} from '../../model/playback.js';
+import { openContextMenu } from '../../components/context-menu/context-menu.js';
 import { classes } from './_generated/playback.module.css.js';
 
 /** Up to this many snapshots, the position shows as dots; past it, as "n / N" opening a list of titles. */
@@ -472,7 +479,65 @@ function Trajectory(props: { model: TrajectoryControlsModel; compact?: boolean }
         title={derive(one, (o) => `Next ${o}`)}
         onClick={() => step(1)}
       />
+      {model.periodic ? <PeriodicBoxButton model={model.periodic} /> : null}
     </div>
+  );
+}
+
+const PeriodicBoxLabels: Record<PeriodicBoxMode, string> = {
+  whole: 'Molecules whole',
+  box: 'Molecules in the box',
+  'box-centered': 'In the box, polymers at the center',
+  nojump: 'No jumps between frames',
+  off: 'As in the file',
+};
+
+/** The periodic box's menu: shown only for a structure in a simulation box; the mode now is marked. */
+function PeriodicBoxButton(props: { model: PeriodicBoxModel }) {
+  const { model } = props;
+  let close: (() => void) | undefined;
+  return (
+    <Show when={derive(model.mode, (m) => m !== undefined)}>
+      {() => {
+        const button = (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icon name="periodic-box" />}
+            title={derive(model.mode, (m) => `Periodic box: ${m ? PeriodicBoxLabels[m] : ''}`)}
+            onClick={(e: MouseEvent) => {
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              close?.();
+              const now = model.mode.value;
+              close = openContextMenu(
+                (e.currentTarget as HTMLElement).closest<HTMLElement>('.msp-root') ?? document.body,
+                { x: r.left, y: r.bottom },
+                [
+                  ...(Object.keys(PeriodicBoxLabels) as PeriodicBoxMode[]).map((m) => ({
+                    id: m,
+                    label: PeriodicBoxLabels[m],
+                    icon: m === now ? ('check' as const) : undefined,
+                    run: () => model.set(m),
+                  })),
+                  // the neighbouring boxes: a switch, after the modes
+                  ...(model.images
+                    ? [
+                        {
+                          id: 'images',
+                          label: 'Periodic images',
+                          icon: model.images.shown.value ? ('check' as const) : undefined,
+                          run: () => model.images!.set(!model.images!.shown.value),
+                        },
+                      ]
+                    : []),
+                ],
+              );
+            }}
+          />
+        );
+        return button;
+      }}
+    </Show>
   );
 }
 

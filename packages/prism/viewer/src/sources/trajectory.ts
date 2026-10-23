@@ -6,7 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
 import { PluginCommands } from '@molstar/plugin/commands';
+import type { PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
 import type { PluginContext } from '@molstar/plugin/context';
 import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -45,7 +47,8 @@ export interface TrajectoryInfo {
 }
 
 /** The transformer that adds coordinates (a simulation's frames) to a model. */
-const FromCoordinates = 'trajectory-from-model-and-coordinates';
+// (MolViewSpec's `trajectory-with-coordinates` too: the same trajectory, built from an MVS coordinates node)
+const FromCoordinates = new Set(['trajectory-from-model-and-coordinates', 'trajectory-with-coordinates']);
 
 /** The structures that have several frames, in the order of the scene. */
 export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
@@ -63,10 +66,57 @@ export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
       model: cell.transform.ref,
       count,
       index: (cell.transform.params as { modelIndex: number }).modelIndex,
-      unit: s.model.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models',
+      unit: FromCoordinates.has(s.model.trajectory?.cell.transform.transformer.definition.name ?? '')
+        ? 'frames'
+        : 'models',
     });
   }
   return out;
+}
+
+/** A structure whose frames are in a simulation box (`trajectory.periodic`). */
+export interface PeriodicInfo {
+  readonly ref: string;
+  readonly label: string;
+  /** The model's state ref (the cell whose `periodic` params say how the box is shown) */
+  readonly model: string;
+  /** Its `ModelFromTrajectory` params now */
+  readonly params: PeriodicProps & { modelIndex: number };
+  /** It shows its periodic images (the cells around: its structure's type is `symmetry`) */
+  readonly images: boolean;
+}
+
+const ModelFromTrajectoryName = 'model-from-trajectory';
+
+/** The structures whose model is a frame in a simulation box. */
+export function periodicInfos(plugin: PluginContext): PeriodicInfo[] {
+  const list = plugin.managers.structure.hierarchy.current.structures;
+  const names = structureNames(list);
+  const out: PeriodicInfo[] = [];
+  for (const s of list) {
+    if (!s.model) continue;
+    const cell = plugin.state.data.cells.get(s.model.cell.transform.ref) ?? s.model.cell;
+    if (cell.transform.transformer.definition.name !== ModelFromTrajectoryName || !cell.obj) continue;
+    if (!ModelPeriodicity.isApplicable(cell.obj.data)) continue;
+    out.push({
+      ref: s.cell.transform.ref,
+      label: names.get(s.cell.transform.ref) ?? s.cell.transform.ref,
+      model: cell.transform.ref,
+      params: cell.transform.params as PeriodicInfo['params'],
+      images: (s.cell.transform.params as { type?: { name?: string } } | undefined)?.type?.name === 'symmetry',
+    });
+  }
+  return out;
+}
+
+function samePeriodic(a: ReadonlyMap<string, PeriodicInfo>, b: ReadonlyMap<string, PeriodicInfo>) {
+  if (a.size !== b.size) return false;
+  for (const [ref, p] of a) {
+    const q = b.get(ref);
+    if (!q || q.label !== p.label || q.params.periodic !== p.params.periodic || q.images !== p.images) return false;
+    if (q.params.periodicCenter?.name !== p.params.periodicCenter?.name) return false;
+  }
+  return true;
 }
 
 const ParticleListFromTrajectory = 'ms-plugin.particle-list-from-trajectory';
@@ -227,6 +277,8 @@ export interface TrajectorySource {
   readonly rowsShown: ReadonlyState<ReadonlySet<string>>;
   /** A row of `structure` is on screen (`true`) or no longer (`false`); counted, rows may be made twice. */
   markRowShown(structure: string, on: boolean): void;
+  /** The structures in a simulation box, by structure ref: how their frames show it (`trajectory.periodic`). */
+  readonly periodicByRef: ReadonlyState<ReadonlyMap<string, PeriodicInfo>>;
 }
 
 const sources = new WeakMap<PluginContext, TrajectorySource>();
@@ -292,6 +344,13 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
       ),
     { coalesce: 'none', compare: sameSet },
   );
+  // Changes with the structures and with a periodic param, read once a frame; equal while those stay (a playing
+  // trajectory changes the frame, not them).
+  const periodicByRef = watchedState(
+    () => new Map(periodicInfos(plugin).map((p) => [p.ref, p])),
+    () => merge(hierarchy.behaviors.selection, plugin.state.data.events.changed),
+    { compare: samePeriodic },
+  );
   const counts = new Map<string, number>();
   const rowsShown = observableState<ReadonlySet<string>>(NoneShown);
   const markRowShown = (structure: string, on: boolean) => {
@@ -302,6 +361,7 @@ export function createTrajectorySource(plugin: PluginContext): TrajectorySource 
     if (!sameSet(next, rowsShown.value)) rowsShown.set(next);
   };
   return {
+    periodicByRef,
     frames,
     byRef,
     indexByRef,

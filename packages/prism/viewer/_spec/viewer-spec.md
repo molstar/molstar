@@ -155,7 +155,9 @@ beyond it (README decision 13).
   structure that plays (paused, the one that played last): while that structure's row is on screen (the Structure tab
   shown, the structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the
   full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the
-  canvas expanded).
+  canvas expanded). For a structure in a simulation box the full bar ends with the box menu (molecules whole, in the
+  box, centered on the polymers, no jumps, as in the file; `trajectory.periodic`) and a periodic images switch
+  (`structure.symmetry`, the cells -1 to 1).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
   (`apps/prism-viewer/src/data-extensions.ts`).

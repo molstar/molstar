@@ -166,7 +166,7 @@ export const Skills: readonly SkillDeclaration[] = [
       {
         id: 'show_unit_cell',
         operation: 'structure.unit-cell',
-        description: "Shows or hides a crystal structure's unit cell, with its color and opacity.",
+        description: "Shows or hides a crystal's unit cell or a simulation's box, with its color and opacity.",
       },
       {
         id: 'transform_structure',
@@ -260,13 +260,21 @@ export const Skills: readonly SkillDeclaration[] = [
     id: 'animation',
     title: 'Animation and trajectories',
     summary: 'spin, rock, wiggle; trajectory frames',
-    guidance: 'Skill animation: frames of a trajectory or an NMR ensemble are shown by index (from 0).',
+    guidance:
+      'Skill animation: frames of a trajectory or an NMR ensemble are shown by index (from 0). A simulation in a periodic box shows its molecules whole by default; periodic_box moves them into the box (centered on the protein with center: polymers), keeps them from jumping between frames (nojump), or shows the file as written (off); periodic_images shows the neighbouring boxes (mode box tiles them).',
     tools: [
       { id: 'play_animation', operation: 'animation.play' },
       { id: 'stop_animation', operation: 'animation.stop' },
       { id: 'wiggle', operation: 'animation.wiggle' },
       { id: 'show_frame', operation: 'trajectory.frame' },
       { id: 'get_trajectory', operation: 'trajectory.get' },
+      { id: 'periodic_box', operation: 'trajectory.periodic' },
+      {
+        id: 'periodic_images',
+        operation: 'structure.symmetry',
+        description:
+          "A simulation box's periodic images (kind: cells, cells: 1 is the box and its 26 neighbours; off: the box alone), or a crystal's symmetry.",
+      },
     ],
   },
   {

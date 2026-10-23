@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -27,6 +27,7 @@ function createEmptyHeader(): Schema.GroHeader {
     hasVelocities: false,
     precision: { position: 0, velocity: 0 },
     box: [0, 0, 0],
+    boxVectors: [0, 0, 0, 0, 0, 0, 0, 0, 0],
   };
 }
 
@@ -135,7 +136,9 @@ async function handleAtoms(state: State): Promise<Schema.GroAtoms> {
 function handleBoxVectors(state: State) {
   const { tokenizer } = state;
   const values = Tokenizer.readLine(tokenizer).trim().split(/\s+/g);
-  state.header.box = [+values[0], +values[1], +values[2]];
+  const v = (i: number) => (values.length > i ? +values[i] : 0);
+  state.header.box = [v(0), v(1), v(2)];
+  state.header.boxVectors = [v(0), v(3), v(4), v(5), v(1), v(6), v(7), v(8), v(2)];
 }
 
 async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {

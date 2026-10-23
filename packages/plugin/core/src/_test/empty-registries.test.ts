@@ -146,6 +146,8 @@ describe('the default spec', () => {
       'trr',
       'nctraj',
       'lammpstrj',
+      // new in v6: NAMD extended system files (periodic boxes for coordinates)
+      'xsc',
       'ply',
       'obj',
       'vtp',

@@ -190,7 +190,8 @@ export class StructureApi extends ApiArea {
   // parity.md §2 (the structure's source): crystal symmetry, v5's Symmetry Mates and Symmetry (indices) types.
   readonly symmetry = this.operation({
     id: 'structure.symmetry',
-    title: 'Show crystal symmetry',
+    // a crystal's symmetry, or a simulation box's periodic images (its P1 cell from the box)
+    title: 'Show symmetry or periodic images',
     params: {
       kind: PD.Select<'mates' | 'cells' | 'off'>(
         'mates',
@@ -213,7 +214,11 @@ export class StructureApi extends ApiArea {
       if (!model) return ApiResult.fail('blocked', `${name} is not built from a model.`);
       const symmetry = ModelSymmetry.Provider.get(model);
       if (kind !== 'off' && symmetry && SpacegroupCell.isZero(symmetry.spacegroup.cell)) {
-        return ApiResult.fail('blocked', `${name} has no crystal cell.`, 'Only crystal structures have symmetry.');
+        return ApiResult.fail(
+          'blocked',
+          `${name} has no crystal cell or simulation box.`,
+          'Only a crystal or a simulation in a periodic box has copies.',
+        );
       }
       const current = s.cell.transform.params as { type: { name: string; params?: Record<string, unknown> } };
       // The structure's common params (bond computation, …) carry over; the type's own are set.

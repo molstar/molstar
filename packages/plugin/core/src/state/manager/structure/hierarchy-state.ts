@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Cai Huiyu <szmun.caihy@gmail.com>
@@ -213,6 +213,12 @@ interface BuildState {
   currentStructure?: StructureRef;
   currentComponent?: StructureComponentRef;
   parentComponents?: StructureComponentRef[];
+  /**
+   * The trajectory and model a trajectory was entered under, one per trajectory entered: a trajectory below a model
+   * (MolViewSpec's trajectory with coordinates: model, trajectory, model, structure) starts its own, so the model below
+   * it is the one its structures are built from.
+   */
+  outer?: ({ trajectory?: TrajectoryRef; model: ModelRef } | undefined)[];
 
   changed: boolean;
   added: Set<StateTransform.Ref>;
@@ -283,9 +289,17 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
   [
     isType(SO.Molecule.Trajectory),
     (state, cell) => {
+      // below a model: the model is set aside while the trajectory's subtree is visited, its own model the current one
+      const outer = state.currentModel ? { trajectory: state.currentTrajectory, model: state.currentModel } : undefined;
+      (state.outer ??= []).push(outer);
+      if (outer) state.currentModel = void 0;
       state.currentTrajectory = createOrUpdateRefList(state, cell, state.hierarchy.trajectories, TrajectoryRef, cell);
     },
-    (state) => (state.currentTrajectory = void 0),
+    (state) => {
+      const outer = state.outer?.pop();
+      state.currentTrajectory = outer?.trajectory;
+      if (outer) state.currentModel = outer.model;
+    },
   ],
 
   // Model

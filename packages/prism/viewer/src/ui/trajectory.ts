@@ -9,14 +9,14 @@
 import type { PluginContext } from '@molstar/plugin/context';
 import { mapState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { derive } from '@molstar/prism-ui/reactive/state';
-import type { TrajectoryControlsModel } from '@molstar/prism-ui/model/playback';
+import type { PeriodicBoxMode, TrajectoryControlsModel } from '@molstar/prism-ui/model/playback';
 import type { ViewerApi } from '../api/area.js';
 import { trajectorySourceOf } from '../sources/trajectory.js';
 
 // The canvas' trajectory bar's model (prism-ui's `TrajectoryControlsModel`) over the shared trajectory source and the
 // person's API. It follows what plays (a structure's frames, or a particle trajectory's: `particles.*`) (paused, the one that played last; else the focused one's, else the
-// first with several models) and acts through `trajectory.frame`, `trajectory.play` and `trajectory.stop`, never the
-// plugin. Where it shows is the shell's (shell.tsx): a compact chip while frames play and that structure's row is on
+// first with several models) and acts through `trajectory.frame`, `trajectory.play` and `trajectory.stop` (and the box
+// menu through `trajectory.periodic`), never the plugin. Where it shows is the shell's (shell.tsx): a compact chip while frames play and that structure's row is on
 // screen in the Structure panel, else the full bar, playing or not.
 
 export function createTrajectoryControls(
@@ -73,6 +73,37 @@ export function createTrajectoryControls(
       } else {
         void (source.playing.value ? api.trajectory.stop() : api.trajectory.play({ structure: shown?.ref ?? '' }));
       }
+    },
+  };
+  // The box menu: the followed structure's periodic params, as one of the menu's modes
+  model.periodic = {
+    mode: derive([followed, source.periodicByRef], (s, byRef): PeriodicBoxMode | undefined => {
+      const p = s?.kind === 'particles' ? undefined : s && byRef.get(s.ref)?.params;
+      if (!p) return undefined;
+      const mode = p.periodic ?? 'whole';
+      return mode === 'box' && p.periodicCenter?.name === 'selection' ? 'box-centered' : mode;
+    }),
+    set(mode) {
+      const shown = followed.value;
+      if (!shown || shown.kind === 'particles') return;
+      void api.trajectory.periodic(
+        mode === 'box-centered'
+          ? { structure: shown.ref, mode: 'box', center: 'polymers' }
+          : { structure: shown.ref, mode, ...(mode === 'box' ? { center: 'box' as const } : {}) },
+      );
+    },
+    // the neighbouring boxes through `structure.symmetry` (the cells -1 to 1 around, from the frame's box)
+    images: {
+      shown: derive([followed, source.periodicByRef], (s, byRef) =>
+        s?.kind === 'particles' ? false : !!(s && byRef.get(s.ref)?.images),
+      ),
+      set(on) {
+        const shown = followed.value;
+        if (!shown || shown.kind === 'particles') return;
+        void api.structure.symmetry(
+          on ? { structure: shown.ref, kind: 'cells', cells: 1 } : { structure: shown.ref, kind: 'off' },
+        );
+      },
     },
   };
   const rowShown = derive([followed, source.rowsShown], (f, rows) => !!f && rows.has(f.ref));

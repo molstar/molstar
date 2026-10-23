@@ -31,6 +31,11 @@ export const ExampleFiles = {
   /** A small protein's trajectory: its model (PDB) and coordinates (DCD). */
   trajectoryModel: new URL('../../../../../data/examples/trajectory/protein.pdb', import.meta.url).href,
   trajectoryCoordinates: new URL('../../../../../data/examples/trajectory/protein.dcd', import.meta.url).href,
+  /** The same protein as Amber writes it: its topology (PRMTOP) and coordinates (NetCDF). */
+  trajectoryTopology: new URL('../../../../../data/examples/trajectory/protein.parm7', import.meta.url).href,
+  trajectoryNetcdf: new URL('../../../../../data/examples/trajectory/protein.nc', import.meta.url).href,
+  /** A peptide and waters split across a dodecahedral box, 8 frames (multi-frame GRO; its generator next to it). */
+  splitPeptide: new URL('../../../../../data/examples/trajectory/periodic/split-peptide.gro', import.meta.url).href,
   /** Particles (`data/examples/particles`, sources and licenses in its README): 200 ribosomes (CryoET Data Portal). */
   cryoetRibosomes: new URL('../../../../../data/examples/particles/cryoet-ribosomes.ndjson', import.meta.url).href,
   /** 300 HIV capsid picks with their poses, one tomogram (RELION STAR). */

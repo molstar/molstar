@@ -12,6 +12,16 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type StateTransform, StateTransformer } from '@molstar/core/state';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { type Coordinates, Structure, Model, type Frame, type Trajectory } from '@molstar/model/model/structure';
+import {
+  PeriodicParams,
+  periodicFrame,
+  periodicParamsFor,
+  periodicTrajectory,
+  type PeriodicProps,
+} from '@molstar/plugin/state/helpers/periodic';
+import { parseXsc } from '@molstar/io/reader/xsc/parser';
+import { Asset } from '@molstar/core/util/assets';
+import { coordinatesWithXsc } from '@molstar/model/formats/structure/namd-xsc';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
 import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
@@ -23,6 +33,57 @@ import {
   getTransformFromParams,
 } from '@molstar/plugin/state/transforms/helpers';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
+
+export { CoordinatesWithBoxes };
+type CoordinatesWithBoxes = typeof CoordinatesWithBoxes;
+/**
+ * Coordinates with their frames' boxes from a NAMD extended system file (`.xsc`, `.xst`: a text data cell), which a DCD
+ * lacks the origin and orientation of: each frame takes the box of its step.
+ */
+const CoordinatesWithBoxes = PluginStateTransform.BuiltIn({
+  name: 'coordinates-with-boxes',
+  display: {
+    name: 'Coordinates with Boxes',
+    description: "Give coordinates their frames' periodic boxes from a NAMD extended system file (.xsc, .xst).",
+  },
+  from: SO.Molecule.Coordinates,
+  to: SO.Molecule.Coordinates,
+  params: {
+    /** The parsed file's cell (`ParseXsc`: a dropped or downloaded file) */
+    boxesRef: PD.Text('', { isHidden: true }),
+    /** Or its address, fetched here (MolViewSpec's `custom.molstar_boxes`: no data cell of its own) */
+    url: PD.Text('', { isHidden: true }),
+  },
+})({
+  getDependencies: ({ boxesRef }: { boxesRef: string }) => (boxesRef ? [boxesRef as StateTransform.Ref] : []),
+  apply({ a, params, dependencies, cache }, plugin: PluginContext) {
+    return Task.create('Coordinates with boxes', async (ctx) => {
+      let text: string;
+      if (params.boxesRef) {
+        // a parsed file (`ParseXsc`: a dropped or downloaded file)
+        return new SO.Molecule.Coordinates(
+          coordinatesWithXsc(a.data, (dependencies![params.boxesRef] as SO.Format.Xsc).data),
+          { label: a.label, description: 'Coordinates with boxes' },
+        );
+      } else {
+        const asset = await plugin.managers.asset
+          .resolve(Asset.getUrlAsset(plugin.managers.asset, params.url), 'string')
+          .runInContext(ctx);
+        (cache as { asset?: Asset.Wrapper }).asset = asset;
+        text = asset.data as string;
+      }
+      const parsed = await parseXsc(text).runInContext(ctx);
+      if (parsed.isError) throw new Error(parsed.message);
+      return new SO.Molecule.Coordinates(coordinatesWithXsc(a.data, parsed.result), {
+        label: a.label,
+        description: 'Coordinates with boxes',
+      });
+    });
+  },
+  dispose({ cache }) {
+    (cache as { asset?: Asset.Wrapper } | undefined)?.asset?.dispose();
+  },
+});
 
 export { TrajectoryFromModelAndCoordinates };
 type TrajectoryFromModelAndCoordinates = typeof TrajectoryFromModelAndCoordinates;
@@ -61,10 +122,11 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
 const plus1 = (v: number) => v + 1,
   minus1 = (v: number) => v - 1;
 
-async function modelAtIndex(trajectory: Trajectory, index: number, ctx: RuntimeContext) {
+async function modelAtIndex(trajectory: Trajectory, index: number, ctx: RuntimeContext, periodic: PeriodicProps) {
   let modelIndex = Math.round(index) % trajectory.frameCount;
   if (modelIndex < 0) modelIndex += trajectory.frameCount;
-  const model = await Task.resolveInContext(trajectory.getFrameAtIndex(modelIndex), ctx);
+  // the same model for the same recent frame (cached): an unchanged frame stays `Unchanged`
+  const model = await periodicFrame(trajectory, modelIndex, periodic, ctx);
   const label = `Model ${modelIndex + 1}`;
   const description = trajectory.frameCount === 1 ? undefined : `of ${trajectory.frameCount}`;
   return { model, label, description };
@@ -79,7 +141,10 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
   to: SO.Molecule.Model,
   params: (a) => {
     if (!a) {
-      return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model', immediateUpdate: true }) };
+      return {
+        modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model', immediateUpdate: true }),
+        ...PeriodicParams,
+      };
     }
     return {
       modelIndex: PD.Converted(
@@ -91,13 +156,14 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
           { description: 'Model Index', immediateUpdate: true },
         ),
       ),
+      ...periodicParamsFor(a.data),
     };
   },
 })({
   isApplicable: (a) => a.data.frameCount > 0,
   apply({ a, params, cache }) {
     return Task.create('Model from Trajectory', async (ctx) => {
-      const { model, label, description } = await modelAtIndex(a.data, params.modelIndex, ctx);
+      const { model, label, description } = await modelAtIndex(a.data, params.modelIndex, ctx, params);
       (cache as { trajectory?: Trajectory }).trajectory = a.data;
       return new SO.Molecule.Model(model, { label, description });
     });
@@ -108,7 +174,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     // A new frame updates the cell in place: recreating it disposed the old frame's custom properties, which the
     // frames of the same topology share (`{ ...previous }`), on every frame of a playing trajectory.
     return Task.create('Model from Trajectory', async (ctx) => {
-      const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx);
+      const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx, newParams);
       if (model === b.data) return StateTransformer.UpdateResult.Unchanged;
       // Frames of the same topology share them (`{ ...previous }`): only the old frame's own assets go (a dynamic
       // property's, kept by the model id); a frame of another topology has its own properties, all of which go.
@@ -123,7 +189,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
   },
   interpolate(a, b, t) {
     const modelIndex = t >= 1 ? b.modelIndex : a.modelIndex + Math.floor((b.modelIndex - a.modelIndex + 1) * t);
-    return { modelIndex };
+    return { modelIndex, periodic: b.periodic, periodicCenter: b.periodicCenter };
   },
   dispose({ b }) {
     b?.data.customProperties.dispose();
@@ -140,13 +206,14 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
   params(a, plugin: PluginContext | undefined) {
     // the same choice as `StructureFromModel`'s, for the frames' representative model (bond-providers plan §4)
     const registry = plugin?.bondProviders ?? new BondProviderRegistry();
-    return { bonds: PD.Optional(registry.getParam(a?.data.representative)) };
+    // the frames as `ModelFromTrajectory` shows them: whole by default
+    return { bonds: PD.Optional(registry.getParam(a?.data.representative)), ...periodicParamsFor(a?.data) };
   },
 })({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Build Structure', async (ctx) => {
       const bondProvider = plugin.bondProviders.resolve(params?.bonds, a.data.representative);
-      const s = await Structure.ofTrajectory(a.data, ctx, { bondProvider });
+      const s = await Structure.ofTrajectory(periodicTrajectory(a.data, params ?? {}), ctx, { bondProvider });
       const props = { label: 'Ensemble', description: Structure.elementDescription(s) };
       return new SO.Molecule.Structure(s, props);
     });
