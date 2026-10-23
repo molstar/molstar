@@ -122,7 +122,7 @@ export function UnitsRepresentation<P extends StructureParams>(
           const visual = visualCtor(materialId, structure, _props, graphics);
           const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
           if (promise) await promise;
-          setVisualState(visual, group, _state); // current state for new visual
+          setVisualState(visual, group, _state, true); // current state for new visual
           visuals.set(group, { visual, group });
           visualsByUnitId = undefined;
           if (runtime.shouldUpdate)
@@ -153,7 +153,7 @@ export function UnitsRepresentation<P extends StructureParams>(
               visual = visualCtor(materialId, structure, _props, graphics);
               const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
               if (promise) await promise;
-              setVisualState(visual, group, _state); // current state for new visual
+              setVisualState(visual, group, _state, true); // current state for new visual
             } else {
               const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
               if (promise) await promise;
@@ -174,7 +174,7 @@ export function UnitsRepresentation<P extends StructureParams>(
             const visual = visualCtor(materialId, structure, _props, graphics);
             const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
             if (promise) await promise;
-            setVisualState(visual, group, _state); // current state for new visual
+            setVisualState(visual, group, _state, true); // current state for new visual
             visuals.set(group, { visual, group });
             visualsByUnitId = undefined;
           }
@@ -204,7 +204,7 @@ export function UnitsRepresentation<P extends StructureParams>(
               visualGroup.visual = visual;
               const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
               if (promise) await promise;
-              setVisualState(visual, group, _state); // current state for new visual
+              setVisualState(visual, group, _state, true); // current state for new visual
             } else {
               const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
               if (promise) await promise;
@@ -232,7 +232,7 @@ export function UnitsRepresentation<P extends StructureParams>(
               structure: _structure,
             });
             if (promise) await promise;
-            setVisualState(visual, group, _state); // current state for new visual
+            setVisualState(visual, group, _state, true); // current state for new visual
           } else {
             const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props);
             if (promise) await promise;
@@ -376,10 +376,12 @@ export function UnitsRepresentation<P extends StructureParams>(
     layersSmoothed.set(visual, smooth);
   }
 
+  /** `isNew`: a visual just made, at identity, with `state` the representation's current `_state` */
   function setVisualState(
     visual: UnitsVisual<P>,
     group: Unit.SymmetryGroup,
     state: Partial<StructureRepresentationState>,
+    isNew = false,
   ) {
     const { visible, alphaFactor, pickable, clipping, wiggle, themeStrength, transform, unitTransforms } = state;
 
@@ -391,9 +393,11 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (wiggle !== undefined) visual.setWiggle(wiggle, graphics);
     if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
     if (transform !== undefined) {
-      if (transform !== _state.transform || !Mat4.areEqual(transform, _state.transform, EPSILON)) {
-        visual.setTransform(transform);
-      }
+      // a new visual's transform is the identity, not `_state.transform` (perf-audit-2 07/B2)
+      const changed = isNew
+        ? !Mat4.isIdentity(transform)
+        : transform !== _state.transform || !Mat4.areEqual(transform, _state.transform, EPSILON);
+      if (changed) visual.setTransform(transform);
     }
     if (unitTransforms !== undefined) {
       if (unitTransforms) {

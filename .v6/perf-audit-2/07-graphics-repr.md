@@ -204,7 +204,7 @@ unchanged apart from #1987.
 
 | Id | vs v1 | Severity | Bug | Where | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B2 | still-open | medium | New units visuals never get the representation transform (also on `mustRecreate`) | [units-representation.ts:394](../../packages/graphics/src/repr/structure/units-representation.ts#L394) | confirmed (measured) |
+| B2 | still-open; **fixed** | medium | New units visuals never get the representation transform (also on `mustRecreate`) | [units-representation.ts:394](../../packages/graphics/src/repr/structure/units-representation.ts#L394) | confirmed (measured) |
 | B1 | still-open | medium | Volume and particle visuals lose state on new data or recreate | [volume/representation.ts:79](../../packages/graphics/src/repr/volume/representation.ts#L79) | confirmed (code; v1 measured) |
 | N1 | still-open | medium | Segment mask reads wrapped or out-of-grid voxels at grid faces | [segment.ts:154](../../packages/graphics/src/repr/volume/segment.ts#L154) | confirmed (code; v1 measured) |
 | B3 | still-open; **fixed** | medium | Label representation throws on coarse units | [label-text.ts:118](../../packages/graphics/src/repr/structure/visual/label-text.ts#L118) | confirmed (code; v1 measured) |
