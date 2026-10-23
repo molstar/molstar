@@ -40,8 +40,7 @@ const ParseBlob = PluginStateTransform.BuiltIn({
       for (const e of a.data) {
         if (!map.has(e.id)) continue;
 
-        // text or binary CIF either way: `CIF.parse` tells bytes apart
-        const parsed = await CIF.parse(e.data).runInContext(ctx);
+        const parsed = await (e.kind === 'string' ? CIF.parse(e.data) : CIF.parseBinary(e.data)).runInContext(ctx);
         if (parsed.isError) throw new Error(`${e.id}: ${parsed.message}`);
         entries.push({ id: e.id, kind: 'cif', data: parsed.result });
       }

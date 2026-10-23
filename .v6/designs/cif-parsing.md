@@ -30,12 +30,13 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
 
 - `parseCifText(data: StringLike | Uint8Array)`: additive.
 - `CIF.parse(Uint8Array)` meant BinaryCIF; it now looks at the first byte: a MessagePack map marker (`0x80–0x8f`,
-  `0xde`, `0xdf`) is BinaryCIF, anything else text. A BinaryCIF file always starts with a map marker, so only input that
-  failed before (text CIF as bytes) reads differently. The plugin's `ParseCif` and `ParseBlob` go through it, so a
-  Binary data cell holding text CIF parses.
-- The plugin still reads `.cif` files as strings (`stringExtensions` of the mmCIF provider): reading them as binary
-  would skip the encode copy and the 512 MB string limit, but changes the Data node's type for opened files. Open: a
-  maintainer's decision.
+  `0xde`, `0xdf`) is BinaryCIF, anything else text (a UTF-8 byte order mark is skipped). A BinaryCIF file always starts
+  with a map marker, so only input that failed before (text CIF as bytes) reads differently. The plugin's `ParseCif`
+  goes through it, so a Binary data cell holding text CIF parses.
+- `CIF.parseBinary` stays strict, no sniffing: `ParseBlob` calls it for its binary entries.
+- The plugin keeps reading `.cif` and `.mmcif` files as strings (the maintainers' decision): reading them as binary
+  would skip the encode copy and the 512 MB string limit, but would change the Data node's type of opened files. The
+  way to get both later is a byte-backed `StringLike` (`perf-audit-2/13-lammps-large-text.md`).
 
 ## BinaryCIF
 

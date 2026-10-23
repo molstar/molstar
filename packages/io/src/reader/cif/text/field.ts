@@ -91,8 +91,8 @@ export namespace ByteTokens {
   }
 }
 
-/** Values of up to this many bytes go through the field's string cache, keyed by the bytes as an int. */
-const CachedLength = 4;
+/** Values of up to this many bytes go through the field's string cache. */
+const CachedLength = 8;
 /** Slots of the cache, a power of 2 */
 const CacheSize = 256;
 
@@ -113,9 +113,10 @@ function StringCache(): StringCache {
 /**
  * Field `column` of byte tokens: `CifField.ofTokens` on the bytes of the file, values decoded as UTF-8.
  *
- * `str` keeps the last string of up to 4 bytes of each of 256 hash slots: the repeated values of a column (atom,
- * residue and chain names, element symbols) are made once, and a reader keying maps by them gets the same string,
- * whose hash V8 has computed (flat-192's string columns into a Map: 262 → 226 ms).
+ * `str` keeps the last string of up to 8 bytes of each of 256 hash slots (up to 4 bytes keyed by the bytes as an
+ * int): the repeated values of a column (atom, residue and chain names, element symbols, accessions) are made once,
+ * and a reader keying maps by them gets the same string, whose hash V8 has computed. flat-192-cif model stage:
+ * allocation 385 MB uncached past 4 bytes, 174 MB cached.
  */
 export function byteTokensField(tokens: ByteTokens, column: number): CifField {
   const { data, starts, lengths, long } = tokens;
@@ -129,16 +130,36 @@ export function byteTokensField(tokens: ByteTokens, column: number): CifField {
     const s = starts[i];
     const l = lengths[i];
     if (l > CachedLength) return utf8Read(data, s, l < 255 ? l : long!.get(i)! - s);
-    const key = data[s] | (data[s + 1] << 8) | (data[s + 2] << 16) | (data[s + 3] << 24);
-    if (l === 1 && (key & 0xff) === 46 /* . */) return '';
-    if (l === 1 && (key & 0xff) === 63 /* ? */) return '';
-    // the bytes past the value are its neighbours
-    const k = l === 4 ? key : key & ((1 << (8 * l)) - 1);
-    const slot = (k ^ (k >>> 13) ^ (k >>> 22) ^ (l << 6)) & (CacheSize - 1);
+    if (l === 1) {
+      const c = data[s];
+      if (c === 46 /* . */ || c === 63 /* ? */) return '';
+    }
     if (!cache) cache = StringCache();
-    if (cache.keys[slot] === k && cache.lengths[slot] === l) return cache.strings[slot];
+    if (l <= 4) {
+      const key = data[s] | (data[s + 1] << 8) | (data[s + 2] << 16) | (data[s + 3] << 24);
+      // the bytes past the value are its neighbours
+      const k = l === 4 ? key : key & ((1 << (8 * l)) - 1);
+      const slot = (k ^ (k >>> 13) ^ (k >>> 22) ^ (l << 6)) & (CacheSize - 1);
+      if (cache.keys[slot] === k && cache.lengths[slot] === l) return cache.strings[slot];
+      const ret = utf8Read(data, s, l);
+      cache.keys[slot] = k;
+      cache.lengths[slot] = l;
+      cache.strings[slot] = ret;
+      return ret;
+    }
+    // 5 to 8 bytes: the key is the index of the cached value, compared by its bytes
+    let h = l;
+    for (let j = 0; j < l; j++) h = (Math.imul(h, 31) + data[s + j]) | 0;
+    const slot = (h ^ (h >>> 8)) & (CacheSize - 1);
+    const c = cache.keys[slot];
+    if (cache.lengths[slot] === l && lengths[c] === l) {
+      const cs = starts[c];
+      let j = 0;
+      while (j < l && data[cs + j] === data[s + j]) j++;
+      if (j === l) return cache.strings[slot];
+    }
     const ret = utf8Read(data, s, l);
-    cache.keys[slot] = k;
+    cache.keys[slot] = i;
     cache.lengths[slot] = l;
     cache.strings[slot] = ret;
     return ret;

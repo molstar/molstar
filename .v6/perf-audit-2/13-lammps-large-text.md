@@ -46,3 +46,12 @@ Example: 100k atoms × 500 frames peaks at about 2.5 GB of text + 2.4–3.6 GB o
    asynchronously by offset.
 4. **The generic byte tokenizer** that this pass starts for CIF (`reader/cif/text/field.ts`, `parseFloatBytes`), shared
    by the line-based text formats.
+
+## Later: a byte-backed `StringLike`
+
+An ASCII-only `StringLike` over the file's `Uint8Array` (`charCodeAt(i)` = `bytes[i]`, `substring` decoding a range),
+opt-in per format provider, so opened files stay `Data.String` while their text is never decoded to a JS string; the CIF
+byte tokenizer would detect it and read the bytes directly, skipping `utf8Encode`'s copy. Risks: code that assumes a
+small file is a primitive string, and a second `StringLike` kind at the other parsers' `charCodeAt` call sites (a
+polymorphic site is ~1.4–2× slower, as `ChunkedBigString` showed above).
+
