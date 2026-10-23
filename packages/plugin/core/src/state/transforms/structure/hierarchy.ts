@@ -19,6 +19,8 @@ import {
   periodicTrajectory,
   type PeriodicProps,
 } from '@molstar/plugin/state/helpers/periodic';
+import { parseXsc } from '@molstar/io/reader/xsc/parser';
+import { coordinatesWithXsc } from '@molstar/model/formats/structure/namd-xsc';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
 import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
@@ -30,6 +32,36 @@ import {
   getTransformFromParams,
 } from '@molstar/plugin/state/transforms/helpers';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
+
+export { CoordinatesWithBoxes };
+type CoordinatesWithBoxes = typeof CoordinatesWithBoxes;
+/**
+ * Coordinates with their frames' boxes from a NAMD extended system file (`.xsc`, `.xst`: a text data cell), which a DCD
+ * lacks the origin and orientation of (.v6/periodic-trajectories): each frame takes the box of its step.
+ */
+const CoordinatesWithBoxes = PluginStateTransform.BuiltIn({
+  name: 'coordinates-with-boxes',
+  display: {
+    name: 'Coordinates with Boxes',
+    description: "Give coordinates their frames' periodic boxes from a NAMD extended system file (.xsc, .xst).",
+  },
+  from: SO.Molecule.Coordinates,
+  to: SO.Molecule.Coordinates,
+  params: { boxesRef: PD.Text('', { isHidden: true }) },
+})({
+  getDependencies: ({ boxesRef }: { boxesRef: string }) => (boxesRef ? [boxesRef as StateTransform.Ref] : []),
+  apply({ a, params, dependencies }) {
+    return Task.create('Coordinates with boxes', async (ctx) => {
+      const text = dependencies![params.boxesRef].data as string;
+      const parsed = await parseXsc(text).runInContext(ctx);
+      if (parsed.isError) throw new Error(parsed.message);
+      return new SO.Molecule.Coordinates(coordinatesWithXsc(a.data, parsed.result), {
+        label: a.label,
+        description: 'Coordinates with boxes',
+      });
+    });
+  },
+});
 
 export { TrajectoryFromModelAndCoordinates };
 type TrajectoryFromModelAndCoordinates = typeof TrajectoryFromModelAndCoordinates;

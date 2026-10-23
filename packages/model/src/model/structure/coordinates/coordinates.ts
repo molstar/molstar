@@ -14,6 +14,8 @@ import { Column } from '@molstar/core/data/db';
 export interface Frame {
   readonly elementCount: number;
   readonly time: Time;
+  /** The simulation step it was saved at, when the file says (DCD: `ISTART` and `NSAVC`): to match box files by */
+  readonly step?: number;
 
   // positions
   readonly x: ArrayLike<number>;

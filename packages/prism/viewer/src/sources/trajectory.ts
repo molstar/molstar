@@ -79,6 +79,8 @@ export interface PeriodicInfo {
   readonly model: string;
   /** Its `ModelFromTrajectory` params now */
   readonly params: PeriodicProps & { modelIndex: number };
+  /** It shows its periodic images (the cells around: its structure's type is `symmetry`) */
+  readonly images: boolean;
 }
 
 const ModelFromTrajectoryName = 'model-from-trajectory';
@@ -98,6 +100,7 @@ export function periodicInfos(plugin: PluginContext): PeriodicInfo[] {
       label: names.get(s.cell.transform.ref) ?? s.cell.transform.ref,
       model: cell.transform.ref,
       params: cell.transform.params as PeriodicInfo['params'],
+      images: (s.cell.transform.params as { type?: { name?: string } } | undefined)?.type?.name === 'symmetry',
     });
   }
   return out;
@@ -107,7 +110,7 @@ function samePeriodic(a: ReadonlyMap<string, PeriodicInfo>, b: ReadonlyMap<strin
   if (a.size !== b.size) return false;
   for (const [ref, p] of a) {
     const q = b.get(ref);
-    if (!q || q.label !== p.label || q.params.periodic !== p.params.periodic) return false;
+    if (!q || q.label !== p.label || q.params.periodic !== p.params.periodic || q.images !== p.images) return false;
     if (q.params.periodicCenter?.name !== p.params.periodicCenter?.name) return false;
   }
   return true;

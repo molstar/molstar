@@ -2,8 +2,7 @@
 
 Goal: a frame from a periodic run shows every molecule whole, and optionally wrapped around a chosen center, for every
 trajectory source (coordinates + topology, multi-model files, LAMMPS), in the library, the plugin, Prism and headless.
-Non-goals for now: bonds and interactions between periodic images, drawing neighbouring images (a later P1 supercell
-option, §7), reading NAMD `.xsc` files.
+Non-goals for now: bonds and interactions between periodic images.
 
 ## 1. Operations
 
@@ -145,4 +144,9 @@ Each phase: an entry in `.v6/changelogs/`, `model.md §3–4` and `formats.md` u
 5. **Storybook group** (§6): `Viewer/Simulations`, Simularium moved into it; the ensembles stay in `Viewer/Data`, the
    playback card in `Viewer/Playback`.
 
-Open: periodic images (a P1 supercell from the box), NAMD `.xsc` origins (a DCD's box at the origin for `box`).
+Done after the phases: **periodic images** are the existing symmetry structure (`structure.symmetry`, kind `cells`:
+the frame's P1 cell from its box; `Unit.remapModel` places the copies from each frame's cell, so they follow an NPT
+box), found as "periodic images" and in the trajectory bar's box menu; **NAMD box origins** from `.xsc`/`.xst` files
+(`parseXsc`, `coordinatesWithXsc`, the plugin's `CoordinatesWithBoxes`, `load.trajectory`'s `boxes`), matched to a
+DCD's frames by step (`Frame.step` from `ISTART`, `NSAVC`). Open: `.xsc` in MVS and as a dropped file (no format
+provider), the cell drawn in the standard frame for a box whose vectors are rotated.

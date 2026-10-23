@@ -97,10 +97,15 @@ export function mockTrajectory(count = 20, label = '1TQN'): TrajectoryControlsMo
 /** A simulation's frames in a periodic box: the trajectory with the box menu. */
 export function mockPeriodicTrajectory(count = 100, label = 'AdK in water'): TrajectoryControlsModel {
   const mode = observableState<PeriodicBoxMode | undefined>('whole');
+  const images = observableState(false);
   return {
     ...mockTrajectory(count, label),
     unit: observableState<'models' | 'frames'>('frames').asReadonly,
-    periodic: { mode: mode.asReadonly, set: (m) => mode.set(m) },
+    periodic: {
+      mode: mode.asReadonly,
+      set: (m) => mode.set(m),
+      images: { shown: images.asReadonly, set: (on) => images.set(on) },
+    },
   };
 }
 

@@ -14,7 +14,7 @@ import { ExampleFiles, openAt, RealViewerStory } from '../../testing/real-viewer
 // Frames from a periodic simulation (`trajectory.periodic`, .v6/periodic-trajectories/plan.md): molecules split across
 // the box by the engine made whole (`whole`), moved into the box (`box`, centered on the polymers with `center`), kept
 // from jumping between frames (`nojump`: play it), or as the file has them (`off`: bonds and the backbone stretched
-// across the box). Split chain is the repository's (no network);
+// across the box). `images` adds the neighbouring boxes. Split chain is the repository's (no network);
 // AdK in water is MDAnalysis's test data (47 681 atoms, 10 frames, 3.8 MB), fetched from GitHub.
 
 interface Args {
@@ -26,12 +26,14 @@ interface Args {
   unitCell: boolean;
   /** Play the frames, looping */
   play: boolean;
+  /** The neighbouring boxes too (`structure.symmetry`, the cells -1 to 1) */
+  images: boolean;
 }
 
 const meta: Meta<Args> = {
   title: 'Viewer/Simulations/Periodic box',
   parameters: { layout: 'fullscreen' },
-  args: { periodic: 'box', center: 'polymers', frame: 0, unitCell: true, play: false },
+  args: { periodic: 'box', center: 'polymers', frame: 0, unitCell: true, play: false, images: false },
   argTypes: {
     periodic: { control: 'inline-radio', options: ['whole', 'box', 'nojump', 'off'] },
     center: { control: 'inline-radio', options: ['box', 'polymers'] },
@@ -49,6 +51,7 @@ async function show(v: PrismViewer, load: () => Promise<{ ok: boolean; message?:
   if (!p.ok) console.error(`[story] ${p.message}`);
   if (args.frame) await v.api.trajectory.frame({ index: args.frame });
   if (args.unitCell) await v.api.structure.unitCell({});
+  if (args.images) await v.api.structure.symmetry({ kind: 'cells', cells: 1 });
   await v.api.camera.reset({ animate: false });
   if (args.play) await v.api.trajectory.play({ mode: 'loop', seconds: 5 });
   openAt(v, (n) => n.kind === 'structure');

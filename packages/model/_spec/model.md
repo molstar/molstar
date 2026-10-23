@@ -58,7 +58,10 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
 
 - `Trajectory`: `frameCount`, `duration`, `representative`, `getFrameAtIndex(i)` (a model or a task). `ArrayTrajectory`
   holds models.
-- `Coordinates` (`coordinates/coordinates.ts`): frames of `x/y/z` with optional cell, velocities, forces and a time.
+- `Coordinates` (`coordinates/coordinates.ts`): frames of `x/y/z` with optional cell, velocities, forces and a time;
+  `step` when the file says which simulation step a frame is (DCD), to match box files by: `coordinatesWithXsc`
+  (`formats/structure/namd-xsc.ts`) gives frames a NAMD `.xsc`/`.xst` file's boxes, the last entry at or before their
+  step, the corner the file's center less half of a + b + c.
 - `Topology` (`topology/topology.ts`): `BasicData` plus bonds as index pairs; combined with coordinates into a
   trajectory whose frames share one `IndexPairBonds`.
 - **Periodic frames** (`model/periodic.ts`, `.v6/periodic-trajectories/`): `Model.PeriodicBox` (dynamic) is a frame's

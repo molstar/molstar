@@ -75,6 +75,8 @@ export interface PeriodicBoxModel {
   /** The mode now; absent: the structure is not in a simulation box (no menu). */
   mode: ReadonlyState<PeriodicBoxMode | undefined>;
   set(mode: PeriodicBoxMode): void;
+  /** The neighbouring boxes (periodic images): shown or not, and the switch. */
+  images?: { shown: ReadonlyState<boolean>; set(shown: boolean): void };
 }
 
 /** A run of a hover label's line: text with its emphasis (never markup: the view builds elements from these). */

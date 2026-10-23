@@ -512,12 +512,25 @@ function PeriodicBoxButton(props: { model: PeriodicBoxModel }) {
               close = openContextMenu(
                 (e.currentTarget as HTMLElement).closest<HTMLElement>('.msp-root') ?? document.body,
                 { x: r.left, y: r.bottom },
-                (Object.keys(PeriodicBoxLabels) as PeriodicBoxMode[]).map((m) => ({
-                  id: m,
-                  label: PeriodicBoxLabels[m],
-                  icon: m === now ? 'check' : undefined,
-                  run: () => model.set(m),
-                })),
+                [
+                  ...(Object.keys(PeriodicBoxLabels) as PeriodicBoxMode[]).map((m) => ({
+                    id: m,
+                    label: PeriodicBoxLabels[m],
+                    icon: m === now ? ('check' as const) : undefined,
+                    run: () => model.set(m),
+                  })),
+                  // the neighbouring boxes: a switch, after the modes
+                  ...(model.images
+                    ? [
+                        {
+                          id: 'images',
+                          label: 'Periodic images',
+                          icon: model.images.shown.value ? ('check' as const) : undefined,
+                          run: () => model.images!.set(!model.images!.shown.value),
+                        },
+                      ]
+                    : []),
+                ],
               );
             }}
           />

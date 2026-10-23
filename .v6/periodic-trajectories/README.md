@@ -5,5 +5,5 @@ a face is written partly on one side and partly on the other. Mol\* draws the fr
 stretch across the whole box ("portalling"). This folder holds the analysis ([analysis.md](analysis.md)) and the plan
 ([plan.md](plan.md)).
 
-Status: done (phases 0 to 5 and the distance links), decisions at the end of [plan.md](plan.md#decisions). Open:
-periodic images, NAMD `.xsc` origins.
+Status: done: phases 0 to 5, distance links, periodic images and NAMD box files; decisions and the few open ends at
+the end of [plan.md](plan.md#decisions).

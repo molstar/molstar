@@ -91,7 +91,17 @@ function structureFeatureCommands(api: ViewerApi): CommandDefinition<ViewerComma
     operationCommand(api, api.structure.symmetry, {
       category: 'Data',
       icon: 'hexagon',
-      alias: ['symmetry', 'symmetry mates', 'crystal', 'unit cell', 'lattice'],
+      alias: [
+        'symmetry',
+        'symmetry mates',
+        'crystal',
+        'unit cell',
+        'lattice',
+        'periodic images',
+        'neighbouring boxes',
+        'tile box',
+        'supercell',
+      ],
     }),
     operationCommand(api, api.structure.unitCell, {
       category: 'Data',

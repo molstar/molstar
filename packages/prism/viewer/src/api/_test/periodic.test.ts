@@ -165,4 +165,63 @@ describe('trajectory.periodic', () => {
     expect(cy).toBeCloseTo((b[1] + b[4] + b[7]) / 2, 3);
     expect(cz).toBeCloseTo((b[2] + b[5] + b[8]) / 2, 3);
   });
+
+  it("shows the periodic images from the trajectory bar's box menu", async () => {
+    const v = await headlessViewer({ files: [gro()] });
+    const bar = createTrajectoryControls(v.plugin, v.api);
+    const images = bar.model.periodic!.images!;
+    const off = images.shown.listen?.(() => {});
+    const units = () =>
+      (v.plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data as any).units.length;
+    const alone = units();
+    await until(() => images.shown.value === false);
+    images.set(true);
+    await until(() => images.shown.value === true);
+    // the box and its 26 neighbours
+    expect(units()).toBe(27 * alone);
+    images.set(false);
+    await until(() => images.shown.value === false);
+    expect(units()).toBe(alone);
+    off?.();
+    bar.dispose();
+  });
+
+  it("takes a DCD's boxes with their origins from a NAMD extended system file", async () => {
+    const data = (name: string) =>
+      fs.readFileSync(path.resolve(import.meta.dirname, `../../../../../../data/examples/trajectory/${name}`));
+    // a 40 Å cube centered on (5, -3, 2), for every step
+    const xst = '#$LABELS step a_x a_y a_z b_x b_y b_z c_x c_y c_z o_x o_y o_z\n0 40 0 0 0 40 0 0 0 40 5 -3 2\n';
+    const served: Record<string, BodyInit> = {
+      'files.test/protein.pdb': data('protein.pdb'),
+      'files.test/protein.dcd': data('protein.dcd'),
+      'files.test/protein.xst': xst,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(typeof input === 'object' && 'url' in input ? input.url : input);
+        const hit = Object.keys(served).find((k) => url.includes(k));
+        return hit ? new Response(served[hit], { status: 200 }) : new Response('not found', { status: 404 });
+      }),
+    );
+    const v = await headlessViewer({});
+    expectOk(
+      await v.api.load.trajectory!({
+        model: 'https://files.test/protein.pdb',
+        modelFormat: 'pdb',
+        coordinates: 'https://files.test/protein.dcd',
+        coordinatesFormat: 'dcd',
+        boxes: 'https://files.test/protein.xst',
+      }),
+    );
+    const m = model(v);
+    const box = Model.PeriodicBox.get(m)!;
+    expect(Array.from(box.origin)).toEqual([5 - 20, -3 - 20, 2 - 20]);
+    // in the box: every molecule's atoms around the box, from its corner
+    expectOk(await v.api.trajectory.periodic({ mode: 'box' }));
+    const { x } = model(v).atomicConformation;
+    const mean = Array.from(x).reduce((a, b) => a + b, 0) / x.length;
+    expect(mean).toBeGreaterThan(-15);
+    expect(mean).toBeLessThan(25);
+  });
 });

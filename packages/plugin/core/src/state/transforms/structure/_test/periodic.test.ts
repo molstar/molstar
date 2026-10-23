@@ -148,4 +148,30 @@ describe('ModelFromTrajectory in a periodic box', () => {
     expect(await longest('whole')).toBeLessThan(4);
     expect(await longest('off')).toBeGreaterThan(10);
   });
+
+  // Unit.remapModel places a frame's copies from its cell when its symmetry differs: the images follow an NPT box
+  it("places the periodic images from each frame's box (NPT: the box changes)", async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    // two atoms, a 20 Å box, then 22 Å
+    const frame = (t: number, l: number) =>
+      `ITEM: TIMESTEP\n${t}\nITEM: NUMBER OF ATOMS\n2\nITEM: BOX BOUNDS pp pp pp\n0 ${l}\n0 ${l}\n0 ${l}\nITEM: ATOMS id mol type x y z\n1 1 1 5 5 5\n2 1 1 6 5 5\n`;
+    const data = await plugin.builders.data.rawData({ data: frame(0, 20) + frame(1, 22), label: 'npt.lammpstrj' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'lammps_traj_data');
+    const model = await plugin.builders.structure.createModel(trajectory);
+    const structure = await plugin.builders.structure.createStructure(model, {
+      name: 'symmetry',
+      params: { ijkMin: Vec3.create(-1, -1, -1), ijkMax: Vec3.create(1, 1, 1) },
+    });
+    /** The largest x translation of the copies: the box's a. */
+    const a = () =>
+      Math.max(
+        ...(plugin.state.data.cells.get(structure.ref)!.obj!.data as Structure).units.map(
+          (u) => u.conformation.operator.matrix[12],
+        ),
+      );
+    expect((plugin.state.data.cells.get(structure.ref)!.obj!.data as Structure).units.length).toBe(27);
+    expect(a()).toBeCloseTo(20, 3);
+    await setModel(plugin, model.ref, { modelIndex: 1 });
+    expect(a()).toBeCloseTo(22, 3);
+  });
 });

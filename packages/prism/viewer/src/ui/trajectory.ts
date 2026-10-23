@@ -92,6 +92,19 @@ export function createTrajectoryControls(
           : { structure: shown.ref, mode, ...(mode === 'box' ? { center: 'box' as const } : {}) },
       );
     },
+    // the neighbouring boxes through `structure.symmetry` (the cells -1 to 1 around, from the frame's box)
+    images: {
+      shown: derive([followed, source.periodicByRef], (s, byRef) =>
+        s?.kind === 'particles' ? false : !!(s && byRef.get(s.ref)?.images),
+      ),
+      set(on) {
+        const shown = followed.value;
+        if (!shown || shown.kind === 'particles') return;
+        void api.structure.symmetry(
+          on ? { structure: shown.ref, kind: 'cells', cells: 1 } : { structure: shown.ref, kind: 'off' },
+        );
+      },
+    },
   };
   const rowShown = derive([followed, source.rowsShown], (f, rows) => !!f && rows.has(f.ref));
   return { model, rowShown, dispose: () => {} };
