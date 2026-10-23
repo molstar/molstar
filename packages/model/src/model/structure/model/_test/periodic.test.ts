@@ -283,4 +283,59 @@ describe('ModelPeriodicity', () => {
       expect(Vec3.distance(c, inOrder[i])).toBeLessThan(1e-2);
     }
   });
+
+  describe('distance links across the box', () => {
+    // data/examples/trajectory/periodic/split-ligand.gro (its generator next to it): a ligand of two residues whose
+    // joining bond (LG1 C4, atom 4 - LG2 C1, atom 5) crosses a face in the first frame, a water (9-11) and a sodium (12)
+    const ligandFile = path.resolve(
+      import.meta.dirname,
+      '../../../../../../../data/examples/trajectory/periodic/split-ligand.gro',
+    );
+    const ligandFrames = async () => {
+      const p = await parseGRO(fs.readFileSync(ligandFile, 'utf8')).run();
+      if (p.isError) throw new Error(p.message);
+      const t = await trajectoryFromGRO(p.result).run();
+      return Array.from({ length: t.frameCount }, (_, i) => t.getFrameAtIndex(i) as Model);
+    };
+
+    it('join the residues the hierarchy leaves apart, not the water or the ion', async () => {
+      const [first] = await ligandFrames();
+      const plan = ModelPeriodicity.getPlan(first);
+      expect(plan.molecule[4]).toBe(plan.molecule[5]);
+      expect(plan.molecule[9]).not.toBe(plan.molecule[0]);
+      expect(plan.molecule[12]).not.toBe(plan.molecule[0]);
+      expect(plan.molecule[12]).not.toBe(plan.molecule[9]);
+      // the hierarchy alone: two molecules for the ligand
+      const alone = ModelPeriodicity.planFromHierarchy(first.atomicHierarchy);
+      expect(alone.molecule[4]).not.toBe(alone.molecule[5]);
+    });
+
+    it('make the ligand whole in every frame', async () => {
+      const frames = await ligandFrames();
+      const joint = (m: Model) => distance(m, 4, 5);
+      expect(joint(frames[0])).toBeGreaterThan(10);
+      for (const f of frames) expect(joint(ModelPeriodicity.makeWhole(f))).toBeCloseTo(1.487, 2);
+      // the hierarchy alone leaves the first frame split
+      const box = Model.PeriodicBox.get(frames[0])!;
+      const alone = ModelPeriodicity.applyWhole(
+        ModelPeriodicity.planFromHierarchy(frames[0].atomicHierarchy),
+        box,
+        frames[0].atomicConformation,
+      );
+      const { x, y, z } = alone;
+      expect(Math.hypot(x[4] - x[5], y[4] - y[5], z[4] - z[5])).toBeGreaterThan(10);
+    });
+
+    it('leave the ion to move into the box on its own', async () => {
+      const frames = await ligandFrames();
+      for (const f of frames) {
+        const inBox = ModelPeriodicity.apply(f, ModelPeriodicity.InBox);
+        const box = Model.PeriodicBox.get(inBox)!;
+        const { x, y, z } = inBox.atomicConformation;
+        const p = Vec3.transformMat3(Vec3(), Vec3.create(x[12], y[12], z[12]), box.inverse);
+        for (const v of p) expect(v >= 0 && v < 1).toBe(true);
+        expect(distance(inBox, 4, 5)).toBeCloseTo(1.487, 2);
+      }
+    });
+  });
 });

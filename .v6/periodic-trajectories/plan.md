@@ -38,6 +38,12 @@ Built once per topology (static data on the root model, `UnwrapPlan.get(model)`)
   and consecutive in sequence; otherwise it is a root and starts a molecule. Holds while hops are under half a box,
   which the minimum-image convention guarantees for real systems; a wrong guess costs a molecule left split, never a
   wrong bond.
+- **Joined by distance across the box** (done, `planFromHierarchyAndDistances`): the molecules the hierarchy leaves
+  apart (a ligand, sugar or lipid split into residues; a non-polymer residue bonded to a polymer) are joined where two
+  of their atoms are closer than Mol\*'s element pairing threshold under the minimum image, on the topology's frame (a
+  cell list on wrapped fractional coordinates, cells at least 3.1 Å high: about linear). Never to water, ions or
+  metals: close is not bonded for those, and a molecule diffusing away later must not be held to what it touched.
+  Tested over `split-ligand.gro` (2 KB, generated). Without topology bonds only.
 
 Per frame: `for i of order: if parent[i] >= 0: x[i] = x[p] + minimumImage(x[i] - x[p])` into fresh `Float32Array`s
 (conformations are immutable once a model holds them, `model.md §3`).
@@ -70,7 +76,8 @@ Per frame: `for i of order: if parent[i] >= 0: x[i] = x[p] + minimumImage(x[i] -
   and whole is idempotent; wrap puts every molecule center within half a box of the center; a topology-bonds plan and a
   hierarchy plan agree. A two-frame triclinic GRO string through `PeriodicTrajectory`: no false polymer gaps.
 - Quick (`packages/plugin/core`): the transform in a state tree, frame changes, toggling off restores the input.
-- Heavy: `itWithin` bound for one frame of 1M atoms. By hand: AdK ([analysis §4](analysis.md#4-datasets)) in the
+- Heavy (done, `periodic-scaling.test.ts`): 250k and 1M atoms, about linear (4× the atoms under 8×) and a 1M-atom frame
+  under 250 ms; measured: plan 107 ms once, whole 14 ms, in the box 37 ms. By hand: AdK ([analysis §4](analysis.md#4-datasets)) in the
   viewer, before and after, at every frame.
 
 ## 6. Storybook: `Prism › Viewer › Simulations`
@@ -126,14 +133,16 @@ with phase 1.
 
 Each phase: an entry in `.v6/changelogs/`, `model.md §3–4` and `formats.md` updated in the same commit.
 
-## Open questions
+## Decisions
 
-1. **Default.** Whole on by default when frames have a box? Recommended: the unfixed view is never what one wants, it
-   costs one O(N) pass per frame, and distances within a molecule do not change (distances between molecules can: a
-   different image).
-2. **`PeriodicBox`**, a new core type, or basis and origin added to `Cell`?
-3. ~~Where the plugin applies it~~: a param of `ModelFromTrajectory` (§4: a nested trajectory node would show twice).
-4. **No bonds**: the hierarchy heuristic (§3), or periodic-aware distance bonds as well (finds bonds across the face, so
-   ligands with several residues are handled too; more work in `intra-compute.ts`)?
-5. **Storybook group** (§6): `Viewer/Simulations`, with only Simularium moved into it, or also the ensembles from
-   `Viewer/Data` and the trajectory in `Viewer/Playback`?
+1. **Default**: whole on when frames have a simulation box (`Model.PeriodicBox`): the unfixed view is never what one
+   wants, one pass per frame (14 ms at 1M atoms), distances within a molecule unchanged.
+2. **`PeriodicBox`**: a new core type (basis, inverse, origin), not fields on `Cell`: a crystal's cell is rebuilt in
+   the standard frame and has no origin.
+3. **Where the plugin applies it**: a param of `ModelFromTrajectory` (§4: a nested trajectory node would show twice).
+4. **No bonds**: the hierarchy plan joined by distance links across the box (§3), not distance-based bond computation
+   made periodic: the bonds drawn are found on whole frames as before.
+5. **Storybook group** (§6): `Viewer/Simulations`, Simularium moved into it; the ensembles stay in `Viewer/Data`, the
+   playback card in `Viewer/Playback`.
+
+Open: periodic images (a P1 supercell from the box), NAMD `.xsc` origins (a DCD's box at the origin for `box`).

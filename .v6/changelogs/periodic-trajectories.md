@@ -19,6 +19,8 @@
 - LAMMPS image flags (`ix iy iz`) are read: frames keep the file's wrapped coordinates, and whole and no jump use the
   unwrapped ones, exact (`Frame.unwrapped`, `Model.UnwrappedConformation`). The dump-only topology's scaled coordinates
   go through the box tilt too.
+- Without topology bonds (GRO, PDB), molecules the residue order leaves apart (a ligand split into residues) are joined
+  by distance across the box, never to water, ions or metals. A 1M-atom frame is made whole in about 15 ms.
 - GRO reads triclinic boxes (all nine box values: the rhombic dodecahedron, the truncated octahedron); it read a
   rectangular box before. `GroHeader.boxVectors` holds them.
 - Library: `PeriodicBox` (`@molstar/core/math/geometry/periodic-box`), `Model.PeriodicBox`,

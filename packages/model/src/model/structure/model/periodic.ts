@@ -5,7 +5,7 @@
  */
 
 import { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat3, Vec3 } from '@molstar/core/math/linear-algebra';
 import { UUID } from '@molstar/core/util/uuid';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 import { type RuntimeContext, Task } from '@molstar/core/task';
@@ -13,7 +13,14 @@ import type { Trajectory } from '../trajectory.js';
 import { Model } from './model.js';
 import type { AtomicConformation, AtomicHierarchy, AtomicRanges } from './properties/atomic.js';
 import { getAtomicRanges } from './properties/utils/atomic-ranges.js';
-import { isPolymer } from './types.js';
+import { isPolymer, MoleculeType } from './types.js';
+import {
+  getElementIdx,
+  getElementThreshold,
+  getPairingThreshold,
+  isHydrogen,
+  MetalsSet,
+} from '../structure/unit/bonds/common.js';
 
 // Molecules split by a simulation's periodic box made whole again (.v6/periodic-trajectories/plan.md §3): every atom
 // moved by a lattice vector to the image nearest to its parent in a spanning forest of the topology, built once. Then,
@@ -102,9 +109,13 @@ namespace ModelPeriodicity {
     const key = bonds ?? model.atomicHierarchy;
     let plan = plans.get(key);
     if (!plan) {
+      const box = boxOf(model);
+      // without topology bonds: the hierarchy, joined by distance across the box where it leaves molecules apart
       plan = bonds
         ? planFromBonds(bonds, model.atomicHierarchy.atoms._rowCount)
-        : planFromHierarchy(model.atomicHierarchy);
+        : box
+          ? planFromHierarchyAndDistances(model.atomicHierarchy, model.atomicConformation, box)
+          : planFromHierarchy(model.atomicHierarchy);
       plans.set(key, plan);
     }
     return plan;
@@ -493,6 +504,18 @@ namespace ModelPeriodicity {
   export function planFromBonds(bonds: IndexPairBonds, atomCount: number): UnwrapPlan {
     const { offset, b } = bonds.bonds;
     const { operatorA, operatorB } = bonds.bonds.edgeProps;
+    // a bond to another symmetry copy (mmCIF struct_conn) is not within the molecule
+    const skip = bonds.hasOperators ? (e: number) => operatorA[e] !== operatorB[e] : undefined;
+    return withMolecules(bfsForest(atomCount, offset, b, skip));
+  }
+
+  /** A BFS forest over a graph in CSR form (`offset`, `b`): parents first, a root per component. */
+  function bfsForest(
+    atomCount: number,
+    offset: ArrayLike<number>,
+    b: ArrayLike<number>,
+    skip?: (edge: number) => boolean,
+  ): { parent: Int32Array; order: Int32Array } {
     const parent = new Int32Array(atomCount).fill(-1);
     const order = new Int32Array(atomCount);
     const seen = new Uint8Array(atomCount);
@@ -505,8 +528,7 @@ namespace ModelPeriodicity {
       while (head < tail) {
         const i = order[head++];
         for (let e = offset[i], _e = offset[i + 1]; e < _e; e++) {
-          // a bond to another symmetry copy (mmCIF struct_conn) is not within the molecule
-          if (bonds.hasOperators && operatorA[e] !== operatorB[e]) continue;
+          if (skip?.(e)) continue;
           const j = b[e];
           if (seen[j]) continue;
           seen[j] = 1;
@@ -515,7 +537,178 @@ namespace ModelPeriodicity {
         }
       }
     }
-    return withMolecules({ parent, order });
+    return { parent, order };
+  }
+
+  /**
+   * The search radius for links across the box, Å: the bond computation's for distance bonds (intra-compute.ts
+   * `DistanceBondMaxRadius`); a pair is linked under its element pairing threshold, which is less.
+   */
+  const LinkRadius = 3.1;
+
+  /**
+   * The hierarchy's plan joined across molecules it leaves apart by distance (.v6/periodic-trajectories, distance
+   * links): a ligand, sugar or lipid split into residues, or a non-polymer residue bonded to a polymer. Found on the
+   * topology's frame across the box's faces (the minimum image), under Mol*'s element pairing thresholds, between atoms
+   * neither in a water or an ion nor a metal: close is not bonded for those, and a molecule moving away later must not
+   * be held to what it touched. Only when there are no topology bonds (`getPlan`).
+   */
+  export function planFromHierarchyAndDistances(
+    hierarchy: AtomicHierarchy,
+    conformation: AtomicConformation,
+    box: PeriodicBox,
+  ): UnwrapPlan {
+    const base = planFromHierarchy(hierarchy);
+    const n = base.parent.length;
+    const { molecule } = base;
+    const { moleculeType } = hierarchy.derived.residue;
+    const residueOf = hierarchy.residueAtomSegments.index;
+    const typeSymbol = hierarchy.atoms.type_symbol.value;
+
+    // the atoms that may link, their elements and wrapped fractional coordinates
+    const candidates: number[] = [];
+    const element = new Int32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = moleculeType[residueOf[i]];
+      if (t === MoleculeType.Water || t === MoleculeType.Ion) continue;
+      const e = getElementIdx(typeSymbol(i));
+      if (MetalsSet.has(e)) continue;
+      element[i] = e;
+      candidates.push(i);
+    }
+    const edgesA: number[] = [];
+    const edgesB: number[] = [];
+    if (candidates.length > 1) findLinks(candidates, element, molecule, conformation, box, edgesA, edgesB);
+    if (edgesA.length === 0) return base;
+
+    // the hierarchy's hops and the links, undirected, in CSR form
+    const degree = new Int32Array(n + 1);
+    const add = (i: number, j: number) => {
+      degree[i]++;
+      degree[j]++;
+    };
+    for (let i = 0; i < n; i++) if (base.parent[i] >= 0) add(i, base.parent[i]);
+    for (let k = 0; k < edgesA.length; k++) add(edgesA[k], edgesB[k]);
+    const offset = new Int32Array(n + 1);
+    for (let i = 0; i < n; i++) offset[i + 1] = offset[i] + degree[i];
+    const fill = offset.slice(0, n);
+    const b = new Int32Array(offset[n]);
+    const put = (i: number, j: number) => {
+      b[fill[i]++] = j;
+      b[fill[j]++] = i;
+    };
+    for (let i = 0; i < n; i++) if (base.parent[i] >= 0) put(i, base.parent[i]);
+    for (let k = 0; k < edgesA.length; k++) put(edgesA[k], edgesB[k]);
+    return withMolecules(bfsForest(n, offset, b));
+  }
+
+  /**
+   * The pairs of candidates in different molecules closer than their pairing threshold across the box: a cell list on
+   * wrapped fractional coordinates, its cells at least `LinkRadius` high (the box's face heights over the radius),
+   * wrapping around at the faces.
+   */
+  function findLinks(
+    candidates: readonly number[],
+    element: Int32Array,
+    molecule: Int32Array,
+    conformation: AtomicConformation,
+    box: PeriodicBox,
+    edgesA: number[],
+    edgesB: number[],
+  ) {
+    const { x, y, z } = conformation;
+    const { basis, inverse, origin } = box;
+    const [b0, b1, b2, b3, b4, b5, b6, b7, b8] = basis;
+    const [i0, i1, i2, i3, i4, i5, i6, i7, i8] = inverse;
+    // the face heights: volume over the area of the face the other two vectors span
+    const volume = Math.abs(Mat3.determinant(basis));
+    const area = (p: number, q: number) => {
+      const cx = basis[p + 1] * basis[q + 2] - basis[p + 2] * basis[q + 1];
+      const cy = basis[p + 2] * basis[q] - basis[p] * basis[q + 2];
+      const cz = basis[p] * basis[q + 1] - basis[p + 1] * basis[q];
+      return Math.hypot(cx, cy, cz);
+    };
+    const cells = [area(3, 6), area(0, 6), area(0, 3)].map((a) => Math.max(1, Math.floor(volume / a / LinkRadius)));
+    const [na, nb, nc] = cells;
+    const count = candidates.length;
+    const fa = new Float64Array(count);
+    const fb = new Float64Array(count);
+    const fc = new Float64Array(count);
+    const cellOf = new Int32Array(count);
+    const cellCount = na * nb * nc;
+    const cellStart = new Int32Array(cellCount + 1);
+    for (let k = 0; k < count; k++) {
+      const i = candidates[k];
+      const dx = x[i] - origin[0],
+        dy = y[i] - origin[1],
+        dz = z[i] - origin[2];
+      let u = dx * i0 + dy * i3 + dz * i6,
+        v = dx * i1 + dy * i4 + dz * i7,
+        w = dx * i2 + dy * i5 + dz * i8;
+      u -= Math.floor(u);
+      v -= Math.floor(v);
+      w -= Math.floor(w);
+      fa[k] = u;
+      fb[k] = v;
+      fc[k] = w;
+      const c =
+        (Math.min(na - 1, Math.floor(u * na)) * nb + Math.min(nb - 1, Math.floor(v * nb))) * nc +
+        Math.min(nc - 1, Math.floor(w * nc));
+      cellOf[k] = c;
+      cellStart[c + 1]++;
+    }
+    for (let c = 0; c < cellCount; c++) cellStart[c + 1] += cellStart[c];
+    const inCell = new Int32Array(count);
+    const fill = cellStart.slice(0, cellCount);
+    for (let k = 0; k < count; k++) inCell[fill[cellOf[k]]++] = k;
+
+    const seenCells = new Set<number>();
+    for (let k = 0; k < count; k++) {
+      const i = candidates[k];
+      const ei = element[i];
+      const ti = getElementThreshold(ei);
+      const c = cellOf[k];
+      const ca = Math.floor(c / (nb * nc)),
+        cb = Math.floor(c / nc) % nb,
+        cc = c % nc;
+      // the 27 neighbour cells, wrapped; fewer than 3 cells along an axis repeat cells, visited once
+      seenCells.clear();
+      for (let da = -1; da <= 1; da++) {
+        for (let db = -1; db <= 1; db++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const nCell =
+              ((((ca + da) % na) + na) % na) * nb * nc +
+              ((((cb + db) % nb) + nb) % nb) * nc +
+              ((((cc + dc) % nc) + nc) % nc);
+            if (seenCells.has(nCell)) continue;
+            seenCells.add(nCell);
+            for (let p = cellStart[nCell], _p = cellStart[nCell + 1]; p < _p; p++) {
+              const l = inCell[p];
+              if (l <= k) continue;
+              const j = candidates[l];
+              if (molecule[i] === molecule[j]) continue;
+              const ej = element[j];
+              if (isHydrogen(ei) && isHydrogen(ej)) continue;
+              // the minimum image of the fractional difference, back to Å
+              let u = fa[l] - fa[k],
+                v = fb[l] - fb[k],
+                w = fc[l] - fc[k];
+              u -= Math.round(u);
+              v -= Math.round(v);
+              w -= Math.round(w);
+              const dx = u * b0 + v * b3 + w * b6,
+                dy = u * b1 + v * b4 + w * b7,
+                dz = u * b2 + v * b5 + w * b8;
+              const threshold = getPairingThreshold(ei, ej, ti, getElementThreshold(ej));
+              if (dx * dx + dy * dy + dz * dz < threshold * threshold) {
+                edgesA.push(i);
+                edgesB.push(j);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   /**
