@@ -208,13 +208,19 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
 
     const update = state.build();
     const bundle = StructureElement.Bundle.Empty;
+    // the recipes mutate the draft: a returned new object is walked whole by mutative, with a console warning
+    // (perf-audit-2 12/P7)
     for (const f of foci) {
-      update.to(f).update(StructureSelectionFromBundle, (old) => ({ ...old, bundle }));
+      update.to(f).update(StructureSelectionFromBundle, (old) => {
+        old.bundle = bundle;
+      });
     }
 
     const expression = MS.struct.generator.empty();
     for (const s of surrs) {
-      update.to(s).update(StructureSelectionFromExpression, (old) => ({ ...old, expression }));
+      update.to(s).update(StructureSelectionFromExpression, (old) => {
+        old.expression = expression;
+      });
     }
 
     return PluginCommands.State.Update(this.plugin, {
@@ -266,14 +272,13 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
       return;
     }
 
-    builder
-      .to(refs[StructureFocusRepresentationTags.TargetSel]!)
-      .update(StructureSelectionFromBundle, (old) => ({ ...old, bundle: residueBundle }));
-    builder.to(refs[StructureFocusRepresentationTags.SurrSel]!).update(StructureSelectionFromExpression, (old) => ({
-      ...old,
-      expression: surroundings,
-      label: this.surrLabel,
-    }));
+    builder.to(refs[StructureFocusRepresentationTags.TargetSel]!).update(StructureSelectionFromBundle, (old) => {
+      old.bundle = residueBundle;
+    });
+    builder.to(refs[StructureFocusRepresentationTags.SurrSel]!).update(StructureSelectionFromExpression, (old) => {
+      old.expression = surroundings;
+      old.label = this.surrLabel;
+    });
 
     await PluginCommands.State.Update(this.plugin, {
       state,

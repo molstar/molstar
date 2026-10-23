@@ -33,6 +33,7 @@ import { BondType } from '@molstar/model/model/structure/model/types';
 import {
   BondCylinderParams,
   BondIterator,
+  bondImpostorGeometryReadsSize,
   eachIntraBond,
   eachStructureGroupsBond,
   getIntraBondLoci,
@@ -336,7 +337,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
           newProps.aromaticBonds !== currentProps.aromaticBonds ||
           newProps.multipleBonds !== currentProps.multipleBonds ||
           newProps.metalCoordination !== currentProps.metalCoordination ||
-          (newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size));
+          (bondImpostorGeometryReadsSize(newProps) && !SizeTheme.areEqual(newTheme.size, currentTheme.size));
 
         if (newProps.colorMode !== currentProps.colorMode) {
           state.createGeometry = true;
@@ -604,7 +605,8 @@ export function StructureIntraUnitBondCylinderImpostorVisual(
           !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
           newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
           newProps.multipleBonds !== currentProps.multipleBonds ||
-          newProps.metalCoordination !== currentProps.metalCoordination;
+          newProps.metalCoordination !== currentProps.metalCoordination ||
+          (bondImpostorGeometryReadsSize(newProps) && !SizeTheme.areEqual(newTheme.size, currentTheme.size));
 
         if (newProps.colorMode !== currentProps.colorMode) {
           state.createGeometry = true;

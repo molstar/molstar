@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { Queries, StructureProperties, StructureQuery, StructureSelection } from '@molstar/model/model/structure';
 import { Structure } from '../../structure.js';
 
 /** Two chains, two units: A has one atom at x = `a`, B one at x = `b` */
@@ -53,5 +54,18 @@ describe('StructureLookup3D.approxNearest', () => {
       const unit = r.units[0];
       expect(structure.model.atomicConformation.x[unit.elements[r.indices[0]]]).toBeCloseTo(0.3, 5);
     }
+  });
+});
+
+describe('include surroundings with an atom radius', () => {
+  it('reaches units beyond the radius but within the atoms radii (perf-audit-2 05/B12)', async () => {
+    // vdW 1.7 each: the surfaces are 0.1 apart, inside the 0.5 radius; B's unit sphere is 3.5 from A
+    const structure = await twoUnits(0, 3.5);
+    const query = Queries.modifiers.includeSurroundings(
+      Queries.generators.atoms({ chainTest: (ctx) => StructureProperties.chain.label_asym_id(ctx.element) === 'A' }),
+      { radius: 0.5, elementRadius: (ctx) => StructureProperties.atom.vdw_radius(ctx.element) },
+    );
+    const s = StructureSelection.unionStructure(StructureQuery.run(query, structure));
+    expect(s.elementCount).toBe(2);
   });
 });

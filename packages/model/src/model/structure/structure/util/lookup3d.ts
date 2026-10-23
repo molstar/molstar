@@ -225,11 +225,12 @@ export class StructureLookup3D {
     builder: StructureUniqueSubsetBuilder,
   ) {
     const { units } = this.structure;
-    const closeUnits = this.unitLookup.find(x, y, z, radius);
+    // units within reach of the largest radii, not only of `radius` (perf-audit-2 05/B12)
+    const queryRadius = pivotR + maxRadius + radius;
+    const closeUnits = this.unitLookup.find(x, y, z, queryRadius);
     if (closeUnits.count === 0) return;
 
     const se = StructureElement.Location.create(this.structure);
-    const queryRadius = pivotR + maxRadius + radius;
 
     for (let t = 0, _t = closeUnits.count; t < _t; t++) {
       const unit = units[closeUnits.indices[t]];

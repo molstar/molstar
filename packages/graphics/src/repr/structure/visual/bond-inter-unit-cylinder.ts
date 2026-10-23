@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -25,6 +26,7 @@ import { BondType } from '@molstar/model/model/structure/model/types';
 import {
   BondCylinderParams,
   BondIterator,
+  bondImpostorGeometryReadsSize,
   getInterBondLoci,
   eachInterBond,
   makeInterBondIgnoreTest,
@@ -289,7 +291,8 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
           !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
           newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
           newProps.multipleBonds !== currentProps.multipleBonds ||
-          newProps.metalCoordination !== currentProps.metalCoordination;
+          newProps.metalCoordination !== currentProps.metalCoordination ||
+          (bondImpostorGeometryReadsSize(newProps) && !SizeTheme.areEqual(newTheme.size, currentTheme.size));
 
         if (newProps.colorMode !== currentProps.colorMode) {
           state.createGeometry = true;

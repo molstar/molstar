@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
-import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { Color } from '@molstar/core/util/color';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -31,6 +31,7 @@ import {
   applyMeshSubstanceSmoothing,
   applyMeshTransparencySmoothing,
   type ColorSmoothingOptions,
+  getTrilinearlyInterpolated,
 } from '../color-smoothing.js';
 import { Mesh } from '../mesh.js';
 import { type ReferenceInput, referenceGrid, referenceInterpolate } from './color-smoothing-reference.js';
@@ -378,5 +379,31 @@ describe('mesh color smoothing', () => {
     applyMeshColorSmoothing(values, Options[1], graphics);
     expect(loaded[0].array.every((x) => x === 0)).toBe(true);
     applyMeshColorSmoothing(createValues('color', 'group', false), Options[1]);
+  });
+});
+
+describe('getTrilinearlyInterpolated', () => {
+  it('interpolates at vertices on grid planes (perf-audit-2 08/B3)', () => {
+    // a uniform 3x3x3 grid of value 200, one unit per cell, its origin at 0
+    const gridDim = Vec3.create(3, 3, 3);
+    const { width, height } = getVolumeTexture2dLayout(gridDim);
+    const grid = new Uint8Array(width * height).fill(200);
+    // on a corner, on an edge, on a face, inside a cell
+    const positionBuffer = new Float32Array([1, 1, 1, 1, 1, 0.5, 1, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    const image = getTrilinearlyInterpolated({
+      vertexCount: 4,
+      instanceCount: 1,
+      transformBuffer: new Float32Array(Mat4.identity()),
+      positionBuffer,
+      colorType: 'volume',
+      grid,
+      gridTexDim: Vec2.create(width, height),
+      gridDim,
+      gridTransform: Vec4.create(0, 0, 0, 1),
+      vertexStride: 3,
+      colorStride: 1,
+      outputStride: 1,
+    });
+    expect(Array.from(image.array.subarray(0, 4))).toEqual([200, 200, 200, 200]);
   });
 });

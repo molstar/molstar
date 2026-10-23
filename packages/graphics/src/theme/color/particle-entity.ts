@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -54,10 +55,33 @@ function getEntityCount(particles: ParticleList, by: Props['by']): number {
   return entitySet.size;
 }
 
-function buildEntityColorIndex(
-  particles: ParticleList,
-  by: Props['by'],
-): { colorIndex: Int32Array; entityCount: number } {
+interface EntityColorIndex {
+  colorIndex: Int32Array;
+  entityCount: number;
+}
+
+/**
+ * The O(particles) part, the same for every palette: per particle list and `by`, made once. The particle transforms
+ * create the theme on every update (perf-audit-2 09/P6). The arrays of a list do not change; its `entityInfo` may
+ * grow (Simularium frames share one and add types met later), so the index is remade when its size changed.
+ */
+const entityColorIndexCache = new WeakMap<
+  ParticleList,
+  Map<Props['by'], { entityInfoSize: number; index: EntityColorIndex }>
+>();
+
+function getEntityColorIndex(particles: ParticleList, by: Props['by']): EntityColorIndex {
+  let byList = entityColorIndexCache.get(particles);
+  if (!byList) entityColorIndexCache.set(particles, (byList = new Map()));
+  const entityInfoSize = particles.entityInfo?.size ?? 0;
+  let cached = byList.get(by);
+  if (!cached || cached.entityInfoSize !== entityInfoSize) {
+    byList.set(by, (cached = { entityInfoSize, index: buildEntityColorIndex(particles, by) }));
+  }
+  return cached.index;
+}
+
+function buildEntityColorIndex(particles: ParticleList, by: Props['by']): EntityColorIndex {
   const { count, entities, entityInfo } = particles;
   const colorIndex = new Int32Array(count).fill(-1);
   if (!entities) return { colorIndex, entityCount: 0 };
@@ -124,7 +148,7 @@ export function ParticleEntityColorTheme(
 
   const particles = getParticleList(ctx);
   if (particles) {
-    const { colorIndex, entityCount } = buildEntityColorIndex(particles, props.by);
+    const { colorIndex, entityCount } = getEntityColorIndex(particles, props.by);
     const palette = getPalette(entityCount, props);
     legend = palette.legend;
 

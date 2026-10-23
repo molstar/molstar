@@ -104,7 +104,9 @@ export function wholeChains(link: StructureLink, runs: Extents): StructureElemen
     if (!c || c.count === 0) continue;
     let chains = byUnit.get(c.unit.id);
     if (!chains) byUnit.set(c.unit.id, (chains = new Map()));
-    chains.set(c, [c.start[0], c.end[c.count - 1]]);
+    // the chain's atoms, not first to last element: a ligand's elements are its heavy atoms, its hydrogens follow
+    // them (perf-audit-2 10/B5)
+    chains.set(c, c.span);
   }
   const elements: { unit: Unit; indices: OrderedSet<StructureElement.UnitIndex> }[] = [];
   for (const unit of link.structure.units) {

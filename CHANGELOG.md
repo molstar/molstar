@@ -10,6 +10,16 @@ here.
 
 ## [Unreleased]
 
+- Fix state selections `subtree()` and `children()` returning undefined cells for nodes below a Null or failed node
+- Fix `StateSelection.findTagInSubtree` returning the last match and walking the whole tree
+- Fix `Bundle.toStructure` mapping every copy of a unit through the first copy's elements
+- Fix MolScript `include-surroundings` with `atom-radius` missing small units within the radii's reach
+- Fix the out-of-plane H-bond check being skipped when the only heavy neighbour is the first atom of its unit
+- Fix water bridges joining one model's atoms through another model's water (an ensemble shown as all models)
+- Fix impostor double, triple and aromatic bond offsets not following a size theme change
+- Fix CPU mesh color smoothing giving black vertices on grid planes (0/0 weights)
+- Fix molecular surface and CPU gaussian density running in one chunk, without progress or abort, for small radii
+- Fix a nested MolScript `pick` clobbering the outer query's current structure
 - Fix volume and particle representations dropping their state (visibility, alpha, overpaint, transparency, clipping,
   transform) on a new render object, e.g. each streamed volume box
 - Fix segmentation surfaces at a face of the grid: reads past the face wrapped into the next row
