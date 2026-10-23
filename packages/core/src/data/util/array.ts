@@ -48,6 +48,8 @@ export function arrayPickIndices<T>(
   if (array instanceof Float32Array) return pickFloat32(array, indices) as any;
   if (array instanceof Float64Array) return pickFloat64(array, indices) as any;
   if (array instanceof Int32Array) return pickInt32(array, indices) as any;
+  if (array instanceof Uint8Array) return pickUint8(array, indices) as any;
+  if (array instanceof Uint16Array) return pickUint16(array, indices) as any;
   if (Array.isArray(array)) return pickArray(array, indices);
   return pickAny(array, indices);
 }
@@ -66,6 +68,18 @@ function pickFloat64(array: Float64Array, indices: ArrayLike<number>) {
 
 function pickInt32(array: Int32Array, indices: ArrayLike<number>) {
   const ret = new Int32Array(indices.length);
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
+  return ret;
+}
+
+function pickUint8(array: Uint8Array, indices: ArrayLike<number>) {
+  const ret = new Uint8Array(indices.length);
+  for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
+  return ret;
+}
+
+function pickUint16(array: Uint16Array, indices: ArrayLike<number>) {
+  const ret = new Uint16Array(indices.length);
   for (let i = 0, _i = indices.length; i < _i; i++) ret[i] = array[indices[i]];
   return ret;
 }

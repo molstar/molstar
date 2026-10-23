@@ -7,64 +7,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { ArrayEncoding, classifyFloatArray, classifyIntArray } from '@molstar/io/common/binary-cif';
-import { CIF, type CifFile, getCifFieldType } from '@molstar/io/reader/cif';
-import { CifWriter } from '@molstar/io/writer/cif';
+import { CIF, type CifFile } from '@molstar/io/reader/cif';
 import type { Model } from '../../../../model/model/model.js';
-import { trajectoryFromMmCIF } from '../../mmcif.js';
+import { models, parseBinary, toBinary } from './encode.js';
 
 // The conformation's coordinates are Float32 from text and quantized BinaryCIF alike: a quantized `Cartn_*` decodes
 // straight to Float32 (binary/field.ts), and a sorted or windowed `atom_site` gathers them from that array (sort.ts).
 // Each value equals the source value rounded once to Float32. A raw Float64 column stays Float64 in every path.
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
-
-async function models(file: CifFile) {
-  const trajectory = await trajectoryFromMmCIF(file.blocks[0], file).run();
-  const ret: Model[] = [];
-  for (let i = 0; i < trajectory.frameCount; i++) ret.push((await trajectory.getFrameAtIndex(i)) as Model);
-  return ret;
-}
-
-async function parseBinary(data: Uint8Array) {
-  const parsed = await CIF.parseBinary(data).run();
-  if (parsed.isError) throw new Error(parsed.message);
-  return parsed.result;
-}
-
-/** As `cif2bcif` encodes a file; with `rawFloats`, float columns as Float64 byte arrays. */
-function toBinary(file: CifFile, rawFloats = false) {
-  const encoder = CifWriter.createEncoder({ binary: true, binaryAutoClassifyEncoding: true });
-  for (const b of file.blocks) {
-    encoder.startDataBlock(b.header);
-    for (const c of b.categoryNames) {
-      const cat = b.categories[c];
-      const fields = cat.fieldNames.map((name): CifWriter.Field => {
-        const field = cat.getField(name)!;
-        const type = getCifFieldType(field)['@type'];
-        if (type === 'str')
-          return { name, type: CifWriter.Field.Type.Str, value: field.str, valueKind: field.valueKind };
-        if (type === 'float') {
-          const encoder = rawFloats
-            ? ArrayEncoding.by(ArrayEncoding.byteArray)
-            : classifyFloatArray(field.toFloatArray({ array: Float64Array }));
-          return CifWriter.Field.float(name, field.float, {
-            valueKind: field.valueKind,
-            encoder,
-            typedArray: Float64Array,
-          });
-        }
-        const encoder = classifyIntArray(field.toIntArray({ array: Int32Array }));
-        return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, encoder, typedArray: Int32Array });
-      });
-      encoder.writeCategory({
-        name: cat.name,
-        instance: () => CifWriter.categoryInstance(fields, { data: cat, rowCount: cat.rowCount }),
-      });
-    }
-  }
-  return encoder.getData() as Uint8Array;
-}
 
 function expectFloat32Coordinates(
   model: Model,

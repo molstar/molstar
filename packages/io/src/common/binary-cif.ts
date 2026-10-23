@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export { decode } from './binary-cif/decoder.js';
+export { decode, decodeStringDictionary } from './binary-cif/decoder.js';
 
 export * from './binary-cif/encoding.js';
 export * from './binary-cif/array-encoder.js';

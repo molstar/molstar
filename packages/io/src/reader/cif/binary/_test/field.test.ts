@@ -14,6 +14,8 @@ import {
   classifyFloatArray,
 } from '../../../../common/binary-cif.js';
 import { Field } from '../field.js';
+import { decodeSteps } from '../../../../common/binary-cif/decoder.js';
+import { parseFloat as fastParseFloat, parseInt as fastParseInt } from '@molstar/core/util/number-parser';
 
 /** The array behind a column or field: its `'array'` storage. */
 function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | undefined }) {
@@ -169,5 +171,42 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toFloatArray({ array: Float32Array, start: 10, end: 20 }))).toEqual(
       Array.from(float32.slice(10, 20)),
     );
+  });
+
+  it('keeps a string column as its dictionary, with the values of its array of strings', () => {
+    const data = ['ALA', 'GLY', null, '12', 'GLY', '', 'ALA', '3.5'] as string[];
+    const encoded = E.by(E.stringArray).encode(data);
+    const steps = decodeSteps(encoded) as string[];
+    const cases: [string, number[] | undefined, 'dictionary' | 'array'][] = [
+      ['no mask', void 0, 'dictionary'],
+      // the null row and the empty string masked: both read as ''
+      [
+        'mask over empty rows',
+        [Present, Present, NotPresent, Present, Present, Unknown, Present, Present],
+        'dictionary',
+      ],
+      // a masked row with a string under it keeps the array of strings
+      ['mask over a value', [Present, Unknown, NotPresent, Present, Present, Present, Present, Present], 'array'],
+    ];
+    for (const [name, mask, kind] of cases) {
+      const column: EncodedColumn = {
+        name: 'x',
+        data: encoded,
+        mask: mask ? ArrayEncoder.by(E.byteArray).encode(new Uint8Array(mask)) : void 0,
+      };
+      const f = Field(column, data.length);
+      expect(f.storage!()!.kind, name).toBe(kind);
+      for (let i = 0; i < data.length; i++) {
+        const present = !mask || mask[i] === Present;
+        const v = steps[i];
+        expect([f.str(i), f.int(i), f.float(i), f.valueKind(i)], `${name} ${i}`).toEqual([
+          present ? v : '',
+          fastParseInt(v, 0, v.length),
+          fastParseFloat(v, 0, v.length),
+          mask ? mask[i] : Present,
+        ]);
+        for (let j = 0; j < data.length; j++) expect(f.areValuesEqual(i, j)).toBe(steps[i] === steps[j]);
+      }
+    }
   });
 });

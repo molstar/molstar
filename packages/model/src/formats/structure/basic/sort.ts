@@ -23,10 +23,10 @@ export async function sortAtomSite(
   const indices = createRangeArray(start, end - 1);
 
   const { label_entity_id, label_asym_id, label_seq_id } = atom_site;
-  const entityBuckets = makeBuckets(indices, label_entity_id.value);
+  const entityBuckets = makeBuckets(indices, bucketKey(label_entity_id));
   if (ctx.shouldUpdate) await ctx.update();
   for (let ei = 0, _eI = entityBuckets.length - 1; ei < _eI; ei++) {
-    const chainBuckets = makeBuckets(indices, label_asym_id.value, {
+    const chainBuckets = makeBuckets(indices, bucketKey(label_asym_id), {
       start: entityBuckets[ei],
       end: entityBuckets[ei + 1],
     });
@@ -52,10 +52,12 @@ export async function sortAtomSite(
           c,
           indices.length,
           () => {
-            // a typed array read as its values (`Column.view`'s own test for reading the array)
+            // a typed array or a dictionary, read as its values (`Column.window` slices both)
             const s = c.storage?.();
             const inPlace =
-              s?.kind === 'array' && ColumnHelpers.isTypedArray(s.array) && typeof c.value(0) === typeof s.array[0];
+              s?.kind === 'array'
+                ? ColumnHelpers.isTypedArray(s.array) && typeof c.value(0) === typeof s.array[0]
+                : s?.kind === 'dictionary' && typeof c.value(0) === typeof s.values[s.indices[0]];
             return inPlace ? Column.window(c, start, end) : Column.view(c, indices);
           },
           (params) => {
@@ -147,6 +149,24 @@ function floatRows(
     areValuesEqual: (rowA, rowB) => get().areValuesEqual(rowA, rowB),
     toArray: (params) => (params?.array === Float32Array ? float32(params) : get().toArray(params)),
   };
+}
+
+/**
+ * The bucket key of a row: a dictionary column's index when its values are distinct and read as they are (equal
+ * indices are then equal values, and an int key is cheaper to bucket than a string), else the value.
+ */
+function bucketKey(c: Column<any>): (row: number) => string | number {
+  const s = c.storage?.();
+  if (
+    s?.kind === 'dictionary' &&
+    !(c.schema as Column.Schema.Str).transform &&
+    typeof c.value(0) === typeof s.values[s.indices[0]] &&
+    new Set(Array.from(s.values)).size === s.values.length
+  ) {
+    const indices = s.indices;
+    return (row) => indices[row];
+  }
+  return c.value;
 }
 
 /** Whether `indices[i] === start + i` for every i. */

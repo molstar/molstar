@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { ArrayEncoding as E } from '../array-encoder.js';
-import { decode, decodeSteps } from '../decoder.js';
+import { decode, decodeSteps, decodeStringDictionary } from '../decoder.js';
 import { Encoding, type EncodedData } from '../encoding.js';
 
 /** mulberry32: a seeded PRNG, so a failure reproduces */
@@ -115,6 +115,45 @@ describe('binary-cif fused decode', () => {
         continue;
       }
       expectIdentical(decode(data), expected);
+      // as a dictionary: the same strings, or none when an index is out of range
+      const dictionary = decodeStringDictionary(data);
+      if (Array.from(expected).some((v) => v === void 0)) {
+        expect(dictionary).toBe(undefined);
+      } else {
+        expect(dictionary!.indices).toBeInstanceOf(Uint8Array);
+        expect(Array.from(dictionary!.indices, (i) => dictionary!.values[i])).toEqual(Array.from(expected));
+      }
+    }
+  });
+
+  it('keeps dictionary indices in the smallest type that holds them', () => {
+    for (const [count, type] of [
+      [255, Uint8Array],
+      [256, Uint16Array],
+      [65535, Uint16Array],
+      [70000, Int32Array],
+    ] as const) {
+      const strings = Array.from({ length: count }, (_, i) => `s${i}`);
+      const offsets = new Int32Array(count + 1);
+      for (let i = 0; i < count; i++) offsets[i + 1] = offsets[i] + strings[i].length;
+      const offsetEncoded = E.by(E.delta).and(E.integerPacking).encode(offsets);
+      const raw = Int32Array.from({ length: 10 }, (_, i) => (i * 7919) % count);
+      const dataEncoded = E.by(E.byteArray).encode(raw);
+      const data: EncodedData = {
+        encoding: [
+          {
+            kind: 'StringArray',
+            dataEncoding: dataEncoded.encoding,
+            stringData: strings.join(''),
+            offsetEncoding: offsetEncoded.encoding,
+            offsets: offsetEncoded.data,
+          },
+        ],
+        data: dataEncoded.data,
+      };
+      const dictionary = decodeStringDictionary(data)!;
+      expect(dictionary.indices).toBeInstanceOf(type);
+      expect(Array.from(dictionary.indices, (i) => dictionary.values[i])).toEqual(Array.from(raw, (i) => strings[i]));
     }
   });
 
