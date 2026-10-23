@@ -51,10 +51,12 @@ Per frame: `for i of order: if parent[i] >= 0: x[i] = x[p] + minimumImage(x[i] -
   (`basic/parser.ts`) and shared by frames, so a split topology frame would keep its false gaps. Bonds need nothing:
   topology bonds are right once molecules are whole, and distance bonds are computed per structure from the fixed
   representative. Covers every source, and headless and MVS get it without the plugin.
-- **Plugin** (done): a param of `ModelFromTrajectory`, `periodic: 'whole' | 'off'` (optional, absent: whole; hidden
-  when the trajectory has no box), applied per frame in `modelAtIndex`. Not a Trajectory → Trajectory node: the
-  hierarchy manager makes every trajectory cell a `TrajectoryRef`, so a nested one would list each trajectory twice.
-  Every preset gets it through `createModel`; the animation's `{ modelIndex }` updates keep the default.
+- **Plugin** (done): params of `ModelFromTrajectory` (`state/helpers/periodic.ts`): `periodic: 'whole' | 'box' |
+  'off'` (optional, absent: whole; hidden when the trajectory has no box) and `periodicCenter`: the box, or a MolScript
+  selection (polymers by default) resolved to atoms once per topology. Applied per frame in `modelAtIndex`. Not a
+  Trajectory → Trajectory node: the hierarchy manager makes every trajectory cell a `TrajectoryRef`, so a nested one
+  would list each trajectory twice. Every preset gets it through `createModel`; the animation's `{ modelIndex }`
+  updates keep the default.
 - **Prism**: an operation `trajectory.periodicity` (aliases "fix periodic boundary", "make molecules whole", "center
   protein in box") next to the animation feature, and a toggle in the trajectory panel. **MVS**: a later spec extension
   of the trajectory node.
@@ -97,9 +99,11 @@ with phase 1.
    use image flags or unwrapped coordinates when present; `Frame.box` from every reader (XTC, TRR keep their basis).
 1. **Whole** (done): core box, plan, `makeWhole`, the `ModelFromTrajectory` param, tests over
    `data/examples/trajectory/periodic/split-peptide.gro` (11.6 KB, generated), the Periodic box stories (§6). The bug fix users see.
-2. **Wrap** around the box or a selection (protein centered, solvent around it). A selection of several molecules
-   wraps around the first one's center, iteratively; a complex split across the box needs GROMACS-style clustering:
-   documented as a limit.
+2. **Wrap** (done): `periodic: 'box'`, each molecule's center into the drawn box, or around a selection
+   (`periodicCenter`): the selection's molecules kept together around its first molecule's center (a complex split by
+   the box), everything translated so the selection's mean is at the box's center. A selection spread over more than
+   half a box is not clustered (GROMACS's `-pbc cluster`): a known limit. Why not the default: it translates every
+   frame (the protein's diffusion is gone) and changes distances between molecules.
 3. **No jump**: shifts per molecule per frame, computed lazily up to the highest frame asked and cached (frames are in
    memory for every reader; only molecule centers are needed per step).
 4. **Exposure**: Prism operation and panel, the assistant skill text, MVS, docs. Later: periodic images (a P1 supercell

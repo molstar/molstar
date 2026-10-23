@@ -7,10 +7,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { Model, Structure } from '@molstar/model/model/structure';
+import { Model, type Structure } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ModelFromTrajectory } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { PolymerCenter, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { createPlaybackPlugin } from '../../../animation/_test/harness.js';
 
 // The fixture: data/examples/trajectory/periodic/split-peptide.gro, a peptide split across a dodecahedral box in its
@@ -28,7 +30,7 @@ async function load(plugin: PluginContext) {
   return { model, structure };
 }
 
-const setModel = (plugin: PluginContext, ref: string, params: { modelIndex: number; periodic?: 'whole' | 'off' }) =>
+const setModel = (plugin: PluginContext, ref: string, params: { modelIndex: number } & PeriodicProps) =>
   plugin
     .build()
     .to(ref)
@@ -75,5 +77,32 @@ describe('ModelFromTrajectory in a periodic box', () => {
     }
     await setModel(plugin, model.ref, { modelIndex: 0 });
     expect(plugin.state.data.cells.get(model.ref)!.obj!.data).toBe(first);
+  });
+
+  it('moves the molecules into the box, around the polymers when asked', async () => {
+    const { plugin } = await createPlaybackPlugin(DefaultPluginSpec());
+    const { model } = await load(plugin);
+    const cell = () => plugin.state.data.cells.get(model.ref)!.obj!.data as Model;
+    /** The peptide's mean (its first 20 atoms) in fractional coordinates of the box. */
+    const peptide = (m: Model) => {
+      const { x, y, z } = m.atomicConformation;
+      const c = Vec3();
+      for (let i = 0; i < 20; i++) Vec3.add(c, c, Vec3.create(x[i], y[i], z[i]));
+      return Vec3.transformMat3(c, Vec3.scale(c, c, 1 / 20), Model.PeriodicBox.get(m)!.inverse);
+    };
+
+    for (let i = 0; i < 8; i++) {
+      await setModel(plugin, model.ref, { modelIndex: i, periodic: 'box' });
+      expect(caca(cell())).toBeLessThan(4);
+      for (const v of peptide(cell())) expect(v >= 0 && v < 1).toBe(true);
+
+      await setModel(plugin, model.ref, {
+        modelIndex: i,
+        periodic: 'box',
+        periodicCenter: { name: 'selection', params: { script: PolymerCenter } },
+      });
+      expect(caca(cell())).toBeLessThan(4);
+      for (const v of peptide(cell())) expect(v).toBeCloseTo(0.5, 4);
+    }
   });
 });

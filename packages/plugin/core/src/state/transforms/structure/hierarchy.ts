@@ -13,6 +13,7 @@ import { type StateTransform, StateTransformer } from '@molstar/core/state';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { type Coordinates, Structure, Model, type Frame, type Trajectory } from '@molstar/model/model/structure';
 import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
+import { applyPeriodic, PeriodicParams, type PeriodicProps } from '@molstar/plugin/state/helpers/periodic';
 import { getTrajectory } from './trajectory-helpers.js';
 import { RootStructureDefinition } from '@molstar/plugin/state/helpers/root-structure';
 import { BondProviderRegistry } from '@molstar/plugin/state/bonds/registry';
@@ -62,27 +63,12 @@ const TrajectoryFromModelAndCoordinates = PluginStateTransform.BuiltIn({
 const plus1 = (v: number) => v + 1,
   minus1 = (v: number) => v - 1;
 
-/** What a frame in a simulation box shows (.v6/periodic-trajectories/plan.md §1): its molecules whole, or as read. */
-type Periodic = 'whole' | 'off';
-const PeriodicParam = PD.Select<Periodic>(
-  'whole',
-  [
-    ['whole', 'Molecules whole'],
-    ['off', 'As in the file'],
-  ],
-  {
-    label: 'Periodic box',
-    description:
-      'For a frame in a simulation box: each molecule split across the box made whole again, or the coordinates as in the file',
-  },
-);
-
-async function modelAtIndex(trajectory: Trajectory, index: number, ctx: RuntimeContext, periodic?: Periodic) {
+async function modelAtIndex(trajectory: Trajectory, index: number, ctx: RuntimeContext, periodic: PeriodicProps) {
   let modelIndex = Math.round(index) % trajectory.frameCount;
   if (modelIndex < 0) modelIndex += trajectory.frameCount;
   const frame = await Task.resolveInContext(trajectory.getFrameAtIndex(modelIndex), ctx);
-  // absent in older states: whole, the default; the same model for the same frame (cached)
-  const model = periodic === 'off' ? frame : ModelPeriodicity.makeWhole(frame);
+  // the same model for the same recent frame (cached): an unchanged frame stays `Unchanged`
+  const model = applyPeriodic(frame, periodic);
   const label = `Model ${modelIndex + 1}`;
   const description = trajectory.frameCount === 1 ? undefined : `of ${trajectory.frameCount}`;
   return { model, label, description };
@@ -99,7 +85,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     if (!a) {
       return {
         modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model', immediateUpdate: true }),
-        periodic: PD.Optional(PeriodicParam),
+        ...PeriodicParams,
       };
     }
     return {
@@ -112,14 +98,19 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
           { description: 'Model Index', immediateUpdate: true },
         ),
       ),
-      periodic: PD.Optional({ ...PeriodicParam, isHidden: !ModelPeriodicity.isApplicable(a.data.representative) }),
+      ...(ModelPeriodicity.isApplicable(a.data.representative)
+        ? PeriodicParams
+        : {
+            periodic: { ...PeriodicParams.periodic, isHidden: true },
+            periodicCenter: { ...PeriodicParams.periodicCenter, isHidden: true },
+          }),
     };
   },
 })({
   isApplicable: (a) => a.data.frameCount > 0,
   apply({ a, params, cache }) {
     return Task.create('Model from Trajectory', async (ctx) => {
-      const { model, label, description } = await modelAtIndex(a.data, params.modelIndex, ctx, params.periodic);
+      const { model, label, description } = await modelAtIndex(a.data, params.modelIndex, ctx, params);
       (cache as { trajectory?: Trajectory }).trajectory = a.data;
       return new SO.Molecule.Model(model, { label, description });
     });
@@ -130,7 +121,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     // A new frame updates the cell in place: recreating it disposed the old frame's custom properties, which the
     // frames of the same topology share (`{ ...previous }`), on every frame of a playing trajectory.
     return Task.create('Model from Trajectory', async (ctx) => {
-      const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx, newParams.periodic);
+      const { model, label, description } = await modelAtIndex(a.data, newParams.modelIndex, ctx, newParams);
       if (model === b.data) return StateTransformer.UpdateResult.Unchanged;
       // Frames of the same topology share them (`{ ...previous }`): only the old frame's own assets go (a dynamic
       // property's, kept by the model id); a frame of another topology has its own properties, all of which go.
@@ -145,7 +136,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
   },
   interpolate(a, b, t) {
     const modelIndex = t >= 1 ? b.modelIndex : a.modelIndex + Math.floor((b.modelIndex - a.modelIndex + 1) * t);
-    return { modelIndex, periodic: b.periodic };
+    return { modelIndex, periodic: b.periodic, periodicCenter: b.periodicCenter };
   },
   dispose({ b }) {
     b?.data.customProperties.dispose();

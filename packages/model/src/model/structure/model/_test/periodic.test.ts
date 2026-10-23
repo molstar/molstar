@@ -174,4 +174,45 @@ describe('ModelPeriodicity', () => {
     expect(ModelPeriodicity.isApplicable(frame)).toBe(false);
     expect(ModelPeriodicity.makeWhole(frame)).toBe(frame);
   });
+
+  /** Each molecule's center (the mean of its atoms) in fractional coordinates of the frame's box. */
+  function moleculeCenters(m: Model) {
+    const plan = ModelPeriodicity.getPlan(m);
+    const box = Model.PeriodicBox.get(m)!;
+    const { x, y, z } = m.atomicConformation;
+    const sums = Array.from({ length: plan.moleculeCount }, () => [0, 0, 0, 0]);
+    for (let i = 0; i < x.length; i++) {
+      const s = sums[plan.molecule[i]];
+      s[0] += x[i];
+      s[1] += y[i];
+      s[2] += z[i];
+      s[3]++;
+    }
+    return sums.map(([sx, sy, sz, n]) => Vec3.transformMat3(Vec3(), Vec3.create(sx / n, sy / n, sz / n), box.inverse));
+  }
+
+  it('puts every molecule in the box', () => {
+    for (const frame of frames) {
+      const inBox = ModelPeriodicity.apply(frame, ModelPeriodicity.InBox);
+      expect(longestHop(inBox)).toBeLessThan(4);
+      // the peptide and three waters
+      const centers = moleculeCenters(inBox);
+      expect(centers).toHaveLength(4);
+      for (const f of centers) for (const v of f) expect(v >= 0 && v < 1).toBe(true);
+    }
+  });
+
+  it('centers the box on a selection', () => {
+    // the peptide's atoms (residues 1 to 4, five atoms each)
+    const center: ModelPeriodicity.Center = { atoms: Array.from({ length: 20 }, (_, i) => i) };
+    for (const frame of frames) {
+      const centered = ModelPeriodicity.apply(frame, { kind: 'box', center });
+      expect(ModelPeriodicity.apply(frame, { kind: 'box', center })).toBe(centered);
+      expect(longestHop(centered)).toBeLessThan(4);
+      const centers = moleculeCenters(centered);
+      // the peptide's mean at the box's center, the waters in the box around it
+      for (const v of centers[0]) expect(v).toBeCloseTo(0.5, 5);
+      for (const f of centers.slice(1)) for (const v of f) expect(v >= 0 && v < 1).toBe(true);
+    }
+  });
 });

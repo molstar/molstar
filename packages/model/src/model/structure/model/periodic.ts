@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
+import { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { UUID } from '@molstar/core/util/uuid';
 import { IndexPairBonds } from '@molstar/model/formats/structure/property/bonds/index-pair';
 import { Model } from './model.js';
@@ -13,7 +14,8 @@ import { getAtomicRanges } from './properties/utils/atomic-ranges.js';
 import { isPolymer } from './types.js';
 
 // Molecules split by a simulation's periodic box made whole again (.v6/periodic-trajectories/plan.md §3): every atom
-// moved by a lattice vector to the image nearest to its parent in a spanning forest of the topology, built once.
+// moved by a lattice vector to the image nearest to its parent in a spanning forest of the topology, built once. Then,
+// optionally, each whole molecule moved by a lattice vector into the box (plan.md §1, wrap), around a selection.
 
 export { ModelPeriodicity };
 
@@ -25,13 +27,50 @@ interface UnwrapPlan {
   readonly parent: Int32Array;
   /** Atoms in visiting order; absent: in index order (every parent comes before its children) */
   readonly order?: Int32Array;
+  /** Each atom's molecule: the tree of the forest it is in */
+  readonly molecule: Int32Array;
+  readonly moleculeCount: number;
   /** The topology's ranges computed on a whole frame (polymer gaps): shared by its frames once made whole */
   ranges?: AtomicRanges;
 }
 
 namespace ModelPeriodicity {
+  /** Atoms to center the box on (a selection's): its identity is the cache key, so one object per topology. */
+  export interface Center {
+    readonly atoms: ArrayLike<number>;
+  }
+
+  /**
+   * `whole`: each molecule in one piece; `box`: also each molecule's center in the box, or, around a center, the
+   * center's molecules kept together at the box's center and every other molecule's center in the box around it.
+   */
+  export type Mode = { readonly kind: 'whole' } | { readonly kind: 'box'; readonly center?: Center };
+  export const Whole: Mode = { kind: 'whole' };
+  export const InBox: Mode = { kind: 'box' };
+
   const plans = new WeakMap<object, UnwrapPlan>();
-  const wholeFrames = new WeakMap<Model, Model>();
+  // The frames made, by source frame and mode: the same model for the same frame while it is recent. Not every frame:
+  // a trajectory read in full would be held twice.
+  const CacheSize = 16;
+  const recent = new Map<Model, Map<unknown, Model>>();
+
+  function cached(model: Model, key: unknown) {
+    const byMode = recent.get(model);
+    if (!byMode) return;
+    recent.delete(model);
+    recent.set(model, byMode);
+    return byMode.get(key);
+  }
+
+  function remember(model: Model, key: unknown, made: Model) {
+    let byMode = recent.get(model);
+    if (!byMode) {
+      byMode = new Map();
+      recent.set(model, byMode);
+      if (recent.size > CacheSize) recent.delete(recent.keys().next().value!);
+    }
+    byMode.set(key, made);
+  }
 
   /**
    * The shortest box vector a frame is made whole in, Å: the plan's hops (bonds, 3.8 Å between consecutive residues)
@@ -69,24 +108,139 @@ namespace ModelPeriodicity {
   }
 
   /**
-   * The frame with its molecules whole: a new model (the same one for the same frame), or the frame itself when it
-   * has no simulation box (`isApplicable`).
+   * The frame with its molecules whole: a new model (the same one for the same frame while it is recent), or the frame
+   * itself when it has no simulation box (`isApplicable`).
    */
   export function makeWhole(model: Model): Model {
+    return apply(model, Whole);
+  }
+
+  /** The frame made whole, and with `box` its molecules in the box; the frame itself when it has no simulation box. */
+  export function apply(model: Model, mode: Mode): Model {
     const box = boxOf(model);
     if (!box) return model;
-    const cached = wholeFrames.get(model);
-    if (cached) return cached;
+    const key = mode.kind === 'whole' ? 'whole' : (mode.center ?? 'box');
+    const hit = cached(model, key);
+    if (hit) return hit;
 
     const plan = getPlan(model);
-    const conformation = applyWhole(plan, box, model.atomicConformation);
-    // polymer gaps were found on the topology's coordinates, which may have been split: found again on whole ones
-    if (!plan.ranges) {
-      plan.ranges = getAtomicRanges(model.atomicHierarchy, model.entities, conformation, model.sequence);
+    let made: Model;
+    if (mode.kind === 'whole') {
+      const conformation = applyWhole(plan, box, model.atomicConformation);
+      // polymer gaps were found on the topology's coordinates, which may have been split: found again on whole ones
+      if (!plan.ranges) {
+        plan.ranges = getAtomicRanges(model.atomicHierarchy, model.entities, conformation, model.sequence);
+      }
+      made = Model.withAtomicConformation(model, conformation, plan.ranges);
+    } else {
+      const whole = apply(model, Whole);
+      // whole molecules moved whole: the whole frame's ranges hold
+      const conformation = applyBox(plan, box, whole.atomicConformation, mode.center?.atoms);
+      made = Model.withAtomicConformation(whole, conformation);
     }
-    const whole = Model.withAtomicConformation(model, conformation, plan.ranges);
-    wholeFrames.set(model, whole);
-    return whole;
+    remember(model, key, made);
+    return made;
+  }
+
+  /**
+   * Each molecule of whole coordinates moved by a lattice vector so its center (the mean of its atoms) is in the box,
+   * in new arrays. With `center` atoms: their molecules kept together around the first one's, everything translated
+   * so the atoms' mean is at the box's center, and every other molecule's center put in the box around it.
+   */
+  export function applyBox(
+    plan: UnwrapPlan,
+    box: PeriodicBox,
+    whole: AtomicConformation,
+    center?: ArrayLike<number>,
+  ): AtomicConformation {
+    const { molecule, moleculeCount } = plan;
+    const x = Float32Array.from(whole.x);
+    const y = Float32Array.from(whole.y);
+    const z = Float32Array.from(whole.z);
+    const n = x.length;
+
+    // molecule centers, then each molecule's shift into them
+    const centers = new Float64Array(moleculeCount * 3);
+    const counts = new Int32Array(moleculeCount);
+    for (let i = 0; i < n; i++) {
+      const m = molecule[i] * 3;
+      centers[m] += x[i];
+      centers[m + 1] += y[i];
+      centers[m + 2] += z[i];
+      counts[molecule[i]]++;
+    }
+    for (let m = 0; m < moleculeCount; m++) {
+      const c = counts[m] || 1;
+      centers[3 * m] /= c;
+      centers[3 * m + 1] /= c;
+      centers[3 * m + 2] /= c;
+    }
+    const shift = new Float64Array(moleculeCount * 3);
+    const { basis, inverse, origin } = box;
+    const boxCenter = Vec3.add(Vec3(), origin, Vec3.transformMat3(Vec3(), Vec3.create(0.5, 0.5, 0.5), basis));
+    const t = Vec3();
+
+    const pinned = center && center.length ? new Uint8Array(moleculeCount) : undefined;
+    if (pinned) {
+      // the center's molecules at the images nearest to its first molecule: one piece (a complex split by the box)
+      const first = molecule[center![0]];
+      const ref = Vec3.fromArray(Vec3(), centers, 3 * first);
+      const d = Vec3();
+      for (let k = 0; k < center!.length; k++) {
+        const m = molecule[center![k]];
+        if (pinned[m]) continue;
+        pinned[m] = 1;
+        Vec3.sub(d, Vec3.fromArray(d, centers, 3 * m), ref);
+        // the shift from the molecule's center to its image nearest the reference: d's minimum image minus d
+        const raw = Vec3.clone(d);
+        PeriodicBox.minimumImage(d, box, d);
+        Vec3.toArray(Vec3.sub(d, d, raw), shift, 3 * m);
+      }
+      const sum = Vec3();
+      for (let k = 0; k < center!.length; k++) {
+        const i = center![k];
+        const m = 3 * molecule[i];
+        sum[0] += x[i] + shift[m];
+        sum[1] += y[i] + shift[m + 1];
+        sum[2] += z[i] + shift[m + 2];
+      }
+      Vec3.sub(t, boxCenter, Vec3.scale(sum, sum, 1 / center!.length));
+    }
+
+    const p = Vec3();
+    for (let m = 0; m < moleculeCount; m++) {
+      if (pinned?.[m]) continue;
+      // fractional coordinates of the moved center, relative to the box's corner; whole box vectors back
+      p[0] = centers[3 * m] + t[0] - origin[0];
+      p[1] = centers[3 * m + 1] + t[1] - origin[1];
+      p[2] = centers[3 * m + 2] + t[2] - origin[2];
+      Vec3.transformMat3(p, p, inverse);
+      p[0] = -Math.floor(p[0]);
+      p[1] = -Math.floor(p[1]);
+      p[2] = -Math.floor(p[2]);
+      Vec3.transformMat3(p, p, basis);
+      Vec3.toArray(p, shift, 3 * m);
+    }
+
+    for (let i = 0; i < n; i++) {
+      const m = 3 * molecule[i];
+      x[i] += t[0] + shift[m];
+      y[i] += t[1] + shift[m + 1];
+      z[i] += t[2] + shift[m + 2];
+    }
+    return { ...whole, id: UUID.create22(), x, y, z };
+  }
+
+  /** Each atom's molecule, by the forest's trees: parents are visited first, roots start molecules. */
+  function withMolecules(plan: { parent: Int32Array; order?: Int32Array }): UnwrapPlan {
+    const { parent, order } = plan;
+    const molecule = new Int32Array(parent.length);
+    let moleculeCount = 0;
+    for (let k = 0, n = parent.length; k < n; k++) {
+      const i = order ? order[k] : k;
+      molecule[i] = parent[i] < 0 ? moleculeCount++ : molecule[parent[i]];
+    }
+    return { ...plan, molecule, moleculeCount };
   }
 
   /** The coordinates with every atom at the image nearest to its parent, in new arrays. */
@@ -144,7 +298,7 @@ namespace ModelPeriodicity {
         }
       }
     }
-    return { parent, order };
+    return withMolecules({ parent, order });
   }
 
   /**
@@ -169,6 +323,6 @@ namespace ModelPeriodicity {
         for (let i = first + 1, _i = residueOffsets[r + 1]; i < _i; i++) parent[i] = i - 1;
       }
     }
-    return { parent };
+    return withMolecules({ parent });
   }
 }

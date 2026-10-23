@@ -68,7 +68,11 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
   else the hierarchy: the atom before in a residue, the previous polymer residue in a chain; not distances, since the
   topology's own frame may be split). The whole frame is `Model.withAtomicConformation`: new coordinates, the ranges
   found again on whole coordinates (shared by the topology's whole frames), the reader's dynamic data without
-  `__Center__`; one model per source frame. `Unit.remapModel` drops polymer and gap elements when the ranges differ.
+  `__Center__`; one model per recent source frame and mode (an LRU of 16 frames: caching every frame would hold a
+  trajectory twice). `apply(frame, { kind: 'box', center? })` then moves each whole molecule by a lattice vector so its
+  center is in the box (at the box's origin); with `center` atoms, their molecules are kept together, everything is
+  translated so their mean is at the box's center, and every other molecule is moved into the box around them.
+  `Unit.remapModel` drops polymer and gap elements when the ranges differ.
 
 ## 5. Other models
 
