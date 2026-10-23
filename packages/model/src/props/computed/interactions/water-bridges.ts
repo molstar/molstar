@@ -2,9 +2,10 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Structure, Unit, type StructureElement } from '@molstar/model/model/structure';
+import { Structure, Unit, type StructureElement } from '@molstar/model/model/structure';
 import type { IntMap } from '@molstar/core/data/int';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { MoleculeType, NucleicBackboneAtoms, ProteinBackboneAtoms } from '@molstar/model/model/structure/model/types';
@@ -219,6 +220,8 @@ export function findWaterBridgeContacts(
       for (let r = 0; r < count; r++) {
         const hitUnit = hitUnits[r];
         if (!Unit.isAtomic(hitUnit)) continue;
+        // not across models (an ensemble shown as all models), as the contacts (perf-audit-2 06/B7)
+        if (hitUnit !== unitW && !Structure.validUnitPair(structure, unitW, hitUnit)) continue;
 
         const atomicUnit = hitUnit as Unit.Atomic;
         const hitLocalIdx = indices[r] as StructureElement.UnitIndex;
@@ -291,6 +294,7 @@ export function findWaterBridgeContacts(
           // Reject bridges where donor and acceptor are the same physical atom
           // represented by different feature indices.
           if (don.unit === acc.unit && don.memberIdx === acc.memberIdx) continue;
+          if (don.unit !== acc.unit && !Structure.validUnitPair(structure, don.unit, acc.unit)) continue;
 
           if (!checkOmega(don, wPos, acc, cosOmegaMin, cosOmegaMax)) continue;
 
