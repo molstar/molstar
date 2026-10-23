@@ -1,11 +1,14 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, test } from 'vitest';
+import { CIF } from '../cif.js';
 import * as Data from '../cif/data-model.js';
 import * as Schema from '../cif/schema.js';
 import { Column } from '@molstar/core/data/db';
@@ -97,5 +100,22 @@ describe('schema', () => {
     expect(ret[0]).toBe(1);
     expect(ret[1]).toBe(2);
     expect(ret[2]).toBe(3);
+  });
+});
+
+describe('CIF.parse', () => {
+  it('reads text CIF from a string or bytes and BinaryCIF from bytes', async () => {
+    const text = `data_x\nloop_\n_a.v\n1\n2\n`;
+    const binary = fs.readFileSync(path.resolve(import.meta.dirname, '../../../../../data/examples/1cbs_full.bcif'));
+    for (const input of [text, new TextEncoder().encode(text), new TextEncoder().encode(`﻿${text}`)]) {
+      const r = await CIF.parse(input).run();
+      if (r.isError) throw new Error(r.message);
+      expect(r.result.blocks[0].categories['a'].getField('v')!.toIntArray()).toEqual([1, 2]);
+    }
+    // no bytes fail as BinaryCIF, as before bytes were sniffed
+    expect((await CIF.parse(new Uint8Array(0)).run()).isError).toBe(true);
+    const r = await CIF.parse(new Uint8Array(binary)).run();
+    if (r.isError) throw new Error(r.message);
+    expect(r.result.blocks[0].categories['atom_site'].getField('Cartn_x')!.binaryEncoding).toBeDefined();
   });
 });

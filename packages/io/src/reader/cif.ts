@@ -19,8 +19,21 @@ import { type Segmentation_Data_Database, Segmentation_Data_Schema } from './cif
 import { SF_Schema, type SF_Database } from './cif/schema/sf.js';
 import { StringLike } from '@molstar/core/util/string-like';
 
+/**
+ * Whether bytes are BinaryCIF rather than text CIF: a BinaryCIF file is a MessagePack map, whose first byte is a map
+ * marker (fixmap 0x80-0x8f, map16 0xde, map32 0xdf); text CIF starts with `data_`, `#`, whitespace or a byte order mark.
+ */
+function isBinaryCif(data: Uint8Array) {
+  // no bytes fail as BinaryCIF, as before
+  if (data.length === 0) return true;
+  const b = data[0];
+  return (b >= 0x80 && b <= 0x8f) || b === 0xde || b === 0xdf;
+}
+
 export const CIF = {
-  parse: (data: StringLike | Uint8Array) => (StringLike.is(data) ? parseCifText(data) : parseCifBinary(data)),
+  /** Text CIF from a string; text or binary CIF from bytes, told apart by the first byte (`isBinaryCif`). */
+  parse: (data: StringLike | Uint8Array) =>
+    StringLike.is(data) || !isBinaryCif(data) ? parseCifText(data) : parseCifBinary(data),
   parseText: parseCifText,
   parseBinary: parseCifBinary,
   toDatabaseCollection,

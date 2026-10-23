@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -80,7 +80,8 @@ function createStringColumn<T extends string>(
 ): Column<T> {
   return {
     schema,
-    __array: field.__array,
+    // a BinaryCIF field decodes when its storage is first asked for (binary/field.ts)
+    storage: field.storage,
     isDefined: field.isDefined,
     rowCount: field.rowCount,
     value:
@@ -108,7 +109,7 @@ function createColumn<T>(
 ): Column<T> {
   return {
     schema,
-    __array: field.__array,
+    storage: field.storage,
     isDefined: field.isDefined,
     rowCount: field.rowCount,
     value,
@@ -140,7 +141,6 @@ function createListColumn<T extends number | string>(
 
   return {
     schema,
-    __array: void 0,
     isDefined: !!f,
     rowCount: category.rowCount,
     value,
@@ -176,7 +176,6 @@ function createTensorColumn(
 
   return {
     schema,
-    __array: void 0,
     isDefined: first.isDefined,
     rowCount: category.rowCount,
     value,

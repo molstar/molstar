@@ -1135,3 +1135,17 @@ included; a representation with objects of its own now keeps its `variant`.
 of a playing transition, a scrub): `events.animationTimeChanged` does. A view that shows the time subscribes to both
 (`changed` still covers a new current snapshot, which resets the time). Every reader of the entries used to wake at the
 frame rate.
+
+## `Column.__array` and `CifField.__array` are `storage()`
+
+`Column` (`@molstar/core/data/db`) and `CifField` (`@molstar/io/reader/cif`) no longer have `__array`. Their backing
+storage is the optional method `storage(): Column.Storage | undefined`: `{ kind: 'array', array }` where `__array` was
+an array, `{ kind: 'dictionary', indices, values }` (`value(i)` before the schema's transform is
+`values[indices[i]]`) for a BinaryCIF string column and its views (which had a string array), absent or `undefined` for
+a computed column. A column literal drops its `__array: void 0`; a reader of
+`__array` calls `storage?.()` and handles the kinds it knows, falling back to `value` for the rest. The storage is not
+always the values: an int column over a string field keeps the strings' storage, and a BinaryCIF array storage holds
+the data under masked rows, so a reader first checks `typeof value(0)` against it, as `Column.view` does. Why: the storage can
+now take another form (a BinaryCIF string column as indices into its distinct strings), which a reader of an array of
+values would have misread; a method also says that asking may decode (a BinaryCIF field decodes on first access).
+Readers in the repository were core's `Column` helpers and `sortAtomSite`.

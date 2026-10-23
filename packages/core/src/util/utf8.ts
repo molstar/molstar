@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from https://github.com/rcsb/mmtf-javascript
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -97,15 +97,66 @@ function _utf8Read(data: Uint8Array, offset: number, length: number) {
   return str.join('');
 }
 
+/**
+ * Up to this many bytes, ASCII is made with `String.fromCharCode`: a `TextDecoder` call costs ~0.4 µs, about 10x a short
+ * string, and a parser of text values (CIF fields) reads millions of them.
+ */
+const ShortAsciiLength = 24;
+
+/** The string of `length` ASCII bytes at `offset`, or `undefined` when one is not ASCII or the range is out of bounds. */
+function shortAscii(d: Uint8Array, o: number, length: number): string | undefined {
+  if (o + length > d.length) return;
+  let mask = 0;
+  for (let i = o, e = o + length; i < e; i++) mask |= d[i];
+  if (mask & 0x80) return;
+  switch (length) {
+    case 0:
+      return '';
+    case 1:
+      return String.fromCharCode(d[o]);
+    case 2:
+      return String.fromCharCode(d[o], d[o + 1]);
+    case 3:
+      return String.fromCharCode(d[o], d[o + 1], d[o + 2]);
+    case 4:
+      return String.fromCharCode(d[o], d[o + 1], d[o + 2], d[o + 3]);
+  }
+  let ret = '';
+  for (; length >= 8; o += 8, length -= 8) {
+    ret += String.fromCharCode(d[o], d[o + 1], d[o + 2], d[o + 3], d[o + 4], d[o + 5], d[o + 6], d[o + 7]);
+  }
+  for (; length >= 4; o += 4, length -= 4) ret += String.fromCharCode(d[o], d[o + 1], d[o + 2], d[o + 3]);
+  for (; length > 0; o++, length--) ret += String.fromCharCode(d[o]);
+  return ret;
+}
+
 const utf8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder() : undefined;
 /** Decode UTF8 data. Return as primitive `string` type, or fail if the result is longer than MAX_STRING_LENGTH. */
 export function utf8Read(data: Uint8Array, offset: number = 0, length: number = data.length): string {
+  if (length <= ShortAsciiLength) {
+    const ascii = shortAscii(data, offset, length);
+    if (ascii !== void 0) return ascii;
+  }
   if (utf8Decoder) {
     const input = offset || length !== data.length ? data.subarray(offset, offset + length) : data;
     return utf8Decoder.decode(input);
   } else {
     return _utf8Read(data, offset, length);
   }
+}
+
+const utf8ValueDecoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true }) : undefined;
+/**
+ * Decode UTF8 data of a value in a text, keeping a leading U+FEFF: `utf8Read` (a `TextDecoder`) drops it, as the byte
+ * order mark of a file.
+ */
+export function utf8ReadValue(data: Uint8Array, offset: number = 0, length: number = data.length): string {
+  if (length <= ShortAsciiLength) {
+    const ascii = shortAscii(data, offset, length);
+    if (ascii !== void 0) return ascii;
+  }
+  if (utf8ValueDecoder) return utf8ValueDecoder.decode(data.subarray(offset, offset + length));
+  return _utf8Read(data, offset, length);
 }
 
 /** Decode UTF8 data, potentially exceeding MAX_STRING_LENGTH. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is longer than MAX_STRING_LENGTH. */
@@ -115,6 +166,54 @@ export function utf8ReadLong(data: Uint8Array, offset: number = 0, length: numbe
   }
   const out = ChunkedBigString.fromUtf8Data(data, offset, offset + length);
   return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
+}
+
+const utf8Encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : undefined;
+/** Chars per `TextEncoder.encode` call past an ASCII prefix: a piece is a string, and a `ChunkedBigString` is longer */
+const EncodePieceLength = 1 << 24;
+
+/**
+ * The UTF-8 bytes of `str` in one array, also of a `StringLike` longer than a string can be. ASCII, the usual case of
+ * text formats, is one `encodeInto` pass into an array of the exact size.
+ */
+export function utf8Encode(str: StringLike): Uint8Array {
+  const length = str.length;
+  const pieces: Uint8Array[] = [];
+  let total = 0;
+  let start = 0;
+  if (typeof str === 'string' && utf8Encoder) {
+    const out = new Uint8Array(length);
+    const { read, written } = utf8Encoder.encodeInto(str, out);
+    if (read === length) return out;
+    pieces.push(out.subarray(0, written));
+    total = written;
+    start = read;
+  }
+  while (start < length) {
+    let end = Math.min(start + EncodePieceLength, length);
+    // not between the halves of a surrogate pair
+    const last = str.charCodeAt(end - 1);
+    if (end < length && last >= 0xd800 && last <= 0xdbff) end++;
+    const piece = str.substring(start, end);
+    let bytes: Uint8Array;
+    if (utf8Encoder) {
+      bytes = utf8Encoder.encode(piece);
+    } else {
+      bytes = new Uint8Array(utf8ByteCount(piece));
+      utf8Write(bytes, 0, piece);
+    }
+    pieces.push(bytes);
+    total += bytes.length;
+    start = end;
+  }
+  if (pieces.length === 1) return pieces[0];
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const p of pieces) {
+    out.set(p, offset);
+    offset += p.length;
+  }
+  return out;
 }
 
 export function utf8ByteCount(str: string) {
