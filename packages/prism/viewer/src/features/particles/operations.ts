@@ -30,7 +30,7 @@ import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from '../../api/
 import { NodeParam, OptionalParam } from '../../api/params.js';
 import { FileParam } from '../../api/files.js';
 import { messageOf } from '../../api/run.js';
-import { whileViewing } from '../../sources/trajectory.js';
+import { seekWhileViewing } from '../../sources/trajectory.js';
 import { nodesFor, updateEach } from '../../api/nodes.js';
 import { entryRoot, isFailure, namesOf, pickOne } from '../../api/scope.js';
 import { commitRepresentation, setRepresentation } from '../../api/set-representation.js';
@@ -380,12 +380,10 @@ export class ParticlesApi extends ApiArea {
       }
       const to = index !== undefined ? index : (((current + by!) % count) + count) % count;
       if (to === current) return ApiResult.already(`${name} already shows frame ${to + 1} of ${count}.`);
-      await whileViewing(ctx.plugin, () =>
-        ctx.plugin.state.updateTransform(ctx.plugin.state.data, l.cell.transform.ref, {
-          ...(l.cell.transform.params as object),
-          frameIndex: to,
-        }),
-      );
+      await seekWhileViewing(ctx.plugin, l.cell.transform.ref, {
+        ...(l.cell.transform.params as object),
+        frameIndex: to,
+      });
       return ApiResult.ok(`${name} shows frame ${to + 1} of ${count}.`, { nodes: [l.cell.transform.ref] });
     },
   });
