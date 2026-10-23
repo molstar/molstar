@@ -213,9 +213,9 @@ candidates from A's grid), #2004 (H-bond hydrogen across units, `filterInter`, s
 | B3 | still open; **fixed** #2032 | medium | ASA throws on any structure with coarse units | [radii.ts:39](../../packages/model/src/props/computed/accessible-surface-area/shrake-rupley/radii.ts#L39) | confirmed |
 | B11 | new; **fixed** #2033 | low | Every non-backbone N of a non-polymer residue becomes a `NegativeCharge` feature | [charged.ts:156](../../packages/model/src/props/computed/interactions/charged.ts#L156) | confirmed |
 | N2 | still open | low | Refiners write per-member decisions into a group's shared intra flags | [refine.ts:190](../../packages/model/src/props/computed/interactions/refine.ts#L190) | confirmed (code) |
-| B4 | still open | low | `calcPlaneAngle` skips the second-neighbour search when the neighbour is UnitIndex 0 | [geometry.ts:147](../../packages/model/src/props/computed/chemistry/geometry.ts#L147) | confirmed |
+| B4 | still open; **fixed** #2034 | low | `calcPlaneAngle` skips the second-neighbour search when the neighbour is UnitIndex 0 | [geometry.ts:147](../../packages/model/src/props/computed/chemistry/geometry.ts#L147) | confirmed |
 | B6 | still open | low | ASA lookup radius fixed before radii > 1.87 Å are appended | [shrake-rupley.ts:90](../../packages/model/src/props/computed/accessible-surface-area/shrake-rupley.ts#L90) | confirmed |
-| B7 | still open | low | Water bridges ignore `validUnitPair` and `unitPairTest` | [water-bridges.ts:211](../../packages/model/src/props/computed/interactions/water-bridges.ts#L211) | confirmed |
+| B7 | still open; **fixed** #2034 | low | Water bridges ignore `validUnitPair` and `unitPairTest` | [water-bridges.ts:211](../../packages/model/src/props/computed/interactions/water-bridges.ts#L211) | confirmed |
 | B5 | still open | low (latent) | `getArray` drops the first object-form MolScript argument | [table.ts:632](../../packages/model/src/script/runtime/query/table.ts#L632) | confirmed |
 | B8 | still open | low (latent) | DSSP backbone H-bond graph stores energies in input order | [backbone-hbonds.ts:153](../../packages/model/src/props/computed/secondary-structure/dssp/backbone-hbonds.ts#L153) | confirmed |
 | B10 | still open | low | Streamline tracer's `prev` is module state, never reset | [basic.ts:42](../../packages/model/src/props/volume/streamlines/basic.ts#L42) | confirmed |

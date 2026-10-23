@@ -135,7 +135,7 @@ Counts: 15 v1 items (P1-P11, B1-B3, 14/NF2 Prism part): fixed 12, partly fixed 1
 | --- | --- | --- | --- | --- | --- |
 | B4 | new | medium | While any animation (camera spin included) or a snapshot plays, outside changes never invalidate checkpoints | [checkpoint.ts:205](../../packages/prism/viewer/src/sources/checkpoint.ts#L205) | confirmed (code) |
 | B6 | new | low | Linked sequence: each frame step clears the 3D highlight and, with a Seq\* selection, writes a `select.set` record entry | [link-views.ts:183](../../packages/prism/viewer/src/sequence/molstar/link-views.ts#L183) | confirmed |
-| B5 | new | low | `wholeChains` drops a non-polymer chain's hydrogens after its last heavy atom | [link-views.ts:107](../../packages/prism/viewer/src/sequence/molstar/link-views.ts#L107) | confirmed (code) |
+| B5 | new; **fixed** #2034 | low | `wholeChains` drops a non-polymer chain's hydrogens after its last heavy atom | [link-views.ts:107](../../packages/prism/viewer/src/sequence/molstar/link-views.ts#L107) | confirmed (code) |
 
 - **B4**: `watchOutsideChanges` returns on `isViewing(plugin)` = the viewing counter or
   `managers.animation.isAnimating` ([trajectory.ts:176](../../packages/prism/viewer/src/sources/trajectory.ts#L176)),

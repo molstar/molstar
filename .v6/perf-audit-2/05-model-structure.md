@@ -187,11 +187,11 @@ regressed 0, dropped 1. New bugs from fixes: B9 (#2022), B10 (#1994).
 | --- | --- | --- | --- | --- | --- |
 | B9 | new (from #2022); **fixed** #2032 | medium | `remapModel(m, parent)` swaps in the root's untransformed unit for whole units | [structure.ts:418](../../packages/model/src/model/structure/structure/structure.ts#L418) | confirmed |
 | B14 | new | medium | `within` without `min-radius` adds the query atom's vdW radius and ignores `atom-radius` | [filters.ts:189](../../packages/model/src/model/structure/query/queries/filters.ts#L189) | confirmed |
-| B10 | new (from #1994) | low | `Bundle.toStructure` maps every grouped unit through the first unit's elements | [bundle.ts:242](../../packages/model/src/model/structure/structure/element/bundle.ts#L242) | confirmed |
-| B12 | new | low | `includeSurroundings` with `atom-radius` pre-filters units by `radius`, not the query radius | [lookup3d.ts:228](../../packages/model/src/model/structure/structure/util/lookup3d.ts#L228) | confirmed |
+| B10 | new (from #1994); **fixed** #2034 | low | `Bundle.toStructure` maps every grouped unit through the first unit's elements | [bundle.ts:242](../../packages/model/src/model/structure/structure/element/bundle.ts#L242) | confirmed |
+| B12 | new; **fixed** #2034 | low | `includeSurroundings` with `atom-radius` pre-filters units by `radius`, not the query radius | [lookup3d.ts:228](../../packages/model/src/model/structure/structure/util/lookup3d.ts#L228) | confirmed |
 | B11 | new | low | `Loci.toExpression` merges models that share an operator name | [loci.ts:774](../../packages/model/src/model/structure/structure/element/loci.ts#L774) | confirmed |
 | B2 | still open | low | `entityIndices` uses atomic chain segments for coarse units | [structure.ts:561](../../packages/model/src/model/structure/structure/structure.ts#L561) | confirmed |
-| B6 | still open | low | `pick` pushes an element, pops a structure; inverted `i % N` checks | [filters.ts:24](../../packages/model/src/model/structure/query/queries/filters.ts#L24) | confirmed |
+| B6 | still open; **fixed** #2034 | low | `pick` pushes an element, pops a structure; inverted `i % N` checks | [filters.ts:24](../../packages/model/src/model/structure/query/queries/filters.ts#L24) | confirmed |
 | B7 | still open | low | `Bundle.toLoci` / `toStructure` create an Error, never throw | [bundle.ts:156](../../packages/model/src/model/structure/structure/element/bundle.ts#L156) | confirmed |
 | B13 | new | low | Static component remap trusts the `(size, min, max, mid)` element hash | [structure.ts:1111](../../packages/model/src/model/structure/structure/structure.ts#L1111) | plausible |
 | B3 | still open | low | Bundle / Loci-expression grouping on a 32-bit hash without equality | [bundle.ts:119](../../packages/model/src/model/structure/structure/element/bundle.ts#L119) | plausible |
