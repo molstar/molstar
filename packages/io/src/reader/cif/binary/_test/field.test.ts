@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { Column } from '@molstar/core/data/db';
 import {
   ArrayEncoder,
   ArrayEncoding as E,
@@ -14,6 +15,8 @@ import {
   classifyFloatArray,
 } from '../../../../common/binary-cif.js';
 import { Field } from '../field.js';
+import { CifCategory } from '../../data-model.js';
+import { toTable } from '../../schema.js';
 import { decodeSteps } from '../../../../common/binary-cif/decoder.js';
 import { parseFloat as fastParseFloat, parseInt as fastParseInt } from '@molstar/core/util/number-parser';
 
@@ -207,6 +210,41 @@ describe('binary-cif Field', () => {
         ]);
         for (let j = 0; j < data.length; j++) expect(f.areValuesEqual(i, j)).toBe(steps[i] === steps[j]);
       }
+    }
+  });
+
+  it('reads a dictionary through CIF schemas: transforms, ints over strings, views and windows', () => {
+    const names = ['Ala', 'gly', 'ALA', '7', '12', 'Ala'];
+    const f = Field({ name: 'x', data: E.by(E.stringArray).encode(names) }, names.length);
+    expect(f.storage!()!.kind).toBe('dictionary');
+    const category = CifCategory('t', names.length, ['l', 'u', 'n', 's'], { l: f, u: f, n: f, s: f });
+    const table = toTable(
+      { l: Column.Schema.lstr, u: Column.Schema.ustr, n: Column.Schema.int, s: Column.Schema.str },
+      category,
+    ) as any;
+    const map = [5, 3, 0, 4];
+    const expected = {
+      l: names.map((v) => v.toLowerCase()),
+      u: names.map((v) => v.toUpperCase()),
+      n: names.map((v) => fastParseInt(v, 0, v.length)),
+      s: names,
+    } as Record<string, (string | number)[]>;
+    for (const k of ['l', 'u', 'n', 's']) {
+      const c = table[k] as Column<any>;
+      expect(
+        Array.from({ length: c.rowCount }, (_, i) => c.value(i)),
+        k,
+      ).toEqual(expected[k]);
+      const view = Column.view(c, map);
+      expect(
+        Array.from({ length: view.rowCount }, (_, i) => view.value(i)),
+        k,
+      ).toEqual(map.map((i) => expected[k][i]));
+      const window = Column.window(c, 2, 5);
+      expect(
+        Array.from({ length: window.rowCount }, (_, i) => window.value(i)),
+        k,
+      ).toEqual(expected[k].slice(2, 5));
     }
   });
 });

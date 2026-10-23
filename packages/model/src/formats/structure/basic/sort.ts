@@ -24,9 +24,10 @@ export async function sortAtomSite(
 
   const { label_entity_id, label_asym_id, label_seq_id } = atom_site;
   const entityBuckets = makeBuckets(indices, bucketKey(label_entity_id));
+  const chainKey = bucketKey(label_asym_id);
   if (ctx.shouldUpdate) await ctx.update();
   for (let ei = 0, _eI = entityBuckets.length - 1; ei < _eI; ei++) {
-    const chainBuckets = makeBuckets(indices, bucketKey(label_asym_id), {
+    const chainBuckets = makeBuckets(indices, chainKey, {
       start: entityBuckets[ei],
       end: entityBuckets[ei + 1],
     });
@@ -152,19 +153,26 @@ function floatRows(
 }
 
 /**
- * The bucket key of a row: a dictionary column's index when its values are distinct and read as they are (equal
- * indices are then equal values, and an int key is cheaper to bucket than a string), else the value.
+ * The bucket key of a row: for a dictionary column read as it is, the first index of its value in the dictionary (one
+ * key per distinct value, as bucketing by value, and an int is cheaper to bucket than a string; a BinaryCIF dictionary
+ * holds `''` twice when the column has empty values), else the value.
  */
 function bucketKey(c: Column<any>): (row: number) => string | number {
   const s = c.storage?.();
   if (
     s?.kind === 'dictionary' &&
     !(c.schema as Column.Schema.Str).transform &&
-    typeof c.value(0) === typeof s.values[s.indices[0]] &&
-    new Set(Array.from(s.values)).size === s.values.length
+    typeof c.value(0) === typeof s.values[s.indices[0]]
   ) {
-    const indices = s.indices;
-    return (row) => indices[row];
+    const { indices, values } = s;
+    const first = new Map<any, number>();
+    const canonical = new Int32Array(values.length);
+    for (let k = 0; k < values.length; k++) {
+      const f = first.get(values[k]);
+      if (f === void 0) first.set(values[k], k);
+      canonical[k] = f ?? k;
+    }
+    return (row) => canonical[indices[row]];
   }
   return c.value;
 }

@@ -33,7 +33,8 @@ namespace Column {
 
   /**
    * What a column's values are stored in (`Column.storage`): an array of them, or a dictionary, `indices` into the
-   * `values` (`value(i)` before the transform is `values[indices[i]]`; `values` may repeat a value).
+   * `values` (`value(i)` before the transform is `values[indices[i]]`; `values` may repeat a value). A reader checks
+   * `typeof value(0)` against the storage first: an int column over a string field keeps the strings' storage.
    */
   export type Storage =
     | { readonly kind: 'array'; readonly array: ArrayLike<any> }
@@ -297,7 +298,8 @@ namespace Column {
   export function copyToArray<T extends number>(c: Column<T>, array: { [k: number]: T; length: number }, offset = 0) {
     if (!c.isDefined) return;
     const s = c.storage?.();
-    const cArray = s?.kind === 'array' ? s.array : void 0;
+    // the array when the column reads it as its values (as `Column.view` checks)
+    const cArray = s?.kind === 'array' && c.rowCount > 0 && typeof c.value(0) === typeof s.array[0] ? s.array : void 0;
     if (cArray) {
       for (let i = 0, _i = cArray.length; i < _i; i++) array[offset + i] = cArray[i];
     } else {
@@ -384,14 +386,19 @@ function dictionaryColumn<T extends Column.Schema>({
   valueKind,
 }: Column.DictionarySpec<T>): Column<T['T']> {
   const rowCount = indices.length;
-  const transform = schema.valueType === 'str' ? (schema as Column.Schema.Str).transform : void 0;
-  // the transform of a few distinct values, once
-  const read: ArrayLike<T['T']> =
-    transform === 'lowercase'
-      ? Array.from(values, (v) => (v as string).toLowerCase() as T['T'])
+  const isStr = schema.valueType === 'str';
+  const transform = isStr ? (schema as Column.Schema.Str).transform : void 0;
+  // the values as a str column reads them (as `arrayColumn`: a non-string as text), transformed, once
+  const asString = (v: any): string => (typeof v === 'string' ? v : `${v ?? schema.T}`);
+  const read: ArrayLike<T['T']> = !isStr
+    ? values
+    : transform === 'lowercase'
+      ? Array.from(values, (v) => asString(v).toLowerCase() as T['T'])
       : transform === 'uppercase'
-        ? Array.from(values, (v) => (v as string).toUpperCase() as T['T'])
-        : values;
+        ? Array.from(values, (v) => asString(v).toUpperCase() as T['T'])
+        : Array.prototype.some.call(values, (v: any) => typeof v !== 'string')
+          ? Array.from(values, (v) => asString(v) as T['T'])
+          : values;
   const value: Column<T['T']>['value'] = (row) => read[indices[row]];
   const storage: Column.Storage = { kind: 'dictionary', indices, values };
   return {
@@ -496,11 +503,15 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
 function windowColumn<T>(column: Column<T>, start: number, end: number): Column<T> {
   if (!column.isDefined) return Column.Undefined(end - start, column.schema);
   if (start === 0 && end === column.rowCount) return column;
+  // no rows (`typedArrayWindow` would keep the last one)
+  if (end <= start) return windowFull(column, start, start);
   const s = column.storage?.();
   if (s?.kind === 'array' && ColumnHelpers.isTypedArray(s.array)) return windowTyped(column, s.array, start, end);
   if (s?.kind === 'dictionary' && readsDictionary(column, s)) {
     const vk = column.valueKind;
-    const indices = ColumnHelpers.typedArrayWindow(s.indices, { start, end });
+    const indices = ColumnHelpers.isTypedArray(s.indices)
+      ? ColumnHelpers.typedArrayWindow(s.indices, { start, end })
+      : Array.prototype.slice.call(s.indices, start, end);
     return dictionaryColumn({ indices, values: s.values, schema: column.schema, valueKind: (row) => vk(start + row) });
   }
   return windowFull(column, start, end);

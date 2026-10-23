@@ -89,6 +89,55 @@ describe('dictionary column', () => {
   });
 });
 
+describe('dictionary column edges', () => {
+  it('reads alike with Uint16, Int32 and plain array indices', () => {
+    const many = Array.from({ length: 300 }, (_, i) => `v${i % 290}`);
+    const rows = Array.from({ length: 50 }, (_, i) => (i * 37) % 300);
+    for (const make of [
+      (xs: number[]) => Uint16Array.from(xs),
+      (xs: number[]) => Int32Array.from(xs),
+      (xs: number[]) => [...xs],
+    ]) {
+      const dictionary = Column.ofDictionary({ indices: make(rows), values: many, schema: Column.Schema.str });
+      const array = Column.ofArray({ array: rows.map((i) => many[i]), schema: Column.Schema.str });
+      expect(read(dictionary)).toEqual(read(array));
+      expect(read(Column.view(dictionary, [3, 1, 40]))).toEqual(read(Column.view(array, [3, 1, 40])));
+      expect(read(Column.window(dictionary, 10, 20))).toEqual(read(Column.window(array, 10, 20)));
+      expect(Column.areEqual(Column.window(dictionary, 0, 10), Column.window(array, 0, 10))).toBe(true);
+    }
+  });
+
+  it('an empty window has no rows', () => {
+    const { dictionary, array } = columns(Column.Schema.str);
+    const typed = Column.ofIntArray(Int32Array.of(1, 2, 3));
+    for (const c of [dictionary, array, typed] as Column<any>[]) {
+      expect(Column.window(c, c.rowCount, c.rowCount).rowCount).toBe(0);
+      expect(Column.window(c, 1, 1).rowCount).toBe(0);
+    }
+  });
+
+  it('reads non-string values of a str dictionary as an array column does', () => {
+    const values = [null, 1, 'a', undefined] as any[];
+    for (const schema of [Column.Schema.str, Column.Schema.ustr]) {
+      const dictionary = Column.ofDictionary({ indices: Uint8Array.of(0, 1, 2, 3), values, schema });
+      const array = Column.ofArray({ array: values, schema });
+      expect(read(dictionary)).toEqual(read(array));
+    }
+  });
+
+  it('copies the values of a column, not storage it reads otherwise', () => {
+    const strings = Column.ofStringArray(['10', '20']);
+    const ints = {
+      ...strings,
+      schema: Column.Schema.int,
+      value: (row: number) => +strings.value(row),
+    } as Column<number>;
+    const out = [0, 0];
+    Column.copyToArray(ints, out);
+    expect(out).toEqual([10, 20]);
+  });
+});
+
 describe('column views and windows', () => {
   it('read toArray from the requested start', () => {
     const c = Column.ofLambda({ value: (i) => i * 10, rowCount: 10, schema: Column.Schema.int });

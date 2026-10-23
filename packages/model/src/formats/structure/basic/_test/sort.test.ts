@@ -103,4 +103,31 @@ describe('sortAtomSite', () => {
       reads.clear();
     }
   });
+
+  it('sorts by dictionary ids as by their values, repeated and empty values included', async () => {
+    // entity and chain ids as dictionaries holding '' twice, as BinaryCIF writes them, and 'B' twice
+    const values = ['', 'A', '', 'B', 'B'];
+    const entity = Uint8Array.of(3, 1, 1, 4, 3, 0, 2, 1, 4);
+    const chain = Uint8Array.of(1, 3, 4, 0, 2, 1, 3, 4, 1);
+    const dictionaries = Table.ofColumns(BasicSchema.atom_site, {
+      ...atom_site,
+      label_entity_id: Column.ofDictionary({ indices: entity, values, schema: Column.Schema.str }),
+      label_asym_id: Column.ofDictionary({ indices: chain, values, schema: Column.Schema.str }),
+    });
+    const arrays = Table.ofColumns(BasicSchema.atom_site, {
+      ...atom_site,
+      label_entity_id: Column.ofStringArray(Array.from(entity, (i) => values[i])),
+      label_asym_id: Column.ofStringArray(Array.from(chain, (i) => values[i])),
+    });
+    for (const [start, end] of [
+      [0, 5],
+      [5, 9],
+      [0, 9],
+    ]) {
+      const a = await sortAtomSite(SyncRuntimeContext, dictionaries, start, end);
+      const b = await sortAtomSite(SyncRuntimeContext, arrays, start, end);
+      expect(Array.from(a.sourceIndex.toArray())).toEqual(Array.from(b.sourceIndex.toArray()));
+      expect(read(a.atom_site)).toEqual(read(b.atom_site));
+    }
+  });
 });
