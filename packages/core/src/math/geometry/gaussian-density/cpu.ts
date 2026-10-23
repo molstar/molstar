@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { RuntimeContext } from '@molstar/core/task';
@@ -62,7 +63,9 @@ export async function GaussianDensityCPU(
   const densData = space.create();
 
   const alpha = smoothness;
-  const updateChunk = Math.ceil(100000 / (Math.pow(Math.pow(maxRadius, 3), 3) * scaleFactor));
+  // atoms per yield by the voxels an atom visits; `1e5 / (maxRadius⁹ · scale)` gave whole structures for small radii
+  // (perf-audit-2 02/B2)
+  const updateChunk = Math.max(1, Math.ceil(2e6 / Math.pow(4 * maxRadius * scaleFactor + 2, 3)));
 
   function accumulateRange(begI: number, endI: number) {
     for (let i = begI; i < endI; ++i) {
