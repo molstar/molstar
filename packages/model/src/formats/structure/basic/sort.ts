@@ -47,18 +47,42 @@ export async function sortAtomSite(
   if (isRange(indices, start)) {
     if (start === 0 && end === atom_site._rowCount) return { atom_site, sourceIndex: Column.ofIntArray(indices) };
     return {
-      atom_site: lazyTable(atom_site, indices.length, (c) => {
-        // a typed array read as its values (`Column.view`'s own test for reading the array)
-        const inPlace =
-          !!c.__array && ColumnHelpers.isTypedArray(c.__array) && typeof c.value(0) === typeof c.__array[0];
-        return inPlace ? Column.window(c, start, end) : Column.view(c, indices);
-      }),
+      atom_site: lazyTable(atom_site, indices.length, (c) =>
+        floatRows(
+          c,
+          indices.length,
+          () => {
+            // a typed array read as its values (`Column.view`'s own test for reading the array)
+            const inPlace =
+              !!c.__array && ColumnHelpers.isTypedArray(c.__array) && typeof c.value(0) === typeof c.__array[0];
+            return inPlace ? Column.window(c, start, end) : Column.view(c, indices);
+          },
+          (params) => {
+            const { start: s, end: e } = ColumnHelpers.getArrayBounds(indices.length, params);
+            const rows = c.toArray({ array: Float32Array, start: start + s, end: start + e });
+            return rows instanceof Float32Array ? rows : Float32Array.from(rows);
+          },
+        ),
+      ),
       sourceIndex: Column.ofIntArray(indices),
     };
   }
 
   return {
-    atom_site: lazyTable(atom_site, indices.length, (c) => Column.view(c, indices)),
+    atom_site: lazyTable(atom_site, indices.length, (c) =>
+      floatRows(
+        c,
+        indices.length,
+        () => Column.view(c, indices),
+        (params) => {
+          const source = c.toArray({ array: Float32Array });
+          const { start, end } = ColumnHelpers.getArrayBounds(indices.length, params);
+          const out = new Float32Array(end - start);
+          for (let i = start; i < end; i++) out[i - start] = source[indices[i]];
+          return out;
+        },
+      ),
+    ),
     sourceIndex: Column.ofIntArray(indices),
   };
 }
@@ -84,6 +108,34 @@ function lazyTable(atom_site: AtomSite, rowCount: number, column: (c: Column<any
     });
   }
   return ret;
+}
+
+/**
+ * A float column's rows: `toArray({ array: Float32Array })` reads them through `float32` from the source's own Float32
+ * array (a BinaryCIF column decodes straight to Float32: the conformation's coordinates, perf-audit-2 04/P5 part 2),
+ * everything else through the `rows` column, made on first use. Other columns are `rows()` as they are.
+ */
+function floatRows(
+  c: Column<any>,
+  rowCount: number,
+  rows: () => Column<any>,
+  float32: (params?: Column.ToArrayParams<number>) => Float32Array,
+): Column<any> {
+  if (c.schema.valueType !== 'float' || !c.isDefined || c.rowCount === 0) return rows();
+  let column: Column<any> | undefined;
+  const get = () => column ?? (column = rows());
+  return {
+    schema: c.schema,
+    get __array() {
+      return get().__array;
+    },
+    isDefined: true,
+    rowCount,
+    value: (row) => get().value(row),
+    valueKind: (row) => get().valueKind(row),
+    areValuesEqual: (rowA, rowB) => get().areValuesEqual(rowA, rowB),
+    toArray: (params) => (params?.array === Float32Array ? float32(params) : get().toArray(params)),
+  };
 }
 
 /** Whether `indices[i] === start + i` for every i. */

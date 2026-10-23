@@ -143,4 +143,25 @@ describe('binary-cif Field', () => {
     // decoded once
     expect(f.__array).toBe(f.__array);
   });
+
+  it('decodes a quantized column read as Float32 straight to Float32, the other accessors to the source type', () => {
+    const values = Float64Array.from({ length: 100 }, (_, i) => Math.round(Math.sin(i) * 1e6) / 1000);
+    const column: EncodedColumn = {
+      name: 'x',
+      data: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking).encode(values),
+      mask: ArrayEncoder.by(E.byteArray).encode(Uint8Array.from(values, (_, i) => (i === 3 ? NotPresent : Present))),
+    };
+    const f = Field(column, values.length);
+    const float32 = f.toFloatArray({ array: Float32Array });
+    expect(float32).toBeInstanceOf(Float32Array);
+    const float64 = f.toFloatArray();
+    expect(float64).toBeInstanceOf(Float64Array);
+    expect(Array.from(float32)).toEqual(Array.from(float64, (v) => Math.fround(v)));
+    expect(float32[3]).toBe(0);
+    expect(f.__array).toBeInstanceOf(Float64Array);
+    expect(f.float(5)).toBe(values[5]);
+    expect(Array.from(f.toFloatArray({ array: Float32Array, start: 10, end: 20 }))).toEqual(
+      Array.from(float32.slice(10, 20)),
+    );
+  });
 });

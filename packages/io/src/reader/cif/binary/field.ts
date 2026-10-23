@@ -7,7 +7,7 @@
 
 import { Column, ColumnHelpers } from '@molstar/core/data/db';
 import type * as Data from '../data-model.js';
-import { type EncodedColumn, decode } from '@molstar/io/common/binary-cif';
+import { type EncodedColumn, Encoding, decode } from '@molstar/io/common/binary-cif';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '@molstar/core/util/number-parser';
 
 /**
@@ -18,6 +18,24 @@ export function Field(column: EncodedColumn, rowCount?: number): Data.CifField {
   let impl: Data.CifField | undefined;
   const get = () => impl ?? (impl = decodedField(column));
   const field = rowCount === void 0 ? get() : void 0;
+
+  // A quantized float column read as Float32 (the conformation's coordinates) decodes straight to Float32: each value
+  // computed in double as by the source type and rounded once, so equal to a Float32 copy of the source-type array.
+  // The other accessors decode to the source type, so writers see exact values; both kinds of access decode twice.
+  const quantized =
+    column.data.encoding[0]?.kind === 'FixedPoint' || column.data.encoding[0]?.kind === 'IntervalQuantization';
+  let float32: Data.CifField | undefined;
+  const toFloatArray: Data.CifField['toFloatArray'] = quantized
+    ? (params) => {
+        if (params?.array !== Float32Array) return get().toFloatArray(params);
+        if (!float32) {
+          const [scale, ...rest] = column.data.encoding;
+          const data = { ...column.data, encoding: [{ ...scale, srcType: Encoding.FloatDataType.Float32 }, ...rest] };
+          float32 = decodedField({ ...column, data } as EncodedColumn);
+        }
+        return float32.toFloatArray(params);
+      }
+    : (params) => get().toFloatArray(params);
 
   return {
     get __array() {
@@ -33,7 +51,7 @@ export function Field(column: EncodedColumn, rowCount?: number): Data.CifField {
     areValuesEqual: (rowA, rowB) => get().areValuesEqual(rowA, rowB),
     toStringArray: (params) => get().toStringArray(params),
     toIntArray: (params) => get().toIntArray(params),
-    toFloatArray: (params) => get().toFloatArray(params),
+    toFloatArray,
   };
 }
 
