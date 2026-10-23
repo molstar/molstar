@@ -207,7 +207,6 @@ export function byteTokensField(tokens: ByteTokens, column: number): CifField {
   };
 
   return {
-    __array: void 0,
     binaryEncoding: void 0,
     isDefined: true,
     rowCount,

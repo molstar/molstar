@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { Column } from '@molstar/core/data/db';
 import {
   ArrayEncoder,
   ArrayEncoding as E,
@@ -14,6 +15,16 @@ import {
   classifyFloatArray,
 } from '../../../../common/binary-cif.js';
 import { Field } from '../field.js';
+import { CifCategory } from '../../data-model.js';
+import { toTable } from '../../schema.js';
+import { decodeSteps } from '../../../../common/binary-cif/decoder.js';
+import { parseFloat as fastParseFloat, parseInt as fastParseInt } from '@molstar/core/util/number-parser';
+
+/** The array behind a column or field: its `'array'` storage. */
+function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | undefined }) {
+  const s = c.storage?.();
+  return s?.kind === 'array' ? s.array : void 0;
+}
 
 /** mirrors `Column.ValueKinds` */
 const Present = 0,
@@ -71,7 +82,7 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toIntArray())).toEqual([1, 0, 3, 0, 5]);
     expect(Array.from(f.toIntArray({ start: 1, end: 4 }))).toEqual([0, 3, 0]);
 
-    expect(Array.from(f.__array as ArrayLike<number>)).toEqual(IntValues);
+    expect(Array.from(arrayOf(f)!)).toEqual(IntValues);
   });
 
   it('toFloatArray defaults masked values to 0', () => {
@@ -80,7 +91,7 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toFloatArray())).toEqual([1.5, 0, 3.5, 0, 5.5]);
     expect(Array.from(f.toFloatArray({ start: 1, end: 4 }))).toEqual([0, 3.5, 0]);
 
-    expect(Array.from(f.__array as ArrayLike<number>)).toEqual(FloatValues);
+    expect(Array.from(arrayOf(f)!)).toEqual(FloatValues);
   });
 
   it('leaves str and valueKind unchanged', () => {
@@ -139,9 +150,9 @@ describe('binary-cif Field', () => {
       Array.from(eager.toFloatArray({ start: 1, end: 3 })),
     );
     expect(f.toStringArray()).toEqual(eager.toStringArray());
-    expect(Array.from(f.__array!)).toEqual(Array.from(eager.__array!));
+    expect(Array.from(arrayOf(f)!)).toEqual(Array.from(arrayOf(eager)!));
     // decoded once
-    expect(f.__array).toBe(f.__array);
+    expect(arrayOf(f)).toBe(arrayOf(f));
   });
 
   it('decodes a quantized column read as Float32 straight to Float32, the other accessors to the source type', () => {
@@ -158,10 +169,82 @@ describe('binary-cif Field', () => {
     expect(float64).toBeInstanceOf(Float64Array);
     expect(Array.from(float32)).toEqual(Array.from(float64, (v) => Math.fround(v)));
     expect(float32[3]).toBe(0);
-    expect(f.__array).toBeInstanceOf(Float64Array);
+    expect(arrayOf(f)).toBeInstanceOf(Float64Array);
     expect(f.float(5)).toBe(values[5]);
     expect(Array.from(f.toFloatArray({ array: Float32Array, start: 10, end: 20 }))).toEqual(
       Array.from(float32.slice(10, 20)),
     );
+  });
+
+  it('keeps a string column as its dictionary, with the values of its array of strings', () => {
+    const data = ['ALA', 'GLY', null, '12', 'GLY', '', 'ALA', '3.5'] as string[];
+    const encoded = E.by(E.stringArray).encode(data);
+    const steps = decodeSteps(encoded) as string[];
+    const cases: [string, number[] | undefined, 'dictionary' | 'array'][] = [
+      ['no mask', void 0, 'dictionary'],
+      // the null row and the empty string masked: both read as ''
+      [
+        'mask over empty rows',
+        [Present, Present, NotPresent, Present, Present, Unknown, Present, Present],
+        'dictionary',
+      ],
+      // a masked row with a string under it keeps the array of strings
+      ['mask over a value', [Present, Unknown, NotPresent, Present, Present, Present, Present, Present], 'array'],
+    ];
+    for (const [name, mask, kind] of cases) {
+      const column: EncodedColumn = {
+        name: 'x',
+        data: encoded,
+        mask: mask ? ArrayEncoder.by(E.byteArray).encode(new Uint8Array(mask)) : void 0,
+      };
+      const f = Field(column, data.length);
+      expect(f.storage!()!.kind, name).toBe(kind);
+      for (let i = 0; i < data.length; i++) {
+        const present = !mask || mask[i] === Present;
+        const v = steps[i];
+        expect([f.str(i), f.int(i), f.float(i), f.valueKind(i)], `${name} ${i}`).toEqual([
+          present ? v : '',
+          fastParseInt(v, 0, v.length),
+          fastParseFloat(v, 0, v.length),
+          mask ? mask[i] : Present,
+        ]);
+        for (let j = 0; j < data.length; j++) expect(f.areValuesEqual(i, j)).toBe(steps[i] === steps[j]);
+      }
+    }
+  });
+
+  it('reads a dictionary through CIF schemas: transforms, ints over strings, views and windows', () => {
+    const names = ['Ala', 'gly', 'ALA', '7', '12', 'Ala'];
+    const f = Field({ name: 'x', data: E.by(E.stringArray).encode(names) }, names.length);
+    expect(f.storage!()!.kind).toBe('dictionary');
+    const category = CifCategory('t', names.length, ['l', 'u', 'n', 's'], { l: f, u: f, n: f, s: f });
+    const table = toTable(
+      { l: Column.Schema.lstr, u: Column.Schema.ustr, n: Column.Schema.int, s: Column.Schema.str },
+      category,
+    ) as any;
+    const map = [5, 3, 0, 4];
+    const expected = {
+      l: names.map((v) => v.toLowerCase()),
+      u: names.map((v) => v.toUpperCase()),
+      n: names.map((v) => fastParseInt(v, 0, v.length)),
+      s: names,
+    } as Record<string, (string | number)[]>;
+    for (const k of ['l', 'u', 'n', 's']) {
+      const c = table[k] as Column<any>;
+      expect(
+        Array.from({ length: c.rowCount }, (_, i) => c.value(i)),
+        k,
+      ).toEqual(expected[k]);
+      const view = Column.view(c, map);
+      expect(
+        Array.from({ length: view.rowCount }, (_, i) => view.value(i)),
+        k,
+      ).toEqual(map.map((i) => expected[k][i]));
+      const window = Column.window(c, 2, 5);
+      expect(
+        Array.from({ length: window.rowCount }, (_, i) => window.value(i)),
+        k,
+      ).toEqual(expected[k].slice(2, 5));
+    }
   });
 });

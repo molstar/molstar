@@ -44,7 +44,7 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
 ## BinaryCIF
 
 - **A field decodes on first access** (`binary/field.ts`), given its category's row count; `createColumn` forwards
-  `__array` on read, and a sorted or windowed `atom_site` makes each column on its first read (`model` `basic/sort.ts`),
+  `storage()` on call, and a sorted or windowed `atom_site` makes each column on its first read (`model` `basic/sort.ts`),
   so the columns a model never reads are neither decoded nor copied (perf-audit-2 04/P5).
 - **Fused decoding** (`common/binary-cif/decoder.ts`): `[FixedPoint | IntervalQuantization] > [Delta] > [RunLength] >
   [IntegerPacking] > ByteArray` with two or more steps (the chains a survey of PDBe/RCSB files found: coordinates, B,
@@ -57,7 +57,9 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   values. Sorted and windowed models gather the coordinates from that array, of its type, reading only their own rows. The
   conformation of a quantized BinaryCIF model (the PDB's coordinates) is therefore Float32, like a text one's; it was
   Float64 because `typedArrayWindow` ignores `array`. A raw Float64 column stays Float64 in every path.
-- **Not done: dictionary-encoded string columns** (04/P16): keep a StringArray column as its indices and strings
-  (`value(i) = strings[indices[i] + 1]`, equality on indices, sorting gathers 4-byte indices). It would save the 8 B
-  per value pointer array (flat-192: ~9 MB per string column, 15 of the 26 `atom_site` columns) and the sorted copies,
-  but needs a core `Column` change (`__array` readers expect values), a public API change.
+- **String columns as dictionaries** (04/P16): a StringArray column decodes to its distinct strings and an index per
+  row in the smallest unsigned type (`decodeStringDictionary`), not a string per row; its storage is
+  `{ kind: 'dictionary', indices, values }` (`Column.storage`, core). Views and windows gather or slice the indices,
+  `Column.areEqual` compares them, and `sortAtomSite` buckets by them when the strings are distinct. The values are
+  those of the array of strings: an index out of range, or a masked row whose string is not `''`, keeps the array.
+  flat-192 model stage: 419 → ~334 ms, retained 244 → 124 MB.

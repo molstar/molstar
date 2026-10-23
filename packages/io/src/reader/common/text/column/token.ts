@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -28,7 +28,6 @@ export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T):
 
   return {
     schema: schema,
-    __array: void 0,
     isDefined: true,
     rowCount,
     value,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -135,7 +135,8 @@ export namespace CifCategory {
  * This is to ensure that the functions can invoked without having to "bind" them.
  */
 export interface CifField {
-  readonly __array: ArrayLike<any> | undefined;
+  /** The storage behind the values (`Column.storage`): absent for text fields. */
+  storage?(): Column.Storage | undefined;
   readonly binaryEncoding: Encoding[] | undefined;
   readonly isDefined: boolean;
   readonly rowCount: number;
@@ -185,7 +186,6 @@ export namespace CifField {
     };
 
     return {
-      __array: void 0,
       binaryEncoding: void 0,
       isDefined: true,
       rowCount,
@@ -218,7 +218,6 @@ export namespace CifField {
     };
 
     return {
-      __array: void 0,
       binaryEncoding: void 0,
       isDefined: true,
       rowCount,
@@ -262,7 +261,6 @@ export namespace CifField {
     };
 
     return {
-      __array: void 0,
       binaryEncoding: void 0,
       isDefined: true,
       rowCount,
@@ -315,7 +313,6 @@ export namespace CifField {
     }
 
     return {
-      __array: void 0,
       binaryEncoding: void 0,
       isDefined,
       rowCount,

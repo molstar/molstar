@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -46,7 +46,6 @@ export function FixedColumn<T extends Column.Schema>(
           };
   return {
     schema: schema,
-    __array: void 0,
     isDefined: true,
     rowCount,
     value,

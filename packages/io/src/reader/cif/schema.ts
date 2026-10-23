@@ -80,10 +80,8 @@ function createStringColumn<T extends string>(
 ): Column<T> {
   return {
     schema,
-    // read on access: a BinaryCIF field decodes when its array is first read (binary/field.ts)
-    get __array() {
-      return field.__array;
-    },
+    // a BinaryCIF field decodes when its storage is first asked for (binary/field.ts)
+    storage: field.storage,
     isDefined: field.isDefined,
     rowCount: field.rowCount,
     value:
@@ -111,9 +109,7 @@ function createColumn<T>(
 ): Column<T> {
   return {
     schema,
-    get __array() {
-      return field.__array;
-    },
+    storage: field.storage,
     isDefined: field.isDefined,
     rowCount: field.rowCount,
     value,
@@ -145,7 +141,6 @@ function createListColumn<T extends number | string>(
 
   return {
     schema,
-    __array: void 0,
     isDefined: !!f,
     rowCount: category.rowCount,
     value,
@@ -181,7 +176,6 @@ function createTensorColumn(
 
   return {
     schema,
-    __array: void 0,
     isDefined: first.isDefined,
     rowCount: category.rowCount,
     value,

@@ -225,7 +225,8 @@ function integerPacking(data: Int8Array | Int16Array | Uint8Array | Uint16Array,
     : integerPackingSigned(data as any, encoding);
 }
 
-function stringArray(data: Uint8Array, encoding: Encoding.StringArray, fuse: boolean) {
+/** `''` and the strings of a StringArray: index `i` of the data is `strings[i + 1]` (-1 is `''`). */
+function stringArrayStrings(encoding: Encoding.StringArray, fuse: boolean): string[] {
   const offsetData = { encoding: encoding.offsetEncoding, data: encoding.offsets };
   const offsets = fuse ? decode(offsetData) : decodeSteps(offsetData);
 
@@ -235,6 +236,35 @@ function stringArray(data: Uint8Array, encoding: Encoding.StringArray, fuse: boo
   for (let i = 1, _i = offsets.length; i < _i; i++) {
     strings[i] = str.substring(offsets[i - 1], offsets[i]);
   }
+  return strings;
+}
+
+/**
+ * A StringArray column as a dictionary, without its array of strings: `values` is `''` and the distinct strings, and
+ * `values[indices[i]]` is the decoded value `i` (the indices of the data plus one, in the smallest unsigned type that
+ * holds them). `undefined` for any other encoding, or for an index out of the strings' range (whose decoded value is
+ * `undefined`).
+ */
+export function decodeStringDictionary(
+  data: EncodedData,
+): { indices: Uint8Array | Uint16Array | Int32Array; values: string[] } | undefined {
+  if (data.encoding.length !== 1 || data.encoding[0].kind !== 'StringArray') return;
+  const encoding = data.encoding[0];
+  const values = stringArrayStrings(encoding, true);
+  const raw = decode({ encoding: encoding.dataEncoding, data: data.data }) as ArrayLike<number>;
+  const n = raw.length;
+  const max = values.length;
+  const indices = max <= 0x100 ? new Uint8Array(n) : max <= 0x10000 ? new Uint16Array(n) : new Int32Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = raw[i] + 1;
+    if (!(k >= 0 && k < max)) return;
+    indices[i] = k;
+  }
+  return { indices, values };
+}
+
+function stringArray(data: Uint8Array, encoding: Encoding.StringArray, fuse: boolean) {
+  const strings = stringArrayStrings(encoding, fuse);
 
   // the indices decoded and mapped to their strings in one pass when the chain allows
   const fused = fuse ? decodeFused({ encoding: encoding.dataEncoding, data }, strings) : void 0;
