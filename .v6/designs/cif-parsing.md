@@ -44,7 +44,7 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
 ## BinaryCIF
 
 - **A field decodes on first access** (`binary/field.ts`), given its category's row count; `createColumn` forwards
-  `__array` on read, and a sorted or windowed `atom_site` makes each column on its first read (`model` `basic/sort.ts`),
+  `storage()` on call, and a sorted or windowed `atom_site` makes each column on its first read (`model` `basic/sort.ts`),
   so the columns a model never reads are neither decoded nor copied (perf-audit-2 04/P5).
 - **Fused decoding** (`common/binary-cif/decoder.ts`): `[FixedPoint | IntervalQuantization] > [Delta] > [RunLength] >
   [IntegerPacking] > ByteArray` with two or more steps (the chains a survey of PDBe/RCSB files found: coordinates, B,

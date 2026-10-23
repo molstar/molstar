@@ -15,6 +15,12 @@ import {
 } from '../../../../common/binary-cif.js';
 import { Field } from '../field.js';
 
+/** The array behind a column or field: its `'array'` storage. */
+function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | undefined }) {
+  const s = c.storage?.();
+  return s?.kind === 'array' ? s.array : void 0;
+}
+
 /** mirrors `Column.ValueKinds` */
 const Present = 0,
   NotPresent = 1,
@@ -71,7 +77,7 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toIntArray())).toEqual([1, 0, 3, 0, 5]);
     expect(Array.from(f.toIntArray({ start: 1, end: 4 }))).toEqual([0, 3, 0]);
 
-    expect(Array.from(f.__array as ArrayLike<number>)).toEqual(IntValues);
+    expect(Array.from(arrayOf(f)!)).toEqual(IntValues);
   });
 
   it('toFloatArray defaults masked values to 0', () => {
@@ -80,7 +86,7 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toFloatArray())).toEqual([1.5, 0, 3.5, 0, 5.5]);
     expect(Array.from(f.toFloatArray({ start: 1, end: 4 }))).toEqual([0, 3.5, 0]);
 
-    expect(Array.from(f.__array as ArrayLike<number>)).toEqual(FloatValues);
+    expect(Array.from(arrayOf(f)!)).toEqual(FloatValues);
   });
 
   it('leaves str and valueKind unchanged', () => {
@@ -139,9 +145,9 @@ describe('binary-cif Field', () => {
       Array.from(eager.toFloatArray({ start: 1, end: 3 })),
     );
     expect(f.toStringArray()).toEqual(eager.toStringArray());
-    expect(Array.from(f.__array!)).toEqual(Array.from(eager.__array!));
+    expect(Array.from(arrayOf(f)!)).toEqual(Array.from(arrayOf(eager)!));
     // decoded once
-    expect(f.__array).toBe(f.__array);
+    expect(arrayOf(f)).toBe(arrayOf(f));
   });
 
   it('decodes a quantized column read as Float32 straight to Float32, the other accessors to the source type', () => {
@@ -158,7 +164,7 @@ describe('binary-cif Field', () => {
     expect(float64).toBeInstanceOf(Float64Array);
     expect(Array.from(float32)).toEqual(Array.from(float64, (v) => Math.fround(v)));
     expect(float32[3]).toBe(0);
-    expect(f.__array).toBeInstanceOf(Float64Array);
+    expect(arrayOf(f)).toBeInstanceOf(Float64Array);
     expect(f.float(5)).toBe(values[5]);
     expect(Array.from(f.toFloatArray({ array: Float32Array, start: 10, end: 20 }))).toEqual(
       Array.from(float32.slice(10, 20)),

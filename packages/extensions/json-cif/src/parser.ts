@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -28,7 +28,6 @@ function Field(rows: Record<string, any>[], name: string): CifField {
 
   const rowCount = rows.length;
   return {
-    __array: undefined,
     binaryEncoding: undefined,
     isDefined: true,
     rowCount,

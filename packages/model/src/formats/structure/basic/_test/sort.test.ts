@@ -10,6 +10,12 @@ import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { BasicSchema } from '../schema.js';
 import { sortAtomSite } from '../sort.js';
 
+/** The array behind a column or field: its `'array'` storage. */
+function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | undefined }) {
+  const s = c.storage?.();
+  return s?.kind === 'array' ? s.array : void 0;
+}
+
 // Model 1 (rows 0-4): entity 2's rows first and seq ids out of order, so it sorts. Model 2 (rows 5-8): already in
 // order, a contiguous range. Typed and plain array columns, one column with a missing value.
 const atom_site = Table.ofArrays(BasicSchema.atom_site, {
@@ -51,8 +57,8 @@ describe('sortAtomSite', () => {
     const { atom_site: sorted, sourceIndex } = await sortAtomSite(SyncRuntimeContext, atom_site, 5, 9);
     expect(Array.from(sourceIndex.toArray())).toEqual([5, 6, 7, 8]);
     expect(read(sorted)).toEqual(read(Table.view(atom_site, atom_site._schema, [5, 6, 7, 8])));
-    expect(sorted.Cartn_x.__array!.buffer).toBe(atom_site.Cartn_x.__array!.buffer);
-    expect(Array.isArray(sorted.label_comp_id.__array)).toBe(true);
+    expect((arrayOf(sorted.Cartn_x) as Float32Array).buffer).toBe((arrayOf(atom_site.Cartn_x) as Float32Array).buffer);
+    expect(Array.isArray(arrayOf(sorted.label_comp_id))).toBe(true);
   });
 
   it('returns the table itself when it is one model in order', async () => {

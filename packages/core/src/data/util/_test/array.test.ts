@@ -8,6 +8,12 @@ import { describe, expect, it } from 'vitest';
 import { Column } from '@molstar/core/data/db';
 import { arrayPickIndices } from '../array.js';
 
+/** The array behind a column or field: its `'array'` storage. */
+function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | undefined }) {
+  const s = c.storage?.();
+  return s?.kind === 'array' ? s.array : void 0;
+}
+
 describe('arrayPickIndices', () => {
   const indices = Int32Array.of(3, 0, 2, 2);
   const cases: [string, ArrayLike<any>][] = [
@@ -29,7 +35,7 @@ describe('arrayPickIndices', () => {
     for (const [, array] of cases) {
       const schema = typeof array[0] === 'string' ? Column.Schema.str : Column.Schema.float;
       const view = Column.view(Column.ofArray({ array, schema } as any), indices, false);
-      expect(view.__array!.constructor).toBe(array.constructor);
+      expect(arrayOf(view)!.constructor).toBe(array.constructor);
       expect(Array.from({ length: indices.length }, (_, i) => view.value(i))).toEqual(
         Array.from(indices, (i) => array[i]),
       );

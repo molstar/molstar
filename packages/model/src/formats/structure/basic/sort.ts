@@ -53,8 +53,9 @@ export async function sortAtomSite(
           indices.length,
           () => {
             // a typed array read as its values (`Column.view`'s own test for reading the array)
+            const s = c.storage?.();
             const inPlace =
-              !!c.__array && ColumnHelpers.isTypedArray(c.__array) && typeof c.value(0) === typeof c.__array[0];
+              s?.kind === 'array' && ColumnHelpers.isTypedArray(s.array) && typeof c.value(0) === typeof s.array[0];
             return inPlace ? Column.window(c, start, end) : Column.view(c, indices);
           },
           (params) => {
@@ -138,9 +139,7 @@ function floatRows(
   const get = () => column ?? (column = rows());
   return {
     schema: c.schema,
-    get __array() {
-      return get().__array;
-    },
+    storage: () => get().storage?.(),
     isDefined: true,
     rowCount,
     value: (row) => get().value(row),

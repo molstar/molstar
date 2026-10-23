@@ -38,9 +38,7 @@ export function Field(column: EncodedColumn, rowCount?: number): Data.CifField {
     : (params) => get().toFloatArray(params);
 
   return {
-    get __array() {
-      return get().__array;
-    },
+    storage: () => get().storage!(),
     binaryEncoding: column.data.encoding,
     isDefined: true,
     rowCount: field ? field.rowCount : rowCount!,
@@ -97,9 +95,10 @@ function decodedField(column: EncodedColumn): Data.CifField {
     : (row) => Column.ValueKinds.Present;
 
   const rowCount = data.length;
+  const storage: Column.Storage = { kind: 'array', array: data };
 
   return {
-    __array: data,
+    storage: () => storage,
     binaryEncoding: column.data.encoding,
     isDefined: true,
     rowCount,

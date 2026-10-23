@@ -12,6 +12,12 @@ import type { CifCategory, CifFile, CifFrame } from '../../data-model.js';
 import { parseCifText } from '../parser.js';
 import { parseCifTextFromString } from './string-parser.js';
 
+/** The array behind a column or field: its `'array'` storage. */
+function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | undefined }) {
+  const s = c.storage?.();
+  return s?.kind === 'array' ? s.array : void 0;
+}
+
 // The byte tokenizer against the string tokenizer it replaced (`string-parser.ts`): every accessor of every field of
 // every row, the file structure, and the errors with their lines, on the repo's text CIF files and on the syntax corner
 // cases. A large file is in the medium lane below.
@@ -112,7 +118,7 @@ function expectSameCategory(a: CifCategory, b: CifCategory, where: string) {
     expect(fa.toStringArray({ start: 0, end: Math.min(n, 5) })).toEqual(
       fb.toStringArray({ start: 0, end: Math.min(n, 5) }),
     );
-    expect(fa.__array).toBe(undefined);
+    expect(arrayOf(fa)).toBe(undefined);
     expect(fa.binaryEncoding).toBe(undefined);
   }
 }
