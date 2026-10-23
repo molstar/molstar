@@ -379,6 +379,30 @@ function lambdaColumn<T extends Column.Schema>({
   };
 }
 
+/** The values of a dictionary as a column of `schema` reads them, by `values` and schema: views and windows share them. */
+const dictionaryReads = new WeakMap<object, Map<Column.Schema, ArrayLike<any>>>();
+
+function dictionaryValues(values: ArrayLike<any>, schema: Column.Schema): ArrayLike<any> {
+  if (schema.valueType !== 'str') return values;
+  let bySchema = dictionaryReads.get(values);
+  if (!bySchema) dictionaryReads.set(values, (bySchema = new Map()));
+  let read = bySchema.get(schema);
+  if (read) return read;
+  const transform = (schema as Column.Schema.Str).transform;
+  // as `arrayColumn` reads a str column: a non-string as text, transformed
+  const asString = (v: any): string => (typeof v === 'string' ? v : `${v ?? schema.T}`);
+  read =
+    transform === 'lowercase'
+      ? Array.from(values, (v) => asString(v).toLowerCase())
+      : transform === 'uppercase'
+        ? Array.from(values, (v) => asString(v).toUpperCase())
+        : Array.prototype.some.call(values, (v: any) => typeof v !== 'string')
+          ? Array.from(values, asString)
+          : values;
+  bySchema.set(schema, read);
+  return read;
+}
+
 function dictionaryColumn<T extends Column.Schema>({
   indices,
   values,
@@ -386,19 +410,7 @@ function dictionaryColumn<T extends Column.Schema>({
   valueKind,
 }: Column.DictionarySpec<T>): Column<T['T']> {
   const rowCount = indices.length;
-  const isStr = schema.valueType === 'str';
-  const transform = isStr ? (schema as Column.Schema.Str).transform : void 0;
-  // the values as a str column reads them (as `arrayColumn`: a non-string as text), transformed, once
-  const asString = (v: any): string => (typeof v === 'string' ? v : `${v ?? schema.T}`);
-  const read: ArrayLike<T['T']> = !isStr
-    ? values
-    : transform === 'lowercase'
-      ? Array.from(values, (v) => asString(v).toLowerCase() as T['T'])
-      : transform === 'uppercase'
-        ? Array.from(values, (v) => asString(v).toUpperCase() as T['T'])
-        : Array.prototype.some.call(values, (v: any) => typeof v !== 'string')
-          ? Array.from(values, (v) => asString(v) as T['T'])
-          : values;
+  const read = dictionaryValues(values, schema) as ArrayLike<T['T']>;
   const value: Column<T['T']>['value'] = (row) => read[indices[row]];
   const storage: Column.Storage = { kind: 'dictionary', indices, values };
   return {
@@ -520,7 +532,18 @@ function windowColumn<T>(column: Column<T>, start: number, end: number): Column<
 function windowTyped<T>(c: Column<T>, source: ArrayLike<any>, start: number, end: number): Column<T> {
   const array = ColumnHelpers.typedArrayWindow(source, { start, end });
   const vk = c.valueKind;
-  return arrayColumn({ array, schema: c.schema, valueKind: (row) => vk(start + row) }) as any;
+  const window = arrayColumn({ array, schema: c.schema, valueKind: (row) => vk(start + row) }) as any as Column<T>;
+  const toArray = window.toArray;
+  return {
+    ...window,
+    // an array of another kind from the source, which may make it otherwise than by copying (a BinaryCIF column
+    // decodes straight to Float32), so a window of it reads as the whole column does
+    toArray: (params) => {
+      if (!params?.array || array instanceof params.array) return toArray(params);
+      const { start: s, end: e } = ColumnHelpers.getArrayBounds(end - start, params);
+      return c.toArray({ ...params, start: start + s, end: start + e });
+    },
+  };
 }
 
 function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {

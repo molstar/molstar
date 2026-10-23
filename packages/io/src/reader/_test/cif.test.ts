@@ -112,6 +112,8 @@ describe('CIF.parse', () => {
       if (r.isError) throw new Error(r.message);
       expect(r.result.blocks[0].categories['a'].getField('v')!.toIntArray()).toEqual([1, 2]);
     }
+    // no bytes fail as BinaryCIF, as before bytes were sniffed
+    expect((await CIF.parse(new Uint8Array(0)).run()).isError).toBe(true);
     const r = await CIF.parse(new Uint8Array(binary)).run();
     if (r.isError) throw new Error(r.message);
     expect(r.result.blocks[0].categories['atom_site'].getField('Cartn_x')!.binaryEncoding).toBeDefined();

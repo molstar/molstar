@@ -22,6 +22,9 @@ function arrayOf(c: { storage?(): { kind: string; array?: ArrayLike<any> } | und
 // every row, the file structure, and the errors with their lines, on the repo's text CIF files and on the syntax corner
 // cases. A large file is in the medium lane below.
 
+/** U+FEFF, the byte order mark (Biome writes an escape of it as the character itself) */
+const BOM = String.fromCharCode(0xfeff);
+
 const root = path.resolve(import.meta.dirname, '../../../../../../..');
 const Files = [
   'data/examples/1crn.cif',
@@ -50,7 +53,9 @@ const Cases: Record<string, string> = {
   blocks: `data_1\n_a.x 1\ndata_2\n_a.x 2\nloop_\n_b.y\n1\n2\n3\n`,
   keywords: `data_k\nloop_\n_a.x\nDATA_x\nloop_\n_b.y\n1\n`,
   semicolonInLine: `data_s\n_a.x 1;2 _a.y ;x\n`,
-  bom: `﻿data_bom\n_a.x 1\n`,
+  bom: `${BOM}data_bom\n_a.x 1\n`,
+  // U+FEFF inside the file is text: kept at the start of a value
+  bomInValues: `data_v\n_a.x ${BOM}abc _a.y "${BOM}"\nloop_\n_b.v\n${BOM}x\n${BOM}\n`,
   long: `data_l\nloop_\n_a.x\n_a.y\n${'x'.repeat(300)} ${'y'.repeat(254)}\n${'z'.repeat(255)} 1\n`,
   // values of 255+ bytes in a loop that grows: the ends' map is re-keyed
   longGrow: `data_g\nloop_\n_a.x\n_a.y\n${Array.from({ length: 200 }, (_, i) => `${String(i).repeat(100 + i)} ${i}`).join('\n')}\n`,

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { utf8ByteCount, utf8Read, utf8Write } from '../utf8.js';
+import { utf8ByteCount, utf8Read, utf8ReadValue, utf8Write } from '../utf8.js';
 
 function write(s: string) {
   const data = new Uint8Array(utf8ByteCount(s));
@@ -57,5 +57,13 @@ describe('utf8', () => {
     // a range past the end reads what is there, as the decoder of a subarray does
     const data = new TextEncoder().encode('abc');
     expect(utf8Read(data, 1, 5)).toBe('bc');
+  });
+
+  it('reads a value with a leading U+FEFF as it is', () => {
+    const bom = String.fromCharCode(0xfeff);
+    const data = new TextEncoder().encode(`${bom}abc`);
+    expect(utf8Read(data)).toBe('abc');
+    expect(utf8ReadValue(data)).toBe(`${bom}abc`);
+    expect(utf8ReadValue(new TextEncoder().encode(' é '), 1, 2)).toBe('é');
   });
 });

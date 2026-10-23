@@ -6,7 +6,7 @@
 
 import { Column, ColumnHelpers } from '@molstar/core/data/db';
 import { parseFloatBytes, parseIntBytes } from '@molstar/core/util/number-parser';
-import { utf8Read } from '@molstar/core/util/utf8';
+import { utf8ReadValue } from '@molstar/core/util/utf8';
 import type { CifField } from '../data-model.js';
 
 /**
@@ -30,7 +30,7 @@ export interface ByteTokens {
 
 export namespace ByteTokens {
   export function create(data: Uint8Array, fieldCount: number, capacity: number): ByteTokens {
-    capacity = Math.max(capacity, 4);
+    capacity = Math.max(capacity, 1);
     return {
       data,
       fieldCount,
@@ -93,6 +93,8 @@ export namespace ByteTokens {
 
 /** Values of up to this many bytes go through the field's string cache. */
 const CachedLength = 8;
+/** Fields of fewer rows have no cache: its ~3 KB would outweigh a dictionary's single items (the CCD). */
+const CachedMinRows = 64;
 /** Slots of the cache, a power of 2 */
 const CacheSize = 256;
 
@@ -124,16 +126,17 @@ export function byteTokensField(tokens: ByteTokens, column: number): CifField {
   const offset = column * tokens.capacity;
 
   let cache: StringCache | undefined;
+  const cached = rowCount >= CachedMinRows;
 
   const str: CifField['str'] = (row) => {
     const i = offset + row;
     const s = starts[i];
     const l = lengths[i];
-    if (l > CachedLength) return utf8Read(data, s, l < 255 ? l : long!.get(i)! - s);
     if (l === 1) {
       const c = data[s];
       if (c === 46 /* . */ || c === 63 /* ? */) return '';
     }
+    if (l > CachedLength || !cached) return utf8ReadValue(data, s, l < 255 ? l : long!.get(i)! - s);
     if (!cache) cache = StringCache();
     if (l <= 4) {
       const key = data[s] | (data[s + 1] << 8) | (data[s + 2] << 16) | (data[s + 3] << 24);
@@ -141,7 +144,7 @@ export function byteTokensField(tokens: ByteTokens, column: number): CifField {
       const k = l === 4 ? key : key & ((1 << (8 * l)) - 1);
       const slot = (k ^ (k >>> 13) ^ (k >>> 22) ^ (l << 6)) & (CacheSize - 1);
       if (cache.keys[slot] === k && cache.lengths[slot] === l) return cache.strings[slot];
-      const ret = utf8Read(data, s, l);
+      const ret = utf8ReadValue(data, s, l);
       cache.keys[slot] = k;
       cache.lengths[slot] = l;
       cache.strings[slot] = ret;
@@ -158,7 +161,7 @@ export function byteTokensField(tokens: ByteTokens, column: number): CifField {
       while (j < l && data[cs + j] === data[s + j]) j++;
       if (j === l) return cache.strings[slot];
     }
-    const ret = utf8Read(data, s, l);
+    const ret = utf8ReadValue(data, s, l);
     cache.keys[slot] = i;
     cache.lengths[slot] = l;
     cache.strings[slot] = ret;

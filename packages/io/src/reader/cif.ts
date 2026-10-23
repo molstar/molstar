@@ -24,6 +24,8 @@ import { StringLike } from '@molstar/core/util/string-like';
  * marker (fixmap 0x80-0x8f, map16 0xde, map32 0xdf); text CIF starts with `data_`, `#`, whitespace or a byte order mark.
  */
 function isBinaryCif(data: Uint8Array) {
+  // no bytes fail as BinaryCIF, as before
+  if (data.length === 0) return true;
   const b = data[0];
   return (b >= 0x80 && b <= 0x8f) || b === 0xde || b === 0xdf;
 }

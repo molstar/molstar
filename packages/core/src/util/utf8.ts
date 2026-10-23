@@ -145,6 +145,20 @@ export function utf8Read(data: Uint8Array, offset: number = 0, length: number = 
   }
 }
 
+const utf8ValueDecoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true }) : undefined;
+/**
+ * Decode UTF8 data of a value in a text, keeping a leading U+FEFF: `utf8Read` (a `TextDecoder`) drops it, as the byte
+ * order mark of a file.
+ */
+export function utf8ReadValue(data: Uint8Array, offset: number = 0, length: number = data.length): string {
+  if (length <= ShortAsciiLength) {
+    const ascii = shortAscii(data, offset, length);
+    if (ascii !== void 0) return ascii;
+  }
+  if (utf8ValueDecoder) return utf8ValueDecoder.decode(data.subarray(offset, offset + length));
+  return _utf8Read(data, offset, length);
+}
+
 /** Decode UTF8 data, potentially exceeding MAX_STRING_LENGTH. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is longer than MAX_STRING_LENGTH. */
 export function utf8ReadLong(data: Uint8Array, offset: number = 0, length: number = data.length): StringLike {
   if (length <= MAX_STRING_LENGTH) {

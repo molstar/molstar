@@ -30,7 +30,7 @@ import * as Data from '../data-model.js';
 import { ReaderResult as Result } from '../../result.js';
 import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { utf8Encode, utf8Read } from '@molstar/core/util/utf8';
+import { utf8Encode, utf8ReadValue } from '@molstar/core/util/utf8';
 import { ByteTokens, byteTokensField } from './field.js';
 
 /**
@@ -390,7 +390,7 @@ function getNamespaceEnd(state: TokenizerState): number {
  * Get the namespace string. endIndex is obtained by the getNamespaceEnd() function.
  */
 function getNamespace(state: TokenizerState, endIndex: number) {
-  return utf8Read(state.data, state.tokenStart, endIndex - state.tokenStart);
+  return utf8ReadValue(state.data, state.tokenStart, endIndex - state.tokenStart);
 }
 
 /**
@@ -408,7 +408,7 @@ function isFlatNamespace(state: TokenizerState): boolean {
  * String representation of the current token.
  */
 function getTokenString(state: TokenizerState) {
-  return utf8Read(state.data, state.tokenStart, state.tokenEnd - state.tokenStart);
+  return utf8ReadValue(state.data, state.tokenStart, state.tokenEnd - state.tokenStart);
 }
 
 /**
@@ -578,8 +578,10 @@ function handleSingle(tokenizer: TokenizerState, ctx: FrameContext): CifCategory
   const nsStart = tokenizer.tokenStart,
     nsEnd = getNamespaceEnd(tokenizer);
   const name = getNamespace(tokenizer, nsEnd);
-  const fields = Object.create(null);
   const fieldNames: string[] = [];
+  // the values' ranges, then one token store for the category (a field each had its own: a dictionary of single
+  // items, the CCD, retained ~400 B more per value)
+  const ranges: number[] = [];
 
   let readingNames = true;
   while (readingNames) {
@@ -597,12 +599,17 @@ function handleSingle(tokenizer: TokenizerState, ctx: FrameContext): CifCategory
         errorMessage: 'Expected value.',
       };
     }
-    const value = ByteTokens.create(tokenizer.data, 1, 1);
-    ByteTokens.add(value, tokenizer.tokenStart, tokenizer.tokenEnd);
-    fields[fieldName] = byteTokensField(value, 0);
+    ranges.push(tokenizer.tokenStart, tokenizer.tokenEnd);
     fieldNames[fieldNames.length] = fieldName;
     moveNext(tokenizer);
   }
+
+  // one row: the value of field `i` is at index `i`
+  const tokens = ByteTokens.create(tokenizer.data, fieldNames.length, 1);
+  for (let i = 0; i < fieldNames.length; i++) ByteTokens.set(tokens, i, ranges[2 * i], ranges[2 * i + 1]);
+  tokens.count = fieldNames.length;
+  const fields = Object.create(null);
+  for (let i = 0; i < fieldNames.length; i++) fields[fieldNames[i]] = byteTokensField(tokens, i);
 
   addFields(ctx, name.substr(1), 1, fieldNames, fields);
 
@@ -823,7 +830,7 @@ async function parseInternal(data: Uint8Array, runtimeCtx: RuntimeContext) {
       if (blockCtx.categoryNames.length > 0) {
         dataBlocks.push(CifBlock(blockCtx, blockHeader, saveFrames));
       }
-      blockHeader = utf8Read(data, tokenizer.tokenStart + 5, tokenizer.tokenEnd - tokenizer.tokenStart - 5);
+      blockHeader = utf8ReadValue(data, tokenizer.tokenStart + 5, tokenizer.tokenEnd - tokenizer.tokenStart - 5);
       blockCtx = FrameContext();
       saveFrames = [];
       moveNext(tokenizer);
@@ -841,7 +848,7 @@ async function parseInternal(data: Uint8Array, runtimeCtx: RuntimeContext) {
           return error(tokenizer.lineNumber, 'Save frames cannot be nested.');
         }
         tokenizer.inSaveFrame = true;
-        saveHeader = utf8Read(data, tokenizer.tokenStart + 5, tokenizer.tokenEnd - tokenizer.tokenStart - 5);
+        saveHeader = utf8ReadValue(data, tokenizer.tokenStart + 5, tokenizer.tokenEnd - tokenizer.tokenStart - 5);
         saveCtx = FrameContext();
         // saveFrame = CifSaveFrame(saveCtx, saveHeader);
       }
@@ -860,7 +867,7 @@ async function parseInternal(data: Uint8Array, runtimeCtx: RuntimeContext) {
       }
       // Out of options
     } else {
-      console.log(tokenizer.tokenType, getTokenString(tokenizer));
+      console.log(tokenizer.tokenType, getTokenString(tokenizer).slice(0, 80));
       return error(tokenizer.lineNumber, 'Unexpected token. Expected data_, loop_, or data name.');
     }
   }

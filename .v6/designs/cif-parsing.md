@@ -18,13 +18,17 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   one pair per loop keeps the reading loop on locals, column-major keeps a field's values contiguous for its readers. A
   loop grows from the density read so far and is trimmed. flat-192: 132 MB of tokens against 320 MB before (8 B plus
   the 1.61× growth slack). The shared `Tokens`/`Tokenizer` of the other text formats are unchanged.
-- **`str`** decodes per value: ASCII up to 24 bytes with `String.fromCharCode` (`utf8Read`, core; a `TextDecoder` call is
-  ~0.4 µs), and a 256-slot cache per field of values up to 4 bytes, keyed by the bytes, so repeated names are made once
-  and keep their computed hash. Numbers parse on bytes (`parseIntBytes`, `parseFloatBytes`, core), bit-identical to the
+- **`str`** decodes per value: ASCII up to 24 bytes with `String.fromCharCode` (`utf8ReadValue`, core; a `TextDecoder`
+  call is ~0.4 µs; a leading U+FEFF of a value is kept), and a field of 64 rows or more has a 256-slot cache of values
+  up to 8 bytes (up to 4 keyed by the bytes), so repeated names are made once and keep their computed hash. Fewer rows
+  have none: its ~3 KB outweighed a dictionary's single items (the CCD). A category of single items shares one token
+  store. Numbers parse on bytes (`parseIntBytes`, `parseFloatBytes`, core), bit-identical to the
   string parsers.
 - **Compatibility**: every field accessor equals the string tokenizer's (kept as the test oracle,
   `text/_test/string-parser.ts`); error lines are the same; a UTF-8 byte order mark is skipped (a string with one failed
-  before). Input of 4 GiB or more is refused (Uint32 starts).
+  before). Input of 4 GiB or more is refused (Uint32 starts). A lone surrogate in a string input becomes U+FFFD (the
+  encode). A file of single items only (100k blocks of 7) parses ~18 % slower than with strings, a typed-array pair per
+  category; with loops (the CCD's atoms and bonds) it is faster.
 
 ## `CIF.parse` and the plugin
 
@@ -33,7 +37,8 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   `0xde`, `0xdf`) is BinaryCIF, anything else text (a UTF-8 byte order mark is skipped). A BinaryCIF file always starts
   with a map marker, so only input that failed before (text CIF as bytes) reads differently. The plugin's `ParseCif`
   goes through it, so a Binary data cell holding text CIF parses.
-- Bytes that are neither (gzip, say) now fail as text, "Unexpected token", where they failed as MessagePack.
+- Bytes that are neither (gzip, say) now fail as text, "Unexpected token", where they failed as MessagePack; whitespace
+  only parses to no blocks. No bytes fail as BinaryCIF, as before.
 - A file parsed from bytes reads them in place: a caller that reuses the buffer changes the values (a string could not
   change).
 - `CIF.parseBinary` stays strict, no sniffing: `ParseBlob` calls it for its binary entries.
@@ -56,7 +61,9 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   value computed in double, rounded once); the other accessors decode to the source type, so writers see exact
   values. Sorted and windowed models gather the coordinates from that array, of its type, reading only their own rows. The
   conformation of a quantized BinaryCIF model (the PDB's coordinates) is therefore Float32, like a text one's; it was
-  Float64 because `typedArrayWindow` ignores `array`. A raw Float64 column stays Float64 in every path.
+  Float64 because `typedArrayWindow` ignores `array`. A raw Float64 column stays Float64 in every path. A window of a
+  typed column asks its column for another array kind, so IHM coarse coordinates (`Table.window` per model) are Float32
+  for one model and many alike.
 - **String columns as dictionaries** (04/P16): a StringArray column decodes to its distinct strings and an index per
   row in the smallest unsigned type (`decodeStringDictionary`), not a string per row; its storage is
   `{ kind: 'dictionary', indices, values }` (`Column.storage`, core). Views and windows gather or slice the indices,

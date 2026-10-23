@@ -144,4 +144,19 @@ describe('column views and windows', () => {
     expect(Array.from(Column.window(c, 2, 8).toArray({ start: 1, end: 3 }))).toEqual([30, 40]);
     expect(Array.from(Column.view(c, [9, 8, 7, 6]).toArray({ start: 2, end: 4 }))).toEqual([70, 60]);
   });
+
+  it('a window of a typed column asks the column for an array of another kind', () => {
+    const source = Column.ofFloatArray(Float64Array.of(0.1, 0.2, 0.3, 0.4));
+    // as a BinaryCIF column: Float32 straight from the encoding, not a copy
+    const float32 = Float32Array.of(1, 2, 3, 4);
+    const column: Column<number> = {
+      ...source,
+      toArray: (params) =>
+        params?.array === Float32Array ? float32.subarray(params.start ?? 0, params.end ?? 4) : source.toArray(params),
+    };
+    const window = Column.window(column, 1, 3);
+    expect(Array.from(window.toArray({ array: Float32Array }))).toEqual([2, 3]);
+    expect(Array.from(window.toArray({ array: Float32Array, start: 1, end: 2 }))).toEqual([3]);
+    expect(window.toArray()).toBeInstanceOf(Float64Array);
+  });
 });
