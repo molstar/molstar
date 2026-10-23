@@ -38,7 +38,18 @@ export const BondCylinderParams = {
   }),
 };
 export const DefaultBondCylinderProps = PD.getDefaultValues(BondCylinderParams);
+
 export type BondCylinderProps = typeof DefaultBondCylinderProps;
+
+/**
+ * The impostor bond geometry reads the size theme: shortened cylinders and the offsets of double, triple and aromatic
+ * bonds scale with the radius. A size change rebuilds it then (perf-audit-2 07/B5).
+ */
+export function bondImpostorGeometryReadsSize(
+  props: Pick<BondCylinderProps, 'adjustCylinderLength' | 'multipleBonds' | 'aromaticBonds'>,
+) {
+  return props.adjustCylinderLength || props.multipleBonds !== 'off' || props.aromaticBonds;
+}
 
 export const BondLineParams = {
   ...LinkLineParams,

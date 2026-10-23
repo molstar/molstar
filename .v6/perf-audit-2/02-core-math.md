@@ -64,7 +64,7 @@ Fixed 3, partly fixed 1, still open 11, regressed 0, dropped 1 (16 v1 items: P1-
 | 7 | 12/F1 | still-open | `floodfill3` through closures, whole-grid seed scan | [tensor.ts:494](../../packages/core/src/math/linear-algebra/tensor.ts#L494) | time | low | floodfill −28-40 % (220³ 312-352 → 220-224 ms) | S | confirmed | no |
 | 8 | P8 | still-open | Gaussian `fasterExp` per voxel; separable kernel | [cpu.ts:112](../../packages/core/src/math/geometry/gaussian-density/cpu.ts#L112) | time | low | `accumulateRange` −20-25 % (v1) | S | confirmed | no |
 | 9 | P9 | still-open | `getEdgeIndices` `[]` per miss; edges as objects | [inter-unit-graph.ts:58](../../packages/core/src/math/graph/inter-unit-graph.ts#L58) | time+memory | low | valence model −10-20 % (CSR); emptyArray alone small | S | confirmed | no |
-| 10 | P7 | still-open | Per-unit molsurf radius array sized `OrderedSet.end` | [molecular-surface.ts:48](../../packages/graphics/src/repr/structure/visual/util/molecular-surface.ts#L48) | memory | low | hundreds of MB of external memory on flat entries | S | confirmed | no |
+| 10 | P7 | still-open; **fixed** #2034 (= 07/P6) | Per-unit molsurf radius array sized `OrderedSet.end` | [molecular-surface.ts:48](../../packages/graphics/src/repr/structure/visual/util/molecular-surface.ts#L48) | memory | low | hundreds of MB of external memory on flat entries | S | confirmed | no |
 
 ### P10: Vec3 elements-kind contagion
 
@@ -165,7 +165,7 @@ Fixed 3, partly fixed 1, still open 11, regressed 0, dropped 1 (16 v1 items: P1-
 | --- | --- | --- | --- | --- | --- |
 | B5 | new; **fixed** #2025 | medium | `areBackboneConnected` reads coordinates at index -1 (root of P10) | [atomic-ranges.ts:40](../../packages/model/src/model/structure/model/properties/utils/atomic-ranges.ts#L40) | confirmed |
 | B1 | still-open; **fixed** #2033 | low | `approxNearest` returns the nearest last; callers read [0] | [grid.ts:469](../../packages/core/src/math/geometry/lookup3d/grid.ts#L469) | confirmed |
-| B2 | still-open | low | `updateChunk = 1e5/(maxRadius⁹·scale)`: no yield for small radii | [molecular-surface.ts:462](../../packages/core/src/math/geometry/molecular-surface.ts#L462) | confirmed |
+| B2 | still-open; **fixed** #2034 | low | `updateChunk = 1e5/(maxRadius⁹·scale)`: no yield for small radii | [molecular-surface.ts:462](../../packages/core/src/math/geometry/molecular-surface.ts#L462) | confirmed |
 | B3 | still-open | low (latent) | `Sphere3D.copy` / `expandBySphere` keep stale extrema | [sphere3d.ts:59](../../packages/core/src/math/geometry/primitives/sphere3d.ts#L59) | confirmed (code) |
 | B4 | still-open | low (latent) | RMSD state reuse aliases and overwrites a caller's centre | [minimize-rmsd.ts:92](../../packages/core/src/math/linear-algebra/3d/minimize-rmsd.ts#L92) | confirmed (code) |
 | 12/B2 | still-open | low | `getCoords` (rank ≥ 4) writes `coords['undefined']` | [tensor.ts:379](../../packages/core/src/math/linear-algebra/tensor.ts#L379) | confirmed (code) |

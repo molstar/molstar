@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,11 +21,12 @@ export function pick(query: StructureQuery, pred: QueryFn<any>): StructureQuery 
   return (ctx) => {
     const sel = query(ctx);
     const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
-    ctx.pushCurrentElement();
+    // the structure is pushed and popped, not an element: a nested pick restores the outer one (perf-audit-2 05/B6)
+    ctx.pushCurrentStructure();
     StructureSelection.forEach(sel, (s, i) => {
       ctx.currentStructure = s;
       if (pred(ctx)) ret.add(s);
-      if (i % 100) ctx.throwIfTimedOut();
+      if (i % 100 === 0) ctx.throwIfTimedOut();
     });
     ctx.popCurrentStructure();
     return ret.getSelection();
@@ -82,14 +83,14 @@ function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props:
   const set = new Set();
 
   const sel = query(ctx);
-  ctx.pushCurrentElement();
+  ctx.pushCurrentStructure();
   StructureSelection.forEach(sel, (s, i) => {
     ctx.currentStructure = s;
     getCurrentStructureProperties(ctx, props, set);
 
-    if (i % 10) ctx.throwIfTimedOut();
+    if (i % 10 === 0) ctx.throwIfTimedOut();
   });
-  ctx.popCurrentElement();
+  ctx.popCurrentStructure();
   return set;
 }
 
@@ -111,7 +112,7 @@ export function withSameAtomProperties(
         ret.add(s);
       }
 
-      if (i % 10) ctx.throwIfTimedOut();
+      if (i % 10 === 0) ctx.throwIfTimedOut();
     });
     ctx.popCurrentStructure();
     return ret.getSelection();
@@ -125,7 +126,7 @@ export function areIntersectedBy(query: StructureQuery, by: StructureQuery): Str
 
     StructureSelection.forEach(query(ctx), (s, i) => {
       if (structureAreIntersecting(mask, s)) ret.add(s);
-      if (i % 10) ctx.throwIfTimedOut();
+      if (i % 10 === 0) ctx.throwIfTimedOut();
     });
     return ret.getSelection();
   };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -275,7 +275,13 @@ namespace StateSelection {
       StateTree.doPreOrder(s.tree, s.tree.transforms.get(n.transform.ref), nodes, (x, _, ctx) => {
         ctx.push(x.ref);
       });
-      return nodes.map((x) => s.cells.get(x)!);
+      // nodes below a Null or failed node may have no cell (perf-audit-2 03/B9)
+      const cells: StateObjectCell[] = [];
+      for (const x of nodes) {
+        const cell = s.cells.get(x);
+        if (cell) cells.push(cell);
+      }
+      return cells;
     });
   }
 
@@ -283,7 +289,10 @@ namespace StateSelection {
   export function children(b: Selector) {
     return flatMap(b, (n, s) => {
       const nodes: StateObjectCell[] = [];
-      s.tree.children.get(n.transform.ref).forEach((c) => nodes.push(s.cells.get(c!)!));
+      s.tree.children.get(n.transform.ref).forEach((c) => {
+        const cell = s.cells.get(c!);
+        if (cell) nodes.push(cell);
+      });
       return nodes;
     });
   }
@@ -437,20 +446,24 @@ namespace StateSelection {
     return true;
   }
 
+  /** The first node with the tag in pre-order; the walk stops there (perf-audit-2 03/B10) */
   export function findTagInSubtree(
     tree: StateTree,
     root: StateTransform.Ref,
     tag: string,
   ): StateTransform.Ref | undefined {
-    return StateTree.doPreOrder(tree, tree.transforms.get(root), { ref: void 0, tag }, _findTagInSubtree).ref;
+    return _findTagInSubtree(tree, root, tag);
   }
 
-  function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined; tag: string }) {
-    if (n.tags && n.tags.indexOf(s.tag) >= 0) {
-      s.ref = n.ref;
-      return false;
-    }
-    return true;
+  function _findTagInSubtree(tree: StateTree, ref: StateTransform.Ref, tag: string): StateTransform.Ref | undefined {
+    const tags = tree.transforms.get(ref).tags;
+    if (tags && tags.indexOf(tag) >= 0) return ref;
+    const children = tree.children.get(ref);
+    if (!children || children.size === 0) return;
+    let found: StateTransform.Ref | undefined;
+    // an Immutable forEach stops when the callback returns false
+    children.forEach((c) => (found = _findTagInSubtree(tree, c!, tag)) === undefined);
+    return found;
   }
 
   export function findWithAllTags<K extends string = string>(

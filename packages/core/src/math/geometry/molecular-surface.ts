@@ -484,7 +484,9 @@ export async function calcMolecularSurface(
   const gridy = fillGridDim(dimY, minY, resolution);
   const gridz = fillGridDim(dimZ, minZ, resolution);
 
-  const updateChunk = Math.ceil(100000 / (Math.pow(Math.pow(maxRadius, 3), 3) * scaleFactor));
+  // atoms per yield by the voxels an atom visits; `1e5 / (maxRadius⁹ · scale)` gave whole structures for small radii
+  // (perf-audit-2 02/B2)
+  const updateChunk = Math.max(1, Math.ceil(2e6 / Math.pow(2 * (maxRadius + probeRadius) * scaleFactor + 2, 3)));
   // console.timeEnd('MolecularSurface createState')
 
   // console.time('MolecularSurface projectPoints')

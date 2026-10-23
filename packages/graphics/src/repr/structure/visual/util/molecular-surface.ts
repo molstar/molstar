@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Unit, Structure } from '@molstar/model/model/structure';
@@ -18,7 +19,7 @@ import {
   type MolecularSurfaceCalculationProps,
   calcMolecularSurface,
 } from '@molstar/core/math/geometry/molecular-surface';
-import { OrderedSet } from '@molstar/core/data/int';
+import { Interval, OrderedSet } from '@molstar/core/data/int';
 import type { Boundary } from '@molstar/core/math/geometry/boundary';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
@@ -43,19 +44,28 @@ function getUnitPositionDataAndMaxRadius(
 ) {
   const { probeRadius } = props;
   const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
-  const { indices } = position;
+  const { indices, x, y, z, id } = position;
   const n = OrderedSet.size(indices);
-  const radii = new Float32Array(OrderedSet.end(indices));
+  // compact per unit: the indices are the model's element indices, so arrays indexed by them would be sized to the
+  // model, per unit (perf-audit-2 07/P6). Float64 keeps the coordinates exact whatever their array.
+  const cx = new Float64Array(n);
+  const cy = new Float64Array(n);
+  const cz = new Float64Array(n);
+  const radii = new Float32Array(n);
 
   let maxRadius = 0;
   for (let i = 0; i < n; ++i) {
     const j = OrderedSet.getAt(indices, i);
     const r = radius(j);
     if (maxRadius < r) maxRadius = r;
-    radii[j] = r + probeRadius;
+    cx[i] = x[j];
+    cy[i] = y[j];
+    cz[i] = z[j];
+    radii[i] = r + probeRadius;
   }
 
-  return { position: { ...position, radius: radii }, boundary, maxRadius };
+  const compact = { indices: Interval.ofLength(n), x: cx, y: cy, z: cz, id, radius: radii };
+  return { position: compact, boundary, maxRadius };
 }
 
 export function computeUnitMolecularSurface(
