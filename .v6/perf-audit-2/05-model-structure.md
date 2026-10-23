@@ -185,7 +185,7 @@ regressed 0, dropped 1. New bugs from fixes: B9 (#2022), B10 (#1994).
 
 | Id | vs v1 | Severity | Title | File | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B9 | new (from #2022) | medium | `remapModel(m, parent)` swaps in the root's untransformed unit for whole units | [structure.ts:418](../../packages/model/src/model/structure/structure/structure.ts#L418) | confirmed |
+| B9 | new (from #2022); **fixed** | medium | `remapModel(m, parent)` swaps in the root's untransformed unit for whole units | [structure.ts:418](../../packages/model/src/model/structure/structure/structure.ts#L418) | confirmed |
 | B14 | new | medium | `within` without `min-radius` adds the query atom's vdW radius and ignores `atom-radius` | [filters.ts:189](../../packages/model/src/model/structure/query/queries/filters.ts#L189) | confirmed |
 | B10 | new (from #1994) | low | `Bundle.toStructure` maps every grouped unit through the first unit's elements | [bundle.ts:242](../../packages/model/src/model/structure/structure/element/bundle.ts#L242) | confirmed |
 | B12 | new | low | `includeSurroundings` with `atom-radius` pre-filters units by `radius`, not the query radius | [lookup3d.ts:228](../../packages/model/src/model/structure/structure/util/lookup3d.ts#L228) | confirmed |

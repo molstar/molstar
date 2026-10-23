@@ -448,11 +448,12 @@ class Structure {
     const { dynamicBonds, interUnitBonds } = this.state;
     const units: Unit[] = [];
     // a whole unit of the parent is the parent's remapped unit (as `getChild` gives the parent's unit), so its
-    // coordinate-derived data (boundary, lookup) is computed once per frame, not once per component (structure.md §3)
+    // coordinate-derived data (boundary, lookup) is computed once per frame, not once per component; not when the unit
+    // was moved from the parent's (a component of `Structure.transform`'s result, structure.md §3)
     const ofParent = (u: Unit) => {
       if (!parent || !this.state.parent) return;
       const p = parent.unitMap.get(u.id);
-      return p && p.elements === u.elements ? p : undefined;
+      return p && p.elements === u.elements && Unit.areOperatorsEqual(p, u) ? p : undefined;
     };
     for (const ug of this.unitSymmetryGroups) {
       const first = ug.units[0];
