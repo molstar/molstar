@@ -233,30 +233,37 @@ function ajaxGetInternal<T extends DataType>(
     // the task runtime sees an abort only in `ctx.update` and `ctx.shouldUpdate`, between chunks as with XHR; the
     // abort error leaves through the `finally` below, which cancels the request (no `onAbort`: it runs after `f` throws)
     const aborter = new AbortController();
-    const requestSignal = signal ? AbortSignal.any([aborter.signal, signal]) : aborter.signal;
+    if (signal?.aborted) throw signalAborted(signal);
+    // a listener, not `AbortSignal.any`: on Node.js 22 a long-lived caller signal keeps every combined signal alive
+    const onCallerAbort = () => aborter.abort(signal!.reason);
+    signal?.addEventListener('abort', onCallerAbort, { once: true });
     try {
       await ctx.update({ message: 'Waiting for server...', canAbort: true });
       let response: Response;
       try {
-        response = await fetch(url, { signal: requestSignal, method: body ? 'POST' : 'GET', body, headers });
+        response = await fetch(url, { signal: aborter.signal, method: body ? 'POST' : 'GET', body, headers });
       } catch (e) {
         throw downloadError(e, signal);
       }
+      if (signal?.aborted) throw signalAborted(signal);
       if (!(response.status >= 200 && response.status < 400)) {
         throw new Error(`Download failed with status code ${response.status}`);
       }
       const data = await readResponseBody(ctx, 'Downloading...', response, signal);
-      if (signal?.aborted) throw signalAborted(signal);
 
       await ctx.update({ message: 'Parsing response...', canAbort: false });
+      let result: DataResponse<T>;
       try {
-        return await processFile(ctx, data, type, DataCompressionMethod.None);
+        result = await processFile(ctx, data, type, DataCompressionMethod.None);
       } catch (e) {
         // XHR's `responseType: 'json'` gave null for a body that is not JSON, and callers fall back on it (`?? []`)
-        if (type === 'json' && e instanceof SyntaxError) return null as DataResponse<T>;
-        throw e;
+        if (!(type === 'json' && e instanceof SyntaxError)) throw e;
+        result = null as DataResponse<T>;
       }
+      if (signal?.aborted) throw signalAborted(signal);
+      return result;
     } finally {
+      signal?.removeEventListener('abort', onCallerAbort);
       // stops a body an error or an abort left unread; a no-op once it is read
       aborter.abort();
     }

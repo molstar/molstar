@@ -13,3 +13,5 @@
   its own error); a `json` body that does not parse gives `null`, now in Node.js too; a `zip` download is unzipped in
   the browser too, as its type says (it gave the raw bytes); malformed XML gives the parser's error document (XHR gave
   `null`)
+- A `file:` URL in a browser (a page opened from disk, an Electron host) no longer loads: browsers' `fetch` has no
+  `file:` scheme, where XHR read it when the browser allowed file access

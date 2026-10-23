@@ -43,6 +43,8 @@ describe('ajaxGet', () => {
   it('reads a string, by GET with no body', async () => {
     const fetch = stubFetch(() => streamed([encode('data_1cbs\n'), encode('_entry.id 1CBS €\n')]));
     expect(await ajaxGet('https://example.org/1cbs.cif').run()).toBe('data_1cbs\n_entry.id 1CBS €\n');
+    // the request is let go once read
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
     expect(fetch).toHaveBeenCalledWith('https://example.org/1cbs.cif', {
       signal: expect.any(AbortSignal),
       method: 'GET',
@@ -132,8 +134,10 @@ describe('ajaxGet', () => {
   });
 
   it('fails on an HTTP error with its status code', async () => {
-    stubFetch(() => streamed([encode('Not Found')], {}, 404));
+    const fetch = stubFetch(() => streamed([encode('Not Found')], {}, 404));
     await expect(ajaxGet('https://example.org/missing').run()).rejects.toThrow('Download failed with status code 404');
+    // the unread body is cancelled
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
   });
 
   it('fails on a network error with the error Node.js gives', async () => {
@@ -160,13 +164,14 @@ describe('ajaxGet', () => {
         c.enqueue(new Uint8Array(16));
       },
     });
-    stubFetch(() => new Response(endless));
+    const fetch = stubFetch(() => new Response(endless));
     const run = ajaxGet({ url: 'https://example.org/x', type: 'binary' }).run((p) => {
       if (p.root.progress.message.startsWith('Downloading')) p.requestAbort();
     }, -1);
     await expect(run).rejects.toSatisfy(Task.isAbort);
     // the first chunk's progress update sees the abort; the stream's queue holds one more
     expect(pulls).toBeLessThanOrEqual(2);
+    expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
   });
 
   it("rejects as aborted when the caller's signal aborts while waiting for the server", async () => {
@@ -209,6 +214,36 @@ describe('ajaxGet', () => {
       if (p.root.progress.message.startsWith('Downloading')) controller.abort();
     }, -1);
     await expect(run).rejects.toSatisfy((e) => Task.isAbort(e) && e.reason === 'This operation was aborted');
+  });
+
+  it("rejects as aborted, with no request, when the caller's signal is aborted already", async () => {
+    const fetch = stubFetch(() => streamed([]));
+    const run = ajaxGet({ url: 'https://example.org/x', signal: AbortSignal.abort('gone') }).run();
+    await expect(run).rejects.toSatisfy((e) => Task.isAbort(e) && e.reason === 'gone');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects as aborted when the caller's signal aborts as an HTTP error arrives", async () => {
+    const controller = new AbortController();
+    stubFetch(() => {
+      controller.abort('late');
+      return streamed([], {}, 404);
+    });
+    const run = ajaxGet({ url: 'https://example.org/x', signal: controller.signal }).run();
+    await expect(run).rejects.toSatisfy((e) => Task.isAbort(e) && e.reason === 'late');
+  });
+
+  it("lets go of the caller's signal after each download", async () => {
+    // a long-lived signal reused for many downloads must not collect a listener per download
+    const controller = new AbortController();
+    const add = vi.spyOn(controller.signal, 'addEventListener');
+    const remove = vi.spyOn(controller.signal, 'removeEventListener');
+    stubFetch(() => streamed([encode('a')]));
+    await ajaxGet({ url: 'https://example.org/x', signal: controller.signal }).run();
+    stubFetch(() => streamed([], {}, 500));
+    await expect(ajaxGet({ url: 'https://example.org/x', signal: controller.signal }).run()).rejects.toThrow();
+    expect(add).toHaveBeenCalledTimes(2);
+    expect(remove.mock.calls).toEqual(add.mock.calls.map(([type, listener]) => [type, listener]));
   });
 
   it('reads a body with a Content-Length too large to allocate in chunks', async () => {
