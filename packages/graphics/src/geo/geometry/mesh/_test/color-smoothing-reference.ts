@@ -105,7 +105,8 @@ export function referenceInterpolate(
       for (let k = 0; k < 3; ++k) v[k] = (v[k] - grid.min[k]) * grid.scaleFactor;
       Vec3.floor(v0, v);
       Vec3.ceil(v1, v);
-      Vec3.div(vd, Vec3.sub(vd, v, v0), Vec3.sub(Vec3(), v1, v0));
+      // a cell is 1 wide, or 0 on a grid plane, where the weight is 0 (not 0/0, perf-audit-2 08/B3)
+      Vec3.sub(vd, v, v0);
       const at = (x: number, y: number, z: number) => getIndex(gridDim, grid.width, itemSize, x, y, z);
       for (let k = 0; k < itemSize; ++k) {
         const s = (x: number, y: number, z: number) => grid.grid[at(x, y, z) + k];
