@@ -4,10 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { RuntimeContext } from '@molstar/core/task';
+import { Vec3 } from '../../linear-algebra/3d/vec3.js';
 import { getBoundary } from '../boundary.js';
 import { calcMolecularSurface, type MolecularSurfaceCalculationProps } from '../molecular-surface.js';
 
@@ -258,6 +259,19 @@ describe('calcMolecularSurface', () => {
       expect(await compute(RuntimeContext.Synchronous, c)).toEqual(c.expected);
     });
   }
+
+  it('projects the torii without the Vec3 helpers (perf-audit-2 02/P11)', async () => {
+    const normalize = vi.spyOn(Vec3, 'normalize');
+    const cross = vi.spyOn(Vec3, 'cross');
+    try {
+      expect(await compute(RuntimeContext.Synchronous, Cases[0])).toEqual(Cases[0].expected);
+      expect(normalize).not.toHaveBeenCalled();
+      expect(cross).not.toHaveBeenCalled();
+    } finally {
+      normalize.mockRestore();
+      cross.mockRestore();
+    }
+  });
 
   it('concurrent calculations with yields give the same fields', async () => {
     const results = await Promise.all(Cases.map((c) => compute(yieldingContext(), c)));
