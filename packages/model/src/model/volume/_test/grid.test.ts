@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Grid } from '../grid.js';
-import { Dims, Orders, grid, hash, viaAccessors } from './grid-test-util.js';
+import { Dims, Orders, grid, hash, value, viaAccessors } from './grid-test-util.js';
 
 /** Gradients in (i, j, k) order, whatever the layout */
 function gradients(g: Grid) {
@@ -180,5 +180,32 @@ describe('grid isosurface bounding sphere', () => {
     const t = Grid.getIsosurfaceBoundingSphere(moved, 0.5);
     expect(t.center[0]).toBeCloseTo(s.center[0] + 100, 5);
     expect(t.radius).toBeCloseTo(s.radius, 5);
+  });
+});
+
+describe('grid trilinear interpolation', () => {
+  const [mi, mj, mk] = Dims;
+
+  it('reads the periodic image outside a periodic grid and wraps at its last voxel (perf-audit-2 04/12/B3)', () => {
+    const g: Grid = { ...grid([0, 1, 2]), periodicity: 'xyz' };
+    const get = Grid.makeGetTrilinearlyInterpolated(g, 'none');
+    const p = Vec3.create(2.25, 3.5, 4.75);
+    const inside = get(p);
+    for (const [di, dj, dk] of [
+      [1, 0, 0],
+      [-1, 2, 0],
+      [0, -1, -3],
+    ]) {
+      expect(get(Vec3.create(p[0] + di * mi, p[1] + dj * mj, p[2] + dk * mk))).toBeCloseTo(inside, 5);
+    }
+    expect(get(Vec3.create(mi - 0.5, 0, 0))).toBeCloseTo(0.5 * (value(mi - 1, 0, 0) + value(0, 0, 0)), 5);
+    expect(get(Vec3.create(-0.5, 0, 0))).toBeCloseTo(0.5 * (value(mi - 1, 0, 0) + value(0, 0, 0)), 5);
+  });
+
+  it('gives NaN outside a grid that is not periodic', () => {
+    const get = Grid.makeGetTrilinearlyInterpolated(grid([0, 1, 2]), 'none');
+    expect(get(Vec3.create(1, 1, 1))).toBeCloseTo(value(1, 1, 1), 5);
+    expect(get(Vec3.create(mi + 1, 1, 1))).toBeNaN();
+    expect(get(Vec3.create(1, -2, 1))).toBeNaN();
   });
 });

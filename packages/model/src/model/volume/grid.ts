@@ -228,10 +228,15 @@ namespace Grid {
     };
   }
 
+  function wrap(x: number, n: number) {
+    return ((x % n) + n) % n;
+  }
+
   /**
    * Core trilinear interpolation function.
    * @param gridCoords - Position in grid coordinates (fractional indices)
    * @param mi, mj, mk - Grid dimensions
+   * @param isPeriodic - indices wrap (a whole unit cell); else a position outside the grid gives NaN
    * @param getValue - Function to get value at integer grid coordinates
    * @returns Interpolated value or NaN if out of bounds
    */
@@ -243,21 +248,33 @@ namespace Grid {
     isPeriodic: boolean,
     getValue: (i: number, j: number, k: number) => number,
   ): number {
-    const i = Math.trunc(gridCoords[0]);
-    const j = Math.trunc(gridCoords[1]);
-    const k = Math.trunc(gridCoords[2]);
-
-    if (!isPeriodic && (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk)) {
-      return Number.NaN;
+    let i: number, j: number, k: number, ii: number, jj: number, kk: number, u: number, v: number, w: number;
+    if (isPeriodic) {
+      // a position outside the cell reads its periodic image; the last voxel interpolates towards the first
+      const fi = Math.floor(gridCoords[0]);
+      const fj = Math.floor(gridCoords[1]);
+      const fk = Math.floor(gridCoords[2]);
+      u = gridCoords[0] - fi;
+      v = gridCoords[1] - fj;
+      w = gridCoords[2] - fk;
+      i = wrap(fi, mi);
+      j = wrap(fj, mj);
+      k = wrap(fk, mk);
+      ii = wrap(fi + 1, mi);
+      jj = wrap(fj + 1, mj);
+      kk = wrap(fk + 1, mk);
+    } else {
+      i = Math.trunc(gridCoords[0]);
+      j = Math.trunc(gridCoords[1]);
+      k = Math.trunc(gridCoords[2]);
+      if (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk) return Number.NaN;
+      u = gridCoords[0] - i;
+      v = gridCoords[1] - j;
+      w = gridCoords[2] - k;
+      ii = Math.min(i + 1, mi - 1);
+      jj = Math.min(j + 1, mj - 1);
+      kk = Math.min(k + 1, mk - 1);
     }
-
-    const u = gridCoords[0] - i;
-    const v = gridCoords[1] - j;
-    const w = gridCoords[2] - k;
-
-    const ii = Math.min(i + 1, mi - 1);
-    const jj = Math.min(j + 1, mj - 1);
-    const kk = Math.min(k + 1, mk - 1);
 
     let a = getValue(i, j, k);
     let b = getValue(ii, j, k);
