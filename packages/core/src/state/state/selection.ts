@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -275,7 +275,13 @@ namespace StateSelection {
       StateTree.doPreOrder(s.tree, s.tree.transforms.get(n.transform.ref), nodes, (x, _, ctx) => {
         ctx.push(x.ref);
       });
-      return nodes.map((x) => s.cells.get(x)!);
+      // nodes below a Null or failed node may have no cell (perf-audit-2 03/B9)
+      const cells: StateObjectCell[] = [];
+      for (const x of nodes) {
+        const cell = s.cells.get(x);
+        if (cell) cells.push(cell);
+      }
+      return cells;
     });
   }
 
@@ -283,7 +289,10 @@ namespace StateSelection {
   export function children(b: Selector) {
     return flatMap(b, (n, s) => {
       const nodes: StateObjectCell[] = [];
-      s.tree.children.get(n.transform.ref).forEach((c) => nodes.push(s.cells.get(c!)!));
+      s.tree.children.get(n.transform.ref).forEach((c) => {
+        const cell = s.cells.get(c!);
+        if (cell) nodes.push(cell);
+      });
       return nodes;
     });
   }
