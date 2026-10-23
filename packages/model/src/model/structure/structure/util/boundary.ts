@@ -6,11 +6,37 @@
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Structure } from '../structure.js';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import type { Boundary } from '@molstar/core/math/geometry/boundary';
 
-const tmpSphere = Sphere3D();
+const tmpPosition = Vec3();
+
+// The include and radius steps of `BoundaryHelper` for a unit sphere moved by `m`: the same arithmetic as
+// `Sphere3D.transform` then `includeSphere` / `radiusSphere`, without a transformed copy of its 98 extrema per unit
+// and pass (perf-audit-2 05/P15)
+function includeTransformed(helper: BoundaryHelper, sphere: Sphere3D, m: Mat4) {
+  if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length > 1) {
+    for (const e of sphere.extrema) helper.includePosition(Vec3.transformMat4(tmpPosition, e, m));
+  } else {
+    helper.includePositionRadius(
+      Vec3.transformMat4(tmpPosition, sphere.center, m),
+      sphere.radius * Mat4.getMaxScaleOnAxis(m),
+    );
+  }
+}
+
+function radiusTransformed(helper: BoundaryHelper, sphere: Sphere3D, m: Mat4) {
+  if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length > 1) {
+    for (const e of sphere.extrema) helper.radiusPosition(Vec3.transformMat4(tmpPosition, e, m));
+  } else {
+    helper.radiusPositionRadius(
+      Vec3.transformMat4(tmpPosition, sphere.center, m),
+      sphere.radius * Mat4.getMaxScaleOnAxis(m),
+    );
+  }
+}
 
 // 98 directions up to 10k points (the unit spheres' extrema), as for unit spheres (`getBoundary`): the sphere keeps
 // 98 extrema for spheres merged from it, e.g. the camera's. Above, 14 directions refined to 98 from their extrema: the
@@ -39,8 +65,7 @@ export function computeStructureBoundary(s: Structure): Boundary {
     if (o.isIdentity) {
       boundaryHelper.includeSphere(invariantBoundary.sphere);
     } else {
-      Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
-      boundaryHelper.includeSphere(tmpSphere);
+      includeTransformed(boundaryHelper, invariantBoundary.sphere, o.matrix);
     }
   }
 
@@ -54,8 +79,7 @@ export function computeStructureBoundary(s: Structure): Boundary {
     if (o.isIdentity) {
       boundaryHelper.radiusSphere(invariantBoundary.sphere);
     } else {
-      Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
-      boundaryHelper.radiusSphere(tmpSphere);
+      radiusTransformed(boundaryHelper, invariantBoundary.sphere, o.matrix);
     }
   }
 
