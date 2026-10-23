@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -86,7 +87,11 @@ export function VolumeRepresentation<P extends VolumeParams>(
       visual = visualCtor(materialId, _volume, key, _props, graphics);
       visuals.set(key, visual);
     }
-    return visual.createOrUpdate({ graphics, runtime }, _theme, _props, { volume: _volume, key });
+    const renderObject = visual.renderObject;
+    await visual.createOrUpdate({ graphics, runtime }, _theme, _props, { volume: _volume, key });
+    // a new render object (new visual, `mustRecreate`, data that is not equivalent) starts from the defaults: give it
+    // the current state, transform included (perf-audit-2 07/B1)
+    if (visual.renderObject && visual.renderObject !== renderObject) setVisualState(visual, _state);
   }
 
   /** updates one after another, see `Representation.createUpdateQueue` */

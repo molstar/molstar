@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -101,7 +102,11 @@ export function ParticleRepresentation<P extends ParticleParams>(
         visual.destroy();
         visual = visualCtor(materialId, _particles, _props, graphics);
       }
+      const renderObject = visual.renderObject;
       await visual.createOrUpdate({ graphics, runtime }, _theme, _props, { particles: _particles });
+      // a new render object (new visual, `mustRecreate`, new particles) starts from the defaults: give it the current
+      // state, transform included (perf-audit-2 07/B1)
+      if (visual.renderObject && visual.renderObject !== renderObject) setVisualState(_state);
       renderObjects.length = 0;
       if (visual.renderObject) {
         renderObjects.push(visual.renderObject);
