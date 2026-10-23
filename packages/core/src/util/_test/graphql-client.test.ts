@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -47,11 +48,8 @@ describe('graphql transport', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
-  it('preserves POST body and headers in Node.js HTTP requests', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      status: 200,
-      bytes: async () => new TextEncoder().encode(JSON.stringify({ ok: true })),
-    } as any);
+  it('preserves POST body and headers in HTTP requests', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true })));
 
     const result = await ajaxGet({
       url: 'https://example.org/graphql',
