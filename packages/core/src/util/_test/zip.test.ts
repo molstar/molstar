@@ -5,8 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { deflate, inflate, unzip, zip, type UnzipLimits } from '../zip/zip.js';
+import { deflate, inflate, ungzip, unzip, zip, type UnzipLimits } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 
 describe('zip', () => {
@@ -24,6 +25,20 @@ describe('zip', () => {
     const zipped = await zip(SyncRuntimeContext, data);
     const unzipped = await unzip(SyncRuntimeContext, zipped);
     expect(unzipped).toEqual(data);
+  });
+
+  it('ungzip skips an FEXTRA field (a BGZF block) by its XLEN and its bytes', async () => {
+    const data = new TextEncoder().encode('data_1ABC\n_entry.id 1ABC\n'.repeat(20));
+    const plain = gzipSync(data);
+    // BGZF's extra subfield: 'BC', length 2, the block size minus 1
+    const extra = [66, 67, 2, 0, 0, 0];
+    const withExtra = new Uint8Array(plain.length + 2 + extra.length);
+    withExtra.set(plain.subarray(0, 10));
+    withExtra[3] |= 4; // FLG.FEXTRA
+    withExtra.set([extra.length, 0, ...extra], 10);
+    withExtra.set(plain.subarray(10), 10 + 2 + extra.length);
+    expect(await ungzip(SyncRuntimeContext, new Uint8Array(plain))).toEqual(data);
+    expect(await ungzip(SyncRuntimeContext, withExtra)).toEqual(data);
   });
 
   describe('untrusted archives', () => {

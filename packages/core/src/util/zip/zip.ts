@@ -210,7 +210,7 @@ export async function ungzip(runtime: RuntimeContext, file: Uint8Array<ArrayBuff
     // FEXTRA
     const xlen = readUshort(file, o);
     // console.log('FEXTRA', xlen)
-    o += xlen;
+    o += 2 + xlen; // XLEN itself, then its bytes (RFC 1952 §2.3.1.1)
   }
   if (flg & 8) {
     // FNAME
