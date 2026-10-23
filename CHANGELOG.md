@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix the structure hierarchy for a trajectory below a model (MolViewSpec's structure with `coordinates_ref`): its
+  structure's model is the one it is built from, so the trajectory's frames are listed and played
 - Fix LAMMPS triclinic boxes: the tilt factors are read, a dump's bounding-box bounds are corrected, and scaled
   coordinates go through the tilt
 - Fix GRO reading a triclinic box (the rhombic dodecahedron, the truncated octahedron) as a rectangular one: all nine

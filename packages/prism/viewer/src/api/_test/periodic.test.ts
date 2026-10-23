@@ -304,9 +304,15 @@ describe('trajectory.periodic', () => {
     );
     const v = await headlessViewer({});
     expectOk(await v.api.load.mvs!({ url: 'https://files.test/views/view.mvsj', keepCamera: true }));
-    // the structure's own model: MVS builds model, trajectory with coordinates, model (the hierarchy names the first)
+    // MVS builds model, trajectory with coordinates, model, structure: the hierarchy names the model the structure is
+    // built from (the frames'), so the trajectory and the periodic box are the viewer's
     const shown = (v.plugin.managers.structure.hierarchy.current.structures[0].cell.obj!.data as { model: Model })
       .model;
-    expect(Array.from(Model.PeriodicBox.get(shown)!.origin)).toEqual([5 - 20, -3 - 20, 2 - 20]);
+    expect(model(v)).toBe(shown);
+    expect(Array.from(Model.PeriodicBox.get(model(v))!.origin)).toEqual([5 - 20, -3 - 20, 2 - 20]);
+    const frames = await v.api.trajectory.get();
+    expectOk(frames);
+    expect(frames.value).toMatchObject({ structures: [{ count: 10, unit: 'frames' }] });
+    expectOk(await v.api.trajectory.periodic({ mode: 'box' }));
   });
 });

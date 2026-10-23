@@ -47,7 +47,8 @@ export interface TrajectoryInfo {
 }
 
 /** The transformer that adds coordinates (a simulation's frames) to a model. */
-const FromCoordinates = 'trajectory-from-model-and-coordinates';
+// (MolViewSpec's `trajectory-with-coordinates` too: the same trajectory, built from an MVS coordinates node)
+const FromCoordinates = new Set(['trajectory-from-model-and-coordinates', 'trajectory-with-coordinates']);
 
 /** The structures that have several frames, in the order of the scene. */
 export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
@@ -65,7 +66,9 @@ export function trajectoryInfos(plugin: PluginContext): TrajectoryInfo[] {
       model: cell.transform.ref,
       count,
       index: (cell.transform.params as { modelIndex: number }).modelIndex,
-      unit: s.model.trajectory?.cell.transform.transformer.definition.name === FromCoordinates ? 'frames' : 'models',
+      unit: FromCoordinates.has(s.model.trajectory?.cell.transform.transformer.definition.name ?? '')
+        ? 'frames'
+        : 'models',
     });
   }
   return out;

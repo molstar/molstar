@@ -31,3 +31,6 @@
 - Library: `PeriodicBox` (`@molstar/core/math/geometry/periodic-box`), `Model.PeriodicBox`,
   `Model.withAtomicConformation`, `Frame.box`, `ModelPeriodicity` (`makeWhole`, `apply`, `applyNoJump`) (`@molstar/model/model/structure/model/periodic`).
 - Prism stories: `Viewer › Simulations` (Periodic box, Trajectories per format, Simularium moved there).
+- Fix: a structure built from a MolViewSpec trajectory (model, trajectory with coordinates, model) has the model it is
+  built from in the structure hierarchy, so the trajectory bar and `trajectory.*` see its frames (they read the
+  topology's single model before).

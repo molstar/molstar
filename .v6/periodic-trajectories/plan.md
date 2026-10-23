@@ -151,4 +151,6 @@ box), found as "periodic images" and in the trajectory bar's box menu; **NAMD bo
 DCD's frames by step (`Frame.step` from `ISTART`, `NSAVC`). A dropped `.xsc`/`.xst` (the plugin's `xsc` format, category
 "Periodic boxes": `ParseXsc`, then `attachPeriodicBoxes` gives it to the last trajectory from coordinates, replacing
 boxes it had) and MVS's `custom.molstar_boxes` on a coordinates node. Left as is: the cell drawn in the standard frame
-for a box whose vectors are rotated. Open: the Python `molviewspec` keys (the v6 checklist).
+for a box whose vectors are rotated. Open: the Python `molviewspec` keys (the v6 checklist). Fixed on the way: the structure hierarchy names the model a
+structure is built from for a trajectory below a model (MVS's model, trajectory with coordinates, model): a trajectory
+entered below a model sets that model aside (`hierarchy-state.ts`), so Prism sees an MVS-loaded simulation's frames.
