@@ -28,7 +28,7 @@ import { isFailure, labelOf, loadedStructures, oneStructure } from './scope.js';
 // Its frame is the model index of the structure's model. Moving through frames is viewing, as the classic's arrows are:
 // no history step (sequence.md §7.3), and playing is the plugin's animation of the model index. A structure with one
 // model has no frames: it is not listed, and the operations say `not-found` when no structure has any.
-// `trajectory.periodic` says how a simulation's box is shown (.v6/periodic-trajectories): molecules whole (the
+// `trajectory.periodic` says how a simulation's box is shown: molecules whole (the
 // default), in the box (centered on the polymers or not), without jumps between frames, or as in the file. A setting,
 // so a history step. Operations: get, frame, play, stop, periodic.
 

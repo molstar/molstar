@@ -190,7 +190,7 @@ export class StructureApi extends ApiArea {
   // parity.md §2 (the structure's source): crystal symmetry, v5's Symmetry Mates and Symmetry (indices) types.
   readonly symmetry = this.operation({
     id: 'structure.symmetry',
-    // a crystal's symmetry, or a simulation box's periodic images (its P1 cell from the box: .v6/periodic-trajectories)
+    // a crystal's symmetry, or a simulation box's periodic images (its P1 cell from the box)
     title: 'Show symmetry or periodic images',
     params: {
       kind: PD.Select<'mates' | 'cells' | 'off'>(

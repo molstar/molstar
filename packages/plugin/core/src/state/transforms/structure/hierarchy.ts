@@ -38,7 +38,7 @@ export { CoordinatesWithBoxes };
 type CoordinatesWithBoxes = typeof CoordinatesWithBoxes;
 /**
  * Coordinates with their frames' boxes from a NAMD extended system file (`.xsc`, `.xst`: a text data cell), which a DCD
- * lacks the origin and orientation of (.v6/periodic-trajectories): each frame takes the box of its step.
+ * lacks the origin and orientation of: each frame takes the box of its step.
  */
 const CoordinatesWithBoxes = PluginStateTransform.BuiltIn({
   name: 'coordinates-with-boxes',
@@ -206,7 +206,7 @@ const StructureFromTrajectory = PluginStateTransform.BuiltIn({
   params(a, plugin: PluginContext | undefined) {
     // the same choice as `StructureFromModel`'s, for the frames' representative model (bond-providers plan §4)
     const registry = plugin?.bondProviders ?? new BondProviderRegistry();
-    // the frames as `ModelFromTrajectory` shows them (.v6/periodic-trajectories): whole by default
+    // the frames as `ModelFromTrajectory` shows them: whole by default
     return { bonds: PD.Optional(registry.getParam(a?.data.representative)), ...periodicParamsFor(a?.data) };
   },
 })({

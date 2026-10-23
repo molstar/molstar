@@ -12,7 +12,7 @@ import type { AtomicHierarchy } from '@molstar/model/model/structure/model/prope
 import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
 import { Script } from '@molstar/model/script/script';
 
-// What a frame in a simulation box shows (.v6/periodic-trajectories/plan.md §1): `ModelFromTrajectory`'s params.
+// What a frame in a simulation box shows (model.md §4 "Periodic frames"): `ModelFromTrajectory`'s params.
 
 export type Periodic = 'whole' | 'box' | 'nojump' | 'off';
 

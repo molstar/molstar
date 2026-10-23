@@ -13,7 +13,7 @@ import { coordinatesFromDcd } from '@molstar/model/formats/structure/dcd';
 import { coordinatesWithXsc } from '@molstar/model/formats/structure/namd-xsc';
 import { Coordinates, type Frame, Time } from '@molstar/model/model/structure/coordinates';
 
-// NAMD extended system files (.xsc, .xst) give a DCD's frames their boxes with origins (.v6/periodic-trajectories).
+// NAMD extended system files (.xsc, .xst) give a DCD's frames their boxes with origins.
 
 // A trajectory file of two steps: a 60 Å cube centered at 0, then a 60.5 Å one centered at (0.1, 0, 0)
 const xst = `# NAMD extended system trajectory file

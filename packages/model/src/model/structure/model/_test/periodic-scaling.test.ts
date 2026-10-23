@@ -12,7 +12,7 @@ import { trajectoryFromGRO } from '@molstar/model/formats/structure/gro';
 import { Model } from '../model.js';
 import { ModelPeriodicity } from '../periodic.js';
 
-// The periodic box's cost by size (.v6/periodic-trajectories plan §5): the unwrap plan (with its distance links) and a
+// The periodic box's cost by size: the unwrap plan (with its distance links) and a
 // frame made whole and put in the box, at n and 4n atoms up to a million, about linear, and a million atoms in a frame's
 // budget. A solvated system as a simulation writes it: mostly water, 50-residue chains and two-residue ligands, every
 // atom wrapped into a cubic box at water's density (0.1 atoms per Å³).

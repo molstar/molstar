@@ -22,9 +22,9 @@ import {
   MetalsSet,
 } from '../structure/unit/bonds/common.js';
 
-// Molecules split by a simulation's periodic box made whole again (.v6/periodic-trajectories/plan.md §3): every atom
+// Molecules split by a simulation's periodic box made whole again (model.md §4 "Periodic frames"): every atom
 // moved by a lattice vector to the image nearest to its parent in a spanning forest of the topology, built once. Then,
-// optionally, each whole molecule moved by a lattice vector into the box (plan.md §1, wrap), around a selection, or
+// optionally, each whole molecule moved by a lattice vector into the box (wrap), around a selection, or
 // kept from jumping a box length between frames (no jump).
 
 export { ModelPeriodicity };
@@ -257,7 +257,7 @@ namespace ModelPeriodicity {
     return centers;
   }
 
-  // No jump (plan.md §1): each molecule's lattice shift, in box vectors, chosen so its center moves less than half a
+  // No jump: each molecule's lattice shift, in box vectors, chosen so its center moves less than half a
   // box from one frame to the next. Sequential by nature: frame k's shifts need frame k - 1's. Kept per trajectory:
   // the last frame's (a playing trajectory steps one frame, either way) and a checkpoint every `NoJumpEvery` frames
   // (a seek walks at most that far), not every frame's (a molecule count of shifts per frame).
@@ -547,8 +547,8 @@ namespace ModelPeriodicity {
   const LinkRadius = 3.1;
 
   /**
-   * The hierarchy's plan joined across molecules it leaves apart by distance (.v6/periodic-trajectories, distance
-   * links): a ligand, sugar or lipid split into residues, or a non-polymer residue bonded to a polymer. Found on the
+   * The hierarchy's plan joined across molecules it leaves apart by distance (distance links): a
+   * ligand, sugar or lipid split into residues, or a non-polymer residue bonded to a polymer. Found on the
    * topology's frame across the box's faces (the minimum image), under Mol*'s element pairing thresholds, between atoms
    * neither in a water or an ion nor a metal: close is not bonded for those, and a molecule moving away later must not
    * be held to what it touched. Only when there are no topology bonds (`getPlan`).

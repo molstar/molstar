@@ -10,7 +10,7 @@ import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { XscEntry, XscFile } from '@molstar/io/reader/xsc/parser';
 import { Coordinates, type Frame } from '@molstar/model/model/structure/coordinates';
 
-// A NAMD extended system file's boxes given to coordinates (.v6/periodic-trajectories): a DCD keeps a box's lengths and
+// A NAMD extended system file's boxes given to coordinates: a DCD keeps a box's lengths and
 // angles but not where it is (NAMD's `cellOrigin`, its center), nor its vectors' orientation. Each frame takes the
 // entry of its step: the last at or before it (a box is written every `xstFreq` steps, frames every `dcdFreq`).
 

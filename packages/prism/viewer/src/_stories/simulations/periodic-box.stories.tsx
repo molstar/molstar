@@ -11,7 +11,7 @@ import { story } from '@molstar/prism-ui/testing/index';
 import type { PrismViewer } from '../../viewer.js';
 import { ExampleFiles, openAt, RealViewerStory } from '../../testing/real-viewer.js';
 
-// Frames from a periodic simulation (`trajectory.periodic`, .v6/periodic-trajectories/plan.md): molecules split across
+// Frames from a periodic simulation (`trajectory.periodic`): molecules split across
 // the box by the engine made whole (`whole`), moved into the box (`box`, centered on the polymers with `center`), kept
 // from jumping between frames (`nojump`: play it), or as the file has them (`off`: bonds and the backbone stretched
 // across the box). `images` adds the neighbouring boxes. Split chain is the repository's (no network);

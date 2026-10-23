@@ -143,8 +143,7 @@ allow the caller to choose timestamps that are reproducible across time zones.
 - [ ] Add the periodic box keys to the Python `molviewspec` package (the builder's `custom` helpers and docs):
       `custom.molstar_periodic` on a structure node (`'whole' | 'box' | 'nojump' | 'off'`, or `{ mode, center }` with
       center `'box'`, `'polymers'` or `{ expression, language? }`) and `custom.molstar_boxes` on a coordinates node
-      (`{ url }`, a NAMD `.xsc`/`.xst`, relative to the view). Their semantics: the MVS runtime's load.md §6 and
-      [.v6/periodic-trajectories](../periodic-trajectories/plan.md).
+      (`{ url }`, a NAMD `.xsc`/`.xst`, relative to the view). Their semantics: the MVS runtime's load.md §6.
 
 ## Deferred beyond v6
 

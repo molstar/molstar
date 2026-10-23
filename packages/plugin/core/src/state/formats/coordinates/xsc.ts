@@ -17,7 +17,7 @@ import {
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
 
 // A NAMD extended system file (.xsc, .xst) opened on its own (a dropped file): the periodic boxes of a DCD's frames,
-// with their origins (.v6/periodic-trajectories). It is parsed (`ParseXsc`) and given to the last trajectory built from
+// with their origins. It is parsed (`ParseXsc`) and given to the last trajectory built from
 // coordinates: its coordinates get the boxes (`CoordinatesWithBoxes`), replacing boxes they had.
 
 export { ParseXsc };

@@ -77,7 +77,7 @@ export function getCanonicalOrder(frame: Pick<LammpsFrame, 'count' | 'atomId'>):
 /**
  * A frame's coordinates in Å in atom id order (`getCanonicalOrder`): scaled ones (`xs`) through the box and its tilt;
  * with image flags (`ix iy iz`) on wrapped coordinates also the unwrapped ones, `x + ix a + iy b + iz c`: the atoms as
- * they moved, exact (.v6/periodic-trajectories plan §7, phase 5).
+ * they moved, exact (model.md §4 "Periodic frames").
  */
 export function lammpsFrameCoordinates(frame: LammpsFrame, box: LammpsBox | undefined, scale: number) {
   const count = frame.count;

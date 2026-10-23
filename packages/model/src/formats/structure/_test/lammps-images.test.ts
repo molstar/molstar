@@ -13,7 +13,7 @@ import type { Trajectory } from '@molstar/model/model/structure';
 import { Model } from '@molstar/model/model/structure/model';
 import { ModelPeriodicity } from '@molstar/model/model/structure/model/periodic';
 
-// LAMMPS image flags (.v6/periodic-trajectories plan §7, phase 5) over data/examples/trajectory/periodic/
+// LAMMPS image flags (model.md §4 "Periodic frames") over data/examples/trajectory/periodic/
 // long-chain.lammpstrj (its generator next to it): a 12-bead chain whose atom ids interleave it, so atoms with
 // consecutive ids are more than half the box apart, drifting 6 Å a frame across the box's faces.
 

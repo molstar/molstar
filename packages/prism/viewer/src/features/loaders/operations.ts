@@ -960,7 +960,7 @@ async function loadTrajectory(
       );
       if (!coordinatesProvider) throw new Error(`could not tell the format of ${coordinatesName}`);
       let coords: StateObjectSelector = await coordinatesProvider.parse(plugin, coordData);
-      // the frames' boxes from a NAMD extended system file: their origins and orientation (.v6/periodic-trajectories)
+      // the frames' boxes from a NAMD extended system file: their origins and orientation
       if (p.boxes) {
         const boxesName = fileNameOf(p.boxes) || p.boxes;
         const boxesData = await plugin.builders.data.download({ url: p.boxes, isBinary: false, label: boxesName });

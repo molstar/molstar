@@ -31,7 +31,7 @@ const Allowed = {
   externalThemes: ['external-structure', 'external-volume'],
   /** The open-anything handler is the registered `DefaultDragAndDrop` fallback instead of being hard-coded. */
   dragAndDrop: ['open-files'],
-  /** Formats new in v6: NAMD extended system files (periodic boxes for coordinates, .v6/periodic-trajectories). */
+  /** Formats new in v6: NAMD extended system files (periodic boxes for coordinates). */
   formats: ['xsc'],
 };
 

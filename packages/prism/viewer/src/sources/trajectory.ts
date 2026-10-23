@@ -88,7 +88,7 @@ export interface PeriodicInfo {
 
 const ModelFromTrajectoryName = 'model-from-trajectory';
 
-/** The structures whose model is a frame in a simulation box (.v6/periodic-trajectories). */
+/** The structures whose model is a frame in a simulation box. */
 export function periodicInfos(plugin: PluginContext): PeriodicInfo[] {
   const list = plugin.managers.structure.hierarchy.current.structures;
   const names = structureNames(list);

@@ -116,7 +116,7 @@ Mol\* reads some keys of a node's `custom` that MVS does not define, prefixed `m
 `molstar_use_default_coloring`; on the root `molstar_on_load_markdown_commands`; on a shape `molstar_mesh_params`; on a
 structure `molstar_bond_provider` (`{ name, params? }`, `structureProps`): the structure's bond provider, a name the
 plugin lacks falling back to the built-in bonds with a warning when the snapshot is applied (bond-providers plan §4.2).
-On a structure also `molstar_periodic` (`periodicModelProps`, .v6/periodic-trajectories): a simulation's periodic box,
+On a structure also `molstar_periodic` (`periodicModelProps`): a simulation's periodic box,
 `'whole' | 'box' | 'nojump' | 'off'` or `{ mode, center? }` with center `'box'`, `'polymers'` or
 `{ expression, language? }`; the conversion carries it to the structure's shown `model` node (not a topology's), whose
 `ModelFromTrajectory` takes it as `periodic` and `periodicCenter`. Absent: molecules whole (the plugin's default); an
