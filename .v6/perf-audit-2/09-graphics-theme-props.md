@@ -165,7 +165,7 @@ defect inside the P1 fix, recorded as new.
 
 | Id | vs v1 | Severity | Title | File | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| B2 | still-open | medium | entity-source indexes polymer-only `sequence.sequences` by entity index | [entity-source.ts:81](../../packages/graphics/src/theme/color/entity-source.ts#L81) | confirmed |
+| B2 | still-open; **fixed** | medium | entity-source indexes polymer-only `sequence.sequences` by entity index | [entity-source.ts:81](../../packages/graphics/src/theme/color/entity-source.ts#L81) | confirmed |
 | B7 | new; **fixed** | medium | volume-value `isRelative`: sigma-unit domain against absolute values | [volume-value.ts:87](../../packages/graphics/src/theme/color/volume-value.ts#L87) | confirmed |
 | B6 | new | low | Bridge visual ignores the child with `includeParent` | [interactions-bridge-cylinder.ts:141](../../packages/graphics/src/props/computed/representations/interactions-bridge-cylinder.ts#L141) | confirmed |
 | B3 | still-open | low | `ColorTheme.Palette` 'set' with offsets writes `undefined` (black) | [color.ts:128](../../packages/graphics/src/theme/color.ts#L128) | confirmed |
