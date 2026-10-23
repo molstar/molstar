@@ -43,6 +43,7 @@ Counts are open items after verification (perf / bugs).
 | [10-prism-viewer](10-prism-viewer.md)                 | `packages/prism/viewer/src` (+ plugin measurement sync, Canvas3D.update callers)                                                      |    7 / 3 |
 | [11-prism-ui-assistant](11-prism-ui-assistant.md)     | `packages/prism/ui/src`, `packages/prism/assistant/src`                                                                               |    8 / 4 |
 | [12-app-level](12-app-level.md)                       | **new**: `plugin/core` managers and behaviors, render loop, `plugin/headless`, `apps/`, `scripts/esbuild`, `tests/src/pipeline`, lanes | 19+10 H / 7 |
+| [13-lammps-large-text](13-lammps-large-text.md)       | notes, not audited: LAMMPS readers and text past 2³² chars (`packages/io/src/reader/lammps`)                                           |           – |
 
 v1's 12-tensor-access and 14-many-structures were folded into the owning slices (12/xx and 14/xx ids keep their names: 14/Dn is a row of its "what dominated" table, 14/Fn a fix, 14/Nn a "not fixed" item);
 13-large-scale (on an unmerged branch only) fed 00, 06, 07 and 12. v1's tensor report and this audit's app-level slice

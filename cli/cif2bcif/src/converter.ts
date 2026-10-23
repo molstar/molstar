@@ -16,7 +16,6 @@ import { classifyFloatArray, classifyIntArray } from '@molstar/io/common/binary-
 import type { BinaryEncodingProvider } from '@molstar/io/writer/cif/encoder/binary';
 import { Category } from '@molstar/io/writer/cif/encoder';
 import { ReaderResult } from '@molstar/io/reader/result';
-import { utf8ReadLong } from '@molstar/core/util/utf8';
 
 function showProgress(p: Progress) {
   process.stdout.write(`\r${new Array(80).join(' ')}`);
@@ -34,9 +33,8 @@ async function readFile(ctx: RuntimeContext, filename: string): Promise<ReaderRe
     return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
   } else {
     const data = isGz ? await unzipAsync(await readFileAsync(filename)) : await readFileAsync(filename);
-    const str = utf8ReadLong(data);
-    const cif = await CIF.parseText(str).runInContext(ctx);
-    return cif;
+    // the parser reads the UTF-8 bytes: no string, and no limit of the string length
+    return await CIF.parseText(data).runInContext(ctx);
   }
 }
 
