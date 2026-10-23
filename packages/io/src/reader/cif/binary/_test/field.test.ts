@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Aniruddha Adak <aniruddhaadak80@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -108,5 +109,38 @@ describe('binary-cif Field', () => {
     expect(f.int(1)).toBe(2);
     expect(Array.from(f.toIntArray())).toEqual([1, 2, 3]);
     expect(f.valueKind(0)).toBe(Present);
+  });
+
+  it('decodes on the first access when given the row count, with the same values', () => {
+    const column = intColumn(IntValues, Mask);
+    // an encoding the decoder rejects: creating the field must not decode it
+    const broken: EncodedColumn = {
+      ...column,
+      data: { ...column.data, encoding: [{ kind: 'ByteArray', type: 99 as any }] },
+    };
+    const lazy = Field(broken, 5);
+    expect(lazy.rowCount).toBe(5);
+    expect(lazy.binaryEncoding).toBe(broken.data.encoding);
+    expect(() => lazy.int(0)).toThrow();
+
+    const eager = Field(column);
+    const f = Field(column, 5);
+    for (let i = 0; i < 5; i++) {
+      expect([f.str(i), f.int(i), f.float(i), f.valueKind(i)]).toEqual([
+        eager.str(i),
+        eager.int(i),
+        eager.float(i),
+        eager.valueKind(i),
+      ]);
+    }
+    expect(f.areValuesEqual(0, 2)).toBe(eager.areValuesEqual(0, 2));
+    expect(Array.from(f.toIntArray())).toEqual(Array.from(eager.toIntArray()));
+    expect(Array.from(f.toFloatArray({ start: 1, end: 3 }))).toEqual(
+      Array.from(eager.toFloatArray({ start: 1, end: 3 })),
+    );
+    expect(f.toStringArray()).toEqual(eager.toStringArray());
+    expect(Array.from(f.__array!)).toEqual(Array.from(eager.__array!));
+    // decoded once
+    expect(f.__array).toBe(f.__array);
   });
 });

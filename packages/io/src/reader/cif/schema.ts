@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -80,7 +80,10 @@ function createStringColumn<T extends string>(
 ): Column<T> {
   return {
     schema,
-    __array: field.__array,
+    // read on access: a BinaryCIF field decodes when its array is first read (binary/field.ts)
+    get __array() {
+      return field.__array;
+    },
     isDefined: field.isDefined,
     rowCount: field.rowCount,
     value:
@@ -108,7 +111,9 @@ function createColumn<T>(
 ): Column<T> {
   return {
     schema,
-    __array: field.__array,
+    get __array() {
+      return field.__array;
+    },
     isDefined: field.isDefined,
     rowCount: field.rowCount,
     value,

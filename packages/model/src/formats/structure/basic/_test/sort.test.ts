@@ -60,4 +60,41 @@ describe('sortAtomSite', () => {
     const { atom_site: sorted } = await sortAtomSite(SyncRuntimeContext, one, 0, 4);
     expect(sorted).toBe(one);
   });
+
+  it('makes a column of a sorted or windowed model on its first read', async () => {
+    const reads = new Set<string>();
+    const watched = Object.create(null);
+    watched._rowCount = atom_site._rowCount;
+    watched._columns = atom_site._columns;
+    watched._schema = atom_site._schema;
+    for (const k of atom_site._columns) {
+      Object.defineProperty(watched, k, {
+        get: () => {
+          reads.add(k);
+          return (atom_site as any)[k];
+        },
+        enumerable: true,
+      });
+    }
+    for (const [start, end] of [
+      [0, 5],
+      [5, 9],
+    ]) {
+      const { atom_site: sorted } = await sortAtomSite(SyncRuntimeContext, watched, start, end);
+      // the sort reads its keys only
+      expect([...reads].sort()).toEqual(['label_asym_id', 'label_entity_id', 'label_seq_id']);
+      expect(Array.from(sorted.Cartn_x.toArray())).toEqual(
+        Array.from(
+          Table.view(
+            atom_site,
+            atom_site._schema,
+            Array.from(sorted.id.toArray(), (id) => id - 1),
+          ).Cartn_x.toArray(),
+        ),
+      );
+      expect(reads.has('Cartn_x')).toBe(true);
+      expect(sorted.Cartn_x).toBe(sorted.Cartn_x);
+      reads.clear();
+    }
+  });
 });

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,7 +10,34 @@ import type * as Data from '../data-model.js';
 import { type EncodedColumn, decode } from '@molstar/io/common/binary-cif';
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '@molstar/core/util/number-parser';
 
-export function Field(column: EncodedColumn): Data.CifField {
+/**
+ * A BinaryCIF field. With `rowCount` (the category's), the column decodes on the first access to its values, so the
+ * columns a reader never touches are never decoded (perf-audit-2 04/P5); without it, it decodes here.
+ */
+export function Field(column: EncodedColumn, rowCount?: number): Data.CifField {
+  let impl: Data.CifField | undefined;
+  const get = () => impl ?? (impl = decodedField(column));
+  const field = rowCount === void 0 ? get() : void 0;
+
+  return {
+    get __array() {
+      return get().__array;
+    },
+    binaryEncoding: column.data.encoding,
+    isDefined: true,
+    rowCount: field ? field.rowCount : rowCount!,
+    str: (row) => get().str(row),
+    int: (row) => get().int(row),
+    float: (row) => get().float(row),
+    valueKind: (row) => get().valueKind(row),
+    areValuesEqual: (rowA, rowB) => get().areValuesEqual(rowA, rowB),
+    toStringArray: (params) => get().toStringArray(params),
+    toIntArray: (params) => get().toIntArray(params),
+    toFloatArray: (params) => get().toFloatArray(params),
+  };
+}
+
+function decodedField(column: EncodedColumn): Data.CifField {
   const mask = column.mask ? (decode(column.mask) as number[]) : void 0;
   const data = decode(column.data);
   const isNumeric = ColumnHelpers.isTypedArray(data);
