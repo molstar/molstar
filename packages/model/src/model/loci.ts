@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StructureElement } from './structure.js';
@@ -301,7 +302,8 @@ namespace Loci {
       case 'structure':
         return 'Structure/Shape';
       default:
-        return k.indexOf('Instances') ? [stringToWords(k), 'With Symmetry'] : stringToWords(k);
+        // `includes`, not `indexOf` (-1 is truthy): plain granularities were listed under 'With Symmetry' (perf-audit-2 04/B6)
+        return k.includes('Instances') ? [stringToWords(k), 'With Symmetry'] : stringToWords(k);
     }
   });
 

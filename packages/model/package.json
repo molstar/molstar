@@ -19,6 +19,7 @@
     "./formats/volume/_test/*": null,
     "./formats/volume/shared/_test/*": null,
     "./formats/writer/ccp4/_test/*": null,
+    "./model/_test/*": null,
     "./model/particles/_test/*": null,
     "./model/sequence/alignment/_test/*": null,
     "./model/structure/model/_test/*": null,
