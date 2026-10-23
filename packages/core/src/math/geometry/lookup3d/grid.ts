@@ -407,6 +407,8 @@ const insideOut = memoize1(_insideOut);
 
 /**
  * The maximum error is on the order of cell size + max radius (if the grid has radii).
+ * One result: the nearest element of the first non-empty cell in inside-out order (perf-audit-2 02/B1: each closer
+ * one was added, so the nearest came last while callers read index 0).
  */
 function approxQueryNearest<T extends number = number>(ctx: QueryContext, result: Result<T>): boolean {
   const {
@@ -458,6 +460,7 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
     const end = offset + count;
 
     let minDistSq = Number.MAX_VALUE;
+    let nearest = -1;
     if (sortedIndices) {
       for (let i = offset; i < end; i++) {
         const idx = sortedIndices[bucketArray[i]];
@@ -466,7 +469,7 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
         const dz = pz[idx] - z;
         const distSq = dx * dx + dy * dy + dz * dz;
         if (distSq <= rSq && distSq < minDistSq) {
-          Result.add(result, bucketArray[i], distSq);
+          nearest = bucketArray[i];
           minDistSq = distSq;
         }
       }
@@ -478,12 +481,15 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
         const dz = pz[idx] - z;
         const distSq = dx * dx + dy * dy + dz * dz;
         if (distSq <= rSq && distSq < minDistSq) {
-          Result.add(result, bucketArray[i], distSq);
+          nearest = bucketArray[i];
           minDistSq = distSq;
         }
       }
     }
-    if (minDistSq !== Number.MAX_VALUE) return true;
+    if (nearest >= 0) {
+      Result.add(result, nearest, minDistSq);
+      return true;
+    }
   }
 
   return result.count > 0;

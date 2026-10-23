@@ -124,6 +124,16 @@ describe('GridLookup3d', () => {
     expect(r.count).toBe(0);
   });
 
+  it('approxNearest gives the nearest of a cell, once (perf-audit-2 02/B1)', () => {
+    // one cell: the farther element first in the bucket, then the nearer one
+    const position = { x: [2.9, 0.3, 4], y: [0, 0, 0], z: [0, 0, 0], indices: OrderedSet.ofBounds(0, 3) };
+    const grid = GridLookup3D(position, getBoundary(position), Vec3.create(10, 10, 10));
+    const r = grid.approxNearest(0, 0, 0, 5);
+    expect(r.count).toBe(1);
+    expect(r.indices[0]).toBe(1);
+    expect(r.squaredDistances[0]).toBeCloseTo(0.09, 10);
+  });
+
   it('empty', () => {
     const position = { x: [] as number[], y: [] as number[], z: [] as number[], indices: OrderedSet.ofBounds(0, 0) };
     const boundary = getBoundary(position);
@@ -325,16 +335,16 @@ describe('GridLookup3d result order', () => {
     }
     expect(out).toMatchInlineSnapshot(`
       {
-        "array sorted": "7261 a7ebbc96",
-        "array sorted, 3 Å cells": "7261 f422342b",
-        "f32 interval": "21810 8f0ec182",
-        "f32 interval, 3 Å cells": "21810 f2d63769",
-        "f32 sorted radii": "15459 57582975",
-        "f32 sorted radii, 3 Å cells": "15459 e98de59e",
-        "f64 interval": "21810 4aaf4dd2",
-        "f64 interval radii": "46167 e20a7f68",
-        "f64 interval radii, 3 Å cells": "46167 ffeeb7b2",
-        "f64 interval, 3 Å cells": "21810 4cb0bd5d",
+        "array sorted": "7261 18c73e1e",
+        "array sorted, 3 Å cells": "7261 e8f28869",
+        "f32 interval": "21810 4c64db64",
+        "f32 interval, 3 Å cells": "21810 ba8b3fd",
+        "f32 sorted radii": "15459 f64e7abc",
+        "f32 sorted radii, 3 Å cells": "15459 2105f01e",
+        "f64 interval": "21810 551a81f3",
+        "f64 interval radii": "46167 954d18fa",
+        "f64 interval radii, 3 Å cells": "46167 137f36a",
+        "f64 interval, 3 Å cells": "21810 6c89a522",
       }
     `);
   });
