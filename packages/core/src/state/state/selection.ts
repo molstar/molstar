@@ -446,20 +446,24 @@ namespace StateSelection {
     return true;
   }
 
+  /** The first node with the tag in pre-order; the walk stops there (perf-audit-2 03/B10) */
   export function findTagInSubtree(
     tree: StateTree,
     root: StateTransform.Ref,
     tag: string,
   ): StateTransform.Ref | undefined {
-    return StateTree.doPreOrder(tree, tree.transforms.get(root), { ref: void 0, tag }, _findTagInSubtree).ref;
+    return _findTagInSubtree(tree, root, tag);
   }
 
-  function _findTagInSubtree(n: StateTransform, _: any, s: { ref: string | undefined; tag: string }) {
-    if (n.tags && n.tags.indexOf(s.tag) >= 0) {
-      s.ref = n.ref;
-      return false;
-    }
-    return true;
+  function _findTagInSubtree(tree: StateTree, ref: StateTransform.Ref, tag: string): StateTransform.Ref | undefined {
+    const tags = tree.transforms.get(ref).tags;
+    if (tags && tags.indexOf(tag) >= 0) return ref;
+    const children = tree.children.get(ref);
+    if (!children || children.size === 0) return;
+    let found: StateTransform.Ref | undefined;
+    // an Immutable forEach stops when the callback returns false
+    children.forEach((c) => (found = _findTagInSubtree(tree, c!, tag)) === undefined);
+    return found;
   }
 
   export function findWithAllTags<K extends string = string>(

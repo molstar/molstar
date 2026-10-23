@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { State, StateObject, StateSelection, StateTransformer } from '../index.js';
+import { State, StateObject, StateSelection, StateTransform, StateTransformer } from '../index.js';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
@@ -66,5 +66,22 @@ describe('StateSelection', () => {
     expect(all.map((c) => c.transform.ref)).toEqual(['null']);
     const children = state.select(StateSelection.Generators.byRef('null').children().withTag('x'));
     expect(children).toEqual([]);
+  });
+
+  it('findTagInSubtree returns the first match in pre-order and stops there (perf-audit-2 03/B10)', async () => {
+    const state = newState();
+    await commit(state, (b) => {
+      const first = b.toRoot().apply(Node, { value: 1 }, { ref: 'first', tags: 't' });
+      first.apply(Node, { value: 1 }, { ref: 'first-child', tags: 't' });
+      b.toRoot().apply(Node, { value: 1 }, { ref: 'second', tags: 't' });
+      for (let i = 0; i < 50; i++) b.toRoot().apply(Node, { value: 1 }, { ref: `other-${i}` });
+    });
+
+    const get = vi.spyOn(state.tree.transforms, 'get');
+    expect(StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, 't')).toBe('first');
+    // the root and 'first'
+    expect(get.mock.calls.length).toBe(2);
+    expect(StateSelection.findTagInSubtree(state.tree, 'second', 't')).toBe('second');
+    expect(StateSelection.findTagInSubtree(state.tree, StateTransform.RootRef, 'none')).toBeUndefined();
   });
 });
