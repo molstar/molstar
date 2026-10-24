@@ -33,7 +33,7 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }) {
     return Task.create('Parse Lammps Data', async (ctx) => {
-      const parsed = await parseLammpsData(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parseLammpsData(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromLammpsData(parsed.result, params.unitsStyle).runInContext(ctx);
       const props = trajectoryProps(models);
@@ -55,7 +55,7 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }) {
     return Task.create('Parse Lammps Data', async (ctx) => {
-      const parsed = await parseLammpsTrajectory(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parseLammpsTrajectory(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromLammpsTrajectory(parsed.result, params.unitsStyle).runInContext(ctx);
       const props = trajectoryProps(models);

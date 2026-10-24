@@ -13,10 +13,16 @@ import {
   NumberTypes,
   parseInt as fastParseInt,
   parseFloat as fastParseFloat,
+  parseIntBytes,
+  parseFloatBytes,
 } from '@molstar/core/util/number-parser';
+import { utf8ReadValue } from '@molstar/core/util/utf8';
 import type { Encoding } from '@molstar/io/common/binary-cif';
 import type { Tokens } from '../common/text/tokenizer.js';
 import { areValuesEqualProvider } from '../common/text/column/token.js';
+import type { TextByteTokens } from '../common/text/text-byte-tokenizer.js';
+import { areTextByteValuesEqualProvider } from '../common/text/column/text-byte-token.js';
+import { ByteStringCache } from '../common/text/byte-string-cache.js';
 
 export interface CifFile {
   readonly name?: string;
@@ -269,6 +275,57 @@ export namespace CifField {
       float,
       valueKind,
       areValuesEqual: areValuesEqualProvider(tokens),
+      toStringArray: (params) => ColumnHelpers.createAndFillArray(rowCount, str, params),
+      toIntArray: (params) => ColumnHelpers.createAndFillArray(rowCount, int, params),
+      toFloatArray: (params) => ColumnHelpers.createAndFillArray(rowCount, float, params),
+    };
+  }
+
+  /**
+   * `ofTokens` over byte tokens: values decode as UTF-8, short ones through a string cache (`ByteStringCache`); numbers
+   * parse from the bytes.
+   */
+  export function ofTextByteTokens(tokens: TextByteTokens): CifField {
+    const { data, indices, count: rowCount } = tokens;
+    let cache: ByteStringCache | undefined;
+    const cached = rowCount >= ByteStringCache.MinRows;
+
+    const str: CifField['str'] = (row) => {
+      const s = indices[2 * row],
+        l = indices[2 * row + 1] - s;
+      if (l === 1 && (data[s] === 46 /* . */ || data[s] === 63) /* ? */) return '';
+      if (l > ByteStringCache.MaxLength || !cached) return utf8ReadValue(data, s, l);
+      return ByteStringCache.read((cache ??= ByteStringCache()), data, s, l);
+    };
+
+    const int: CifField['int'] = (row) => {
+      return parseIntBytes(data, indices[2 * row], indices[2 * row + 1]) || 0;
+    };
+
+    const float: CifField['float'] = (row) => {
+      return parseFloatBytes(data, indices[2 * row], indices[2 * row + 1]) || 0;
+    };
+
+    const valueKind: CifField['valueKind'] = (row) => {
+      const s = indices[2 * row],
+        l = indices[2 * row + 1] - s;
+      if (l > 1) return Column.ValueKinds.Present;
+      if (l === 0) return Column.ValueKinds.NotPresent;
+      const v = data[s];
+      if (v === 46 /* . */) return Column.ValueKinds.NotPresent;
+      if (v === 63 /* ? */) return Column.ValueKinds.Unknown;
+      return Column.ValueKinds.Present;
+    };
+
+    return {
+      binaryEncoding: void 0,
+      isDefined: true,
+      rowCount,
+      str,
+      int,
+      float,
+      valueKind,
+      areValuesEqual: areTextByteValuesEqualProvider(tokens),
       toStringArray: (params) => ColumnHelpers.createAndFillArray(rowCount, str, params),
       toIntArray: (params) => ColumnHelpers.createAndFillArray(rowCount, int, params),
       toFloatArray: (params) => ColumnHelpers.createAndFillArray(rowCount, float, params),

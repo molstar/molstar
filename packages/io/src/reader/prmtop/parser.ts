@@ -1,16 +1,22 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task, type RuntimeContext } from '@molstar/core/task';
-import { Tokenizer, TokenBuilder, type Tokens } from '../common/text/tokenizer.js';
+import {
+  TextByteTokenizer,
+  TextByteTokenBuilder as TokenBuilder,
+  type TextByteTokens,
+} from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { Column } from '@molstar/core/data/db';
 import type { Mutable } from '@molstar/core/util/type-helpers';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // http://ambermd.org/prmtop.pdf
 // https://ambermd.org/FileFormats.php#topology
@@ -66,9 +72,9 @@ export interface PrmtopFile {
   readonly radii: Column<number>;
 }
 
-const { readLine, markLine, trim } = Tokenizer;
+const { readLine, markLine, trim } = TextByteTokenizer;
 
-function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
+function State(tokenizer: TextByteTokenizer, runtimeCtx: RuntimeContext) {
   return {
     tokenizer,
     runtimeCtx,
@@ -81,7 +87,7 @@ function handleTitle(state: State): string[] {
   const title: string[] = [];
 
   while (tokenizer.tokenEnd < tokenizer.length) {
-    if (tokenizer.data.charAt(tokenizer.position) === '%') break;
+    if (tokenizer.data[tokenizer.position] === 37 /* % */) break;
     const line = readLine(tokenizer).trim();
     if (line) title.push(line);
   }
@@ -99,7 +105,7 @@ function handlePointers(state: State): Record<PointerName, number> {
 
   let curIdx = 0;
   while (tokenizer.tokenEnd < tokenizer.length) {
-    if (tokenizer.data.charAt(tokenizer.position) === '%') break;
+    if (tokenizer.data[tokenizer.position] === 37 /* % */) break;
     const line = readLine(tokenizer);
 
     const n = Math.min(curIdx + 10, 32);
@@ -111,14 +117,14 @@ function handlePointers(state: State): Record<PointerName, number> {
   return pointers;
 }
 
-function handleTokens(state: State, count: number, countPerLine: number, itemSize: number): Tokens {
+function handleTokens(state: State, count: number, countPerLine: number, itemSize: number): TextByteTokens {
   const { tokenizer } = state;
 
   const tokens = TokenBuilder.create(tokenizer.data, count * 2);
 
   let curIdx = 0;
   while (tokenizer.tokenEnd < tokenizer.length) {
-    if (tokenizer.data.charAt(tokenizer.position) === '%') break;
+    if (tokenizer.data[tokenizer.position] === 37 /* % */) break;
 
     tokenizer.tokenStart = tokenizer.position;
     const n = Math.min(curIdx + countPerLine, count);
@@ -135,8 +141,8 @@ function handleTokens(state: State, count: number, countPerLine: number, itemSiz
   return tokens;
 }
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
-  const t = Tokenizer(data);
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
+  const t = TextByteTokenizer(data);
   const state = State(t, ctx);
 
   const result: Mutable<PrmtopFile> = Object.create(null);
@@ -189,7 +195,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
         result.radii = TokenColumn(tokens)(Column.Schema.float);
       } else {
         while (t.tokenEnd < t.length) {
-          if (t.data.charAt(t.position) === '%') break;
+          if (t.data[t.position] === 37 /* % */) break;
           markLine(t);
         }
       }
@@ -199,8 +205,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(result);
 }
 
-export function parsePrmtop(data: StringLike) {
+/** Parses an Amber topology from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
+export function parsePrmtop(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<PrmtopFile>>('Parse PRMTOP', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

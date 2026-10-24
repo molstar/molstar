@@ -17,10 +17,14 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   per value (255 = look the end up in a map, for values of 255+ bytes). 5 B a value against 8 for a start and an end;
   one pair per loop keeps the reading loop on locals, column-major keeps a field's values contiguous for its readers. A
   loop grows from the density read so far and is trimmed. flat-192: 132 MB of tokens against 320 MB before (8 B plus
-  the 1.61× growth slack). The shared `Tokens`/`Tokenizer` of the other text formats are unchanged.
+  the 1.61× growth slack). The other text formats have their own byte tokenizer, `TextByteTokenizer`
+  (`reader/common/text/text-byte-tokenizer.ts`: the `Tokenizer` functions over bytes, start/end tokens, `TextByteTokenColumn`,
+  `CifField.ofTextByteTokens`); the string `Tokenizer` stays for code that tokenizes strings.
 - **`str`** decodes per value: ASCII up to 24 bytes with `String.fromCharCode` (`utf8ReadValue`, core; a `TextDecoder`
   call is ~0.4 µs; a leading U+FEFF of a value is kept), and a field of 64 rows or more has a 256-slot cache of values
-  up to 8 bytes (up to 4 keyed by the bytes), so repeated names are made once and keep their computed hash. Fewer rows
+  up to 8 bytes (up to 4 keyed by the bytes; `ByteStringCache`, shared with the other byte-read formats), so repeated
+  names are made once and keep their computed hash; it turns off for a column whose first 4096 lookups mostly missed
+  (unique values only paid the hash: 1M reads 24 ms uncached, 41 cached, 28 with the switch). Fewer rows
   have none: its ~3 KB outweighed a dictionary's single items (the CCD). A category of single items shares one token
   store. Numbers parse on bytes (`parseIntBytes`, `parseFloatBytes`, core), bit-identical to the
   string parsers.

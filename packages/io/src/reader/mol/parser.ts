@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
@@ -8,9 +8,13 @@
 import { Column } from '@molstar/core/data/db';
 import { Task } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
-import { TokenBuilder, Tokenizer } from '../common/text/tokenizer.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
+import {
+  TextByteTokenBuilder as TokenBuilder,
+  TextByteTokenizer as Tokenizer,
+} from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /** Subset of the MolFile V2000 format */
 export interface MolFile {
@@ -238,7 +242,7 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): {
   return { formalCharges, attachmentPoints };
 }
 
-function parseInternal(data: StringLike): Result<MolFile> {
+function parseInternal(data: ReadonlyUint8Array): Result<MolFile> {
   const tokenizer = Tokenizer(data);
 
   const title = Tokenizer.readLine(tokenizer).trim();
@@ -264,8 +268,9 @@ function parseInternal(data: StringLike): Result<MolFile> {
   return Result.success(result);
 }
 
-export function parseMol(data: StringLike) {
+/** Parses a MOL file from its text or its UTF-8 bytes (read, not modified). */
+export function parseMol(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<MolFile>>('Parse Mol', async () => {
-    return parseInternal(data);
+    return parseInternal(Tokenizer.bytesOf(data));
   });
 }

@@ -8,6 +8,7 @@
  */
 
 import type { StringLike } from './string-like.js';
+import type { ReadonlyUint8Array } from './type-helpers.js';
 
 /**
  * Efficient integer and float parsers.
@@ -99,7 +100,7 @@ export function parseFloat(str: StringLike, start: number, end: number) {
 }
 
 /** `parseInt` over the bytes of ASCII or UTF-8 text: the same arithmetic, so the same results. */
-export function parseIntBytes(data: Uint8Array, start: number, end: number) {
+export function parseIntBytes(data: ReadonlyUint8Array, start: number, end: number) {
   let _start = start,
     ret = 0,
     neg = 1;
@@ -119,14 +120,14 @@ export function parseIntBytes(data: Uint8Array, start: number, end: number) {
   return neg * ret;
 }
 
-function parseScientificBytes(main: number, data: Uint8Array, start: number, end: number) {
+function parseScientificBytes(main: number, data: ReadonlyUint8Array, start: number, end: number) {
   // handle + in '1e+1' separately.
   if (data[start] === 43 /* + */) start++;
   return main * Math.pow(10.0, parseIntBytes(data, start, end));
 }
 
 /** `parseFloat` over the bytes of ASCII or UTF-8 text: the same arithmetic, so bit-identical results. */
-export function parseFloatBytes(data: Uint8Array, start: number, end: number) {
+export function parseFloatBytes(data: ReadonlyUint8Array, start: number, end: number) {
   let _start = start,
     neg = 1.0,
     ret = 0.0,

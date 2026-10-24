@@ -50,7 +50,7 @@ const ParseCube = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse Cube', async (ctx) => {
-      const parsed = await parseCube(await SO.Data.readText(ctx, a), a.label).runInContext(ctx);
+      const parsed = await parseCube(SO.Data.readBytes(a), a.label).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Cube(parsed.result);
     });

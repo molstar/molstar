@@ -26,7 +26,7 @@ const TrajectoryFromMOL2 = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse MOL2', async (ctx) => {
-      const parsed = await parseMol2(await SO.Data.readText(ctx, a), a.label).runInContext(ctx);
+      const parsed = await parseMol2(SO.Data.readBytes(a), a.label).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromMol2(parsed.result).runInContext(ctx);
       const props = trajectoryProps(models);

@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
+import { utf8Encode } from '@molstar/core/util/utf8';
 import { parseGRO } from '../gro/parser.js';
+import { plainResult } from './plain-result.js';
 
 const groString = `MD of 2 waters, t= 4.2
     6
@@ -87,5 +89,35 @@ describe('gro reader', () => {
     expect(atoms.vx.value(0)).toBeCloseTo(0.2345, 0.0001);
     expect(atoms.vy.value(0)).toBeCloseTo(-0.1622, 0.0001);
     expect(atoms.vz.value(0)).toBeCloseTo(0.2097, 0.0001);
+  });
+
+  it('parses the same from a string and from its bytes', async () => {
+    for (const text of [groString, groStringHighPrecision, groString + '\n' + groStringHighPrecision]) {
+      const fromString = await parseGRO(text).run();
+      const fromBytes = await parseGRO(utf8Encode(text)).run();
+      expect(plainResult(fromBytes)).toEqual(plainResult(fromString));
+    }
+  });
+
+  it('non-ASCII title', async () => {
+    const text = groString.replace('MD of 2 waters', 'MD of 2 waters ÅÉ 水');
+    const parsed = await parseGRO(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const { header, atoms } = parsed.result.structures[0];
+    expect(header.title).toBe('MD of 2 waters ÅÉ 水');
+    expect(header.timeInPs).toBeCloseTo(4.2);
+    expect(atoms.atomName.value(1)).toBe('HW2');
+    expect(atoms.x.value(5)).toBeCloseTo(1.326);
+  });
+
+  it('reads the box by its values', async () => {
+    const parsed = await parseGRO(groString).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    expect(parsed.result.structures[0].header.box).toEqual([1.8206, 2.8206, 3.8206]);
+  });
+
+  it('fails without decimal coordinates', async () => {
+    const parsed = await parseGRO('title\n    1\n    1SOL     OW    1   0   0   0\n   1 1 1\n').run();
+    expect(parsed.isError).toBe(true);
   });
 });

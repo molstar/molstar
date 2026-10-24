@@ -27,7 +27,7 @@ const ParseDynamoTbl = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse Dynamo TBL', async (ctx) => {
-      const parsed = await parseDynamoTbl(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parseDynamoTbl(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.DynamoTbl(parsed.result, { label: a.label || 'Dynamo TBL' });
     });

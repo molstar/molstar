@@ -1,18 +1,25 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zepei Xu <xuzepei19950617@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Eric E <etongfu@@outlook.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '@molstar/core/data/db';
-import { TokenBuilder, Tokenizer, type Tokens } from '../common/text/tokenizer.js';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
+import {
+  TextByteTokenBuilder as TokenBuilder,
+  TextByteTokenizer as Tokenizer,
+  type TextByteTokens as Tokens,
+} from '../common/text/text-byte-tokenizer.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { ReaderResult as Result } from '../result.js';
 import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
+import { asciiStartsWith } from '@molstar/core/util/utf8';
 import type { Mol2Atoms, Mol2Bonds, Mol2File, Mol2Molecule, Mol2Structure, Mol2Substructure } from './schema.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 const { skipWhitespace, eatValue, markLine, getTokenString, skipStrictWhitespace } = Tokenizer;
 
@@ -47,10 +54,18 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext): State {
 
 const reWhitespace = /\s+/g;
 
+/** Whether the current token is the ASCII `str`: `getTokenString(tokenizer) === str` without decoding the token. */
+function isToken(tokenizer: Tokenizer, str: string) {
+  return (
+    tokenizer.tokenEnd - tokenizer.tokenStart === str.length &&
+    asciiStartsWith(tokenizer.data, str, tokenizer.tokenStart)
+  );
+}
+
 function handleMolecule(state: State) {
   const { tokenizer, molecule } = state;
 
-  while (getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE' && tokenizer.position < tokenizer.data.length) {
+  while (!isToken(tokenizer, '@<TRIPOS>MOLECULE') && tokenizer.position < tokenizer.data.length) {
     markLine(tokenizer);
   }
 
@@ -123,7 +138,7 @@ async function handleAtoms(state: State): Promise<Mol2Atoms> {
   const { tokenizer, molecule } = state;
 
   // skip empty lines and '@<TRIPOS>ATOM'
-  while (getTokenString(tokenizer) !== '@<TRIPOS>ATOM' && tokenizer.position < tokenizer.data.length) {
+  while (!isToken(tokenizer, '@<TRIPOS>ATOM') && tokenizer.position < tokenizer.data.length) {
     markLine(tokenizer);
   }
 
@@ -200,7 +215,7 @@ async function handleAtoms(state: State): Promise<Mol2Atoms> {
 async function handleBonds(state: State): Promise<Mol2Bonds> {
   const { tokenizer, molecule } = state;
 
-  while (getTokenString(tokenizer) !== '@<TRIPOS>BOND' && tokenizer.position < tokenizer.data.length) {
+  while (!isToken(tokenizer, '@<TRIPOS>BOND') && tokenizer.position < tokenizer.data.length) {
     markLine(tokenizer);
   }
 
@@ -262,7 +277,7 @@ async function handleSubstructures(state: State): Promise<Mol2Substructure | und
   const { tokenizer, molecule } = state;
   if (molecule.num_subst === 0) return;
 
-  while (getTokenString(tokenizer) !== '@<TRIPOS>SUBSTRUCTURE' && tokenizer.position < tokenizer.data.length) {
+  while (!isToken(tokenizer, '@<TRIPOS>SUBSTRUCTURE') && tokenizer.position < tokenizer.data.length) {
     markLine(tokenizer);
   }
 
@@ -337,10 +352,9 @@ function handleCrysin(state: State) {
   const { tokenizer } = state;
 
   while (tokenizer.position < tokenizer.data.length) {
-    const l = getTokenString(tokenizer);
-    if (l === '@<TRIPOS>MOLECULE') {
+    if (isToken(tokenizer, '@<TRIPOS>MOLECULE')) {
       return;
-    } else if (l === '@<TRIPOS>CRYSIN') {
+    } else if (isToken(tokenizer, '@<TRIPOS>CRYSIN')) {
       break;
     } else {
       markLine(tokenizer);
@@ -363,7 +377,7 @@ function handleCrysin(state: State) {
   };
 }
 
-async function parseInternal(ctx: RuntimeContext, data: StringLike, name: string): Promise<Result<Mol2File>> {
+async function parseInternal(ctx: RuntimeContext, data: ReadonlyUint8Array, name: string): Promise<Result<Mol2File>> {
   const tokenizer = Tokenizer(data);
 
   ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -377,7 +391,7 @@ async function parseInternal(ctx: RuntimeContext, data: StringLike, name: string
     const crysin = handleCrysin(state);
     structures.push({ molecule: state.molecule, atoms, bonds, substructures, crysin });
     skipWhitespace(tokenizer);
-    while (getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE' && tokenizer.position < tokenizer.data.length) {
+    while (!isToken(tokenizer, '@<TRIPOS>MOLECULE') && tokenizer.position < tokenizer.data.length) {
       markLine(tokenizer);
     }
   }
@@ -386,8 +400,9 @@ async function parseInternal(ctx: RuntimeContext, data: StringLike, name: string
   return Result.success(result);
 }
 
-export function parseMol2(data: StringLike, name: string) {
+/** Parses MOL2 from its text or its UTF-8 bytes (read, not modified). */
+export function parseMol2(data: StringLike | ReadonlyUint8Array, name: string) {
   return Task.create<Result<Mol2File>>('Parse MOL2', async (ctx) => {
-    return await parseInternal(ctx, data, name);
+    return await parseInternal(ctx, Tokenizer.bytesOf(data), name);
   });
 }

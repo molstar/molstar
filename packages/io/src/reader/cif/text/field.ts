@@ -8,6 +8,8 @@ import { Column, ColumnHelpers } from '@molstar/core/data/db';
 import { parseFloatBytes, parseIntBytes } from '@molstar/core/util/number-parser';
 import { utf8ReadValue } from '@molstar/core/util/utf8';
 import type { CifField } from '../data-model.js';
+import { ByteStringCache } from '../../common/text/byte-string-cache.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /**
  * The values of a text CIF loop (or of one value) as byte ranges of the file, field by field: a start per value (Uint32)
@@ -16,7 +18,7 @@ import type { CifField } from '../data-model.js';
  * are contiguous for its readers. Internal to the CIF text reader; other formats keep `Tokens`.
  */
 export interface ByteTokens {
-  readonly data: Uint8Array;
+  readonly data: ReadonlyUint8Array;
   readonly fieldCount: number;
   /** rows of room: the value of field `f` in row `r` is at `f * capacity + r` */
   capacity: number;
@@ -29,7 +31,7 @@ export interface ByteTokens {
 }
 
 export namespace ByteTokens {
-  export function create(data: Uint8Array, fieldCount: number, capacity: number): ByteTokens {
+  export function create(data: ReadonlyUint8Array, fieldCount: number, capacity: number): ByteTokens {
     capacity = Math.max(capacity, 1);
     return {
       data,
@@ -91,42 +93,17 @@ export namespace ByteTokens {
   }
 }
 
-/** Values of up to this many bytes go through the field's string cache. */
-const CachedLength = 8;
-/** Fields of fewer rows have no cache: its ~3 KB would outweigh a dictionary's single items (the CCD). */
-const CachedMinRows = 64;
-/** Slots of the cache, a power of 2 */
-const CacheSize = 256;
-
-interface StringCache {
-  keys: Int32Array;
-  lengths: Uint8Array;
-  strings: string[];
-}
-
-function StringCache(): StringCache {
-  return {
-    keys: new Int32Array(CacheSize),
-    lengths: new Uint8Array(CacheSize),
-    strings: new Array(CacheSize).fill(''),
-  };
-}
-
 /**
- * Field `column` of byte tokens: `CifField.ofTokens` on the bytes of the file, values decoded as UTF-8.
- *
- * `str` keeps the last string of up to 8 bytes of each of 256 hash slots (up to 4 bytes keyed by the bytes as an
- * int): the repeated values of a column (atom, residue and chain names, element symbols, accessions) are made once,
- * and a reader keying maps by them gets the same string, whose hash V8 has computed. flat-192-cif model stage:
- * allocation 385 MB uncached past 4 bytes, 174 MB cached.
+ * Field `column` of byte tokens: `CifField.ofTokens` on the bytes of the file, values decoded as UTF-8; short values
+ * through a string cache (`ByteStringCache`).
  */
 export function byteTokensField(tokens: ByteTokens, column: number): CifField {
   const { data, starts, lengths, long } = tokens;
   const rowCount = Math.floor(tokens.count / tokens.fieldCount);
   const offset = column * tokens.capacity;
 
-  let cache: StringCache | undefined;
-  const cached = rowCount >= CachedMinRows;
+  let cache: ByteStringCache | undefined;
+  const cached = rowCount >= ByteStringCache.MinRows;
 
   const str: CifField['str'] = (row) => {
     const i = offset + row;
@@ -136,36 +113,8 @@ export function byteTokensField(tokens: ByteTokens, column: number): CifField {
       const c = data[s];
       if (c === 46 /* . */ || c === 63 /* ? */) return '';
     }
-    if (l > CachedLength || !cached) return utf8ReadValue(data, s, l < 255 ? l : long!.get(i)! - s);
-    if (!cache) cache = StringCache();
-    if (l <= 4) {
-      const key = data[s] | (data[s + 1] << 8) | (data[s + 2] << 16) | (data[s + 3] << 24);
-      // the bytes past the value are its neighbours
-      const k = l === 4 ? key : key & ((1 << (8 * l)) - 1);
-      const slot = (k ^ (k >>> 13) ^ (k >>> 22) ^ (l << 6)) & (CacheSize - 1);
-      if (cache.keys[slot] === k && cache.lengths[slot] === l) return cache.strings[slot];
-      const ret = utf8ReadValue(data, s, l);
-      cache.keys[slot] = k;
-      cache.lengths[slot] = l;
-      cache.strings[slot] = ret;
-      return ret;
-    }
-    // 5 to 8 bytes: the key is the index of the cached value, compared by its bytes
-    let h = l;
-    for (let j = 0; j < l; j++) h = (Math.imul(h, 31) + data[s + j]) | 0;
-    const slot = (h ^ (h >>> 8)) & (CacheSize - 1);
-    const c = cache.keys[slot];
-    if (cache.lengths[slot] === l && lengths[c] === l) {
-      const cs = starts[c];
-      let j = 0;
-      while (j < l && data[cs + j] === data[s + j]) j++;
-      if (j === l) return cache.strings[slot];
-    }
-    const ret = utf8ReadValue(data, s, l);
-    cache.keys[slot] = i;
-    cache.lengths[slot] = l;
-    cache.strings[slot] = ret;
-    return ret;
+    if (l > ByteStringCache.MaxLength || !cached) return utf8ReadValue(data, s, l < 255 ? l : long!.get(i)! - s);
+    return ByteStringCache.read((cache ??= ByteStringCache()), data, s, l);
   };
 
   const int: CifField['int'] = (row) => {

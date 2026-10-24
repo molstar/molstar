@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,7 +7,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { utf8Encode } from '@molstar/core/util/utf8';
 import { parseSdf } from '../sdf/parser.js';
+import { plainResult } from './plain-result.js';
 
 const SdfString = `
   Mrv1718007121815122D
@@ -554,5 +556,31 @@ describe('sdf reader', () => {
 
     expect(compound2.dataItems.dataHeader.rowCount).toBe(0);
     expect(compound2.dataItems.data.rowCount).toBe(0);
+  });
+
+  it('parses the same from a string and from its bytes', async () => {
+    for (const text of [SdfString, V3000SdfString]) {
+      const fromString = await parseSdf(text).run();
+      const fromBytes = await parseSdf(utf8Encode(text)).run();
+      expect(plainResult(fromBytes)).toEqual(plainResult(fromString));
+    }
+  });
+
+  it('non-ASCII data item', async () => {
+    const text = SdfString.replace(
+      '> <PUBCHEM_COMPOUND_CID>',
+      '> <NÁZEV_水>\nkyselina ÅÉ 水\n\n> <PUBCHEM_COMPOUND_CID>',
+    );
+    const parsed = await parseSdf(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const compound = parsed.result.compounds.find((c) =>
+      Array.from(c.dataItems.dataHeader.toArray()).includes('<NÁZEV_水>'),
+    );
+    const { dataHeader, data } = compound!.dataItems;
+    const headers = Array.from(dataHeader.toArray());
+    const i = headers.indexOf('<NÁZEV_水>');
+    expect(i).toBeGreaterThanOrEqual(0);
+    expect(data.value(i)).toBe('kyselina ÅÉ 水');
+    expect(headers[i + 1]).toBe('<PUBCHEM_COMPOUND_CID>');
   });
 });

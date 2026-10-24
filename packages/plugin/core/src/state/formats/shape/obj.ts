@@ -32,7 +32,7 @@ const ParseObj = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse OBJ', async (ctx) => {
-      const parsed = await OBJ.parseObj(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await OBJ.parseObj(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Obj(parsed.result, { label: 'OBJ Data' });
     });

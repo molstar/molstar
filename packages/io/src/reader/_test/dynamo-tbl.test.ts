@@ -2,10 +2,12 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { expect, test } from 'vitest';
 import { Column } from '@molstar/core/data/db';
+import { utf8Encode } from '@molstar/core/util/utf8';
 import { parseDynamoTbl } from '../dynamo/tbl.js';
 
 test('parses Dynamo TBL rows into named typed columns', async () => {
@@ -53,4 +55,43 @@ test('accepts Dynamo TBL rows with the 26 required columns', async () => {
 test('rejects Dynamo TBL rows with fewer than 26 columns', async () => {
   const parsed = await parseDynamoTbl('1 0 0 10 20 30 45 30 60').run();
   expect(parsed.isError).toBe(true);
+});
+
+test('parses Dynamo TBL the same from a string and from its UTF-8 bytes', async () => {
+  const data = [
+    '% comment',
+    '1 0 0 10 20 30 90 0 0 0 0 0 0 0 0 0 0 0 0 7 8 9 10 100 200 300 0 0 0 0 0 0 0 0 0 6.5',
+    '',
+    '2 0 0 1 2 3 0 90 0 0 0 0 0 0 0 0 0 0 0 7 8 9 10 40 50 60 0 0 0 0 0 0 0 0 0 6.5',
+  ].join('\r\n');
+
+  const fromString = await parseDynamoTbl(data).run();
+  const fromBytes = await parseDynamoTbl(utf8Encode(data)).run();
+  if (fromString.isError || fromBytes.isError) throw new Error('parse failed');
+  expect(fromBytes.result.rowCount).toBe(2);
+  for (const name of fromString.result.fieldNames) {
+    expect(fromBytes.result.fields[name].toArray()).toEqual(fromString.result.fields[name].toArray());
+  }
+});
+
+test('skips a leading UTF-8 byte order mark', async () => {
+  const data = '1 0 0 10 20 30 90 0 0 0 0 0 0 0 0 0 0 0 0 7 8 9 10 100 200 300 0 0 0 0 0 0 0 0 0 6.5\n';
+  const parsed = await parseDynamoTbl(new Uint8Array([0xef, 0xbb, 0xbf, ...utf8Encode(data)])).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  expect(parsed.result.fields.tag.value(0)).toBe(1);
+});
+
+test('an incomplete Dynamo TBL row before the first full row adds nothing to the columns', async () => {
+  const data = ['9 9 9', '1 0 0 10 20 30 90 0 0 0 0 0 0 0 0 0 0 0 0 7 8 9 10 100 200 300 0 0 0 0 0 0 0 0 0 6.5'].join(
+    '\n',
+  );
+
+  const parsed = await parseDynamoTbl(data).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const { fields, rowCount } = parsed.result;
+  expect(rowCount).toBe(1);
+  expect(fields.tag.rowCount).toBe(1);
+  expect(fields.tag.value(0)).toBe(1);
+  expect(fields.x.value(0)).toBe(100);
+  expect(parsed.warnings).toEqual(['Skipped 1 Dynamo row that were incomplete.']);
 });

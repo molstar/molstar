@@ -1,20 +1,26 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Jason Pattle <jpattle@exscientia.co.uk>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '@molstar/core/data/db';
 import { type MolFile, handleAtoms, handleBonds, handlePropertiesBlock } from '../mol/parser.js';
 import { Task } from '@molstar/core/task';
 import { ReaderResult as Result } from '../result.js';
-import { Tokenizer, TokenBuilder } from '../common/text/tokenizer.js';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
+import {
+  TextByteTokenizer as Tokenizer,
+  TextByteTokenBuilder as TokenBuilder,
+} from '../common/text/text-byte-tokenizer.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { handleAtomsV3, handleBondsV3, handleCountsV3, isV3 } from './parser-v3-util.js';
 import type { StringLike } from '@molstar/core/util/string-like';
+import { asciiStartsWith } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 & 79 */
 
@@ -37,11 +43,11 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>; da
   const data = TokenBuilder.create(tokenizer.data, 32);
 
   while (tokenizer.position < tokenizer.length) {
-    const line = Tokenizer.readLine(tokenizer);
-    if (line.startsWith(delimiter)) break;
-    if (!line) continue;
+    Tokenizer.markLine(tokenizer);
+    if (lineStartsWith(tokenizer, delimiter)) break;
+    if (tokenizer.tokenStart === tokenizer.tokenEnd) continue;
 
-    if (line.startsWith('> ')) {
+    if (lineStartsWith(tokenizer, '> ')) {
       TokenBuilder.add(dataHeader, tokenizer.tokenStart + 2, tokenizer.tokenEnd);
 
       Tokenizer.markLine(tokenizer);
@@ -49,8 +55,12 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>; da
       let end = tokenizer.tokenEnd;
       let added = false;
       while (tokenizer.position < tokenizer.length) {
-        const line2 = Tokenizer.readLine(tokenizer);
-        if (!line2 || line2.startsWith(delimiter) || line2.startsWith('> ')) {
+        Tokenizer.markLine(tokenizer);
+        if (
+          tokenizer.tokenStart === tokenizer.tokenEnd ||
+          lineStartsWith(tokenizer, delimiter) ||
+          lineStartsWith(tokenizer, '> ')
+        ) {
           TokenBuilder.add(data, start, end);
           added = true;
           break;
@@ -68,6 +78,14 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>; da
     dataHeader: TokenColumn(dataHeader)(Column.Schema.str),
     data: TokenColumn(data)(Column.Schema.str),
   };
+}
+
+/** Whether the current token (a line) starts with ASCII `prefix`: `line.startsWith` without decoding the line. */
+function lineStartsWith(tokenizer: Tokenizer, prefix: string) {
+  return (
+    tokenizer.tokenEnd - tokenizer.tokenStart >= prefix.length &&
+    asciiStartsWith(tokenizer.data, prefix, tokenizer.tokenStart)
+  );
 }
 
 function handleCountsV2(countsAndVersion: string): { atomCount: number; bondCount: number } {
@@ -90,8 +108,8 @@ function handleMolFile(tokenizer: Tokenizer) {
   if (Number.isNaN(atomCount) || Number.isNaN(bondCount)) {
     // try to skip to next molecule
     while (tokenizer.position < tokenizer.length) {
-      const line = Tokenizer.readLine(tokenizer);
-      if (line.startsWith(delimiter)) break;
+      Tokenizer.markLine(tokenizer);
+      if (lineStartsWith(tokenizer, delimiter)) break;
     }
     return;
   }
@@ -114,7 +132,7 @@ function handleMolFile(tokenizer: Tokenizer) {
   };
 }
 
-function parseInternal(data: StringLike): Result<SdfFile> {
+function parseInternal(data: ReadonlyUint8Array): Result<SdfFile> {
   const tokenizer = Tokenizer(data);
 
   const compounds: SdfFile['compounds'] = [];
@@ -126,8 +144,9 @@ function parseInternal(data: StringLike): Result<SdfFile> {
   return Result.success({ compounds });
 }
 
-export function parseSdf(data: StringLike) {
+/** Parses SDF from its text or its UTF-8 bytes (read, not modified). */
+export function parseSdf(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<SdfFile>>('Parse Sdf', async () => {
-    return parseInternal(data);
+    return parseInternal(Tokenizer.bytesOf(data));
   });
 }

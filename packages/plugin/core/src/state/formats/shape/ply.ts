@@ -30,8 +30,8 @@ const ParsePly = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse PLY', async (ctx) => {
-      // a response's bytes: the parser tells ASCII from binary by the header
-      const parsed = await PLY.parsePly(a instanceof SO.Data.Response ? a.data.bytes : a.data).runInContext(ctx);
+      // the bytes: the parser tells ASCII from binary by the header
+      const parsed = await PLY.parsePly(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Ply(parsed.result, { label: parsed.result.comments[0] || 'PLY Data' });
     });

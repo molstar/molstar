@@ -1187,3 +1187,33 @@ EMDB maps) used to give the gzip bytes (garbage as a string); it gives the infla
 file as binary and inflates it itself gets inflated bytes: it drops its own `ungzip`, or sets `decompress: 'none'` to
 keep the bytes as received. `DeflateData` passes bytes that are not gzip through, so a `Download` followed by it still
 works. A file named `.gz` was already inflated by its name and still is.
+
+## CSV reader follows RFC 4180
+
+`parseCsv` (`@molstar/io/reader/csv/parser`) reads CSV as RFC 4180 has it, from bytes or a string. Behavior changes for
+input that read differently before:
+
+- Spaces and tabs in a field are kept (they were trimmed, and inner ones dropped from the value's end); numbers still
+  parse past them.
+- A doubled quote in a quoted field reads as one quote (it was kept doubled); only spaces and tabs may follow a closing
+  quote, other text is an error with its line, as is an unterminated quoted field.
+- An empty field is empty, also the last of a record (a trailing empty field, or an empty field after a quoted one,
+  moved the following values into the wrong columns). A record shorter than the header reads its missing fields as
+  empty, a longer one is cut to the header's count.
+- A column is a CSV column, not a CIF field: `.` and `?` are values; only an empty value is not present.
+- `comment` is off by default (it was `#`), and when set, it starts a comment only at the start of a line (a value
+  starting with it dropped the rest of its line).
+- A UTF-8 byte order mark is skipped; the last record is counted without a final line break.
+
+## Text parsers read bytes
+
+The text parsers on `TextByteTokenizer` (XYZ, GRO, MOL, SDF, MOL2, PSF, TOP, PRMTOP, LAMMPS, cube, DX, OBJ, PLY, Dynamo
+tbl, CSV) take `StringLike | Uint8Array`; passing a string still works (encoded to UTF-8 once). Differences:
+
+- Fixed-width columns (GRO, MOL/SDF, PRMTOP) count bytes, not chars: a non-ASCII char in such a line shifts the columns
+  after it (the formats are ASCII).
+- XYZ coordinates parse with Mol*'s number parser, not `+value`: some differ in the last bit (as every other text
+  format's numbers); a field that is no number reads its leading number or 0, not NaN.
+- `mol/parser`'s exported `handleAtoms`, `handleBonds` and `handlePropertiesBlock` take a `TextByteTokenizer`.
+- A PLY whose format line is not ascii or binary (little or big endian) fails as a string did; the plugin's bytes read
+  it as ASCII.

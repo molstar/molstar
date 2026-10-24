@@ -111,8 +111,9 @@ reads `Data.String` or `Data.Binary` today changes.
   coordinates kept; Node, Apple M4, medians of 3 to 5 runs, retained = heap and external after a full GC):
   - flat-192-cif (124 MB, 1.12M atoms): retained 388 → 270 MB; read 28 → 17 ms, parse 314 → 308 ms, total 353 → 336 ms.
   - 7qpd (1.8 MB): retained 6.3 → 4.6 MB, total 11.5 → 10.2 ms. 1cbs (190 KB): 1.3 → 1.1 MB, 3.1 ms either way.
-- Text formats other than CIF hold their text, the file staying on disk, a download's bytes as a blob: as before.
-  Reading them from bytes without a string needs their tokenizers on bytes (`.v6/perf-audit-2/13-lammps-large-text.md`).
+- The text formats on the byte tokenizer (`TextByteTokenizer`: XYZ, GRO, MOL, SDF, MOL2, PSF, TOP, PRMTOP, LAMMPS,
+  cube, DX, OBJ, PLY, Dynamo tbl, CSV) read the bytes (`readBytes`), held once as CIF's. The others (PDB, NDJSON, XSC,
+  Kinemage, MVSJ, JSON) hold their text, a download's bytes as a blob: as before.
 - A `Download` with `asResponse` that nothing reads still downloads, as today.
 - Snapshots saved with `asResponse` load in older v6 builds for formats that accept a string (CIF), not for
   binary-only ones.
