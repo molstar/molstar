@@ -120,17 +120,12 @@ function map(state: MsgPackState, length: number) {
  */
 function bin(state: MsgPackState, length: number) {
   room(state, length, 1);
-  // This approach to binary parsing wastes a bit of memory to trade for speed compared to:
-  //
-  //   let value = buffer.subarray(offset, offset + length); //new Uint8Array(buffer.buffer, offset, length);
-  //
-  // It turns out that using the view created by subarray probably uses DataView
-  // in the background, which causes the element access to be several times slower
-  // than creating the new byte array.
-
-  const value = new Uint8Array(length);
+  // a copy, not a view: element access on the copy is faster, and its buffer is exactly the bytes, which
+  // `view(data.buffer)` callers rely on. `set` copies natively (the byte loop was 10× slower, perf-audit-3 13/P1);
+  // not `slice`, which makes a `Buffer` from a `Buffer` input (species), whose own `slice` is a view.
   const o = state.offset;
-  for (let i = 0; i < length; i++) value[i] = state.buffer[i + o];
+  const value = new Uint8Array(length);
+  value.set(state.buffer.subarray(o, o + length));
   state.offset += length;
   return value;
 }
