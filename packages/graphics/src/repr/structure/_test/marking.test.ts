@@ -28,11 +28,13 @@ import {
 } from '@molstar/graphics/gl/render-object';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
+import { Clipping } from '@molstar/graphics/theme/clipping';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { Transparency } from '@molstar/graphics/theme/transparency';
+import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import type { Representation } from '../../representation.js';
 import { BallAndStickRepresentationProvider } from '../representation/ball-and-stick.js';
 import { CartoonRepresentationProvider } from '../representation/cartoon.js';
@@ -380,6 +382,39 @@ describe('layer updates and picking', async () => {
     const moved = members(repr).map((o) => !isZero(o.values.tOverpaint.ref.value.array));
     expect(moved).not.toEqual(reached);
     expect(moved.some((r) => r)).toBe(true);
+    repr.destroy();
+  });
+
+  it('leaves the clipping and wiggle textures of visuals a change does not reach as they are (perf-audit-2 07/P14)', async () => {
+    const repr = await createRepr(BallAndStickRepresentationProvider, model);
+    const versions = () =>
+      members(repr).map((o) => [o.values.tClipping.ref.version, o.values.tWiggle.ref.version].join('/'));
+    const [a, b] = units;
+    const groups = Clipping.Groups.create(Clipping.Groups.Flag.One);
+    const set = (u: Unit) => {
+      repr.setState({ clipping: Clipping('element-loci', [{ loci: unitLoci(u), groups }]) });
+      repr.setState({ wiggle: Wiggle('element-loci', [{ loci: unitLoci(u), value: 0.5 }]) });
+    };
+    set(a);
+    const before = versions();
+    const reached = members(repr).map((o) => !isZero(o.values.tClipping.ref.value.array));
+    expect(reached.some((r) => r)).toBe(true);
+    expect(reached.some((r) => !r)).toBe(true);
+    // the same layers again: only the visuals of `a` are set again
+    set(a);
+    const after = versions();
+    for (let i = 0; i < before.length; ++i) {
+      if (reached[i]) expect(after[i]).not.toBe(before[i]);
+      else expect(after[i]).toBe(before[i]);
+    }
+    expect(members(repr).map((o) => !isZero(o.values.tClipping.ref.value.array))).toEqual(reached);
+    // a layer on `b`: the visuals of `a` are cleared, those of `b` set
+    set(b);
+    const moved = members(repr).map((o) => !isZero(o.values.tClipping.ref.value.array));
+    const wiggled = members(repr).map((o) => !isZero(new Uint8Array(o.values.tWiggle.ref.value.array.buffer)));
+    expect(moved).not.toEqual(reached);
+    expect(moved.some((r) => r)).toBe(true);
+    expect(wiggled).toEqual(moved);
     repr.destroy();
   });
 
