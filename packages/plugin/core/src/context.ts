@@ -528,6 +528,12 @@ export class PluginContext {
     this.behaviors.interaction.selectionMode.next(mode);
   }
 
+  /**
+   * Runs `f` as one transaction of the data state. A script that loads or changes many structures should wrap its
+   * commits in it: each commit outside a transaction pays the per-change work of the managers and behaviors (the
+   * structure hierarchy, measurements, the representations' visibility), so N structures cost O(N²); inside, that
+   * work runs once at the end (about 2–3× faster at 200 structures, perf-audit-2 12/14/N3).
+   */
   dataTransaction(
     f: (ctx: RuntimeContext) => Promise<void> | void,
     options?: { canUndo?: string | boolean; rethrowErrors?: boolean },
