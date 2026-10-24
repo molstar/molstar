@@ -494,7 +494,9 @@ export function consoleUI(ctx: ViewerUIContext): ViewerExtensionUI {
     tabs: [
       {
         id: ConsoleTab,
-        title: 'Console',
+        // The rail's name says what it is; the header has the dialect switch under it.
+        title: 'PyMOL / VMD console',
+        heading: 'Console',
         icon: 'terminal',
         place: 'foot',
         // Beside the Assistant (2.65): the other panel one drives the viewer by typing in.

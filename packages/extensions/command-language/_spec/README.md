@@ -212,26 +212,27 @@ lines.
   structures, saving an image). Hiding and changing representations run inside the one undoable step, unasked: Undo
   takes the whole run back. Files cannot be given by the agent (`files` is hidden), so neither can included scripts.
 - **The console** (`console-model.ts`, DOM-free; `console.tsx` and its CSS module, its own chunk through
-  `ViewerExtension.ui`): a foot tab between History and the Assistant (the other panel one types into). A transcript of
-  runs, each a status mark (running, done, failed), its dialect, the command and what it said: what it did, what reads
-  printed (in a well), warnings and errors with their hints; its time; Edit puts a typed line back in the input, in its
-  dialect. Empty, it says what it is and offers example lines of the dialect. The dialect is two pressed buttons, as the
-  Log's filters; a line's `pymol ` / `vmd ` first word overrides it. The composer: the input (Enter runs, ⇧Enter a new
-  line, ↑/↓ the history at its first and last line, Tab the first completion), a Run button, and one line under it, of
-  one height whatever it says, so the composer never changes height as one types. The completions of the word at the
-  input's end list over the transcript (`assist`; a combobox: ↑/↓ pick, Tab or Enter take the one picked, Tab the first
-  when none is, Enter with none picked runs, Esc closes until the next keystroke; Tab on the empty input lists every
-  command, so it does not move focus there); a row is its kind or a color's swatch, the label with the part typed
-  marked, and the detail, left out when every row has the same one. The line: while the list is open or the arguments do
-  not read yet, the signature with the argument being typed in bold; else what Enter will do or the first error (the
-  whole, with its hint, in the line's tip; `inspect`). The tab's icon is `terminal` (`>_`). Every error of a submission
-  shows at once, before anything runs; `undo` / `redo` alone are the viewer's history; submissions run one after
-  another. **Import** (and dropping on the tab, an overlay saying where): scripts with the files they load, the ones no
-  other includes run (`rootScripts`), each whole in the dialect its extension says; files without a script are loaded as
-  the line that loads them (`load 1cbs.cif`, `mol new 1cbs.cif`), shown in the transcript. A log, not live (the viewer
-  says each run). The tab fills the panel: the transcript scrolls, the bar and the composer stay, and the newest is
-  always in view (it follows the transcript's sizes: an entry renders its outcome on its own). The history of lines is
-  kept with the preferences (`command-language.history`, the last 200).
+  `ViewerExtension.ui`): a foot tab between History and the Assistant (the other panel one types into), named "PyMOL /
+  VMD console" on the rail (what it is, where "Console" alone could be a log) and "Console" in its header (the dialect
+  switch is under it). A transcript of runs, each a status mark (running, done, failed), its dialect, the command and
+  what it said: what it did, what reads printed (in a well), warnings and errors with their hints; its time; Edit puts a
+  typed line back in the input, in its dialect. Empty, it says what it is and offers example lines of the dialect. The
+  dialect is two pressed buttons, as the Log's filters; a line's `pymol ` / `vmd ` first word overrides it. The
+  composer: the input (Enter runs, ⇧Enter a new line, ↑/↓ the history at its first and last line, Tab the first
+  completion), a Run button, and one line under it, of one height whatever it says, so the composer never changes height
+  as one types. The completions of the word at the input's end list over the transcript (`assist`; a combobox: ↑/↓ pick,
+  Tab or Enter take the one picked, Tab the first when none is, Enter with none picked runs, Esc closes until the next
+  keystroke; Tab on the empty input lists every command, so it does not move focus there); a row is its kind or a
+  color's swatch, the label with the part typed marked, and the detail, left out when every row has the same one. The
+  line: while the list is open or the arguments do not read yet, the signature with the argument being typed in bold;
+  else what Enter will do or the first error (the whole, with its hint, in the line's tip; `inspect`). The tab's icon is
+  `terminal` (`>_`). Every error of a submission shows at once, before anything runs; `undo` / `redo` alone are the
+  viewer's history; submissions run one after another. **Import** (and dropping on the tab, an overlay saying where):
+  scripts with the files they load, the ones no other includes run (`rootScripts`), each whole in the dialect its
+  extension says; files without a script are loaded as the line that loads them (`load 1cbs.cif`, `mol new 1cbs.cif`),
+  shown in the transcript. A log, not live (the viewer says each run). The tab fills the panel: the transcript scrolls,
+  the bar and the composer stay, and the newest is always in view (it follows the transcript's sizes: an entry renders
+  its outcome on its own). The history of lines is kept with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 

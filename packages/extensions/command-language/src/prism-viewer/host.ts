@@ -149,7 +149,8 @@ export class PrismScriptHost implements ScriptHost {
         return showRep(ops, cmd);
       case 'rep.defaults':
         this.holder.update({ repDefaults: { ...this.holder.value.repDefaults, ...cmd.patch } });
-        return `The next rep takes ${Object.entries(cmd.patch)
+        // Says which command uses it: the style alone changes nothing on screen (VMD's way), which reads as a failure.
+        return `The next rep (\`mol addrep\`) takes ${Object.entries(cmd.patch)
           .map(([k, v]) => `${k} ${typeof v === 'object' ? ('rgb' in v ? hex(v.rgb) : v.theme) : v}`)
           .join(', ')}.`;
       case 'color':

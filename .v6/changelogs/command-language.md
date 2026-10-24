@@ -10,6 +10,7 @@
   dropped with the files they load; `@file.pml` and `source file.tcl` run included scripts.
 - The assistant can run the person's PyMOL or VMD lines (skill `command-language`, tool `run_commands`), one undoable
   step under its approval policy.
+- Prism: an extension's tab can have a header shorter than its name (`heading`).
 - Prism: extensions can add command-menu prefixes (`ViewerExtension.commandPrefixes`); a prefix row can put text in
   the menu (`run` returns `{ text }`) and post a row's outcome (`CommandPrefixContext.post`); the prefix types moved to
   `commands/types.ts`.
