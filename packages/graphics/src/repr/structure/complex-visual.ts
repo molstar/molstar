@@ -271,7 +271,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
       if (updateState.updateTransform || updateState.createGeometry) {
         updateBoundingSphere(renderObject.values, newGeometry || geometry);
-        positionIt = createPositionIterator(geometry, renderObject.values);
+        // the new geometry's positions: a vertex theme reads them below (perf-audit-2 07/B7)
+        positionIt = createPositionIterator(newGeometry || geometry, renderObject.values);
       }
 
       if (updateState.updateSize) {
