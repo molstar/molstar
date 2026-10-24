@@ -26,6 +26,7 @@ import {
   type Unit,
 } from '@molstar/model/model/structure';
 import { Script } from '@molstar/model/script/script';
+import { KEYWORD_EXPRESSIONS, KEYWORDS } from '../targets/keywords.js';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
@@ -60,7 +61,7 @@ import type {
   SequenceChainsPreset,
   SequenceInspectorModel,
 } from '../model/scene.js';
-import { sequenceNodeId } from '../model/scene.js';
+import { componentsNodeId, layersNodeId, sequenceNodeId } from '../model/scene.js';
 import { filteredUnits } from '../sequence/chain-filter.js';
 import type { ChainFilter } from '../sequence/tracks.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
@@ -319,6 +320,10 @@ class Node implements SceneNode {
 
   toggleVisibility(): void {
     this.actions.visibility?.(!this.#hidden.value);
+  }
+  /** It shows or hides as one: a row without an eye otherwise (Entities, Layers). */
+  get hasEye(): boolean {
+    return !!this.actions.visibility;
   }
   toggleExpanded(): void {
     const log = this.log;
@@ -819,12 +824,12 @@ export function createSceneSource(
     return n;
   };
 
-  /** A structure's contents: entities, then their chains; computed when first expanded. */
+  /** A structure's entities (the contents node), then their chains; computed when first expanded. */
   const contentsNode = (s: StructureRef, structureRef: string): Node => {
     const id = `${structureRef}#contents`;
     let n = nodes.get(id);
     if (!n) {
-      const node = new Node(id, 'contents', 'list-tree', 'Contents', false, {});
+      const node = new Node(id, 'contents', 'list-tree', 'Entities', false, {});
       node.lazy = true;
       node.removable = false;
       n = node;
@@ -845,7 +850,8 @@ export function createSceneSource(
     };
     if (!node.lazy) node.load();
     const data = s.cell.obj?.data;
-    n.set('Contents', data ? `${data.model.entities.data._rowCount} entities` : undefined, false);
+    const count = data?.model.entities.data._rowCount;
+    n.set('Entities', count === undefined ? undefined : count === 1 ? '1 entity' : `${count} entities`, false);
     return n;
   };
 
@@ -914,7 +920,7 @@ export function createSceneSource(
       n.removable = false;
       nodes.set(ref, n);
     }
-    n.set(label, 'hidden in Contents', true);
+    n.set(label, 'hidden in Entities', true);
     n.setChildren([]);
     return n;
   };
@@ -923,7 +929,13 @@ export function createSceneSource(
     const id = '#measurements';
     let n = nodes.get(id);
     if (!n) {
-      n = new Node(id, 'measurements', 'ruler', 'Measurements', true, {});
+      n = new Node(id, 'measurements', 'ruler', 'Measurements', true, {
+        visibility: groupEye(
+          'Measurements visibility',
+          () => nodes.get(id)?.children.value ?? [],
+          (g, row, visible) => g.run('measure.visibility', { measurement: row.id, visible }),
+        ),
+      });
       n.removable = false;
       nodes.set(id, n);
     }
@@ -1165,6 +1177,70 @@ export function createSceneSource(
     return sig.end();
   };
 
+  /** A group's rows that show or hide (an emptied component's does not) are all hidden. */
+  const allHidden = (rows: readonly SceneNode[]) => {
+    const shows = rows.filter((c) => c.hasEye !== false);
+    return shows.length > 0 && shows.every((c) => c.isHidden.value);
+  };
+
+  /**
+   * A group's eye (Components, Measurements), as one step: hiding hides its rows that are shown and remembers them;
+   * showing shows those again (the rows hidden on their own stay hidden), or every row when none of them is hidden any
+   * more. Hidden as a group while every row is.
+   */
+  const groupEye = (
+    label: string,
+    rows: () => readonly SceneNode[],
+    set: (g: Pick<ViewerApi, 'run'>, row: SceneNode, visible: boolean) => Promise<unknown>,
+  ) => {
+    let hid: ReadonlySet<string> | undefined;
+    return (hide: boolean) => {
+      const list = rows();
+      let targets: readonly SceneNode[];
+      if (hide) {
+        targets = list.filter((r) => !r.isHidden.value);
+        hid = new Set(targets.map((r) => r.id));
+      } else {
+        const hidden = list.filter((r) => r.isHidden.value);
+        const remembered = hid ? hidden.filter((r) => hid!.has(r.id)) : [];
+        targets = remembered.length ? remembered : hidden;
+        hid = undefined;
+      }
+      if (!targets.length) return;
+      void api.group(label, async (g) => {
+        for (const r of targets) await set(g, r, !hide);
+      });
+    };
+  };
+
+  /**
+   * A structure's group of rows (`components`, `layers`; both open at first): a node of its own, never removed; its rows
+   * are the ones under it. Components has an eye (`groupEye`); Layers none (its rows are features turned on one by one:
+   * a "show all" would start streaming and fetches).
+   */
+  const groupNode = (
+    id: string,
+    kind: 'components' | 'layers',
+    label: string,
+    open: boolean,
+    visibility?: (hide: boolean) => void,
+  ): Node => {
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(
+        id,
+        kind,
+        kind === 'components' ? 'shapes' : 'layers',
+        label,
+        open,
+        visibility ? { visibility } : {},
+      );
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    return n;
+  };
+
   /** Builds a structure's rows (its node, its children); the ids they hold. */
   const buildStructure = (
     rows: StructureRows,
@@ -1179,7 +1255,11 @@ export function createSceneSource(
     ids.push(ref);
     const contents = contentsNode(s, ref);
     ids.push(contents.id);
+    // Its rows by what they are (viewer-spec.md §3): its entities and sequence, its components (what is drawn), its
+    // layers (drawn around it, mostly off).
     const kids: SceneNode[] = [contents];
+    const comps: SceneNode[] = [];
+    const layers: SceneNode[] = [];
     const focused: SceneNode[] = [];
     for (const c of s.components) {
       const isFocus = isFocusPart(c);
@@ -1194,7 +1274,7 @@ export function createSceneSource(
         return rn;
       });
       cn.setChildren(reprs);
-      (isFocus ? focused : kids).push(cn);
+      (isFocus ? focused : comps).push(cn);
     }
     // Components emptied by hidden contents, where they stand among the others (the state tree's order).
     if (emptied.length) {
@@ -1204,32 +1284,57 @@ export function createSceneSource(
       for (const e of emptied) {
         const en = emptiedNode(e.ref, e.label);
         ids.push(en.id);
-        kids.push(en);
+        comps.push(en);
       }
-      // The contents row first; the components by their place in the tree (one not there first, as `indexOf`'s −1).
-      const [first, ...rest] = kids;
-      rest.sort((a, b) => (order.get(a.id) ?? -1) - (order.get(b.id) ?? -1));
-      kids.splice(0, kids.length, first, ...rest);
+      // The components by their place in the tree (one not there first, as `indexOf`'s −1).
+      comps.sort((a, b) => (order.get(a.id) ?? -1) - (order.get(b.id) ?? -1));
     }
+    const cid = componentsNodeId(ref);
+    const known = nodes.get(cid);
+    const cg =
+      known ??
+      groupNode(
+        cid,
+        'components',
+        'Components',
+        true,
+        groupEye(
+          'Components visibility',
+          // Its rows that show or hide (an emptied component's row does not: its contents are hidden).
+          () => (nodes.get(cid)?.children.value ?? []).filter((c) => c.hasEye !== false),
+          (g, row, visible) => g.run('component.visibility', { component: row.id, structure: ref, visible }),
+        ),
+      );
+    if (!known) cg.menuSource = () => componentsMenu(plugin, api, ref, noSelection);
+    ids.push(cg.id);
+    cg.set('Components', comps.length === 1 ? '1 component' : `${comps.length} components`, allHidden(comps));
+    cg.setChildren(comps);
+    kids.push(cg);
     rows.parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
     rows.focused = focused;
     // The model's unit cell, under the first of its structures (another structure of the same model shares it).
     if (unitCell) {
       const un = unitCellNode(unitCell, ref);
       ids.push(un.id);
-      kids.push(un);
+      layers.push(un);
     }
     const streaming = streamingOf(plugin, s);
     rows.streaming = streaming ? { root: streaming.root, behavior: streaming.behavior } : undefined;
     if (streaming) {
       const vn = streamingNode(streaming, ref);
       ids.push(vn.id);
-      kids.push(vn);
+      layers.push(vn);
     } else if (canStream(plugin, s)) {
       const vn = streamingOffNode(ref);
       ids.push(vn.id);
-      kids.push(vn);
+      layers.push(vn);
     }
+    // Always there: the extensions' layer rows (a membrane, symmetry axes) go under it, which this source does not see.
+    const lg = groupNode(layersNodeId(ref), 'layers', 'Layers', true);
+    ids.push(lg.id);
+    lg.set('Layers', undefined, false);
+    lg.setChildren(layers);
+    kids.push(lg);
     // Its sequence, under Contents (sequence.md §8.1): a structure with polymers, where the viewer has a sequence.
     const data = s.cell.obj?.data;
     const seqRow = sequence && data ? sequence.row(ref, data) : undefined;
@@ -1358,7 +1463,6 @@ export function createSceneSource(
     if (measured.length || top.length) {
       const gn = measurementsNode();
       rest.push(gn.id);
-      gn.set('Measurements', measurementCounts(measured), false);
       gn.setChildren(
         measured.map((m) => {
           const mn = measurementNode(m);
@@ -1366,6 +1470,7 @@ export function createSceneSource(
           return mn;
         }),
       );
+      gn.set('Measurements', measurementCounts(measured), allHidden(gn.children.value));
       top.push(gn);
     }
     hold(rest);
@@ -1592,7 +1697,17 @@ export function createSceneSource(
   scope.add(
     plugin.state.data.events.cell.stateUpdated.subscribe((e) => {
       const n = nodes.get(e.ref);
-      if (n) n.set(n.label.value, n.description.value, !!e.cell.state.isHidden);
+      if (!n) return;
+      n.set(n.label.value, n.description.value, !!e.cell.state.isHidden);
+      // A component's or a measurement's: its group is hidden while every one of its rows is.
+      const ref = plugin.managers.structure.hierarchy.current.refs.get(e.ref);
+      const group =
+        ref?.kind === 'structure-component'
+          ? nodes.get(componentsNodeId(ref.structure.cell.transform.ref))
+          : n.kind === 'measurement'
+            ? nodes.get('#measurements')
+            : undefined;
+      if (group) group.set(group.label.value, group.description.value, allHidden(group.children.value));
     }),
   );
 
@@ -2189,6 +2304,59 @@ function contentsLoci(s: Structure, entity: string, chain?: string): StructureEl
   const test = chain ? MS.core.logic.and([isEntity, MS.core.rel.eq([MS.ammp('auth_asym_id'), chain])]) : isEntity;
   const query = MS.struct.generator.atomGroups({ 'chain-test': test });
   return StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(query, s));
+}
+
+/** What a kind of component is called in the Components group's Add component menu. */
+const ComponentKinds: Readonly<Record<(typeof KEYWORDS)[number], string>> = {
+  all: 'Everything',
+  polymer: 'Polymer',
+  protein: 'Protein',
+  nucleic: 'Nucleic acid',
+  branched: 'Branched (carbohydrates)',
+  ligand: 'Ligand',
+  ion: 'Ion',
+  water: 'Water',
+  coarse: 'Coarse',
+};
+
+/**
+ * The Components group's menu: Add component, from the selection or of a kind the structure has (`component.add`, its
+ * target a keyword; a kind it has none of is left out). Built when the menu opens.
+ */
+function componentsMenu(
+  plugin: PluginContext,
+  api: ViewerApi,
+  structureRef: string,
+  noSelection: Observable<boolean>,
+): SceneMenuItem[] {
+  const data = dataOf(plugin, structureRef);
+  const kinds = data
+    ? KEYWORDS.filter((k) => k !== 'all').filter(
+        (k) => !StructureSelection.isEmpty(Script.getStructureSelection(KEYWORD_EXPRESSIONS[k], data)),
+      )
+    : [];
+  return [
+    {
+      id: 'add',
+      label: 'Add component',
+      icon: 'plus',
+      items: [
+        {
+          id: 'selection',
+          label: 'From the selection',
+          icon: 'mouse-pointer-2',
+          disabled: noSelection,
+          run: () =>
+            void api.run('component.add', { target: 'selection', structure: structureRef, label: 'Selection' }),
+        },
+        ...kinds.map((k) => ({
+          id: k,
+          label: ComponentKinds[k],
+          run: () => void api.run('component.add', { target: k, structure: structureRef, label: ComponentKinds[k] }),
+        })),
+      ],
+    },
+  ];
 }
 
 /** An entity's or a chain's row menu (parity.md §2: select, focus, a component of it). */

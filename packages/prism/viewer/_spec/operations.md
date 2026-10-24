@@ -56,7 +56,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `focus.history` | List the recent foci | read |  |
 | `focus.set` | Focus | view | target, structure, language |
 | `highlight.clear` | Clear the highlight | view; ui-only |  |
-| `highlight.mark` | Mark residue ranges | view; ui-only | owner, marks, structure, language, dimRest |
+| `highlight.mark` | Mark residue ranges | view; ui-only | owner, marks, structure, language, dimRest, focusSequence |
 | `highlight.set` | Highlight | view; ui-only | target, structure, language, sequence |
 | `highlight.unmark` | Clear an owner's marks | view; ui-only | owner |
 | `history.list` | List the undoable steps | read |  |

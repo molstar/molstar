@@ -11,6 +11,7 @@ import { cbs, expectOk, headlessViewer, recordRuns, until } from '../../_test/ha
 import { mapFile } from '../../api/_test/volume-fixtures.js';
 import type { SceneNode } from '../../model/scene.js';
 import type { PrismViewer } from '../../viewer.js';
+import { componentsOf } from '../../testing/scene-groups.js';
 
 // The scene's rows and inspections as the scene changes under them: a representation row removes itself whatever its
 // type is now; an inspection follows what it was built from (an assembly, a volume's representations); only the picked
@@ -19,7 +20,7 @@ import type { PrismViewer } from '../../viewer.js';
 const typeOf = (v: PrismViewer, ref: string) =>
   (v.plugin.state.data.cells.get(ref)?.transform.params as { type?: { name: string } } | undefined)?.type?.name;
 const polymer = (v: PrismViewer) =>
-  v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'component' && c.label.value === 'Polymer')!;
+  componentsOf(v.views.scene.roots.value[0]).find((c) => c.kind === 'component' && c.label.value === 'Polymer')!;
 const facts = (v: PrismViewer, n: SceneNode) => new Map(v.views.scene.inspect(n).facts ?? []);
 
 describe('a representation row', () => {

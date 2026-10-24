@@ -54,7 +54,8 @@ async function until(check: () => boolean, ms = 10000) {
 function mountRow(v: PrismViewer) {
   const ui = membraneUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
   const row = ui.rows![0];
-  const node = v.views.scene.roots.value[0];
+  // A layer: mounted on the structure's Layers group.
+  const node = v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'layers')!;
   const host = document.createElement('div');
   document.body.append(host);
   row.render.mount(host, { shell: new ShellModel(), subject: node }, undefined as never);
@@ -62,12 +63,14 @@ function mountRow(v: PrismViewer) {
 }
 
 describe("the membrane's row", () => {
-  it('is a structure row, from the extension’s UI chunk', async () => {
+  it("is a layer row, in each structure's Layers group, from the extension’s UI chunk", async () => {
     const v = await viewer('1grm_updated.cif');
     const ui = await AnvilExtension.ui!({ api: v.api, sources: v.sources, managers: v.managers });
     expect(ui.rows?.map((r) => r.id)).toEqual([MembraneRow]);
-    const node = v.views.scene.roots.value[0];
+    const structure = v.views.scene.roots.value[0];
+    const node = structure.children.value.find((c) => c.kind === 'layers')!;
     expect(ui.rows![0].when(node)).toBe(true);
+    expect(ui.rows![0].when(structure)).toBe(false);
     expect(ui.rows![0].when({ ...node, kind: 'component' } as SceneNode)).toBe(false);
   });
 

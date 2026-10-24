@@ -385,7 +385,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       const first = (nodes: readonly SceneNode[]): SceneNode | undefined => {
         for (const n of nodes) {
           if (n.kind === 'component' && scene.selectionFilter?.holds(n)) return n;
-          const below = n.kind === 'structure' ? first(n.children.value) : undefined;
+          const below = n.kind === 'structure' || n.kind === 'components' ? first(n.children.value) : undefined;
           if (below) return below;
         }
         return undefined;

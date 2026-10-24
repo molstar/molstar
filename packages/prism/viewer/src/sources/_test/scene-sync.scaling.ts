@@ -63,7 +63,7 @@ it('the scene syncs while N structures load one by one', async () => {
 }, 600_000);
 
 it('the scene syncs N structures, each with part of its contents hidden', async () => {
-  // Each structure's polymer hidden in Contents: its Polymer component emptied, its own params saved. A sync reads the
+  // Each structure's polymer hidden in Entities: its Polymer component emptied, its own params saved. A sync reads the
   // emptied components once for every structure (`emptiedComponentsOf`), not every structure's saved params for each.
   const s = await scalingAsync(
     {

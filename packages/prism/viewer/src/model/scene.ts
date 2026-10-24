@@ -39,10 +39,27 @@ export type SceneNodeKind =
   | 'extension'
   /** A structure's sequence (sequence.md §8.1): its eye is the band, its children its tracks. */
   | 'sequence'
-  | 'sequence-track';
+  | 'sequence-track'
+  /** A structure's components, grouped (what is drawn of it): open at first. */
+  | 'components'
+  /**
+   * A structure's optional layers, grouped (drawn around or over it, mostly off: the unit cell, volume streaming, the
+   * extensions' rows that ask for it, `layersStructure`): open at first.
+   */
+  | 'layers';
 
 /** The id of a structure's Sequence node (`reveal` takes it). */
 export const sequenceNodeId = (structure: string) => `${structure}#sequence`;
+/** The ids of a structure's Components and Layers groups. */
+export const componentsNodeId = (structure: string) => `${structure}#components`;
+export const layersNodeId = (structure: string) => `${structure}#layers`;
+/**
+ * The structure (its state ref) a Layers group is of; undefined for any other node. An extension's row that is a layer
+ * (a membrane, symmetry axes) asks for `node.kind === 'layers'` and reads its structure here.
+ */
+export function layersStructure(node: SceneNode): string | undefined {
+  return node.kind === 'layers' ? node.id.slice(0, node.id.length - '#layers'.length) : undefined;
+}
 
 /**
  * One row of the scene tree: a structure, a component, a representation, a volume, a measurement. Implemented over the
@@ -75,6 +92,8 @@ export interface SceneNode {
   load?(peek?: boolean): void;
   toggleVisibility(): void;
   toggleExpanded(): void;
+  /** False: it shows or hides nothing as one (Entities, Layers), so its row has no eye. Absent: an eye. */
+  readonly hasEye?: boolean;
   /** Highlights it in 3D while hovered. */
   highlight(on: boolean): void;
   focus(): void;

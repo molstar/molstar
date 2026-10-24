@@ -331,7 +331,7 @@ Each structure's sequence is managed in the structure tree as a view of that str
 `sequence.tree: false` (viewer-spec.md §2.3): the band, its menu, the commands and the API stay; Edit in structure tree
 goes.
 
-- **A row under each structure with polymers** (`SceneNodeKind` `sequence`, right under Contents: what the structure is
+- **A row under each structure with polymers** (`SceneNodeKind` `sequence`, right under Entities: what the structure is
   made of, then how it reads as a sequence, then its components), made from the sequence model, not a plugin cell: no
   Mol\* transform, so Mol\* knows nothing of Seq\* (§1; `sources/sequence-scene.ts` over the model, the `SceneSequence`
   port in `model/scene.ts`). Label "Sequence"; description its tracks, whether the rule picked it, its chains ("4

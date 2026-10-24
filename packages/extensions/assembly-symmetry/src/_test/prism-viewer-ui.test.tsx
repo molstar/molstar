@@ -89,13 +89,14 @@ function mountRow(v: PrismViewer) {
   const ui = assemblySymmetryUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
   const host = document.createElement('div');
   document.body.append(host);
-  const node = v.views.scene.roots.value[0];
+  // A layer: mounted on the structure's Layers group.
+  const node = v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'layers')!;
   ui.rows![0].render.mount(host, { shell: new ShellModel(), subject: node }, undefined as never);
   return { ui, host, node };
 }
 
 describe("the assembly symmetry's row", () => {
-  it('is a structure row; it asks RCSB PDB nothing until its eye is clicked, then shows the axes', async () => {
+  it("is a layer row (the structure's Layers group); it asks RCSB PDB nothing until its eye is clicked, then shows the axes", async () => {
     const v = await viewer('1grm_updated.cif');
     const { ui, host, node } = mountRow(v);
     expect(ui.rows?.map((r) => r.id)).toEqual([SymmetryRow]);
@@ -111,11 +112,11 @@ describe("the assembly symmetry's row", () => {
     await until(() => host.textContent?.includes('C2 axes') ?? false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(host.querySelector('[aria-label=Symmetry]')?.textContent).toContain('C2 · global · A2');
-    expect(v.api['assembly-symmetry']!.rowState(node.id).value).toMatchObject({ shown: true, selected: 1 });
+    expect(v.api['assembly-symmetry']!.rowState(v.views.scene.roots.value[0].id).value).toMatchObject({ shown: true, selected: 1 });
 
     (host.querySelector('button[data-tip=Hide]') as HTMLButtonElement).click();
     await until(() => host.textContent?.includes('1 symmetry') ?? false);
-    expect(v.api['assembly-symmetry']!.rowState(node.id).value.shown).toBe(false);
+    expect(v.api['assembly-symmetry']!.rowState(v.views.scene.roots.value[0].id).value.shown).toBe(false);
   });
 
   it('colors by cluster from its controls', async () => {
@@ -144,7 +145,7 @@ describe("the assembly symmetry's row", () => {
   it('is not shown for a structure that is not a PDB assembly', async () => {
     const v = await viewer('test.gro');
     const { ui, host, node } = mountRow(v);
-    expect(v.api['assembly-symmetry']!.rowState(node.id).value.applicable).toBe(false);
+    expect(v.api['assembly-symmetry']!.rowState(v.views.scene.roots.value[0].id).value.applicable).toBe(false);
     // Its `when` says so too: the Structure panel's rows are of one height, so a row that renders nothing would leave
     // an empty slot in the tree.
     expect(ui.rows![0].when!(node)).toBe(false);

@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, until } from '../../_test/harness.js';
+import { componentsOf } from '../../testing/scene-groups.js';
 
 // A component's actions (its row menu, its inspector) open their commands in the command menu for it: the component
 // and the structure filled in, a preset component's keyword as the target, the rest to choose there; Modify by
@@ -17,7 +18,7 @@ describe("a component's actions", () => {
   it('open their commands with the component filled in', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     await until(() => v.views.scene.roots.value.length > 0);
-    const polymer = v.views.scene.roots.value[0].children.value.find((n) => n.label.value === 'Polymer')!;
+    const polymer = componentsOf(v.views.scene.roots.value[0]).find((n) => n.label.value === 'Polymer')!;
     const run = (id: string) => polymer.menu!.find((m) => m.id === id)!.run!();
     const active = () => v.managers.commands.active.value;
 
@@ -51,7 +52,7 @@ describe('a component in the inspector', () => {
     const v = await headlessViewer({ files: [cbs()] });
     await until(() => v.views.scene.roots.value.length > 0);
     const scene = v.views.scene;
-    const polymer = scene.roots.value[0].children.value.find((n) => n.label.value === 'Polymer')!;
+    const polymer = componentsOf(scene.roots.value[0]).find((n) => n.label.value === 'Polymer')!;
     // A preset component (a static one: Mol*'s update used to keep its old label).
     scene.inspect(polymer).rename!('The protein');
     await until(() => polymer.label.value === 'The protein');

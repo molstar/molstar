@@ -48,3 +48,9 @@
   `focusSequence`): it used to stay wherever the sequence was zoomed, often on one of them.
 - model-archive: the PAE plot has a pair or a box, one at a time: a box takes off the pair the plot selected, and while
   a box is shown a click selects nothing (the sequence is no longer pulled to an old pair).
+- Prism: a structure's rows in the structure tree are grouped by what they are: Entities (was Contents), Sequence,
+  Components (open at first: what is drawn), Layers (open at first: the unit cell, volume streaming, assembly
+  symmetry, the membrane). An extension's layer row asks for the `layers` node (`layersStructure` names its structure).
+- Prism: the Components group's eye hides its components as one step and shows back the ones it hid (one hidden on its
+  own stays hidden); the Measurements group's too. Its menu has Add component (from the selection, or a kind the
+  structure has). Entities and Layers have no eye: a row that shows or hides nothing has none.

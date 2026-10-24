@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { bind, Button, domView, onCleanup, ParamsForm, Show } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { mapState } from '@molstar/prism-ui/reactive/map-state';
-import type { SceneNode } from '@molstar/prism-viewer';
+import { layersStructure, type SceneNode } from '@molstar/prism-viewer/model/scene';
 import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import type { MembraneRowState } from './operations.js';
@@ -41,9 +41,10 @@ export function membraneUI(ctx: ViewerUIContext): ViewerExtensionUI {
     rows: [
       {
         id: MembraneRow,
-        when: (node) => node.kind === 'structure',
+        // A layer: under each structure's Layers group.
+        when: (node) => node.kind === 'layers',
         render: domView(({ ctx: view }) => {
-          const structure = (view.subject as SceneNode).id;
+          const structure = layersStructure(view.subject as SceneNode)!;
           const state = area.rowState(structure);
           return (
             <Show when={mapState(state, (s) => s.applicable)}>

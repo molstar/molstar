@@ -759,6 +759,7 @@ function TreeItem(props: {
   let lastDescription: unknown = NotYet;
   let lastSwatch: unknown = NotYet;
   let lastHidden: unknown = NotYet;
+  let lastEyeless: unknown = NotYet;
   let lastPicked: unknown = NotYet;
   let lastPlace: RowState | undefined | typeof NotYet = NotYet;
   let lastOpen: unknown = NotYet;
@@ -770,6 +771,13 @@ function TreeItem(props: {
     if (swatch) {
       const c = node.swatch!.value;
       if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
+    }
+    // A row that shows or hides nothing as one (Entities, Layers) has no eye; its place stays (the column lines up).
+    const eyeless = node.hasEye === false;
+    if (eyeless !== lastEyeless) {
+      lastEyeless = eyeless;
+      setStyle(eyeButton, 'visibility', eyeless ? 'hidden' : '');
+      setAttr(eyeButton, 'tabindex', eyeless ? '-1' : null);
     }
     const hidden = node.isHidden.value;
     if (hidden !== lastHidden) {
@@ -939,6 +947,7 @@ function nodeSlot(props: {
   let lastDescription: unknown = NotYet;
   let lastSwatch: unknown = NotYet;
   let lastHidden: unknown = NotYet;
+  let lastEyeless: unknown = NotYet;
   let lastPicked: unknown = NotYet;
   let lastPlace: RowState | undefined | typeof NotYet = NotYet;
   let lastOpen: unknown = NotYet;
@@ -981,6 +990,13 @@ function nodeSlot(props: {
     if (d !== lastDescription) setText(description, (lastDescription = d) ?? '');
     const c = n.swatch?.value;
     if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
+    // A row that shows or hides nothing as one (Entities, Layers) has no eye; its place stays (the column lines up).
+    const eyeless = n.hasEye === false;
+    if (eyeless !== lastEyeless) {
+      lastEyeless = eyeless;
+      setStyle(eyeButton, 'visibility', eyeless ? 'hidden' : '');
+      setAttr(eyeButton, 'tabindex', eyeless ? '-1' : null);
+    }
     const hidden = n.isHidden.value;
     if (hidden !== lastHidden) {
       lastHidden = hidden;
