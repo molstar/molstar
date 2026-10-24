@@ -200,14 +200,18 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
   (`command-language.dialect`); without preferences it lasts for the session, per viewer. Why there: the extension's
   settings group is not shown by Prism, and the choice belongs where it is used.
 - **Commands**: `script.run` (a form: dialect and text), `script.names`, and `script.console` (opens the console).
-- **The console** (`console-model.ts`, DOM-free; `console.tsx`, its own chunk through `ViewerExtension.ui`): a foot tab
-  beside the Log. The submissions and what each did and printed; an input of several lines (Enter runs, ⇧Enter a new
-  line, ↑/↓ the history at its first and last line, Tab the first completion); the dialect, a line's `pymol ` / `vmd `
-  first word overriding it; every error of a submission at once, before anything runs; `undo` / `redo` alone as the
-  viewer's history; submissions run one after another (one made while one runs reads the scene that one leaves); script
-  files opened or dropped with the files they load: the scripts no other one includes run (`rootScripts`), each whole in
-  the dialect its extension says. A log, not live (the viewer says each run); its styles a CSS module. The history of
-  lines is kept with the preferences (`command-language.history`, the last 200).
+- **The console** (`console-model.ts`, DOM-free; `console.tsx` and its CSS module, its own chunk through
+  `ViewerExtension.ui`): a foot tab beside the Log, in the look of the assistant's cards. A transcript of runs, each a
+  status mark (running, done, failed), its dialect, the command and what it said: what it did, what reads printed (in a
+  well), warnings and errors with their hints; its time; Edit puts it back in the input. Empty, it says what it is and
+  offers example lines of the dialect. The composer: the completions of the last word as chips, the input (Enter runs,
+  ⇧Enter a new line, ↑/↓ the history at its first and last line, Tab the first completion), a Run button, and a line
+  that says what Enter will do, or why it will not, before anything runs (`inspect`). The dialect is a segmented switch;
+  a line's `pymol ` / `vmd ` first word overrides it. Every error of a submission shows at once, before anything runs;
+  `undo` / `redo` alone are the viewer's history; submissions run one after another (one made while one runs reads the
+  scene that one leaves); script files opened or dropped (an overlay says where) with the files they load: the scripts
+  no other one includes run (`rootScripts`), each whole in the dialect its extension says. A log, not live (the viewer
+  says each run). The history of lines is kept with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 

@@ -8,8 +8,10 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ViewerApi } from '@molstar/prism-viewer/api/area';
 import type { PrismStore } from '@molstar/prism-viewer/spec';
+import { applyCompletion, complete } from '../language/completion.js';
+import { describeCommand } from '../language/describe.js';
 import { formatDiagnostic } from '../language/diagnostics.js';
-import { type Dialect, DialectNames } from '../language/ir.js';
+import type { Dialect } from '../language/ir.js';
 import { dialectOfFile, dialectPrefix, rootScripts } from '../language/script.js';
 import { defaultDialect } from './commands.js';
 import { type ScriptRunValue, scriptTexts } from './operations.js';
@@ -26,6 +28,8 @@ export type ConsoleLineKind = 'did' | 'value' | 'warning' | 'note' | 'error';
 export interface ConsoleLine {
   readonly kind: ConsoleLineKind;
   readonly text: string;
+  /** What to do instead (an error's). */
+  readonly hint?: string;
 }
 
 export interface ConsoleEntry {
@@ -35,7 +39,46 @@ export interface ConsoleEntry {
   readonly input: string;
   readonly state: 'running' | 'done' | 'failed';
   readonly lines: readonly ConsoleLine[];
+  /** How long it ran (ms), once done. */
+  readonly ms?: number;
 }
+
+/** What the input will do, read as it is typed (the composer's line under it). */
+export type ConsoleInspection =
+  | { readonly kind: 'empty' }
+  | { readonly kind: 'ready'; readonly dialect: Dialect; readonly does: string; readonly warnings: readonly string[] }
+  | { readonly kind: 'error'; readonly dialect: Dialect; readonly message: string; readonly hint?: string };
+
+/** A completion of the input: its word, and the input with it. */
+export interface ConsoleCompletion {
+  readonly label: string;
+  readonly detail?: string;
+  readonly text: string;
+}
+
+/** Lines that show what each dialect reads (the empty console's examples). */
+export const ConsoleExamples: Readonly<Record<Dialect, readonly string[]>> = {
+  pymol: [
+    'fetch 1cbs',
+    'as cartoon',
+    'show sticks, resn REA',
+    'util.cbag resn REA',
+    'color slate, chain A',
+    'spectrum b, blue_white_red',
+    'zoom resn REA, 5',
+    'help',
+  ],
+  vmd: [
+    'mol pdbload 1cbs',
+    'mol delrep 0 top',
+    'mol representation NewCartoon',
+    'mol color Structure',
+    'mol addrep top',
+    'set sel [atomselect top "resname REA"]',
+    '$sel num',
+    'help',
+  ],
+};
 
 /** The script files a console runs, by extension; the other files are what they load. */
 export const ScriptExtensions = ['pml', 'tcl', 'vmd'];
@@ -165,7 +208,11 @@ export class ConsoleModel {
       return this.#finish(
         id,
         'failed',
-        errors.map((d) => ({ kind: 'error', text: formatDiagnostic(text, d) })),
+        errors.map((d) => ({
+          kind: 'error',
+          text: formatDiagnostic(text, { ...d, hint: undefined } as typeof d),
+          ...(d.hint ? { hint: d.hint } : {}),
+        })),
       );
     }
     const lone = preview.commands.length === 1 ? preview.commands[0] : undefined;
@@ -177,7 +224,7 @@ export class ConsoleModel {
     }
     const r = await area.run({ dialect, text, files: [...files] });
     if (!r.ok) {
-      return this.#finish(id, 'failed', [{ kind: 'error', text: r.hint ? `${r.message} ${r.hint}` : r.message }]);
+      return this.#finish(id, 'failed', [{ kind: 'error', text: r.message, ...(r.hint ? { hint: r.hint } : {}) }]);
     }
     const value = r.value as ScriptRunValue | undefined;
     const lines: ConsoleLine[] = (value?.outputs ?? []).map((o) => ({ kind: o.kind, text: o.text }));
@@ -187,19 +234,77 @@ export class ConsoleModel {
   #push(e: Omit<ConsoleEntry, 'id'>): number {
     const id = this.#next++;
     this.#entries.set([...this.#entries.value, { ...e, id }]);
+    this.#started.set(id, performance.now());
     return id;
   }
 
+  readonly #started = new Map<number, number>();
+
   #finish(id: number, state: ConsoleEntry['state'], lines: readonly ConsoleLine[]): ConsoleEntry {
     let done: ConsoleEntry | undefined;
+    const started = this.#started.get(id);
+    this.#started.delete(id);
+    const ms = started === undefined ? undefined : Math.round(performance.now() - started);
     this.#entries.set(
       this.#entries.value.map((e) => {
         if (e.id !== id) return e;
-        done = { ...e, state, lines };
+        done = { ...e, state, lines, ...(ms !== undefined ? { ms } : {}) };
         return done;
       }),
     );
     return done!;
+  }
+
+  /** What a line will do, or why it will not (nothing runs). */
+  inspect(text: string): ConsoleInspection {
+    const area = this.api.script;
+    if (!text.trim() || !area) return { kind: 'empty' };
+    const prefixed = dialectPrefix(text);
+    const dialect = prefixed?.dialect ?? this.#dialect.value;
+    const body = prefixed ? prefixed.rest : text;
+    if (!body.trim()) return { kind: 'empty' };
+    const compiled = area.preview(body, dialect);
+    const error = compiled.diagnostics.find((d) => d.severity === 'error');
+    if (error) {
+      return {
+        kind: 'error',
+        dialect,
+        message: formatDiagnostic(body, { ...error, hint: undefined } as typeof error),
+        ...(error.hint ? { hint: error.hint } : {}),
+      };
+    }
+    const does = compiled.commands.map(describeCommand).filter(Boolean);
+    return {
+      kind: 'ready',
+      dialect,
+      does: does.length > 3 ? `${does.slice(0, 3).join('; ')}; and ${does.length - 3} more` : does.join('; '),
+      warnings: compiled.diagnostics.filter((d) => d.severity !== 'error').map((d) => d.message),
+    };
+  }
+
+  /** The words that may come at the input's end, each with the input completed by it. */
+  completions(text: string, max = 6): ConsoleCompletion[] {
+    const area = this.api.script;
+    if (!area || !text.trim()) return [];
+    const prefixed = dialectPrefix(text);
+    const dialect = prefixed?.dialect ?? this.#dialect.value;
+    const head = prefixed ? text.slice(0, prefixed.offset) : '';
+    const body = prefixed ? prefixed.rest : text;
+    const c = complete(body, dialect, area.env());
+    return c.items
+      .filter((i) => i.insert !== body.slice(c.from, c.to))
+      .slice(0, max)
+      .map((i) => ({
+        label: i.label,
+        ...(i.detail ? { detail: i.detail } : {}),
+        text: head + applyCompletion(body, c, i),
+      }));
+  }
+
+  /** An entry's text back in the input, to change and run again. */
+  edit(entry: ConsoleEntry): void {
+    if (dialectOfFile(entry.input)) return;
+    this.setDraft(entry.input);
   }
 
   #remember(text: string): void {
@@ -214,9 +319,7 @@ export class ConsoleModel {
 
   /** What the input says it reads, for its placeholder. */
   placeholder(d: Dialect): string {
-    return d === 'pymol'
-      ? `${DialectNames.pymol}: fetch 1cbs; show sticks, resn REA · help`
-      : `${DialectNames.vmd}: mol pdbload 1cbs; mol addrep top · help`;
+    return d === 'pymol' ? 'A PyMOL command: show sticks, resn REA' : 'A VMD command: mol addrep top';
   }
 }
 

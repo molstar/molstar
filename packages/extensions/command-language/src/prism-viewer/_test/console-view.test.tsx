@@ -33,7 +33,12 @@ function open() {
   const api = {
     script: {
       env: () => EmptyEnv,
-      preview: () => ({ dialect: 'pymol', commands: [{ kind: 'read' }], diagnostics: [], session: {} }),
+      preview: () => ({
+        dialect: 'pymol',
+        commands: [{ kind: 'read', read: { kind: 'names' } }],
+        diagnostics: [],
+        session: {},
+      }),
       run,
     },
     history: {},
@@ -73,5 +78,19 @@ describe('the console view', () => {
     t.type('show stic');
     t.key('Tab');
     expect(t.input.value).toBe('show sticks');
+  });
+
+  it('says what the line will do, offers its completions, and fills an example', async () => {
+    const t = open();
+    expect(t.container.textContent).toContain('PyMOL and VMD commands');
+    const example = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'show sticks, resn REA')!;
+    example.click();
+    expect(t.input.value).toBe('show sticks, resn REA');
+    t.type('get_na');
+    await tick();
+    expect(t.container.textContent).toContain('PyMOL · List the names');
+    const chip = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'get_names')!;
+    chip.click();
+    expect(t.input.value).toBe('get_names ');
   });
 });
