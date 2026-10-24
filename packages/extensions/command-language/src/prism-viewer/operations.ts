@@ -7,7 +7,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ApiArea, type ApiAreaContext, ApiResult } from '@molstar/prism-viewer/api/area';
 import { formatDiagnostic } from '../language/diagnostics.js';
-import { createScriptSession, type ScriptEnv, type ScriptSession } from '../language/env.js';
+import { createScriptSession, EmptyEnv, type ScriptEnv, type ScriptSession } from '../language/env.js';
 import { type Dialect, DialectNames } from '../language/ir.js';
 import {
   type CompiledScript,
@@ -41,6 +41,12 @@ export const DialectParam = () =>
 export interface ScriptRunValue {
   readonly outputs: readonly ScriptOutput[];
   readonly ran: number;
+}
+
+/** The addresses a submission's loads reach: none for entries (the known services), a URL's own for a URL. */
+export function loadAddresses(text: string, dialect: Dialect): string[] {
+  const { commands } = compileScript(text, dialect, EmptyEnv);
+  return commands.flatMap((c) => (c.kind === 'load' && 'url' in c.from ? [c.from.url] : []));
 }
 
 /** The texts of the scripts among files (by extension), by name. */
@@ -90,8 +96,26 @@ export class ScriptApi extends ApiArea {
         description: 'Files the commands load by name (load model.pdb, mol new model.pdb)',
       }),
     },
+    // What the agent's policy reads (agent.md §4): the addresses its loads reach (entries: the known services; URLs:
+    // themselves). The operations it runs inside join its step and are not asked again.
+    approval: 'network',
+    addresses: ({ dialect, text }) => loadAddresses(text, dialect),
     run: async ({ dialect, text, files }, ctx): Promise<ApiResult<ScriptRunValue>> => {
       if (!text.trim()) return ApiResult.fail('invalid', 'There are no commands.', 'Type one: show sticks, ligand.');
+      // The agent's run: what would ask the person on its own (removing structures, saving a file) is refused here,
+      // where nothing inside would ask (agent.md §4).
+      if (ctx.origin.kind === 'agent') {
+        const asks = compileScript(text, dialect, this.env((files ?? []).map((f) => f.name))).commands.find(
+          (c) => c.kind === 'object.remove' || c.kind === 'export.image',
+        );
+        if (asks) {
+          return ApiResult.fail(
+            'blocked',
+            `${asks.source} is not run for the assistant: it would ask the person first.`,
+            asks.kind === 'object.remove' ? 'Use structure.remove, which asks.' : 'Use export.image, which asks.',
+          );
+        }
+      }
       const byName = new Map((files ?? []).map((f) => [f.name, f]));
       const host = new PrismScriptHost(ctx, this.#state, byName, await scriptTexts(files ?? []));
       const preview = compileScript(text, dialect, host.env(), this.session);

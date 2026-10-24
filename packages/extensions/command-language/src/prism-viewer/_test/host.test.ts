@@ -310,3 +310,25 @@ describe('fetch of a name another structure has', () => {
     expect(names.ok && names.did).toMatch(/1cbs, 1 1cbs_2/);
   });
 });
+
+describe('the assistant’s run', () => {
+  it('says what its loads reach, and refuses what would ask the person', async () => {
+    const v = await viewer();
+    const def = v.api.describe('script.run')!.definition;
+    expect(def.approval).toBe('network');
+    expect(def.addresses!({ dialect: 'pymol', text: 'fetch 1cbs; load https://example.org/x.cif', files: [] })).toEqual(
+      ['https://example.org/x.cif'],
+    );
+    await ok(v, 'load 1cbs.cif');
+    const agent = v.api.as({ kind: 'agent', turn: 't1' });
+    const removed = await agent.script!.run({ dialect: 'pymol', text: 'delete 1cbs' });
+    expect(!removed.ok && removed.code).toBe('blocked');
+    const shown = await agent.script!.run({ dialect: 'pymol', text: 'show sticks, resi 10-20' });
+    expect(shown.ok).toBe(true);
+  });
+
+  it('is a skill with one tool over script.run', async () => {
+    const { CommandLanguageSkill } = await import('../skill.js');
+    expect(CommandLanguageSkill.tools.map((t) => t.operation)).toEqual(['script.run']);
+  });
+});

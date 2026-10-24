@@ -10,6 +10,7 @@ import { VmdLinesPresetEntry } from './plugin/vmd-preset.js';
 import { commandLanguageCommands, commandPrefixes } from './prism-viewer/commands.js';
 import { ScriptApi } from './prism-viewer/operations.js';
 import { ConsoleTab } from './prism-viewer/parts.js';
+import { CommandLanguageSkill } from './prism-viewer/skill.js';
 
 // PyMOL and VMD commands in the Prism viewer (_spec README): an opt-in extension, as Mol*'s others. It brings the
 // `script` area (`script.run`: a submission as one step), the command menu's `pymol `, `vmd ` and `!` prefixes, and
@@ -43,6 +44,7 @@ export const CommandLanguageExtension: ViewerExtension = {
     },
   ],
   commandPrefixes,
+  skills: [CommandLanguageSkill],
   // The console's view: a chunk of its own, loaded with the views.
   ui: async (ctx) => (await import('./prism-viewer/console.js')).consoleUI(ctx),
 };
