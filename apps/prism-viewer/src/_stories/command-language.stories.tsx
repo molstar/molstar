@@ -65,6 +65,20 @@ async function menuWith(text: string) {
   if (input) await typeInto(input, text, false);
 }
 
+/** Opens the console's tab (its view is a chunk of its own: the tab is there once the chunk has loaded). */
+async function openConsole(v: PrismViewer) {
+  for (let i = 0; i < 50 && !(await v.api.view.open({ tab: ConsoleTab })).ok; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  await frame();
+}
+
+/**
+ * The Console as it opens: what it is, and example lines of the dialect (a click puts one in the input). The composer at
+ * its foot: the input, the Run button, the line that will say what Enter does.
+ */
+export const ConsoleEmpty: StoryObj = commandsStory(openConsole);
+
 /**
  * The Console tab (the rail's foot, beside the Log), after four submissions: a PyMOL style (hide everything, cartoon,
  * the ligand as sticks colored by element with green carbons: `util.cbag`), a read (`count_atoms`), a typo the console
@@ -72,10 +86,7 @@ async function menuWith(text: string) {
  * step in History.
  */
 export const Console: StoryObj = commandsStory(async (v) => {
-  // The console's view is a chunk of its own: its tab is there once the chunk has loaded.
-  for (let i = 0; i < 50 && !(await v.api.view.open({ tab: ConsoleTab })).ok; i++)
-    await new Promise((r) => setTimeout(r, 100));
-  await frame();
+  await openConsole(v);
   const field = shell()?.querySelector<HTMLTextAreaElement>('textarea');
   if (!field) return;
   for (const line of [
