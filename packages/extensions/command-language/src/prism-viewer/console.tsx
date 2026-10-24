@@ -487,7 +487,8 @@ export function consoleUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Console',
         icon: 'terminal',
         place: 'foot',
-        order: 2.4,
+        // Beside the Assistant (2.65): the other panel one drives the viewer by typing in.
+        order: 2.6,
         render: domView(() => <ConsoleView model={model} />),
       },
     ],

@@ -96,7 +96,7 @@ async function openConsole(v: PrismViewer) {
 export const ConsoleEmpty: StoryObj = commandsStory(openConsole);
 
 /**
- * The Console tab (the rail's foot, beside the Log), starting empty: 1CBS dropped on it (the line that loads it runs),
+ * The Console tab (the rail's foot, beside the Assistant), starting empty: 1CBS dropped on it (the line that loads it runs),
  * then four submissions: a PyMOL style (hide everything, cartoon,
  * the ligand as sticks colored by element with green carbons: `util.cbag`), a read (`count_atoms`), a typo the console
  * explains before anything runs, and VMD lines (a VDW rep of the ligand in ColorID 4, yellow). Each submission is one
