@@ -14,7 +14,8 @@ import { EmptyEnv } from '../../language/env.js';
 import { ConsoleView } from '../console.js';
 import { ConsoleModel } from '../console-model.js';
 
-// The console's view over its model (_spec §9): Enter runs the input, ⇧Enter does not, ↑ recalls, Tab completes. The
+// The console's view over its model (_spec §9): Enter runs the input, ⇧Enter does not, ↑ recalls, Tab completes, the
+// completion list takes ↑ ↓ Enter Esc while open. The
 // API is a stand-in: what the view does with a run's result, not the run.
 
 afterEach(() => {
@@ -77,7 +78,42 @@ describe('the console view', () => {
     const t = open();
     t.type('show stic');
     t.key('Tab');
-    expect(t.input.value).toBe('show sticks');
+    // A PyMOL argument with more after it comes with its comma.
+    expect(t.input.value).toBe('show sticks, ');
+  });
+
+  it('lists the completions: ↓ picks, Enter takes the one picked, Esc closes, Enter with none picked runs', async () => {
+    const t = open();
+    t.type('show ');
+    const list = () => t.container.querySelector('[role=listbox]');
+    const options = () => [...t.container.querySelectorAll('[role=option]')];
+    expect(list()).not.toBeNull();
+    expect(t.input.getAttribute('aria-expanded')).toBe('true');
+    // The signature says which argument is being typed.
+    expect(t.container.querySelector('strong')?.textContent).toBe('[representation]');
+    t.key('ArrowDown');
+    t.key('ArrowDown');
+    expect(options()[1].getAttribute('aria-selected')).toBe('true');
+    expect(t.input.getAttribute('aria-activedescendant')).toBe(options()[1].id);
+    const second = options()[1].querySelector('[class*=label]')!.textContent!;
+    t.key('Enter');
+    expect(t.run).not.toHaveBeenCalled();
+    expect(t.input.value).toBe(`show ${second}, `);
+    t.key('Escape');
+    expect(list()).toBeNull();
+    expect(t.input.getAttribute('aria-expanded')).toBe('false');
+    t.type('count_atoms');
+    t.key('Enter');
+    await tick();
+    expect(t.run).toHaveBeenCalledWith({ dialect: 'pymol', text: 'count_atoms', files: [] });
+  });
+
+  it('marks the part typed and shows a color as its swatch', () => {
+    const t = open();
+    t.type('color sal');
+    const option = t.container.querySelector('[role=option]')!;
+    expect(option.querySelector('mark')?.textContent).toBe('sal');
+    expect(option.querySelector<HTMLElement>('[class*=swatch]')?.getAttribute('style')).toMatch(/background: #/);
   });
 
   it('says what the line will do, offers its completions, and fills an example', async () => {
@@ -89,11 +125,11 @@ describe('the console view', () => {
     t.type('get_names');
     await tick();
     expect(t.container.textContent).toContain('PyMOL · List the names');
-    // After a space, the next word's completions take the line (one row: the composer keeps its height).
+    // After a space, the next word's completions list over the composer; a click takes one, the input keeps focus.
     t.type('show ');
     await tick();
-    const chip = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'sticks')!;
-    chip.click();
-    expect(t.input.value).toBe('show sticks');
+    const option = [...t.container.querySelectorAll('[role=option]')].find((o) => o.textContent?.includes('sticks'))!;
+    option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    expect(t.input.value).toBe('show sticks, ');
   });
 });

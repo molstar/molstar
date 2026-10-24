@@ -80,7 +80,7 @@ export function prefixRows(
           dialect === 'pymol'
             ? 'show sticks, resn HEM · color red, chain A · help'
             : 'mol addrep top · mol color Chain · help',
-        icon: 'file-code',
+        icon: 'terminal',
         run: () => true,
       },
     ];
@@ -118,7 +118,7 @@ export function prefixRows(
     id: `${dialect}:run`,
     label,
     detail: warnings.join(' ') || `${name} · Enter runs it`,
-    icon: 'file-code',
+    icon: 'terminal',
     run: () => {
       if (lone?.kind === 'history') void (lone.action === 'undo' ? api.history.undo() : api.history.redo());
       else if (!hasErrors(compiled.diagnostics)) void runLine(api, dialect, text, post);
@@ -151,7 +151,7 @@ export function commandPrefixes({ api, preferences, post }: CommandPrefixContext
           id: `command-language:dialect:${d}`,
           label,
           detail: preferences ? 'Kept with your preferences' : 'For this session',
-          icon: 'file-code',
+          icon: 'terminal',
           run: () => {
             setDialect(preferences, viewer, d);
             return { text: '!' };
@@ -176,12 +176,12 @@ export function commandLanguageCommands(api: ViewerApi): CommandDefinition<any>[
   return [
     operationCommand(api, area.run, {
       category: 'Commands',
-      icon: 'file-code',
+      icon: 'terminal',
       alias: ['pymol script', 'vmd script', 'run commands'],
       action: 'Run',
       order: ['dialect', 'text'],
       values: { files: [] },
     }),
-    operationCommand(api, area.names, { category: 'Commands', icon: 'file-code', alias: ['named selections'] }),
+    operationCommand(api, area.names, { category: 'Commands', icon: 'terminal', alias: ['named selections'] }),
   ];
 }

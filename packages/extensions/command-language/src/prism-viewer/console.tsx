@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, domView, effect, For, Icon, Show } from '@molstar/prism-ui';
+import { Button, type Child, domView, effect, For, Icon, Show } from '@molstar/prism-ui';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
-import { applyCompletion, complete } from '../language/completion.js';
+import { applyCompletion, complete, type Signature } from '../language/completion.js';
 import { type Dialect, DialectNames, Dialects } from '../language/ir.js';
 import { dialectPrefix } from '../language/script.js';
 import { classes } from './_generated/console.module.css.js';
@@ -133,18 +133,54 @@ function StatusView(props: { inspection: ConsoleInspection }) {
   );
 }
 
-/** The completions of the word being typed, as chips in the composer's line. */
-function ChipsView(props: { chips: readonly ConsoleCompletion[]; onPick: (text: string) => void }) {
+/** Signature help: the command's usage, the argument being typed in bold, its summary after. */
+function SignatureView(props: { signature: Signature; dialect: Dialect }) {
+  const { signature: sig, dialect } = props;
+  const sep = dialect === 'pymol' ? ', ' : ' ';
+  const parts: Child[] = [<span class={classes.sigName}>{sig.name}</span>, ' '];
+  sig.params.forEach((p, k) => {
+    if (k) parts.push(sep);
+    const text = p.optional ? `[${p.name}]` : p.name;
+    parts.push(k === sig.active ? <strong class={classes.sigActive}>{text}</strong> : text);
+  });
   return (
-    <span class={classes.chips}>
-      {props.chips.map((s) => (
-        <button type="button" class={classes.suggestion} data-tip={s.detail} onClick={() => props.onPick(s.text)}>
-          {s.label}
-        </button>
-      ))}
+    <span class={classes.does} data-tip={`${sig.usage}: ${sig.summary}`}>
+      {parts}
+      <span class={classes.sigSummary}> — {sig.summary}</span>
     </span>
   );
 }
+
+/** What a completion is, in a few letters (a color shows its swatch instead). */
+const KindTags: Partial<Record<ConsoleCompletion['kind'], string>> = {
+  command: 'cmd',
+  keyword: 'sel',
+  selection: 'sel',
+  rep: 'rep',
+  color: 'color',
+  setting: 'set',
+  value: 'val',
+  object: 'obj',
+  name: 'name',
+  molecule: 'mol',
+  file: 'file',
+  enum: 'opt',
+  bool: 'opt',
+};
+
+/** A completion's label, the part typed so far marked. */
+function labelWithTyped(label: string, typed: string): Child {
+  const at = typed ? label.toLowerCase().indexOf(typed.toLowerCase()) : -1;
+  if (at < 0) return label;
+  return [
+    label.slice(0, at),
+    <mark class={classes.typed}>{label.slice(at, at + typed.length)}</mark>,
+    label.slice(at + typed.length),
+  ];
+}
+
+/** Each console's list its own id (several viewers on a page). */
+let nextList = 0;
 
 export function ConsoleView(props: { model: ConsoleModel }) {
   const { model } = props;
@@ -175,11 +211,42 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       rows={2}
       spellcheck={false}
       aria-label="Command"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-haspopup="listbox"
       onInput={(e) => model.setDraft((e.currentTarget as HTMLTextAreaElement).value)}
       onKeyDown={(e) => {
         // Composing text (an input method) owns its keys.
         if (e.isComposing) return;
         const el = e.currentTarget as HTMLTextAreaElement;
+        // The completion list, while open: ↑ ↓ move in it, Tab or Enter take the one picked (Tab: the first when none
+        // is), Esc closes it; Enter with none picked runs, as always.
+        const items = shown.value;
+        if (items.length) {
+          const at = active.value;
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const n = items.length;
+            active.set(e.key === 'ArrowDown' ? (at + 1) % n : at <= 0 ? n - 1 : at - 1);
+            return;
+          }
+          if (e.key === 'Tab' && !e.shiftKey) {
+            e.preventDefault();
+            accept(items[Math.max(0, at)]);
+            return;
+          }
+          if (e.key === 'Enter' && !e.shiftKey && at >= 0) {
+            e.preventDefault();
+            accept(items[at]);
+            return;
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            dismissed.set(true);
+            return;
+          }
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           run();
@@ -203,6 +270,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
     model.setDraft(text);
     input.focus();
   };
+  const accept = (item: ConsoleCompletion) => fill(item.text);
   const run = () => {
     if (input.value.trim()) void model.submit(input.value);
   };
@@ -216,15 +284,33 @@ export function ConsoleView(props: { model: ConsoleModel }) {
     input.placeholder = model.placeholder(d);
   });
 
-  // The composer's line, read again as the draft, the dialect or the scene change (a run that ends, a structure
-  // loaded: the entries change with it). While a word is being typed and has completions, they show; else what Enter
-  // will do. One row either way, so the composer keeps its height.
-  const line = derive([model.draft, model.dialect, model.entries], (t) => {
-    const inspection = model.inspect(t);
-    const completing = inspection.kind === 'error' || /[\s,]$/.test(t);
-    const chips = t.trim() && completing ? model.completions(t) : [];
-    return { inspection, chips };
+  // What helps the input, read again as the draft, the dialect or the scene change (a run that ends, a structure
+  // loaded: the entries change with it): the completions of the word at its end, the command it is in, and what Enter
+  // will do.
+  const help = derive([model.draft, model.dialect, model.entries], (t) => ({
+    assist: model.assist(t),
+    inspection: model.inspect(t),
+    dialect: dialectPrefix(t)?.dialect ?? model.dialect.value,
+  }));
+  // Esc closes the list until the next keystroke; after every keystroke none is picked (-1).
+  const dismissed = observableState(false);
+  const active = observableState(-1);
+  effect(model.draft, () => {
+    dismissed.set(false);
+    active.set(-1);
   });
+  const shown = derive([help, dismissed.asReadonly], (h, d) => (d ? [] : h.assist.items));
+  const listId = `msp-console-completions-${(nextList += 1)}`;
+  effect(
+    derive([shown, active.asReadonly], (l, a) => (l.length ? a : undefined)),
+    (at) => {
+      input.setAttribute('aria-expanded', String(at !== undefined));
+      if (at !== undefined && at >= 0) {
+        input.setAttribute('aria-activedescendant', `${listId}-${at}`);
+        root.querySelector(`#${listId}-${at}`)?.scrollIntoView?.({ block: 'nearest' });
+      } else input.removeAttribute('aria-activedescendant');
+    },
+  );
   const empty = derive(model.draft, (t) => !t.trim());
 
   const picker = (
@@ -295,6 +381,40 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       </div>
       {list}
       <div class={classes.composer}>
+        <Show when={derive(shown, (l) => (l.length ? l : undefined))}>
+          {(items) => {
+            // A detail every row shares says nothing the signature does not (`representation` on each): left out.
+            const details = items.some((i) => i.detail !== items[0].detail);
+            return (
+              <div class={classes.completions} id={listId} role="listbox" aria-label="Completions">
+                {items.map((item, k) => (
+                  <div
+                    id={`${listId}-${k}`}
+                    class={classes.completion}
+                    role="option"
+                    aria-selected={derive(active.asReadonly, (a) => String(a === k))}
+                    onPointerMove={() => active.set(k)}
+                    onMouseDown={(e) => {
+                      // Keeps the input's focus.
+                      e.preventDefault();
+                      accept(item);
+                    }}
+                  >
+                    <span class={classes.kind}>
+                      {item.rgb !== undefined ? (
+                        <span class={classes.swatch} style={`background: #${item.rgb.toString(16).padStart(6, '0')}`} />
+                      ) : (
+                        (KindTags[item.kind] ?? '')
+                      )}
+                    </span>
+                    <span class={classes.label}>{labelWithTyped(item.label, help.value.assist.typed)}</span>
+                    <span class={classes.detail}>{details ? (item.detail ?? '') : ''}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          }}
+        </Show>
         <div class={classes.field}>
           {input}
           <button
@@ -309,12 +429,21 @@ export function ConsoleView(props: { model: ConsoleModel }) {
           </button>
         </div>
         <div class={classes.status}>
-          <Show when={line}>
-            {(l) =>
-              l.chips.length ? <ChipsView chips={l.chips} onPick={fill} /> : <StatusView inspection={l.inspection} />
+          <Show when={derive([help, shown], (h, l) => ({ ...h, listing: l.length > 0 }))}>
+            {(h) =>
+              // While the list is open or arguments are being typed: where the input is in its command. Else what
+              // Enter will do, or why it will not.
+              h.assist.signature && (h.listing || h.inspection.kind !== 'ready') ? (
+                <SignatureView signature={h.assist.signature} dialect={h.dialect} />
+              ) : (
+                <StatusView inspection={h.inspection} />
+              )
             }
           </Show>
-          <span class={classes.keys} data-tip="Enter runs · Shift+Enter a new line · Tab completes · ↑ ↓ history">
+          <span
+            class={classes.keys}
+            data-tip="Enter runs · Shift+Enter a new line · Tab completes · ↑ ↓ the list or the history · Esc closes the list"
+          >
             ↵ run · ⇥ complete
           </span>
         </div>
@@ -349,7 +478,7 @@ export function consoleUI(ctx: ViewerUIContext): ViewerExtensionUI {
       {
         id: ConsoleTab,
         title: 'Console',
-        icon: 'file-code',
+        icon: 'terminal',
         place: 'foot',
         order: 2.4,
         render: domView(() => <ConsoleView model={model} />),

@@ -28,7 +28,7 @@ export const CommandLanguageExtension: ViewerExtension = {
       id: 'script.console',
       title: 'Open the command console (PyMOL, VMD)',
       category: 'Commands',
-      icon: 'file-code',
+      icon: 'terminal',
       alias: ['console', 'pymol console', 'vmd console', 'tk console'],
       // Opens the console's tab: a view, not a change.
       async run() {

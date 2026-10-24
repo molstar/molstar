@@ -8,7 +8,7 @@ import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ViewerApi } from '@molstar/prism-viewer/api/area';
 import type { PrismStore } from '@molstar/prism-viewer/spec';
-import { applyCompletion, complete } from '../language/completion.js';
+import { applyCompletion, type CompletionItem, complete, type Signature } from '../language/completion.js';
 import { describeCommand } from '../language/describe.js';
 import { formatDiagnostic } from '../language/diagnostics.js';
 import type { Dialect } from '../language/ir.js';
@@ -55,7 +55,20 @@ export type ConsoleInspection =
 export interface ConsoleCompletion {
   readonly label: string;
   readonly detail?: string;
+  /** What it is: a command, a representation, a color, a keyword, an object, … */
+  readonly kind: CompletionItem['kind'];
+  /** A color's RGB, for its swatch. */
+  readonly rgb?: number;
+  /** The input with it. */
   readonly text: string;
+}
+
+/** What helps the person type the input: the completions of the word at its end, and the command it is in. */
+export interface ConsoleAssist {
+  readonly items: readonly ConsoleCompletion[];
+  /** The part of the word typed so far (the items' labels start with it, or hold it). */
+  readonly typed: string;
+  readonly signature?: Signature;
 }
 
 /** Lines that show what each dialect reads (the empty console's examples). */
@@ -291,21 +304,33 @@ export class ConsoleModel {
 
   /** The words that may come at the input's end, each with the input completed by it. */
   completions(text: string, max = 6): ConsoleCompletion[] {
+    return this.assist(text, max).items.slice();
+  }
+
+  /** The completions of the word at the input's end (at most `max`), and the command the input is in. */
+  assist(text: string, max = 12): ConsoleAssist {
     const area = this.api.script;
-    if (!area || !text.trim()) return [];
+    if (!area || !text.trim()) return { items: [], typed: '' };
     const prefixed = dialectPrefix(text);
     const dialect = prefixed?.dialect ?? this.#dialect.value;
     const head = prefixed ? text.slice(0, prefixed.offset) : '';
     const body = prefixed ? prefixed.rest : text;
     const c = complete(body, dialect, area.env());
-    return c.items
-      .filter((i) => i.insert !== body.slice(c.from, c.to))
+    const typed = body.slice(c.from, c.to);
+    const items = c.items
+      // What is typed whole already is no completion.
+      .filter((i) => i.label.toLowerCase() !== typed.toLowerCase())
       .slice(0, max)
-      .map((i) => ({
-        label: i.label,
-        ...(i.detail ? { detail: i.detail } : {}),
-        text: head + applyCompletion(body, c, i),
-      }));
+      .map(
+        (i): ConsoleCompletion => ({
+          label: i.label,
+          kind: i.kind,
+          ...(i.detail ? { detail: i.detail } : {}),
+          ...(i.rgb !== undefined ? { rgb: i.rgb } : {}),
+          text: head + applyCompletion(body, c, i),
+        }),
+      );
+    return { items, typed, ...(c.signature ? { signature: c.signature } : {}) };
   }
 
   /** An entry's text back in the input, to change and run again. */

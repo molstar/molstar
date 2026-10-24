@@ -106,7 +106,7 @@ describe('the console', () => {
   it('completes the line with Tab’s first completion', async () => {
     const v = await viewer();
     const c = new ConsoleModel(v.api);
-    expect(completeLine(c, 'show stic')).toBe('show sticks');
+    expect(completeLine(c, 'show stic')).toBe('show sticks, ');
     expect(completeLine(c, 'vmd mol addr')).toBe('vmd mol addrep ');
   });
 });

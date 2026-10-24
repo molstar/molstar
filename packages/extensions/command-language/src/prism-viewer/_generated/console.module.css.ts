@@ -14,11 +14,13 @@ export const classes = {
   'action': 'msp-command-language-console-action',
   'bar': 'msp-command-language-console-bar',
   'chip': 'msp-command-language-console-chip',
-  'chips': 'msp-command-language-console-chips',
   'code': 'msp-command-language-console-code',
   'command': 'msp-command-language-console-command',
+  'completion': 'msp-command-language-console-completion',
+  'completions': 'msp-command-language-console-completions',
   'composer': 'msp-command-language-console-composer',
   'console': 'msp-command-language-console-console',
+  'detail': 'msp-command-language-console-detail',
   'does': 'msp-command-language-console-does',
   'drop': 'msp-command-language-console-drop',
   'empty': 'msp-command-language-console-empty',
@@ -31,6 +33,8 @@ export const classes = {
   'hint': 'msp-command-language-console-hint',
   'input': 'msp-command-language-console-input',
   'keys': 'msp-command-language-console-keys',
+  'kind': 'msp-command-language-console-kind',
+  'label': 'msp-command-language-console-label',
   'line': 'msp-command-language-console-line',
   'lines': 'msp-command-language-console-lines',
   'mark': 'msp-command-language-console-mark',
@@ -41,11 +45,15 @@ export const classes = {
   'segments': 'msp-command-language-console-segments',
   'send': 'msp-command-language-console-send',
   'side': 'msp-command-language-console-side',
+  'sigActive': 'msp-command-language-console-sigActive',
+  'sigName': 'msp-command-language-console-sigName',
+  'sigSummary': 'msp-command-language-console-sigSummary',
   'spacer': 'msp-command-language-console-spacer',
   'spin': 'msp-command-language-console-spin',
   'status': 'msp-command-language-console-status',
-  'suggestion': 'msp-command-language-console-suggestion',
+  'swatch': 'msp-command-language-console-swatch',
   'time': 'msp-command-language-console-time',
+  'typed': 'msp-command-language-console-typed',
   'value': 'msp-command-language-console-value',
 } as const;
 
@@ -277,7 +285,7 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   display: flex;
 }
 
-.msp-command-language-console-example, .msp-command-language-console-suggestion {
+.msp-command-language-console-example {
   max-width: 100%;
   padding: calc(var(--msp-space-1) / 2) var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
@@ -302,10 +310,6 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
-.msp-command-language-console-chips .msp-command-language-console-suggestion:not(:hover) {
-  background: var(--msp-color-well);
-}
-
 .msp-command-language-console-composer {
   gap: var(--msp-space-1);
   margin: 0 var(--msp-space-2) var(--msp-space-2);
@@ -316,6 +320,7 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   transition: box-shadow var(--msp-motion-fast) var(--msp-ease);
   grid-template-columns: minmax(0, 1fr);
   display: grid;
+  position: relative;
 
   &:focus-within {
     box-shadow: inset 0 0 0 1px var(--msp-field-edge),
@@ -323,17 +328,69 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
-.msp-command-language-console-chips {
-  gap: var(--msp-space-1);
-  min-width: 0;
-  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
-  flex: 1;
-  display: flex;
-  overflow: hidden;
+.msp-command-language-console-completions {
+  right: 0;
+  bottom: calc(100% + var(--msp-space-1));
+  z-index: var(--msp-z-overlay);
+  max-height: 240px;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge),
+    var(--msp-shadow-float);
+  position: absolute;
+  left: 0;
+  overflow-y: auto;
 }
 
-.msp-command-language-console-suggestion {
-  flex: none;
+.msp-command-language-console-completion {
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  font-size: var(--msp-font-size-xs);
+  cursor: pointer;
+  grid-template-columns: 36px auto minmax(0, 1fr);
+  line-height: 18px;
+  display: grid;
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-command-language-console-kind {
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  align-items: center;
+  display: flex;
+}
+
+.msp-command-language-console-swatch {
+  border-radius: var(--msp-radius-sm);
+  width: 12px;
+  height: 12px;
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+}
+
+.msp-command-language-console-label {
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  white-space: nowrap;
+}
+
+.msp-command-language-console-typed {
+  color: var(--msp-color-accent);
+  background: none;
+  font-weight: 600;
+}
+
+.msp-command-language-console-detail {
+  color: var(--msp-color-text-muted);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .msp-command-language-console-field {
@@ -408,6 +465,20 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   &[data-kind="error"] {
     color: var(--msp-color-danger);
   }
+}
+
+.msp-command-language-console-sigName {
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+}
+
+.msp-command-language-console-sigActive {
+  color: var(--msp-color-text);
+  font-weight: 600;
+}
+
+.msp-command-language-console-sigSummary {
+  color: var(--msp-color-text-subtle);
 }
 
 .msp-command-language-console-keys {

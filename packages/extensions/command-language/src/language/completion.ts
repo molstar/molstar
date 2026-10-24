@@ -6,14 +6,14 @@
 
 import { all as PymolSymbols } from '@molstar/query-language/transpilers/pymol/symbols';
 import { all as VmdSymbols } from '@molstar/query-language/transpilers/vmd/symbols';
-import { PymolColorNames, VmdColorIds } from './colors.js';
+import { PymolColorNames, pymolColor, VmdColorIds, vmdColor } from './colors.js';
 import type { ScriptEnv } from './env.js';
 import type { Dialect } from './ir.js';
 import { PymolReps } from './pymol/args.js';
 import { PymolCommands, PymolCommandsByName } from './pymol/commands.js';
 import { PymolSettings } from './pymol/settings.js';
 import { splitPymol, unquote } from './pymol/tokenizer.js';
-import type { ArgKind, ParamSpec } from './table.js';
+import type { ArgKind, CommandHelp, ParamSpec } from './table.js';
 import { VmdCommands, VmdGroups, VmdCommandsByName } from './vmd/commands.js';
 import { VmdColorMethodNames, VmdStyleNames } from './vmd/styles.js';
 import { literal, splitTcl } from './vmd/tcl.js';
@@ -28,13 +28,35 @@ export interface CompletionItem {
   readonly insert: string;
   readonly detail?: string;
   readonly kind: 'command' | ArgKind | 'keyword';
+  /** A color's RGB (`0xRRGGBB`), for a swatch. */
+  readonly rgb?: number;
+}
+
+/** Where the cursor is in a command: its help and which of its arguments is being typed (signature help). */
+export interface Signature {
+  readonly name: string;
+  readonly usage: string;
+  readonly summary: string;
+  readonly params: readonly ParamSpec[];
+  /** The argument being typed, an index into `params`; -1: none (past them, or the name). */
+  readonly active: number;
 }
 
 export interface Completion {
   readonly from: number;
   readonly to: number;
   readonly items: readonly CompletionItem[];
+  /** The command around the cursor, once its name is typed. */
+  readonly signature?: Signature;
 }
+
+const signatureOf = (c: CommandHelp & { readonly params: readonly ParamSpec[] }, active: number): Signature => ({
+  name: c.name,
+  usage: c.usage,
+  summary: c.summary,
+  params: c.params,
+  active,
+});
 
 const Limit = 40;
 
@@ -79,11 +101,34 @@ function kindItems(dialect: Dialect, param: ParamSpec, env: ScriptEnv, before: s
     case 'selection':
       return selectionItems(dialect, before, env);
     case 'rep':
-      return dialect === 'pymol' ? items(Object.keys(PymolReps), 'rep') : items(VmdStyleNames, 'rep');
-    case 'color':
       return dialect === 'pymol'
-        ? items(['atomic', ...PymolColorNames], 'color')
-        : items(param.values ?? [...VmdColorMethodNames, ...Object.keys(VmdColorIds)], 'color');
+        ? items(Object.keys(PymolReps), 'rep', 'representation')
+        : items(VmdStyleNames, 'rep', 'drawing style');
+    case 'color':
+      if (dialect === 'pymol') {
+        return [
+          { label: 'atomic', insert: 'atomic', kind: 'color', detail: 'by element' },
+          ...PymolColorNames.map(
+            (label): CompletionItem => ({ label, insert: label, kind: 'color', rgb: pymolColor(label)! }),
+          ),
+        ];
+      }
+      return [
+        ...(param.values ?? VmdColorMethodNames).map(
+          (label): CompletionItem => ({ label, insert: label, kind: 'color', detail: 'coloring method' }),
+        ),
+        ...(param.values
+          ? []
+          : Object.entries(VmdColorIds).map(
+              ([label, id]): CompletionItem => ({
+                label,
+                insert: label,
+                kind: 'color',
+                detail: `ColorID ${id}`,
+                rgb: vmdColor(label)!,
+              }),
+            )),
+      ];
     case 'setting':
       return Object.entries(PymolSettings).map(([label, s]) => ({
         label,
@@ -116,7 +161,7 @@ function kindItems(dialect: Dialect, param: ParamSpec, env: ScriptEnv, before: s
     case 'file':
       return items(env.files, 'file');
     default:
-      return param.values ? items(param.values, param.kind) : [];
+      return param.values ? items(param.values, param.kind, param.name) : [];
   }
 }
 
@@ -130,7 +175,13 @@ function pymolCompletion(text: string, env: ScriptEnv): Completion {
     const commands = PymolCommands.map(
       (c): CompletionItem => ({ label: c.name, insert: c.name, kind: 'command', detail: c.summary }),
     );
-    return { from, to: text.length, items: match(word, commands) };
+    const named = call && PymolCommandsByName.get(call.name);
+    return {
+      from,
+      to: text.length,
+      items: match(word, commands),
+      ...(named && named.name === word ? { signature: signatureOf(named, -1) } : {}),
+    };
   }
   const command = PymolCommandsByName.get(call.name) ?? PymolCommandsByName.get(call.name.toLowerCase());
   if (!command) return { from: text.length, to: text.length, items: [] };
@@ -142,15 +193,21 @@ function pymolCompletion(text: string, env: ScriptEnv): Completion {
     !fresh && last.key
       ? command.params.find((p) => p.name === last.key)
       : command.params[fresh ? positional : positional - 1];
-  if (!param) return { from: text.length, to: text.length, items: [] };
+  const signature = signatureOf(command, param ? command.params.indexOf(param) : -1);
+  if (!param) return { from: text.length, to: text.length, items: [], signature };
   const current = fresh ? '' : text.slice(last.at.from);
   // In a selection, the last word only; elsewhere the whole argument.
   const word = param.kind === 'selection' ? (current.match(/[\w.'+-]*$/)?.[0] ?? '') : unquote(current);
   const before = param.kind === 'selection' ? current.slice(0, current.length - word.length) : '';
+  // A whole argument with more after it (`show sticks`, then the selection): its comma comes with it.
+  const index = command.params.indexOf(param);
+  const more = param.kind !== 'selection' && param.kind !== 'text' && index < command.params.length - 1;
+  const found = match(word, kindItems('pymol', param, env, before));
   return {
     from: text.length - word.length,
     to: text.length,
-    items: match(word, kindItems('pymol', param, env, before)),
+    items: more ? found.map((i) => ({ ...i, insert: `${i.insert}, ` })) : found,
+    signature,
   };
 }
 
@@ -194,11 +251,17 @@ function vmdCompletion(text: string, env: ScriptEnv): Completion {
     (command.params[command.params.length - 1]?.kind === 'selection'
       ? command.params[command.params.length - 1]
       : undefined);
-  if (!param) return { from: text.length, to: text.length, items: [] };
+  const signature = signatureOf(command, param ? command.params.indexOf(param) : -1);
+  if (!param) return { from: text.length, to: text.length, items: [], signature };
   const current = open ? '' : (args[args.length - 1] ?? '');
   const word = param.kind === 'selection' ? (current.match(/[\w.'+-]*$/)?.[0] ?? '') : current;
   const before = param.kind === 'selection' ? current.slice(0, current.length - word.length) : '';
-  return { from: text.length - word.length, to: text.length, items: match(word, kindItems('vmd', param, env, before)) };
+  return {
+    from: text.length - word.length,
+    to: text.length,
+    items: match(word, kindItems('vmd', param, env, before)),
+    signature,
+  };
 }
 
 /** What may come at the end of `text` (a completion edits the text before the cursor). */

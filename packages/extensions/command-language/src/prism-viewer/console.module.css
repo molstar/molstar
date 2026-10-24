@@ -238,8 +238,7 @@
   gap: var(--msp-space-1);
 }
 
-.example,
-.suggestion {
+.example {
   max-width: 100%;
   overflow: hidden;
   padding: calc(var(--msp-space-1) / 2) var(--msp-space-2);
@@ -264,14 +263,10 @@
   }
 }
 
-/* A completion sits in the composer, on the control's color: a well. */
-.chips .suggestion:not(:hover) {
-  background: var(--msp-color-well);
-}
-
 /* --- The composer. --- */
 
 .composer {
+  position: relative;
   display: grid;
   /* One column no wider than the box: the status line fades or wraps in it instead of widening it. */
   grid-template-columns: minmax(0, 1fr);
@@ -290,18 +285,72 @@
   }
 }
 
-/* The completions in the composer's line: one row, the ones that do not fit fade out. */
-.chips {
-  display: flex;
-  flex: 1;
-  gap: var(--msp-space-1);
-  min-width: 0;
-  overflow: hidden;
-  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+/* The completions of the word at the input's end: a list over the composer, the one picked on the hover color. A row:
+   what it is (a few letters, or a color's swatch), the label with the part typed marked, the detail muted. */
+.completions {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--msp-space-1));
+  left: 0;
+  z-index: var(--msp-z-overlay);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    inset 0 0 0 1px var(--msp-field-edge),
+    var(--msp-shadow-float);
 }
 
-.suggestion {
-  flex: none;
+.completion {
+  display: grid;
+  grid-template-columns: 36px auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  font-size: var(--msp-font-size-xs);
+  line-height: 18px;
+  cursor: pointer;
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+}
+
+.label {
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  white-space: nowrap;
+}
+
+.typed {
+  background: none;
+  color: var(--msp-color-accent);
+  font-weight: 600;
+}
+
+.detail {
+  overflow: hidden;
+  color: var(--msp-color-text-muted);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field {
@@ -377,6 +426,21 @@
   &[data-kind="error"] {
     color: var(--msp-color-danger);
   }
+}
+
+/* Signature help: the command's name, the argument being typed in bold, the summary after it, quieter. */
+.sigName {
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+}
+
+.sigActive {
+  color: var(--msp-color-text);
+  font-weight: 600;
+}
+
+.sigSummary {
+  color: var(--msp-color-text-subtle);
 }
 
 .keys {

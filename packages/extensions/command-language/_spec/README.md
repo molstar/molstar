@@ -187,8 +187,11 @@ operation's failure, with its hint).
 
 `complete(text, dialect, env)`: the command word; then by the argument's kind (representations, colors, settings, enums,
 files, molecules); in a selection the dialect's keywords, properties and operators (query-language's lists), the
-session's names and objects, and after `chain` / `resn` the structures' chains and ligands. A completion edits the line
-(`applyCompletion`); help prints the tables' lines.
+session's names and objects, and after `chain` / `resn` the structures' chains and ligands. Items say what they are (a
+kind, a detail; a named color its `rgb`). A completion edits the line (`applyCompletion`); a PyMOL argument with more
+after it (not a selection, not the last) comes with its `, `, so the next one's completions follow at once. Once the
+command's name is typed, `signature` is its usage with the argument being typed (`active`). Help prints the tables'
+lines.
 
 ## 9. Prism integration
 
@@ -214,11 +217,15 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
   hints; its time; Edit puts a typed line back in the input, in its dialect. Empty, it says what it is and offers
   example lines of the dialect. The dialect is two pressed buttons, as the Log's filters; a line's `pymol ` / `vmd `
   first word overrides it. The composer: the input (Enter runs, ⇧Enter a new line, ↑/↓ the history at its first and last
-  line, Tab the first completion), a Run button, and one line under it, of one height whatever it says: the completions
-  of the word being typed as chips, else what Enter will do or the first error (the whole, with its hint, in the line's
-  tip; `inspect`), so the composer never changes height as one types. Every error of a submission shows at once, before
-  anything runs; `undo` / `redo` alone are the viewer's history; submissions run one after another. **Import** (and
-  dropping on the tab, an overlay saying where): scripts with the files they load, the ones no other includes run
+  line, Tab the first completion), a Run button, and one line under it, of one height whatever it says, so the composer
+  never changes height as one types. The completions of the word at the input's end list over the transcript (`assist`;
+  a combobox: ↑/↓ pick, Tab or Enter take the one picked, Tab the first when none is, Enter with none picked runs, Esc
+  closes until the next keystroke); a row is its kind or a color's swatch, the label with the part typed marked, and the
+  detail, left out when every row has the same one. The line: while the list is open or the arguments do not read yet,
+  the signature with the argument being typed in bold; else what Enter will do or the first error (the whole, with its
+  hint, in the line's tip; `inspect`). The tab's icon is `terminal` (`>_`). Every error of a submission shows at once,
+  before anything runs; `undo` / `redo` alone are the viewer's history; submissions run one after another. **Import**
+  (and dropping on the tab, an overlay saying where): scripts with the files they load, the ones no other includes run
   (`rootScripts`), each whole in the dialect its extension says; files without a script are loaded as the line that
   loads them (`load 1cbs.cif`, `mol new 1cbs.cif`), shown in the transcript. A log, not live (the viewer says each run).
   The history of lines is kept with the preferences (`command-language.history`, the last 200).
