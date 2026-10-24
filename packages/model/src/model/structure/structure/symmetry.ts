@@ -325,15 +325,20 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
 
   const { units } = structure;
   const center = Vec3.zero();
+  const local = Vec3.zero();
   for (const oper of operators) {
     for (const unit of units) {
+      // the mate's centre in world space: its own operator, then the symmetry operator (`addWithOperator` composes)
       const boundingSphere = unit.lookup3d.boundary.sphere;
-      Vec3.transformMat4(center, boundingSphere.center, oper.matrix);
+      Vec3.transformMat4(center, boundingSphere.center, unit.conformation.operator.matrix);
+      Vec3.transformMat4(center, center, oper.matrix);
 
       const closeUnits = lookup.findUnitIndices(center[0], center[1], center[2], boundingSphere.radius + radius);
       for (let uI = 0, _uI = closeUnits.count; uI < _uI; uI++) {
         const closeUnit = units[closeUnits.indices[uI]];
-        if (!closeUnit.lookup3d.check(center[0], center[1], center[2], boundingSphere.radius + radius)) continue;
+        // a unit's grid is in its invariant frame (perf-audit-2 05/B8)
+        Vec3.transformMat4(local, center, closeUnit.conformation.operator.inverse);
+        if (!closeUnit.lookup3d.check(local[0], local[1], local[2], boundingSphere.radius + radius)) continue;
 
         const h = hash(unit, oper);
         if (!added.has(h)) {
