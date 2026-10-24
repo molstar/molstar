@@ -84,6 +84,12 @@ export type PluginInitializedState = { kind: 'no' } | { kind: 'yes' } | { kind: 
 /** `PluginSpec` keys removed in 6.0; the constructor rejects them with a pointer to registry entries. */
 const REMOVED_SPEC_KEYS = ['actions', 'animations', 'customFormats'] as const;
 
+/**
+ * The entries `log.entries` keeps, the last ones: every evaluated transform logs its timing, so an unbounded log grew by
+ * tens of MB over a long session (perf-audit-2 12/B3). The classic Log shows the last 10, Prism's Log keeps its own 300.
+ */
+const LogSize = 1000;
+
 export class PluginContext {
   runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
   resolveTask = <T>(object: Task<T> | T | undefined) => {
@@ -692,7 +698,12 @@ export class PluginContext {
 
   async init() {
     try {
-      this.subs.push(this.events.log.subscribe((e) => (this.log.entries = this.log.entries.push(e))));
+      this.subs.push(
+        this.events.log.subscribe((e) => {
+          const entries = this.log.entries.push(e);
+          this.log.entries = entries.size > LogSize ? entries.shift() : entries;
+        }),
+      );
 
       this.initBehaviorEvents();
       this.initBuiltInBehavior();
