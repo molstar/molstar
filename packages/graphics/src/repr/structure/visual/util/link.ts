@@ -562,9 +562,10 @@ export function createLinkCylinderImpostors(
         );
       }
     } else if (linkStyle === LinkStyle.Disk) {
-      v3scale(tmpV12, v3sub(tmpV12, vm, va), 0.475);
+      // as the mesh: from 0.475 to 0.5 of the way to b; `vm` was another edge's (perf-audit-2 07/B6)
+      v3scale(vm, v3add(vm, va, vb), 0.5);
+      v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
       v3add(va, va, tmpV12);
-      v3sub(vm, vm, tmpV12);
 
       builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
     }
@@ -721,9 +722,10 @@ export function createLinkLines(
         );
       }
     } else if (linkStyle === LinkStyle.Disk) {
-      v3scale(tmpV12, v3sub(tmpV12, vm, va), 0.475);
+      // as the mesh: from 0.475 to 0.5 of the way to b; `vm` was another edge's (perf-audit-2 07/B6)
+      v3scale(vm, v3add(vm, va, vb), 0.5);
+      v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
       v3add(va, va, tmpV12);
-      v3sub(vm, vm, tmpV12);
 
       // TODO what to do here? Line as disk doesn't work well.
       builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);

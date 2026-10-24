@@ -15,7 +15,14 @@ import { polygon } from '../../../primitive/polygon.js';
 import { hashFnv32a } from '@molstar/core/data/util';
 import type { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
 
-const cylinderMap = new Map<number, Primitive>();
+/**
+ * Cylinder primitives by their (rounded) props: entries of a hash with the props checked, as two props sets can share
+ * a 32-bit hash; the last `MaxCachedCylinders` made only, as continuous radii (the clip gizmos while dragged) would
+ * keep one per value (perf-audit-2 08/P9)
+ */
+const cylinderMap = new Map<number, { values: Int32Array; primitive: Primitive }[]>();
+let cachedCylinderCount = 0;
+export const MaxCachedCylinders = 256;
 const up = Vec3.create(0, 1, 0);
 
 const tmpCylinderDir = Vec3();
@@ -54,19 +61,37 @@ function getCylinderPropsKey(props: CylinderProps) {
   return hashFnv32a(tmpPropValues);
 }
 
+function sameValues(a: Int32Array, b: Int32Array) {
+  for (let i = 0; i < 9; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 function getCylinder(props: CylinderProps) {
   const key = getCylinderPropsKey(props);
-  let cylinder = cylinderMap.get(key);
-  if (cylinder === undefined) {
-    if (props.radialSegments && props.radialSegments <= 4) {
-      const sideCount = Math.max(3, props.radialSegments);
-      const prism = Prism(polygon(sideCount, true, props.radiusTop), props);
-      cylinder = transformPrimitive(prism, Mat4.rotX90);
-    } else {
-      cylinder = Cylinder(props);
+  const entries = cylinderMap.get(key);
+  if (entries) {
+    for (const e of entries) {
+      if (sameValues(e.values, tmpPropValues)) return e.primitive;
     }
-    cylinderMap.set(key, cylinder);
   }
+  let cylinder: Primitive;
+  if (props.radialSegments && props.radialSegments <= 4) {
+    const sideCount = Math.max(3, props.radialSegments);
+    const prism = Prism(polygon(sideCount, true, props.radiusTop), props);
+    cylinder = transformPrimitive(prism, Mat4.rotX90);
+  } else {
+    cylinder = Cylinder(props);
+  }
+  if (cachedCylinderCount >= MaxCachedCylinders) {
+    // the hash first set (insertion order) goes; the cache is a reuse of shapes, not of a given one
+    const first = cylinderMap.keys().next().value!;
+    cachedCylinderCount -= cylinderMap.get(first)!.length;
+    cylinderMap.delete(first);
+  }
+  const entry = { values: tmpPropValues.slice(), primitive: cylinder };
+  if (entries && cylinderMap.has(key)) entries.push(entry);
+  else cylinderMap.set(key, [entry]);
+  cachedCylinderCount++;
   return cylinder;
 }
 

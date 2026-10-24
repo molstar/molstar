@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import {
@@ -13,6 +14,49 @@ import {
 import { type RenderMergedValue, resolveRenderMerged } from '@molstar/graphics/geo/geometry/base';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
+import type { ValueCell } from '@molstar/core/util/value-cell';
+
+/**
+ * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
+ * LOD), as the cells and their versions when it last passed. A group of the same members with none of them changed
+ * was mergeable then and is now: the check (a sorted key string per member) is skipped (perf-audit-2 07/P17).
+ */
+type MergeFingerprint = { keyCount: number; cells: ValueCell<any>[]; versions: number[] };
+const mergeFingerprints = new WeakMap<GraphicsRenderObject, MergeFingerprint>();
+
+function isMergeRelevantKey(k: string) {
+  return (
+    (k.length > 1 && k[0] === 'd' && k[1] >= 'A' && k[1] <= 'Z') ||
+    k.endsWith('Type') ||
+    k === 'uInstanceGranularity' ||
+    k === 'uLod' ||
+    k === 'lodLevels'
+  );
+}
+
+function recordMergeFingerprint(ro: GraphicsRenderObject) {
+  const values = ro.values as unknown as { [k: string]: ValueCell<any> };
+  const keys = Object.keys(values);
+  const cells: ValueCell<any>[] = [];
+  const versions: number[] = [];
+  for (const k of keys) {
+    if (!isMergeRelevantKey(k) || !values[k]?.ref) continue;
+    cells.push(values[k]);
+    versions.push(values[k].ref.version);
+  }
+  mergeFingerprints.set(ro, { keyCount: keys.length, cells, versions });
+}
+
+function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
+  const f = mergeFingerprints.get(ro);
+  if (!f) return false;
+  const values = ro.values as unknown as { [k: string]: ValueCell<any> };
+  if (Object.keys(values).length !== f.keyCount) return false;
+  for (let i = 0, il = f.cells.length; i < il; ++i) {
+    if (f.cells[i].ref.version !== f.versions[i]) return false;
+  }
+  return true;
+}
 
 /** One visual and its renderObject, ready to be grouped/merged by `mergeRenderObjectsByType`. */
 export type MergeableEntry<V> = { visual: V; renderObject: GraphicsRenderObject };
@@ -48,18 +92,22 @@ export function mergeRenderObjectsByType<V>(
     }
     byType.forEach((group, type) => {
       if (group.length < 2 || !resolveRenderMerged(renderMerged, group.length)) return;
-      if (!canMergeRenderObjects(group.map((e) => e.renderObject))) return;
 
       const key = group.map((e) => e.renderObject.id).join(',');
       const prev = prevMergedByType.get(type);
-      const entry =
-        prev && prev.key === key
-          ? prev
-          : {
-              object: createMergedRenderObject(group.map((e) => e.renderObject)),
-              visuals: group.map((e) => e.visual),
-              key,
-            };
+      const same = !!prev && prev.key === key;
+      if (!same || !group.every((e) => isMergeFingerprintUnchanged(e.renderObject))) {
+        if (!canMergeRenderObjects(group.map((e) => e.renderObject))) return;
+        for (const e of group) recordMergeFingerprint(e.renderObject);
+      }
+
+      const entry = same
+        ? prev!
+        : {
+            object: createMergedRenderObject(group.map((e) => e.renderObject)),
+            visuals: group.map((e) => e.visual),
+            key,
+          };
       nextMerged.set(type, entry);
       renderObjects.push(entry.object);
       for (const e of group) consumed.add(e.renderObject);

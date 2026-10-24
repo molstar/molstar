@@ -155,7 +155,8 @@ export function createElementSphereImpostor(
   let maxSize = 0;
   let count = 0;
 
-  if ((stride && stride > 1) || ignore || theme.size.granularity !== 'uniform') {
+  const filtered = (stride && stride > 1) || ignore || theme.size.granularity !== 'uniform';
+  if (filtered) {
     for (let i = 0; i < elementCount; i++) {
       if (stride && i % stride !== 0) continue;
       if (ignore && ignore(elements[i])) continue;
@@ -164,10 +165,6 @@ export function createElementSphereImpostor(
       builder.add(v[0], v[1], v[2], i);
       v3add(center, center, v);
       count += 1;
-
-      l.element = elements[i];
-      const size = themeSize(l);
-      if (size > maxSize) maxSize = size;
     }
   } else {
     for (let i = 0; i < elementCount; i++) {
@@ -176,7 +173,6 @@ export function createElementSphereImpostor(
       v3add(center, center, v);
     }
     count = elementCount;
-    maxSize = themeSize(l);
   }
 
   const s = builder.getSpheres();
@@ -188,6 +184,18 @@ export function createElementSphereImpostor(
   if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
     boundingSphere = oldBoundingSphere;
   } else {
+    // the largest size only for a new sphere: a reused one needs no size per atom (perf-audit-2 07/P18)
+    if (filtered) {
+      for (let i = 0; i < elementCount; i++) {
+        if (stride && i % stride !== 0) continue;
+        if (ignore && ignore(elements[i])) continue;
+        l.element = elements[i];
+        const size = themeSize(l);
+        if (size > maxSize) maxSize = size;
+      }
+    } else {
+      maxSize = themeSize(l);
+    }
     boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05);
   }
   s.setBoundingSphere(boundingSphere);
@@ -345,7 +353,6 @@ export function createStructureElementSphereImpostor(
 
     const v = Vec3();
     const ignore = makeElementIgnoreTest(structure, unit, props);
-    const l = StructureElement.Location.create(structure, unit);
 
     if ((stride && stride > 1) || ignore || theme.size.granularity !== 'uniform') {
       for (let i = 0; i < elementCount; i++) {
@@ -357,10 +364,6 @@ export function createStructureElementSphereImpostor(
         builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
         v3add(center, center, v);
         count += 1;
-
-        l.element = eI;
-        const size = themeSize(l);
-        if (size > maxSize) maxSize = size;
       }
     } else {
       for (let i = 0; i < elementCount; i++) {
@@ -370,7 +373,6 @@ export function createStructureElementSphereImpostor(
         v3add(center, center, v);
       }
       count += elementCount;
-      maxSize = themeSize(l);
     }
   }
 
@@ -383,6 +385,24 @@ export function createStructureElementSphereImpostor(
   if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
     boundingSphere = oldBoundingSphere;
   } else {
+    // the largest size only for a new sphere: a reused one needs no size per atom (perf-audit-2 07/P18)
+    for (const unit of structure.units) {
+      if (child && !child.unitMap.get(unit.id)) continue;
+      const { elements } = unit;
+      const ignore = makeElementIgnoreTest(structure, unit, props);
+      const l = StructureElement.Location.create(structure, unit);
+      if ((stride && stride > 1) || ignore || theme.size.granularity !== 'uniform') {
+        for (let i = 0, il = elements.length; i < il; i++) {
+          if (stride && i % stride !== 0) continue;
+          if (ignore && ignore(elements[i])) continue;
+          l.element = elements[i];
+          const size = themeSize(l);
+          if (size > maxSize) maxSize = size;
+        }
+      } else {
+        maxSize = themeSize(l);
+      }
+    }
     boundingSphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, maxSize * sizeFactor + 0.05);
   }
   s.setBoundingSphere(boundingSphere);

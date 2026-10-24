@@ -17,7 +17,6 @@ import {
   createRenderObject,
   type GraphicsRenderObject,
   type RenderObjectValues,
-  createForeignResourcesCheck,
 } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
@@ -144,7 +143,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
   } = builder;
   const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
   const updateState = VisualUpdateState.create();
-  const foreignResources = createForeignResourcesCheck();
+  const foreignResources = Visual.foreignResourcesCheck();
+  let newGraphics: GraphicsContext | undefined;
+  /** the context `geometry` was made with: a new render object over geometry of another context is not known clean */
+  let geometryGraphics: GraphicsContext | undefined;
   const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
 
   let renderObject: GraphicsRenderObject<G['kind']> | undefined;
@@ -172,6 +174,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     newStructure = structure;
 
     VisualUpdateState.reset(updateState);
+    newGraphics = graphics;
 
     if (!renderObject || !currentStructure) {
       initUpdateState?.(updateState, newProps, newTheme, newStructure);
@@ -184,7 +187,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
     // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
-    if (graphics && renderObject && foreignResources(renderObject, graphics)) updateState.createGeometry = true;
+    if (graphics && renderObject && foreignResources.hasForeign(renderObject, graphics))
+      updateState.createGeometry = true;
     if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
       updateState.createGeometry = true;
     }
@@ -235,6 +239,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
       locationIt = createLocationIterator(newStructure, newProps);
       if (newGeometry) {
         renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId);
+        if (geometry === undefined || geometryGraphics === newGraphics)
+          foreignResources.created(renderObject, newGraphics);
         positionIt = createPositionIterator(newGeometry, renderObject.values);
       } else {
         throw new Error('expected geometry to be given');
@@ -271,7 +277,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
       if (updateState.updateTransform || updateState.createGeometry) {
         updateBoundingSphere(renderObject.values, newGeometry || geometry);
-        positionIt = createPositionIterator(geometry, renderObject.values);
+        // the new geometry's positions: a vertex theme reads them below (perf-audit-2 07/B7)
+        positionIt = createPositionIterator(newGeometry || geometry, renderObject.values);
       }
 
       if (updateState.updateSize) {
@@ -294,6 +301,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     currentStructure = newStructure;
     if (newGeometry) {
       geometry = newGeometry;
+      geometryGraphics = newGraphics;
       geometryVersion += 1;
     }
   }

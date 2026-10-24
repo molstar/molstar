@@ -6,7 +6,7 @@
  */
 
 import type { RuntimeContext } from '@molstar/core/task';
-import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { createForeignResourcesCheck, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Loci, isEmptyLoci, isEveryLoci, EveryLoci } from '@molstar/model/model/loci';
 import {
@@ -122,6 +122,26 @@ interface Visual<D, P extends PD.Params> {
   getSignatures?(props: PD.Values<P>, ctx: SignatureContext): ObjectSignature[];
 }
 namespace Visual {
+  /**
+   * `createForeignResourcesCheck` that also knows the render object the visual created with a context: its resources
+   * are that context's, so the first update after a build checks nothing (perf-audit-2 07/13/P4).
+   */
+  export function foreignResourcesCheck() {
+    const check = createForeignResourcesCheck();
+    let createdObject: GraphicsRenderObject | undefined;
+    let createdGraphics: GraphicsContext | undefined;
+    return {
+      created(o: GraphicsRenderObject, graphics: GraphicsContext | undefined) {
+        createdObject = graphics ? o : undefined;
+        createdGraphics = graphics;
+      },
+      hasForeign(o: GraphicsRenderObject, graphics: GraphicsContext) {
+        if (o === createdObject && graphics === createdGraphics) return false;
+        return check(o, graphics);
+      },
+    };
+  }
+
   /**
    * Runs `update` with `geometry` (created, possibly asynchronously, or kept) once it is prepared for `theme`
    * (`GeometryUtils.prepare`, e.g. GPU data read back for the position iterator); synchronous where creating and

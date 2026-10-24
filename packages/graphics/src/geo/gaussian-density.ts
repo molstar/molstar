@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
 import type { Box3D, PositionData } from '@molstar/core/math/geometry';
 import type { GaussianDensityProps } from '@molstar/core/math/geometry/gaussian-density';
 import type { Mat4, Vec3, Vec2 } from '@molstar/core/math/linear-algebra';
@@ -57,7 +64,7 @@ export function computeGaussianDensityTexture3d(
   graphics: GraphicsContext,
   texture?: Texture,
 ) {
-  return _computeGaussianDensityTexture('2d', position, box, radius, props, graphics, texture);
+  return _computeGaussianDensityTexture('3d', position, box, radius, props, graphics, texture);
 }
 
 function _computeGaussianDensityTexture(

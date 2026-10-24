@@ -134,7 +134,7 @@ function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
   const dim = Box3D.size(Vec3(), bbox);
   const [xn, yn, zn] = dim;
   const [minx, miny, minz] = bbox.min;
-  const value = getSegmentMaskValue(cells, set);
+  const value = getSegmentMaskValue(cells, set, bbox);
 
   const axisOrder = [...cells.space.axisOrderSlowToFast];
   const segmentSpace = Tensor.Space(dim, axisOrder, Uint8Array);

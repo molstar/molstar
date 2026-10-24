@@ -6,15 +6,20 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Interval, OrderedSet, SortedArray } from '@molstar/core/data/int';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
-import { eachIntraBond, eachStructureGroupsBond } from '../bond.js';
-import { applyIndexRuns, eachElement } from '../element.js';
+import { eachInterBond, eachIntraBond, eachStructureGroupsBond } from '../bond.js';
+import {
+  applyIndexRuns,
+  createElementSphereImpostor,
+  createStructureElementSphereImpostor,
+  eachElement,
+} from '../element.js';
 import { getGroupLoci, isWholeStructureLoci } from '../loci-index.js';
 
 async function load1cbs() {
@@ -190,5 +195,80 @@ describe('loci application', async () => {
         expect(intervals).toEqual([[unitIdx * groupCount, (unitIdx + 1) * groupCount]]);
       }
     });
+  });
+});
+
+describe('inter-unit bonds of element loci (perf-audit-2 07/P10)', async () => {
+  const data = fs.readFileSync(
+    path.resolve(import.meta.dirname, '../../../../../../../../data/examples/7qpd.fw2.cif'),
+    'utf8',
+  );
+  const parsed = await CIF.parse(data).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const structure = Structure.ofModel(
+    (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative,
+  );
+  const bonds = structure.interUnitBonds;
+
+  /** a loci of every other atom of every unit */
+  const loci = StructureElement.Loci(
+    structure,
+    structure.units.map((unit) => {
+      const xs: number[] = [];
+      for (let i = 0; i < unit.elements.length; i += 2) xs.push(i);
+      return { unit, indices: OrderedSet.ofSortedArray(xs as StructureElement.UnitIndex[]) };
+    }),
+  );
+  const inLoci = (unitId: number, index: number) => index % 2 === 0 && structure.unitMap.has(unitId);
+
+  it('apply the edges a brute-force scan finds, without scanning the connected atoms', () => {
+    expect(bonds.edgeCount).toBeGreaterThan(0);
+    const spies = structure.units.flatMap((u) =>
+      bonds.getConnectedUnits(u.id).map((b) => vi.spyOn(b.connectedIndices as number[], 'includes')),
+    );
+    for (const isMarking of [false, true]) {
+      const expected: number[] = [];
+      for (const e of bonds.edges) {
+        if (inLoci(e.unitA, e.indexA) && (!isMarking || inLoci(e.unitB, e.indexB))) {
+          expected.push(bonds.getEdgeIndex(e.indexA, e.unitA, e.indexB, e.unitB));
+        }
+      }
+      const { intervals } = collect((apply) => eachInterBond(loci, structure, apply, isMarking));
+      expect(intervals.map((i) => i[0]).sort((a, b) => a - b)).toEqual(expected.sort((a, b) => a - b));
+    }
+    for (const s of spies) {
+      expect(s).not.toHaveBeenCalled();
+      s.mockRestore();
+    }
+  });
+});
+
+describe('sphere impostors (perf-audit-2 07/P18)', async () => {
+  const structure = await load1cbs();
+  const props = { sizeFactor: 1, ignoreHydrogens: false, ignoreHydrogensVariant: 'all' as const, traceOnly: false };
+  let sizes = 0;
+  const theme = {
+    color: {} as any,
+    size: { granularity: 'group', size: () => (sizes++, 1.5) } as any,
+  };
+
+  it('evaluate the size theme only for a new bounding sphere', () => {
+    const unit = structure.units[0];
+    sizes = 0;
+    const first = createElementSphereImpostor({} as any, unit, structure, theme, props);
+    expect(sizes).toBe(unit.elements.length);
+    const radius = first.boundingSphere.radius;
+    sizes = 0;
+    // a rebuild over the old spheres keeps their bounding sphere
+    const second = createElementSphereImpostor({} as any, unit, structure, theme, props, first);
+    expect(sizes).toBe(0);
+    expect(second.boundingSphere.radius).toBe(radius);
+
+    sizes = 0;
+    const all = createStructureElementSphereImpostor({} as any, structure, theme, props);
+    expect(sizes).toBe(structure.elementCount);
+    sizes = 0;
+    createStructureElementSphereImpostor({} as any, structure, theme, props, all);
+    expect(sizes).toBe(0);
   });
 });

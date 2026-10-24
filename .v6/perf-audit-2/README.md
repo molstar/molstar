@@ -88,18 +88,18 @@ two slices). New = new findings after verification.
 
 | Slice     | Fixed | Partly | Open | Regressed | Dropped | New P | New bugs | Main PRs                                       |
 | --------- | ----: | -----: | ---: | --------: | ------: | ----: | -------: | ---------------------------------------------- |
-| 01        |     1 |      2 |   17 |         0 |       0 |     3 |        5 | #2007, #2017; #2032 (small fixes); #2033 (small fixes 2); #2036 (CIF parser); #2044 (small fixes 4); #2045 (small fixes 5) |
-| 02        |     3 |      1 |   11 |         0 |       1 |     4 |        1 | #1988, #1987, #1990, #2004; #1992 (partly); #2033 (small fixes 2); #2034 (small fixes 3) |
-| 03        |     3 |      3 |   15 |         0 |       0 |     3 |        2 | #2013, #1989, #2014, #2022; #2033 (small fixes 2); #2034 (small fixes 3); #2045 (small fixes 5) |
-| 04        |     9 |      4 |   13 |         0 |       1 |     5 |        7 | #2017, #2007, #1989; #2032 (small fixes); #2033 (small fixes 2); #2036 (CIF parser); #2044 (small fixes 4); #2045 (small fixes 5) |
-| 05        |     8 |      2 |   10 |         0 |       1 |    10 |        6 | #1994, #2007, #2018, #2022; #2032 (small fixes); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5) |
-| 06        |     3 |      0 |   20 |         0 |       0 |     4 |        2 | #1986, #1996, #1989; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5) |
-| 07        |     8 |      2 |   22 |         0 |       0 |     9 |        1 | #1995, #2005, #2012, #1987, #2004; #2022; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5) |
-| 08        |     7 |      2 |   11 |         1 |       0 |     3 |        3 | #1987, #1990, #1991, #2005, #2012, #2007; #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4) |
-| 09        |     4 |      0 |    7 |         0 |       0 |     4 |        3 | #2004, #2005, #2012; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5) |
+| 01        |     1 |      2 |   17 |         0 |       0 |     3 |        5 | #2007, #2017; #2032 (small fixes); #2033 (small fixes 2); #2036 (CIF parser); #2044 (small fixes 4); #2045 (small fixes 5); #2046 (leftovers) |
+| 02        |     3 |      1 |   11 |         0 |       1 |     4 |        1 | #1988, #1987, #1990, #2004; #1992 (partly); #2033 (small fixes 2); #2034 (small fixes 3); #2046 (leftovers) |
+| 03        |     3 |      3 |   15 |         0 |       0 |     3 |        2 | #2013, #1989, #2014, #2022; #2033 (small fixes 2); #2034 (small fixes 3); #2045 (small fixes 5); #2046 (leftovers) |
+| 04        |     9 |      4 |   13 |         0 |       1 |     5 |        7 | #2017, #2007, #1989; #2032 (small fixes); #2033 (small fixes 2); #2036 (CIF parser); #2044 (small fixes 4); #2045 (small fixes 5); #2047 (leftovers) |
+| 05        |     8 |      2 |   10 |         0 |       1 |    10 |        6 | #1994, #2007, #2018, #2022; #2032 (small fixes); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5); #2047 (leftovers) |
+| 06        |     3 |      0 |   20 |         0 |       0 |     4 |        2 | #1986, #1996, #1989; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5); #2047 (leftovers) |
+| 07        |     8 |      2 |   22 |         0 |       0 |     9 |        1 | #1995, #2005, #2012, #1987, #2004; #2022; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5); #2048 (leftovers) |
+| 08        |     7 |      2 |   11 |         1 |       0 |     3 |        3 | #1987, #1990, #1991, #2005, #2012, #2007; #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2048 (leftovers) |
+| 09        |     4 |      0 |    7 |         0 |       0 |     4 |        3 | #2004, #2005, #2012; #2032 (small fixes); #2033 (small fixes 2); #2034 (small fixes 3); #2044 (small fixes 4); #2045 (small fixes 5); #2048 (leftovers) |
 | 10        |    12 |      1 |    1 |         0 |       1 |     5 |        3 | #2008, #2013; #2032 (small fixes); #2034 (small fixes 3); #2044 (small fixes 4) |
 | 11        |     2 |      0 |    7 |         0 |       2 |     2 |        3 | #2008; all open fixed in #2029            |
-| 12        |     3 |      5 |   10 |         0 |       2 | 9 + 10 H |      4 | #2008, #2013, #2022, #2005, #2012, #2014; #2034 (small fixes 3); #2036 (H5); #2044 (small fixes 4); #2045 (small fixes 5) |
+| 12        |     3 |      5 |   10 |         0 |       2 | 9 + 10 H |      4 | #2008, #2013, #2022, #2005, #2012, #2014; #2034 (small fixes 3); #2036 (H5); #2044 (small fixes 4); #2045 (small fixes 5); #2048 (leftovers) |
 | **Total** |  **63** | **22** | **144** | **1** | **8** | **61 + 10 H** | **40** |                                          |
 
 Regressed: **08/P12** (cartoon tube/sheet scalar loops, #1993): faster on large entries, but small builds lose their

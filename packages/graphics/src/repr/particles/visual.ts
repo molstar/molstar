@@ -16,11 +16,7 @@ import {
   createIdentityTransform,
   type TransformData,
 } from '@molstar/graphics/geo/geometry/transform-data';
-import {
-  createRenderObject,
-  type GraphicsRenderObject,
-  createForeignResourcesCheck,
-} from '@molstar/graphics/gl/render-object';
+import { createRenderObject, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
@@ -157,7 +153,10 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
   } = builder;
   const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
   const updateState = VisualUpdateState.create();
-  const foreignResources = createForeignResourcesCheck();
+  const foreignResources = Visual.foreignResourcesCheck();
+  let newGraphics: GraphicsContext | undefined;
+  /** the context `geometry` was made with: a new render object over geometry of another context is not known clean */
+  let geometryGraphics: GraphicsContext | undefined;
 
   let renderObject: GraphicsRenderObject<G['kind']> | undefined;
 
@@ -189,6 +188,7 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
     newParticles = particles;
 
     VisualUpdateState.reset(updateState);
+    newGraphics = graphics;
 
     if (!renderObject) {
       updateState.createNew = true;
@@ -200,7 +200,8 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
 
     // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
     // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
-    if (graphics && renderObject && foreignResources(renderObject, graphics)) updateState.createGeometry = true;
+    if (graphics && renderObject && foreignResources.hasForeign(renderObject, graphics))
+      updateState.createGeometry = true;
     if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
       updateState.createGeometry = true;
     }
@@ -269,6 +270,8 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
           newProps,
           materialId,
         );
+        if (geometry === undefined || geometryGraphics === newGraphics)
+          foreignResources.created(renderObject, newGraphics);
         positionIt = createPositionIterator(newGeometry, renderObject.values);
       } else {
         throw new Error('expected geometry to be given');
@@ -341,6 +344,7 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
     currentParticles = newParticles;
     if (newGeometry) {
       geometry = newGeometry;
+      geometryGraphics = newGraphics;
       geometryVersion += 1;
     }
   }

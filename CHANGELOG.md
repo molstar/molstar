@@ -27,6 +27,9 @@ here.
 - Fix MolScript dropping the first object-form argument of `ring-fingerprint`
 - Fix the DSSP backbone H-bond graph storing its energies in input order instead of edge-slot order
 - Fix a re-opened kinemage `@group` taking the previous group's masters
+- Fix disk-style links in the impostor and line builders being drawn from another edge's midpoint
+- Fix complex and shape visuals reading the previous geometry's positions after a geometry change
+- Fix `computeGaussianDensityTexture3d` computing a 2d texture
 - Fix impostor-capable visuals rebuilding their mesh fallback at every update on contexts without `fragDepth`
 - Fix water bridges ignoring the child structure with `includeParent`
 - Fix overlapping `CustomStructureProperty.attach` calls with the same params computing twice
