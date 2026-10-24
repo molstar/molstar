@@ -5,8 +5,11 @@
 .console {
   position: relative;
   display: flex;
-  flex: 1;
+  /* The panel's body exactly, not its content's height (a zero basis, as the snapshots panel): the transcript scrolls,
+     the bar and the composer stay. */
+  flex: 1 1 0;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
 }
 

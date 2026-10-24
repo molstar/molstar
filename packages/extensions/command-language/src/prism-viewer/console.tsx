@@ -7,6 +7,7 @@
  */
 
 import { Button, type Child, domView, effect, For, Icon, Show } from '@molstar/prism-ui';
+import { observeResize } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
@@ -194,16 +195,25 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       </For>
     </div>
   ) as HTMLElement;
-  // The newest at the bottom, in view, unless the person scrolled up to read (then the transcript stays).
-  let following = true;
-  list.addEventListener('scroll', () => {
-    following = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
-  });
-  effect(model.entries, () =>
-    queueMicrotask(() => {
-      if (following) list.scrollTop = list.scrollHeight;
-    }),
-  );
+  // The newest at the bottom, always in view: a run appended, what it said once it ends, and whatever else changes the
+  // transcript's height or the box's (an entry renders its outcome on its own: sizes, not the list of entries, say when).
+  let scrolling = false;
+  const stick = () => {
+    if (scrolling) return;
+    scrolling = true;
+    requestAnimationFrame(() => {
+      scrolling = false;
+      list.scrollTop = list.scrollHeight;
+    });
+  };
+  const sizes = observeResize(list, stick);
+  new MutationObserver((records) => {
+    for (const r of records) {
+      for (const n of r.addedNodes) if (n instanceof Element && n.parentNode === list) sizes?.observe(n);
+      for (const n of r.removedNodes) if (n instanceof Element) sizes?.unobserve(n);
+    }
+    stick();
+  }).observe(list, { childList: true });
 
   const input = (
     <textarea

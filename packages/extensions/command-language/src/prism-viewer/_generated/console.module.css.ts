@@ -60,7 +60,8 @@ export const classes = {
 defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.components {
 .msp-command-language-console-console {
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 0;
+  height: 100%;
   min-height: 0;
   display: flex;
   position: relative;
