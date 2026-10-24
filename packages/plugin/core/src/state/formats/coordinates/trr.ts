@@ -20,7 +20,7 @@ type CoordinatesFromTrr = typeof CoordinatesFromTrr;
 const CoordinatesFromTrr = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-trr',
   display: { name: 'Parse TRR', description: 'Parse TRR binary data.' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {

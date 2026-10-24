@@ -20,7 +20,7 @@ type CoordinatesFromXtc = typeof CoordinatesFromXtc;
 const CoordinatesFromXtc = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-xtc',
   display: { name: 'Parse XTC', description: 'Parse XTC binary data.' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {

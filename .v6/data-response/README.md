@@ -55,12 +55,13 @@ reads `Data.String` or `Data.Binary` today changes.
 
 ### Consumers
 
-- Every parser takes Response Data, `from: [String, Binary, Response]`, so that `asResponse` can default to `true`.
-  The io parsers are unchanged: the transform converts at the top of `apply`, `SO.Data.readText(ctx, a)` for a text
-  format (a `StringLike`: past 512 MB a `ChunkedBigString`, as before) and `SO.Data.readBytes(a)` for a binary one.
-  Why all three in `from`: a `from` that neither contains nor is contained in `String | Binary` (what `RawData` and
-  code typed before give) could not be applied to such refs in TypeScript. A text parser given Binary Data decodes it,
-  a binary one given String Data encodes it.
+- Every parser takes Response Data, so that `asResponse` can default to `true`. The io parsers are unchanged: the
+  transform converts at the top of `apply`, `SO.Data.readText(ctx, a)` for a text format (a `StringLike`: past 512 MB
+  a `ChunkedBigString`, as before) and `SO.Data.readBytes(a)` for a binary one. A text parser `from: [String, Binary,
+  Response]`: Binary Data is the bytes of a text, decoded, and the `from` contains `String | Binary` (what `RawData`
+  and code typed before give), so applying it to such a ref compiles. A binary parser `from: [Binary, Response]`:
+  String Data is no binary format; applying one to a ref typed `String | Binary` no longer compiles (a format
+  provider's `parse` types its data with Response, so it does).
 - `ParseCif` hands a response's bytes to `CIF.parse` (text or BinaryCIF by the first byte), never decoding them;
   `ParseJson` decodes and parses them; `ParsePly` reads the bytes (ASCII or binary by the header); `ParseDx` reads a
   response named `.dxbin` as binary, any other as text (both start with the same text header).
@@ -69,12 +70,22 @@ reads `Data.String` or `Data.Binary` today changes.
   input. CCP4 (through a `FileHandle`), MTZ, XTC, NetCDF, Simularium, Artiatomi EM, G3D, PLY and DX read only.
 - `ReadResponse { isBinary }` turns a response into String or Binary Data, for a custom transform that does not read
   one; `DeflateData` takes responses (and copies bytes it passes through).
-- Sniffing: `DataFormatProvider.applicable(info, o)`, used by `DataFormatRegistry.auto` and Prism's `providerFor`,
-  gives a response to `isApplicable` as its bytes for a provider that sets `sniffsBytes` (the CIF ones) or reads the
-  extension as binary, as its text, decoded once, for the others. `guessCifVariant` and `looksLikeMmcifParticles`
-  search bytes without decoding them (`asciiIndexOf`, `asciiStartsWith`, core `utf8.ts`), tested equal to the string
-  search. Prism's `withContent` sniffs a response as the choice reads it.
-- `prism/viewer/src/sources/data-by-url.ts` indexes response cells and returns their held bytes.
+- One form at a time: `ResponseBody` holds its bytes (shared with the asset manager), or its text once a reader asks
+  (`text`, `textNow`, `read(ctx, 'string')`): decoded once, the bytes let go of, by the body and, through `onText`, by
+  the asset manager (`letGoOfBytes`, `core/src/util/_spec/assets.md` §6: a file keeps its `File`, a download's bytes
+  become a `Blob`). So a text format holds one copy, the text. `bytes` after that encodes the text again and holds
+  bytes again (a copy; two readers wanting different forms of one data would flip it, none do). Why: the memory of
+  text formats is master's again, CIF's stays one copy of the bytes.
+- Sniffing never converts: the body is a `Sniffable` (core `util/sniffable.ts`): its `header` (the first 64 KiB,
+  kept in either form) for magic numbers and first lines, `sniffBytes` (the header at an offset), `sniffText` (a
+  search over the held form: `asciiIndexOf` on bytes, `includes` on text), `heldBytes` (the bytes when held, for a
+  binary format read whole). `DataFormatProvider.applicable(info, o)`, used by `DataFormatRegistry.auto` and Prism's
+  `providerFor`, gives a response to `isApplicable` as itself for a provider that sets `sniffsResponse` (the CIF
+  ones), as its bytes for one that reads the extension as binary, as its text (turning the body to text: its parser
+  reads text anyway) for the others. `guessCifVariant` and `looksLikeMmcifParticles` take a `Sniffable`, a string or
+  bytes. Prism sniffs a response's held form (`withContent`, the particle sniff).
+- `prism/viewer/src/sources/data-by-url.ts` indexes response cells and returns their held bytes (a copy of a text
+  encoded, the body keeping its form).
 
 ### Decompression
 
@@ -100,9 +111,8 @@ reads `Data.String` or `Data.Binary` today changes.
   coordinates kept; Node, Apple M4, medians of 3 to 5 runs, retained = heap and external after a full GC):
   - flat-192-cif (124 MB, 1.12M atoms): retained 388 → 270 MB; read 28 → 17 ms, parse 314 → 308 ms, total 353 → 336 ms.
   - 7qpd (1.8 MB): retained 6.3 → 4.6 MB, total 11.5 → 10.2 ms. 1cbs (190 KB): 1.3 → 1.1 MB, 3.1 ms either way.
-- Text formats other than CIF hold the bytes and the string while the node lives: a file read before held only the
-  string (the file stays on disk), a download a blob and the string. One copy needs their tokenizers on bytes
-  (`.v6/perf-audit-2/13-lammps-large-text.md`).
+- Text formats other than CIF hold their text, the file staying on disk, a download's bytes as a blob: as before.
+  Reading them from bytes without a string needs their tokenizers on bytes (`.v6/perf-audit-2/13-lammps-large-text.md`).
 - A `Download` with `asResponse` that nothing reads still downloads, as today.
 - Snapshots saved with `asResponse` load in older v6 builds for formats that accept a string (CIF), not for
   binary-only ones.
@@ -112,7 +122,7 @@ reads `Data.String` or `Data.Binary` today changes.
 1. Done. Asset manager: held bytes, `shared` reads, a file decompressed once for them; tests.
 2. Done. `Data.Response` / `ResponseBody`, `ReadResponse`, `readText` / `readBytes`; `asResponse` on `Download`,
    `ReadFile` and `DownloadBlob`, the builder overloads.
-3. Done. `ParseCif`, `ParseJson`, `ParsePly`; the CIF providers set `sniffsBytes`; `DataFormatProvider.applicable`;
+3. Done. `ParseCif`, `ParseJson`, `ParsePly`; the CIF providers set `sniffsResponse`; `DataFormatProvider.applicable`;
    `data-by-url.ts`; byte sniffing.
 4. Done (above).
 5. Done: every parser takes a response, `asResponse` defaults to `true` (Consumers); the input-write audit is applied.
@@ -127,7 +137,7 @@ adjusts. The run-time and TypeScript breaks are recorded in `.v6/plans/breaking-
 - Asset manager (held bytes, shared reads, release): a new `packages/core/src/util/_spec/` (`assets.md`), like
   `core/src/state/_spec/`.
 - `Download` / `ReadFile` / `DownloadBlob` `asResponse`, `Data.Response`, `readText` / `readBytes`, `ReadResponse`,
-  `sniffsBytes`, `DataFormatProvider.applicable`:
+  `sniffsResponse`, `DataFormatProvider.applicable`, the one-form body:
   `packages/plugin/core` has no `_spec`; open: start `packages/plugin/core/_spec/data.md`.
 - `ParseCif` reading shared bytes: `.v6/designs/cif-parsing.md` (`CIF.parse` and the plugin), replacing its "the plugin
   keeps reading `.cif` as strings" and the byte-backed `StringLike` pointer; the same pointer in

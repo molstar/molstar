@@ -90,7 +90,7 @@ export type G3DHeaderFromFile = typeof G3DHeaderFromFile;
 export const G3DHeaderFromFile = PluginStateTransform.BuiltIn({
   name: 'g3d-header-from-file',
   display: { name: 'G3D Header', description: 'Parse G3D Header' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: G3dHeaderObject,
 })({
   apply({ a }, plugin: PluginContext) {

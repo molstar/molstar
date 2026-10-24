@@ -50,8 +50,9 @@ Example: 100k atoms × 500 frames peaks at about 2.5 GB of text + 2.4–3.6 GB o
 ## Later: text formats on bytes
 
 Downloads and files are Response Data now (`.v6/designs/cif-parsing.md`): the bytes are held, and a text parser reads
-them decoded (`SO.Data.readText`), so a text format other than CIF holds its bytes and its string while the node lives.
-One copy needs the shared `Tokenizer` (and the formats on it) to read bytes, as the CIF tokenizer does; a byte-backed
+them decoded (`SO.Data.readText`): the body then holds the text and lets go of the bytes (one form at a time), so a
+text format holds its string, as before. Parsing without the string needs the shared `Tokenizer` (and the formats on
+it) to read bytes, as the CIF tokenizer does; a byte-backed
 `StringLike` was kept off (a second `StringLike` kind at every text parser's `charCodeAt` call sites, ~1.4–2× slower as
 `ChunkedBigString` showed above).
 

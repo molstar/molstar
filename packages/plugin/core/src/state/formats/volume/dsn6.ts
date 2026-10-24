@@ -26,7 +26,7 @@ type ParseDsn6 = typeof ParseDsn6;
 const ParseDsn6 = PluginStateTransform.BuiltIn({
   name: 'parse-dsn6',
   display: { name: 'Parse DSN6/BRIX', description: 'Parse CCP4/BRIX from Binary data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Dsn6,
 })({
   apply({ a }) {

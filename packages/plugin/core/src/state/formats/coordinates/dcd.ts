@@ -20,7 +20,7 @@ type CoordinatesFromDcd = typeof CoordinatesFromDcd;
 const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-dcd',
   display: { name: 'Parse DCD', description: 'Parse DCD binary data.' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {

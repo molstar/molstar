@@ -25,7 +25,7 @@ type ParseArtiatomiEm = typeof ParseArtiatomiEm;
 const ParseArtiatomiEm = PluginStateTransform.BuiltIn({
   name: 'parse-artiatomi-em',
   display: { name: 'Parse Artiatomi EM', description: 'Parse Artiatomi EM motivelist from Binary data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.ArtiatomiEm,
 })({
   apply({ a }) {

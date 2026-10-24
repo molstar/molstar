@@ -58,7 +58,9 @@ async function readResponse(
     decompress,
   }).runInContext(ctx);
   cache.asset = held;
-  return new SO.Data.Response(new SO.Data.ResponseBody(held.data), { label });
+  // turned to text, the body holds one copy: the asset lets go of its bytes (`util/_spec/assets.md` §6)
+  const onText = () => plugin.managers.asset.letGoOfBytes?.(asset);
+  return new SO.Data.Response(new SO.Data.ResponseBody(held.data, { onText }), { label });
 }
 
 export { Download };
@@ -176,7 +178,10 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
           assets.push(r.result);
           if (asResponse) {
             // one shared hold of each entry's bytes for the node's lifetime, as `Download`'s `asResponse`
-            responses.push({ id: r.id, data: new SO.Data.ResponseBody(r.result.data as Uint8Array<ArrayBuffer>) });
+            const asset = Asset.getUrlAsset(plugin.managers.asset, src.url);
+            const onText = () => plugin.managers.asset.letGoOfBytes?.(asset);
+            const body = new SO.Data.ResponseBody(r.result.data as Uint8Array<ArrayBuffer>, { onText });
+            responses.push({ id: r.id, data: body });
           } else {
             entries.push(
               src.isBinary
@@ -224,7 +229,7 @@ const DeflateData = PluginStateTransform.BuiltIn({
     stringEncoding: PD.Optional(PD.Select('utf-8', [['utf-8', 'UTF8']])),
     label: PD.Optional(PD.Text('')),
   },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: [SO.Data.Binary, SO.Data.String],
 })({
   apply({ a, params }, plugin: PluginContext) {

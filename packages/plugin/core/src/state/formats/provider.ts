@@ -7,7 +7,7 @@
 
 import { binaryCifHasCategory, binaryCifHasColumn, getBinaryCifHeader } from '@molstar/io/common/binary-cif';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { asciiIndexOf, asciiStartsWith, utf8ReadLong } from '@molstar/core/util/utf8';
+import { Sniffable } from '@molstar/core/util/sniffable';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObject, StateObjectRef, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
@@ -30,13 +30,16 @@ export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id exten
    * variant of a shared file extension).
    */
   priority?: number;
-  /** Sniffs the data: text as a string, or as its UTF-8 bytes with `sniffsBytes`; binary as bytes. */
-  isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean;
   /**
-   * `isApplicable` takes text as its UTF-8 bytes. Response Data (what `Download` and `ReadFile` give) is sniffed as its
-   * bytes, not decoded to a string first (CIF, which parses the bytes, never decodes them).
+   * Sniffs the data: text as a string, binary as bytes; Response Data as itself (a `Sniffable`) with `sniffsResponse`.
    */
-  sniffsBytes?: boolean;
+  isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array | Sniffable): boolean;
+  /**
+   * `isApplicable` takes a response as a `Sniffable` (its header, `sniffBytes`, `sniffText`): told without converting
+   * it, where a provider without this gets its text, which turns the body to text (`ResponseBody`). The CIF providers,
+   * whose parser reads the bytes, set it.
+   */
+  sniffsResponse?: boolean;
   parse(
     plugin: PluginContext,
     data: StateObjectRef<
@@ -62,21 +65,21 @@ const namedCopies = new WeakMap<object, Map<string, DataFormatProvider>>();
 
 export namespace DataFormatProvider {
   /**
-   * Whether a provider takes `o` by its `isApplicable` (one without takes everything). A response is sniffed as its
-   * bytes by a provider that `sniffsBytes` or reads `info.ext` as binary, as its text (decoded once, for every provider
-   * asked) by the others (`.v6/data-response`).
+   * Whether a provider takes `o` by its `isApplicable` (one without takes everything). A response is sniffed as itself
+   * by a provider that `sniffsResponse`, as its bytes by one that reads `info.ext` as binary, as its text by the others
+   * (the body turns to text, `.v6/data-response`).
    */
   export function applicable(
     info: FileNameInfo,
     o: PluginStateObject.Data.String | PluginStateObject.Data.Binary | PluginStateObject.Data.Response,
   ): (p: DataFormatProvider) => boolean {
     const response = o instanceof PluginStateObject.Data.Response ? o.data : undefined;
-    let text: StringLike | undefined;
     return (p) => {
       if (!p.isApplicable) return true;
       if (!response) return p.isApplicable(info, o.data as StringLike | Uint8Array);
-      if (p.sniffsBytes || p.binaryExtensions?.includes(info.ext)) return p.isApplicable(info, response.bytes);
-      return p.isApplicable(info, (text ??= utf8ReadLong(response.bytes)));
+      if (p.sniffsResponse) return p.isApplicable(info, response);
+      if (p.binaryExtensions?.includes(info.ext)) return p.isApplicable(info, response.bytes);
+      return p.isApplicable(info, response.textNow());
     };
   }
 
@@ -145,7 +148,7 @@ type CifVariants = 'dscif' | 'segcif' | 'sfcif' | 'coreCif' | -1;
  */
 let lastSniff: { data: WeakRef<object>; ext: string; variant: CifVariants } | undefined;
 
-export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
+export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike | Sniffable): CifVariants {
   if (typeof data !== 'object') return sniffCifVariant(info, data);
   const last = lastSniff;
   if (last && last.ext === info.ext && last.data.deref() === data) return last.variant;
@@ -154,10 +157,14 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLik
   return variant;
 }
 
-function sniffCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
+function sniffCifVariant(info: FileNameInfo, data: Uint8Array | StringLike | Sniffable): CifVariants {
+  const sniffable = Sniffable.of(data);
   if (info.ext === 'bcif') {
+    // read whole: the header walks the MessagePack (a body holding text holds no BinaryCIF)
+    const bytes = sniffable.heldBytes;
+    if (!bytes) return -1;
     try {
-      const header = getBinaryCifHeader(data as Uint8Array);
+      const header = getBinaryCifHeader(bytes);
       if (header.encoder.startsWith('VolumeServer')) return 'dscif';
       // Assumes volseg-volume-server only serves segments
       if (header.encoder.startsWith('volseg-volume-server')) return 'segcif';
@@ -175,37 +182,20 @@ function sniffCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): Cif
       console.error(e);
     }
   } else if (info.ext === 'cif') {
-    // text CIF as a string, or as its bytes (Response Data): searched without decoding them
-    const text = data instanceof Uint8Array ? bytesText(data) : (data as StringLike);
-    if (text.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
-    if (text.startsWith('data_SERVER\n#\ndata_SEGMENTATION_DATA')) return 'segcif';
+    // a string, bytes or a response, searched in the form it is held in (`Sniffable.sniffText`)
+    const has = (needle: string, where?: 'start') => sniffable.sniffText(needle, where);
+    if (has('data_SERVER\n#\n_density_server_result', 'start')) return 'dscif';
+    if (has('data_SERVER\n#\ndata_SEGMENTATION_DATA', 'start')) return 'segcif';
 
-    if (cifHasCategory(text, 'volume_data_3d_info')) {
-      if (cifHasCategory(text, 'volume_data_3d')) return 'dscif';
-      if (cifHasCategory(text, 'segmentation_data_3d')) return 'segcif';
+    if (has('_volume_data_3d_info.')) {
+      if (has('_volume_data_3d.')) return 'dscif';
+      if (has('_segmentation_data_3d.')) return 'segcif';
     }
 
     // Structure factor CIF: has _refln category with map coefficients
-    if (text.includes('_refln.pdbx_FWT') || text.includes('_refln.pdbx_DELFWT')) return 'sfcif';
+    if (has('_refln.pdbx_FWT') || has('_refln.pdbx_DELFWT')) return 'sfcif';
 
-    if (text.includes('atom_site_fract_x') || text.includes('atom_site.fract_x')) return 'coreCif';
+    if (has('atom_site_fract_x') || has('atom_site.fract_x')) return 'coreCif';
   }
   return -1;
-}
-
-/** The searches the sniffing makes, on a string or on UTF-8 bytes. */
-interface SniffText {
-  startsWith(needle: string): boolean;
-  includes(needle: string): boolean;
-}
-
-function bytesText(data: Uint8Array): SniffText {
-  return {
-    startsWith: (needle) => asciiStartsWith(data, needle),
-    includes: (needle) => asciiIndexOf(data, needle) >= 0,
-  };
-}
-
-function cifHasCategory(file: SniffText, categoryName: string): boolean {
-  return file.includes(`_${categoryName}.`);
 }

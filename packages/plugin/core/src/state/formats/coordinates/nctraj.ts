@@ -20,7 +20,7 @@ type CoordinatesFromNctraj = typeof CoordinatesFromNctraj;
 const CoordinatesFromNctraj = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-nctraj',
   display: { name: 'Parse NCTRAJ', description: 'Parse NCTRAJ binary data.' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {

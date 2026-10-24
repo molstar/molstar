@@ -112,7 +112,7 @@ export const RelionStarParticlesProvider = DataFormatProvider({
   description: 'RELION STAR Particles',
   category: ParticlesFormatCategory,
   stringExtensions: ['star'],
-  sniffsBytes: true,
+  sniffsResponse: true,
   parse: async (plugin, data, params?: { label?: string; tomogram?: string }) => {
     const format = plugin.state.data
       .build()

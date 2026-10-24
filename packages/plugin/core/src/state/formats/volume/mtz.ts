@@ -32,7 +32,7 @@ type ParseMtz = typeof ParseMtz;
 const ParseMtz = PluginStateTransform.BuiltIn({
   name: 'parse-mtz',
   display: { name: 'Parse MTZ', description: 'Parse CCP4 MTZ reflection file from Binary data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Mtz,
 })({
   apply({ a }) {

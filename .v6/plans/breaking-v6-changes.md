@@ -1159,20 +1159,25 @@ bytes, held once, and the reader chooses the form (`data.bytes`, `data.text(ctx)
 gets Response Data; `isBinary` matters only with `asResponse: false`. Why: text CIF parses from the bytes, never decoded
 to a string and encoded back (flat-192-cif: 388 → 270 MB retained).
 
-- Every built-in parser takes String, Binary and Response Data (`from: [String, Binary, Response]`): a text parser reads
-  `SO.Data.readText(ctx, a)`, a binary one `SO.Data.readBytes(a)` (`{ copy: true }` when it writes into its input or
-  keeps views of it).
+- Every built-in parser takes Response Data: a text parser `from: [String, Binary, Response]` (Binary Data is decoded),
+  reading `SO.Data.readText(ctx, a)`; a binary one `from: [Binary, Response]`, reading `SO.Data.readBytes(a)`
+  (`{ copy: true }` when it writes into its input or keeps views of it). TypeScript: a binary parser can no longer be
+  applied to a ref typed `String | Binary` (`RawData`'s): a `from` that neither contains nor is contained in its type
+  does not compile; such a ref is typed by what it holds, or goes through a format provider's `parse`.
 - **A custom parser on top of `Download` or `ReadFile` has to adjust**: add `SO.Data.Response` to its `from` and read
-  through `readText` / `readBytes` (a `from` of `[String, Binary, Response]` keeps it applicable to `String | Binary`
-  refs such as `RawData`'s); or set `asResponse: false` on the download; or put `ReadResponse { isBinary }` between
-  them. Code that reads a download's `cell.obj.data` as a string or bytes reads `data.text(ctx)` or `data.bytes`.
-- A `DataFormatProvider.isApplicable` gets a response as text (decoded once), or as bytes when the provider sets
-  `sniffsBytes` or reads the extension as binary (`DataFormatProvider.applicable`).
+  through `readText` / `readBytes`; or set `asResponse: false` on the download; or put `ReadResponse { isBinary }`
+  between them. Code that reads a download's `cell.obj.data` as a string or bytes reads `data.text(ctx)` or
+  `data.bytes`.
+- A response body holds one form at a time (`ResponseBody`): its bytes, or its text once a reader asks for it (then
+  `bytes` encodes it again). Its `header` (64 KiB) and its sniffs (`sniffBytes`, `sniffText`) work on either form.
+- A `DataFormatProvider.isApplicable` gets a response as itself (a `Sniffable`, core) when the provider sets
+  `sniffsResponse`, as bytes when it reads the extension as binary, else as its text, which turns the body to text
+  (`DataFormatProvider.applicable`).
 - Types: `builders.data.download`, `readFile` and `downloadBlob` return a `Data.Response` (`ResponseBlob`) selector,
   or `String | Binary` (`Blob`) with `asResponse: false`. The transforms' output is `String | Binary | Response`: code
   that writes it out as `String | Binary` (`StateBuilder.To<PSO.Data.Binary | PSO.Data.String>`) adds `Response`.
-- Memory: a text format other than CIF holds its bytes and its string while the data node lives (a file read
-  before held only the string; a download a blob and the string).
+- Memory: a text format other than CIF holds its text, and its bytes as the file it was read from or a blob (a
+  download), as before; CIF holds its bytes only.
 
 ## `Download` and `ReadFile` inflate gzip by default
 

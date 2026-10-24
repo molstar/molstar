@@ -388,3 +388,77 @@ describe('sessions (.molx) through the asset manager', () => {
     fetchSpy.mockRestore();
   });
 });
+
+describe('one form at a time (ResponseBody)', () => {
+  it('turns to text once, lets go of its bytes, and keeps its header and sniffs', () => {
+    let calls = 0;
+    const body = new SO.Data.ResponseBody(new TextEncoder().encode(Cif) as Uint8Array<ArrayBuffer>, {
+      onText: () => calls++,
+    });
+    expect(body.form).toBe('bytes');
+    expect(body.sniffText('_atom_site.Cartn_x')).toBe(true);
+    expect(body.form).toBe('bytes');
+    const text = body.textNow();
+    expect(`${text}`).toBe(Cif);
+    expect(body.form).toBe('text');
+    expect(body.heldBytes).toBeUndefined();
+    expect(body.textNow()).toBe(text);
+    expect(calls).toBe(1);
+    expect(body.sniffText('_atom_site.Cartn_x')).toBe(true);
+    expect(body.sniffBytes('data_test')).toBe(true);
+    expect(body.form).toBe('text');
+    // bytes again: encoded from the text, and held instead of it
+    expect(new TextDecoder().decode(body.bytes)).toBe(Cif);
+    expect(body.form).toBe('bytes');
+  });
+
+  it('a text format opened as a file holds one copy: the text, the file keeps the rest; CIF stays on bytes', async () => {
+    const plugin = await createPlugin();
+    const pdb = 'ATOM      1  CA  ALA A   1       1.500   2.500   3.500  1.00  0.00           C\nEND\n';
+    const pdbFile = Asset.File(new File([pdb], 'x.pdb'));
+    const cifFile = Asset.File(new File([Cif], 'y.cif'));
+    await plugin.runTask(
+      plugin.state.data.applyAction(OpenFiles, {
+        files: [pdbFile, cifFile],
+        format: { name: 'auto', params: {} },
+        visuals: false,
+      }),
+    );
+    const bodies = new Map<string, SO.Data.ResponseBody>();
+    plugin.state.data.cells.forEach((cell) => {
+      if (cell.obj instanceof SO.Data.Response) bodies.set(cell.obj.label, cell.obj.data);
+    });
+    expect(bodies.get('x.pdb')!.form).toBe('text');
+    expect(bodies.get('y.cif')!.form).toBe('bytes');
+    // the asset manager let go of the PDB's bytes: held as text by its body, as a file on disk by the manager
+    expect((plugin.managers.asset.get(pdbFile) as any).bytes).toBeUndefined();
+    expect((plugin.managers.asset.get(cifFile) as any).bytes).toBe(bodies.get('y.cif')!.heldBytes);
+    plugin.dispose();
+  });
+
+  it('a session keeps a download whose body turned to text', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(
+        async () =>
+          new Response('ATOM      1  CA  ALA A   1       1.500   2.500   3.500  1.00  0.00           C\nEND\n'),
+      );
+    const plugin = await createPlugin();
+    const data = await plugin.builders.data.download({ url: 'https://x.org/e.pdb' });
+    await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    expect(data.cell!.obj!.data.form).toBe('text');
+    const session = await plugin.managers.snapshot.serialize({ type: 'zip', params: { camera: false } });
+    plugin.dispose();
+    fetchSpy.mockClear();
+    const restored = await createPlugin();
+    await restored.managers.snapshot.open(new File([session], 'session.molx'));
+    let atoms = 0;
+    restored.state.data.cells.forEach((cell) => {
+      if (SO.Molecule.Trajectory.is(cell.obj)) atoms += cell.obj.data.representative.atomicHierarchy.atoms._rowCount;
+    });
+    expect(atoms).toBe(1);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    restored.dispose();
+    fetchSpy.mockRestore();
+  });
+});

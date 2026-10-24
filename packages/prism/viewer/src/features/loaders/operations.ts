@@ -23,7 +23,6 @@ import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajecto
 import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume/category';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { utf8ReadLong } from '@molstar/core/util/utf8';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
 import {
   CoordinatesWithBoxes,
@@ -442,11 +441,9 @@ async function withContent(
   name: string,
   content: unknown,
 ): Promise<FormatChoice> {
-  // a response is sniffed as the choice reads it: its bytes, or its text (a text past the string limit is not, as a
-  // String cell's was not)
-  if (content instanceof PluginStateObject.Data.ResponseBody) {
-    content = choice.binary ? content.bytes : utf8ReadLong(content.bytes);
-  }
+  // a response is sniffed in the form it holds (its bytes, or its text once a reader decoded it), converting nothing;
+  // a text past the string limit is not sniffed, as a String cell's was not
+  if (content instanceof PluginStateObject.Data.ResponseBody) content = content.heldBytes ?? content.textNow();
   if (typeof content !== 'string' && !(content instanceof Uint8Array)) return choice;
   const again = await chooseFormat(ctx, { format: o.format, name, binary: choice.binary, content });
   return ApiResult.isFailure(again) ? choice : again;

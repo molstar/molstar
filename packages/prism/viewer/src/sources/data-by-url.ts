@@ -13,6 +13,7 @@ import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { Download, ReadFile } from '@molstar/plugin/state/transforms/data/fetch';
 import type { StateObjectCell } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
+import { StringLike } from '@molstar/core/util/string-like';
 import { merge } from 'rxjs';
 import type { DataByUrl, DataByUrlEntry } from '../sequence/model.js';
 import type { StructureFormat, StructureSource } from '../sequence/molstar/source.js';
@@ -104,8 +105,11 @@ export function createDataByUrl(scope: SourceScope, plugin: PluginContext): Data
     bytes(address) {
       const data = lookup(address)?.cell.obj?.data;
       if (data instanceof Uint8Array) return data;
-      // a response's held bytes, as a binary cell's: no copy, and not encoded again as a string cell is
-      if (data instanceof SO.Data.ResponseBody) return data.bytes;
+      // a response's held bytes, as a binary cell's (no copy); one holding text is encoded as a string cell is, and
+      // keeps its form
+      if (data instanceof SO.Data.ResponseBody) {
+        return data.heldBytes ?? new TextEncoder().encode(StringLike.toString(data.textNow()));
+      }
       return typeof data === 'string' ? new TextEncoder().encode(data) : undefined;
     },
     structure(address) {

@@ -58,3 +58,12 @@ The code is the truth for how; this file records the rules the code relies on, e
   `fetchDataMany` use, then asks it for the bytes and inflates them itself, uncached.
 - `decompress` off (the default of `resolve`) gives the bytes as received. `Download` and `ReadFile` turn it on unless
   their `decompress` param is `'none'`.
+
+## 6. Letting go of bytes
+
+- `letGoOfBytes(asset)` (optional on `AssetManager`, a hint): the asset's reader holds its data in another form (a
+  `ResponseBody` turned to text), so the entry holds no bytes in memory. A file keeps its `File` and drops its held
+  bytes; a download's bytes become a `Blob` (`File`), its source from then on, and it leaves the URL cache (the next
+  download of the URL fetches again; the entry forgets its key, so its release does not reach a new one). Why: a text
+  format then holds one copy, its text, as before held bytes; a session still saves the asset (`file`).
+- Not while other assets of the URL share the bytes (the URL cache entry has other holds): they read them.

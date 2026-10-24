@@ -25,7 +25,7 @@ type ParseVtp = typeof ParseVtp;
 const ParseVtp = PluginStateTransform.BuiltIn({
   name: 'parse-vtp',
   display: { name: 'Parse VTP', description: 'Parse VTP (VTK PolyData) from Binary data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Vtp,
 })({
   apply({ a }) {

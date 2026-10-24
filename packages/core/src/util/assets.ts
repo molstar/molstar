@@ -167,12 +167,23 @@ class HeldAsset implements AssetManager.Entry {
     this.inflatedCache.inflated = undefined;
   }
 
+  /**
+   * Holds no bytes in memory: a file keeps its source; a download's bytes become one (a `Blob`, which a browser may keep
+   * outside the JS heap), read again from it on the next read (§6).
+   */
+  toSource() {
+    if (!this.source) this.source = new File([this.bytes!], 'raw-data');
+    this.bytes = undefined;
+    this.inflatedCache.inflated = undefined;
+  }
+
   constructor(
     readonly asset: Asset,
-    /** The file the bytes are read from; `undefined` for a download. */
-    private readonly source: File | undefined,
+    /** The file the bytes are read from; `undefined` for a download, until `toSource`. */
+    private source: File | undefined,
     bytes?: Uint8Array<ArrayBuffer>,
-    readonly cacheKey?: string,
+    /** The URL cache entry it holds; `undefined` once it has let go of it (`letGoOfBytes`). */
+    public cacheKey?: string,
     readonly isStatic?: boolean,
     readonly tag?: string,
     /** A download's is its URL cache entry's, shared by every asset of the URL. */
@@ -264,6 +275,11 @@ interface AssetManager {
   release(asset: Asset): void;
   /** `resolve` honors `decompress` (`DefaultAssetManager` does); without it `AssetManager.resolveData` inflates. */
   readonly decompresses?: boolean;
+  /**
+   * The asset's bytes are not needed in memory any more (its reader holds them in another form, a response turned to
+   * text): a manager may let go of them, keeping what it reads them again from. Optional, a hint.
+   */
+  letGoOfBytes?(asset: Asset): void;
   clearTag(tag: string): void;
   clear(): void;
   dispose(): void;
@@ -475,6 +491,21 @@ class DefaultAssetManager implements AssetManager {
       this.release(entry.asset);
       throw e;
     }
+  }
+
+  /** §6: the asset's entry holds no bytes in memory; not while other assets of its URL share them. */
+  letGoOfBytes(asset: Asset) {
+    const entry = this._assets.get(asset.id);
+    if (!entry) return;
+    if (entry.cacheKey !== undefined) {
+      const url = this._urlCache.get(entry.cacheKey);
+      if (url && url.refCount > 1) return;
+      // the bytes leave the URL cache with its only hold, this entry's: the next download of the URL fetches again,
+      // and a release of this entry does not reach the new one
+      if (url) this._urlCache.delete(entry.cacheKey);
+      entry.cacheKey = undefined;
+    }
+    entry.toSource();
   }
 
   release(asset: Asset) {

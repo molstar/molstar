@@ -30,7 +30,7 @@ type ParseSimularium = typeof ParseSimularium;
 const ParseSimularium = PluginStateTransform.BuiltIn({
   name: 'parse-simularium',
   display: { name: 'Parse Simularium', description: 'Parse a Simularium trajectory (JSON or binary) from Binary data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Simularium,
 })({
   apply({ a }) {

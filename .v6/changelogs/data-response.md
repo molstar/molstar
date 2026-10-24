@@ -16,5 +16,9 @@
 - `ajaxGet` / `ajaxGetMany` are `fetchData` / `fetchDataMany` (and `FetchDataParams`, `FetchDataTask`,
   `FetchDataManyEntry`); the old names stay as deprecated aliases.
 - `ReadFile` recreates when its file changes (it kept the old file's data).
-- `DataFormatProvider.sniffsBytes`, `DataFormatProvider.applicable`; core `asciiIndexOf`, `asciiStartsWith`; zip
-  `isGzip`, `gzipDeclaredSize`.
+- A response body holds one form, its bytes or its text once a parser reads it: a text format holds one copy. Its
+  header and sniffs (`sniffBytes`, `sniffText`) work on either; core `Sniffable`; a provider sets `sniffsResponse` to
+  sniff a response as itself (`DataFormatProvider.applicable`).
+- [Breaking] Binary parsers take Binary and Response Data, not String Data: applying one to a ref typed
+  `String | Binary` no longer compiles.
+- Core `asciiIndexOf`, `asciiStartsWith`; zip `isGzip`, `gzipDeclaredSize`.

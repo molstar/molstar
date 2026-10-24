@@ -43,7 +43,7 @@ export const ParseMVSJ = MVSTransform({
 export const ParseMVSX = MVSTransform({
   name: 'mvs-parse-mvsx',
   display: { name: 'MolViewSpec from MVSX', description: 'Create MolViewSpec view from MVSX data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: Mvs,
   params: {
     mainFilePath: PD.Text('index.mvsj'),

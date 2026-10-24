@@ -419,3 +419,51 @@ describe('DefaultAssetManager decompress (util/_spec/assets.md §5)', () => {
     expect(m.urlCacheSize).toBe(0);
   });
 });
+
+describe('DefaultAssetManager letGoOfBytes (util/_spec/assets.md §6)', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+  });
+
+  it('a file lets go of its bytes and reads them again from the file', async () => {
+    const m = new DefaultAssetManager();
+    const file = new File([enc.encode('abc')], 'x.txt');
+    const spy = vi.spyOn(file, 'arrayBuffer');
+    const asset = Asset.File(file);
+    await m.resolve(asset, 'binary', { shared: true }).run();
+    expect(spy).toHaveBeenCalledTimes(1);
+    m.letGoOfBytes(asset);
+    const again = await m.resolve(asset, 'binary', { shared: true }).run();
+    expect(new TextDecoder().decode(again.data)).toBe('abc');
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('a download keeps its bytes as a blob, leaves the URL cache, and reads them again without fetching', async () => {
+    serve('abc');
+    const m = new DefaultAssetManager();
+    const asset = Asset.Url('https://x.org/a');
+    await m.resolve(asset, 'binary', { shared: true }).run();
+    expect(m.urlCacheSize).toBe(1);
+    m.letGoOfBytes(asset);
+    expect(m.urlCacheSize).toBe(0);
+    expect(new Uint8Array(await m.get(asset)!.file.arrayBuffer())).toEqual(enc.encode('abc'));
+    const again = await m.resolve(asset, 'string').run();
+    expect(`${again.data}`).toBe('abc');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    m.release(asset);
+    m.release(asset);
+    expect(m.has(asset)).toBe(false);
+  });
+
+  it('a download whose bytes other assets of the URL share keeps them', async () => {
+    serve('abc');
+    const m = new DefaultAssetManager();
+    const a = Asset.Url('https://x.org/a');
+    const b = Asset.Url('https://x.org/a');
+    await m.resolve(a, 'binary', { shared: true }).run();
+    const bytes = (await m.resolve(b, 'binary', { shared: true }).run()).data;
+    m.letGoOfBytes(a);
+    expect(m.urlCacheSize).toBe(1);
+    expect((await m.resolve(b, 'binary', { shared: true }).run()).data).toBe(bytes);
+  });
+});

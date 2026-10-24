@@ -26,7 +26,7 @@ type ParseCcp4 = typeof ParseCcp4;
 const ParseCcp4 = PluginStateTransform.BuiltIn({
   name: 'parse-ccp4',
   display: { name: 'Parse CCP4/MRC/MAP', description: 'Parse CCP4/MRC/MAP from Binary data' },
-  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Ccp4,
 })({
   apply({ a }) {
