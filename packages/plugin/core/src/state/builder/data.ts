@@ -20,42 +20,53 @@ export class DataBuilder {
     return data.commit({ revertOnError: true });
   }
 
-  // `asResponse: true` gives Response Data, else String or Binary Data as before: callers that do not ask for a
-  // response keep their type
+  // Response Data unless `asResponse: false`, which gives String or Binary Data as `isBinary` says (`.v6/data-response`)
   download(
-    params: StateTransformer.Params<Download> & { asResponse: true },
+    params: StateTransformer.Params<Download> & { asResponse: false },
+    options?: Partial<StateTransform.Options>,
+  ): Promise<StateObjectSelector<SO.Data.String | SO.Data.Binary>>;
+  download(
+    params: StateTransformer.Params<Download> & { asResponse?: true },
     options?: Partial<StateTransform.Options>,
   ): Promise<StateObjectSelector<SO.Data.Response>>;
   download(
     params: StateTransformer.Params<Download>,
     options?: Partial<StateTransform.Options>,
-  ): Promise<StateObjectSelector<SO.Data.String | SO.Data.Binary>>;
+  ): Promise<StateObjectSelector<SO.Data.String | SO.Data.Binary | SO.Data.Response>>;
   download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
     const data = this.dataState.build().toRoot().apply(Download, params, options);
     return data.commit({ revertOnError: true });
   }
 
   downloadBlob(
-    params: StateTransformer.Params<DownloadBlob> & { asResponse: true },
+    params: StateTransformer.Params<DownloadBlob> & { asResponse: false },
+    options?: Partial<StateTransform.Options>,
+  ): Promise<StateObjectSelector<SO.Data.Blob>>;
+  downloadBlob(
+    params: StateTransformer.Params<DownloadBlob> & { asResponse?: true },
     options?: Partial<StateTransform.Options>,
   ): Promise<StateObjectSelector<SO.Data.ResponseBlob>>;
   downloadBlob(
     params: StateTransformer.Params<DownloadBlob>,
     options?: Partial<StateTransform.Options>,
-  ): Promise<StateObjectSelector<SO.Data.Blob>>;
+  ): Promise<StateObjectSelector<SO.Data.Blob | SO.Data.ResponseBlob>>;
   downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
     const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
     return data.commit({ revertOnError: true });
   }
 
   readFile(
-    params: StateTransformer.Params<ReadFile> & { asResponse: true },
+    params: StateTransformer.Params<ReadFile> & { asResponse: false },
+    options?: Partial<StateTransform.Options>,
+  ): Promise<{ data: StateObjectSelector<SO.Data.String | SO.Data.Binary>; fileInfo: FileNameInfo }>;
+  readFile(
+    params: StateTransformer.Params<ReadFile> & { asResponse?: true },
     options?: Partial<StateTransform.Options>,
   ): Promise<{ data: StateObjectSelector<SO.Data.Response>; fileInfo: FileNameInfo }>;
   readFile(
     params: StateTransformer.Params<ReadFile>,
     options?: Partial<StateTransform.Options>,
-  ): Promise<{ data: StateObjectSelector<SO.Data.String | SO.Data.Binary>; fileInfo: FileNameInfo }>;
+  ): Promise<{ data: StateObjectSelector<SO.Data.String | SO.Data.Binary | SO.Data.Response>; fileInfo: FileNameInfo }>;
   async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
     const data = await this.dataState.build().toRoot().apply(ReadFile, params, options).commit({ revertOnError: true });
     const fileInfo = getFileNameInfo(params.file?.file?.name ?? '');

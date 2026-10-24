@@ -17,12 +17,7 @@ import { PluginStateObject } from '../objects.js';
 async function processFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
   const info = getFileNameInfo(file.file?.name ?? '');
   const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
-  // a response when whichever provider reads the file takes one
-  const asResponse =
-    format === 'auto'
-      ? plugin.dataFormats.responseExtensions.has(info.ext)
-      : !!plugin.dataFormats.get(format)?.readsResponse;
-  const { data } = await plugin.builders.data.readFile({ file, isBinary, asResponse });
+  const { data } = await plugin.builders.data.readFile({ file, isBinary });
   const provider = format === 'auto' ? plugin.dataFormats.auto(info, data.cell?.obj!) : plugin.dataFormats.get(format);
 
   if (!provider) {
@@ -134,9 +129,10 @@ export const DownloadFile = StateAction.build({
           if (params.format === 'zip' || params.format === 'gzip') {
             // TODO: add ReadZipFile transformer so this can be saved as a simple state snaphot,
             //       would need support for extracting individual files from zip
-            const data = await plugin.builders.data.download({ url: params.url, isBinary: true });
+            const data = await plugin.builders.data.download({ url: params.url });
+            const body = data.obj!.data;
             if (params.format === 'zip') {
-              const zippedFiles = await unzip(taskCtx, (data.obj?.data as Uint8Array<ArrayBuffer>).buffer);
+              const zippedFiles = await body.read(taskCtx, 'zip');
               for (const [fn, filedata] of Object.entries(zippedFiles)) {
                 if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
 
@@ -149,12 +145,7 @@ export const DownloadFile = StateAction.build({
               // that reading the file does not inflate it again
               const url = Asset.getUrl(params.url);
               const fileName = getFileNameInfo(url).name.replace(/\.gz$/i, '');
-              await processFile(
-                Asset.File(new File([data.obj?.data as Uint8Array<ArrayBuffer>], fileName)),
-                plugin,
-                'auto',
-                params.visuals,
-              );
+              await processFile(Asset.File(new File([body.bytes], fileName)), plugin, 'auto', params.visuals);
             }
           } else {
             if (!plugin.dataFormats.has(params.format)) {
@@ -163,11 +154,7 @@ export const DownloadFile = StateAction.build({
             }
             const provider = plugin.dataFormats.get(params.format)!;
 
-            const data = await plugin.builders.data.download({
-              url: params.url,
-              isBinary: params.isBinary,
-              asResponse: !!provider.readsResponse,
-            });
+            const data = await plugin.builders.data.download({ url: params.url, isBinary: params.isBinary });
             const parsed = await provider.parse(plugin, data);
             if (params.visuals) {
               await provider.visuals?.(plugin, parsed);

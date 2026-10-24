@@ -104,10 +104,28 @@ describe('Data.Response (.v6/data-response)', () => {
     plugin.dispose();
   });
 
-  it('without asResponse nothing changes', async () => {
+  it('reads as a response by default; asResponse: false gives String Data as before', async () => {
     const plugin = await createPlugin();
-    const { data } = await plugin.builders.data.readFile({ file: cifFile() });
+    const byDefault = (await plugin.builders.data.readFile({ file: cifFile() })).data;
+    expect(byDefault.cell!.obj).toBeInstanceOf(SO.Data.Response);
+    const { data } = await plugin.builders.data.readFile({ file: cifFile(), asResponse: false });
     expect(data.cell!.obj).toBeInstanceOf(SO.Data.String);
+    plugin.dispose();
+  });
+
+  it('every parser reads String, Binary and Response Data alike', async () => {
+    const plugin = await createPlugin();
+    const pdb = 'ATOM      1  CA  ALA A   1       1.500   2.500   3.500  1.00  0.00           C\nEND\n';
+    const file = () => Asset.File(new File([pdb], 'x.pdb'));
+    const counts: number[] = [];
+    for (const asResponse of [true, false]) {
+      for (const isBinary of [false, true]) {
+        const { data } = await plugin.builders.data.readFile({ file: file(), asResponse, isBinary });
+        const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+        counts.push(trajectory.cell!.obj!.data.representative.atomicHierarchy.atoms._rowCount);
+      }
+    }
+    expect(counts).toEqual([1, 1, 1, 1]);
     plugin.dispose();
   });
 
@@ -119,15 +137,14 @@ describe('Data.Response (.v6/data-response)', () => {
           undefined as any,
         );
       expect(update({ asResponse: false }, { asResponse: true })).toBe(StateTransformer.UpdateResult.Recreate);
+      expect(update({}, { asResponse: false })).toBe(StateTransformer.UpdateResult.Recreate);
+      expect(update({}, { asResponse: true })).not.toBe(StateTransformer.UpdateResult.Recreate);
       expect(update({ isBinary: false }, { isBinary: true })).toBe(StateTransformer.UpdateResult.Recreate);
     }
   });
 
-  it('OpenFiles reads CIF as a response and the other formats as before', async () => {
+  it('OpenFiles reads every format as a response', async () => {
     const plugin = await createPlugin();
-    expect(plugin.dataFormats.responseExtensions.has('cif')).toBe(true);
-    expect(plugin.dataFormats.responseExtensions.has('bcif')).toBe(true);
-    expect(plugin.dataFormats.responseExtensions.has('pdb')).toBe(false);
 
     const pdb = 'ATOM      1  CA  ALA A   1       1.500   2.500   3.500  1.00  0.00           C\nEND\n';
     const files = [cifFile('a.cif'), Asset.File(new File([pdb], 'b.pdb'))];
@@ -140,7 +157,7 @@ describe('Data.Response (.v6/data-response)', () => {
       if (t === ReadFile) types.set(cell.obj!.label, cell.obj!.type.name);
     });
     expect(types.get('a.cif')).toBe('Response Data');
-    expect(types.get('b.pdb')).toBe('String Data');
+    expect(types.get('b.pdb')).toBe('Response Data');
     let trajectories = 0;
     plugin.state.data.cells.forEach((cell) => {
       if (SO.Molecule.Trajectory.is(cell.obj)) trajectories++;
@@ -163,7 +180,10 @@ describe('Data.Response (.v6/data-response)', () => {
     ];
     const enc = new TextEncoder();
     for (const t of texts) {
-      expect(guessCifVariant(info, enc.encode(t))).toBe(guessCifVariant(info, t));
+      const bytes = enc.encode(t);
+      expect(guessCifVariant(info, bytes)).toBe(guessCifVariant(info, t));
+      // asked again for the same bytes (as by every CIF provider in turn): the cached answer
+      expect(guessCifVariant(info, bytes)).toBe(guessCifVariant(info, t));
       expect(looksLikeMmcifParticles(info, enc.encode(t))).toBe(looksLikeMmcifParticles(info, t));
     }
   });
@@ -175,11 +195,13 @@ describe('decompress (util/_spec/assets.md §5)', () => {
   it('ReadFile inflates gzip by its bytes unless decompress is none', async () => {
     const plugin = await createPlugin();
     const file = () => Asset.File(new File([gz(Cif)], 'x.cif'));
-    const text = (await plugin.builders.data.readFile({ file: file() })).data;
+    const text = (await plugin.builders.data.readFile({ file: file(), asResponse: false })).data;
     expect(`${text.cell!.obj!.data}`).toBe(Cif);
     const response = (await plugin.builders.data.readFile({ file: file(), asResponse: true })).data;
     expect(`${await response.cell!.obj!.data.text(RuntimeContext.Synchronous)}`).toBe(Cif);
-    const raw = (await plugin.builders.data.readFile({ file: file(), isBinary: true, decompress: 'none' })).data;
+    const raw = (
+      await plugin.builders.data.readFile({ file: file(), isBinary: true, asResponse: false, decompress: 'none' })
+    ).data;
     expect((raw.cell!.obj!.data as Uint8Array)[0]).toBe(0x1f);
     plugin.dispose();
   });
@@ -209,6 +231,19 @@ describe('decompress (util/_spec/assets.md §5)', () => {
     plugin.dispose();
   });
 
+  it('ReadFile recreates when its file changes', () => {
+    const update = (oldParams: any, newParams: any) =>
+      ReadFile.definition.update!(
+        { oldParams, newParams, a: undefined as any, b: undefined as any, cache: {} } as any,
+        undefined as any,
+      );
+    const a = Asset.File(new File(['a'], 'a.cif'));
+    expect(update({ file: a }, { file: Asset.File(new File(['b'], 'b.cif')) })).toBe(
+      StateTransformer.UpdateResult.Recreate,
+    );
+    expect(update({ file: a }, { file: a })).toBe(StateTransformer.UpdateResult.Unchanged);
+  });
+
   it('Download and ReadFile recreate when decompress changes', () => {
     for (const t of [Download, ReadFile]) {
       const update = (oldParams: any, newParams: any) =>
@@ -232,7 +267,7 @@ describe('Data.ResponseBlob', () => {
     plugin.managers.asset.set(Asset.Url(urls[0]), new File([Cif], 'raw-data'), { isStatic: true });
     plugin.managers.asset.set(Asset.Url(urls[1]), new File([gz(Cif)], 'raw-data'), { isStatic: true });
     const sources = urls.map((url, i) => ({ id: `${i}`, url }));
-    const blob = await plugin.builders.data.downloadBlob({ sources, asResponse: true });
+    const blob = await plugin.builders.data.downloadBlob({ sources });
     const obj = blob.cell!.obj!;
     expect(obj).toBeInstanceOf(SO.Data.ResponseBlob);
     expect(obj.data.map((e) => e.id)).toEqual(['0', '1']);
@@ -244,14 +279,14 @@ describe('Data.ResponseBlob', () => {
     plugin.dispose();
   });
 
-  it('DownloadBlob without asResponse gives Data.Blob as before, gzip inflated', async () => {
+  it('DownloadBlob with asResponse: false gives Data.Blob as before, gzip inflated', async () => {
     const plugin = await createPlugin();
     const url = 'https://x.org/c.cif.gz';
     plugin.managers.asset.set(Asset.Url(url), new File([gz(Cif)], 'raw-data'), { isStatic: true });
     const blob = await plugin
       .build()
       .toRoot()
-      .apply(DownloadBlob, { sources: [{ id: '0', url }] })
+      .apply(DownloadBlob, { sources: [{ id: '0', url }], asResponse: false })
       .commit();
     const e = blob.cell!.obj!.data[0];
     expect(blob.cell!.obj).toBeInstanceOf(SO.Data.Blob);

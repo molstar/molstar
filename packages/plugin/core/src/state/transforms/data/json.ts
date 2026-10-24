@@ -11,6 +11,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { StringLike } from '@molstar/core/util/string-like';
+import { decodeData } from '@molstar/core/util/data-source';
 
 export { ImportJson };
 type ImportJson = typeof ImportJson;
@@ -42,14 +43,16 @@ export { ParseJson };
 type ParseJson = typeof ParseJson;
 const ParseJson = PluginStateTransform.BuiltIn({
   name: 'parse-json',
-  display: { name: 'Parse JSON', description: 'Parse JSON from String or Response data' },
-  from: [SO.Data.String, SO.Data.Response],
+  display: { name: 'Parse JSON', description: 'Parse JSON from String, Binary or Response data' },
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Json,
 })({
   apply({ a }) {
     return Task.create('Parse JSON', async (ctx) => {
       const json =
-        a instanceof SO.Data.Response ? await a.data.json(ctx) : await new Response(StringLike.toString(a.data)).json(); // async JSON parsing via fetch API
+        a instanceof SO.Data.String
+          ? await new Response(StringLike.toString(a.data)).json() // async JSON parsing via fetch API
+          : await decodeData(ctx, SO.Data.readBytes(a), 'json');
       return new SO.Format.Json(json);
     });
   },

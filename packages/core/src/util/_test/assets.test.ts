@@ -6,7 +6,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task } from '@molstar/core/task';
-import { Asset, DefaultAssetManager } from '../assets.js';
+import { Asset, AssetManager, DefaultAssetManager } from '../assets.js';
 import { Zip } from '../zip/zip.js';
 import { gzipSync } from 'node:zlib';
 
@@ -17,6 +17,13 @@ vi.mock('../data-source.js', async (importOriginal) => ({
 }));
 const { fetchData } = await import('../data-source.js');
 const fetchMock = vi.mocked(fetchData) as unknown as ReturnType<typeof vi.fn>;
+// the inflate is the real one unless a test makes it fail once
+vi.mock('../zip/zip.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../zip/zip.js')>();
+  return { ...actual, ungzip: vi.fn(actual.ungzip) };
+});
+const zip = await import('../zip/zip.js');
+const ungzipMock = vi.mocked(zip.ungzip);
 
 const enc = new TextEncoder();
 
@@ -372,13 +379,42 @@ describe('DefaultAssetManager decompress (util/_spec/assets.md §5)', () => {
     expect(`${named.data}`).toBe('abc');
   });
 
-  it('refuses a gzip that declares more than it may inflate to, and lets go of its hold', async () => {
+  it('resolveData inflates for a manager that does not (a custom one)', async () => {
+    const inner = new DefaultAssetManager();
+    const asked: unknown[] = [];
+    // a custom manager: no `decompresses`, and `decompress` never reaches the one it wraps
+    const custom = {
+      resolve: (asset: Asset, type: any, options: any) => {
+        asked.push(options);
+        return inner.resolve(asset, type, { ...options, decompress: false });
+      },
+    } as unknown as AssetManager;
+    const file = Asset.File(new File([gz('{"a":1}')], 'x.json'));
+    const j = await AssetManager.resolveData(custom, file, 'json', { decompress: true }).run();
+    expect(j.data).toEqual({ a: 1 });
+    expect(asked).toEqual([{ decompress: false }]);
+    j.dispose();
+    expect(inner.has(file)).toBe(false);
+  });
+
+  it('a reader takes over the inflate when the reader that started it was aborted', async () => {
+    serveBytes(gz('abc'));
+    const m = new DefaultAssetManager();
+    await m.resolve(Asset.Url('https://x.org/a'), 'binary', { shared: true }).run();
+    ungzipMock.mockClear();
+    ungzipMock.mockImplementationOnce(() => Promise.reject(Task.Aborted('the first reader')));
+    const s = await m.resolve(Asset.Url('https://x.org/a'), 'string', { decompress: true }).run();
+    expect(`${s.data}`).toBe('abc');
+    expect(ungzipMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('refuses a gzip that declares more than its data can hold, and lets go of its hold', async () => {
     const bomb = gz('abc');
     new DataView(bomb.buffer).setUint32(bomb.length - 4, 2 ** 31 + 1, true);
     serveBytes(bomb);
     const m = new DefaultAssetManager();
     const asset = Asset.Url('https://x.org/bomb');
-    await expect(m.resolve(asset, 'string', { decompress: true }).run()).rejects.toThrow(/inflates to/);
+    await expect(m.resolve(asset, 'string', { decompress: true }).run()).rejects.toThrow(/compressed bytes can hold/);
     expect(m.has(asset)).toBe(false);
     expect(m.urlCacheSize).toBe(0);
   });

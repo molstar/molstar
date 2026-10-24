@@ -7,7 +7,7 @@
  */
 
 import { getFileNameInfo } from '@molstar/core/util/file-info';
-import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
+import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 import { extensionOf } from './input.js';
@@ -123,12 +123,11 @@ export function providerFor(
   ctx: ApiContext,
   choice: FormatChoice,
   name: string,
-  data: PluginStateObject.Data.Binary | PluginStateObject.Data.String,
+  data: PluginStateObject.Data.Binary | PluginStateObject.Data.String | PluginStateObject.Data.Response,
 ): DataFormatProvider | undefined {
   if (choice.provider) return choice.provider;
-  const info = getFileNameInfo(name);
   // `DataFormatRegistry.auto` over the formats in scope (the candidates, in its order).
-  return choice.candidates.find((p) => !p.isApplicable || p.isApplicable(info, data.data));
+  return choice.candidates.find(DataFormatProvider.applicable(getFileNameInfo(name), data));
 }
 
 /**

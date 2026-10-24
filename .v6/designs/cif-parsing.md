@@ -41,10 +41,16 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   only parses to no blocks. No bytes fail as BinaryCIF, as before.
 - A file parsed from bytes reads them in place: a caller that reuses the buffer changes the values (a string could not
   change).
-- `CIF.parseBinary` stays strict, no sniffing: `ParseBlob` calls it for its binary entries.
-- The plugin keeps reading `.cif` and `.mmcif` files as strings (the maintainers' decision): reading them as binary
-  would skip the encode copy and the 512 MB string limit, but would change the Data node's type of opened files. The
-  way to get both later is a byte-backed `StringLike` (`perf-audit-2/13-lammps-large-text.md`).
+- `CIF.parseBinary` stays strict, no sniffing: `ParseBlob` calls it for the binary entries of a `Data.Blob`.
+- The plugin reads `.cif` and `.mmcif` files and downloads as their bytes: `Download`, `ReadFile` and `DownloadBlob`
+  give Response Data by default (`asResponse`), and `ParseCif` (and `ParseBlob` for a `Data.ResponseBlob`) hands the
+  bytes to `CIF.parse`, which shares them with the asset manager (`core/src/util/_spec/assets.md` §4). Why: no decode to
+  a string and encode back, one copy of the bytes, no 512 MB string limit (flat-192-cif: retained 388 → 270 MB). A
+  byte-backed `StringLike` was the alternative, kept off: a second `StringLike` kind at every text parser's call sites.
+- Sniffing a `.cif` (`guessCifVariant`, `looksLikeMmcifParticles`) searches the bytes without decoding them
+  (`asciiIndexOf`, anchored on a needle's first lowercase letter, rare in CIF data rows), once per data
+  (`guessCifVariant` keeps the last answer for bytes: every CIF provider asks in turn). flat-192-cif: one sniff of its
+  six needles ~265 ms, where every CIF provider sniffed the string (~117 ms each).
 
 ## BinaryCIF
 

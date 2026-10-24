@@ -22,12 +22,12 @@ type ParseCryoEtDataPortalNdjson = typeof ParseCryoEtDataPortalNdjson;
 const ParseCryoEtDataPortalNdjson = PluginStateTransform.BuiltIn({
   name: 'parse-cryoet-data-portal-ndjson',
   display: { name: 'Parse CryoET NDJSON', description: 'Parse CryoET Data Portal NDJSON from String data' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.CryoEtDataPortalNdjson,
 })({
   apply({ a }) {
     return Task.create('Parse CryoET NDJSON', async (ctx) => {
-      const parsed = await parseCryoEtDataPortalNdjson(a.data).runInContext(ctx);
+      const parsed = await parseCryoEtDataPortalNdjson(await SO.Data.readText(ctx, a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.CryoEtDataPortalNdjson(parsed.result, { label: a.label || 'CryoET NDJSON' });
     });

@@ -48,7 +48,7 @@ export function defaultVisuals(
 
 export function directTrajectory<P extends {}>(
   transformer: StateTransformer<
-    PluginStateObject.Data.String | PluginStateObject.Data.Binary,
+    PluginStateObject.Data.String | PluginStateObject.Data.Binary | PluginStateObject.Data.Response,
     PluginStateObject.Molecule.Trajectory,
     P
   >,

@@ -11,7 +11,7 @@
 import type { StringLike } from './string-like.js';
 import { utf8Read, utf8ReadLong } from './utf8.js';
 import { type RuntimeContext, Task } from '@molstar/core/task';
-import { Asset, type AssetManager } from './assets.js';
+import { Asset, AssetManager } from './assets.js';
 import { RUNNING_IN_NODEJS } from './nodejs-shims.js';
 import { ungzip, unzip } from './zip/zip.js';
 
@@ -448,12 +448,12 @@ export interface FetchDataManySource {
 }
 
 function resolveSource(ctx: RuntimeContext, assetManager: AssetManager, src: FetchDataManySource) {
-  return assetManager
-    .resolve(Asset.getUrlAsset(assetManager, src.url), src.isBinary ? 'binary' : 'string', {
-      shared: src.shared,
-      decompress: src.decompress,
-    })
-    .runAsChild(ctx);
+  return AssetManager.resolveData(
+    assetManager,
+    Asset.getUrlAsset(assetManager, src.url),
+    src.isBinary ? 'binary' : 'string',
+    { shared: src.shared, decompress: src.decompress },
+  ).runAsChild(ctx);
 }
 
 export async function fetchDataMany(

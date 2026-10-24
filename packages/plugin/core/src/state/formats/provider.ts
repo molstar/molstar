@@ -7,7 +7,7 @@
 
 import { binaryCifHasCategory, binaryCifHasColumn, getBinaryCifHeader } from '@molstar/io/common/binary-cif';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { asciiIndexOf, asciiStartsWith } from '@molstar/core/util/utf8';
+import { asciiIndexOf, asciiStartsWith, utf8ReadLong } from '@molstar/core/util/utf8';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObject, StateObjectRef, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
@@ -30,14 +30,13 @@ export interface DataFormatProvider<P = any, R = any, V = any, D = any, Id exten
    * variant of a shared file extension).
    */
   priority?: number;
-  /** Sniffs the data; text read as a response (`readsResponse`) comes as its UTF-8 bytes. */
+  /** Sniffs the data: text as a string, or as its UTF-8 bytes with `sniffsBytes`; binary as bytes. */
   isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean;
   /**
-   * `parse` takes Response Data too (`Download` / `ReadFile` with `asResponse`), and `isApplicable` text as bytes:
-   * `OpenFiles` and `DownloadStructure` then read the data as a response, and the parser chooses its form (CIF reads the
-   * bytes, never decoding them to a string).
+   * `isApplicable` takes text as its UTF-8 bytes. Response Data (what `Download` and `ReadFile` give) is sniffed as its
+   * bytes, not decoded to a string first (CIF, which parses the bytes, never decodes them).
    */
-  readsResponse?: boolean;
+  sniffsBytes?: boolean;
   parse(
     plugin: PluginContext,
     data: StateObjectRef<
@@ -62,6 +61,25 @@ export function DataFormatProvider<const T extends DataFormatProvider>(provider:
 const namedCopies = new WeakMap<object, Map<string, DataFormatProvider>>();
 
 export namespace DataFormatProvider {
+  /**
+   * Whether a provider takes `o` by its `isApplicable` (one without takes everything). A response is sniffed as its
+   * bytes by a provider that `sniffsBytes` or reads `info.ext` as binary, as its text (decoded once, for every provider
+   * asked) by the others (`.v6/data-response`).
+   */
+  export function applicable(
+    info: FileNameInfo,
+    o: PluginStateObject.Data.String | PluginStateObject.Data.Binary | PluginStateObject.Data.Response,
+  ): (p: DataFormatProvider) => boolean {
+    const response = o instanceof PluginStateObject.Data.Response ? o.data : undefined;
+    let text: StringLike | undefined;
+    return (p) => {
+      if (!p.isApplicable) return true;
+      if (!response) return p.isApplicable(info, o.data as StringLike | Uint8Array);
+      if (p.sniffsBytes || p.binaryExtensions?.includes(info.ext)) return p.isApplicable(info, response.bytes);
+      return p.isApplicable(info, (text ??= utf8ReadLong(response.bytes)));
+    };
+  }
+
   /** A provider that may lack a `name`, such as the user-supplied `customFormats` of the Viewer. */
   export type Unnamed<P = any, R = any, V = any, D = any, Id extends string = string> = Omit<
     DataFormatProvider<P, R, V, D, Id>,
@@ -103,22 +121,40 @@ export function applyTransformerRaw<A extends StateObject, B extends StateObject
   plugin: PluginContext,
   ctx: RuntimeContext,
   transformer: StateTransformer<A, B, P>,
-  a: A,
+  // not checked against `A`: raw data is String or Binary Data, which a parser's `from` (String or Binary, and
+  // Response) may list only one of
+  a: StateObject,
   params?: Partial<P>,
 ): Promise<B> | B {
-  const p = transformer.createDefaultParams(a, plugin);
+  const p = transformer.createDefaultParams(a as A, plugin);
   if (params) {
     for (const k of Object.keys(params) as (keyof P)[]) {
       if (params[k] !== undefined) p[k] = params[k]!;
     }
   }
   // no built-in transformer uses the spine, which is only available during a state update
-  const result = transformer.definition.apply({ a, params: p, cache: {}, spine: undefined as any }, plugin);
+  const result = transformer.definition.apply({ a: a as A, params: p, cache: {}, spine: undefined as any }, plugin);
   return Task.is(result) ? Task.resolveInContext(result, ctx) : result;
 }
 
 type CifVariants = 'dscif' | 'segcif' | 'sfcif' | 'coreCif' | -1;
+/**
+ * The last data sniffed (bytes, held weakly: a big file is not kept) and its variant: every CIF provider's
+ * `isApplicable` asks for the same data in turn (`DataFormatRegistry.auto`), and each ask scans it whole when it is not
+ * a variant. A string is not cached (it cannot be held weakly), as before.
+ */
+let lastSniff: { data: WeakRef<object>; ext: string; variant: CifVariants } | undefined;
+
 export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
+  if (typeof data !== 'object') return sniffCifVariant(info, data);
+  const last = lastSniff;
+  if (last && last.ext === info.ext && last.data.deref() === data) return last.variant;
+  const variant = sniffCifVariant(info, data);
+  lastSniff = { data: new WeakRef(data), ext: info.ext, variant };
+  return variant;
+}
+
+function sniffCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
   if (info.ext === 'bcif') {
     try {
       const header = getBinaryCifHeader(data as Uint8Array);

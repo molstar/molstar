@@ -22,7 +22,7 @@ reads `Data.String` or `Data.Binary` today changes.
 
 ### `Download` / `ReadFile`: `asResponse`
 
-- A new optional param `asResponse` (default `false`). With it, `apply` downloads (or reads the file) as now, holds
+- An optional param `asResponse`, `true` when unset (`asResponseOf`: `asResponse ?? true`). With it, `apply` downloads (or reads the file) as now, holds
   the bytes and returns `Data.Response`: the I/O is eager, as `fetch()` starts its request, and only the choice of form
   and its decode wait for the consumer. Why eager: the download's cost, progress and errors belong to the `Download`
   node (a 404 fails `Download`, not `ParseCif`). `ReadFile` reads eagerly too: a `File` is a handle that can fail
@@ -55,37 +55,26 @@ reads `Data.String` or `Data.Binary` today changes.
 
 ### Consumers
 
-- `ParseCif` takes a response (`from: [String, Binary, Response]`) and hands its bytes to `CIF.parse`, which tells text
-  CIF from BinaryCIF by the first byte. `ParseJson` (`[String, Response]`) reads `'json'`; `ParsePly`
-  (`[String, Binary, Response]`) the bytes, telling ASCII from binary by the header.
-- The other parsers do not take a response. Why: a `from` of `[String, Response]` or `[Binary, Response]` neither
-  contains nor is contained in `String | Binary`, so TypeScript refuses to apply the parser to a `String | Binary` ref
-  (what `Download`'s output is typed as): source code that compiles today would not. CIF and PLY already list both. A
-  text parser would gain nothing anyway (bytes plus the string while the node lives); a binary one a copy for URLs
-  only. `ReadResponse { isBinary }` turns a response into `Data.String` / `Data.Binary` for them.
-- Binary readers audited for writes to their input (for a later pass): DSN6 flips the byte order of the whole
-  `source.buffer` in place, TRR swaps it in place, DCD's frames and VTP's arrays are views of the input; CCP4 (through
-  a `FileHandle`), MTZ, XTC, NetCDF, Simularium, Artiatomi EM, PLY and DX read only. DX has no sniff to tell text from
-  binary bytes: it would need one before taking a response.
-- A provider declares `readsResponse`: the CIF ones (mmCIF, CIF core, segmentation, density server, structure factors,
-  the mmCIF particle assembly, Relion STAR). `isApplicable` then gets text as its UTF-8 bytes: `guessCifVariant` and
-  `looksLikeMmcifParticles` search them without decoding (`asciiIndexOf`, `asciiStartsWith`, core `utf8.ts`), tested
-  equal to the string search.
-- `DataFormatRegistry.responseExtensions`: the extensions every provider of which reads a response (`cif`, `bcif`,
-  `mmcif`, `mcif`, `star`). `OpenFiles`, `DownloadFile` and `LoadTrajectory` read a file of one (or for a provider that
-  reads one) with `asResponse`; `DownloadStructure` for a provider that does. Prism's `load.entry` goes through
-  `DownloadStructure`; its `load.url` and `load.file` (`dataCellOf`, which chooses the format again from the content)
-  do not yet.
+- Every parser takes Response Data, `from: [String, Binary, Response]`, so that `asResponse` can default to `true`.
+  The io parsers are unchanged: the transform converts at the top of `apply`, `SO.Data.readText(ctx, a)` for a text
+  format (a `StringLike`: past 512 MB a `ChunkedBigString`, as before) and `SO.Data.readBytes(a)` for a binary one.
+  Why all three in `from`: a `from` that neither contains nor is contained in `String | Binary` (what `RawData` and
+  code typed before give) could not be applied to such refs in TypeScript. A text parser given Binary Data decodes it,
+  a binary one given String Data encodes it.
+- `ParseCif` hands a response's bytes to `CIF.parse` (text or BinaryCIF by the first byte), never decoding them;
+  `ParseJson` decodes and parses them; `ParsePly` reads the bytes (ASCII or binary by the header); `ParseDx` reads a
+  response named `.dxbin` as binary, any other as text (both start with the same text header).
+- Binary readers that write into their input or keep views of it read a copy (`readBytes(a, { copy: true })`): DSN6
+  flips the byte order of its whole `source.buffer`, TRR swaps it, DCD's frames and VTP's arrays are views of the
+  input. CCP4 (through a `FileHandle`), MTZ, XTC, NetCDF, Simularium, Artiatomi EM, G3D, PLY and DX read only.
+- `ReadResponse { isBinary }` turns a response into String or Binary Data, for a custom transform that does not read
+  one; `DeflateData` takes responses (and copies bytes it passes through).
+- Sniffing: `DataFormatProvider.applicable(info, o)`, used by `DataFormatRegistry.auto` and Prism's `providerFor`,
+  gives a response to `isApplicable` as its bytes for a provider that sets `sniffsBytes` (the CIF ones) or reads the
+  extension as binary, as its text, decoded once, for the others. `guessCifVariant` and `looksLikeMmcifParticles`
+  search bytes without decoding them (`asciiIndexOf`, `asciiStartsWith`, core `utf8.ts`), tested equal to the string
+  search. Prism's `withContent` sniffs a response as the choice reads it.
 - `prism/viewer/src/sources/data-by-url.ts` indexes response cells and returns their held bytes.
-
-### Asset manager: bytes held once
-
-The rules are in `packages/core/src/util/_spec/assets.md`. In short: a download's entry holds its bytes, not a `File`
-of them; a file's bytes are read (and decompressed) on its first `shared` read and held, while other reads of a file
-read it each time, as before (holding them would keep in memory what the file keeps on disk);
-`resolve(asset, 'binary', { shared: true })` returns the held bytes, read-only; every other type decodes from them
-(`decodeData`, `data-source.ts`). Trade-off: a blob can live outside the JS heap (Chrome may page large ones to disk),
-held bytes cannot; for data the parser keeps anyway (text CIF holds its bytes), one copy beats a blob and a copy.
 
 ### Decompression
 
@@ -111,7 +100,9 @@ held bytes cannot; for data the parser keeps anyway (text CIF holds its bytes), 
   coordinates kept; Node, Apple M4, medians of 3 to 5 runs, retained = heap and external after a full GC):
   - flat-192-cif (124 MB, 1.12M atoms): retained 388 → 270 MB; read 28 → 17 ms, parse 314 → 308 ms, total 353 → 336 ms.
   - 7qpd (1.8 MB): retained 6.3 → 4.6 MB, total 11.5 → 10.2 ms. 1cbs (190 KB): 1.3 → 1.1 MB, 3.1 ms either way.
-- Text formats read as strings are unchanged: they are not read as responses (Consumers).
+- Text formats other than CIF hold the bytes and the string while the node lives: a file read before held only the
+  string (the file stays on disk), a download a blob and the string. One copy needs their tokenizers on bytes
+  (`.v6/perf-audit-2/13-lammps-large-text.md`).
 - A `Download` with `asResponse` that nothing reads still downloads, as today.
 - Snapshots saved with `asResponse` load in older v6 builds for formats that accept a string (CIF), not for
   binary-only ones.
@@ -119,24 +110,24 @@ held bytes cannot; for data the parser keeps anyway (text CIF holds its bytes), 
 ## Steps
 
 1. Done. Asset manager: held bytes, `shared` reads, a file decompressed once for them; tests.
-2. Done. `Data.Response` / `ResponseBody`, `ReadResponse`; `asResponse` on `Download` and `ReadFile`, the builder
-   overloads. No `readAs` helper: the parsers that take a response read it themselves.
-3. Done. `ParseCif`, `ParseJson`, `ParsePly`; the CIF providers declare `readsResponse`; `OpenFiles`,
-   `DownloadFile`, `LoadTrajectory`, `DownloadStructure`; `data-by-url.ts`; byte sniffing.
+2. Done. `Data.Response` / `ResponseBody`, `ReadResponse`, `readText` / `readBytes`; `asResponse` on `Download`,
+   `ReadFile` and `DownloadBlob`, the builder overloads.
+3. Done. `ParseCif`, `ParseJson`, `ParsePly`; the CIF providers set `sniffsBytes`; `DataFormatProvider.applicable`;
+   `data-by-url.ts`; byte sniffing.
 4. Done (above).
-5. Done as far as it goes: the audit is recorded; the single-type parsers stay as they are (Consumers).
+5. Done: every parser takes a response, `asResponse` defaults to `true` (Consumers); the input-write audit is applied.
 6. Open. Move the rules to the specs (the asset manager's are in `core/src/util/_spec/assets.md` already, as the code
    cites it), `CHANGELOG.md` and a `.v6/changelogs/` entry; delete this folder.
 
-Decided: `Download` and `ReadFile` keep `Data.Response` in `to`. A type of their output written out as `String | Binary`
-no longer accepts it, a TypeScript break and not a run-time one (`to` is not checked at run time), recorded in
-`.v6/plans/breaking-v6-changes.md`; the builders' overloads avoid it for `builders.data.*`.
+Decided: `asResponse` defaults to `true` and every parser takes a response; a custom parser on top of a download
+adjusts. The run-time and TypeScript breaks are recorded in `.v6/plans/breaking-v6-changes.md`.
 
 ## Where the rules go
 
 - Asset manager (held bytes, shared reads, release): a new `packages/core/src/util/_spec/` (`assets.md`), like
   `core/src/state/_spec/`.
-- `Download` / `ReadFile` `asResponse`, `Data.Response`, `ReadResponse`, `readsResponse`, `responseExtensions`:
+- `Download` / `ReadFile` / `DownloadBlob` `asResponse`, `Data.Response`, `readText` / `readBytes`, `ReadResponse`,
+  `sniffsBytes`, `DataFormatProvider.applicable`:
   `packages/plugin/core` has no `_spec`; open: start `packages/plugin/core/_spec/data.md`.
 - `ParseCif` reading shared bytes: `.v6/designs/cif-parsing.md` (`CIF.parse` and the plugin), replacing its "the plugin
   keeps reading `.cif` as strings" and the byte-backed `StringLike` pointer; the same pointer in

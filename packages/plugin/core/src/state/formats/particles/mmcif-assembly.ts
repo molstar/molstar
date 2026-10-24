@@ -121,7 +121,7 @@ export const MmcifParticlesProvider = DataFormatProvider({
   description: 'mmCIF Particles (CellPack / PetWorld assemblies)',
   category: ParticlesFormatCategory,
   stringExtensions: ['cif'],
-  readsResponse: true,
+  sniffsBytes: true,
   binaryExtensions: ['bcif'],
   /**
    * Higher than the default (0) mmCIF/CifCore trajectory providers so that CellPack/PetWorld

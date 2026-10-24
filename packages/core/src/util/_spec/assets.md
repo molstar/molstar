@@ -36,7 +36,8 @@ The code is the truth for how; this file records the rules the code relies on, e
   every later read sees the change. Other `'binary'` reads return a copy. Why opt-in: readers that write into their
   input (DSN6 flips byte order in place, TRR swaps it) or keep views of it in their result (DCD, VTP) need a copy.
 - Every other type decodes from the held bytes (`decodeData`, `data-source.ts`): a `'string'` read is one native decode,
-  with no copy of the bytes before it.
+  with no copy of the bytes before it. A binary read of bytes read or inflated for it alone (a file without `shared`)
+  returns them, not a copy.
 - A custom `AssetManager` may ignore `shared` and return a copy.
 
 ## 5. Decompression
@@ -48,6 +49,12 @@ The code is the truth for how; this file records the rules the code relies on, e
 - Held bytes inflate once, whoever asks first: a download's inflated bytes are kept on its URL cache entry, beside the
   compressed ones, for every asset of the URL; a file's with its held bytes. A failed inflate is not kept. Reads that
   hold nothing (a file without `shared`, `store: false`) inflate each time.
-- A gzip that declares (ISIZE) more than 2 GiB is refused, not allocated.
+- A gzip that declares (ISIZE) more than its data can hold (deflate shrinks at most ~1032×) is refused before its buffer
+  is allocated. The inflate never writes past the declared size, so a stream over 4 GiB (ISIZE is modulo 2^32) fails, as
+  before.
+- The inflate of held bytes runs in the first reader's task; when that task is aborted, another reader takes over, as a
+  waiter of an aborted download does (§2).
+- A custom manager may not inflate (`decompresses` unset): `AssetManager.resolveData`, which `Download`, `ReadFile` and
+  `fetchDataMany` use, then asks it for the bytes and inflates them itself, uncached.
 - `decompress` off (the default of `resolve`) gives the bytes as received. `Download` and `ReadFile` turn it on unless
   their `decompress` param is `'none'`.

@@ -49,6 +49,7 @@ import type { PrmtopFile } from '@molstar/io/reader/prmtop/parser';
 import type { TopFile } from '@molstar/io/reader/top/parser';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { type DataResponse, type DataType, decodeData } from '@molstar/core/util/data-source';
+import { utf8Encode, utf8ReadLong } from '@molstar/core/util/utf8';
 import type { RuntimeContext } from '@molstar/core/task';
 
 export type TypeClass = 'root' | 'data' | 'prop';
@@ -100,8 +101,9 @@ export namespace PluginStateObject {
       /** The bytes themselves, not a copy: read-only (a reader that writes copies them first). */
       readonly bytes: Uint8Array<ArrayBuffer>;
 
+      /** The bytes as `type`; a `'binary'` read is a copy (`bytes` are the shared ones). */
       read<T extends DataType>(ctx: RuntimeContext, type: T): Promise<DataResponse<T>> {
-        return decodeData(ctx, this.bytes, type);
+        return decodeData(ctx, type === 'binary' ? this.bytes.slice() : this.bytes, type);
       }
 
       text(ctx: RuntimeContext): Promise<StringLike> {
@@ -117,6 +119,25 @@ export namespace PluginStateObject {
       }
     }
     export class Response extends Create<ResponseBody>({ name: 'Response Data', typeClass: 'Data' }) {}
+
+    /**
+     * The text of String Data, of Binary Data or of a response (UTF-8, decoded per call): what a text parser reads,
+     * whichever of the three it is given (`.v6/data-response`).
+     */
+    export async function readText(ctx: RuntimeContext, o: String | Binary | Response): Promise<StringLike> {
+      if (o instanceof Response) return o.data.text(ctx);
+      return o instanceof Binary ? utf8ReadLong(o.data) : o.data;
+    }
+
+    /**
+     * The bytes of Binary Data, of a response or of String Data (UTF-8): what a binary parser reads. A response's are
+     * shared and read-only, so a reader that writes into its input or keeps views of it in its result asks for a
+     * `copy`.
+     */
+    export function readBytes(o: String | Binary | Response, options?: { copy?: boolean }): Uint8Array<ArrayBuffer> {
+      if (o instanceof Response) return options?.copy ? o.data.bytes.slice() : o.data.bytes;
+      return o instanceof Binary ? o.data : (utf8Encode(o.data) as Uint8Array<ArrayBuffer>);
+    }
 
     export type BlobEntry = { id: string } & (
       | { kind: 'string'; data: string }

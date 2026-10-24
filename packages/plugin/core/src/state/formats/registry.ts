@@ -6,7 +6,7 @@
  */
 
 import type { FileNameInfo } from '@molstar/core/util/file-info';
-import { PluginStateObject } from '../objects.js';
+import type { PluginStateObject } from '../objects.js';
 import { DataFormatProvider } from './provider.js';
 
 const warnedRenames = new WeakMap<object, Set<string>>();
@@ -29,7 +29,6 @@ export class DataFormatRegistry {
   private _map = new Map<string, { provider: DataFormatProvider; count: number }>();
   private _extensions: Set<string> | undefined = undefined;
   private _binaryExtensions: Set<string> | undefined = undefined;
-  private _responseExtensions: Set<string> | undefined = undefined;
   private _options: [name: string, label: string, category: string][] | undefined = undefined;
   private _autoOrder: { name: string; provider: DataFormatProvider }[] | undefined = undefined;
 
@@ -54,21 +53,6 @@ export class DataFormatRegistry {
     this._list.forEach(({ provider }) => provider.binaryExtensions?.forEach((ext) => binaryExtensions.add(ext)));
     this._binaryExtensions = binaryExtensions;
     return binaryExtensions;
-  }
-
-  /** Extensions every provider of which `readsResponse`: a file of one is read as Response Data. */
-  get responseExtensions() {
-    if (this._responseExtensions) return this._responseExtensions;
-    const readers = new Set<string>();
-    const others = new Set<string>();
-    for (const { provider } of this._list) {
-      const target = provider.readsResponse ? readers : others;
-      provider.stringExtensions?.forEach((ext) => target.add(ext));
-      provider.binaryExtensions?.forEach((ext) => target.add(ext));
-    }
-    for (const ext of others) readers.delete(ext);
-    this._responseExtensions = readers;
-    return readers;
   }
 
   get options() {
@@ -96,7 +80,6 @@ export class DataFormatRegistry {
   private _invalidate() {
     this._extensions = undefined;
     this._binaryExtensions = undefined;
-    this._responseExtensions = undefined;
     this._options = undefined;
     this._autoOrder = undefined;
   }
@@ -177,15 +160,14 @@ export class DataFormatRegistry {
     dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String | PluginStateObject.Data.Response,
   ) {
     const list = this.autoOrder;
-    const data =
-      dataStateObject instanceof PluginStateObject.Data.Response ? dataStateObject.data.bytes : dataStateObject.data;
+    const applies = DataFormatProvider.applicable(info, dataStateObject);
     for (let i = 0, il = list.length; i < il; ++i) {
       const p = list[i].provider;
 
       let hasExt = false;
       if (p.binaryExtensions?.includes(info.ext)) hasExt = true;
       else if (p.stringExtensions?.includes(info.ext)) hasExt = true;
-      if (hasExt && (!p.isApplicable || p.isApplicable(info, data))) return p;
+      if (hasExt && applies(p)) return p;
     }
     return;
   }

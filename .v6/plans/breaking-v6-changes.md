@@ -1150,18 +1150,29 @@ now take another form (a BinaryCIF string column as indices into its distinct st
 values would have misread; a method also says that asking may decode (a BinaryCIF field decodes on first access).
 Readers in the repository were core's `Column` helpers and `sortAtomSite`.
 
-## `Download` and `ReadFile` may give Response Data (TypeScript only)
+## `Download`, `ReadFile` and `DownloadBlob` give Response Data
 
-`Download` and `ReadFile` (`@molstar/plugin/state/transforms/data/fetch`) have an optional `asResponse` param: with it
-they hold the bytes and give `PluginStateObject.Data.Response`, whose reader chooses the form (`ParseCif` parses text
-CIF from the bytes, never decoding them to a string). Without it they give `Data.String` or `Data.Binary` as before, so
-nothing changes at run time. Their `to` lists `Data.Response` too, so their output's inferred type is
-`String | Binary | Response`: code that writes it out as `String | Binary` (`StateBuilder.To<PSO.Data.Binary |
-PSO.Data.String>` for the result of `b.apply(Download, ...)`) no longer compiles; it adds `PSO.Data.Response` to the
-type. `builders.data.download` and `readFile` are overloaded: without `asResponse: true` they keep their
-`String | Binary` type. The one case in the repository was `examples/proteopedia-wrapper`. `DownloadBlob` likewise:
-with `asResponse` it gives `Data.ResponseBlob` (each entry a response body), so its output is `Blob | ResponseBlob`;
-`builders.data.downloadBlob` without `asResponse: true` keeps `Blob`.
+`Download`, `ReadFile` and `DownloadBlob` (`@molstar/plugin/state/transforms/data/fetch`) give
+`PluginStateObject.Data.Response` (`DownloadBlob`: `Data.ResponseBlob`) unless their `asResponse` param is `false`: the
+bytes, held once, and the reader chooses the form (`data.bytes`, `data.text(ctx)`, `data.json(ctx)`,
+`data.read(ctx, type)`). `asResponse` unset is `true`, so a snapshot saved before, and code that does not set it, now
+gets Response Data; `isBinary` matters only with `asResponse: false`. Why: text CIF parses from the bytes, never decoded
+to a string and encoded back (flat-192-cif: 388 → 270 MB retained).
+
+- Every built-in parser takes String, Binary and Response Data (`from: [String, Binary, Response]`): a text parser reads
+  `SO.Data.readText(ctx, a)`, a binary one `SO.Data.readBytes(a)` (`{ copy: true }` when it writes into its input or
+  keeps views of it).
+- **A custom parser on top of `Download` or `ReadFile` has to adjust**: add `SO.Data.Response` to its `from` and read
+  through `readText` / `readBytes` (a `from` of `[String, Binary, Response]` keeps it applicable to `String | Binary`
+  refs such as `RawData`'s); or set `asResponse: false` on the download; or put `ReadResponse { isBinary }` between
+  them. Code that reads a download's `cell.obj.data` as a string or bytes reads `data.text(ctx)` or `data.bytes`.
+- A `DataFormatProvider.isApplicable` gets a response as text (decoded once), or as bytes when the provider sets
+  `sniffsBytes` or reads the extension as binary (`DataFormatProvider.applicable`).
+- Types: `builders.data.download`, `readFile` and `downloadBlob` return a `Data.Response` (`ResponseBlob`) selector,
+  or `String | Binary` (`Blob`) with `asResponse: false`. The transforms' output is `String | Binary | Response`: code
+  that writes it out as `String | Binary` (`StateBuilder.To<PSO.Data.Binary | PSO.Data.String>`) adds `Response`.
+- Memory: a text format other than CIF holds its bytes and its string while the data node lives (a file read
+  before held only the string; a download a blob and the string).
 
 ## `Download` and `ReadFile` inflate gzip by default
 

@@ -22,7 +22,7 @@ type TrajectoryFromPDB = typeof TrajectoryFromPDB;
 const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
   name: 'trajectory-from-pdb',
   display: { name: 'Parse PDB', description: 'Parse PDB string and create trajectory.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Trajectory,
   params: {
     variant: PD.Select('pdb', PD.arrayToOptions(['pdb', 'pdbqt', 'pqr'] as const)),
@@ -30,7 +30,7 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }) {
     return Task.create('Parse PDB', async (ctx) => {
-      const parsed = await parsePDB(a.data, a.label, params.variant).runInContext(ctx);
+      const parsed = await parsePDB(await SO.Data.readText(ctx, a), a.label, params.variant).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
       const props = trajectoryProps(models);

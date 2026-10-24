@@ -327,8 +327,6 @@ const DownloadStructure = StateAction.build({
             {
               sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
               maxConcurrency: 6,
-              // the blob is parsed as mmCIF (`ParseBlob`): its entries' bytes, never decoded to strings
-              asResponse: plugin.dataFormats.has('mmcif') && !!plugin.dataFormats.get('mmcif')?.readsResponse,
             },
             { state: { isGhost: true } },
           );
@@ -346,10 +344,7 @@ const DownloadStructure = StateAction.build({
           for (const download of downloadParams) {
             if (!plugin.dataFormats.has(format)) throw new Error('unknown file format');
             const provider = plugin.dataFormats.get(format)!;
-            const data = await plugin.builders.data.download(
-              { ...download, asResponse: !!provider.readsResponse },
-              { state: { isGhost: true } },
-            );
+            const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
             const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
 
             await plugin.builders.structure.hierarchy.applyPreset(trajectory, hierarchyPreset, {
@@ -633,7 +628,7 @@ export const LoadTrajectory = StateAction.build({
           }
 
           const provider = ctx.dataFormats.get(format)!;
-          const data = await ctx.builders.data.download({ url, isBinary, asResponse: !!provider.readsResponse });
+          const data = await ctx.builders.data.download({ url, isBinary });
           return provider.parse(ctx, data);
         };
 
@@ -642,8 +637,7 @@ export const LoadTrajectory = StateAction.build({
 
           const info = getFileNameInfo(file.file?.name ?? '');
           const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
-          const asResponse = ctx.dataFormats.responseExtensions.has(info.ext);
-          const { data } = await ctx.builders.data.readFile({ file, isBinary, asResponse });
+          const { data } = await ctx.builders.data.readFile({ file, isBinary });
           const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
 
           if (!provider) {

@@ -12,7 +12,7 @@ import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
 import { gzipDeclaredSize, isGzip, ungzip } from './zip/zip.js';
 
-export { type AssetManager, DefaultAssetManager, Asset };
+export { AssetManager, DefaultAssetManager, Asset };
 
 type _File = File;
 type Asset = Asset.Url | Asset.File;
@@ -118,13 +118,28 @@ interface InflatedCache {
   inflated?: Promise<Uint8Array<ArrayBuffer>>;
 }
 
-/** The largest inflated size accepted: a gzip that declares more is refused, not allocated. */
-const MaxInflatedBytes = 2 ** 31;
+/**
+ * Deflate shrinks data at most about 1032 times: a gzip that declares (ISIZE) more than that of its size is corrupt or
+ * crafted, and refused before its buffer is allocated (`util/_spec/assets.md` §5).
+ */
+const MaxDeflateRatio = 1032;
 
 function inflateGzip(ctx: RuntimeContext, data: Uint8Array<ArrayBuffer>) {
   const size = gzipDeclaredSize(data);
-  if (size > MaxInflatedBytes) throw new Error(`gzip data inflates to ${size} bytes, more than ${MaxInflatedBytes}`);
+  if (size > data.length * MaxDeflateRatio + 1024) {
+    throw new Error(`gzip data declares ${size} bytes inflated, more than ${data.length} compressed bytes can hold`);
+  }
   return ungzip(ctx, data);
+}
+
+/** Whether the task of `ctx` was aborted: its next update throws an abort. */
+async function isAborted(ctx: RuntimeContext) {
+  try {
+    await ctx.update();
+    return false;
+  } catch (e) {
+    return Task.isAbort(e);
+  }
 }
 
 /**
@@ -179,25 +194,45 @@ class HeldAsset implements AssetManager.Entry {
     if (this.source && (type === 'zip' || (!holds && !decompress))) {
       return readFromFile(this.source, type).runInContext(ctx);
     }
-    let bytes = this.bytes ?? (await readFromFile(this.source!, 'binary').runInContext(ctx));
-    if (holds) this.bytes = bytes;
-    if (decompress && type !== 'zip' && isGzip(bytes)) bytes = await this.inflate(ctx, bytes, holds);
-    if (type === 'binary') return (shared ? bytes : bytes.slice()) as DataResponse<T>;
+    // `owned`: bytes read or inflated for this read only, nobody else's: a binary read returns them without a copy
+    let owned = false;
+    let bytes = this.bytes;
+    if (!bytes) {
+      bytes = await readFromFile(this.source!, 'binary').runInContext(ctx);
+      if (holds) this.bytes = bytes;
+      else owned = true;
+    }
+    if (decompress && type !== 'zip' && isGzip(bytes)) {
+      bytes = await this.inflate(ctx, bytes, holds);
+      owned = !holds;
+    }
+    if (type === 'binary') return (shared || owned ? bytes : bytes.slice()) as DataResponse<T>;
     return decodeData(ctx, bytes, type);
   }
 
-  /** Held bytes inflate once, whoever asks first; a failure is not kept. */
-  private inflate(ctx: RuntimeContext, bytes: Uint8Array<ArrayBuffer>, held: boolean) {
+  /**
+   * Held bytes inflate once, whoever asks first; a failure is not kept. The inflate runs in the first reader's task:
+   * when that task is aborted, a reader that was not takes over, as a waiter of an aborted download does.
+   */
+  private async inflate(ctx: RuntimeContext, bytes: Uint8Array<ArrayBuffer>, held: boolean) {
     if (!held) return inflateGzip(ctx, bytes);
     const cache = this.inflatedCache;
-    if (!cache.inflated) {
-      const inflated = inflateGzip(ctx, bytes);
-      cache.inflated = inflated;
-      inflated.catch(() => {
-        if (cache.inflated === inflated) cache.inflated = undefined;
-      });
+    for (;;) {
+      let inflated = cache.inflated;
+      if (!inflated) {
+        const started = inflateGzip(ctx, bytes);
+        cache.inflated = inflated = started;
+        started.catch(() => {
+          if (cache.inflated === started) cache.inflated = undefined;
+        });
+      }
+      try {
+        return await inflated;
+      } catch (e) {
+        if (Task.isAbort(e) && !(await isAborted(ctx))) continue;
+        throw e;
+      }
     }
-    return cache.inflated;
   }
 }
 
@@ -227,12 +262,40 @@ interface AssetManager {
     store?: boolean | AssetManager.ResolveOptions,
   ): Task<Asset.Wrapper<T>>;
   release(asset: Asset): void;
+  /** `resolve` honors `decompress` (`DefaultAssetManager` does); without it `AssetManager.resolveData` inflates. */
+  readonly decompresses?: boolean;
   clearTag(tag: string): void;
   clear(): void;
   dispose(): void;
 }
 
 namespace AssetManager {
+  /**
+   * `manager.resolve` with `decompress` honored by any manager: one that does not inflate (`decompresses` unset, a
+   * custom one) is asked for the bytes, which are inflated, uncached, and read as `type` here (`util/_spec/assets.md`
+   * §5).
+   */
+  export function resolveData<T extends DataType>(
+    manager: AssetManager,
+    asset: Asset,
+    type: T,
+    options: ResolveOptions = {},
+  ): Task<Asset.Wrapper<T>> {
+    if (!options.decompress || manager.decompresses) return manager.resolve(asset, type, options);
+    return Task.create(`Read ${Asset.isUrl(asset) ? asset.url : asset.name}`, async (ctx) => {
+      const held = await manager.resolve(asset, 'binary', { ...options, decompress: false }).runInContext(ctx);
+      try {
+        let bytes = held.data;
+        if (type !== 'zip' && isGzip(bytes)) bytes = await inflateGzip(ctx, bytes);
+        const data = (type === 'binary' ? bytes : await decodeData(ctx, bytes, type)) as DataResponse<T>;
+        return { data, dispose: held.dispose };
+      } catch (e) {
+        held.dispose();
+        throw e;
+      }
+    });
+  }
+
   export interface ResolveOptions {
     /** Hold the asset (default `true`). */
     store?: boolean;
@@ -271,6 +334,7 @@ namespace AssetManager {
  */
 class DefaultAssetManager implements AssetManager {
   // TODO: when serializing, check for duplicates?
+  readonly decompresses = true;
 
   private _assets = new Map<string, HeldAsset>();
   private _urlCache = new Map<string, UrlCacheEntry>();
@@ -473,7 +537,7 @@ class DefaultAssetManager implements AssetManager {
       } catch (e) {
         this._releaseUrl(key, entry);
         // the downloader was aborted, not this task: not a failure for us, take over
-        if (Task.isAbort(e) && !(await this._isAborted(ctx))) continue;
+        if (Task.isAbort(e) && !(await isAborted(ctx))) continue;
         throw e;
       }
     }
@@ -500,15 +564,6 @@ class DefaultAssetManager implements AssetManager {
     } catch (e) {
       this._releaseUrl(key, entry);
       throw e;
-    }
-  }
-
-  private async _isAborted(ctx: RuntimeContext) {
-    try {
-      await ctx.update();
-      return false;
-    } catch (e) {
-      return Task.isAbort(e);
     }
   }
 }

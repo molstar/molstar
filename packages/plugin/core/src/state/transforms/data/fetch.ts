@@ -10,7 +10,7 @@ import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/s
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
 import { type RuntimeContext, Task } from '@molstar/core/task';
-import { Asset } from '@molstar/core/util/assets';
+import { Asset, AssetManager } from '@molstar/core/util/assets';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { fetchDataMany } from '@molstar/core/util/data-source';
 import { isGzip, ungzip } from '@molstar/core/util/zip/zip';
@@ -19,7 +19,10 @@ import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { ColorNames } from '@molstar/core/util/color/names';
 
 const AsResponseDescription =
-  'If true, hold the bytes and let the parser read them as text or binary (Response Data); isBinary is ignored.';
+  'If true (the default), hold the bytes and let the parser read them as text or binary (Response Data); isBinary is ignored. False: String or Binary Data, as isBinary says.';
+
+/** `asResponse` unset is `true`: every parser reads a response (`.v6/data-response`) */
+const asResponseOf = (p: { asResponse?: boolean }) => p.asResponse ?? true;
 
 const DecompressParam = PD.Optional(
   PD.Select<'auto' | 'none'>(
@@ -50,7 +53,10 @@ async function readResponse(
   label: string,
   decompress: boolean,
 ) {
-  const held = await plugin.managers.asset.resolve(asset, 'binary', { shared: true, decompress }).runInContext(ctx);
+  const held = await AssetManager.resolveData(plugin.managers.asset, asset, 'binary', {
+    shared: true,
+    decompress,
+  }).runInContext(ctx);
   cache.asset = held;
   return new SO.Data.Response(new SO.Data.ResponseBody(held.data), { label });
 }
@@ -70,10 +76,10 @@ const Download = PluginStateTransform.BuiltIn({
     isBinary: PD.Optional(
       PD.Boolean(false, {
         description: 'If true, download data as binary (string otherwise). Ignored with asResponse.',
-        hideIf: (p) => !!p.asResponse,
+        hideIf: (p) => asResponseOf(p),
       }),
     ),
-    asResponse: PD.Optional(PD.Boolean(false, { description: AsResponseDescription })),
+    asResponse: PD.Optional(PD.Boolean(true, { description: AsResponseDescription })),
     decompress: DecompressParam,
   },
 })({
@@ -81,10 +87,10 @@ const Download = PluginStateTransform.BuiltIn({
     return Task.create('Download', async (ctx) => {
       const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
       const decompress = decompressOf(p);
-      if (p.asResponse) return readResponse(ctx, plugin, url, cache, p.label || url.url, decompress);
-      const asset = await plugin.managers.asset
-        .resolve(url, p.isBinary ? 'binary' : 'string', { decompress })
-        .runInContext(ctx);
+      if (asResponseOf(p)) return readResponse(ctx, plugin, url, cache, p.label || url.url, decompress);
+      const asset = await AssetManager.resolveData(plugin.managers.asset, url, p.isBinary ? 'binary' : 'string', {
+        decompress,
+      }).runInContext(ctx);
       (cache as any).asset = asset;
       return p.isBinary
         ? new SO.Data.Binary(asset.data as Uint8Array<ArrayBuffer>, { label: p.label ? p.label : url.url })
@@ -98,7 +104,7 @@ const Download = PluginStateTransform.BuiltIn({
     if (
       oldParams.url !== newParams.url ||
       oldParams.isBinary !== newParams.isBinary ||
-      oldParams.asResponse !== newParams.asResponse ||
+      asResponseOf(oldParams) !== asResponseOf(newParams) ||
       decompressOf(oldParams) !== decompressOf(newParams)
     )
       return StateTransformer.UpdateResult.Recreate;
@@ -141,9 +147,9 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
       PD.Numeric(4, { min: 1, max: 12, step: 1 }, { description: 'The maximum number of concurrent downloads.' }),
     ),
     asResponse: PD.Optional(
-      PD.Boolean(false, {
+      PD.Boolean(true, {
         description:
-          'If true, hold every entry as bytes and let the parser read each as text or binary (Response Blob); isBinary is ignored.',
+          'If true (the default), hold every entry as bytes and let the parser read each as text or binary (Response Blob); isBinary is ignored. False: a Data Blob of strings and binaries, as isBinary says.',
       }),
     ),
     decompress: DecompressParam,
@@ -152,7 +158,8 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
   apply({ params, cache }, plugin: PluginContext) {
     return Task.create('Download Blob', async (ctx) => {
       const decompress = decompressOf(params);
-      const sources = params.asResponse
+      const asResponse = asResponseOf(params);
+      const sources = asResponse
         ? params.sources.map((src) => ({ ...src, isBinary: true, shared: true, decompress }))
         : params.sources.map((src) => ({ ...src, decompress }));
       const data = await fetchDataMany(ctx, plugin.managers.asset, sources, params.maxConcurrency || 4);
@@ -167,7 +174,7 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
         if (r.kind === 'error') plugin.log.warn(`Download ${r.id} (${src.url}) failed: ${r.error}`);
         else {
           assets.push(r.result);
-          if (params.asResponse) {
+          if (asResponse) {
             // one shared hold of each entry's bytes for the node's lifetime, as `Download`'s `asResponse`
             responses.push({ id: r.id, data: new SO.Data.ResponseBody(r.result.data as Uint8Array<ArrayBuffer>) });
           } else {
@@ -180,9 +187,9 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
         }
       }
       (cache as any).assets = assets;
-      const count = params.asResponse ? responses.length : entries.length;
+      const count = asResponse ? responses.length : entries.length;
       const props = { description: `${count} ${count === 1 ? 'entry' : 'entries'}` };
-      return params.asResponse
+      return asResponse
         ? new SO.Data.ResponseBlob(responses, { label: 'Response Blob', ...props })
         : new SO.Data.Blob(entries, { label: 'Data Blob', ...props });
     });
@@ -217,13 +224,15 @@ const DeflateData = PluginStateTransform.BuiltIn({
     stringEncoding: PD.Optional(PD.Select('utf-8', [['utf-8', 'UTF8']])),
     label: PD.Optional(PD.Text('')),
   },
-  from: [SO.Data.Binary],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: [SO.Data.Binary, SO.Data.String],
 })({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Gzip', async (ctx) => {
-      // bytes that are not gzip pass through: a `Download` inflates gzip itself (`decompress`, auto by default)
-      const decompressedData = isGzip(a.data) ? await ungzip(ctx, a.data) : a.data;
+      // bytes that are not gzip pass through, copied (its readers may change them, the input's may not): a `Download`
+      // inflates gzip itself (`decompress`, auto by default)
+      const bytes = SO.Data.readBytes(a);
+      const decompressedData = isGzip(bytes) ? await ungzip(ctx, bytes) : bytes.slice();
       const label = params.label ? params.label : a.label;
       // handle decoding based on stringEncoding param
       if (params.isString) {
@@ -304,10 +313,10 @@ const ReadFile = PluginStateTransform.BuiltIn({
     isBinary: PD.Optional(
       PD.Boolean(false, {
         description: 'If true, open file as as binary (string otherwise). Ignored with asResponse.',
-        hideIf: (p) => !!p.asResponse,
+        hideIf: (p) => asResponseOf(p),
       }),
     ),
-    asResponse: PD.Optional(PD.Boolean(false, { description: AsResponseDescription })),
+    asResponse: PD.Optional(PD.Boolean(true, { description: AsResponseDescription })),
     decompress: DecompressParam,
   },
 })({
@@ -319,10 +328,10 @@ const ReadFile = PluginStateTransform.BuiltIn({
       }
 
       const decompress = decompressOf(p);
-      if (p.asResponse) return readResponse(ctx, plugin, p.file, cache, p.label || p.file.name, decompress);
-      const asset = await plugin.managers.asset
-        .resolve(p.file, p.isBinary ? 'binary' : 'string', { decompress })
-        .runInContext(ctx);
+      if (asResponseOf(p)) return readResponse(ctx, plugin, p.file, cache, p.label || p.file.name, decompress);
+      const asset = await AssetManager.resolveData(plugin.managers.asset, p.file, p.isBinary ? 'binary' : 'string', {
+        decompress,
+      }).runInContext(ctx);
       (cache as any).asset = asset;
       const o = p.isBinary
         ? new SO.Data.Binary(asset.data as Uint8Array<ArrayBuffer>, { label: p.label ? p.label : p.file.name })
@@ -336,8 +345,9 @@ const ReadFile = PluginStateTransform.BuiltIn({
   },
   update({ oldParams, newParams, b }) {
     if (
+      oldParams.file?.id !== newParams.file?.id ||
       oldParams.isBinary !== newParams.isBinary ||
-      oldParams.asResponse !== newParams.asResponse ||
+      asResponseOf(oldParams) !== asResponseOf(newParams) ||
       decompressOf(oldParams) !== decompressOf(newParams)
     )
       return StateTransformer.UpdateResult.Recreate;
