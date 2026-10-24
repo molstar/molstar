@@ -158,6 +158,8 @@ type StageResult = {
   rssMB: number;
   gcMs: number;
   info?: string;
+  /** the stage threw: its columns measure the failure, not the work (perf-audit-3 12/B4) */
+  error?: string;
 };
 type Ctx = { parsed?: any; model?: any; structure?: Structure };
 
@@ -170,6 +172,8 @@ const gcTime = (t0: number, t1: number) => gcPauses.reduce((a, [t, d]) => (t >= 
 
 let session: Session | undefined;
 const stageProfiles: Record<string, any> = {};
+/** stages that threw: the run exits non-zero */
+let failures = 0;
 
 const matches = (name: string, pattern: string) =>
   pattern.endsWith('*') || pattern.endsWith(':') ? name.startsWith(pattern.replace(/\*$/, '')) : name === pattern;
@@ -202,11 +206,14 @@ async function stage(
     });
   } else if (session) await session.post('Profiler.start');
   const t0 = performance.now();
-  let info: string | void;
+  let info: string | void = undefined;
+  let error: string | undefined;
   try {
     info = await fn();
   } catch (e) {
-    info = `ERROR: ${(e as Error).message}`;
+    error = (e as Error)?.message ?? String(e);
+    failures++;
+    console.error(e);
   }
   const t1 = performance.now();
   await new Promise((r) => setTimeout(r, 0)); // gc entries are delivered asynchronously
@@ -229,9 +236,14 @@ async function stage(
     rssMB: process.resourceUsage().maxRSS / 1024,
     gcMs: stageGcMs,
     info: info || undefined,
+    error,
   };
   if (!profileDir) {
     const r = results[name];
+    if (r.error) {
+      console.error(`${name.padEnd(44)} FAILED: ${r.error}`);
+      return;
+    }
     console.error(
       `${name.padEnd(44)} ${r.ms.toFixed(1).padStart(9)} ms ${r.allocMB.toFixed(0).padStart(6)} MB alloc ${(r.retainedHeapMB + r.retainedAbMB).toFixed(0).padStart(6)} MB ret ${r.rssMB.toFixed(0).padStart(6)} MB rss ${r.gcMs.toFixed(0).padStart(7)} ms gc  ${r.info ?? ''}`,
     );
@@ -319,9 +331,12 @@ const wholeUnits = (s: Structure, units: readonly Unit[]) =>
     units.map((unit) => ({ unit, indices: Interval.ofBounds(0, unit.elements.length) })),
   );
 
-/** one chain (the first polymer unit, one operator) and the same chain in every copy */
+/**
+ * One chain (the first atomic polymer unit, one operator; on a coarse-only entry the first unit) and the same chain
+ * in every copy
+ */
 function selections(s: Structure) {
-  const first = s.units.find((u) => Unit.isAtomic(u) && u.polymerElements.length > 0)!;
+  const first = s.units.find((u) => Unit.isAtomic(u) && u.polymerElements.length > 0) ?? s.units[0];
   const id = chainId(s, first);
   const sameChain = s.units.filter(
     (u) => u.model === first.model && chainId(s, u) === id && u.elements.length === first.elements.length,
@@ -557,19 +572,28 @@ if (profileDir) {
     await pipeline(res);
     for (const [k, v] of Object.entries(res)) (all[k] ??= []).push(v);
   }
-  const rows = Object.entries(all).map(([k, v]) => ({
-    stage: k,
-    coldMs: +v[0].ms.toFixed(1),
-    medMs: +median(v.map((x) => x.ms)).toFixed(1),
-    allocMB: +median(v.map((x) => x.allocMB)).toFixed(1),
-    retHeapMB: +median(v.map((x) => x.retainedHeapMB)).toFixed(1),
-    retAbMB: +median(v.map((x) => x.retainedAbMB)).toFixed(1),
-    rssMB: +Math.max(...v.map((x) => x.rssMB)).toFixed(0),
-    gcMs: +median(v.map((x) => x.gcMs)).toFixed(0),
-    info: v[0].info ?? '',
-  }));
+  // a stage that failed in any run has no numbers, so that a comparison does not read the failure as a speedup
+  const rows = Object.entries(all).map(([k, v]) => {
+    const error = v.find((x) => x.error)?.error;
+    if (error) return { stage: k, error, coldMs: null, medMs: null, allocMB: null, info: v[0].info ?? '' };
+    return {
+      stage: k,
+      coldMs: +v[0].ms.toFixed(1),
+      medMs: +median(v.map((x) => x.ms)).toFixed(1),
+      allocMB: +median(v.map((x) => x.allocMB)).toFixed(1),
+      retHeapMB: +median(v.map((x) => x.retainedHeapMB)).toFixed(1),
+      retAbMB: +median(v.map((x) => x.retainedAbMB)).toFixed(1),
+      rssMB: +Math.max(...v.map((x) => x.rssMB)).toFixed(0),
+      gcMs: +median(v.map((x) => x.gcMs)).toFixed(0),
+      info: v[0].info ?? '',
+    };
+  });
   const out = { fixture: fixtureName, mesh: meshMode, quality: quality ?? 'auto', runs, rows };
   const outFile = arg('out');
   if (outFile) writeFileSync(outFile, JSON.stringify(out, null, 1));
   else console.log(JSON.stringify(out));
+}
+if (failures) {
+  console.error(`${failures} stage${failures === 1 ? '' : 's'} failed`);
+  process.exitCode = 1;
 }
