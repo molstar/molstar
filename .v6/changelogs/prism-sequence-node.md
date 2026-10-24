@@ -40,3 +40,5 @@
   (Automatic, Model, DSSP), by a patch of its data, not a new document.
 - Seq\*: a tooltip that would leave the viewer below stays beside the pointer, as low as the viewer holds it, instead
   of flipping up over the ruler (a header's legend still goes above its line).
+- model-archive: a box drawn on the PAE plot stays when the release comes as a move with no button held (a trackpad's
+  lift) before its `pointerup`; it used to vanish when there was no box before it.

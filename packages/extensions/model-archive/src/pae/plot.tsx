@@ -385,7 +385,10 @@ export function PaePlot(props: PaePlotProps) {
     },
     end: (d, how, e) => {
       pressed = undefined;
-      if (how === 'cancel' || !e) {
+      // A move with no button held ends the drag as a lost release: the button is up, so it is one (a trackpad's lift
+      // can come as such a move before its `pointerup`), and the box is the one drawn, not dropped for the one before.
+      const released = how === 'up' || (e?.type === 'pointermove' && e.buttons === 0);
+      if (!released || !e) {
         drawBox(shown.value);
         placeClose(shown.value);
         schedule();
