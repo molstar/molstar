@@ -52,81 +52,86 @@ export function SequenceInspector(props: { model: SequenceInspectorModel }) {
     return s.size === total ? 'all' : `${s.size} of ${total}`;
   });
   return (
-    <section class={quick.quick} aria-label="Sequence">
+    <section class={`${quick.quick} ${classes.root}`} aria-label="Sequence">
       <div class={classes.status}>
         <span class={classes.statusText}>{model.status}</span>
         <Show when={model.canAdd}>
           {() => (
-            <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => model.addTrack()}>
+            <Button size="xs" variant="ghost" icon={<Icon name="plus" />} onClick={() => model.addTrack()}>
               Add track
             </Button>
           )}
         </Show>
       </div>
-      <div class={quick.setting}>
-        <div class={quick.head}>
-          <span class={quick.name}>Style</span>
-          <span class={quick.value}>{derive(model.style, (s) => (s === 'text' ? 'Text' : 'Tracks'))}</span>
-        </div>
-        <div class={quick.segments} role="radiogroup" aria-label="Style">
-          {Styles.map((s) => (
-            <button
-              type="button"
-              role="radio"
-              class={quick.segment}
-              aria-checked={derive(model.style, (v) => v === s.id)}
-              aria-label={s.label}
-              data-tip={s.label}
-              onClick={() => model.setStyle(s.id)}
-            >
-              <Icon name={s.icon} size={18} />
-            </button>
-          ))}
-        </div>
-      </div>
-      <div class={quick.setting}>
-        <div class={quick.head}>
-          <span class={quick.name}>Letters</span>
-          <span class={quick.value}>
-            {derive([model.colors, model.schemes], (c, list) => list.find((x) => x.id === c)?.label ?? '')}
-          </span>
-        </div>
-        <div class={quick.tiles} role="radiogroup" aria-label="Letter colors">
-          <For each={model.schemes} by={(x) => x.id ?? 'none'}>
-            {(x) => (
+      {/* The band's style and letters side by side: two short settings, one row. */}
+      <div class={classes.pair}>
+        <div class={quick.setting}>
+          <div class={quick.head}>
+            <span class={quick.name}>Style</span>
+            <span class={quick.value}>{derive(model.style, (s) => (s === 'text' ? 'Text' : 'Tracks'))}</span>
+          </div>
+          <div class={`${quick.segments} ${classes.styles}`} role="radiogroup" aria-label="Style">
+            {Styles.map((s) => (
               <button
                 type="button"
                 role="radio"
-                class={quick.tile}
-                classList={{ [quick.unpainted]: !x.swatch }}
-                style={{ background: x.swatch ?? '' }}
-                aria-checked={derive(model.colors, (c) => c === x.id)}
-                aria-label={x.label}
-                data-tip={x.label}
-                onClick={() => model.setColors(x.id)}
-              />
-            )}
-          </For>
+                class={`${quick.segment} ${classes.segment}`}
+                aria-checked={derive(model.style, (v) => v === s.id)}
+                aria-label={s.label}
+                data-tip={s.label}
+                onClick={() => model.setStyle(s.id)}
+              >
+                <Icon name={s.icon} size={16} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class={quick.setting}>
+          <div class={quick.head}>
+            <span class={quick.name}>Letters</span>
+            <span class={quick.value}>
+              {derive([model.colors, model.schemes], (c, list) => list.find((x) => x.id === c)?.label ?? '')}
+            </span>
+          </div>
+          <div class={`${quick.tiles} ${classes.tiles}`} role="radiogroup" aria-label="Letter colors">
+            <For each={model.schemes} by={(x) => x.id ?? 'none'}>
+              {(x) => (
+                <button
+                  type="button"
+                  role="radio"
+                  class={quick.tile}
+                  classList={{ [quick.unpainted]: !x.swatch }}
+                  style={{ background: x.swatch ?? '' }}
+                  aria-checked={derive(model.colors, (c) => c === x.id)}
+                  aria-label={x.label}
+                  data-tip={x.label}
+                  onClick={() => model.setColors(x.id)}
+                />
+              )}
+            </For>
+          </div>
         </div>
       </div>
       <div class={quick.setting}>
-        <div class={quick.head}>
-          <span class={quick.name}>Chains</span>
-          <span class={quick.value}>{chainsValue}</span>
-        </div>
-        <div class={quick.segments} role="radiogroup" aria-label="Chains">
-          {Presets.map((p) => (
-            <button
-              type="button"
-              role="radio"
-              class={`${quick.segment} ${classes.word}`}
-              aria-checked={derive(model.preset, (v) => v === p.id)}
-              data-tip={p.tip}
-              onClick={() => model.apply(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div class={classes.chainsHead}>
+          <div class={quick.head}>
+            <span class={quick.name}>Chains</span>
+            <span class={quick.value}>{chainsValue}</span>
+          </div>
+          <div class={`${quick.segments} ${classes.presets}`} role="radiogroup" aria-label="Chains">
+            {Presets.map((p) => (
+              <button
+                type="button"
+                role="radio"
+                class={`${quick.segment} ${classes.segment} ${classes.word}`}
+                aria-checked={derive(model.preset, (v) => v === p.id)}
+                data-tip={p.tip}
+                onClick={() => model.apply(p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
         <Entities model={model} />
         <button

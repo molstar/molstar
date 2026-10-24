@@ -14,6 +14,7 @@ export const classes = {
   'box': 'msp-viewer-sequence-inspector-box',
   'boxButton': 'msp-viewer-sequence-inspector-boxButton',
   'branched': 'msp-viewer-sequence-inspector-branched',
+  'chainsHead': 'msp-viewer-sequence-inspector-chainsHead',
   'chevron': 'msp-viewer-sequence-inspector-chevron',
   'chevronOpen': 'msp-viewer-sequence-inspector-chevronOpen',
   'chip': 'msp-viewer-sequence-inspector-chip',
@@ -29,20 +30,64 @@ export const classes = {
   'more': 'msp-viewer-sequence-inspector-more',
   'moreCount': 'msp-viewer-sequence-inspector-moreCount',
   'name': 'msp-viewer-sequence-inspector-name',
+  'pair': 'msp-viewer-sequence-inspector-pair',
   'polymer': 'msp-viewer-sequence-inspector-polymer',
+  'presets': 'msp-viewer-sequence-inspector-presets',
+  'root': 'msp-viewer-sequence-inspector-root',
   'row': 'msp-viewer-sequence-inspector-row',
+  'segment': 'msp-viewer-sequence-inspector-segment',
   'status': 'msp-viewer-sequence-inspector-status',
   'statusText': 'msp-viewer-sequence-inspector-statusText',
+  'styles': 'msp-viewer-sequence-inspector-styles',
   'text': 'msp-viewer-sequence-inspector-text',
+  'tiles': 'msp-viewer-sequence-inspector-tiles',
   'word': 'msp-viewer-sequence-inspector-word',
 } as const;
 
 defineStyles('viewer/views/structure/sequence-inspector.module.css', `@layer msp.components {
+.msp-viewer-sequence-inspector-root {
+  gap: var(--msp-space-2);
+}
+
 .msp-viewer-sequence-inspector-status {
   align-items: center;
   gap: var(--msp-space-2);
-  min-height: 28px;
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
   display: flex;
+}
+
+.msp-viewer-sequence-inspector-pair {
+  gap: var(--msp-space-4);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  display: grid;
+}
+
+.msp-viewer-sequence-inspector-styles {
+  width: 76px;
+}
+
+.msp-viewer-sequence-inspector-segment {
+  height: 24px;
+}
+
+.msp-viewer-sequence-inspector-tiles {
+  align-items: center;
+  min-width: 0;
+  height: 28px;
+}
+
+.msp-viewer-sequence-inspector-chainsHead {
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--msp-space-3);
+  display: flex;
+}
+
+.msp-viewer-sequence-inspector-presets {
+  flex: none;
+  width: 180px;
 }
 
 .msp-viewer-sequence-inspector-statusText {
@@ -60,7 +105,8 @@ defineStyles('viewer/views/structure/sequence-inspector.module.css', `@layer msp
 .msp-viewer-sequence-inspector-line {
   align-items: center;
   gap: var(--msp-space-2);
-  min-height: 28px;
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
   color: var(--msp-color-text-muted);
   text-align: left;
   display: flex;
@@ -87,7 +133,7 @@ defineStyles('viewer/views/structure/sequence-inspector.module.css', `@layer msp
 .msp-viewer-sequence-inspector-row {
   align-items: center;
   gap: var(--msp-space-2);
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 var(--msp-space-2) 0 0;
   border-radius: var(--msp-radius-md);
   display: flex;

@@ -6,12 +6,55 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+/* Closer than a representation's quick settings: rows of short controls. */
+.root {
+  gap: var(--msp-space-2);
+}
+
 /* What the band shows, and Add track at its end. */
 .status {
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  min-height: 28px;
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Style and Letters, one row: the style's two icons, then the letters' tiles taking the rest. */
+.pair {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--msp-space-4);
+  align-items: start;
+}
+
+.styles {
+  width: 76px;
+}
+
+/* The strips' segments, shorter than a representation's. */
+.segment {
+  height: 24px;
+}
+
+/* The tiles centered on the style's strip beside them (the strip's segments and its inner edge). */
+.tiles {
+  min-width: 0;
+  height: 28px;
+  align-items: center;
+}
+
+/* Chains: its name and value, the presets beside them. */
+.chainsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-3);
+}
+
+.presets {
+  flex: none;
+  width: 180px;
 }
 
 .statusText {
@@ -32,7 +75,8 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  min-height: 28px;
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
   color: var(--msp-color-text-muted);
   text-align: left;
 }
@@ -60,7 +104,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 var(--msp-space-2) 0 0;
   border-radius: var(--msp-radius-md);
 

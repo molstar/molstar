@@ -312,8 +312,13 @@ The code is the truth for how.
   menu's first action), rows read from Seq\*'s layout when it is rebuilt, the row under the pointer from
   `interaction.on('hover')`; the 3D view's current coloring stays lit in the accent; clicking it again does nothing.
 - **The keyboard cursor is said** in a polite live region once the arrows rest.
-- **Framing below the band**: `paddedFocus` (`sources/framing.ts`) frames a structure in the canvas below the band, as a
-  snapshot provider for `requestCameraReset`.
+- **Framing below the band**: `paddedFocus` (`sources/framing.ts`) frames a structure in the canvas below the band's
+  lines (not its fade), as a snapshot provider for `requestCameraReset`: the bounding sphere centered there with a
+  little room (4%), Mol*'s perspective margin (its framing shows r / cos(fov / 2)) counted in, so it is as close as
+  Mol*'s own reset when that margin holds the band, and never closer (David, 2026-10-24: the band no longer pushes the
+  structure back on top of that margin).
+- **Hiding the band** fades it where it stands: the top dock keeps the band's place while its content fades (prism-ui
+  `dock-view.tsx`), then paints nothing.
 
 ### 8.1 The Sequence node
 

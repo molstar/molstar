@@ -22,3 +22,6 @@
   letter colors, Legend and Visible tracks moved to the Sequence node.
 - Prism: the band's focus ring shows from the keyboard only, not after a click.
 - Prism: the structure tree's eye and ⋯ buttons show the app's tooltips, not the system's.
+- Prism: Reset view below the sequence band frames the structure as close as Mol*'s own reset allows (its perspective
+  margin counted in), not farther back by the band's height on top of it.
+- Prism: hiding the sequence band fades it in place (it used to jump to a panel's place, then fade).
