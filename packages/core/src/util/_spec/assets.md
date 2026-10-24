@@ -38,3 +38,16 @@ The code is the truth for how; this file records the rules the code relies on, e
 - Every other type decodes from the held bytes (`decodeData`, `data-source.ts`): a `'string'` read is one native decode,
   with no copy of the bytes before it.
 - A custom `AssetManager` may ignore `shared` and return a copy.
+
+## 5. Decompression
+
+- `resolve(asset, type, { decompress: true })` inflates gzip bytes before the read; not for `'zip'` reads. Gzip is told
+  by its bytes (`1f 8b 08`, `isGzip`), not the name. Why: a server may send `x.cif.gz` without `Content-Encoding` (the
+  bytes are gzip) or with it (the browser inflated them already): the name says neither. Text never starts with `0x1f`,
+  and the binary formats' headers do not start with these bytes.
+- Held bytes inflate once, whoever asks first: a download's inflated bytes are kept on its URL cache entry, beside the
+  compressed ones, for every asset of the URL; a file's with its held bytes. A failed inflate is not kept. Reads that
+  hold nothing (a file without `shared`, `store: false`) inflate each time.
+- A gzip that declares (ISIZE) more than 2 GiB is refused, not allocated.
+- `decompress` off (the default of `resolve`) gives the bytes as received. `Download` and `ReadFile` turn it on unless
+  their `decompress` param is `'none'`.

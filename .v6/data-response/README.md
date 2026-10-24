@@ -87,6 +87,17 @@ read it each time, as before (holding them would keep in memory what the file ke
 (`decodeData`, `data-source.ts`). Trade-off: a blob can live outside the JS heap (Chrome may page large ones to disk),
 held bytes cannot; for data the parser keeps anyway (text CIF holds its bytes), one copy beats a blob and a copy.
 
+### Decompression
+
+- `Download` and `ReadFile` take `decompress: 'auto' | 'none'`, unset is `auto`, for text, binary and responses: gzip
+  data (told by its bytes) is inflated, cached in the asset manager (`core/src/util/_spec/assets.md` §5). `update`
+  recreates on a change. Why: servers host `.gz` files without `Content-Encoding` (the EMDB maps).
+- `DeflateData` passes bytes that are not gzip through, so `Download` then `DeflateData` (a pipeline written before)
+  still works. The EMDB loader (`packages/extensions/plugin/src/loaders.ts`) no longer applies it; `DownloadFile`'s
+  `gzip` format reads the inflated download by its name without `.gz`.
+- `DownloadBlob` does not decompress (it reads through `ajaxGetMany`).
+- Not in scope: zip by its bytes (`PK\x03\x04`), brotli (no native decoder in browsers), bzip2, xz.
+
 ## What it costs and saves
 
 - Text CIF by response: one copy of the bytes (held, shared with the parsed file), no decode, no encode, no 512 MB

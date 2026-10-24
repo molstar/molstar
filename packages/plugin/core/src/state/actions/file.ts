@@ -145,8 +145,10 @@ export const DownloadFile = StateAction.build({
                 await processFile(asset, plugin, 'auto', params.visuals);
               }
             } else {
+              // the download inflated the gzip (`decompress`, auto), or the server did: the name loses its `.gz` so
+              // that reading the file does not inflate it again
               const url = Asset.getUrl(params.url);
-              const fileName = getFileNameInfo(url).name;
+              const fileName = getFileNameInfo(url).name.replace(/\.gz$/i, '');
               await processFile(
                 Asset.File(new File([data.obj?.data as Uint8Array<ArrayBuffer>], fileName)),
                 plugin,

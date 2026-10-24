@@ -320,3 +320,66 @@ describe('DefaultAssetManager held bytes (util/_spec/assets.md)', () => {
     expect(m.tryFindFilename('raw-data')).toBe(asset);
   });
 });
+
+describe('DefaultAssetManager decompress (util/_spec/assets.md §5)', () => {
+  const gz = (text: string) => new Uint8Array(gzipSync(enc.encode(text)));
+
+  /** Answers every download with `bytes`. */
+  function serveBytes(bytes: Uint8Array) {
+    ajaxMock.mockImplementation((params: any) => Task.create(`Download ${params.url}`, async () => bytes.slice()));
+  }
+
+  beforeEach(() => {
+    ajaxMock.mockReset();
+  });
+
+  it('inflates a gzipped download by its bytes, once for every reader of the URL', async () => {
+    serveBytes(gz('{"a":1}'));
+    const m = new DefaultAssetManager();
+    const raw = await m.resolve(Asset.Url('https://x.org/a'), 'binary', { shared: true }).run();
+    expect(raw.data[0]).toBe(0x1f);
+    const a = await m.resolve(Asset.Url('https://x.org/a'), 'binary', { shared: true, decompress: true }).run();
+    const b = await m.resolve(Asset.Url('https://x.org/a'), 'binary', { shared: true, decompress: true }).run();
+    const s = await m.resolve(Asset.Url('https://x.org/a'), 'string', { decompress: true }).run();
+    const j = await m.resolve(Asset.Url('https://x.org/a'), 'json', { decompress: true }).run();
+    expect(new TextDecoder().decode(a.data)).toBe('{"a":1}');
+    expect(b.data).toBe(a.data);
+    expect(`${s.data}`).toBe('{"a":1}');
+    expect(j.data).toEqual({ a: 1 });
+    expect(ajaxMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes bytes that are not gzip through', async () => {
+    serveBytes(enc.encode('plain'));
+    const m = new DefaultAssetManager();
+    const s = await m.resolve(Asset.Url('https://x.org/a'), 'string', { decompress: true }).run();
+    expect(`${s.data}`).toBe('plain');
+  });
+
+  it('inflates without storing too', async () => {
+    serveBytes(gz('abc'));
+    const m = new DefaultAssetManager();
+    const s = await m.resolve(Asset.Url('https://x.org/a'), 'string', { store: false, decompress: true }).run();
+    expect(`${s.data}`).toBe('abc');
+    expect(m.urlCacheSize).toBe(0);
+  });
+
+  it('inflates a gzipped file without the .gz name, and a .gz file once', async () => {
+    const m = new DefaultAssetManager();
+    const unnamed = await m.resolve(Asset.File(new File([gz('abc')], 'x.cif')), 'string', { decompress: true }).run();
+    expect(`${unnamed.data}`).toBe('abc');
+    const named = await m.resolve(Asset.File(new File([gz('abc')], 'x.cif.gz')), 'string', { decompress: true }).run();
+    expect(`${named.data}`).toBe('abc');
+  });
+
+  it('refuses a gzip that declares more than it may inflate to, and lets go of its hold', async () => {
+    const bomb = gz('abc');
+    new DataView(bomb.buffer).setUint32(bomb.length - 4, 2 ** 31 + 1, true);
+    serveBytes(bomb);
+    const m = new DefaultAssetManager();
+    const asset = Asset.Url('https://x.org/bomb');
+    await expect(m.resolve(asset, 'string', { decompress: true }).run()).rejects.toThrow(/inflates to/);
+    expect(m.has(asset)).toBe(false);
+    expect(m.urlCacheSize).toBe(0);
+  });
+});

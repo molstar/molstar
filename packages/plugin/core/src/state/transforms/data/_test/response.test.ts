@@ -12,9 +12,10 @@ import { PluginContext } from '@molstar/plugin/context';
 import { DefaultFormats } from '@molstar/plugin/default-registry';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParseCif } from '../../../formats/cif.js';
-import { OpenFiles } from '../../../actions/file.js';
+import { DownloadFile, OpenFiles } from '../../../actions/file.js';
+import { gzipSync } from 'node:zlib';
 import { ParseJson } from '../json.js';
-import { Download, ReadFile, ReadResponse } from '../fetch.js';
+import { DeflateData, Download, ReadFile, ReadResponse } from '../fetch.js';
 import { guessCifVariant } from '../../../formats/provider.js';
 import { looksLikeMmcifParticles } from '@molstar/model/formats/particles/mmcif-sniff';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
@@ -163,6 +164,59 @@ describe('Data.Response (.v6/data-response)', () => {
     for (const t of texts) {
       expect(guessCifVariant(info, enc.encode(t))).toBe(guessCifVariant(info, t));
       expect(looksLikeMmcifParticles(info, enc.encode(t))).toBe(looksLikeMmcifParticles(info, t));
+    }
+  });
+});
+
+describe('decompress (util/_spec/assets.md §5)', () => {
+  const gz = (text: string) => new Uint8Array(gzipSync(new TextEncoder().encode(text)));
+
+  it('ReadFile inflates gzip by its bytes unless decompress is none', async () => {
+    const plugin = await createPlugin();
+    const file = () => Asset.File(new File([gz(Cif)], 'x.cif'));
+    const text = (await plugin.builders.data.readFile({ file: file() })).data;
+    expect(`${text.cell!.obj!.data}`).toBe(Cif);
+    const response = (await plugin.builders.data.readFile({ file: file(), asResponse: true })).data;
+    expect(`${await response.cell!.obj!.data.text(RuntimeContext.Synchronous)}`).toBe(Cif);
+    const raw = (await plugin.builders.data.readFile({ file: file(), isBinary: true, decompress: 'none' })).data;
+    expect((raw.cell!.obj!.data as Uint8Array)[0]).toBe(0x1f);
+    plugin.dispose();
+  });
+
+  it('a Download of a held gzipped URL inflates it, and DeflateData after it passes the bytes through', async () => {
+    const plugin = await createPlugin();
+    const url = 'https://x.org/emd_1.map.gz';
+    plugin.managers.asset.set(Asset.Url(url), new File([gz('map bytes')], 'emd_1.map.gz'), { isStatic: true });
+    const data = await plugin.build().toRoot().apply(Download, { url, isBinary: true }).apply(DeflateData).commit();
+    expect(new TextDecoder().decode(data.cell!.obj!.data as Uint8Array)).toBe('map bytes');
+    plugin.dispose();
+  });
+
+  it('DownloadFile with the gzip format reads the inflated file by its inner name', async () => {
+    const plugin = await createPlugin();
+    const url = 'https://x.org/a.cif.gz';
+    // a held asset: the download reads it, nothing reaches the network
+    plugin.managers.asset.set(Asset.Url(url), new File([gz(Cif)], 'raw-data'), { isStatic: true });
+    await plugin.runTask(
+      plugin.state.data.applyAction(DownloadFile, { url, format: 'gzip', isBinary: true, visuals: false }),
+    );
+    let trajectories = 0;
+    plugin.state.data.cells.forEach((cell) => {
+      if (SO.Molecule.Trajectory.is(cell.obj)) trajectories++;
+    });
+    expect(trajectories).toBe(1);
+    plugin.dispose();
+  });
+
+  it('Download and ReadFile recreate when decompress changes', () => {
+    for (const t of [Download, ReadFile]) {
+      const update = (oldParams: any, newParams: any) =>
+        t.definition.update!(
+          { oldParams, newParams, a: undefined as any, b: undefined as any, cache: {} } as any,
+          undefined as any,
+        );
+      expect(update({}, { decompress: 'none' })).toBe(StateTransformer.UpdateResult.Recreate);
+      expect(update({}, { decompress: 'auto' })).not.toBe(StateTransformer.UpdateResult.Recreate);
     }
   });
 });

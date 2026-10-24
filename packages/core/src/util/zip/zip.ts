@@ -195,6 +195,16 @@ export function inflate(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, 
   return inflateRaw(runtime, new Uint8Array(file.buffer, file.byteOffset + 2, file.length - 6), buf);
 }
 
+/** Whether `data` is a gzip stream (RFC 1952: ID1 ID2 and the deflate method, then room for a header and a trailer). */
+export function isGzip(data: Uint8Array): boolean {
+  return data.length >= 18 && data[0] === 0x1f && data[1] === 0x8b && data[2] === 8;
+}
+
+/** The inflated size a gzip stream declares (its trailer's ISIZE: the size modulo 2^32). */
+export function gzipDeclaredSize(data: Uint8Array): number {
+  return readUint(data, data.length - 4);
+}
+
 // https://tools.ietf.org/html/rfc1952
 export async function ungzip(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
   // const id1 = file[0]

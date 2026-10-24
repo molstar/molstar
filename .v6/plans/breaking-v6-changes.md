@@ -1160,3 +1160,12 @@ nothing changes at run time. Their `to` lists `Data.Response` too, so their outp
 PSO.Data.String>` for the result of `b.apply(Download, ...)`) no longer compiles; it adds `PSO.Data.Response` to the
 type. `builders.data.download` and `readFile` are overloaded: without `asResponse: true` they keep their
 `String | Binary` type. The one case in the repository was `examples/proteopedia-wrapper`.
+
+## `Download` and `ReadFile` inflate gzip by default
+
+`Download` and `ReadFile` have a `decompress` param, `'auto'` when unset: gzip data, told by its bytes and not the name,
+is inflated, for text, binary and Response Data alike. A server that sends `.gz` files without `Content-Encoding` (the
+EMDB maps) used to give the gzip bytes (garbage as a string); it gives the inflated data now. Code that downloads such a
+file as binary and inflates it itself gets inflated bytes: it drops its own `ungzip`, or sets `decompress: 'none'` to
+keep the bytes as received. `DeflateData` passes bytes that are not gzip through, so a `Download` followed by it still
+works. A file named `.gz` was already inflated by its name and still is.

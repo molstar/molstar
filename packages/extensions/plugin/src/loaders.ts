@@ -17,7 +17,7 @@ import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/traj
 import type { BuiltInVolumeFormat } from '@molstar/plugin/state/formats/volume/catalog';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { DeflateData, Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
+import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { PluginCommands } from '@molstar/plugin/commands';
@@ -298,8 +298,8 @@ export async function loadFullResolutionEMDBMap(
     const data = await plugin
       .build()
       .toRoot()
+      // the map is served gzipped without Content-Encoding: the download inflates it (`decompress`, auto)
       .apply(Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
-      .apply(DeflateData)
       .commit();
 
     const parsed = await plugin.dataFormats.get('ccp4')!.parse(plugin, data, { entryId: emdbId });

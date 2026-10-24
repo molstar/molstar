@@ -10,6 +10,7 @@ import { ajaxGet, type DataType, type DataResponse, decodeData, readFromFile } f
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
+import { gzipDeclaredSize, isGzip, ungzip } from './zip/zip.js';
 
 export { type AssetManager, DefaultAssetManager, Asset };
 
@@ -106,10 +107,24 @@ function urlCacheKey(asset: Asset.Url): string | undefined {
 }
 
 /** A cached download: in flight (`pending`) or done (`bytes`); `refCount` counts holders, in-flight waiters included. */
-interface UrlCacheEntry {
+interface UrlCacheEntry extends InflatedCache {
   refCount: number;
   bytes?: Uint8Array<ArrayBuffer>;
   pending?: Promise<Uint8Array<ArrayBuffer>>;
+}
+
+/** The inflated bytes of gzipped held bytes, made on the first `decompress` read (`util/_spec/assets.md` §5). */
+interface InflatedCache {
+  inflated?: Promise<Uint8Array<ArrayBuffer>>;
+}
+
+/** The largest inflated size accepted: a gzip that declares more is refused, not allocated. */
+const MaxInflatedBytes = 2 ** 31;
+
+function inflateGzip(ctx: RuntimeContext, data: Uint8Array<ArrayBuffer>) {
+  const size = gzipDeclaredSize(data);
+  if (size > MaxInflatedBytes) throw new Error(`gzip data inflates to ${size} bytes, more than ${MaxInflatedBytes}`);
+  return ungzip(ctx, data);
 }
 
 /**
@@ -132,7 +147,9 @@ class HeldAsset implements AssetManager.Entry {
 
   /** Lets go of bytes read from the source file; a download's bytes are all it has and stay. */
   dropBytes() {
-    if (this.source) this.bytes = undefined;
+    if (!this.source) return;
+    this.bytes = undefined;
+    this.inflatedCache.inflated = undefined;
   }
 
   constructor(
@@ -143,19 +160,44 @@ class HeldAsset implements AssetManager.Entry {
     readonly cacheKey?: string,
     readonly isStatic?: boolean,
     readonly tag?: string,
+    /** A download's is its URL cache entry's, shared by every asset of the URL. */
+    private readonly inflatedCache: InflatedCache = {},
   ) {
     this.bytes = bytes;
   }
 
-  async read<T extends DataType>(ctx: RuntimeContext, type: T, shared: boolean): Promise<DataResponse<T>> {
+  async read<T extends DataType>(
+    ctx: RuntimeContext,
+    type: T,
+    shared: boolean,
+    decompress: boolean,
+  ): Promise<DataResponse<T>> {
     // A file is read from its source unless its bytes are held or asked for shared: holding them for every read would
     // keep in memory what the file keeps on disk. A zip keeps its entries apart, which `bytes` (one decompressed entry)
     // cannot stand for.
     const holds = this.bytes !== undefined || (shared && type === 'binary');
-    if (this.source && (type === 'zip' || !holds)) return readFromFile(this.source, type).runInContext(ctx);
-    const bytes = (this.bytes ??= await readFromFile(this.source!, 'binary').runInContext(ctx));
+    if (this.source && (type === 'zip' || (!holds && !decompress))) {
+      return readFromFile(this.source, type).runInContext(ctx);
+    }
+    let bytes = this.bytes ?? (await readFromFile(this.source!, 'binary').runInContext(ctx));
+    if (holds) this.bytes = bytes;
+    if (decompress && type !== 'zip' && isGzip(bytes)) bytes = await this.inflate(ctx, bytes, holds);
     if (type === 'binary') return (shared ? bytes : bytes.slice()) as DataResponse<T>;
     return decodeData(ctx, bytes, type);
+  }
+
+  /** Held bytes inflate once, whoever asks first; a failure is not kept. */
+  private inflate(ctx: RuntimeContext, bytes: Uint8Array<ArrayBuffer>, held: boolean) {
+    if (!held) return inflateGzip(ctx, bytes);
+    const cache = this.inflatedCache;
+    if (!cache.inflated) {
+      const inflated = inflateGzip(ctx, bytes);
+      cache.inflated = inflated;
+      inflated.catch(() => {
+        if (cache.inflated === inflated) cache.inflated = undefined;
+      });
+    }
+    return cache.inflated;
   }
 }
 
@@ -196,6 +238,11 @@ namespace AssetManager {
     store?: boolean;
     /** A `'binary'` read may return the held bytes, read-only, instead of a copy (default `false`). */
     shared?: boolean;
+    /**
+     * Gzip bytes (told by their magic bytes, not the name) are inflated before the read, once for held bytes (default
+     * `false`): a server that sends `.gz` files without `Content-Encoding`. Not for `'zip'` reads.
+     */
+    decompress?: boolean;
   }
 
   export interface Entry {
@@ -286,16 +333,19 @@ class DefaultAssetManager implements AssetManager {
   ): Task<Asset.Wrapper<T>> {
     const store = typeof options === 'boolean' ? options : options.store !== false;
     const shared = typeof options === 'boolean' ? false : !!options.shared;
+    const decompress = typeof options === 'boolean' ? false : !!options.decompress;
     if (Asset.isUrl(asset)) {
       return Task.create(`Download ${asset.title || asset.url}`, async (ctx) => {
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
           entry.refCount++;
-          return this._readHeld(ctx, entry, type, shared);
+          return this._readHeld(ctx, entry, type, shared, decompress);
         }
 
         if (!store) {
-          return Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
+          if (!decompress) return Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
+          const entry = new HeldAsset(asset, undefined, await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx));
+          return Asset.Wrapper(await entry.read(ctx, type, true, true), asset, this);
         }
 
         const key = urlCacheKey(asset);
@@ -304,7 +354,7 @@ class DefaultAssetManager implements AssetManager {
           const entry = new HeldAsset(asset, undefined, data);
           this._assets.set(asset.id, entry);
           entry.refCount = 1;
-          return this._readHeld(ctx, entry, type, shared);
+          return this._readHeld(ctx, entry, type, shared, decompress);
         }
 
         // read through the byte cache: the asset takes one hold of the entry, given back when it leaves the manager
@@ -314,27 +364,31 @@ class DefaultAssetManager implements AssetManager {
           // the same asset was resolved concurrently and registered first
           this._releaseUrl(key);
         } else {
-          entry = new HeldAsset(asset, undefined, held.bytes!, key);
+          entry = new HeldAsset(asset, undefined, held.bytes!, key, undefined, undefined, held);
           this._assets.set(asset.id, entry);
         }
         entry.refCount++;
-        return this._readHeld(ctx, entry, type, shared);
+        return this._readHeld(ctx, entry, type, shared, decompress);
       });
     } else {
       return Task.create(`Read ${asset.name}`, async (ctx) => {
         if (this._assets.has(asset.id)) {
           const entry = this._assets.get(asset.id)!;
           entry.refCount++;
-          return this._readHeld(ctx, entry, type, shared);
+          return this._readHeld(ctx, entry, type, shared, decompress);
         }
         if (!(asset.file instanceof File)) {
           throw new Error(`Cannot resolve file asset '${asset.name}' (${asset.id})`);
         }
-        if (!store) return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
+        if (!store && !decompress) {
+          return Asset.Wrapper(await readFromFile(asset.file, type).runInContext(ctx), asset, this);
+        }
+        if (!store)
+          return Asset.Wrapper(await new HeldAsset(asset, asset.file).read(ctx, type, false, true), asset, this);
         const entry = new HeldAsset(asset, asset.file);
         this._assets.set(asset.id, entry);
         entry.refCount = 1;
-        return this._readHeld(ctx, entry, type, shared);
+        return this._readHeld(ctx, entry, type, shared, decompress);
       });
     }
   }
@@ -345,9 +399,10 @@ class DefaultAssetManager implements AssetManager {
     entry: HeldAsset,
     type: T,
     shared: boolean,
+    decompress: boolean,
   ): Promise<Asset.Wrapper<T>> {
     try {
-      return Asset.Wrapper(await entry.read(ctx, type, shared), entry.asset, this);
+      return Asset.Wrapper(await entry.read(ctx, type, shared, decompress), entry.asset, this);
     } catch (e) {
       this.release(entry.asset);
       throw e;

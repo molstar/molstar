@@ -13,7 +13,7 @@ import { type RuntimeContext, Task } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { ajaxGetMany } from '@molstar/core/util/data-source';
-import { ungzip } from '@molstar/core/util/zip/zip';
+import { isGzip, ungzip } from '@molstar/core/util/zip/zip';
 import { utf8ReadLong } from '@molstar/core/util/utf8';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { ColorNames } from '@molstar/core/util/color/names';
@@ -21,12 +21,36 @@ import { ColorNames } from '@molstar/core/util/color/names';
 const AsResponseDescription =
   'If true, hold the bytes and let the parser read them as text or binary (Response Data); isBinary is ignored.';
 
+const DecompressParam = PD.Optional(
+  PD.Select<'auto' | 'none'>(
+    'auto',
+    [
+      ['auto', 'Auto'],
+      ['none', 'None'],
+    ],
+    {
+      description:
+        'Auto: gzip data (told by its bytes, not the name) is inflated, as a server that sends .gz files without Content-Encoding needs. None: the bytes as received.',
+    },
+  ),
+);
+
+/** `decompress` unset is `auto` (`util/_spec/assets.md` §5) */
+const decompressOf = (p: { decompress?: 'auto' | 'none' }) => p.decompress !== 'none';
+
 /**
  * `asResponse`: reads the asset eagerly, as `fetch()` starts its request, and holds one shared view of its bytes
  * (`util/_spec/assets.md`) for the node's lifetime; the reader chooses the form (`SO.Data.ResponseBody`).
  */
-async function readResponse(ctx: RuntimeContext, plugin: PluginContext, asset: Asset, cache: any, label: string) {
-  const held = await plugin.managers.asset.resolve(asset, 'binary', { shared: true }).runInContext(ctx);
+async function readResponse(
+  ctx: RuntimeContext,
+  plugin: PluginContext,
+  asset: Asset,
+  cache: any,
+  label: string,
+  decompress: boolean,
+) {
+  const held = await plugin.managers.asset.resolve(asset, 'binary', { shared: true, decompress }).runInContext(ctx);
   cache.asset = held;
   return new SO.Data.Response(new SO.Data.ResponseBody(held.data), { label });
 }
@@ -50,13 +74,17 @@ const Download = PluginStateTransform.BuiltIn({
       }),
     ),
     asResponse: PD.Optional(PD.Boolean(false, { description: AsResponseDescription })),
+    decompress: DecompressParam,
   },
 })({
   apply({ params: p, cache }, plugin: PluginContext) {
     return Task.create('Download', async (ctx) => {
       const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
-      if (p.asResponse) return readResponse(ctx, plugin, url, cache, p.label || url.url);
-      const asset = await plugin.managers.asset.resolve(url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+      const decompress = decompressOf(p);
+      if (p.asResponse) return readResponse(ctx, plugin, url, cache, p.label || url.url, decompress);
+      const asset = await plugin.managers.asset
+        .resolve(url, p.isBinary ? 'binary' : 'string', { decompress })
+        .runInContext(ctx);
       (cache as any).asset = asset;
       return p.isBinary
         ? new SO.Data.Binary(asset.data as Uint8Array<ArrayBuffer>, { label: p.label ? p.label : url.url })
@@ -70,7 +98,8 @@ const Download = PluginStateTransform.BuiltIn({
     if (
       oldParams.url !== newParams.url ||
       oldParams.isBinary !== newParams.isBinary ||
-      oldParams.asResponse !== newParams.asResponse
+      oldParams.asResponse !== newParams.asResponse ||
+      decompressOf(oldParams) !== decompressOf(newParams)
     )
       return StateTransformer.UpdateResult.Recreate;
     if (oldParams.label !== newParams.label) {
@@ -173,7 +202,8 @@ const DeflateData = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Gzip', async (ctx) => {
-      const decompressedData = await ungzip(ctx, a.data);
+      // bytes that are not gzip pass through: a `Download` inflates gzip itself (`decompress`, auto by default)
+      const decompressedData = isGzip(a.data) ? await ungzip(ctx, a.data) : a.data;
       const label = params.label ? params.label : a.label;
       // handle decoding based on stringEncoding param
       if (params.isString) {
@@ -258,6 +288,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
       }),
     ),
     asResponse: PD.Optional(PD.Boolean(false, { description: AsResponseDescription })),
+    decompress: DecompressParam,
   },
 })({
   apply({ params: p, cache }, plugin: PluginContext) {
@@ -267,8 +298,11 @@ const ReadFile = PluginStateTransform.BuiltIn({
         return StateObject.Null;
       }
 
-      if (p.asResponse) return readResponse(ctx, plugin, p.file, cache, p.label || p.file.name);
-      const asset = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+      const decompress = decompressOf(p);
+      if (p.asResponse) return readResponse(ctx, plugin, p.file, cache, p.label || p.file.name, decompress);
+      const asset = await plugin.managers.asset
+        .resolve(p.file, p.isBinary ? 'binary' : 'string', { decompress })
+        .runInContext(ctx);
       (cache as any).asset = asset;
       const o = p.isBinary
         ? new SO.Data.Binary(asset.data as Uint8Array<ArrayBuffer>, { label: p.label ? p.label : p.file.name })
@@ -281,7 +315,11 @@ const ReadFile = PluginStateTransform.BuiltIn({
     ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
   },
   update({ oldParams, newParams, b }) {
-    if (oldParams.isBinary !== newParams.isBinary || oldParams.asResponse !== newParams.asResponse)
+    if (
+      oldParams.isBinary !== newParams.isBinary ||
+      oldParams.asResponse !== newParams.asResponse ||
+      decompressOf(oldParams) !== decompressOf(newParams)
+    )
       return StateTransformer.UpdateResult.Recreate;
     if (oldParams.label !== newParams.label) {
       (b.label as string) = newParams.label || oldParams.file?.name || '';
