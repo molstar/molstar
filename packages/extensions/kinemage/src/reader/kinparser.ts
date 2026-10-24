@@ -3,6 +3,7 @@
  * Based on earlier kin-parser.ts file from the NGL project (see second author notice below).
  * @file Ported NGL-based Kinemage file parser
  * @author ReliaSolve <russ@reliasolve.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  * @private
  */
 
@@ -374,6 +375,8 @@ class KinParser {
 
     let currentGroup: string = '';
     let currentGroupMasters: string[];
+    // the masters of each group, so that a re-opened group gets its own, not the previous group's (perf-audit-2 04/B14)
+    const groupMastersByName = new Map<string, string[]>();
     let currentSubgroup: string = '';
     let currentSubgroupMasters: string[];
 
@@ -764,8 +767,11 @@ class KinParser {
               kinemage.groupsAnimate2.push(groupName as string);
               kinemage.activeAnimateGroup2 = 0;
             }
-            currentGroupMasters = groupMasters;
           }
+          // a re-opened group keeps its masters and gains those it names now
+          const known = groupMastersByName.get(groupName as string) ?? [];
+          currentGroupMasters = known.concat(groupMasters.filter((m) => !known.includes(m)));
+          groupMastersByName.set(groupName as string, currentGroupMasters);
           currentGroup = groupName;
           // A group ends the previous group's subgroup: its lists until the next @subgroup are the group's own.
           currentSubgroup = '';
