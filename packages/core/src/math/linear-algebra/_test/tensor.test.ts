@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -383,5 +383,19 @@ describe('tensor', () => {
     expect(T.strides(offset)).toBeUndefined();
     expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'inside').space)).toBeUndefined();
     expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'outside').space)).toBeUndefined();
+  });
+
+  it('getCoords of a rank-4 space writes its 4 coordinates only (perf-audit-2 02/12/B2)', () => {
+    const space = T.Space([2, 3, 4, 5], [3, 1, 0, 2]);
+    const coords: number[] = [];
+    for (const xyzw of [
+      [1, 2, 3, 4],
+      [0, 0, 0, 0],
+      [1, 0, 2, 3],
+    ]) {
+      space.getCoords(space.dataOffset(...xyzw), coords);
+      expect(coords).toEqual(xyzw);
+      expect(Object.keys(coords)).toEqual(['0', '1', '2', '3']);
+    }
   });
 });

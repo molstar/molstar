@@ -376,7 +376,6 @@ export namespace Tensor {
       coords[ao[i]] = c % d;
       c = Math.floor(c / d);
     }
-    coords[ao[d + 1]] = c;
 
     return coords;
   }
