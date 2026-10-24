@@ -73,8 +73,8 @@ describe('compiling selection text to MolQL', () => {
     expect(compileQuery('   ')).toMatchObject({ ok: false, message: 'The query is empty.' });
     const lopsided = compileQuery('byres (polymer and within 5 of (chain A and resi 104))');
     expect(!lopsided.ok && lopsided.hint).toMatch(/give "within" and "around" a left side/i);
-    const doubled = compileQuery('byres ((chain A and polymer) within 4 of (chain A and resn HEM))');
-    expect(!doubled.ok && doubled.hint).toMatch(/open no group with two parentheses/);
+    // A group holding a group and an operator reads (PyMOL's grammar: the operator is tried first in a group).
+    expect(compileQuery('byres ((chain A and polymer) within 4 of (chain A and resn HEM))').ok).toBe(true);
     expect(checkMolQL({ head: { name: 'not.a.symbol' } })).toMatch(/Invalid MolQL|Mol\* cannot run it/);
   });
 

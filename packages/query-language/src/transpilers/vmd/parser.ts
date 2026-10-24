@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * Adapted from MolQL project
  */
@@ -231,9 +232,10 @@ const lang = P.MonadicParser.createLanguage({
   ValueQuery: function (r: any) {
     return P.MonadicParser.alt(
       r.ValueOperator.map((x: any) => {
-        // if (!x.head || x.head.startsWith('core.math') || x.head.startsWith('structure-query.atom-property')) {
-        if (!x.head.name || !x.head.name.startsWith('structure-query.generator')) {
-          throw new Error(`values must be part of an comparison, value '${x}'`);
+        // A bare word or number (`resn`, `b`, `5`) is a value too: not an expression, said as itself.
+        if (!x?.head?.name || !x.head.name.startsWith('structure-query.generator')) {
+          const value = typeof x === 'string' || typeof x === 'number' ? x : 'an expression';
+          throw new Error(`values must be part of an comparison, value '${value}'`);
         } else {
           return x as any;
         }

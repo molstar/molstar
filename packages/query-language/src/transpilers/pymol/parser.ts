@@ -71,9 +71,16 @@ function atomSelectionQuery(x: any) {
   return rest ? B.struct.modifier.intersectBy({ 0: groups, by: object }) : object;
 }
 
+/** The prefix operators (`not`, `byres`, `bound_to`, …): their words and maps, as `combineOperators` applies them. */
+const Prefixes = operators
+  .filter((o) => o.type === h.prefix)
+  .map((o) => ({ rule: o.rule, map: o.isUnsupported ? h.makeError(`operator '${o.name}' not supported`) : o.map }));
+
 const lang = P.MonadicParser.createLanguage({
   Parens: function (r: any) {
-    return P.MonadicParser.alt(r.Parens, r.Operator, r.Expression).wrap(
+    // The operator first: `((a) within 5 of b)` is a group holding an operator whose left side is a group; tried
+    // first, the inner group would match alone and the closing parenthesis would not.
+    return P.MonadicParser.alt(r.Operator, r.Parens, r.Expression).wrap(
       P.MonadicParser.string('('),
       P.MonadicParser.string(')'),
     );
@@ -166,7 +173,8 @@ const lang = P.MonadicParser.createLanguage({
 
   ObjectProperty: () => {
     const w = h.getReservedWords(properties, keywords, operators).sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
-    return P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
+    // Not a reserved word (a keyword, property or operator) as a whole word: a name may start with one (`b2`, `both`).
+    return P.MonadicParser.regexp(new RegExp(`(?!(${w})(?![A-Z0-9_]))[A-Z0-9_]+`, 'i'));
   },
   Object: (r: any) => {
     return r.ObjectProperty.notFollowedBy(slash).map((x: any) => resolveName(x));
@@ -189,7 +197,14 @@ const lang = P.MonadicParser.createLanguage({
   },
 
   Operator: function (r: any) {
-    return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
+    // An operand may itself be a prefix operator's (`byres bound_to resn CYS`): the operator read here, then a whole
+    // `Operator` after it. Each step reads the operator's word first, so the recursion always moves on; the rule used
+    // to list `Operator` itself, which re-entered where nothing read and recursed without end (a stack overflow on
+    // `chain`, `b` or an empty text).
+    const prefixed = P.MonadicParser.alt(
+      ...Prefixes.map((p) => P.MonadicParser.seq(p.rule, r.Operator).map((x) => p.map(...x))),
+    );
+    return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, prefixed));
   },
 
   Query: function (r: any) {
