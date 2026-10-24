@@ -41,8 +41,9 @@ namespace StateBuilder {
   type Action =
     | { kind: 'add'; transform: StateTransform }
     | { kind: 'update'; ref: string; params: any }
-    | { kind: 'tags'; ref: string; tags: string[] | undefined }
-    | { kind: 'dependsOn'; ref: string; dependsOn: string[] | undefined }
+    /** the tags and `dependsOn` an edit added: a replay adds them to what the newer tree has */
+    | { kind: 'tags'; ref: string; tags: string[] }
+    | { kind: 'dependsOn'; ref: string; dependsOn: string[] }
     | { kind: 'state'; ref: string; state: Partial<StateTransform.State> }
     | { kind: 'delete'; ref: string }
     | { kind: 'insert'; ref: string; transform: StateTransform };
@@ -97,10 +98,10 @@ namespace StateBuilder {
           tree.setParams(a.ref, a.params);
           break;
         case 'tags':
-          tree.setTags(a.ref, a.tags);
+          tree.setTags(a.ref, stringArrayUnion(tree.transforms.get(a.ref).tags, a.tags));
           break;
         case 'dependsOn':
-          tree.setDependsOn(a.ref, a.dependsOn);
+          tree.setDependsOn(a.ref, stringArrayUnion(tree.transforms.get(a.ref).dependsOn, a.dependsOn));
           break;
         case 'state':
           tree.assignState(a.ref, a.state);
@@ -332,6 +333,7 @@ namespace StateBuilder {
 
     private updateTagged(params: any, tags: string | string[] | undefined) {
       // both, not `setParams(...) || setTags(...)`: changed params skipped the tags (perf-audit-2 03/B12)
+      const before = this.state.tree.transforms.get(this.ref)!.tags;
       const paramsChanged = this.state.tree.setParams(this.ref, params);
       const tagsChanged = this.state.tree.setTags(this.ref, tags);
       if (paramsChanged || tagsChanged) {
@@ -339,12 +341,10 @@ namespace StateBuilder {
         this.editInfo.lastUpdate = this.ref;
         // a rebase replays each as it is (perf-audit-2 03/B3)
         if (paramsChanged) this.state.actions.push({ kind: 'update', ref: this.ref, params });
-        if (tagsChanged)
-          this.state.actions.push({
-            kind: 'tags',
-            ref: this.ref,
-            tags: this.state.tree.transforms.get(this.ref)!.tags,
-          });
+        if (tagsChanged) {
+          const added = addedTo(before, this.state.tree.transforms.get(this.ref)!.tags);
+          if (added.length) this.state.actions.push({ kind: 'tags', ref: this.ref, tags: added });
+        }
       }
     }
 
@@ -403,8 +403,8 @@ namespace StateBuilder {
       if (this.state.tree.setDependsOn(this.ref, stringArrayUnion(transform.dependsOn, dependsOn))) {
         this.editInfo.count++;
         this.editInfo.lastUpdate = this.ref;
-        const set = this.state.tree.transforms.get(this.ref)!.dependsOn;
-        this.state.actions.push({ kind: 'dependsOn', ref: this.ref, dependsOn: set });
+        const added = addedTo(transform.dependsOn, this.state.tree.transforms.get(this.ref)!.dependsOn);
+        this.state.actions.push({ kind: 'dependsOn', ref: this.ref, dependsOn: added });
       }
     }
 
@@ -442,6 +442,12 @@ namespace StateBuilder {
       }
     }
   }
+}
+
+/** The values of `after` not in `before` */
+function addedTo(before: readonly string[] | undefined, after: readonly string[] | undefined): string[] {
+  if (!after) return [];
+  return before ? after.filter((x) => !before.includes(x)) : [...after];
 }
 
 function stringArrayUnion(...arrays: (string[] | string | undefined)[]): string[] | undefined {

@@ -67,6 +67,28 @@ describe('rebased builder', () => {
     expect(state.cells.has('c')).toBe(true);
   });
 
+  it("adds the replayed tags and dependsOn to the newer tree's", async () => {
+    const state = State.create(new Root({}), { runTask: <T>(t: Task<T>) => t.run() });
+    const b0 = state.build();
+    b0.toRoot().apply(Node, { value: 1 }, { ref: 'a', tags: 'a' });
+    b0.toRoot().apply(Node, { value: 1 }, { ref: 'b' });
+    b0.toRoot().apply(Node, { value: 1 }, { ref: 'c' });
+    await b0.commit();
+
+    const b = state.build();
+    b.to('a').tag('x');
+    b.to('c').dependsOn('a');
+    // committed first: another tag and dependency
+    const other = state.build();
+    other.to('a').tag('z');
+    other.to('c').dependsOn('b');
+    await other.commit();
+    await b.commit();
+
+    expect(state.tree.transforms.get('a').tags).toEqual(['a', 'x', 'z']);
+    expect(state.tree.transforms.get('c').dependsOn).toEqual(['a', 'b']);
+  });
+
   it('replays the extra tags of applyOrUpdateTagged with unchanged params', async () => {
     const state = State.create(new Root({}), { runTask: <T>(t: Task<T>) => t.run() });
     await state.build().toRoot().applyOrUpdateTagged('a', Node, { value: 1 }).commit();
