@@ -68,12 +68,15 @@ The code is the truth for how.
   are in (below), in their `order`. One document serves Text and Tracks (§8).
 - **The chain filter is the section's blocks**, the structure's own (§7.1; `sequence/chain-filter.ts`): none, the
   section takes every polymer unit in order, then the ligands the 3D view draws (`ligand_comps`); else one block per
-  chain instance kept (`block.<unit>`, the unit named as the adapter names it: `label_asym_id`, `@<operator>` off the
-  identity), polymers only if asked. Copies are merged by default (Seq\*'s `copies: 'one'`: a capsid is one block, not
-  sixty; a hover or selection on it stands for every copy, `seqspec:model#copies`); **every copy apart** is
-  `copies: 'each'`. A change of filter is one patch of the section: the complex, its parse and the link stay
-  (`seqspec:format#blocks`), never a new document. A loaded SeqViewSpec's sections keep their own blocks: the filter is
-  kept for the built document.
+  chain kept, in the complex's order (entity, then chain). **The chains are the complex's units**: the complex is made
+  of the deposited model (`molstar/complex.ts`, no assembly), one unit a `label_asym_id`, so an assembly's copies are
+  their chain once and a block names a unit there is (`block.<unit>`, its characters a ref's). Copies of one molecule
+  are merged by default (Seq\*'s `copies: 'one'`: one block says ×N, and hover and selection on it stand for every copy,
+  `seqspec:model#copies`); **every copy apart** is `copies: 'each'`. A change of filter is one patch of the section: the
+  complex, its parse and the link stay (`seqspec:format#blocks`), never a new document. No chain (None) is one block of
+  a unit there is not (no blocks at all would be every unit), and the band goes until a chain is shown again
+  (`SequenceViewer.empty`). A loaded SeqViewSpec's sections keep their own blocks: the filter is kept for the built
+  document.
 - **Track providers** (`SequenceTrackProvider`, `sequence/tracks.ts`) say what tracks a structure has; the viewer puts
   them in and takes them out, so an extension adds sequence data by declaring it. A provider: `id`, `label`, `order`,
   `track` (its track's ref), `applies(structure)` (the structure carries its data), `shown` (in by default; false: only
@@ -89,8 +92,10 @@ The code is the truth for how.
 - **In by a patch**: the document is built with the providers' tracks that are in; adding, removing, a provider that
   comes or goes, the filter and the eye are one base patch on the document shown (origin
   `host:prism-viewer.sequence.edits`, in order: each reads the document the one before left), never a new document; a
-  refused patch builds the document again. Edits made while the document is being made (an API call right after a load)
-  are in it once it is.
+  refused patch builds the document again, inside that sync (a build from a sync queues no other sync: it would wait for
+  itself). Edits made while the document is being made (an API call right after a load) are in it once it is. `shown`
+  stays the document's through edits: a new one tells behaviors it is another document (they would add their nodes
+  again).
 - **Behaviors add to it by patch**, for what is not a track (a rule that follows the scene). A `SequenceBehavior`
   (`sequence/behaviors.ts`) attaches with a context: `shown` (what the document shows, a new value per document:
   structure, complex, data node, section, the last track), `patch(shown, ops)` (Seq\*'s `applyPatch` on the base layer,
@@ -330,13 +335,15 @@ goes.
 - **Its menu** ("…"): Add track (the providers that apply and are out), Chains (All chains, Polymers only, Every copy
   apart; the current one checked), Style (Tracks, Text) and Letter colors (the band's: the same on every node, §7.1),
   Follow automatically (`sequence.follow` with none; while one is picked), Legend.
-- **Its inspector** (`inspector:sequence`): the band and its tracks as facts; Add <track> and Follow automatically as
-  actions; the chains (`views/structure/sequence-chains.tsx`, `SequenceChainsModel`): the presets as the app's row of
-  choices (All, None, Polymers; the one in effect marked), then a line per entity (a box for its chains, checked, empty
-  or mixed; a dot for its kind; its name, fading where it is cut; how many of its chains are shown), an entity of
-  several chains opening to its chains as toggles that wrap; past eight entities, Show all. Then the form: Style, Letter
-  colors (the band's), Every copy apart. None shows no chain (a block of no unit: no blocks at all would be every unit),
-  to show them one by one; `sequence.chains` takes `"none"`.
+- **Its inspector** (`inspector:sequence`, `views/structure/sequence-inspector.tsx` over `SequenceInspectorModel`),
+  drawn as a representation's quick settings: what the band shows and **Add track**, which opens the command menu at its
+  group (a command a provider, `sequence.track.add.<id>`, there while it applies and is out: the app's way to pick among
+  kinds, as Preset); then Style (Tracks, Text: icons in one strip) and Letters (tiles painted with the scheme's colors),
+  the band's; then Chains: All, None, Polymers in a strip (the one in effect marked), a line per entity (a box for its
+  chains, checked, empty or mixed; a dot for its kind; its name, fading where it is cut; how many of its chains are
+  shown), an entity of several chains opening to its chains as toggles that wrap, past eight entities Show all, and
+  Every copy apart. Made once per node and following the edits (its view is never made again under the pointer); the
+  structure under the node another, its chains are read again. `sequence.chains` takes `"none"`.
 - **Its children are its tracks** (`sequence-track`), in the document's order: label, what it draws (its provider's
   `describe`: "Letters · Zappo", "Helices, strands, turns"), an eye (`sequence.track.hide` / `.show`), a menu (the
   track's colorings, the structure shown only) and Remove for a provider's track. Under a loaded SeqViewSpec (§6), the

@@ -54,13 +54,16 @@ export interface BuiltTrack {
   readonly track: DocNode;
 }
 
+/** A block's ref for a unit: a ref's characters only (`seqspec:format#nodes-and-refs`). */
+const blockRef = (unit: string) => `block.${unit.replace(/[^A-Za-z0-9_.-]/g, '_')}`;
+
 /**
  * A section's blocks: one per unit, by its name in the complex (the chain filter, sequence.md §3), each with a ref of
  * its own so a patch can take it out.
  */
 export const blocksOf = (units: readonly string[]): DocNode[] =>
   units.length
-    ? units.map((u) => ({ kind: 'block', ref: `block.${u}`, params: { unit: `${ComplexRef}/${u}` } }))
+    ? units.map((u) => ({ kind: 'block', ref: blockRef(u), params: { unit: `${ComplexRef}/${u}` } }))
     : // No chain: one block of a unit there is not, left out quietly (no blocks at all would be every unit).
       [{ kind: 'block', ref: 'block.none', params: { unit: `${ComplexRef}/-` } }];
 

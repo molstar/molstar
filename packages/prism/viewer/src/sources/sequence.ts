@@ -61,6 +61,8 @@ export interface SequenceSource {
 export interface SequenceBand {
   readonly shown: ReadonlyState<boolean>;
   show(on: boolean): void;
+  /** Opens the command menu at Add track (the commands that add a track to the structure shown). */
+  openAddTrack?(): void;
 }
 
 /** The format the plugin parsed a trajectory from, as the sequence's structure source names it. */

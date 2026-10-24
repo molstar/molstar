@@ -113,12 +113,12 @@ describe('SceneRow', () => {
       container,
     );
     const item = container.querySelector('[role=treeitem]') as HTMLElement;
-    const eye = container.querySelector('button[title]') as HTMLButtonElement;
-    expect(eye.title).toBe('Show');
+    const eye = container.querySelector('button[data-tip]') as HTMLButtonElement;
+    expect(eye.dataset.tip).toBe('Show');
     expect(item.querySelector('[data-tree-row]')!.className).toMatch(/hidden/);
     eye.click();
     expect(onToggle).toHaveBeenCalledOnce();
-    expect(eye.title).toBe('Hide');
+    expect(eye.dataset.tip).toBe('Hide');
 
     expect(container.querySelector('.controls')).toBeNull();
     expect(item.getAttribute('aria-expanded')).toBe('false');

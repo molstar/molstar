@@ -9,18 +9,20 @@
 import { type Structure, Unit } from '@molstar/model/model/structure';
 import type { ChainFilter } from './tracks.js';
 
-// The chain filter (sequence.md §3): which of a structure's chain instances the section shows, as its blocks. The
-// chains are named as the Mol* adapter names its units (`unit_name` `label_asym_id`: `@<operator>` off the identity,
-// `molstar/complex.ts`), so a block names the unit `<complex>/<name>`. Read from the structure's units alone (no
-// Seq* module, no index of its elements): the tree lists them for any structure, shown or not.
+// The chain filter (sequence.md §3): which of a structure's chains the section shows, as its blocks. The chains are
+// named as the Mol* adapter names the complex's units (`unit_name` `label_asym_id`, `molstar/complex.ts`), so a block
+// names the unit `<complex>/<name>`. Read from the structure's units alone (no Seq* module, no index of its elements):
+// the tree lists them for any structure, shown or not.
 
 export type ChainKind = 'polymer' | 'branched' | 'ligand';
 
-/** A chain instance the sequence can show (waters never). */
+/** A chain the sequence can show (waters never). */
 export interface SequenceChain {
-  /** The unit's name in the sequence's complex. */
+  /** The unit's name in the sequence's complex: its `label_asym_id`. */
   readonly name: string;
-  /** "A", or "C [auth A]" where the author's id differs; with its operator off the identity. */
+  /** The author's chain id. */
+  readonly auth: string;
+  /** "A", or "C [auth A]" where the author's id differs. */
   readonly label: string;
   readonly entity: string;
   /** The entity's description ("Cytochrome P450 3A4"), else its id. */
@@ -35,47 +37,75 @@ const Kinds: Record<string, ChainKind | undefined> = {
   branched: 'branched',
 };
 
-const cache = new WeakMap<Structure, readonly SequenceChain[]>();
+const cache = new WeakMap<object, Map<string, readonly SequenceChain[]>>();
+const byStructure = new WeakMap<Structure, readonly SequenceChain[]>();
 
-/** The structure's chain instances in its units' order, once each; waters and coarse units left out. */
+/**
+ * The chains of the structure's model, as the sequence's complex has them: the complex is made of the deposited model
+ * (one unit a `label_asym_id`, `molstar/complex.ts`), so an assembly's copies are its chains once, and a block names
+ * a unit there is. In the complex's order: by entity, then as the chains come. Cached by the model's hierarchy and the
+ * chains the structure has (a trajectory's frames share it).
+ */
 export function sequenceChains(structure: Structure): readonly SequenceChain[] {
-  const hit = cache.get(structure);
-  if (hit) return hit;
-  const out: SequenceChain[] = [];
-  const seen = new Set<string>();
+  const first = structure.units.find(Unit.isAtomic);
+  if (!first) return [];
+  const h = first.model.atomicHierarchy;
+  let byChains = cache.get(h);
+  if (!byChains) cache.set(h, (byChains = new Map()));
+  // The chains present, by index (an assembly or a selection may hold fewer than the model).
+  // A unit is one chain, its first and last atoms say (O(units) a frame); only one Mol* merged (waters, one-atom
+  // chains) is walked.
+  const seen = byStructure.get(structure);
+  if (seen) return seen;
+  const present = new Set<number>();
+  const at = h.chainAtomSegments.index;
   for (const unit of structure.units) {
-    if (!Unit.isAtomic(unit)) continue;
-    const h = unit.model.atomicHierarchy;
-    const entities = unit.model.entities.data;
-    const op = unit.conformation.operator;
+    if (!Unit.isAtomic(unit) || unit.model.atomicHierarchy !== h) continue;
     const els = unit.elements;
-    // A unit is one chain, or Mol*'s merge of waters and consecutive one-atom chains: each chain once.
-    let last = -1;
-    for (let i = 0; i < els.length; i++) {
-      const c = h.chainAtomSegments.index[els[i]];
-      if (c === last) continue;
-      last = c;
-      const e = h.index.getEntityFromChain(c);
-      const kind = Kinds[entities.type.value(e)];
-      if (!kind) continue;
-      const labelAsym = h.chains.label_asym_id.value(c);
-      const authAsym = h.chains.auth_asym_id.value(c);
-      const name = op.isIdentity ? labelAsym : `${labelAsym}@${op.instanceId}`;
-      if (seen.has(name)) continue;
-      seen.add(name);
-      const own = authAsym && authAsym !== labelAsym ? `${labelAsym} [auth ${authAsym}]` : labelAsym;
-      const entity = entities.id.value(e);
-      out.push({
-        name,
-        label: op.isIdentity ? own : `${own} ${op.instanceId}`,
-        entity,
-        entityLabel: entities.pdbx_description.value(e)?.[0] || `Entity ${entity}`,
-        kind,
-      });
+    const a = at[els[0]];
+    const b = at[els[els.length - 1]];
+    present.add(a);
+    if (a === b) continue;
+    let last = a;
+    for (let i = 1; i < els.length; i++) {
+      const c = at[els[i]];
+      if (c !== last) present.add((last = c));
     }
   }
-  cache.set(structure, out);
-  return out;
+  const order = [...present].sort((a, b) => a - b);
+  const key = order.join(',');
+  const hit = byChains.get(key);
+  if (hit) {
+    byStructure.set(structure, hit);
+    return hit;
+  }
+  const entities = first.model.entities;
+  const out: { chain: SequenceChain; entity: number }[] = [];
+  for (const c of order) {
+    const e = h.index.getEntityFromChain(c as never);
+    const kind = Kinds[entities.data.type.value(e)];
+    if (!kind) continue;
+    const name = h.chains.label_asym_id.value(c as never);
+    const auth = h.chains.auth_asym_id.value(c as never);
+    const entity = entities.data.id.value(e);
+    out.push({
+      entity: e,
+      chain: {
+        name,
+        auth,
+        label: auth && auth !== name ? `${name} [auth ${auth}]` : name,
+        entity,
+        entityLabel: entities.data.pdbx_description.value(e)?.[0] || `Entity ${entity}`,
+        kind,
+      },
+    });
+  }
+  // The complex's order: entity, then chain (a stable sort keeps the chains' order within an entity).
+  out.sort((a, b) => a.entity - b.entity);
+  const list = out.map((x) => x.chain);
+  byChains.set(key, list);
+  byStructure.set(structure, list);
+  return list;
 }
 
 /**

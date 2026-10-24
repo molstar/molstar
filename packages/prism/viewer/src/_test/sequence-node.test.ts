@@ -7,7 +7,7 @@
  */
 
 import type { DocNode } from '@molstar/seq-core/format';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { type SceneNode, sequenceNodeId } from '../model/scene.js';
 import type { SequenceViewer } from '../sequence/model.js';
 import type { SequenceTrackProvider } from '../sequence/tracks.js';
@@ -149,7 +149,7 @@ describe("each structure's sequence", () => {
     const node = sequenceOf(structureNodes(v)[1])!;
     const inspection = v.views.scene.inspect(node);
     expect(inspection.slot).toBe('inspector:sequence');
-    expect(inspection.form).toBeDefined();
+    expect(inspection.sequence).toBeDefined();
   });
 
   it('takes edits right after a load, its document still being made: they are in it once it is', async () => {
@@ -186,10 +186,10 @@ describe("each structure's sequence", () => {
   it("the inspector's chains: presets, an entity left out, none; the node's style and letter colors", async () => {
     const { v, viewer } = await opened();
     await until(() => !!sequenceOf(structureNodes(v)[0]));
-    const chains = v.views.scene.inspect(sequenceOf(structureNodes(v)[0])!).chains!;
-    expect(chains.entities.map((e) => e.kind)).toEqual(['polymer', 'ligand']);
+    const chains = v.views.scene.inspect(sequenceOf(structureNodes(v)[0])!).sequence!;
+    expect(chains.entities.value.map((e) => e.kind)).toEqual(['polymer', 'ligand']);
     expect(chains.preset.value).toBe('all');
-    const ligand = chains.entities.find((e) => e.kind === 'ligand')!;
+    const ligand = chains.entities.value.find((e) => e.kind === 'ligand')!;
     chains.toggleEntity(ligand.id);
     await until(() => chains.preset.value === 'polymer');
     expect(blocks(viewer)).toEqual(['structure/A']);
@@ -207,6 +207,39 @@ describe("each structure's sequence", () => {
     menu.find((m) => m.id === 'colors')!.items!.find((i) => i.id === 'colors:zappo')!.run!();
     await until(() => viewer.theme.value.letters === 'zappo');
     await until(() => sequenceOf(structureNodes(v)[0])!.children.value[1].description.value === 'Letters · Zappo');
+  });
+
+  it('a refused edit builds the document again and leaves the API free; None empties the band', async () => {
+    // A provider whose track's ref is not a ref (`@`): Seq* refuses its insert.
+    const Broken: SequenceTrackProvider = {
+      ...Extra,
+      id: 'test.sequence.broken',
+      label: 'Broken',
+      track: 'test.broken@1',
+      build: () => ({
+        track: {
+          kind: 'track',
+          ref: 'test.broken@1',
+          params: { label: '' },
+          children: [{ kind: 'layer', ref: 'test.broken.values', params: { type: 'values', data: 'test.nothing' } }],
+        },
+      }),
+    };
+    const v = await headlessViewer({
+      files: [cbs()],
+      extensions: [{ id: 'test', title: 'Test', sequence: { tracks: [Broken] } }],
+    });
+    const viewer = (await v.views.sequence!.load()).viewers.get();
+    await until(() => viewer.tracks.value.length === 3);
+    const warned = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await v.api.sequence!.addTrack!({ track: 'Broken' });
+    expect(warned.mock.calls.some((c) => String(c[0]).includes('refused'))).toBe(true);
+    // The queue is free: the next calls run.
+    expectOk(await v.api.sequence!.style({ style: 'text' }));
+    expectOk(await v.api.sequence!.chains!({ chains: 'none' }));
+    await until(() => viewer.empty.value);
+    expectOk(await v.api.sequence!.chains!({}));
+    await until(() => !viewer.empty.value);
   });
 
   it('edits a structure not shown: its own tracks, kept for when it is shown', async () => {

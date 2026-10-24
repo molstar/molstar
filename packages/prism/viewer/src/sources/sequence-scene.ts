@@ -37,7 +37,16 @@ export function createSceneSequence(
   legend?: () => void,
 ): SceneSequence {
   const version = observableState(0);
-  const bump = () => version.set(version.value + 1);
+  // Once a burst (an Undo, a switch of structure tells several of these): one pass of the tree a task.
+  let queued = false;
+  const bump = () => {
+    if (queued) return;
+    queued = true;
+    queueMicrotask(() => {
+      queued = false;
+      version.set(version.value + 1);
+    });
+  };
   // What a row reads: what the band follows and shows, and the model's tracks, edits and providers.
   let modelSubs: { unsubscribe(): void }[] = [];
   let bandSub: { unsubscribe(): void } | undefined;
@@ -65,6 +74,7 @@ export function createSceneSequence(
     }),
   );
   scope.add(source.followed.subscribe(bump));
+  scope.add(source.shows.subscribe(bump));
   scope.add(
     source.band.subscribe((b) => {
       bandSub?.unsubscribe();
@@ -148,6 +158,13 @@ export function createSceneSequence(
     ...(legend ? { legend } : {}),
     setStyle: (style) => run('sequence.style', { style }),
     setColors: (scheme) => run('sequence.colors', { scheme: scheme ?? 'none' }),
-    schemes: LetterSchemes.map((s) => [s, s === null ? 'No colors' : (SchemeNames[s] ?? s)] as const),
+    schemes: () => {
+      const v = viewer();
+      return LetterSchemes.map((id) => {
+        const swatch = v?.swatchOf(id);
+        return { id, label: id === null ? 'No colors' : (SchemeNames[id] ?? id), ...(swatch ? { swatch } : {}) };
+      });
+    },
+    openAddTrack: () => source.band.value?.openAddTrack?.(),
   };
 }

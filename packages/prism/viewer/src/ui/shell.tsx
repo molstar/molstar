@@ -326,6 +326,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             openCommand: (id) => void managers.commands.open(id),
             onHover: (lines) => seqLines.set(lines),
             marks: sources.marks,
+            registerGroups: (groups) => core.managers.commands.registerGroups(groups),
+            openCommandMenu: (group) => openCommandMenu(group),
             ...('scene' in core.views && sequence.tree
               ? {
                   reveal: (structure: string) => {

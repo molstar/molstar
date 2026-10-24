@@ -7,7 +7,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { CanvasMenuItem, CommandDefinition, ShellModel } from '@molstar/prism-ui';
+import type { CanvasMenuItem, CommandDefinition, CommandGroup, ShellModel } from '@molstar/prism-ui';
+import type { SequenceTrackProvider } from './tracks.js';
 import { combineLatest, map } from 'rxjs';
 import { colorScheme } from './legend.js';
 import type { SequenceTrack, SequenceViewer } from './model.js';
@@ -67,6 +68,46 @@ export function showAllTracks(viewer: SequenceViewer, api: SequenceApiRunner | u
 function trackChoice(tracks: readonly SequenceTrack[], keep: (t: SequenceTrack) => boolean) {
   const options = tracks.filter(keep).map((t): [string, string] => [t.ref, t.label]);
   return { track: PD.Select(options[0]?.[0] ?? '', options, { label: 'Track' }) };
+}
+
+/** The command menu's group of Add track (sequence.md §8.1): what the Sequence node's inspector opens. */
+export const AddTrackGroup: CommandGroup = { id: 'sequence-tracks', title: 'Add track', icon: 'plus', order: 5 };
+
+/**
+ * A command a track provider (`sequence.track.add`, on the structure the band shows), in Add track's group: there while
+ * it applies and is out; its result said as the API says it.
+ */
+export function addTrackCommands(
+  viewer: SequenceViewer,
+  providers: readonly SequenceTrackProvider[],
+  api?: SequenceApiRunner,
+): CommandDefinition<any>[] {
+  return providers.map((p) => ({
+    id: `sequence.track.add.${p.id}`,
+    title: p.label,
+    alias: ['add track', `add ${p.label.toLowerCase()} track`],
+    category: 'Sequence tracks',
+    group: AddTrackGroup.id,
+    icon: 'plus',
+    when: () => {
+      const shown = viewer.structure.value;
+      if (!shown) return 'No sequence is shown.';
+      const out = viewer.addableTracks({ ref: shown.ref, structure: shown.structure }).some((a) => a.id === p.id);
+      if (out) return true;
+      const there = viewer.tracks.value.some((t) => t.ref === p.track);
+      return there ? 'Already shown' : 'Not for this structure';
+    },
+    run: async () => {
+      const r = await ran(api ? api.run('sequence.track.add', { track: p.id }) : viewer.setTrackIn(p.id, true));
+      return { message: r ?? `Track added: ${p.label}`, undoable: true };
+    },
+  }));
+}
+
+/** What a run said when it failed (an API result not ok); undefined: it went. */
+async function ran(run: Promise<unknown>): Promise<string | undefined> {
+  const r = (await run) as { ok?: boolean; message?: string } | boolean | undefined;
+  return typeof r === 'object' && r?.ok === false ? (r.message ?? 'It did not go') : undefined;
 }
 
 /** The chain filter's presets (sequence.md §8): every chain, the polymers only, every copy apart. */
@@ -204,9 +245,8 @@ export function sequenceCommands(
       run: async (args) => {
         const track = String(args.track ?? '');
         const label = addable().find((a) => a.id === track)?.label ?? track;
-        if (api) await api.run('sequence.track.add', { track });
-        else await viewer.setTrackIn(track, true);
-        return { ...done(`Track added: ${label}`), undoable: true };
+        const r = await ran(api ? api.run('sequence.track.add', { track }) : viewer.setTrackIn(track, true));
+        return { ...done(r ?? `Track added: ${label}`), undoable: true };
       },
     },
     {
@@ -220,9 +260,8 @@ export function sequenceCommands(
       run: async (args) => {
         const track = String(args.track ?? '');
         const label = viewer.tracks.value.find((t) => t.ref === track)?.label ?? track;
-        if (api) await api.run('sequence.track.remove', { track });
-        else await viewer.setTrackIn(track, false);
-        return { ...done(`Track removed: ${label}`), undoable: true };
+        const r = await ran(api ? api.run('sequence.track.remove', { track }) : viewer.setTrackIn(track, false));
+        return { ...done(r ?? `Track removed: ${label}`), undoable: true };
       },
     },
     ...ChainPresets.map(
@@ -233,9 +272,8 @@ export function sequenceCommands(
         icon: 'link',
         when: () => !!viewer.structure.value || 'No sequence is shown.',
         run: async () => {
-          if (api) await api.run('sequence.chains', c.values);
-          else await viewer.setChains(c.values);
-          return { ...done(c.done), undoable: true };
+          const r = await ran(api ? api.run('sequence.chains', c.values) : viewer.setChains(c.values));
+          return { ...done(r ?? c.done), undoable: true };
         },
       }),
     ),

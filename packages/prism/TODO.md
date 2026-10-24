@@ -52,6 +52,11 @@ section); an entry leaves when it is done (its spec section says so then). The s
   on the plugin's registries (none has one today); the representation and theme selects would follow from the same
   event.
 
+- **The Sequence node, open points** (2026-10-24, [sequence.md §3, §7.1, §8.1](viewer/_spec/sequence.md)): a provider
+  whose track Seq\* refuses is put in again by every build (each refused, the document left as it was): drop its `in`
+  after a refusal; hiding the band from the Sequence eye or No sequence first moves the band, then fades it (the top
+  dock's hide, not the eye's); version 3's hidden tracks are kept only when the followed structure was saved (none under
+  Auto): read them as every structure's instead?
 - **More sequence tracks from the structure** (David, 2026-10-24): B-factor (a Seq\* computed provider over atom values
   in `viewer/src/sequence/molstar/`, none today), SIFTS coverage (`molstar:sifts_coverage`) as a provider.
 

@@ -282,6 +282,10 @@ export interface SequenceViewer {
   chainsOf(ref: string): ChainFilter | undefined;
   /** Sets a structure's chain filter (undefined: every chain); false: already so. */
   setChains(filter: ChainFilter | undefined, of?: StructureOf): Promise<boolean>;
+  /** A letter scheme's colors as a CSS gradient of hard stops, for the ink's theme; undefined: none (no colors). */
+  swatchOf(scheme: string | null): string | undefined;
+  /** The band shows no chain (the filter leaves none): it has nothing to draw. */
+  readonly empty: ReadonlyState<boolean>;
 }
 
 /** A structure named for an edit: its state ref and the Structure the 3D view draws (what providers apply to). */
@@ -471,7 +475,11 @@ class Viewer implements SequenceViewer {
       // The tracks the band shows, for the tree and the commands: read from the document shown (behaviors' patches
       // included).
       this.seq.document.shown.subscribe(() => this.refreshTracks()),
-      this.structure.subscribe(() => this.refreshTracks()),
+      this.structure.subscribe(() => {
+        this.refreshTracks();
+        this.refreshEmpty();
+      }),
+      this.edits.subscribe(() => this.refreshEmpty()),
     );
     for (const b of deps.behaviors ?? []) this.addBehavior(b);
   }
@@ -745,23 +753,16 @@ class Viewer implements SequenceViewer {
       { format: 'seq_view_spec_patch', ops },
       { layer: 'base', origin: EditsOrigin as never },
     );
-    // Refused (a node the patch named went meanwhile): the document made again from the edits.
-    if (!r.ok && !this.disposed) await this.build();
-    else {
-      this.updateAfter();
+    // Refused (a node the patch named went meanwhile): the document made again from the edits, once: inside this sync,
+    // so the build does not queue a sync behind the one running (it would wait for itself).
+    if (!r.ok && !this.disposed) {
+      console.warn('The sequence edits were refused; the document is made again:', r.issues);
+      await this.build({ sync: false });
+    } else {
+      // `shown` stays as it is: a new one would tell behaviors this is another document (they add their nodes again).
       this.refreshLegend();
       this.refreshTracks();
     }
-  }
-
-  /** The section's last track, where behaviors add theirs (a new `shown` only when it moved). */
-  private updateAfter() {
-    const shown = this.shownState.value;
-    const base = this.seq.document.base.value;
-    const section = shown && base ? findRef(base.root, shown.section) : undefined;
-    const tracks = section ? (section.children ?? []).filter((n) => n.kind === 'track') : [];
-    const after = tracks[tracks.length - 1]?.ref;
-    if (shown && after !== shown.after) this.shownState.set({ ...shown, after });
   }
 
   /** The tracks of the section shown, from the document shown. */
@@ -872,6 +873,30 @@ class Viewer implements SequenceViewer {
     this.editsState.set(withStructureEdits(this.editsState.value, ref, edits ?? {}));
     if (shown) await this.sync();
     return changed;
+  }
+
+  swatchOf(scheme: string | null): string | undefined {
+    if (scheme === null) return undefined;
+    const legend = legendOf(scheme, this.deps.ink.value.theme === 'dark');
+    const colors = legend.items.map((i) => i.color).slice(0, 8);
+    if (!colors.length) {
+      const ramp = legend.ramps[0];
+      return ramp
+        ? `linear-gradient(to right, ${ramp.stops.map((s) => `${s.color} ${s.t * 100}%`).join(', ')})`
+        : undefined;
+    }
+    const w = 100 / colors.length;
+    return `linear-gradient(to right, ${colors.map((c, i) => `${c} ${i * w}% ${(i + 1) * w}%`).join(', ')})`;
+  }
+
+  /** The structure shown leaves out every chain. */
+  private readonly emptyState = observableState(false);
+  readonly empty = this.emptyState.asReadonly;
+  private refreshEmpty() {
+    const host = this.deps.structure.value;
+    const f = host && !this.svsShown ? this.editsState.value[structureKey(host)]?.chains : undefined;
+    const units = host && f ? filteredUnits(f, sequenceChains(host.structure)) : undefined;
+    this.emptyState.set(!!units && units.length === 0);
   }
 
   chainsOf(ref: string): ChainFilter | undefined {
@@ -998,7 +1023,7 @@ class Viewer implements SequenceViewer {
   }
 
   /** The document for what the host shows now; the latest build wins, an earlier one is dropped when it ends. */
-  private async build(): Promise<GraphResult> {
+  private async build(o: { readonly sync?: boolean } = {}): Promise<GraphResult> {
     const host = this.deps.structure.value;
     const build = ++this.builds;
     // A document is being made: what the behaviors patch for the last one is dropped meanwhile (`patch` checks it).
@@ -1093,8 +1118,8 @@ class Viewer implements SequenceViewer {
       ...(lastTrack ? { after: lastTrack } : {}),
     });
     this.refreshLegend();
-    // Edits changed while the document was made: brought to them now.
-    await this.sync();
+    // Edits changed while the document was made: brought to them now (not from inside a sync: `syncNow`'s refusal).
+    if (o.sync !== false) await this.sync();
     return result;
   }
 

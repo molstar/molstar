@@ -40,7 +40,7 @@ afterEach(() => {
 describe('StructureTab', () => {
   it("opens a row's menu as a popover from its ⋯ button; Escape or a press outside closes it", async () => {
     const { container, row } = mount();
-    const more = row('Water').querySelector<HTMLButtonElement>('button[title=More]')!;
+    const more = row('Water').querySelector<HTMLButtonElement>('button[data-tip=More]')!;
     more.click();
     const menu = () => container.querySelector('[role=menu] [data-popover]');
     expect(menu()).not.toBeNull();
@@ -70,7 +70,7 @@ describe('StructureTab', () => {
   it('renders the scene as a tree; hidden nodes keep their eye; collapsing hides children', () => {
     const { rows, row, scene } = mount();
     expect(row('1TQN')).toBeDefined();
-    expect(row('Water').querySelector('button[title=Show]')).not.toBeNull();
+    expect(row('Water').querySelector('button[data-tip=Show]')).not.toBeNull();
     const before = rows().length;
     scene.roots.value[0].toggleExpanded();
     flush();
@@ -84,10 +84,10 @@ describe('StructureTab', () => {
     expect(eye().dataset.tip).toBe('Show');
     expect(eye().getAttribute('aria-pressed')).toBe('true');
     eye().click();
-    expect(row('Water').querySelector('button[title=Hide]')).not.toBeNull();
+    expect(row('Water').querySelector('button[data-tip=Hide]')).not.toBeNull();
     expect(eye().dataset.tip).toBe('Hide');
     eye().click();
-    expect(row('Water').querySelector('button[title=Show]')).not.toBeNull();
+    expect(row('Water').querySelector('button[data-tip=Show]')).not.toBeNull();
   });
 
   it("shows an extension's row in the inspector when picked (its controls, turned on and off at its header), not under it", () => {
@@ -212,8 +212,8 @@ describe('StructureTab', () => {
   it('toggles visibility inline without picking', () => {
     const { row, scene } = mount();
     const polymer = row('Polymer');
-    (polymer.querySelector('button[title=Hide]') as HTMLButtonElement).click();
-    expect(row('Polymer').querySelector('button[title=Show]')).not.toBeNull();
+    (polymer.querySelector('button[data-tip=Hide]') as HTMLButtonElement).click();
+    expect(row('Polymer').querySelector('button[data-tip=Show]')).not.toBeNull();
     expect(scene.picked.value).toBeUndefined();
   });
 

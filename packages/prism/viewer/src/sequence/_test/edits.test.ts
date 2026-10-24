@@ -72,6 +72,19 @@ describe("the sequence's edits", () => {
     h.viewers.dispose();
   });
 
+  it("an edit keeps what the document shows: a behavior's nodes are not added again", async () => {
+    const patched: boolean[] = [];
+    const h = headlessViewers({ behaviors: [valuesBehavior(patched)] });
+    h.structure.set({ ...(await hostStructure()), ref: 'a' });
+    await settled(h);
+    await until(() => patched.length === 1);
+    expect(await h.viewer.setTrackHidden('ruler', true)).toBe(true);
+    expect(await h.viewer.setTrackIn('ruler', false)).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(patched).toEqual([true]);
+    h.viewers.dispose();
+  });
+
   it('hides or shows several tracks in one patch', async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());

@@ -107,13 +107,13 @@ describe("the assembly symmetry's row", () => {
     await until(() => host.textContent?.includes('get the symmetries') ?? false);
     expect(fetchMock).not.toHaveBeenCalled();
 
-    (host.querySelector('button[title]') as HTMLButtonElement).click();
+    (host.querySelector('button[data-tip]') as HTMLButtonElement).click();
     await until(() => host.textContent?.includes('C2 axes') ?? false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(host.querySelector('[aria-label=Symmetry]')?.textContent).toContain('C2 · global · A2');
     expect(v.api['assembly-symmetry']!.rowState(node.id).value).toMatchObject({ shown: true, selected: 1 });
 
-    (host.querySelector('button[title=Hide]') as HTMLButtonElement).click();
+    (host.querySelector('button[data-tip=Hide]') as HTMLButtonElement).click();
     await until(() => host.textContent?.includes('1 symmetry') ?? false);
     expect(v.api['assembly-symmetry']!.rowState(node.id).value.shown).toBe(false);
   });
@@ -135,8 +135,8 @@ describe("the assembly symmetry's row", () => {
     const v = await viewer('1cbs_updated.cif');
     const { host } = mountRow(v);
     (host.querySelector('[data-tree-row]') as HTMLElement).click();
-    await until(() => !!host.querySelector('button[title]'));
-    (host.querySelector('button[title]') as HTMLButtonElement).click();
+    await until(() => !!host.querySelector('button[data-tip]'));
+    (host.querySelector('button[data-tip]') as HTMLButtonElement).click();
     await until(() => host.textContent?.includes('no symmetry but C1') ?? false);
     expect(host.textContent).toContain('1 symmetry');
   });

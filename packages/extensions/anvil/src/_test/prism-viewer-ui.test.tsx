@@ -76,11 +76,11 @@ describe("the membrane's row", () => {
     const { host } = mountRow(v);
     await until(() => host.textContent?.includes('Membrane') ?? false);
     expect(host.textContent).toContain('Off');
-    const eye = () => host.querySelector('button[title]') as HTMLButtonElement;
-    expect(eye().title).toBe('Show');
+    const eye = () => host.querySelector('button[data-tip]') as HTMLButtonElement;
+    expect(eye().dataset.tip).toBe('Show');
     eye().click();
     await until(() => /Å thick/.test(host.textContent ?? ''));
-    expect(eye().title).toBe('Hide');
+    expect(eye().dataset.tip).toBe('Hide');
     expect(v.api.membrane!.rowState(v.views.scene.roots.value[0].id).value.look).toMatchObject({
       planes: true,
       rims: true,

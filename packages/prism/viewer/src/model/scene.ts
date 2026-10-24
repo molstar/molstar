@@ -172,16 +172,31 @@ export interface SceneInspection {
   quick?: RepresentationQuickModel;
   /** A structure's contents: its counts, and its entities to open in the tree. */
   contents?: ContentsSummary;
-  /** A Sequence node's chains: which the sequence shows (sequence.md §8.1). */
-  chains?: SequenceChainsModel;
+  /** A Sequence node's controls: the band's style and letters, Add track, the chains (sequence.md §8.1). */
+  sequence?: SequenceInspectorModel;
 }
 
 /**
- * The chains a structure's sequence shows, as its Sequence node's inspector has them (sequence.md §8.1): the presets
- * (every chain, none, the polymers) and each chain by its entity. Made once per node; it follows the edits.
+ * A Sequence node's inspector (sequence.md §8.1), made once per node and following the edits: what the band shows, its
+ * style and letter colors (the band's: the same on every node), Add track, and the chains the structure's sequence
+ * shows (the presets, each chain by its entity, every copy apart).
  */
-export interface SequenceChainsModel {
-  readonly entities: readonly SequenceChainsEntity[];
+export interface SequenceInspectorModel {
+  /** What the band shows of it, in a few words ("Tracks · auto · 4 tracks"; "Not shown"). */
+  readonly status: ReadonlyState<string>;
+  readonly style: ReadonlyState<'tracks' | 'text'>;
+  setStyle(style: 'tracks' | 'text'): void;
+  readonly colors: ReadonlyState<string | null>;
+  /** The letter color schemes: a name for people and a swatch of its colors (none: not painted). */
+  readonly schemes: ReadonlyState<
+    readonly { readonly id: string | null; readonly label: string; readonly swatch?: string }[]
+  >;
+  setColors(scheme: string | null): void;
+  /** A track can be added here (the structure the band shows, a provider out): Add track opens the command menu. */
+  readonly canAdd: ReadonlyState<boolean>;
+  addTrack(): void;
+  /** The structure's entities and their chains (new when the structure under the node is another). */
+  readonly entities: ReadonlyState<readonly SequenceChainsEntity[]>;
   /** The chains shown, by name. */
   readonly shown: ReadonlyState<ReadonlySet<string>>;
   /** The preset in effect; undefined: chains chosen one by one. */
@@ -191,6 +206,9 @@ export interface SequenceChainsModel {
   toggleChain(name: string): void;
   /** Shows every chain of an entity, or none when every one is shown. */
   toggleEntity(id: string): void;
+  /** Every copy a block of its own (an assembly's). */
+  readonly each: ReadonlyState<boolean>;
+  setEach(on: boolean): void;
 }
 
 export type SequenceChainsPreset = 'all' | 'none' | 'polymer';
@@ -314,8 +332,10 @@ export interface SceneSequence {
   /** The band's style and letter colors (one for the band, sequence.md §7.1): `sequence.style`, `sequence.colors`. */
   setStyle(style: 'tracks' | 'text'): void;
   setColors(scheme: string | null): void;
-  /** The letter color schemes, by name (null: no colors), and their names for people. */
-  readonly schemes: readonly (readonly [scheme: string | null, label: string])[];
+  /** The letter color schemes, by name (null: no colors), their names for people and swatches (once the sequence is in). */
+  schemes(): readonly { readonly id: string | null; readonly label: string; readonly swatch?: string }[];
+  /** Opens the command menu at Add track, for the structure the band shows (its commands act on it). */
+  openAddTrack?(): void;
 }
 
 export interface SceneSequenceRow {

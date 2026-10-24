@@ -3,7 +3,8 @@
 - Prism: a Sequence node under every structure with polymers, right under Contents (sequence.md §8.1; off with
   `sequence.tree: false`). Its eye picks the structure the band shows (one at a time; Auto, the old follow rule, until the person picks one), its children are the tracks (each an
   eye, its colorings, Remove), its menu has Add track, Chains, Style, Letter colors, Follow automatically and Legend,
-  and its inspector the chains (All, None, Polymers, then each entity and its chains). Tracks say what they draw
+  and its inspector, drawn as a representation's quick settings, has Add track (the command menu at its group), Style,
+  Letters and the chains (All, None, Polymers, then each entity and its chains; None takes the band away). Tracks say what they draw
   ("Letters · Zappo").
 - Prism: the chain filter: every chain, polymers only, every copy apart, or the chain instances chosen, written as the
   section's blocks by one patch (the document and its link kept); `sequence.chains` and the `sequence.chains.*`
@@ -20,3 +21,4 @@
 - Prism: the Sequence button's menu is No sequence, Text, Tracks and Edit in structure tree (`sequence.reveal`): the
   letter colors, Legend and Visible tracks moved to the Sequence node.
 - Prism: the band's focus ring shows from the keyboard only, not after a click.
+- Prism: the structure tree's eye and ⋯ buttons show the app's tooltips, not the system's.

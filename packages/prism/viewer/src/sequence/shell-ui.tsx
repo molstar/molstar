@@ -8,13 +8,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type CommandDefinition, domView, type ShellModel, type ShellOverlay, type ShellTab } from '@molstar/prism-ui';
+import {
+  type CommandDefinition,
+  type CommandGroup,
+  domView,
+  type ShellModel,
+  type ShellOverlay,
+  type ShellTab,
+} from '@molstar/prism-ui';
 import type { CanvasToolbarItem } from '@molstar/prism-ui/shell/shell';
 import { combineLatest } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { SequenceSource } from '../sources/sequence.js';
-import { LegendOverlay, sequenceCommands, sequenceMenu } from './commands.js';
+import { AddTrackGroup, addTrackCommands, LegendOverlay, sequenceCommands, sequenceMenu } from './commands.js';
 import { LegendCard } from './legend-card.js';
 import type { SequenceViewers } from './model.js';
 import type { MarksView } from '../sources/marks.js';
@@ -42,6 +49,10 @@ export interface SequenceShellDeps {
   readonly marks?: MarksView;
   /** Opens the structure tree at a structure's Sequence node (sequence.md §8.1); none: the page has no tree. */
   readonly reveal?: (structure: string) => void;
+  /** Registers command groups (Add track's). */
+  readonly registerGroups?: (groups: readonly CommandGroup[]) => () => void;
+  /** Opens the command menu at a group. */
+  readonly openCommandMenu?: (group: string) => void;
 }
 
 /** Mounts the sequence's parts; returns their removal. */
@@ -57,6 +68,18 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
       }
     : undefined;
   undo.push(d.registerCommands(sequenceCommands(viewer, shell, d.person, reveal)));
+  // Add track (sequence.md §8.1): a command a provider, in a group of their own the Sequence node's inspector opens
+  // the command menu at; made again when providers come or go.
+  if (d.registerGroups) undo.push(d.registerGroups([AddTrackGroup]));
+  let dropAdd: (() => void) | undefined;
+  const providersSub = viewer.providers.subscribe((list) => {
+    dropAdd?.();
+    dropAdd = d.registerCommands(addTrackCommands(viewer, list, d.person));
+  });
+  undo.push(() => {
+    providersSub.unsubscribe();
+    dropAdd?.();
+  });
   // The band shown or not, for the structure tree's Sequence eye (sequence.md §8.1): the top dock, as No sequence.
   undo.push(
     d.source.setBand({
@@ -65,6 +88,7 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
         if (on) shell.show('sequence');
         else if (shell.dock('top').active.value) shell.toggle('top');
       },
+      ...(d.openCommandMenu ? { openAddTrack: () => d.openCommandMenu!(AddTrackGroup.id) } : {}),
     }),
   );
   undo.push(
@@ -78,38 +102,44 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
   let shownBefore = false;
   // Another structure's document being made (`viewer.structure` undefined meanwhile) keeps the band: its surface, link
   // and the dock's size are not torn down and made again on each switch.
-  const bandSub = combineLatest([viewer.structure, d.source.structure]).subscribe(([shown, host]) => {
-    if (!host) {
-      dropTab?.();
-      dropTab = undefined;
-      return;
-    }
-    if (!shown || dropTab) return;
-    const tabs = own<ShellTab>('tab', [
-      {
-        id: 'sequence',
-        title: 'Sequence',
-        icon: 'sequence',
-        dock: 'top',
-        frame: 'none',
-        render: domView(({ ctx }) => (
-          <SequenceControl
-            viewer={viewer}
-            view3d={(s) => d.source.view3d(s, () => void d.person.camera.reset())}
-            shell={ctx.shell}
-            dock={ctx.dock ?? 'top'}
-            onHover={d.onHover}
-            api={d.person}
-            {...(d.marks ? { marks: d.marks } : {})}
-          />
-        )),
-      },
-    ]);
-    if (!tabs.length) return;
-    dropTab = shell.registerTabs(tabs);
-    if (!shownBefore) shell.show('sequence');
-    shownBefore = true;
-  });
+  // No chain shown (the chain filter's None): nothing to draw, so no band until a chain is picked again.
+  let emptied = false;
+  const bandSub = combineLatest([viewer.structure, d.source.structure, viewer.empty]).subscribe(
+    ([shown, host, empty]) => {
+      if (!host || empty) {
+        if (empty && dropTab) emptied = true;
+        dropTab?.();
+        dropTab = undefined;
+        return;
+      }
+      if (!shown || dropTab) return;
+      const tabs = own<ShellTab>('tab', [
+        {
+          id: 'sequence',
+          title: 'Sequence',
+          icon: 'sequence',
+          dock: 'top',
+          frame: 'none',
+          render: domView(({ ctx }) => (
+            <SequenceControl
+              viewer={viewer}
+              view3d={(s) => d.source.view3d(s, () => void d.person.camera.reset())}
+              shell={ctx.shell}
+              dock={ctx.dock ?? 'top'}
+              onHover={d.onHover}
+              api={d.person}
+              {...(d.marks ? { marks: d.marks } : {})}
+            />
+          )),
+        },
+      ]);
+      if (!tabs.length) return;
+      dropTab = shell.registerTabs(tabs);
+      if (!shownBefore || emptied) shell.show('sequence');
+      emptied = false;
+      shownBefore = true;
+    },
+  );
   undo.push(() => bandSub.unsubscribe());
   undo.push(() => dropTab?.());
   undo.push(

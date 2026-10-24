@@ -182,9 +182,9 @@ describe('the Kinemage panel', () => {
     const item = (name: string) => [...host.querySelectorAll('[role="treeitem"]')].find((i) => label(i) === name)!;
     const row = (name: string) => item(name).querySelector<HTMLElement>('[data-tree-row]')!;
     const eye = (name: string) =>
-      row(name).querySelector<HTMLButtonElement>('button[title="Show"], button[title="Hide"]')!;
+      row(name).querySelector<HTMLButtonElement>('button[data-tip="Show"], button[data-tip="Hide"]')!;
     // Shown or hidden as its eye offers the other.
-    const shown = (name: string) => eye(name)?.getAttribute('title') === 'Hide';
+    const shown = (name: string) => eye(name)?.getAttribute('data-tip') === 'Hide';
     const rows = () =>
       [...host.querySelectorAll('[role="treeitem"]')].map((i) => {
         const name = label(i)!;

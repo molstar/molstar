@@ -382,22 +382,31 @@ export class SequenceApi extends ApiArea {
       let kept: string[] | undefined;
       if (chains !== undefined && chains.trim().toLowerCase() === 'none') kept = [];
       else if (chains !== undefined && chains.trim() !== '') {
-        kept = [];
-        for (const want of String(chains)
+        // By name (`label_asym_id`), else by the author's id (which may name several): indexed once.
+        const byName = new Map(all.map((c) => [c.name, c]));
+        const byAuth = new Map<string, string[]>();
+        for (const c of all) {
+          const list = byAuth.get(c.auth);
+          if (list) list.push(c.name);
+          else byAuth.set(c.auth, [c.name]);
+        }
+        const want = new Set<string>();
+        for (const name of String(chains)
           .split(',')
           .map((c: string) => c.trim())
           .filter(Boolean)) {
-          const hit = all.filter((c) => c.name === want || c.label === want || c.label.startsWith(`${want} `));
-          const byAuth = hit.length ? hit : all.filter((c) => c.label.includes(`[auth ${want}]`));
-          if (!byAuth.length) {
+          const hit = byName.has(name) ? [name] : byAuth.get(name);
+          if (!hit) {
             return ApiResult.fail(
               'not-found',
-              `No chain ${want}.`,
-              `The chains: ${all.map((c) => c.name).join(', ')}.`,
+              `No chain ${name}.`,
+              `The chains: ${all.map((c) => c.label).join(', ')}.`,
             );
           }
-          for (const c of byAuth) if (!kept.includes(c.name)) kept.push(c.name);
+          for (const n of hit) want.add(n);
         }
+        // In the structure's order.
+        kept = all.filter((c) => want.has(c.name)).map((c) => c.name);
       }
       const filter: ChainFilter = {
         ...(polymer ? { polymer: true } : {}),

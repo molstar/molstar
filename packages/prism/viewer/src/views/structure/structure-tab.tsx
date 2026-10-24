@@ -26,7 +26,7 @@ import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { VolumeLevels } from '../volume/volume-levels.js';
 import { ContentsSummaryView } from './contents-summary.js';
-import { SequenceChains } from './sequence-chains.js';
+import { SequenceInspector } from './sequence-inspector.js';
 import { RepresentationQuick } from './representation-quick.js';
 import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
@@ -438,8 +438,8 @@ function Inspector(props: {
       {/* A component's representations: each a row to open (its inspector), its eye beside it; not only behind the
           tree's chevron. */}
       {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
-      {/* A structure's sequence: the chains it shows (sequence.md §8.1). */}
-      {props.inspection.chains ? <SequenceChains model={props.inspection.chains} /> : null}
+      {/* A structure's sequence: the band's style and letters, Add track, its chains (sequence.md §8.1). */}
+      {props.inspection.sequence ? <SequenceInspector model={props.inspection.sequence} /> : null}
       {/* A structure's contents: its counts, its entities to open in the tree. */}
       <Show when={part('contents')}>{(contents) => <ContentsSummaryView summary={contents} />}</Show>
       {/* A representation's quick settings (type, color, opacity, size), above the whole form. */}
@@ -452,7 +452,7 @@ function Inspector(props: {
       <SectionList shell={props.shell} slot={slot} subject={node} flat />
       {/* Nothing to set (no form or actions of its own): what can be done with it is shown here, its row menu's
           entries; with none, say so rather than leave an empty space. */}
-      {!form && !props.inspection.actions?.length && !props.inspection.contents ? (
+      {!form && !props.inspection.actions?.length && !props.inspection.contents && !props.inspection.sequence ? (
         (node.menu?.length ?? 0) > 0 || node.removable !== false ? (
           <NodeActions node={node} />
         ) : !props.inspection.facts?.length ? (

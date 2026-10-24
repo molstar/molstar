@@ -715,7 +715,8 @@ function TreeItem(props: {
             <button
               type="button"
               class={classes.action}
-              title="More"
+              data-tip="More"
+              aria-label="More"
               aria-haspopup="menu"
               ref={(e: HTMLElement) => (menuButton = e)}
               onClick={(e) => {
@@ -775,7 +776,9 @@ function TreeItem(props: {
       lastHidden = hidden;
       setClass(line, classes.hidden, hidden);
       setClass(eyeButton, classes.keep, hidden);
-      setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+      // The app's tooltip (`data-tip`), not the system's (tooltip.ts): the same words its name.
+      setAttr(eyeButton, 'data-tip', hidden ? 'Show' : 'Hide');
+      setAttr(eyeButton, 'aria-label', hidden ? 'Show' : 'Hide');
       const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
       if (icon !== eyeShown) {
         eyeShown.replaceWith(icon);
@@ -896,7 +899,8 @@ function nodeSlot(props: {
           <button
             type="button"
             class={classes.action}
-            title="More"
+            data-tip="More"
+            aria-label="More"
             aria-haspopup="menu"
             ref={(e: HTMLElement) => (menuButton = e)}
             onClick={(e) => {
@@ -982,7 +986,9 @@ function nodeSlot(props: {
       lastHidden = hidden;
       setClass(line, classes.hidden, hidden);
       setClass(eyeButton, classes.keep, hidden);
-      setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+      // The app's tooltip (`data-tip`), not the system's (tooltip.ts): the same words its name.
+      setAttr(eyeButton, 'data-tip', hidden ? 'Show' : 'Hide');
+      setAttr(eyeButton, 'aria-label', hidden ? 'Show' : 'Hide');
       const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
       if (icon !== eyeShown) {
         eyeShown.replaceWith(icon);
