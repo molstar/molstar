@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
@@ -120,6 +121,7 @@ export const MmcifParticlesProvider = DataFormatProvider({
   description: 'mmCIF Particles (CellPack / PetWorld assemblies)',
   category: ParticlesFormatCategory,
   stringExtensions: ['cif'],
+  sniffsResponse: true,
   binaryExtensions: ['bcif'],
   /**
    * Higher than the default (0) mmCIF/CifCore trajectory providers so that CellPack/PetWorld

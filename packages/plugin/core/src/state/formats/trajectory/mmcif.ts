@@ -60,7 +60,7 @@ const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
  */
 export function parseMmcifBlob(
   plugin: PluginContext,
-  data: StateObjectRef<SO.Data.Blob>,
+  data: StateObjectRef<SO.Data.Blob | SO.Data.ResponseBlob>,
   params: StateTransformer.Params<typeof ParseBlob>,
 ) {
   return plugin.state.data
@@ -181,6 +181,7 @@ export const MmcifProvider = TrajectoryFormatProvider({
   description: 'mmCIF',
   category: TrajectoryFormatCategory,
   stringExtensions: ['cif', 'mmcif', 'mcif'],
+  sniffsResponse: true,
   binaryExtensions: ['bcif'],
   isApplicable: (info, data) => {
     if (info.ext === 'mmcif' || info.ext === 'mcif') return true;

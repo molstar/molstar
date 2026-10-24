@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -42,7 +42,7 @@ export class StructureBuilder {
   }
 
   private async parseTrajectoryData(
-    data: StateObjectRef<SO.Data.Binary | SO.Data.String>,
+    data: StateObjectRef<SO.Data.Binary | SO.Data.String | SO.Data.Response>,
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ) {
     if (typeof format === 'string' && !this.plugin.dataFormats.has(format)) {
@@ -55,7 +55,7 @@ export class StructureBuilder {
   }
 
   private async parseTrajectoryBlob(
-    data: StateObjectRef<SO.Data.Blob>,
+    data: StateObjectRef<SO.Data.Blob | SO.Data.ResponseBlob>,
     params: StateTransformer.Params<typeof ParseBlob>,
   ) {
     // the blob path is implemented by the mmCIF format, which is the only one that parses blobs
@@ -72,18 +72,18 @@ export class StructureBuilder {
   readonly representation = new StructureRepresentationBuilder(this.plugin);
 
   parseTrajectory(
-    data: StateObjectRef<SO.Data.Binary | SO.Data.String>,
+    data: StateObjectRef<SO.Data.Binary | SO.Data.String | SO.Data.Response>,
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(
-    blob: StateObjectRef<SO.Data.Blob>,
+    blob: StateObjectRef<SO.Data.Blob | SO.Data.ResponseBlob>,
     params: StateTransformer.Params<typeof ParseBlob>,
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(data: StateObjectRef, params: any) {
     const cell = StateObjectRef.resolveAndCheck(this.dataState, data as StateObjectRef);
     if (!cell) throw new Error('Invalid data cell.');
 
-    if (SO.Data.Blob.is(cell.obj)) {
+    if (SO.Data.Blob.is(cell.obj) || SO.Data.ResponseBlob.is(cell.obj)) {
       return this.parseTrajectoryBlob(data, params);
     } else {
       return this.parseTrajectoryData(data, params);

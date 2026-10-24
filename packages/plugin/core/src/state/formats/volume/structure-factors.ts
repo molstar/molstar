@@ -95,6 +95,7 @@ export const SfcifProvider = DataFormatProvider({
   description: 'mmCIF structure factor file with reflection data (pdbx_FWT/pdbx_PHWT map coefficients)',
   category: VolumeFormatCategory,
   stringExtensions: ['cif'],
+  sniffsResponse: true,
   binaryExtensions: ['bcif'],
   isApplicable: (info, data) => {
     return guessCifVariant(info, data) === 'sfcif' ? true : false;

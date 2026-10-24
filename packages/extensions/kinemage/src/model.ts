@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Russ Taylor <russ@reliasolve.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 /** Based on the ../anvil extension. */
@@ -9,6 +10,7 @@
 // The kinemage data model and its plugin state (transforms, shapes, the .kin format), without UI: the v5 behavior
 // (behavior.ts, which adds the right-panel controls) and the Prism extension (prism-viewer.ts) both stand on it.
 
+import { StringLike } from '@molstar/core/util/string-like';
 import { Vec3, Mat3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { KinemageData } from '@molstar/kinemage-extension/prop';
@@ -88,7 +90,7 @@ export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial
 export const ParseKinemage = Transform({
   name: 'sb-kinemage-parse',
   display: { name: 'Parse Kinemage' },
-  from: [PluginStateObject.Data.String],
+  from: [PluginStateObject.Data.String, PluginStateObject.Data.Binary, PluginStateObject.Data.Response],
   to: KinemageObject,
   params: {
     label: PD.Optional(PD.Text('', { description: 'Label for the Kinemage data' })),
@@ -96,7 +98,7 @@ export const ParseKinemage = Transform({
 })({
   apply({ a, params }) {
     return Task.create('Parse Kinemage', async (ctx) => {
-      const input = a.data;
+      const input = StringLike.toString(await PluginStateObject.Data.readText(ctx, a));
       let data: KinemageData;
 
       if (typeof input === 'string') {

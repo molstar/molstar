@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -27,13 +27,15 @@ export class Mvs extends SO.Create<{ mvsData: MVSData; sourceUrl?: string }>({ n
 export const ParseMVSJ = MVSTransform({
   name: 'mvs-parse-mvsj',
   display: { name: 'MolViewSpec from MVSJ', description: 'Create MolViewSpec view from MVSJ data' },
-  from: SO.Data.String,
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: Mvs,
 })({
   apply({ a }, plugin: PluginContext) {
-    const mvsData = MVSData.fromMVSJ(StringLike.toString(a.data));
-    const sourceUrl = tryGetDownloadUrl(a, plugin);
-    return new Mvs({ mvsData, sourceUrl });
+    return Task.create('Parse MVSJ', async (ctx) => {
+      const mvsData = MVSData.fromMVSJ(StringLike.toString(await SO.Data.readText(ctx, a)));
+      const sourceUrl = tryGetDownloadUrl(a, plugin);
+      return new Mvs({ mvsData, sourceUrl });
+    });
   },
 });
 
@@ -41,7 +43,7 @@ export const ParseMVSJ = MVSTransform({
 export const ParseMVSX = MVSTransform({
   name: 'mvs-parse-mvsx',
   display: { name: 'MolViewSpec from MVSX', description: 'Create MolViewSpec view from MVSX data' },
-  from: SO.Data.Binary,
+  from: [SO.Data.Binary, SO.Data.Response],
   to: Mvs,
   params: {
     mainFilePath: PD.Text('index.mvsj'),
@@ -49,7 +51,7 @@ export const ParseMVSX = MVSTransform({
 })({
   apply({ a, params }, plugin: PluginContext) {
     return Task.create('Parse MVSX file', async (ctx) => {
-      const data = await loadMVSX(plugin, ctx, a.data, params.mainFilePath);
+      const data = await loadMVSX(plugin, ctx, SO.Data.readBytes(a), params.mainFilePath);
       return new Mvs(data);
     });
   },
@@ -215,7 +217,10 @@ function clearMVSXFileAssets(plugin: PluginContext) {
 }
 
 /** If the PluginStateObject `pso` comes from a Download transform, try to get its `url` parameter. */
-function tryGetDownloadUrl(pso: SO.Data.String, plugin: PluginContext): string | undefined {
+function tryGetDownloadUrl(
+  pso: SO.Data.String | SO.Data.Binary | SO.Data.Response,
+  plugin: PluginContext,
+): string | undefined {
   const theCell = plugin.state.data.selectQ((q) => q.ofTransformer(Download)).find((cell) => cell.obj === pso);
   const urlParam = theCell?.transform.params?.url;
   return urlParam ? Asset.getUrl(urlParam) : undefined;

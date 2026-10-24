@@ -52,7 +52,7 @@ import { SizeTheme } from '@molstar/graphics/theme/size';
 import type { ThemeRegistryContext } from '@molstar/graphics/theme/theme';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
-import { ajaxGet } from '@molstar/core/util/data-source';
+import { fetchData } from '@molstar/core/util/data-source';
 import { isDebugMode, isProductionMode } from '@molstar/core/util/debug';
 import { EmptyKeyInput, type KeyInput, ModifiersKeys } from '@molstar/core/util/input/input-observer';
 import { LogEntry } from '@molstar/core/util/log-entry';
@@ -507,7 +507,7 @@ export class PluginContext {
    * This should be used in all transform related request so that it could be "spoofed" to allow
    * "static" access to resources.
    */
-  readonly fetch = ajaxGet;
+  readonly fetch = fetchData;
 
   /** return true is animating or updating */
   get isBusy() {

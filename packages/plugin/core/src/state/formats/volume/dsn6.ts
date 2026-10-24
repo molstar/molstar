@@ -26,12 +26,13 @@ type ParseDsn6 = typeof ParseDsn6;
 const ParseDsn6 = PluginStateTransform.BuiltIn({
   name: 'parse-dsn6',
   display: { name: 'Parse DSN6/BRIX', description: 'Parse CCP4/BRIX from Binary data' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Dsn6,
 })({
   apply({ a }) {
     return Task.create('Parse DSN6/BRIX', async (ctx) => {
-      const parsed = await DSN6.parse(a.data, a.label).runInContext(ctx);
+      // a copy of a response's bytes: it flips byte order in its input
+      const parsed = await DSN6.parse(SO.Data.readBytes(a, { copy: true }), a.label).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Dsn6(parsed.result);
     });

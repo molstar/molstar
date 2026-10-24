@@ -20,12 +20,13 @@ type CoordinatesFromTrr = typeof CoordinatesFromTrr;
 const CoordinatesFromTrr = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-trr',
   display: { name: 'Parse TRR', description: 'Parse TRR binary data.' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {
     return Task.create('Parse TRR', async (ctx) => {
-      const parsed = await parseTrr(a.data).runInContext(ctx);
+      // a copy of a response's bytes: it swaps byte order in its input
+      const parsed = await parseTrr(SO.Data.readBytes(a, { copy: true })).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const coordinates = await coordinatesFromTrr(parsed.result).runInContext(ctx);
       return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });

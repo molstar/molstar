@@ -25,12 +25,13 @@ type ParseVtp = typeof ParseVtp;
 const ParseVtp = PluginStateTransform.BuiltIn({
   name: 'parse-vtp',
   display: { name: 'Parse VTP', description: 'Parse VTP (VTK PolyData) from Binary data' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Vtp,
 })({
   apply({ a }) {
     return Task.create('Parse VTP', async (ctx) => {
-      const parsed = await VTP.parseVtp(a.data).runInContext(ctx);
+      // a copy of a response's bytes: its arrays may be views of its input
+      const parsed = await VTP.parseVtp(SO.Data.readBytes(a, { copy: true })).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Vtp(parsed.result, { label: 'VTP Data' });
     });

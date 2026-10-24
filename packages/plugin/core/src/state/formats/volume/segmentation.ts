@@ -94,6 +94,7 @@ export const SegcifProvider = DataFormatProvider({
   description: 'Segmentation CIF',
   category: VolumeFormatCategory,
   stringExtensions: ['cif'],
+  sniffsResponse: true,
   binaryExtensions: ['bcif'],
   isApplicable: (info, data) => {
     return guessCifVariant(info, data) === 'segcif' ? true : false;

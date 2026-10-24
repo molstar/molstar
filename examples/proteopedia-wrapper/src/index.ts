@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -107,7 +107,7 @@ class MolStarProteopediaWrapper {
     return b.apply(Download, { url: Asset.Url(url), isBinary });
   }
 
-  private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String>, format: SupportedFormats) {
+  private model(b: StateBuilder.To<PSO.Data.Binary | PSO.Data.String | PSO.Data.Response>, format: SupportedFormats) {
     const parsed = format === 'cif' ? b.apply(ParseCif).apply(TrajectoryFromMmCif) : b.apply(TrajectoryFromPDB);
 
     return parsed.apply(ModelFromTrajectory, { modelIndex: 0 }, { ref: StateElements.Model });

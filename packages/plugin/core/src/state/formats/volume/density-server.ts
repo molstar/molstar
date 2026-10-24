@@ -95,6 +95,7 @@ export const DscifProvider = DataFormatProvider({
   description: 'DensityServer CIF',
   category: VolumeFormatCategory,
   stringExtensions: ['cif'],
+  sniffsResponse: true,
   binaryExtensions: ['bcif'],
   isApplicable: (info, data) => {
     return guessCifVariant(info, data) === 'dscif' ? true : false;

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
@@ -128,9 +129,10 @@ export const DownloadFile = StateAction.build({
           if (params.format === 'zip' || params.format === 'gzip') {
             // TODO: add ReadZipFile transformer so this can be saved as a simple state snaphot,
             //       would need support for extracting individual files from zip
-            const data = await plugin.builders.data.download({ url: params.url, isBinary: true });
+            const data = await plugin.builders.data.download({ url: params.url });
+            const body = data.obj!.data;
             if (params.format === 'zip') {
-              const zippedFiles = await unzip(taskCtx, (data.obj?.data as Uint8Array<ArrayBuffer>).buffer);
+              const zippedFiles = await body.read(taskCtx, 'zip');
               for (const [fn, filedata] of Object.entries(zippedFiles)) {
                 if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
 
@@ -139,14 +141,11 @@ export const DownloadFile = StateAction.build({
                 await processFile(asset, plugin, 'auto', params.visuals);
               }
             } else {
+              // the download inflated the gzip (`decompress`, auto), or the server did: the name loses its `.gz` so
+              // that reading the file does not inflate it again
               const url = Asset.getUrl(params.url);
-              const fileName = getFileNameInfo(url).name;
-              await processFile(
-                Asset.File(new File([data.obj?.data as Uint8Array<ArrayBuffer>], fileName)),
-                plugin,
-                'auto',
-                params.visuals,
-              );
+              const fileName = getFileNameInfo(url).name.replace(/\.gz$/i, '');
+              await processFile(Asset.File(new File([body.bytes], fileName)), plugin, 'auto', params.visuals);
             }
           } else {
             if (!plugin.dataFormats.has(params.format)) {

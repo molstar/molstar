@@ -12,8 +12,6 @@
  * Requires compiled library output (`pnpm build:lib`).
  *
  * @author David Sehnal <david.sehnal@gmail.com>
- *
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { execFileSync } from 'node:child_process';
@@ -33,7 +31,30 @@ const Allowed = {
   dragAndDrop: ['open-files'],
   /** Formats new in v6: NAMD extended system files (periodic boxes for coordinates). */
   formats: ['xsc'],
+  /**
+   * Parsers take String, Binary and Response Data (`Download` and `ReadFile` give Response Data, `.v6/data-response`):
+   * the data actions that list `Response Data` are taken out of the String and Binary Data lists of both dumps.
+   */
+  responseData: 'Response Data',
 };
+
+/** Section 6.1, the response data row: the parsers the current dump lists for Response Data, out of both dumps. */
+function withoutResponseData(expected, current) {
+  const e = structuredClone(expected);
+  const c = structuredClone(current);
+  const readers = new Set(c.actions.data.byFromType[Allowed.responseData] ?? []);
+  delete c.actions.data.byFromType[Allowed.responseData];
+  for (const t of [e, c]) {
+    for (const from of ['String Data', 'Binary Data']) {
+      const ids = t.actions.data.byFromType[from];
+      if (!ids) continue;
+      const kept = ids.filter((id) => !readers.has(id));
+      if (kept.length) t.actions.data.byFromType[from] = kept;
+      else delete t.actions.data.byFromType[from];
+    }
+  }
+  return [e, c];
+}
 
 /**
  * Particles are opt-in (`ParticlesRegistry`, breaking-v6-changes.md): the default spec registers none of them, so the
@@ -138,8 +159,11 @@ try {
       continue;
     }
     const viewer = target === 'viewer';
-    const expected = viewer ? asComposed(baseline.targets[target]) : withoutParticles(baseline.targets[target]);
-    diff(target, expected, withoutAllowed(viewer ? particleBlocks(c) : c), problems);
+    const [expected, compared] = withoutResponseData(
+      viewer ? asComposed(baseline.targets[target]) : withoutParticles(baseline.targets[target]),
+      withoutAllowed(viewer ? particleBlocks(c) : c),
+    );
+    diff(target, expected, compared, problems);
 
     // The allowed differences must actually be present, so an obsolete allowance is noticed.
     for (const [scope, t] of Object.entries(c.themes)) {
@@ -154,6 +178,9 @@ try {
     }
     for (const name of Allowed.formats) {
       if (!c.formats.includes(name)) problems.push(`${target}.formats: expected '${name}'`);
+    }
+    if (!c.actions.data.byFromType[Allowed.responseData]?.includes('ms-plugin.parse-cif')) {
+      problems.push(`${target}.actions.data.byFromType: expected '${Allowed.responseData}' with 'ms-plugin.parse-cif'`);
     }
 
     const have = new Set(currentIds.targets[target]);

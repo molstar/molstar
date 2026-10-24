@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { ajaxGet } from '../data-source.js';
+import { fetchData } from '../data-source.js';
 
 // The string limit and the chunk size made small, so a download past them needs no 512 MB. This file mocks a module,
 // so it runs in a registry of its own.
@@ -19,7 +19,7 @@ vi.mock('../string-like.js', async (importOriginal) => {
   return { ...actual, MAX_STRING_LENGTH: 100, ChunkedBigString: SmallChunks };
 });
 
-describe('ajaxGet past the string limit', () => {
+describe('fetchData past the string limit', () => {
   it('decodes a string download into a ChunkedBigString', async () => {
     // multi-byte characters straddle the 16-byte chunk boundaries
     const text = 'data_big\n' + 'Aé€😀'.repeat(40);
@@ -39,7 +39,7 @@ describe('ajaxGet past the string limit', () => {
       }),
     );
 
-    const result = await ajaxGet({ url: 'https://example.org/big.cif', type: 'string' }).run();
+    const result = await fetchData({ url: 'https://example.org/big.cif', type: 'string' }).run();
     const { ChunkedBigString } = await vi.importActual<typeof import('../string-like.js')>('../string-like.js');
     expect(result).toBeInstanceOf(ChunkedBigString);
     expect(result.length).toBe(text.length);

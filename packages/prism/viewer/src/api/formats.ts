@@ -7,7 +7,8 @@
  */
 
 import { getFileNameInfo } from '@molstar/core/util/file-info';
-import type { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
+import { utf8Read } from '@molstar/core/util/utf8';
+import { DataFormatProvider } from '@molstar/plugin/state/formats/provider';
 import type { PluginStateObject } from '@molstar/plugin/state/objects';
 import { type ApiContext, type ApiFailure, ApiResult } from './area.js';
 import { extensionOf } from './input.js';
@@ -91,7 +92,7 @@ export async function chooseFormat(
     }
     const told = o.content !== undefined ? formatOfContent(o.content, scope) : undefined;
     if (told && registry.has(told)) {
-      return { provider: registry.get(told), candidates: [], binary: binary ?? typeof o.content !== 'string' };
+      return { provider: registry.get(told), candidates: [], binary: binary ?? isBinaryContent(o.content!, told) };
     }
     const what = o.name ? `${o.name}` : 'the data';
     return ApiResult.fail(
@@ -123,12 +124,11 @@ export function providerFor(
   ctx: ApiContext,
   choice: FormatChoice,
   name: string,
-  data: PluginStateObject.Data.Binary | PluginStateObject.Data.String,
+  data: PluginStateObject.Data.Binary | PluginStateObject.Data.String | PluginStateObject.Data.Response,
 ): DataFormatProvider | undefined {
   if (choice.provider) return choice.provider;
-  const info = getFileNameInfo(name);
   // `DataFormatRegistry.auto` over the formats in scope (the candidates, in its order).
-  return choice.candidates.find((p) => !p.isApplicable || p.isApplicable(info, data.data));
+  return choice.candidates.find(DataFormatProvider.applicable(getFileNameInfo(name), data));
 }
 
 /**
@@ -146,6 +146,12 @@ const Volumes = ['Volume'];
  * A format from the data itself, for data without a name: mmCIF text (`data_`), PDB records, BinaryCIF (MessagePack
  * naming its data blocks), a CCP4/MRC map (`MAP ` at byte 208). The registry reads extensions only.
  */
+/** Whether content told as `format` is binary: bytes of a binary format, not text as its bytes. */
+function isBinaryContent(content: string | Uint8Array, format: string): boolean {
+  if (typeof content === 'string') return false;
+  return format === 'ccp4' || (content[0] & 0xf0) === 0x80;
+}
+
 function formatOfContent(content: string | Uint8Array, scope: FormatScope): string | undefined {
   const takes = (categories: string[]) => !scope.categories || categories.some((c) => scope.categories!.includes(c));
   if (typeof content === 'string') {
@@ -162,5 +168,6 @@ function formatOfContent(content: string | Uint8Array, scope: FormatScope): stri
     const head = String.fromCharCode(...content.subarray(0, 256));
     if (head.includes('dataBlocks')) return 'mmcif';
   }
-  return undefined;
+  // text as its bytes (a response holds the bytes): told by its head, decoded
+  return formatOfContent(utf8Read(content, 0, Math.min(4096, content.length)), scope);
 }

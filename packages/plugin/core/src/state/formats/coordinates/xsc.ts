@@ -25,12 +25,12 @@ type ParseXsc = typeof ParseXsc;
 const ParseXsc = PluginStateTransform.BuiltIn({
   name: 'parse-xsc',
   display: { name: 'Parse NAMD XSC', description: 'Parse a NAMD extended system file (.xsc, .xst): periodic boxes.' },
-  from: SO.Data.String,
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Xsc,
 })({
   apply({ a }) {
     return Task.create('Parse NAMD XSC', async (ctx) => {
-      const parsed = await parseXsc(a.data).runInContext(ctx);
+      const parsed = await parseXsc(await SO.Data.readText(ctx, a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const n = parsed.result.entries.length;
       return new SO.Format.Xsc(parsed.result, { label: a.label, description: `${n} box${n === 1 ? '' : 'es'}` });

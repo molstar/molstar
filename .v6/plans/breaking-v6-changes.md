@@ -1149,3 +1149,41 @@ the data under masked rows, so a reader first checks `typeof value(0)` against i
 now take another form (a BinaryCIF string column as indices into its distinct strings), which a reader of an array of
 values would have misread; a method also says that asking may decode (a BinaryCIF field decodes on first access).
 Readers in the repository were core's `Column` helpers and `sortAtomSite`.
+
+## `Download`, `ReadFile` and `DownloadBlob` give Response Data
+
+`Download`, `ReadFile` and `DownloadBlob` (`@molstar/plugin/state/transforms/data/fetch`) give
+`PluginStateObject.Data.Response` (`DownloadBlob`: `Data.ResponseBlob`) unless their `asResponse` param is `false`: the
+bytes, held once, and the reader chooses the form (`data.bytes`, `data.text(ctx)`, `data.json(ctx)`,
+`data.read(ctx, type)`). `asResponse` unset is `true`, so a snapshot saved before, and code that does not set it, now
+gets Response Data; `isBinary` matters only with `asResponse: false`. Why: text CIF parses from the bytes, never decoded
+to a string and encoded back (flat-192-cif: 388 → 270 MB retained).
+
+- Every built-in parser takes Response Data: a text parser `from: [String, Binary, Response]` (Binary Data is decoded),
+  reading `SO.Data.readText(ctx, a)`; a binary one `from: [Binary, Response]`, reading `SO.Data.readBytes(a)`
+  (`{ copy: true }` when it writes into its input or keeps views of it). TypeScript: a binary parser can no longer be
+  applied to a ref typed `String | Binary` (`RawData`'s): a `from` that neither contains nor is contained in its type
+  does not compile; such a ref is typed by what it holds, or goes through a format provider's `parse`.
+- **A custom parser on top of `Download` or `ReadFile` has to adjust**: add `SO.Data.Response` to its `from` and read
+  through `readText` / `readBytes`; or set `asResponse: false` on the download; or put `ReadResponse { isBinary }`
+  between them. Code that reads a download's `cell.obj.data` as a string or bytes reads `data.text(ctx)` or
+  `data.bytes`.
+- A response body holds one form at a time (`ResponseBody`): its bytes, or its text once a reader asks for it (then
+  `bytes` encodes it again). Its `header` (64 KiB) and its sniffs (`sniffBytes`, `sniffText`) work on either form.
+- A `DataFormatProvider.isApplicable` gets a response as itself (a `Sniffable`, core) when the provider sets
+  `sniffsResponse`, as bytes when it reads the extension as binary, else as its text, which turns the body to text
+  (`DataFormatProvider.applicable`).
+- Types: `builders.data.download`, `readFile` and `downloadBlob` return a `Data.Response` (`ResponseBlob`) selector,
+  or `String | Binary` (`Blob`) with `asResponse: false`. The transforms' output is `String | Binary | Response`: code
+  that writes it out as `String | Binary` (`StateBuilder.To<PSO.Data.Binary | PSO.Data.String>`) adds `Response`.
+- Memory: a text format other than CIF holds its text, and its bytes as the file it was read from or a blob (a
+  download), as before; CIF holds its bytes only.
+
+## `Download` and `ReadFile` inflate gzip by default
+
+`Download`, `ReadFile` and `DownloadBlob` have a `decompress` param, `'auto'` when unset: gzip data, told by its bytes and not the name,
+is inflated, for text, binary and Response Data alike. A server that sends `.gz` files without `Content-Encoding` (the
+EMDB maps) used to give the gzip bytes (garbage as a string); it gives the inflated data now. Code that downloads such a
+file as binary and inflates it itself gets inflated bytes: it drops its own `ungzip`, or sets `decompress: 'none'` to
+keep the bytes as received. `DeflateData` passes bytes that are not gzip through, so a `Download` followed by it still
+works. A file named `.gz` was already inflated by its name and still is.

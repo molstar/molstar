@@ -20,12 +20,12 @@ type CoordinatesFromXtc = typeof CoordinatesFromXtc;
 const CoordinatesFromXtc = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-xtc',
   display: { name: 'Parse XTC', description: 'Parse XTC binary data.' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {
     return Task.create('Parse XTC', async (ctx) => {
-      const parsed = await parseXtc(a.data).runInContext(ctx);
+      const parsed = await parseXtc(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const coordinates = await coordinatesFromXtc(parsed.result).runInContext(ctx);
       return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });

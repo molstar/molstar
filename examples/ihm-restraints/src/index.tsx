@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -20,7 +20,7 @@ import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { Task } from '@molstar/core/task';
-import { ajaxGet } from '@molstar/core/util/data-source';
+import { fetchData } from '@molstar/core/util/data-source';
 import { download } from '@molstar/core/util/download';
 import './index.html';
 import '@molstar/plugin-ui/skin/light.scss';
@@ -106,7 +106,7 @@ function resolvePosition(model: Model, key: CoarseElementKey, position: Vec3) {
 const HarmonicRestraintTolerance = 0.1;
 
 async function parseInfo(plugin: PluginContext, url: string): Promise<IHMStructureInfo> {
-  const data = (await plugin.runTask(ajaxGet(url))) as string;
+  const data = (await plugin.runTask(fetchData(url))) as string;
   const parsed = await plugin.runTask(parseCifText(data));
 
   if (parsed.isError) {

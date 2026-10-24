@@ -242,3 +242,40 @@ export function utf8ByteCount(str: string) {
   }
   return count;
 }
+
+/**
+ * The index of ASCII `needle` in UTF-8 `data` at or after `from`, or -1: `String.indexOf` on the text the bytes decode
+ * to, without decoding them (an ASCII byte never occurs inside a multi-byte sequence). The index is a byte index.
+ *
+ * The native `indexOf` finds the candidates for the needle's first lowercase letter (its first byte when it has
+ * none): in text formats lowercase is rare outside names and keys (in a 124 MB mmCIF, 327 `a` against 2.2M `_`), so
+ * the search runs at about the speed of a single native scan.
+ */
+export function asciiIndexOf(data: Uint8Array, needle: string, from = 0): number {
+  const n = needle.length;
+  if (n === 0) return Math.min(from, data.length);
+  let k = 0;
+  for (let j = 0; j < n; j++) {
+    const c = needle.charCodeAt(j);
+    if (c >= 97 && c <= 122) {
+      k = j;
+      break;
+    }
+  }
+  const anchor = needle.charCodeAt(k);
+  const last = data.length - n;
+  for (let i = data.indexOf(anchor, from + k); i >= 0 && i - k <= last; i = data.indexOf(anchor, i + 1)) {
+    const start = i - k;
+    let j = 0;
+    while (j < n && data[start + j] === needle.charCodeAt(j)) j++;
+    if (j === n) return start;
+  }
+  return -1;
+}
+
+/** Whether UTF-8 `data` starts with ASCII `needle` (at byte `position`). */
+export function asciiStartsWith(data: Uint8Array, needle: string, position = 0): boolean {
+  if (position + needle.length > data.length) return false;
+  for (let j = 0; j < needle.length; j++) if (data[position + j] !== needle.charCodeAt(j)) return false;
+  return true;
+}
