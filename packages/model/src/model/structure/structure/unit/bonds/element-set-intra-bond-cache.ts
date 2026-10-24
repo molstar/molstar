@@ -10,32 +10,60 @@ import { SortedArray } from '@molstar/core/data/int';
 import type { Model } from '../../../model.js';
 import { LRUCache } from '@molstar/core/util/lru-cache';
 
+type Entry = [StructureElement.Set, IntraUnitBonds];
+
 export class ElementSetIntraBondCache {
-  private data = new Map<number, [StructureElement.Set, IntraUnitBonds][]>();
+  private data = new Map<number, Entry[]>();
+  /** The entries in order of use, least recent first: past `MaxEntries` the least recent goes (perf-audit-2 05/P11) */
+  private order = new Set<Entry>();
 
   get(xs: StructureElement.Set): IntraUnitBonds | undefined {
     const hash = SortedArray.hashCode(xs);
     if (!this.data.has(hash)) return void 0;
-    for (const [s, b] of this.data.get(hash)!) {
-      if (SortedArray.areEqual(xs, s)) return b;
+    for (const e of this.data.get(hash)!) {
+      if (SortedArray.areEqual(xs, e[0])) {
+        this.order.delete(e);
+        this.order.add(e);
+        return e[1];
+      }
     }
   }
 
   set(xs: StructureElement.Set, bonds: IntraUnitBonds) {
     const hash = SortedArray.hashCode(xs);
-    if (this.data.has(hash)) {
-      const es = this.data.get(hash)!;
+    let es = this.data.get(hash);
+    if (es) {
       for (const e of es) {
         if (SortedArray.areEqual(xs, e[0])) {
           e[1] = bonds;
+          this.order.delete(e);
+          this.order.add(e);
           return;
         }
       }
-      es.push([xs, bonds]);
     } else {
-      this.data.set(hash, [[xs, bonds]]);
+      this.data.set(hash, (es = []));
     }
+    const e: Entry = [xs, bonds];
+    es.push(e);
+    this.order.add(e);
+    if (this.order.size > ElementSetIntraBondCache.MaxEntries) this.evict();
   }
+
+  private evict() {
+    const e = this.order.values().next().value!;
+    this.order.delete(e);
+    const hash = SortedArray.hashCode(e[0]);
+    const es = this.data.get(hash)!;
+    es.splice(es.indexOf(e), 1);
+    if (es.length === 0) this.data.delete(hash);
+  }
+
+  /**
+   * How many element sets a cache keeps bonds for: each selection or component of an index-pair model adds one, and
+   * units hold the bonds they have, so an evicted set costs only a recompute.
+   */
+  static readonly MaxEntries = 64;
 
   /**
    * The model's cache for the bonds of one provider instance's key (`BondProvider.Instance.cacheKey`): two structures
