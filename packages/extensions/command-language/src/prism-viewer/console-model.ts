@@ -169,7 +169,8 @@ export class ConsoleModel {
 
   /**
    * Opens script files with the files they load: each script no other one includes runs (the others run where they
-   * are included), in the dialect its extension says.
+   * are included), in the dialect its extension says. Files without a script are loaded, as the line that loads them
+   * (`load 1cbs.cif`, `mol new 1cbs.cif`): the person sees the command, and can run it again.
    */
   async openFiles(files: readonly File[]): Promise<void> {
     const texts = await scriptTexts(files);
@@ -177,15 +178,12 @@ export class ConsoleModel {
     // Scripts that all include each other have no root: each runs (and says it includes itself).
     const scripts = files.filter((f) => (roots.size ? roots.has(f.name) : texts.has(f.name)));
     if (!scripts.length) {
-      this.#push({
-        dialect: this.#dialect.value,
-        input: files.map((f) => f.name).join(', '),
-        files: true,
-        state: 'failed',
-        lines: [
-          { kind: 'error', text: 'No script among these: open a .pml, .tcl or .vmd file (with the files it loads).' },
-        ],
-      });
+      const dialect = this.#dialect.value;
+      const quoted = (name: string) => (/[\s,;"'{}]/.test(name) ? `"${name.replace(/"/g, '')}"` : name);
+      const text = files
+        .map((f) => (dialect === 'pymol' ? `load ${quoted(f.name)}` : `mol new ${quoted(f.name)}`))
+        .join('\n');
+      await this.#enqueue(() => this.#run(dialect, text, text, files));
       return;
     }
     for (const script of scripts) {

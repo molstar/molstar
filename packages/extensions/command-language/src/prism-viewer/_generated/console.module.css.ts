@@ -14,6 +14,7 @@ export const classes = {
   'action': 'msp-command-language-console-action',
   'bar': 'msp-command-language-console-bar',
   'chip': 'msp-command-language-console-chip',
+  'chips': 'msp-command-language-console-chips',
   'code': 'msp-command-language-console-code',
   'command': 'msp-command-language-console-command',
   'composer': 'msp-command-language-console-composer',
@@ -37,7 +38,6 @@ export const classes = {
   'noticeIcon': 'msp-command-language-console-noticeIcon',
   'output': 'msp-command-language-console-output',
   'picker': 'msp-command-language-console-picker',
-  'segment': 'msp-command-language-console-segment',
   'segments': 'msp-command-language-console-segments',
   'send': 'msp-command-language-console-send',
   'side': 'msp-command-language-console-side',
@@ -45,7 +45,6 @@ export const classes = {
   'spin': 'msp-command-language-console-spin',
   'status': 'msp-command-language-console-status',
   'suggestion': 'msp-command-language-console-suggestion',
-  'suggestions': 'msp-command-language-console-suggestions',
   'time': 'msp-command-language-console-time',
   'value': 'msp-command-language-console-value',
 } as const;
@@ -67,40 +66,8 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
 }
 
 .msp-command-language-console-segments {
-  padding: calc(var(--msp-space-1) / 2);
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
+  gap: var(--msp-space-1);
   display: inline-flex;
-}
-
-.msp-command-language-console-segment {
-  height: 22px;
-  padding: 0 var(--msp-space-3);
-  border-radius: var(--msp-radius-sm);
-  color: var(--msp-color-text-muted);
-  font: inherit;
-  font-size: var(--msp-font-size-xs);
-  cursor: pointer;
-  transition: background var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
-  background: none;
-  border: 0;
-  font-weight: 600;
-
-  &:hover {
-    color: var(--msp-color-text);
-  }
-
-  &[aria-pressed="true"] {
-    background: var(--msp-color-raised);
-    box-shadow: var(--msp-shadow-float);
-    color: var(--msp-color-text);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: 1px;
-  }
 }
 
 .msp-command-language-console-spacer {
@@ -335,7 +302,7 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
-.msp-command-language-console-suggestions .msp-command-language-console-suggestion:not(:hover) {
+.msp-command-language-console-chips .msp-command-language-console-suggestion:not(:hover) {
   background: var(--msp-color-well);
 }
 
@@ -356,14 +323,17 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
-.msp-command-language-console-suggestions {
+.msp-command-language-console-chips {
   gap: var(--msp-space-1);
-  flex-wrap: wrap;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  flex: 1;
   display: flex;
+  overflow: hidden;
+}
 
-  &:empty {
-    display: none;
-  }
+.msp-command-language-console-suggestion {
+  flex: none;
 }
 
 .msp-command-language-console-field {
@@ -419,10 +389,10 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
 }
 
 .msp-command-language-console-status {
-  align-items: baseline;
+  align-items: center;
   gap: var(--msp-space-2);
   min-width: 0;
-  min-height: 16px;
+  height: 20px;
   font-size: var(--msp-font-size-xs);
   display: flex;
 }
@@ -437,7 +407,6 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
 
   &[data-kind="error"] {
     color: var(--msp-color-danger);
-    white-space: normal;
   }
 }
 

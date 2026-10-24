@@ -92,11 +92,15 @@ describe('the console', () => {
     expect(v.api.history.steps.value.length).toBeLessThanOrEqual(steps + 1);
   });
 
-  it('says when nothing opened is a script', async () => {
+  it('loads files dropped without a script, as the line that loads them', async () => {
     const v = await viewer();
     const c = new ConsoleModel(v.api);
     await c.openFiles([structureFile()]);
-    expect(c.entries.value[0].state).toBe('failed');
+    expect(c.entries.value[0]).toMatchObject({ input: 'load 1cbs.cif', state: 'done' });
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(1);
+    c.setDialect('vmd');
+    await c.openFiles([structureFile()]);
+    expect(c.entries.value[1]).toMatchObject({ input: 'mol new 1cbs.cif', state: 'done' });
   });
 
   it('completes the line with Tab’s first completion', async () => {

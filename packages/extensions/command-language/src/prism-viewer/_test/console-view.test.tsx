@@ -86,11 +86,14 @@ describe('the console view', () => {
     const example = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'show sticks, resn REA')!;
     example.click();
     expect(t.input.value).toBe('show sticks, resn REA');
-    t.type('get_na');
+    t.type('get_names');
     await tick();
     expect(t.container.textContent).toContain('PyMOL · List the names');
-    const chip = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'get_names')!;
+    // After a space, the next word's completions take the line (one row: the composer keeps its height).
+    t.type('show ');
+    await tick();
+    const chip = [...t.container.querySelectorAll('button')].find((b) => b.textContent === 'sticks')!;
     chip.click();
-    expect(t.input.value).toBe('get_names ');
+    expect(t.input.value).toBe('show sticks');
   });
 });

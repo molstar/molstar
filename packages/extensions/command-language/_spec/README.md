@@ -209,17 +209,19 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
   structures, saving an image). Hiding and changing representations run inside the one undoable step, unasked: Undo
   takes the whole run back. Files cannot be given by the agent (`files` is hidden), so neither can included scripts.
 - **The console** (`console-model.ts`, DOM-free; `console.tsx` and its CSS module, its own chunk through
-  `ViewerExtension.ui`): a foot tab beside the Log, in the look of the assistant's cards. A transcript of runs, each a
-  status mark (running, done, failed), its dialect, the command and what it said: what it did, what reads printed (in a
-  well), warnings and errors with their hints; its time; Edit puts it back in the input. Empty, it says what it is and
-  offers example lines of the dialect. The composer: the completions of the last word as chips, the input (Enter runs,
-  ⇧Enter a new line, ↑/↓ the history at its first and last line, Tab the first completion), a Run button, and a line
-  that says what Enter will do, or why it will not, before anything runs (`inspect`). The dialect is a segmented switch;
-  a line's `pymol ` / `vmd ` first word overrides it. Every error of a submission shows at once, before anything runs;
-  `undo` / `redo` alone are the viewer's history; submissions run one after another (one made while one runs reads the
-  scene that one leaves); script files opened or dropped (an overlay says where) with the files they load: the scripts
-  no other one includes run (`rootScripts`), each whole in the dialect its extension says. A log, not live (the viewer
-  says each run). The history of lines is kept with the preferences (`command-language.history`, the last 200).
+  `ViewerExtension.ui`): a foot tab beside the Log. A transcript of runs, each a status mark (running, done, failed),
+  its dialect, the command and what it said: what it did, what reads printed (in a well), warnings and errors with their
+  hints; its time; Edit puts a typed line back in the input, in its dialect. Empty, it says what it is and offers
+  example lines of the dialect. The dialect is two pressed buttons, as the Log's filters; a line's `pymol ` / `vmd `
+  first word overrides it. The composer: the input (Enter runs, ⇧Enter a new line, ↑/↓ the history at its first and last
+  line, Tab the first completion), a Run button, and one line under it, of one height whatever it says: the completions
+  of the word being typed as chips, else what Enter will do or the first error (the whole, with its hint, in the line's
+  tip; `inspect`), so the composer never changes height as one types. Every error of a submission shows at once, before
+  anything runs; `undo` / `redo` alone are the viewer's history; submissions run one after another. **Import** (and
+  dropping on the tab, an overlay saying where): scripts with the files they load, the ones no other includes run
+  (`rootScripts`), each whole in the dialect its extension says; files without a script are loaded as the line that
+  loads them (`load 1cbs.cif`, `mol new 1cbs.cif`), shown in the transcript. A log, not live (the viewer says each run).
+  The history of lines is kept with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 

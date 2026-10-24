@@ -16,6 +16,7 @@ import { dialectPrefix } from '../language/script.js';
 import { classes } from './_generated/console.module.css.js';
 import {
   ConsoleExamples,
+  type ConsoleCompletion,
   type ConsoleEntry,
   type ConsoleInspection,
   type ConsoleLine,
@@ -112,23 +113,35 @@ function EmptyView(props: { model: ConsoleModel; onPick: (text: string) => void 
   );
 }
 
-/** The composer's line: what Enter will do, or why it will not. */
+/** The composer's line, one row whatever it says: what Enter will do, or why it will not (the whole in its tip). */
 function StatusView(props: { inspection: ConsoleInspection }) {
   const i = props.inspection;
   if (i.kind === 'empty') return <span class={classes.does} />;
   if (i.kind === 'error') {
+    const full = i.hint ? `${i.message} ${i.hint}` : i.message;
     return (
-      <span class={classes.does} data-kind="error">
+      <span class={classes.does} data-kind="error" data-tip={full}>
         {i.message}
-        {i.hint ? ` ${i.hint}` : ''}
       </span>
     );
   }
-  const warning = i.warnings.length ? ` · ${i.warnings[0]}` : '';
+  const said = [i.does, ...i.warnings].filter(Boolean).join(' · ');
   return (
-    <span class={classes.does} data-tip={i.does + warning}>
-      {DialectNames[i.dialect]} · {i.does}
-      {warning}
+    <span class={classes.does} data-tip={said}>
+      {DialectNames[i.dialect]} · {said}
+    </span>
+  );
+}
+
+/** The completions of the word being typed, as chips in the composer's line. */
+function ChipsView(props: { chips: readonly ConsoleCompletion[]; onPick: (text: string) => void }) {
+  return (
+    <span class={classes.chips}>
+      {props.chips.map((s) => (
+        <button type="button" class={classes.suggestion} data-tip={s.detail} onClick={() => props.onPick(s.text)}>
+          {s.label}
+        </button>
+      ))}
     </span>
   );
 }
@@ -203,12 +216,15 @@ export function ConsoleView(props: { model: ConsoleModel }) {
     input.placeholder = model.placeholder(d);
   });
 
-  // What the input will do, and its completions: read again as the draft, the dialect or the scene change (a run that
-  // ends, a structure loaded: the entries change with it).
-  const inspection = derive([model.draft, model.dialect, model.entries], (t) => model.inspect(t));
-  const suggestions = derive([model.draft, model.dialect, model.entries], (t) =>
-    t.trim() ? model.completions(t) : [],
-  );
+  // The composer's line, read again as the draft, the dialect or the scene change (a run that ends, a structure
+  // loaded: the entries change with it). While a word is being typed and has completions, they show; else what Enter
+  // will do. One row either way, so the composer keeps its height.
+  const line = derive([model.draft, model.dialect, model.entries], (t) => {
+    const inspection = model.inspect(t);
+    const completing = inspection.kind === 'error' || /[\s,]$/.test(t);
+    const chips = t.trim() && completing ? model.completions(t) : [];
+    return { inspection, chips };
+  });
   const empty = derive(model.draft, (t) => !t.trim());
 
   const picker = (
@@ -248,19 +264,25 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       <div class={classes.bar}>
         <div class={classes.segments} role="group" aria-label="Dialect">
           {Dialects.map((d: Dialect) => (
-            <button
-              type="button"
-              class={classes.segment}
-              aria-pressed={derive(model.dialect, (x) => String(x === d))}
+            <Button
+              size="sm"
+              variant="ghost"
+              pressed={derive(model.dialect, (x) => x === d)}
               onClick={() => model.setDialect(d)}
             >
               {DialectNames[d]}
-            </button>
+            </Button>
           ))}
         </div>
         <span class={classes.spacer} />
-        <Button size="sm" variant="ghost" icon={<Icon name="file-code" size={15} />} onClick={() => picker.click()}>
-          Open script…
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<Icon name="upload" size={15} />}
+          title="Import a .pml, .tcl or .vmd script with the files it loads, or structure files (or drop them here)"
+          onClick={() => picker.click()}
+        >
+          Import
         </Button>
         <Button
           size="sm"
@@ -273,15 +295,6 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       </div>
       {list}
       <div class={classes.composer}>
-        <div class={classes.suggestions}>
-          <For each={suggestions} by={(s) => s.text}>
-            {(s) => (
-              <button type="button" class={classes.suggestion} data-tip={s.detail} onClick={() => fill(s.text)}>
-                {s.label}
-              </button>
-            )}
-          </For>
-        </div>
         <div class={classes.field}>
           {input}
           <button
@@ -296,7 +309,11 @@ export function ConsoleView(props: { model: ConsoleModel }) {
           </button>
         </div>
         <div class={classes.status}>
-          <Show when={inspection}>{(i) => <StatusView inspection={i} />}</Show>
+          <Show when={line}>
+            {(l) =>
+              l.chips.length ? <ChipsView chips={l.chips} onPick={fill} /> : <StatusView inspection={l.inspection} />
+            }
+          </Show>
           <span class={classes.keys} data-tip="Enter runs · Shift+Enter a new line · Tab completes · ↑ ↓ history">
             ↵ run · ⇥ complete
           </span>

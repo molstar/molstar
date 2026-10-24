@@ -21,40 +21,7 @@
 
 .segments {
   display: inline-flex;
-  padding: calc(var(--msp-space-1) / 2);
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-}
-
-.segment {
-  height: 22px;
-  padding: 0 var(--msp-space-3);
-  border: 0;
-  border-radius: var(--msp-radius-sm);
-  background: transparent;
-  color: var(--msp-color-text-muted);
-  font: inherit;
-  font-size: var(--msp-font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background var(--msp-motion-fast) var(--msp-ease),
-    color var(--msp-motion-fast) var(--msp-ease);
-
-  &:hover {
-    color: var(--msp-color-text);
-  }
-
-  &[aria-pressed="true"] {
-    background: var(--msp-color-raised);
-    box-shadow: var(--msp-shadow-float);
-    color: var(--msp-color-text);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: 1px;
-  }
+  gap: var(--msp-space-1);
 }
 
 .spacer {
@@ -298,7 +265,7 @@
 }
 
 /* A completion sits in the composer, on the control's color: a well. */
-.suggestions .suggestion:not(:hover) {
+.chips .suggestion:not(:hover) {
   background: var(--msp-color-well);
 }
 
@@ -323,14 +290,18 @@
   }
 }
 
-.suggestions {
+/* The completions in the composer's line: one row, the ones that do not fit fade out. */
+.chips {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1;
   gap: var(--msp-space-1);
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+}
 
-  &:empty {
-    display: none;
-  }
+.suggestion {
+  flex: none;
 }
 
 .field {
@@ -388,10 +359,10 @@
 /* The line under the field: what Enter will do, or why it will not; the keys at its end. */
 .status {
   display: flex;
-  min-width: 0;
-  align-items: baseline;
+  align-items: center;
   gap: var(--msp-space-2);
-  min-height: 16px;
+  min-width: 0;
+  height: 20px;
   font-size: var(--msp-font-size-xs);
 }
 
@@ -405,7 +376,6 @@
 
   &[data-kind="error"] {
     color: var(--msp-color-danger);
-    white-space: normal;
   }
 }
 

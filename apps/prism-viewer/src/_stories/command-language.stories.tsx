@@ -44,12 +44,28 @@ async function typeInto(field: HTMLInputElement | HTMLTextAreaElement, text: str
   if (enter) field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true }));
 }
 
-/** 1CBS loaded, then the story's steps. */
-function commandsStory(steps?: (v: PrismViewer) => Promise<void>): StoryObj {
+/** The viewer, empty (`loaded`: 1CBS loaded first), then the story's steps. */
+function commandsStory(steps?: (v: PrismViewer) => Promise<void>, loaded = false): StoryObj {
   return {
     render: () =>
-      story(() => <RealViewerStory spec={withCommands} load={[ExampleFiles.cbs]} setup={(v) => steps?.(v)} />),
+      story(() => (
+        <RealViewerStory spec={withCommands} load={loaded ? [ExampleFiles.cbs] : []} setup={(v) => steps?.(v)} />
+      )),
   };
+}
+
+/** 1CBS as a file (what a person drops), from data/examples. */
+async function cbsFile(): Promise<File> {
+  return new File([await (await fetch(ExampleFiles.cbs)).text()], '1cbs.cif');
+}
+
+/** Drops files on the console, as a person does. */
+async function dropOnConsole(files: readonly File[]) {
+  const target = shell()?.querySelector('[aria-label="Console output"]');
+  const data = new DataTransfer();
+  for (const f of files) data.items.add(f);
+  target?.dispatchEvent(new DragEvent('drop', { dataTransfer: data, bubbles: true, composed: true, cancelable: true }));
+  await new Promise((r) => setTimeout(r, 1500));
 }
 
 /** Opens the command menu (⌘K) and types a line in it. */
@@ -74,19 +90,22 @@ async function openConsole(v: PrismViewer) {
 }
 
 /**
- * The Console as it opens: what it is, and example lines of the dialect (a click puts one in the input). The composer at
- * its foot: the input, the Run button, the line that will say what Enter does.
+ * The Console as it opens, on an empty viewer: what it is, and example lines of the dialect (a click puts one in the
+ * input). The composer at its foot: the input, the Run button, the line that will say what Enter does.
  */
 export const ConsoleEmpty: StoryObj = commandsStory(openConsole);
 
 /**
- * The Console tab (the rail's foot, beside the Log), after four submissions: a PyMOL style (hide everything, cartoon,
+ * The Console tab (the rail's foot, beside the Log), starting empty: 1CBS dropped on it (the line that loads it runs),
+ * then four submissions: a PyMOL style (hide everything, cartoon,
  * the ligand as sticks colored by element with green carbons: `util.cbag`), a read (`count_atoms`), a typo the console
  * explains before anything runs, and VMD lines (a VDW rep of the ligand in ColorID 4, yellow). Each submission is one
  * step in History.
  */
 export const Console: StoryObj = commandsStory(async (v) => {
   await openConsole(v);
+  // 1CBS dropped on the console: the line that loads it runs, and shows in the transcript.
+  await dropOnConsole([await cbsFile()]);
   const field = shell()?.querySelector<HTMLTextAreaElement>('textarea');
   if (!field) return;
   for (const line of [
@@ -106,25 +125,25 @@ export const Console: StoryObj = commandsStory(async (v) => {
  */
 export const MenuPrefix: StoryObj = commandsStory(async () => {
   await menuWith('pymol show sticks, chain ');
-});
+}, true);
 
 /** A line that does not read: the row says why and what was meant, and keeps the menu open to fix it. */
 export const MenuError: StoryObj = commandsStory(async () => {
   await menuWith('pymol color slaet, resn REA');
-});
+}, true);
 
 /**
- * VMD's way, run as one step: the preset's three reps removed, then a NewCartoon of the protein colored by chain and the
+ * VMD's way, run as one step on an empty viewer: 1CBS loaded with VMD's look, its Lines rep removed, then a NewCartoon of the protein colored by chain and the
  * ligand as Licorice by Name (VMD's element colors: carbon cyan), each a rep of its own.
  */
 export const VmdReps: StoryObj = commandsStory(async (v) => {
   ok(
     await v.api.script!.run({
       dialect: 'vmd',
+      files: [await cbsFile()],
       text: [
-        // The preset's three reps (polymer, ligand, water): rep 0 three times.
-        'mol delrep 0 top',
-        'mol delrep 0 top',
+        // Loaded with VMD's look (one rep: Lines), which the next line removes.
+        'mol new 1cbs.cif',
         'mol delrep 0 top',
         'mol representation NewCartoon',
         'mol color Chain',
