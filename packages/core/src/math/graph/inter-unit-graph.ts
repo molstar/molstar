@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -55,7 +55,8 @@ class InterUnitGraph<
 
   /** Indices into this.edges */
   getEdgeIndices(index: VertexIndex, unit: UnitId): ReadonlyArray<number> {
-    return this.vertexKeyIndex.get(InterUnitGraph.getVertexKey(index, unit)) || [];
+    // a miss (most atoms have no inter-unit bond) allocates nothing (perf-audit-2 02/P9)
+    return this.vertexKeyIndex.get(InterUnitGraph.getVertexKey(index, unit)) || emptyArray;
   }
 
   constructor(protected readonly map: Map<number, InterUnitGraph.UnitPairEdges<UnitId, VertexIndex, EdgeProps>[]>) {
