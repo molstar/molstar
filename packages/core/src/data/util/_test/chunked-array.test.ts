@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -73,5 +73,13 @@ describe('Chunked Array', () => {
     // several chunks: compacted to the used size as before
     for (let i = 8; i < 12; i++) ChunkedArray.add3(arr, i, i, i);
     expect(ChunkedArray.compactTrimmed(arr).length).toBe(36);
+  });
+
+  it('is (perf-audit-2 01/B5)', () => {
+    expect(ChunkedArray.is(ChunkedArray.create(Float32Array, 3, 4))).toBe(true);
+    expect(ChunkedArray.is(ChunkedArray.create(Array, 1, 4))).toBe(true);
+    expect(ChunkedArray.is([1, 2, 3])).toBe(false);
+    expect(ChunkedArray.is({})).toBe(false);
+    expect(ChunkedArray.is(undefined)).toBe(false);
   });
 });
