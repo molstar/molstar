@@ -26,7 +26,7 @@ const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse GRO', async (ctx) => {
-      const parsed = await parseGRO(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parseGRO(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
       const props = trajectoryProps(models);
