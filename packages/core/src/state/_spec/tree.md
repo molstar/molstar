@@ -77,11 +77,11 @@ to the current tree, and `sourceTree` becomes the builder's own tree (so the com
 
 State flags: a builder's tree is a snapshot, and flag writes (`updateCellState`) keep `state.tree`'s identity, so they
 do not rebase it. The `State` logs its flag writes (`flagLog`: ref → flag → write number and value); a builder commit
-writes into the new tree the flags written after `build()` (`carryFlagWrites`), and only those, so flags the builder set
-itself (`updateState`) stay. They keep the version, so the fast track still holds. Without it, hiding a node while a
-builder is outstanding (a queued commit, an abandoned builder) loses the flag from the tree, the session and undo. A
-plain `StateTree` passed to `updateTree` (e.g. `getTree()` committed later) is a snapshot whose flags win (reconcile.md
-§6).
+writes into the new tree the flags written after `build()` (`carryFlagWrites`, which finds them in a log in write order,
+not by visiting every ref ever flagged), and only those, so flags the builder set itself (`updateState`) stay. They keep
+the version, so the fast track still holds. Without it, hiding a node while a builder is outstanding (a queued commit,
+an abandoned builder) loses the flag from the tree, the session and undo. A plain `StateTree` passed to `updateTree`
+(e.g. `getTree()` committed later) is a snapshot whose flags win (reconcile.md §6).
 
 ## Decisions
 

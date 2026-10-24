@@ -178,6 +178,51 @@ describe('state flags and outstanding builders', () => {
   });
 });
 
+describe('flag carry cost', () => {
+  it('a commit visits only the refs written after its build() (perf-audit-2 03/P17)', async () => {
+    const refs = Array.from({ length: 300 }, (_, i) => `n${i}`);
+    const state = await withLeaves(...refs);
+    for (const r of refs) state.updateCellState(r, { isHidden: true });
+
+    const b = state.build();
+    state.updateCellState('n7', { isCollapsed: true });
+
+    const log = (state as unknown as { flagLog: Map<string, unknown> }).flagLog;
+    let iterated = 0,
+      read = 0;
+    const get = log.get.bind(log);
+    log.get = (k: string) => (read++, get(k));
+    (log as any)[Symbol.iterator] = function () {
+      iterated++;
+      return Map.prototype.entries.call(this);
+    };
+    await state.runTask(state.updateTree(b));
+    expect(iterated).toBe(0);
+    expect(read).toBe(1);
+    expect(state.tree.transforms.get('n7').state).toEqual({ isHidden: true, isCollapsed: true });
+    expect(treeHidden(state.tree, 'n100')).toBe(true);
+  });
+
+  it('carries the last value after many writes to a few refs (the write order is compacted)', async () => {
+    const state = await withLeaves('a', 'b');
+    const early = state.build();
+    let mid: ReturnType<State['build']> | undefined;
+    for (let i = 0; i < 301; i++) {
+      state.updateCellState('a', { isHidden: i % 2 === 0 });
+      if (i === 150) {
+        mid = state.build();
+        state.updateCellState('b', { isCollapsed: true });
+      }
+    }
+    await state.runTask(state.updateTree(early));
+    expect(state.tree.transforms.get('a').state.isHidden).toBe(true);
+    expect(state.tree.transforms.get('b').state.isCollapsed).toBe(true);
+    await state.runTask(state.updateTree(mid!));
+    expect(state.tree.transforms.get('a').state.isHidden).toBe(true);
+    expect(state.tree.transforms.get('b').state.isCollapsed).toBe(true);
+  });
+});
+
 describe('builder updateState', () => {
   it('evaluates nothing (perf-audit-2 03/B2)', async () => {
     const state = await withLeaves('a');
