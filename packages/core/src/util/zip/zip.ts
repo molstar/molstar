@@ -13,7 +13,8 @@
 
 import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, readUTF8, toInt32 } from './bin.js';
 import { crc, adler } from './checksum.js';
-import { _inflate } from './inflate.js';
+import { _inflate, inflateStream } from './inflate.js';
+import { checkCompressionStreamSupport } from './util.js';
 import { _deflateRaw } from './deflate.js';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 
@@ -207,6 +208,20 @@ export function gzipDeclaredSize(data: Uint8Array): number {
 
 // https://tools.ietf.org/html/rfc1952
 export async function ungzip(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
+  // The platform's gzip decoder checks the CRC-32 and the size itself, where the path below runs a CRC-32 in JS over
+  // the output (perf-audit-2 01/P1). A file it refuses (several members, a wrong CRC, truncated) takes the path below,
+  // which reads it as before.
+  if (checkCompressionStreamSupport('gzip')) {
+    try {
+      return await inflateStream(runtime, file, 'gzip', buf ?? new Uint8Array(gzipDeclaredSize(file)));
+    } catch (e) {
+      if (Task.isAbort(e)) throw e;
+    }
+  }
+  return ungzipBlocks(runtime, file, buf);
+}
+
+async function ungzipBlocks(runtime: RuntimeContext, file: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
   // const id1 = file[0]
   // const id2 = file[1]
   // const cm = file[2]
