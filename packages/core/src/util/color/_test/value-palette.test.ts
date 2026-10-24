@@ -16,6 +16,7 @@ import {
   ValuePaletteLists,
   type ValuePaletteSpec,
   type ValuePaletteSpecDefaults,
+  type ValuePaletteValue,
   valuePalettePropsFromSpec,
 } from '../value-palette.js';
 import { ValuePaletteParam } from '../value-palette-params.js';
@@ -255,6 +256,59 @@ describe('continuous', () => {
     expect([hex(f(0)), hex(f(8))]).toEqual(['#0000ff', '#ff0000']);
     const empty = palette({ kind: 'continuous', colors: [] });
     expect(empty(0.5)).toBeUndefined();
+  });
+
+  it('normalizes over the same [min, max] as the distinct strings did (perf-audit-3 01/P14)', () => {
+    const mixed: ValuePaletteValue[] = [
+      -0,
+      ' 5',
+      '7abc',
+      '1e1',
+      '.',
+      '?',
+      null,
+      undefined,
+      true,
+      Number.NaN,
+      'nan',
+      -2.5,
+      '-0',
+      3,
+    ];
+    const inputs: ValuePaletteValue[][] = [
+      mixed,
+      [-0, '-0'],
+      ['.', '?'],
+      [Number.POSITIVE_INFINITY, 1],
+      ['x', null],
+      [],
+    ];
+    for (const values of inputs) {
+      for (const cifMissing of [false, true]) {
+        // the former range: distinct strings, parsed, NaN dropped; 0..1 without any
+        const seen = new Set<string>();
+        for (const v of values) {
+          if (v === null || v === undefined || (cifMissing && (v === '.' || v === '?'))) continue;
+          seen.add(`${v}`);
+        }
+        const numbers = [...seen].map((v) => Number.parseFloat(v)).filter((x) => !Number.isNaN(x));
+        const min = numbers.length ? numbers.reduce((a, b) => (a < b ? a : b)) : 0;
+        const max = numbers.length ? numbers.reduce((a, b) => (a > b ? a : b)) : 1;
+
+        const spec = (domain: [number | null, number | null]): ValuePaletteSpec => ({
+          kind: 'continuous',
+          colors: ['#000000', '#ffffff'],
+          value_domain: domain,
+          underflow_color: 'green',
+          overflow_color: 'red',
+        });
+        const f = makeValuePaletteFunction(valuePalettePropsFromSpec(spec([null, null]), Defaults), values, {
+          cifMissing,
+        });
+        const g = makeValuePaletteFunction(valuePalettePropsFromSpec(spec([min, max]), Defaults), [], { cifMissing });
+        for (const x of [-3, -2.5, -1, -0, 0, 0.5, 3, 5, 7, 10, 11, 1e9]) expect(hex(f(x))).toBe(hex(g(x)));
+      }
+    }
   });
 
   it('does not sort the props in place', () => {

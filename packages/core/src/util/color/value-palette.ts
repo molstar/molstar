@@ -638,12 +638,22 @@ function numericRange(
   let xMin = p.xMin;
   let xMax = p.xMax;
   if (xMin === null || xMax === null) {
-    const numbers = distinct(values(), false, cifMissing)
-      .map((v) => Number.parseFloat(v))
-      .filter((x) => !Number.isNaN(x));
-    if (numbers.length > 0) {
-      xMin ??= numbers.reduce((a, b) => (a < b ? a : b));
-      xMax ??= numbers.reduce((a, b) => (a > b ? a : b));
+    // one pass over the values, no distinct strings (91 MB per 1.1M values, perf-audit-3 01/P14): `parseFloat` of a
+    // number's string is the number, except −0, which its string makes +0
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    let any = false;
+    for (const value of values()) {
+      const x = toNumber(value, cifMissing);
+      if (Number.isNaN(x)) continue;
+      const v = x === 0 ? 0 : x;
+      if (v < min) min = v;
+      if (v > max) max = v;
+      any = true;
+    }
+    if (any) {
+      xMin ??= min;
+      xMax ??= max;
     } else {
       xMin ??= 0;
       xMax ??= 1;
