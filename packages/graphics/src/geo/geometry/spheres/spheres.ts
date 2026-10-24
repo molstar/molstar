@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from '@molstar/core/util';
@@ -110,7 +111,7 @@ export namespace Spheres {
         },
       },
     };
-    spheres.shaderData.update();
+    // no fill here: `createValues` fills the position-group texture with the real LOD and size (perf-audit-2 08/P11)
     return spheres;
   }
 
