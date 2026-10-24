@@ -40,6 +40,8 @@ export interface SequenceShellDeps {
   readonly onHover: (lines: readonly string[]) => void;
   /** A view's marks and hover (marks.md), shown in the sequence too. */
   readonly marks?: MarksView;
+  /** Opens the structure tree at a structure's Sequence node (sequence.md §8.1); none: the page has no tree. */
+  readonly reveal?: (structure: string) => void;
 }
 
 /** Mounts the sequence's parts; returns their removal. */
@@ -47,7 +49,24 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
   const { shell, own } = d;
   const viewer = d.viewers.get();
   const undo: (() => void)[] = [];
-  undo.push(d.registerCommands(sequenceCommands(viewer, shell, d.person)));
+  // Edit in structure tree: the Sequence node of the structure shown.
+  const reveal = d.reveal
+    ? () => {
+        const shown = viewer.structure.value;
+        if (shown) d.reveal!(shown.ref);
+      }
+    : undefined;
+  undo.push(d.registerCommands(sequenceCommands(viewer, shell, d.person, reveal)));
+  // The band shown or not, for the structure tree's Sequence eye (sequence.md §8.1): the top dock, as No sequence.
+  undo.push(
+    d.source.setBand({
+      shown: derive(shell.dock('top').active, (t) => !!t),
+      show: (on) => {
+        if (on) shell.show('sequence');
+        else if (shell.dock('top').active.value) shell.toggle('top');
+      },
+    }),
+  );
   undo.push(
     shell.registerOverlays(
       own<ShellOverlay>('overlay', [
@@ -103,7 +122,7 @@ export function sequenceShellUI(d: SequenceShellDeps): () => void {
           icon: 'sequence',
           title: 'Sequence',
           visible: derive(viewer.structure, (s) => s !== undefined),
-          menu: sequenceMenu(viewer, shell, d.openCommand, d.person),
+          menu: sequenceMenu(viewer, shell, d.openCommand, !!reveal),
         },
       ]),
     ),

@@ -51,7 +51,10 @@ import of the plugin.
 - `runtime` is a dynamic import (Seq\* and its views, a chunk), loaded when a structure is first shown or an operation
   or a saved state needs it; until then the core holds the plugin side only (`sources/sequence.ts`). A spec without a
   runtime bundles none of Seq\*.
-- `false`: no band, no Sequence button, no sequence commands or tools. One viewer, keyed `'default'`
+- `tracks` are the viewer's track providers (ruler, letters, secondary structure) and `behaviors` its behaviors
+  ([sequence.md](sequence.md) §3); extensions add theirs, overridable by id.
+- `tree: false`: no Sequence node in the structure tree ([sequence.md](sequence.md) §8.1); the band and the API stay.
+- `false`: no band, no Sequence button or node, no sequence commands or tools. One viewer, keyed `'default'`
   ([sequence.md](sequence.md) §6).
 
 ### 2.4 `agent`: tools, skills, the assistant
@@ -124,9 +127,9 @@ order. `options.representation.defaultPalette` picks `prism` (default), `classic
 
 A `ViewerExtension` (`spec.ts`) is a plain object: `id`, `title`, `plugin` (§2.1), `api` (its areas by id, each made
 once, [api.md](api.md) §6), `contributes` (operations into core areas: built-in features only), `builtIn`, `requires`,
-`commands(api)`, `annotations`, `skills`, `sequence` (behaviors, [sequence.md](sequence.md) §3), `settings`, `ui(ctx)`
-(its views, a chunk). Types and helpers, not a framework: every extension lives in this repository, no stability promise
-beyond it (README decision 13).
+`commands(api)`, `annotations`, `skills`, `sequence` (`{ tracks?, behaviors? }`: track providers, the way to add
+sequence data, and behaviors; [sequence.md](sequence.md) §3), `settings`, `ui(ctx)` (its views, a chunk). Types and
+helpers, not a framework: every extension lives in this repository, no stability promise beyond it (README decision 13).
 
 - **Headless-safe by shape**: everything but `ui` imports no DOM; `ui` is a function, so views load when first needed.
 - **Commands first** (README decision 27): operations with commands and tools; `ui` only where a view is needed.

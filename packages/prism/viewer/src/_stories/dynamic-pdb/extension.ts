@@ -465,7 +465,7 @@ export function dynamicPdbExtension(
     id: Prefix,
     title: 'Dynamic PDB',
     api: { [Prefix]: (ctx) => (area = new DynamicPdbApi(ctx, source, shared)) },
-    sequence: [sequenceBehavior(() => area, shared)],
+    sequence: { behaviors: [sequenceBehavior(() => area, shared)] },
     requires: ['structure'],
     commands: (api) => (api[Prefix] ? commands(api, api[Prefix]) : []),
     ui: async (ctx) => (await import('./ui.js')).dynamicPdbUI(ctx),

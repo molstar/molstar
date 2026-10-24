@@ -72,11 +72,15 @@ describe('the Sequence menu', () => {
     h.viewers.dispose();
   });
 
-  it('the colors are a group of their own, one marked, with the legend below them', async () => {
-    const { menu, marked, h } = setup();
-    const colors = menu.filter((m) => m.group === 'colors');
-    expect(colors.at(-1)?.id).toBe('legend');
-    expect(await marked()).toContain('sequence.colors.prism-residues');
+  it('holds only No sequence, Text and Tracks, then Edit in structure tree where there is a tree', async () => {
+    const { menu, h, shell } = setup();
+    expect(menu.map((m) => m.id)).toEqual(['none', 'text', 'tracks']);
+    expect(sequenceMenu(h.viewer, shell, () => {}, true).map((m) => m.id)).toEqual([
+      'none',
+      'text',
+      'tracks',
+      'reveal',
+    ]);
     h.viewers.dispose();
   });
 });

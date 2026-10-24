@@ -30,6 +30,7 @@ import type {
   LazyViewerExtensionStub,
   PrismViewerPluginParts,
   SequenceBehavior,
+  SequenceTrackProvider,
   ViewerExtension,
   ViewerExtensionUI,
   ViewerUIContext,
@@ -68,6 +69,8 @@ export interface ExtensionHostDeps {
   readonly annotations: () => AnnotationsApi | undefined;
   /** Attaches a sequence behavior to the sequence viewer; absent: the viewer has no sequence (sequence.md §3). */
   readonly addSequenceBehavior?: (behavior: SequenceBehavior) => () => void;
+  /** Adds a sequence track provider to the sequence viewer; absent: the viewer has no sequence (sequence.md §3). */
+  readonly addSequenceTrack?: (provider: SequenceTrackProvider) => () => void;
   /** The running plugin's side of a lazy load (`sources/extension-plugin.ts`). */
   readonly applyPlugin: (parts: Partial<PrismViewerPluginParts>) => Promise<() => Promise<void>>;
   readonly overrides: Overrides;
@@ -289,13 +292,18 @@ export class ExtensionHost {
       // Its annotations, where the viewer has the `annotations` feature to offer them; without it they are not shown.
       const annotationsArea = e.annotations?.length ? annotations() : undefined;
       for (const a of annotationsArea ? (e.annotations ?? []) : []) done.push(annotationsArea!.register(a));
-      // Its sequence behaviors, overrides applied (sequence.md §3), each `<id>.sequence.<name>`.
-      for (const b of this.#deps.overrides.parts(e.sequence)) {
-        if (!b.id.startsWith(`${e.id}.sequence.`)) {
-          throw new Error(
-            `Extension '${e.id}' brings a sequence behavior named '${b.id}': not '${e.id}.sequence.<name>'`,
-          );
+      // Its sequence track providers and behaviors, overrides applied (sequence.md §3), each `<id>.sequence.<name>`.
+      const named = (what: string, id: string) => {
+        if (!id.startsWith(`${e.id}.sequence.`)) {
+          throw new Error(`Extension '${e.id}' brings a sequence ${what} named '${id}': not '${e.id}.sequence.<name>'`);
         }
+      };
+      for (const t of this.#deps.overrides.parts(e.sequence?.tracks)) {
+        named('track', t.id);
+        if (this.#deps.addSequenceTrack) done.push(this.#deps.addSequenceTrack(t));
+      }
+      for (const b of this.#deps.overrides.parts(e.sequence?.behaviors)) {
+        named('behavior', b.id);
         if (this.#deps.addSequenceBehavior) done.push(this.#deps.addSequenceBehavior(b));
       }
       return done;

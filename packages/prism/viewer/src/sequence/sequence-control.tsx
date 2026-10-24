@@ -173,6 +173,10 @@ export function SequenceControl(props: SequenceControlProps) {
     const sub = seq.labels.current.subscribe((l) => label.offer(l));
     // Leaving the surface ends the label (Seq* clears its hover on the same event).
     on(surface, 'pointerleave', () => label.offer(null));
+    // The focus ring from the keyboard only: Seq*'s surface takes the focus itself on a click, which a browser may count
+    // as visible focus (accessibility.md, WCAG 2.4.7).
+    on(surface, 'pointerdown', () => surface.setAttribute('data-pointer', ''));
+    on(surface, 'keydown', () => surface.removeAttribute('data-pointer'));
     onCleanup(() => {
       sub.unsubscribe();
       if (last.length > 0) handOn(NoLines);

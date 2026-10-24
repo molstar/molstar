@@ -27,9 +27,9 @@ export interface SequenceShown {
   readonly complex: string;
   /** Where data nodes go (the document's `data` node). */
   readonly data: string;
-  /** The section the tracks are in, and the viewer's last track there: a behavior's tracks go after it. */
+  /** The section the tracks are in, and its last track: a behavior's tracks go after it (none: the section's end). */
   readonly section: string;
-  readonly after: string;
+  readonly after?: string;
 }
 
 /** What a track's menu offers: a coloring of the 3D view's polymer, by a color theme's name. */

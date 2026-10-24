@@ -86,7 +86,7 @@ describe('the sequence control', () => {
     const registered = vi.spyOn(shell, 'registerTabs');
     const drop = sequenceShellUI({
       viewers: h.viewers,
-      source: { structure: h.structure.asReadonly } as SequenceSource,
+      source: { structure: h.structure.asReadonly, setBand: () => () => {} } as unknown as SequenceSource,
       shell,
       person: {} as never,
       registerCommands: () => () => {},

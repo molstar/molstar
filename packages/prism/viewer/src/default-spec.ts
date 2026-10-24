@@ -25,6 +25,7 @@ import { ClippingFeature } from './features/clipping/index.js';
 import { MeasurementsFeature } from './features/measurements/index.js';
 import { SnapshotsFeature } from './features/snapshots/index.js';
 import { prismViewerPluginParts } from './sources/base.js';
+import { DefaultSequenceTracks } from './sequence/tracks.js';
 import type { PrismViewerSpec } from './spec.js';
 
 // The viewer's default spec (viewer-spec.md §5): its base, the default sequence and agent (no assistant), its own
@@ -63,7 +64,7 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
     // PyMOL, VMD, Jmol and MolScript for target text.
     languages: AllQueryLanguages,
     // Seq*, its own chunk (loaded when a structure is first shown).
-    sequence: { runtime: () => import('./sequence/runtime.js'), behaviors: [] },
+    sequence: { runtime: () => import('./sequence/runtime.js'), behaviors: [], tracks: DefaultSequenceTracks },
     agent: {},
   };
 }

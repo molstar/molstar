@@ -62,14 +62,14 @@ state behind a row: [state.md](state.md). The code is the truth for how.
 
 ## 5. Panels and settings
 
-| v5                       | Prism                                                                      | API                      |
-| ------------------------ | -------------------------------------------------------------------------- | ------------------------ |
-| sequence viewer          | the sequence band ([sequence.md](sequence.md)); no pickers                 | `sequence.*`             |
-| Snapshots                | Snapshots tab                                                              | `snapshot.*`             |
-| Settings, behaviors tree | Settings tab's groups                                                      | `settings.*`             |
-| Help                     | Help tab: prose (`views/help/help-prose.tsx`), bindings (`ui/bindings.ts`) | —                        |
-| layout                   | the shell                                                                  | `options.ui.*`, `view.*` |
-| keyboard                 | the plugin's canvas keys; scoped command shortcuts (README decision 29)    | —                        |
+| v5                       | Prism                                                                                                                       | API                      |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| sequence viewer          | the sequence band; its structure, tracks and chains in the structure tree's Sequence node ([sequence.md](sequence.md) §8.1) | `sequence.*`             |
+| Snapshots                | Snapshots tab                                                                                                               | `snapshot.*`             |
+| Settings, behaviors tree | Settings tab's groups                                                                                                       | `settings.*`             |
+| Help                     | Help tab: prose (`views/help/help-prose.tsx`), bindings (`ui/bindings.ts`)                                                  | —                        |
+| layout                   | the shell                                                                                                                   | `options.ui.*`, `view.*` |
+| keyboard                 | the plugin's canvas keys; scoped command shortcuts (README decision 29)                                                     | —                        |
 
 ## 6. Extensions
 

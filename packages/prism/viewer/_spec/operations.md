@@ -121,13 +121,16 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `select.invert` | Invert the selection | view | structure |
 | `select.mode` | Selection mode | view | on |
 | `select.set` | Select | view | target, mode, structure, language |
+| `sequence.chains` | Choose the chains the sequence shows | agent-only | structure, chains, polymer, each |
 | `sequence.colors` | Color the sequence's letters | agent-only | scheme |
 | `sequence.follow` | Show the sequence of a structure | view; agent-only | structure |
 | `sequence.get` | Describe the sequence view | read |  |
 | `sequence.rail` | Set the tracks' rail | agent-only | navigator, height |
 | `sequence.style` | Show the sequence as tracks or text | agent-only | style |
-| `sequence.track.hide` | Hide a sequence track | agent-only | track |
-| `sequence.track.show` | Show a hidden sequence track | agent-only | track |
+| `sequence.track.add` | Add a sequence track | agent-only | track, structure |
+| `sequence.track.hide` | Hide a sequence track | agent-only | track, structure |
+| `sequence.track.remove` | Remove a sequence track | agent-only | track, structure |
+| `sequence.track.show` | Show a hidden sequence track | agent-only | track, structure |
 | `session.clear` | Clear the session | destructive |  |
 | `session.open` | Open a session | destructive | url, data, file, id, type |
 | `session.remote.list` | List the remote states | read; network (addresses); needs network | server |

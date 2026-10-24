@@ -6,10 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CanvasMenuItem } from '@molstar/prism-ui';
 import { ShellModel } from '@molstar/prism-ui';
 import type { DocNode } from '@molstar/seq-core/format';
-import { firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { sequenceCommands, sequenceMenu } from '../sequence/commands.js';
 import type { SequenceViewer } from '../sequence/model.js';
@@ -17,8 +15,9 @@ import { cbs, crambin, expectOk, headlessViewer, until } from './harness.js';
 import type { PrismViewer } from '../viewer.js';
 
 // Hiding and showing the sequence's tracks (sequence.md §7–8): `sequence.track.hide` / `.show` as steps Undo takes
-// back, the person's edits saved with the sequence's state (version 3) and written into every document built again
-// (another structure and back, new colors, a snapshot applied), the commands and the Sequence menu's Tracks. Headless.
+// back, the person's edits saved with the sequence's state (version 4, each structure's) and written into every
+// document built again (another structure and back, new colors, a snapshot applied), the commands and the Sequence
+// menu. Headless.
 
 const SS = 'ss-track';
 
@@ -38,6 +37,8 @@ function nodeOf(viewer: SequenceViewer, ref: string): DocNode | undefined {
 }
 const hiddenInDoc = (viewer: SequenceViewer, ref: string) => nodeOf(viewer, ref)?.params?.hidden === true;
 const hiddenRefs = (viewer: SequenceViewer) => viewer.tracks.value.filter((t) => t.hidden).map((t) => t.ref);
+/** The state ref of the structure shown: its edits are under it. */
+const shownRef = (viewer: SequenceViewer) => viewer.structure.value!.ref;
 
 describe("the sequence's tracks: hide and show", () => {
   it('hides a track as a step (by ref or name), already so, and Undo shows it again', async () => {
@@ -49,7 +50,7 @@ describe("the sequence's tracks: hide and show", () => {
     expect(steps(v)).toBe(before + 1);
     expect(hiddenRefs(viewer)).toEqual([SS]);
     expect(hiddenInDoc(viewer, SS)).toBe(true);
-    expect(viewer.edits.value).toEqual({ tracks: { [SS]: { hidden: true } } });
+    expect(viewer.edits.value).toEqual({ [shownRef(viewer)]: { tracks: { [SS]: { hidden: true } } } });
     expect(await v.api.sequence!.hideTrack!({ track: 'secondary structure' })).toMatchObject({
       ok: true,
       unchanged: true,
@@ -85,13 +86,15 @@ describe("the sequence's tracks: hide and show", () => {
     expect((missing as { hint?: string }).hint).toContain('Secondary structure (ss-track)');
   });
 
-  it('keeps the edits across rebuilds: another structure and back, new letter colors', async () => {
+  it("keeps the edits each structure's: another structure has its own, and back they are there; new letter colors", async () => {
     const { v, viewer } = await opened([cbs(), crambin()]);
+    expectOk(await v.api.sequence!.follow({ structure: '1cbs' }));
+    await until(() => viewer.structure.value?.title === '1CBS' && viewer.tracks.value.length === 3);
     expectOk(await v.api.sequence!.hideTrack!({ track: SS }));
     expectOk(await v.api.sequence!.follow({ structure: '1crn' }));
     await until(() => viewer.structure.value?.title === '1CRN' && viewer.tracks.value.length === 3);
-    expect(hiddenRefs(viewer)).toEqual([SS]);
-    expect(hiddenInDoc(viewer, SS)).toBe(true);
+    expect(hiddenRefs(viewer)).toEqual([]);
+    expect(hiddenInDoc(viewer, SS)).toBe(false);
     expectOk(await v.api.sequence!.follow({ structure: '1cbs' }));
     await until(() => viewer.structure.value?.title === '1CBS' && viewer.tracks.value.length === 3);
     expect(hiddenInDoc(viewer, SS)).toBe(true);
@@ -103,14 +106,21 @@ describe("the sequence's tracks: hide and show", () => {
     );
     expect(hiddenInDoc(viewer, SS)).toBe(true);
     expect(hiddenRefs(viewer)).toEqual([SS]);
+    // A structure not shown: hidden by naming it, its document built hidden when it is shown.
+    expectOk(await v.api.sequence!.hideTrack!({ track: 'ruler', structure: '1crn' }));
+    expect(hiddenRefs(viewer)).toEqual([SS]);
+    expectOk(await v.api.sequence!.follow({ structure: '1crn' }));
+    await until(() => viewer.structure.value?.title === '1CRN' && viewer.tracks.value.length === 3);
+    expect(hiddenRefs(viewer)).toEqual(['ruler']);
   });
 
-  it('saves the edits as version 3 of the sequence state, and a snapshot brings them back; version 2 has none', async () => {
+  it('saves the edits as version 4 of the sequence state, and a snapshot brings them back; version 3 and 2 read', async () => {
     const { v, viewer } = await opened();
+    const ref = shownRef(viewer);
     expectOk(await v.api.sequence!.hideTrack!({ track: SS }));
     const snapshot = v.plugin.state.getSnapshot({ camera: false });
     const saved = snapshot.custom?.['prism-viewer.sequence'] as { version: number; edits?: unknown };
-    expect(saved).toMatchObject({ version: 3, edits: { tracks: { [SS]: { hidden: true } } } });
+    expect(saved).toMatchObject({ version: 4, edits: { [ref]: { tracks: { [SS]: { hidden: true } } } } });
 
     // Another viewer opening the snapshot (a session, a reload): the track is hidden in the document it builds.
     const { v: w, viewer: other } = await opened();
@@ -118,8 +128,24 @@ describe("the sequence's tracks: hide and show", () => {
     await until(() => other.tracks.value.length === 3 && hiddenRefs(other).length === 1);
     expect(hiddenInDoc(other, SS)).toBe(true);
 
-    // Version 2 (before the edits): read as version 3 with none.
+    // Version 3: one set of edits, the followed structure's.
     const { edits: _, ...rest } = saved as Record<string, unknown>;
+    await v.plugin.state.setSnapshot({
+      ...snapshot,
+      custom: {
+        ...snapshot.custom,
+        'prism-viewer.sequence': {
+          ...rest,
+          version: 3,
+          structure: ref,
+          edits: { tracks: { ruler: { hidden: true } } },
+        },
+      },
+    });
+    await until(() => hiddenRefs(viewer).join() === 'ruler');
+    expect(viewer.edits.value).toEqual({ [ref]: { tracks: { ruler: { hidden: true } } } });
+
+    // Version 2 (before the edits): read as version 4 with none.
     await v.plugin.state.setSnapshot({
       ...snapshot,
       custom: { ...snapshot.custom, 'prism-viewer.sequence': { ...rest, version: 2 } },
@@ -128,7 +154,7 @@ describe("the sequence's tracks: hide and show", () => {
     expect(viewer.edits.value).toEqual({});
   });
 
-  it('the commands and the Sequence menu hide and show through the API; the Tracks rows follow the tracks', async () => {
+  it('the commands hide and show through the API; the Sequence menu sends to the structure tree', async () => {
     const { v, viewer } = await opened();
     const shell = new ShellModel();
     const commands = sequenceCommands(viewer, shell, v.api);
@@ -141,19 +167,17 @@ describe("the sequence's tracks: hide and show", () => {
     expect(hiddenRefs(viewer)).toEqual([SS]);
     expect(command('sequence.track.show').when?.({})).toBe(true);
 
-    const menu = sequenceMenu(viewer, shell, () => {}, v.api);
-    const tracks = menu.find((m) => m.id === 'track-list')!;
-    const rows = async () => (await firstValueFrom(tracks.items!)) as readonly CanvasMenuItem[];
-    const checked = async (r: CanvasMenuItem) => firstValueFrom(r.pressed!);
-    const list = await rows();
-    expect(list.map((r) => r.label)).toEqual(['Ruler', 'Residues', 'Secondary structure', 'Show all']);
-    expect(await Promise.all(list.slice(0, 3).map(checked))).toEqual([true, true, false]);
-    list[0].run();
-    await until(() => hiddenRefs(viewer).length === 2);
-    (await rows()).find((r) => r.id === 'show-all')!.run();
-    await until(() => hiddenRefs(viewer).length === 0);
-    expect((await rows()).map((r) => r.id)).not.toContain('show-all');
+    // The menu has no pickers (sequence.md §8): Edit in structure tree where there is one.
+    const ran: string[] = [];
+    expect(sequenceMenu(viewer, shell, (id) => ran.push(id)).map((m) => m.id)).not.toContain('reveal');
+    const menu = sequenceMenu(viewer, shell, (id) => ran.push(id), true);
+    expect(menu.map((m) => m.id)).not.toContain('track-list');
+    menu.find((m) => m.id === 'reveal')!.run();
+    expect(ran).toEqual(['sequence.reveal']);
+    await command('sequence.track.show').run({ track: SS }, {}, signal);
+    await command('sequence.track.hide').run({ track: 'ruler' }, {}, signal);
+    expect(hiddenRefs(viewer)).toEqual(['ruler']);
     await command('sequence.track.show-all').run({}, {}, signal);
-    expect(steps(v)).toBe(before + 3);
+    expect(steps(v)).toBe(before + 4);
   });
 });

@@ -53,8 +53,15 @@ import type {
   SceneNodeAction,
   SceneNodeKind,
   SceneSelectionFilter,
+  SceneSequence,
+  SceneSequenceRow,
   SceneTrajectory,
+  SequenceChainsModel,
+  SequenceChainsPreset,
 } from '../model/scene.js';
+import { sequenceNodeId } from '../model/scene.js';
+import { filteredUnits } from '../sequence/chain-filter.js';
+import type { ChainFilter } from '../sequence/tracks.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
 import type { VolumeLevelUnit } from '../model/volume-levels.js';
 import { namesOf } from '../api/scope.js';
@@ -351,6 +358,8 @@ export function createSceneSource(
   plugin: PluginContext,
   api: ViewerApi,
   openCommand?: OpenCommand,
+  /** Each structure's sequence (sequence.md §8.1); none: the viewer has no sequence, no Sequence nodes. */
+  sequence?: SceneSequence,
 ): SceneSource {
   // The scene's structure as one stream, told once a sync (a Mol* transaction) or a toggle (model/scene-changes.ts).
   const log = new SceneChangeLog();
@@ -505,6 +514,140 @@ export function createSceneSource(
     }
     // An open inspector follows the source and the transform (Undo, superposition), without reporting it as an edit.
     if (data) inspections.get(ref)?.form?.load(structureValues(s, data));
+    return n;
+  };
+
+  /** The rows each Sequence node was last made from: its inspector's form follows them. */
+  const sequenceRows = new Map<string, SceneSequenceRow>();
+  /** Each Sequence node's chains (its inspector's), made once and told each row. */
+  const chainModels = new Map<string, ChainsSource>();
+  /** What an inspection is built from: a Sequence node's from its row (its facts and actions), the rest's as below. */
+  const keyOf = (n: SceneNode): unknown => (n.kind === 'sequence' ? sequenceRows.get(n.id) : inspectionKey(plugin, n));
+  /**
+   * A structure's sequence (sequence.md §8.1): its eye is the band (`sequence.follow`, No sequence), its menu Add track,
+   * Chains, Follow automatically and Legend, its children its tracks (each an eye, its colorings and Remove), its
+   * inspector the chain filter. Made from the sequence model, not a plugin cell.
+   */
+  const sequenceNode = (structureRef: string, data: Structure, row: SceneSequenceRow): Node => {
+    const id = sequenceNodeId(structureRef);
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(id, 'sequence', 'sequence', 'Sequence', false, {
+        visibility: () => sequence!.toggle(structureRef),
+      });
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    n.set('Sequence', row.description, !row.shown);
+    sequenceRows.set(id, row);
+    n.menuSource = () => {
+      const now = sequenceRows.get(id);
+      if (!now) return undefined;
+      const filter = now.filter;
+      const preset = !filter
+        ? 'all'
+        : filter.polymer && !filter.each && !filter.chains
+          ? 'polymer'
+          : filter.each && !filter.polymer && !filter.chains
+            ? 'each'
+            : undefined;
+      const items: SceneMenuItem[] = [];
+      if (now.addable.length) {
+        items.push({
+          id: 'add-track',
+          label: 'Add track',
+          icon: 'plus',
+          items: now.addable.map((a) => ({
+            id: `add:${a.id}`,
+            label: a.label,
+            run: () => sequence!.addTrack(structureRef, data, a.id),
+          })),
+        });
+      }
+      items.push({
+        id: 'chains',
+        label: 'Chains',
+        icon: 'link',
+        items: [
+          {
+            id: 'all',
+            label: 'All chains',
+            checked: preset === 'all',
+            run: () => sequence!.setChains(structureRef, data, undefined),
+          },
+          {
+            id: 'polymer',
+            label: 'Polymers only',
+            checked: preset === 'polymer',
+            run: () => sequence!.setChains(structureRef, data, { polymer: true }),
+          },
+          {
+            id: 'each',
+            label: 'Every copy apart',
+            checked: preset === 'each',
+            run: () => sequence!.setChains(structureRef, data, { each: true }),
+          },
+        ],
+      });
+      items.push({
+        id: 'style',
+        label: 'Style',
+        icon: 'chart-gantt',
+        items: [
+          { id: 'tracks', label: 'Tracks', checked: now.style === 'tracks', run: () => sequence!.setStyle('tracks') },
+          { id: 'text', label: 'Text', checked: now.style === 'text', run: () => sequence!.setStyle('text') },
+        ],
+      });
+      items.push({
+        id: 'colors',
+        label: 'Letter colors',
+        icon: 'palette',
+        items: sequence!.schemes.map(([scheme, label]) => ({
+          id: `colors:${scheme ?? 'none'}`,
+          label,
+          checked: now.colors === scheme,
+          run: () => sequence!.setColors(scheme),
+        })),
+      });
+      if (now.chosen) {
+        items.push({
+          id: 'auto',
+          label: 'Follow automatically',
+          icon: 'focus',
+          run: () => sequence!.followAutomatically(),
+        });
+      }
+      if (sequence!.legend)
+        items.push({ id: 'legend', label: 'Legend…', icon: 'palette', run: () => sequence!.legend!() });
+      return items;
+    };
+    // Rows of tracks that are gone go (the clean-up keeps what the structure owns).
+    const keep = new Set(row.tracks.map((t) => `${id}:${t.ref}`));
+    for (const c of n.children.value) if (!keep.has(c.id)) nodes.delete(c.id);
+    n.setChildren(
+      row.tracks.map((t) => {
+        const tid = `${id}:${t.ref}`;
+        let tn = nodes.get(tid);
+        if (!tn) {
+          tn = new Node(tid, 'sequence-track', 'layers', t.label, false, {
+            visibility: (hide) => sequence!.setTrackHidden(structureRef, data, t.ref, hide),
+            remove: () => sequence!.removeTrack(structureRef, data, t.ref),
+          });
+          nodes.set(tid, tn);
+        }
+        tn.removable = t.removable;
+        tn.set(t.label, t.description, t.hidden);
+        tn.menu = t.actions.map((a) => ({
+          id: a.id,
+          label: a.label,
+          ...(a.icon ? { icon: a.icon } : {}),
+          run: () => a.run(),
+        }));
+        return tn;
+      }),
+    );
+    inspections.get(id)?.form?.load(sequenceValues(row) as never);
+    chainModels.get(id)?.update(row);
     return n;
   };
 
@@ -1066,6 +1209,15 @@ export function createSceneSource(
       ids.push(vn.id);
       kids.push(vn);
     }
+    // Its sequence, under Contents (sequence.md §8.1): a structure with polymers, where the viewer has a sequence.
+    const data = s.cell.obj?.data;
+    const seqRow = sequence && data ? sequence.row(ref, data) : undefined;
+    if (seqRow && data) {
+      const qn = sequenceNode(ref, data, seqRow);
+      ids.push(qn.id);
+      for (const c of qn.children.value) ids.push(c.id);
+      kids.splice(1, 0, qn);
+    }
     sn.setChildren(kids);
     rows.node = sn;
     return ids;
@@ -1211,6 +1363,8 @@ export function createSceneSource(
       particleTrajectories.delete(id);
       streamingOwners.delete(id);
       streamingShown.delete(id);
+      sequenceRows.delete(id);
+      chainModels.delete(id);
       if (picked.value === n) picked.set(undefined);
     };
     for (const id of dropped) {
@@ -1225,11 +1379,11 @@ export function createSceneSource(
     // the cell as it is, and the inspector keeps it, a gesture on it going on).
     for (const [id, key] of inspectionKeys) {
       const n = nodes.get(id);
-      if (!n || Object.is(inspectionKey(plugin, n), key)) continue;
+      if (!n || Object.is(keyOf(n), key)) continue;
       const form = inspections.get(id)?.form;
       const fresh = build(n);
       inspections.set(id, form && fresh.form ? { ...fresh, form } : fresh);
-      inspectionKeys.set(id, inspectionKey(plugin, n));
+      inspectionKeys.set(id, keyOf(n));
       if (picked.value === n) inspection.set(inspections.get(id));
     }
     // The same roots (a sync makes the array again): no change, the tree not flattened again.
@@ -1250,14 +1404,91 @@ export function createSceneSource(
     }
   };
 
-  const build = (n: SceneNode) =>
-    inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) => picked.set(row));
+  const build = (n: SceneNode): SceneInspection => {
+    if (n.kind === 'sequence' && sequence) return inspectSequence(n);
+    return inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) =>
+      picked.set(row),
+    );
+  };
+
+  /**
+   * A Sequence node's inspector (sequence.md §8.1): the chain filter in full (polymers only, every copy apart, then each
+   * chain instance), its tracks and the band said in its facts, Add track and Follow automatically as its actions.
+   */
+  const inspectSequence = (n: SceneNode): SceneInspection => {
+    const structureRef = n.id.slice(0, n.id.indexOf('#'));
+    const row = sequenceRows.get(n.id);
+    const data = dataOf(plugin, structureRef);
+    const set = (filter: ChainFilter | undefined) => data && sequence!.setChains(structureRef, data, filter);
+    // The band's style and letter colors (one for the band: the same on every structure's node), then the copies.
+    const schemes = sequence!.schemes.map(([scheme, label]): [string, string] => [scheme ?? 'none', label]);
+    const params = {
+      style: PD.Select<'tracks' | 'text'>(
+        'tracks',
+        [
+          ['tracks', 'Tracks'],
+          ['text', 'Text'],
+        ],
+        { label: 'Style', description: "The band's: one for every structure" },
+      ),
+      colors: PD.Select(schemes[0][0], schemes, {
+        label: 'Letter colors',
+        description: "The band's: one for every structure",
+      }),
+      each: PD.Boolean(false, {
+        label: 'Every copy apart',
+        description: "An assembly's copies each a block of their own",
+      }),
+    };
+    const form: ParamsFormModel<typeof params> = new ParamsFormModel(params, sequenceValues(row), {
+      onChange: (v, name) => {
+        if (name === 'style') return sequence!.setStyle(v.style);
+        if (name === 'colors') return sequence!.setColors(v.colors === 'none' ? null : v.colors);
+        const { each: _, ...rest } = sequenceRows.get(n.id)?.filter ?? {};
+        set(v.each ? { ...rest, each: true } : isFilteredNow(rest) ? rest : undefined);
+      },
+    });
+    let chains = chainModels.get(n.id);
+    if (!chains && row && data) {
+      chains = chainsModel(row, (filter) => set(filter));
+      chainModels.set(n.id, chains);
+    }
+    const actions: SceneMenuItem[] = [
+      ...(row?.addable ?? []).map((a) => ({
+        id: `add:${a.id}`,
+        label: `Add ${a.label}`,
+        icon: 'plus' as const,
+        run: () => data && sequence!.addTrack(structureRef, data, a.id),
+      })),
+      ...(row?.chosen
+        ? [
+            {
+              id: 'auto',
+              label: 'Follow automatically',
+              icon: 'focus' as const,
+              run: () => sequence!.followAutomatically(),
+            },
+          ]
+        : []),
+    ];
+    return {
+      node: n,
+      form,
+      slot: 'inspector:sequence',
+      ...(chains ? { chains: chains.model } : {}),
+      facts: [
+        ['Band', row?.description ?? ''],
+        ['Tracks', String(row?.tracks.filter((t) => !t.hidden).length ?? 0)],
+      ],
+      actions,
+    };
+  };
   const inspectNode = (n: SceneNode): SceneInspection => {
     let built = inspections.get(n.id);
     if (!built) {
       built = build(n);
       inspections.set(n.id, built);
-      inspectionKeys.set(n.id, inspectionKey(plugin, n));
+      inspectionKeys.set(n.id, keyOf(n));
     }
     return built;
   };
@@ -1279,6 +1510,32 @@ export function createSceneSource(
       for (const t of particleTrajectories.values()) t.refreshPlaying();
     }),
   );
+  // The sequence's rows read otherwise (what the band follows, a track, a filter): every structure built again.
+  if (sequence) {
+    scope.add(
+      sequence.version.subscribe(() => {
+        // Each Sequence node updated in place (its line, eye, menu, its tracks' rows); a structure is built again only
+        // when its node comes or goes, not on every change.
+        let rebuild = false;
+        log.batch(() => {
+          for (const [ref, rows] of structureRows) {
+            const data = dataOf(plugin, ref);
+            const row = data ? sequence.row(ref, data) : undefined;
+            const node = nodes.get(sequenceNodeId(ref));
+            const had = !!node && !!rows.node?.children.value.includes(node);
+            // Its tracks' rows need no rebuild: the clean-up keeps an id its structure owns (`ownerOf`).
+            const same = !!row && had;
+            if (same) sequenceNode(ref, data!, row!);
+            else if (had || row) {
+              stale.add(ref);
+              rebuild = true;
+            }
+          }
+        });
+        if (rebuild) sync();
+      }),
+    );
+  }
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
@@ -1395,6 +1652,95 @@ export function createSceneSource(
  * contents' summary come from the structure (an assembly or a model changes it), a volume's levels and transfer functions
  * from its representations and their types, an isosurface's or a direct volume's from its type. Others: nothing.
  */
+/** A Sequence node's form values: the band's style and colors, the copies apart. */
+const sequenceValues = (row: SceneSequenceRow | undefined) => ({
+  style: row?.style ?? 'tracks',
+  colors: row?.colors ?? 'none',
+  each: !!row?.filter?.each,
+});
+
+/** A filter that says something once `each` is taken out of it. */
+const isFilteredNow = (f: ChainFilter) => !!f.polymer || f.chains !== undefined;
+
+/** A Sequence node's chains model and how the scene tells it a new row. */
+interface ChainsSource {
+  readonly model: SequenceChainsModel;
+  update(row: SceneSequenceRow): void;
+}
+
+type ChainsEntity = SequenceChainsModel['entities'][number] & { chains: { name: string; label: string }[] };
+
+/**
+ * The chains a Sequence node's inspector shows (sequence.md §8.1): every chain by its entity, those shown, and the
+ * preset in effect; each change one `sequence.chains` (through `set`), `each` kept.
+ */
+function chainsModel(first: SceneSequenceRow, set: (filter: ChainFilter | undefined) => void): ChainsSource {
+  const byEntity = new Map<string, ChainsEntity>();
+  for (const c of first.chains) {
+    let e = byEntity.get(c.entity);
+    if (!e) {
+      e = { id: c.entity, name: c.entityLabel.replace(/\s+/g, ' ').trim(), kind: c.kind, chains: [] };
+      byEntity.set(c.entity, e);
+    }
+    e.chains.push({ name: c.name, label: c.label });
+  }
+  const entities = [...byEntity.values()];
+  const all = first.chains.map((c) => c.name);
+  const polymers = first.chains.filter((c) => c.kind === 'polymer').map((c) => c.name);
+  let row = first;
+  const shownOf = (r: SceneSequenceRow) => new Set(filteredUnits(r.filter, r.chains) ?? all);
+  const presetOf = (s: ReadonlySet<string>): SequenceChainsPreset | undefined => {
+    if (s.size === all.length) return 'all';
+    if (s.size === 0) return 'none';
+    if (s.size === polymers.length && polymers.every((n) => s.has(n))) return 'polymer';
+    return undefined;
+  };
+  const shown = observableState<ReadonlySet<string>>(shownOf(first));
+  const preset = observableState<SequenceChainsPreset | undefined>(presetOf(shown.value));
+  const each = () => (row.filter?.each ? { each: true } : {});
+  /** The chains kept as a filter, `each` kept: every one is no filter of chains. */
+  const keep = (names: ReadonlySet<string>) => {
+    if (names.size === all.length) set(row.filter?.each ? each() : undefined);
+    else set({ ...each(), chains: all.filter((n) => names.has(n)) });
+  };
+  return {
+    model: {
+      entities,
+      shown: shown.asReadonly,
+      preset: preset.asReadonly,
+      apply: (p) => {
+        if (p === 'all') set(row.filter?.each ? each() : undefined);
+        else if (p === 'none') set({ ...each(), chains: [] });
+        else set({ ...each(), polymer: true });
+      },
+      toggleChain: (name) => {
+        const next = new Set(shown.value);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        keep(next);
+      },
+      toggleEntity: (id) => {
+        const e = byEntity.get(id);
+        if (!e) return;
+        const next = new Set(shown.value);
+        const every = e.chains.every((c) => next.has(c.name));
+        for (const c of e.chains) {
+          if (every) next.delete(c.name);
+          else next.add(c.name);
+        }
+        keep(next);
+      },
+    },
+    update: (r) => {
+      row = r;
+      const s = shownOf(r);
+      const same = s.size === shown.value.size && [...s].every((n) => shown.value.has(n));
+      if (!same) shown.set(s);
+      preset.set(presetOf(s));
+    },
+  };
+}
+
 function inspectionKey(plugin: PluginContext, node: SceneNode): unknown {
   switch (node.kind) {
     case 'structure':

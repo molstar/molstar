@@ -15,6 +15,13 @@ import type { SceneChanges } from '../../model/scene-changes.js';
 
 async function viewer() {
   const v = await headlessViewer({ files: [cbs()] });
+  // The Sequence node's tracks come once the sequence's runtime is in (sequence.md §8.1): a change of its own, before
+  // the test's.
+  const viewers = (await v.views.sequence!.load()).viewers.get();
+  await until(() => viewers.tracks.value.length > 0);
+  await until(() =>
+    v.views.scene.roots.value[0].children.value.some((c) => c.kind === 'sequence' && c.children.value.length > 0),
+  );
   const told: SceneChanges[] = [];
   v.views.scene.changes!.listen?.((c) => told.push(c));
   return { v, told };

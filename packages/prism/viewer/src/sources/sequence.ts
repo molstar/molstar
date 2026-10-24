@@ -51,6 +51,16 @@ export interface SequenceSource {
    * map (sequence.md §10).
    */
   readonly hoverMapped: ReadonlyState<boolean>;
+  /** The band in the page's shell (its dock shown or not), once the shell has mounted it; headless: none. */
+  readonly band: ReadonlyState<SequenceBand | undefined>;
+  /** The shell's band (`sequence/shell-ui.tsx`); returns its removal. */
+  setBand(band: SequenceBand): () => void;
+}
+
+/** Whether the page shows the band, and showing or hiding it (the Sequence menu's No sequence). */
+export interface SequenceBand {
+  readonly shown: ReadonlyState<boolean>;
+  show(on: boolean): void;
 }
 
 /** The format the plugin parsed a trajectory from, as the sequence's structure source names it. */
@@ -259,7 +269,15 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     },
   };
 
+  const band = observableState<SequenceBand | undefined>(undefined);
   return {
+    band: band.asReadonly,
+    setBand: (b) => {
+      band.set(b);
+      return () => {
+        if (band.value === b) band.set(undefined);
+      };
+    },
     hoverMapped: hoverMapped.asReadonly,
     structure: structure.asReadonly,
     dataByUrl: createDataByUrl(scope, plugin),

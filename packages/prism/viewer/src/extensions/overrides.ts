@@ -36,6 +36,12 @@ export const ShellCommandIds: readonly string[] = [
   'sequence.track.hide',
   'sequence.track.show',
   'sequence.track.show-all',
+  'sequence.track.add',
+  'sequence.track.remove',
+  'sequence.chains.all',
+  'sequence.chains.polymer',
+  'sequence.chains.each',
+  'sequence.reveal',
   'sequence.legend',
 ];
 

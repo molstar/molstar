@@ -23,6 +23,8 @@ export const ExampleFiles = {
   cbs: new URL('../../../../../data/examples/1cbs_updated.cif', import.meta.url).href,
   /** 1CRN: crambin. */
   crambin: new URL('../../../../../data/examples/1crn.cif', import.meta.url).href,
+  /** 1TUP: the p53 core domain bound to DNA (three protein chains, two DNA strands, zinc; BinaryCIF). */
+  tup: new URL('../../../../../data/examples/1tup.bcif', import.meta.url).href,
   /** 1GRM: gramicidin. */
   grm: new URL('../../../../../data/examples/1grm_updated.cif', import.meta.url).href,
   /** A docking receptor (PDB) and four poses of a ligand docked into it (one SDF, four molecules). */

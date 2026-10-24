@@ -26,6 +26,7 @@ import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { VolumeLevels } from '../volume/volume-levels.js';
 import { ContentsSummaryView } from './contents-summary.js';
+import { SequenceChains } from './sequence-chains.js';
 import { RepresentationQuick } from './representation-quick.js';
 import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
@@ -437,6 +438,8 @@ function Inspector(props: {
       {/* A component's representations: each a row to open (its inspector), its eye beside it; not only behind the
           tree's chevron. */}
       {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
+      {/* A structure's sequence: the chains it shows (sequence.md §8.1). */}
+      {props.inspection.chains ? <SequenceChains model={props.inspection.chains} /> : null}
       {/* A structure's contents: its counts, its entities to open in the tree. */}
       <Show when={part('contents')}>{(contents) => <ContentsSummaryView summary={contents} />}</Show>
       {/* A representation's quick settings (type, color, opacity, size), above the whole form. */}

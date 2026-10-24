@@ -337,7 +337,7 @@ describe('the sequence model', () => {
 
   it('the document lists only the ligands the 3D view draws (the same list), and every one when none is given', async () => {
     const host = await hostStructure();
-    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null }, plain: '#ffffff' };
+    const base = { title: 'T', key: host.key, format: host.source.format, tracks: [] };
     const options = (ligands?: string[]) => {
       const text = JSON.stringify(sequenceDocument({ ...base, ...(ligands ? { ligands } : {}) }));
       const node = (JSON.parse(text) as { root: unknown }).root;

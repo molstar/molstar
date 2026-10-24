@@ -37,10 +37,11 @@ export function sequenceFrames(page: boolean): Scheduler {
 
 /**
  * The sequence's state in snapshots (sequence.md §7.1): version 2 adds the loaded SeqViewSpec, version 3 the person's
- * edits over the document (hidden tracks, by ref).
+ * edits over the document (hidden tracks, by ref), version 4 makes them each structure's (tracks put in, taken out or
+ * hidden, and the chain filter, by structure ref).
  */
 export interface SavedSequence {
-  readonly version: 1 | 2 | 3;
+  readonly version: 1 | 2 | 3 | 4;
   readonly style: SequenceStyle;
   readonly colors: string | null;
   readonly rail: TracksRail;
@@ -49,18 +50,39 @@ export interface SavedSequence {
   readonly edits?: SequenceEdits;
 }
 
-/** The viewer's state as saved (`prism-viewer.sequence`). */
-export function savedOf(viewer: SequenceViewer, structure: string | undefined): SavedSequence {
-  const edits = viewer.edits.value;
+/** Version 3's edits: one set of hidden tracks over whatever document was shown. */
+interface EditsV3 {
+  readonly tracks?: Readonly<Record<string, { readonly hidden: boolean }>>;
+}
+
+/**
+ * The viewer's state as saved (`prism-viewer.sequence`); a structure that is gone (`exists` false) leaves its edits
+ * out.
+ */
+export function savedOf(
+  viewer: SequenceViewer,
+  structure: string | undefined,
+  exists: (ref: string) => boolean = () => true,
+): SavedSequence {
+  const kept = Object.entries(viewer.edits.value).filter(([ref]) => exists(ref));
   return {
-    version: 3,
+    version: 4,
     style: viewer.style.value,
     colors: viewer.theme.value.letters,
     rail: viewer.rail.value,
     structure,
     ...(viewer.override.value ? { override: viewer.override.value } : {}),
-    ...(edits.tracks && Object.keys(edits.tracks).length ? { edits } : {}),
+    ...(kept.length ? { edits: Object.fromEntries(kept) } : {}),
   };
+}
+
+/** A saved state's edits as version 4 has them: version 3's are the structure's it names, else none. */
+function editsOf(v: SavedSequence): SequenceEdits {
+  if (v.version === 4) return v.edits ?? {};
+  if (v.version !== 3) return {};
+  const old = v.edits as EditsV3 | undefined;
+  if (!old?.tracks || !v.structure || !Object.keys(old.tracks).length) return {};
+  return { [v.structure]: { tracks: old.tracks } };
 }
 
 /**
@@ -73,9 +95,10 @@ export function applySaved(
   value: unknown,
   initial: 'tracks' | 'text' | undefined,
 ): void {
-  // Version 1 is version 2 without a loaded SeqViewSpec, version 2 is version 3 with no edits (the migrations).
+  // Version 1 is version 2 without a loaded SeqViewSpec, version 2 is version 3 with no edits, version 3 is version 4
+  // with its edits the followed structure's (the migrations).
   const v = value as SavedSequence | undefined;
-  if (!v || (v.version !== 1 && v.version !== 2 && v.version !== 3)) {
+  if (!v || (v.version !== 1 && v.version !== 2 && v.version !== 3 && v.version !== 4)) {
     viewer.setStyle(initial === 'text' ? 'compact' : 'tracks');
     viewer.setTheme(DefaultSequenceTheme);
     viewer.setRail(DefaultTracksRail);
@@ -90,6 +113,6 @@ export function applySaved(
   // Undo's checkpoints leave out what the sequence follows (view state); a session has it.
   if ('structure' in v) follow(v.structure);
   // The edits before the override: the document it rebuilds is written with them.
-  void viewer.setEdits((v.version === 3 && v.edits) || {});
+  void viewer.setEdits(editsOf(v));
   void viewer.setOverride(v.override);
 }

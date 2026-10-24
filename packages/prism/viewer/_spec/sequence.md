@@ -58,21 +58,48 @@ The code is the truth for how.
 
 ## 3. Content: the document and sequence behaviors
 
+- **One structure at a time** (David, 2026-10-24): the band shows one structure's sequence. The person picks it in the
+  structure tree, by the eye of its Sequence node (§8.1), which is `sequence.follow`; nothing picked is **Auto**.
 - **What the sequence follows** (`createSequenceSource`, `sources/sequence.ts`): a structure `show` names (§6), else the
-  one `sequence.follow` set, else the focused one, else the one whose selection grew last, else the first loaded. No
-  picker in the band: switching is rare, and the follow rule and `sequence.follow` choose.
+  one `sequence.follow` set, else (Auto) the focused one, else the one whose selection grew last, else the first loaded.
+  A followed structure removed is Auto again. Following is view state, not a step (§7.3).
 - **The built document** (`sequenceDocument`, `sequence/document.ts`): one view, one section (`main`) over a
-  `molstar:structure` complex (ref `structure`); with no blocks the section takes every polymer unit in order, then the
-  ligands the 3D view draws (`ligand_comps`). Tracks: ruler, letters, secondary structure
-  (`molstar:secondary_structure`); the data node has ref `data`. One document serves Text and Tracks (§8).
-- **Behaviors add to it by patch.** A `SequenceBehavior` (`sequence/behaviors.ts`) attaches with a context: `shown`
-  (what the document shows, a new value per document: structure, complex, data node, section, the last track),
-  `patch(shown, ops)` (Seq\*'s `applyPatch` on the base layer, origin `host:<id>`; dropped for a replaced document) and
-  `offer` (its tracks' menus by track ref and color theme, and its legend blocks). A new document has none of a
-  behavior's nodes: `shown` changes and it adds them again.
-- **Refs start with the behavior's id**; ids are `<owner>.sequence.<name>`, unique (a taken id throws). The spec's own
-  behaviors come from `spec.sequence.behaviors`; an extension brings its own (`ViewerExtension.sequence`, viewer-spec.md
-  §3; `extensions/host.ts` checks the prefix), overridable by id as any part: model-archive's pLDDT track (README
+  `molstar:structure` complex (ref `structure`); the data node has ref `data`. Its tracks are the track providers' that
+  are in (below), in their `order`. One document serves Text and Tracks (§8).
+- **The chain filter is the section's blocks**, the structure's own (§7.1; `sequence/chain-filter.ts`): none, the
+  section takes every polymer unit in order, then the ligands the 3D view draws (`ligand_comps`); else one block per
+  chain instance kept (`block.<unit>`, the unit named as the adapter names it: `label_asym_id`, `@<operator>` off the
+  identity), polymers only if asked. Copies are merged by default (Seq\*'s `copies: 'one'`: a capsid is one block, not
+  sixty; a hover or selection on it stands for every copy, `seqspec:model#copies`); **every copy apart** is
+  `copies: 'each'`. A change of filter is one patch of the section: the complex, its parse and the link stay
+  (`seqspec:format#blocks`), never a new document. A loaded SeqViewSpec's sections keep their own blocks: the filter is
+  kept for the built document.
+- **Track providers** (`SequenceTrackProvider`, `sequence/tracks.ts`) say what tracks a structure has; the viewer puts
+  them in and takes them out, so an extension adds sequence data by declaring it. A provider: `id`, `label`, `order`,
+  `track` (its track's ref), `applies(structure)` (the structure carries its data), `shown` (in by default; false: only
+  once added), `base` (part of the built document: out under a loaded SeqViewSpec, which brings its own), `build(ctx)`
+  (its data nodes and its one track over the structure, the complex's ref and the letters' color), its `menu` (colorings
+  of the 3D view by theme) and `legend` blocks (shown while its track is in). **Only what comes with the structure**:
+  `applies` and the data read the structure and what the plugin holds; a provider fetches nothing (§2). A provider whose
+  answer can change without a new structure (a property computed later) passes `whenChanged`. `describe` says in a few
+  words what it draws (the tree's second line). The viewer's own: ruler, letters, secondary structure
+  (`molstar:secondary_structure`), keeping their short refs (`ruler`, `letters`, `ss-track`: saved edits name them).
+  Plain data, no Seq\* module: the core spec lists them. A provider that throws in `build` is left out (a warning),
+  never the document.
+- **In by a patch**: the document is built with the providers' tracks that are in; adding, removing, a provider that
+  comes or goes, the filter and the eye are one base patch on the document shown (origin
+  `host:prism-viewer.sequence.edits`, in order: each reads the document the one before left), never a new document; a
+  refused patch builds the document again. Edits made while the document is being made (an API call right after a load)
+  are in it once it is.
+- **Behaviors add to it by patch**, for what is not a track (a rule that follows the scene). A `SequenceBehavior`
+  (`sequence/behaviors.ts`) attaches with a context: `shown` (what the document shows, a new value per document:
+  structure, complex, data node, section, the last track), `patch(shown, ops)` (Seq\*'s `applyPatch` on the base layer,
+  origin `host:<id>`; dropped for a replaced document) and `offer` (its tracks' menus by track ref and color theme, and
+  its legend blocks). A new document has none of a behavior's nodes: `shown` changes and it adds them again.
+- **Ids are `<owner>.sequence.<name>`**, providers' and behaviors' one namespace, unique (a taken id throws); their refs
+  start with the owner's id. The spec's own come from `spec.sequence.tracks` and `spec.sequence.behaviors`; an extension
+  brings its own (`ViewerExtension.sequence`, viewer-spec.md §3; `extensions/host.ts` checks the prefix), overridable by
+  id as any part: model-archive's pLDDT track, a provider shown by default where the model carries pLDDT (README
   decision 27, `packages/extensions/model-archive/src/prism-viewer.ts`).
 
 ## 4. Interaction: the link
@@ -127,17 +154,23 @@ The code is the truth for how.
 
 ### 7.1 The sequence's state in snapshots
 
-- **Saved as `prism-viewer.sequence`**: `{ version: 3, style, colors, rail, structure?, override?, edits? }`
+- **Saved as `prism-viewer.sequence`**: `{ version: 4, style, colors, rail, structure?, override?, edits? }`
   (`SavedSequence`, `sequence/runtime.ts`). `override` is the loaded SeqViewSpec (the document itself, its URL, its
-  structure's ref): content, so Undo keeps it. Version 1 reads as 2 without `override`, version 2 as 3 without `edits`;
-  another version or none resets to the defaults.
-- **The edits overlay** (`SequenceEdits`): the person's changes over the document shown, by track ref
-  (`{ tracks: { [ref]: { hidden } } }`), each a change from the document's own value (a loaded SeqViewSpec may hide a
-  track itself), so showing a track the person hid drops its entry. Written into every document the model builds and
-  into a behavior's inserted tracks (hidden from its first patch, no flash), and brought to the document shown by one
-  base patch (`set` of `hidden`, origin `host:prism-viewer.sequence.edits`) when they change; a ref the document lacks
-  is kept for the next that has it. So a hidden track stays hidden across another structure and back, new colors, a
-  reload and Undo. Seq\* hides by its document (`track.hidden`): no renderer change.
+  structure's ref): content, so Undo keeps it. Version 1 reads as 2 without `override`, version 2 as 3 without `edits`,
+  version 3 as 4 with its `edits` the entry of the structure it names (`structure`; none: dropped); another version or
+  none resets to the defaults.
+- **Global and per structure** (David, 2026-10-24): the style (Text, Tracks), the letters' colors and the rail are one
+  for the band, so switching structures never changes how it looks; the tracks and the chain filter are each structure's
+  own.
+- **The edits overlay** (`SequenceEdits`): the person's changes over each structure's document, by structure ref
+  (`{ [structure]: { tracks?: { [ref]: { in?, hidden? } }, chains? } }`). Each is a change from the document's own value
+  (a provider's `shown`; a loaded SeqViewSpec may hide a track itself), so undoing one drops its entry: `in` (Add track,
+  Remove: a provider's track put in or taken out), `hidden` (the eye), `chains` (the filter: `polymer`, `one-copy`, or
+  the chain instances kept). Written into every document the model builds and into a behavior's inserted tracks (hidden
+  from its first patch, no flash), and brought to the document shown by one base patch (origin
+  `host:prism-viewer.sequence.edits`) when they change; a ref the document lacks is kept for the next that has it. So a
+  hidden track stays hidden across another structure and back, new colors, a reload and Undo. Seq\* hides by its
+  document (`track.hidden`): no renderer change. A removed structure's entry is not saved.
 - **A registry, not a field**: `PluginState.registerCustomState(key, { get, set })`
   (`packages/plugin/core/src/state.ts`). `getSnapshot` writes every key into `snapshot.custom`; `setSnapshot` calls each
   `set` after the data tree, with `undefined` when the snapshot has none; transition frames do not apply it. Snapshots,
@@ -152,8 +185,9 @@ The code is the truth for how.
   context and animation, minus the followed structure; restore applies it without the focus and keeps each trajectory's
   current frame.
 - **Undo restores**: the data tree, behavior settings, canvas props, the sequence's style, colors, rail, override and
-  edits (its hidden tracks), the hidden contents. **Never**: the camera, the selection, the selection mode and picking
-  level, the focus, which structure the sequence follows, hover, a trajectory's frame, the Snapshots list, open panels.
+  edits (each structure's tracks and chain filter), the hidden contents. **Never**: the camera, the selection, the
+  selection mode and picking level, the focus, which structure the sequence follows, hover, a trajectory's frame, the
+  Snapshots list, open panels.
 - **Headless**: `camera: false` keeps the checkpoint from reading the canvas.
 - **A lazy extension's load** stays across a restore to before it (its registrations stay; its cells go).
 
@@ -236,11 +270,13 @@ The code is the truth for how.
   or a loaded SeqViewSpec's), none of Seq\*'s DOM or React UI. Seq\* draws letters, ruler, hover, selection and focus
   and handles wheel, drag, click and keys.
 - **The canvas stack's Sequence button** (shown while a structure is) has the menu (`sequenceMenu`): one choice of No
-  sequence, Text, Tracks, then the letters' colors (one choice) and Legend…, then the Visible tracks submenu (below).
-  Each item runs a command (`sequence.none`, `sequence.text`, `sequence.tracks`, `sequence.colors.<scheme>`,
-  `sequence.legend`), so the command menu does the same, the Visible tracks rows the operations their commands run; the
-  rail is commands only (`sequence.rail.<ruler|strip|band|none>`). Style, colors, rail and hidden tracks go through the
-  API as the person: steps.
+  sequence, Text, Tracks, then **Edit in structure tree**, which opens the Structure panel at the shown structure's
+  Sequence node (§8.1). Nothing else (David, 2026-10-24): which structure, its tracks, its chains, the letters' colors
+  and the legend are the node's (§8.1) and the commands'. Each item runs a command (`sequence.none`, `sequence.text`,
+  `sequence.tracks`, `sequence.reveal`), so the command menu does the same (also `sequence.colors.<scheme>`,
+  `sequence.legend`); the rail is commands only (`sequence.rail.<ruler|strip|band|none>`). Style, colors, rail, tracks
+  and chains go through the API as the person: steps. The band keeps only what acts on the track under the pointer (its
+  menu, the gutter).
 - **Tracks is the default style** (`spec.sequence.style`); the switch only sets the preset (`ctx.ui.setStyle`): the
   document and the link survive.
 - **Text** is Seq\*'s `compact` with the composition's render props: whole groups per line, centered, letters at most
@@ -256,21 +292,59 @@ The code is the truth for how.
   `openContextMenu` at the pointer and prevents the browser's menu: the track's actions (the model's `TrackMenus` and
   the behaviors' offers), then Hide track; elsewhere the browser's menu stays.
 - **Hiding and showing tracks** (`viewer.tracks`: the section's tracks, hidden ones included, each named by its document
-  label, the viewer's own name, a behavior's offered `labels` or its title): `sequence.track.hide` and
+  label, its provider's `label`, a behavior's offered `labels` or its title): `sequence.track.hide` and
   `sequence.track.show` (a track by ref or name; show with none: every hidden one), steps through the API as the person,
   so Undo takes each back (§7; show with none is one edit, `setTracksHidden`); the commands `sequence.track.hide`,
-  `.show` (a choice of the tracks) and `.show-all`. The Sequence menu's **Visible tracks** is a submenu (prism-ui's
-  `CanvasMenuItem.items`): a checkbox per track (checked: shown), then Show all while one is hidden. `sequence.get`
-  lists the tracks.
+  `.show` (a choice of the tracks) and `.show-all`. **Adding and removing**: `sequence.track.add` (a provider that
+  applies and is out, by id or label) and `sequence.track.remove` (a provider's track; a loaded SeqViewSpec's own tracks
+  only hide), with commands of the same names. `sequence.get` lists the tracks, and the providers that could be added.
+- **Chains**: `sequence.chains` (`structure`, else the one followed; `chains` as `sequence.get` lists them, or by author
+  id, or `none`; `polymer`; `each`; none of them: every chain), a step; commands `sequence.chains.<all|polymer|each>`.
 - **The hidden tracks' hint**: only while tracks are hidden, a faint "N hidden" at the foot of the track gutter (Tracks
-  only); a click opens a menu at it: Show all tracks, then Show each hidden one (a context menu: the canvas stack's
-  submenu belongs to its button). Nothing shows while every track does.
+  only); a click opens a menu at it: Show all tracks, then Show each hidden one (a context menu: the canvas stack's menu
+  belongs to its button). Nothing shows while every track does.
 - **The track gutter** (`sequence/track-gutter.tsx`, Tracks only): a coloring icon per track row that has one (its
   menu's first action), rows read from Seq\*'s layout when it is rebuilt, the row under the pointer from
   `interaction.on('hover')`; the 3D view's current coloring stays lit in the accent; clicking it again does nothing.
 - **The keyboard cursor is said** in a polite live region once the arrows rest.
 - **Framing below the band**: `paddedFocus` (`sources/framing.ts`) frames a structure in the canvas below the band, as a
   snapshot provider for `requestCameraReset`.
+
+### 8.1 The Sequence node
+
+Each structure's sequence is managed in the structure tree as a view of that structure, as its representations are
+(David, 2026-10-24): one place for which structure, its tracks and its chains. A spec turns the node off with
+`sequence.tree: false` (viewer-spec.md §2.3): the band, its menu, the commands and the API stay; Edit in structure tree
+goes.
+
+- **A row under each structure with polymers** (`SceneNodeKind` `sequence`, right under Contents: what the structure is
+  made of, then how it reads as a sequence, then its components), made from the sequence model, not a plugin cell: no
+  Mol\* transform, so Mol\* knows nothing of Seq\* (§1; `sources/sequence-scene.ts` over the model, the `SceneSequence`
+  port in `model/scene.ts`). Label "Sequence"; description its tracks, whether the rule picked it, its chains ("4
+  tracks, 1 hidden · auto · chains A, B"; "Not shown · 3 tracks"). Updated in place when what it reads changes (what the
+  band follows, not each frame of it; a track; a filter; the style and colors); its structure built again only when the
+  node comes or goes or its tracks are others.
+- **Its eye is the band**: on, the band shows this structure (`sequence.follow`; the band shown again if it was off); on
+  the structure shown, it hides or shows the band (No sequence). One lit at a time. Under Auto its description says
+  "auto"; picked by the person, not.
+- **Its menu** ("…"): Add track (the providers that apply and are out), Chains (All chains, Polymers only, Every copy
+  apart; the current one checked), Style (Tracks, Text) and Letter colors (the band's: the same on every node, §7.1),
+  Follow automatically (`sequence.follow` with none; while one is picked), Legend.
+- **Its inspector** (`inspector:sequence`): the band and its tracks as facts; Add <track> and Follow automatically as
+  actions; the chains (`views/structure/sequence-chains.tsx`, `SequenceChainsModel`): the presets as the app's row of
+  choices (All, None, Polymers; the one in effect marked), then a line per entity (a box for its chains, checked, empty
+  or mixed; a dot for its kind; its name, fading where it is cut; how many of its chains are shown), an entity of
+  several chains opening to its chains as toggles that wrap; past eight entities, Show all. Then the form: Style, Letter
+  colors (the band's), Every copy apart. None shows no chain (a block of no unit: no blocks at all would be every unit),
+  to show them one by one; `sequence.chains` takes `"none"`.
+- **Its children are its tracks** (`sequence-track`), in the document's order: label, what it draws (its provider's
+  `describe`: "Letters · Zappo", "Helices, strands, turns"), an eye (`sequence.track.hide` / `.show`), a menu (the
+  track's colorings, the structure shown only) and Remove for a provider's track. Under a loaded SeqViewSpec (§6), the
+  document's tracks; Add track still offers the providers that are not base.
+- **Not the shown structure**: its node holds that structure's own tracks and chains (§7.1), edited the same way; its
+  document is built when it is next shown.
+- **Revealed** by `sequence.reveal` (the Sequence menu's Edit in structure tree): the Structure tab shown, the node
+  picked, its structure opened.
 
 ## 9. The skin
 

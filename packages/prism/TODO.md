@@ -52,6 +52,9 @@ section); an entry leaves when it is done (its spec section says so then). The s
   on the plugin's registries (none has one today); the representation and theme selects would follow from the same
   event.
 
+- **More sequence tracks from the structure** (David, 2026-10-24): B-factor (a Seq\* computed provider over atom values
+  in `viewer/src/sequence/molstar/`, none today), SIFTS coverage (`molstar:sifts_coverage`) as a provider.
+
 - **Split viewports** (David, 2026-10-17): one Prism instance hosting several plugin contexts side by side (one shell,
   command menu, history and assistant over several canvases): comparing structures or states, linked cameras and
   selections, a 3D view beside a 2D one, a detail view of a pocket next to the whole. Today a viewer is one plugin
@@ -95,12 +98,12 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Targets: `src/targets/` beside `@molstar/query-language`, so MolViewSpec and stories share it; a schema field for
   alternate locations (query text only today, [targets.md §5](viewer/_spec/targets.md)); SeqQL's `molstar.select` reads
   with Mol\*'s transpilers, not the viewer's target compiler (`viewer/src/sequence/molstar/query.ts`).
-- The sequence: follow and secondary structure as behaviors (still built in `viewer/src/sequence/document.ts`), with a
-  test of every built-in behavior together over a structure switch, a load and a clear; Seq\*'s own document history is
-  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring and Hide track
-  (Show in 3D, results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several
-  sequence views, focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
-  (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
+- The sequence: a test of every built-in track provider and behavior together over a structure switch, a load and a
+  clear; Seq\*'s own document history is on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track
+  menus offer only coloring and Hide track (Show in 3D, results to `select.set`, hover-card actions: §5); a pLDDT tint
+  of the letters in Text (§10); several sequence views (several Sequence nodes lit at once, a section each in the band:
+  one `StructureLink` per complex, the band's height), focus-driven views (§3); Seq\*'s `trackLegends` for data-driven
+  legends (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
   [marks.md](viewer/_spec/marks.md)).
 - Embeddable parts: a viewport alone (canvas, hover label, toolbar) for mvs-stories and the docking viewer, and the
   island elements (`<msp-viewport>`, `<msp-sequence>`, `<msp-params-form>`, `<msp-snapshot-stepper>`;
@@ -193,6 +196,9 @@ The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bu
 
 ## Considered and deferred
 
+- **One file for the scene and its sequences** (David, 2026-10-24): MolViewSpec and SeqViewSpec together, each
+  structure's sequence (its tracks and chains, [sequence.md §7.1](viewer/_spec/sequence.md)) bound to its MVS node by
+  ref, not matched by address as `load.svs` does (§6). Later; until then the viewer loads one or the other.
 - `agent.skills` as a function of the defaults: `{ add, remove }` was chosen (data, composes by id, needs no import of
   the defaults; [viewer-spec.md §2.4](viewer/_spec/viewer-spec.md)).
 - Keys in `assistant(options)`: a page never passes a key; keys are the person's, typed into the Assistant tab

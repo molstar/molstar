@@ -1149,3 +1149,16 @@ the data under masked rows, so a reader first checks `typeof value(0)` against i
 now take another form (a BinaryCIF string column as indices into its distinct strings), which a reader of an array of
 values would have misread; a method also says that asking may decode (a BinaryCIF field decodes on first access).
 Readers in the repository were core's `Column` helpers and `sortAtomSite`.
+
+## Prism: each structure's sequence, track providers
+
+- `ViewerExtension.sequence` is `{ tracks?: SequenceTrackProvider[]; behaviors?: SequenceBehavior[] }`, where it was a
+  list of behaviors: an extension that brought a behavior writes `sequence: { behaviors: [b] }`. A track (data to show
+  along the sequence) is better a provider (sequence.md §3): the viewer then puts it in and takes it out per structure.
+- `SequenceShown.after` is optional (a document whose tracks were all removed has none; an insert without `after` goes
+  last).
+- Prism's saved sequence state (`prism-viewer.sequence`) is version 4: `edits` by structure ref
+  (`{ [ref]: { tracks?, chains? } }`); version 3's edits read as the followed structure's, versions 1 and 2 still read.
+- `SequenceViewer`'s track edits take the structure they are for (`setTrackHidden(track, hidden, of?)`), and
+  `SequenceTrack` has `removable`; `sequenceMenu`'s fourth argument is whether Edit in structure tree is offered (it was
+  the API: the menu has no track rows).
