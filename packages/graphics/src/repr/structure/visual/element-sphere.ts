@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -91,7 +91,7 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
         props: PD.Values<ElementSphereParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -124,7 +124,7 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
         props: PD.Values<ElementSphereParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -175,7 +175,7 @@ export function StructureElementSphereImpostorVisual(materialId: number): Comple
         props: PD.Values<StructureElementSphereParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -208,7 +208,7 @@ export function StructureElementSphereMeshVisual(materialId: number): ComplexVis
         props: PD.Values<StructureElementSphereParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
       },
     },
     materialId,

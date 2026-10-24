@@ -370,7 +370,7 @@ export function BridgeImpostorVisual(materialId: number): ComplexVisual<BridgePa
       setUpdateState,
       initUpdateState,
       mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
-        !props.tryUseImpostor || !graphics,
+        !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics),
     },
     materialId,
   );
@@ -387,7 +387,7 @@ export function BridgeMeshVisual(materialId: number): ComplexVisual<BridgeParams
       setUpdateState: setMeshUpdateState,
       initUpdateState,
       mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
-        props.tryUseImpostor && !!graphics,
+        props.tryUseImpostor && checkCylinderImpostorSupport(graphics),
     },
     materialId,
   );

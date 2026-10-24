@@ -315,7 +315,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
         props: PD.Values<InterUnitBondCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -381,7 +381,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
         props: PD.Values<InterUnitBondCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,

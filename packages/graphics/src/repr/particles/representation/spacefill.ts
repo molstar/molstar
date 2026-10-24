@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -107,7 +108,7 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
       },
       geometryUtils: Spheres.Utils,
       mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, graphics?: GraphicsContext) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !graphics?.capabilities.fragDepth;
       },
     },
     materialId,
@@ -174,7 +175,7 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
       },
       geometryUtils: Mesh.Utils,
       mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, graphics?: GraphicsContext) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && !!graphics?.capabilities.fragDepth;
       },
     },
     materialId,

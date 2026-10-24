@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -88,7 +89,7 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
       },
       geometryUtils: Spheres.Utils,
       mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !graphics?.capabilities.fragDepth;
       },
     },
     materialId,
@@ -120,7 +121,7 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
       },
       geometryUtils: Mesh.Utils,
       mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && !!graphics?.capabilities.fragDepth;
       },
     },
     materialId,

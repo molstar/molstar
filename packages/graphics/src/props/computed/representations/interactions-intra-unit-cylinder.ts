@@ -321,7 +321,7 @@ export function InteractionsIntraUnitImpostorVisual(materialId: number): UnitsVi
       setUpdateState,
       initUpdateState,
       mustRecreate: (_: StructureGroup, props: PD.Values<InteractionsIntraUnitParams>, graphics?: GraphicsContext) =>
-        !props.tryUseImpostor || !graphics,
+        !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics),
     },
     materialId,
   );
@@ -338,7 +338,7 @@ export function InteractionsIntraUnitMeshVisual(materialId: number): UnitsVisual
       setUpdateState: setMeshUpdateState,
       initUpdateState,
       mustRecreate: (_: StructureGroup, props: PD.Values<InteractionsIntraUnitParams>, graphics?: GraphicsContext) =>
-        props.tryUseImpostor && !!graphics,
+        props.tryUseImpostor && checkCylinderImpostorSupport(graphics),
     },
     materialId,
   );

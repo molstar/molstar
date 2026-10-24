@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -132,7 +133,7 @@ export function PolymerBackboneCylinderImpostorVisual(materialId: number): Units
         props: PD.Values<PolymerBackboneCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -219,7 +220,7 @@ export function PolymerBackboneCylinderMeshVisual(materialId: number): UnitsVisu
         props: PD.Values<PolymerBackboneCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
