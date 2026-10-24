@@ -7,8 +7,9 @@
  */
 
 // The tooltip's placement (UX2; seqspec:interaction#accessibility): from offsets up to its offset parent, right of and
-// below the anchor, flipped left and up where it would leave the viewer, read again at every call so it follows a
-// surface that moved, and writing only a change; the pointer's anchor is the pointer, the keyboard's the cursor's cell.
+// below the anchor, flipped left and kept as low as the viewer holds it where it would leave the viewer, read again at
+// every call so it follows a surface that moved, and writing only a change; the pointer's anchor is the pointer, the
+// keyboard's the cursor's cell.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import * as D from '../../src/dom/index.js';
@@ -61,13 +62,13 @@ describe('placeTooltip from offsets', () => {
     expect(t.tip.style.visibility).toBe('');
   });
 
-  it("flips left at the viewer's right edge, up at its bottom edge, and both", () => {
+  it("flips left at the viewer's right edge, and at its bottom edge stays beside the pointer as low as it fits", () => {
     const t = stage();
     // 20 + 290 + 14 + 100 > 400: left of the pointer; 30 + 10 + 18 + 40 fits.
     expect(t.place(290, 10)).toBe('translate(198px, 58px)');
-    // 30 + 190 + 18 + 40 > 260: above the pointer.
-    expect(t.place(10, 190)).toBe('translate(44px, 168px)');
-    expect(t.place(290, 190)).toBe('translate(198px, 168px)');
+    // 30 + 190 + 18 + 40 > 260: beside the pointer, its bottom at the viewer's, never up over a ruler above the tracks.
+    expect(t.place(10, 190)).toBe('translate(44px, 220px)');
+    expect(t.place(290, 190)).toBe('translate(198px, 220px)');
   });
 
   it('stays inside the viewer when it is larger than it', () => {

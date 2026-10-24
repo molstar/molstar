@@ -67,6 +67,8 @@ const files = globSync(include, {
 // after every file). A file that mocks or resets modules runs isolated, found by reading it; so do the files below,
 // which need a registry of their own (shuffled runs find more: `vitest run --sequence.shuffle.files --maxWorkers=3`).
 const Isolated = new Set([
+  // fake frame timers must not inherit a pending tick from another file's discarded clock
+  'packages/prism/ui/src/views/canvas/_test/hover-label-frames.test.tsx',
   // asserts which languages are registered: another file's import registers them too
   'packages/query-language/src/_test/compile.test.ts',
   // lists every registered provider: another file's registrations are listed too

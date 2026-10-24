@@ -38,3 +38,5 @@
   where it has one, else DSSP), so a predicted model (Model Archive, AlphaFold DB) without `struct_conf` has one.
 - Prism: the sequence's secondary-structure track follows the 3D view's secondary structure when it is set otherwise
   (Automatic, Model, DSSP), by a patch of its data, not a new document.
+- Seq\*: a tooltip that would leave the viewer below stays beside the pointer, as low as the viewer holds it, instead
+  of flipping up over the ruler (a header's legend still goes above its line).
