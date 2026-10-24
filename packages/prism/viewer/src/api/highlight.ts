@@ -114,9 +114,12 @@ export class HighlightApi extends ApiArea {
       structure: StructureParam(),
       language: LanguageParam(this.ctx.languages),
       dimRest: PD.Boolean(false, { description: 'Grey the rest of the structure while the marks are shown' }),
+      focusSequence: PD.Boolean(false, {
+        description: 'Bring the marks into view in the sequence, all of them together (it zooms out to show them)',
+      }),
     },
     history: false,
-    async run({ owner, marks, structure, language, dimRest }, ctx) {
+    async run({ owner, marks, structure, language, dimRest, focusSequence }, ctx) {
       if (!owner) return ApiResult.fail('invalid', 'Who marks?', 'Give an owner.');
       const out: Omit<Mark, 'owner'>[] = [];
       for (const m of marks) {
@@ -135,6 +138,7 @@ export class HighlightApi extends ApiArea {
             structure: p.structure.ref,
             loci: p.loci,
             dimRest,
+            ...(focusSequence ? { focusSequence } : {}),
           });
         }
       }

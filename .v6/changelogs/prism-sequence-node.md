@@ -43,3 +43,6 @@
 - Prism: a drag whose capture Chrome drops just before its release (its `pointerup` a moment later, elsewhere in the
   page) ends as the release, not as a cancel: a box drawn on the PAE plot no longer vanishes or goes back to the one
   before it.
+- model-archive: a click on the PAE plot's cell already selected (its two residues and nothing else) unselects it.
+- model-archive: a box on the PAE plot brings both its ranges into view in the sequence (`highlight.mark`'s
+  `focusSequence`): it used to stay wherever the sequence was zoomed, often on one of them.

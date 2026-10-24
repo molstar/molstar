@@ -328,6 +328,13 @@ describe('the PAE card', () => {
     await until(() => v.sources.interaction.selection.value !== undefined);
     const selected = await v.api.select.get({});
     expect(selected.ok && JSON.stringify(selected.value)).toMatch(/"residues":2|2 residues/);
+    // The same pair again: unselected; and once more, selected.
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await until(() => v.sources.interaction.selection.value === undefined);
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await until(() => v.sources.interaction.selection.value !== undefined);
 
     // A drag from (0, 0) to (3, 2): aligned A 1–3 and B 1, scored A 1–3; marked, summed up, its mean error.
     const steps = v.managers.history.steps.value.length;

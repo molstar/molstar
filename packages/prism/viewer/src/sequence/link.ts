@@ -11,7 +11,7 @@ import { type Structure, StructureElement } from '@molstar/model/model/structure
 import { Extents } from '@molstar/seq-core/model';
 import { StructureLink } from './molstar/link.js';
 import { coordinatesOf, linkViews, type LinkViewsOptions, type StructureView3D } from './molstar/link-views.js';
-import type { MarksView } from '../sources/marks.js';
+import type { Mark, MarksView } from '../sources/marks.js';
 import { type HoverLabel, lociSize } from '@molstar/seq-viewer';
 import type { SequenceStructure, SequenceViewer } from './model.js';
 
@@ -132,7 +132,29 @@ function showMarks(seq: SequenceViewer['seq'], link: StructureLink, structure: S
     return coordinatesOf(link, link.fromLoci(here, scratch));
   };
   let channels = new Set<string>();
+  // The marks already shown (the first list is what was there when the link was made: shown, not focused).
+  let shown: ReadonlySet<Mark> | undefined;
   const marked = marks.marks.subscribe((list) => {
+    // New marks that focus the sequence: their owner's marks, together, in view (a box's two ranges both shown).
+    const focusing = new Set(shown ? list.filter((m) => m.focusSequence && !shown!.has(m)).map((m) => m.owner) : []);
+    shown = new Set(list);
+    if (focusing.size) {
+      // One target of their runs, each in its system (a box's ranges are often in two chains).
+      const systems: string[] = [];
+      const runs: number[] = [];
+      for (const m of list) {
+        if (!m.focusSequence || !focusing.has(m.owner)) continue;
+        const coords = coordsOf(m.loci);
+        if (!coords) continue;
+        for (let i = 0; i < coords.runs.length; i += 3) {
+          const key = coords.systems[coords.runs[i]];
+          let k = systems.indexOf(key);
+          if (k < 0) k = systems.push(key) - 1;
+          runs.push(k, coords.runs[i + 1], coords.runs[i + 2]);
+        }
+      }
+      if (runs.length) seq.focus.fromLoci({ systems, runs: Int32Array.from(runs) }, { origin: 'host:3d' });
+    }
     const next = new Set<string>();
     for (const m of list) {
       const coords = coordsOf(m.loci);

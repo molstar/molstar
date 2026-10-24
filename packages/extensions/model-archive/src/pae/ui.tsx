@@ -183,12 +183,17 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
 
 /**
  * The plot on a structure, acting through the API as the person: the cell under the pointer lit in the 3D view and the
- * sequence (`highlight.set`), a click selecting its two residues, a box marking its aligned range (highlight tone) and
+ * sequence (`highlight.set`), a click selecting its two residues (again: unselecting them), a box marking its aligned range (highlight tone) and
  * scored range (accent tone) in both (`highlight.mark`, marks.md) until cleared.
  */
 export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix: PaeMatrix }) {
   const { ctx, structure, matrix: m } = props;
   const api = ctx.api;
+  // A click selects the cell's two residues; on the pair already selected (and nothing else), it unselects them.
+  const togglePair = async (target: string) => {
+    const r = await api.select.set({ target, structure });
+    if (r.ok && r.unchanged) await api.select.set({ target, structure, mode: 'remove' });
+  };
   return (
     <PaePlot
       matrix={m}
@@ -198,7 +203,7 @@ export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix
           ? api.highlight.set({ target: paePairTarget(m, cell.i, cell.j), structure, sequence: true })
           : api.highlight.clear())
       }
-      onPick={(i, j) => void api.select.set({ target: paePairTarget(m, i, j), structure })}
+      onPick={(i, j) => void togglePair(paePairTarget(m, i, j))}
       onBox={(b) =>
         void (b
           ? api.highlight.mark({
@@ -206,6 +211,8 @@ export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix
               structure,
               // The rest greyed, as AlphaFold DB does: the ranges stand out of any coloring.
               dimRest: true,
+              // Both ranges in view in the sequence (it zooms out to them), as a selection's are.
+              focusSequence: true,
               // The scored last: painted over the aligned where they overlap, as the plot draws them.
               marks: [
                 {
