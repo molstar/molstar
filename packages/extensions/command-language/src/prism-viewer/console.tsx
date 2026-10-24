@@ -12,6 +12,7 @@ import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/s
 import { applyCompletion, complete } from '../language/completion.js';
 import { type Dialect, DialectNames, Dialects } from '../language/ir.js';
 import { dialectPrefix } from '../language/script.js';
+import { classes } from './_generated/console.module.css.js';
 import { ConsoleTab } from './parts.js';
 import { type ConsoleEntry, type ConsoleLineKind, ConsoleModel, ScriptExtensions } from './console-model.js';
 
@@ -19,31 +20,27 @@ import { type ConsoleEntry, type ConsoleLineKind, ConsoleModel, ScriptExtensions
 // ⇧Enter a new line, ↑/↓ the history at the input's first and last line, Tab the first completion), the dialect, and
 // script files opened or dropped with the files they load. It acts through the person's API only.
 
-const LineColors: Readonly<Record<ConsoleLineKind, string>> = {
-  did: 'var(--msp-color-text)',
-  value: 'var(--msp-color-text)',
-  warning: 'var(--msp-color-warning, var(--msp-color-text-muted))',
-  note: 'var(--msp-color-text-muted)',
-  error: 'var(--msp-color-danger, var(--msp-color-text))',
+const LineClass: Readonly<Record<ConsoleLineKind, string>> = {
+  did: classes.line,
+  value: classes.line,
+  warning: classes.warning,
+  note: classes.quiet,
+  error: classes.error,
 };
-
-const Mono = 'font-family: var(--msp-font-mono, ui-monospace, monospace); font-size: var(--msp-font-size-sm)';
 
 function EntryView(props: { entry: ConsoleEntry }) {
   const { entry } = props;
   return (
-    <div style="display: grid; gap: 2px; padding: var(--msp-space-1) 0; border-bottom: 1px solid var(--msp-color-border)">
-      <div style={`${Mono}; display: flex; gap: var(--msp-space-2); white-space: pre-wrap; overflow-wrap: anywhere`}>
-        <span style="color: var(--msp-color-text-muted); flex: none; white-space: nowrap">
-          {entry.dialect === 'pymol' ? 'PyMOL>' : 'vmd>'}
-        </span>
+    <div class={classes.entry}>
+      <div class={`${classes.mono} ${classes.input}`}>
+        <span class={classes.prompt}>{entry.dialect === 'pymol' ? 'PyMOL>' : 'vmd>'}</span>
         <span>{entry.input}</span>
       </div>
       {entry.state === 'running' ? (
-        <div style={`${Mono}; color: var(--msp-color-text-muted)`}>…</div>
+        <div class={`${classes.mono} ${classes.quiet}`}>…</div>
       ) : (
         entry.lines.map((l) => (
-          <div style={`${Mono}; white-space: pre-wrap; overflow-wrap: anywhere; color: ${LineColors[l.kind]}`}>
+          <div class={`${classes.mono} ${LineClass[l.kind]}`}>
             {l.kind === 'warning' || l.kind === 'note' ? `${l.kind}: ${l.text}` : l.text}
           </div>
         ))
@@ -54,12 +51,9 @@ function EntryView(props: { entry: ConsoleEntry }) {
 
 export function ConsoleView(props: { model: ConsoleModel }) {
   const { model } = props;
+  // A log, not live: the viewer says each run once, on its own region (accessibility.md).
   const list = (
-    <div
-      role="log"
-      aria-label="Console output"
-      style="flex: 1; min-height: 0; overflow: auto; padding: 0 var(--msp-space-2)"
-    >
+    <div class={classes.output} role="log" aria-live="off" aria-label="Console output">
       <For each={model.entries} fallback={() => <EmptyHint />}>
         {(e) => <EntryView entry={e} />}
       </For>
@@ -74,12 +68,14 @@ export function ConsoleView(props: { model: ConsoleModel }) {
 
   const input = (
     <textarea
+      class={`${classes.field} ${classes.mono}`}
       rows={2}
       spellcheck={false}
       aria-label="Command"
-      style={`${Mono}; width: 100%; resize: vertical; box-sizing: border-box; padding: var(--msp-space-1) var(--msp-space-2); background: var(--msp-color-surface, transparent); color: var(--msp-color-text); border: 1px solid var(--msp-color-border); border-radius: var(--msp-radius-sm, 4px)`}
       onInput={(e) => model.setDraft((e.currentTarget as HTMLTextAreaElement).value)}
       onKeyDown={(e) => {
+        // Composing text (an input method) owns its keys.
+        if (e.isComposing) return;
         const el = e.currentTarget as HTMLTextAreaElement;
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -112,9 +108,9 @@ export function ConsoleView(props: { model: ConsoleModel }) {
 
   const picker = (
     <input
+      class={classes.picker}
       type="file"
       multiple
-      style="display: none"
       onChange={(e) => {
         const el = e.currentTarget as HTMLInputElement;
         const files = [...(el.files ?? [])];
@@ -127,7 +123,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
 
   return (
     <div
-      style="display: flex; flex-direction: column; flex: 1; min-height: 0; gap: var(--msp-space-2)"
+      class={classes.console}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         const files = [...((e as DragEvent).dataTransfer?.files ?? [])];
@@ -137,8 +133,8 @@ export function ConsoleView(props: { model: ConsoleModel }) {
         void model.openFiles(files);
       }}
     >
-      <div style="display: flex; align-items: center; gap: var(--msp-space-1); padding: var(--msp-space-1) var(--msp-space-2) 0">
-        <div role="group" aria-label="Dialect" style="display: flex; gap: 2px">
+      <div class={classes.toolbar}>
+        <div class={classes.dialects} role="group" aria-label="Dialect">
           {Dialects.map((d: Dialect) => (
             <Button
               size="sm"
@@ -150,7 +146,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
             </Button>
           ))}
         </div>
-        <span style="flex: 1" />
+        <span class={classes.spacer} />
         <Button size="sm" variant="ghost" icon={<Icon name="file-code" size={15} />} onClick={() => picker.click()}>
           Open script…
         </Button>
@@ -164,14 +160,14 @@ export function ConsoleView(props: { model: ConsoleModel }) {
         {picker}
       </div>
       {list}
-      <div style="padding: 0 var(--msp-space-2) var(--msp-space-2)">{input}</div>
+      <div class={classes.foot}>{input}</div>
     </div>
   );
 }
 
 function EmptyHint() {
   return (
-    <div style="color: var(--msp-color-text-muted); padding: var(--msp-space-2) 0; font-size: var(--msp-font-size-sm)">
+    <div class={classes.hint}>
       PyMOL or VMD commands: one a line, Enter runs them as one step (Undo takes it back). Type help for the commands;
       open or drop a .pml, .tcl or .vmd script with the files it loads.
     </div>

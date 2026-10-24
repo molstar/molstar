@@ -212,5 +212,12 @@ export type CommandBody =
   | { readonly kind: 'read'; readonly read: Read }
   | { readonly kind: 'print'; readonly text: string };
 
-/** A command and where it came from: its place in the submission and its text, for messages and the record. */
-export type Command = CommandBody & { readonly at: Span; readonly source: string };
+/**
+ * A command and where it came from: its place in the submission and its text, for messages and the record; a command
+ * of an included script also its file and line there (its place is the include's).
+ */
+export type Command = CommandBody & {
+  readonly at: Span;
+  readonly source: string;
+  readonly file?: { readonly name: string; readonly line: number };
+};

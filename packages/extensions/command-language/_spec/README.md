@@ -76,8 +76,8 @@ flow and the rest fail `unsupported`: the console runs VMD commands one by one.
 
 `@file.pml` and `load file.pml` (PyMOL), `source file.tcl` and `play file.vmd` (VMD) run a script given with the
 submission (`ScriptEnv.scripts`: the texts of the `.pml`, `.tcl` and `.vmd` files among those given), compiled in place
-with the same names: its commands take the include's place, their text named by the file, and its messages name the
-file's line. A script that runs itself stops (8 deep at most). A file not given fails `no-name`.
+with the same names: its commands take the include's place, their text named by the file, and its messages, compile and
+runtime alike, name the file's line. A script that runs itself stops (8 deep at most). A file not given fails `no-name`.
 
 ## 4. The IR
 
@@ -90,7 +90,9 @@ reverse. Representations are the people's words (`sticks`, `mesh`, `tube`); the 
 - **Objects are structures.** A PyMOL text that names objects (`/1abc//A`, `1abc and chain A`) is compiled once per
   named object, its name meaning everything there and the others nothing, and once for `others` (every structure it
   names no part for). Each part is plain MolQL on one structure. Why: exact, serializable, no MolQL extension.
-- **Named selections are inlined when used**: a name means what it selected when defined.
+- **Named selections are inlined when used**: a name means what it selected when defined (its parts fixed to the objects
+  there were: `fixedTo`; by object name, so an object deleted and loaded again under its name is in it). A name the
+  selection language reads as its own word (`b`, the B-factor; `chain`) is refused when defined.
 - **VMD selections are scoped to the command's molecule** (VMD's selections never name molecules).
 - **Names come from the env**: object names (the state's, else the entry, lowercased, deduplicated) and VMD molecule ids
   (never reused) for every loaded structure, the named selections, the top molecule.
@@ -113,20 +115,22 @@ order; the first failure stops. Selections are evaluated when their command runs
 - **Targets** are `{ molql }` with the structure's ref: a selection's own part, or an atom set as `Loci.toExpression`
   (ranges of source indices) or `all`.
 - **IR to operations** (`host.ts`): loads → `load.entry` / `load.url` / `load.data` (a file given with the submission),
-  with `copy` when the compiler made a new object (VMD's `mol new`, PyMOL's `load`; `fetch` of a loaded name keeps it);
-  `object.*` → `structure.remove` / `.visibility`; `select` → `select.clear` + `select.set` per structure; colors (RGB)
-  → `representation.color` (overpaint, per atom, last write wins as PyMOL's `color`); per-element colors (`util.cba*`,
-  `util.cnc`, `color atomic`) are a `require` of the selection and an optional color per element, so an element the
-  selection lacks is no failure; color themes → `representation.update` of the colorTheme on the representations of the
-  components the selection covers (`representation.update` is ui-only for commands and tools, not for an operation's own
-  calls). A theme on a whole structure first resets its color layer (PyMOL's `util.cbc` after `color red` shows the
-  chains); on part of a component it covers the whole component, which a warning says; transparency and size →
-  `representation.transparency` / `.size`; `remove` → `contents.visibility` per entity and chain (whole chains only);
-  camera → `camera.frame` / `.orient` / `.reset` / `.zoom`, and `camera.set` computed from the camera for `center`,
-  `turn` and `move`; measurements → `measure.*` (one atom each, one structure); labels → `measure.label` per atom (at
-  most 100); superposition → `superpose.chains` (sequence), `.tm-align` (structure), `.atoms` (PyMOL's `pair_fit`: Mol*
-  pairs atoms in structure order, so pairs given out of that order fail); canvas → `canvas.background` / `.camera` /
-  `.lighting`; frames → `trajectory.*`; images → `export.image`; reads computed from the atoms.
+  with `copy` when the compiler made a new object (VMD's `mol new`, PyMOL's `load`; `fetch` of a loaded name keeps it;
+  when the structure loads after all, another entry than the object of that name, it gets a free name and the next
+  molecule id, said in a warning: ids are never reused); `object.*` → `structure.remove` / `.visibility`; `select` →
+  `select.clear` + `select.set` per structure; colors (RGB) → `representation.color` (overpaint, per atom, last write
+  wins as PyMOL's `color`); per-element colors (`util.cba*`, `util.cnc`, `color atomic`) are a `require` of the
+  selection and an optional color per element, so an element the selection lacks is no failure; color themes →
+  `representation.update` of the colorTheme on the representations of the components the selection covers
+  (`representation.update` is ui-only for commands and tools, not for an operation's own calls). A theme on a whole
+  structure first resets its color layer (PyMOL's `util.cbc` after `color red` shows the chains); on part of a component
+  it covers the whole component, which a warning says; transparency and size → `representation.transparency` / `.size`;
+  `remove` → `contents.visibility` per entity and chain (whole chains only); camera → `camera.frame` / `.orient` /
+  `.reset` / `.zoom`, and `camera.set` computed from the camera for `center`, `turn` and `move`; measurements →
+  `measure.*` (one atom each, one structure); labels → `measure.label` per atom (at most 100); superposition →
+  `superpose.chains` (sequence), `.tm-align` (structure), `.atoms` (PyMOL's `pair_fit`: Mol* pairs atoms in structure
+  order, so pairs given out of that order fail); canvas → `canvas.background` / `.camera` / `.lighting`; frames →
+  `trajectory.*`; images → `export.image`; reads computed from the atoms.
 - **`undo` and `redo`** run alone, as the viewer's history (the menu's row calls `history.undo`); inside a script they
   would undo the script's own step, so `script.run` refuses them.
 
@@ -200,8 +204,10 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
   beside the Log. The submissions and what each did and printed; an input of several lines (Enter runs, ⇧Enter a new
   line, ↑/↓ the history at its first and last line, Tab the first completion); the dialect, a line's `pymol ` / `vmd `
   first word overriding it; every error of a submission at once, before anything runs; `undo` / `redo` alone as the
-  viewer's history; script files opened or dropped with the files they load, each script run whole in the dialect its
-  extension says. The history of lines is kept with the preferences (`command-language.history`, the last 200).
+  viewer's history; submissions run one after another (one made while one runs reads the scene that one leaves); script
+  files opened or dropped with the files they load: the scripts no other one includes run (`rootScripts`), each whole in
+  the dialect its extension says. A log, not live (the viewer says each run); its styles a CSS module. The history of
+  lines is kept with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 

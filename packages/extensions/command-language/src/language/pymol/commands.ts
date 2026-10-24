@@ -9,6 +9,7 @@ import { fail, note, type Span, warning } from '../diagnostics.js';
 import type { ColorSpec, CommandBody, LabelPart, Sel } from '../ir.js';
 import type { CommandHelp, Compiled, Compiler, ParamSpec } from '../table.js';
 import { PymolArgs, pymolRep } from './args.js';
+import { compileScript } from '@molstar/query-language/compile';
 import { fixedTo } from '../selection.js';
 import { PymolSettings, settingNamed } from './settings.js';
 import type { PymolCall } from './tokenizer.js';
@@ -385,6 +386,15 @@ export const PymolCommands: readonly PymolCommand[] = [
         s,
         c.state.objects.map((o) => o.name),
       );
+      // A name the selection language reads as its own word (`b` is the B-factor) cannot be used after: said now.
+      if (!one && !usableName(name)) {
+        fail(
+          'argument',
+          `'${name}' cannot name a selection: PyMOL's selection words take it.`,
+          a.at('name'),
+          'Pick another name (lig, site_1).',
+        );
+      }
       const out: CommandBody[] = [{ kind: 'name.set', name, sel: fixed }];
       if (a.bool('enable', true)) out.push({ kind: 'select', mode: 'set', sel: s });
       return out;
@@ -948,6 +958,18 @@ function joinSels(xs: readonly Sel[]): Sel {
     dialect: xs[0].dialect,
     parts: [...scopes.values()].map((e) => ({ scope: e.scope, molql: B.struct.combinator.merge(e.molqls) })),
   };
+}
+
+/** Whether a name reads as itself in a selection (not as a keyword or a property of PyMOL's). */
+function usableName(name: string): boolean {
+  // A marker no keyword compiles to: the name reads as itself when the text is the marker.
+  const marker = B.struct.generator.atomGroups({ 'atom-test': B.core.rel.eq([B.acp('sourceIndex'), -1]) });
+  try {
+    const probe = compileScript('pymol', name, { resolveName: (n) => (n === name ? marker : undefined) });
+    return JSON.stringify(probe) === JSON.stringify(marker);
+  } catch {
+    return false;
+  }
 }
 
 /** The raw text of an argument (quotes kept: a label's expression reads them). */

@@ -31,7 +31,12 @@ export const CommandLanguageExtension: ViewerExtension = {
       alias: ['console', 'pymol console', 'vmd console', 'tk console'],
       // Opens the console's tab: a view, not a change.
       async run() {
-        const r = await api.view.open({ tab: ConsoleTab });
+        // The console's view is a chunk of its own: right after the viewer starts its tab may not be there yet.
+        let r = await api.view.open({ tab: ConsoleTab });
+        for (let i = 0; i < 20 && ApiResult.isFailure(r); i++) {
+          await new Promise((done) => setTimeout(done, 100));
+          r = await api.view.open({ tab: ConsoleTab });
+        }
         if (ApiResult.isFailure(r)) throw new Error(r.message);
         return { message: 'Opened the console.', ops: `view.open({ tab: "${ConsoleTab}" })` };
       },

@@ -10,7 +10,7 @@ import type { ViewerApi } from '@molstar/prism-viewer/api/area';
 import type { PrismStore } from '@molstar/prism-viewer/spec';
 import { formatDiagnostic } from '../language/diagnostics.js';
 import { type Dialect, DialectNames } from '../language/ir.js';
-import { dialectOfFile, dialectPrefix } from '../language/script.js';
+import { dialectOfFile, dialectPrefix, rootScripts } from '../language/script.js';
 import { defaultDialect } from './commands.js';
 import { type ScriptRunValue, scriptTexts } from './operations.js';
 
@@ -49,6 +49,8 @@ export class ConsoleModel {
   #at: number;
   #saved = '';
   #next = 0;
+  /** The runs, one after another: a submission made while one runs reads the scene that one leaves. */
+  #queue: Promise<unknown> = Promise.resolve();
 
   constructor(
     readonly api: ViewerApi,
@@ -110,12 +112,25 @@ export class ConsoleModel {
     this.#at = this.#history.length;
     const prefixed = dialectPrefix(text);
     const dialect = prefixed?.dialect ?? this.#dialect.value;
-    return this.#run(dialect, prefixed ? prefixed.rest : text, text, files);
+    return this.#enqueue(() => this.#run(dialect, prefixed ? prefixed.rest : text, text, files));
   }
 
-  /** Opens script files with the files they load: each script runs, in the dialect its extension says. */
+  /** Runs after what was submitted before; the entry shows at once, as running. */
+  #enqueue<T>(work: () => Promise<T>): Promise<T> {
+    const next = this.#queue.then(work, work);
+    this.#queue = next.catch(() => undefined);
+    return next;
+  }
+
+  /**
+   * Opens script files with the files they load: each script no other one includes runs (the others run where they
+   * are included), in the dialect its extension says.
+   */
   async openFiles(files: readonly File[]): Promise<void> {
-    const scripts = files.filter((f) => dialectOfFile(f.name));
+    const texts = await scriptTexts(files);
+    const roots = new Set(rootScripts(texts));
+    // Scripts that all include each other have no root: each runs (and says it includes itself).
+    const scripts = files.filter((f) => (roots.size ? roots.has(f.name) : texts.has(f.name)));
     if (!scripts.length) {
       this.#push({
         dialect: this.#dialect.value,
@@ -128,8 +143,9 @@ export class ConsoleModel {
       return;
     }
     for (const script of scripts) {
-      const text = await script.text();
-      await this.#run(dialectOfFile(script.name)!, text, script.name, files);
+      await this.#enqueue(() =>
+        this.#run(dialectOfFile(script.name)!, texts.get(script.name) ?? '', script.name, files),
+      );
     }
   }
 

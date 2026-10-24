@@ -107,8 +107,9 @@ export function prefixRows(
       // A line that does not read stays in the menu to be fixed.
       run: () => true,
     };
-    // Mid-word, the completions come first: the line is being typed.
-    return /\w$/.test(text) && completions.length ? [...completions, first] : [first, ...completions];
+    // While the line is being typed (the error is about its end), the completions come first.
+    const atEnd = errors[0].at.to >= text.trimEnd().length;
+    return atEnd && completions.length ? [...completions, first] : [first, ...completions];
   }
   const lone = compiled.commands.length === 1 ? compiled.commands[0] : undefined;
   const label = compiled.commands.map(describeCommand).filter(Boolean).join('; ') || 'Nothing to run';

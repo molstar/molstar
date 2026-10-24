@@ -106,3 +106,36 @@ describe('the console', () => {
     expect(completeLine(c, 'vmd mol addr')).toBe('vmd mol addrep ');
   });
 });
+
+describe('the console, from a second review', () => {
+  it('runs the dropped scripts no other one includes, once', async () => {
+    const v = await viewer();
+    const c = new ConsoleModel(v.api);
+    await c.openFiles([
+      new File(['load 1cbs.cif\n@helper.pml'], 'main.pml'),
+      new File(['show sticks, resn REA'], 'helper.pml'),
+      structureFile(),
+    ]);
+    expect(c.entries.value.map((e) => [e.input, e.state])).toEqual([['main.pml', 'done']]);
+  });
+
+  it('names the included file and its line when a command there fails as it runs', async () => {
+    const v = await viewer();
+    const c = new ConsoleModel(v.api);
+    await c.openFiles([
+      new File(['load 1cbs.cif\n\n@helper.pml'], 'main.pml'),
+      new File(['show sticks, resn REA\n\ncolor red, resn XYZ'], 'helper.pml'),
+      structureFile(),
+    ]);
+    expect(c.entries.value[0].lines[0].text).toContain('helper.pml line 3');
+  });
+
+  it('runs a submission made while one runs after it, on the scene it leaves', async () => {
+    const v = await viewer();
+    const c = new ConsoleModel(v.api);
+    const first = c.submit('load 1cbs.cif', [structureFile()]);
+    const second = c.submit('color red, 1cbs');
+    await Promise.all([first, second]);
+    expect(c.entries.value.map((e) => e.state)).toEqual(['done', 'done']);
+  });
+});

@@ -238,7 +238,7 @@ export class PrismScriptHost implements ScriptHost {
     }
   }
 
-  async #load(cmd: Extract<Command, { kind: 'load' }>): Promise<string> {
+  async #load(cmd: Extract<Command, { kind: 'load' }>): Promise<string | ExecResult> {
     const ops = this.#ops;
     const before = new Set(ops.structures().map((s) => s.cell.transform.ref));
     const vmd = cmd.look === 'vmd-lines';
@@ -265,20 +265,52 @@ export class PrismScriptHost implements ScriptHost {
     }
     const made = ops.structures().filter((s) => !before.has(s.cell.transform.ref));
     if (!made.length) return r.did;
+    // The compiler's name, unless another structure has it (`fetch 1cbs` when 1cbs came from a file: the entry is not
+    // the same, so it loaded): then a free one, said.
+    const taken = new Set(
+      ops
+        .objects()
+        .filter((o) => !made.some((s) => s.cell.transform.ref === o.ref))
+        .map((o) => o.name.toLowerCase()),
+    );
+    const free = (wish: string) => {
+      let n = wish;
+      for (let k = 2; taken.has(n.toLowerCase()); k++) n = `${wish}_${k}`;
+      taken.add(n.toLowerCase());
+      return n;
+    };
     const objects = { ...this.holder.value.objects };
+    const names: string[] = [];
+    // Molecule ids are never reused: one another structure has (the compiler expected the loaded one to stay) is
+    // replaced by the next free id.
+    const usedIds = new Set(
+      ops
+        .objects()
+        .filter((o) => !made.some((s) => s.cell.transform.ref === o.ref))
+        .map((o) => o.molecule),
+    );
+    let nextId = Math.max(this.holder.value.nextMolecule, cmd.molecule, ...[...usedIds].map((m) => m + 1));
     made.forEach((s, i) => {
-      objects[s.cell.transform.ref] = { name: i === 0 ? cmd.name : `${cmd.name}_${i + 1}`, molecule: cmd.molecule + i };
+      const name = free(i === 0 ? cmd.name : `${cmd.name}_${i + 1}`);
+      names.push(name);
+      const wanted = cmd.molecule + i;
+      const molecule = usedIds.has(wanted) ? nextId++ : wanted;
+      usedIds.add(molecule);
+      nextId = Math.max(nextId, molecule + 1);
+      objects[s.cell.transform.ref] = { name, molecule };
     });
     this.holder.update({
       objects,
-      nextMolecule: Math.max(this.holder.value.nextMolecule, cmd.molecule + made.length),
+      nextMolecule: Math.max(this.holder.value.nextMolecule, nextId),
       ...(vmd ? { top: made[made.length - 1].cell.transform.ref } : {}),
     });
     if (vmd && !('entry' in cmd.from)) {
       for (const s of made)
         await ops.run('structure.preset', { preset: VmdLinesPresetId, structure: s.cell.transform.ref });
     }
-    return `${r.did.replace(/\.$/, '')} as ${cmd.name}${vmd ? ` (molecule ${cmd.molecule})` : ''}.`;
+    const did = `${r.did.replace(/\.$/, '')} as ${names[0]}${vmd ? ` (molecule ${cmd.molecule})` : ''}.`;
+    if (names[0] === cmd.name) return did;
+    return { ok: true, did, warnings: [`Another structure is named ${cmd.name}: this one is ${names[0]}.`] };
   }
 
   async #color(cmd: Extract<Command, { kind: 'color' }>): Promise<string | ExecResult> {

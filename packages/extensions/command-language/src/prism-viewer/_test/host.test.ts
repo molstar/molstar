@@ -9,7 +9,7 @@ import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas'
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { CommandLanguageExtension } from '../../prism-viewer.js';
 import { prefixRows } from '../commands.js';
 import type { ScriptRunValue } from '../operations.js';
@@ -288,5 +288,25 @@ describe('what a first review found', () => {
     await ok(v, 'load 1cbs.cif');
     const r = await ok(v, 'set sphere_scale, 20');
     expect(r.warnings).toHaveLength(2);
+  });
+});
+
+describe('fetch of a name another structure has', () => {
+  it('names the new structure apart, and says so', async () => {
+    // The PDB's file for 1CBS, without the network: any address naming it answers the example file.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input instanceof Request ? input.url : input);
+        return /1cbs/i.test(url) ? new Response(cif) : new Response('', { status: 404 });
+      }),
+    );
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    const r = await ok(v, 'fetch 1cbs');
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(2);
+    expect(r.warnings?.join(' ')).toContain('this one is 1cbs_2');
+    const names = await v.api.script!.names({});
+    expect(names.ok && names.did).toMatch(/1cbs, 1 1cbs_2/);
   });
 });

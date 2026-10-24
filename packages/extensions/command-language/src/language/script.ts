@@ -147,8 +147,12 @@ function compileText(
             ),
           );
         }
-        if (stack.length >= MaxIncludeDepth || stack.includes(found.name)) {
+        if (stack.includes(found.name))
           throw new ScriptError(error('syntax', `${found.name} includes itself.`, include.at));
+        if (stack.length >= MaxIncludeDepth) {
+          throw new ScriptError(
+            error('syntax', `Scripts include scripts at most ${MaxIncludeDepth} deep.`, include.at),
+          );
         }
         const at = including?.at ?? unit.at;
         compileText(impl, found.text, state, commands, diagnostics, { at, name: found.name, text: found.text }, [
@@ -169,6 +173,7 @@ function compileText(
           ...body,
           at: including?.at ?? unit.at,
           source: including ? `${including.name}: ${unit.source}` : unit.source,
+          ...(including ? { file: { name: including.name, line: positionOf(including.text, unit.at.from).line } } : {}),
         } as Command;
         state.apply(cmd);
         commands.push(cmd);
@@ -215,7 +220,9 @@ export async function runScript(
     const r =
       cmd.kind === 'print' ? ({ ok: true, output: cmd.text } as const) : await host.execute(cmd, options.signal);
     if (!r.ok) {
-      diagnostics.push(error('runtime', r.message, cmd.at, r.hint));
+      // In an included script: its file and line, as its compile errors say them.
+      const where = cmd.file ? `${cmd.file.name} line ${cmd.file.line}: ` : '';
+      diagnostics.push(error('runtime', `${where}${r.message}`, cmd.at, r.hint));
       return { ok: false, outputs, diagnostics, ran, commands: compiled.commands };
     }
     ran++;
@@ -229,6 +236,26 @@ export async function runScript(
   for (const [k, v] of compiled.session.handles) session.handles.set(k, v);
   session.nextHandle = compiled.session.nextHandle;
   return { ok: true, outputs, diagnostics, ran, commands: compiled.commands };
+}
+
+/**
+ * The scripts among several that no other one includes: what to run when they are opened together (the others run
+ * where they are included).
+ */
+export function rootScripts(scripts: ReadonlyMap<string, string>): string[] {
+  const included = new Set<string>();
+  for (const [name, text] of scripts) {
+    const dialect = dialectOfFile(name);
+    if (!dialect) continue;
+    const impl = DialectImpls[dialect];
+    for (const unit of impl.split(text).units) {
+      const inc = impl.includeOf?.(unit);
+      if (!inc) continue;
+      const base = inc.name.split(/[\\/]/).pop();
+      for (const k of scripts.keys()) if (k === inc.name || k.split(/[\\/]/).pop() === base) included.add(k);
+    }
+  }
+  return [...scripts.keys()].filter((k) => !included.has(k));
 }
 
 /** The dialect a line names by its first word (`pymol show …`, `vmd mol …`), and the rest. */

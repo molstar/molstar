@@ -25,7 +25,9 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "styles": "node ../../prism/ui/scripts/css.mjs --root . --prefix command-language",
+    "styles:check": "node ../../prism/ui/scripts/css.mjs --root . --prefix command-language --check"
   },
   "dependencies": {
     "tslib": "catalog:",
