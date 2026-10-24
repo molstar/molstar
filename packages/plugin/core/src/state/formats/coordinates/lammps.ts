@@ -25,7 +25,7 @@ const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse LAMMPSTRAJ', async (ctx) => {
-      const parsed = await parseLammpsTrajectory(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parseLammpsTrajectory(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const coordinates = await coordinatesFromLammpsTrajectory(parsed.result).runInContext(ctx);
       return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
