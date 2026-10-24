@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -18,6 +18,15 @@ describe('segments', () => {
   it('project', () => {
     const p = Segmentation.projectValue(segs, data, 4);
     expect(p).toBe(Interval.ofBounds(0, 2));
+  });
+
+  it('project inside a segment (perf-audit-2 01/B7)', () => {
+    const segs = Segmentation.create([0, 10, 20, 30]);
+    const set = OrderedSet.ofSortedArray([1, 5, 12, 25]);
+    expect(Segmentation.projectValue(segs, set, 5)).toBe(Interval.ofBounds(0, 2));
+    expect(Segmentation.projectValue(segs, set, 10)).toBe(Interval.ofBounds(2, 3));
+    expect(Segmentation.projectValue(segs, set, 29)).toBe(Interval.ofBounds(3, 4));
+    expect(Interval.size(Segmentation.projectValue(segs, set, 30))).toBe(0);
   });
 
   it('ofOffsetts', () => {

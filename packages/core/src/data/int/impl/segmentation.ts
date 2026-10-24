@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -49,10 +49,12 @@ export function getSegment({ index }: Segmentation, value: number) {
   return index[value];
 }
 
+/** The range of `set` (as indices) inside the segment that contains `value`; empty outside the segments */
 export function projectValue({ offsets }: Segmentation, set: OrderedSet, value: number): Interval {
-  const last = OrderedSet.max(offsets);
-  const idx = value >= last ? -1 : OrderedSet.findPredecessorIndex(offsets, value - 1);
-  return OrderedSet.findRange(set, OrderedSet.getAt(offsets, idx), OrderedSet.getAt(offsets, idx + 1) - 1);
+  if (value < SortedArray.min(offsets) || value >= SortedArray.max(offsets)) return Interval.Empty;
+  // the last segment that starts at or before `value`
+  const idx = SortedArray.findPredecessorIndex(offsets, value + 1) - 1;
+  return OrderedSet.findRange(set, offsets[idx], offsets[idx + 1] - 1);
 }
 
 export class SegmentIterator<I extends number = number> implements Iterator<Segs.Segment<I>> {

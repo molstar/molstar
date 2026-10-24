@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Interval } from '../int/interval.js';
@@ -24,14 +25,19 @@ export class IntervalIterator<I extends number = number> implements Iterator<Seg
     this.value.end = this.value.start + 1;
   }
 
+  /** Moves `curIndex` to the first interval index at or after it whose value is in the set */
+  private skipToMember() {
+    while (this.curIndex <= this.maxIndex && !OrderedSet.has(this.set, Interval.getAt(this.interval, this.curIndex))) {
+      ++this.curIndex;
+    }
+    this.hasNext = this.curIndex <= this.maxIndex;
+  }
+
   move() {
     if (this.hasNext) {
       this.updateValue();
-      while (this.curIndex <= this.maxIndex) {
-        ++this.curIndex;
-        if (OrderedSet.has(this.set, this.curIndex)) break;
-      }
-      this.hasNext = this.curIndex <= this.maxIndex;
+      ++this.curIndex;
+      this.skipToMember();
     }
     return this.value;
   }
@@ -40,11 +46,11 @@ export class IntervalIterator<I extends number = number> implements Iterator<Seg
     private interval: Interval<I>,
     private set: OrderedSet<I>,
   ) {
-    if (Interval.size(interval)) {
+    if (Interval.size(interval) && OrderedSet.size(set)) {
+      // interval indices of the first value >= min(set) and the last value <= max(set)
       this.curIndex = Interval.findPredecessorIndex(interval, OrderedSet.min(set));
-      this.maxIndex = Interval.findPredecessorIndex(interval, OrderedSet.max(set));
+      this.maxIndex = Interval.findPredecessorIndex(interval, OrderedSet.max(set) + 1) - 1;
+      this.skipToMember();
     }
-
-    this.hasNext = OrderedSet.areIntersecting(this.interval, this.set);
   }
 }
