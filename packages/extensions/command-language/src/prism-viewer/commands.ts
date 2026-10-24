@@ -51,17 +51,13 @@ const MaxCompletions = 8;
 
 type Post = CommandPrefixContext['post'];
 
-/** Runs a line from the menu (which has closed) and says its outcome on the status line: what it did or printed. */
+/**
+ * Runs a line from the menu (which has closed). The viewer says a person's run on the status line, what it did and
+ * printed (`did`) or why it failed; its warnings it does not: they are said here.
+ */
 async function runLine(api: ViewerApi, dialect: Dialect, text: string, post: Post): Promise<void> {
   const r = await api.script?.run({ dialect, text });
-  if (!r) return;
-  if (!r.ok) {
-    post(r.hint ? `${r.message} ${r.hint}` : r.message, 'error');
-    return;
-  }
-  // `did` holds what each command did and what reads printed.
-  post(r.did, 'success');
-  for (const w of r.warnings ?? []) post(w, 'warning');
+  if (r?.ok) for (const w of r.warnings ?? []) post(w, 'warning');
 }
 
 /** The rows for a line typed after a prefix. */

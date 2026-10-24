@@ -189,9 +189,9 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
 
 - **Prefixes** (`commandPrefixes`): `pymol `, `vmd `, and `!` for the default dialect. A line's rows: what it will do
   (`describeCommand`, with warnings) or the first error and its hint (the row keeps the menu open), then completions,
-  first while a word is being typed. Enter on the Run row runs `script.run` as the person; the menu has closed, so the
-  outcome (what it did and printed, its warnings, or why it failed) goes to the status line
-  (`CommandPrefixContext.post`).
+  first while a word is being typed. Enter on the Run row runs `script.run` as the person; the menu has closed: the
+  viewer says a person's run on the status line (what it did and printed, or why it failed), and the row posts the
+  warnings, which the viewer does not say (`CommandPrefixContext.post`).
 - **The default dialect** is chosen in `!`'s own rows ("Read ! as PyMOL") and kept in the person's preferences
   (`command-language.dialect`); without preferences it lasts for the session, per viewer. Why there: the extension's
   settings group is not shown by Prism, and the choice belongs where it is used.

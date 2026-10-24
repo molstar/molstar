@@ -34,7 +34,9 @@ function EntryView(props: { entry: ConsoleEntry }) {
   return (
     <div style="display: grid; gap: 2px; padding: var(--msp-space-1) 0; border-bottom: 1px solid var(--msp-color-border)">
       <div style={`${Mono}; display: flex; gap: var(--msp-space-2); white-space: pre-wrap; overflow-wrap: anywhere`}>
-        <span style="color: var(--msp-color-text-muted)">{entry.dialect === 'pymol' ? 'PyMOL>' : 'vmd>'}</span>
+        <span style="color: var(--msp-color-text-muted); flex: none; white-space: nowrap">
+          {entry.dialect === 'pymol' ? 'PyMOL>' : 'vmd>'}
+        </span>
         <span>{entry.input}</span>
       </div>
       {entry.state === 'running' ? (
@@ -125,7 +127,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
 
   return (
     <div
-      style="display: flex; flex-direction: column; height: 100%; min-height: 0; gap: var(--msp-space-2)"
+      style="display: flex; flex-direction: column; flex: 1; min-height: 0; gap: var(--msp-space-2)"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         const files = [...((e as DragEvent).dataTransfer?.files ?? [])];
