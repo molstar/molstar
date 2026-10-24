@@ -437,15 +437,26 @@ export function eachInterBond(
       for (const b of structure.interUnitBonds.getConnectedUnits(unit.id)) {
         const otherLociIndices = __unitMap.get(b.unitB);
         if (!isMarking || otherLociIndices) {
-          OrderedSet.forEach(e.indices, (v) => {
-            if (!b.connectedIndices.includes(v)) return;
+          const applyEdges = (v: StructureElement.UnitIndex) => {
             for (const bi of b.getEdges(v)) {
               if (!isMarking || (otherLociIndices && OrderedSet.has(otherLociIndices, bi.indexB))) {
                 const idx = structure.interUnitBonds.getEdgeIndex(v, unit.id, bi.indexB, b.unitB);
                 if (apply(Interval.ofSingleton(idx))) changed = true;
               }
             }
-          });
+          };
+          // the smaller side, each atom looked up in the other: not a scan of the connected atoms per loci atom
+          // (perf-audit-2 07/P10)
+          const { connectedIndices } = b;
+          if (connectedIndices.length < OrderedSet.size(e.indices)) {
+            for (let i = 0, il = connectedIndices.length; i < il; ++i) {
+              if (OrderedSet.has(e.indices, connectedIndices[i])) applyEdges(connectedIndices[i]);
+            }
+          } else {
+            OrderedSet.forEach(e.indices, (v) => {
+              if (b.hasEdges(v)) applyEdges(v);
+            });
+          }
         }
       }
     }
