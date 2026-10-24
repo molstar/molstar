@@ -404,6 +404,8 @@ class Viewer implements SequenceViewer {
   private builds = 0;
   /** The host key the document shown (or being made) is for: a frame of it changes only `frame`. */
   private documentKey: string | undefined;
+  /** The secondary structure's settings the tracks' data were last brought to (`HostStructure.assignment`). */
+  private assignment: string | undefined;
   private readonly frameState = observableState<Structure | undefined>(undefined, { compare: (a, b) => a === b });
   readonly frame = this.frameState.asReadonly;
   private disposed = false;
@@ -474,12 +476,18 @@ class Viewer implements SequenceViewer {
         if (this.themeState.value.letters === null) void this.build();
       }),
       deps.structure.subscribe((host) => {
-        // A frame of the structure shown (sequence.md §2): no new document; the link follows the new Structure.
-        // The same structure (a frame, or its secondary structure's settings changed): the tracks' data follow (`syncNow`).
+        // A frame of the structure shown (sequence.md §2): no new document; the link follows the new Structure. Its
+        // secondary structure's settings changed: the tracks' data follow (`syncNow`), not at every frame.
         if (host && host.key === this.documentKey) {
           this.frameState.set(host.structure);
-          void this.sync();
-        } else void this.build();
+          if (host.assignment !== this.assignment) {
+            this.assignment = host.assignment;
+            void this.sync();
+          }
+        } else {
+          this.assignment = host?.assignment;
+          void this.build();
+        }
       }),
       // The tracks the band shows, for the tree and the commands: read from the document shown (behaviors' patches
       // included).
@@ -735,7 +743,8 @@ class Viewer implements SequenceViewer {
     // Those the document was built with (a base provider's) as those a sync put in; not the ones this sync puts in.
     for (const p of applying(this.providersState.value, host.structure)) {
       if (!trackIn(p, edits, this.svsShown) || placed.get(p.track) !== this.placed.get(p.track)) continue;
-      if (!findRef(base.root, p.track)) continue;
+      // Only the viewer's own nodes: under a loaded SeqViewSpec, those a sync put in (its own are the document's).
+      if (!findRef(base.root, p.track) || (this.svsShown && !this.placed.has(p.track))) continue;
       const b = this.built(p, ctx);
       for (const d of b?.data ?? []) {
         const n = d.ref ? findRef(base.root, d.ref) : undefined;

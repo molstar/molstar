@@ -91,7 +91,8 @@ describe('drag (dom/scoped.ts)', () => {
     vi.useRealTimers();
   });
 
-  it('ends as a release when the release goes elsewhere in the page, then the capture is lost', () => {
+  it("takes a release elsewhere in the page only while a lost capture waits for it, never another gesture's", () => {
+    vi.useFakeTimers();
     const ends: string[] = [];
     const box = document.createElement('div');
     document.body.append(box);
@@ -101,13 +102,26 @@ describe('drag (dom/scoped.ts)', () => {
       drag(el, { start: () => ({}), end: (_s, how, e) => ends.push(`${how}:${e?.type ?? 'scope'}`) });
       return el;
     }, box);
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 1 }));
-    // Another pointer's release elsewhere is not this drag's.
-    document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
-    document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
-    el.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true, pointerId: 1 }));
-    dispose();
+    const send = (at: Element, type: string, pointerId = 1, buttons = 0) =>
+      at.dispatchEvent(new PointerEvent(type, { bubbles: true, buttons, pointerId }));
+    // The capture lost, then the release elsewhere (another pointer's is not this drag's): the release.
+    send(el, 'pointerdown', 1, 1);
+    send(el, 'lostpointercapture');
+    send(document.body, 'pointerup', 2);
+    send(document.body, 'pointerup');
     expect(ends).toEqual(['up:pointerup']);
+    // A release lost with the capture held (nothing comes): a click elsewhere later is another gesture, never this
+    // drag's release; it ends nothing until this drag's own end (here, a press on it again).
+    send(el, 'pointerdown', 1, 1);
+    send(document.body, 'pointerdown', 1, 1);
+    send(document.body, 'pointerup');
+    expect(ends).toEqual(['up:pointerup']);
+    // While a lost capture waits, a press anywhere is another gesture: a cancel.
+    send(el, 'lostpointercapture');
+    send(document.body, 'pointerdown', 1, 1);
+    expect(ends).toEqual(['up:pointerup', 'cancel:pointerdown']);
+    dispose();
+    vi.useRealTimers();
   });
 
   it('follows only the pointer that started it: a second finger neither moves, ends nor restarts it', () => {

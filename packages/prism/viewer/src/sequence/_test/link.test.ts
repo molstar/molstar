@@ -236,10 +236,13 @@ describe('linking the sequence to a 3D view', () => {
     expect(focus).toHaveBeenCalledTimes(1);
     const target = focus.mock.calls[0][0] as { systems: string[]; runs: Int32Array };
     expect(target.systems.length).toBe(2);
-    // The same marks again, or marks that do not ask: no move.
-    list.set([...box]);
-    list.set([mark('other', 0)]);
+    // The same marks set again (new objects, as each highlight.mark makes), or marks that do not ask: no move.
+    list.set(box.map((m) => ({ ...m })));
+    list.set([...box, mark('other', 0)]);
     expect(focus).toHaveBeenCalledTimes(1);
+    // Another range (its label says it): a move.
+    list.set([{ ...box[0], label: 'aligned, moved' }, box[1]]);
+    expect(focus).toHaveBeenCalledTimes(2);
     stop();
     h.viewers.dispose();
   });

@@ -200,10 +200,11 @@ export interface DragHandlers<S> {
 /**
  * A pointer drag on `target` (prism AGENTS.md, gestures; the scroll area's shape): its listeners attached once, with
  * the current scope (`on`: detached while it is paused, gone when it ends), acting only while a drag is on; the
- * pointer captured on the press, so the moves come to the target wherever the pointer goes. The release is read on the
- * document too (capture phase, attached once with the scope): Chrome can drop the capture just before the release
- * (`lostpointercapture` with no button held, its `pointerup` a moment later to the element under the pointer), so a
- * capture lost with no button held waits a moment for the release, which ends the drag as `up`. It follows only the
+ * pointer captured on the press, so the moves come to the target wherever the pointer goes. Chrome can drop the
+ * capture just before the release (`lostpointercapture` with no button held, its `pointerup` a moment later to the
+ * element under the pointer): a capture lost with no button held waits a moment for that release, read on the document
+ * (capture phase, attached once with the scope), which ends the drag as `up`; a press anywhere meanwhile, or no release,
+ * cancels it. Outside that wait the document's releases are not the drag's. It follows only the
  * pointer that started it (rendering.md §2.4): another finger's moves and releases are not its own, and its press
  * starts nothing while the first pointer still holds the capture. Every way a drag can end ends it: a release (`up`),
  * and as a cancel, `pointercancel`, the capture lost, a move with no button held (a release that never came), a new
@@ -261,18 +262,27 @@ export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly 
   on<PointerEvent>(target, 'pointerup', (e) => {
     if (e.pointerId === pointer) finish('up', e);
   });
-  // The release sent elsewhere in the page (its capture dropped just before or after it): still the drag's own pointer
-  // let go. Seen first on the way down, so the target's listener finds the drag over.
+  // While a capture lost with no button held waits: its release, sent elsewhere in the page, is the drag's own pointer
+  // let go; a press is another gesture (the release never came).
   const doc = target.ownerDocument;
-  if (doc)
+  if (doc) {
     on<PointerEvent>(
       doc,
       'pointerup',
       (e) => {
-        if (state !== undefined && e.pointerId === pointer) finish('up', e);
+        if (lost !== undefined && e.pointerId === pointer) finish('up', e);
       },
       { capture: true },
     );
+    on<PointerEvent>(
+      doc,
+      'pointerdown',
+      (e) => {
+        if (lost !== undefined) finish('cancel', e);
+      },
+      { capture: true },
+    );
+  }
   on<PointerEvent>(target, 'pointercancel', (e) => {
     if (e.pointerId === pointer) finish('cancel', e);
   });

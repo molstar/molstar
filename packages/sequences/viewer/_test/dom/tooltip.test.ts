@@ -71,6 +71,14 @@ describe('placeTooltip from offsets', () => {
     expect(t.place(290, 190)).toBe('translate(198px, 220px)');
   });
 
+  it('goes above the pointer at the bottom of a viewer too narrow to hold it beside the pointer', () => {
+    const t = stage();
+    t.parent.style.width = '120px';
+    // Neither right (20 + 10 + 14 + 100 > 120) nor left of the pointer fits: kept in at 0, over the pointer across, so
+    // it goes above it (30 + 190 - 12 - 40), not down over what it labels.
+    expect(t.place(10, 190)).toBe('translate(0px, 168px)');
+  });
+
   it('stays inside the viewer when it is larger than it', () => {
     const t = stage();
     t.parent.style.width = '60px';

@@ -240,11 +240,12 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
   there) is attached once instead, scoped, and acts while a drag is on; a frame asked for from a handler or a binding is
   `frames(fn)`'s `request()` (made with the scope: once a frame, put off while paused, cancelled at the end).
 - **Gestures** (`drag(target, { start, move, end })`, `dom/scoped.ts`): the press, the moves and every end are listeners
-  attached once with the scope, acting while a drag is on; the pointer is captured at the press. The release is read on
-  the document too (capture phase, attached once), and a capture lost with no button held waits a moment (100 ms) for
-  it: Chrome sometimes drops the capture just before the release and sends the `pointerup` a moment later to the element
-  under the pointer (measured, a PAE box drag), and that is still the release (`up`), not a lost capture. A drag ends on
-  `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
+  attached once with the scope, acting while a drag is on; the pointer is captured at the press. Chrome sometimes drops
+  the capture just before the release and sends the `pointerup` a moment later to the element under the pointer
+  (measured, a PAE box drag): a capture lost with no button held waits a moment (100 ms) for that release, read on the
+  document (capture phase, attached once), and it is the release (`up`); a press anywhere meanwhile, or no release, is a
+  cancel. Outside that wait the document's releases are not the drag's (another gesture's never commits it). A drag ends
+  on `pointerup`, `pointercancel`, `lostpointercapture`, a move with no button held (a release that never came), a new
   press, and the scope's pause and end, so a release lost to a window switch or a native dialog leaves no listener and
   no drag on. **Only a release commits** (David, 2026-10-17): `end`'s `how` is `up` for the drag's own pointer let go
   and `cancel` for every other end, and what a drag decides on its release (a row's move, a seek) happens on `up` only;

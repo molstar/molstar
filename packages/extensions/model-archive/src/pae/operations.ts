@@ -444,6 +444,17 @@ export class ModelArchiveApi extends ApiArea {
     return m && { residues: m.size, chains: new Set(m.residues.map((r) => r.chain)).size };
   }
 
+  /**
+   * A structure's selection (by state ref) as a token: the same object while the selection is unchanged (Mol*'s loci of
+   * it), another once anything changes it. The PAE card takes its pair off again only while the selection is the one it
+   * made.
+   */
+  selectionToken(ref: string): object | undefined {
+    const s = this.ctx.plugin.state.data.cells.get(ref)?.obj;
+    if (!PluginStateObject.Molecule.Structure.is(s)) return undefined;
+    return this.ctx.plugin.managers.structure.selection.getLoci(s.data);
+  }
+
   /** A structure's PAE matrix (by state ref), for the card; undefined when it has none. */
   paeMatrix(ref: string): PaeMatrix | undefined {
     const model = this.#modelOf(ref);

@@ -382,15 +382,29 @@ describe('the PAE card', () => {
     await until(() => v.sources.marks.marks.value.length === 0);
     expect(host.textContent).not.toContain('Mean error');
 
-    // A drag whose release Chrome sends elsewhere in the page (not to the plot holding the capture), then the capture
-    // lost: the release is the document's, and the box drawn stays (after the ✕ there is none to go back to).
+    // A drag whose capture Chrome drops just before its release, then sends the release elsewhere in the page: the
+    // release ends it, and the box drawn stays (after the ✕ there is none to go back to).
     pointer('pointerdown', 50, 50);
     pointer('pointermove', 250, 350);
-    document.body.dispatchEvent(new MouseEvent('pointerup', { clientX: 250, clientY: 350, button: 0, bubbles: true }));
     plot.dispatchEvent(new MouseEvent('lostpointercapture', { clientX: 250, clientY: 350, bubbles: true }));
+    document.body.dispatchEvent(new MouseEvent('pointerup', { clientX: 250, clientY: 350, button: 0, bubbles: true }));
     await until(() => v.sources.marks.marks.value.length === 2);
     expect(host.textContent).toContain('Mean error 3.3 Å');
     expect(corner.style.display).toBe('grid');
+
+    // A pair picked, then a selection of the person's own: a box leaves that selection alone.
+    corner.click();
+    await until(() => v.sources.marks.marks.value.length === 0);
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await until(() => v.sources.interaction.selection.value !== undefined);
+    expect((await v.api.select.all({})).ok).toBe(true);
+    pointer('pointerdown', 50, 50);
+    pointer('pointermove', 250, 350);
+    pointer('pointerup', 250, 350);
+    await until(() => v.sources.marks.marks.value.length === 2);
+    const kept = await v.api.select.get({});
+    expect(kept.ok && JSON.stringify(kept.value)).toMatch(/"residues":4/);
     unmount();
   });
 

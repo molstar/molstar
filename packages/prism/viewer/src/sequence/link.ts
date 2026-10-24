@@ -132,12 +132,16 @@ function showMarks(seq: SequenceViewer['seq'], link: StructureLink, structure: S
     return coordinatesOf(link, link.fromLoci(here, scratch));
   };
   let channels = new Set<string>();
-  // The marks already shown (the first list is what was there when the link was made: shown, not focused).
-  let shown: ReadonlySet<Mark> | undefined;
+  // The marks already shown, by what they are (an owner's same marks set again are not new); the first list is what was
+  // there when the link was made: shown, not focused.
+  const keyOf = (m: Mark) => `${m.owner}\u0000${m.id}\u0000${m.structure}\u0000${m.label}`;
+  let shown: ReadonlySet<string> | undefined;
   const marked = marks.marks.subscribe((list) => {
     // New marks that focus the sequence: their owner's marks, together, in view (a box's two ranges both shown).
-    const focusing = new Set(shown ? list.filter((m) => m.focusSequence && !shown!.has(m)).map((m) => m.owner) : []);
-    shown = new Set(list);
+    const focusing = new Set(
+      shown ? list.filter((m) => m.focusSequence && !shown!.has(keyOf(m))).map((m) => m.owner) : [],
+    );
+    shown = new Set(list.map(keyOf));
     if (focusing.size) {
       // One target of their runs, each in its system (a box's ranges are often in two chains).
       const systems: string[] = [];

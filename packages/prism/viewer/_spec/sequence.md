@@ -87,10 +87,12 @@ The code is the truth for how.
   answer can change without a new structure (a property computed later) passes `whenChanged`. Its data is built again at
   each sync and a param that differs is set (Seq\* computes the node again): the secondary structure's names the 3D
   view's assignment settings (`HostStructure.assignment`, told again when the person sets them otherwise), so its track
-  follows the cartoon without a new document. `describe` says in a few words what it draws (the tree's second line). The
-  viewer's own: ruler, letters, secondary structure (`molstar:secondary_structure`), keeping their short refs (`ruler`,
-  `letters`, `ss-track`: saved edits name them). Plain data, no Seq\* module: the core spec lists them. A provider that
-  throws in `build` is left out (a warning), never the document.
+  follows the cartoon without a new document. A frame of the same settings syncs nothing (frames come at animation
+  rate); under a loaded SeqViewSpec only the nodes a sync put in are brought to the providers (the document's own stay).
+  `describe` says in a few words what it draws (the tree's second line). The viewer's own: ruler, letters, secondary
+  structure (`molstar:secondary_structure`), keeping their short refs (`ruler`, `letters`, `ss-track`: saved edits name
+  them). Plain data, no Seq\* module: the core spec lists them. A provider that throws in `build` is left out (a
+  warning), never the document.
 - **In by a patch**: the document is built with the providers' tracks that are in; adding, removing, a provider that
   comes or goes, the filter and the eye are one base patch on the document shown (origin
   `host:prism-viewer.sequence.edits`, in order: each reads the document the one before left), never a new document; a

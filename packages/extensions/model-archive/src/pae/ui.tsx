@@ -189,50 +189,62 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
 export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix: PaeMatrix }) {
   const { ctx, structure, matrix: m } = props;
   const api = ctx.api;
+  const area = api['model-archive'];
   // A click selects the cell's two residues; on the pair already selected (and nothing else), it unselects them.
   // A pair or a box, one at a time: a box takes off the pair the plot selected last (the sequence is not held on a pair
-  // the person moved on from), and while it is shown a click selects nothing (the plot).
-  let picked: string | undefined;
-  const togglePair = async (target: string) => {
-    const r = await api.select.set({ target, structure });
-    picked = target;
-    if (r.ok && r.unchanged) {
-      await api.select.set({ target, structure, mode: 'remove' });
-      picked = undefined;
-    }
+  // the person moved on from), and while it is shown a click selects nothing (the plot). Only while the selection is
+  // still the one the plot made (`selectionToken`): a selection made since is the person's, and left alone.
+  let picked: { target: string; token: object | undefined } | undefined;
+  // The calls one after another, in the order the plot asked for them: a box, a ✕ or the card closing while a click's or
+  // another box's call is on its way never lands before it (the marks and the selection end as the plot shows them).
+  let queue: Promise<unknown> = Promise.resolve();
+  const inTurn = (fn: () => Promise<unknown>) => {
+    queue = queue.then(fn, fn);
+    return queue;
   };
-  const unpick = async () => {
-    if (!picked) return;
-    const target = picked;
-    picked = undefined;
-    await api.select.set({ target, structure, mode: 'remove' });
-  };
-  const mark = async (b: PaeBox) => {
-    await unpick();
-    await api.highlight.mark({
-      owner: PaeMarksOwner,
-      structure,
-      // The rest greyed, as AlphaFold DB does: the ranges stand out of any coloring.
-      dimRest: true,
-      // Both ranges in view in the sequence (it zooms out to them), as a selection's are.
-      focusSequence: true,
-      // The scored last: painted over the aligned where they overlap, as the plot draws them.
-      marks: [
-        {
-          id: 'aligned',
-          tone: 'highlight',
-          label: `Aligned ${paeRangeLabel(m, b.i0, b.i1)}`,
-          target: paeRangeTarget(m, b.i0, b.i1),
-        },
-        {
-          id: 'scored',
-          tone: 'accent',
-          label: `Scored ${paeRangeLabel(m, b.j0, b.j1)}`,
-          target: paeRangeTarget(m, b.j0, b.j1),
-        },
-      ],
+  const togglePair = (target: string) =>
+    inTurn(async () => {
+      const r = await api.select.set({ target, structure });
+      picked = { target, token: area?.selectionToken(structure) };
+      if (r.ok && r.unchanged) {
+        await api.select.set({ target, structure, mode: 'remove' });
+        picked = undefined;
+      }
     });
+  const unpick = async () => {
+    const was = picked;
+    picked = undefined;
+    if (!was || !area || area.selectionToken(structure) !== was.token) return;
+    await api.select.set({ target: was.target, structure, mode: 'remove' });
   };
+  const mark = (b: PaeBox) =>
+    inTurn(async () => {
+      await unpick();
+      await api.highlight.mark({
+        owner: PaeMarksOwner,
+        structure,
+        // The rest greyed, as AlphaFold DB does: the ranges stand out of any coloring.
+        dimRest: true,
+        // Both ranges in view in the sequence (it zooms out to them), as a selection's are.
+        focusSequence: true,
+        // The scored last: painted over the aligned where they overlap, as the plot draws them.
+        marks: [
+          {
+            id: 'aligned',
+            tone: 'highlight',
+            label: `Aligned ${paeRangeLabel(m, b.i0, b.i1)}`,
+            target: paeRangeTarget(m, b.i0, b.i1),
+          },
+          {
+            id: 'scored',
+            tone: 'accent',
+            label: `Scored ${paeRangeLabel(m, b.j0, b.j1)}`,
+            target: paeRangeTarget(m, b.j0, b.j1),
+          },
+        ],
+      });
+    });
+  const unmark = () => inTurn(() => api.highlight.unmark({ owner: PaeMarksOwner }));
 
   return (
     <PaePlot
@@ -244,7 +256,7 @@ export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix
           : api.highlight.clear())
       }
       onPick={(i, j) => void togglePair(paePairTarget(m, i, j))}
-      onBox={(b) => void (b ? mark(b) : api.highlight.unmark({ owner: PaeMarksOwner }))}
+      onBox={(b) => void (b ? mark(b) : unmark())}
     />
   );
 }

@@ -11,9 +11,10 @@ import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molstar/model/props/computed/secondary-structure';
 import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ComplexRef, sequenceDocument } from '../document.js';
 import { DefaultTracksRail } from '../presets.js';
+import { SecondaryTrackProvider } from '../tracks.js';
 import { applySaved } from '../runtime.js';
 import { skinFor } from '../skin.js';
 import type { SequenceBehaviorContext } from '../behaviors.js';
@@ -387,6 +388,12 @@ describe('the sequence model', () => {
     h.structure.set({ ...host, assignment: 'dssp, again' });
     await settled(h);
     expect(h.viewer.seq.document.shown.value).toBe(doc);
+    // A frame (the same key, the same settings): no sync at all, so no provider builds (a frame comes at animation
+    // rate).
+    const build = vi.spyOn(SecondaryTrackProvider, 'build');
+    h.structure.set({ ...host, assignment: 'dssp, again', title: 'a frame' });
+    await settled(h);
+    expect(build).not.toHaveBeenCalled();
     h.viewers.dispose();
   });
 });
