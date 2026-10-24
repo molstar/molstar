@@ -135,6 +135,17 @@ describe('the scene: component and representation rows', () => {
     // The one hidden on its own stays hidden.
     expect(own.isHidden.value).toBe(true);
     expect(v.managers.history.steps.value).toHaveLength(steps + 2);
+
+    // Hidden as a group, then one shown on its own and the group hidden again: all it hid come back together.
+    group.toggleVisibility();
+    await until(() => rest.every((r) => r.isHidden.value));
+    rest[0].toggleVisibility();
+    await until(() => !rest[0].isHidden.value && !group.isHidden.value);
+    group.toggleVisibility();
+    await until(() => rest.every((r) => r.isHidden.value));
+    group.toggleVisibility();
+    await until(() => rest.every((r) => !r.isHidden.value));
+    expect(own.isHidden.value).toBe(true);
   });
 
   it('adds a component from the Components menu, of a kind the structure has or from the selection', async () => {
@@ -167,7 +178,7 @@ describe('the scene: component and representation rows', () => {
     expect(run.origin.kind).toBe('person');
     expect(run.result?.ok).toBe(true);
     await until(() => componentsOf(structure).filter((c) => c.kind === 'component').length === count - 1);
-    expect(structure.children.value.some((c) => c.id === id)).toBe(false);
+    expect(componentsOf(structure).some((c) => c.id === id)).toBe(false);
     expect(v.views.scene.picked.value).toBeUndefined();
     expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
 

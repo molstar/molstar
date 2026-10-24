@@ -27,6 +27,7 @@ import {
 } from '@molstar/model/model/structure';
 import { Script } from '@molstar/model/script/script';
 import { KEYWORD_EXPRESSIONS, KEYWORDS } from '../targets/keywords.js';
+import type { Keyword } from '../targets/types.js';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
@@ -87,7 +88,7 @@ import { type TrajectorySource, trajectorySourceOf } from './trajectory.js';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import { structureNames } from './naming.js';
 import { fromChanged, onceATask, type SourceScope } from './state.js';
-import type { Observable } from 'rxjs';
+import { type Observable, of } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
 import {
@@ -318,12 +319,20 @@ class Node implements SceneNode {
     this.log?.touch(this.id);
   }
 
+  /** A component left empty by hidden contents: its row stays, and shows or hides nothing (no eye). */
+  emptied = false;
   toggleVisibility(): void {
-    this.actions.visibility?.(!this.#hidden.value);
+    if (this.hasEye) this.actions.visibility?.(!this.#hidden.value);
   }
-  /** It shows or hides as one: a row without an eye otherwise (Entities, Layers). */
+  /**
+   * It shows or hides as one: a row without an eye otherwise (Entities, Layers, an emptied component); a group
+   * (Components, Measurements) while one of its rows does.
+   */
   get hasEye(): boolean {
-    return !!this.actions.visibility;
+    if (!this.actions.visibility || this.emptied) return false;
+    if (this.kind === 'components' || this.kind === 'measurements')
+      return this.#children.value.some((c) => c.hasEye !== false);
+    return true;
   }
   toggleExpanded(): void {
     const log = this.log;
@@ -790,6 +799,8 @@ export function createSceneSource(
       n.menu = componentMenu(plugin, api, ref, structureRef, loci, openCommand, c.cell.obj?.label ?? '', noSelection);
       nodes.set(ref, n);
     }
+    // In the hierarchy again (its contents shown): whole again, its eye back.
+    n.emptied = false;
     const reprs = c.representations.map((r) => reprLabel(plugin, r)).join(', ');
     const atoms = c.cell.obj?.data.elementCount;
     n.set(
@@ -920,6 +931,8 @@ export function createSceneSource(
       n.removable = false;
       nodes.set(ref, n);
     }
+    // The component's own row kept (it had one): its actions stay for when it comes back, its eye goes meanwhile.
+    n.emptied = true;
     n.set(label, 'hidden in Entities', true);
     n.setChildren([]);
     return n;
@@ -1199,7 +1212,9 @@ export function createSceneSource(
       let targets: readonly SceneNode[];
       if (hide) {
         targets = list.filter((r) => !r.isHidden.value);
-        hid = new Set(targets.map((r) => r.id));
+        // Those it hid before and still hidden stay remembered (a row shown or added since, then hidden with them).
+        const before = hid ? list.filter((r) => r.isHidden.value && hid!.has(r.id)).map((r) => r.id) : [];
+        hid = new Set([...before, ...targets.map((r) => r.id)]);
       } else {
         const hidden = list.filter((r) => r.isHidden.value);
         const remembered = hid ? hidden.filter((r) => hid!.has(r.id)) : [];
@@ -1305,7 +1320,7 @@ export function createSceneSource(
           (g, row, visible) => g.run('component.visibility', { component: row.id, structure: ref, visible }),
         ),
       );
-    if (!known) cg.menuSource = () => componentsMenu(plugin, api, ref, noSelection);
+    if (!known) cg.menuSource = () => componentsMenu(plugin, api, ref);
     ids.push(cg.id);
     cg.set('Components', comps.length === 1 ? '1 component' : `${comps.length} components`, allHidden(comps));
     cg.setChildren(comps);
@@ -2319,22 +2334,29 @@ const ComponentKinds: Readonly<Record<(typeof KEYWORDS)[number], string>> = {
   coarse: 'Coarse',
 };
 
+/** The kinds of component a structure has (a keyword query each, whole-structure): once per Structure. */
+const kindsOf = new WeakMap<Structure, readonly Keyword[]>();
+function componentKinds(data: Structure): readonly Keyword[] {
+  let kinds = kindsOf.get(data);
+  if (!kinds) {
+    kinds = KEYWORDS.filter((k) => k !== 'all').filter(
+      (k) => !StructureSelection.isEmpty(Script.getStructureSelection(KEYWORD_EXPRESSIONS[k], data)),
+    );
+    kindsOf.set(data, kinds);
+  }
+  return kinds;
+}
+
 /**
- * The Components group's menu: Add component, from the selection or of a kind the structure has (`component.add`, its
- * target a keyword; a kind it has none of is left out). Built when the menu opens.
+ * The Components group's menu: Add component, from this structure's selection (unavailable while it holds none) or of a
+ * kind the structure has (`component.add`, its target a keyword; a kind it has none of is left out, `componentKinds`).
+ * Built when the menu is read.
  */
-function componentsMenu(
-  plugin: PluginContext,
-  api: ViewerApi,
-  structureRef: string,
-  noSelection: Observable<boolean>,
-): SceneMenuItem[] {
+function componentsMenu(plugin: PluginContext, api: ViewerApi, structureRef: string): SceneMenuItem[] {
   const data = dataOf(plugin, structureRef);
-  const kinds = data
-    ? KEYWORDS.filter((k) => k !== 'all').filter(
-        (k) => !StructureSelection.isEmpty(Script.getStructureSelection(KEYWORD_EXPRESSIONS[k], data)),
-      )
-    : [];
+  const kinds = data ? componentKinds(data) : [];
+  const sel = data && plugin.managers.structure.selection.getLoci(data);
+  const noSelection = !sel || !StructureElement.Loci.is(sel) || StructureElement.Loci.isEmpty(sel);
   return [
     {
       id: 'add',
@@ -2345,7 +2367,7 @@ function componentsMenu(
           id: 'selection',
           label: 'From the selection',
           icon: 'mouse-pointer-2',
-          disabled: noSelection,
+          disabled: of(noSelection),
           run: () =>
             void api.run('component.add', { target: 'selection', structure: structureRef, label: 'Selection' }),
         },

@@ -60,10 +60,20 @@ describe('the contents rows', () => {
     expect(rows().map((r) => r.label.value)).toEqual(['Polymer', 'Ligand', 'Water']);
     expect(rows()[0].isHidden.value).toBe(true);
     expect(rows()[0].description.value).toBe('hidden in Entities');
+    // Its row kept, but it shows or hides nothing meanwhile: no eye, and the Components group goes around it.
+    expect(rows()[0].hasEye).toBe(false);
+    const group = structure.children.value.find((c) => c.kind === 'components')!;
+    const steps = v.managers.history.steps.value.length;
+    group.toggleVisibility();
+    await until(() => rows()[1].isHidden.value && rows()[2].isHidden.value && group.isHidden.value);
+    group.toggleVisibility();
+    await until(() => !rows()[1].isHidden.value && !rows()[2].isHidden.value && !group.isHidden.value);
+    expect(v.managers.history.steps.value).toHaveLength(steps + 2);
 
     chain.toggleVisibility();
     await until(() => components().length === 3);
     expect(rows()[0].isHidden.value).toBe(false);
+    expect(rows()[0].hasEye).toBe(true);
   });
 
   it('gives an emptied component row made without a row before it its actions once it is shown again', async () => {

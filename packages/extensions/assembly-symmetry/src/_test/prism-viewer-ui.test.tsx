@@ -112,7 +112,10 @@ describe("the assembly symmetry's row", () => {
     await until(() => host.textContent?.includes('C2 axes') ?? false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(host.querySelector('[aria-label=Symmetry]')?.textContent).toContain('C2 · global · A2');
-    expect(v.api['assembly-symmetry']!.rowState(v.views.scene.roots.value[0].id).value).toMatchObject({ shown: true, selected: 1 });
+    expect(v.api['assembly-symmetry']!.rowState(v.views.scene.roots.value[0].id).value).toMatchObject({
+      shown: true,
+      selected: 1,
+    });
 
     (host.querySelector('button[data-tip=Hide]') as HTMLButtonElement).click();
     await until(() => host.textContent?.includes('1 symmetry') ?? false);

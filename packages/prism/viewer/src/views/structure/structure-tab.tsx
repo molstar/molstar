@@ -361,6 +361,9 @@ function VisibilityToggle(props: { hidden: ReadonlyState<boolean>; feature: bool
   );
 }
 
+/** A node's kind in words: a structure's contents node is its Entities. */
+const kindName = (kind: SceneNode['kind']) => (kind === 'contents' ? 'entities' : kind.replace('-', ' '));
+
 /** What of an inspection is built anew and followed (`Inspector`). */
 const Parts = [
   'facts',
@@ -402,15 +405,18 @@ function Inspector(props: {
         ) : (
           <span class={classes.inspectorTitle}>{node.label}</span>
         )}
-        {/* The kind, unless the label already says it (Measurements). */}
-        <Show when={derive(node.label, (l) => l.toLowerCase() !== node.kind.replace('-', ' '))}>
-          {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}
+        {/* The kind, unless the label already says it (Measurements, Components, Entities). */}
+        <Show when={derive(node.label, (l) => l.toLowerCase() !== kindName(node.kind))}>
+          {() => <span class={classes.inspectorKind}>{kindName(node.kind)}</span>}
         </Show>
-        <VisibilityToggle
-          hidden={node.isHidden}
-          feature={TurnsOn.has(node.kind)}
-          onToggle={() => node.toggleVisibility()}
-        />
+        {/* No eye where nothing shows or hides as one (Entities, Layers, an emptied component). */}
+        {node.hasEye === false ? null : (
+          <VisibilityToggle
+            hidden={node.isHidden}
+            feature={TurnsOn.has(node.kind)}
+            onToggle={() => node.toggleVisibility()}
+          />
+        )}
       </header>
       <Show when={part('facts')}>
         {(facts) =>

@@ -41,8 +41,11 @@ export function membraneUI(ctx: ViewerUIContext): ViewerExtensionUI {
     rows: [
       {
         id: MembraneRow,
-        // A layer: under each structure's Layers group.
-        when: (node) => node.kind === 'layers',
+        // A layer, under the Layers group of each structure ANVIL applies to (a row whose `when` holds takes a slot).
+        when: (node) => {
+          const structure = layersStructure(node);
+          return !!structure && area.applies(structure);
+        },
         render: domView(({ ctx: view }) => {
           const structure = layersStructure(view.subject as SceneNode)!;
           const state = area.rowState(structure);

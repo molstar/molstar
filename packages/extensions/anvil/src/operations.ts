@@ -87,6 +87,11 @@ export interface MembraneRowState {
 export class MembraneApi extends ApiArea {
   readonly id = 'membrane';
 
+  /** Whether ANVIL applies to a structure (by state ref): its row is there only then (checked once per structure). */
+  applies(structure: string): boolean {
+    return readRow(this.ctx.plugin, structure).applicable;
+  }
+
   /**
    * The row's state for a structure (by state ref), following the state tree while watched (a view bound to it): a
    * read for views, as the animation area's `state` (the Prism viewer's `_spec/README.md`, Folders); nothing is

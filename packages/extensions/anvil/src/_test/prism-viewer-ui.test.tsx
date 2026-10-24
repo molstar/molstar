@@ -128,8 +128,10 @@ describe("the membrane's row", () => {
 
   it('is not shown for a structure ANVIL does not apply to', async () => {
     const v = await viewer('test.gro');
-    const { host } = mountRow(v);
+    const { host, row, node } = mountRow(v);
     expect(v.api.membrane!.rowState(v.views.scene.roots.value[0].id).value.applicable).toBe(false);
+    // No slot in the tree for it (no blank row in Layers), and nothing drawn if mounted anyway.
+    expect(row.when(node)).toBe(false);
     expect(host.textContent).toBe('');
   });
 });

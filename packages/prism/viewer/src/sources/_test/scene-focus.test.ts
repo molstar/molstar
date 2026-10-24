@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { cbs, headlessViewer, until } from '../../_test/harness.js';
+import { componentsOf } from '../../testing/scene-groups.js';
 
 // The focus: one row at the top level after the structures (the tree does not shift as the focus comes and goes),
 // holding the focus behavior's components while something is focused; named by its structure when there are several.
@@ -21,8 +22,9 @@ describe('the focus row', () => {
     expect(v.views.scene.roots.value[0].children.value.some((c) => c.kind === 'focus')).toBe(false);
     expect(focus().description.value).toBe('none');
     expect(focus().children.value).toEqual([]);
-    const components = () => v.views.scene.roots.value[0].children.value.filter((c) => c.kind === 'component');
+    const components = () => componentsOf(v.views.scene.roots.value[0]).filter((c) => c.kind === 'component');
     const before = components().length;
+    expect(before).toBeGreaterThan(0);
 
     const r = await v.api.focus.set({ target: 'ligand' });
     expect(r.ok).toBe(true);
