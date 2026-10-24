@@ -12,8 +12,10 @@
   lists providers per data kind; the plugin owns three (models, structures, volumes) and builds the auto-attach
   parameters from the applicable ones.
 - `attach` computes only when there is no value or the merged props differ from the stored ones; it never notices a
-  change of the data: a new `Model` or `Structure` is new data. `set` keeps the box and bumps its version, which
-  graphics reads as a change hash.
+  change of the data: a new `Model` or `Structure` is new data. A structure property's attach with the props of one in
+  flight awaits it (callers outside the state queue overlap with builds) and computes itself if that one fails; while it
+  waits, its own context's abort and progress do not apply. `set` keeps the box and bumps its version, which graphics
+  reads as a change hash.
 
 | Factory                   | `type`    | Stored in                                                         |
 | ------------------------- | --------- | ----------------------------------------------------------------- |

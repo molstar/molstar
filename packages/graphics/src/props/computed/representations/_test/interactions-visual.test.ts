@@ -439,6 +439,63 @@ describe('interactions representation', async () => {
   it.each([
     ['mesh', undefined],
     ['impostors', graphicsStub],
+  ])(
+    '%s, includeParent: water bridge legs drawn by whether their ends lie in the child (perf-audit-2 09/B6)',
+    async (_name, graphics) => {
+      // a child of the first unit's even residues: bridges with both, one or no ends in it
+      const u0 = structure.units[0];
+      const { residueIndex } = u0 as any;
+      const even = u0.elements.filter((e) => residueIndex[e] % 2 === 0);
+      const childUnit = u0.getChild(SortedArray.ofSortedArray(Int32Array.from(even)) as any);
+      const parent = Structure.create([childUnit], { parent: structure }).asParent();
+
+      const counts = new Set<number>();
+      for (const parentDisplay of ['stub', 'full', 'between'] as const) {
+        const repr = await createRepr(parent, graphics, { includeParent: true, parentDisplay, visuals: ['bridge'] });
+        const { bridges, unitsFeatures } = InteractionsProvider.get(parent).value!;
+        const n = bridges.length;
+        expect(n).toBeGreaterThan(0);
+        const inChild = (unitId: number, f: number) => {
+          if (unitId !== u0.id) return false;
+          const { members, offsets } = unitsFeatures.get(unitId);
+          for (let i = offsets[f]; i < offsets[f + 1]; ++i) {
+            if (!SortedArray.has(childUnit.elements, u0.elements[members[i]])) return false;
+          }
+          return true;
+        };
+        // the first bridge of each leg draws it, when any bridge sharing it shows it
+        const firstA = new Map<string, number>(),
+          firstB = new Map<string, number>();
+        const shown = new Set<number>();
+        for (let i = 0; i < n; ++i) {
+          const b = bridges[i];
+          const kA = `${b.unitA}|${b.indexA}|${b.unitM}|${b.indexMA}`;
+          const kB = `${b.unitM}|${b.indexMB}|${b.unitB}|${b.indexB}`;
+          if (!firstA.has(kA)) firstA.set(kA, i);
+          if (!firstB.has(kB)) firstB.set(kB, i);
+          const a = inChild(b.unitA, b.indexA);
+          const c = inChild(b.unitB, b.indexB);
+          const legA = parentDisplay === 'stub' ? a : parentDisplay === 'full' ? a || c : a !== c;
+          const legB = parentDisplay === 'stub' ? c : parentDisplay === 'full' ? a || c : a !== c;
+          if (legA) shown.add(firstA.get(kA)!).add(firstA.get(kA)! + n);
+          if (legB) shown.add(firstB.get(kB)! + 2 * n).add(firstB.get(kB)! + 3 * n);
+        }
+        const expected = [...shown].sort((x, y) => x - y);
+        expect(expected.length).toBeGreaterThan(0);
+        expect(expected.length).toBeLessThan(4 * n);
+        counts.add(expected.length);
+
+        expect(repr.renderObjects.length).toBe(1);
+        expect([...groupCentroids(repr.renderObjects[0]).keys()].sort((x, y) => x - y)).toEqual(expected);
+      }
+      // the three modes draw different legs
+      expect(counts.size).toBe(3);
+    },
+  );
+
+  it.each([
+    ['mesh', undefined],
+    ['impostors', graphicsStub],
   ])('%s: a new theme with the same size keeps the geometry', async (_name, graphics) => {
     const repr = await createRepr(structure, graphics);
     const geometryVersions = () =>

@@ -10,6 +10,12 @@ here.
 
 ## [Unreleased]
 
+- Fix `chunkedSubtask` sizing its chunks from summed times and the task's average rate (gaps between yields of long
+  parses reached ~2× the update rate, more when the rate changed)
+- Fix a re-opened kinemage `@group` taking the previous group's masters
+- Fix impostor-capable visuals rebuilding their mesh fallback at every update on contexts without `fragDepth`
+- Fix water bridges ignoring the child structure with `includeParent`
+- Fix overlapping `CustomStructureProperty.attach` calls with the same params computing twice
 - Fix `Structure.entityIndices` of coarse units (empty `_entity` / `_entity_poly` in exports of coarse models)
 - Fix coarse sequences made from sphere ranges being off by one and missing the chain's last element
 - Fix MOL2 bonds assuming atom ids 1..N in file order

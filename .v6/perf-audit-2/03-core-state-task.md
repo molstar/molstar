@@ -161,7 +161,7 @@ open 15, regressed 0, dropped 0. The B1 fix introduced a new bug (B11).
 | B5 | still open | low | Hash versions cover params only | [transform.ts:281](../../packages/core/src/state/transform.ts#L281) | confirmed |
 | B10 | still open; **fixed** #2034 | low | `findTagInSubtree` never stops, returns the last match | [selection.ts:448](../../packages/core/src/state/state/selection.ts#L448) | confirmed |
 | B7 | still open | low | A late abort discards a completed result, undisposed | [observable.ts:106](../../packages/core/src/task/execution/observable.ts#L106) | confirmed |
-| B8 | still open | low | `chunkedSubtask` sizing compounds | [chunked.ts:35](../../packages/core/src/task/util/chunked.ts#L35) | confirmed |
+| B8 | still open; **fixed** #2045 | low | `chunkedSubtask` sizing compounds | [chunked.ts:35](../../packages/core/src/task/util/chunked.ts#L35) | confirmed |
 | B3 | still open | low | Rebase replays `tag`/`dependsOn`/`updateState` as `setParams` | [builder.ts:89](../../packages/core/src/state/state/builder.ts#L89) | confirmed (mostly latent) |
 | B4 | still open | low | `setDependsOn` skips `tree.dependencies` | [transient.ts:259](../../packages/core/src/state/tree/transient.ts#L259) | confirmed (latent) |
 | B2 | still open | low | Builder `updateState` never reaches `cell.state`, re-evaluates | [builder.ts:357](../../packages/core/src/state/state/builder.ts#L357) | confirmed (latent) |

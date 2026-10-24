@@ -255,7 +255,7 @@ namespace Visual {
   }
 
   type KnownClear = { readonly count: number; readonly type: string; readonly version: number };
-  type LayerName = 'overpaint' | 'transparency' | 'emissive' | 'substance';
+  type LayerName = 'overpaint' | 'transparency' | 'emissive' | 'substance' | 'clipping' | 'wiggle';
 
   /**
    * Layers of a render object that the last layer change left all clear (it reached none of their groups), with the
@@ -665,17 +665,30 @@ namespace Visual {
       : uGroupCount.ref.value * instanceCount.ref.value;
     const { layers } = clipping;
 
-    // ensure texture has right size and type
+    // as the four layers above: a visual the change does not reach stays clear (perf-audit-2 07/P14)
     const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+    if (
+      clear &&
+      layers.length > 0 &&
+      dClipping.ref.value &&
+      isKnownClear(renderObject, 'clipping', tClipping, count, type) &&
+      !reachesAny(layers, lociApply)
+    ) {
+      return; // stays all clear
+    }
+
+    // ensure texture has right size and type
     createClipping(layers.length ? count : 0, type, renderObject.values);
     const { array } = tClipping.ref.value;
 
     // clear if requested
     if (clear) clearClipping(array, 0, count);
 
+    let touched = false;
     for (let i = 0, il = clipping.layers.length; i < il; ++i) {
       const { loci, groups } = clipping.layers[i];
       const apply = (interval: Interval) => {
+        touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
         return applyClippingGroups(array, start, end, groups);
@@ -684,6 +697,8 @@ namespace Visual {
     }
     ValueCell.update(tClipping, tClipping.ref.value);
     ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
+
+    setKnownClear(renderObject, 'clipping', tClipping, count, type, clear && !touched && layers.length > 0);
   }
 
   export function setWiggle(
@@ -706,17 +721,30 @@ namespace Visual {
       ? instanceCount.ref.value
       : uGroupCount.ref.value * instanceCount.ref.value;
 
-    // ensure texture has right size and type
+    // as the four layers above: a visual the change does not reach stays clear (perf-audit-2 07/P14)
     const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+    if (
+      clear &&
+      wiggle.layers.length > 0 &&
+      dWiggle.ref.value &&
+      isKnownClear(renderObject, 'wiggle', tWiggle, count, type) &&
+      !reachesAny(wiggle.layers, lociApply)
+    ) {
+      return; // stays all clear
+    }
+
+    // ensure texture has right size and type
     createWiggle(wiggle.layers.length ? count : 0, type, renderObject.values);
     const { array } = tWiggle.ref.value;
 
     // clear if requested
     if (clear) clearWiggle(array, 0, count);
 
+    let touched = false;
     for (let i = 0, il = wiggle.layers.length; i < il; ++i) {
       const { loci, value } = wiggle.layers[i];
       const apply = (interval: Interval) => {
+        touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
         return applyWiggleValue(array, start, end, value);
@@ -726,6 +754,8 @@ namespace Visual {
     ValueCell.update(tWiggle, tWiggle.ref.value);
     ValueCell.updateIfChanged(wiggleAverage, getWiggleAverage(array, count));
     ValueCell.updateIfChanged(dWiggle, wiggle.layers.length > 0);
+
+    setKnownClear(renderObject, 'wiggle', tWiggle, count, type, clear && !touched && wiggle.layers.length > 0);
   }
 
   export function setThemeStrength(

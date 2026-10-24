@@ -361,7 +361,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
         props: PD.Values<IntraUnitBondCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -424,7 +424,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
         props: PD.Values<IntraUnitBondCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -629,7 +629,7 @@ export function StructureIntraUnitBondCylinderImpostorVisual(
         props: PD.Values<StructureIntraUnitBondCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -697,7 +697,7 @@ export function StructureIntraUnitBondCylinderMeshVisual(
         props: PD.Values<StructureIntraUnitBondCylinderParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,

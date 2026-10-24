@@ -6,6 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import type { VisualContext } from '@molstar/graphics/repr/visual';
 import { Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
 import type { Theme } from '@molstar/graphics/theme/theme';
@@ -32,7 +33,7 @@ import type { VisualUpdateState } from '@molstar/graphics/repr/util';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
 import { NullLocation } from '@molstar/model/model/location';
-import { Interval, OrderedSet } from '@molstar/core/data/int';
+import { type IntMap, Interval, OrderedSet, SortedArray } from '@molstar/core/data/int';
 import { InteractionsProvider } from '@molstar/model/props/computed/interactions';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { type BridgeContacts, Bridges } from '@molstar/model/props/computed/interactions/interactions';
@@ -107,6 +108,56 @@ function setFeatureLocation(
   location.element = unit.elements[atomLocalIdx];
 }
 
+/** Whether every atom of the feature is in `child` */
+function isFeatureInChild(structure: Structure, child: Structure, unitId: number, features: Features, index: number) {
+  const childUnit = child.unitMap.get(unitId);
+  if (!childUnit) return false;
+  const { elements } = structure.unitMap.get(unitId);
+  const { offsets, members } = features;
+  for (let i = offsets[index], il = offsets[index + 1]; i < il; ++i) {
+    if (!SortedArray.has(childUnit.elements, elements[members[i]])) return false;
+  }
+  return true;
+}
+
+/**
+ * With `includeParent`, the drawn legs by `parentDisplay` and whether the end features A and B are in the child, as the
+ * inter-unit visual does for contacts: 'stub' the legs of the ends in the child, 'full' both legs when an end is in the
+ * child, 'between' both legs when exactly one is. A leg shared by bridges (drawn at its first bridge) is drawn when any
+ * of them draws it (perf-audit-2 09/B6).
+ */
+function getChildLegs(
+  structure: Structure,
+  child: Structure,
+  bridges: BridgeContacts,
+  unitsFeatures: IntMap<Features>,
+  canonical: CanonicalLegIndices,
+  parentDisplay: PD.Values<BridgeParams>['parentDisplay'],
+) {
+  const n = bridges.length;
+  const shownA = new Uint8Array(n);
+  const shownB = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const b = bridges[i];
+    const a = isFeatureInChild(structure, child, b.unitA, unitsFeatures.get(b.unitA), b.indexA);
+    const c = isFeatureInChild(structure, child, b.unitB, unitsFeatures.get(b.unitB), b.indexB);
+    let legA: boolean, legB: boolean;
+    if (parentDisplay === 'stub') {
+      legA = a;
+      legB = c;
+    } else if (parentDisplay === 'full') {
+      legA = legB = a || c;
+    } else if (parentDisplay === 'between') {
+      legA = legB = a !== c;
+    } else {
+      assertUnreachable(parentDisplay);
+    }
+    if (legA) shownA[canonical.endpointA[i]] = 1;
+    if (legB) shownB[canonical.endpointB[i]] = 1;
+  }
+  return { shownA, shownB };
+}
+
 function applyLegA(
   bridgeIndex: number,
   bridgeCount: number,
@@ -157,6 +208,8 @@ function getBridgeBuilderProps(
   // as the impostors' uSizeFactor
   const sizeFactor = props.sizeFactor * props.sizeAspectRatio;
   const canonical = getCanonicalLegIndices(bridges);
+  const { child } = structure;
+  const childLegs = child && getChildLegs(structure, child, bridges, unitsFeatures, canonical, props.parentDisplay);
 
   return {
     // Four half-cylinders per bridge; the link builders draw the A-side half per call:
@@ -202,7 +255,8 @@ function getBridgeBuilderProps(
       const bi = edgeIndex % n;
       const leg = Math.floor(edgeIndex / n);
 
-      return leg <= 1 ? canonical.endpointA[bi] !== bi : canonical.endpointB[bi] !== bi;
+      if (leg <= 1) return canonical.endpointA[bi] !== bi || (!!childLegs && !childLegs.shownA[bi]);
+      return canonical.endpointB[bi] !== bi || (!!childLegs && !childLegs.shownB[bi]);
     },
 
     style: (_edgeIndex: number) => LinkStyle.Dashed,
@@ -319,7 +373,8 @@ function setUpdateState(
   state.createGeometry =
     newProps.dashCount !== currentProps.dashCount ||
     newProps.dashScale !== currentProps.dashScale ||
-    newProps.dashCap !== currentProps.dashCap;
+    newProps.dashCap !== currentProps.dashCap ||
+    newProps.parentDisplay !== currentProps.parentDisplay;
   // a size change rebuilds the mesh (ComplexMeshVisual, by SizeTheme.areEqual) and updates the impostors' sizes
 
   const interactionsHash = InteractionsProvider.get(newStructure).version;
@@ -370,7 +425,7 @@ export function BridgeImpostorVisual(materialId: number): ComplexVisual<BridgePa
       setUpdateState,
       initUpdateState,
       mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
-        !props.tryUseImpostor || !graphics,
+        !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics),
     },
     materialId,
   );
@@ -387,7 +442,7 @@ export function BridgeMeshVisual(materialId: number): ComplexVisual<BridgeParams
       setUpdateState: setMeshUpdateState,
       initUpdateState,
       mustRecreate: (_: Structure, props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
-        props.tryUseImpostor && !!graphics,
+        props.tryUseImpostor && checkCylinderImpostorSupport(graphics),
     },
     materialId,
   );

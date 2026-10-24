@@ -2,16 +2,17 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { StructureElement, Unit, Structure } from '@molstar/model/model/structure/structure';
 import { ChunkedArray } from '@molstar/core/data/util';
-import { GridLookup3D } from '@molstar/core/math/geometry';
+import { Box3D, GridLookup3D, type PositionData, Sphere3D } from '@molstar/core/math/geometry';
 import { OrderedSet, SortedArray } from '@molstar/core/data/int';
 import type { FeatureGroup, FeatureType } from './common.js';
 import { ValenceModelProvider } from '../valence-model.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import { getBoundary } from '@molstar/core/math/geometry/boundary';
+import { type Boundary, getBoundary, getFastBoundary } from '@molstar/core/math/geometry/boundary';
 
 export { Features };
 
@@ -102,6 +103,7 @@ namespace Features {
   export function create(elementsCount: number, data: Data): Features {
     let lookup3d: GridLookup3D<FeatureIndex>;
     let elementsIndex: ElementsIndex;
+    const subsets = new Map<string, Subset>();
 
     return {
       ...data,
@@ -113,7 +115,7 @@ namespace Features {
             z: data.z,
             indices: OrderedSet.ofBounds(0 as FeatureIndex, data.count as FeatureIndex),
           };
-          lookup3d = GridLookup3D(position, getBoundary(position));
+          lookup3d = GridLookup3D(position, getFeaturesBoundary(position));
         }
         return lookup3d;
       },
@@ -121,8 +123,47 @@ namespace Features {
         return elementsIndex || (elementsIndex = createElementsIndex(data, elementsCount));
       },
 
-      subset: (types: Set<FeatureType>) => createSubset(data, types),
+      subset: (types: ReadonlySet<FeatureType>) => {
+        // one subset per type set for the features' lifetime: the contact testers ask for theirs per computation
+        const key = Array.from(types).sort().join(',');
+        let subset = subsets.get(key);
+        if (!subset) subsets.set(key, (subset = createSubset(data, types)));
+        return subset;
+      },
     };
+  }
+
+  /**
+   * The exact box and a centroid sphere (two passes) instead of `getBoundary`'s 98-direction sphere: the grid needs
+   * the box, and the sphere only bounds the inter-unit candidate tests (perf-audit-2 06/P5)
+   */
+  function getFeaturesBoundary(data: PositionData): Boundary {
+    const { x, y, z, indices } = data;
+    const n = OrderedSet.size(indices);
+    if (n === 0) return getBoundary(data);
+    const box = Box3D.computeBounding(data);
+    let cx = 0,
+      cy = 0,
+      cz = 0;
+    for (let t = 0; t < n; t++) {
+      const i = OrderedSet.getAt(indices, t);
+      cx += x[i];
+      cy += y[i];
+      cz += z[i];
+    }
+    cx /= n;
+    cy /= n;
+    cz /= n;
+    let radiusSq = 0;
+    for (let t = 0; t < n; t++) {
+      const i = OrderedSet.getAt(indices, t);
+      const dx = x[i] - cx,
+        dy = y[i] - cy,
+        dz = z[i] - cz;
+      const d = dx * dx + dy * dy + dz * dz;
+      if (d > radiusSq) radiusSq = d;
+    }
+    return { box, sphere: Sphere3D.create(Vec3.create(cx, cy, cz), Math.sqrt(radiusSq)) };
   }
 
   export function createSubset(data: Data, types: ReadonlySet<FeatureType>): Subset {
@@ -140,7 +181,8 @@ namespace Features {
       get lookup3d() {
         if (!lookup3d) {
           const position = { x: data.x, y: data.y, z: data.z, indices };
-          lookup3d = GridLookup3D(position, getBoundary(position));
+          // only queried: the box is exact, the sphere is unused
+          lookup3d = GridLookup3D(position, getFastBoundary(position));
         }
         return lookup3d;
       },

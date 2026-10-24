@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,6 +18,7 @@ import { LinearGroupingBuilder } from '../utils/builders.js';
 import type { SchemaItem } from '../../structure/element/schema.js';
 import { substructureFromRows } from '../../structure/element/schema-selection/row-structure.js';
 import { structureSubtract } from '../utils/structure-set.js';
+import type { StructureSubsetBuilder } from '../../structure/util/subset-builder.js';
 
 export const none: StructureQuery = (ctx) => StructureSelection.Sequence(ctx.inputStructure, []);
 export const all: StructureQuery = (ctx) => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
@@ -135,6 +136,7 @@ function atomGroupsSegmented({
 
     const chainLevel = residueTest === _true && atomTest === _true;
     const residueLevel = atomTest === _true;
+    const passingChains: number[] = [];
 
     l.structure = inputStructure;
     for (const unit of units) {
@@ -155,7 +157,7 @@ function atomGroupsSegmented({
           if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
           if (chainLevel) {
-            builder.addElementRange(elements, chainSegment.start, chainSegment.end);
+            passingChains.push(chainSegment.start, chainSegment.end);
             continue;
           }
 
@@ -193,7 +195,7 @@ function atomGroupsSegmented({
           if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
           if (chainLevel) {
-            builder.addElementRange(elements, chainSegment.start, chainSegment.end);
+            passingChains.push(chainSegment.start, chainSegment.end);
             continue;
           }
 
@@ -206,6 +208,7 @@ function atomGroupsSegmented({
           }
         }
       }
+      if (chainLevel) addChainRanges(builder, unit.id, elements, passingChains);
       builder.commitUnit();
 
       ctx.throwIfTimedOut();
@@ -213,6 +216,26 @@ function atomGroupsSegmented({
     ctx.popCurrentElement();
     return StructureSelection.Singletons(inputStructure, builder.getStructure());
   };
+}
+
+/**
+ * Adds the passing chains' element ranges (start, end pairs) of a unit and clears the list. A unit whose every chain
+ * passes is set whole: no copy of its elements, and the subset builder reuses the parent unit (perf-audit-2 05/P19).
+ */
+function addChainRanges(
+  builder: StructureSubsetBuilder,
+  unitId: number,
+  elements: StructureElement.Set,
+  ranges: number[],
+) {
+  let size = 0;
+  for (let i = 0, il = ranges.length; i < il; i += 2) size += ranges[i + 1] - ranges[i];
+  if (size === elements.length) {
+    builder.setUnit(unitId, elements);
+  } else {
+    for (let i = 0, il = ranges.length; i < il; i += 2) builder.addElementRange(elements, ranges[i], ranges[i + 1]);
+  }
+  ranges.length = 0;
 }
 
 function atomGroupsGrouped({

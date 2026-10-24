@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -104,7 +105,7 @@ export function PolymerBackboneSphereImpostorVisual(materialId: number): UnitsVi
         props: PD.Values<PolymerBackboneSphereParams>,
         graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !graphics;
+        return !props.tryUseImpostor || !checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -169,7 +170,7 @@ export function PolymerBackboneSphereMeshVisual(materialId: number): UnitsVisual
         props: PD.Values<PolymerBackboneSphereParams>,
         graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!graphics;
+        return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
       },
     },
     materialId,

@@ -446,27 +446,45 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
   });
 }
 
+/**
+ * The struct_conn partners of a unit's atoms (sorted), per struct_conn object and unit elements: most units
+ * have none, and a unit pairs with many units (its neighbours, symmetry copies, the children that reuse it), so the
+ * rows are read once per unit, not per pair (perf-audit-2 05/P17)
+ */
+const structConnPartners = new WeakMap<StructConn, WeakMap<SortedArray<ElementIndex>, ArrayLike<ElementIndex>>>();
+const NoPartners: ArrayLike<ElementIndex> = [];
+
+function getStructConnPartners(structConn: StructConn, elements: SortedArray<ElementIndex>) {
+  let byElements = structConnPartners.get(structConn);
+  if (!byElements) structConnPartners.set(structConn, (byElements = new WeakMap()));
+  let partners = byElements.get(elements);
+  if (partners) return partners;
+
+  const found: number[] = [];
+  for (let i = 0, _i = elements.length; i < _i; i++) {
+    const aI = elements[i];
+    const entries = structConn.byAtomIndex.get(aI);
+    if (!entries?.length) continue;
+    for (const e of entries) {
+      found.push(e.partnerA.atomIndex === aI ? e.partnerB.atomIndex : e.partnerA.atomIndex);
+    }
+  }
+  partners = found.length === 0 ? NoPartners : SortedArray.ofUnsortedArray<ElementIndex>(found as ElementIndex[]);
+  byElements.set(elements, partners);
+  return partners;
+}
+
+/** Whether a struct_conn record links an atom of `unitA` and one of `unitB`: the smaller unit's partners in the other */
 function hasCommonStructConnRecord(unitA: Unit, unitB: Unit) {
   if (unitA.model !== unitB.model || !Unit.isAtomic(unitA) || !Unit.isAtomic(unitB)) return false;
   const structConn = StructConn.Provider.get(unitA.model);
   if (!structConn) return false;
 
   const smaller = unitA.elements.length < unitB.elements.length ? unitA : unitB;
-  const bigger = unitA.elements.length >= unitB.elements.length ? unitA : unitB;
-
-  const { elements: xs } = smaller;
-  const { elements: ys } = bigger;
-  const { indexOf } = SortedArray;
-
-  for (let i = 0, _i = xs.length; i < _i; i++) {
-    const aI = xs[i];
-    const entries = structConn.byAtomIndex.get(aI);
-    if (!entries?.length) continue;
-
-    for (const e of entries) {
-      const bI = e.partnerA.atomIndex === aI ? e.partnerB.atomIndex : e.partnerA.atomIndex;
-      if (indexOf(ys, bI) >= 0) return true;
-    }
+  const { elements } = smaller === unitA ? unitB : unitA;
+  const partners = getStructConnPartners(structConn, smaller.elements);
+  for (let i = 0, _i = partners.length; i < _i; i++) {
+    if (SortedArray.has(elements, partners[i])) return true;
   }
   return false;
 }

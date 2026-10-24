@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { OrderedSet } from '@molstar/core/data/int';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -64,5 +65,50 @@ describe('interaction features cache', () => {
     const unit = structure.units[0].id;
     expect(c.unitsFeatures.get(unit)).not.toBe(a.unitsFeatures.get(unit));
     expect(c.unitsFeatures.get(unit)!.count).toBeGreaterThan(0);
+  });
+});
+
+// A tester's subset (index list and grid) is made once per type set for the features' lifetime, and the grids get an
+// exact box without the 98-direction boundary (perf-audit-2 06/P5).
+describe('interaction feature grids', () => {
+  it('reuse a subset per type set; the full grid has the exact box and a sphere holding every feature', async () => {
+    const structure = await load1cbs();
+    const r = await computeInteractions(ctx, structure, PD.getDefaultValues(InteractionsParams));
+    const unit = structure.units.reduce((a, b) => (a.elements.length >= b.elements.length ? a : b));
+    const features = r.unitsFeatures.get(unit.id);
+    expect(features.count).toBeGreaterThan(100);
+
+    const types = new Set(Array.from(features.types).slice(0, 3));
+    const subset = features.subset(types);
+    expect(features.subset(new Set(Array.from(types).reverse()))).toBe(subset);
+    expect(features.subset(new Set([...types, 255 as any]))).not.toBe(subset);
+
+    const { box, sphere } = features.lookup3d.boundary;
+    const { x, y, z, count } = features;
+    const min = [Infinity, Infinity, Infinity],
+      max = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < count; i++) {
+      const p = [x[i], y[i], z[i]];
+      for (let k = 0; k < 3; k++) {
+        min[k] = Math.min(min[k], p[k]);
+        max[k] = Math.max(max[k], p[k]);
+      }
+      const d = Math.hypot(p[0] - sphere.center[0], p[1] - sphere.center[1], p[2] - sphere.center[2]);
+      expect(d).toBeLessThanOrEqual(sphere.radius * (1 + 1e-12));
+    }
+    expect(Array.from(box.min)).toEqual(min);
+    expect(Array.from(box.max)).toEqual(max);
+
+    // the subset grid finds what a scan finds
+    const i0 = OrderedSet.getAt(subset.indices, 0);
+    const found = subset.lookup3d.find(x[i0], y[i0], z[i0], 6);
+    const hits = new Set<number>();
+    for (let k = 0; k < found.count; k++) hits.add(OrderedSet.getAt(subset.indices, found.indices[k]));
+    const scan = new Set<number>();
+    for (let t = 0; t < OrderedSet.size(subset.indices); t++) {
+      const j = OrderedSet.getAt(subset.indices, t);
+      if (Math.hypot(x[j] - x[i0], y[j] - y[i0], z[j] - z[i0]) <= 6) scan.add(j);
+    }
+    expect(hits).toEqual(scan);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -11,6 +11,8 @@ type Bucket = {
   key: any;
   count: number;
   offset: number;
+  /** position in the bucket list before any sort */
+  ordinal: number;
 };
 
 function sortAsc(bs: Bucket[], i: number, j: number) {
@@ -26,20 +28,25 @@ function _makeBuckets(
 ) {
   const buckets = new Map<any, Bucket>();
   const bucketList: Bucket[] = [];
+  // the bucket ordinal of each index, so that the reorder pass needs no getKey or map lookup; a run of one key reuses
+  // its bucket without a lookup (perf-audit-2 01/P4)
+  const ordinals = new Int32Array(end - start);
 
-  let prevKey = getKey(indices[0]);
+  let prev: Bucket | undefined;
   let isBucketed = true;
   for (let i = start; i < end; i++) {
     const key = getKey(indices[i]);
-    if (buckets.has(key)) {
-      buckets.get(key)!.count++;
-      if (prevKey !== key) isBucketed = false;
-    } else {
-      const bucket: Bucket = { key, count: 1, offset: i };
+    let bucket = prev !== undefined && prev.key === key ? prev : buckets.get(key);
+    if (bucket === undefined) {
+      bucket = { key, count: 0, offset: i, ordinal: bucketList.length };
       buckets.set(key, bucket);
       bucketList[bucketList.length] = bucket;
+    } else if (bucket !== prev) {
+      isBucketed = false;
     }
-    prevKey = key;
+    bucket.count++;
+    ordinals[i - start] = bucket.ordinal;
+    prev = bucket;
   }
 
   const bucketOffsets = new Int32Array(bucketList.length + 1);
@@ -60,6 +67,7 @@ function _makeBuckets(
     return bucketOffsets;
   }
 
+  const byOrdinal = sortBuckets && !sorted ? bucketList.slice() : bucketList;
   if (sortBuckets && !sorted) {
     sort(bucketList, 0, bucketList.length, sortAsc, arraySwap);
   }
@@ -73,8 +81,7 @@ function _makeBuckets(
 
   const reorderedIndices = new Int32Array(end - start);
   for (let i = start; i < end; i++) {
-    const key = getKey(indices[i]);
-    const bucket = buckets.get(key)!;
+    const bucket = byOrdinal[ordinals[i - start]];
     reorderedIndices[bucket.offset++] = indices[i];
   }
 
