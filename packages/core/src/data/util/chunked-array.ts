@@ -5,6 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { anchorMap } from '../../util/map-anchor.js';
+
 /**
  * A generic chunked array builder.
  *
@@ -208,6 +210,9 @@ namespace ChunkedArray {
 
     return ret;
   }
+
+  // keeps the map of a chunked array with a chunk, which the adders' optimized code embeds (`anchorMap`)
+  anchorMap(create(Float32Array, 1, 1, 1));
 }
 
 export { ChunkedArray };
