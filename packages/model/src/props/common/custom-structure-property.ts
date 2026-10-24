@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Structure } from '@molstar/model/model/structure';
@@ -56,6 +57,13 @@ namespace CustomStructureProperty {
       };
     };
 
+    /**
+     * The computation in flight per structure: an attach with the same merged props awaits it instead of computing again
+     * (a selection query's `ensureCustomProperties` outside the state queue during a representation's build,
+     * perf-audit-2 06/B9). If it fails, or its requester aborts it, the other requester computes itself.
+     */
+    const pending = new WeakMap<Structure, { props: PD.Values<Params>; promise: Promise<void> }>();
+
     return {
       label: builder.label,
       descriptor: builder.descriptor,
@@ -74,10 +82,31 @@ namespace CustomStructureProperty {
         const property = get(data);
         const p = PD.merge(builder.defaultParams, rootProps, props);
         if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return;
-        const { value, assets } = await builder.obtain(ctx, data, p);
-        data.customPropertyDescriptors.add(builder.descriptor);
-        data.customPropertyDescriptors.assets(builder.descriptor, assets);
-        set(data, p, value);
+
+        const inFlight = pending.get(data);
+        if (inFlight && PD.areEqual(builder.defaultParams, inFlight.props, p)) {
+          try {
+            await inFlight.promise;
+          } catch {
+            // the other requester's failure or abort: compute below
+          }
+          const current = get(data);
+          if (current.data.value && PD.areEqual(builder.defaultParams, current.props, p)) return;
+        }
+
+        const target = data;
+        const promise = (async () => {
+          const { value, assets } = await builder.obtain(ctx, target, p);
+          target.customPropertyDescriptors.add(builder.descriptor);
+          target.customPropertyDescriptors.assets(builder.descriptor, assets);
+          set(target, p, value);
+        })();
+        pending.set(data, { props: p, promise });
+        try {
+          await promise;
+        } finally {
+          if (pending.get(data)?.promise === promise) pending.delete(data);
+        }
       },
       ref: (data: Structure, add: boolean) => data.customPropertyDescriptors.reference(builder.descriptor, add),
       get: (data: Structure) => get(data).data,
