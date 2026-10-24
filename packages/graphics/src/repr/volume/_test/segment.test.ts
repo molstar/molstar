@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Box3D } from '@molstar/core/math/geometry';
 import { Mat4, Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { type Grid, Volume } from '@molstar/model/model/volume';
 import { createVolumeSegmentMesh } from '../segment.js';
-import { createSegmentTexture2d } from '../util.js';
+import { createSegmentTexture2d, getSegmentMaskValue } from '../util.js';
 
 const N = 8;
 
@@ -94,5 +94,28 @@ describe('volume segment mesh', () => {
       }
     }
     expect(inside).toBeGreaterThan(0);
+  });
+});
+
+describe('segment mask', () => {
+  it('tests each voxel of the box once, with the same values (perf-audit-2 07/P8)', () => {
+    const { cells } = createSlab().grid;
+    // past every face, as the visuals' expanded boxes are
+    const bbox = Box3D.create(Vec3.create(-2, 0, 1), Vec3.create(N + 2, 7, 8));
+    const set = [1];
+    const includes = vi.spyOn(set, 'includes');
+    const boxed = getSegmentMaskValue(cells, set, bbox);
+    const plain = getSegmentMaskValue(cells, [1]);
+    let n = 0;
+    for (let z = bbox.min[2]; z < bbox.max[2]; z++) {
+      for (let y = bbox.min[1]; y < bbox.max[1]; y++) {
+        for (let x = bbox.min[0]; x < bbox.max[0]; x++) {
+          expect(boxed(x, y, z)).toBe(plain(x, y, z));
+          n++;
+        }
+      }
+    }
+    // the box and its border, inside the grid; 7 per voxel before
+    expect(includes.mock.calls.length).toBeLessThanOrEqual(n);
   });
 });

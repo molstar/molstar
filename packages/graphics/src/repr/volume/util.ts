@@ -370,13 +370,50 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
  * `set`, over 8. Cells outside the grid count as not in the segment: a segment's expanded box reaches past the grid's
  * faces, where a read wrapped into the next row or gave undefined (perf-audit-2 07/N1).
  */
-export function getSegmentMaskValue(cells: Tensor, set: number[]) {
+/**
+ * The smoothed segment mask (0..255) of a voxel, from its label and its 6 neighbours'. With `bbox` (the voxels that
+ * will be asked, `[min, max)`) the membership is computed once per voxel of the box and its 1-voxel border, not 7 times
+ * per voxel (perf-audit-2 07/P8); the same values.
+ */
+export function getSegmentMaskValue(cells: Tensor, set: number[], bbox?: Box3D) {
   const data = cells.data;
   const o = cells.space.dataOffset;
   const [gx, gy, gz] = cells.space.dimensions;
   const mask = (x: number, y: number, z: number) =>
     x < 0 || y < 0 || z < 0 || x >= gx || y >= gy || z >= gz ? 0 : set.includes(data[o(x, y, z)]) ? 255 : 0;
-  return (i: number, j: number, k: number) => {
+
+  if (bbox) {
+    const x0 = bbox.min[0] - 1,
+      y0 = bbox.min[1] - 1,
+      z0 = bbox.min[2] - 1;
+    const mx = bbox.max[0] - bbox.min[0] + 2,
+      my = bbox.max[1] - bbox.min[1] + 2,
+      mz = bbox.max[2] - bbox.min[2] + 2;
+    const values = new Uint8Array(mx * my * mz);
+    for (let z = 0; z < mz; ++z) {
+      for (let y = 0; y < my; ++y) {
+        for (let x = 0, r = (z * my + y) * mx; x < mx; ++x) values[r + x] = mask(x + x0, y + y0, z + z0);
+      }
+    }
+    const sy = mx,
+      sz = mx * my;
+    return (i: number, j: number, k: number) => {
+      const lx = i - x0,
+        ly = j - y0,
+        lz = k - z0;
+      // a voxel of the box: it and its neighbours are in `values`
+      if (lx >= 1 && ly >= 1 && lz >= 1 && lx < mx - 1 && ly < my - 1 && lz < mz - 1) {
+        const l = lz * sz + ly * sy + lx;
+        const v0 = values[l];
+        const n = values[l + 1] + values[l - 1] + values[l + sy] + values[l - sy] + values[l + sz] + values[l - sz];
+        return Math.round((v0 + v0 + n) / 8);
+      }
+      return stencil(i, j, k);
+    };
+  }
+  return stencil;
+
+  function stencil(i: number, j: number, k: number) {
     const v0 = mask(i, j, k);
     const n =
       mask(i + 1, j, k) +
@@ -386,13 +423,13 @@ export function getSegmentMaskValue(cells: Tensor, set: number[]) {
       mask(i, j, k + 1) +
       mask(i, j, k - 1);
     return Math.round((v0 + v0 + n) / 8);
-  };
+  }
 }
 
 export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3D, padding = 0) {
   const dim = Box3D.size(Vec3(), bbox);
   const { width, height } = getVolumeTexture2dLayout(dim, padding);
-  const value = getSegmentMaskValue(volume.grid.cells, set);
+  const value = getSegmentMaskValue(volume.grid.cells, set, bbox);
 
   const itemSize = 1;
   const array = new Uint8Array(width * height * itemSize);
