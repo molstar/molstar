@@ -100,7 +100,14 @@ function parseListDef(line: string, localColorDict: { [k: string]: Color }) {
   };
 }
 
-function parseListElm(line: string, localColorDict: { [k: string]: Color }) {
+/**
+ * A point's master tags, one array per distinct tag string in a file: most points share theirs, and an array per point
+ * cost ~100 B (perf-audit-2 04/P17). The arrays are only read.
+ */
+type PointMasterCache = Map<string, string[]>;
+const NoPointMasters: string[] = [];
+
+function parseListElm(line: string, localColorDict: { [k: string]: Color }, pointMasterCache: PointMasterCache) {
   line = line.trim();
 
   const idx1 = line.indexOf('{');
@@ -112,7 +119,7 @@ function parseListElm(line: string, localColorDict: { [k: string]: Color }) {
   let color, width, radius;
   let lineBreak = false;
   let triangleBreak = false;
-  const pointMasters: string[] = [];
+  let tags = '';
   for (let lsindex = 4; lsindex <= ls.length; lsindex++) {
     const literal = ls[ls.length - lsindex];
     if (literal in localColorDict) {
@@ -132,11 +139,13 @@ function parseListElm(line: string, localColorDict: { [k: string]: Color }) {
     }
     if (literal.startsWith("'") && literal.endsWith("'")) {
       // Handle single-character tags by putting each character into a pointMaster tag, e.g. 'ab' would be two tags, 'a' and 'b'
-      const tagString: string = literal.substring(1, literal.length - 1);
-      for (let i = 0; i < tagString.length; i++) {
-        pointMasters.push(tagString[i]);
-      }
+      tags += literal.substring(1, literal.length - 1);
     }
+  }
+  let pointMasters = tags ? pointMasterCache.get(tags) : NoPointMasters;
+  if (!pointMasters) {
+    pointMasters = tags.split('');
+    pointMasterCache.set(tags, pointMasters);
   }
 
   return {
@@ -261,10 +270,6 @@ function convertKinTriangleArrays(ribbonObject: RibbonObject) {
   for (let i = 0; i < (positionArray.length / 3 - 2) * 9; ++i) {
     convertedPositions[i] = positionArray[i - Math.floor(i / 9) * 6];
   }
-  const vector3Positions = [];
-  for (let i = 0; i < convertedPositions.length / 3; ++i) {
-    vector3Positions.push([convertedPositions[i * 3], convertedPositions[i * 3] + 1, convertedPositions[i * 3] + 2]);
-  }
   return {
     group: ribbonObject.group,
     subgroup: ribbonObject.subgroup,
@@ -372,6 +377,7 @@ class KinParser {
 
     // Keep a local copy of the ColorDict that we can update with new colors defined in the file.
     const localColorDict: { [k: string]: Color } = Object.assign({}, ColorDict);
+    const pointMasterCache: PointMasterCache = new Map();
 
     let currentGroup: string = '';
     let currentGroupMasters: string[];
@@ -627,7 +633,7 @@ class KinParser {
         } else if (isDotList) {
           // { CB  THR   1  A}sky  'P' 18.915,14.199,5.024
 
-          let { label, color, position, pointMasters } = parseListElm(line, localColorDict);
+          let { label, color, position, pointMasters } = parseListElm(line, localColorDict, pointMasterCache);
 
           if (label === '"') {
             label = prevDotLabel;
@@ -654,6 +660,7 @@ class KinParser {
             let { label, color, width, position, isLineBreak, pointMasters } = parseListElm(
               singlePointLine,
               localColorDict,
+              pointMasterCache,
             );
 
             if (label === '"') {
@@ -690,7 +697,7 @@ class KinParser {
         } else if (isBallList) {
           // {cb arg A   1   1.431 -106.80} r=1.431  39.085, 8.083, 22.182
 
-          let { label, radius, color, position, pointMasters } = parseListElm(line, localColorDict);
+          let { label, radius, color, position, pointMasters } = parseListElm(line, localColorDict, pointMasterCache);
 
           if (label === '"') {
             label = prevBallLabel;
@@ -712,7 +719,11 @@ class KinParser {
           ballColor.push(color);
           ballPointMasters.push(pointMasters);
         } else if (isRibbonList) {
-          let { label, color, position, isTriangleBreak, pointMasters } = parseListElm(line, localColorDict);
+          let { label, color, position, isTriangleBreak, pointMasters } = parseListElm(
+            line,
+            localColorDict,
+            pointMasterCache,
+          );
 
           if (label === '"') {
             label = prevRibbonPointLabel;
