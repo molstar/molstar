@@ -316,16 +316,13 @@ function subtractIS(a: I, b: S) {
   // A is subset of B
   if (resultSize <= 0) return Empty;
 
+  // one pass over the interval and b's values inside it, not a binary search per value (perf-audit-2 01/P3)
   const ret = new Int32Array(resultSize);
-  const li = b.length - 1;
-  const fst = b[Math.min(start, li)],
-    last = b[Math.min(end, li)];
   let offset = 0;
-  for (let i = min; i < fst; i++) ret[offset++] = i;
-  for (let i = fst; i <= last; i++) {
-    if (S.indexOfInInterval(b, i, interval) < 0) ret[offset++] = i;
+  for (let i = min, j = start; i <= max; i++) {
+    if (j < end && b[j] === i) j++;
+    else ret[offset++] = i;
   }
-  for (let i = last + 1; i <= max; i++) ret[offset++] = i;
   return ofSortedArray(ret);
 }
 

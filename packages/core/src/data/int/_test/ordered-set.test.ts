@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { OrderedSet } from '../ordered-set.js';
 import { Interval } from '../interval.js';
 import { SortedArray } from '../sorted-array.js';
@@ -244,6 +244,30 @@ describe('ordered set', () => {
       set = OrderedSet.ofSortedArray([2, 3, 4]);
     expect(OrderedSet.forEach(int, (v, i, ctx) => (ctx[i] = v), [] as number[])).toEqual([1, 2]);
     expect(OrderedSet.forEach(set, (v, i, ctx) => (ctx[i] = v), [] as number[])).toEqual([2, 3, 4]);
+  });
+
+  it('subtract of a sorted array from an interval walks both once (perf-audit-2 01/P3)', () => {
+    const b = SortedArray.ofSortedArray([-3, 2, 3, 7, 11, 40]);
+    const search = vi.spyOn(SortedArray, 'indexOfInInterval');
+    const r = OrderedSet.subtract(OrderedSet.ofRange(0, 12), b);
+    expect(search).not.toHaveBeenCalled();
+    search.mockRestore();
+    expect(ordSetToArray(r)).toEqual([0, 1, 4, 5, 6, 8, 9, 10, 12]);
+    // random sets against a filter
+    let seed = 11;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let n = 0; n < 50; n++) {
+      const min = Math.floor(rnd() * 20),
+        max = min + Math.floor(rnd() * 30);
+      const xs = Array.from(new Set(Array.from({ length: 15 }, () => Math.floor(rnd() * 60) - 5))).sort(
+        (a, c) => a - c,
+      );
+      const expected: number[] = [];
+      for (let i = min; i <= max; i++) if (!xs.includes(i)) expected.push(i);
+      expect(ordSetToArray(OrderedSet.subtract(OrderedSet.ofRange(min, max), OrderedSet.ofSortedArray(xs)))).toEqual(
+        expected,
+      );
+    }
   });
 
   it('forEachSegment emits each segment once', () => {
