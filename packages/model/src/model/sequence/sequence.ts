@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -209,7 +209,8 @@ namespace Sequence {
       this.code = Column.ofConst('X', count, Column.Schema.str) as Column<Alphabet>;
       this.label = Column.ofConst('', count, Column.Schema.str);
       this.seqId = Column.ofLambda({
-        value: (row) => row + minSeqId + 1,
+        // the inverse of `index` (perf-audit-2 04/B4)
+        value: (row) => row + minSeqId,
         rowCount: count,
         schema: Column.Schema.int,
       });
