@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { UniqueArray } from '@molstar/core/data/generic';
@@ -598,8 +599,12 @@ export namespace Loci {
     return Loci(loci.structure, elements);
   }
 
+  // reused by `extendToRadius`, which is synchronous and not reentrant; emptied after each call
+  const _extendToRadiusElementsByUnit = new Map<number, Set<UnitIndex>>();
+
   export function extendToRadius(loci: Loci, radius: number): Loci {
-    const elementsByUnit = new Map<number, Set<UnitIndex>>();
+    const elementsByUnit = _extendToRadiusElementsByUnit;
+    elementsByUnit.clear(); // in case an earlier call threw
 
     const lookup = loci.structure.lookup3d;
     const pos = Vec3();
@@ -609,7 +614,7 @@ export namespace Loci {
       for (let i = 0, il = result.count; i < il; ++i) {
         const unit = result.units[i];
         const unitIdx = result.indices[i];
-        let set: Set<UnitIndex> = elementsByUnit.get(unit.id) as Set<UnitIndex>;
+        let set = elementsByUnit.get(unit.id);
         if (!set) {
           set = new Set();
           elementsByUnit.set(unit.id, set);
@@ -621,10 +626,12 @@ export namespace Loci {
     const elements: Element[] = [];
     for (const [unitId, indexSet] of elementsByUnit.entries()) {
       const unit = loci.structure.unitMap.get(unitId)!;
+      // a fresh array per unit: `makeIndexSet` keeps it as the loci's indices
       const indices = Array.from(indexSet) as UnitIndex[];
       sortArray(indices);
       elements.push({ unit, indices: makeIndexSet(indices) });
     }
+    elementsByUnit.clear();
 
     return {
       kind: 'element-loci',

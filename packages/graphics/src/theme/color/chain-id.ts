@@ -1,7 +1,9 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import {
@@ -59,7 +61,12 @@ function getKey(model: Model, asymId: string) {
   return `${asymId}|${(Model.Index.get(model).value || 0) + 1}`;
 }
 
-function getAsymIdSerialMap(structure: Structure, type: AsymIdType) {
+/** Cached on the structure: every theme created for it (one per representation) shares the map */
+function getAsymIdSerialMap(structure: Structure, type: AsymIdType): Map<string, number> {
+  const prop = `__ChainIdColorTheme_AsymIdSerialMap_${type}__`;
+  const cached = structure.currentPropertyData[prop];
+  if (cached) return cached;
+
   const map = new Map<string, number>();
   for (const m of structure.models) {
     const asymIdOffset = Model.AsymIdOffset.get(m).value;
@@ -74,6 +81,7 @@ function getAsymIdSerialMap(structure: Structure, type: AsymIdType) {
       }
     });
   }
+  structure.currentPropertyData[prop] = map;
   return map;
 }
 

@@ -1,7 +1,9 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -57,7 +59,13 @@ function formatHkl(hkl: Vec3) {
   return hkl.map((v) => v + 5).join('');
 }
 
-function getOperatorHklSerialMap(structure: Structure) {
+const OperatorHklSerialMapProp = '__OperatorHklColorTheme_SerialMap__';
+
+/** Cached on the structure: read by the params getter and every theme created for it */
+function getOperatorHklSerialMap(structure: Structure): { min: Vec3; max: Vec3; map: Map<string, number> } {
+  const cached = structure.currentPropertyData[OperatorHklSerialMapProp];
+  if (cached) return cached;
+
   const map = new Map<string, number>();
   const set = new Set<string>();
   for (let i = 0, il = structure.units.length; i < il; ++i) {
@@ -68,7 +76,9 @@ function getOperatorHklSerialMap(structure: Structure) {
   arr.forEach((k) => map.set(k, map.size));
   const min = hklKeySplit(arr[0]);
   const max = hklKeySplit(arr[arr.length - 1]);
-  return { min, max, map };
+  const result = { min, max, map };
+  structure.currentPropertyData[OperatorHklSerialMapProp] = result;
+  return result;
 }
 
 export function OperatorHklColorTheme(
