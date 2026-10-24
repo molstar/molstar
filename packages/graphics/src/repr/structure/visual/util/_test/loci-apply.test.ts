@@ -14,7 +14,12 @@ import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import { eachInterBond, eachIntraBond, eachStructureGroupsBond } from '../bond.js';
-import { applyIndexRuns, eachElement } from '../element.js';
+import {
+  applyIndexRuns,
+  createElementSphereImpostor,
+  createStructureElementSphereImpostor,
+  eachElement,
+} from '../element.js';
 import { getGroupLoci, isWholeStructureLoci } from '../loci-index.js';
 
 async function load1cbs() {
@@ -235,5 +240,35 @@ describe('inter-unit bonds of element loci (perf-audit-2 07/P10)', async () => {
       expect(s).not.toHaveBeenCalled();
       s.mockRestore();
     }
+  });
+});
+
+describe('sphere impostors (perf-audit-2 07/P18)', async () => {
+  const structure = await load1cbs();
+  const props = { sizeFactor: 1, ignoreHydrogens: false, ignoreHydrogensVariant: 'all' as const, traceOnly: false };
+  let sizes = 0;
+  const theme = {
+    color: {} as any,
+    size: { granularity: 'group', size: () => (sizes++, 1.5) } as any,
+  };
+
+  it('evaluate the size theme only for a new bounding sphere', () => {
+    const unit = structure.units[0];
+    sizes = 0;
+    const first = createElementSphereImpostor({} as any, unit, structure, theme, props);
+    expect(sizes).toBe(unit.elements.length);
+    const radius = first.boundingSphere.radius;
+    sizes = 0;
+    // a rebuild over the old spheres keeps their bounding sphere
+    const second = createElementSphereImpostor({} as any, unit, structure, theme, props, first);
+    expect(sizes).toBe(0);
+    expect(second.boundingSphere.radius).toBe(radius);
+
+    sizes = 0;
+    const all = createStructureElementSphereImpostor({} as any, structure, theme, props);
+    expect(sizes).toBe(structure.elementCount);
+    sizes = 0;
+    createStructureElementSphereImpostor({} as any, structure, theme, props, all);
+    expect(sizes).toBe(0);
   });
 });
