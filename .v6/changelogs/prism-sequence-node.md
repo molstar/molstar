@@ -46,3 +46,5 @@
 - model-archive: a click on the PAE plot's cell already selected (its two residues and nothing else) unselects it.
 - model-archive: a box on the PAE plot brings both its ranges into view in the sequence (`highlight.mark`'s
   `focusSequence`): it used to stay wherever the sequence was zoomed, often on one of them.
+- model-archive: the PAE plot has a pair or a box, one at a time: a box takes off the pair the plot selected, and while
+  a box is shown a click selects nothing (the sequence is no longer pulled to an old pair).

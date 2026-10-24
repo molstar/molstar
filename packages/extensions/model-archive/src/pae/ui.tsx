@@ -16,7 +16,7 @@ import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import { type PaeMatrix, paePairTarget, paeRangeLabel, paeRangeTarget } from './data.js';
 import type { PaeSize } from './operations.js';
-import { PaePlot } from './plot.js';
+import { type PaeBox, PaePlot } from './plot.js';
 
 // The PAE card (parity.md §6, "PAE plot"; v5's Predicted Aligned Error panel, anew): the predicted aligned error of a
 // model as a heat map (plot.tsx), as AlphaFold DB draws it. The cell under the pointer is lit in the 3D view and the
@@ -190,10 +190,50 @@ export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix
   const { ctx, structure, matrix: m } = props;
   const api = ctx.api;
   // A click selects the cell's two residues; on the pair already selected (and nothing else), it unselects them.
+  // A pair or a box, one at a time: a box takes off the pair the plot selected last (the sequence is not held on a pair
+  // the person moved on from), and while it is shown a click selects nothing (the plot).
+  let picked: string | undefined;
   const togglePair = async (target: string) => {
     const r = await api.select.set({ target, structure });
-    if (r.ok && r.unchanged) await api.select.set({ target, structure, mode: 'remove' });
+    picked = target;
+    if (r.ok && r.unchanged) {
+      await api.select.set({ target, structure, mode: 'remove' });
+      picked = undefined;
+    }
   };
+  const unpick = async () => {
+    if (!picked) return;
+    const target = picked;
+    picked = undefined;
+    await api.select.set({ target, structure, mode: 'remove' });
+  };
+  const mark = async (b: PaeBox) => {
+    await unpick();
+    await api.highlight.mark({
+      owner: PaeMarksOwner,
+      structure,
+      // The rest greyed, as AlphaFold DB does: the ranges stand out of any coloring.
+      dimRest: true,
+      // Both ranges in view in the sequence (it zooms out to them), as a selection's are.
+      focusSequence: true,
+      // The scored last: painted over the aligned where they overlap, as the plot draws them.
+      marks: [
+        {
+          id: 'aligned',
+          tone: 'highlight',
+          label: `Aligned ${paeRangeLabel(m, b.i0, b.i1)}`,
+          target: paeRangeTarget(m, b.i0, b.i1),
+        },
+        {
+          id: 'scored',
+          tone: 'accent',
+          label: `Scored ${paeRangeLabel(m, b.j0, b.j1)}`,
+          target: paeRangeTarget(m, b.j0, b.j1),
+        },
+      ],
+    });
+  };
+
   return (
     <PaePlot
       matrix={m}
@@ -204,33 +244,7 @@ export function PaeView(props: { ctx: ViewerUIContext; structure: string; matrix
           : api.highlight.clear())
       }
       onPick={(i, j) => void togglePair(paePairTarget(m, i, j))}
-      onBox={(b) =>
-        void (b
-          ? api.highlight.mark({
-              owner: PaeMarksOwner,
-              structure,
-              // The rest greyed, as AlphaFold DB does: the ranges stand out of any coloring.
-              dimRest: true,
-              // Both ranges in view in the sequence (it zooms out to them), as a selection's are.
-              focusSequence: true,
-              // The scored last: painted over the aligned where they overlap, as the plot draws them.
-              marks: [
-                {
-                  id: 'aligned',
-                  tone: 'highlight',
-                  label: `Aligned ${paeRangeLabel(m, b.i0, b.i1)}`,
-                  target: paeRangeTarget(m, b.i0, b.i1),
-                },
-                {
-                  id: 'scored',
-                  tone: 'accent',
-                  label: `Scored ${paeRangeLabel(m, b.j0, b.j1)}`,
-                  target: paeRangeTarget(m, b.j0, b.j1),
-                },
-              ],
-            })
-          : api.highlight.unmark({ owner: PaeMarksOwner }))
-      }
+      onBox={(b) => void (b ? mark(b) : api.highlight.unmark({ owner: PaeMarksOwner }))}
     />
   );
 }

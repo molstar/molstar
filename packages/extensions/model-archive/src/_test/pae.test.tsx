@@ -348,6 +348,14 @@ describe('the PAE card', () => {
       ['model-archive.pae', 'scored', 'accent', 'Scored A 1–3'],
     ]);
     expect(marks.map((m) => StructureElement.Loci.size(m.loci))).toEqual([4, 3]);
+    // The box took the pair the plot selected off again: a pair or a box, one at a time.
+    await until(() => v.sources.interaction.selection.value === undefined);
+    // And while the box is shown, a click selects nothing.
+    pointer('pointermove', 300, 50);
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(v.sources.interaction.selection.value).toBeUndefined();
     expect(host.textContent).toContain('Aligned A 1–3, B 1');
     expect(host.textContent).toContain('Mean error 3.3 Å');
     // Marks are view state: no step.

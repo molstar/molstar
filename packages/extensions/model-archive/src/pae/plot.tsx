@@ -57,7 +57,7 @@ export interface PaePlotProps {
   readonly matrix: PaeMatrix;
   /** The cell under the pointer (aligned `i`, scored `j`); undefined: none. */
   onHover?(cell: { i: number; j: number } | undefined): void;
-  /** A click on a cell. */
+  /** A click on a cell (aligned `i`, scored `j`), while no box is shown. */
   onPick?(i: number, j: number): void;
   /** A box dragged over the plot; undefined: cleared. */
   onBox?(box: PaeBox | undefined): void;
@@ -392,7 +392,8 @@ export function PaePlot(props: PaePlotProps) {
         return;
       }
       if (!d.moved) {
-        props.onPick?.(d.i, d.j);
+        // A pair or a box, one at a time: while a box is shown, a click selects nothing.
+        if (!shown.value) props.onPick?.(d.i, d.j);
         return;
       }
       const b = dragged(d, clampCell(e.clientX, e.clientY));
