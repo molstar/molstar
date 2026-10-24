@@ -211,7 +211,7 @@ unchanged apart from #1987.
 | B5 | still-open; **fixed** #2034 | low | Impostor multi-bond/aromatic offsets stale after a size-theme change | [bond-intra-unit-cylinder.ts:339](../../packages/graphics/src/repr/structure/visual/bond-intra-unit-cylinder.ts#L339) | confirmed (code; v1 measured) |
 | B4 | still-open | low | Segment voxel loci use bbox-local ids as global cells | [segment.ts:111](../../packages/graphics/src/repr/volume/segment.ts#L111) | confirmed |
 | B8 | still-open | low | Highlight removal on reused visuals writes `tMarker` without a cell update | [units-representation.ts:169](../../packages/graphics/src/repr/structure/units-representation.ts#L169) | confirmed |
-| N3 | still-open | low | `eachVolumeLoci` segment branch: loop index as instance id; set accumulates | [volume/util.ts:129](../../packages/graphics/src/repr/volume/util.ts#L129) | confirmed |
+| N3 | still-open; **fixed** #2044 | low | `eachVolumeLoci` segment branch: loop index as instance id; set accumulates | [volume/util.ts:129](../../packages/graphics/src/repr/volume/util.ts#L129) | confirmed |
 | B9 | new | low | `Visual.mark` takes overlapping intervals for full coverage | [visual.ts:215](../../packages/graphics/src/repr/visual.ts#L215) | plausible |
 | B6 | still-open | low | Disk style uses a stale midpoint in impostor and line builders | [link.ts:563](../../packages/graphics/src/repr/structure/visual/util/link.ts#L563) | confirmed (latent) |
 | B7 | still-open | low | ComplexVisual and ShapeRepresentation build the position iterator from old geometry | [complex-visual.ts:265](../../packages/graphics/src/repr/structure/complex-visual.ts#L265) | confirmed (latent) |

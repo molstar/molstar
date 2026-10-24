@@ -58,7 +58,7 @@ defect inside the P1 fix, recorded as new.
 | P5 | still-open | H-bond anchor search per directed edge, closure per call, now across inter-unit bonds | [interactions-intra-unit-cylinder.ts:115](../../packages/graphics/src/props/computed/representations/interactions-intra-unit-cylinder.ts#L115) | time | low | ~5 % of the interactions build (5–60 ms flat-32 → flat-192) | S | confirmed | no |
 | P2 | still-open | Mesh fallback: dash caps 2/3 of vertices; estimate ~5× low | [link.ts:144](../../packages/graphics/src/repr/structure/visual/util/link.ts#L144) | time+memory | low | mesh fallback ~2× faster and smaller | S | confirmed | no |
 | P3 | still-open | `getPalette` 'set' legend by O(count) string concatenation | [palette.ts:100](../../packages/core/src/util/color/palette.ts#L100) | time+memory | low | 1M: 46 ms / 53 MB, 10M: 0.6 s / 549 MB → O(colors) | S | confirmed | no |
-| P18 | new | volume-segment theme: `Array.indexOf` per location, O(S²) per recolor | [volume-segment.ts:46](../../packages/graphics/src/theme/color/volume-segment.ts#L46) | time | low | 10k segments 19 ms, 50k 476 ms → < 5 ms | S | confirmed | no |
+| P18 | new; **fixed** #2044 | volume-segment theme: `Array.indexOf` per location, O(S²) per recolor | [volume-segment.ts:46](../../packages/graphics/src/theme/color/volume-segment.ts#L46) | time | low | 10k segments 19 ms, 50k 476 ms → < 5 ms | S | confirmed | no |
 
 ### P15: impostor buffers sized 6× and copied
 
