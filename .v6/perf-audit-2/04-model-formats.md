@@ -192,7 +192,7 @@ regressed 0, dropped 1**. Every v1 probe still open was rerun at HEAD and gives 
 | B6 | still-open; **fixed** #2033 | low | Granularity options grouped under 'With Symmetry' | [loci.ts:304](../../packages/model/src/model/loci.ts#L304) | confirmed |
 | B12 | new; **fixed** #2044 | low | MOL2 bonds assume atom ids 1..N in file order | [mol2.ts:163](../../packages/model/src/formats/structure/mol2.ts#L163) | plausible |
 | B13 | new; **fixed** #2044 | low | Segmentation load throws on a voxel label without a table set | [segmentation.ts:105](../../packages/model/src/formats/volume/segmentation.ts#L105) | plausible |
-| B14 | new | low | Kinemage: a re-opened `@group` keeps the previous group's masters | [kinparser.ts:767](../../packages/extensions/kinemage/src/reader/kinparser.ts#L767) | plausible |
+| B14 | new; **fixed** #2045 | low | Kinemage: a re-opened `@group` keeps the previous group's masters | [kinparser.ts:767](../../packages/extensions/kinemage/src/reader/kinparser.ts#L767) | plausible |
 
 ### B8: `molstar_bond_site` index space
 

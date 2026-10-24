@@ -410,12 +410,12 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 | Id | Status vs v1 | Severity | Title | File | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | B2 | **fixed** (#2026) | low | Prism's size budget is on the 7 KB entry stub | [package.json:67](../../apps/prism-viewer/package.json#L67) | confirmed |
-| 06/B9 | still open | low | `CustomStructureProperty.attach` has no in-flight dedup | [custom-structure-property.ts:70](../../packages/model/src/props/common/custom-structure-property.ts#L70) | plausible |
+| 06/B9 | still open; **fixed** #2045 | low | `CustomStructureProperty.attach` has no in-flight dedup | [custom-structure-property.ts:70](../../packages/model/src/props/common/custom-structure-property.ts#L70) | plausible |
 | B4 | new | low | Bench stages record errors as fast results | [stage.ts:99](../../tests/src/pipeline/stage.ts#L99) | confirmed |
 | B1 | new | low | Pipeline bench crashes on coarse-only entries | [bench.ts:324](../../tests/src/pipeline/bench.ts#L324) | confirmed |
 | 03/B7 | still open | low | Late abort discards a completed result undisposed | [observable.ts:106](../../packages/core/src/task/execution/observable.ts#L106) | confirmed |
 | B3 | new; **fixed** #2044 | low | Plugin log entries grow without bound | [context.ts:692](../../packages/plugin/core/src/context.ts#L692) | confirmed |
-| 03/B8 | still open | low | `chunkedSubtask` sizing compounds | [chunked.ts:28](../../packages/core/src/task/util/chunked.ts#L28) | confirmed |
+| 03/B8 | still open; **fixed** #2045 | low | `chunkedSubtask` sizing compounds | [chunked.ts:28](../../packages/core/src/task/util/chunked.ts#L28) | confirmed |
 
 - **B2.** `budgets: { 'index.js': 3200000 }` is checked per output file (`scripts/esbuild/app.mjs:304`). With
   `splitting: true`, `index.js` is a 7,385 B stub of imports; the start code is in 86 static chunks (6.31 MB). The budget
