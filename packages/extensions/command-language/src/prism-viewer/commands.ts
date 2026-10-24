@@ -25,13 +25,13 @@ const sessionDialects = new WeakMap<object, Dialect>();
 
 /** The person's default dialect (`!`), from the preferences; none when unset. */
 export function defaultDialect(preferences: PrismStore | undefined, viewer: object): Dialect | undefined {
-  if (!preferences) return sessionDialects.get(viewer);
   try {
-    const v = preferences.get(DialectPreference);
-    return Dialects.includes(v as Dialect) ? (v as Dialect) : undefined;
+    const v = preferences?.get(DialectPreference);
+    if (Dialects.includes(v as Dialect)) return v as Dialect;
   } catch {
-    return undefined;
+    // An unreadable store: the session's choice, if one was made.
   }
+  return sessionDialects.get(viewer);
 }
 
 function setDialect(preferences: PrismStore | undefined, viewer: object, dialect: Dialect): void {
@@ -49,8 +49,29 @@ function setDialect(preferences: PrismStore | undefined, viewer: object, dialect
 /** Rows show this many completions at most. */
 const MaxCompletions = 8;
 
+type Post = CommandPrefixContext['post'];
+
+/** Runs a line from the menu (which has closed) and says its outcome on the status line: what it did or printed. */
+async function runLine(api: ViewerApi, dialect: Dialect, text: string, post: Post): Promise<void> {
+  const r = await api.script?.run({ dialect, text });
+  if (!r) return;
+  if (!r.ok) {
+    post(r.hint ? `${r.message} ${r.hint}` : r.message, 'error');
+    return;
+  }
+  // `did` holds what each command did and what reads printed.
+  post(r.did, 'success');
+  for (const w of r.warnings ?? []) post(w, 'warning');
+}
+
 /** The rows for a line typed after a prefix. */
-export function prefixRows(api: ViewerApi, prefix: string, dialect: Dialect, text: string): CommandMenuItem[] {
+export function prefixRows(
+  api: ViewerApi,
+  prefix: string,
+  dialect: Dialect,
+  text: string,
+  post: Post = () => {},
+): CommandMenuItem[] {
   const area = api.script;
   if (!area) return [];
   const name = DialectNames[dialect];
@@ -94,7 +115,7 @@ export function prefixRows(api: ViewerApi, prefix: string, dialect: Dialect, tex
     return /\w$/.test(text) && completions.length ? [...completions, first] : [first, ...completions];
   }
   const lone = compiled.commands.length === 1 ? compiled.commands[0] : undefined;
-  const label = compiled.commands.map(describeCommand).join('; ') || 'Nothing to run';
+  const label = compiled.commands.map(describeCommand).filter(Boolean).join('; ') || 'Nothing to run';
   const warnings = compiled.diagnostics.filter((d) => d.severity !== 'error').map((d) => d.message);
   const runRow: CommandMenuItem = {
     id: `${dialect}:run`,
@@ -103,19 +124,19 @@ export function prefixRows(api: ViewerApi, prefix: string, dialect: Dialect, tex
     icon: 'file-code',
     run: () => {
       if (lone?.kind === 'history') void (lone.action === 'undo' ? api.history.undo() : api.history.redo());
-      else if (!hasErrors(compiled.diagnostics)) void api.script?.run({ dialect, text });
+      else if (!hasErrors(compiled.diagnostics)) void runLine(api, dialect, text, post);
     },
   };
   return [runRow, ...completions];
 }
 
 /** The prefixes: `pymol `, `vmd `, and `!` for the default dialect. */
-export function commandPrefixes({ api, preferences }: CommandPrefixContext): CommandMenuPrefix[] {
+export function commandPrefixes({ api, preferences, post }: CommandPrefixContext): CommandMenuPrefix[] {
   const word = (dialect: Dialect): CommandMenuPrefix => ({
     char: `${dialect} `,
     title: `${DialectNames[dialect]} command`,
     placeholder: `A ${DialectNames[dialect]} command`,
-    items: (text) => prefixRows(api, `${dialect} `, dialect, text),
+    items: (text) => prefixRows(api, `${dialect} `, dialect, text, post),
   });
   return [
     word('pymol'),
@@ -142,7 +163,7 @@ export function commandPrefixes({ api, preferences }: CommandPrefixContext): Com
         if (!dialect) {
           return Dialects.map((d) => choose(d, `Read ! as ${DialectNames[d]}`));
         }
-        const rows = prefixRows(api, '!', dialect, text);
+        const rows = prefixRows(api, '!', dialect, text, post);
         if (text.trim()) return rows;
         const other = Dialects.find((d) => d !== dialect)!;
         return [...rows, choose(other, `Read ! as ${DialectNames[other]} instead of ${DialectNames[dialect]}`)];

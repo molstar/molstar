@@ -103,6 +103,20 @@ export function vmdSelection(text: string, object: string, at: Span): Sel {
   };
 }
 
+/**
+ * A selection fixed to the objects there are now (a named selection when it is defined): each its part, and nothing
+ * for objects loaded later, as PyMOL's names are the atoms they selected.
+ */
+export function fixedTo(sel: Sel, objects: readonly string[]): Sel {
+  return {
+    ...sel,
+    parts: [
+      ...objects.map((object): SelPart => ({ scope: { object }, molql: partFor(sel, { object }) })),
+      { scope: 'others', molql: Empty },
+    ],
+  };
+}
+
 /** The MolQL of a selection on one object: what the host evaluates there. */
 export function selectionOn(sel: Sel, object: string): Expression {
   return partFor(sel, { object });

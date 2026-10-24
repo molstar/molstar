@@ -118,6 +118,8 @@ export type CommandBody =
       readonly format?: string;
       /** VMD's dialect loads with VMD's look (one Lines rep), PyMOL's with Mol*'s preset (_spec §5.3). */
       readonly look: 'default' | 'vmd-lines';
+      /** Another copy when it is loaded already (VMD's `mol new`, a new object name); else the loaded one stays. */
+      readonly copy: boolean;
     }
   | { readonly kind: 'object.remove'; readonly objects: readonly string[] | 'all' }
   | { readonly kind: 'object.visibility'; readonly objects: readonly string[] | 'all'; readonly visible: boolean }
@@ -150,7 +152,10 @@ export type CommandBody =
   | { readonly kind: 'rep.visibility'; readonly object: string; readonly index: number; readonly visible: boolean }
   /** `mol representation|color|selection|material`: what the next `mol addrep` takes. */
   | { readonly kind: 'rep.defaults'; readonly patch: Partial<VmdRep> }
-  | { readonly kind: 'color'; readonly sel: Sel; readonly color: ColorSpec }
+  /** `optional`: one of several (a color per element): selecting nothing is no failure. */
+  | { readonly kind: 'color'; readonly sel: Sel; readonly color: ColorSpec; readonly optional?: true }
+  /** The selection selects atoms, else the command fails (before a group of optional commands). */
+  | { readonly kind: 'require'; readonly sel: Sel }
   | { readonly kind: 'transparency'; readonly sel: Sel; readonly alpha: number; readonly reps?: readonly RepType[] }
   | { readonly kind: 'size'; readonly sel: Sel; readonly factor: number; readonly reps?: readonly RepType[] }
   /** PyMOL `remove`: whole entities or chains left out of every component (`contents.visibility`). */
@@ -182,6 +187,8 @@ export type CommandBody =
       readonly method: 'sequence' | 'structure' | 'atoms';
       readonly mobile: Sel;
       readonly target: Sel;
+      /** `atoms`: the pairs as given (PyMOL's `pair_fit`), which the structures' order must keep. */
+      readonly pairs?: readonly { readonly mobile: Sel; readonly target: Sel }[];
     }
   | {
       readonly kind: 'canvas';

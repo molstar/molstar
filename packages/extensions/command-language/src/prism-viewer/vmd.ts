@@ -126,6 +126,14 @@ type RepTransformParams = {
 
 export async function modifyRep(ops: Ops, cmd: Extract<Command, { kind: 'rep.modify' }>): Promise<string> {
   const e = entry(ops, cmd.object, cmd.index);
+  // A rep that shares its component with others (a preset's): its selection is theirs, and a new style would move it
+  // to the component's end (the reps after it would change their indices).
+  if ((cmd.patch.selection !== undefined || cmd.patch.style !== undefined) && e.component.representations.length > 1) {
+    throw new HostFailure(
+      `Rep ${cmd.index} of ${cmd.object} shares its selection with other reps: changing it would change them too.`,
+      'Add a rep of its own instead: mol addrep, then mol delrep this one.',
+    );
+  }
   const ref = e.structure.cell.transform.ref;
   const node = e.representation.cell.transform.ref;
   const current = e.representation.cell.transform.params as RepTransformParams | undefined;
@@ -189,7 +197,14 @@ export async function modifyRep(ops: Ops, cmd: Extract<Command, { kind: 'rep.mod
     if (color)
       params.colorTheme = 'rgb' in color ? { name: 'uniform', params: { value: Color(color.rgb) } } : colorTheme(color);
     if (cmd.patch.material !== undefined) {
-      params.type = { name: type, params: { alpha: cmd.patch.material === 'transparent' ? TransparentAlpha : 1 } };
+      // The type's params as they are, the alpha changed (an update replaces the type's params whole).
+      params.type = {
+        name: type,
+        params: {
+          ...(current?.type?.params ?? {}),
+          alpha: cmd.patch.material === 'transparent' ? TransparentAlpha : 1,
+        },
+      };
     }
     await ops.run('representation.update', { node, params });
     if (color) changed.push('coloring');

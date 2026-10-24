@@ -152,6 +152,9 @@ export class PrismScriptHost implements ScriptHost {
           .join(', ')}.`;
       case 'color':
         return this.#color(cmd);
+      case 'require':
+        ops.some(cmd.sel);
+        return { ok: true };
       case 'transparency': {
         const where = ops.some(cmd.sel);
         for (const w of where)
@@ -167,14 +170,13 @@ export class PrismScriptHost implements ScriptHost {
         const factor = Math.min(10, Math.max(0.05, cmd.factor));
         for (const w of where)
           await ops.run('representation.size', { target: target(cmd.sel, w), factor, structure: w.ref });
-        return {
-          ok: true,
-          did: `Sized ${count(where)} atoms ×${factor}.`,
-          ...(cmd.reps ? { warnings: ['Mol* sizes the atoms in every representation, not only one kind.'] } : {}),
+        const warnings = [
+          ...(cmd.reps ? ['Mol* sizes the atoms in every representation, not only one kind.'] : []),
           ...(factor !== cmd.factor
-            ? { warnings: [`Sizes go from 0.05 to 10 times the default: ${cmd.factor} became ${factor}.`] }
-            : {}),
-        };
+            ? [`Sizes go from 0.05 to 10 times the default: ${cmd.factor} became ${factor}.`]
+            : []),
+        ];
+        return { ok: true, did: `Sized ${count(where)} atoms ×${factor}.`, ...(warnings.length ? { warnings } : {}) };
       }
       case 'hide-contents':
         return this.#hideContents(cmd.sel);
@@ -183,9 +185,11 @@ export class PrismScriptHost implements ScriptHost {
         return cmd.visible ? 'Showed hydrogens.' : 'Hid hydrogens.';
       case 'camera':
         return this.#camera(cmd);
-      case 'camera.zoom':
-        await ops.run('camera.zoom', { factor: Math.min(10, Math.max(0.1, cmd.factor)) });
-        return `Zoomed by ${cmd.factor}.`;
+      case 'camera.zoom': {
+        const factor = Math.min(10, Math.max(0.1, cmd.factor));
+        await ops.run('camera.zoom', { factor });
+        return `Zoomed by ${factor}.`;
+      }
       case 'camera.turn':
       case 'camera.move':
         return this.#turnOrMove(cmd);
@@ -238,20 +242,24 @@ export class PrismScriptHost implements ScriptHost {
     const vmd = cmd.look === 'vmd-lines';
     let r;
     if ('entry' in cmd.from) {
-      r = await ops.run('load.entry', {
-        source: cmd.from.entry.db,
-        id: cmd.from.entry.id,
-        ...(vmd ? { preset: VmdLinesPresetId } : {}),
-      });
+      r = await ops.run(
+        'load.entry',
+        { source: cmd.from.entry.db, id: cmd.from.entry.id, ...(vmd ? { preset: VmdLinesPresetId } : {}) },
+        { copy: cmd.copy },
+      );
     } else if ('url' in cmd.from) {
-      r = await ops.run('load.url', { url: cmd.from.url, ...(cmd.format ? { format: cmd.format } : {}) });
+      r = await ops.run(
+        'load.url',
+        { url: cmd.from.url, ...(cmd.format ? { format: cmd.format } : {}) },
+        { copy: cmd.copy },
+      );
     } else {
       const name = cmd.from.file;
       const file =
         this.files.get(name) ??
         [...this.files.entries()].find(([k]) => k.split('/').pop() === name.split('/').pop())?.[1];
       if (!file) throw new HostFailure(`There is no file '${name}' with this script.`);
-      r = await ops.run('load.data', { file, ...(cmd.format ? { format: cmd.format } : {}) });
+      r = await ops.run('load.data', { file, ...(cmd.format ? { format: cmd.format } : {}) }, { copy: cmd.copy });
     }
     const made = ops.structures().filter((s) => !before.has(s.cell.transform.ref));
     if (!made.length) return r.did;
@@ -271,34 +279,52 @@ export class PrismScriptHost implements ScriptHost {
     return `${r.did.replace(/\.$/, '')} as ${cmd.name}${vmd ? ` (molecule ${cmd.molecule})` : ''}.`;
   }
 
-  async #color(cmd: Extract<Command, { kind: 'color' }>): Promise<string> {
+  async #color(cmd: Extract<Command, { kind: 'color' }>): Promise<string | ExecResult> {
     const ops = this.#ops;
-    const where = ops.some(cmd.sel);
+    // One of a group (a color per element): selecting nothing is no failure; the group's `require` said whether the
+    // selection selects anything.
+    const where = cmd.optional ? ops.where(cmd.sel) : ops.some(cmd.sel);
+    if (!where.length) return { ok: true };
     if ('rgb' in cmd.color) {
-      for (const w of where)
+      for (const w of where) {
         await ops.run('representation.color', {
           target: target(cmd.sel, w),
           color: hex(cmd.color.rgb),
           structure: w.ref,
         });
+      }
       return `Colored ${count(where)} atoms ${hex(cmd.color.rgb)}.`;
     }
-    // A theme on the representations of the components the selection covers (as `representation.color` does), with
-    // the params the language asks for.
+    // A theme goes on the representations of the components the selection covers (as `representation.color` does),
+    // under the colors set per atom (the color layer). On a whole structure those colors are cleared first (PyMOL's
+    // `util.cbc` after `color red` shows the chains); on part of one, the theme still covers whole components: said.
     const theme = colorTheme(cmd.color);
     const nodes: string[] = [];
+    let partial = 0;
     for (const w of where) {
+      if (StructureElement.Loci.isWholeStructure(w.loci)) {
+        await ops.run('representation.reset', { layer: 'color', structure: w.ref });
+      }
       for (const c of w.structure.components) {
         const data = c.cell.obj?.data;
         if (!data) continue;
-        const loci = StructureElement.Loci.remap(w.loci, data);
-        if (StructureElement.Loci.isEmpty(loci)) continue;
+        const own = StructureElement.Loci.remap(w.loci, data);
+        if (StructureElement.Loci.isEmpty(own)) continue;
+        if (atomCount(own) < data.elementCount) partial++;
         for (const r of c.representations) nodes.push(r.cell.transform.ref);
       }
     }
     if (!nodes.length) throw new HostFailure(`Nothing shows '${cmd.sel.text}'.`, 'Show it first: show cartoon, …');
     for (const node of nodes) await ops.run('representation.update', { node, params: { colorTheme: theme } });
-    return `Colored ${nodes.length} representation${nodes.length === 1 ? '' : 's'} by ${theme.name}.`;
+    const did = `Colored ${nodes.length} representation${nodes.length === 1 ? '' : 's'} by ${theme.name}.`;
+    if (!partial) return did;
+    return {
+      ok: true,
+      did,
+      warnings: [
+        `Mol* colors whole components by a theme: ${partial} component${partial === 1 ? '' : 's'} hold more than '${cmd.sel.text}', and colors set with color stay on top.`,
+      ],
+    };
   }
 
   /** PyMOL `remove`: whole chains leave every component (`contents.visibility`); other atoms are not removed. */
@@ -485,6 +511,7 @@ export class PrismScriptHost implements ScriptHost {
     const target_ = one(cmd.target, 'target');
     const mobile = one(cmd.mobile, 'mobile');
     if (target_.ref === mobile.ref) throw new HostFailure('The mobile and the target are in the same structure.');
+    if (cmd.pairs && cmd.pairs.length > 1) this.#checkPairs(cmd.pairs);
     const targets = [target_, mobile].map((w) => ({ target: { molql: compactExpression(w.loci) }, structure: w.ref }));
     const id =
       cmd.method === 'sequence'
@@ -494,6 +521,40 @@ export class PrismScriptHost implements ScriptHost {
           : 'superpose.atoms';
     const r = await ops.run(id, { targets, ...(cmd.method === 'sequence' ? { alignSequences: true } : {}) });
     return r.did;
+  }
+
+  /**
+   * `pair_fit`'s pairs: Mol* pairs the atoms of each side in the order the structures hold them, so the pairs given
+   * must be in that order on both sides, with as many atoms on each side of a pair.
+   */
+  #checkPairs(pairs: readonly { readonly mobile: Sel; readonly target: Sel }[]): void {
+    const first = (l: StructureElement.Loci) => {
+      const loc = StructureElement.Loci.getFirstLocation(l);
+      return loc ? P.atom.sourceIndex(loc) : -1;
+    };
+    const sides = pairs.map((p, i) => {
+      const m = this.#ops.some(p.mobile);
+      const t = this.#ops.some(p.target);
+      const mn = count(m);
+      const tn = count(t);
+      if (mn !== tn)
+        throw new HostFailure(
+          `Pair ${i + 1} has ${mn} mobile and ${tn} target atoms.`,
+          'Give as many atoms on each side.',
+        );
+      return { m: first(m[0].loci), t: first(t[0].loci) };
+    });
+    const order = (key: 'm' | 't') =>
+      sides
+        .map((_, i) => i)
+        .sort((a, b) => sides[a][key] - sides[b][key])
+        .join();
+    if (order('m') !== order('t')) {
+      throw new HostFailure(
+        'The pairs are not in the same order in both structures: Mol* pairs atoms in the order the structures hold them.',
+        'Give the pairs in that order (by residue number on both sides).',
+      );
+    }
   }
 
   async #canvas(cmd: Extract<Command, { kind: 'canvas' }>): Promise<string> {

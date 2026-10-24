@@ -152,6 +152,7 @@ function newMolecule(w: VmdWords, c: Compiler, i: number, webpdb: boolean): Comm
       name: c.state.freeName(file.toLowerCase()),
       molecule,
       look: 'vmd-lines',
+      copy: true,
     };
   }
   if (!url && !given) {
@@ -171,6 +172,7 @@ function newMolecule(w: VmdWords, c: Compiler, i: number, webpdb: boolean): Comm
     name: c.state.freeName(stem),
     molecule,
     look: 'vmd-lines',
+    copy: true,
     ...(type && type !== 'webpdb' ? { format: type } : {}),
   };
 }

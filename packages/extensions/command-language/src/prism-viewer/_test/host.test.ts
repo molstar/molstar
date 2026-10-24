@@ -9,7 +9,7 @@ import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas'
 import { DefaultPrismViewerSpec } from '@molstar/prism-viewer/default-spec';
 import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { CommandLanguageExtension } from '../../prism-viewer.js';
 import { prefixRows } from '../commands.js';
 import type { ScriptRunValue } from '../operations.js';
@@ -31,6 +31,8 @@ beforeAll(() => {
   };
   setCanvasModule({ createCanvas: () => ({ getContext: () => context }) });
 });
+// The module state this file changed, put back (files share their worker's modules: AGENTS.md).
+afterAll(() => setCanvasModule(undefined as never));
 
 const viewers: PrismViewer[] = [];
 afterEach(async () => {
@@ -205,5 +207,84 @@ describe('the menu’s rows', () => {
     const completing = prefixRows(v.api, 'pymol ', 'pymol', 'show sticks, chain ');
     expect(completing.map((r) => r.label)).toContain('A');
     expect(completing.find((r) => r.label === 'A')!.run()).toEqual({ text: 'pymol show sticks, chain A' });
+  });
+});
+
+/** The style layers' lines (`representation.layers`). */
+async function layers(v: PrismViewer) {
+  const r = await v.api.representation.layers({});
+  return r.ok ? r.did : '';
+}
+
+describe('what a first review found', () => {
+  it('colors by element, whatever elements the selection has', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    await ok(v, 'util.cbag resn REA');
+    await ok(v, 'color atomic, resn REA');
+    await ok(v, 'util.cnc');
+    const none = await run(v, 'util.cbag resn XYZ');
+    expect(!none.ok && none.message).toContain('selects nothing');
+  });
+
+  it('shows a theme over everything after a color: the colors set before are cleared', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    await ok(v, 'color red');
+    expect(await layers(v)).toContain('#ff0000');
+    await ok(v, 'util.cbc');
+    expect(await layers(v)).not.toContain('#ff0000');
+    // On part of a component, the theme covers the whole component: said.
+    const part = await ok(v, 'spectrum count, rainbow, resi 1-50');
+    expect(part.warnings?.join(' ')).toContain('whole components');
+  });
+
+  it('does not throw from a preview when a substitution does not read', async () => {
+    const v = await viewer();
+    const r = v.api.script!.preview('set s [atomselect top {protein}x]', 'vmd');
+    expect(r.diagnostics[0]).toMatchObject({ severity: 'error', code: 'syntax' });
+  });
+
+  it('keeps a rep’s own params when its material changes', async () => {
+    const v = await viewer();
+    await ok(v, 'mol new 1cbs.cif\nmol representation Licorice\nmol addrep top', 'vmd');
+    await ok(v, 'mol modmaterial 1 top Transparent', 'vmd');
+    const reps = v.plugin.managers.structure.hierarchy.current.structures[0].components.flatMap((c) => c.representations);
+    const params = (reps[1].cell.transform.params as { type: { params: { sizeAspectRatio: number; alpha: number } } })
+      .type.params;
+    expect(params.sizeAspectRatio).toBe(1);
+    expect(params.alpha).toBe(0.5);
+  });
+
+  it('loads a second copy for VMD’s mol new, and the names follow', async () => {
+    const v = await viewer();
+    await ok(v, 'mol new 1cbs.cif', 'vmd');
+    await ok(v, 'mol new 1cbs.cif\nmol addrep top', 'vmd');
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(2);
+  });
+
+  it('fixes a named selection to the objects there were', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    await ok(v, 'select prot, polymer, enable=0');
+    await ok(v, 'load 1cbs.cif, other');
+    const r = await ok(v, 'count_atoms prot');
+    const n = (r.value as ScriptRunValue).outputs.map((o) => o.text)[0];
+    const all = await ok(v, 'count_atoms polymer');
+    expect(Number(n)).toBeLessThan(Number((all.value as ScriptRunValue).outputs[0].text.split(' ')[0]));
+  });
+
+  it('refuses pair_fit pairs in another order than the structures hold them', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif\nload 1cbs.cif, other');
+    const bad = await run(v, 'pair_fit /1cbs//A/10/CA, /other//A/20/CA, /1cbs//A/5/CA, /other//A/30/CA');
+    expect(!bad.ok && bad.message).toContain('not in the same order');
+  });
+
+  it('says both size warnings', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    const r = await ok(v, 'set sphere_scale, 20');
+    expect(r.warnings).toHaveLength(2);
   });
 });

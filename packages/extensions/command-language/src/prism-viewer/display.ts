@@ -152,6 +152,14 @@ export async function display(ops: Ops, cmd: Extract<Command, { kind: 'display' 
       if (cmd.mode === 'only' && cmd.reps !== 'all' && cmd.reps.includes(t)) continue;
       await hideType(ops, w, t, w.loci);
     }
+    // Everything: also what PyMOL has no word for (carbohydrate symbols, labels), which leaves with the atoms.
+    if (cmd.mode === 'only' || (cmd.mode === 'hide' && cmd.reps === 'all')) {
+      for (const x of shownOf(ops, w.structure)) {
+        if (!x.other.length || !StructureElement.Loci.areIntersecting(x.loci, w.loci)) continue;
+        const target = { molql: compactExpression(StructureElement.Loci.intersect(x.loci, w.loci)) };
+        await ops.run('component.modify', { component: x.ref, target, mode: 'remove', structure: w.ref });
+      }
+    }
     if (cmd.mode !== 'hide') {
       if (cmd.reps === 'all')
         throw new HostFailure('Showing everything at once is not supported.', 'Name a representation.');

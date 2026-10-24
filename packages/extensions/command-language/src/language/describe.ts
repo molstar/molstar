@@ -113,5 +113,7 @@ export function describeCommand(c: Command): string {
             : `List the ${c.read.kind}`;
     case 'print':
       return c.text;
+    case 'require':
+      return '';
   }
 }

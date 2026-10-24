@@ -142,7 +142,9 @@ describe('PyMOL commands to IR', () => {
 
   it('colors carbons and the rest by element for util.cbag', () => {
     const cmds = ok('util.cbag resn HEM');
-    expect(cmds[0]).toMatchObject({ kind: 'color', color: { rgb: 0x33ff33 } });
+    // The selection must select atoms; each element's color is one of the group (selecting none is fine).
+    expect(cmds[0]).toMatchObject({ kind: 'require' });
+    expect(cmds[1]).toMatchObject({ kind: 'color', color: { rgb: 0x33ff33 }, optional: true });
     expect(cmds.length).toBeGreaterThan(3);
   });
 

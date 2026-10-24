@@ -52,9 +52,9 @@ export class ScriptApi extends ApiArea {
     return envOf(this.ctx, this.#state.value, files);
   }
 
-  /** A submission compiled against the scene now, without running it. */
-  preview(text: string, dialect: Dialect): CompiledScript {
-    return compileScript(text, dialect, this.env(), this.session);
+  /** A submission compiled against the scene now, without running it (`files`: the names of those given with it). */
+  preview(text: string, dialect: Dialect, files: readonly string[] = []): CompiledScript {
+    return compileScript(text, dialect, this.env(files), this.session);
   }
 
   readonly run = this.operation({

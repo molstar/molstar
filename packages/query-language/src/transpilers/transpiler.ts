@@ -3,7 +3,6 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
- * @author David Sehnal <david.sehnal@gmail.com>
  *
  * Adapted from MolQL project
  */

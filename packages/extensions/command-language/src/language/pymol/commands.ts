@@ -9,6 +9,7 @@ import { fail, note, type Span, warning } from '../diagnostics.js';
 import type { ColorSpec, CommandBody, LabelPart, Sel } from '../ir.js';
 import type { CommandHelp, Compiled, Compiler, ParamSpec } from '../table.js';
 import { PymolArgs, pymolRep } from './args.js';
+import { fixedTo } from '../selection.js';
 import { PymolSettings, settingNamed } from './settings.js';
 import type { PymolCall } from './tokenizer.js';
 import { unquote } from './tokenizer.js';
@@ -40,6 +41,17 @@ const ElementColors: Readonly<Record<string, number>> = {
   CL: 0x1aff1a,
   BR: 0xa62929,
   I: 0x940094,
+  SE: 0xffa100,
+  FE: 0xe06633,
+  ZN: 0x7d80b0,
+  MG: 0x8aff00,
+  CA: 0x3dff00,
+  NA: 0xab5cf2,
+  K: 0x8f40d4,
+  MN: 0x9c7ac7,
+  CU: 0xc88033,
+  CO: 0xf090a0,
+  NI: 0x50d050,
 };
 
 const CarbonColor = 0x33ff33;
@@ -70,7 +82,12 @@ function nonbonded(s: Sel): Sel {
 
 /** `util.cnc`: the non-carbons by element, as PyMOL's color commands do. */
 function colorNonCarbons(s: Sel): CommandBody[] {
-  return Object.entries(ElementColors).map(([e, rgb]) => ({ kind: 'color', sel: ofElement(s, e), color: { rgb } }));
+  return Object.entries(ElementColors).map(([e, rgb]) => ({
+    kind: 'color',
+    sel: ofElement(s, e),
+    color: { rgb },
+    optional: true,
+  }));
 }
 
 /** `util.cba*`: carbons in one color, the rest by element. */
@@ -78,7 +95,11 @@ const carbonsAnd =
   (rgb: number) =>
   (a: PymolArgs): Compiled => {
     const s = a.sel('selection');
-    return [{ kind: 'color', sel: ofElement(s, 'C'), color: { rgb } }, ...colorNonCarbons(s)];
+    return [
+      { kind: 'require', sel: s },
+      { kind: 'color', sel: ofElement(s, 'C'), color: { rgb }, optional: true },
+      ...colorNonCarbons(s),
+    ];
   };
 
 const UtilCarbons: Readonly<Record<string, readonly [number, string]>> = {
@@ -254,15 +275,14 @@ export const PymolCommands: readonly PymolCommand[] = [
           );
         }
         const wish = i === 0 && a.has('name') ? a.text('name') : code.toLowerCase();
-        const name = c.state.object(wish)?.name ?? c.state.freeName(wish);
-        const molecule = c.state.object(wish)?.molecule ?? c.state.nextMolecule + i;
+        // An object of that name already: PyMOL fetches into it; here the loaded one stays (no second copy).
+        const known = c.state.object(wish);
         return {
           kind: 'load',
-          from: {
-            entry: { db: af ? 'afdb' : 'pdb', id: af ? code.toUpperCase().replace(/^AF-/, '') : code.toLowerCase() },
-          },
-          name,
-          molecule,
+          from: { entry: { db: af ? 'afdb' : 'pdb', id: af ? code.toUpperCase() : code.toLowerCase() } },
+          name: known?.name ?? c.state.freeName(wish),
+          molecule: known?.molecule ?? c.state.nextMolecule + i,
+          copy: !known,
           look: 'default',
         };
       });
@@ -300,6 +320,7 @@ export const PymolCommands: readonly PymolCommand[] = [
           name,
           molecule: c.state.nextMolecule,
           look: 'default',
+          copy: true,
           ...(a.has('format') ? { format: a.text('format') } : {}),
         },
       ];
@@ -351,7 +372,7 @@ export const PymolCommands: readonly PymolCommand[] = [
     params: [p('name', 'name', false), sel('selection'), p('enable', 'bool')],
     ignored: { merge: 'The selection replaces the name.', state: Ignored.state, quiet: Ignored.quiet },
     examples: ['select resn HEM', 'select lig, resn HEM', 'select near, lig around 5, enable=0'],
-    compile(a) {
+    compile(a, c) {
       // `select expr`: PyMOL names it `sele`.
       const one = !a.has('selection');
       const name = one ? 'sele' : a.text('name');
@@ -359,7 +380,12 @@ export const PymolCommands: readonly PymolCommand[] = [
         fail('argument', `'${name}' is not a name.`, a.at('name'), 'Names are letters, digits and _ (lig, near_5).');
       }
       const s = one ? a.sel('name') : a.sel('selection');
-      const out: CommandBody[] = [{ kind: 'name.set', name, sel: s }];
+      // The name is the atoms selected now: objects loaded later are not in it (PyMOL's meaning).
+      const fixed = fixedTo(
+        s,
+        c.state.objects.map((o) => o.name),
+      );
+      const out: CommandBody[] = [{ kind: 'name.set', name, sel: fixed }];
       if (a.bool('enable', true)) out.push({ kind: 'select', mode: 'set', sel: s });
       return out;
     },
@@ -448,8 +474,13 @@ export const PymolCommands: readonly PymolCommand[] = [
     compile(a) {
       const name = a.text('color').toLowerCase();
       const s = a.sel('selection');
-      if (name === 'atomic')
-        return [{ kind: 'color', sel: ofElement(s, 'C'), color: { rgb: CarbonColor } }, ...colorNonCarbons(s)];
+      if (name === 'atomic') {
+        return [
+          { kind: 'require', sel: s },
+          { kind: 'color', sel: ofElement(s, 'C'), color: { rgb: CarbonColor }, optional: true },
+          ...colorNonCarbons(s),
+        ];
+      }
       if (name === 'chain' || name === 'by_chain') return [{ kind: 'color', sel: s, color: { theme: 'chain-id' } }];
       return [{ kind: 'color', sel: s, color: { rgb: a.color('color') } }];
     },
@@ -470,7 +501,10 @@ export const PymolCommands: readonly PymolCommand[] = [
     usage: 'util.cnc [selection]',
     params: [sel()],
     examples: ['util.cnc', 'util.cnc resn HEM'],
-    compile: (a) => colorNonCarbons(a.sel('selection')),
+    compile: (a) => {
+      const s = a.sel('selection');
+      return [{ kind: 'require', sel: s }, ...colorNonCarbons(s)];
+    },
   },
   ...(
     [
@@ -751,7 +785,15 @@ export const PymolCommands: readonly PymolCommand[] = [
         mobile.push(a.sel(`mobile${i}`));
         target.push(a.sel(`target${i}`));
       }
-      return [{ kind: 'superpose', method: 'atoms', mobile: joinSels(mobile), target: joinSels(target) }];
+      return [
+        {
+          kind: 'superpose',
+          method: 'atoms',
+          mobile: joinSels(mobile),
+          target: joinSels(target),
+          pairs: mobile.map((m, i) => ({ mobile: m, target: target[i] })),
+        },
+      ];
     },
   },
   {

@@ -35,7 +35,7 @@ function wordValue(w: TclWord, text: string, c: Compiler): string {
       out += v;
     } else {
       const { commands, diagnostics } = splitTcl(text, part.from, part.at.to - 1);
-      if (diagnostics.length) throw new Error(diagnostics[0].message);
+      if (diagnostics.length) fail('syntax', diagnostics[0].message, diagnostics[0].at);
       if (commands.length !== 1) {
         fail('unsupported', 'A command substitution runs one command.', part.at);
       }
