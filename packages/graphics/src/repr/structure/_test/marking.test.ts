@@ -33,6 +33,8 @@ import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
+import { UnitsRepresentation } from '../units-representation.js';
+import { GaussianSurfaceMeshParams, GaussianSurfaceMeshVisual } from '../visual/gaussian-surface-mesh.js';
 import { Transparency } from '@molstar/graphics/theme/transparency';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import type { Representation } from '../../representation.js';
@@ -333,6 +335,37 @@ describe('layers on surfaces', async () => {
     merged.merged.sync();
     expect(merged.values.overpaintType.ref.value).toBe('groupInstance');
     expect(isZero(merged.values.tOverpaint.ref.value.array)).toBe(false);
+    repr.destroy();
+  });
+
+  it('merges visuals recreated with a layer set (perf-audit-2 07/P16)', async () => {
+    // gaussian surface visuals that can be made to recreate (as after a GPU <-> CPU switch)
+    let recreate = false;
+    const visualCtor = (materialId: number) => {
+      const visual = GaussianSurfaceMeshVisual(materialId);
+      visual.mustRecreate = () => recreate;
+      return visual;
+    };
+    const params = () => GaussianSurfaceMeshParams as any;
+    const repr = UnitsRepresentation('test', { ...registries }, params, visualCtor as any);
+    repr.setTheme(
+      Theme.create(
+        registries,
+        { structure: model },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'uniform' } },
+      ),
+    );
+    const values = { ...PD.getDefaultValues(GaussianSurfaceMeshParams), ...props, renderMerged: true };
+    await repr.createOrUpdate(values, model).run();
+    repr.setState({ overpaint });
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
+
+    recreate = true;
+    await repr.createOrUpdate({}, model).run();
+    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
+    const types = layerTypes(repr);
+    expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
     repr.destroy();
   });
 

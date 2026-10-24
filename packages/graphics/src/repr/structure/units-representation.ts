@@ -277,8 +277,8 @@ export function UnitsRepresentation<P extends StructureParams>(
       substance.layers.length > 0;
     for (const { visual, renderObject } of entries) {
       visualsByObjectId.set(renderObject.id, visual);
-      // merged or unmerged now: layers set before the merging was decided (new visuals) or under the previous one
-      if (hasLayers && layersSmoothed.has(visual) && layersSmoothed.get(visual) !== !mergedVisuals.has(visual)) {
+      // merged or unmerged now: the layers of new visuals, and those set under the previous merging
+      if (hasLayers && (!layersSmoothed.has(visual) || layersSmoothed.get(visual) !== !mergedVisuals.has(visual))) {
         setLayers(visual, _state);
       }
     }
@@ -388,7 +388,9 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (visible !== undefined) visual.setVisibility(visible);
     if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
     if (pickable !== undefined) visual.setPickable(pickable);
-    setLayers(visual, state);
+    // a new visual's layers wait for `updateRenderObjectList`: smoothed before the merging is decided, they would keep
+    // the group from merging (perf-audit-2 07/P16)
+    if (!isNew) setLayers(visual, state);
     if (clipping !== undefined) visual.setClipping(clipping);
     if (wiggle !== undefined) visual.setWiggle(wiggle, graphics);
     if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
