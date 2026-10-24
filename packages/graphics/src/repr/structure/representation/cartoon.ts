@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { type Structure, Unit } from '@molstar/model/model/structure';
@@ -93,7 +94,18 @@ export const CartoonParams = {
 };
 
 export type CartoonParams = typeof CartoonParams;
+/**
+ * The params depend on the structure's units only (nucleotides, gaps): one clone of the tree per structure, not per
+ * call (about 6 calls per update; perf-audit-2 12/P8). The result is shared: read it, do not change it.
+ */
+const cartoonParamsCache = new WeakMap<Structure, CartoonParams>();
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
+  let cached = cartoonParamsCache.get(structure);
+  if (!cached) cartoonParamsCache.set(structure, (cached = createCartoonParams(structure)));
+  return cached;
+}
+
+function createCartoonParams(structure: Structure) {
   const params = PD.clone(CartoonParams);
   let hasNucleotides = false;
   let hasGaps = false;
