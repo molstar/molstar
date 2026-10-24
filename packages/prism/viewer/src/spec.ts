@@ -388,6 +388,11 @@ export interface CommandPrefixContext {
   readonly api: ViewerApi;
   /** The person's preferences (`persist.preferences`); none, the session's only. */
   readonly preferences?: PrismStore;
+  /**
+   * Says a row's outcome on the status line (and the log), as a command's is: a row runs after the menu closes, so
+   * this is where its result goes.
+   */
+  readonly post: (text: string, kind?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 export interface ViewerExtensionUI {

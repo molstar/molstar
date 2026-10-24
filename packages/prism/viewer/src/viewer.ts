@@ -367,6 +367,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
       overrides,
       ...(spec.persist?.preferences ? { preferences: spec.persist.preferences } : {}),
+      post: (text, kind) => notifications.post(text, kind),
       task: (label) => {
         const id = `extension:${label}`;
         notifications.putTask({ id, label });

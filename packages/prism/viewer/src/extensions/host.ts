@@ -79,6 +79,8 @@ export interface ExtensionHostDeps {
   readonly task: (label: string) => () => void;
   /** The person's preferences, for the extensions' command-menu prefixes. */
   readonly preferences?: PrismStore;
+  /** Posts on the status line, for the extensions' command-menu prefixes' outcomes. */
+  readonly post?: (text: string, kind?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 type Disposer = () => void | Promise<void>;
@@ -302,6 +304,7 @@ export class ExtensionHost {
         e.commandPrefixes?.({
           api: person,
           ...(this.#deps.preferences ? { preferences: this.#deps.preferences } : {}),
+          post: this.#deps.post ?? (() => {}),
         }) ?? [];
       if (prefixes.length) done.push(this.#addPrefixes(e.id, prefixes));
       // Its annotations, where the viewer has the `annotations` feature to offer them; without it they are not shown.
