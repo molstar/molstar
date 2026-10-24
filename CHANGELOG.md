@@ -13,6 +13,9 @@ here.
 - Fix `chunkedSubtask` sizing its chunks from summed times and the task's average rate (gaps between yields of long
   parses reached ~2× the update rate, more when the rate changed)
 - Fix a re-opened kinemage `@group` taking the previous group's masters
+- Fix disk-style links in the impostor and line builders being drawn from another edge's midpoint
+- Fix complex and shape visuals reading the previous geometry's positions after a geometry change
+- Fix `computeGaussianDensityTexture3d` computing a 2d texture
 - Fix impostor-capable visuals rebuilding their mesh fallback at every update on contexts without `fragDepth`
 - Fix water bridges ignoring the child structure with `includeParent`
 - Fix overlapping `CustomStructureProperty.attach` calls with the same params computing twice
