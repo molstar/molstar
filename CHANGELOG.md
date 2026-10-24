@@ -12,6 +12,12 @@ here.
 
 - Fix `chunkedSubtask` sizing its chunks from summed times and the task's average rate (gaps between yields of long
   parses reached ~2× the update rate, more when the rate changed)
+- Fix the symmetry mates of a structure whose units carry an operator (the centre was tested in the wrong frame)
+- Fix `Loci.toExpression` merging the elements of different models of a trajectory structure
+- Fix a hang of the loci stats on units with the `Partitioned` trait
+- Fix `StructureSubsetBuilder.getStructureDeduplicate` giving every unit the last unit's elements
+- Fix MolScript dropping the first object-form argument of `ring-fingerprint`
+- Fix the DSSP backbone H-bond graph storing its energies in input order instead of edge-slot order
 - Fix a re-opened kinemage `@group` taking the previous group's masters
 - Fix impostor-capable visuals rebuilding their mesh fallback at every update on contexts without `fragDepth`
 - Fix water bridges ignoring the child structure with `includeParent`
