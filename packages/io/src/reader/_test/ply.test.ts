@@ -2,11 +2,13 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
 import { parsePly } from '../ply/parser.js';
-import { PlyTable, PlyList } from '../ply/schema.js';
+import { PlyTable, PlyList, type PlyFile } from '../ply/schema.js';
+import { utf8Encode } from '@molstar/core/util/utf8';
 
 const plyString = `ply
 format ascii 1.0
@@ -168,6 +170,54 @@ describe('ply reader', () => {
     expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4] });
 
     expect.assertions(3);
+  });
+
+  it('parses ASCII the same from a string and from its UTF-8 bytes', async () => {
+    const dump = (ply: PlyFile) =>
+      ply.elementNames.map((name) => {
+        const e = ply.getElement(name)!;
+        if (e.kind === 'list')
+          return Array.from({ length: e.rowCount }, (_, i) => [...e.value(i).entries.slice(0, e.value(i).count)]);
+        return e.propertyNames.map((p) => e.getProperty(p)!.toArray());
+      });
+    for (const text of [plyString, plyCubeString, plyString.replace(/\n/g, '\r\n')]) {
+      const fromString = await parsePly(text).run();
+      const fromBytes = await parsePly(utf8Encode(text)).run();
+      if (fromString.isError || fromBytes.isError) throw new Error('parse failed');
+      expect(fromBytes.result.comments).toEqual(fromString.result.comments);
+      expect(fromBytes.result.elementNames).toEqual(fromString.result.elementNames);
+      expect(dump(fromBytes.result)).toEqual(dump(fromString.result));
+    }
+  });
+
+  it('reads a format line by its words (spaces, another version)', async () => {
+    for (const line of ['format ascii 1.0 ', 'format  ascii 1.1']) {
+      const parsed = await parsePly(utf8Encode(plyString.replace('format ascii 1.0', line))).run();
+      if (parsed.isError) throw new Error(parsed.message);
+      const x = (parsed.result.getElement('vertex') as PlyTable).getProperty('x')!;
+      expect(x.value(0)).toEqual(130.901);
+    }
+  });
+
+  it('reads a last list row without a line break', async () => {
+    const text = plyString.trimEnd();
+    const parsed = await parsePly(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const expected = await parsePly(utf8Encode(plyString)).run();
+    if (expected.isError) throw new Error(expected.message);
+    const face = parsed.result.getElement('face') as PlyList;
+    const expectedFace = expected.result.getElement('face') as PlyList;
+    expect(face.rowCount).toBe(expectedFace.rowCount);
+    for (let i = 0; i < face.rowCount; i++) expect(face.value(i)).toEqual(expectedFace.value(i));
+  });
+
+  it('decodes a non-ASCII comment', async () => {
+    const text = plyString.replace('format ascii 1.0\n', 'format ascii 1.0\ncomment Molécule Ångström\n');
+    const parsed = await parsePly(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    expect(parsed.result.comments[0]).toBe('Molécule Ångström');
+    const x = (parsed.result.getElement('vertex') as PlyTable).getProperty('x')!;
+    expect(x.value(0)).toEqual(130.901);
   });
 
   it('binary little-endian', async () => {

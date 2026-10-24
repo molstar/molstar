@@ -10,6 +10,7 @@ here.
 
 ## [Unreleased]
 
+- Fix an ASCII PLY whose last list row (a face) has no line break hanging the parser
 - Fix the CSV reader to follow RFC 4180: spaces in fields are kept, doubled quotes read as one, empty fields (also the
   last of a record) keep the columns aligned, the last record counts without a final line break, `.` and `?` are values,
   and comments (off by default) start only at the start of a line
