@@ -108,6 +108,21 @@ describe('the console view', () => {
     expect(t.run).toHaveBeenCalledWith({ dialect: 'pymol', text: 'count_atoms', files: [] });
   });
 
+  it('lists every command on Tab in the empty input, until the next keystroke', () => {
+    const t = open();
+    const options = () => t.container.querySelectorAll('[role=option]');
+    expect(options()).toHaveLength(0);
+    t.key('Tab');
+    expect(options().length).toBeGreaterThan(12);
+    t.key('Escape');
+    expect(options()).toHaveLength(0);
+    t.key('Tab');
+    t.key('Tab');
+    expect(t.input.value).toMatch(/^\w+ ?$/);
+    t.type('');
+    expect(options()).toHaveLength(0);
+  });
+
   it('marks the part typed and shows a color as its swatch', () => {
     const t = open();
     t.type('color sal');

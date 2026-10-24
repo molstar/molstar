@@ -256,6 +256,10 @@ export function ConsoleView(props: { model: ConsoleModel }) {
         } else if (e.key === 'ArrowDown' && !el.value.slice(el.selectionEnd).includes('\n')) {
           e.preventDefault();
           model.next();
+        } else if (e.key === 'Tab' && !e.shiftKey && !el.value.trim()) {
+          e.preventDefault();
+          dismissed.set(false);
+          asked.set(true);
         } else if (e.key === 'Tab' && !e.shiftKey && el.selectionStart === el.value.length) {
           const filled = completeLine(model, el.value);
           if (filled !== undefined) {
@@ -287,8 +291,10 @@ export function ConsoleView(props: { model: ConsoleModel }) {
   // What helps the input, read again as the draft, the dialect or the scene change (a run that ends, a structure
   // loaded: the entries change with it): the completions of the word at its end, the command it is in, and what Enter
   // will do.
-  const help = derive([model.draft, model.dialect, model.entries], (t) => ({
-    assist: model.assist(t),
+  // Tab on the empty input asks for the list: every command of the dialect, until the next keystroke.
+  const asked = observableState(false);
+  const help = derive([model.draft, model.dialect, model.entries, asked.asReadonly], (t, _d, _e, a) => ({
+    assist: a && !t.trim() ? model.assist(t, Number.POSITIVE_INFINITY, true) : model.assist(t),
     inspection: model.inspect(t),
     dialect: dialectPrefix(t)?.dialect ?? model.dialect.value,
   }));
@@ -296,6 +302,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
   const dismissed = observableState(false);
   const active = observableState(-1);
   effect(model.draft, () => {
+    asked.set(false);
     dismissed.set(false);
     active.set(-1);
   });

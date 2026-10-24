@@ -307,10 +307,13 @@ export class ConsoleModel {
     return this.assist(text, max).items.slice();
   }
 
-  /** The completions of the word at the input's end (at most `max`), and the command the input is in. */
-  assist(text: string, max = 12): ConsoleAssist {
+  /**
+   * The completions of the word at the input's end (at most `max`), and the command the input is in. An empty input has
+   * none unless `asked` (Tab on it: every command).
+   */
+  assist(text: string, max = 12, asked = false): ConsoleAssist {
     const area = this.api.script;
-    if (!area || !text.trim()) return { items: [], typed: '' };
+    if (!area || (!text.trim() && !asked)) return { items: [], typed: '' };
     const prefixed = dialectPrefix(text);
     const dialect = prefixed?.dialect ?? this.#dialect.value;
     const head = prefixed ? text.slice(0, prefixed.offset) : '';
