@@ -26,9 +26,6 @@ import { stringToWords } from '@molstar/core/util/string';
 import {
   type MVSAnnotationColorThemeProps,
   MVSAnnotationColorThemeProvider,
-  type MVSCategoricalPaletteProps,
-  type MVSContinuousPaletteProps,
-  type MVSDiscretePaletteProps,
 } from '@molstar/mvs/components/annotation-color-theme';
 import {
   type MVSAnnotationLabelProps,
@@ -48,10 +45,10 @@ import { type Selector, SelectorAll } from '@molstar/mvs/components/selector';
 import {
   type MVSSplitUniformColorThemeProps,
   MVSSplitUniformColorThemeProvider,
-  type OptionalSplitColorProp,
   SplitColorProp,
 } from '@molstar/mvs/components/split-uniform-color-theme';
-import { MvsNamedColorDicts, MvsNamedColorLists } from '@molstar/mvs/helpers/colors';
+import { MvsNamedColorDicts } from '@molstar/mvs/helpers/colors';
+import { type ValuePaletteSpecDefaults, valuePalettePropsFromSpec } from '@molstar/core/util/color/value-palette';
 import { isDefined } from '@molstar/core/util/object';
 import { type ElementOfSet, decodeColor, stringHash } from '@molstar/mvs/helpers/utils';
 import { MolstarLoadingContext } from '@molstar/mvs/load';
@@ -68,14 +65,9 @@ import type {
 } from '@molstar/mvs/tree/molstar/molstar-tree';
 import { DefaultColor } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
 import {
-  CategoricalPalette,
   CategoricalPaletteDefaults,
-  ColorDictNameT,
-  ColorListNameT,
   ColorT,
-  ContinuousPalette,
   ContinuousPaletteDefaults,
-  DiscretePalette,
   DiscretePaletteDefaults,
   isMolQLExpression,
 } from '@molstar/mvs-builder/tree/mvs/param-types';
@@ -835,176 +827,17 @@ function uniformColorTheme(color: ColorT): StateTransformer.Params<StructureRepr
 export function palettePropsFromMVSPalette(
   palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette'],
 ): MVSAnnotationColorThemeProps['palette'] {
-  if (!palette) {
-    return { name: 'direct', params: {} };
-  }
-  if (palette.kind === 'categorical') {
-    const fullParams: Required<CategoricalPalette> = objMerge(CategoricalPaletteDefaults, palette);
-    return {
-      name: 'categorical',
-      params: {
-        colors: categoricalPalettePropsFromMVSColors(fullParams.colors),
-        repeatColorList: fullParams.repeat_color_list,
-        sort: fullParams.sort,
-        sortDirection: fullParams.sort_direction,
-        caseInsensitive: fullParams.case_insensitive,
-        missingColor: SplitColorProp.fromString(fullParams.missing_color),
-      } satisfies MVSCategoricalPaletteProps,
-    };
-  }
-  if (palette.kind === 'discrete') {
-    const fullParams: Required<DiscretePalette> = objMerge(DiscretePaletteDefaults, palette);
-    return {
-      name: 'discrete',
-      params: {
-        colors: discretePalettePropsFromMVSColors(fullParams.colors, fullParams.reverse),
-        mode: fullParams.mode,
-        xMin: fullParams.value_domain[0],
-        xMax: fullParams.value_domain[1],
-      } satisfies MVSDiscretePaletteProps,
-    };
-  }
-  if (palette.kind === 'continuous') {
-    const fullParams: Required<ContinuousPalette> = objMerge(ContinuousPaletteDefaults, palette);
-    const colors = continuousPalettePropsFromMVSColors(fullParams.colors, fullParams.reverse);
-    return {
-      name: 'continuous',
-      params: {
-        colors: colors,
-        mode: fullParams.mode,
-        xMin: fullParams.value_domain[0],
-        xMax: fullParams.value_domain[1],
-        underflowColor:
-          fullParams.underflow_color === 'auto'
-            ? minColor(colors)
-            : SplitColorProp.fromString(fullParams.underflow_color),
-        overflowColor:
-          fullParams.overflow_color === 'auto'
-            ? maxColor(colors)
-            : SplitColorProp.fromString(fullParams.overflow_color),
-      } satisfies MVSContinuousPaletteProps,
-    };
-  }
-  throw new Error(
-    `NotImplementedError: palettePropsFromMVSPalette is not implemented for palette kind "${(palette as any).kind}"`,
-  );
+  return valuePalettePropsFromSpec(palette, MVSPaletteDefaults, {
+    dictionaries: MvsNamedColorDicts,
+    onUnknownName: (name) => console.warn(`Could not find named color palette "${name}"`),
+  });
 }
 
-/** Merge properties of two object into a new object. Property values from `second` override those from `first`, but `undefined` is treated as if property missing while `null` as a regular value. */
-function objMerge<T extends object, U extends object>(first: T, second: U): T & U {
-  const out: Partial<T & U> = { ...first };
-  for (const key in second) {
-    const value = second[key];
-    if (value !== undefined) out[key] = value as any;
-  }
-  return out as T & U;
-}
-
-function categoricalPalettePropsFromMVSColors(
-  colors: Required<CategoricalPalette>['colors'],
-): MVSCategoricalPaletteProps['colors'] {
-  if (typeof colors === 'string') {
-    // Named color list or dict
-    if (colors in MvsNamedColorLists) {
-      colors = MvsNamedColorLists[colors as ColorListNameT];
-    } else if (colors in MvsNamedColorDicts) {
-      colors = MvsNamedColorDicts[colors as ColorDictNameT];
-    } else {
-      console.warn(`Could not find named color palette "${colors}"`);
-      return { name: 'list', params: [] };
-    }
-  }
-
-  if (Array.isArray(colors)) {
-    // Color list
-    return { name: 'list', params: colors.map((c) => ({ color: SplitColorProp.fromString(c) })) };
-  } else {
-    // Color dict
-    return {
-      name: 'dictionary',
-      params: Object.entries(colors).map(([value, color]) => ({ value, color: SplitColorProp.fromString(color) })),
-    };
-  }
-}
-
-function discretePalettePropsFromMVSColors(
-  colors: Required<DiscretePalette>['colors'],
-  reverse: boolean,
-): MVSDiscretePaletteProps['colors'] {
-  if (typeof colors === 'string') {
-    // Named color list
-    if (colors in MvsNamedColorLists) {
-      colors = MvsNamedColorLists[colors as ColorListNameT];
-    } else {
-      console.warn(`Could not find named color palette "${colors}"`);
-      return [];
-    }
-  }
-
-  if (colors.every((t) => typeof t === 'string')) {
-    // Color list without checkpoints
-    if (reverse) colors = colors.slice().reverse();
-    const sectionLength = 1 / colors.length;
-    return colors.map((col, i) => ({
-      color: SplitColorProp.fromString(col),
-      fromValue: i * sectionLength,
-      toValue: (i + 1) * sectionLength,
-    }));
-  } else if (colors.every((t) => Array.isArray(t) && t.length === 2)) {
-    // Color list with 1 checkpoint
-    return colors.map(([col, from], i, arr) => ({
-      color: SplitColorProp.fromString(col),
-      fromValue: from,
-      toValue: arr[i + 1]?.[1] ?? Infinity,
-    }));
-  } else if (colors.every((t) => Array.isArray(t) && t.length === 3)) {
-    // Color list with 2 checkpoint
-    return colors.map(([col, from, to]) => ({
-      color: SplitColorProp.fromString(col),
-      fromValue: from ?? -Infinity,
-      toValue: to ?? Infinity,
-    }));
-  } else {
-    return []; // should be unreachable
-  }
-}
-
-function continuousPalettePropsFromMVSColors(
-  colors: Required<ContinuousPalette>['colors'],
-  reverse: boolean,
-): MVSContinuousPaletteProps['colors'] {
-  if (typeof colors === 'string') {
-    // Named color list
-    if (colors in MvsNamedColorLists) {
-      colors = MvsNamedColorLists[colors as ColorListNameT];
-    } else {
-      console.warn(`Could not find named color palette "${colors}"`);
-      return [];
-    }
-  }
-
-  if (colors.every((t) => typeof t === 'string')) {
-    // Color list without checkpoints
-    if (reverse) colors = colors.slice().reverse();
-    const n = colors.length - 1;
-    return colors.map((col, i) => ({ color: SplitColorProp.fromString(col), checkpoint: i / n }));
-  } else {
-    // Color list with checkpoints
-    // Not applying `reverse` here, as it would have no effect
-    return colors.map(([col, checkpoint]) => ({ color: SplitColorProp.fromString(col), checkpoint: checkpoint }));
-  }
-}
-
-/** Return the color with the lowest checkpoint. */
-function minColor(colors: MVSContinuousPaletteProps['colors']): OptionalSplitColorProp {
-  if (colors.length === 0) return SplitColorProp.none();
-  return colors.reduce((a, b) => (a.checkpoint < b.checkpoint ? a : b)).color;
-}
-/** Return the color with the highest checkpoint. */
-function maxColor(colors: MVSContinuousPaletteProps['colors']): OptionalSplitColorProp {
-  if (colors.length === 0) return SplitColorProp.none();
-  return colors.reduce((a, b) => (a.checkpoint > b.checkpoint ? a : b)).color;
-}
+const MVSPaletteDefaults: ValuePaletteSpecDefaults = {
+  categorical: CategoricalPaletteDefaults,
+  discrete: DiscretePaletteDefaults,
+  continuous: ContinuousPaletteDefaults,
+};
 
 /** Create a mapping of nearest representation nodes for each node in the tree
  * (to transfer coloring to label nodes smartly).

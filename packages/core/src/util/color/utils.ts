@@ -29,8 +29,8 @@ export function decodeColor(colorString: string | undefined | null): Color | und
     if (result !== undefined && !isNaN(result)) return result;
   }
 
-  result = ColorNames[colorString.toLowerCase() as keyof typeof ColorNames];
-  if (result !== undefined) return result;
+  const name = colorString.toLowerCase();
+  if (Object.hasOwn(ColorNames, name)) return ColorNames[name as keyof typeof ColorNames];
 
   const rgbMatch = rgbColorRegex.exec(colorString);
   if (rgbMatch) {

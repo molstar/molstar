@@ -17,10 +17,10 @@ all it needs.
   hand.
 - **The code is the truth.** The spec holds the contracts and what they mean; where the two disagree, fix whichever is
   wrong (often the spec), in the same commit.
-- **Packages:** `core` (platform-free; of Mol\* only its MessagePack, zip and synchronous task context) and `viewer`
-  (with the interactions extension), plus the adapter `nightingale` and the private `storybook` (the table in
-  `_spec/README.md`). Each folder of a package is an entry: inside a folder import relatively; across folders name the
-  entry (`@molstar/seq-core/model`, the package importing itself), never a path into another folder.
+- **Packages:** `core` (platform-free; of Mol\* only its MessagePack, zip, synchronous task context, alignment and value
+  palettes) and `viewer` (with the interactions extension), plus the adapter `nightingale` and the private `storybook`
+  (the table in `_spec/README.md`). Each folder of a package is an entry: inside a folder import relatively; across
+  folders name the entry (`@molstar/seq-core/model`, the package importing itself), never a path into another folder.
   `core/_test/layers.test.ts` holds the core's folder graph. `scripts/` (`@molstar/seq-scripts`) holds Seq*'s own checks
   and measures, and each package's `_test/fixtures/` its recorded data.
 - **Headers:** every source file (`.ts`, `.tsx`, `.css`, in `src`, `_test`, `_stories` and scripts) starts with Mol\*'s

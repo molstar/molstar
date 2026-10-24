@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -30,29 +31,7 @@ function stringifyMaybeInt(num: number | null): string {
   return num.toString();
 }
 
-/** Similar to `PD.Numeric` but allows leaving empty field in UI (treated as `undefined`) */
-export function MaybeFloatParamDefinition(
-  info?: PD.Info & { placeholder?: string },
-): PD.Converted<number | null, string> {
-  const defaultValue = null; // the default must be null, otherwise real nulls would be replaced by the default
-  return PD.Converted(
-    stringifyMaybeFloat,
-    parseMaybeFloat,
-    PD.Text(stringifyMaybeFloat(defaultValue), {
-      ...info,
-      disableInteractiveUpdates: true,
-      placeholder: info?.placeholder ?? 'null',
-    }),
-  );
-}
-function parseMaybeFloat(input: string): number | null {
-  const num = parseFloat(input);
-  return isNaN(num) ? null : num;
-}
-function stringifyMaybeFloat(num: number | null): string {
-  if (num === null) return '';
-  return num.toString();
-}
+export { MaybeFloatParamDefinition } from '@molstar/core/util/color/value-palette-params';
 
 /** Similar to `PD.Text` but leaving empty field in UI is treated as `undefined` */
 export function MaybeStringParamDefinition(

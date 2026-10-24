@@ -1162,3 +1162,16 @@ Readers in the repository were core's `Column` helpers and `sortAtomSite`.
 - `SequenceViewer`'s track edits take the structure they are for (`setTrackHidden(track, hidden, of?)`), and
   `SequenceTrack` has `removable`; `sequenceMenu`'s fourth argument is whether Edit in structure tree is offered (it was
   the API: the menu has no track rows).
+
+## MVS and Seq\* value palettes in core
+
+- MolViewSpec's value palettes moved to `@molstar/core/util/color/value-palette` (spec → props:
+  `valuePalettePropsFromSpec`, evaluation: `makeValuePaletteFunction`, named lists: `ValuePaletteLists`),
+  `value-palette-params` (the param definitions, `SplitColorProp`, `MaybeFloatParamDefinition`) and `split-color`
+  (`SplitColor`). Seq\*'s copy is gone; its exports (`makePaletteFunction`, `categoricalList`, `paletteHash`,
+  `PaletteDefaults`, `ColorLists`, `ColorNames`, `Color`) read core's.
+- MVS's runtime keeps its names as aliases (`MVSCategoricalPaletteParams`, `SplitColorProp`, `SplitColor`,
+  `MaybeFloatParamDefinition`, `MvsNamedColorLists`), and the `mvs-annotation` theme's params keep their shape (saved
+  sessions load). `makeContinuousPaletteCheckpoints` (`@molstar/mvs/components/annotation-color-theme`) is removed:
+  `makeValuePaletteFunction` evaluates a continuous palette, without sorting the props' colors in place as it did.
+- `decodeColor` reads only the color table's own names: `constructor` and other `Object.prototype` names are no colors.
