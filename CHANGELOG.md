@@ -10,6 +10,16 @@ here.
 
 ## [Unreleased]
 
+- Fix `Structure.entityIndices` of coarse units (empty `_entity` / `_entity_poly` in exports of coarse models)
+- Fix coarse sequences made from sphere ranges being off by one and missing the chain's last element
+- Fix MOL2 bonds assuming atom ids 1..N in file order
+- Fix segmentation volumes with a voxel label in no set failing to load
+- Fix accessible surface area missing neighbours of atoms with radii above the standard ones (Se, metal ions)
+- Fix the group mapping of shapes with group ids at or above their item count (focus and loci bounds)
+- Fix marching-cubes wireframes storing vertex ids as Float32 (wrong lines above 16.7M vertices)
+- Fix views and windows of masked BinaryCIF number columns reading the raw slots of missing rows
+- Fix segment loci over a whole segmentation marking the wrong instance and earlier elements' segments
+- Fix the plugin log growing without bound (it keeps the last 1000 entries)
 - Fix an ASCII PLY whose last list row (a face) has no line break hanging the parser
 - Fix the CSV reader to follow RFC 4180: spaces in fields are kept, doubled quotes read as one, empty fields (also the
   last of a record) keep the columns aligned, the last record counts without a final line break, `.` and `?` are values,
