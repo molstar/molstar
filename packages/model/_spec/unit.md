@@ -81,7 +81,7 @@ the remapped root (structure.md §3); passing the root's unit with the same id a
   `findIndexPairBonds`, `getIndexPairBonds`), which depend on the unit's operator: with index pairs, a child restricts
   only a parent of the same operator key. Edge order is the parent's; `canRemap` and `cacheable` are the parent's; bonds
   the parent carried over from another frame are carried over to the child. Restricted bonds are not put in
-  `ElementSetIntraBondCache`: cheap to redo, and that cache never evicts.
+  `ElementSetIntraBondCache`: cheap to redo, and that cache keeps only the 64 sets used last.
 - **Bonds of a provider** (bond-providers plan §2.3): a provider whose decisions are per atom pair keeps the rule above
   (`childBonds: 'self'`, the default). One whose decisions span rings or conjugated systems sets `childBonds: 'root'`: a
   child without restricted bonds computes the root unit's (`parent.bonds`) and restricts them, so a residue never

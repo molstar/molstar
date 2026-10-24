@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
-import { filterInPlace, range } from '../array.js';
+import { arrayMax, arrayMean, arrayMin, arrayRms, arrayStats, filterInPlace, range } from '../array.js';
 
 describe('filterInPlace', () => {
   it('filterInPlace works', async () => {
@@ -27,5 +28,20 @@ describe('filterInPlace', () => {
     const array = range(10 ** 5);
     const expectedResult = array.filter((x) => x % 7 === 0);
     expect(filterInPlace(array, (x) => x % 7 === 0)).toEqual(expectedResult);
+  });
+});
+
+describe('arrayStats', () => {
+  it('equals arrayMin, arrayMax, arrayMean and arrayRms bit for bit (perf-audit-2 04/P18)', () => {
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 200 - 37;
+    for (const a of [
+      Float32Array.from({ length: 1001 }, rnd),
+      Array.from({ length: 77 }, rnd),
+      [3],
+      [-1, Number.NaN, 2],
+    ]) {
+      expect(arrayStats(a)).toEqual({ min: arrayMin(a), max: arrayMax(a), mean: arrayMean(a), rms: arrayRms(a) });
+    }
   });
 });

@@ -8,7 +8,7 @@ import type { DxFile } from '@molstar/io/reader/dx/parser';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
 import type { Volume } from '@molstar/model/model/volume';
 import { Task } from '@molstar/core/task';
-import { arrayMax, arrayMean, arrayMin, arrayRms } from '@molstar/core/util/array';
+import { arrayStats } from '@molstar/core/util/array';
 import type { ModelFormat } from '../format.js';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 
@@ -17,6 +17,7 @@ export function volumeFromDx(source: DxFile, params?: { label?: string; entryId?
     const { header, values } = source;
     const space = Tensor.Space(header.dim, [0, 1, 2], Float64Array);
     const data = Tensor.create(space, Tensor.Data1(values));
+    const stats = arrayStats(values);
     const matrix = Mat4.fromTranslation(Mat4(), header.min);
     const basis = Mat4.fromScaling(Mat4(), header.h);
     Mat4.mul(matrix, matrix, basis);
@@ -27,12 +28,7 @@ export function volumeFromDx(source: DxFile, params?: { label?: string; entryId?
       grid: {
         transform: { kind: 'matrix', matrix },
         cells: data,
-        stats: {
-          min: arrayMin(values),
-          max: arrayMax(values),
-          mean: arrayMean(values),
-          sigma: arrayRms(values),
-        },
+        stats: { min: stats.min, max: stats.max, mean: stats.mean, sigma: stats.rms },
       },
       instances: [{ transform: Mat4.identity() }],
       sourceData: DxFormat.create(source),

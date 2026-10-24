@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ryan DiRisio <rjdiris@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { CifCategory, CifField } from '@molstar/io/reader/cif';
@@ -221,6 +222,10 @@ export function getPdbxUnobsOrZeroOccResidues(
   const observedResidues = new Set<string>();
   const authToLabelAsym = new Map<string, string>();
   const rowCount = atom_site.label_asym_id!.rowCount;
+  // the atoms of a residue are consecutive: one key per residue, not per atom (perf-audit-2 04/P6)
+  let prevModel = NaN,
+    prevSeq = NaN,
+    prevAsym: string | undefined = void 0;
   for (let i = 0; i < rowCount; ++i) {
     const authAsym = atom_site.auth_asym_id!.str(i);
     const entityId = atom_site.label_entity_id!.str(i);
@@ -232,7 +237,12 @@ export function getPdbxUnobsOrZeroOccResidues(
     const labelAsym = atom_site.label_asym_id!.str(i);
     const labelSeq = atom_site.label_seq_id!.int(i);
     const modelN = atom_site.pdbx_PDB_model_num!.int(i);
-    observedResidues.add(`${modelN}|${labelAsym}|${labelSeq}`);
+    if (labelSeq !== prevSeq || modelN !== prevModel || labelAsym !== prevAsym) {
+      observedResidues.add(`${modelN}|${labelAsym}|${labelSeq}`);
+      prevSeq = labelSeq;
+      prevModel = modelN;
+      prevAsym = labelAsym;
+    }
     if (!authToLabelAsym.has(authAsym)) {
       authToLabelAsym.set(authAsym, labelAsym);
     }

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
@@ -150,5 +151,6 @@ function buildHbondGraph(residueCount: number, oAtomResidues: number[], nAtomRes
     builder.assignProperty(_energies, energies[i]);
   }
 
-  return builder.createGraph({ energies });
+  // the slot-ordered energies, not the input-order ones (perf-audit-2 06/B8)
+  return builder.createGraph({ energies: _energies });
 }

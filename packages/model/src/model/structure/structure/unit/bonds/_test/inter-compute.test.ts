@@ -14,6 +14,7 @@ import { Structure, Unit } from '@molstar/model/model/structure';
 import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { MoleculeType } from '../../../../model/types.js';
 import { computeInterUnitBonds } from '../inter-compute.js';
+import { getElementThreshold, getPairingThreshold, MaxPairingThreshold } from '../common.js';
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../../../data/examples');
 
@@ -22,6 +23,34 @@ async function load1tup() {
   if (parsed.isError) throw new Error(parsed.message);
   return (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative;
 }
+
+describe('inter-unit distance bonds', () => {
+  it('MaxPairingThreshold is the largest pairing threshold of any element pair (perf-audit-2 05/P16)', () => {
+    let max = 0;
+    for (let i = -1; i < 130; i++) {
+      for (let j = -1; j < 130; j++) {
+        max = Math.max(max, getPairingThreshold(i, j, getElementThreshold(i), getElementThreshold(j)));
+      }
+    }
+    expect(MaxPairingThreshold).toBe(max);
+    expect(MaxPairingThreshold).toBeLessThan(4);
+  });
+
+  it('are searched at the largest pairing threshold, not the 4 Å candidate radius', async () => {
+    const model = await load1tup();
+    const structure = Structure.ofModel(model);
+    const radii: number[] = [];
+    const spies = structure.units.map((u) => {
+      const find = u.lookup3d.find.bind(u.lookup3d);
+      return vi.spyOn(u.lookup3d, 'find').mockImplementation((x, y, z, r) => (radii.push(r), find(x, y, z, r)));
+    });
+    const bonds = computeInterUnitBonds(structure);
+    for (const s of spies) s.mockRestore();
+    expect(bonds.edgeCount).toBeGreaterThan(0);
+    expect(radii.filter((r) => r === 4).length).toBe(0);
+    expect(radii.filter((r) => r === MaxPairingThreshold).length).toBeGreaterThan(0);
+  });
+});
 
 // Water and ion units pair with another unit only through a common struct_conn record (1tup: Zn, metalc); a unit's
 // partners are read once, not per pair and computation (perf-audit-2 05/P17).

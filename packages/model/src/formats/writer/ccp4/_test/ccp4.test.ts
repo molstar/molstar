@@ -2,9 +2,10 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Tadej Satler <tadej.satler@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
 import { volumeFromCcp4 } from '@molstar/model/formats/volume/ccp4';
 import { Grid } from '@molstar/model/model/volume';
@@ -58,6 +59,19 @@ function testGrid(axisOrderSlowToFast: number[]) {
 }
 
 describe('CCP4Writer', () => {
+  it('writes a plain space by strides, the same bytes as through dataOffset (perf-audit-2 04/12/L2)', () => {
+    for (const order of AxisOrders) {
+      const { grid, data } = testGrid(order);
+      const strides = vi.spyOn(Tensor, 'strides');
+      const direct = new Uint8Array(CCP4Writer.writeMrc(grid, data));
+      expect(strides).toHaveBeenCalled();
+      strides.mockRestore();
+      // a copied space has no strides: read through dataOffset
+      const copied: Grid = { ...grid, cells: Tensor.create({ ...grid.cells.space }, grid.cells.data) };
+      expect(direct).toEqual(new Uint8Array(CCP4Writer.writeMrc(copied, data)));
+    }
+  });
+
   for (const order of AxisOrders) {
     it(`round trips voxel values for axis order ${order}`, async () => {
       const { grid, data } = testGrid(order);

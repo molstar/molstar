@@ -7,10 +7,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { TokenBuilder, Tokenizer } from '@molstar/io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util.js';
 import { pdbToMmCif } from '../pdb/to-cif.js';
+import { getPdbxUnobsOrZeroOccResidues } from '../pdb/entity.js';
 import { PdbFile } from '@molstar/io/reader/pdb/schema';
 import { trajectoryFromPDB } from '../pdb.js';
 import { Task } from '@molstar/core/task';
@@ -160,6 +161,38 @@ describe('PDB SEQRES-to-label_seq_id alignment', () => {
     expect(labelSeqId.int(1)).toBe(1);
     expect(labelSeqId.int(2)).toBe(2);
     expect(labelSeqId.int(3)).toBe(3);
+  });
+
+  it('keys observed residues once per residue (perf-audit-2 04/P6)', async () => {
+    const pdb = makePdb(
+      [
+        'SEQRES   1 A    4  MET ALA GLY VAL                                           ',
+        'ATOM      1  N   ALA A   2       1.000   2.000   3.000  1.00  0.00           N  ',
+        'ATOM      2  CA  ALA A   2       1.500   2.500   3.500  1.00  0.00           C  ',
+        'ATOM      3  C   ALA A   2       2.000   3.000   4.000  1.00  0.00           C  ',
+        'ATOM      4  N   GLY A   3       4.000   5.000   6.000  1.00  0.00           N  ',
+        'ATOM      5  CA  GLY A   3       4.500   5.500   6.500  1.00  0.00           C  ',
+        'END                                                                             ',
+      ].join('\n'),
+    );
+    const site = (await pdbToMmCif(pdb)).categories['atom_site'];
+    const f = (n: string) => site.getField(n)!;
+    const atom_site = {
+      label_asym_id: f('label_asym_id'),
+      auth_asym_id: f('auth_asym_id'),
+      label_entity_id: f('label_entity_id'),
+      label_seq_id: f('label_seq_id'),
+      pdbx_PDB_model_num: f('pdbx_PDB_model_num'),
+    };
+    const add = vi.spyOn(Set.prototype, 'add');
+    let unobs;
+    try {
+      unobs = getPdbxUnobsOrZeroOccResidues(new Map([['A', ['MET', 'ALA', 'GLY', 'VAL']]]), () => '1', atom_site, 1);
+      expect(add.mock.calls.filter((c) => typeof c[0] === 'string' && /^\d+\|/.test(c[0])).length).toBe(2);
+    } finally {
+      add.mockRestore();
+    }
+    expect(unobs.getField('label_seq_id')!.toIntArray()).toEqual([1, 4]);
   });
 
   it('populates pdbx_unobs_or_zero_occ_residues for missing SEQRES residues', async () => {

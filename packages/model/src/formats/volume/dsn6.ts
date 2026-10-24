@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Volume } from '@molstar/model/model/volume';
@@ -10,7 +11,7 @@ import { SpacegroupCell, Box3D } from '@molstar/core/math/geometry';
 import { Mat4, Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { degToRad } from '@molstar/core/math/misc';
 import type { Dsn6File } from '@molstar/io/reader/dsn6/schema';
-import { arrayMin, arrayMax, arrayMean, arrayRms } from '@molstar/core/util/array';
+import { arrayStats } from '@molstar/core/util/array';
 import type { ModelFormat } from '../format.js';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 
@@ -35,6 +36,7 @@ export function volumeFromDsn6(
 
     const space = Tensor.Space(extent, [0, 1, 2], Float32Array);
     const data = Tensor.create(space, Tensor.Data1(values));
+    const stats = arrayStats(values);
 
     return {
       label: params?.label,
@@ -47,10 +49,10 @@ export function volumeFromDsn6(
         },
         cells: data,
         stats: {
-          min: arrayMin(values),
-          max: arrayMax(values),
-          mean: arrayMean(values),
-          sigma: header.sigma !== undefined ? header.sigma : arrayRms(values),
+          min: stats.min,
+          max: stats.max,
+          mean: stats.mean,
+          sigma: header.sigma !== undefined ? header.sigma : stats.rms,
         },
         periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
       },

@@ -83,6 +83,48 @@ const tmpPosA = Vec3();
 const tmpPosB = Vec3();
 const tmpPosX = Vec3();
 
+/** Angles into the given arrays, through module state and callbacks: no closure per call (perf-audit-2 06/P12) */
+const anglesState = {
+  angles: [] as number[],
+  anglesH: [] as number[],
+  ignoreHydrogens: true,
+};
+function anglesVisitor(unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) {
+  if (typeSymbol(unitX, indexX) !== Elements.H) {
+    unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+    Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
+    anglesState.angles.push(Vec3.angle(tmpDir1, tmpDir2));
+  } else if (!anglesState.ignoreHydrogens) {
+    unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+    Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
+    anglesState.anglesH.push(Vec3.angle(tmpDir1, tmpDir2));
+  }
+}
+
+/** `calcAngles` into `angles` and `anglesH` (emptied first) */
+export function calcAnglesInto(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+  ignoreHydrogens: boolean,
+  angles: number[],
+  anglesH: number[],
+) {
+  angles.length = 0;
+  anglesH.length = 0;
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
+  anglesState.angles = angles;
+  anglesState.anglesH = anglesH;
+  anglesState.ignoreHydrogens = ignoreHydrogens;
+  eachBondedAtom(structure, unitA, indexA, anglesVisitor);
+  anglesState.angles = anglesState.anglesH = NoAngles;
+}
+const NoAngles: number[] = [];
+
 /**
  * Calculate the angles x-a1-a2 for all x where x is a heavy atom (not H) bonded to ap1.
  */
@@ -96,22 +138,36 @@ export function calcAngles(
 ): [number[], number[]] {
   const angles: number[] = [];
   const anglesH: number[] = [];
-  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
-  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-  Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
-
-  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-    if (typeSymbol(unitX, indexX) !== Elements.H) {
-      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-      Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
-      angles.push(Vec3.angle(tmpDir1, tmpDir2));
-    } else if (!ignoreHydrogens) {
-      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-      Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
-      anglesH.push(Vec3.angle(tmpDir1, tmpDir2));
-    }
-  });
+  calcAnglesInto(structure, unitA, indexA, unitB, indexB, ignoreHydrogens, angles, anglesH);
   return [angles, anglesH];
+}
+
+const planeState = {
+  neighbours: [Vec3(), Vec3()],
+  ni: 0,
+  unitA: undefined as Unit.Atomic | undefined,
+  indexA: -1 as StructureElement.UnitIndex,
+  unitX1: undefined as Unit.Atomic | undefined,
+  indexX1: undefined as StructureElement.UnitIndex | undefined,
+};
+function planeFirstVisitor(unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) {
+  const p = planeState;
+  if (p.ni > 1) return;
+  if (typeSymbol(unitX, indexX) !== Elements.H) {
+    p.unitX1 = unitX;
+    p.indexX1 = indexX;
+    unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+    Vec3.sub(p.neighbours[p.ni++], tmpPosX, tmpPosA);
+  }
+}
+function planeSecondVisitor(unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) {
+  const p = planeState;
+  if (p.ni > 1) return;
+  if (unitX === p.unitA && indexX === p.indexA) return;
+  if (typeSymbol(unitX, indexX) !== Elements.H) {
+    unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+    Vec3.sub(p.neighbours[p.ni++], tmpPosX, tmpPosA);
+  }
 }
 
 /**
@@ -132,37 +188,62 @@ export function calcPlaneAngle(
   unitB.conformation.position(unitB.elements[indexB], tmpPosB);
   Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
 
-  const neighbours = [Vec3(), Vec3()];
-  let ni = 0;
-  let unitX1: Unit.Atomic | undefined;
-  let indexX1: StructureElement.UnitIndex | undefined;
-  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-    if (ni > 1) return;
-    if (typeSymbol(unitX, indexX) !== Elements.H) {
-      unitX1 = unitX;
-      indexX1 = indexX;
-      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-      Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
-    }
-  });
+  const p = planeState;
+  p.ni = 0;
+  p.unitA = unitA;
+  p.indexA = indexA;
+  p.unitX1 = undefined;
+  p.indexX1 = undefined;
+  eachBondedAtom(structure, unitA, indexA, planeFirstVisitor);
   // index 0 is a neighbour too (perf-audit-2 06/B4)
-  if (ni === 1 && unitX1 && indexX1 !== undefined) {
-    eachBondedAtom(structure, unitX1, indexX1, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-      if (ni > 1) return;
-      if (unitX === unitA && indexX === indexA) return;
-      if (typeSymbol(unitX, indexX) !== Elements.H) {
-        unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-        Vec3.sub(neighbours[ni++], tmpPosX, tmpPosA);
-      }
-    });
+  if (p.ni === 1 && p.unitX1 && p.indexX1 !== undefined) {
+    eachBondedAtom(structure, p.unitX1, p.indexX1, planeSecondVisitor);
   }
+  p.unitA = p.unitX1 = undefined;
 
-  if (ni !== 2) {
+  if (p.ni !== 2) {
     return;
   }
 
-  Vec3.cross(tmpDir2, neighbours[0], neighbours[1]);
+  Vec3.cross(tmpDir2, p.neighbours[0], p.neighbours[1]);
   return Math.abs(Math.PI / 2 - Vec3.angle(tmpDir2, tmpDir1));
+}
+
+const hydrogenState = {
+  out: undefined as unknown as { unit: Unit.Atomic; index: StructureElement.UnitIndex },
+  minDistSq: 0,
+};
+function closestHydrogenVisitor(unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) {
+  if (typeSymbol(unitX, indexX) === Elements.H) {
+    unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+    const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
+    if (dist < hydrogenState.minDistSq) {
+      hydrogenState.minDistSq = dist;
+      hydrogenState.out.unit = unitX;
+      hydrogenState.out.index = indexX;
+    }
+  }
+}
+
+/** `closestHydrogen` into `out` */
+export function closestHydrogenInto(
+  structure: Structure,
+  unitA: Unit.Atomic,
+  indexA: StructureElement.UnitIndex,
+  unitB: Unit.Atomic,
+  indexB: StructureElement.UnitIndex,
+  out: { unit: Unit.Atomic; index: StructureElement.UnitIndex },
+) {
+  out.unit = unitA;
+  out.index = indexA;
+  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+  hydrogenState.out = out;
+  hydrogenState.minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
+  eachBondedAtom(structure, unitA, indexA, closestHydrogenVisitor);
+  // the module state keeps no unit (and its model) after the call
+  hydrogenState.out = undefined as unknown as typeof out;
+  return out;
 }
 
 /**
@@ -177,22 +258,7 @@ export function closestHydrogen(
   unitB: Unit.Atomic,
   indexB: StructureElement.UnitIndex,
 ): { unit: Unit.Atomic; index: StructureElement.UnitIndex } {
-  const ret = { unit: unitA, index: indexA };
-  unitA.conformation.position(unitA.elements[indexA], tmpPosA);
-  unitB.conformation.position(unitB.elements[indexB], tmpPosB);
-  let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
-  eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
-    if (typeSymbol(unitX, indexX) === Elements.H) {
-      unitX.conformation.position(unitX.elements[indexX], tmpPosX);
-      const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
-      if (dist < minDistSq) {
-        minDistSq = dist;
-        ret.unit = unitX;
-        ret.index = indexX;
-      }
-    }
-  });
-  return ret;
+  return closestHydrogenInto(structure, unitA, indexA, unitB, indexB, { unit: unitA, index: indexA });
 }
 
 /**

@@ -8,7 +8,7 @@ import type { CubeFile } from '@molstar/io/reader/cube/parser';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
 import type { Volume } from '@molstar/model/model/volume';
 import { Task } from '@molstar/core/task';
-import { arrayMax, arrayMean, arrayMin, arrayRms } from '@molstar/core/util/array';
+import { arrayStats } from '@molstar/core/util/array';
 import type { ModelFormat } from '../format.js';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 
@@ -43,6 +43,7 @@ export function volumeFromCube(
     }
 
     const data = Tensor.create(space, Tensor.Data1(values));
+    const stats = arrayStats(values);
 
     const matrix = Mat4.fromTranslation(Mat4(), header.origin);
     const basis = Mat4.fromBasis(Mat4(), header.basisX, header.basisY, header.basisZ);
@@ -54,12 +55,7 @@ export function volumeFromCube(
       grid: {
         transform: { kind: 'matrix', matrix },
         cells: data,
-        stats: {
-          min: arrayMin(values),
-          max: arrayMax(values),
-          mean: arrayMean(values),
-          sigma: arrayRms(values),
-        },
+        stats: { min: stats.min, max: stats.max, mean: stats.mean, sigma: stats.rms },
       },
       instances: [{ transform: Mat4.identity() }],
       sourceData: CubeFormat.create(source),

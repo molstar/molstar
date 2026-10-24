@@ -773,18 +773,21 @@ export namespace Loci {
     const models = loci.structure.models;
     const sourceIndexMap = new Map<
       string,
-      { modelLabel: string; modelIndex: number; xs: UniqueArray<number, number> }
+      { opName: string; modelLabel: string; modelIndex: number; xs: UniqueArray<number, number> }
     >();
     for (const e of loci.elements) {
       const { indices } = e;
       const { elements } = e.unit;
-      const key = e.unit.conformation.operator.name;
+      // by model and operator: the models of a trajectory share operator names (perf-audit-2 05/B11)
+      const opName = e.unit.conformation.operator.name;
+      const key = `${e.unit.model.id}|${opName}`;
 
       let sourceIndices: UniqueArray<number, number>;
       if (sourceIndexMap.has(key)) sourceIndices = sourceIndexMap.get(key)!.xs;
       else {
         sourceIndices = UniqueArray.create<number, number>();
         sourceIndexMap.set(key, {
+          opName,
           modelLabel: e.unit.model.label,
           modelIndex: e.unit.model.modelNum,
           xs: sourceIndices,
@@ -803,7 +806,7 @@ export namespace Loci {
       const k = keys.next();
       if (k.done) break;
       const e = sourceIndexMap.get(k.value)!;
-      opData.push(getOpData(k.value, e.xs.array, models.length > 1, e.modelLabel, e.modelIndex));
+      opData.push(getOpData(e.opName, e.xs.array, models.length > 1, e.modelLabel, e.modelIndex));
     }
 
     const opGroups = new Map<string, OpData>();

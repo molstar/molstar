@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -77,7 +77,7 @@ export class StructureSubsetBuilder {
 
       if (deduplicateElements) {
         if (!this.isSorted) sortArray(unit);
-        unit = SortedArray.deduplicate(SortedArray.ofSortedArray(this.currentUnit));
+        unit = SortedArray.deduplicate(SortedArray.ofSortedArray(unit));
         sorted = true;
       }
 

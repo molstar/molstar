@@ -14,9 +14,9 @@ import type { Structure, Unit, StructureElement } from '@molstar/model/model/str
 import {
   AtomGeometry,
   AtomGeometryAngles,
-  calcAngles,
+  calcAnglesInto,
   calcPlaneAngle,
-  closestHydrogen,
+  closestHydrogenInto,
 } from '../chemistry/geometry.js';
 import { type FeaturesBuilder, Features } from './features.js';
 import { typeSymbol, bondToElementCount, bondCount, formalCharge, compId, atomId } from '../chemistry/util.js';
@@ -228,7 +228,25 @@ type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>;
 
 const deg120InRad = degToRad(120);
 
+const DonAngles: number[] = [],
+  DonHAngles: number[] = [],
+  AccAngles: number[] = [],
+  AccHAngles: number[] = [];
+const Donor = { unit: undefined as unknown as Unit.Atomic, index: 0 as StructureElement.UnitIndex };
+
 export function checkGeometry(
+  structure: Structure,
+  don: Features.Info,
+  acc: Features.Info,
+  opts: GeometryOptions,
+): true | undefined {
+  const ok = checkGeometryOf(structure, don, acc, opts);
+  // the scratch donor keeps no unit (and its model) after the check
+  Donor.unit = undefined as unknown as Unit.Atomic;
+  return ok;
+}
+
+function checkGeometryOf(
   structure: Structure,
   don: Features.Info,
   acc: Features.Info,
@@ -239,10 +257,24 @@ export function checkGeometry(
 
   if (!opts.includeBackbone && isBackboneHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return;
 
-  const [donAngles, donHAngles] = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex, opts.ignoreHydrogens);
+  // scratch arrays, loops and an out-param: nothing allocated per candidate (perf-audit-2 06/P12)
+  const donAngles = DonAngles,
+    donHAngles = DonHAngles;
+  calcAnglesInto(structure, don.unit, donIndex, acc.unit, accIndex, opts.ignoreHydrogens, donAngles, donHAngles);
   const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad;
-  if (donAngles.some((donAngle) => Math.abs(idealDonAngle - donAngle) > opts.maxDonAngleDev)) return;
-  if (donHAngles.length && !donHAngles.some((donHAngles) => donHAngles < opts.maxDonAngleDev)) return;
+  for (let i = 0, il = donAngles.length; i < il; ++i) {
+    if (Math.abs(idealDonAngle - donAngles[i]) > opts.maxDonAngleDev) return;
+  }
+  if (donHAngles.length) {
+    let some = false;
+    for (let i = 0, il = donHAngles.length; i < il; ++i) {
+      if (donHAngles[i] < opts.maxDonAngleDev) {
+        some = true;
+        break;
+      }
+    }
+    if (!some) return;
+  }
 
   if (don.idealGeometry[donIndex] === AtomGeometry.Trigonal) {
     const outOfPlane = calcPlaneAngle(structure, don.unit, donIndex, acc.unit, accIndex);
@@ -250,27 +282,28 @@ export function checkGeometry(
   }
 
   // the donor's hydrogen nearest the acceptor, which may be in another unit (per-atom symmetry)
-  let donor: { unit: Unit.Atomic; index: StructureElement.UnitIndex } = { unit: don.unit, index: donIndex };
+  const donor = Donor;
+  donor.unit = don.unit;
+  donor.index = donIndex;
   if (!opts.ignoreHydrogens && donHAngles.length > 0) {
-    donor = closestHydrogen(structure, don.unit, donIndex, acc.unit, accIndex);
+    closestHydrogenInto(structure, don.unit, donIndex, acc.unit, accIndex, donor);
     // the model has hydrogens on this donor but none lies between it and the acceptor: the H-bond is not supported
     // by the model (no fallback to the heavy atom)
     if (donor.unit === don.unit && donor.index === donIndex) return;
   }
 
-  const [accAngles, accHAngles] = calcAngles(
-    structure,
-    acc.unit,
-    accIndex,
-    donor.unit,
-    donor.index,
-    opts.ignoreHydrogens,
-  );
+  const accAngles = AccAngles,
+    accHAngles = AccHAngles;
+  calcAnglesInto(structure, acc.unit, accIndex, donor.unit, donor.index, opts.ignoreHydrogens, accAngles, accHAngles);
   const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
   // Do not limit large acceptor angles
-  if (accAngles.some((accAngle) => idealAccAngle - accAngle > opts.maxAccAngleDev)) return;
-  if (accHAngles.some((accHAngles) => idealAccAngle - accHAngles > opts.maxAccAngleDev)) return;
+  for (let i = 0, il = accAngles.length; i < il; ++i) {
+    if (idealAccAngle - accAngles[i] > opts.maxAccAngleDev) return;
+  }
+  for (let i = 0, il = accHAngles.length; i < il; ++i) {
+    if (idealAccAngle - accHAngles[i] > opts.maxAccAngleDev) return;
+  }
 
   if (acc.idealGeometry[accIndex] === AtomGeometry.Trigonal) {
     const outOfPlane = calcPlaneAngle(structure, acc.unit, accIndex, don.unit, donIndex);
@@ -292,7 +325,9 @@ function testHydrogenBond(
 
   if (!isHydrogenBond(typeA, typeB)) return;
 
-  const [don, acc] = typeB === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA];
+  const accIsB = typeB === FeatureType.HydrogenAcceptor;
+  const don = accIsB ? infoA : infoB,
+    acc = accIsB ? infoB : infoA;
 
   const donIndex = don.members[don.offsets[don.feature]];
   const accIndex = acc.members[acc.offsets[acc.feature]];
@@ -323,9 +358,8 @@ function testWeakHydrogenBond(
 
   if (!isWeakHydrogenBond(typeA, typeB)) return;
 
-  const [don, acc] = typeB === FeatureType.HydrogenAcceptor ? [infoA, infoB] : [infoB, infoA];
-
-  if (!checkGeometry(structure, don, acc, opts)) return;
+  const accIsB = typeB === FeatureType.HydrogenAcceptor;
+  if (!checkGeometry(structure, accIsB ? infoA : infoB, accIsB ? infoB : infoA, opts)) return;
 
   return InteractionType.WeakHydrogenBond;
 }

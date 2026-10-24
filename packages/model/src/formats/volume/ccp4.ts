@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Grid, Volume } from '@molstar/model/model/volume';
@@ -12,7 +13,7 @@ import type { Ccp4File, Ccp4Header } from '@molstar/io/reader/ccp4/schema';
 import { degToRad } from '@molstar/core/math/misc';
 import { getCcp4ValueType } from '@molstar/io/reader/ccp4/parser';
 import { TypedArrayValueType } from '@molstar/io/common/typed-array';
-import { arrayMin, arrayRms, arrayMean, arrayMax } from '@molstar/core/util/array';
+import { arrayStats } from '@molstar/core/util/array';
 import type { ModelFormat } from '../format.js';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 
@@ -106,6 +107,15 @@ export function volumeFromCcp4(
 
     // always calculate stats when all stats related values are zero
     const calcStats = header.AMIN === 0 && header.AMAX === 0 && header.AMEAN === 0 && header.ARMS === 0;
+    // one pass for what the header lacks (perf-audit-2 04/P18)
+    const needStats =
+      calcStats ||
+      Number.isNaN(header.AMIN) ||
+      Number.isNaN(header.AMAX) ||
+      Number.isNaN(header.AMEAN) ||
+      Number.isNaN(header.ARMS) ||
+      header.ARMS <= 0;
+    const stats = needStats ? arrayStats(values) : undefined;
 
     const volgrid: Grid = {
       transform: {
@@ -115,11 +125,11 @@ export function volumeFromCcp4(
       },
       cells: data,
       stats: {
-        min: Number.isNaN(header.AMIN) || calcStats ? arrayMin(values) : header.AMIN,
-        max: Number.isNaN(header.AMAX) || calcStats ? arrayMax(values) : header.AMAX,
-        mean: Number.isNaN(header.AMEAN) || calcStats ? arrayMean(values) : header.AMEAN,
+        min: Number.isNaN(header.AMIN) || calcStats ? stats!.min : header.AMIN,
+        max: Number.isNaN(header.AMAX) || calcStats ? stats!.max : header.AMAX,
+        mean: Number.isNaN(header.AMEAN) || calcStats ? stats!.mean : header.AMEAN,
         // a negative rms means it was not computed (e.g. IMOD writes -1)
-        sigma: Number.isNaN(header.ARMS) || header.ARMS <= 0 ? arrayRms(values) : header.ARMS,
+        sigma: Number.isNaN(header.ARMS) || header.ARMS <= 0 ? stats!.rms : header.ARMS,
       },
       periodicity: Vec3.isInteger(dimensions_frac) ? 'xyz' : 'none',
     };
