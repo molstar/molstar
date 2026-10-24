@@ -35,6 +35,14 @@ export class DataBuilder {
     return data.commit({ revertOnError: true });
   }
 
+  downloadBlob(
+    params: StateTransformer.Params<DownloadBlob> & { asResponse: true },
+    options?: Partial<StateTransform.Options>,
+  ): Promise<StateObjectSelector<SO.Data.ResponseBlob>>;
+  downloadBlob(
+    params: StateTransformer.Params<DownloadBlob>,
+    options?: Partial<StateTransform.Options>,
+  ): Promise<StateObjectSelector<SO.Data.Blob>>;
   downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
     const data = this.dataState.build().toRoot().apply(DownloadBlob, params, options);
     return data.commit({ revertOnError: true });

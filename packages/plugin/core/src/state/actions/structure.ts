@@ -327,6 +327,8 @@ const DownloadStructure = StateAction.build({
             {
               sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
               maxConcurrency: 6,
+              // the blob is parsed as mmCIF (`ParseBlob`): its entries' bytes, never decoded to strings
+              asResponse: plugin.dataFormats.has('mmcif') && !!plugin.dataFormats.get('mmcif')?.readsResponse,
             },
             { state: { isGhost: true } },
           );

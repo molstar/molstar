@@ -49,9 +49,9 @@ reads `Data.String` or `Data.Binary` today changes.
   consumer manages refs, and a consumer done with its read cannot drop the bytes under another one.
 - Reads repeat, in any form (`'string'` and then `'json'`), unlike a `fetch` `Response` body (single use); the doc
   comment says so. Each read decodes again: only the bytes are held, not the decoded forms.
-- Not a raw `fetch` wrapper in `data-source.ts`: it would bypass the URL cache and ref counts and redo `ajaxGet` (abort,
+- Not a raw `fetch` wrapper in `data-source.ts`: it would bypass the URL cache and ref counts and redo `fetchData` (abort,
   Node path, headers and body). Streaming, headers before the body or byte ranges, if needed, come as a new `DataType`
-  through `ajaxGet` and the manager.
+  through `fetchData` and the manager.
 
 ### Consumers
 
@@ -95,7 +95,13 @@ held bytes cannot; for data the parser keeps anyway (text CIF holds its bytes), 
 - `DeflateData` passes bytes that are not gzip through, so `Download` then `DeflateData` (a pipeline written before)
   still works. The EMDB loader (`packages/extensions/plugin/src/loaders.ts`) no longer applies it; `DownloadFile`'s
   `gzip` format reads the inflated download by its name without `.gz`.
-- `DownloadBlob` does not decompress (it reads through `ajaxGetMany`).
+- `DownloadBlob` takes the same `decompress`, and `asResponse` for the whole blob: it gives `Data.ResponseBlob`, each
+  entry `{ id, data: ResponseBody }` (one shared hold of each entry's bytes), not a `'response'` kind in `BlobEntry`
+  (widening that union would break code that switches over its kinds). `ParseBlob` takes it and parses each entry with
+  `CIF.parse` (text or BinaryCIF by the first byte); `DownloadStructure`'s blob path (`asTrajectory`) reads with
+  `asResponse` when mmCIF reads responses. `fetchDataMany`'s sources take `shared` and `decompress`.
+- `ajaxGet` and `ajaxGetMany` are `fetchData` and `fetchDataMany` (they send a POST with a `body`, so not "get"); the
+  old names, and `AjaxGetParams`, `AjaxTask`, `AjaxGetManyEntry`, stay as deprecated aliases.
 - Not in scope: zip by its bytes (`PK\x03\x04`), brotli (no native decoder in browsers), bzip2, xz.
 
 ## What it costs and saves

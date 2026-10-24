@@ -13,16 +13,16 @@ import { gzipSync } from 'node:zlib';
 // the byte cache is tested against a stubbed download: nothing here reaches the network
 vi.mock('../data-source.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../data-source.js')>()),
-  ajaxGet: vi.fn(),
+  fetchData: vi.fn(),
 }));
-const { ajaxGet } = await import('../data-source.js');
-const ajaxMock = vi.mocked(ajaxGet) as unknown as ReturnType<typeof vi.fn>;
+const { fetchData } = await import('../data-source.js');
+const fetchMock = vi.mocked(fetchData) as unknown as ReturnType<typeof vi.fn>;
 
 const enc = new TextEncoder();
 
 /** Answers every download with the bytes of `text`, after `gate` if given. */
 function serve(text: string, gate?: Promise<void>) {
-  ajaxMock.mockImplementation((params: any) =>
+  fetchMock.mockImplementation((params: any) =>
     Task.create(`Download ${params.url}`, async (ctx) => {
       await ctx.update({ message: 'Downloading...' });
       if (gate) await gate;
@@ -34,7 +34,7 @@ function serve(text: string, gate?: Promise<void>) {
 
 describe('DefaultAssetManager URL cache', () => {
   beforeEach(() => {
-    ajaxMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it('two resolves of the same URL fetch once', async () => {
@@ -44,7 +44,7 @@ describe('DefaultAssetManager URL cache', () => {
     const b = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     expect(`${a.data}`).toBe('abc');
     expect(`${b.data}`).toBe('abc');
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(m.urlCacheSize).toBe(1);
   });
 
@@ -54,7 +54,7 @@ describe('DefaultAssetManager URL cache', () => {
     const asset = Asset.Url('https://x.org/a');
     const a = await m.resolve(asset, 'string').run();
     const b = await m.resolve(asset, 'string').run();
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     a.dispose();
     expect(m.has(asset)).toBe(true);
     b.dispose();
@@ -70,13 +70,13 @@ describe('DefaultAssetManager URL cache', () => {
     a.dispose();
     expect(m.urlCacheSize).toBe(1);
     const c = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     b.dispose();
     c.dispose();
     expect(m.urlCacheSize).toBe(0);
 
     await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
-    expect(ajaxMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('shares one download between concurrent resolves', async () => {
@@ -88,7 +88,7 @@ describe('DefaultAssetManager URL cache', () => {
     open();
     const r = await Promise.all(p);
     expect(r.map((w) => `${w.data}`)).toEqual(['shared', 'shared', 'shared']);
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     r[0].dispose();
     r[1].dispose();
@@ -115,7 +115,7 @@ describe('DefaultAssetManager URL cache', () => {
     serve('ok');
     const w = await m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     expect(`${w.data}`).toBe('ok');
-    expect(ajaxMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('an aborted downloader does not fail the waiters, one takes over', async () => {
@@ -131,7 +131,7 @@ describe('DefaultAssetManager URL cache', () => {
     );
     const waiter = m.resolve(Asset.Url('https://x.org/a'), 'string').run();
     await new Promise((r) => setTimeout(r, 0));
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     serve('second'); // what the retry downloads
     abort('test');
@@ -139,7 +139,7 @@ describe('DefaultAssetManager URL cache', () => {
     expect(await downloaderResult).toBe('aborted');
     const w = await waiter;
     expect(`${w.data}`).toBe('second');
-    expect(ajaxMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     w.dispose();
     expect(m.urlCacheSize).toBe(0);
   });
@@ -154,7 +154,7 @@ describe('DefaultAssetManager URL cache', () => {
     expect(b.data).toBeInstanceOf(Uint8Array);
     expect(Array.from(b.data)).toEqual(Array.from(enc.encode('{"a":1}')));
     expect(j.data).toEqual({ a: 1 });
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('keeps URLs and headers apart', async () => {
@@ -164,7 +164,7 @@ describe('DefaultAssetManager URL cache', () => {
     await m.resolve(Asset.Url('https://x.org/b'), 'string').run();
     await m.resolve(Asset.Url('https://x.org/a', { headers: { Authorization: 'k' } }), 'string').run();
     await m.resolve(Asset.Url('https://x.org/a', { headers: { Authorization: 'k' } }), 'string').run();
-    expect(ajaxMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(m.urlCacheSize).toBe(3);
   });
 
@@ -173,14 +173,14 @@ describe('DefaultAssetManager URL cache', () => {
     const m = new DefaultAssetManager();
     const a = await m.resolve(Asset.Url('https://x.org/q', { body: '{}' }), 'string').run();
     const b = await m.resolve(Asset.Url('https://x.org/q', { body: '{}' }), 'string').run();
-    expect(ajaxMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(m.urlCacheSize).toBe(0);
     a.dispose();
     b.dispose();
 
     await m.resolve(Asset.Url('https://x.org/a'), 'string', false).run();
     await m.resolve(Asset.Url('https://x.org/a'), 'string', false).run();
-    expect(ajaxMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(m.urlCacheSize).toBe(0);
   });
 
@@ -233,7 +233,7 @@ describe('DefaultAssetManager failed reads (perf-audit-2 01/B12)', () => {
 
 describe('DefaultAssetManager held bytes (util/_spec/assets.md)', () => {
   beforeEach(() => {
-    ajaxMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it('a shared binary read returns the held bytes, other reads a copy', async () => {
@@ -246,7 +246,7 @@ describe('DefaultAssetManager held bytes (util/_spec/assets.md)', () => {
     expect(b.data).toBe(a.data);
     expect(c.data).not.toBe(a.data);
     expect(Array.from(c.data)).toEqual(Array.from(a.data));
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     for (const w of [a, b, c]) w.dispose();
     expect(m.has(asset)).toBe(false);
     expect(m.urlCacheSize).toBe(0);
@@ -307,7 +307,7 @@ describe('DefaultAssetManager held bytes (util/_spec/assets.md)', () => {
     expect(m.has(asset)).toBe(true);
     const b = await m.resolve(asset, 'string').run();
     expect(`${b.data}`).toBe('abc');
-    expect(ajaxMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('an entry of a download gives a file made of its bytes', async () => {
@@ -326,11 +326,11 @@ describe('DefaultAssetManager decompress (util/_spec/assets.md §5)', () => {
 
   /** Answers every download with `bytes`. */
   function serveBytes(bytes: Uint8Array) {
-    ajaxMock.mockImplementation((params: any) => Task.create(`Download ${params.url}`, async () => bytes.slice()));
+    fetchMock.mockImplementation((params: any) => Task.create(`Download ${params.url}`, async () => bytes.slice()));
   }
 
   beforeEach(() => {
-    ajaxMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it('inflates a gzipped download by its bytes, once for every reader of the URL', async () => {
@@ -346,7 +346,7 @@ describe('DefaultAssetManager decompress (util/_spec/assets.md §5)', () => {
     expect(b.data).toBe(a.data);
     expect(`${s.data}`).toBe('{"a":1}');
     expect(j.data).toEqual({ a: 1 });
-    expect(ajaxMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('passes bytes that are not gzip through', async () => {

@@ -55,7 +55,7 @@ export class StructureBuilder {
   }
 
   private async parseTrajectoryBlob(
-    data: StateObjectRef<SO.Data.Blob>,
+    data: StateObjectRef<SO.Data.Blob | SO.Data.ResponseBlob>,
     params: StateTransformer.Params<typeof ParseBlob>,
   ) {
     // the blob path is implemented by the mmCIF format, which is the only one that parses blobs
@@ -76,14 +76,14 @@ export class StructureBuilder {
     format: BuiltInTrajectoryFormat | TrajectoryFormatProvider,
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(
-    blob: StateObjectRef<SO.Data.Blob>,
+    blob: StateObjectRef<SO.Data.Blob | SO.Data.ResponseBlob>,
     params: StateTransformer.Params<typeof ParseBlob>,
   ): Promise<StateObjectSelector<SO.Molecule.Trajectory>>;
   parseTrajectory(data: StateObjectRef, params: any) {
     const cell = StateObjectRef.resolveAndCheck(this.dataState, data as StateObjectRef);
     if (!cell) throw new Error('Invalid data cell.');
 
-    if (SO.Data.Blob.is(cell.obj)) {
+    if (SO.Data.Blob.is(cell.obj) || SO.Data.ResponseBlob.is(cell.obj)) {
       return this.parseTrajectoryBlob(data, params);
     } else {
       return this.parseTrajectoryData(data, params);

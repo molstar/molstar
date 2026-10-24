@@ -6,7 +6,7 @@
  */
 
 import { UUID } from './uuid.js';
-import { ajaxGet, type DataType, type DataResponse, decodeData, readFromFile } from './data-source.js';
+import { fetchData, type DataType, type DataResponse, decodeData, readFromFile } from './data-source.js';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { File_ as File } from './nodejs-shims.js';
 import { iterableToArray } from '@molstar/core/data/util/array';
@@ -343,14 +343,18 @@ class DefaultAssetManager implements AssetManager {
         }
 
         if (!store) {
-          if (!decompress) return Asset.Wrapper(await ajaxGet({ ...asset, type }).runInContext(ctx), asset, this);
-          const entry = new HeldAsset(asset, undefined, await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx));
+          if (!decompress) return Asset.Wrapper(await fetchData({ ...asset, type }).runInContext(ctx), asset, this);
+          const entry = new HeldAsset(
+            asset,
+            undefined,
+            await fetchData({ ...asset, type: 'binary' }).runInContext(ctx),
+          );
           return Asset.Wrapper(await entry.read(ctx, type, true, true), asset, this);
         }
 
         const key = urlCacheKey(asset);
         if (key === undefined) {
-          const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
+          const data = await fetchData({ ...asset, type: 'binary' }).runInContext(ctx);
           const entry = new HeldAsset(asset, undefined, data);
           this._assets.set(asset.id, entry);
           entry.refCount = 1;
@@ -478,7 +482,7 @@ class DefaultAssetManager implements AssetManager {
   private async _download(ctx: RuntimeContext, asset: Asset.Url, key: string): Promise<UrlCacheEntry> {
     const entry: UrlCacheEntry = { refCount: 1 };
     this._urlCache.set(key, entry);
-    const pending = ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
+    const pending = fetchData({ ...asset, type: 'binary' }).runInContext(ctx);
     entry.pending = pending;
     pending.then(
       (bytes) => {

@@ -35,7 +35,7 @@ export type DataResponse<T extends DataType> = T extends 'json'
           ? { [k: string]: Uint8Array<ArrayBuffer> }
           : never;
 
-export interface AjaxGetParams<T extends DataType = 'string'> {
+export interface FetchDataParams<T extends DataType = 'string'> {
   url: string;
   type?: T;
   title?: string;
@@ -60,14 +60,32 @@ export function readFromFile<T extends DataType>(file: File, type: T) {
   return readFromFileInternal(file, type);
 }
 
-export function ajaxGet(url: string): Task<DataValue>;
-export function ajaxGet<T extends DataType>(params: AjaxGetParams<T>): Task<DataResponse<T>>;
-export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
-  if (typeof params === 'string') return ajaxGetInternal(params, params, 'string');
-  return ajaxGetInternal(params.title, params.url, params.type || 'string', params.body, params.headers, params.signal);
+/**
+ * Downloads `url` (`fetch`; a `file://` URL in Node.js through `setFSModule`) and reads it as `type`, a GET or, with a
+ * `body`, a POST.
+ */
+export function fetchData(url: string): Task<DataValue>;
+export function fetchData<T extends DataType>(params: FetchDataParams<T>): Task<DataResponse<T>>;
+export function fetchData<T extends DataType>(params: FetchDataParams<T> | string) {
+  if (typeof params === 'string') return fetchDataInternal(params, params, 'string');
+  return fetchDataInternal(
+    params.title,
+    params.url,
+    params.type || 'string',
+    params.body,
+    params.headers,
+    params.signal,
+  );
 }
 
-export type AjaxTask = typeof ajaxGet;
+export type FetchDataTask = typeof fetchData;
+
+/** @deprecated Kept for compatibility: use `fetchData`, the same function (it has downloaded by `fetch` since v6). */
+export const ajaxGet = fetchData;
+/** @deprecated Kept for compatibility: use `FetchDataParams`. */
+export type AjaxGetParams<T extends DataType = 'string'> = FetchDataParams<T>;
+/** @deprecated Kept for compatibility: use `FetchDataTask`. */
+export type AjaxTask = FetchDataTask;
 
 function isDone(data: FileReader) {
   if (RUNNING_IN_NODEJS) throw new Error('`isDone` should not be used when running in Node.js'); // FileReader is not available in Node.js
@@ -230,7 +248,7 @@ function readFromFileInternal_NodeJS<T extends DataType>(file: File, type: T): T
   });
 }
 
-function ajaxGetInternal<T extends DataType>(
+function fetchDataInternal<T extends DataType>(
   title: string | undefined,
   url: string,
   type: T,
@@ -239,7 +257,7 @@ function ajaxGetInternal<T extends DataType>(
   signal?: AbortSignal,
 ): Task<DataResponse<T>> {
   // Node.js's `fetch` has no `file:` scheme
-  if (RUNNING_IN_NODEJS && url.startsWith('file://')) return ajaxGetInternal_file_NodeJS(title, url, type);
+  if (RUNNING_IN_NODEJS && url.startsWith('file://')) return fetchDataInternal_file_NodeJS(title, url, type);
 
   return Task.create(title ? title : 'Download', async (ctx) => {
     // the task runtime sees an abort only in `ctx.update` and `ctx.shouldUpdate`, between chunks as with XHR; the
@@ -390,8 +408,8 @@ function readFileAsync(filename: string): Promise<NonSharedBuffer> {
   });
 }
 
-/** Alternative implementation of ajaxGetInternal for NodeJS for file:// protocol */
-function ajaxGetInternal_file_NodeJS<T extends DataType>(
+/** Alternative implementation of fetchDataInternal for NodeJS for file:// protocol */
+function fetchDataInternal_file_NodeJS<T extends DataType>(
   title: string | undefined,
   url: string,
   type: T,
@@ -410,34 +428,51 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(
   });
 }
 
-export type AjaxGetManyEntry =
+export type FetchDataManyEntry =
   | { kind: 'ok'; id: string; result: Asset.Wrapper<'string' | 'binary'> }
   | { kind: 'error'; id: string; error: any };
-export async function ajaxGetMany(
+/** @deprecated Kept for compatibility: use `FetchDataManyEntry`. */
+export type AjaxGetManyEntry = FetchDataManyEntry;
+
+/**
+ * A source of `fetchDataMany`. `shared`: a binary read of the held bytes (`AssetManager.ResolveOptions`), `decompress`:
+ * gzip told by its bytes is inflated (`util/_spec/assets.md` §5).
+ */
+export interface FetchDataManySource {
+  id: string;
+  url: Asset.Url | string;
+  isBinary?: boolean;
+  canFail?: boolean;
+  shared?: boolean;
+  decompress?: boolean;
+}
+
+function resolveSource(ctx: RuntimeContext, assetManager: AssetManager, src: FetchDataManySource) {
+  return assetManager
+    .resolve(Asset.getUrlAsset(assetManager, src.url), src.isBinary ? 'binary' : 'string', {
+      shared: src.shared,
+      decompress: src.decompress,
+    })
+    .runAsChild(ctx);
+}
+
+export async function fetchDataMany(
   ctx: RuntimeContext,
   assetManager: AssetManager,
-  sources: { id: string; url: Asset.Url | string; isBinary?: boolean; canFail?: boolean }[],
+  sources: FetchDataManySource[],
   maxConcurrency: number,
 ) {
   const len = sources.length;
-  const slots: AjaxGetManyEntry[] = new Array(sources.length);
+  const slots: FetchDataManyEntry[] = new Array(sources.length);
 
   await ctx.update({ message: 'Downloading...', current: 0, max: len });
-  let promises: Promise<AjaxGetManyEntry & { index: number }>[] = [],
+  let promises: Promise<FetchDataManyEntry & { index: number }>[] = [],
     promiseKeys: number[] = [];
   let currentSrc = 0;
   for (let _i = Math.min(len, maxConcurrency); currentSrc < _i; currentSrc++) {
     const current = sources[currentSrc];
 
-    promises.push(
-      wrapPromise(
-        currentSrc,
-        current.id,
-        assetManager
-          .resolve(Asset.getUrlAsset(assetManager, current.url), current.isBinary ? 'binary' : 'string')
-          .runAsChild(ctx),
-      ),
-    );
+    promises.push(wrapPromise(currentSrc, current.id, resolveSource(ctx, assetManager, current)));
     promiseKeys.push(currentSrc);
   }
 
@@ -459,10 +494,7 @@ export async function ajaxGetMany(
     promiseKeys = promiseKeys.filter(_filterRemoveIndex, idx);
     if (currentSrc < len) {
       const current = sources[currentSrc];
-      const asset = assetManager
-        .resolve(Asset.getUrlAsset(assetManager, current.url), current.isBinary ? 'binary' : 'string')
-        .runAsChild(ctx);
-      promises.push(wrapPromise(currentSrc, current.id, asset));
+      promises.push(wrapPromise(currentSrc, current.id, resolveSource(ctx, assetManager, current)));
       promiseKeys.push(currentSrc);
       currentSrc++;
     }
@@ -479,7 +511,7 @@ async function wrapPromise(
   index: number,
   id: string,
   p: Promise<Asset.Wrapper<'string' | 'binary'>>,
-): Promise<AjaxGetManyEntry & { index: number }> {
+): Promise<FetchDataManyEntry & { index: number }> {
   try {
     const result = await p;
     return { kind: 'ok', result, index, id };
@@ -487,3 +519,6 @@ async function wrapPromise(
     return { kind: 'error', error, index, id };
   }
 }
+
+/** @deprecated Kept for compatibility: use `fetchDataMany`, the same function. */
+export const ajaxGetMany = fetchDataMany;

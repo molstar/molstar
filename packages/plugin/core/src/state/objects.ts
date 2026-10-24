@@ -124,6 +124,10 @@ export namespace PluginStateObject {
     );
     export type BlobData = BlobEntry[];
     export class Blob extends Create<BlobData>({ name: 'Data Blob', typeClass: 'Data' }) {}
+
+    /** The entries of a `DownloadBlob` with `asResponse`: each a response body, the reader chooses its form. */
+    export type ResponseBlobEntry = { id: string; data: ResponseBody };
+    export class ResponseBlob extends Create<ResponseBlobEntry[]>({ name: 'Response Blob', typeClass: 'Data' }) {}
   }
 
   export namespace Format {

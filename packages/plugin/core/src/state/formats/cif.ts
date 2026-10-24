@@ -13,12 +13,21 @@ import { Task } from '@molstar/core/task';
 import { CIF } from '@molstar/io/reader/cif';
 import { StateObject } from '@molstar/core/state';
 
+/**
+ * A response's bytes go through `CIF.parse`, which tells text CIF from BinaryCIF (as `ParseCif`); a binary entry stays
+ * strict BinaryCIF (`.v6/designs/cif-parsing.md`).
+ */
+function parseBlobEntry(e: SO.Data.BlobEntry | SO.Data.ResponseBlobEntry) {
+  if (!('kind' in e)) return CIF.parse(e.data.bytes);
+  return e.kind === 'string' ? CIF.parse(e.data) : CIF.parseBinary(e.data);
+}
+
 export { ParseBlob };
 type ParseBlob = typeof ParseBlob;
 const ParseBlob = PluginStateTransform.BuiltIn({
   name: 'parse-blob',
   display: { name: 'Parse Blob', description: 'Parse multiple data enties' },
-  from: SO.Data.Blob,
+  from: [SO.Data.Blob, SO.Data.ResponseBlob],
   to: SO.Format.Blob,
   params: {
     formats: PD.ObjectList(
@@ -40,7 +49,7 @@ const ParseBlob = PluginStateTransform.BuiltIn({
       for (const e of a.data) {
         if (!map.has(e.id)) continue;
 
-        const parsed = await (e.kind === 'string' ? CIF.parse(e.data) : CIF.parseBinary(e.data)).runInContext(ctx);
+        const parsed = await parseBlobEntry(e).runInContext(ctx);
         if (parsed.isError) throw new Error(`${e.id}: ${parsed.message}`);
         entries.push({ id: e.id, kind: 'cif', data: parsed.result });
       }

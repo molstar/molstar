@@ -60,7 +60,7 @@ const TrajectoryFromBlob = PluginStateTransform.BuiltIn({
  */
 export function parseMmcifBlob(
   plugin: PluginContext,
-  data: StateObjectRef<SO.Data.Blob>,
+  data: StateObjectRef<SO.Data.Blob | SO.Data.ResponseBlob>,
   params: StateTransformer.Params<typeof ParseBlob>,
 ) {
   return plugin.state.data

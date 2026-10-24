@@ -15,7 +15,8 @@ import { ParseCif } from '../../../formats/cif.js';
 import { DownloadFile, OpenFiles } from '../../../actions/file.js';
 import { gzipSync } from 'node:zlib';
 import { ParseJson } from '../json.js';
-import { DeflateData, Download, ReadFile, ReadResponse } from '../fetch.js';
+import { DeflateData, Download, DownloadBlob, ReadFile, ReadResponse } from '../fetch.js';
+import { ParseBlob } from '../../../formats/cif.js';
 import { guessCifVariant } from '../../../formats/provider.js';
 import { looksLikeMmcifParticles } from '@molstar/model/formats/particles/mmcif-sniff';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
@@ -218,5 +219,44 @@ describe('decompress (util/_spec/assets.md §5)', () => {
       expect(update({}, { decompress: 'none' })).toBe(StateTransformer.UpdateResult.Recreate);
       expect(update({}, { decompress: 'auto' })).not.toBe(StateTransformer.UpdateResult.Recreate);
     }
+  });
+});
+
+describe('Data.ResponseBlob', () => {
+  const gz = (text: string) => new Uint8Array(gzipSync(new TextEncoder().encode(text)));
+
+  it('DownloadBlob with asResponse holds each entry as bytes (inflated), and ParseBlob parses them', async () => {
+    const plugin = await createPlugin();
+    const urls = ['https://x.org/a.cif', 'https://x.org/b.cif.gz'];
+    // held assets: the downloads read them, nothing reaches the network
+    plugin.managers.asset.set(Asset.Url(urls[0]), new File([Cif], 'raw-data'), { isStatic: true });
+    plugin.managers.asset.set(Asset.Url(urls[1]), new File([gz(Cif)], 'raw-data'), { isStatic: true });
+    const sources = urls.map((url, i) => ({ id: `${i}`, url }));
+    const blob = await plugin.builders.data.downloadBlob({ sources, asResponse: true });
+    const obj = blob.cell!.obj!;
+    expect(obj).toBeInstanceOf(SO.Data.ResponseBlob);
+    expect(obj.data.map((e) => e.id)).toEqual(['0', '1']);
+    for (const e of obj.data) expect(`${await e.data.text(RuntimeContext.Synchronous)}`).toBe(Cif);
+
+    const formats = sources.map((s) => ({ id: s.id, format: 'cif' as const }));
+    const parsed = await plugin.build().to(blob).apply(ParseBlob, { formats }).commit();
+    expect(parsed.cell!.obj!.data.map((e) => e.data.blocks[0].categories.atom_site.rowCount)).toEqual([2, 2]);
+    plugin.dispose();
+  });
+
+  it('DownloadBlob without asResponse gives Data.Blob as before, gzip inflated', async () => {
+    const plugin = await createPlugin();
+    const url = 'https://x.org/c.cif.gz';
+    plugin.managers.asset.set(Asset.Url(url), new File([gz(Cif)], 'raw-data'), { isStatic: true });
+    const blob = await plugin
+      .build()
+      .toRoot()
+      .apply(DownloadBlob, { sources: [{ id: '0', url }] })
+      .commit();
+    const e = blob.cell!.obj!.data[0];
+    expect(blob.cell!.obj).toBeInstanceOf(SO.Data.Blob);
+    expect(e.kind).toBe('string');
+    expect(`${e.data}`).toBe(Cif);
+    plugin.dispose();
   });
 });

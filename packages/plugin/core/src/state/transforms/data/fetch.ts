@@ -12,7 +12,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
 import { StateTransformer, StateObject } from '@molstar/core/state';
-import { ajaxGetMany } from '@molstar/core/util/data-source';
+import { fetchDataMany } from '@molstar/core/util/data-source';
 import { isGzip, ungzip } from '@molstar/core/util/zip/zip';
 import { utf8ReadLong } from '@molstar/core/util/utf8';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
@@ -116,7 +116,7 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
   name: 'download-blob',
   display: { name: 'Download Blob', description: 'Download multiple string or binary data from the specified URLs.' },
   from: SO.Root,
-  to: SO.Data.Blob,
+  to: [SO.Data.Blob, SO.Data.ResponseBlob],
   params: {
     sources: PD.ObjectList(
       {
@@ -125,7 +125,9 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
           description: 'Resource URL. Must be the same domain or support CORS.',
         }),
         isBinary: PD.Optional(
-          PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }),
+          PD.Boolean(false, {
+            description: 'If true, download data as binary (string otherwise). Ignored with asResponse.',
+          }),
         ),
         canFail: PD.Optional(
           PD.Boolean(false, {
@@ -138,12 +140,24 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     maxConcurrency: PD.Optional(
       PD.Numeric(4, { min: 1, max: 12, step: 1 }, { description: 'The maximum number of concurrent downloads.' }),
     ),
+    asResponse: PD.Optional(
+      PD.Boolean(false, {
+        description:
+          'If true, hold every entry as bytes and let the parser read each as text or binary (Response Blob); isBinary is ignored.',
+      }),
+    ),
+    decompress: DecompressParam,
   },
 })({
   apply({ params, cache }, plugin: PluginContext) {
     return Task.create('Download Blob', async (ctx) => {
+      const decompress = decompressOf(params);
+      const sources = params.asResponse
+        ? params.sources.map((src) => ({ ...src, isBinary: true, shared: true, decompress }))
+        : params.sources.map((src) => ({ ...src, decompress }));
+      const data = await fetchDataMany(ctx, plugin.managers.asset, sources, params.maxConcurrency || 4);
       const entries: SO.Data.BlobEntry[] = [];
-      const data = await ajaxGetMany(ctx, plugin.managers.asset, params.sources, params.maxConcurrency || 4);
+      const responses: SO.Data.ResponseBlobEntry[] = [];
 
       const assets: Asset.Wrapper[] = [];
 
@@ -153,18 +167,24 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
         if (r.kind === 'error') plugin.log.warn(`Download ${r.id} (${src.url}) failed: ${r.error}`);
         else {
           assets.push(r.result);
-          entries.push(
-            src.isBinary
-              ? { id: r.id, kind: 'binary', data: r.result.data as Uint8Array<ArrayBuffer> }
-              : { id: r.id, kind: 'string', data: r.result.data as string },
-          );
+          if (params.asResponse) {
+            // one shared hold of each entry's bytes for the node's lifetime, as `Download`'s `asResponse`
+            responses.push({ id: r.id, data: new SO.Data.ResponseBody(r.result.data as Uint8Array<ArrayBuffer>) });
+          } else {
+            entries.push(
+              src.isBinary
+                ? { id: r.id, kind: 'binary', data: r.result.data as Uint8Array<ArrayBuffer> }
+                : { id: r.id, kind: 'string', data: r.result.data as string },
+            );
+          }
         }
       }
       (cache as any).assets = assets;
-      return new SO.Data.Blob(entries, {
-        label: 'Data Blob',
-        description: `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`,
-      });
+      const count = params.asResponse ? responses.length : entries.length;
+      const props = { description: `${count} ${count === 1 ? 'entry' : 'entries'}` };
+      return params.asResponse
+        ? new SO.Data.ResponseBlob(responses, { label: 'Response Blob', ...props })
+        : new SO.Data.Blob(entries, { label: 'Data Blob', ...props });
     });
   },
   dispose({ cache }, plugin: PluginContext) {

@@ -26,7 +26,7 @@ export interface TrajectoryFormatProvider<
    */
   parseBlob?(
     plugin: PluginContext,
-    blob: StateObjectRef<PluginStateObject.Data.Blob>,
+    blob: StateObjectRef<PluginStateObject.Data.Blob | PluginStateObject.Data.ResponseBlob>,
     params: StateTransformer.Params<typeof ParseBlob>,
   ): Promise<StateObjectSelector<PluginStateObject.Molecule.Trajectory>>;
 }
