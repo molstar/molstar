@@ -41,14 +41,43 @@ namespace PeriodicBox {
   }
 
   /**
-   * The displacement `d` moved by a lattice vector to the image nearest to zero in fractional coordinates: exact for
-   * a rectangular box, and for any box GROMACS accepts while |d| is under half the shortest box vector.
+   * The displacement `d` moved by a lattice vector to the shortest image. Rounding the fractional coordinates gives
+   * the image in the box-shaped cell around zero, which is the shortest only in a rectangular box; in a skewed box the
+   * 27 shifts by −1, 0, 1 of each box vector around it are tried as well, which is exact for any box GROMACS accepts
+   * (perf-audit-3 02/B7).
    */
   export function minimumImage(out: Vec3, box: PeriodicBox, d: Vec3): Vec3 {
     const f = Vec3.transformMat3(out, d, box.inverse);
     f[0] -= Math.round(f[0]);
     f[1] -= Math.round(f[1]);
     f[2] -= Math.round(f[2]);
-    return Vec3.transformMat3(out, f, box.basis);
+    Vec3.transformMat3(out, f, box.basis);
+    const m = box.basis;
+    if (m[1] === 0 && m[2] === 0 && m[3] === 0 && m[5] === 0 && m[6] === 0 && m[7] === 0) return out;
+
+    const x = out[0],
+      y = out[1],
+      z = out[2];
+    let bx = x,
+      by = y,
+      bz = z,
+      best = x * x + y * y + z * z;
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        for (let k = -1; k <= 1; k++) {
+          const sx = x + i * m[0] + j * m[3] + k * m[6],
+            sy = y + i * m[1] + j * m[4] + k * m[7],
+            sz = z + i * m[2] + j * m[5] + k * m[8];
+          const l = sx * sx + sy * sy + sz * sz;
+          if (l < best) {
+            best = l;
+            bx = sx;
+            by = sy;
+            bz = sz;
+          }
+        }
+      }
+    }
+    return Vec3.set(out, bx, by, bz);
   }
 }
