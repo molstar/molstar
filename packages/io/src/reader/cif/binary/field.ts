@@ -100,10 +100,22 @@ function decodedField(column: EncodedColumn): Data.CifField {
     : (row) => Column.ValueKinds.Present;
 
   const rowCount = data.length;
-  const storage: Column.Storage = { kind: 'array', array: data };
+  const presentValue = (row: number) => (presentMask[row] === Column.ValueKinds.Present ? data[row] : 0);
+  let storage: Column.Storage | undefined;
+  // the values as the field reads them: with missing values, a copy where they read as 0 or '' (views, windows and
+  // array copies of the column read the storage, and an encoder need not zero the masked slots: perf-audit-2 01/B16)
+  const getStorage = () =>
+    (storage ??= {
+      kind: 'array',
+      array: !hasMissingValues
+        ? data
+        : isNumeric
+          ? ColumnHelpers.typedArrayWindowMasked(data, presentMask, 0)
+          : Array.from(data as ArrayLike<string>, (v, i) => (presentMask[i] === Column.ValueKinds.Present ? v : '')),
+    });
 
   return {
-    storage: () => storage,
+    storage: getStorage,
     binaryEncoding: column.data.encoding,
     isDefined: true,
     rowCount,
@@ -111,7 +123,12 @@ function decodedField(column: EncodedColumn): Data.CifField {
     int,
     float,
     valueKind,
-    areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
+    // missing numbers compare as they read (0), not by their slots (01/B16); a string field's `int` and `float` read
+    // the slots, so its comparison does too
+    areValuesEqual:
+      isNumeric && hasMissingValues
+        ? (rowA, rowB) => presentValue(rowA) === presentValue(rowB)
+        : (rowA, rowB) => data[rowA] === data[rowB],
     toStringArray: (params) => ColumnHelpers.createAndFillArray(rowCount, str, params),
     toIntArray: isNumeric
       ? hasMissingValues
