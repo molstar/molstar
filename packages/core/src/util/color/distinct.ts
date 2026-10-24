@@ -17,6 +17,7 @@ import { ColorNames } from './names.js';
 import { Color } from './color.js';
 import { saturate } from '@molstar/core/math/interpolate';
 import { PCG } from '@molstar/core/data/util/hash-functions';
+import { LRUCache } from '../lru-cache.js';
 
 export const DistinctColorsParams = {
   hue: PD.Interval([1, 360], { min: 0, max: 360, step: 1 }),
@@ -112,12 +113,24 @@ function getClosestIndex(colors: Lab[], color: Lab) {
 }
 
 /**
+ * The lists of the last calls: a theme made again for each update would cluster the samples again (8-36 ms per
+ * build); the result depends on the count and props only (perf-audit-2 01/P9)
+ */
+const distinctColorsCache = LRUCache.create<Color[]>(16);
+
+/**
  * Create a list of visually distinct colors
  */
 export function distinctColors(count: number, props: Partial<DistinctColorsProps> = {}): Color[] {
   const p = { ...PD.getDefaultValues(DistinctColorsParams), ...props };
   if (count <= 0) return [];
+  const key = `${count}|${JSON.stringify(p)}`;
+  let colors = LRUCache.get(distinctColorsCache, key);
+  if (!colors) LRUCache.set(distinctColorsCache, key, (colors = computeDistinctColors(count, p)));
+  return colors.slice();
+}
 
+function computeDistinctColors(count: number, p: DistinctColorsProps): Color[] {
   const samples = getSamples(Math.max(p.minSampleCount, count * p.sampleCountFactor), p);
   if (samples.length < count) {
     console.warn('Not enough samples to generate distinct colors, increase sample count.');
