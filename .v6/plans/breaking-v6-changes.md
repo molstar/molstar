@@ -1205,3 +1205,15 @@ input that read differently before:
   starting with it dropped the rest of its line).
 - A UTF-8 byte order mark is skipped; the last record is counted without a final line break.
 
+## Text parsers read bytes
+
+The text parsers on `TextByteTokenizer` (XYZ, GRO, MOL, SDF, MOL2, PSF, TOP, PRMTOP, LAMMPS, cube, DX, OBJ, PLY, Dynamo
+tbl, CSV) take `StringLike | Uint8Array`; passing a string still works (encoded to UTF-8 once). Differences:
+
+- Fixed-width columns (GRO, MOL/SDF, PRMTOP) count bytes, not chars: a non-ASCII char in such a line shifts the columns
+  after it (the formats are ASCII).
+- XYZ coordinates parse with Mol*'s number parser, not `+value`: some differ in the last bit (as every other text
+  format's numbers); a field that is no number reads its leading number or 0, not NaN.
+- `mol/parser`'s exported `handleAtoms`, `handleBonds` and `handlePropertiesBlock` take a `TextByteTokenizer`.
+- A PLY whose format line is not ascii or binary (little or big endian) fails as a string did; the plugin's bytes read
+  it as ASCII.
