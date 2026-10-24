@@ -29,3 +29,5 @@ packages/sequences/**/*.mdx
 packages/sequences/core/src/algorithms/biomsa/
 # Generated from the code (src/_test/operations-spec.test.ts)
 packages/prism/viewer/_spec/operations.md
+packages/extensions/command-language/_spec/pymol.md
+packages/extensions/command-language/_spec/vmd.md

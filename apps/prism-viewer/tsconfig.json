@@ -16,6 +16,9 @@
       "path": "../../packages/prism/viewer"
     },
     {
+      "path": "../../packages/extensions/command-language"
+    },
+    {
       "path": "../../packages/extensions/model-archive"
     },
     {
