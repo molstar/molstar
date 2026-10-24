@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-24 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -272,6 +272,8 @@ namespace QualityAssessment {
 
       let labelAsymId = label_asym_id_1.value(i);
       let entityIndex = index.findEntity(labelAsymId);
+      // A chain the model does not have (another model's file): no residue of it.
+      if (entityIndex < 0) continue;
       residueKey.label_entity_id = model.entities.data.id.value(entityIndex);
       residueKey.label_asym_id = labelAsymId;
       residueKey.label_seq_id = label_seq_id_1.value(i);
@@ -281,6 +283,7 @@ namespace QualityAssessment {
 
       labelAsymId = label_asym_id_2.value(i);
       entityIndex = index.findEntity(labelAsymId);
+      if (entityIndex < 0) continue;
       residueKey.label_entity_id = model.entities.data.id.value(entityIndex);
       residueKey.label_asym_id = labelAsymId;
       residueKey.label_seq_id = label_seq_id_2.value(i);

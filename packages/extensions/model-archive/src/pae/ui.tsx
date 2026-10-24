@@ -46,8 +46,8 @@ interface Shown {
 export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const area = ctx.api['model-archive'];
   if (!area) return {};
-  // The structures that have a PAE (by the file's metric list: no matrix is read for this), and those AlphaFold DB
-  // has one for (an entry without it yet): asked again when the state changes (a fetched PAE is a state cell). The
+  // The structures that have a PAE (by the file's metric list: no matrix is read for this), and those whose PAE can be
+  // fetched (Model Archive's associated file, an AlphaFold DB entry): asked again when the state changes (a fetched PAE is a state cell). The
   // area tells of its changes by a stream, not a state: a state told at each (never the same), at this edge.
   const changed = toState<void>(area.changes, undefined, () => false);
   const shownOf = (has: (ref: string) => boolean) =>
@@ -61,7 +61,7 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const fetchPae = (structure: string) => void ctx.api['model-archive']?.fetchPae({ structure });
   const FetchButton = (props: { shown: Shown }) => (
     <Button size="sm" onClick={() => fetchPae(props.shown.ref)}>
-      Fetch PAE from AlphaFold DB{props.shown.label ? ` (${props.shown.label})` : ''}
+      Fetch PAE{props.shown.label ? ` (${props.shown.label})` : ''}
     </Button>
   );
   // The structure the card shows (by ref; none: the first with a PAE): its picker's, or the Structure panel row's.
@@ -96,7 +96,8 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
                 fallback={() => (
                   <div style="display: grid; gap: var(--msp-space-2); justify-items: start">
                     <p style={`margin: 0; ${Quiet}`}>
-                      No loaded model has a PAE. Model Archive's ModelCIF files carry one; AlphaFold DB ships it apart.
+                      No loaded model has a PAE. A ModelCIF file may carry one; Model Archive and AlphaFold DB often
+                      ship it apart.
                     </p>
                     <Show when={fetchable}>
                       {(list) => (

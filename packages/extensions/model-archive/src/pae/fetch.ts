@@ -6,9 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTransformer } from '@molstar/core/state';
+import { StateObject, StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
+import { unzip } from '@molstar/core/util/zip/zip';
+import { CIF } from '@molstar/io/reader/cif';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
@@ -44,6 +46,54 @@ const FetchPaeJson = PluginStateTransform.BuiltIn({
   },
   update({ oldParams, newParams }) {
     return oldParams.url !== newParams.url
+      ? StateTransformer.UpdateResult.Recreate
+      : StateTransformer.UpdateResult.Unchanged;
+  },
+});
+
+// Model Archive's PAE as a state cell of the model, as AlphaFold DB's above: the associated file the model's own file
+// names (`associated.ts`), a CIF or an entry of a zip, downloaded, unpacked and parsed in one transform.
+
+/** What an associated archive may hold before anything is inflated (Model Archive's: a PAE and an MSA, tens of MB). */
+const ArchiveLimits = { maxEntries: 256, maxBytes: 1 << 30 };
+
+export { FetchAssociatedPae };
+type FetchAssociatedPae = typeof FetchAssociatedPae;
+const FetchAssociatedPae = PluginStateTransform.BuiltIn({
+  name: 'model-archive-fetch-associated-pae',
+  display: { name: 'Model Archive PAE', description: "Download and parse a model's associated PAE file" },
+  from: SO.Molecule.Model,
+  to: SO.Format.Cif,
+  params: {
+    url: PD.Url('', { description: 'The associated file: a CIF, or a zip with the CIF in it.' }),
+    path: PD.Optional(PD.Text('', { description: "The CIF's path in the zip." })),
+    label: PD.Optional(PD.Text('')),
+  },
+})({
+  apply({ params: p, cache }, plugin: PluginContext) {
+    return Task.create('Fetch PAE', async (ctx) => {
+      const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
+      const asset = await plugin.managers.asset.resolve(url, 'binary').runInContext(ctx);
+      (cache as { asset?: Asset.Wrapper }).asset = asset;
+      let bytes: Uint8Array = asset.data;
+      if (p.path) {
+        const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+        const entries = await unzip(ctx, buf, false, ArchiveLimits, (name) => name === p.path);
+        const entry = entries[p.path];
+        if (!(entry instanceof Uint8Array)) throw new Error(`the archive has no ${p.path}`);
+        bytes = entry;
+      }
+      const parsed = await CIF.parse(bytes).runInContext(ctx);
+      if (parsed.isError) throw new Error(parsed.message);
+      if (parsed.result.blocks.length === 0) return StateObject.Null;
+      return new SO.Format.Cif(parsed.result, { label: p.label || p.path || url.url });
+    });
+  },
+  dispose({ cache }) {
+    (cache as { asset?: Asset.Wrapper } | undefined)?.asset?.dispose();
+  },
+  update({ oldParams, newParams }) {
+    return oldParams.url !== newParams.url || oldParams.path !== newParams.path
       ? StateTransformer.UpdateResult.Recreate
       : StateTransformer.UpdateResult.Unchanged;
   },

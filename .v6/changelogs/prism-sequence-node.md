@@ -25,3 +25,7 @@
 - Prism: Reset view below the sequence band frames the structure as close as Mol*'s own reset allows (its perspective
   margin counted in), not farther back by the band's height on top of it.
 - Prism: hiding the sequence band fades it in place (it used to jump to a panel's place, then fade).
+- model-archive: `model-archive.fetch-pae` also gets a Model Archive model's PAE from the associated file the model
+  names (`ma_entry_associated_files`, a CIF or an entry of a zip), on demand: a cell under the model, as AlphaFold DB's
+  PAE. The structure row's entry and the PAE card's button say "Fetch PAE".
+- model-archive: a pairwise metric that names a chain the model does not have is read without an error.

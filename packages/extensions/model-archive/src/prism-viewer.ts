@@ -168,7 +168,7 @@ function paeCommands(api: ViewerApi, area: ModelArchiveApi): CommandDefinition<a
     operationCommand(api, area.fetchPae, {
       category: 'Structure',
       icon: 'download',
-      alias: ['pae', 'predicted aligned error', 'alphafold', 'download pae', 'afdb'],
+      alias: ['pae', 'predicted aligned error', 'alphafold', 'download pae', 'afdb', 'model archive'],
       action: 'Fetch',
     }),
     {
