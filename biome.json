@@ -118,6 +118,42 @@
       }
     },
     {
+      "includes": [
+        "packages/extensions/command-language/src/language/**",
+        "!packages/extensions/command-language/src/language/**/_test/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/core",
+                      "!@molstar/core/**",
+                      "!@molstar/query-language",
+                      "!@molstar/query-language/**"
+                    ],
+                    "message": "The command language is plugin- and UI-free: core and query-language only; the host is in prism-viewer/ (command-language _spec §2)."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**", "react", "react/**", "react-dom", "react-dom/**", "zod", "zod/**"],
+                    "message": "The command language is plugin- and UI-free (command-language _spec §2)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["packages/ai/src/messages/**", "!packages/ai/src/messages/**/_test/**"],
       "linter": {
         "rules": {

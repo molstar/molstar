@@ -271,6 +271,12 @@
       "private": false
     },
     {
+      "name": "@molstar/command-language-extension",
+      "path": "packages/extensions/command-language",
+      "kind": "extension",
+      "private": false
+    },
+    {
       "name": "@molstar/model-archive-extension",
       "path": "packages/extensions/model-archive",
       "kind": "extension",

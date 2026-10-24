@@ -1,0 +1,186 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { DialectImpl } from './dialect.js';
+import { type Diagnostic, error, ScriptError, type Span } from './diagnostics.js';
+import { type AtomSelectHandle, CompileState, createScriptSession, type ScriptEnv, type ScriptSession } from './env.js';
+import type { Command, Dialect } from './ir.js';
+import { DialectNames } from './ir.js';
+import { PymolDialect } from './pymol/dialect.js';
+import { VmdDialect } from './vmd/dialect.js';
+
+// A submission, start to end (_spec §5): split it, compile every command against a working copy of the env (each
+// command's names visible to the next), and run nothing if anything did not read; then run the commands in order on
+// the host, stopping at the first failure. The host runs them as one step, so a failure is all or nothing (_spec §6).
+
+export const DialectImpls: Readonly<Record<Dialect, DialectImpl>> = { pymol: PymolDialect, vmd: VmdDialect };
+
+/** What the host does with one command (`ScriptHost.execute`). */
+export type ExecResult =
+  | {
+      readonly ok: true;
+      /** One line: what it did ("Showed sticks for 87 atoms in 1cbs."). */
+      readonly did?: string;
+      /** What a read printed. */
+      readonly output?: string;
+      readonly warnings?: readonly string[];
+    }
+  | { readonly ok: false; readonly message: string; readonly hint?: string };
+
+/** Where commands run (_spec §5): the Prism viewer's API, or a test's fake. */
+export interface ScriptHost {
+  /** What names mean now (read once a submission). */
+  env(): ScriptEnv;
+  execute(command: Command, signal?: AbortSignal): Promise<ExecResult>;
+}
+
+export interface ScriptOutput {
+  readonly at: Span;
+  readonly source: string;
+  readonly kind: 'did' | 'value' | 'warning' | 'note';
+  readonly text: string;
+}
+
+export interface CompiledScript {
+  readonly dialect: Dialect;
+  readonly commands: readonly Command[];
+  /** Errors, warnings and notes; any error means nothing may run. */
+  readonly diagnostics: readonly Diagnostic[];
+  /** The session as it will be once these run (Tcl variables, atomselect handles). */
+  readonly session: ScriptSession;
+}
+
+export interface ScriptResult {
+  readonly ok: boolean;
+  readonly outputs: readonly ScriptOutput[];
+  readonly diagnostics: readonly Diagnostic[];
+  /** The commands that ran (all of them when `ok`). */
+  readonly ran: number;
+  readonly commands: readonly Command[];
+}
+
+function cloneSession(s: ScriptSession): ScriptSession {
+  return { vars: new Map(s.vars), handles: new Map<string, AtomSelectHandle>(s.handles), nextHandle: s.nextHandle };
+}
+
+/** A name another dialect has: the hint that says which prefix runs it. */
+function otherDialectHint(dialect: Dialect, name: string): string | undefined {
+  for (const other of Object.values(DialectImpls)) {
+    if (other.id === dialect) continue;
+    const known = other.commands.some((c) => c.name === name || c.name.split(' ')[0] === name);
+    if (known) return `${name} is ${DialectNames[other.id]}’s: type ${other.id} ${name} …`;
+  }
+  return undefined;
+}
+
+/** Splits and compiles a submission without running it: what the menu previews and `runScript` runs. */
+export function compileScript(
+  text: string,
+  dialect: Dialect,
+  env: ScriptEnv,
+  session: ScriptSession = createScriptSession(),
+): CompiledScript {
+  const impl = DialectImpls[dialect];
+  const working = cloneSession(session);
+  const state = new CompileState(env, working);
+  const { units, diagnostics: splitDiagnostics } = impl.split(text);
+  const diagnostics: Diagnostic[] = [...splitDiagnostics];
+  const commands: Command[] = [];
+  for (const unit of units) {
+    try {
+      const bodies = impl.compile(unit, {
+        dialect,
+        state,
+        at: unit.at,
+        source: unit.source,
+        report: (d) => diagnostics.push(d),
+      });
+      for (const body of bodies) {
+        const cmd = { ...body, at: unit.at, source: unit.source } as Command;
+        state.apply(cmd);
+        commands.push(cmd);
+      }
+    } catch (e) {
+      if (!(e instanceof ScriptError)) throw e;
+      const d = e.diagnostic;
+      const other = d.code === 'unknown-command' ? otherDialectHint(dialect, unit.name) : undefined;
+      diagnostics.push(other ? { ...d, hint: other } : d);
+    }
+  }
+  const history = commands.filter((c) => c.kind === 'history');
+  if (history.length && commands.length > 1) {
+    diagnostics.push(
+      error('syntax', `${history[0].source} runs alone: it would undo this script’s own steps.`, history[0].at),
+    );
+  }
+  return { dialect, commands, diagnostics, session: working };
+}
+
+export const hasErrors = (ds: readonly Diagnostic[]) => ds.some((d) => d.severity === 'error');
+
+/**
+ * Runs a submission on a host (_spec §5): compiled whole first (any error: nothing runs), then each command in order;
+ * the first failure stops it. The session (Tcl variables, handles) takes the script's changes when it ran whole.
+ */
+export async function runScript(
+  host: ScriptHost,
+  text: string,
+  dialect: Dialect,
+  options: { readonly session?: ScriptSession; readonly signal?: AbortSignal } = {},
+): Promise<ScriptResult> {
+  const session = options.session ?? createScriptSession();
+  const compiled = compileScript(text, dialect, host.env(), session);
+  const diagnostics = [...compiled.diagnostics];
+  const outputs: ScriptOutput[] = diagnostics
+    .filter((d) => d.severity !== 'error')
+    .map((d) => ({
+      at: d.at,
+      source: text.slice(d.at.from, d.at.to),
+      kind: d.severity as 'warning' | 'note',
+      text: d.message,
+    }));
+  if (hasErrors(diagnostics)) return { ok: false, outputs, diagnostics, ran: 0, commands: compiled.commands };
+  let ran = 0;
+  for (const cmd of compiled.commands) {
+    if (options.signal?.aborted) {
+      diagnostics.push(error('runtime', 'Stopped.', cmd.at));
+      return { ok: false, outputs, diagnostics, ran, commands: compiled.commands };
+    }
+    const r =
+      cmd.kind === 'print' ? ({ ok: true, output: cmd.text } as const) : await host.execute(cmd, options.signal);
+    if (!r.ok) {
+      diagnostics.push(error('runtime', r.message, cmd.at, r.hint));
+      return { ok: false, outputs, diagnostics, ran, commands: compiled.commands };
+    }
+    ran++;
+    if (r.did) outputs.push({ at: cmd.at, source: cmd.source, kind: 'did', text: r.did });
+    if (r.output) outputs.push({ at: cmd.at, source: cmd.source, kind: 'value', text: r.output });
+    for (const w of r.warnings ?? []) outputs.push({ at: cmd.at, source: cmd.source, kind: 'warning', text: w });
+  }
+  session.vars.clear();
+  for (const [k, v] of compiled.session.vars) session.vars.set(k, v);
+  session.handles.clear();
+  for (const [k, v] of compiled.session.handles) session.handles.set(k, v);
+  session.nextHandle = compiled.session.nextHandle;
+  return { ok: true, outputs, diagnostics, ran, commands: compiled.commands };
+}
+
+/** The dialect a line names by its first word (`pymol show …`, `vmd mol …`), and the rest. */
+export function dialectPrefix(
+  text: string,
+): { readonly dialect: Dialect; readonly rest: string; readonly offset: number } | undefined {
+  const m = text.match(/^\s*(pymol|vmd)(\s+|$)/i);
+  if (!m) return undefined;
+  return { dialect: m[1].toLowerCase() as Dialect, rest: text.slice(m[0].length), offset: m[0].length };
+}
+
+/** The dialect a script file is in, by its extension. */
+export function dialectOfFile(name: string): Dialect | undefined {
+  const ext = name.toLowerCase().split('.').pop();
+  if (ext === 'pml') return 'pymol';
+  if (ext === 'tcl' || ext === 'vmd') return 'vmd';
+  return undefined;
+}

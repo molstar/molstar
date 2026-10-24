@@ -134,6 +134,9 @@
       "path": "./packages/extensions/meshes"
     },
     {
+      "path": "./packages/extensions/command-language"
+    },
+    {
       "path": "./packages/extensions/model-archive"
     },
     {
