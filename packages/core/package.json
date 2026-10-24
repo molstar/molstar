@@ -51,6 +51,7 @@
     "./math/graph/_test/*": null,
     "./math/linear-algebra/_test/*": null,
     "./state/_test/*": null,
+    "./task/util/_test/*": null,
     "./util/_test/*": null,
     "./util/input/_test/*": null,
     "./util/color/_test/*": null
