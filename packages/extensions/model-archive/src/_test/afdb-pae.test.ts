@@ -256,7 +256,7 @@ describe('fetching the PAE of an AlphaFold DB model', () => {
     const v = await viewer();
     await until(() => v.views.scene.roots.value.length > 0);
     const entry = () => v.views.scene.roots.value[0].menu?.find((m) => m.id === 'model-archive.fetch-pae');
-    expect(entry()?.label).toBe('Fetch PAE from AlphaFold DB');
+    expect(entry()?.label).toBe('Fetch PAE');
     expect(v.managers.commands.get('model-archive.fetch-pae')).toBeDefined();
     stubAfdb(residuesOf(v));
     entry()!.run!();

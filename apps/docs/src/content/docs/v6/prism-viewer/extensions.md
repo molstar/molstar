@@ -1,6 +1,6 @@
 ---
 title: Writing a Prism viewer extension
-description: "The ViewerExtension fields, part ids and slots, lazy extensions, overrides, sequence behaviors, and the model quality extension as a worked example."
+description: "The ViewerExtension fields, part ids and slots, lazy extensions, overrides, sequence tracks and behaviors, and the model quality extension as a worked example."
 ---
 
 An extension adds to the viewer: engine pieces (color themes, behaviors), operations with their commands, annotations,
@@ -202,25 +202,49 @@ in the status column, swaps the real extension in, and replays what asked for it
 feature's module. Put the stub in a module that does not import the rest of the extension, or the chunk is loaded with
 the stub.
 
+## Sequence tracks
+
+The sequence band shows one structure at a time; the structure tree has a Sequence node under every structure, whose
+children are its tracks. A **track provider** is how an extension adds sequence data: it says what its track is and when
+it applies, and the viewer puts it in and takes it out, per structure. The person adds it (Add track), removes and hides
+it; the agent does the same through `sequence.track.add`, `.remove`, `.hide` and `.show`. Each change is a step.
+
+```ts
+import type { SequenceTrackProvider } from '@molstar/prism-viewer/spec';
+```
+
+| Member                 | What it is                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `label`, `order` | The id is `<extension id>.sequence.<name>`; the label names it in the tree and under Add track; `order` places its track (ruler 0, letters 10, secondary 20). |
+| `track`                | Its track's ref in the document (start it with the extension's id).                                                                                           |
+| `applies(structure)`   | The structure carries its data. Read only the structure and what the viewer holds: a provider fetches nothing.                                                |
+| `shown`                | In by default; `false` for a track only offered under Add track.                                                                                              |
+| `build(ctx)`           | Its data nodes and its one track (Seq\* document nodes) over `ctx.structure`, `ctx.complex` (the complex ref a computed node names) and `ctx.letters`.        |
+| `menu`, `legend`       | The track's menu (colorings of the 3D view by theme; the first is its icon in the band's gutter) and its legend blocks, shown while it is in.                 |
+| `whenChanged`          | A state told when `applies` may answer otherwise without a new structure (a property computed later).                                                         |
+
+List providers in the extension's `sequence.tracks`. The viewer's own (ruler, letters, secondary structure) are
+providers too, in `spec.sequence.tracks`, and `overrides` replaces or removes any of them by id.
+
 ## Sequence behaviors
 
-The sequence view shows a document that the viewer builds for the structure it follows: a ruler, the letters and
-secondary structure. A sequence behavior adds to it by patch. It reads what the sequence shows and proposes changes.
+For what is not a track, a rule that follows the scene, a **sequence behavior** adds to the document by patch. It reads
+what the sequence shows and proposes changes. List them in the extension's `sequence.behaviors`.
 
 ```ts
 import type { SequenceBehavior } from '@molstar/prism-viewer/spec';
 ```
 
-| Member                  | What it is                                                                                                                                                                                                                                                        |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`, `title`           | The id is `<extension id>.sequence.<name>`; the host checks it.                                                                                                                                                                                                   |
-| `attach(ctx)`           | Starts the behavior and returns its dispose function.                                                                                                                                                                                                             |
-| `ctx.shown`             | A `ReadonlyState` of what the document shows. A new value for each document (another structure, another letter theme), `undefined` for nothing. It carries the `structure`, the `complex` ref, the `data` node, the `section` and the track to put yours `after`. |
-| `ctx.patch(shown, ops)` | Applies Seq\* operations to that document, all or nothing. It returns false and does nothing if the document was replaced meanwhile.                                                                                                                              |
-| `ctx.offer(offer)`      | Gives the track menus (`menus`, by track ref) and the legend blocks (`legend`). `undefined` withdraws them.                                                                                                                                                       |
+| Member                  | What it is                                                                                                                                                                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `title`           | The id is `<extension id>.sequence.<name>`; the host checks it.                                                                                                                                                                                                                   |
+| `attach(ctx)`           | Starts the behavior and returns its dispose function.                                                                                                                                                                                                                             |
+| `ctx.shown`             | A `ReadonlyState` of what the document shows. A new value for each document (another structure, another letter theme), `undefined` for nothing. It carries the `structure`, the `complex` ref, the `data` node, the `section` and the track to put yours `after` (none: the end). |
+| `ctx.patch(shown, ops)` | Applies Seq\* operations to that document, all or nothing. It returns false and does nothing if the document was replaced meanwhile.                                                                                                                                              |
+| `ctx.offer(offer)`      | Gives the track menus (`menus`, by track ref) and the legend blocks (`legend`). `undefined` withdraws them.                                                                                                                                                                       |
 
 A new document has none of the behavior's nodes, so the behavior adds them again whenever `shown` changes. Give its
-nodes refs that start with its id, and make `patch` insert them. The next example does it.
+nodes refs that start with its id, and make `patch` insert them.
 
 ## An example: model quality
 
@@ -236,7 +260,7 @@ export const ModelArchiveExtension: ViewerExtension = {
     behaviors: [],
   },
   annotations: QualityAnnotations,
-  sequence: [PlddtSequenceBehavior],
+  sequence: { tracks: [PlddtTrackProvider] },
   commands: (api) => [
     operationCommand(api, api.annotations.apply, {
       id: 'model-archive.color-plddt',
@@ -261,34 +285,25 @@ It uses four of the fields and no views:
    `api.annotations.apply({ annotation: 'plddt' })` colors it.
 3. **`commands`** make "Color by pLDDT" and "Color by QMEAN" from `annotations.apply` with the `annotation` value fixed.
    `operationCommand` gives the command its form, its availability and its undo entry.
-4. **`sequence`** has a behavior that adds a pLDDT track under the viewer's tracks when the shown structure carries
-   pLDDT.
+4. **`sequence`** has a track provider: a pLDDT track under the viewer's tracks, in by default for a structure that
+   carries pLDDT.
 
-The behavior, reduced:
+The provider, reduced:
 
 ```ts
-export const PlddtSequenceBehavior: SequenceBehavior = {
+export const PlddtTrackProvider: SequenceTrackProvider = {
   id: 'model-archive.sequence.plddt',
-  title: 'pLDDT track',
-  attach(ctx) {
-    const sub = ctx.shown.subscribe((shown) => {
-      if (!shown || !carries(shown, 'pLDDT')) {
-        ctx.offer(undefined);                      // nothing to offer for this document
-        return;
-      }
-      void ctx.patch(shown, [
-        { op: 'insert', parent: shown.data, node: { kind: 'computed', ref: PlddtData,
-            params: { provider: 'molstar:plddt', options: { of: shown.complex } } } },
-        { op: 'insert', parent: shown.section, after: shown.after, node: { kind: 'track', ref: PlddtTrack,
-            params: { label: '', height: 2 }, children: [ /* a layer drawing the values as a line in the four bands */ ] } },
-      ]);
-      ctx.offer({
-        menus: { [PlddtTrack]: [{ id: 'color-plddt', label: 'Color by pLDDT', icon: 'paintbrush', theme: PlddtTheme }] },
-        legend: [{ title: 'Model confidence', items: Bands.map((b) => ({ label: b.label, color: b.color })) }],
-      });
-    });
-    return () => sub.unsubscribe();
-  },
+  label: 'pLDDT',
+  order: 30,
+  track: PlddtTrack,
+  applies: (structure) => QualityAssessment.isApplicable(structure.model, 'pLDDT'),
+  build: (ctx) => ({
+    data: [{ kind: 'computed', ref: PlddtData, params: { provider: 'molstar:plddt', options: { of: ctx.complex } } }],
+    track: { kind: 'track', ref: PlddtTrack, params: { label: '', height: 2 },
+      children: [ /* a layer drawing the values as a line in the four bands */ ] },
+  }),
+  menu: [{ id: 'color-plddt', label: 'Color by pLDDT', icon: 'paintbrush', theme: PlddtTheme }],
+  legend: [{ title: 'Model confidence', items: Bands.map((b) => ({ label: b.label, color: b.color })) }],
 };
 ```
 

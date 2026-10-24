@@ -16,26 +16,41 @@ import type { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
 
 type V3 = [number, number, number] | Float32Array | number[];
 
-/** What the framing reads of Mol*'s camera: its viewport, and the focus on a sphere (`Camera.getFocus`). */
+/** What the framing reads of Mol*'s camera: its viewport, its projection, and the focus on a sphere (`Camera.getFocus`). */
 export interface FramingCamera {
-  readonly viewport: { readonly height: number };
+  readonly viewport: { readonly height: number; readonly width?: number };
+  /** Its projection: a perspective framing leaves a margin of its own (absent: none, as orthographic). */
+  readonly state?: { readonly mode: 'perspective' | 'orthographic'; readonly fov: number };
   getFocus(center: V3, radius: number): { target?: V3; position?: V3; up?: V3 } & Record<string, unknown>;
 }
 
+/** Room left around the sphere below the band: a little, where Mol*'s own framing leaves its perspective's margin. */
+const Margin = 1.04;
+
 /**
- * The focus on a sphere that fits it in the canvas below the top `topPx`: the sphere framed as if the canvas were that
- * much shorter (a larger radius), then moved down by half the band, as the center of the lower region is, by moving the
- * camera up the same amount (a world length per px from the framed radius).
+ * The focus on a sphere that fits it in the canvas below the top `topPx`, centered there, as tight as Mol*'s own reset
+ * or tighter, never closer. Mol*'s focus on radius r shows a half-height of r / (k·a) (`Camera.targetDistance`): k is
+ * cos(fov / 2) in perspective (the sphere's margin, about as much as a band at the default field of view), 1 in
+ * orthographic; a is the aspect w / h on a portrait canvas, 1 on a landscape one. Below the band the sphere needs a
+ * half-height of r·h / (h − topPx), and a half-width of r (a portrait canvas: h / w of half-height), each with `Margin`;
+ * the radius asked is the larger of them times k·a, and the camera goes up by half the band in the half-height shown
+ * (the sphere moves down to the middle of what is below it).
  */
 export function paddedFocus(camera: FramingCamera, center: V3, radius: number, topPx: number) {
   const h = camera.viewport.height;
   if (!(topPx > 0) || !(h > 2 * topPx)) return camera.getFocus(center, radius);
-  const r = (radius * h) / (h - topPx);
+  const w = camera.viewport.width ?? h;
+  const k = camera.state?.mode === 'perspective' ? Math.cos(camera.state.fov / 2) : 1;
+  const a = h > w ? w / h : 1;
+  // The half-height the sphere needs: below the band, and across the width (a portrait canvas).
+  const need = Math.max((radius * h) / (h - topPx), (radius * h) / w) * Margin;
+  // Never closer than Mol*'s own framing (its radius also sets the camera's clipping).
+  const r = Math.max(radius, need * k * a);
   const focus = camera.getFocus(center, r);
   const { target, position, up } = focus;
   if (!target || !position || !up) return focus;
-  // The framed sphere spans the canvas' height, 2r over h px: the camera goes up half the band's px of that.
-  const shift = (topPx * r) / h;
+  // The half-height shown is r / (k·a) over h / 2 px: the camera goes up half the band's px of it.
+  const shift = (topPx * r) / (k * a * h);
   for (let i = 0; i < 3; i++) {
     target[i] += up[i] * shift;
     position[i] += up[i] * shift;

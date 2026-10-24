@@ -9,12 +9,21 @@
 import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, until } from '../../_test/harness.js';
 import type { SceneChanges } from '../../model/scene-changes.js';
+import { componentsOf } from '../../testing/scene-groups.js';
+import { componentsNodeId } from '../../model/scene.js';
 
 // The scene's structure as one change stream (`SceneModel.changes`, model/scene-changes.ts) over a real plugin: the nodes
 // whose children or expansion changed, once per Mol* transaction or toggle; nothing for what changes no structure.
 
 async function viewer() {
   const v = await headlessViewer({ files: [cbs()] });
+  // The Sequence node's tracks come once the sequence's runtime is in (sequence.md §8.1): a change of its own, before
+  // the test's.
+  const viewers = (await v.views.sequence!.load()).viewers.get();
+  await until(() => viewers.tracks.value.length > 0);
+  await until(() =>
+    v.views.scene.roots.value[0].children.value.some((c) => c.kind === 'sequence' && c.children.value.length > 0),
+  );
   const told: SceneChanges[] = [];
   v.views.scene.changes!.listen?.((c) => told.push(c));
   return { v, told };
@@ -41,15 +50,15 @@ describe('the scene’s change stream', () => {
     expect(told).toEqual([]);
   });
 
-  it('a component removed: its structure, in one change', async () => {
+  it("a component removed: its structure's Components group, in one change", async () => {
     const { v, told } = await viewer();
     const s = v.views.scene.roots.value[0];
-    const component = s.children.value.find((c) => c.kind === 'component')!;
-    const count = s.children.value.length;
+    const component = componentsOf(s).find((c) => c.kind === 'component')!;
+    const count = componentsOf(s).length;
     component.remove();
-    await until(() => s.children.value.length === count - 1);
+    await until(() => componentsOf(s).length === count - 1);
     expect(told.length).toBeGreaterThan(0);
-    expect(told.some((c) => c.nodes.has(s.id))).toBe(true);
+    expect(told.some((c) => c.nodes.has(componentsNodeId(s.id)))).toBe(true);
     // Versions count up one a change.
     for (let i = 1; i < told.length; i++) expect(told[i].version).toBe(told[i - 1].version + 1);
   });

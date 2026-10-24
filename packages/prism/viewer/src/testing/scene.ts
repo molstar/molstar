@@ -182,6 +182,8 @@ class MockNode implements SceneNode {
   readonly #children = observableState<readonly SceneNode[]>([]);
   parent: MockNode | undefined;
   menu?: readonly SceneMenuItem[];
+  /** False: no eye (Entities, Layers). */
+  hasEye?: boolean;
   removable?: boolean;
 
   constructor(
@@ -474,11 +476,12 @@ export function mockScene(
       `${sid}-contents`,
       'contents',
       'list-tree',
-      'Structure',
+      'Entities',
       `${count(entities.length, 'entity', 'entities')} · ${count(chains, 'chain', 'chains')}`,
       false,
     );
     n.removable = false;
+    n.hasEye = false;
     n.loader = () =>
       entities.map((e) => {
         const en = node(
@@ -533,7 +536,19 @@ export function mockScene(
     info: MockStructureInfo & { facts: readonly (readonly [string, string])[]; expanded?: boolean },
     ...components: MockNode[]
   ) => {
-    const n = node(id, 'structure', 'structure', label, description, info.expanded ?? true).add(...components);
+    // Its rows grouped (viewer-spec.md §3): its components, then the others (the unit cell, the extensions' rows).
+    const comps = node(
+      `${id}#components`,
+      'components',
+      'shapes',
+      'Components',
+      `${components.length} component${components.length === 1 ? '' : 's'}`,
+    ).add(...components);
+    comps.removable = false;
+    const layers = node(`${id}#other`, 'other', 'layers', 'Other');
+    layers.removable = false;
+    layers.hasEye = false;
+    const n = node(id, 'structure', 'structure', label, description, info.expanded ?? true).add(comps, layers);
     forms.set(id, new ParamsFormModel(StructureParams));
     facts.set(id, info.facts);
     infos.set(id, info);
@@ -552,7 +567,7 @@ export function mockScene(
         })),
       },
     ];
-    for (const spec of rows) if (spec.when(info)) n.add(extensionRow(n, info, spec));
+    for (const spec of rows) if (spec.when(info)) layers.add(extensionRow(n, info, spec));
     return n;
   };
 
@@ -674,7 +689,8 @@ export function mockScene(
       component('water', 'Water', '186 molecules', repr('water-bs', 'ball-and-stick', 'element-symbol', 0.6)),
       component('ions', 'Ions', 'SO4 ×2', repr('ions-bs', 'ball-and-stick', 'element-symbol')),
     );
-    const water = s.children.value[2] as MockNode;
+    const groups = s.children.value as readonly MockNode[];
+    const water = groups[0].children.value[2] as MockNode;
     water.toggleVisibility();
     water.toggleExpanded();
     // The unit cell: part of the structure's record, hidden until asked for.
@@ -683,7 +699,7 @@ export function mockScene(
     cell.menu = [{ id: 'select', label: 'Select this', icon: 'mouse-pointer-2', run: act('Selected the unit cell') }];
     forms.set('1tqn-cell', new ParamsFormModel(UnitCellParams));
     facts.set('1tqn-cell', [['Space group', 'I 2 2 2']]);
-    s.add(cell);
+    groups[1].addFirst(cell);
     s.addFirst(
       contents('1tqn', [
         { id: '1', label: 'Cytochrome P450 3A4', type: 'polymer', chains: [{ id: 'A', description: '470 residues' }] },

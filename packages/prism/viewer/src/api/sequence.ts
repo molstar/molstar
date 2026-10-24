@@ -8,19 +8,29 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { GraphResult } from '@molstar/seq-viewer';
-import type { SequenceArchive, SequenceOverride, SequenceTrack, SequenceViewer } from '../sequence/model.js';
+import type { Structure } from '@molstar/model/model/structure';
+import { sequenceChains } from '../sequence/chain-filter.js';
+import type {
+  ChainFilter,
+  SequenceArchive,
+  SequenceOverride,
+  SequenceTrack,
+  SequenceViewer,
+  StructureOf,
+} from '../sequence/model.js';
 import type { TracksRail } from '../sequence/presets.js';
 import type { LoadedSequence } from '../viewer.js';
 import { LetterSchemes } from '../sequence/palette.js';
 import type { SequenceSource } from '../sources/sequence.js';
-import { type ApiAreaContext, ApiArea, ApiResult } from './area.js';
+import { type ApiAreaContext, ApiArea, type ApiContext, ApiResult } from './area.js';
 import { OptionalParam, StructureParam } from './params.js';
 import { isFailure, labelOf, oneStructure } from './scope.js';
 
 // `sequence` (api.md §2, sequence.md §6, §8): the one sequence viewer's style (Tracks or Text), the letters' colors,
-// which structure it follows, the tracks' rail, its hidden tracks (`sequence.track.hide`, `sequence.track.show`). Its
-// style, colors, rail and edits are the sequence's state, saved with snapshots (`prism-viewer.sequence`), so changing
-// them is a step; following is view state. Present only when the spec has a sequence (viewer-spec.md §2.3).
+// which structure it follows, the tracks' rail, and each structure's tracks (`sequence.track.hide`, `.show`, `.add`,
+// `.remove`) and chains (`sequence.chains`). Its style, colors, rail and edits are the sequence's state, saved with
+// snapshots (`prism-viewer.sequence`), so changing them is a step; following is view state. Present only when the spec
+// has a sequence (viewer-spec.md §2.3).
 
 const Schemes = LetterSchemes.map(
   (s) => [s ?? 'none', s === null ? 'None' : s.replace(/^prism:/, '')] as [string, string],
@@ -153,7 +163,7 @@ export class SequenceApi extends ApiArea {
     title: 'Show the sequence of a structure',
     surface: {
       kind: 'agent-only',
-      reason: "The sequence's menu and its commands (sequence.text, sequence.tracks, …) set it.",
+      reason: "The eye of a structure's Sequence node in the structure tree and its Follow automatically set it.",
     },
     params: {
       structure: StructureParam('A structure by label or state ref; empty: the one the person works with'),
@@ -171,9 +181,37 @@ export class SequenceApi extends ApiArea {
     },
   });
 
-  /** A track of the section shown by ref, else by name (case aside, one only); a failure says which there are. */
-  #track(viewer: SequenceViewer, track: string): SequenceTrack | ApiResult {
-    const all = viewer.tracks.value;
+  /** The structure named (another than the one shown: its own tracks and chains); none named: the one shown. */
+  #of(ctx: ApiContext, structure: string | undefined): StructureOf | undefined | ApiResult {
+    if (!structure) return undefined;
+    const s = oneStructure(ctx, structure);
+    if (isFailure(s)) return s;
+    const data = s.cell.obj?.data as Structure | undefined;
+    if (!data) return ApiResult.fail('unavailable', `${labelOf(ctx, s)} is not built yet.`);
+    return { ref: s.cell.transform.ref, structure: data };
+  }
+
+  /**
+   * The structure an edit is for: the one named, else the one the sequence follows (its document may still be being
+   * made: the edit is in it once it is); a failure when there is none.
+   */
+  #target(of: StructureOf | undefined): StructureOf | ApiResult {
+    if (of) return of;
+    const host = this.source.structure.value;
+    if (!host?.ref) return ApiResult.fail('unavailable', 'No sequence is shown.', 'Name a structure.');
+    return { ref: host.ref, structure: host.structure };
+  }
+
+  /**
+   * A track of a structure by ref, else by name (case aside, one only); a failure says which there are. None named:
+   * the one shown, or while its document is made, the one the sequence follows.
+   */
+  #track(viewer: SequenceViewer, track: string, of?: StructureOf): SequenceTrack | ApiResult {
+    const host = this.source.structure.value;
+    const pending =
+      !of && !viewer.structure.value && host?.ref ? { ref: host.ref, structure: host.structure } : undefined;
+    const target = of ?? pending;
+    const all = target ? viewer.tracksOf(target) : viewer.tracks.value;
     const listed = all.map((t) => `${t.label} (${t.ref})`).join(', ');
     if (!all.length) return ApiResult.fail('unavailable', 'No sequence tracks are shown.');
     const byRef = all.find((t) => t.ref === track);
@@ -195,13 +233,17 @@ export class SequenceApi extends ApiArea {
     // The edits are in the sequence's saved state (`savedOf`, version 3): a step, which Undo takes back (sequence.md §7).
     params: {
       track: PD.Text('', { description: "A track of the sequence's band, by ref or name (sequence.get lists them)" }),
+      structure: StructureParam('A structure by label or state ref; empty: the one the sequence shows'),
     },
-    run: async ({ track }) => {
+    run: async ({ track, structure }, ctx) => {
       const viewer = await this.#viewer();
-      const t = this.#track(viewer, track);
+      const of = this.#of(ctx, structure);
+      if (ApiResult.isFailure(of as ApiResult)) return of as ApiResult;
+      const t = this.#track(viewer, track, of as StructureOf | undefined);
       if (ApiResult.isFailure(t)) return t;
       const { ref, label } = t as SequenceTrack;
-      if (!(await viewer.setTrackHidden(ref, true))) return ApiResult.already(`The ${label} track is already hidden.`);
+      if (!(await viewer.setTrackHidden(ref, true, of as StructureOf | undefined)))
+        return ApiResult.already(`The ${label} track is already hidden.`);
       return ApiResult.ok(`The ${label} track is hidden.`, { sequence: true });
     },
   });
@@ -217,26 +259,174 @@ export class SequenceApi extends ApiArea {
       track: OptionalParam(
         PD.Text('', { description: 'A hidden track, by ref or name; absent: every hidden track (show all)' }),
       ),
+      structure: StructureParam('A structure by label or state ref; empty: the one the sequence shows'),
     },
-    run: async ({ track }) => {
+    run: async ({ track, structure }, ctx) => {
       const viewer = await this.#viewer();
+      const named = this.#of(ctx, structure);
+      if (ApiResult.isFailure(named as ApiResult)) return named as ApiResult;
+      const of = named as StructureOf | undefined;
       if (track === undefined || track === '') {
-        const hidden = viewer.tracks.value.filter((t) => t.hidden);
+        const hidden = (of ? viewer.tracksOf(of) : viewer.tracks.value).filter((t) => t.hidden);
         if (!hidden.length) return ApiResult.already('No sequence track is hidden.');
         await viewer.setTracksHidden(
           hidden.map((t) => t.ref),
           false,
+          of,
         );
         const n = hidden.length;
         return ApiResult.ok(`${n === 1 ? 'The hidden track is' : `The ${n} hidden tracks are`} shown.`, {
           sequence: true,
         });
       }
-      const t = this.#track(viewer, track);
+      const t = this.#track(viewer, track, of);
       if (ApiResult.isFailure(t)) return t;
       const { ref, label } = t as SequenceTrack;
-      if (!(await viewer.setTrackHidden(ref, false))) return ApiResult.already(`The ${label} track is already shown.`);
+      if (!(await viewer.setTrackHidden(ref, false, of)))
+        return ApiResult.already(`The ${label} track is already shown.`);
       return ApiResult.ok(`The ${label} track is shown.`, { sequence: true });
+    },
+  });
+
+  readonly addTrack = this.operation({
+    id: 'sequence.track.add',
+    title: 'Add a sequence track',
+    surface: {
+      kind: 'agent-only',
+      reason: "The Sequence node's Add track in the structure tree and the sequence.track.add command run it.",
+    },
+    // The edits are in the sequence's saved state (`savedOf`, version 4): a step, which Undo takes back (sequence.md §7).
+    params: {
+      track: PD.Text('', {
+        description: 'A track to add, by its provider id or name (sequence.get lists what can be added)',
+      }),
+      structure: StructureParam('A structure by label or state ref; empty: the one the sequence shows'),
+    },
+    run: async ({ track, structure }, ctx) => {
+      const viewer = await this.#viewer();
+      const named = this.#of(ctx, structure);
+      if (ApiResult.isFailure(named as ApiResult)) return named as ApiResult;
+      const of = this.#target(named as StructureOf | undefined);
+      if (ApiResult.isFailure(of as ApiResult)) return of as ApiResult;
+      const addable = viewer.addableTracks(of as StructureOf);
+      const t = track.trim().toLowerCase();
+      const p = addable.find((a) => a.id === track || a.track === track || a.label.toLowerCase() === t);
+      if (!p) {
+        const there = viewer.tracksOf(of as StructureOf).find((x) => x.ref === track || x.label.toLowerCase() === t);
+        if (there) return ApiResult.already(`The ${there.label} track is already there.`);
+        const listed = addable.map((a) => `${a.label} (${a.id})`).join(', ');
+        return ApiResult.fail(
+          'not-found',
+          `No sequence track ${track} to add.`,
+          listed ? `What can be added: ${listed}.` : 'Every track this structure has is there.',
+        );
+      }
+      if (!(await viewer.setTrackIn(p.id, true, named as StructureOf | undefined)))
+        return ApiResult.already(`The ${p.label} track is already there.`);
+      return ApiResult.ok(`The ${p.label} track is added.`, { sequence: true });
+    },
+  });
+
+  readonly removeTrack = this.operation({
+    id: 'sequence.track.remove',
+    title: 'Remove a sequence track',
+    surface: {
+      kind: 'agent-only',
+      reason: "A track's Remove in the structure tree and the sequence.track.remove command run it.",
+    },
+    params: {
+      track: PD.Text('', { description: "A track of the sequence's band, by ref or name (sequence.get lists them)" }),
+      structure: StructureParam('A structure by label or state ref; empty: the one the sequence shows'),
+    },
+    run: async ({ track, structure }, ctx) => {
+      const viewer = await this.#viewer();
+      const named = this.#of(ctx, structure);
+      if (ApiResult.isFailure(named as ApiResult)) return named as ApiResult;
+      const of = named as StructureOf | undefined;
+      const t = this.#track(viewer, track, of);
+      if (ApiResult.isFailure(t)) return t;
+      const { ref, label, removable } = t as SequenceTrack;
+      if (!removable)
+        return ApiResult.fail('invalid', `The ${label} track is the document's own.`, 'Hide it: sequence.track.hide.');
+      if (!(await viewer.setTrackIn(ref, false, of))) return ApiResult.already(`The ${label} track is not there.`);
+      return ApiResult.ok(`The ${label} track is removed.`, { sequence: true });
+    },
+  });
+
+  readonly chains = this.operation({
+    id: 'sequence.chains',
+    title: 'Choose the chains the sequence shows',
+    surface: {
+      kind: 'agent-only',
+      reason: "The Sequence node's Chains in the structure tree and the sequence.chains.* commands set it.",
+    },
+    // A structure's own (sequence.md §3, §7.1): a step, which Undo takes back. Nothing given: every chain.
+    params: {
+      structure: StructureParam('A structure by label or state ref; empty: the one the sequence shows'),
+      chains: OptionalParam(
+        PD.Text('', {
+          description:
+            'The chains to show, comma-separated, as sequence.get lists them (label_asym_id: the copies of an assembly are their chain once) or by author id; "none": no chain (to add them one by one); absent: every chain',
+        }),
+      ),
+      polymer: OptionalParam(PD.Boolean(false, { description: 'Only the polymer chains (no ligands)' })),
+      each: OptionalParam(
+        PD.Boolean(false, {
+          description: 'Chains of one molecule each a block of their own (merged by default: one block ×N)',
+        }),
+      ),
+    },
+    run: async ({ structure, chains, polymer, each }, ctx) => {
+      const viewer = await this.#viewer();
+      const named = this.#of(ctx, structure);
+      if (ApiResult.isFailure(named as ApiResult)) return named as ApiResult;
+      const of = this.#target(named as StructureOf | undefined);
+      if (ApiResult.isFailure(of as ApiResult)) return of as ApiResult;
+      const all = sequenceChains((of as StructureOf).structure);
+      let kept: string[] | undefined;
+      if (chains !== undefined && chains.trim().toLowerCase() === 'none') kept = [];
+      else if (chains !== undefined && chains.trim() !== '') {
+        // By name (`label_asym_id`), else by the author's id (which may name several): indexed once.
+        const byName = new Map(all.map((c) => [c.name, c]));
+        const byAuth = new Map<string, string[]>();
+        for (const c of all) {
+          const list = byAuth.get(c.auth);
+          if (list) list.push(c.name);
+          else byAuth.set(c.auth, [c.name]);
+        }
+        const want = new Set<string>();
+        for (const name of String(chains)
+          .split(',')
+          .map((c: string) => c.trim())
+          .filter(Boolean)) {
+          const hit = byName.has(name) ? [name] : byAuth.get(name);
+          if (!hit) {
+            return ApiResult.fail(
+              'not-found',
+              `No chain ${name}.`,
+              `The chains: ${all.map((c) => c.label).join(', ')}.`,
+            );
+          }
+          for (const n of hit) want.add(n);
+        }
+        // In the structure's order.
+        kept = all.filter((c) => want.has(c.name)).map((c) => c.name);
+      }
+      const filter: ChainFilter = {
+        ...(polymer ? { polymer: true } : {}),
+        ...(each ? { each: true } : {}),
+        ...(kept ? { chains: kept } : {}),
+      };
+      const said = kept
+        ? kept.length
+          ? `chains ${kept.join(', ')}`
+          : 'no chain'
+        : polymer
+          ? 'the polymer chains'
+          : 'every chain';
+      if (!(await viewer.setChains(filter, named as StructureOf | undefined)))
+        return ApiResult.already(`The sequence already shows ${said}.`);
+      return ApiResult.ok(`The sequence shows ${said}${each ? ', every copy apart' : ''}.`, { sequence: true });
     },
   });
 
@@ -264,12 +454,31 @@ export class SequenceApi extends ApiArea {
       const document = override
         ? (override.document.metadata?.title ?? override.url ?? 'a loaded document')
         : undefined;
+      const of = shown ? { ref: shown.ref, structure: shown.structure } : undefined;
+      const filter = shown ? viewer.chainsOf(shown.ref) : undefined;
       const value = {
         structure: shown?.title,
+        ...(shown ? { ref: shown.ref } : {}),
+        followed: this.source.followed.value ? 'chosen' : 'automatic',
         style,
         colors: viewer.theme.value.letters ?? 'none',
         rail: viewer.rail.value,
-        tracks: viewer.tracks.value.map((t) => ({ ref: t.ref, name: t.label, hidden: t.hidden })),
+        tracks: viewer.tracks.value.map((t) => ({
+          ref: t.ref,
+          name: t.label,
+          hidden: t.hidden,
+          removable: t.removable,
+        })),
+        addable: of ? viewer.addableTracks(of).map((a) => ({ id: a.id, name: a.label })) : [],
+        chains: of
+          ? sequenceChains(of.structure).map((c) => ({
+              name: c.name,
+              label: c.label,
+              entity: c.entityLabel,
+              kind: c.kind,
+            }))
+          : [],
+        ...(filter ? { filter } : {}),
         ...(document ? { document } : {}),
       };
       const what = document ? `The SeqViewSpec ${document} over ${shown?.title}` : `The sequence of ${shown?.title}`;

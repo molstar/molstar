@@ -2,103 +2,17 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import { ColorThemeCategory } from '@molstar/graphics/theme/color/categories';
 import type { ThemeDataContext } from '@molstar/graphics/theme/theme';
-import { Color } from '@molstar/core/util/color';
-import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { SplitColor } from '@molstar/mvs/helpers/utils';
+import { SplitColorProp } from '@molstar/core/util/color/value-palette-params';
 import { isMVSStructure } from './is-mvs-model-prop.js';
 
-/** Return parameter definition for `SplitColorProp` */
-function PDSplitColor(info?: PD.Info) {
-  return PD.MappedStatic(
-    'oneColor',
-    {
-      oneColor: PD.Group(
-        {
-          color: PD.Color(ColorNames.white, { label: ' ' }),
-        },
-        { isFlat: true },
-      ),
-      splitColor: PD.Group(
-        {
-          color1: PD.Color(ColorNames.white, { label: '1' }),
-          color2: PD.Color(ColorNames.white, { label: '2' }),
-        },
-        { isFlat: true },
-      ),
-    },
-    info,
-  );
-}
-/** Return parameter definition for `OptionalSplitColorProp` */
-function PDOptionalSplitColor(info?: PD.Info) {
-  return PD.MappedStatic(
-    'none',
-    {
-      none: PD.EmptyGroup(),
-      oneColor: PD.Group(
-        {
-          color: PD.Color(ColorNames.white, { label: ' ' }),
-        },
-        { isFlat: true },
-      ),
-      splitColor: PD.Group(
-        {
-          color1: PD.Color(ColorNames.white, { label: '1' }),
-          color2: PD.Color(ColorNames.white, { label: '2' }),
-        },
-        { isFlat: true },
-      ),
-    },
-    info,
-  );
-}
-export type SplitColorProp = PD.Values<{ x: ReturnType<typeof PDSplitColor> }>['x'];
-export type OptionalSplitColorProp = PD.Values<{ x: ReturnType<typeof PDOptionalSplitColor> }>['x'];
-type NoneSplitColorProp = Exclude<OptionalSplitColorProp, SplitColorProp>;
-type ColorTuple<T extends OptionalSplitColorProp> = T extends SplitColorProp ? [Color, Color] : [undefined, undefined];
-
-const FALLBACK_COLOR = ColorNames.black;
-
-const _tmpColors: [Color | undefined, Color | undefined] = [undefined, undefined];
-
-/** Color parameter which allows regular color or split color (or optionally no color) */
-export const SplitColorProp = {
-  PD: PDSplitColor,
-  PDOptional: PDOptionalSplitColor,
-  fromString<T extends string | null>(colorString: T): T extends string ? SplitColorProp : NoneSplitColorProp {
-    if (colorString == null) {
-      return this.none() satisfies NoneSplitColorProp as any;
-    }
-    SplitColor.decodeTo(colorString, _tmpColors);
-    if (_tmpColors[0] === _tmpColors[1]) {
-      return { name: 'oneColor', params: { color: _tmpColors[0] ?? FALLBACK_COLOR } } satisfies SplitColorProp as any;
-    } else {
-      return {
-        name: 'splitColor',
-        params: { color1: _tmpColors[0] ?? FALLBACK_COLOR, color2: _tmpColors[1] ?? FALLBACK_COLOR },
-      } satisfies SplitColorProp as any;
-    }
-  },
-  none(): NoneSplitColorProp {
-    return { name: 'none', params: {} };
-  },
-  toString(value: OptionalSplitColorProp): string {
-    if (value.name === 'none') return 'None';
-    if (value.name === 'oneColor') return Color.toHexStyle(value.params.color);
-    else return `${Color.toHexStyle(value.params.color1)}/${Color.toHexStyle(value.params.color2)}`;
-  },
-  toTuple<T extends OptionalSplitColorProp>(value: T): ColorTuple<T> {
-    if (value.name === 'none') return [undefined, undefined] as ColorTuple<T>;
-    if (value.name === 'oneColor') return [value.params.color, value.params.color] as ColorTuple<T>;
-    else return [value.params.color1, value.params.color2] as ColorTuple<T>;
-  },
-};
+export { type OptionalSplitColorProp, SplitColorProp } from '@molstar/core/util/color/value-palette-params';
 
 export const MVSSplitUniformColorThemeParams = {
   value: SplitColorProp.PD(),

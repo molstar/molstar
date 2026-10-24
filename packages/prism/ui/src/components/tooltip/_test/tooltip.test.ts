@@ -79,4 +79,35 @@ describe('tooltips', () => {
     root.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
     expect(tip().hidden).toBe(true);
   });
+
+  it("draws a cut-off tree row's card at the row's height, each part in its own size and weight", () => {
+    root.insertAdjacentHTML(
+      'beforeend',
+      '<div id="row" data-tip-row=""><span data-tip-part="" style="font-size: 12px; font-weight: 500">PAE of a model</span>' +
+        '<span data-tip-part="" style="font-size: 11px">1098 residues</span></div>',
+    );
+    const row = root.querySelector('#row') as HTMLElement;
+    const label = row.firstElementChild as HTMLElement;
+    // jsdom has no layout: the label is cut off, the row 26 px high, the card's line 16.8 px.
+    Object.defineProperty(label, 'scrollWidth', { value: 120 });
+    Object.defineProperty(label, 'clientWidth', { value: 60 });
+    row.getBoundingClientRect = () =>
+      ({ top: 100, height: 26, left: 0, right: 200, bottom: 126, width: 200 }) as DOMRect;
+    tip().style.lineHeight = '16.8px';
+    over(label);
+    vi.advanceTimersByTime(400);
+    expect(tip().hidden).toBe(false);
+    const [a, b] = [...tip().querySelectorAll('span')];
+    expect([a.textContent, a.style.fontSize, a.style.fontWeight]).toEqual(['PAE of a model', '12px', '500']);
+    expect([b.textContent, b.style.fontSize]).toEqual(['1098 residues', '11px']);
+    expect(Number.parseFloat(tip().style.paddingBlock)).toBeCloseTo(4.6);
+    // Wrapped, taller than the row: the card keeps its own padding.
+    label.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
+    tip().getBoundingClientRect = () =>
+      ({ top: 0, height: 60, left: 0, right: 300, bottom: 60, width: 300 }) as DOMRect;
+    over(label);
+    vi.advanceTimersByTime(400);
+    expect(tip().hidden).toBe(false);
+    expect(tip().style.paddingBlock).toBe('');
+  });
 });

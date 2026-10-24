@@ -38,7 +38,7 @@ import {
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { HoverLine } from '@molstar/prism-ui/model/playback';
-import type { SceneNode } from '../model/scene.js';
+import { type SceneNode, sequenceNodeId } from '../model/scene.js';
 import type { SelectionAction } from '../model/selection.js';
 import { pickHoverLabel } from '../sources/hover-lines.js';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
@@ -326,6 +326,16 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             openCommand: (id) => void managers.commands.open(id),
             onHover: (lines) => seqLines.set(lines),
             marks: sources.marks,
+            registerGroups: (groups) => core.managers.commands.registerGroups(groups),
+            openCommandMenu: (group) => openCommandMenu(group),
+            ...('scene' in core.views && sequence.tree
+              ? {
+                  reveal: (structure: string) => {
+                    shell.show('structure');
+                    core.views.scene.reveal?.(sequenceNodeId(structure));
+                  },
+                }
+              : {}),
           });
         });
       });
@@ -375,7 +385,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       const first = (nodes: readonly SceneNode[]): SceneNode | undefined => {
         for (const n of nodes) {
           if (n.kind === 'component' && scene.selectionFilter?.holds(n)) return n;
-          const below = n.kind === 'structure' ? first(n.children.value) : undefined;
+          const below = n.kind === 'structure' || n.kind === 'components' ? first(n.children.value) : undefined;
           if (below) return below;
         }
         return undefined;

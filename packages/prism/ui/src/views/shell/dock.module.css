@@ -431,6 +431,16 @@
   top: 0;
 }
 
+/* Hidden, a band fades where it stands (its content fades with it: `reveal="fade"`), then paints nothing. */
+.floatingTop.band,
+.floatingBottom.band {
+  transition: opacity var(--msp-motion-base) var(--msp-ease);
+
+  &[data-hidden] {
+    opacity: 0;
+  }
+}
+
 .floatingBottom.band {
   bottom: 0;
   background: linear-gradient(

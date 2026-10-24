@@ -328,6 +328,13 @@ describe('the PAE card', () => {
     await until(() => v.sources.interaction.selection.value !== undefined);
     const selected = await v.api.select.get({});
     expect(selected.ok && JSON.stringify(selected.value)).toMatch(/"residues":2|2 residues/);
+    // The same pair again: unselected; and once more, selected.
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await until(() => v.sources.interaction.selection.value === undefined);
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await until(() => v.sources.interaction.selection.value !== undefined);
 
     // A drag from (0, 0) to (3, 2): aligned A 1–3 and B 1, scored A 1–3; marked, summed up, its mean error.
     const steps = v.managers.history.steps.value.length;
@@ -341,6 +348,14 @@ describe('the PAE card', () => {
       ['model-archive.pae', 'scored', 'accent', 'Scored A 1–3'],
     ]);
     expect(marks.map((m) => StructureElement.Loci.size(m.loci))).toEqual([4, 3]);
+    // The box took the pair the plot selected off again: a pair or a box, one at a time.
+    await until(() => v.sources.interaction.selection.value === undefined);
+    // And while the box is shown, a click selects nothing.
+    pointer('pointermove', 300, 50);
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(v.sources.interaction.selection.value).toBeUndefined();
     expect(host.textContent).toContain('Aligned A 1–3, B 1');
     expect(host.textContent).toContain('Mean error 3.3 Å');
     // Marks are view state: no step.
@@ -366,6 +381,30 @@ describe('the PAE card', () => {
     corner.click();
     await until(() => v.sources.marks.marks.value.length === 0);
     expect(host.textContent).not.toContain('Mean error');
+
+    // A drag whose capture Chrome drops just before its release, then sends the release elsewhere in the page: the
+    // release ends it, and the box drawn stays (after the ✕ there is none to go back to).
+    pointer('pointerdown', 50, 50);
+    pointer('pointermove', 250, 350);
+    plot.dispatchEvent(new MouseEvent('lostpointercapture', { clientX: 250, clientY: 350, bubbles: true }));
+    document.body.dispatchEvent(new MouseEvent('pointerup', { clientX: 250, clientY: 350, button: 0, bubbles: true }));
+    await until(() => v.sources.marks.marks.value.length === 2);
+    expect(host.textContent).toContain('Mean error 3.3 Å');
+    expect(corner.style.display).toBe('grid');
+
+    // A pair picked, then a selection of the person's own: a box leaves that selection alone.
+    corner.click();
+    await until(() => v.sources.marks.marks.value.length === 0);
+    pointer('pointerdown', 300, 50);
+    pointer('pointerup', 300, 50);
+    await until(() => v.sources.interaction.selection.value !== undefined);
+    expect((await v.api.select.all({})).ok).toBe(true);
+    pointer('pointerdown', 50, 50);
+    pointer('pointermove', 250, 350);
+    pointer('pointerup', 250, 350);
+    await until(() => v.sources.marks.marks.value.length === 2);
+    const kept = await v.api.select.get({});
+    expect(kept.ok && JSON.stringify(kept.value)).toMatch(/"residues":4/);
     unmount();
   });
 

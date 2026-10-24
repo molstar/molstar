@@ -26,6 +26,7 @@ import { SectionList } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { VolumeLevels } from '../volume/volume-levels.js';
 import { ContentsSummaryView } from './contents-summary.js';
+import { SequenceInspector } from './sequence-inspector.js';
 import { RepresentationQuick } from './representation-quick.js';
 import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
@@ -360,6 +361,9 @@ function VisibilityToggle(props: { hidden: ReadonlyState<boolean>; feature: bool
   );
 }
 
+/** A node's kind in words: a structure's contents node is its Entities. */
+const kindName = (kind: SceneNode['kind']) => (kind === 'contents' ? 'entities' : kind.replace('-', ' '));
+
 /** What of an inspection is built anew and followed (`Inspector`). */
 const Parts = [
   'facts',
@@ -401,15 +405,18 @@ function Inspector(props: {
         ) : (
           <span class={classes.inspectorTitle}>{node.label}</span>
         )}
-        {/* The kind, unless the label already says it (Measurements). */}
-        <Show when={derive(node.label, (l) => l.toLowerCase() !== node.kind.replace('-', ' '))}>
-          {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}
+        {/* The kind, unless the label already says it (Measurements, Components, Entities). */}
+        <Show when={derive(node.label, (l) => l.toLowerCase() !== kindName(node.kind))}>
+          {() => <span class={classes.inspectorKind}>{kindName(node.kind)}</span>}
         </Show>
-        <VisibilityToggle
-          hidden={node.isHidden}
-          feature={TurnsOn.has(node.kind)}
-          onToggle={() => node.toggleVisibility()}
-        />
+        {/* No eye where nothing shows or hides as one (Entities, Other, an emptied component). */}
+        {node.hasEye === false ? null : (
+          <VisibilityToggle
+            hidden={node.isHidden}
+            feature={TurnsOn.has(node.kind)}
+            onToggle={() => node.toggleVisibility()}
+          />
+        )}
       </header>
       <Show when={part('facts')}>
         {(facts) =>
@@ -437,6 +444,8 @@ function Inspector(props: {
       {/* A component's representations: each a row to open (its inspector), its eye beside it; not only behind the
           tree's chevron. */}
       {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
+      {/* A structure's sequence: the band's style and letters, Add track, its chains (sequence.md §8.1). */}
+      {props.inspection.sequence ? <SequenceInspector model={props.inspection.sequence} /> : null}
       {/* A structure's contents: its counts, its entities to open in the tree. */}
       <Show when={part('contents')}>{(contents) => <ContentsSummaryView summary={contents} />}</Show>
       {/* A representation's quick settings (type, color, opacity, size), above the whole form. */}
@@ -449,7 +458,7 @@ function Inspector(props: {
       <SectionList shell={props.shell} slot={slot} subject={node} flat />
       {/* Nothing to set (no form or actions of its own): what can be done with it is shown here, its row menu's
           entries; with none, say so rather than leave an empty space. */}
-      {!form && !props.inspection.actions?.length && !props.inspection.contents ? (
+      {!form && !props.inspection.actions?.length && !props.inspection.contents && !props.inspection.sequence ? (
         (node.menu?.length ?? 0) > 0 || node.removable !== false ? (
           <NodeActions node={node} />
         ) : !props.inspection.facts?.length ? (

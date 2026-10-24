@@ -40,8 +40,10 @@ import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
 import { createViewerCamera, type ViewerCamera } from './sources/camera.js';
 import { createSequenceSource, type SequenceSource } from './sources/sequence.js';
+import { createSceneSequence } from './sources/sequence-scene.js';
 import { SequenceApi } from './api/sequence.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
+import { DefaultSequenceTracks, type SequenceTrackProvider } from './sequence/tracks.js';
 import type { SequenceViewers } from './sequence/model.js';
 import type { SavedSequence } from './sequence/runtime.js';
 import { SourceScope } from './sources/state.js';
@@ -111,6 +113,10 @@ export interface ViewerSequence {
   load(): Promise<LoadedSequence>;
   /** A behavior (an extension's), attached now or once the viewers are made; returns its removal. */
   addBehavior(behavior: SequenceBehavior): () => void;
+  /** The structure tree has each structure's Sequence node (`spec.sequence.tree`, sequence.md §8.1). */
+  readonly tree: boolean;
+  /** A track provider (an extension's), added now or once the viewers are made; returns its removal. */
+  addTrackProvider(provider: SequenceTrackProvider): () => void;
   dispose(): void;
 }
 
@@ -352,7 +358,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       registerCommands,
       openCommand: (id) => void managers.commands.open(id),
       annotations: () => host.api.area('annotations') as AnnotationsApi | undefined,
-      ...(sequence ? { addSequenceBehavior: (b) => sequence.addBehavior(b) } : {}),
+      ...(sequence
+        ? { addSequenceBehavior: (b) => sequence.addBehavior(b), addSequenceTrack: (t) => sequence.addTrackProvider(t) }
+        : {}),
       applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
       overrides,
       task: (label) => {
@@ -419,6 +427,17 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const listed = (spec.extensions ?? []).filter((e) => gated[e.id] !== false);
     await extensions.add(listed);
     extensionPort.ensureFor = (need) => extensions.ensureFor(need);
+    // Each structure's sequence in the structure tree (sequence.md §8.1), through the API as the person.
+    const sceneSequence =
+      sequence && sequenceSpec?.tree !== false
+        ? createSceneSequence(
+            viewScope,
+            sequence.source,
+            sequence.viewers,
+            person,
+            () => void managers.commands.open('sequence.legend'),
+          )
+        : undefined;
     // The built-in features' view models (viewer-spec.md §3.1), made once their areas are there; headless too.
     const builtInViews: Partial<BuiltInViews> = {};
     for (const e of listed) {
@@ -430,6 +449,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           plugin,
           person,
           openCommand: (id, values) => void managers.commands.open(id, undefined, values as CommandValues),
+          ...(sceneSequence ? { sequence: sceneSequence } : {}),
         }),
       );
     }
@@ -666,6 +686,7 @@ function createSequence(
   // Before the runtime: the saved state given (a snapshot, a session), applied once it is in; an extension's behaviors.
   let pending: { value: unknown } | undefined;
   const behaviors = new Map<SequenceBehavior, (() => void) | undefined>();
+  const tracks = new Map<SequenceTrackProvider, (() => void) | undefined>();
   let disposed = false;
   let loading: Promise<LoadedSequence> | undefined;
   let loaded: LoadedSequence | undefined;
@@ -679,12 +700,15 @@ function createSequence(
         actions: source.actions,
         dataByUrl: source.dataByUrl,
         scheduler: runtime.sequenceFrames(modules.includes('page')),
-        // The viewer's own behaviors, overrides applied; the extensions' attach as they activate (sequence.md §3).
+        // The viewer's own behaviors and track providers, overrides applied; the extensions' come as they activate
+        // (sequence.md §3).
         behaviors: overrides.parts(spec.behaviors),
+        tracks: overrides.parts(spec.tracks ?? DefaultSequenceTracks),
       });
       const viewer = made.get();
       if (initial === 'text') viewer.setStyle('compact');
       for (const b of behaviors.keys()) behaviors.set(b, viewer.addBehavior(b));
+      for (const t of tracks.keys()) tracks.set(t, viewer.addTrackProvider(t));
       if (pending) runtime.applySaved(viewer, (ref) => source.setFollowed(ref), pending.value, initial);
       pending = undefined;
       // A loaded SeqViewSpec (sequence.md §6, David 2026-10-15) shows while the sequence shows its structure: set, the
@@ -712,7 +736,9 @@ function createSequence(
   scope.add(
     plugin.state.registerCustomState('prism-viewer.sequence', {
       get: (): SavedSequence | undefined => {
-        if (loaded) return loaded.runtime.savedOf(loaded.viewers.get(), source.followed.value);
+        // A structure that is gone leaves its edits out (sequence.md §7.1).
+        const exists = (ref: string) => plugin.state.data.cells.has(ref);
+        if (loaded) return loaded.runtime.savedOf(loaded.viewers.get(), source.followed.value, exists);
         // Not loaded: what was given, as given (nothing given: the defaults, which a saved `undefined` means).
         return pending?.value as SavedSequence | undefined;
       },
@@ -729,6 +755,7 @@ function createSequence(
   );
   return {
     source,
+    tree: spec.tree !== false,
     setInk: (i) => ink.set(i),
     viewers: viewers.asReadonly,
     load,
@@ -738,6 +765,14 @@ function createSequence(
       return () => {
         behaviors.get(b)?.();
         behaviors.delete(b);
+      };
+    },
+    addTrackProvider(t) {
+      const made = viewers.value;
+      tracks.set(t, made ? made.get().addTrackProvider(t) : undefined);
+      return () => {
+        tracks.get(t)?.();
+        tracks.delete(t);
       };
     },
     dispose() {

@@ -19,7 +19,8 @@ const ShowDelayMs = 350;
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
  * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
  * one is cut off, from a pointer over a part: a card beside the row, outside its panel (`role="tabpanel"`, or
- * `data-tip-edge`) and clear of its edge, at the row's text size (on its left, or its right where there is no room).
+ * `data-tip-edge`) and clear of its edge, at the row's height and its parts' sizes and weights, its text level with the
+ * row's (on its left, or its right where there is no room).
  * Called in a scope (its listeners are `on`'s: paused and released with it); returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {
@@ -42,7 +43,18 @@ export function installTooltips(root: HTMLElement): () => void {
     if (row) fillRow(tip, el);
     else tip.textContent = el.dataset.tip ?? el.textContent ?? '';
     tip.dataset.kind = row ? 'row' : '';
+    tip.style.paddingBlock = '';
     tip.hidden = false;
+    // A row's card on one line is the row's height, its text level with the row's; wrapped (a long text), it keeps its
+    // own padding.
+    if (row) {
+      const line = Number.parseFloat(getComputedStyle(tip).lineHeight);
+      const height = el.getBoundingClientRect().height;
+      if (line > 0 && height > line) {
+        tip.style.paddingBlock = `${(height - line) / 2}px`;
+        if (tip.getBoundingClientRect().height > height + 0.5) tip.style.paddingBlock = '';
+      }
+    }
     const side = row ? 'beside' : (el.dataset.tipSide ?? 'bottom');
     const r = el.getBoundingClientRect();
     const t = tip.getBoundingClientRect();
@@ -176,7 +188,7 @@ function cutOff(el: HTMLElement): boolean {
   return false;
 }
 
-/** A row's tip: its parts' text, the first as it is, the rest muted. */
+/** A row's tip: its parts' text, the first as it is, the rest muted, each in its part's size and weight. */
 function fillRow(tip: HTMLElement, row: HTMLElement) {
   tip.textContent = '';
   let first = true;
@@ -185,6 +197,9 @@ function fillRow(tip: HTMLElement, row: HTMLElement) {
     if (!text) continue;
     const span = document.createElement('span');
     span.textContent = text;
+    const font = getComputedStyle(part);
+    span.style.fontSize = font.fontSize;
+    span.style.fontWeight = font.fontWeight;
     if (!first) span.className = classes.muted;
     if (!first) tip.append(' ');
     tip.append(span);

@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer, recordRuns, until } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 import { type StreamingChange, nextStreamingParams, streamingOf, streamingSummary } from '../volume.js';
+import { otherOf } from '../../testing/scene-groups.js';
 
 // `volume.streaming-view` (parity.md §2): the view, detail and channels of streamed density. The behavior needs a
 // canvas (and the server), so the tests make the streaming cells by hand over a stubbed server header: the operation
@@ -192,8 +193,8 @@ describe('the streaming row', () => {
     const v = await streamed();
     const structure = v.views.scene.roots.value[0];
     const row = await (async () => {
-      await until(() => structure.children.value.some((n) => n.label.value === 'Volume streaming'));
-      return structure.children.value.find((n) => n.label.value === 'Volume streaming')!;
+      await until(() => otherOf(structure).some((n) => n.label.value === 'Volume streaming'));
+      return otherOf(structure).find((n) => n.label.value === 'Volume streaming')!;
     })();
     expect(row.kind).toBe('extension');
     expect(row.description.value).toMatch(/^Around Focus, 5 Å, detail 4 of 7; 2Fo-Fc 1\.50 σ/);

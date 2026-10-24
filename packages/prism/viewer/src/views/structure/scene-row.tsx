@@ -207,7 +207,8 @@ export function SceneRow(props: SceneRowProps) {
               type="button"
               class={classes.action}
               classList={{ [classes.keep]: hidden }}
-              title={derive(hidden, (h) => (h ? 'Show' : 'Hide'))}
+              data-tip={derive(hidden, (h) => (h ? 'Show' : 'Hide'))}
+              aria-label={derive(hidden, (h) => (h ? 'Show' : 'Hide'))}
               onClick={(e) => {
                 e.stopPropagation();
                 props.onToggle?.();
@@ -224,7 +225,7 @@ export function SceneRow(props: SceneRowProps) {
           )}
           {/* The menu's column, so the eye lines up with the tree's; a row that opens a panel shows it there. */}
           {props.onOpen ? (
-            <span class={classes.actionSlot} title="Opens in its own panel">
+            <span class={classes.actionSlot} data-tip="Opens in its own panel">
               <Icon name="panel-right" size={14} />
             </span>
           ) : (

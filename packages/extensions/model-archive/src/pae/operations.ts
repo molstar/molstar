@@ -6,7 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTransform } from '@molstar/core/state';
+import { type StateBuilder, StateTransform } from '@molstar/core/state';
+import type { CifFrame } from '@molstar/io/reader/cif';
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
 import type { ChainIndex, Model, ResidueIndex } from '@molstar/model/model/structure';
 import { AtomicHierarchy } from '@molstar/model/model/structure/model/properties/atomic';
@@ -16,21 +17,16 @@ import { isFailure, labelOf, oneStructure } from '@molstar/prism-viewer/api/scop
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { type Observable, type Subscription, Subject } from 'rxjs';
 import { QualityAssessment } from '../quality-assessment/prop.js';
-import {
-  type AfdbEntry,
-  type AfdbPaeSource,
-  AfdbError,
-  afdbEntryOf,
-  paeValuesFromAfdb,
-  resolveAfdbPaeUrl,
-} from './afdb.js';
+import { type AfdbEntry, AfdbError, afdbEntryOf, paeValuesFromAfdb, resolveAfdbPaeUrl } from './afdb.js';
+import { type AssociatedPae, associatedPaeOf } from './associated.js';
 import { type PaeMatrix, type PaeResidue, paeChains } from './data.js';
-import { FetchPaeJson } from './fetch.js';
+import { FetchAssociatedPae, FetchPaeJson } from './fetch.js';
 
 // The `model-archive` area (api.md §2, an extension's own area): the predicted aligned error of a model, read
-// from the ModelCIF's `ma_qa_metric_local_pairwise` (Model Archive's models carry it; AlphaFold DB ships its PAE apart
-// from the model, and `model-archive.fetch-pae` gets it from there: a download and a parse in one cell under the
-// model's cell (`fetch.ts`), tagged with the model: it goes with the structure, is undoable and saved in a session). `model-archive.pae` says whether a structure has it and how big it is; the PAE card reads the matrix
+// from the ModelCIF's `ma_qa_metric_local_pairwise`. A model may carry it; Model Archive often ships it apart, in an
+// associated file the model names (`associated.ts`), and AlphaFold DB as a JSON beside the model. `model-archive.fetch-pae`
+// gets it from either: a download and a parse in one cell under the model's cell (`fetch.ts`), tagged with the model:
+// it goes with the structure, is undoable and saved in a session. `model-archive.pae` says whether a structure has it and how big it is; the PAE card reads the matrix
 // through `paeMatrix` (a read for views, as the animation area's `state`), and acts through `select.set`; the Structure
 // panel's row says its size through `paeSize`, which does not read the matrix.
 
@@ -84,10 +80,8 @@ function coversPolymer(model: Model, size: PaeSize): boolean {
   return metrics > 0 && rows === size.residues * size.residues * metrics;
 }
 
-/** The model's PAE metric as a dense matrix; undefined when it has none. */
-function matrixOf(model: Model): PaeMatrix | undefined {
-  if (!MmcifFormat.is(model.sourceData)) return undefined;
-  const frame = model.sourceData.data.frame;
+/** The PAE metric of a ModelCIF frame (the model's own, or its associated file's) as a dense matrix over the model. */
+function matrixOf(model: Model, frame: CifFrame): PaeMatrix | undefined {
   const found = QualityAssessment.findModelArchiveCIFPAEMetrics(frame)[0];
   if (!found) return undefined;
   const metric = QualityAssessment.pairwiseMetricFromModelArchiveCIF(model, frame, found.id);
@@ -142,8 +136,10 @@ function plddtOf(model: Model, size: number, residueAt: (k: number) => ResidueIn
 
 /** The tag of the cells that hold an AlphaFold DB PAE (a download and its parsed JSON). */
 export const AfdbPaeTag = 'model-archive.afdb-pae';
-/** The parsed JSON's own tag: which model's it is (`<tag>:<model cell ref>`). */
-const tagOf = (modelRef: string) => `${AfdbPaeTag}:${modelRef}`;
+/** The tag of the cells that hold a model's associated PAE file (Model Archive's, parsed CIF). */
+export const AssociatedPaeTag = 'model-archive.associated-pae';
+/** A fetched cell's own tag: which model's it is (`<tag>:<model cell ref>`). */
+const tagOf = (tag: string, modelRef: string) => `${tag}:${modelRef}`;
 
 /**
  * AlphaFold DB's PAE for a model: its polymer residues, in order, are the matrix's tokens. A message when the JSON is
@@ -186,13 +182,42 @@ function attachedMatrix(model: Model, json: unknown): PaeMatrix | string {
   };
 }
 
-/** What one pass over the state tree finds: the structures' models, the fetched PAE cells, the AlphaFold DB entries. */
+/** A fetched PAE in the state tree: AlphaFold DB's parsed JSON, or an associated file's CIF frame. */
+type Fetched =
+  | { readonly kind: 'afdb'; readonly data: object }
+  | { readonly kind: 'associated'; readonly data: CifFrame };
+
+/** A transform's address parameter (a text or an asset's `{ url }`), if any. */
+function urlOf(params: unknown): string | undefined {
+  const url = (params as { url?: unknown } | undefined)?.url;
+  if (typeof url === 'string') return url || undefined;
+  const inner = (url as { url?: unknown } | undefined)?.url;
+  return typeof inner === 'string' && inner ? inner : undefined;
+}
+
+/** What one pass over the state tree finds: the structures' models, the fetched PAE cells, where a PAE can come from. */
 interface TreeIndex {
   readonly structures: Map<string, { readonly model: Model; readonly modelRef: string }>;
-  /** A model's fetched PAE JSON (parsed), by the model's ref. */
-  readonly fetched: Map<string, object>;
+  /** A model's fetched PAE, by the model's ref. */
+  readonly fetched: Map<string, Fetched>;
   /** By structure ref, read when asked. */
   readonly entries: Map<string, AfdbEntry | undefined>;
+  readonly associated: Map<string, AssociatedPae | undefined>;
+}
+
+/** Where a fetch gets a PAE from, and how it reads it. */
+interface PaeSource {
+  /** Named in messages ("ma-bak-cepc-0003", "AF-P04637-F1"). */
+  readonly id: string;
+  /** "Model Archive", "AlphaFold DB". */
+  readonly service: string;
+  readonly url: string;
+  readonly note?: string;
+  readonly tag: string;
+  /** Adds the cell under the model; its ref. */
+  apply(b: StateBuilder.Root, modelRef: string): string;
+  /** The matrix from the cell's object, or why it does not fit the model; `key` keys the area's cache. */
+  read(model: Model, obj: unknown): { key: object; matrix: PaeMatrix } | string;
 }
 
 export class ModelArchiveApi extends ApiArea {
@@ -202,7 +227,7 @@ export class ModelArchiveApi extends ApiArea {
   readonly #matrices = new WeakMap<Model, PaeMatrix | null>();
   /** By model: whether its file carries a PAE metric (the metric list is read once). */
   readonly #carries = new WeakMap<Model, boolean>();
-  /** By parsed JSON (an AlphaFold DB PAE in the state tree): its matrix, read once (null: it does not fit). */
+  /** By parsed JSON or CIF frame (a fetched PAE in the state tree): its matrix, read once (null: it does not fit). */
   #attachedMatrices = new WeakMap<object, PaeMatrix | null>();
   readonly #changes = new Subject<void>();
   readonly #subscription: Subscription;
@@ -238,7 +263,7 @@ export class ModelArchiveApi extends ApiArea {
     if (this.#index) return this.#index;
     const state = this.ctx.plugin.state.data;
     const structures = new Map<string, { model: Model; modelRef: string }>();
-    const fetched = new Map<string, object>();
+    const fetched = new Map<string, Fetched>();
     for (const cell of state.cells.values()) {
       const obj = cell.obj;
       if (PluginStateObject.Molecule.Structure.is(obj)) {
@@ -246,10 +271,13 @@ export class ModelArchiveApi extends ApiArea {
         if (modelRef) structures.set(cell.transform.ref, { model: obj.data.model, modelRef });
       } else if (PluginStateObject.Format.Json.is(obj) && cell.transform.tags?.includes(AfdbPaeTag)) {
         const data: unknown = obj.data;
-        if (data && typeof data === 'object') fetched.set(cell.transform.parent, data);
+        if (data && typeof data === 'object') fetched.set(cell.transform.parent, { kind: 'afdb', data });
+      } else if (PluginStateObject.Format.Cif.is(obj) && cell.transform.tags?.includes(AssociatedPaeTag)) {
+        const frame = obj.data.blocks[0];
+        if (frame) fetched.set(cell.transform.parent, { kind: 'associated', data: frame });
       }
     }
-    return (this.#index = { structures, fetched, entries: new Map() });
+    return (this.#index = { structures, fetched, entries: new Map(), associated: new Map() });
   }
 
   #modelOf(ref: string): Model | undefined {
@@ -269,18 +297,18 @@ export class ModelArchiveApi extends ApiArea {
     return undefined;
   }
 
-  /** The PAE JSON fetched for a structure's model (its parsed cell), if any. */
-  #attachedJson(ref: string): { json: object; model: Model } | undefined {
+  /** The PAE fetched for a structure's model (its parsed cell), if any. */
+  #attached(ref: string): { fetched: Fetched; model: Model } | undefined {
     const t = this.#tree();
     const s = t.structures.get(ref);
-    const json = s && t.fetched.get(s.modelRef);
-    return s && json ? { json, model: s.model } : undefined;
+    const fetched = s && t.fetched.get(s.modelRef);
+    return s && fetched ? { fetched, model: s.model } : undefined;
   }
 
   #matrix(model: Model): PaeMatrix | undefined {
     let m = this.#matrices.get(model);
     if (m === undefined) {
-      m = matrixOf(model) ?? null;
+      m = (MmcifFormat.is(model.sourceData) && matrixOf(model, model.sourceData.data.frame)) || null;
       this.#matrices.set(model, m);
     }
     return m ?? undefined;
@@ -299,21 +327,57 @@ export class ModelArchiveApi extends ApiArea {
   }
 
   #fetched(ref: string): PaeMatrix | undefined {
-    const a = this.#attachedJson(ref);
+    const a = this.#attached(ref);
     if (!a) return undefined;
-    let m = this.#attachedMatrices.get(a.json);
+    const { fetched, model } = a;
+    let m = this.#attachedMatrices.get(fetched.data);
     if (m === undefined) {
-      const r = attachedMatrix(a.model, a.json);
-      if (typeof r === 'string') this.ctx.plugin.log.warn(`AlphaFold DB's PAE does not fit the model: ${r}.`);
+      const r =
+        fetched.kind === 'afdb'
+          ? attachedMatrix(model, fetched.data)
+          : (matrixOf(model, fetched.data) ?? 'it names none of its residues');
+      if (typeof r === 'string') this.ctx.plugin.log.warn(`The fetched PAE does not fit the model: ${r}.`);
       m = typeof r === 'string' ? null : r;
-      this.#attachedMatrices.set(a.json, m);
+      this.#attachedMatrices.set(fetched.data, m);
     }
     return m ?? undefined;
   }
 
   /** Whether a structure (by state ref) has PAE, without reading the matrix: for the card's toolbar button. */
   hasPae(ref: string): boolean {
-    return this.#embedded(this.#modelOf(ref)) || !!this.#attachedJson(ref);
+    return this.#embedded(this.#modelOf(ref)) || !!this.#attached(ref);
+  }
+
+  /**
+   * The associated file a structure's model names for its PAE (Model Archive's, `associated.ts`), by state ref;
+   * undefined when it names none. A relative address is resolved against the one the model was loaded from.
+   */
+  associatedPae(ref: string): AssociatedPae | undefined {
+    const known = this.#tree().associated;
+    if (!known.has(ref)) {
+      const model = this.#modelOf(ref);
+      known.set(
+        ref,
+        model && MmcifFormat.is(model.sourceData)
+          ? associatedPaeOf(model.sourceData.data.frame, this.#loadedFrom(ref))
+          : undefined,
+      );
+    }
+    return known.get(ref);
+  }
+
+  /** The nearest address among a structure's ancestors' parameters (what it was downloaded from), if any. */
+  #loadedFrom(ref: string): string | undefined {
+    const state = this.ctx.plugin.state.data;
+    for (
+      let cell = state.cells.get(ref);
+      cell && cell.transform.ref !== StateTransform.RootRef;
+      cell = state.cells.get(cell.transform.parent)
+    ) {
+      const url = urlOf(cell.transform.params);
+      if (url) return url;
+    }
+    return undefined;
   }
 
   /**
@@ -341,17 +405,23 @@ export class ModelArchiveApi extends ApiArea {
       cell && cell.transform.ref !== StateTransform.RootRef;
       cell = state.cells.get(cell.transform.parent)
     ) {
-      const p = cell.transform.params as { url?: unknown; file?: { name?: string }; label?: string } | undefined;
-      const url = typeof p?.url === 'string' ? p.url : (p?.url as { url?: string } | undefined)?.url;
-      const file = p?.file as { name?: string } | undefined;
-      texts.push(cell.obj?.label, url, file?.name, p?.label);
+      const p = cell.transform.params as { file?: { name?: string }; label?: string } | undefined;
+      texts.push(cell.obj?.label, urlOf(p), p?.file?.name, p?.label);
     }
     return afdbEntryOf(texts);
   }
 
-  /** Whether the PAE of a structure can be fetched from AlphaFold DB: it is an entry of it and has no PAE yet. */
+  /**
+   * Whether the PAE of a structure can be fetched: it has none yet, and its model names an associated file with it
+   * (Model Archive) or it is an AlphaFold DB entry.
+   */
   canFetchPae(ref: string): boolean {
-    return !this.hasPae(ref) && !!this.afdbEntry(ref);
+    return !this.hasPae(ref) && (!!this.associatedPae(ref) || !!this.afdbEntry(ref));
+  }
+
+  /** Where `model-archive.fetch-pae` would get a structure's PAE from (by state ref): the service's name, if anywhere. */
+  paeService(ref: string): 'Model Archive' | 'AlphaFold DB' | undefined {
+    return this.associatedPae(ref) ? 'Model Archive' : this.afdbEntry(ref) ? 'AlphaFold DB' : undefined;
   }
 
   /**
@@ -374,6 +444,17 @@ export class ModelArchiveApi extends ApiArea {
     return m && { residues: m.size, chains: new Set(m.residues.map((r) => r.chain)).size };
   }
 
+  /**
+   * A structure's selection (by state ref) as a token: the same object while the selection is unchanged (Mol*'s loci of
+   * it), another once anything changes it. The PAE card takes its pair off again only while the selection is the one it
+   * made.
+   */
+  selectionToken(ref: string): object | undefined {
+    const s = this.ctx.plugin.state.data.cells.get(ref)?.obj;
+    if (!PluginStateObject.Molecule.Structure.is(s)) return undefined;
+    return this.ctx.plugin.managers.structure.selection.getLoci(s.data);
+  }
+
   /** A structure's PAE matrix (by state ref), for the card; undefined when it has none. */
   paeMatrix(ref: string): PaeMatrix | undefined {
     const model = this.#modelOf(ref);
@@ -391,13 +472,18 @@ export class ModelArchiveApi extends ApiArea {
       const label = labelOf(ctx, s);
       const m = this.paeMatrix(s.cell.transform.ref);
       if (!m) {
-        const afdb = this.afdbEntry(s.cell.transform.ref);
+        const ref = s.cell.transform.ref;
+        const where = this.associatedPae(ref)
+          ? 'the file Model Archive names for it'
+          : this.afdbEntry(ref)
+            ? `AlphaFold DB (${this.afdbEntry(ref)!.id})`
+            : undefined;
         return ApiResult.ok(
-          `${label} has no PAE (a ModelCIF's ma_qa_metric_local_pairwise; AlphaFold DB ships it apart from the model).`,
+          `${label} has no PAE (a ModelCIF's ma_qa_metric_local_pairwise; Model Archive and AlphaFold DB often ship it apart from the model).`,
           {},
           {
             value: { structure: label, hasPae: false },
-            ...(afdb ? { next: `model-archive.fetch-pae gets the PAE of ${afdb.id} from AlphaFold DB.` } : {}),
+            ...(where ? { next: `model-archive.fetch-pae gets it from ${where}.` } : {}),
           },
         );
       }
@@ -421,21 +507,73 @@ export class ModelArchiveApi extends ApiArea {
     );
   }
 
+  /** Where an AlphaFold DB entry's PAE is (its API asked), read as the JSON's matrix over the model. */
+  async #afdbSource(entry: AfdbEntry, signal: AbortSignal): Promise<PaeSource> {
+    const { url, note } = await resolveAfdbPaeUrl(entry, undefined, signal);
+    return {
+      id: entry.id,
+      service: 'AlphaFold DB',
+      url,
+      note,
+      tag: AfdbPaeTag,
+      apply: (b, modelRef) =>
+        b
+          .to(modelRef)
+          .apply(FetchPaeJson, { url, label: `${entry.id} PAE` }, { tags: [AfdbPaeTag, tagOf(AfdbPaeTag, modelRef)] })
+          .ref,
+      read: (model, obj) => {
+        const json = (obj as PluginStateObject.Format.Json).data as object;
+        const m = attachedMatrix(model, json);
+        return typeof m === 'string' ? m : { key: json, matrix: m };
+      },
+    };
+  }
+
+  /** A model's associated PAE file (Model Archive's), read as its pairwise metric over the model. */
+  #associatedSource(id: string, file: AssociatedPae): PaeSource {
+    return {
+      id,
+      service: 'Model Archive',
+      url: file.url,
+      tag: AssociatedPaeTag,
+      apply: (b, modelRef) =>
+        b
+          .to(modelRef)
+          .apply(
+            FetchAssociatedPae,
+            { url: file.url, path: file.path, label: `${id} PAE` },
+            { tags: [AssociatedPaeTag, tagOf(AssociatedPaeTag, modelRef)] },
+          ).ref,
+      read: (model, obj) => {
+        const frame = (obj as PluginStateObject.Format.Cif).data.blocks[0];
+        const m = frame && matrixOf(model, frame);
+        return m ? { key: frame, matrix: m } : "it has no PAE over the model's residues";
+      },
+    };
+  }
+
   async #fetch(
     ctx: ApiContext,
-    it: { ref: string; label: string; entry: AfdbEntry; modelRef: string; model: Model },
+    it: {
+      ref: string;
+      label: string;
+      id: string;
+      modelRef: string;
+      model: Model;
+      source: (signal: AbortSignal) => Promise<PaeSource>;
+    },
   ): Promise<ApiResult<PaeInfo>> {
-    const { ref, label, entry, modelRef, model } = it;
+    const { ref, label, id, modelRef, model } = it;
     const gone = () => ApiResult.fail('not-found', `${label} was removed or replaced while its PAE was fetched.`);
     const stopped = () => ApiResult.fail('aborted', 'Stopped.');
-    let source: AfdbPaeSource;
+    let source: PaeSource;
     try {
-      source = await resolveAfdbPaeUrl(entry, undefined, ctx.signal);
+      source = await it.source(ctx.signal);
     } catch (e) {
       if (ctx.signal.aborted) return stopped();
       return ApiResult.fail(
         'failed',
-        e instanceof AfdbError ? e.message : `Could not get the PAE of ${entry.id}: ${(e as Error)?.message ?? e}.`,
+        e instanceof AfdbError ? e.message : `Could not get the PAE of ${id}: ${(e as Error)?.message ?? e}.`,
         'Check the network, and that AlphaFold DB has a PAE for the entry.',
       );
     }
@@ -444,12 +582,10 @@ export class ModelArchiveApi extends ApiArea {
     const state = ctx.plugin.state.data;
     // The cell is a child of the model: it goes with the structure, and a saved session restores it with the model.
     const b = state.build();
-    const cell = b
-      .to(modelRef)
-      .apply(FetchPaeJson, { url, label: `${entry.id} PAE` }, { tags: [AfdbPaeTag, tagOf(modelRef)] });
+    const cell = source.apply(b, modelRef);
     const remove = async () => {
-      if (!state.cells.has(cell.ref)) return;
-      await ctx.plugin.runTask(state.updateTree(state.build().delete(cell.ref)));
+      if (!state.cells.has(cell)) return;
+      await ctx.plugin.runTask(state.updateTree(state.build().delete(cell)));
     };
     // The stop button's signal reaches the download: the task is asked to abort.
     const task = state.updateTree(b);
@@ -470,25 +606,22 @@ export class ModelArchiveApi extends ApiArea {
       await remove();
       return gone();
     }
-    const parsed = state.cells.get(cell.ref);
+    const parsed = state.cells.get(cell);
     if (parsed?.status === 'error' || !parsed?.obj) {
       const why = parsed?.errorText ?? 'nothing came back';
       await remove();
-      return ApiResult.fail(
-        'failed',
-        `Could not get the PAE of ${entry.id} from ${url}: ${why}.`,
-        'Check the network.',
-      );
+      return ApiResult.fail('failed', `Could not get the PAE of ${id} from ${url}: ${why}.`, 'Check the network.');
     }
-    const m = attachedMatrix(model, parsed.obj.data);
-    if (typeof m === 'string') {
+    const read = source.read(model, parsed.obj);
+    if (typeof read === 'string') {
       await remove();
-      return ApiResult.fail('failed', `The PAE from ${url} does not fit ${label}: ${m}.`);
+      return ApiResult.fail('failed', `The PAE from ${url} does not fit ${label}: ${read}.`);
     }
-    this.#attachedMatrices.set(parsed.obj.data as object, m);
+    const m = read.matrix;
+    this.#attachedMatrices.set(read.key, m);
     const chains = [...new Set(paeChains(m).map((c) => c.label))];
     return ApiResult.ok(
-      `Fetched the PAE of ${entry.id} from AlphaFold DB: ${m.size} × ${m.size} residues, up to ${m.max.toFixed(1)} Å.${note ? ` ${note}` : ''}`,
+      `Fetched the PAE of ${id} from ${source.service}: ${m.size} × ${m.size} residues, up to ${m.max.toFixed(1)} Å.${note ? ` ${note}` : ''}`,
       { nodes: [ref] },
       {
         value: {
@@ -504,42 +637,62 @@ export class ModelArchiveApi extends ApiArea {
     );
   }
 
-  // AlphaFold DB ships a model's PAE as a JSON beside it: a download and a parse in the state tree (the address is the
-  // download's parameter, so a saved session fetches it again), under the model's tag.
+  /**
+   * The addresses a fetch reaches before it runs: the associated files named (AlphaFold DB is a known service). A
+   * structure named by its state ref gives its own; any other name (a label, which `run` resolves) every loaded
+   * structure's, so the agent's policy never sees fewer addresses than the run reaches.
+   */
+  #addresses(structure: string): string[] {
+    const refs = this.#tree().structures.has(structure)
+      ? [structure]
+      : this.ctx.plugin.managers.structure.hierarchy.current.structures.map((s) => s.cell.transform.ref);
+    return refs.flatMap((ref) => {
+      const file = this.associatedPae(ref);
+      return file ? [file.url] : [];
+    });
+  }
+
+  // Model Archive names a model's PAE file in the model (an associated file, often a zip); AlphaFold DB ships it as a
+  // JSON beside the model. Either is a download and a parse in the state tree (the address is the transform's
+  // parameter, so a saved session fetches it again), under the model's tag.
   readonly fetchPae = this.operation({
     id: 'model-archive.fetch-pae',
-    title: 'Fetch the PAE of a model from AlphaFold DB',
+    title: 'Fetch the PAE of a model',
     params: { structure: StructureParam() },
     modules: ['network'],
     approval: 'network',
-    // The structure row's "…" menu, for an AlphaFold DB entry without a PAE.
+    // The structure row's "…" menu, for a model whose PAE is elsewhere.
     structureMenu: {
-      label: 'Fetch PAE from AlphaFold DB',
+      label: 'Fetch PAE',
       icon: 'download',
       applies: (_plugin, structure) => this.canFetchPae(structure),
     },
-    // AlphaFold DB, a known data service.
-    addresses: () => [],
+    addresses: ({ structure }) => this.#addresses(structure),
     run: async ({ structure }, ctx): Promise<ApiResult<PaeInfo>> => {
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const label = labelOf(ctx, s);
       const ref = s.cell.transform.ref;
-      const entry = this.afdbEntry(ref);
-      if (!entry) {
+      if (this.hasPae(ref)) return ApiResult.already(`${label} has a PAE already.`);
+      const file = this.associatedPae(ref);
+      const entry = file ? undefined : this.afdbEntry(ref);
+      if (!file && !entry) {
         return ApiResult.fail(
           'blocked',
-          `${label} is not an AlphaFold DB entry (an AF-<UniProt>-F<n> id), so there is no PAE to fetch.`,
+          `${label} names no PAE file and is not an AlphaFold DB entry (an AF-<UniProt>-F<n> id), so there is no PAE to fetch.`,
         );
       }
-      if (this.hasPae(ref)) return ApiResult.already(`${label} has a PAE already.`);
       const modelRef = this.#modelRefOf(ref);
       const model = this.#modelOf(ref);
       if (!modelRef || !model) return ApiResult.fail('not-found', `${label} has no model.`);
       // A second ask while the first is in flight shares it: the cells are added once.
       const running = this.#fetching.get(modelRef);
       if (running) return running;
-      const fetching = this.#fetch(ctx, { ref, label, entry, modelRef, model }).finally(() =>
+      const id = entry?.id ?? model.entryId ?? label;
+      const source = file
+        ? async () => this.#associatedSource(id, file)
+        : (signal: AbortSignal) => this.#afdbSource(entry!, signal);
+      const fetching = this.#fetch(ctx, { ref, label, id, modelRef, model, source }).finally(() =>
         this.#fetching.delete(modelRef),
       );
       this.#fetching.set(modelRef, fetching);

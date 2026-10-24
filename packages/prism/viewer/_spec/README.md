@@ -45,7 +45,7 @@ assistant (`@molstar/prism-assistant/viewer`, its own chunk), and builds the sin
 | `api/`                 | the core areas (`load`, `structure`, `component`, `representation`, `select`, `focus`, `camera`, `canvas`, `history`, …), the runner (`run.ts`), targets as params           | yes                  |
 | `sources/`             | what the views and the agent read: the scene, the selection, the canvas, the pointer, the sequence's structure, checkpoints, the light restore, the palette, the canvas host | yes                  |
 | `features/`            | built-in features as extensions: `operations.ts` and `source.ts` (may touch the plugin), `index.ts`, `ui.tsx` (its own chunk)                                                | operations, sources  |
-| `extensions/`          | the extension host (activation all or nothing, lazy stubs and their check, sequence behaviors, skills) and the one override rule                                             | no                   |
+| `extensions/`          | the extension host (activation all or nothing, lazy stubs and their check, sequence tracks and behaviors, skills) and the one override rule                                  | no                   |
 | `commands/`            | the command menu's commands over operations (`operationCommand`)                                                                                                             | no                   |
 | `model/`               | view models (DOM-free): Home, the scene tree, the inspector, presets, quick styles                                                                                           | no                   |
 | `views/`, `ui/`        | the views (Prism DOM JSX) and the shell's composition (`ui/shell.tsx`: tabs, toolbar, cards, the assistant's mount)                                                          | no                   |
@@ -84,6 +84,9 @@ palette's; never the camera or the selection); Redo puts back the state Undo lef
 - **Extensions** (`spec.ts`): `{ id, title, plugin?, api?, commands?, annotations?, sequence?, skills?, ui? }`; a lazy
   one is a stub (its parts, operations with their flags, commands, skills) and `load()`. Part ids are
   `<owner>.<kind>.<name>`; overrides replace or remove any part or command by id.
+- **Sequence track providers** (`sequence/tracks.ts`):
+  `{ id, label, order, track, applies, shown, build, menu, legend }`: a track the viewer puts in and takes out per
+  structure ([sequence.md](sequence.md) §3).
 - **Sequence behaviors** (`sequence/behaviors.ts`): `attach({ shown, patch, offer })`: patches onto the document `shown`
   names, menus and legend blocks offered.
 - **The agent's policy** (`agent/policies.ts`): reads and view changes go; changes while the turn can be undone go;

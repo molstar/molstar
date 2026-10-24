@@ -13,9 +13,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SequenceViewer } from '../model.js';
 import { headlessViewers, hostStructure, ValuesTrack, valuesBehavior } from './fixtures.js';
 
-// The person's edits over the sequence's document (sequence.md §7.1): hidden tracks by ref, written into each document
-// the model builds and into the tracks a behavior adds (hidden from its first patch), a ref not shown kept for later,
-// and a loaded SeqViewSpec's own hidden track shown by an edit that says so.
+// The person's edits over the sequence's document (sequence.md §7.1): each structure's, hidden tracks by ref, written
+// into each document the model builds and into the tracks a behavior adds (hidden from its first patch), a ref not
+// shown kept for later, and a loaded SeqViewSpec's own hidden track shown by an edit that says so.
 
 async function until(check: () => boolean, ms = 3000): Promise<void> {
   const t0 = Date.now();
@@ -37,10 +37,11 @@ function nodeOf(viewer: SequenceViewer, ref: string): DocNode | undefined {
 const hidden = (viewer: SequenceViewer) => viewer.tracks.value.filter((t) => t.hidden).map((t) => t.ref);
 
 describe("the sequence's edits", () => {
-  it("hides a behavior's track, which comes back hidden on the next document; a ref not shown is kept", async () => {
+  it("hides a behavior's track, which comes back hidden with its structure; another structure keeps its own", async () => {
     const patched: boolean[] = [];
     const h = headlessViewers({ behaviors: [valuesBehavior(patched)] });
-    h.structure.set(await hostStructure());
+    const first = { ...(await hostStructure()), ref: 'a' };
+    h.structure.set(first);
     await settled(h);
     await until(() => h.viewer.tracks.value.some((t) => t.ref === ValuesTrack));
     // Named by its behavior's title (its document label is empty).
@@ -49,17 +50,38 @@ describe("the sequence's edits", () => {
     expect(await h.viewer.setTrackHidden(ValuesTrack, true)).toBe(false);
     expect(await h.viewer.setTrackHidden('nothing', true)).toBe(false);
     expect(hidden(h.viewer)).toEqual([ValuesTrack]);
+    expect(h.viewer.edits.value).toEqual({ a: { tracks: { [ValuesTrack]: { hidden: true } } } });
 
-    // Another structure: the behavior inserts its track again, hidden as it goes in.
-    h.structure.set(await hostStructure('2ocj'));
+    // Another structure: its own tracks, none hidden (the edits are each structure's, sequence.md §7.1).
+    h.structure.set({ ...(await hostStructure('2ocj')), ref: 'b' });
     await settled(h);
     await until(() => patched.length === 2);
+    expect(nodeOf(h.viewer, ValuesTrack)?.params?.hidden).toBeUndefined();
+    expect(hidden(h.viewer)).toEqual([]);
+
+    // Back: the behavior inserts its track again, hidden as it goes in.
+    h.structure.set({ ...(await hostStructure()), ref: 'a' });
+    await settled(h);
+    await until(() => patched.length === 3);
     expect(nodeOf(h.viewer, ValuesTrack)?.params?.hidden).toBe(true);
     expect(hidden(h.viewer)).toEqual([ValuesTrack]);
 
     // An edit for a track this document lacks stays for the next that has it.
-    await h.viewer.setEdits({ tracks: { [ValuesTrack]: { hidden: true }, later: { hidden: true } } });
-    expect(h.viewer.edits.value.tracks?.later).toEqual({ hidden: true });
+    await h.viewer.setEdits({ a: { tracks: { [ValuesTrack]: { hidden: true }, later: { hidden: true } } } });
+    expect(h.viewer.edits.value.a?.tracks?.later).toEqual({ hidden: true });
+    h.viewers.dispose();
+  });
+
+  it("an edit keeps what the document shows: a behavior's nodes are not added again", async () => {
+    const patched: boolean[] = [];
+    const h = headlessViewers({ behaviors: [valuesBehavior(patched)] });
+    h.structure.set({ ...(await hostStructure()), ref: 'a' });
+    await settled(h);
+    await until(() => patched.length === 1);
+    expect(await h.viewer.setTrackHidden('ruler', true)).toBe(true);
+    expect(await h.viewer.setTrackIn('ruler', false)).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(patched).toEqual([true]);
     h.viewers.dispose();
   });
 
@@ -97,7 +119,7 @@ describe("the sequence's edits", () => {
     expect(hidden(h.viewer)).toEqual(['quiet']);
     expect(await h.viewer.setTrackHidden('quiet', false)).toBe(true);
     // A change from the document's own value is an edit: shown, kept as one.
-    expect(h.viewer.edits.value).toEqual({ tracks: { quiet: { hidden: false } } });
+    expect(h.viewer.edits.value).toEqual({ s1: { tracks: { quiet: { hidden: false } } } });
     expect(hidden(h.viewer)).toEqual([]);
     expect(await h.viewer.setTrackHidden('quiet', true)).toBe(true);
     expect(h.viewer.edits.value).toEqual({});

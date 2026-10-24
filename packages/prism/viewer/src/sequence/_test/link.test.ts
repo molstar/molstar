@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, type StructureElement } from '@molstar/model/model/structure';
+import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { observableState } from '@molstar/prism-ui/core';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
@@ -239,6 +239,46 @@ describe('linking the sequence to a 3D view', () => {
     stop();
     expect(channels()).toEqual([]);
     expect(setHover).toHaveBeenLastCalledWith(null, '3d');
+    h.viewers.dispose();
+  });
+
+  it("focuses the sequence on an owner's new marks together when they ask for it (a box's two ranges)", async () => {
+    const h = headlessViewers();
+    const fake = fakeView();
+    const host = await hostStructure();
+    const all = Structure.toStructureElementLoci(host.structure);
+    const part = (k: number) => StructureElement.Loci(all.structure, [all.elements[k]]);
+    const mark = (id: string, k: number, focusSequence?: boolean): Mark => ({
+      owner: 'plot',
+      id,
+      label: id,
+      tone: 'accent',
+      structure: 's',
+      loci: part(k),
+      ...(focusSequence ? { focusSequence } : {}),
+    });
+    // Marks there when the link is made are shown, not focused.
+    const list = observableState<readonly Mark[]>([mark('old', 0, true)]);
+    const marks = { marks: list.asReadonly, hover: observableState(undefined).asReadonly } as MarksSource;
+    const stop = linkSequence(h.viewer, () => fake.view, { marks });
+    h.structure.set(host);
+    await shown(h);
+    const focus = vi.spyOn(h.viewer.seq.focus, 'fromLoci');
+    expect(focus).not.toHaveBeenCalled();
+    // Two ranges in two chains: one focus over both.
+    const box = [mark('aligned', 0, true), mark('scored', 1, true)];
+    list.set(box);
+    expect(focus).toHaveBeenCalledTimes(1);
+    const target = focus.mock.calls[0][0] as { systems: string[]; runs: Int32Array };
+    expect(target.systems.length).toBe(2);
+    // The same marks set again (new objects, as each highlight.mark makes), or marks that do not ask: no move.
+    list.set(box.map((m) => ({ ...m })));
+    list.set([...box, mark('other', 0)]);
+    expect(focus).toHaveBeenCalledTimes(1);
+    // Another range (its label says it): a move.
+    list.set([{ ...box[0], label: 'aligned, moved' }, box[1]]);
+    expect(focus).toHaveBeenCalledTimes(2);
+    stop();
     h.viewers.dispose();
   });
 

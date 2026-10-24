@@ -11,6 +11,9 @@ import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { Observable } from 'rxjs';
 import type { ObservableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
+import type { Structure } from '@molstar/model/model/structure';
+import type { SequenceChain } from '../sequence/chain-filter.js';
+import type { ChainFilter } from '../sequence/tracks.js';
 import type { RepresentationQuickModel } from './representation-quick.js';
 import type { SceneChanges } from './scene-changes.js';
 import type { VolumeLevelsModel } from './volume-levels.js';
@@ -33,7 +36,31 @@ export type SceneNodeKind =
   /** A structure's focus group: the focus behavior's components (viewer-spec.md §2.1, always there). */
   | 'focus'
   /** A row an extension adds under a structure (volume streaming, assembly symmetry). */
-  | 'extension';
+  | 'extension'
+  /** A structure's sequence (sequence.md §8.1): its eye is the band, its children its tracks. */
+  | 'sequence'
+  | 'sequence-track'
+  /** A structure's components, grouped (what is drawn of it): open at first. */
+  | 'components'
+  /**
+   * A structure's other rows, grouped (mostly off: the unit cell, volume streaming, the extensions' rows that ask for
+   * it, `structureOfGroup`; the PAE, assembly symmetry, the membrane): open at first.
+   */
+  | 'other';
+
+/** The id of a structure's Sequence node (`reveal` takes it). */
+export const sequenceNodeId = (structure: string) => `${structure}#sequence`;
+/** The ids of a structure's Components and Other groups. */
+export const componentsNodeId = (structure: string) => `${structure}#components`;
+export const otherNodeId = (structure: string) => `${structure}#other`;
+/**
+ * The structure (its state ref) a group (Components, Other) is of; undefined for any other node. An extension's row in
+ * the Other group (a membrane, symmetry axes, the PAE) asks for `node.kind === 'other'` and reads its structure here.
+ */
+export function structureOfGroup(node: SceneNode): string | undefined {
+  if (node.kind !== 'components' && node.kind !== 'other') return undefined;
+  return node.id.slice(0, node.id.lastIndexOf('#'));
+}
 
 /**
  * One row of the scene tree: a structure, a component, a representation, a volume, a measurement. Implemented over the
@@ -66,6 +93,8 @@ export interface SceneNode {
   load?(peek?: boolean): void;
   toggleVisibility(): void;
   toggleExpanded(): void;
+  /** False: it shows or hides nothing as one (Entities, Other), so its row has no eye. Absent: an eye. */
+  readonly hasEye?: boolean;
   /** Highlights it in 3D while hovered. */
   highlight(on: boolean): void;
   focus(): void;
@@ -163,6 +192,54 @@ export interface SceneInspection {
   quick?: RepresentationQuickModel;
   /** A structure's contents: its counts, and its entities to open in the tree. */
   contents?: ContentsSummary;
+  /** A Sequence node's controls: the band's style and letters, Add track, the chains (sequence.md §8.1). */
+  sequence?: SequenceInspectorModel;
+}
+
+/**
+ * A Sequence node's inspector (sequence.md §8.1), made once per node and following the edits: what the band shows, its
+ * style and letter colors (the band's: the same on every node), Add track, and the chains the structure's sequence
+ * shows (the presets, each chain by its entity, every copy apart).
+ */
+export interface SequenceInspectorModel {
+  /** What the band shows of it, in a few words ("Tracks · auto · 4 tracks"; "Not shown"). */
+  readonly status: ReadonlyState<string>;
+  readonly style: ReadonlyState<'tracks' | 'text'>;
+  setStyle(style: 'tracks' | 'text'): void;
+  readonly colors: ReadonlyState<string | null>;
+  /** The letter color schemes: a name for people and a swatch of its colors (none: not painted). */
+  readonly schemes: ReadonlyState<
+    readonly { readonly id: string | null; readonly label: string; readonly swatch?: string }[]
+  >;
+  setColors(scheme: string | null): void;
+  /** A track can be added here (the structure the band shows, a provider out): Add track opens the command menu. */
+  readonly canAdd: ReadonlyState<boolean>;
+  addTrack(): void;
+  /** The structure's entities and their chains (new when the structure under the node is another). */
+  readonly entities: ReadonlyState<readonly SequenceChainsEntity[]>;
+  /** The chains shown, by name. */
+  readonly shown: ReadonlyState<ReadonlySet<string>>;
+  /** The preset in effect; undefined: chains chosen one by one. */
+  readonly preset: ReadonlyState<SequenceChainsPreset | undefined>;
+  apply(preset: SequenceChainsPreset): void;
+  /** Shows or leaves out one chain. */
+  toggleChain(name: string): void;
+  /** Shows every chain of an entity, or none when every one is shown. */
+  toggleEntity(id: string): void;
+  /** Every copy a block of its own (an assembly's). */
+  readonly each: ReadonlyState<boolean>;
+  setEach(on: boolean): void;
+}
+
+export type SequenceChainsPreset = 'all' | 'none' | 'polymer';
+
+export interface SequenceChainsEntity {
+  readonly id: string;
+  /** Its description, one line ("Cellular retinoic acid binding protein type II"). */
+  readonly name: string;
+  readonly kind: 'polymer' | 'branched' | 'ligand';
+  /** Its chain instances: `name` as the sequence names the unit, `label` with the author's id where it differs. */
+  readonly chains: readonly { readonly name: string; readonly label: string }[];
 }
 
 /** What a structure is made of, at a glance. */
@@ -250,4 +327,62 @@ export interface QuickStylesModel {
   styles: readonly { id: string; label: string }[];
   applyRepresentation(id: string): void;
   applyStyle(id: string): void;
+}
+
+/**
+ * Each structure's sequence as the structure tree shows it (sequence.md §8.1): a Sequence node under every structure
+ * with polymers, its eye the band, its children the tracks. Made over the sequence model (`sources/sequence-scene.ts`):
+ * no Seq* here, and the tree builds no Mol* cell for it.
+ */
+export interface SceneSequence {
+  /** Told when any structure's row may read otherwise (what the band follows, a track, a filter). */
+  readonly version: ReadonlyState<number>;
+  /** A structure's row; undefined: it has no polymer (no Sequence node). */
+  row(structure: string, data: Structure): SceneSequenceRow | undefined;
+  /** The eye: the band shows this structure, or no sequence when it does. */
+  toggle(structure: string): void;
+  /** Follows the rule again (Auto): `sequence.follow` with none. */
+  followAutomatically(): void;
+  setTrackHidden(structure: string, data: Structure, track: string, hidden: boolean): void;
+  addTrack(structure: string, data: Structure, provider: string): void;
+  removeTrack(structure: string, data: Structure, track: string): void;
+  setChains(structure: string, data: Structure, filter: ChainFilter | undefined): void;
+  /** The colors' legend (the band's). */
+  legend?(): void;
+  /** The band's style and letter colors (one for the band, sequence.md §7.1): `sequence.style`, `sequence.colors`. */
+  setStyle(style: 'tracks' | 'text'): void;
+  setColors(scheme: string | null): void;
+  /** The letter color schemes, by name (null: no colors), their names for people and swatches (once the sequence is in). */
+  schemes(): readonly { readonly id: string | null; readonly label: string; readonly swatch?: string }[];
+  /** Opens the command menu at Add track, for the structure the band shows (its commands act on it). */
+  openAddTrack?(): void;
+}
+
+export interface SceneSequenceRow {
+  /** The band shows this structure. */
+  readonly shown: boolean;
+  /** The person chose it (`sequence.follow`); false: the rule's pick (Auto) or not shown. */
+  readonly chosen: boolean;
+  /** "3 tracks · auto · chains A, B", "Not shown · 3 tracks". */
+  readonly description: string;
+  readonly tracks: readonly SceneSequenceTrack[];
+  /** What Add track offers. */
+  readonly addable: readonly { readonly id: string; readonly label: string }[];
+  /** The chain instances it can show, and the filter on them. */
+  readonly chains: readonly SequenceChain[];
+  readonly filter: ChainFilter | undefined;
+  /** The band's style and letter colors (the same on every row: they are the band's). */
+  readonly style: 'tracks' | 'text';
+  readonly colors: string | null;
+}
+
+export interface SceneSequenceTrack {
+  readonly ref: string;
+  readonly label: string;
+  readonly hidden: boolean;
+  readonly removable: boolean;
+  /** What it draws, in a few words ("Letters · Zappo"). */
+  readonly description?: string;
+  /** Its colorings of the 3D view (the structure shown only). */
+  readonly actions: readonly { readonly id: string; readonly label: string; readonly icon?: IconName; run(): void }[];
 }

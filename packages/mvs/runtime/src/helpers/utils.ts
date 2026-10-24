@@ -8,6 +8,7 @@
 import { StateObject } from '@molstar/core/state';
 import { range } from '@molstar/core/util/array';
 import { Color } from '@molstar/core/util/color';
+import { SplitColor as CoreSplitColor } from '@molstar/core/util/color/split-color';
 import { decodeColor as _decodeColor } from '@molstar/core/util/color/utils';
 import { isDefined } from '@molstar/core/util/object';
 import { ColorT } from '@molstar/mvs-builder/tree/mvs/param-types';
@@ -60,46 +61,10 @@ export function decodeColor(colorString: string | number | undefined | null): Co
 /** Utility functions for handling "split color" strings with primary and secondary color, e.g. 'red/white', '#ff0000/#ffffff'.
  * Regular color strings are treated as the same color repeated (e.g. 'red' == 'red/red'). */
 export const SplitColor = {
-  /** Return number-encoded colors before and after slash, or the same value twice if there is no slash.
-   * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
-   * Throw error on invalid input. */
-  decodeStrict(colorString: string): [Color, Color] {
-    const out = this.decode(colorString);
-    if (out === undefined) throw new Error(`Invalid color "${colorString}".`);
-    return out;
-  },
-  /** Return number-encoded colors before and after slash, or the same value twice if there is no slash.
-   * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
-   * Return `undefined` on invalid input. */
-  decode(colorString: string): [Color, Color] | undefined {
-    const out: [Color | undefined, Color | undefined] = [undefined, undefined];
-    this.decodeTo(colorString, out);
-    if (out[0] !== undefined && out[1] !== undefined) {
-      return out as [Color, Color];
-    } else {
-      return undefined;
-    }
-  },
-  /** Parse `colorString` into number-encoded colors before and after slash, or the same value twice if there is no slash.
-   * Write result into `out`.
-   * e.g. 'red/white' -> [0xff0000, 0xffffff], 'red' -> [0xff0000, 0xff0000],
-   * Write [`undefined`, `undefined` on invalid input. */
-  decodeTo(colorString: string, out: [Color | undefined, Color | undefined]): void {
-    const slashIdx = colorString.indexOf('/');
-    if (slashIdx >= 0) {
-      out[0] = _decodeColor(colorString.substring(0, slashIdx));
-      out[1] = _decodeColor(colorString.substring(slashIdx + 1, undefined));
-    } else {
-      out[0] = out[1] = _decodeColor(colorString);
-    }
-  },
+  ...CoreSplitColor,
   /** Convert to hex code string, '#ff0000/#ffffff', '#ff0000' */
   toHexStyle(primaryColor: Color, secondaryColor?: Color): ColorT {
-    if (secondaryColor === undefined || secondaryColor === primaryColor) {
-      return Color.toHexStyle(primaryColor) as ColorT;
-    } else {
-      return `${Color.toHexStyle(primaryColor)}/${Color.toHexStyle(secondaryColor)}` as ColorT;
-    }
+    return CoreSplitColor.toHexStyle(primaryColor, secondaryColor) as ColorT;
   },
 };
 

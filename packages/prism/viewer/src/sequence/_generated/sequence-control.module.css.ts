@@ -38,7 +38,7 @@ defineStyles('viewer/sequence/sequence-control.module.css', `@layer msp.componen
   min-height: 0;
   position: relative;
 
-  &:has( > :focus-visible):after {
+  &:not([data-pointer]):has( > :focus-visible):after {
     content: "";
     border-radius: var(--msp-radius-md);
     box-shadow: inset 0 0 0 2px var(--msp-color-focus-ring);

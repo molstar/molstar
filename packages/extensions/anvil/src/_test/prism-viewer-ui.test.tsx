@@ -54,7 +54,8 @@ async function until(check: () => boolean, ms = 10000) {
 function mountRow(v: PrismViewer) {
   const ui = membraneUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
   const row = ui.rows![0];
-  const node = v.views.scene.roots.value[0];
+  // Mounted on the structure's Other group.
+  const node = v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'other')!;
   const host = document.createElement('div');
   document.body.append(host);
   row.render.mount(host, { shell: new ShellModel(), subject: node }, undefined as never);
@@ -62,12 +63,14 @@ function mountRow(v: PrismViewer) {
 }
 
 describe("the membrane's row", () => {
-  it('is a structure row, from the extension’s UI chunk', async () => {
+  it("is a row in each structure's Other group, from the extension’s UI chunk", async () => {
     const v = await viewer('1grm_updated.cif');
     const ui = await AnvilExtension.ui!({ api: v.api, sources: v.sources, managers: v.managers });
     expect(ui.rows?.map((r) => r.id)).toEqual([MembraneRow]);
-    const node = v.views.scene.roots.value[0];
+    const structure = v.views.scene.roots.value[0];
+    const node = structure.children.value.find((c) => c.kind === 'other')!;
     expect(ui.rows![0].when(node)).toBe(true);
+    expect(ui.rows![0].when(structure)).toBe(false);
     expect(ui.rows![0].when({ ...node, kind: 'component' } as SceneNode)).toBe(false);
   });
 
@@ -76,11 +79,11 @@ describe("the membrane's row", () => {
     const { host } = mountRow(v);
     await until(() => host.textContent?.includes('Membrane') ?? false);
     expect(host.textContent).toContain('Off');
-    const eye = () => host.querySelector('button[title]') as HTMLButtonElement;
-    expect(eye().title).toBe('Show');
+    const eye = () => host.querySelector('button[data-tip]') as HTMLButtonElement;
+    expect(eye().dataset.tip).toBe('Show');
     eye().click();
     await until(() => /Å thick/.test(host.textContent ?? ''));
-    expect(eye().title).toBe('Hide');
+    expect(eye().dataset.tip).toBe('Hide');
     expect(v.api.membrane!.rowState(v.views.scene.roots.value[0].id).value.look).toMatchObject({
       planes: true,
       rims: true,
@@ -125,8 +128,10 @@ describe("the membrane's row", () => {
 
   it('is not shown for a structure ANVIL does not apply to', async () => {
     const v = await viewer('test.gro');
-    const { host } = mountRow(v);
+    const { host, row, node } = mountRow(v);
     expect(v.api.membrane!.rowState(v.views.scene.roots.value[0].id).value.applicable).toBe(false);
+    // No slot in the tree for it (no blank row in Other), and nothing drawn if mounted anyway.
+    expect(row.when(node)).toBe(false);
     expect(host.textContent).toBe('');
   });
 });

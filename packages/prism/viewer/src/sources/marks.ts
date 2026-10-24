@@ -45,6 +45,8 @@ export interface Mark {
   readonly loci: StructureElement.Loci;
   /** The rest of its structure greyed in the 3D view while it is shown, so the marks stand out of any coloring. */
   readonly dimRest?: boolean;
+  /** Brought into view in the sequence when set: it focuses on its owner's marks together (both ranges of a box). */
+  readonly focusSequence?: boolean;
 }
 
 export interface MarkHover {

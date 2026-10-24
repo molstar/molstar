@@ -108,7 +108,7 @@ describe('load.svs', () => {
     expect(seqOf(v).override.value?.document.metadata?.title).toBe('Retinoic acid binding');
   });
 
-  it('is kept by a session (version 3 of the sequence state) and restored with it', async () => {
+  it('is kept by a session (version 4 of the sequence state) and restored with it', async () => {
     const v = await viewer();
     expectOk(await v.api.load.svs!({ data: overFile() }));
     await until(() => showsSvs(v));
@@ -116,7 +116,7 @@ describe('load.svs', () => {
       version: number;
       override?: { structure: string };
     };
-    expect(saved.version).toBe(3);
+    expect(saved.version).toBe(4);
     expect(saved.override?.structure).toBe(structures(v)[0].cell.transform.ref);
     const molx = new Uint8Array(await (await v.plugin.managers.snapshot.serialize({ type: 'molx' })).arrayBuffer());
 

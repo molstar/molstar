@@ -407,6 +407,14 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   top: 0;
 }
 
+.msp-shell-dock-floatingTop.msp-shell-dock-band, .msp-shell-dock-floatingBottom.msp-shell-dock-band {
+  transition: opacity var(--msp-motion-base) var(--msp-ease);
+
+  &[data-hidden] {
+    opacity: 0;
+  }
+}
+
 .msp-shell-dock-floatingBottom.msp-shell-dock-band {
   background: linear-gradient(to top,
     var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),

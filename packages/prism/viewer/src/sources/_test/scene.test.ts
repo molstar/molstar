@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, recordRuns, representationTypes, until } from '../../_test/harness.js';
 import { mapFile, particlesFile } from '../../api/_test/volume-fixtures.js';
 import type { SceneNode } from '../../model/scene.js';
+import { componentsOf } from '../../testing/scene-groups.js';
 
 // The scene source: the Structure tab's tree over a real plugin.
 
@@ -26,10 +27,16 @@ describe('the scene', () => {
     const roots = v.views.scene.roots.value;
     // The structure, then the focus (one row for the scene).
     expect(kinds(roots)).toEqual(['structure:1CBS', 'focus:Focus']);
+    // Its rows by what they are: the entities (and its sequence, where there is one), its components, its layers.
     const children = roots[0].children.value;
-    expect(children[0].kind).toBe('contents');
-    expect(children.filter((c) => c.kind === 'component').length).toBeGreaterThan(0);
-    const component = children.find((c) => c.kind === 'component')!;
+    expect(children.map((c) => c.kind).filter((k) => k !== 'sequence')).toEqual(['contents', 'components', 'other']);
+    expect(children[0].label.value).toBe('Entities');
+    expect(children.find((c) => c.kind === 'components')!.isExpanded.value).toBe(true);
+    expect(children.find((c) => c.kind === 'other')!.isExpanded.value).toBe(true);
+    const components = componentsOf(roots[0]);
+    expect(components.length).toBeGreaterThan(0);
+    expect(components.every((c) => c.kind === 'component')).toBe(true);
+    const component = components[0];
     expect(component.children.value[0].kind).toBe('representation');
   });
 
@@ -69,7 +76,7 @@ describe('the scene', () => {
     const s = v.views.scene.roots.value[0];
     const facts = v.views.scene.inspect(s).facts ?? [];
     expect(facts.find(([k]) => k === 'Entry')?.[1]).toBe('1CBS');
-    const repr = s.children.value.find((c) => c.kind === 'component')!.children.value[0];
+    const repr = componentsOf(s).find((c) => c.kind === 'component')!.children.value[0];
     expect(v.views.scene.inspect(repr).form).toBeDefined();
   });
 
@@ -84,7 +91,7 @@ describe('the scene', () => {
 
 describe('the scene: component and representation rows', () => {
   const firstComponent = (v: Awaited<ReturnType<typeof headlessViewer>>) =>
-    v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'component')!;
+    componentsOf(v.views.scene.roots.value[0]).find((c) => c.kind === 'component')!;
 
   it('hides and shows a component from its eye, as the person, one step each', async () => {
     const v = await headlessViewer({ files: [cbs()] });
@@ -105,12 +112,63 @@ describe('the scene: component and representation rows', () => {
     expect(v.managers.history.steps.value).toHaveLength(steps + 2);
   });
 
+  it('hides its Components as a group, one step, and shows back only those it hid; Entities and Other have no eye', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const structure = v.views.scene.roots.value[0];
+    const group = structure.children.value.find((c) => c.kind === 'components')!;
+    const rows = componentsOf(structure);
+    expect(rows.length).toBeGreaterThan(1);
+    expect(group.hasEye).toBe(true);
+    expect(structure.children.value.find((c) => c.kind === 'contents')!.hasEye).toBe(false);
+    expect(structure.children.value.find((c) => c.kind === 'other')!.hasEye).toBe(false);
+    // One hidden on its own first.
+    const [own, ...rest] = rows;
+    own.toggleVisibility();
+    await until(() => own.isHidden.value);
+    const steps = v.managers.history.steps.value.length;
+
+    group.toggleVisibility();
+    await until(() => rest.every((r) => r.isHidden.value) && group.isHidden.value);
+    expect(v.managers.history.steps.value).toHaveLength(steps + 1);
+    group.toggleVisibility();
+    await until(() => rest.every((r) => !r.isHidden.value) && !group.isHidden.value);
+    // The one hidden on its own stays hidden.
+    expect(own.isHidden.value).toBe(true);
+    expect(v.managers.history.steps.value).toHaveLength(steps + 2);
+
+    // Hidden as a group, then one shown on its own and the group hidden again: all it hid come back together.
+    group.toggleVisibility();
+    await until(() => rest.every((r) => r.isHidden.value));
+    rest[0].toggleVisibility();
+    await until(() => !rest[0].isHidden.value && !group.isHidden.value);
+    group.toggleVisibility();
+    await until(() => rest.every((r) => r.isHidden.value));
+    group.toggleVisibility();
+    await until(() => rest.every((r) => !r.isHidden.value));
+    expect(own.isHidden.value).toBe(true);
+  });
+
+  it('adds a component from the Components menu, of a kind the structure has or from the selection', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const structure = v.views.scene.roots.value[0];
+    const group = structure.children.value.find((c) => c.kind === 'components')!;
+    const add = group.menu!.find((m) => m.id === 'add')!;
+    const ids = add.items!.map((i) => i.id);
+    // 1CBS: a protein, its ligand, waters; no nucleic acid.
+    expect(ids).toEqual(expect.arrayContaining(['selection', 'polymer', 'protein', 'ligand', 'water']));
+    expect(ids).not.toContain('nucleic');
+    const count = componentsOf(structure).length;
+    add.items!.find((i) => i.id === 'protein')!.run!();
+    await until(() => componentsOf(structure).length === count + 1);
+    expect(componentsOf(structure).some((c) => c.label.value === 'Protein')).toBe(true);
+  });
+
   it('removes a component from its row, and Undo brings it back', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const structure = v.views.scene.roots.value[0];
     const component = firstComponent(v);
     const id = component.id;
-    const count = structure.children.value.filter((c) => c.kind === 'component').length;
+    const count = componentsOf(structure).filter((c) => c.kind === 'component').length;
     const runs = recordRuns(v);
 
     v.views.scene.pick(component);
@@ -119,13 +177,13 @@ describe('the scene: component and representation rows', () => {
     const run = runs.find((r) => r.operation === 'component.remove')!;
     expect(run.origin.kind).toBe('person');
     expect(run.result?.ok).toBe(true);
-    await until(() => structure.children.value.filter((c) => c.kind === 'component').length === count - 1);
-    expect(structure.children.value.some((c) => c.id === id)).toBe(false);
+    await until(() => componentsOf(structure).filter((c) => c.kind === 'component').length === count - 1);
+    expect(componentsOf(structure).some((c) => c.id === id)).toBe(false);
     expect(v.views.scene.picked.value).toBeUndefined();
     expect(v.managers.history.steps.value[0].origin.kind).toBe('person');
 
     expectOk(await v.api.history.undo());
-    await until(() => structure.children.value.filter((c) => c.kind === 'component').length === count);
+    await until(() => componentsOf(structure).filter((c) => c.kind === 'component').length === count);
   });
 
   it('focuses and highlights a component as the person, without a history step', async () => {
@@ -392,7 +450,7 @@ describe('the scene: the tree filtered by the selection', () => {
     expect(filter.on.value).toBe(true);
     const structure = scene.roots.value.find((n) => n.kind === 'structure')!;
     expect(filter.holds(structure)).toBe(true);
-    const components = structure.children.value.filter((n) => n.kind === 'component');
+    const components = componentsOf(structure).filter((n) => n.kind === 'component');
     const held = components.filter((c) => filter.holds(c)).map((c) => c.label.value);
     expect(held).toEqual(['Ligand']);
     const ligand = components.find((c) => c.label.value === 'Ligand')!;

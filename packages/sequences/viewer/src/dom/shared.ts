@@ -444,8 +444,15 @@ export function placeTooltip(
   if (x + tw > parent.clientWidth) x = ox + ax - (kb ? 6 : 12) - tw;
   const gap = kb || line ? 4 : 18;
   let y = oy + ay + ah + gap;
-  if (y + th > parent.clientHeight) y = oy + ay - (kb || line ? 4 : 12) - th;
   x = Math.max(0, Math.round(x));
+  // Where it would leave the viewer below: a header's legend goes above its line; the pointer's or the cursor's label
+  // stays beside the anchor, as low as the viewer holds it, so it covers no ruler above the tracks, where it is beside
+  // it (clear of it across); a viewer too narrow for that puts it above the anchor, off what it labels. A viewer too
+  // short for it takes it from the top.
+  if (y + th > parent.clientHeight) {
+    const beside = x + tw <= ox + ax || x >= ox + ax + aw;
+    y = !line && beside ? parent.clientHeight - th : oy + ay - (kb || line ? 4 : 12) - th;
+  }
   y = Math.max(0, Math.round(y));
   if (x === at.x && y === at.y) return;
   at.x = x;

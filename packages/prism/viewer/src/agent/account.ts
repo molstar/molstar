@@ -52,6 +52,12 @@ export function createAccount(viewer: Pick<PrismViewer, 'views' | 'sources'>): A
   };
 }
 
+/** A structure's group of rows (Components, Other): not said itself. */
+const isGroup = (n: SceneNode) => n.kind === 'components' || n.kind === 'other';
+/** Rows with the groups' rows in their place. */
+const ungrouped = (list: readonly SceneNode[]): SceneNode[] =>
+  list.flatMap((c) => (isGroup(c) ? ungrouped(c.children.value) : [c]));
+
 /** The tree as indented lines, depth first, without the lazy contents (entities and chains, which no read lists yet). */
 function outline(roots: readonly SceneNode[], max: number, detail: OutlineDetail): string {
   if (!roots.length) return 'The scene is empty.';
@@ -69,9 +75,22 @@ function outline(roots: readonly SceneNode[], max: number, detail: OutlineDetail
     return !(n.kind === 'focus' && !n.children.value.length);
   };
   const count = (nodes: readonly SceneNode[], depth: number): number =>
-    nodes.reduce((n, c) => (said(c, depth) ? n + 1 + count(c.children.value, depth + 1) : n), 0);
+    nodes.reduce(
+      (n, c) =>
+        isGroup(c)
+          ? n + count(c.children.value, depth)
+          : said(c, depth)
+            ? n + 1 + count(c.children.value, depth + 1)
+            : n,
+      0,
+    );
   const walk = (nodes: readonly SceneNode[], depth: number) => {
     for (const n of nodes) {
+      // A structure's groups (Components, Other) are the tree's arrangement: their rows are said as the structure's own.
+      if (isGroup(n)) {
+        walk(n.children.value, depth);
+        continue;
+      }
       if (!said(n, depth)) continue;
       if (lines.length >= max) {
         // The items left out, with what is under them.
@@ -84,7 +103,9 @@ function outline(roots: readonly SceneNode[], max: number, detail: OutlineDetail
       // A summary names a structure's components on its line.
       const parts =
         detail === 'summary' && n.kind === 'structure'
-          ? n.children.value.filter((c) => c.kind === 'component').map((c) => quoted(c.label.value))
+          ? ungrouped(n.children.value)
+              .filter((c) => c.kind === 'component')
+              .map((c) => quoted(c.label.value))
           : [];
       lines.push(
         `${'  '.repeat(depth)}- ${n.kind} ${quoted(n.label.value)}${description ? `: ${quoted(description)}` : ''}${hidden}${parts.length ? `; components ${parts.join(', ')}` : ''}`,

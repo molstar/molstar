@@ -105,10 +105,13 @@ describe('components have no accessibility violations (axe)', () => {
     // Its select and a presets list open (popovers: in the top layer, named by their buttons).
     const openers = t.container.querySelectorAll<HTMLElement>('button[aria-haspopup=listbox]');
     expect(openers.length).toBeGreaterThan(1);
+    // Counted against what was open before, so a list another test file left in a shared document does not count.
+    const listboxes = () => document.querySelectorAll('[role=listbox]').length;
+    const before = listboxes();
     for (const opener of openers) {
       opener.click();
       await flush();
-      expect(document.querySelectorAll('[role=listbox]').length).toBe(1);
+      expect(listboxes()).toBe(before + 1);
       await expectNoAxeViolations(document.body);
       opener.click();
       await flush();

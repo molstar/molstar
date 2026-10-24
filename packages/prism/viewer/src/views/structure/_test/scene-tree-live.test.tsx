@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, until } from '../../../_test/harness.js';
 import type { SceneModel } from '../../../model/scene.js';
 import { SceneTree } from '../scene-tree.js';
+import { componentsOf } from '../../../testing/scene-groups.js';
 
 // The scene tree over the real scene source (its change stream, sources/scene.ts): after each change a person or the
 // API makes, its rows are those a tree mounted now makes from scratch.
@@ -70,15 +71,15 @@ describe('the scene tree over the real scene', () => {
     const entity = contents.children.value[0];
     entity.toggleExpanded();
     same('an entity opened');
-    const component = s.children.value.find((c) => c.kind === 'component')!;
+    const component = componentsOf(s).find((c) => c.kind === 'component')!;
     component.toggleExpanded();
     same('a component opened');
-    const count = s.children.value.length;
+    const count = componentsOf(s).length;
     component.remove();
-    await until(() => s.children.value.length === count - 1);
+    await until(() => componentsOf(s).length === count - 1);
     same('a component removed');
     expectOk(await v.api.history.undo());
-    await until(() => s.children.value.length === count);
+    await until(() => componentsOf(s).length === count);
     same('undone');
     expectOk(await v.api.load.files({ files: [crambin()] }));
     same('another structure');

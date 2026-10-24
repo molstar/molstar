@@ -15,9 +15,9 @@ import { cbs, crambin, expectOk, headlessViewer, until } from './harness.js';
 
 /** The built document's tracks, as `sequence.get` lists them. */
 const Tracks = [
-  { ref: 'ruler', name: 'Ruler', hidden: false },
-  { ref: 'letters', name: 'Residues', hidden: false },
-  { ref: 'ss-track', name: 'Secondary structure', hidden: false },
+  { ref: 'ruler', name: 'Ruler', hidden: false, removable: true },
+  { ref: 'letters', name: 'Residues', hidden: false, removable: true },
+  { ref: 'ss-track', name: 'Secondary structure', hidden: false, removable: true },
 ];
 
 describe('the sequence API', () => {
@@ -126,21 +126,28 @@ describe('the sequence API', () => {
     // The viewer takes the followed structure's document asynchronously.
     await until(() => viewer.structure.value?.title === '1CBS');
     await until(() => viewer.tracks.value.length === 3);
-    expect(await get()).toEqual({
+    expect(await get()).toMatchObject({
       structure: '1CBS',
+      followed: 'automatic',
       style: 'tracks',
       colors: 'prism:residues',
       rail: { navigator: 'ruler' },
       tracks: Tracks,
+      addable: [],
     });
+    // Its chains, as `sequence.chains` takes them, and no filter on them.
+    const first = await get();
+    expect(first.chains.map((c: { name: string }) => c.name)).toContain('A');
+    expect(first).not.toHaveProperty('filter');
 
     expectOk(await v.api.sequence!.style({ style: 'text' }));
     expectOk(await v.api.sequence!.colors({ scheme: 'taylor' }));
     expectOk(await v.api.sequence!.follow({ structure: '1crn' }));
     await until(() => viewer.structure.value?.title === '1CRN');
     await until(() => viewer.tracks.value.length === 3);
-    expect(await get()).toEqual({
+    expect(await get()).toMatchObject({
       structure: '1CRN',
+      followed: 'chosen',
       style: 'text',
       colors: 'taylor',
       rail: { navigator: 'ruler' },

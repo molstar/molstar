@@ -6,7 +6,6 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { SortedArray } from '@molstar/core/data/int';
 import { murmurHash3_128 } from '@molstar/core/data/util/hash-functions';
 import { EasingFunctions } from '@molstar/core/math/easing';
 import { clamp, lerp } from '@molstar/core/math/interpolate';
@@ -16,11 +15,7 @@ import { Color } from '@molstar/core/util/color';
 import { deepEqual } from '@molstar/core/util';
 import { ObjectMutator } from '@molstar/core/util/object-mutator';
 import { areDistinctCanonical, CanonicalValues } from './canonical-values.js';
-import {
-  makeContinuousPaletteCheckpoints,
-  type MVSContinuousPaletteProps,
-  type MVSDiscretePaletteProps,
-} from '@molstar/mvs/components/annotation-color-theme';
+import { makeValuePaletteFunction, type ValuePaletteProps } from '@molstar/core/util/color/value-palette';
 import { SplitColorProp } from '@molstar/mvs/components/split-uniform-color-theme';
 import { SplitColor } from './utils.js';
 import { palettePropsFromMVSPalette } from '@molstar/mvs/load-helpers';
@@ -950,68 +945,30 @@ function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): PaletteFun
   if (props.params.kind !== 'color' || !props.params.palette) return undefined;
 
   const params = palettePropsFromMVSPalette(props.params.palette);
-  if (params.name === 'discrete') return makePaletteFunctionDiscrete(params.params);
-  if (params.name === 'continuous') return makePaletteFunctionContinuous(params.params);
+  if (params.name === 'discrete') return makePaletteFunctionNumeric(params);
+  if (params.name === 'continuous') return makePaletteFunctionNumeric(params);
   throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
 }
 
-function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps): PaletteFunction {
+/** The palette over the value clamped to [0, 1] (`absolute`: the value is already normalized), black where it gives no color. */
+function makePaletteFunctionNumeric(
+  params: Extract<ValuePaletteProps, { name: 'discrete' | 'continuous' }>,
+): PaletteFunction {
   const defaultColor = Color(0x0);
-  if (props.colors.length === 0)
-    return {
-      hasSecondary: false,
-      apply: () => defaultColor,
-    };
-
-  const bins = props.colors.map((item) => ({ ...item, color: SplitColorProp.toTuple(item.color) }));
-  const hasSecondary = bins.some((bin) => bin.color[0] !== bin.color[1]);
+  const palette = makeValuePaletteFunction(
+    { ...params, params: { ...params.params, mode: 'absolute' } } as ValuePaletteProps,
+    [],
+  );
+  const colors = params.params.colors.map((item) => SplitColorProp.toTuple(item.color));
+  const flows =
+    params.name === 'continuous'
+      ? [SplitColorProp.toTuple(params.params.underflowColor), SplitColorProp.toTuple(params.params.overflowColor)]
+      : [];
+  const hasSecondary = colors.some((col) => col[0] !== col[1]) || flows.some((col) => col[0] !== col[1]);
 
   return {
     hasSecondary,
-    apply: (value: number, isSecondary: boolean) => {
-      const x = clamp(value, 0, 1);
-      for (let i = bins.length - 1; i >= 0; i--) {
-        const { color, fromValue, toValue } = bins[i];
-        if (fromValue <= x && x <= toValue) return color[isSecondary ? 1 : 0] ?? defaultColor;
-      }
-      return defaultColor;
-    },
-  };
-}
-
-function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): PaletteFunction {
-  const defaultColor = Color(0x0);
-  const { colors, checkpoints } = makeContinuousPaletteCheckpoints(props);
-  if (colors.length === 0)
-    return {
-      hasSecondary: false,
-      apply: () => defaultColor,
-    };
-
-  const underflowColor = SplitColorProp.toTuple(props.underflowColor);
-  const overflowColor = SplitColorProp.toTuple(props.overflowColor);
-
-  const hasSecondary =
-    colors.some((col) => col[0] !== col[1]) ||
-    underflowColor[0] !== underflowColor[1] ||
-    overflowColor[0] !== overflowColor[1];
-
-  return {
-    hasSecondary,
-    apply: (value: number, isSecondary: boolean) => {
-      const x = clamp(value, 0, 1);
-      const secFlag = isSecondary ? 1 : 0;
-      const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
-      if (gteIdx === 0) {
-        if (x === checkpoints[0]) return colors[0][secFlag];
-        else return underflowColor[secFlag] ?? defaultColor;
-      }
-      if (gteIdx === checkpoints.length) {
-        return overflowColor[secFlag] ?? defaultColor;
-      }
-      const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-      return Color.interpolate(colors[gteIdx - 1][secFlag], colors[gteIdx][secFlag], q);
-    },
+    apply: (value: number, isSecondary: boolean) => palette(clamp(value, 0, 1), isSecondary) ?? defaultColor,
   };
 }
 

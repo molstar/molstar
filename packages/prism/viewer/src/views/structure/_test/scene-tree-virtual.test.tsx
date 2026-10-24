@@ -223,8 +223,8 @@ describe('the scene tree, virtualized', () => {
     const line = row.querySelector<HTMLElement>('[data-tree-row]')!;
     line.dispatchEvent(new PointerEvent('pointerenter'));
     expect([...highlighted]).toEqual(['c3']);
-    row.querySelector<HTMLButtonElement>('button[title=More]')!.click();
-    expect(row.querySelector('button[title=More]')!.getAttribute('aria-expanded')).toBe('true');
+    row.querySelector<HTMLButtonElement>('button[data-tip=More]')!.click();
+    expect(row.querySelector('button[data-tip=More]')!.getAttribute('aria-expanded')).toBe('true');
     t.picked.set(t.components[3]);
     flush();
     expect(row.getAttribute('aria-selected')).toBe('true');
@@ -234,7 +234,7 @@ describe('the scene tree, virtualized', () => {
     expect(now).not.toBe('c3');
     expect(highlighted.has('c3')).toBe(false);
     expect([...highlighted]).toEqual(now ? [now] : []);
-    expect(row.querySelector('button[title=More]')!.getAttribute('aria-expanded')).toBe('false');
+    expect(row.querySelector('button[data-tip=More]')!.getAttribute('aria-expanded')).toBe('false');
     expect(t.tree.querySelector('[role=menu]')).toBeNull();
     if (now) {
       expect(row.getAttribute('aria-selected')).toBe('false');

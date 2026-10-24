@@ -1,0 +1,248 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Closer than a representation's quick settings: rows of short controls. */
+.root {
+  gap: var(--msp-space-2);
+}
+
+/* What the band shows, and Add track at its end. */
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Style and Letters, one row: the style's two icons, then the letters' tiles taking the rest. */
+.pair {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--msp-space-4);
+  align-items: start;
+}
+
+.styles {
+  width: 76px;
+}
+
+/* The strips' segments, shorter than a representation's. */
+.segment {
+  height: 24px;
+}
+
+/* The tiles centered on the style's strip beside them (the strip's segments and its inner edge). */
+.tiles {
+  min-width: 0;
+  height: 28px;
+  align-items: center;
+}
+
+/* Chains: its name and value, the presets beside them. */
+.chainsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-3);
+}
+
+.presets {
+  flex: none;
+  width: 180px;
+}
+
+.statusText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-muted);
+  white-space: nowrap;
+}
+
+/* A preset's word in a strip of the quick settings' segments. */
+.word {
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Every copy apart: a box and its words on one line. */
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 24px;
+  font-size: var(--msp-font-size-xs);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+}
+
+.lineText {
+  min-width: 0;
+}
+
+.entities {
+  display: grid;
+}
+
+/* The entities: a line each, its chains under it while open; Show all after them. */
+.list {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.entity {
+  display: grid;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 32px;
+  padding: 0 var(--msp-space-2) 0 0;
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+/* A checkbox's box: checked, empty, or mixed while some are shown. */
+.box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-on-accent);
+
+  &[data-checked="true"],
+  &[data-checked="mixed"] {
+    border-color: var(--msp-color-accent);
+    background: var(--msp-color-accent);
+  }
+}
+
+.boxButton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--msp-color-text-subtle);
+}
+
+.polymer {
+  background: var(--msp-accent-blue);
+}
+
+.ligand {
+  background: var(--msp-accent-orange);
+}
+
+.branched {
+  background: var(--msp-accent-green);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  padding: var(--msp-space-1) 0;
+  text-align: left;
+}
+
+.name,
+.meta {
+  overflow: hidden;
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.name {
+  font-weight: 500;
+}
+
+.meta {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.chevron {
+  display: grid;
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  transition: transform 120ms ease-out;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* An entity's chains: toggles that wrap (hundreds fit in a few lines). */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2) var(--msp-space-6);
+}
+
+.chip {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border: 1px solid var(--msp-color-border);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-pressed="true"] {
+    border-color: var(--msp-color-accent);
+    color: var(--msp-color-text);
+  }
+}
+
+.more {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  margin: 0 calc(-1 * var(--msp-space-2));
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}

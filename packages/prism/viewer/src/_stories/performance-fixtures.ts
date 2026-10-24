@@ -89,7 +89,7 @@ export function makeScene(components = 1000, representations = 3, swatches = fal
     ),
   );
   const entities = Array.from({ length: 12 }, (_, i) => node(`e${i}`, 'entity', `Entity ${i}`));
-  const contents = node('contents', 'contents', 'Contents', entities, false, false, log);
+  const contents = node('contents', 'contents', 'Entities', entities, false, false, log);
   const structure = node('s', 'structure', '1ABC', [contents, ...comps], true, false, log);
   const picked = observableState<SceneNode | undefined>(undefined);
   const scene = {

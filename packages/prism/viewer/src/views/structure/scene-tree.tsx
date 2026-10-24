@@ -715,7 +715,8 @@ function TreeItem(props: {
             <button
               type="button"
               class={classes.action}
-              title="More"
+              data-tip="More"
+              aria-label="More"
               aria-haspopup="menu"
               ref={(e: HTMLElement) => (menuButton = e)}
               onClick={(e) => {
@@ -758,6 +759,7 @@ function TreeItem(props: {
   let lastDescription: unknown = NotYet;
   let lastSwatch: unknown = NotYet;
   let lastHidden: unknown = NotYet;
+  let lastEyeless: unknown = NotYet;
   let lastPicked: unknown = NotYet;
   let lastPlace: RowState | undefined | typeof NotYet = NotYet;
   let lastOpen: unknown = NotYet;
@@ -770,12 +772,21 @@ function TreeItem(props: {
       const c = node.swatch!.value;
       if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
     }
+    // A row that shows or hides nothing as one (Entities, Other) has no eye; its place stays (the column lines up).
+    const eyeless = node.hasEye === false;
+    if (eyeless !== lastEyeless) {
+      lastEyeless = eyeless;
+      setStyle(eyeButton, 'visibility', eyeless ? 'hidden' : '');
+      setAttr(eyeButton, 'tabindex', eyeless ? '-1' : null);
+    }
     const hidden = node.isHidden.value;
     if (hidden !== lastHidden) {
       lastHidden = hidden;
       setClass(line, classes.hidden, hidden);
       setClass(eyeButton, classes.keep, hidden);
-      setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+      // The app's tooltip (`data-tip`), not the system's (tooltip.ts): the same words its name.
+      setAttr(eyeButton, 'data-tip', hidden ? 'Show' : 'Hide');
+      setAttr(eyeButton, 'aria-label', hidden ? 'Show' : 'Hide');
       const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
       if (icon !== eyeShown) {
         eyeShown.replaceWith(icon);
@@ -896,7 +907,8 @@ function nodeSlot(props: {
           <button
             type="button"
             class={classes.action}
-            title="More"
+            data-tip="More"
+            aria-label="More"
             aria-haspopup="menu"
             ref={(e: HTMLElement) => (menuButton = e)}
             onClick={(e) => {
@@ -935,6 +947,7 @@ function nodeSlot(props: {
   let lastDescription: unknown = NotYet;
   let lastSwatch: unknown = NotYet;
   let lastHidden: unknown = NotYet;
+  let lastEyeless: unknown = NotYet;
   let lastPicked: unknown = NotYet;
   let lastPlace: RowState | undefined | typeof NotYet = NotYet;
   let lastOpen: unknown = NotYet;
@@ -977,12 +990,21 @@ function nodeSlot(props: {
     if (d !== lastDescription) setText(description, (lastDescription = d) ?? '');
     const c = n.swatch?.value;
     if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
+    // A row that shows or hides nothing as one (Entities, Other) has no eye; its place stays (the column lines up).
+    const eyeless = n.hasEye === false;
+    if (eyeless !== lastEyeless) {
+      lastEyeless = eyeless;
+      setStyle(eyeButton, 'visibility', eyeless ? 'hidden' : '');
+      setAttr(eyeButton, 'tabindex', eyeless ? '-1' : null);
+    }
     const hidden = n.isHidden.value;
     if (hidden !== lastHidden) {
       lastHidden = hidden;
       setClass(line, classes.hidden, hidden);
       setClass(eyeButton, classes.keep, hidden);
-      setAttr(eyeButton, 'title', hidden ? 'Show' : 'Hide');
+      // The app's tooltip (`data-tip`), not the system's (tooltip.ts): the same words its name.
+      setAttr(eyeButton, 'data-tip', hidden ? 'Show' : 'Hide');
+      setAttr(eyeButton, 'aria-label', hidden ? 'Show' : 'Hide');
       const icon = hidden ? (eyeOff ??= Icon({ name: 'eye-off', size: 14 })) : eye;
       if (icon !== eyeShown) {
         eyeShown.replaceWith(icon);

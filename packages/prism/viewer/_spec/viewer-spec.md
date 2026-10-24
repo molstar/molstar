@@ -51,7 +51,10 @@ import of the plugin.
 - `runtime` is a dynamic import (Seq\* and its views, a chunk), loaded when a structure is first shown or an operation
   or a saved state needs it; until then the core holds the plugin side only (`sources/sequence.ts`). A spec without a
   runtime bundles none of Seq\*.
-- `false`: no band, no Sequence button, no sequence commands or tools. One viewer, keyed `'default'`
+- `tracks` are the viewer's track providers (ruler, letters, secondary structure) and `behaviors` its behaviors
+  ([sequence.md](sequence.md) §3); extensions add theirs, overridable by id.
+- `tree: false`: no Sequence node in the structure tree ([sequence.md](sequence.md) §8.1); the band and the API stay.
+- `false`: no band, no Sequence button or node, no sequence commands or tools. One viewer, keyed `'default'`
   ([sequence.md](sequence.md) §6).
 
 ### 2.4 `agent`: tools, skills, the assistant
@@ -124,9 +127,9 @@ order. `options.representation.defaultPalette` picks `prism` (default), `classic
 
 A `ViewerExtension` (`spec.ts`) is a plain object: `id`, `title`, `plugin` (§2.1), `api` (its areas by id, each made
 once, [api.md](api.md) §6), `contributes` (operations into core areas: built-in features only), `builtIn`, `requires`,
-`commands(api)`, `annotations`, `skills`, `sequence` (behaviors, [sequence.md](sequence.md) §3), `settings`, `ui(ctx)`
-(its views, a chunk). Types and helpers, not a framework: every extension lives in this repository, no stability promise
-beyond it (README decision 13).
+`commands(api)`, `annotations`, `skills`, `sequence` (`{ tracks?, behaviors? }`: track providers, the way to add
+sequence data, and behaviors; [sequence.md](sequence.md) §3), `settings`, `ui(ctx)` (its views, a chunk). Types and
+helpers, not a framework: every extension lives in this repository, no stability promise beyond it (README decision 13).
 
 - **Headless-safe by shape**: everything but `ui` imports no DOM; `ui` is a function, so views load when first needed.
 - **Commands first** (README decision 27): operations with commands and tools; `ui` only where a view is needed.
@@ -146,17 +149,27 @@ beyond it (README decision 13).
   view renders a row whenever `when` holds (one that renders nothing leaves a gap); `when` says what the view would
   (assembly symmetry: only a PDB entry's assembly). A `when` that follows more than the node and its structure passes
   `whenChanged`, told when it may answer otherwise (a PAE fetched is a state cell, no change of the scene): the tree
-  asks it again for the rows it shows. Streaming starts in the Auto view (around the whole structure, the selection
-  while there is one). A structure with several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for
-  a simulation's coordinates) and has a row of its own first under it (`views/structure/trajectory-row.tsx`): the frame
-  shown, a scrubber, ‹ ›, play; picked, the same at full width and how it plays (mode, seconds per pass) in the
-  inspector. The row plays that structure (`trajectory.play` with `structure`; without one, the operation plays every
-  structure's frames, and every row says so); starting one stops what played. The canvas' trajectory bar follows the
-  structure that plays (paused, the one that played last): while that structure's row is on screen (the Structure tab
-  shown, the structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the
-  full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the
-  canvas expanded). For a structure in a simulation box the full bar ends with the box menu (molecules whole, in the
-  box, centered on the polymers, no jumps, as in the file; `trajectory.periodic`) and a periodic images switch
+  asks it again for the rows it shows. **A structure's rows are grouped by what they are** (David, 2026-10-24): Entities
+  (what it is made of, computed when opened), Sequence, Components (what is drawn of it, open at first), Other (the
+  rest, mostly off, open at first: the unit cell, volume streaming, and the extensions' rows, which ask for
+  `node.kind === 'other'` and read their structure with `structureOfGroup`: the PAE, assembly symmetry, a membrane; a
+  catch-all, so an extension row needs no group of its own). A group is a node of its own (`components`, `other`), never
+  removed; the agent's account says its rows as the structure's own. Components' eye hides its rows that are shown, as
+  one step, and shows back those it hid (the ones hidden on their own stay hidden; none left of them: all), as the
+  Measurements group's does; its menu adds a component from the selection or of a kind the structure has. Other has no
+  eye (its rows are features turned on one by one: showing all would start streaming and fetches), nor has Entities
+  (hiding every entity is the structure's own eye): a row that shows or hides nothing as one has no eye (`hasEye`), its
+  place kept. Streaming starts in the Auto view (around the whole structure, the selection while there is one). A
+  structure with several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for a simulation's
+  coordinates) and has a row of its own first under it (`views/structure/trajectory-row.tsx`): the frame shown, a
+  scrubber, ‹ ›, play; picked, the same at full width and how it plays (mode, seconds per pass) in the inspector. The
+  row plays that structure (`trajectory.play` with `structure`; without one, the operation plays every structure's
+  frames, and every row says so); starting one stops what played. The canvas' trajectory bar follows the structure that
+  plays (paused, the one that played last): while that structure's row is on screen (the Structure tab shown, the
+  structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the full bar
+  (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the canvas
+  expanded). For a structure in a simulation box the full bar ends with the box menu (molecules whole, in the box,
+  centered on the polymers, no jumps, as in the file; `trajectory.periodic`) and a periodic images switch
   (`structure.symmetry`, the cells -1 to 1).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`
@@ -185,8 +198,8 @@ beyond it (README decision 13).
   button of a menu (hover opens it, as the canvas stack's menus; the stack's corner mark says so), and Clear. The menu:
   Focus, Show in structure tree, Make a component, the extensions' rows, More in the Selection panel. Show in structure
   tree turns on the tree's selection filter: its search's non-text part (`SceneModel.selectionFilter`, a chip before the
-  text), the rows that hold the selection (structures; components and their representations it overlaps; Contents'
-  entities and chains), asked per row and cached until the selection changes, followed only while on, off when the
+  text), the rows that hold the selection (structures; components and their representations it overlaps; the Entities
+  row's entities and chains), asked per row and cached until the selection changes, followed only while on, off when the
   selection is cleared; the first component that holds it picked.
 - **Built-in features** (`DefaultPrismViewerSpec().extensions`, `src/features/<name>`): `structure`, `volume`,
   `trajectory`, `annotations` (the scene's API; `requires` lists what must come before), `home`, `structure-panel`,

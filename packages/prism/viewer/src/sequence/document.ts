@@ -7,13 +7,14 @@
  */
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
-import { PrismSecondaryColors } from './palette.js';
 import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
 import type { StructureFormat } from './molstar/source.js';
+import { LettersTrack, SecondaryData, SecondaryTrack } from './tracks.js';
 
 // The document the sequence model builds (sequence.md §3): one view with one section over a `molstar:structure`
 // complex whose file the host already parsed; with no blocks the section takes every polymer unit in order, then the
-// ligands. The theme (§10) is written into it: Seq*'s themes draw the colors.
+// ligands, else the chain filter's blocks. Its tracks are the track providers' (`tracks.ts`), put in by the model. The
+// theme (§10) is written into the letters' layer: Seq*'s themes draw the colors.
 
 /** The complex's ref in the document, and the name the link maps the 3D structure onto. */
 export const ComplexRef = 'structure';
@@ -22,10 +23,10 @@ export const SectionRef = 'main';
 /** The data node's ref: behaviors add their data under it (sequence.md §3). */
 export const DataRef = 'data';
 /** The letters track's ref. */
-export const LettersRef = 'letters';
+export const LettersRef = LettersTrack;
 /** The tracks' refs by what they show (the track menus are by these: `trackActions`). */
-export const SecondaryRef = 'ss';
-export const SecondaryTrack = `${SecondaryRef}-track`;
+export const SecondaryRef = SecondaryData;
+export { SecondaryTrack };
 
 /** The host file the document names its structure by: the parsed one, which the loaders' `parsed` hook returns. */
 export const hostFileOf = (key: string) => `structure:${key}`;
@@ -40,22 +41,45 @@ export interface SequenceTheme {
  * neutral strip, the letters in the text's contrast. SVS has no "no color" for a layer (a null color is the type's default, which
  * colors by residue); text mode's plain letters are the render's (`wrappedColors` off).
  */
-function lettersColor(theme: SequenceTheme, plain: string) {
+export function lettersColor(theme: SequenceTheme, plain: string): Record<string, unknown> {
   return theme.letters === null
     ? { theme: 'uniform', params: { color: plain } }
     : { theme: 'scheme', params: { name: theme.letters } };
 }
 export const DefaultSequenceTheme: SequenceTheme = { letters: 'prism:residues' };
 
+/** A track and its data as a provider builds them, for `sequenceDocument` and `insertTracks`. */
+export interface BuiltTrack {
+  readonly data?: readonly DocNode[];
+  readonly track: DocNode;
+}
+
+/** A block's ref for a unit: a ref's characters only (`seqspec:format#nodes-and-refs`). */
+const blockRef = (unit: string) => `block.${unit.replace(/[^A-Za-z0-9_.-]/g, '_')}`;
+
+/**
+ * A section's blocks: one per unit, by its name in the complex (the chain filter, sequence.md §3), each with a ref of
+ * its own so a patch can take it out.
+ */
+export const blocksOf = (units: readonly string[]): DocNode[] =>
+  units.length
+    ? units.map((u) => ({ kind: 'block', ref: blockRef(u), params: { unit: `${ComplexRef}/${u}` } }))
+    : // No chain: one block of a unit there is not, left out quietly (no blocks at all would be every unit).
+      [{ kind: 'block', ref: 'block.none', params: { unit: `${ComplexRef}/-` } }];
+
 export function sequenceDocument(o: {
   title: string;
   key: string;
   format: StructureFormat;
-  theme: SequenceTheme;
-  /** The cells' one color for no colors (`lettersColor`). */
-  plain: string;
   /** Only the ligands of these chemical components become units (the ones the 3D view draws); absent: all. */
   ligands?: readonly string[];
+  /** The units the section shows (the chain filter); absent: Seq*'s default, every polymer unit then the ligands. */
+  units?: readonly string[];
+  /** Every copy a block of its own (an assembly's); absent: copies merged (Seq*'s `one`). */
+  each?: boolean;
+  /** The tracks in, in order (the providers', `tracks.ts`). One document for both styles: Text draws the ruler nowhere,
+   * secondary structure as underlines and values (a pLDDT track) as strips (Seq*'s lanes); Tracks draws each as a track. */
+  tracks: readonly BuiltTrack[];
 }): SeqViewSpecDoc {
   const b = createSeqViewSpec({ title: o.title });
   b.data.complex({
@@ -64,24 +88,38 @@ export function sequenceDocument(o: {
     source: { host_file: hostFileOf(o.key), format: o.format },
     ...(o.ligands ? { options: { ligand_comps: [...o.ligands] } } : {}),
   });
-  const section = b.view({ ref: 'sequence', label: o.title }).section({ ref: SectionRef, style: 'compact' });
-  const letters = { color: lettersColor(o.theme, o.plain) };
-  // One document for both styles: Text draws the ruler nowhere, secondary structure as underlines and a behavior's values
-  // (a pLDDT track) as strips (Seq*'s lanes); Tracks draws each as a track.
-  section.track({ ref: 'ruler', label: '' }).ruler();
-  section.track({ ref: LettersRef, label: '' }).letters(letters);
-  // Secondary structure: the model's own helices, strands and turns (blocks and arrows over a coil line).
-  const ss = b.data.computed({
-    ref: SecondaryRef,
-    provider: 'molstar:secondary_structure',
-    options: { of: ComplexRef },
+  b.view({ ref: 'sequence', label: o.title }).section({
+    ref: SectionRef,
+    style: 'compact',
+    ...(o.each ? { copies: 'each' } : {}),
   });
-  section.track({ ref: SecondaryTrack, label: '' }).secondary({ data: ss, color: PrismSecondaryColors });
   // Behaviors add under the data node by its ref (the builder gives it none).
   const doc = b.getDocument();
   const data = doc.root.children?.find((n) => n.kind === 'data');
   if (data) data.ref = DataRef;
+  const section = findRef(doc.root, SectionRef)!;
+  section.children = [...(o.units ? blocksOf(o.units) : []), ...(section.children ?? [])];
+  if (data) insertTracks(data, section, o.tracks);
   return doc;
+}
+
+/** Puts tracks into a document's data node and section (at its end, or after `after`). */
+export function insertTracks(data: DocNode, section: DocNode, tracks: readonly BuiltTrack[], after?: string): void {
+  for (const t of tracks) data.children = [...(data.children ?? []), ...(t.data ?? [])];
+  const list = [...(section.children ?? [])];
+  const at = after ? list.findIndex((n) => n.ref === after) : -1;
+  list.splice(at < 0 ? list.length : at + 1, 0, ...tracks.map((t) => t.track));
+  section.children = list;
+}
+
+/** The node with this ref under `node`. */
+export function findRef(node: DocNode, ref: string): DocNode | undefined {
+  if (node.ref === ref) return node;
+  for (const c of node.children ?? []) {
+    const n = findRef(c, ref);
+    if (n) return n;
+  }
+  return undefined;
 }
 
 /** A document's first `molstar:structure` complex: its ref and its source's params (by `source_ref`, or a source child). */

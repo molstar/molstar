@@ -113,12 +113,12 @@ describe('SceneRow', () => {
       container,
     );
     const item = container.querySelector('[role=treeitem]') as HTMLElement;
-    const eye = container.querySelector('button[title]') as HTMLButtonElement;
-    expect(eye.title).toBe('Show');
+    const eye = container.querySelector('button[data-tip]') as HTMLButtonElement;
+    expect(eye.dataset.tip).toBe('Show');
     expect(item.querySelector('[data-tree-row]')!.className).toMatch(/hidden/);
     eye.click();
     expect(onToggle).toHaveBeenCalledOnce();
-    expect(eye.title).toBe('Hide');
+    expect(eye.dataset.tip).toBe('Hide');
 
     expect(container.querySelector('.controls')).toBeNull();
     expect(item.getAttribute('aria-expanded')).toBe('false');
@@ -163,4 +163,31 @@ describe('SceneRow', () => {
     expect(onActivate).toHaveBeenCalledOnce();
     expect(picked).not.toHaveBeenCalled();
   });
+});
+
+describe('eyes in the scene tree', () => {
+  for (const recycle of [true, false]) {
+    it(`draws no eye on a row that shows or hides nothing (Entities, Other), its place kept (${recycle ? 'recycled' : 'keyed'} rows)`, () => {
+      const scene = mockScene({ rows: [] });
+      const container = document.createElement('div');
+      document.body.append(container);
+      const dispose = render(() => <SceneTree scene={scene} recycle={recycle} />, container);
+      flush();
+      const eyeOf = (label: string) => {
+        const row = [...container.querySelectorAll('[data-tree-row]')].find(
+          (r) => r.querySelector('span[id]')?.textContent === label,
+        ) as HTMLElement;
+        return row.querySelector('button[aria-label=Hide], button[aria-label=Show]') as HTMLButtonElement;
+      };
+      for (const label of ['Entities', 'Other']) {
+        expect(eyeOf(label).style.visibility).toBe('hidden');
+        expect(eyeOf(label).getAttribute('tabindex')).toBe('-1');
+      }
+      for (const label of ['Components', 'Polymer']) {
+        expect(eyeOf(label).style.visibility).toBe('');
+        expect(eyeOf(label).hasAttribute('tabindex')).toBe(false);
+      }
+      dispose();
+    });
+  }
 });

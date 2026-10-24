@@ -206,7 +206,10 @@ export function FloatingDock(props: {
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
     // canvas toolbar button (Sequence) brings it back.
-    const band = derive(dock.active, (tab) => tab?.frame === 'none');
+    // A band while its tab shows and while it fades out (`reveal="fade"` keeps the leaving content): with none active, the
+    // last tab's; dropped at once, the card would take a panel's place under the fading band (it moved, then faded).
+    let wasBand = false;
+    const band = derive(dock.active, (tab) => (wasBand = tab ? tab.frame === 'none' : wasBand));
     const card = (
       <div class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}>
         <Show when={dock.active} reveal="fade">
@@ -214,8 +217,11 @@ export function FloatingDock(props: {
         </Show>
       </div>
     ) as HTMLElement;
-    watch([band, sizePx], () => {
+    const hidden = derive(dock.active, (tab) => !tab);
+    watch([band, sizePx, hidden], () => {
       setClass(card, classes.band, band.value);
+      // Hidden, a band fades as a whole (its lines and the canvas-colored backing behind them), where it stands.
+      setAttr(card, 'data-hidden', hidden.value);
       setStyle(card, '--msp-dock-size', sizePx.value);
     });
     return card;

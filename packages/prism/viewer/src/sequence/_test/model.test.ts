@@ -6,11 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
+import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molstar/model/props/computed/secondary-structure';
 import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ComplexRef, sequenceDocument } from '../document.js';
 import { DefaultTracksRail } from '../presets.js';
+import { SecondaryTrackProvider } from '../tracks.js';
 import { applySaved } from '../runtime.js';
 import { skinFor } from '../skin.js';
 import type { SequenceBehaviorContext } from '../behaviors.js';
@@ -337,7 +341,7 @@ describe('the sequence model', () => {
 
   it('the document lists only the ligands the 3D view draws (the same list), and every one when none is given', async () => {
     const host = await hostStructure();
-    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null }, plain: '#ffffff' };
+    const base = { title: 'T', key: host.key, format: host.source.format, tracks: [] };
     const options = (ligands?: string[]) => {
       const text = JSON.stringify(sequenceDocument({ ...base, ...(ligands ? { ligands } : {}) }));
       const node = (JSON.parse(text) as { root: unknown }).root;
@@ -351,5 +355,45 @@ describe('the sequence model', () => {
     };
     expect(options()).toBeUndefined();
     expect(options(['HEM', 'ERY'])?.ligand_comps).toEqual(['HEM', 'ERY']);
+  });
+
+  it("follows the 3D view's secondary structure settings: the track's data names them, and a change recomputes it", async () => {
+    const h = headlessViewers();
+    const host = await hostStructure('2ocj');
+    host.source.drawn = host.structure;
+    h.structure.set(host);
+    await settled(h);
+    const rows = () => {
+      const set = h.viewer.seq.graph.assembled.value?.set;
+      const a = set?.annotations.find((x) => x && set.strings.get(x.key).endsWith('ss'));
+      return a?.count ?? -1;
+    };
+    // Automatic: 2OCJ's own assignment, bends and all.
+    const own = rows();
+    expect(own).toBeGreaterThan(0);
+    // The 3D view set to DSSP (its custom property's settings), then the host tells the same structure with them.
+    await ComputedSecondaryStructure.attach(
+      { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() },
+      host.structure.root,
+      { type: { name: 'dssp', params: {} } } as never,
+    );
+    h.structure.set({ ...host, assignment: 'dssp' });
+    await until(() => JSON.stringify(h.viewer.seq.document.shown.value).includes('dssp'));
+    await settled(h);
+    const dssp = rows();
+    expect(dssp).toBeGreaterThan(0);
+    expect(dssp).not.toBe(own);
+    // Told again with the settings as they are: no patch (the document stays the same object).
+    const doc = h.viewer.seq.document.shown.value;
+    h.structure.set({ ...host, assignment: 'dssp, again' });
+    await settled(h);
+    expect(h.viewer.seq.document.shown.value).toBe(doc);
+    // A frame (the same key, the same settings): no sync at all, so no provider builds (a frame comes at animation
+    // rate).
+    const build = vi.spyOn(SecondaryTrackProvider, 'build');
+    h.structure.set({ ...host, assignment: 'dssp, again', title: 'a frame' });
+    await settled(h);
+    expect(build).not.toHaveBeenCalled();
+    h.viewers.dispose();
   });
 });

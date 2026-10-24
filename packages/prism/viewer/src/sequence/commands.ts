@@ -7,8 +7,9 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { CanvasMenuItem, CommandDefinition, ShellModel } from '@molstar/prism-ui';
-import { combineLatest, map, of } from 'rxjs';
+import type { CanvasMenuItem, CommandDefinition, CommandGroup, ShellModel } from '@molstar/prism-ui';
+import type { SequenceTrackProvider } from './tracks.js';
+import { combineLatest, map } from 'rxjs';
 import { colorScheme } from './legend.js';
 import type { SequenceTrack, SequenceViewer } from './model.js';
 import { LetterSchemes } from './palette.js';
@@ -16,7 +17,9 @@ import type { TracksRail } from './presets.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
 // The sequence's commands (sequence.md §8): the one way to change what the sequence shows. The canvas stack's
-// Sequence menu runs them, so does the command menu; `view.sequence` (show or hide) is the shell's own.
+// Sequence menu runs them, so does the command menu; `view.sequence` (show or hide) is the shell's own. Which
+// structure, its tracks and its chains are the structure tree's Sequence node (§8.1); these commands do the same for
+// the structure shown.
 
 /** The overlay card the legend is in (registered by the viewer mode). */
 export const LegendOverlay = 'sequence-legend';
@@ -67,11 +70,60 @@ function trackChoice(tracks: readonly SequenceTrack[], keep: (t: SequenceTrack) 
   return { track: PD.Select(options[0]?.[0] ?? '', options, { label: 'Track' }) };
 }
 
+/** The command menu's group of Add track (sequence.md §8.1): what the Sequence node's inspector opens. */
+export const AddTrackGroup: CommandGroup = { id: 'sequence-tracks', title: 'Add track', icon: 'plus', order: 5 };
+
+/**
+ * A command a track provider (`sequence.track.add`, on the structure the band shows), in Add track's group: there while
+ * it applies and is out; its result said as the API says it.
+ */
+export function addTrackCommands(
+  viewer: SequenceViewer,
+  providers: readonly SequenceTrackProvider[],
+  api?: SequenceApiRunner,
+): CommandDefinition<any>[] {
+  return providers.map((p) => ({
+    id: `sequence.track.add.${p.id}`,
+    title: p.label,
+    alias: ['add track', `add ${p.label.toLowerCase()} track`],
+    category: 'Sequence tracks',
+    group: AddTrackGroup.id,
+    icon: 'plus',
+    when: () => {
+      const shown = viewer.structure.value;
+      if (!shown) return 'No sequence is shown.';
+      const out = viewer.addableTracks({ ref: shown.ref, structure: shown.structure }).some((a) => a.id === p.id);
+      if (out) return true;
+      const there = viewer.tracks.value.some((t) => t.ref === p.track);
+      return there ? 'Already shown' : 'Not for this structure';
+    },
+    run: async () => {
+      const r = await ran(api ? api.run('sequence.track.add', { track: p.id }) : viewer.setTrackIn(p.id, true));
+      return { message: r ?? `Track added: ${p.label}`, undoable: true };
+    },
+  }));
+}
+
+/** What a run said when it failed (an API result not ok); undefined: it went. */
+async function ran(run: Promise<unknown>): Promise<string | undefined> {
+  const r = (await run) as { ok?: boolean; message?: string } | boolean | undefined;
+  return typeof r === 'object' && r?.ok === false ? (r.message ?? 'It did not go') : undefined;
+}
+
+/** The chain filter's presets (sequence.md §8): every chain, the polymers only, every copy apart. */
+const ChainPresets = [
+  { id: 'all', title: 'Sequence: every chain', values: {}, done: 'Every chain' },
+  { id: 'polymer', title: 'Sequence: polymer chains only', values: { polymer: true }, done: 'Polymer chains only' },
+  { id: 'each', title: 'Sequence: every copy apart', values: { each: true }, done: 'Every copy apart' },
+] as const;
+
 export function sequenceCommands(
   viewer: SequenceViewer,
   shell: ShellModel,
   /** The viewer's API (the person's): style, colors and the rail change through it, as steps (sequence.md §7). */
   api?: SequenceApiRunner,
+  /** Opens the structure tree at the Sequence node of the structure shown (sequence.md §8.1); none: no tree. */
+  reveal?: () => void,
 ): CommandDefinition<any>[] {
   const hide = () => {
     if (shell.dock('top').active.value) shell.toggle('top');
@@ -89,6 +141,10 @@ export function sequenceCommands(
   const color = (letters: string | null) => {
     if (api) void api.run('sequence.colors', { scheme: letters ?? 'none' });
     else viewer.setTheme({ letters });
+  };
+  const addable = () => {
+    const shown = viewer.structure.value;
+    return shown ? viewer.addableTracks({ ref: shown.ref, structure: shown.structure }) : [];
   };
   return [
     {
@@ -176,6 +232,65 @@ export function sequenceCommands(
       },
     },
     {
+      id: 'sequence.track.add',
+      title: 'Add a sequence track',
+      alias: ['add track', 'sequence add track'],
+      category: 'Sequence',
+      icon: 'plus',
+      when: () => addable().length > 0 || 'No other track for this structure.',
+      params: () => {
+        const options = addable().map((a): [string, string] => [a.id, a.label]);
+        return { track: PD.Select(options[0]?.[0] ?? '', options, { label: 'Track' }) };
+      },
+      run: async (args) => {
+        const track = String(args.track ?? '');
+        const label = addable().find((a) => a.id === track)?.label ?? track;
+        const r = await ran(api ? api.run('sequence.track.add', { track }) : viewer.setTrackIn(track, true));
+        return { ...done(r ?? `Track added: ${label}`), undoable: true };
+      },
+    },
+    {
+      id: 'sequence.track.remove',
+      title: 'Remove a sequence track',
+      alias: ['remove track', 'sequence remove track'],
+      category: 'Sequence',
+      icon: 'trash-2',
+      when: () => viewer.tracks.value.some((t) => t.removable) || 'No sequence track can be removed.',
+      params: () => trackChoice(viewer.tracks.value, (t) => t.removable),
+      run: async (args) => {
+        const track = String(args.track ?? '');
+        const label = viewer.tracks.value.find((t) => t.ref === track)?.label ?? track;
+        const r = await ran(api ? api.run('sequence.track.remove', { track }) : viewer.setTrackIn(track, false));
+        return { ...done(r ?? `Track removed: ${label}`), undoable: true };
+      },
+    },
+    ...ChainPresets.map(
+      (c): CommandDefinition<any> => ({
+        id: `sequence.chains.${c.id}`,
+        title: c.title,
+        category: 'Sequence',
+        icon: 'link',
+        when: () => !!viewer.structure.value || 'No sequence is shown.',
+        run: async () => {
+          const r = await ran(api ? api.run('sequence.chains', c.values) : viewer.setChains(c.values));
+          return { ...done(r ?? c.done), undoable: true };
+        },
+      }),
+    ),
+    ...(reveal
+      ? [
+          {
+            id: 'sequence.reveal',
+            title: 'Sequence: edit in structure tree',
+            alias: ['sequence tracks', 'sequence chains', 'sequence structure'],
+            category: 'Sequence',
+            icon: 'list-tree',
+            when: () => !!viewer.structure.value || 'No sequence is shown.',
+            run: () => (reveal(), done('')),
+          } satisfies CommandDefinition<any>,
+        ]
+      : []),
+    {
       id: 'sequence.legend',
       title: 'Sequence legend…',
       alias: ['what the colors mean', 'sequence colors'],
@@ -188,16 +303,17 @@ export function sequenceCommands(
 
 /**
  * The Sequence button's menu on the canvas stack: one single choice of three, No sequence, Text, Tracks (the current one
- * in the accent, as the picking levels' list marks its own), then the letters' colors (also a single choice) and the
- * legend. The tracks' rail is the ruler's; the other rails are commands, for code and the command menu. Each item runs a
- * command by id (`open` is the command manager's).
+ * in the accent, as the picking levels' list marks its own), then Edit in structure tree, where its structure, tracks,
+ * chains, letter colors and legend are (sequence.md §8.1; nothing else here).
+ * The tracks' rail is the ruler's; the other rails are commands, for code and the command menu. Each item runs a command
+ * by id (`open` is the command manager's).
  */
 export function sequenceMenu(
   viewer: SequenceViewer,
   shell: ShellModel,
   open: (commandId: string) => void,
-  /** The API as the person: the Visible tracks submenu's rows hide and show through it (steps). */
-  api?: SequenceApiRunner,
+  /** The structure tree is there to edit in (`sequence.reveal` registered). */
+  revealable = false,
 ): CanvasMenuItem[] {
   const item = (id: string, label: string, run: string, extra: Partial<CanvasMenuItem> = {}): CanvasMenuItem => ({
     id,
@@ -227,47 +343,8 @@ export function sequenceMenu(
       group: 'view',
       pressed: showing('tracks'),
     }),
-    ...LetterSchemes.map((name) =>
-      item(schemeId(name), schemeLabel(name), schemeId(name), {
-        choice: true,
-        group: 'colors',
-        pressed: derive(viewer.theme, (t) => t.letters === name),
-      }),
-    ),
-    item('legend', 'Legend…', 'sequence.legend', { icon: 'palette', group: 'colors' }),
-    {
-      id: 'track-list',
-      // Not "Tracks": the style above is called that.
-      label: 'Visible tracks',
-      icon: 'layers',
-      group: 'tracks',
-      run: () => {},
-      items: derive(viewer.tracks, (tracks) => trackRows(viewer, tracks, api)),
-    },
-  ];
-}
-
-/**
- * The Visible tracks submenu (sequence.md §8): a checkbox per track of the section shown (checked: shown), then Show all, there
- * only while one is hidden.
- */
-function trackRows(
-  viewer: SequenceViewer,
-  tracks: readonly SequenceTrack[],
-  api?: SequenceApiRunner,
-): CanvasMenuItem[] {
-  const rows = tracks.map(
-    (t): CanvasMenuItem => ({
-      id: `track:${t.ref}`,
-      label: t.label,
-      group: 'tracks',
-      pressed: of(!t.hidden),
-      run: () => void setTrackHidden(viewer, api, t.ref, !t.hidden),
-    }),
-  );
-  if (!tracks.some((t) => t.hidden)) return rows;
-  return [
-    ...rows,
-    { id: 'show-all', label: 'Show all', icon: 'eye', group: 'all', run: () => void showAllTracks(viewer, api) },
+    ...(revealable
+      ? [item('reveal', 'Edit in structure tree', 'sequence.reveal', { icon: 'list-tree', group: 'tree' })]
+      : []),
   ];
 }

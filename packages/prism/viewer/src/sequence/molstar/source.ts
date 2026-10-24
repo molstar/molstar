@@ -35,6 +35,11 @@ export interface StructureSource {
   readonly frame: CifFrame | null;
   /** Structures by model and assembly ("0", "0@1"), made on first use. */
   readonly structures: Map<string, Promise<Structure>>;
+  /**
+   * The Structure the host's 3D view draws over this trajectory, when the host says: what its computed properties are
+   * read from (the secondary structure its cartoon shows, `secondary.ts`). Set by the host as it changes.
+   */
+  drawn?: Structure;
 }
 
 const isSource = (v: unknown): v is StructureSource =>

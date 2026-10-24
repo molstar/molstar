@@ -35,8 +35,8 @@
   pointer-events: auto;
 
   /* Seq*'s surface takes the keyboard (one Tab stop) with no outline of its own: the ring is drawn over it here, from
-     the keyboard only (accessibility.md, WCAG 2.4.7). */
-  &:has(> :focus-visible)::after {
+     the keyboard only (accessibility.md, WCAG 2.4.7): not after a click, until a key is pressed. */
+  &:not([data-pointer]):has(> :focus-visible)::after {
     content: "";
     position: absolute;
     inset: 0;

@@ -11,7 +11,7 @@
 import { Button, domView, Select, Show } from '@molstar/prism-ui';
 import { mapState } from '@molstar/prism-ui/reactive/map-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
-import type { SceneNode } from '@molstar/prism-viewer';
+import { type SceneNode, structureOfGroup } from '@molstar/prism-viewer/model/scene';
 import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import type { SymmetryInfo, SymmetryRowState } from './operations.js';
@@ -48,10 +48,14 @@ export function assemblySymmetryUI(ctx: ViewerUIContext): ViewerExtensionUI {
     rows: [
       {
         id: SymmetryRow,
-        // Only under the structures it is for: a row whose `when` holds takes a slot in the (virtualized) tree.
-        when: (node) => node.kind === 'structure' && area.applies(node.id),
+        // In the Other group of the structures it is for: a row whose `when` holds takes a slot in the
+        // (virtualized) tree.
+        when: (node) => {
+          const structure = node.kind === 'other' ? structureOfGroup(node) : undefined;
+          return !!structure && area.applies(structure);
+        },
         render: domView(({ ctx: view }) => {
-          const structure = (view.subject as SceneNode).id;
+          const structure = structureOfGroup(view.subject as SceneNode)!;
           const state = area.rowState(structure);
           return (
             <Show when={mapState(state, (s) => s.applicable)}>

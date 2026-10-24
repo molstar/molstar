@@ -173,7 +173,7 @@ describe('the viewer shell has no accessibility violations (axe)', () => {
     scene.pick(first);
     await quiet();
     await check();
-    const more = mounted.root.querySelector<HTMLElement>('[role=treeitem] button[title=More]');
+    const more = mounted.root.querySelector<HTMLElement>('[role=treeitem] button[data-tip=More]');
     expect(more).not.toBeNull();
     more!.click();
     await wait(100);

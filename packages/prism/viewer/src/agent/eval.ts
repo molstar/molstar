@@ -90,7 +90,9 @@ export async function runEval<M extends ModelChoice>(
       const r = await viewer.api.load.files({ files: [await o.file(name)] });
       if (!r.ok) throw new Error(`Could not load ${name}: ${r.message}`);
     }
-    // After the files: the agent starts on the scene the task gives it.
+    // After the files, and the sequence's document for them (its runtime loads on its own: the structure tree's
+    // Sequence rows read it, sequence.md §8.1), the agent starts on the scene the task gives it.
+    await sequenceSettled(viewer);
     agent = createViewerAgent({ viewer, models: o.models });
     const before = sceneOf(viewer);
     for (const prompt of task.prompts) {
@@ -159,6 +161,17 @@ export async function runEval<M extends ModelChoice>(
  * The scene as Undo turn must restore it: the agent's outline (agent.md §5), and the data tree's transforms with their
  * params (a color layer, which the outline does not show).
  */
+/** The sequence's runtime in and its document made for what is loaded (bounded), then the tree's rows told of it. */
+async function sequenceSettled(viewer: PrismViewer, ms = 10_000): Promise<void> {
+  const sequence = viewer.views.sequence;
+  if (!sequence?.source.structure.value) return;
+  const viewers = (await sequence.load()).viewers.get();
+  const t0 = Date.now();
+  while (!viewers.structure.value && Date.now() - t0 < ms) await new Promise((r) => setTimeout(r, 10));
+  // The tree's sequence rows follow once a burst (a microtask), then the scene's sync.
+  await new Promise((r) => setTimeout(r, 0));
+}
+
 function sceneOf(viewer: PrismViewer): string {
   const transforms = [...viewer.plugin.state.data.cells.values()]
     .map(({ transform: t }) => `${t.ref} ${t.transformer.id} ${JSON.stringify(t.params ?? {})}`)

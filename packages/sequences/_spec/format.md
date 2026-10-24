@@ -375,10 +375,11 @@ A **theme** maps the data under a layer to the values of one **channel**: `color
 
 ## Palettes
 
-Palettes are MolViewSpec's, copied from Mol\*: the same kinds (`categorical`, `discrete`, `continuous`), params, named
-lists and dictionaries, and evaluation, so a value gets one color in SVS and in MVS. Two differences: a categorical list
-repeats by default, and a categorical `missing_color` also colors a missing value. Letter dictionaries (Zappo, Taylor,
-…) are keyed by one-letter code; on ligand atoms, by element symbol.
+Palettes are MolViewSpec's, one implementation with Mol\*'s (`@molstar/core/util/color/value-palette`): the same kinds
+(`categorical`, `discrete`, `continuous`), params, named lists and dictionaries, and evaluation, so a value gets one
+color in SVS and in MVS. Two differences: a categorical list repeats by default, and a categorical `missing_color` also
+colors a missing value. Letter dictionaries (Zappo, Taylor, …) are keyed by one-letter code; on ligand atoms, by element
+symbol.
 
 Streamed data has no rows to take keys from: its manifest's vocabulary of the field gives a categorical palette's keys
 and their order (`seqspec:sources#manifests`). A value of a streamed item that the keys lack (the manifest lists no

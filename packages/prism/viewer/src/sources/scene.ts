@@ -26,6 +26,8 @@ import {
   type Unit,
 } from '@molstar/model/model/structure';
 import { Script } from '@molstar/model/script/script';
+import { KEYWORD_EXPRESSIONS, KEYWORDS } from '../targets/keywords.js';
+import type { Keyword } from '../targets/types.js';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
@@ -53,8 +55,16 @@ import type {
   SceneNodeAction,
   SceneNodeKind,
   SceneSelectionFilter,
+  SceneSequence,
+  SceneSequenceRow,
   SceneTrajectory,
+  SequenceChainsEntity,
+  SequenceChainsPreset,
+  SequenceInspectorModel,
 } from '../model/scene.js';
+import { componentsNodeId, otherNodeId, sequenceNodeId } from '../model/scene.js';
+import { filteredUnits } from '../sequence/chain-filter.js';
+import type { ChainFilter } from '../sequence/tracks.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
 import type { VolumeLevelUnit } from '../model/volume-levels.js';
 import { namesOf } from '../api/scope.js';
@@ -78,7 +88,7 @@ import { type TrajectorySource, trajectorySourceOf } from './trajectory.js';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import { structureNames } from './naming.js';
 import { fromChanged, onceATask, type SourceScope } from './state.js';
-import type { Observable } from 'rxjs';
+import { type Observable, of } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
 import {
@@ -309,8 +319,20 @@ class Node implements SceneNode {
     this.log?.touch(this.id);
   }
 
+  /** A component left empty by hidden contents: its row stays, and shows or hides nothing (no eye). */
+  emptied = false;
   toggleVisibility(): void {
-    this.actions.visibility?.(!this.#hidden.value);
+    if (this.hasEye) this.actions.visibility?.(!this.#hidden.value);
+  }
+  /**
+   * It shows or hides as one: a row without an eye otherwise (Entities, Other, an emptied component); a group
+   * (Components, Measurements) while one of its rows does.
+   */
+  get hasEye(): boolean {
+    if (!this.actions.visibility || this.emptied) return false;
+    if (this.kind === 'components' || this.kind === 'measurements')
+      return this.#children.value.some((c) => c.hasEye !== false);
+    return true;
   }
   toggleExpanded(): void {
     const log = this.log;
@@ -351,6 +373,8 @@ export function createSceneSource(
   plugin: PluginContext,
   api: ViewerApi,
   openCommand?: OpenCommand,
+  /** Each structure's sequence (sequence.md §8.1); none: the viewer has no sequence, no Sequence nodes. */
+  sequence?: SceneSequence,
 ): SceneSource {
   // The scene's structure as one stream, told once a sync (a Mol* transaction) or a toggle (model/scene-changes.ts).
   const log = new SceneChangeLog();
@@ -508,6 +532,160 @@ export function createSceneSource(
     return n;
   };
 
+  /** The rows each Sequence node was last made from: its inspector's form follows them. */
+  const sequenceRows = new Map<string, SceneSequenceRow>();
+  /** Each Sequence node's inspector model, made once and told each row. */
+  const inspectorModels = new Map<string, InspectorSource>();
+  /** What an inspection is built from: a Sequence node's from its row (its facts and actions), the rest's as below. */
+  const keyOf = (n: SceneNode): unknown => (n.kind === 'sequence' ? undefined : inspectionKey(plugin, n));
+  /**
+   * A structure's sequence (sequence.md §8.1): its eye is the band (`sequence.follow`, No sequence), its menu Add track,
+   * Chains, Follow automatically and Legend, its children its tracks (each an eye, its colorings and Remove), its
+   * inspector the chain filter. Made from the sequence model, not a plugin cell.
+   */
+  /** A structure's Sequence node, its track rows and its inspector gone (it has no polymer any more). */
+  const dropSequenceNode = (structureRef: string) => {
+    const id = sequenceNodeId(structureRef);
+    const n = nodes.get(id);
+    if (!n) return;
+    for (const c of [n, ...n.children.value]) {
+      nodes.delete(c.id);
+      inspections.delete(c.id);
+      inspectionKeys.delete(c.id);
+      if (picked.value === c) picked.set(undefined);
+    }
+    sequenceRows.delete(id);
+    inspectorModels.delete(id);
+  };
+
+  const sequenceNode = (structureRef: string, data: Structure, row: SceneSequenceRow): Node => {
+    const id = sequenceNodeId(structureRef);
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(id, 'sequence', 'sequence', 'Sequence', false, {
+        visibility: () => sequence!.toggle(structureRef),
+      });
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    n.set('Sequence', row.description, !row.shown);
+    sequenceRows.set(id, row);
+    n.menuSource = () => {
+      const now = sequenceRows.get(id);
+      if (!now) return undefined;
+      const filter = now.filter;
+      const preset = !filter
+        ? 'all'
+        : filter.polymer && !filter.each && !filter.chains
+          ? 'polymer'
+          : filter.each && !filter.polymer && !filter.chains
+            ? 'each'
+            : undefined;
+      const items: SceneMenuItem[] = [];
+      if (now.addable.length) {
+        items.push({
+          id: 'add-track',
+          label: 'Add track',
+          icon: 'plus',
+          items: now.addable.map((a) => ({
+            id: `add:${a.id}`,
+            label: a.label,
+            run: () => sequence!.addTrack(structureRef, data, a.id),
+          })),
+        });
+      }
+      items.push({
+        id: 'chains',
+        label: 'Chains',
+        icon: 'link',
+        items: [
+          {
+            id: 'all',
+            label: 'All chains',
+            checked: preset === 'all',
+            run: () => sequence!.setChains(structureRef, data, undefined),
+          },
+          {
+            id: 'polymer',
+            label: 'Polymers only',
+            checked: preset === 'polymer',
+            run: () => sequence!.setChains(structureRef, data, { polymer: true }),
+          },
+          {
+            id: 'each',
+            label: 'Every copy apart',
+            checked: preset === 'each',
+            run: () => sequence!.setChains(structureRef, data, { each: true }),
+          },
+        ],
+      });
+      items.push({
+        id: 'style',
+        label: 'Style',
+        icon: 'chart-gantt',
+        items: [
+          { id: 'tracks', label: 'Tracks', checked: now.style === 'tracks', run: () => sequence!.setStyle('tracks') },
+          { id: 'text', label: 'Text', checked: now.style === 'text', run: () => sequence!.setStyle('text') },
+        ],
+      });
+      items.push({
+        id: 'colors',
+        label: 'Letter colors',
+        icon: 'palette',
+        items: sequence!.schemes().map((x) => ({
+          id: `colors:${x.id ?? 'none'}`,
+          label: x.label,
+          checked: now.colors === x.id,
+          run: () => sequence!.setColors(x.id),
+        })),
+      });
+      if (now.chosen) {
+        items.push({
+          id: 'auto',
+          label: 'Follow automatically',
+          icon: 'focus',
+          run: () => sequence!.followAutomatically(),
+        });
+      }
+      if (sequence!.legend)
+        items.push({ id: 'legend', label: 'Legend…', icon: 'palette', run: () => sequence!.legend!() });
+      return items;
+    };
+    // Rows of tracks that are gone go (the clean-up keeps what the structure owns).
+    const keep = new Set(row.tracks.map((t) => `${id}:${t.ref}`));
+    for (const c of n.children.value) {
+      if (keep.has(c.id)) continue;
+      nodes.delete(c.id);
+      inspections.delete(c.id);
+      inspectionKeys.delete(c.id);
+      if (picked.value === c) picked.set(undefined);
+    }
+    n.setChildren(
+      row.tracks.map((t) => {
+        const tid = `${id}:${t.ref}`;
+        let tn = nodes.get(tid);
+        if (!tn) {
+          tn = new Node(tid, 'sequence-track', 'layers', t.label, false, {
+            visibility: (hide) => sequence!.setTrackHidden(structureRef, data, t.ref, hide),
+            remove: () => sequence!.removeTrack(structureRef, data, t.ref),
+          });
+          nodes.set(tid, tn);
+        }
+        tn.removable = t.removable;
+        tn.set(t.label, t.description, t.hidden);
+        tn.menu = t.actions.map((a) => ({
+          id: a.id,
+          label: a.label,
+          ...(a.icon ? { icon: a.icon } : {}),
+          run: () => a.run(),
+        }));
+        return tn;
+      }),
+    );
+    inspectorModels.get(id)?.update(row);
+    return n;
+  };
+
   /** The unit cell of a structure's model (v5's model-level Unit Cell row; parity.md §2). */
   const unitCellNode = (u: ModelUnitcellRef, structureRef: string): Node => {
     const ref = u.cell.transform.ref;
@@ -621,6 +799,8 @@ export function createSceneSource(
       n.menu = componentMenu(plugin, api, ref, structureRef, loci, openCommand, c.cell.obj?.label ?? '', noSelection);
       nodes.set(ref, n);
     }
+    // In the hierarchy again (its contents shown): whole again, its eye back.
+    n.emptied = false;
     const reprs = c.representations.map((r) => reprLabel(plugin, r)).join(', ');
     const atoms = c.cell.obj?.data.elementCount;
     n.set(
@@ -655,12 +835,12 @@ export function createSceneSource(
     return n;
   };
 
-  /** A structure's contents: entities, then their chains; computed when first expanded. */
+  /** A structure's entities (the contents node), then their chains; computed when first expanded. */
   const contentsNode = (s: StructureRef, structureRef: string): Node => {
     const id = `${structureRef}#contents`;
     let n = nodes.get(id);
     if (!n) {
-      const node = new Node(id, 'contents', 'list-tree', 'Contents', false, {});
+      const node = new Node(id, 'contents', 'list-tree', 'Entities', false, {});
       node.lazy = true;
       node.removable = false;
       n = node;
@@ -681,7 +861,8 @@ export function createSceneSource(
     };
     if (!node.lazy) node.load();
     const data = s.cell.obj?.data;
-    n.set('Contents', data ? `${data.model.entities.data._rowCount} entities` : undefined, false);
+    const count = data?.model.entities.data._rowCount;
+    n.set('Entities', count === undefined ? undefined : count === 1 ? '1 entity' : `${count} entities`, false);
     return n;
   };
 
@@ -750,7 +931,9 @@ export function createSceneSource(
       n.removable = false;
       nodes.set(ref, n);
     }
-    n.set(label, 'hidden in Contents', true);
+    // The component's own row kept (it had one): its actions stay for when it comes back, its eye goes meanwhile.
+    n.emptied = true;
+    n.set(label, 'hidden in Entities', true);
     n.setChildren([]);
     return n;
   };
@@ -759,7 +942,13 @@ export function createSceneSource(
     const id = '#measurements';
     let n = nodes.get(id);
     if (!n) {
-      n = new Node(id, 'measurements', 'ruler', 'Measurements', true, {});
+      n = new Node(id, 'measurements', 'ruler', 'Measurements', true, {
+        visibility: groupEye(
+          'Measurements visibility',
+          () => nodes.get(id)?.children.value ?? [],
+          (g, row, visible) => g.run('measure.visibility', { measurement: row.id, visible }),
+        ),
+      });
       n.removable = false;
       nodes.set(id, n);
     }
@@ -1001,6 +1190,72 @@ export function createSceneSource(
     return sig.end();
   };
 
+  /** A group's rows that show or hide (an emptied component's does not) are all hidden. */
+  const allHidden = (rows: readonly SceneNode[]) => {
+    const shows = rows.filter((c) => c.hasEye !== false);
+    return shows.length > 0 && shows.every((c) => c.isHidden.value);
+  };
+
+  /**
+   * A group's eye (Components, Measurements), as one step: hiding hides its rows that are shown and remembers them;
+   * showing shows those again (the rows hidden on their own stay hidden), or every row when none of them is hidden any
+   * more. Hidden as a group while every row is.
+   */
+  const groupEye = (
+    label: string,
+    rows: () => readonly SceneNode[],
+    set: (g: Pick<ViewerApi, 'run'>, row: SceneNode, visible: boolean) => Promise<unknown>,
+  ) => {
+    let hid: ReadonlySet<string> | undefined;
+    return (hide: boolean) => {
+      const list = rows();
+      let targets: readonly SceneNode[];
+      if (hide) {
+        targets = list.filter((r) => !r.isHidden.value);
+        // Those it hid before and still hidden stay remembered (a row shown or added since, then hidden with them).
+        const before = hid ? list.filter((r) => r.isHidden.value && hid!.has(r.id)).map((r) => r.id) : [];
+        hid = new Set([...before, ...targets.map((r) => r.id)]);
+      } else {
+        const hidden = list.filter((r) => r.isHidden.value);
+        const remembered = hid ? hidden.filter((r) => hid!.has(r.id)) : [];
+        targets = remembered.length ? remembered : hidden;
+        hid = undefined;
+      }
+      if (!targets.length) return;
+      void api.group(label, async (g) => {
+        for (const r of targets) await set(g, r, !hide);
+      });
+    };
+  };
+
+  /**
+   * A structure's group of rows (`components`, `other`; both open at first): a node of its own, never removed; its rows
+   * are the ones under it. Components has an eye (`groupEye`); Other none (its rows are features turned on one by one:
+   * a "show all" would start streaming and fetches).
+   */
+  const groupNode = (
+    id: string,
+    kind: 'components' | 'other',
+    label: string,
+    open: boolean,
+    visibility?: (hide: boolean) => void,
+  ): Node => {
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(
+        id,
+        kind,
+        kind === 'components' ? 'shapes' : 'layers',
+        label,
+        open,
+        visibility ? { visibility } : {},
+      );
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    return n;
+  };
+
   /** Builds a structure's rows (its node, its children); the ids they hold. */
   const buildStructure = (
     rows: StructureRows,
@@ -1015,7 +1270,11 @@ export function createSceneSource(
     ids.push(ref);
     const contents = contentsNode(s, ref);
     ids.push(contents.id);
+    // Its rows by what they are (viewer-spec.md §3): its entities and sequence, its components (what is drawn), the
+    // other rows (mostly off).
     const kids: SceneNode[] = [contents];
+    const comps: SceneNode[] = [];
+    const layers: SceneNode[] = [];
     const focused: SceneNode[] = [];
     for (const c of s.components) {
       const isFocus = isFocusPart(c);
@@ -1030,7 +1289,7 @@ export function createSceneSource(
         return rn;
       });
       cn.setChildren(reprs);
-      (isFocus ? focused : kids).push(cn);
+      (isFocus ? focused : comps).push(cn);
     }
     // Components emptied by hidden contents, where they stand among the others (the state tree's order).
     if (emptied.length) {
@@ -1040,32 +1299,66 @@ export function createSceneSource(
       for (const e of emptied) {
         const en = emptiedNode(e.ref, e.label);
         ids.push(en.id);
-        kids.push(en);
+        comps.push(en);
       }
-      // The contents row first; the components by their place in the tree (one not there first, as `indexOf`'s −1).
-      const [first, ...rest] = kids;
-      rest.sort((a, b) => (order.get(a.id) ?? -1) - (order.get(b.id) ?? -1));
-      kids.splice(0, kids.length, first, ...rest);
+      // The components by their place in the tree (one not there first, as `indexOf`'s −1).
+      comps.sort((a, b) => (order.get(a.id) ?? -1) - (order.get(b.id) ?? -1));
     }
+    const cid = componentsNodeId(ref);
+    const known = nodes.get(cid);
+    const cg =
+      known ??
+      groupNode(
+        cid,
+        'components',
+        'Components',
+        true,
+        groupEye(
+          'Components visibility',
+          // Its rows that show or hide (an emptied component's row does not: its contents are hidden).
+          () => (nodes.get(cid)?.children.value ?? []).filter((c) => c.hasEye !== false),
+          (g, row, visible) => g.run('component.visibility', { component: row.id, structure: ref, visible }),
+        ),
+      );
+    if (!known) cg.menuSource = () => componentsMenu(plugin, api, ref);
+    ids.push(cg.id);
+    cg.set('Components', comps.length === 1 ? '1 component' : `${comps.length} components`, allHidden(comps));
+    cg.setChildren(comps);
+    kids.push(cg);
     rows.parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
     rows.focused = focused;
     // The model's unit cell, under the first of its structures (another structure of the same model shares it).
     if (unitCell) {
       const un = unitCellNode(unitCell, ref);
       ids.push(un.id);
-      kids.push(un);
+      layers.push(un);
     }
     const streaming = streamingOf(plugin, s);
     rows.streaming = streaming ? { root: streaming.root, behavior: streaming.behavior } : undefined;
     if (streaming) {
       const vn = streamingNode(streaming, ref);
       ids.push(vn.id);
-      kids.push(vn);
+      layers.push(vn);
     } else if (canStream(plugin, s)) {
       const vn = streamingOffNode(ref);
       ids.push(vn.id);
-      kids.push(vn);
+      layers.push(vn);
     }
+    // Always there: the extensions' rows (the PAE, a membrane, symmetry axes) go under it, which this source does not see.
+    const lg = groupNode(otherNodeId(ref), 'other', 'Other', true);
+    ids.push(lg.id);
+    lg.set('Other', undefined, false);
+    lg.setChildren(layers);
+    kids.push(lg);
+    // Its sequence, under Contents (sequence.md §8.1): a structure with polymers, where the viewer has a sequence.
+    const data = s.cell.obj?.data;
+    const seqRow = sequence && data ? sequence.row(ref, data) : undefined;
+    if (seqRow && data) {
+      const qn = sequenceNode(ref, data, seqRow);
+      ids.push(qn.id);
+      for (const c of qn.children.value) ids.push(c.id);
+      kids.splice(1, 0, qn);
+    } else dropSequenceNode(ref);
     sn.setChildren(kids);
     rows.node = sn;
     return ids;
@@ -1185,7 +1478,6 @@ export function createSceneSource(
     if (measured.length || top.length) {
       const gn = measurementsNode();
       rest.push(gn.id);
-      gn.set('Measurements', measurementCounts(measured), false);
       gn.setChildren(
         measured.map((m) => {
           const mn = measurementNode(m);
@@ -1193,6 +1485,7 @@ export function createSceneSource(
           return mn;
         }),
       );
+      gn.set('Measurements', measurementCounts(measured), allHidden(gn.children.value));
       top.push(gn);
     }
     hold(rest);
@@ -1211,6 +1504,8 @@ export function createSceneSource(
       particleTrajectories.delete(id);
       streamingOwners.delete(id);
       streamingShown.delete(id);
+      sequenceRows.delete(id);
+      inspectorModels.delete(id);
       if (picked.value === n) picked.set(undefined);
     };
     for (const id of dropped) {
@@ -1225,11 +1520,11 @@ export function createSceneSource(
     // the cell as it is, and the inspector keeps it, a gesture on it going on).
     for (const [id, key] of inspectionKeys) {
       const n = nodes.get(id);
-      if (!n || Object.is(inspectionKey(plugin, n), key)) continue;
+      if (!n || Object.is(keyOf(n), key)) continue;
       const form = inspections.get(id)?.form;
       const fresh = build(n);
       inspections.set(id, form && fresh.form ? { ...fresh, form } : fresh);
-      inspectionKeys.set(id, inspectionKey(plugin, n));
+      inspectionKeys.set(id, keyOf(n));
       if (picked.value === n) inspection.set(inspections.get(id));
     }
     // The same roots (a sync makes the array again): no change, the tree not flattened again.
@@ -1250,14 +1545,40 @@ export function createSceneSource(
     }
   };
 
-  const build = (n: SceneNode) =>
-    inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) => picked.set(row));
+  const build = (n: SceneNode): SceneInspection => {
+    if (n.kind === 'sequence' && sequence) return inspectSequence(n);
+    return inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) =>
+      picked.set(row),
+    );
+  };
+
+  /**
+   * A Sequence node's inspector (sequence.md §8.1): its controls (`views/structure/sequence-inspector.tsx`), made once
+   * per node and told each row, so the view is never made again under the pointer.
+   */
+  const inspectSequence = (n: SceneNode): SceneInspection => {
+    const structureRef = n.id.slice(0, n.id.indexOf('#'));
+    const row = sequenceRows.get(n.id);
+    const data = dataOf(plugin, structureRef);
+    let controls = inspectorModels.get(n.id);
+    if (!controls && row && data) {
+      controls = sequenceInspector(row, {
+        setChains: (filter) => sequence!.setChains(structureRef, data, filter),
+        setStyle: (style) => sequence!.setStyle(style),
+        setColors: (scheme) => sequence!.setColors(scheme),
+        schemes: () => sequence!.schemes(),
+        addTrack: () => sequence!.openAddTrack?.(),
+      });
+      inspectorModels.set(n.id, controls);
+    }
+    return { node: n, form: undefined, slot: 'inspector:sequence', ...(controls ? { sequence: controls.model } : {}) };
+  };
   const inspectNode = (n: SceneNode): SceneInspection => {
     let built = inspections.get(n.id);
     if (!built) {
       built = build(n);
       inspections.set(n.id, built);
-      inspectionKeys.set(n.id, inspectionKey(plugin, n));
+      inspectionKeys.set(n.id, keyOf(n));
     }
     return built;
   };
@@ -1279,6 +1600,42 @@ export function createSceneSource(
       for (const t of particleTrajectories.values()) t.refreshPlaying();
     }),
   );
+  // The sequence's rows read otherwise (what the band follows, a track, a filter). Each Sequence node updated in place
+  // (its line, eye, menu, its tracks' rows); a structure is built again only when its node comes or goes. Not while a
+  // state transaction runs (a structure removed is still in the hierarchy then, its cell gone): once it ends.
+  if (sequence) {
+    let deferred = false;
+    const refreshSequence = () => {
+      if (plugin.state.data.behaviors.isUpdating.value) {
+        deferred = true;
+        return;
+      }
+      deferred = false;
+      let rebuild = false;
+      log.batch(() => {
+        for (const [ref, rows] of structureRows) {
+          if (!plugin.state.data.cells.has(ref)) continue;
+          const data = dataOf(plugin, ref);
+          const row = data ? sequence.row(ref, data) : undefined;
+          const node = nodes.get(sequenceNodeId(ref));
+          const had = !!node && !!rows.node?.children.value.includes(node);
+          // Its tracks' rows need no rebuild: the clean-up keeps an id its structure owns (`ownerOf`).
+          if (row && had) sequenceNode(ref, data!, row);
+          else if (had || row) {
+            stale.add(ref);
+            rebuild = true;
+          }
+        }
+      });
+      if (rebuild) sync();
+    };
+    scope.add(sequence.version.subscribe(refreshSequence));
+    scope.add(
+      plugin.state.data.behaviors.isUpdating.subscribe((updating) => {
+        if (!updating && deferred) refreshSequence();
+      }),
+    );
+  }
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
@@ -1355,7 +1712,17 @@ export function createSceneSource(
   scope.add(
     plugin.state.data.events.cell.stateUpdated.subscribe((e) => {
       const n = nodes.get(e.ref);
-      if (n) n.set(n.label.value, n.description.value, !!e.cell.state.isHidden);
+      if (!n) return;
+      n.set(n.label.value, n.description.value, !!e.cell.state.isHidden);
+      // A component's or a measurement's: its group is hidden while every one of its rows is.
+      const ref = plugin.managers.structure.hierarchy.current.refs.get(e.ref);
+      const group =
+        ref?.kind === 'structure-component'
+          ? nodes.get(componentsNodeId(ref.structure.cell.transform.ref))
+          : n.kind === 'measurement'
+            ? nodes.get('#measurements')
+            : undefined;
+      if (group) group.set(group.label.value, group.description.value, allHidden(group.children.value));
     }),
   );
 
@@ -1395,6 +1762,139 @@ export function createSceneSource(
  * contents' summary come from the structure (an assembly or a model changes it), a volume's levels and transfer functions
  * from its representations and their types, an isosurface's or a direct volume's from its type. Others: nothing.
  */
+/** What a Sequence node's inspector does, through the scene's sequence port. */
+interface InspectorActions {
+  setChains(filter: ChainFilter | undefined): void;
+  setStyle(style: 'tracks' | 'text'): void;
+  setColors(scheme: string | null): void;
+  schemes(): ReturnType<SceneSequence['schemes']>;
+  addTrack(): void;
+}
+
+/** A Sequence node's inspector model and how the scene tells it a new row. */
+interface InspectorSource {
+  readonly model: SequenceInspectorModel;
+  update(row: SceneSequenceRow): void;
+}
+
+type ChainsEntity = SequenceChainsEntity & { chains: { name: string; label: string }[] };
+
+/** A row's chains by entity, every chain's name and the polymers'; `key` tells one structure's chains from another's. */
+function chainsIndex(r: SceneSequenceRow) {
+  const byEntity = new Map<string, ChainsEntity>();
+  for (const c of r.chains) {
+    let e = byEntity.get(c.entity);
+    if (!e) {
+      e = { id: c.entity, name: c.entityLabel.replace(/\s+/g, ' ').trim(), kind: c.kind, chains: [] };
+      byEntity.set(c.entity, e);
+    }
+    e.chains.push({ name: c.name, label: c.label });
+  }
+  return {
+    byEntity,
+    entities: [...byEntity.values()] as readonly SequenceChainsEntity[],
+    all: r.chains.map((c) => c.name),
+    polymers: r.chains.filter((c) => c.kind === 'polymer').map((c) => c.name),
+    key: r.chains.map((c) => c.name).join(' '),
+  };
+}
+
+/**
+ * A Sequence node's inspector (sequence.md §8.1): the band's style and letters, Add track, every chain by its entity,
+ * those shown and the preset in effect; each change one operation through `act`, the rest of the filter kept.
+ */
+function sequenceInspector(first: SceneSequenceRow, act: InspectorActions): InspectorSource {
+  // The structure under the node may become another (an assembly, a model): its chains are read again then.
+  let index = chainsIndex(first);
+  const entities = observableState(index.entities);
+  let row = first;
+  const shownOf = (r: SceneSequenceRow) => new Set(filteredUnits(r.filter, r.chains) ?? index.all);
+  const presetOf = (s: ReadonlySet<string>): SequenceChainsPreset | undefined => {
+    if (s.size === index.all.length) return 'all';
+    if (s.size === 0) return 'none';
+    if (s.size === index.polymers.length && index.polymers.every((n) => s.has(n))) return 'polymer';
+    return undefined;
+  };
+  const shown = observableState<ReadonlySet<string>>(shownOf(first));
+  const preset = observableState<SequenceChainsPreset | undefined>(presetOf(shown.value));
+  const each = observableState(!!first.filter?.each);
+  const status = observableState(first.description);
+  const style = observableState(first.style);
+  const colors = observableState<string | null>(first.colors);
+  const schemes = observableState(act.schemes());
+  const canAdd = observableState(first.shown && first.addable.length > 0);
+  const withEach = () => (row.filter?.each ? { each: true } : {});
+  /** The chains kept as a filter, `each` kept: every one is no filter of chains. */
+  const keep = (names: ReadonlySet<string>) => {
+    if (names.size === index.all.length) act.setChains(row.filter?.each ? withEach() : undefined);
+    else act.setChains({ ...withEach(), chains: index.all.filter((n) => names.has(n)) });
+  };
+  return {
+    model: {
+      status: status.asReadonly,
+      style: style.asReadonly,
+      setStyle: (s) => act.setStyle(s),
+      colors: colors.asReadonly,
+      schemes: schemes.asReadonly,
+      setColors: (c) => act.setColors(c),
+      canAdd: canAdd.asReadonly,
+      addTrack: () => act.addTrack(),
+      entities: entities.asReadonly,
+      shown: shown.asReadonly,
+      preset: preset.asReadonly,
+      apply: (p) => {
+        if (p === 'all') act.setChains(row.filter?.each ? withEach() : undefined);
+        else if (p === 'none') act.setChains({ ...withEach(), chains: [] });
+        else act.setChains({ ...withEach(), polymer: true });
+      },
+      toggleChain: (name) => {
+        const next = new Set(shown.value);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        keep(next);
+      },
+      toggleEntity: (id) => {
+        const e = index.byEntity.get(id);
+        if (!e) return;
+        const next = new Set(shown.value);
+        const every = e.chains.every((c) => next.has(c.name));
+        for (const c of e.chains) {
+          if (every) next.delete(c.name);
+          else next.add(c.name);
+        }
+        keep(next);
+      },
+      each: each.asReadonly,
+      setEach: (on) => {
+        const { each: _, ...rest } = row.filter ?? {};
+        act.setChains(on ? { ...rest, each: true } : isFilteredNow(rest) ? rest : undefined);
+      },
+    },
+    update: (r) => {
+      row = r;
+      const next = chainsIndex(r);
+      if (next.key !== index.key) {
+        index = next;
+        entities.set(next.entities);
+      }
+      const s = shownOf(r);
+      const same = s.size === shown.value.size && [...s].every((n) => shown.value.has(n));
+      if (!same) shown.set(s);
+      preset.set(presetOf(s));
+      each.set(!!r.filter?.each);
+      status.set(r.description);
+      style.set(r.style);
+      colors.set(r.colors);
+      canAdd.set(r.shown && r.addable.length > 0);
+      const painted = act.schemes();
+      if (painted.some((x, i) => x.swatch !== schemes.value[i]?.swatch)) schemes.set(painted);
+    },
+  };
+}
+
+/** A filter that says something once `each` is taken out of it. */
+const isFilteredNow = (f: ChainFilter) => !!f.polymer || f.chains !== undefined;
+
 function inspectionKey(plugin: PluginContext, node: SceneNode): unknown {
   switch (node.kind) {
     case 'structure':
@@ -1819,6 +2319,66 @@ function contentsLoci(s: Structure, entity: string, chain?: string): StructureEl
   const test = chain ? MS.core.logic.and([isEntity, MS.core.rel.eq([MS.ammp('auth_asym_id'), chain])]) : isEntity;
   const query = MS.struct.generator.atomGroups({ 'chain-test': test });
   return StructureSelection.toLociWithSourceUnits(Script.getStructureSelection(query, s));
+}
+
+/** What a kind of component is called in the Components group's Add component menu. */
+const ComponentKinds: Readonly<Record<(typeof KEYWORDS)[number], string>> = {
+  all: 'Everything',
+  polymer: 'Polymer',
+  protein: 'Protein',
+  nucleic: 'Nucleic acid',
+  branched: 'Branched (carbohydrates)',
+  ligand: 'Ligand',
+  ion: 'Ion',
+  water: 'Water',
+  coarse: 'Coarse',
+};
+
+/** The kinds of component a structure has (a keyword query each, whole-structure): once per Structure. */
+const kindsOf = new WeakMap<Structure, readonly Keyword[]>();
+function componentKinds(data: Structure): readonly Keyword[] {
+  let kinds = kindsOf.get(data);
+  if (!kinds) {
+    kinds = KEYWORDS.filter((k) => k !== 'all').filter(
+      (k) => !StructureSelection.isEmpty(Script.getStructureSelection(KEYWORD_EXPRESSIONS[k], data)),
+    );
+    kindsOf.set(data, kinds);
+  }
+  return kinds;
+}
+
+/**
+ * The Components group's menu: Add component, from this structure's selection (unavailable while it holds none) or of a
+ * kind the structure has (`component.add`, its target a keyword; a kind it has none of is left out, `componentKinds`).
+ * Built when the menu is read.
+ */
+function componentsMenu(plugin: PluginContext, api: ViewerApi, structureRef: string): SceneMenuItem[] {
+  const data = dataOf(plugin, structureRef);
+  const kinds = data ? componentKinds(data) : [];
+  const sel = data && plugin.managers.structure.selection.getLoci(data);
+  const noSelection = !sel || !StructureElement.Loci.is(sel) || StructureElement.Loci.isEmpty(sel);
+  return [
+    {
+      id: 'add',
+      label: 'Add component',
+      icon: 'plus',
+      items: [
+        {
+          id: 'selection',
+          label: 'From the selection',
+          icon: 'mouse-pointer-2',
+          disabled: of(noSelection),
+          run: () =>
+            void api.run('component.add', { target: 'selection', structure: structureRef, label: 'Selection' }),
+        },
+        ...kinds.map((k) => ({
+          id: k,
+          label: ComponentKinds[k],
+          run: () => void api.run('component.add', { target: k, structure: structureRef, label: ComponentKinds[k] }),
+        })),
+      ],
+    },
+  ];
 }
 
 /** An entity's or a chain's row menu (parity.md §2: select, focus, a component of it). */

@@ -17,6 +17,7 @@ import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
 import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
+import { secondaryAssignmentOf } from '../sequence/tracks.js';
 import { cifFrameOf, createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
 import { onceATask, type SourceScope } from './state.js';
@@ -51,6 +52,18 @@ export interface SequenceSource {
    * map (sequence.md §10).
    */
   readonly hoverMapped: ReadonlyState<boolean>;
+  /** The band in the page's shell (its dock shown or not), once the shell has mounted it; headless: none. */
+  readonly band: ReadonlyState<SequenceBand | undefined>;
+  /** The shell's band (`sequence/shell-ui.tsx`); returns its removal. */
+  setBand(band: SequenceBand): () => void;
+}
+
+/** Whether the page shows the band, and showing or hiding it (the Sequence menu's No sequence). */
+export interface SequenceBand {
+  readonly shown: ReadonlyState<boolean>;
+  show(on: boolean): void;
+  /** Opens the command menu at Add track (the commands that add a track to the structure shown). */
+  openAddTrack?(): void;
 }
 
 /** The format the plugin parsed a trajectory from, as the sequence's structure source names it. */
@@ -93,7 +106,7 @@ function channel(): Channel {
 export function createSequenceSource(scope: SourceScope, plugin: PluginContext, link: ViewerApi): SequenceSource {
   // A new key or a new frame of it (the same key, another Structure: sequence.md §2).
   const structure = observableState<HostStructure | undefined>(undefined, {
-    compare: (a, b) => a?.key === b?.key && a?.structure === b?.structure,
+    compare: (a, b) => a?.key === b?.key && a?.structure === b?.structure && a?.assignment === b?.assignment,
   });
   const followed = observableState<string | undefined>(undefined);
   const shows = observableState<string | undefined>(undefined);
@@ -180,14 +193,18 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     // the sequence keeps its document and the link follows the new Structure (sequence.md §2).
     if (now?.ref === ref && now.structure !== data && now.source.trajectory === trajectory) {
       if (sameAtoms(now.structure, data)) {
+        now.source.drawn = data;
         keys.set(data, keys.get(now.structure)!);
-        structure.set({ ...now, structure: data });
+        structure.set({ ...now, structure: data, assignment: secondaryAssignmentOf(data) });
         return;
       }
     }
+    // The structure the 3D view draws, for what the sequence reads of its computed properties (its secondary structure).
+    sourceOf(s, trajectory, format).drawn = data;
     const key = keyOf(ref, data);
     if (now?.key === key) return;
     structure.set({
+      assignment: secondaryAssignmentOf(data),
       key,
       ref,
       title: structureNames(plugin.managers.structure.hierarchy.current.structures).get(ref) ?? ref,
@@ -225,6 +242,16 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     ).subscribe(() => update()),
   );
   scope.add(followed.asReadonly.subscribe(() => update()));
+  // The shown structure's secondary structure set otherwise in the 3D view (its custom properties updated, the Structure
+  // the same): told again, so the sequence's track follows (`secondaryAssignmentOf` names the settings in its data).
+  scope.add(
+    plugin.state.data.events.object.updated.subscribe((e) => {
+      const now = structure.value;
+      const data = e.obj?.data;
+      if (!now || !(data instanceof Structure) || data.root !== now.structure.root) return;
+      structure.set({ ...now, assignment: secondaryAssignmentOf(now.structure) });
+    }),
+  );
   scope.add(shows.asReadonly.subscribe(() => update()));
 
   const actions: HostActions = {
@@ -259,7 +286,15 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     },
   };
 
+  const band = observableState<SequenceBand | undefined>(undefined);
   return {
+    band: band.asReadonly,
+    setBand: (b) => {
+      band.set(b);
+      return () => {
+        if (band.value === b) band.set(undefined);
+      };
+    },
     hoverMapped: hoverMapped.asReadonly,
     structure: structure.asReadonly,
     dataByUrl: createDataByUrl(scope, plugin),

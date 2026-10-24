@@ -11,16 +11,17 @@ import { Color } from '@molstar/core/util/color';
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, recordRuns, until } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
+import { otherOf } from '../../testing/scene-groups.js';
 
 // parity.md §2 in the scene: the unit cell's row under its structure, and the structure inspector's
 // Transform (the Conformation Transform), both acting through the API.
 
-const unitCellRow = (v: PrismViewer) => v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'unit-cell');
+const unitCellRow = (v: PrismViewer) => otherOf(v.views.scene.roots.value[0]).find((c) => c.kind === 'unit-cell');
 const structure = (v: PrismViewer) => v.plugin.managers.structure.hierarchy.current.structures[0];
 const params = (v: PrismViewer) => structure(v).model?.unitcell?.cell.transform.params as { cellColor: Color };
 
 describe('the unit cell row', () => {
-  it('is under a crystal structure, after its components, hidden; its eye shows it as a step', async () => {
+  it("is in a crystal structure's Other group, hidden; its eye shows it as a step", async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const row = unitCellRow(v)!;
     expect(row).toBeDefined();
@@ -28,9 +29,8 @@ describe('the unit cell row', () => {
     expect(row.description.value).toBe('P 21 21 21');
     expect(row.isHidden.value).toBe(true);
     expect(row.removable).toBe(false);
-    // After the components (the volume streaming row, when the entry has density, follows it).
-    const kids = v.views.scene.roots.value[0].children.value;
-    expect(kids.indexOf(row)).toBeGreaterThan(kids.findLastIndex((k) => k.kind === 'component'));
+    // First in the structure's Other group (the volume streaming row, when the entry has density, follows it).
+    expect(otherOf(v.views.scene.roots.value[0])[0]).toBe(row);
 
     const runs = recordRuns(v);
     row.toggleVisibility();

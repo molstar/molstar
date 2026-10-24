@@ -35,6 +35,7 @@ import type { ApiArea, ApiAreaContext, ApiModuleKey, OperationDefinition, Viewer
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNode, SceneNodeKind } from './model/scene.js';
 import type { SequenceBehavior } from './sequence/behaviors.js';
+import type { SequenceTrackProvider } from './sequence/tracks.js';
 import type { AgentListChange, OperationToolSpec, SkillDeclaration } from './agent/skills.js';
 
 // What a Prism viewer is made from (viewer-spec.md): plain data, explicit ordered lists, nothing resolved by name, a
@@ -107,10 +108,20 @@ export interface PrismViewerSequenceSpec {
    * bundled.
    */
   readonly runtime: () => Promise<typeof import('./sequence/runtime.js')>;
-  /** The viewer's sequence behaviors (follow, secondary structure); extensions add theirs. */
+  /** The viewer's sequence behaviors; extensions add theirs. */
   readonly behaviors: readonly SequenceBehavior[];
+  /**
+   * The viewer's track providers (sequence.md §3: ruler, letters, secondary structure); extensions add theirs. Absent:
+   * `DefaultSequenceTracks`.
+   */
+  readonly tracks?: readonly SequenceTrackProvider[];
   /** The initial style; Tracks by default. */
   readonly style?: 'tracks' | 'text';
+  /**
+   * Each structure's Sequence node in the structure tree (sequence.md §8.1); false: none (the band, its menu, the
+   * commands and the API stay; Edit in structure tree goes). True by default.
+   */
+  readonly tree?: boolean;
 }
 
 /** A sequence behavior: what keeps part of the sequence's document in step with what it shows (sequence.md §3). */
@@ -121,6 +132,8 @@ export type {
   SequenceShown,
   SequenceTrackMenuItem,
 } from './sequence/behaviors.js';
+/** A track provider: a track a structure's sequence can have, which the viewer puts in and takes out (sequence.md §3). */
+export type { SequenceTrackContext, SequenceTrackProvider } from './sequence/tracks.js';
 
 /** §2.4 */
 export interface PrismViewerAgentSpec {
@@ -288,7 +301,14 @@ export interface ViewerExtension {
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition<any>[];
   /** Its tools, in skills: never core tools, they are disclosed (agent.md §3). */
   readonly skills?: readonly ViewerSkill[];
-  readonly sequence?: readonly SequenceBehavior[];
+  /**
+   * What it adds to the sequence (sequence.md §3): track providers (the way to add sequence data: a track the person
+   * can add, remove and hide per structure) and behaviors (rules that follow the scene), ids `<id>.sequence.<name>`.
+   */
+  readonly sequence?: {
+    readonly tracks?: readonly SequenceTrackProvider[];
+    readonly behaviors?: readonly SequenceBehavior[];
+  };
   /** What it can show of a structure (`annotations.apply`; README decision 27). */
   readonly annotations?: readonly AnnotationProvider[];
   /** Its Settings group. */
@@ -329,6 +349,8 @@ export interface BuiltInViewsContext {
   readonly person: ViewerApi;
   /** Opens a command as the command menu does (its form, or runs it). */
   readonly openCommand: (id: string, values?: Readonly<Record<string, unknown>>) => void;
+  /** Each structure's sequence for the structure tree (sequence.md §8.1); none: the spec has no sequence. */
+  readonly sequence?: import('./model/scene.js').SceneSequence;
 }
 
 /** What a built-in feature's part of the shell gets: the shell, the viewer's core, and the shell's own services. */

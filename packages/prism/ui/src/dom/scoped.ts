@@ -200,17 +200,28 @@ export interface DragHandlers<S> {
 /**
  * A pointer drag on `target` (prism AGENTS.md, gestures; the scroll area's shape): its listeners attached once, with
  * the current scope (`on`: detached while it is paused, gone when it ends), acting only while a drag is on; the
- * pointer captured on the press, so the moves come to the target wherever the pointer goes. It follows only the
+ * pointer captured on the press, so the moves come to the target wherever the pointer goes. Chrome can drop the
+ * capture just before the release (`lostpointercapture` with no button held, its `pointerup` a moment later to the
+ * element under the pointer): a capture lost with no button held waits a moment for that release, read on the document
+ * (capture phase, attached once with the scope), which ends the drag as `up`; a press anywhere meanwhile, or no release,
+ * cancels it. Outside that wait the document's releases are not the drag's. It follows only the
  * pointer that started it (rendering.md §2.4): another finger's moves and releases are not its own, and its press
  * starts nothing while the first pointer still holds the capture. Every way a drag can end ends it: a release (`up`),
  * and as a cancel, `pointercancel`, the capture lost, a move with no button held (a release that never came), a new
  * press, the scope paused or ended. A press never attaches anything, so a lost release leaves nothing behind.
  */
+/** How long a capture lost with no button held waits for its release (Chrome's came 1 ms after it). */
+const LostReleaseMs = 100;
+
 export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly active: boolean; cancel(): void } {
   const scope = requireScope('drag');
   let state: S | undefined;
   let pointer = -1;
+  // The capture lost with no button held: the release that follows ends the drag; none after a moment, a cancel.
+  let lost: ReturnType<typeof setTimeout> | undefined;
   const finish = (how: 'up' | 'cancel', e?: PointerEvent) => {
+    if (lost !== undefined) clearTimeout(lost);
+    lost = undefined;
     if (state === undefined) return;
     const s = state;
     state = undefined;
@@ -243,7 +254,7 @@ export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly 
     }
   });
   on<PointerEvent>(target, 'pointermove', (e) => {
-    if (state === undefined || e.pointerId !== pointer) return;
+    if (state === undefined || e.pointerId !== pointer || lost !== undefined) return;
     // No button held: the release went missing; end here.
     if (e.buttons === 0 && e.pointerType !== 'touch') return finish('cancel', e);
     handlers.move?.(e, state);
@@ -251,11 +262,38 @@ export function drag<S>(target: Element, handlers: DragHandlers<S>): { readonly 
   on<PointerEvent>(target, 'pointerup', (e) => {
     if (e.pointerId === pointer) finish('up', e);
   });
+  // While a capture lost with no button held waits: its release, sent elsewhere in the page, is the drag's own pointer
+  // let go; a press is another gesture (the release never came).
+  const doc = target.ownerDocument;
+  if (doc) {
+    on<PointerEvent>(
+      doc,
+      'pointerup',
+      (e) => {
+        if (lost !== undefined && e.pointerId === pointer) finish('up', e);
+      },
+      { capture: true },
+    );
+    on<PointerEvent>(
+      doc,
+      'pointerdown',
+      (e) => {
+        if (lost !== undefined) finish('cancel', e);
+      },
+      { capture: true },
+    );
+  }
   on<PointerEvent>(target, 'pointercancel', (e) => {
     if (e.pointerId === pointer) finish('cancel', e);
   });
   on<PointerEvent>(target, 'lostpointercapture', (e) => {
-    if (e.pointerId === pointer) finish('cancel', e);
+    if (state === undefined || e.pointerId !== pointer) return;
+    // No button held: the release is coming (Chrome drops the capture just before it); a moment for it.
+    if (e.buttons === 0 && e.pointerType !== 'touch') {
+      lost ??= setTimeout(() => finish('cancel', e), LostReleaseMs);
+      return;
+    }
+    finish('cancel', e);
   });
   scope.onActive((active) => {
     if (!active) finish('cancel');

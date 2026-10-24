@@ -44,6 +44,28 @@ section); an entry leaves when it is done (its spec section says so then). The s
   elements), and examples as API checks (`react`, `alpha-orbitals`, `ligand-editor`): port, or leave them on the classic
   UI (`apps/`, `examples/`).
 
+- **Coloring a structure by data: two core color themes** (David, 2026-10-24; not decided, a sketch to think through).
+  Aim: any sequence track (an extension's included) offers "Color structure by this", and MVS's coloring shares the same
+  pieces. The palettes are already one implementation in core (`@molstar/core/util/color/value-palette.ts`, #2041).
+  - `data-values` (graphics): values from a source through a palette. Params: `source` (hidden `PD.Value`,
+    `{ name, params }`: a registered value source that recomputes the values, so Undo, snapshots and sessions keep only
+    the reference), `palette` (`ValuePaletteParam`), `granularity` (residue or atom), `background`, `tag`. Applicable
+    only where a registered source can give values; hidden from the pickers. Sources: computed from the structure
+    (hydropathy, B-factor), read from the file (pLDDT, MVS annotations), held by a loaded SVS document. A sequence track
+    whose layer is `values` or `ranges` with a `field_palette` would derive its menu entry from the layer (its data
+    mapped to residues by `StructureLink`, its palette translated), no extension code needed.
+  - `selector-colors` (graphics): few explicit selector → color items, inline. Params: `items` (hidden `PD.Value` of
+    `{ selector, color }`: a static part, a schema item or several, painted in order), `background`, `tag`. For "chain A
+    red", an SVS highlight, the agent's coloring; MVS's `color` nodes.
+  - `tag` (this theme only for now): hidden `PD.Value<{ owner, id?, label? } | undefined>` on the theme's params, never
+    read by the theme; provenance for the UI (which track's coloring is lit in the gutter, the legend's title, labels,
+    the session record, a coloring whose track is gone).
+  - Schema items and their matching to elements, now MVS's (`ComponentExpressionT`, `annotation-prop.ts`,
+    `element-painter.ts`), would move to `@molstar/model` (a stacked PR, as #2041), for `selector-colors`, an
+    MVS-annotation value source and MVS itself.
+  - Open: `items` hidden or editable (`PD.ObjectList`); `source` one value or a name and its params apart; the "what you
+    see" alternative (the band's resolved colors per residue) for layers whose color is not a palette over a field.
+
 ## Missing: the viewer
 
 - **The Bonds field follows the registry live** (David, 2026-10-20): the structure's "Bonds" field (`sources/scene.ts`,
@@ -51,6 +73,14 @@ section); an entry leaves when it is done (its spec section says so then). The s
   form is built. A provider added or removed while the inspector is open shows after the next pick. Needs a change event
   on the plugin's registries (none has one today); the representation and theme selects would follow from the same
   event.
+
+- **The Sequence node, open points** (2026-10-24, [sequence.md §3, §7.1, §8.1](viewer/_spec/sequence.md)): a provider
+  whose track Seq\* refuses is put in again by every build (each refused, the document left as it was): drop its `in`
+  after a refusal; hiding the band from the Sequence eye or No sequence first moves the band, then fades it (the top
+  dock's hide, not the eye's); version 3's hidden tracks are kept only when the followed structure was saved (none under
+  Auto): read them as every structure's instead?
+- **More sequence tracks from the structure** (David, 2026-10-24): B-factor (a Seq\* computed provider over atom values
+  in `viewer/src/sequence/molstar/`, none today), SIFTS coverage (`molstar:sifts_coverage`) as a provider.
 
 - **Split viewports** (David, 2026-10-17): one Prism instance hosting several plugin contexts side by side (one shell,
   command menu, history and assistant over several canvases): comparing structures or states, linked cameras and
@@ -95,12 +125,12 @@ section); an entry leaves when it is done (its spec section says so then). The s
 - Targets: `src/targets/` beside `@molstar/query-language`, so MolViewSpec and stories share it; a schema field for
   alternate locations (query text only today, [targets.md §5](viewer/_spec/targets.md)); SeqQL's `molstar.select` reads
   with Mol\*'s transpilers, not the viewer's target compiler (`viewer/src/sequence/molstar/query.ts`).
-- The sequence: follow and secondary structure as behaviors (still built in `viewer/src/sequence/document.ts`), with a
-  test of every built-in behavior together over a structure switch, a load and a clear; Seq\*'s own document history is
-  on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track menus offer only coloring and Hide track
-  (Show in 3D, results to `select.set`, hover-card actions: §5); a pLDDT tint of the letters in Text (§10); several
-  sequence views, focus-driven views and "Show sequence of…" (§3); Seq\*'s `trackLegends` for data-driven legends
-  (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
+- The sequence: a test of every built-in track provider and behavior together over a structure switch, a load and a
+  clear; Seq\*'s own document history is on under the viewer's ([sequence.md §7.3](viewer/_spec/sequence.md)); track
+  menus offer only coloring and Hide track (Show in 3D, results to `select.set`, hover-card actions: §5); a pLDDT tint
+  of the letters in Text (§10); several sequence views (several Sequence nodes lit at once, a section each in the band:
+  one `StructureLink` per complex, the band's height), focus-driven views (§3); Seq\*'s `trackLegends` for data-driven
+  legends (`viewer/src/sequence/legend.ts`); a third overlap color for marks (`viewer/src/sequence/link.ts`,
   [marks.md](viewer/_spec/marks.md)).
 - Embeddable parts: a viewport alone (canvas, hover label, toolbar) for mvs-stories and the docking viewer, and the
   island elements (`<msp-viewport>`, `<msp-sequence>`, `<msp-params-form>`, `<msp-snapshot-stepper>`;
@@ -193,6 +223,9 @@ The scan's reachable hits fixed and guarded are in `test:scaling` (AGENTS.md, bu
 
 ## Considered and deferred
 
+- **One file for the scene and its sequences** (David, 2026-10-24): MolViewSpec and SeqViewSpec together, each
+  structure's sequence (its tracks and chains, [sequence.md §7.1](viewer/_spec/sequence.md)) bound to its MVS node by
+  ref, not matched by address as `load.svs` does (§6). Later; until then the viewer loads one or the other.
 - `agent.skills` as a function of the defaults: `{ add, remove }` was chosen (data, composes by id, needs no import of
   the defaults; [viewer-spec.md §2.4](viewer/_spec/viewer-spec.md)).
 - Keys in `assistant(options)`: a page never passes a key; keys are the person's, typed into the Assistant tab

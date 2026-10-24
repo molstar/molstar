@@ -59,7 +59,7 @@ async function loadPredicted(v: PrismViewer) {
 /**
  * The predicted aligned error of a model (the model-archive extension's PAE card): AlphaFold DB's model of calmodulin
  * (P0DP23, 149 residues: two lobes on a flexible linker, so two confident blocks), loaded by its address, its PAE
- * fetched from AlphaFold DB as the structure row's "Fetch PAE from AlphaFold DB" does (`model-archive.fetch-pae`), the
+ * fetched from AlphaFold DB as the structure row's "Fetch PAE" does (`model-archive.fetch-pae`), the
  * PAE card open. Network.
  */
 export const Pae: StoryObj = {
