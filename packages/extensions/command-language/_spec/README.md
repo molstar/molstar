@@ -92,7 +92,8 @@ reverse. Representations are the people's words (`sticks`, `mesh`, `tube`); the 
   names no part for). Each part is plain MolQL on one structure. Why: exact, serializable, no MolQL extension.
 - **Named selections are inlined when used**: a name means what it selected when defined (its parts fixed to the objects
   there were: `fixedTo`; by object name, so an object deleted and loaded again under its name is in it). A name the
-  selection language reads as its own word (`b`, the B-factor; `chain`) is refused when defined.
+  selection language reads as its own word (`b`, the B-factor; `chain`; a name may start with one: `b2`) is refused when
+  defined.
 - **VMD selections are scoped to the command's molecule** (VMD's selections never name molecules).
 - **Names come from the env**: object names (the state's, else the entry, lowercased, deduplicated) and VMD molecule ids
   (never reused) for every loaded structure, the named selections, the top molecule.

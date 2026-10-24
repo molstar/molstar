@@ -32,12 +32,8 @@ function partFor(sel: Sel, scope: Scope): Expression {
 
 const sameObject = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-/**
- * Why a selection did not read, without the parser's internals. The transpilers' grammar recurses without end on some
- * text it cannot read (a property without its value: `chain`): said as what it most likely is.
- */
+/** Why a selection did not read: the transpiler's first line. */
 function messageOf(e: unknown): string {
-  if (e instanceof RangeError) return 'a word is missing or unknown (a property needs its value: chain A, resn HEM)';
   const m = e instanceof Error ? e.message : String(e);
   return m.split('\n')[0];
 }

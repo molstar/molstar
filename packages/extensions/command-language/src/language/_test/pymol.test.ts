@@ -237,16 +237,16 @@ describe('PyMOL scripts that run scripts', () => {
 
 describe('selection names', () => {
   it('takes names that read as themselves, and refuses those PyMOL’s words take', () => {
-    for (const name of ['lig', 'near', 'prot', 'site_1', 'pocket', 'my_sel']) ok(`select ${name}, resn HEM`);
-    for (const name of ['b', 'b2', 'chain', 'all'])
-      expect(errorOf(`select ${name}, resn HEM`).code, name).toBe('argument');
+    for (const name of ['lig', 'near', 'prot', 'site_1', 'pocket', 'my_sel', 'b2', 'both'])
+      ok(`select ${name}, resn HEM`);
+    for (const name of ['b', 'chain', 'all']) expect(errorOf(`select ${name}, resn HEM`).code, name).toBe('argument');
   });
 });
 
 describe('selections that do not read', () => {
-  it('says a word is missing where the grammar would overflow', () => {
+  it('says where, for unfinished text too', () => {
     const d = errorOf('show sticks, chain ');
     expect(d.code).toBe('selection');
-    expect(d.message).toContain('a word is missing');
+    expect(d.message).toContain('does not read as a PyMOL selection');
   });
 });
