@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from './column.js';
 
+/** `start` and `end` clamped to `[0, rowCount]`, with `end >= start` (`start === end`: no rows) */
 export function getArrayBounds(rowCount: number, params?: Column.ToArrayParams<any>) {
-  const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
-  const end = params && typeof params.end !== 'undefined' ? Math.min(params.end, rowCount) : rowCount;
+  const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount), 0) : 0;
+  const end = params && typeof params.end !== 'undefined' ? Math.max(Math.min(params.end, rowCount), start) : rowCount;
   return { start, end };
 }
 
