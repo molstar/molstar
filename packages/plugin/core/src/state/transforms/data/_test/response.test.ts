@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { StateTransformer } from '@molstar/core/state';
 import { RuntimeContext } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
@@ -293,5 +293,98 @@ describe('Data.ResponseBlob', () => {
     expect(e.kind).toBe('string');
     expect(`${e.data}`).toBe(Cif);
     plugin.dispose();
+  });
+});
+
+describe('sessions (.molx) through the asset manager', () => {
+  const gz = (text: string) => new Uint8Array(gzipSync(new TextEncoder().encode(text)));
+
+  /** The trajectories of a plugin: their source cell's type and atom count */
+  function trajectories(plugin: PluginContext) {
+    const out: { data: string; atoms: number }[] = [];
+    plugin.state.data.cells.forEach((cell) => {
+      if (!SO.Molecule.Trajectory.is(cell.obj)) return;
+      let ref = cell.transform.parent;
+      while (ref && !(plugin.state.data.cells.get(ref)?.obj instanceof SO.Data.Response)) {
+        ref = plugin.state.data.cells.get(ref)!.transform.parent;
+      }
+      out.push({
+        data: plugin.state.data.cells.get(ref)?.obj?.type.name ?? '',
+        atoms: cell.obj.data.representative.atomicHierarchy.atoms._rowCount,
+      });
+    });
+    return out;
+  }
+
+  async function roundTrip(load: (plugin: PluginContext) => Promise<void>) {
+    const plugin = await createPlugin();
+    await load(plugin);
+    const before = trajectories(plugin);
+    const session = await plugin.managers.snapshot.serialize({ type: 'zip', params: { camera: false } });
+    plugin.dispose();
+
+    const restored = await createPlugin();
+    await restored.managers.snapshot.open(new File([session], 'session.molx'));
+    const after = trajectories(restored);
+    restored.dispose();
+    return { before, after };
+  }
+
+  it('an opened file, a download and a gzipped download come back from a session, without the network', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const { before, after } = await roundTrip(async (plugin) => {
+      const file = Asset.File(new File([Cif], 'a.cif'));
+      const read = (await plugin.builders.data.readFile({ file })).data;
+      await plugin.builders.structure.parseTrajectory(read, 'mmcif');
+      for (const [url, bytes] of [
+        ['https://x.org/b.cif', new TextEncoder().encode(Cif)],
+        ['https://x.org/c.cif.gz', gz(Cif)],
+      ] as const) {
+        // held as a download would be: the session stores what the manager holds
+        const asset = Asset.Url(url);
+        plugin.managers.asset.set(asset, new File([bytes], 'raw-data'));
+        const data = await plugin.builders.data.download({ url: asset });
+        await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+      }
+    });
+    expect(before).toEqual([
+      { data: 'Response Data', atoms: 2 },
+      { data: 'Response Data', atoms: 2 },
+      { data: 'Response Data', atoms: 2 },
+    ]);
+    expect(after).toEqual(before);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('a session whose Download predates asResponse loads it as a response', async () => {
+    const { after } = await roundTrip(async (plugin) => {
+      const asset = Asset.Url('https://x.org/old.cif');
+      plugin.managers.asset.set(asset, new File([Cif], 'raw-data'));
+      // the params a session saved before this change: no asResponse, no decompress
+      const data = await plugin.build().toRoot().apply(Download, { url: asset, isBinary: false }).commit();
+      expect(data.cell!.obj).toBeInstanceOf(SO.Data.Response);
+      await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+    });
+    expect(after).toEqual([{ data: 'Response Data', atoms: 2 }]);
+  });
+
+  it('a real download (held by the URL cache, gzip without Content-Encoding) comes back from a session', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(gz(Cif)));
+    const plugin = await createPlugin();
+    const data = await plugin.builders.data.download({ url: 'https://x.org/d.cif.gz' });
+    await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const before = trajectories(plugin);
+    const session = await plugin.managers.snapshot.serialize({ type: 'zip', params: { camera: false } });
+    plugin.dispose();
+
+    fetchSpy.mockClear();
+    const restored = await createPlugin();
+    await restored.managers.snapshot.open(new File([session], 'session.molx'));
+    expect(trajectories(restored)).toEqual(before);
+    expect(before).toEqual([{ data: 'Response Data', atoms: 2 }]);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    restored.dispose();
+    fetchSpy.mockRestore();
   });
 });
