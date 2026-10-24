@@ -28,8 +28,8 @@ uses, the registry's entry types included), and every type a public signature na
 can name it; its internals are not exported, and tests reach them by path.
 
 **`@molstar/seq-core`**: platform-free; of other packages only Mol\*'s MessagePack codec (`@molstar/io`), zip,
-synchronous task context and the Needleman–Wunsch DP that `@molstar/model` shares (`@molstar/core`); Node's built-ins
-only in its CLIs and the tile server.
+synchronous task context, the Needleman–Wunsch DP that `@molstar/model` shares and the value palettes and colors that
+MVS's runtime evaluates too (`@molstar/core`); Node's built-ins only in its CLIs and the tile server.
 
 | Entry                           | Holds                                                                                          | Imports (of the core)                                   |
 | ------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
