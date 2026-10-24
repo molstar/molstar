@@ -979,8 +979,11 @@ class Viewer implements SequenceViewer {
 
   setStyle(style: SequenceStyle) {
     // Only the preset (and with it the render props) changes: one document serves both styles, so the link survives.
+    const from = this.styleState.value;
     this.styleState.set(style);
     for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(style));
+    // Back from Text, Tracks show the whole sequence: the text's scrolling and reveals moved the same viewport.
+    if (from === 'compact' && style === 'tracks') for (const s of this.sections) this.seq.viewports.get(s)?.fit({});
   }
 
   setRail(rail: TracksRail) {
