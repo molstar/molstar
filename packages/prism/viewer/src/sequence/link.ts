@@ -48,11 +48,12 @@ export function linkSequence(
   let shownNow: SequenceStructure | undefined;
   let stopViews: (() => void) | undefined;
   let lit: SequenceView3D | undefined;
-  const stop = () => {
+  /** `clear`: what the sequence hovered in 3D goes with the views; kept on a frame step, where the views start again. */
+  const stop = (clear = true) => {
     stopViews?.();
     stopViews = undefined;
-    // What the sequence hovered in 3D goes with the views (the 3D view also drops `hoverMapped`).
-    lit?.highlight(null);
+    // (the 3D view also drops `hoverMapped`)
+    if (clear) lit?.highlight(null);
     lit = undefined;
   };
   const drop = () => {
@@ -60,11 +61,11 @@ export function linkSequence(
     link?.detach();
     link = shownNow = undefined;
   };
-  /** The views over the link, for the 3D view of `structure` (the one shown, or a frame of it). */
-  const start = (structure: Structure, view: SequenceView3D) => {
+  /** The views over the link, for the 3D view of `structure` (the one shown, or a frame of it: no `replay`). */
+  const start = (structure: Structure, view: SequenceView3D, replay = true) => {
     if (!link) return;
     lit = view;
-    const stopLink = linkViews(seq, view, link, options);
+    const stopLink = linkViews(seq, view, link, options, replay);
     const stopMarks = options?.marks ? showMarks(seq, link, structure, options.marks) : undefined;
     const stopLabel = view.annotateHover ? annotateHover(seq, view.annotateHover) : undefined;
     // Whether the selection held something: the reset follows only the move that empties it, not an empty selection again.
@@ -100,13 +101,14 @@ export function linkSequence(
     start(structure, view);
   });
   // A frame step (sequence.md §2): the link follows the new Structure, its systems stay; only the views (which map 3D
-  // loci onto the structure drawn) start again.
+  // loci onto the structure drawn) start again, with no clear of the 3D hover and no replay of the selection, which 3D
+  // holds (a replay was a recorded `select.set` per step: perf-audit-2 10/B6).
   const frames = viewer.frame.subscribe((structure) => {
     if (!link || !shownNow || !structure || structure === link.structure) return;
     const view = view3d(structure);
     if (!view || !link.rebind(structure)) return;
-    stop();
-    start(structure, view);
+    stop(false);
+    start(structure, view, false);
   });
   return () => {
     sub.unsubscribe();

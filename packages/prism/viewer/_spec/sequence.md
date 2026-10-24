@@ -40,7 +40,8 @@ The code is the truth for how.
 - **A frame keeps the document.** A trajectory step or the model-index animation makes a new `Structure` of the same
   atoms (unit ids, element indices and model hierarchies equal, same trajectory): it keeps the key, so no document is
   made and the band does not empty. Only `SequenceViewer.frame` changes; the link rebinds `StructureLink` to it (its
-  systems, maps by unit id and chains stay) and starts its views again, as the 3D view's loci are of the frame drawn.
+  systems, maps by unit id and chains stay) and starts its views again, as the 3D view's loci are of the frame drawn:
+  with no clear of the 3D hover and no replay of the selection, which 3D holds (a replay is a recorded `select.set`).
   Tracks read from the structure (B-factors, secondary structure) stay those of the frame the document was made for. A
   structure of other atoms (another assembly, a model with another hierarchy) is a new key. On 20 steps of a 10-model
   11.5k-atom ensemble: 40 structure changes and 168 system registrations → 0 (measured, headless).
