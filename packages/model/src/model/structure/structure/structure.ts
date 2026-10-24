@@ -589,12 +589,17 @@ function getEntityIndices(structure: Structure): ReadonlyArray<EntityIndex> {
   const keys = UniqueArray.create<number, EntityIndex>();
 
   for (const unit of units) {
-    const prop = unit.kind === Unit.Kind.Atomic ? StructureProperties.entity.key : StructureProperties.coarse.entityKey;
+    const isAtomic = Unit.isAtomic(unit);
+    const prop = isAtomic ? StructureProperties.entity.key : StructureProperties.coarse.entityKey;
 
     l.unit = unit;
     const elements = unit.elements;
 
-    const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
+    // a coarse unit's elements index its own chains, not the atomic ones (perf-audit-2 05/B2)
+    const chainSegments = isAtomic
+      ? unit.model.atomicHierarchy.chainAtomSegments
+      : unit.coarseElements.chainElementSegments;
+    const chainsIt = Segmentation.transientSegments(chainSegments, elements);
     while (chainsIt.hasNext) {
       const chainSegment = chainsIt.move();
       l.element = elements[chainSegment.start];
