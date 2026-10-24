@@ -44,6 +44,28 @@ section); an entry leaves when it is done (its spec section says so then). The s
   elements), and examples as API checks (`react`, `alpha-orbitals`, `ligand-editor`): port, or leave them on the classic
   UI (`apps/`, `examples/`).
 
+- **Coloring a structure by data: two core color themes** (David, 2026-10-24; not decided, a sketch to think through).
+  Aim: any sequence track (an extension's included) offers "Color structure by this", and MVS's coloring shares the same
+  pieces. The palettes are already one implementation in core (`@molstar/core/util/color/value-palette.ts`, #2041).
+  - `data-values` (graphics): values from a source through a palette. Params: `source` (hidden `PD.Value`,
+    `{ name, params }`: a registered value source that recomputes the values, so Undo, snapshots and sessions keep only
+    the reference), `palette` (`ValuePaletteParam`), `granularity` (residue or atom), `background`, `tag`. Applicable
+    only where a registered source can give values; hidden from the pickers. Sources: computed from the structure
+    (hydropathy, B-factor), read from the file (pLDDT, MVS annotations), held by a loaded SVS document. A sequence track
+    whose layer is `values` or `ranges` with a `field_palette` would derive its menu entry from the layer (its data
+    mapped to residues by `StructureLink`, its palette translated), no extension code needed.
+  - `selector-colors` (graphics): few explicit selector → color items, inline. Params: `items` (hidden `PD.Value` of
+    `{ selector, color }`: a static part, a schema item or several, painted in order), `background`, `tag`. For "chain A
+    red", an SVS highlight, the agent's coloring; MVS's `color` nodes.
+  - `tag` (this theme only for now): hidden `PD.Value<{ owner, id?, label? } | undefined>` on the theme's params, never
+    read by the theme; provenance for the UI (which track's coloring is lit in the gutter, the legend's title, labels,
+    the session record, a coloring whose track is gone).
+  - Schema items and their matching to elements, now MVS's (`ComponentExpressionT`, `annotation-prop.ts`,
+    `element-painter.ts`), would move to `@molstar/model` (a stacked PR, as #2041), for `selector-colors`, an
+    MVS-annotation value source and MVS itself.
+  - Open: `items` hidden or editable (`PD.ObjectList`); `source` one value or a name and its params apart; the "what you
+    see" alternative (the band's resolved colors per residue) for layers whose color is not a palette over a field.
+
 ## Missing: the viewer
 
 - **The Bonds field follows the registry live** (David, 2026-10-20): the structure's "Bonds" field (`sources/scene.ts`,
