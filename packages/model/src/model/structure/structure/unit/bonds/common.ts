@@ -685,6 +685,19 @@ export function getElementThreshold(i: number) {
   return r;
 }
 
+/**
+ * The largest `getPairingThreshold` of any element pair: the pair table, a known element with an unknown one (its own
+ * threshold), or two known ones (`(a + b) / 1.95`, largest for the two largest). A distance search for bonds need not
+ * reach further (perf-audit-2 05/P16). Computed with the same expressions, so it is exact.
+ */
+export const MaxPairingThreshold = (function () {
+  let maxElement = __DefaultBondingRadius;
+  for (const k of Object.keys(__ElementBondThresholds)) maxElement = Math.max(maxElement, __ElementBondThresholds[+k]!);
+  let maxPair = 0;
+  for (const k of Object.keys(__ElementPairThresholds)) maxPair = Math.max(maxPair, __ElementPairThresholds[+k]!);
+  return Math.max(maxPair, maxElement, (maxElement + maxElement) / 1.95);
+})();
+
 export function getPairingThreshold(
   elementIndexA: number,
   elementIndexB: number,
