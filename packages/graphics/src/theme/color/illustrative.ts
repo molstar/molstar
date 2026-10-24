@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
@@ -75,9 +76,17 @@ export function IllustrativeColorTheme(
 ): ColorTheme<IllustrativeColorThemeParams> {
   const { color: styleColor, legend, contextHash } = getStyleTheme(ctx, props.style);
 
+  // a style has few colors: lighten each once, not per carbon (perf-audit-2 09/P4)
+  const lightened = new Map<Color, Color>();
   function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
     const baseColor = styleColor(location, false);
-    return typeSymbol === 'C' ? Color.lighten(baseColor, props.carbonLightness) : baseColor;
+    if (typeSymbol !== 'C') return baseColor;
+    let c = lightened.get(baseColor);
+    if (c === undefined) {
+      c = Color.lighten(baseColor, props.carbonLightness);
+      lightened.set(baseColor, c);
+    }
+    return c;
   }
 
   function color(location: Location): Color {
