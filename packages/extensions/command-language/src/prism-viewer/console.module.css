@@ -172,7 +172,8 @@
   justify-self: start;
   max-width: 100%;
   padding: var(--msp-space-1) var(--msp-space-2);
-  border-radius: var(--msp-radius-sm);
+  /* The entry's own radius: at 2px a well this size reads as square. */
+  border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
   color: var(--msp-color-text);
   font-family: var(--msp-font-mono);

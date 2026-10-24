@@ -220,7 +220,7 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
 .msp-command-language-console-value {
   max-width: 100%;
   padding: var(--msp-space-1) var(--msp-space-2);
-  border-radius: var(--msp-radius-sm);
+  border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
   color: var(--msp-color-text);
   font-family: var(--msp-font-mono);
