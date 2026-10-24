@@ -367,12 +367,12 @@ describe('the PAE card', () => {
     await until(() => v.sources.marks.marks.value.length === 0);
     expect(host.textContent).not.toContain('Mean error');
 
-    // A drag whose release comes first as a move with no button held (a trackpad's lift) keeps its box: after the ✕,
-    // with no box to go back to, it is the one drawn.
+    // A drag whose release Chrome sends elsewhere in the page (not to the plot holding the capture), then the capture
+    // lost: the release is the document's, and the box drawn stays (after the ✕ there is none to go back to).
     pointer('pointerdown', 50, 50);
     pointer('pointermove', 250, 350);
-    plot.dispatchEvent(new MouseEvent('pointermove', { clientX: 250, clientY: 350, buttons: 0, bubbles: true }));
-    pointer('pointerup', 250, 350);
+    document.body.dispatchEvent(new MouseEvent('pointerup', { clientX: 250, clientY: 350, button: 0, bubbles: true }));
+    plot.dispatchEvent(new MouseEvent('lostpointercapture', { clientX: 250, clientY: 350, bubbles: true }));
     await until(() => v.sources.marks.marks.value.length === 2);
     expect(host.textContent).toContain('Mean error 3.3 Å');
     expect(corner.style.display).toBe('grid');

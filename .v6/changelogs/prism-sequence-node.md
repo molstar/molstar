@@ -40,5 +40,6 @@
   (Automatic, Model, DSSP), by a patch of its data, not a new document.
 - Seq\*: a tooltip that would leave the viewer below stays beside the pointer, as low as the viewer holds it, instead
   of flipping up over the ruler (a header's legend still goes above its line).
-- model-archive: a box drawn on the PAE plot stays when the release comes as a move with no button held (a trackpad's
-  lift) before its `pointerup`; it used to vanish when there was no box before it.
+- Prism: a drag whose capture Chrome drops just before its release (its `pointerup` a moment later, elsewhere in the
+  page) ends as the release, not as a cancel: a box drawn on the PAE plot no longer vanishes or goes back to the one
+  before it.

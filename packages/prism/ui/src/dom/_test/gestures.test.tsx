@@ -9,7 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { lostReleases, stubPointerCapture } from '../../testing/gestures.js';
 import { render } from '../render.js';
@@ -42,7 +42,8 @@ describe('drag (dom/scoped.ts)', () => {
     down();
     el.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }));
     down();
-    el.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true, pointerId: 1 }));
+    // The capture lost while the button is held: a cancel at once.
+    el.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true, buttons: 1, pointerId: 1 }));
     down();
     el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 0, pointerId: 1 }));
     down();
@@ -56,6 +57,57 @@ describe('drag (dom/scoped.ts)', () => {
       'cancel:pointerdown',
       'cancel:scope',
     ]);
+  });
+
+  it("waits a moment after a capture lost with no button held: Chrome's release can come just after it", () => {
+    vi.useFakeTimers();
+    const ends: string[] = [];
+    const box = document.createElement('div');
+    document.body.append(box);
+    let el!: HTMLElement;
+    const dispose = render(() => {
+      el = document.createElement('div');
+      el.append(document.createElement('canvas'));
+      drag(el, { start: () => ({}), end: (_s, how, e) => ends.push(`${how}:${e?.type ?? 'scope'}`) });
+      return el;
+    }, box);
+    const down = () => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 1 }));
+    const lost = () =>
+      el.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true, buttons: 0, pointerId: 1 }));
+    // The capture lost, then the release on a child (the order Chrome sometimes takes): the release ends it.
+    down();
+    lost();
+    expect(ends).toEqual([]);
+    el.firstElementChild!.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    expect(ends).toEqual(['up:pointerup']);
+    vi.advanceTimersByTime(1000);
+    expect(ends).toEqual(['up:pointerup']);
+    // No release after it: a cancel, a moment later.
+    down();
+    lost();
+    vi.advanceTimersByTime(1000);
+    expect(ends).toEqual(['up:pointerup', 'cancel:lostpointercapture']);
+    dispose();
+    vi.useRealTimers();
+  });
+
+  it('ends as a release when the release goes elsewhere in the page, then the capture is lost', () => {
+    const ends: string[] = [];
+    const box = document.createElement('div');
+    document.body.append(box);
+    let el!: HTMLElement;
+    const dispose = render(() => {
+      el = document.createElement('div');
+      drag(el, { start: () => ({}), end: (_s, how, e) => ends.push(`${how}:${e?.type ?? 'scope'}`) });
+      return el;
+    }, box);
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, buttons: 1, pointerId: 1 }));
+    // Another pointer's release elsewhere is not this drag's.
+    document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
+    document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    el.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true, pointerId: 1 }));
+    dispose();
+    expect(ends).toEqual(['up:pointerup']);
   });
 
   it('follows only the pointer that started it: a second finger neither moves, ends nor restarts it', () => {
