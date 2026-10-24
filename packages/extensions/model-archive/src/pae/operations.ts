@@ -419,6 +419,11 @@ export class ModelArchiveApi extends ApiArea {
     return !this.hasPae(ref) && (!!this.associatedPae(ref) || !!this.afdbEntry(ref));
   }
 
+  /** Where `model-archive.fetch-pae` would get a structure's PAE from (by state ref): the service's name, if anywhere. */
+  paeService(ref: string): 'Model Archive' | 'AlphaFold DB' | undefined {
+    return this.associatedPae(ref) ? 'Model Archive' : this.afdbEntry(ref) ? 'AlphaFold DB' : undefined;
+  }
+
   /**
    * A structure's PAE size (by state ref), for its row in the Structure panel; undefined when it has none. The matrix's
    * once it has been read; before, the model's polymer residues when its metric covers them all (counted from the

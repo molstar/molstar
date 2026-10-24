@@ -22,11 +22,12 @@ import { PaePlot } from './plot.js';
 // model as a heat map (plot.tsx), as AlphaFold DB draws it. The cell under the pointer is lit in the 3D view and the
 // sequence, a click selects its two residues, a box marks its aligned and scored ranges in both until cleared (marks.md);
 // all through the API as the person. The matrix comes from the `model-archive` area; the card opens from the toolbar
-// while a loaded model has a PAE, or by `model-archive.show-pae`; the plot is also a row under such a structure in the
-// Structure panel, which opens the card at it.
+// while a loaded model has a PAE, or by `model-archive.show-pae`. The PAE is also a row in the Structure panel under a
+// structure that has one or whose PAE can be fetched (as volume streaming's row): its click opens the card at it,
+// fetching the PAE first when it is not here yet.
 
 export const PaeCard = 'model-archive.overlay.pae';
-/** The PAE's row in the Structure panel, under a structure that has one. */
+/** The PAE's row in the Structure panel, under a structure that has one or can fetch it. */
 export const PaeRow = 'model-archive.row.pae';
 
 /** "149 residues · 2 chains": what the row says of a PAE (its size, not its matrix: the card reads that). */
@@ -128,23 +129,39 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
         }),
       },
     ],
-    // In the Structure panel too: a row under a structure that has a PAE; a click opens the card at it (a plot needs
-    // more room than the inspector has).
+    // In the Structure panel too: a row under a structure that has a PAE or can fetch one; a click opens the card at it
+    // (a plot needs more room than the inspector has), fetching the PAE first when it is not here yet.
     rows: [
       {
         id: PaeRow,
-        when: (node) => node.kind === 'structure' && area.hasPae(node.id),
+        when: (node) => node.kind === 'structure' && (area.hasPae(node.id) || area.canFetchPae(node.id)),
         // A fetched PAE is a state cell, not a change of the scene: the tree asks `when` again on the area's changes.
         whenChanged: changed,
         render: domView(({ ctx: view }) => {
           const structure = (view.subject as SceneNode).id;
+          const fetching = observableState(false);
+          const description = derive([changed, fetching.asReadonly], (_, busy) =>
+            area.hasPae(structure)
+              ? paeDescription(area.paeSize(structure))
+              : busy
+                ? 'Fetching…'
+                : `Not loaded · ${area.paeService(structure) ?? 'elsewhere'}`,
+          );
+          const open = () => {
+            chosen.set(structure);
+            void ctx.api.view.open({ card: PaeCard });
+          };
           return (
             <SceneRow
-              label="Predicted aligned error"
-              description={observableState(paeDescription(area.paeSize(structure))).asReadonly}
-              onOpen={() => {
-                chosen.set(structure);
-                void ctx.api.view.open({ card: PaeCard });
+              label="PAE"
+              description={description}
+              onOpen={async () => {
+                if (area.hasPae(structure)) return open();
+                if (fetching.value) return;
+                fetching.set(true);
+                const r = await ctx.api['model-archive']?.fetchPae({ structure });
+                fetching.set(false);
+                if (r?.ok) open();
               }}
             />
           );
