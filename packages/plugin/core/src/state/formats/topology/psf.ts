@@ -26,7 +26,7 @@ const ParsePsf = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse PSF', async (ctx) => {
-      const parsed = await parsePsf(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parsePsf(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Psf(parsed.result);
     });
