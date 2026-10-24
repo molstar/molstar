@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { type Jsonable, canonicalJsonString } from './json.js';
@@ -63,6 +64,26 @@ export function arrayRms(array: ArrayLike<number>) {
     sumSq += di * di;
   }
   return Math.sqrt(sumSq / n);
+}
+
+/**
+ * `arrayMin`, `arrayMax`, `arrayMean` and `arrayRms` in one pass, with the same arithmetic (and so the same results):
+ * volume readers need all four over grids of millions of values.
+ */
+export function arrayStats(array: ArrayLike<number>) {
+  let min = Infinity,
+    max = -Infinity,
+    sum = 0,
+    sumSq = 0;
+  const n = array.length;
+  for (let i = 0; i < n; ++i) {
+    const v = array[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+    sum += v;
+    sumSq += v * v;
+  }
+  return { min, max, mean: sum / n, rms: Math.sqrt(sumSq / n) };
 }
 
 /** Fill an array with serial numbers starting from 0 until n - 1 (defaults to array.length) */
