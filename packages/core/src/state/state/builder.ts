@@ -37,9 +37,12 @@ namespace StateBuilder {
     actions: Action[];
   }
 
+  /** The edits, replayed in order when the builder is rebased onto a newer tree */
   type Action =
     | { kind: 'add'; transform: StateTransform }
     | { kind: 'update'; ref: string; params: any }
+    | { kind: 'tags'; ref: string; tags: string[] | undefined }
+    | { kind: 'dependsOn'; ref: string; dependsOn: string[] | undefined }
     | { kind: 'delete'; ref: string }
     | { kind: 'insert'; ref: string; transform: StateTransform };
 
@@ -51,6 +54,8 @@ namespace StateBuilder {
           refs.add(a.transform.ref);
           break;
         case 'update':
+        case 'tags':
+        case 'dependsOn':
           refs.add(a.ref);
           break;
         case 'delete':
@@ -88,6 +93,12 @@ namespace StateBuilder {
           break;
         case 'update':
           tree.setParams(a.ref, a.params);
+          break;
+        case 'tags':
+          tree.setTags(a.ref, a.tags);
+          break;
+        case 'dependsOn':
+          tree.setDependsOn(a.ref, a.dependsOn);
           break;
         case 'delete':
           tree.remove(a.ref);
@@ -321,7 +332,14 @@ namespace StateBuilder {
       if (paramsChanged || tagsChanged) {
         this.editInfo.count++;
         this.editInfo.lastUpdate = this.ref;
-        this.state.actions.push({ kind: 'update', ref: this.ref, params });
+        // a rebase replays each as it is (perf-audit-2 03/B3)
+        if (paramsChanged) this.state.actions.push({ kind: 'update', ref: this.ref, params });
+        if (tagsChanged)
+          this.state.actions.push({
+            kind: 'tags',
+            ref: this.ref,
+            tags: this.state.tree.transforms.get(this.ref)!.tags,
+          });
       }
     }
 
@@ -382,7 +400,8 @@ namespace StateBuilder {
       if (this.state.tree.setDependsOn(this.ref, stringArrayUnion(transform.dependsOn, dependsOn))) {
         this.editInfo.count++;
         this.editInfo.lastUpdate = this.ref;
-        this.state.actions.push({ kind: 'update', ref: this.ref, params: transform.params });
+        const set = this.state.tree.transforms.get(this.ref)!.dependsOn;
+        this.state.actions.push({ kind: 'dependsOn', ref: this.ref, dependsOn: set });
       }
     }
 
