@@ -11,6 +11,7 @@ import { ReaderResult as Result } from '../result.js';
 import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { Column } from '@molstar/core/data/db';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
 
@@ -206,7 +207,7 @@ function parseTitle(state: State, count: number) {
   return title;
 }
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<PsfFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<PsfFile>> {
   const tokenizer = TextByteTokenizer(data);
   const state = State(tokenizer, ctx);
 
@@ -273,7 +274,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses a PSF file from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
-export function parsePsf(data: StringLike | Uint8Array) {
+export function parsePsf(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<PsfFile>>('Parse PSF', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });

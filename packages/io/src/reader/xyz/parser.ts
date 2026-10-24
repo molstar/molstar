@@ -11,6 +11,7 @@ import type { StringLike } from '@molstar/core/util/string-like';
 import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { TextByteTokenBuilder, TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 export interface XyzFile {
   readonly molecules: {
@@ -25,7 +26,7 @@ export interface XyzFile {
 
 /** The next space- or tab-separated field of the bytes `position` to `end`: its start, its end in `fieldEnd`. */
 let fieldEnd = 0;
-function nextField(data: Uint8Array, position: number, end: number) {
+function nextField(data: ReadonlyUint8Array, position: number, end: number) {
   while (position < end && (data[position] === 32 || data[position] === 9)) ++position;
   let e = position;
   while (e < end && data[e] !== 32 && data[e] !== 9) ++e;
@@ -34,7 +35,7 @@ function nextField(data: Uint8Array, position: number, end: number) {
 }
 
 /** A coordinate field as a number; a missing field is NaN (as `+undefined` was). */
-function coordinate(data: Uint8Array, start: number, end: number) {
+function coordinate(data: ReadonlyUint8Array, start: number, end: number) {
   return start === end ? NaN : parseFloatBytes(data, start, end);
 }
 
@@ -87,7 +88,7 @@ function handleMolecule(tokenizer: TextByteTokenizer): XyzFile['molecules'][numb
   };
 }
 
-function parseInternal(data: Uint8Array): Result<XyzFile> {
+function parseInternal(data: ReadonlyUint8Array): Result<XyzFile> {
   const tokenizer = TextByteTokenizer(data);
 
   const molecules: XyzFile['molecules'] = [];
@@ -102,7 +103,7 @@ function parseInternal(data: Uint8Array): Result<XyzFile> {
 }
 
 /** Parses XYZ from its text or its UTF-8 bytes (read, not modified). */
-export function parseXyz(data: StringLike | Uint8Array) {
+export function parseXyz(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<XyzFile>>('Parse Mol', async () => {
     return parseInternal(TextByteTokenizer.bytesOf(data));
   });

@@ -13,6 +13,7 @@ import type { StringLike } from '@molstar/core/util/string-like';
 import { TextByteTokenBuilder, TextByteTokenizer, type TextByteTokens } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
 import { DynamoTblSchema, type DynamoTblTable } from './schema.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 export type DynamoTblFieldName = keyof DynamoTblSchema;
 
@@ -70,7 +71,7 @@ const DynamoTblColumns: ReadonlyArray<{ readonly index: number; readonly name: D
   { index: 41, name: 'eig2' },
 ];
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext) {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext) {
   const tokenizer = TextByteTokenizer(data);
   const warnings: string[] = [];
   let skippedRows = 0;
@@ -189,7 +190,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext) {
 }
 
 /** Parses a Dynamo table from its text or its UTF-8 bytes (a string is encoded once). */
-export function parseDynamoTbl(data: StringLike | Uint8Array) {
+export function parseDynamoTbl(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<DynamoTblFile>>('Parse Dynamo TBL', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });

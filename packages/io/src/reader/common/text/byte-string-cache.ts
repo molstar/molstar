@@ -5,6 +5,7 @@
  */
 
 import { utf8ReadValue } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /** Slots of the cache, a power of 2 */
 const Size = 256;
@@ -54,7 +55,7 @@ export namespace ByteStringCache {
   export const MinRows = 64;
 
   /** `utf8ReadValue(data, s, l)` for `l <= MaxLength`, through the cache. */
-  export function read(cache: ByteStringCache, data: Uint8Array, s: number, l: number): string {
+  export function read(cache: ByteStringCache, data: ReadonlyUint8Array, s: number, l: number): string {
     if (cache.off) return utf8ReadValue(data, s, l);
     if (++cache.lookups === Trial) cache.off = cache.misses > (3 * Trial) / 4;
     if (l <= 4) {

@@ -17,6 +17,7 @@ import { TextByteTokenColumnProvider as TokenColumn } from '../../common/text/co
 import { Column } from '@molstar/core/data/db';
 import type { LammpsFrame, LammpsTrajectoryFile } from '../schema.js';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 const { readLine } = TextByteTokenizer;
 
@@ -168,7 +169,7 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
  * ylo_bound yhi_bound xz
  * zlo_bound zhi_bound yz
  */
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
   const tokenizer = TextByteTokenizer(data);
   const state = State(tokenizer, ctx);
   const f: LammpsTrajectoryFile = {
@@ -226,7 +227,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses a LAMMPS dump from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
-export function parseLammpsTrajectory(data: StringLike | Uint8Array) {
+export function parseLammpsTrajectory(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<LammpsTrajectoryFile>>('Parse Lammp Trajectory', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });

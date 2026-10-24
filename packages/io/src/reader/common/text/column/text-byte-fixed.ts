@@ -7,6 +7,7 @@
 import { Column, ColumnHelpers } from '@molstar/core/data/db';
 import { parseFloatBytes, parseIntBytes } from '@molstar/core/util/number-parser';
 import { trimBytesStr, type TextByteTokens } from '../text-byte-tokenizer.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /**
  * `FixedColumnProvider` (`fixed.ts`) over byte tokens of lines. Offsets and widths count bytes, which are the chars of
@@ -18,7 +19,7 @@ export function TextByteFixedColumnProvider(lines: TextByteTokens) {
   };
 }
 
-function skipSpaces(data: Uint8Array, start: number, end: number) {
+function skipSpaces(data: ReadonlyUint8Array, start: number, end: number) {
   while (start < end && data[start] === 32) start++;
   return start;
 }

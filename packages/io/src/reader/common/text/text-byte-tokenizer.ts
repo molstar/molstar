@@ -12,17 +12,20 @@
  * 2x faster than over a string (`.v6/designs/cif-parsing.md`; the CIF tokenizer is the byte tokenizer of its own).
  *
  * Offsets are byte offsets (Uint32 in the tokens): a text of 4 GiB or more is refused (`TextByteTokenizer.bytesOf`).
+ * The bytes are `ReadonlyUint8Array` (core `type-helpers`): a parser only reads them, so the plugin hands it a response's
+ * shared bytes without a copy (`SO.Data.readBytes`), and the types catch a write.
  */
 
 import type { RuntimeContext } from '@molstar/core/task/execution/runtime-context';
 import { chunkedSubtask } from '@molstar/core/task/util/chunked';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { utf8Encode, utf8ReadValue } from '@molstar/core/util/utf8';
+import { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 export { TextByteTokenizer };
 
 interface TextByteTokenizer {
-  data: Uint8Array;
+  data: ReadonlyUint8Array;
 
   position: number;
   length: number;
@@ -34,7 +37,7 @@ interface TextByteTokenizer {
 
 /** Ranges of the bytes of a text, a start and an end per token: `Tokens` over bytes. */
 export interface TextByteTokens {
-  data: Uint8Array;
+  data: ReadonlyUint8Array;
   count: number;
   indices: ArrayLike<number>;
 }
@@ -42,7 +45,7 @@ export interface TextByteTokens {
 /** The largest text the byte tokenizer reads: its offsets are Uint32. */
 const MaxLength = 0xffffffff;
 
-function TextByteTokenizer(data: Uint8Array): TextByteTokenizer {
+function TextByteTokenizer(data: ReadonlyUint8Array): TextByteTokenizer {
   TextByteTokenizer.checkLength(data);
   return {
     data,
@@ -56,7 +59,7 @@ function TextByteTokenizer(data: Uint8Array): TextByteTokenizer {
 
 namespace TextByteTokenizer {
   /** Throws for a text of 4 GiB or more: the offsets are Uint32 and would wrap around. */
-  export function checkLength(data: Uint8Array) {
+  export function checkLength(data: ReadonlyUint8Array) {
     if (data.length > MaxLength) throw new Error('Text of 4 GiB or more is not supported.');
   }
 
@@ -65,8 +68,8 @@ namespace TextByteTokenizer {
    * UTF-8 byte order mark (a view past it), as decoding to a string dropped it. A parser that takes either calls it once
    * at the start.
    */
-  export function bytesOf(data: StringLike | Uint8Array): Uint8Array {
-    let bytes = data instanceof Uint8Array ? data : utf8Encode(data);
+  export function bytesOf(data: StringLike | ReadonlyUint8Array): ReadonlyUint8Array {
+    let bytes = ReadonlyUint8Array.is(data) ? data : utf8Encode(data);
     if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) bytes = bytes.subarray(3);
     checkLength(bytes);
     return bytes;
@@ -194,7 +197,7 @@ namespace TextByteTokenizer {
     return lineTokens;
   }
 
-  export function readAllLines(data: Uint8Array) {
+  export function readAllLines(data: ReadonlyUint8Array) {
     const state = TextByteTokenizer(data);
     const tokens = TextByteTokenBuilder.create(state.data, Math.max(data.length / 80, 2));
     while (markLine(state)) {
@@ -213,7 +216,7 @@ namespace TextByteTokenizer {
     return read;
   }
 
-  export async function readAllLinesAsync(data: Uint8Array, ctx: RuntimeContext, chunkSize = 100000) {
+  export async function readAllLinesAsync(data: ReadonlyUint8Array, ctx: RuntimeContext, chunkSize = 100000) {
     const state = TextByteTokenizer(data);
     const tokens = TextByteTokenBuilder.create(state.data, Math.max(data.length / 80, 2));
 
@@ -319,7 +322,7 @@ namespace TextByteTokenizer {
 }
 
 /** The bytes `start` to `end` without the spaces and tabs around them, decoded: `trimStr` over bytes. */
-export function trimBytesStr(data: Uint8Array, start: number, end: number) {
+export function trimBytesStr(data: ReadonlyUint8Array, start: number, end: number) {
   let s = start,
     e = end - 1;
   let c = data[s];
@@ -364,7 +367,7 @@ export namespace TextByteTokenBuilder {
     tokens.count++;
   }
 
-  export function create(data: Uint8Array, size: number): TextByteTokens {
+  export function create(data: ReadonlyUint8Array, size: number): TextByteTokens {
     size = Math.max(10, size);
     return <Builder>{
       data,

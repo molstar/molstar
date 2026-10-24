@@ -13,6 +13,7 @@ import { ReaderResult as Result } from '../result.js';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { parseIntBytes } from '@molstar/core/util/number-parser';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 interface State {
   tokenizer: TextByteTokenizer;
@@ -152,7 +153,7 @@ function handleBoxVectors(state: State) {
 }
 
 /** The lengths of the runs of digits after each '.' in the bytes `start` to `end` (a run of at least one digit). */
-function decimalPlaces(data: Uint8Array, start: number, end: number) {
+function decimalPlaces(data: ReadonlyUint8Array, start: number, end: number) {
   const ret: number[] = [];
   for (let i = start; i < end; i++) {
     if (data[i] !== 46) continue;
@@ -164,7 +165,7 @@ function decimalPlaces(data: Uint8Array, start: number, end: number) {
   return ret;
 }
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
   const tokenizer = TextByteTokenizer(data);
 
   await ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -183,7 +184,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses GRO from its text or its UTF-8 bytes (read, not modified). */
-export function parseGRO(data: StringLike | Uint8Array) {
+export function parseGRO(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<Schema.GroFile>>('Parse GRO', async (ctx) => {
     try {
       return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);

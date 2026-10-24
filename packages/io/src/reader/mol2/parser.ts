@@ -19,6 +19,7 @@ import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { asciiStartsWith } from '@molstar/core/util/utf8';
 import type { Mol2Atoms, Mol2Bonds, Mol2File, Mol2Molecule, Mol2Structure, Mol2Substructure } from './schema.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 const { skipWhitespace, eatValue, markLine, getTokenString, skipStrictWhitespace } = Tokenizer;
 
@@ -376,7 +377,7 @@ function handleCrysin(state: State) {
   };
 }
 
-async function parseInternal(ctx: RuntimeContext, data: Uint8Array, name: string): Promise<Result<Mol2File>> {
+async function parseInternal(ctx: RuntimeContext, data: ReadonlyUint8Array, name: string): Promise<Result<Mol2File>> {
   const tokenizer = Tokenizer(data);
 
   ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -400,7 +401,7 @@ async function parseInternal(ctx: RuntimeContext, data: Uint8Array, name: string
 }
 
 /** Parses MOL2 from its text or its UTF-8 bytes (read, not modified). */
-export function parseMol2(data: StringLike | Uint8Array, name: string) {
+export function parseMol2(data: StringLike | ReadonlyUint8Array, name: string) {
   return Task.create<Result<Mol2File>>('Parse MOL2', async (ctx) => {
     return await parseInternal(ctx, Tokenizer.bytesOf(data), name);
   });

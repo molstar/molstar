@@ -12,8 +12,9 @@ import { areTextByteValuesEqualProvider } from '../common/text/column/text-byte-
 import type { TextByteTokens } from '../common/text/text-byte-tokenizer.js';
 import type { CsvColumn } from './data-model.js';
 import { ByteStringCache } from '../common/text/byte-string-cache.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
-function skipBlanks(data: Uint8Array, start: number, end: number) {
+function skipBlanks(data: ReadonlyUint8Array, start: number, end: number) {
   while (start < end && (data[start] === 32 || data[start] === 9)) start++;
   return start;
 }
@@ -69,7 +70,7 @@ export function CsvField(tokens: TextByteTokens, quote: number): CsvColumn {
 
 export namespace CsvField {
   /** The value at `start` to `end`: a range starting with the quote is a quoted value with a doubled quote. */
-  export function decode(data: Uint8Array, start: number, end: number, quote: number) {
+  export function decode(data: ReadonlyUint8Array, start: number, end: number, quote: number) {
     if (start < end && data[start] === quote) {
       const q = String.fromCharCode(quote);
       return utf8ReadValue(data, start + 1, end - start - 2).replaceAll(q + q, q);

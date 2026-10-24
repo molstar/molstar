@@ -20,6 +20,7 @@ import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/colum
 import { handleAtomsV3, handleBondsV3, handleCountsV3, isV3 } from './parser-v3-util.js';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { asciiStartsWith } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 & 79 */
 
@@ -131,7 +132,7 @@ function handleMolFile(tokenizer: Tokenizer) {
   };
 }
 
-function parseInternal(data: Uint8Array): Result<SdfFile> {
+function parseInternal(data: ReadonlyUint8Array): Result<SdfFile> {
   const tokenizer = Tokenizer(data);
 
   const compounds: SdfFile['compounds'] = [];
@@ -144,7 +145,7 @@ function parseInternal(data: Uint8Array): Result<SdfFile> {
 }
 
 /** Parses SDF from its text or its UTF-8 bytes (read, not modified). */
-export function parseSdf(data: StringLike | Uint8Array) {
+export function parseSdf(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<SdfFile>>('Parse Sdf', async () => {
     return parseInternal(Tokenizer.bytesOf(data));
   });

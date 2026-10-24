@@ -12,6 +12,7 @@ import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/colum
 import { Column, Table } from '@molstar/core/data/db';
 import type { Mutable } from '@molstar/core/util/type-helpers';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // https://manual.gromacs.org/2021-current/reference-manual/file-formats.html#top
 
@@ -258,7 +259,7 @@ function handleMolecules(state: State) {
   });
 }
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<TopFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<TopFile>> {
   const t = TextByteTokenizer(data);
   const state = State(t, ctx);
 
@@ -323,7 +324,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses a GROMACS topology from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
-export function parseTop(data: StringLike | Uint8Array) {
+export function parseTop(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<TopFile>>('Parse TOP', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });

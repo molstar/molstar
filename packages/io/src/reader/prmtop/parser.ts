@@ -16,6 +16,7 @@ import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/colum
 import { Column } from '@molstar/core/data/db';
 import type { Mutable } from '@molstar/core/util/type-helpers';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // http://ambermd.org/prmtop.pdf
 // https://ambermd.org/FileFormats.php#topology
@@ -140,7 +141,7 @@ function handleTokens(state: State, count: number, countPerLine: number, itemSiz
   return tokens;
 }
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
   const t = TextByteTokenizer(data);
   const state = State(t, ctx);
 
@@ -205,7 +206,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses an Amber topology from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
-export function parsePrmtop(data: StringLike | Uint8Array) {
+export function parsePrmtop(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<PrmtopFile>>('Parse PRMTOP', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });

@@ -13,6 +13,7 @@ import { Column } from '@molstar/core/data/db';
 import { TextByteTokenColumn } from '../common/text/column/text-byte-token.js';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { utf8ReadValue } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // TODO parse elements asynchronously
 // TODO handle lists with appended properties
@@ -21,7 +22,7 @@ type PlyFormat = 'ascii' | 'binary_little_endian' | 'binary_big_endian';
 
 interface State {
   /** The bytes of the file: an ASCII body is tokenized from them, a binary body read from them. */
-  data: Uint8Array;
+  data: ReadonlyUint8Array;
   tokenizer: TextByteTokenizer;
   runtimeCtx: RuntimeContext;
   format: PlyFormat;
@@ -35,7 +36,7 @@ interface State {
   elements: PlyElement[];
 }
 
-function State(data: Uint8Array, runtimeCtx: RuntimeContext): State {
+function State(data: ReadonlyUint8Array, runtimeCtx: RuntimeContext): State {
   const tokenizer = TextByteTokenizer(data);
   return {
     data,
@@ -447,7 +448,7 @@ function parseListElement(state: State, spec: ListElementSpec) {
   });
 }
 
-async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext): Promise<Result<PlyFile>> {
+async function parseInternal(data: StringLike | ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<PlyFile>> {
   const state = State(TextByteTokenizer.bytesOf(data), ctx);
   ctx.update({ message: 'Parsing...', current: 0, max: state.data.length });
   parseHeader(state);
@@ -461,7 +462,7 @@ async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext)
 const EndHeader = 'end_header';
 
 /** Returns the byte offset of the `end_header` record, at the start of a line. */
-function findEndHeader(data: Uint8Array): number {
+function findEndHeader(data: ReadonlyUint8Array): number {
   const target = [101, 110, 100, 95, 104, 101, 97, 100, 101, 114]; // 'end_header'
   const tlen = target.length;
   for (let i = 0; i <= data.length - tlen; i++) {
@@ -480,7 +481,7 @@ function findEndHeader(data: Uint8Array): number {
 }
 
 /** Parses a PLY file, ASCII or binary (by its header), from its bytes or its text (a string is encoded once). */
-export function parsePly(data: StringLike | Uint8Array) {
+export function parsePly(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<PlyFile>>('Parse PLY', async (ctx) => {
     return await parseInternal(data, ctx);
   });

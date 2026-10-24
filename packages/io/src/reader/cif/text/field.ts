@@ -9,6 +9,7 @@ import { parseFloatBytes, parseIntBytes } from '@molstar/core/util/number-parser
 import { utf8ReadValue } from '@molstar/core/util/utf8';
 import type { CifField } from '../data-model.js';
 import { ByteStringCache } from '../../common/text/byte-string-cache.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /**
  * The values of a text CIF loop (or of one value) as byte ranges of the file, field by field: a start per value (Uint32)
@@ -17,7 +18,7 @@ import { ByteStringCache } from '../../common/text/byte-string-cache.js';
  * are contiguous for its readers. Internal to the CIF text reader; other formats keep `Tokens`.
  */
 export interface ByteTokens {
-  readonly data: Uint8Array;
+  readonly data: ReadonlyUint8Array;
   readonly fieldCount: number;
   /** rows of room: the value of field `f` in row `r` is at `f * capacity + r` */
   capacity: number;
@@ -30,7 +31,7 @@ export interface ByteTokens {
 }
 
 export namespace ByteTokens {
-  export function create(data: Uint8Array, fieldCount: number, capacity: number): ByteTokens {
+  export function create(data: ReadonlyUint8Array, fieldCount: number, capacity: number): ByteTokens {
     capacity = Math.max(capacity, 1);
     return {
       data,

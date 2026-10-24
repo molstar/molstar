@@ -13,6 +13,7 @@ import type { StringLike } from '@molstar/core/util/string-like';
 import { TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
 import { parseIntBytes, parseFloatBytes } from '@molstar/core/util/number-parser';
 import { utf8ReadValue } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // OBJ file format specification: http://www.martinreddy.net/gfx/3d/OBJ.spec
 
@@ -35,7 +36,7 @@ interface State {
   warnings: string[];
 }
 
-function State(data: Uint8Array): State {
+function State(data: ReadonlyUint8Array): State {
   return {
     tokenizer: TextByteTokenizer(data),
     positions: ChunkedArray.create(Float32Array, 3, 1024),
@@ -290,7 +291,7 @@ function handleFace(state: State): void {
   skipLine(tokenizer);
 }
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<ObjFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<ObjFile>> {
   const state = State(data);
   const { tokenizer } = state;
   const updateChunk = 100000;
@@ -391,7 +392,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses an OBJ file from its text or its UTF-8 bytes (a string is encoded once). */
-export function parseObj(data: StringLike | Uint8Array) {
+export function parseObj(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<ObjFile>>('Parse OBJ', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });

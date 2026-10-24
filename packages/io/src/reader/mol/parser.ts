@@ -14,6 +14,7 @@ import {
   TextByteTokenizer as Tokenizer,
 } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /** Subset of the MolFile V2000 format */
 export interface MolFile {
@@ -241,7 +242,7 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): {
   return { formalCharges, attachmentPoints };
 }
 
-function parseInternal(data: Uint8Array): Result<MolFile> {
+function parseInternal(data: ReadonlyUint8Array): Result<MolFile> {
   const tokenizer = Tokenizer(data);
 
   const title = Tokenizer.readLine(tokenizer).trim();
@@ -268,7 +269,7 @@ function parseInternal(data: Uint8Array): Result<MolFile> {
 }
 
 /** Parses a MOL file from its text or its UTF-8 bytes (read, not modified). */
-export function parseMol(data: StringLike | Uint8Array) {
+export function parseMol(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<MolFile>>('Parse Mol', async () => {
     return parseInternal(Tokenizer.bytesOf(data));
   });

@@ -13,6 +13,7 @@ import type { StringLike } from '@molstar/core/util/string-like';
 import { parseFloatBytes } from '@molstar/core/util/number-parser';
 import { TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // http://apbs-pdb2pqr.readthedocs.io/en/latest/formats/opendx.html
 
@@ -98,7 +99,7 @@ function readValuesText(ctx: RuntimeContext, tokenizer: TextByteTokenizer, heade
   );
 }
 
-async function parseText(taskCtx: RuntimeContext, data: Uint8Array, name: string) {
+async function parseText(taskCtx: RuntimeContext, data: ReadonlyUint8Array, name: string) {
   await taskCtx.update('Reading header...');
   const tokenizer = TextByteTokenizer(data);
   const header = readHeader(tokenizer);
@@ -107,7 +108,7 @@ async function parseText(taskCtx: RuntimeContext, data: Uint8Array, name: string
   return Result.success({ header, values, name });
 }
 
-async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: string) {
+async function parseBinary(taskCtx: RuntimeContext, data: ReadonlyUint8Array, name: string) {
   await taskCtx.update('Reading header...');
 
   const tokenizer = TextByteTokenizer(data);
@@ -135,7 +136,7 @@ async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: stri
  * float64 values) from its bytes. `binary` defaults to whether `data` is bytes; a caller with the bytes of a text DX
  * passes `binary: false`.
  */
-export function parseDx(data: StringLike | Uint8Array, name: string, options?: { binary?: boolean }) {
+export function parseDx(data: StringLike | ReadonlyUint8Array, name: string, options?: { binary?: boolean }) {
   return Task.create<Result<DxFile>>('Parse DX', (taskCtx) => {
     const binary = options?.binary ?? data instanceof Uint8Array;
     const bytes = TextByteTokenizer.bytesOf(data);

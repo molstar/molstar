@@ -25,6 +25,7 @@ import { TextByteTokenBuilder, TextByteTokenizer, type TextByteTokens } from '..
 import { ReaderResult as Result } from '../result.js';
 import * as Data from './data-model.js';
 import { CsvField } from './field.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 interface CsvOptions {
   /** One ASCII char; `"` by default. */
@@ -47,7 +48,7 @@ class CsvError {
 }
 
 interface State {
-  data: Uint8Array;
+  data: ReadonlyUint8Array;
   length: number;
   position: number;
   lineNumber: number;
@@ -68,7 +69,7 @@ function asciiCode(char: string, name: string) {
   return c;
 }
 
-function State(data: Uint8Array, opts: CsvOptions): State {
+function State(data: ReadonlyUint8Array, opts: CsvOptions): State {
   const quote = asciiCode(opts.quote, 'quote');
   const delimiter = asciiCode(opts.delimiter, 'delimiter');
   const comment = opts.comment ? asciiCode(opts.comment, 'comment') : -1;
@@ -220,7 +221,11 @@ function readRecordsChunk(chunkSize: number, ctx: { state: State; columns: TextB
   return read;
 }
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext, opts: CsvOptions): Promise<Result<Data.CsvFile>> {
+async function parseInternal(
+  data: ReadonlyUint8Array,
+  ctx: RuntimeContext,
+  opts: CsvOptions,
+): Promise<Result<Data.CsvFile>> {
   const state = State(data, opts);
   ctx.update({ message: 'Parsing...', current: 0, max: data.length });
 
@@ -259,7 +264,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext, opts: CsvOpt
 }
 
 /** Parses CSV from its UTF-8 bytes, or from a string, encoded to them first. */
-export function parseCsv(data: StringLike | Uint8Array, opts?: Partial<CsvOptions>) {
+export function parseCsv(data: StringLike | ReadonlyUint8Array, opts?: Partial<CsvOptions>) {
   const completeOpts = { ...DefaultOptions, ...opts };
   return Task.create<Result<Data.CsvFile>>('Parse CSV', async (ctx) => {
     try {

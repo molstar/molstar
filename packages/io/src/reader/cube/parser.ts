@@ -14,6 +14,7 @@ import { Task, chunkedSubtask, type RuntimeContext } from '@molstar/core/task';
 import { ReaderResult as Result } from '../result.js';
 import { parseFloatBytes } from '@molstar/core/util/number-parser';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html
 
@@ -155,7 +156,7 @@ function readValues(ctx: RuntimeContext, tokenizer: TextByteTokenizer, header: C
 }
 
 /** Parses a Cube file from its text or its UTF-8 bytes (a string is encoded once). */
-export function parseCube(data: StringLike | Uint8Array, name: string) {
+export function parseCube(data: StringLike | ReadonlyUint8Array, name: string) {
   return Task.create<Result<CubeFile>>('Parse Cube', async (taskCtx) => {
     await taskCtx.update('Reading header...');
     const tokenizer = TextByteTokenizer(TextByteTokenizer.bytesOf(data));

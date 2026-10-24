@@ -14,11 +14,12 @@ import { TextByteTokenColumnProvider as TokenColumn } from '../../common/text/co
 import { Column } from '@molstar/core/data/db';
 import type { LammpsDataFile } from '../schema.js';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 const { skipWhitespace, eatValue, eatLine, markStart, markLine, getTokenString, skipStrictWhitespace } =
   TextByteTokenizer;
 
-function hasLetter(data: Uint8Array, start: number, end: number) {
+function hasLetter(data: ReadonlyUint8Array, start: number, end: number) {
   for (let i = start; i < end; ++i) {
     const c = data[i] | 32; // lower case for letters
     if (c >= 97 && c <= 122) return true;
@@ -218,7 +219,7 @@ async function handleMasses(state: State, count: number): Promise<NonNullable<La
 const AtomStyles = ['full', 'atomic', 'bond', 'molecular'] as const;
 type AtomStyle = (typeof AtomStyles)[number];
 
-async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
   const tokenizer = TextByteTokenizer(data);
   const state = State(tokenizer, ctx);
 
@@ -319,7 +320,7 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 }
 
 /** Parses a LAMMPS data file from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
-export function parseLammpsData(data: StringLike | Uint8Array) {
+export function parseLammpsData(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<LammpsDataFile>>('Parse LammpsData', async (ctx) => {
     return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
