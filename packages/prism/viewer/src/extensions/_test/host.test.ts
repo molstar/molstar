@@ -250,3 +250,29 @@ describe('extensions mounted at runtime (viewer-spec.md §3)', () => {
     expect(v.extensions.loaded.value).not.toContain('echo');
   });
 });
+
+describe("extensions' command-menu prefixes", () => {
+  const prefixed = (id: string, char: string): ViewerExtension => ({
+    id,
+    title: id,
+    commandPrefixes: ({ api }) => [
+      { char, title: `${id} words`, items: (text) => [{ id: `${id}:${text}`, label: text, run: () => void api }] },
+    ],
+  });
+
+  it('lists an extension’s prefixes while it is mounted, and none after', async () => {
+    const v = await headlessViewer();
+    const unmount = await v.extensions.mount(prefixed('echo', 'echo '));
+    expect(v.extensions.prefixes.value.map((p) => p.char)).toEqual(['echo ']);
+    expect(v.extensions.prefixes.value[0].items('hi').map((i) => i.label)).toEqual(['hi']);
+    await unmount();
+    expect(v.extensions.prefixes.value).toEqual([]);
+  });
+
+  it('refuses a second extension with a prefix another has, and keeps nothing of it', async () => {
+    const v = await headlessViewer({ extensions: [prefixed('echo', 'say ')] });
+    await expect(v.extensions.mount(prefixed('other', 'say '))).rejects.toThrow(/prefix 'say ', which another has/);
+    expect(v.extensions.prefixes.value.map((p) => p.char)).toEqual(['say ']);
+    expect(v.extensions.loaded.value).not.toContain('other');
+  });
+});

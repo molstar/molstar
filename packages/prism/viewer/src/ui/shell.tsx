@@ -578,7 +578,12 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     const port = extensionUIPort(
       shell,
       managers.commands,
-      { api: person, sources, managers },
+      {
+        api: person,
+        sources,
+        managers,
+        ...(core.spec.persist?.preferences ? { preferences: core.spec.persist.preferences } : {}),
+      },
       extraSelectionActions,
       'scene' in core.views ? core.views.scene.nodeActions : undefined,
     );
@@ -808,6 +813,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
                     {...(assistant ? { assistant } : {})}
                     group={commandMenuGroup.value}
                     direct={commandMenuDirect}
+                    prefixes={core.extensions.prefixes.value}
                     onClose={() => {
                       commandMenuOpen.set(false);
                       commandMenuGroup.set(undefined);

@@ -12,8 +12,8 @@ import type { CommandInvocation, InvocationState } from '../../commands/invocati
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
 import { fuzzyScore, matchPositions } from '../../commands/match.js';
-import type { CommandGroup, FormatCompletion } from '../../commands/types.js';
-import { Icon, type IconName } from '../../components/icon/icon.js';
+import type { CommandGroup, CommandMenuItem, CommandMenuPrefix, FormatCompletion } from '../../commands/types.js';
+import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { keepRows } from '../../components/virtual-list/virtual-list.js';
 import { For, Show } from '../../dom/control-flow.js';
@@ -123,27 +123,8 @@ function askItem(
   };
 }
 
-/** One thing a prefix offers (a scene node for `@`, a snapshot for `#`, …). */
-export interface CommandMenuItem {
-  id: string;
-  label: string;
-  detail?: string;
-  icon?: IconName;
-  /** Does it; return true to keep the menu open (it opened a command's form, or typed another prefix). */
-  run(): boolean | void;
-}
-
-/**
- * A prefix that turns the menu into another list: `@` goes to a scene node, `#` to a snapshot, `:` selects by residues
- * or an expression. The host provides them (it knows the scene); `?` (help) is built in.
- */
-export interface CommandMenuPrefix {
-  char: string;
-  title: string;
-  /** What to type after it. */
-  placeholder?: string;
-  items(text: string): readonly CommandMenuItem[];
-}
+// The prefixes' types are DOM-free (`commands/types.ts`): a host and its extensions make prefixes without the views.
+export type { CommandMenuItem, CommandMenuPrefix };
 
 /** A row of the list: a caption, a group to open, a command (or one of its ways in), or a prefix's item. */
 /** A row's identity across lists: what it shows and where. */
@@ -441,6 +422,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     if (row.kind === 'group') return enter(row.group.id);
     if (row.kind === 'item') {
       const keep = row.item.run();
+      // A completion: the menu's text becomes it, and the list follows (commands.md §5).
+      if (keep && typeof keep === 'object') return setText(keep.text);
       if (!keep && !manager.active.value) props.onClose();
       return;
     }

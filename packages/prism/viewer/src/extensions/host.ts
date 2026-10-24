@@ -7,7 +7,7 @@
  */
 
 import { type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
-import type { CommandDefinition } from '@molstar/prism-ui/core';
+import type { CommandDefinition, CommandMenuPrefix } from '@molstar/prism-ui/core';
 import { RuntimeContext } from '@molstar/core/task';
 import { ungzip } from '@molstar/core/util/zip/zip';
 import { type Observable, Subject } from 'rxjs';
@@ -28,6 +28,7 @@ import type {
   LazyOperationStub,
   LazyViewerExtension,
   LazyViewerExtensionStub,
+  PrismStore,
   PrismViewerPluginParts,
   SequenceBehavior,
   SequenceTrackProvider,
@@ -76,6 +77,8 @@ export interface ExtensionHostDeps {
   readonly overrides: Overrides;
   /** A task while a chunk loads (the status column). */
   readonly task: (label: string) => () => void;
+  /** The person's preferences, for the extensions' command-menu prefixes. */
+  readonly preferences?: PrismStore;
 }
 
 type Disposer = () => void | Promise<void>;
@@ -104,6 +107,7 @@ export class ExtensionHost {
   readonly #deps: ExtensionHostDeps;
   readonly #entries = new Map<string, Entry>();
   readonly #loaded = observableState<readonly string[]>([]);
+  readonly #prefixes = observableState<readonly CommandMenuPrefix[]>([]);
   readonly #activated = new Subject<string>();
   readonly #failed = new Subject<{ id: string; message: string }>();
   #port: ExtensionUIPort | undefined;
@@ -119,6 +123,11 @@ export class ExtensionHost {
   /** The extensions loaded (eager ones from the start), by id. */
   get loaded(): ReadonlyState<readonly string[]> {
     return this.#loaded.asReadonly;
+  }
+
+  /** The command-menu prefixes the active extensions add, in the extensions' order (`commandPrefixes`). */
+  get prefixes(): ReadonlyState<readonly CommandMenuPrefix[]> {
+    return this.#prefixes.asReadonly;
   }
 
   get events(): { activated: Observable<string>; failed: Observable<{ id: string; message: string }> } {
@@ -289,6 +298,12 @@ export class ExtensionHost {
       const commands = e.commands?.(person) ?? [];
       if (lazy) checkCommands(lazy, commands);
       if (commands.length) done.push(registerCommands(commands));
+      const prefixes =
+        e.commandPrefixes?.({
+          api: person,
+          ...(this.#deps.preferences ? { preferences: this.#deps.preferences } : {}),
+        }) ?? [];
+      if (prefixes.length) done.push(this.#addPrefixes(e.id, prefixes));
       // Its annotations, where the viewer has the `annotations` feature to offer them; without it they are not shown.
       const annotationsArea = e.annotations?.length ? annotations() : undefined;
       for (const a of annotationsArea ? (e.annotations ?? []) : []) done.push(annotationsArea!.register(a));
@@ -311,6 +326,16 @@ export class ExtensionHost {
       await runAll(done);
       throw error;
     }
+  }
+
+  /** An extension's command-menu prefixes, each `char` once in the viewer; returns their removal. */
+  #addPrefixes(owner: string, prefixes: readonly CommandMenuPrefix[]): () => void {
+    for (const p of prefixes) {
+      const taken = this.#prefixes.value.find((q) => q.char === p.char);
+      if (taken) throw new Error(`Extension '${owner}' adds the command-menu prefix '${p.char}', which another has`);
+    }
+    this.#prefixes.set([...this.#prefixes.value, ...prefixes]);
+    return () => this.#prefixes.set(this.#prefixes.value.filter((p) => !prefixes.includes(p)));
   }
 
   /** A lazy extension's stub: its operations, commands (its views come with the UI). */
