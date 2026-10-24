@@ -97,20 +97,52 @@ export function volumeFromSegmentationData(
       setBounds[k] = [xn1, yn1, zn1, -1, -1, -1];
     });
 
-    for (let i = 0, il = d.length; i < il; ++i) {
-      const v = d[i];
-      if (v === 0) continue;
-      const b = setBounds[v];
-      // a label with no set in `segmentation_data_table` (perf-audit-2 04/B13)
-      if (!b) continue;
+    const strides = Tensor.strides(t.space);
+    if (strides && strides.length === 3) {
+      // in memory order the coordinates are the loop indices: no `getCoords` per voxel (perf-audit-2 04/12/B1)
+      const [a0, a1, a2] = t.space.axisOrderSlowToFast;
+      const n0 = t.space.dimensions[a0],
+        n1 = t.space.dimensions[a1],
+        n2 = t.space.dimensions[a2];
+      const s0 = strides[a0],
+        s1 = strides[a1];
+      for (let c0 = 0; c0 < n0; ++c0) {
+        c[a0] = c0;
+        for (let c1 = 0; c1 < n1; ++c1) {
+          c[a1] = c1;
+          const o = c0 * s0 + c1 * s1;
+          for (let c2 = 0; c2 < n2; ++c2) {
+            const v = d[o + c2];
+            if (v === 0) continue;
+            const b = setBounds[v];
+            // a label with no set in `segmentation_data_table` (perf-audit-2 04/B13)
+            if (!b) continue;
+            c[a2] = c2;
+            if (c[0] < b[0]) b[0] = c[0];
+            if (c[1] < b[1]) b[1] = c[1];
+            if (c[2] < b[2]) b[2] = c[2];
+            if (c[0] > b[3]) b[3] = c[0];
+            if (c[1] > b[4]) b[4] = c[1];
+            if (c[2] > b[5]) b[5] = c[2];
+          }
+        }
+      }
+    } else {
+      for (let i = 0, il = d.length; i < il; ++i) {
+        const v = d[i];
+        if (v === 0) continue;
+        const b = setBounds[v];
+        // a label with no set in `segmentation_data_table` (perf-audit-2 04/B13)
+        if (!b) continue;
 
-      getCoords(i, c);
-      if (c[0] < b[0]) b[0] = c[0];
-      if (c[1] < b[1]) b[1] = c[1];
-      if (c[2] < b[2]) b[2] = c[2];
-      if (c[0] > b[3]) b[3] = c[0];
-      if (c[1] > b[4]) b[4] = c[1];
-      if (c[2] > b[5]) b[5] = c[2];
+        getCoords(i, c);
+        if (c[0] < b[0]) b[0] = c[0];
+        if (c[1] < b[1]) b[1] = c[1];
+        if (c[2] < b[2]) b[2] = c[2];
+        if (c[0] > b[3]) b[3] = c[0];
+        if (c[1] > b[4]) b[4] = c[1];
+        if (c[2] > b[5]) b[5] = c[2];
+      }
     }
 
     const bounds: { [k: Volume.SegmentIndex]: Box3D } = {};
