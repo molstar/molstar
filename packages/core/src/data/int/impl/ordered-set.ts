@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -316,16 +316,13 @@ function subtractIS(a: I, b: S) {
   // A is subset of B
   if (resultSize <= 0) return Empty;
 
+  // one pass over the interval and b's values inside it, not a binary search per value (perf-audit-2 01/P3)
   const ret = new Int32Array(resultSize);
-  const li = b.length - 1;
-  const fst = b[Math.min(start, li)],
-    last = b[Math.min(end, li)];
   let offset = 0;
-  for (let i = min; i < fst; i++) ret[offset++] = i;
-  for (let i = fst; i <= last; i++) {
-    if (S.indexOfInInterval(b, i, interval) < 0) ret[offset++] = i;
+  for (let i = min, j = start; i <= max; i++) {
+    if (j < end && b[j] === i) j++;
+    else ret[offset++] = i;
   }
-  for (let i = last + 1; i <= max; i++) ret[offset++] = i;
   return ofSortedArray(ret);
 }
 
@@ -354,7 +351,7 @@ export function forEachSegment(
     for (let i = I.min(set), _i = I.max(set); i <= _i; i++) {
       const s = segment(i);
       let endI = i + 1;
-      while (endI < _i && segment(endI) === s) endI++;
+      while (endI <= _i && segment(endI) === s) endI++;
       i = endI - 1;
       f(s, sI, ctx);
       sI++;

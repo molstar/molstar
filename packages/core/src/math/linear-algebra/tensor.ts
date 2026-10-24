@@ -376,7 +376,6 @@ export namespace Tensor {
       coords[ao[i]] = c % d;
       c = Math.floor(c / d);
     }
-    coords[ao[d + 1]] = c;
 
     return coords;
   }
@@ -491,7 +490,109 @@ export namespace Tensor {
     return visited;
   }
 
+  /**
+   * `floodfill3` for a space with strides: seeded from the six faces only, offsets by strides and coordinates carried
+   * on a typed stack, so no `dataOffset`/`getCoords` call per voxel and neighbour (perf-audit-2 02/12/F1). A voxel is
+   * marked when pushed, so each is pushed once. The same voxels are visited.
+   */
+  function floodfill3Strided(tensor: Tensor, threshold: number, strides: ReadonlyArray<number>): Uint8Array {
+    const [xn, yn, zn] = tensor.space.dimensions as Vec3;
+    const [sx, sy, sz] = strides;
+    const xn1 = xn - 1,
+      yn1 = yn - 1,
+      zn1 = zn - 1;
+    const { data } = tensor;
+    const visited = new Uint8Array(data.length);
+    // offset and x, y, z of each voxel to visit, grown by doubling
+    let stack = new Int32Array(4 * 1024);
+    let top = 0;
+
+    const fill = (x0: number, y0: number, z0: number) => {
+      const o0 = x0 * sx + y0 * sy + z0 * sz;
+      if (visited[o0] || !(data[o0] < threshold)) return;
+      visited[o0] = 1;
+      stack[0] = o0;
+      stack[1] = x0;
+      stack[2] = y0;
+      stack[3] = z0;
+      top = 4;
+      while (top > 0) {
+        top -= 4;
+        const o = stack[top],
+          x = stack[top + 1],
+          y = stack[top + 2],
+          z = stack[top + 3];
+        if (top + 24 > stack.length) {
+          const grown = new Int32Array(stack.length * 2);
+          grown.set(stack);
+          stack = grown;
+        }
+        let n: number;
+        if (x > 0 && !visited[(n = o - sx)] && data[n] < threshold) {
+          visited[n] = 1;
+          stack[top++] = n;
+          stack[top++] = x - 1;
+          stack[top++] = y;
+          stack[top++] = z;
+        }
+        if (x < xn1 && !visited[(n = o + sx)] && data[n] < threshold) {
+          visited[n] = 1;
+          stack[top++] = n;
+          stack[top++] = x + 1;
+          stack[top++] = y;
+          stack[top++] = z;
+        }
+        if (y > 0 && !visited[(n = o - sy)] && data[n] < threshold) {
+          visited[n] = 1;
+          stack[top++] = n;
+          stack[top++] = x;
+          stack[top++] = y - 1;
+          stack[top++] = z;
+        }
+        if (y < yn1 && !visited[(n = o + sy)] && data[n] < threshold) {
+          visited[n] = 1;
+          stack[top++] = n;
+          stack[top++] = x;
+          stack[top++] = y + 1;
+          stack[top++] = z;
+        }
+        if (z > 0 && !visited[(n = o - sz)] && data[n] < threshold) {
+          visited[n] = 1;
+          stack[top++] = n;
+          stack[top++] = x;
+          stack[top++] = y;
+          stack[top++] = z - 1;
+        }
+        if (z < zn1 && !visited[(n = o + sz)] && data[n] < threshold) {
+          visited[n] = 1;
+          stack[top++] = n;
+          stack[top++] = x;
+          stack[top++] = y;
+          stack[top++] = z + 1;
+        }
+      }
+    };
+
+    // the boundary voxels: the two z faces whole, then the y and x faces of the slices between
+    for (let z = 0; z < zn; z++) {
+      const zFace = z === 0 || z === zn1;
+      for (let y = 0; y < yn; y++) {
+        if (zFace || y === 0 || y === yn1) {
+          for (let x = 0; x < xn; x++) fill(x, y, z);
+        } else {
+          fill(0, y, z);
+          fill(xn1, y, z);
+        }
+      }
+    }
+
+    return visited;
+  }
+
   function floodfill3(tensor: Tensor, threshold: number): Uint8Array {
+    const strides = Tensor.strides(tensor.space);
+    if (strides) return floodfill3Strided(tensor, threshold, strides);
+
     const [xn, yn, zn] = tensor.space.dimensions as Vec3;
     const { dataOffset: o, getCoords } = tensor.space;
 

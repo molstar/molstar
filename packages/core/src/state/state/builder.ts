@@ -37,9 +37,14 @@ namespace StateBuilder {
     actions: Action[];
   }
 
+  /** The edits, replayed in order when the builder is rebased onto a newer tree */
   type Action =
     | { kind: 'add'; transform: StateTransform }
     | { kind: 'update'; ref: string; params: any }
+    /** the tags and `dependsOn` an edit added: a replay adds them to what the newer tree has */
+    | { kind: 'tags'; ref: string; tags: string[] }
+    | { kind: 'dependsOn'; ref: string; dependsOn: string[] }
+    | { kind: 'state'; ref: string; state: Partial<StateTransform.State> }
     | { kind: 'delete'; ref: string }
     | { kind: 'insert'; ref: string; transform: StateTransform };
 
@@ -51,6 +56,9 @@ namespace StateBuilder {
           refs.add(a.transform.ref);
           break;
         case 'update':
+        case 'tags':
+        case 'dependsOn':
+        case 'state':
           refs.add(a.ref);
           break;
         case 'delete':
@@ -88,6 +96,15 @@ namespace StateBuilder {
           break;
         case 'update':
           tree.setParams(a.ref, a.params);
+          break;
+        case 'tags':
+          tree.setTags(a.ref, stringArrayUnion(tree.transforms.get(a.ref).tags, a.tags));
+          break;
+        case 'dependsOn':
+          tree.setDependsOn(a.ref, stringArrayUnion(tree.transforms.get(a.ref).dependsOn, a.dependsOn));
+          break;
+        case 'state':
+          tree.assignState(a.ref, a.state);
           break;
         case 'delete':
           tree.remove(a.ref);
@@ -316,12 +333,18 @@ namespace StateBuilder {
 
     private updateTagged(params: any, tags: string | string[] | undefined) {
       // both, not `setParams(...) || setTags(...)`: changed params skipped the tags (perf-audit-2 03/B12)
+      const before = this.state.tree.transforms.get(this.ref)!.tags;
       const paramsChanged = this.state.tree.setParams(this.ref, params);
       const tagsChanged = this.state.tree.setTags(this.ref, tags);
       if (paramsChanged || tagsChanged) {
         this.editInfo.count++;
         this.editInfo.lastUpdate = this.ref;
-        this.state.actions.push({ kind: 'update', ref: this.ref, params });
+        // a rebase replays each as it is (perf-audit-2 03/B3)
+        if (paramsChanged) this.state.actions.push({ kind: 'update', ref: this.ref, params });
+        if (tagsChanged) {
+          const added = addedTo(before, this.state.tree.transforms.get(this.ref)!.tags);
+          if (added.length) this.state.actions.push({ kind: 'tags', ref: this.ref, tags: added });
+        }
       }
     }
 
@@ -361,11 +384,9 @@ namespace StateBuilder {
       const transform = this.state.tree.transforms.get(this.ref)!;
       if (StateTransform.isStateChange(transform.state, state)) {
         this.state.tree.assignState(this.ref, state);
-        this.editInfo.count++;
-        this.editInfo.lastUpdate = this.ref;
-        if (!this.state.actions.find((a) => a.kind === 'update' && a.ref === this.ref)) {
-          this.state.actions.push({ kind: 'update', ref: this.ref, params: transform.params });
-        }
+        // flags keep the version and evaluate nothing (tree.md, "State flags without versions"): not an edit for the
+        // fast track; a rebase replays the flags (perf-audit-2 03/B2, 03/B3)
+        this.state.actions.push({ kind: 'state', ref: this.ref, state: { ...state } });
       }
     }
 
@@ -382,7 +403,8 @@ namespace StateBuilder {
       if (this.state.tree.setDependsOn(this.ref, stringArrayUnion(transform.dependsOn, dependsOn))) {
         this.editInfo.count++;
         this.editInfo.lastUpdate = this.ref;
-        this.state.actions.push({ kind: 'update', ref: this.ref, params: transform.params });
+        const added = addedTo(transform.dependsOn, this.state.tree.transforms.get(this.ref)!.dependsOn);
+        this.state.actions.push({ kind: 'dependsOn', ref: this.ref, dependsOn: added });
       }
     }
 
@@ -420,6 +442,12 @@ namespace StateBuilder {
       }
     }
   }
+}
+
+/** The values of `after` not in `before` */
+function addedTo(before: readonly string[] | undefined, after: readonly string[] | undefined): string[] {
+  if (!after) return [];
+  return before ? after.filter((x) => !before.includes(x)) : [...after];
 }
 
 function stringArrayUnion(...arrays: (string[] | string | undefined)[]): string[] | undefined {

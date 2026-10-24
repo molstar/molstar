@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import type { Iterator as _Iterator } from '../iterator.js';
-import { Interval } from './interval.js';
 import { OrderedSet } from './ordered-set.js';
 import type { Segmentation } from './segmentation.js';
 import { SortedArray } from './sorted-array.js';
@@ -94,11 +94,28 @@ namespace SortedRanges {
     set: OrderedSet<T>,
     from: number,
   ): number {
-    if (minAt(ranges, from) > OrderedSet.max(set) || max(ranges) < OrderedSet.min(set)) return -1;
+    const setMin = OrderedSet.min(set),
+      setMax = OrderedSet.max(set);
+    if (minAt(ranges, from) > setMax || max(ranges) < setMin) return -1;
 
-    for (let i = from, il = count(ranges); i < il; ++i) {
-      const interval = Interval.ofRange(minAt(ranges, i), maxAt(ranges, i));
-      if (OrderedSet.areIntersecting(interval, set)) return i;
+    // the first range from `from` that ends at or after the set's min, by binary search: not a scan from `from`, an
+    // Interval per range (perf-audit-2 01/P7)
+    const il = count(ranges);
+    let lo = from,
+      hi = il;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (maxAt(ranges, mid) < setMin) lo = mid + 1;
+      else hi = mid;
+    }
+
+    const setSize = OrderedSet.size(set);
+    for (let i = lo; i < il; ++i) {
+      const rMin = minAt(ranges, i);
+      if (rMin > setMax) return -1;
+      // the set's first value at or after the range's min, if within the range
+      const idx = OrderedSet.findPredecessorIndex(set, rMin);
+      if (idx < setSize && OrderedSet.getAt(set, idx) <= maxAt(ranges, i)) return i;
     }
 
     return -1;

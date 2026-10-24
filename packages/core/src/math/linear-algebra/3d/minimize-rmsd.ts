@@ -57,8 +57,9 @@ export class RmsdTransformState {
   b: MinimizeRmsd.Positions;
   length: number;
 
-  centerA: Vec3;
-  centerB: Vec3;
+  /** Owned by the state: a caller's centres are copied in, never aliased (a reused state writes into these) */
+  centerA = Vec3();
+  centerB = Vec3();
 
   evdCache: EVD.Cache = EVD.createCache(4);
 
@@ -73,14 +74,18 @@ export class RmsdTransformState {
     this.b = data.b;
     this.length = data.length ?? data.a.x.length;
 
-    if (data.centerA) this.centerA = data.centerA;
-    else this.centerA = data.centerA = computeCenter(data.a, Vec3(), this.length);
-
-    if (data.centerB) this.centerB = data.centerB;
-    else this.centerB = data.centerB = computeCenter(data.b, Vec3(), this.length);
-
+    setCenters(this, data);
     this.result = into;
   }
+}
+
+/** Copies the input's centres into the state, or computes them there and gives the input a copy (later calls with the same input reuse it) */
+function setCenters(state: RmsdTransformState, data: MinimizeRmsd.Input) {
+  if (data.centerA) Vec3.copy(state.centerA, data.centerA);
+  else data.centerA = Vec3.clone(computeCenter(data.a, state.centerA, state.length));
+
+  if (data.centerB) Vec3.copy(state.centerB, data.centerB);
+  else data.centerB = Vec3.clone(computeCenter(data.b, state.centerB, state.length));
 }
 
 // evdCache, translateB, rotateB, tempMatrix are overwritten.
@@ -88,13 +93,7 @@ function resetRmsdState(state: RmsdTransformState, data: MinimizeRmsd.Input, int
   state.a = data.a;
   state.b = data.b;
   state.length = data.length ?? data.a.x.length;
-
-  if (data.centerA) state.centerA = data.centerA;
-  else data.centerA = computeCenter(data.a, state.centerA, state.length);
-
-  if (data.centerB) state.centerB = data.centerB;
-  else data.centerB = computeCenter(data.b, state.centerB, state.length);
-
+  setCenters(state, data);
   state.result = into;
 }
 

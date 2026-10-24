@@ -187,12 +187,28 @@ class TransientTree implements StateTree {
     this.moved(ref);
   }
 
+  /** Keeps `dependencies` in step with a node's `dependsOn` going from `from` to `to` */
+  private relinkDependencies(
+    ref: StateTransform.Ref,
+    from: readonly string[] | undefined,
+    to: readonly string[] | undefined,
+  ) {
+    if (from) {
+      for (const d of from) if (!to?.includes(d)) this.mutateDependency(d, ref, 'remove');
+    }
+    if (to) {
+      for (const d of to) if (!from?.includes(d)) this.mutateDependency(d, ref, 'add');
+    }
+  }
+
   add(transform: StateTransform) {
     const ref = transform.ref;
 
     if (this.transforms.has(transform.ref)) {
       const node = this.transforms.get(transform.ref);
       if (node.parent !== transform.parent) alreadyPresent(transform.ref);
+      // a replaced node keeps no dependency it no longer has (perf-audit-2 03/B4)
+      this.relinkDependencies(ref, node.dependsOn, transform.dependsOn);
     }
 
     const children = this.children.get(transform.parent);
@@ -269,6 +285,8 @@ class TransientTree implements StateTree {
     this.changeNodes();
 
     this.transforms.set(transform.ref, withDependsOn);
+    // deleting a new dependency cascades to this node (perf-audit-2 03/B4)
+    this.relinkDependencies(ref, transform.dependsOn, withDependsOn.dependsOn);
     this.edited(ref);
     return true;
   }

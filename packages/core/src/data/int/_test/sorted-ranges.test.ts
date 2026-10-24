@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { SortedRanges } from '../sorted-ranges.js';
 import { OrderedSet } from '../ordered-set.js';
 import { SortedArray } from '../sorted-array.js';
@@ -75,5 +76,42 @@ describe('rangesArray', () => {
     index: [0],
     start: [1],
     end: [2],
+  });
+});
+
+describe('firstIntersectionIndexFrom (perf-audit-2 01/P7)', () => {
+  it('finds the first intersecting range by search, as a scan does', () => {
+    let seed = 5;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let n = 0; n < 100; n++) {
+      const bounds: number[] = [];
+      for (let v = Math.floor(rnd() * 5), k = 0; k < 12; k++) {
+        const len = Math.floor(rnd() * 4);
+        bounds.push(v, v + len);
+        v += len + 1 + Math.floor(rnd() * 6);
+      }
+      const ranges = SortedRanges.ofSortedRanges(bounds);
+      const xs = Array.from(new Set(Array.from({ length: 6 }, () => Math.floor(rnd() * 80)))).sort((a, b) => a - b);
+      const set = OrderedSet.ofSortedArray(xs);
+      for (let from = 0; from < SortedRanges.count(ranges); from++) {
+        let expected = -1;
+        for (let i = from; i < SortedRanges.count(ranges) && expected < 0; i++) {
+          if (xs.some((x) => x >= bounds[2 * i] && x <= bounds[2 * i + 1])) expected = i;
+        }
+        expect(SortedRanges.firstIntersectionIndexFrom(ranges, set, from)).toBe(expected);
+      }
+    }
+  });
+
+  it('does not test the ranges before the set one by one', () => {
+    const bounds: number[] = [];
+    for (let i = 0; i < 1000; i++) bounds.push(10 * i, 10 * i + 4);
+    const ranges = SortedRanges.ofSortedRanges(bounds);
+    const intersect = vi.spyOn(OrderedSet, 'areIntersecting');
+    const find = vi.spyOn(OrderedSet, 'findPredecessorIndex');
+    expect(SortedRanges.firstIntersectionIndex(ranges, OrderedSet.ofSingleton(9002))).toBe(900);
+    expect(intersect.mock.calls.length + find.mock.calls.length).toBeLessThan(5);
+    intersect.mockRestore();
+    find.mockRestore();
   });
 });

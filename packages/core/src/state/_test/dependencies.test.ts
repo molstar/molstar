@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -11,6 +12,7 @@ import {
   StateObjectCell,
   StateTransform,
   StateTransformer,
+  StateTree,
   StateTreeCycleError,
 } from '../index.js';
 import { Task } from '@molstar/core/task';
@@ -263,6 +265,41 @@ describe('State dependencies - linking', () => {
     const cell = state.cells.get('self')!;
     expect(cell.dependencies.dependsOn.length).toBe(0);
     expect((cell.obj as Leaf).data.value).toBe(42);
+  });
+});
+
+describe('State dependencies - set later', () => {
+  it('a dependsOn added by the builder cascades a delete of the dependency (perf-audit-2 03/B4)', async () => {
+    const state = newState();
+    const A = constLeaf();
+    const B = constLeaf();
+    const b0 = state.build();
+    b0.toRoot<Root>().apply(A as any, { value: 1 }, { ref: 'a' });
+    b0.toRoot<Root>().apply(B as any, { value: 2 }, { ref: 'b' });
+    await state.runTask(state.updateTree(b0));
+
+    const b1 = state.build();
+    b1.to('b').dependsOn('a');
+    await state.runTask(state.updateTree(b1));
+    expect(state.tree.dependencies.get('a')?.toArray()).toEqual(['b']);
+
+    await state.runTask(state.updateTree(state.build().delete('a')));
+    expect(state.cells.has('a')).toBe(false);
+    expect(state.cells.has('b')).toBe(false);
+  });
+
+  it('a replaced dependsOn drops the old edge', () => {
+    const tree = StateTree.createEmpty().asTransient();
+    const a = StateTransform.create(StateTransform.RootRef, constLeaf(), { value: 1 }, { ref: 'a' });
+    const c = StateTransform.create(StateTransform.RootRef, constLeaf(), { value: 1 }, { ref: 'c' });
+    const b = StateTransform.create(StateTransform.RootRef, constLeaf(), { value: 1 }, { ref: 'b', dependsOn: ['a'] });
+    tree.add(a).add(c).add(b);
+    tree.setDependsOn('b', ['c']);
+    expect(tree.dependencies.get('a')?.toArray() ?? []).toEqual([]);
+    expect(tree.dependencies.get('c')?.toArray()).toEqual(['b']);
+    // deleting the old dependency leaves the node
+    expect(tree.remove('a').map((t) => t.ref)).toEqual(['a']);
+    expect(tree.transforms.has('b')).toBe(true);
   });
 });
 

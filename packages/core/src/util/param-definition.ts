@@ -6,7 +6,7 @@
  */
 
 import type { Color as ColorData } from './color/index.js';
-import { shallowEqualObjects } from './index.js';
+import { shallowEqualArrays, shallowEqualObjects } from './index.js';
 import { Vec2 as Vec2Data } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Vec3 as Vec3Data } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Mat4 as Mat4Data } from '@molstar/core/math/linear-algebra/3d/mat4';
@@ -18,7 +18,7 @@ import { getColorListFromName, type ColorListName } from './color/lists.js';
 import { Asset } from './assets.js';
 import type { ColorListEntry } from './color/color.js';
 import { EPSILON } from '@molstar/core/math/linear-algebra/3d/common';
-import { arraySetAdd } from './array.js';
+import { arrayEqual, arraySetAdd } from './array.js';
 
 export namespace ParamDefinition {
   export interface Info {
@@ -751,6 +751,11 @@ export namespace ParamDefinition {
         if (!areEqual(p.element, u[i], v[i])) return false;
       }
       return true;
+    } else if (Array.isArray(a) && Array.isArray(b)) {
+      // by index, not by the keys of two objects (perf-audit-2 01/P8)
+      return shallowEqualArrays(a, b);
+    } else if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
+      return arrayEqual(a as unknown as ArrayLike<number>, b as unknown as ArrayLike<number>);
     } else if (typeof a === 'object' && typeof b === 'object') {
       return shallowEqualObjects(a, b);
     }

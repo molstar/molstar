@@ -2,11 +2,13 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Color } from '../color.js';
 import { distinctColors, getDistinctBaseColors, getDistinctGroupColors } from '../distinct.js';
+import { Lab } from '../spaces/lab.js';
 
 describe('distinctColors', () => {
   it('returns no colors for non-positive counts', () => {
@@ -19,6 +21,21 @@ describe('distinctColors', () => {
 
     expect(colors).toHaveLength(4);
     expect(new Set(colors).size).toBe(4);
+  });
+});
+
+describe('distinctColors cache', () => {
+  it('computes a count and props once, and gives each caller its own list (perf-audit-2 01/P9)', () => {
+    const props = { clusteringStepCount: 2, sampleCountFactor: 3 };
+    const first = distinctColors(7, props);
+    const toColor = vi.spyOn(Lab, 'toColor');
+    const second = distinctColors(7, { ...props });
+    expect(toColor).not.toHaveBeenCalled();
+    toColor.mockRestore();
+    expect(second).toEqual(first);
+    second[0] = Color(0);
+    expect(distinctColors(7, props)).toEqual(first);
+    expect(distinctColors(6, props)).toHaveLength(6);
   });
 });
 

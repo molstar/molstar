@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { State, StateObject, StateTransform, StateTransformer, StateTree } from '../index.js';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -175,6 +175,91 @@ describe('state flags and outstanding builders', () => {
     state.updateCellState('a', { isHidden: true });
     await state.runTask(state.updateTree(y));
     expect(state.tree.transforms.get('a').state).toEqual({ isCollapsed: true, isHidden: true });
+  });
+});
+
+describe('flag carry cost', () => {
+  it('a commit visits only the refs written after its build() (perf-audit-2 03/P17)', async () => {
+    const refs = Array.from({ length: 300 }, (_, i) => `n${i}`);
+    const state = await withLeaves(...refs);
+    for (const r of refs) state.updateCellState(r, { isHidden: true });
+
+    const b = state.build();
+    state.updateCellState('n7', { isCollapsed: true });
+
+    const log = (state as unknown as { flagLog: Map<string, unknown> }).flagLog;
+    let iterated = 0,
+      read = 0;
+    const get = log.get.bind(log);
+    log.get = (k: string) => (read++, get(k));
+    (log as any)[Symbol.iterator] = function () {
+      iterated++;
+      return Map.prototype.entries.call(this);
+    };
+    await state.runTask(state.updateTree(b));
+    expect(iterated).toBe(0);
+    expect(read).toBe(1);
+    expect(state.tree.transforms.get('n7').state).toEqual({ isHidden: true, isCollapsed: true });
+    expect(treeHidden(state.tree, 'n100')).toBe(true);
+  });
+
+  it('carries the last value after many writes to a few refs (the write order is compacted)', async () => {
+    const state = await withLeaves('a', 'b');
+    const early = state.build();
+    let mid: ReturnType<State['build']> | undefined;
+    for (let i = 0; i < 301; i++) {
+      state.updateCellState('a', { isHidden: i % 2 === 0 });
+      if (i === 150) {
+        mid = state.build();
+        state.updateCellState('b', { isCollapsed: true });
+      }
+    }
+    await state.runTask(state.updateTree(early));
+    expect(state.tree.transforms.get('a').state.isHidden).toBe(true);
+    expect(state.tree.transforms.get('b').state.isCollapsed).toBe(true);
+    await state.runTask(state.updateTree(mid!));
+    expect(state.tree.transforms.get('a').state.isHidden).toBe(true);
+    expect(state.tree.transforms.get('b').state.isCollapsed).toBe(true);
+  });
+});
+
+describe('evaluated subtrees', () => {
+  it('are walked once to set their status and collect them (perf-audit-2 03/P4)', async () => {
+    const state = await withLeaves('a', 'b');
+    const walks = vi.spyOn(StateTree, 'doPreOrder');
+    try {
+      await state.runTask(state.updateTree(state.build().to('a').update({ value: 3 })));
+      // initCells (new cells) and initCellStatus; the scheduled set took a third walk
+      expect(walks.mock.calls.filter((c) => c[1].ref === 'a').length).toBe(2);
+    } finally {
+      walks.mockRestore();
+    }
+    expect(state.cells.get('a')!.obj!.data.value).toBe(3);
+  });
+});
+
+describe('builder updateState', () => {
+  it('evaluates nothing (perf-audit-2 03/B2)', async () => {
+    const state = await withLeaves('a');
+    const obj = state.cells.get('a')!.obj;
+    const b = state.build();
+    b.to('a').updateState({ isCollapsed: true });
+    expect(b.editInfo.count).toBe(0);
+    await state.runTask(state.updateTree(b));
+    expect(state.tree.transforms.get('a').state.isCollapsed).toBe(true);
+    // CreateLeaf recreates on update: the same object means no evaluation
+    expect(state.cells.get('a')!.obj).toBe(obj);
+  });
+
+  it('a rebased builder replays its flags (perf-audit-2 03/B3)', async () => {
+    const state = await withLeaves('a', 'b');
+    const b = state.build();
+    b.to('a').updateState({ isCollapsed: true });
+    b.to('b').update({ value: 1 });
+    await state.runTask(state.updateTree(state.build().toRoot().apply(CreateLeaf, { value: 2 }, { ref: 'c' })));
+    await state.runTask(state.updateTree(b));
+    expect(state.tree.transforms.get('a').state.isCollapsed).toBe(true);
+    expect(state.cells.get('b')!.obj!.data.value).toBe(1);
   });
 });
 

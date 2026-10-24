@@ -58,7 +58,8 @@ function throwError(err: string) {
   throw new Error(err);
 }
 
-function _utf8Read(data: ReadonlyUint8Array, offset: number, length: number) {
+/** The decoder used without `TextDecoder`; exported for its tests */
+export function _utf8Read(data: ReadonlyUint8Array, offset: number, length: number) {
   const chars = __chars;
   let str: string[] | undefined = void 0,
     chunkOffset = 0;
@@ -72,7 +73,8 @@ function _utf8Read(data: ReadonlyUint8Array, offset: number, length: number) {
       chunk[chunkOffset++] = chars[byte];
     } else if ((byte & 0xe0) === 0xc0) {
       // Two byte character
-      chunk[chunkOffset++] = chars[((byte & 0x0f) << 6) | (data[++i] & 0x3f)];
+      // up to U+07FF, past the 1024-entry table
+      chunk[chunkOffset++] = String.fromCharCode(((byte & 0x1f) << 6) | (data[++i] & 0x3f));
     } else if ((byte & 0xf0) === 0xe0) {
       // Three byte character
       chunk[chunkOffset++] = String.fromCharCode(
@@ -80,7 +82,8 @@ function _utf8Read(data: ReadonlyUint8Array, offset: number, length: number) {
       );
     } else if ((byte & 0xf8) === 0xf0) {
       // Four byte character
-      chunk[chunkOffset++] = String.fromCharCode(
+      // above U+FFFF: a surrogate pair
+      chunk[chunkOffset++] = String.fromCodePoint(
         ((byte & 0x07) << 18) | ((data[++i] & 0x3f) << 12) | ((data[++i] & 0x3f) << 6) | ((data[++i] & 0x3f) << 0),
       );
     } else throwError('Invalid byte ' + byte.toString(16));

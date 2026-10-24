@@ -5,7 +5,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { asciiIndexOf, asciiStartsWith, utf8ByteCount, utf8Read, utf8ReadValue, utf8Write } from '../utf8.js';
+import {
+  _utf8Read,
+  asciiIndexOf,
+  asciiStartsWith,
+  utf8ByteCount,
+  utf8Read,
+  utf8ReadValue,
+  utf8Write,
+} from '../utf8.js';
 
 function write(s: string) {
   const data = new Uint8Array(utf8ByteCount(s));
@@ -65,6 +73,18 @@ describe('utf8', () => {
     expect(utf8Read(data)).toBe('abc');
     expect(utf8ReadValue(data)).toBe(`${bom}abc`);
     expect(utf8ReadValue(new TextEncoder().encode(' é '), 1, 2)).toBe('é');
+  });
+});
+
+describe('utf8 fallback decoder', () => {
+  it('decodes 1- to 4-byte sequences as TextDecoder does (perf-audit-2 01/B15)', () => {
+    const text = 'a ß Ж שלום مرحبا 中文 😀 𝄞 end';
+    const bytes = new TextEncoder().encode(text);
+    expect(_utf8Read(bytes, 0, bytes.length)).toBe(text);
+    // across the 512-character chunks
+    const long = text.repeat(40);
+    const longBytes = new TextEncoder().encode(long);
+    expect(_utf8Read(longBytes, 0, longBytes.length)).toBe(long);
   });
 });
 

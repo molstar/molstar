@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Tensor as T } from '../tensor.js';
 import { Mat4 } from '../3d/mat4.js';
 
@@ -383,5 +383,43 @@ describe('tensor', () => {
     expect(T.strides(offset)).toBeUndefined();
     expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'inside').space)).toBeUndefined();
     expect(T.strides(T.createFloodfilled(T.create(space, data), 3, 'outside').space)).toBeUndefined();
+  });
+
+  it('getCoords of a rank-4 space writes its 4 coordinates only (perf-audit-2 02/12/B2)', () => {
+    const space = T.Space([2, 3, 4, 5], [3, 1, 0, 2]);
+    const coords: number[] = [];
+    for (const xyzw of [
+      [1, 2, 3, 4],
+      [0, 0, 0, 0],
+      [1, 0, 2, 3],
+    ]) {
+      space.getCoords(space.dataOffset(...xyzw), coords);
+      expect(coords).toEqual(xyzw);
+      expect(Object.keys(coords)).toEqual(['0', '1', '2', '3']);
+    }
+  });
+
+  it('floodfills a plain 3d space by strides, as through its accessors (perf-audit-2 02/12/F1)', () => {
+    let seed = 9;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const dims = [9, 7, 6];
+    for (const order of [
+      [0, 1, 2],
+      [2, 1, 0],
+      [1, 0, 2],
+    ]) {
+      const space = T.Space(dims, order, Float32Array);
+      const data = space.create();
+      // a closed shell with holes in places: inside reached only through the holes
+      for (let i = 0; i < data.length; i++) data[i] = rnd() < 0.35 ? 1 : 0;
+      const getCoords = vi.spyOn(space, 'getCoords');
+      const direct = T.floodfill(T.create(space, data), 0.5);
+      expect(getCoords).not.toHaveBeenCalled();
+      getCoords.mockRestore();
+      // a copied space has no strides: the accessor path
+      const viaAccessors = T.floodfill(T.create({ ...space }, data), 0.5);
+      expect(Array.from(direct)).toEqual(Array.from(viaAccessors));
+      expect(direct.some((v) => v === 0) && direct.some((v) => v === 1)).toBe(true);
+    }
   });
 });

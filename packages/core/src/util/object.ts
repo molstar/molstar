@@ -74,9 +74,29 @@ export function shallowMergeArray<T extends {}>(source: T, rest: (Partial<T> | u
   return ret;
 }
 
-/** Simple deep clone for number, boolean, string, null, undefined, object, array */
+/**
+ * Simple deep clone for number, boolean, string, null, undefined, object, array, typed array, Map and Set
+ * (a Map's keys are kept, its values cloned). Other class instances are copied as plain objects of their own keys.
+ */
 export function deepClone<T>(source: T): T {
   if (null === source || 'object' !== typeof source) return source;
+
+  // typed arrays keep their type (and DataView its bytes)
+  if (ArrayBuffer.isView(source)) {
+    if (source instanceof DataView)
+      return new DataView(source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength)) as any as T;
+    return (source as any).slice() as T;
+  }
+  if (source instanceof Map) {
+    const copy = new Map();
+    source.forEach((v, k) => copy.set(k, deepClone(v)));
+    return copy as any as T;
+  }
+  if (source instanceof Set) {
+    const copy = new Set();
+    source.forEach((v) => copy.add(deepClone(v)));
+    return copy as any as T;
+  }
 
   if (source instanceof Array) {
     const copy: any[] = [];

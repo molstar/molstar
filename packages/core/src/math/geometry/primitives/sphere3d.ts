@@ -64,6 +64,7 @@ namespace Sphere3D {
         out,
         a.extrema.map((e) => Vec3.clone(e)),
       );
+    else out.extrema = void 0;
     return out;
   }
 
@@ -242,6 +243,8 @@ namespace Sphere3D {
     out.radius = Math.max(sphere.radius, Vec3.distance(sphere.center, by.center) + by.radius);
     if (hasExtrema(sphere) && hasExtrema(by)) {
       setExtrema(out, [...sphere.extrema.map((e) => Vec3.clone(e)), ...by.extrema.map((e) => Vec3.clone(e))]);
+    } else {
+      out.extrema = void 0;
     }
     return out;
   }

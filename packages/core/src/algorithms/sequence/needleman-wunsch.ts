@@ -36,9 +36,10 @@ export interface GlobalAlignScoring {
    */
   readonly trailingGaps: 'penalized' | 'free';
   /**
-   * The source a gap state takes among equally good ones. `open`: opening from a pair, then extending, then opening
-   * from the other gap. `extend`: extending, then opening from a pair, then from the other gap. A pair's source is
-   * always a pair, then a gap in `b`, then a gap in `a`; so is the final state.
+   * The source a gap state takes among equally good ones. `open`: a gap in `b` opens from a pair, then extends, then
+   * opens from a gap in `a`; a gap in `a` opens from a pair, then from a gap in `b`, then extends (the old Seq* argmax,
+   * which the pinned results follow). `extend`: extending, then opening from a pair, then from the other gap. A pair's
+   * source is always a pair, then a gap in `b`, then a gap in `a`; so is the final state.
    */
   readonly gapTies: 'open' | 'extend';
   /**

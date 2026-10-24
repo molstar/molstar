@@ -26,6 +26,7 @@ import { AsyncQueue } from '@molstar/core/util/async-queue';
 import { arraySetAdd, arraySetRemove } from '@molstar/core/util/array';
 import { UniqueArray } from '@molstar/core/data/generic/unique-array';
 import { assignIfUndefined } from '@molstar/core/util/object';
+import { SortedArray } from '@molstar/core/data/int/sorted-array';
 
 export { State, StateTreeCycleError };
 
@@ -111,12 +112,40 @@ class State {
   private flagWrites = 0;
   private flagLog: FlagLog = new Map();
   private builderFlagMarks = new WeakMap<StateBuilder.EditInfo, number>();
+  /**
+   * The flag writes in order (write number, ref), so a commit visits only the refs written after its builder's mark,
+   * not every ref ever flagged (perf-audit-2 03/P17). Compacted to each ref's last write when it grows.
+   */
+  private flagWriteOrder: { n: number[]; refs: StateTransform.Ref[] } = { n: [], refs: [] };
+
+  private logFlagWrite(n: number, ref: StateTransform.Ref) {
+    const order = this.flagWriteOrder;
+    order.n.push(n);
+    order.refs.push(ref);
+    if (order.n.length > 2 * this.flagLog.size + 64) {
+      // a ref is written after a mark iff its last write is: keep the last write of each ref still logged
+      const last: [number, StateTransform.Ref][] = [];
+      for (const [r, writes] of this.flagLog) {
+        let m = 0;
+        for (const k of StateFlags) if (writes[k] && writes[k]!.n > m) m = writes[k]!.n;
+        last.push([m, r]);
+      }
+      last.sort((a, b) => a[0] - b[0]);
+      this.flagWriteOrder = { n: last.map((e) => e[0]), refs: last.map((e) => e[1]) };
+    }
+  }
 
   private carryFlagWrites(editInfo: StateBuilder.EditInfo, tree: TransientTree) {
     const mark = this.builderFlagMarks.get(editInfo) ?? 0;
     if (mark === this.flagWrites) return;
-    for (const [ref, writes] of this.flagLog) {
-      if (!tree.transforms.has(ref)) continue;
+    const order = this.flagWriteOrder;
+    const visited = new Set<StateTransform.Ref>();
+    for (let i = SortedArray.findPredecessorIndex(order.n as any as SortedArray, mark + 1); i < order.n.length; i++) {
+      const ref = order.refs[i];
+      if (visited.has(ref)) continue;
+      visited.add(ref);
+      const writes = this.flagLog.get(ref);
+      if (!writes || !tree.transforms.has(ref)) continue;
       const state = tree.transforms.get(ref).state;
       let update: Partial<StateTransform.State> | undefined;
       for (const k of StateFlags) {
@@ -226,6 +255,7 @@ class State {
       let writes = this.flagLog.get(ref);
       if (!writes) this.flagLog.set(ref, (writes = {}));
       for (const k of written!) writes[k] = { n, value: update![k] };
+      this.logFlagWrite(n, ref);
       this.events.cell.stateUpdated.next({ state: this, ref, cell });
     }
   }
@@ -718,13 +748,10 @@ async function update(ctx: UpdateContext) {
     }
   }
 
-  // Set status of cells that will be updated to 'pending'.
+  // Set status of cells that will be updated to 'pending', and collect the refs that will be (re-)evaluated this
+  // pass so that `updateSubtree` can distinguish "dep not produced yet" (defer + retry) from "dep can never be
+  // produced" (throw via resolveDependencies). One walk for both (perf-audit-2 03/P4).
   initCellStatus(ctx, roots);
-
-  // Build the set of refs that will be (re-)evaluated this pass so that
-  // `updateSubtree` can distinguish "dep not produced yet" (defer + retry)
-  // from "dep can never be produced" (throw via resolveDependencies).
-  ctx.scheduled = collectScheduled(ctx, roots);
 
   // Sequentially update all the subtrees.
   for (const root of roots) {
@@ -856,9 +883,11 @@ function initCellStatusVisitor(t: StateTransform, _: any, ctx: UpdateContext) {
     checkDependenciesCycle(cell);
   }
   setCellStatus(ctx, t.ref, 'pending');
+  ctx.scheduled!.add(t.ref);
 }
 
 function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
+  ctx.scheduled = new Set<Ref>();
   for (const root of roots) {
     StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), ctx, initCellStatusVisitor);
   }
@@ -1274,20 +1303,6 @@ type UpdateNodeResult =
   | { action: 'none' };
 
 const ParentNullErrorText = 'Parent is null';
-
-function collectScheduledVisitor(t: StateTransform, _: any, s: Set<Ref>) {
-  s.add(t.ref);
-}
-
-function collectScheduled(ctx: UpdateContext, roots: Ref[]): Set<Ref> {
-  const out = new Set<Ref>();
-  for (const root of roots) {
-    const node = ctx.tree.transforms.get(root);
-    if (!node) continue;
-    StateTree.doPreOrder(ctx.tree, node, out, collectScheduledVisitor);
-  }
-  return out;
-}
 
 /**
  * Refs that `cell` depends on which are scheduled for evaluation in this
