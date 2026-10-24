@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Structure } from '@molstar/model/model/structure';
 import type { DocNode } from '@molstar/seq-core/format';
 import { describe, expect, it, vi } from 'vitest';
 import { type SceneNode, sequenceNodeId } from '../model/scene.js';
@@ -240,6 +241,26 @@ describe("each structure's sequence", () => {
     await until(() => viewer.empty.value);
     expectOk(await v.api.sequence!.chains!({}));
     await until(() => !viewer.empty.value);
+  });
+
+  it('removing the focused structure the band follows: the tree rebuilt once the removal is done, no error', async () => {
+    const { v, viewer } = await opened([cbs(), crambin()]);
+    const second = v.plugin.managers.structure.hierarchy.current.structures[1];
+    const ref = second.cell.transform.ref;
+    const errors: unknown[] = [];
+    const caught = (e: unknown) => errors.push(e);
+    process.on('uncaughtException', caught);
+    try {
+      v.plugin.managers.structure.focus.setFromLoci(Structure.toStructureElementLoci(second.cell.obj!.data));
+      await until(() => viewer.structure.value?.ref === ref);
+      expectOk(await v.api.state!.remove({ node: ref }));
+      await until(() => structureNodes(v).length === 1 && viewer.structure.value?.title === '1CBS');
+      await new Promise((r) => setTimeout(r, 50));
+      expect(errors).toEqual([]);
+      expect(!!sequenceOf(structureNodes(v)[0])).toBe(true);
+    } finally {
+      process.off('uncaughtException', caught);
+    }
   });
 
   it('edits a structure not shown: its own tracks, kept for when it is shown', async () => {

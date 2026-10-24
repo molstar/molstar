@@ -52,6 +52,17 @@ describe('the framing below the band', () => {
     expect((big.target as number[])[1]).toBeCloseTo((200 * r) / (Math.cos(fov / 2) * 800), 6);
   });
 
+  it('on a portrait canvas: the width bounds the sphere, the shift is in the half-height Mol* shows there', () => {
+    // 400 × 800 px, orthographic: Mol* shows a half-height of r / (400 / 800) = 2r. A band of 120 px.
+    const tall = { ...camera(800), viewport: { height: 800, width: 400 } };
+    const f = paddedFocus(tall, [0, 0, 0], 10, 120);
+    // The width needs a half-height of 10 · 800 / 400 = 20 (more than the 10 · 800 / 680 below the band), with margin.
+    const r = 20 * 1.04 * 0.5;
+    expect(f.radius).toBeCloseTo(r, 6);
+    // Half the band (60 px) of the 2r / 0.5 world units over 800 px.
+    expect((f.target as number[])[1]).toBeCloseTo((120 * r) / (0.5 * 800), 6);
+  });
+
   it('leaves a band that would take the canvas alone', () => {
     expect(paddedFocus(camera(300), [0, 0, 0], 10, 200).radius).toBe(10);
   });

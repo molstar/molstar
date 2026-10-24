@@ -147,8 +147,9 @@ export interface TrackEdit {
 }
 
 /**
- * What the section shows of the structure (sequence.md §3): its polymers only, every copy apart (an assembly's), or the
- * chain instances kept (unit names: `label_asym_id`, `@<operator>` off the identity).
+ * What the section shows of the structure (sequence.md §3): its polymers only, the chains of one molecule each a block
+ * of their own, or the chains kept (unit names: `label_asym_id`, the deposited model's: an assembly's copies are their
+ * chain once).
  */
 export interface ChainFilter {
   readonly polymer?: boolean;

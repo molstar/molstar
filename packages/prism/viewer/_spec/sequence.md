@@ -315,8 +315,8 @@ The code is the truth for how.
 - **Framing below the band**: `paddedFocus` (`sources/framing.ts`) frames a structure in the canvas below the band's
   lines (not its fade), as a snapshot provider for `requestCameraReset`: the bounding sphere centered there with a
   little room (4%), Mol*'s perspective margin (its framing shows r / cos(fov / 2)) counted in, so it is as close as
-  Mol*'s own reset when that margin holds the band, and never closer (David, 2026-10-24: the band no longer pushes the
-  structure back on top of that margin).
+  Mol*'s own reset when that margin holds the band, and never closer (on a portrait canvas, Mol*'s aspect factor and the
+  width counted in too) (David, 2026-10-24: the band no longer pushes the structure back on top of that margin).
 - **Hiding the band** fades it where it stands: the top dock keeps the band's place while its content fades (prism-ui
   `dock-view.tsx`), then paints nothing.
 
@@ -332,8 +332,10 @@ goes.
   Mol\* transform, so Mol\* knows nothing of Seq\* (§1; `sources/sequence-scene.ts` over the model, the `SceneSequence`
   port in `model/scene.ts`). Label "Sequence"; description its tracks, whether the rule picked it, its chains ("4
   tracks, 1 hidden · auto · chains A, B"; "Not shown · 3 tracks"). Updated in place when what it reads changes (what the
-  band follows, not each frame of it; a track; a filter; the style and colors); its structure built again only when the
-  node comes or goes or its tracks are others.
+  band follows, not each frame of it; a track; a filter; the style, colors and ink), once a burst and never during a
+  state transaction (a structure removed is still listed then, its cell gone: once it ends); its structure built again
+  only when the node comes or goes. A structure that no longer has polymers loses the node, its track rows and its
+  inspector.
 - **Its eye is the band**: on, the band shows this structure (`sequence.follow`; the band shown again if it was off); on
   the structure shown, it hides or shows the band (No sequence). One lit at a time. Under Auto its description says
   "auto"; picked by the person, not.

@@ -366,11 +366,15 @@ export class SequenceApi extends ApiArea {
       chains: OptionalParam(
         PD.Text('', {
           description:
-            'The chains to show, comma-separated, as sequence.get lists them (label_asym_id, "@operator" off the identity) or by author id; "none": no chain (to add them one by one); absent: every chain',
+            'The chains to show, comma-separated, as sequence.get lists them (label_asym_id: the copies of an assembly are their chain once) or by author id; "none": no chain (to add them one by one); absent: every chain',
         }),
       ),
       polymer: OptionalParam(PD.Boolean(false, { description: 'Only the polymer chains (no ligands)' })),
-      each: OptionalParam(PD.Boolean(false, { description: "Every copy a block of its own (an assembly's)" })),
+      each: OptionalParam(
+        PD.Boolean(false, {
+          description: 'Chains of one molecule each a block of their own (merged by default: one block ×N)',
+        }),
+      ),
     },
     run: async ({ structure, chains, polymer, each }, ctx) => {
       const viewer = await this.#viewer();

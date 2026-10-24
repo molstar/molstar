@@ -529,6 +529,21 @@ export function createSceneSource(
    * Chains, Follow automatically and Legend, its children its tracks (each an eye, its colorings and Remove), its
    * inspector the chain filter. Made from the sequence model, not a plugin cell.
    */
+  /** A structure's Sequence node, its track rows and its inspector gone (it has no polymer any more). */
+  const dropSequenceNode = (structureRef: string) => {
+    const id = sequenceNodeId(structureRef);
+    const n = nodes.get(id);
+    if (!n) return;
+    for (const c of [n, ...n.children.value]) {
+      nodes.delete(c.id);
+      inspections.delete(c.id);
+      inspectionKeys.delete(c.id);
+      if (picked.value === c) picked.set(undefined);
+    }
+    sequenceRows.delete(id);
+    inspectorModels.delete(id);
+  };
+
   const sequenceNode = (structureRef: string, data: Structure, row: SceneSequenceRow): Node => {
     const id = sequenceNodeId(structureRef);
     let n = nodes.get(id);
@@ -1223,7 +1238,7 @@ export function createSceneSource(
       ids.push(qn.id);
       for (const c of qn.children.value) ids.push(c.id);
       kids.splice(1, 0, qn);
-    }
+    } else dropSequenceNode(ref);
     sn.setChildren(kids);
     rows.node = sn;
     return ids;
@@ -1465,29 +1480,39 @@ export function createSceneSource(
       for (const t of particleTrajectories.values()) t.refreshPlaying();
     }),
   );
-  // The sequence's rows read otherwise (what the band follows, a track, a filter): every structure built again.
+  // The sequence's rows read otherwise (what the band follows, a track, a filter). Each Sequence node updated in place
+  // (its line, eye, menu, its tracks' rows); a structure is built again only when its node comes or goes. Not while a
+  // state transaction runs (a structure removed is still in the hierarchy then, its cell gone): once it ends.
   if (sequence) {
-    scope.add(
-      sequence.version.subscribe(() => {
-        // Each Sequence node updated in place (its line, eye, menu, its tracks' rows); a structure is built again only
-        // when its node comes or goes, not on every change.
-        let rebuild = false;
-        log.batch(() => {
-          for (const [ref, rows] of structureRows) {
-            const data = dataOf(plugin, ref);
-            const row = data ? sequence.row(ref, data) : undefined;
-            const node = nodes.get(sequenceNodeId(ref));
-            const had = !!node && !!rows.node?.children.value.includes(node);
-            // Its tracks' rows need no rebuild: the clean-up keeps an id its structure owns (`ownerOf`).
-            const same = !!row && had;
-            if (same) sequenceNode(ref, data!, row!);
-            else if (had || row) {
-              stale.add(ref);
-              rebuild = true;
-            }
+    let deferred = false;
+    const refreshSequence = () => {
+      if (plugin.state.data.behaviors.isUpdating.value) {
+        deferred = true;
+        return;
+      }
+      deferred = false;
+      let rebuild = false;
+      log.batch(() => {
+        for (const [ref, rows] of structureRows) {
+          if (!plugin.state.data.cells.has(ref)) continue;
+          const data = dataOf(plugin, ref);
+          const row = data ? sequence.row(ref, data) : undefined;
+          const node = nodes.get(sequenceNodeId(ref));
+          const had = !!node && !!rows.node?.children.value.includes(node);
+          // Its tracks' rows need no rebuild: the clean-up keeps an id its structure owns (`ownerOf`).
+          if (row && had) sequenceNode(ref, data!, row);
+          else if (had || row) {
+            stale.add(ref);
+            rebuild = true;
           }
-        });
-        if (rebuild) sync();
+        }
+      });
+      if (rebuild) sync();
+    };
+    scope.add(sequence.version.subscribe(refreshSequence));
+    scope.add(
+      plugin.state.data.behaviors.isUpdating.subscribe((updating) => {
+        if (!updating && deferred) refreshSequence();
       }),
     );
   }

@@ -59,6 +59,8 @@ export function createSceneSequence(
           v.providers.subscribe(bump),
           v.theme.subscribe(bump),
           v.style.subscribe(bump),
+          // The letters' swatches follow the ink (the legend is made again with it).
+          v.legend.subscribe(bump),
         ]
       : [];
     bump();
