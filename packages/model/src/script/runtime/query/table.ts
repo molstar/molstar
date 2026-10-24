@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -629,7 +629,7 @@ function getArray<T = any>(ctx: QueryContext, xs: any): T[] {
     for (let i = 0, _i = xs.length; i < _i; i++) ret.push(xs[i](ctx));
   } else {
     const keys = Object.keys(xs);
-    for (let i = 1, _i = keys.length; i < _i; i++) ret.push(xs[keys[i]](ctx));
+    for (let i = 0, _i = keys.length; i < _i; i++) ret.push(xs[keys[i]](ctx));
   }
   return ret;
 }
