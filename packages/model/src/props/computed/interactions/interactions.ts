@@ -353,7 +353,6 @@ export async function computeInteractions(
   options?: ComputeInterctionsOptions,
 ): Promise<Interactions> {
   const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
-  const cacheKey = JSON.stringify(p);
 
   await ValenceModelProvider.attach(ctx, structure);
 
@@ -371,6 +370,8 @@ export async function computeInteractions(
     if (p.bridges[k].name === 'on') SetUtils.add(requiredFeatures, BridgeProviders[k].requiredFeatures);
   });
   const featureProviders = FeatureProviders.filter((f) => SetUtils.areIntersecting(requiredFeatures, f.types));
+  // the features depend on their providers only, not on the contacts' params (perf-audit-2 06/P2)
+  const featuresKey = `features-${featureProviders.map((f) => FeatureProviders.indexOf(f)).join(',')}`;
 
   const unitsFeatures = IntMap.Mutable<Features>();
   const unitsContacts = IntMap.Mutable<InteractionsIntraContacts>();
@@ -380,7 +381,7 @@ export async function computeInteractions(
     if (ctx.runtime.shouldUpdate) {
       await ctx.runtime.update({ message: 'computing interactions', current: i, max: il });
     }
-    const features = findUnitFeatures(structure, group.units[0], featureProviders, cacheKey);
+    const features = findUnitFeatures(structure, group.units[0], featureProviders, featuresKey);
     for (let j = 0, jl = group.units.length; j < jl; ++j) {
       const u = group.units[j];
       unitsFeatures.set(u.id, features);
@@ -403,8 +404,7 @@ export async function computeInteractions(
   return interactions;
 }
 
-function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[], cacheKey: string) {
-  const key = `features-${cacheKey}`;
+function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[], key: string) {
   if (unit.transientCache.has(key)) {
     return unit.transientCache.get(key) as Features;
   }
