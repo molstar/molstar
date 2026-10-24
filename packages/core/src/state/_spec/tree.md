@@ -8,8 +8,9 @@
 - `transforms`: ref → transform.
 - `children`: ref → child set, in insertion order (a `ChildSet`: `size`, `has`, `first`, `values`, `forEach`, `map`,
   `toArray`). Every node has one, possibly empty.
-- `dependencies`: ref → the refs whose explicit `dependsOn` names it. Explicit only: dependencies derived from params
-  are not here (dependencies.md §1), so removing a node cascades along `dependsOn` alone.
+- `dependencies`: ref → the refs whose explicit `dependsOn` names it, kept by `add`, `fromJSON` and `setDependsOn` (a
+  replaced `dependsOn` drops its old edges). Explicit only: dependencies derived from params are not here
+  (dependencies.md §1), so removing a node cascades along `dependsOn` alone.
 - The root (`StateTransform.RootRef`) is its own parent.
 
 Traversal: `StateTree.doPreOrder` (a visitor returning `false` skips the subtree) and `doPostOrder` (leaves first),
