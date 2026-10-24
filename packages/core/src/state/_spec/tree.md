@@ -72,8 +72,8 @@ to `currentTree` directly counts too; it is not reset by `asImmutable()`. The re
 `delete`, `insert`.
 
 `getTree()`: when the state's tree is no longer `sourceTree` (another update ran since the builder was made), the
-builder's actions (adds, inserts, deletes, and the params, tags and `dependsOn` each edit set) are applied again to the
-current tree, and `sourceTree` becomes the builder's own tree (so the commit takes the whole-tree diff).
+builder's actions (adds, inserts, deletes, and the params, tags, `dependsOn` and flags each edit set) are applied again
+to the current tree, and `sourceTree` becomes the builder's own tree (so the commit takes the whole-tree diff).
 
 State flags: a builder's tree is a snapshot, and flag writes (`updateCellState`) keep `state.tree`'s identity, so they
 do not rebase it. The `State` logs its flag writes (`flagLog`: ref → flag → write number and value); a builder commit

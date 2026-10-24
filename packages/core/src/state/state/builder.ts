@@ -43,6 +43,7 @@ namespace StateBuilder {
     | { kind: 'update'; ref: string; params: any }
     | { kind: 'tags'; ref: string; tags: string[] | undefined }
     | { kind: 'dependsOn'; ref: string; dependsOn: string[] | undefined }
+    | { kind: 'state'; ref: string; state: Partial<StateTransform.State> }
     | { kind: 'delete'; ref: string }
     | { kind: 'insert'; ref: string; transform: StateTransform };
 
@@ -56,6 +57,7 @@ namespace StateBuilder {
         case 'update':
         case 'tags':
         case 'dependsOn':
+        case 'state':
           refs.add(a.ref);
           break;
         case 'delete':
@@ -99,6 +101,9 @@ namespace StateBuilder {
           break;
         case 'dependsOn':
           tree.setDependsOn(a.ref, a.dependsOn);
+          break;
+        case 'state':
+          tree.assignState(a.ref, a.state);
           break;
         case 'delete':
           tree.remove(a.ref);
@@ -379,11 +384,9 @@ namespace StateBuilder {
       const transform = this.state.tree.transforms.get(this.ref)!;
       if (StateTransform.isStateChange(transform.state, state)) {
         this.state.tree.assignState(this.ref, state);
-        this.editInfo.count++;
-        this.editInfo.lastUpdate = this.ref;
-        if (!this.state.actions.find((a) => a.kind === 'update' && a.ref === this.ref)) {
-          this.state.actions.push({ kind: 'update', ref: this.ref, params: transform.params });
-        }
+        // flags keep the version and evaluate nothing (tree.md, "State flags without versions"): not an edit for the
+        // fast track; a rebase replays the flags (perf-audit-2 03/B2, 03/B3)
+        this.state.actions.push({ kind: 'state', ref: this.ref, state: { ...state } });
       }
     }
 

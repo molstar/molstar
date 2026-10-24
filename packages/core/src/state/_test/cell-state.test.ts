@@ -178,6 +178,31 @@ describe('state flags and outstanding builders', () => {
   });
 });
 
+describe('builder updateState', () => {
+  it('evaluates nothing (perf-audit-2 03/B2)', async () => {
+    const state = await withLeaves('a');
+    const obj = state.cells.get('a')!.obj;
+    const b = state.build();
+    b.to('a').updateState({ isCollapsed: true });
+    expect(b.editInfo.count).toBe(0);
+    await state.runTask(state.updateTree(b));
+    expect(state.tree.transforms.get('a').state.isCollapsed).toBe(true);
+    // CreateLeaf recreates on update: the same object means no evaluation
+    expect(state.cells.get('a')!.obj).toBe(obj);
+  });
+
+  it('a rebased builder replays its flags (perf-audit-2 03/B3)', async () => {
+    const state = await withLeaves('a', 'b');
+    const b = state.build();
+    b.to('a').updateState({ isCollapsed: true });
+    b.to('b').update({ value: 1 });
+    await state.runTask(state.updateTree(state.build().toRoot().apply(CreateLeaf, { value: 2 }, { ref: 'c' })));
+    await state.runTask(state.updateTree(b));
+    expect(state.tree.transforms.get('a').state.isCollapsed).toBe(true);
+    expect(state.cells.get('b')!.obj!.data.value).toBe(1);
+  });
+});
+
 describe('TransientTree.asImmutable', () => {
   it('a builder can be edited after getTree()', () => {
     const state = newState();
