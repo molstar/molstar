@@ -13,6 +13,7 @@ import { TextByteTokenizer, trimBytesStr } from '../common/text/text-byte-tokeni
 import { TextByteTokenColumnProvider } from '../common/text/column/text-byte-token.js';
 import { TextByteFixedColumnProvider } from '../common/text/column/text-byte-fixed.js';
 import { CifField } from '../cif/data-model.js';
+import { parseCsv } from '../csv/parser.js';
 
 const text = 'line one\r\n\tvalue  two \rthree\n\n  xé 中  y\nlast';
 
@@ -150,5 +151,16 @@ describe('string cache', () => {
         expect(field.str(i)).toBe(values[i] === '.' || values[i] === '?' ? '' : values[i]);
       }
     }
+  });
+
+  it('CSV column, with quoted values', async () => {
+    const text = 'a\n' + values.map((v, i) => (i % 3 === 0 ? `"${v}""q"` : v)).join('\n') + '\n';
+    const parsed = await parseCsv(text).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const a = parsed.result.table.getColumn('a')!;
+    // empty lines are skipped: the empty values not quoted are not records
+    const expected = values.map((v, i) => (i % 3 === 0 ? `${v}"q` : v)).filter((v, i) => i % 3 === 0 || v !== '');
+    expect(a.rowCount).toBe(expected.length);
+    for (let i = 0; i < expected.length; i++) expect(a.str(i)).toBe(expected[i]);
   });
 });
