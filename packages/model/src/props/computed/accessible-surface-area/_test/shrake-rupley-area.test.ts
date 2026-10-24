@@ -80,3 +80,41 @@ describe('Shrake-Rupley accessible surface area', async () => {
     expect(summary(b)).toEqual(expected['two unit cells, non-polymer occluders']);
   });
 });
+
+// two K+ ions (vdW 2.75 Å) 7.5 Å apart: their probe spheres overlap (2 · 1.4 + 2 · 2.75 = 8.3 Å), though they are
+// farther than 2 · probe + 2 · the largest standard radius (6.54 Å) (perf-audit-2 06/B6)
+const TwoIons = `data_ions
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.auth_seq_id
+_atom_site.pdbx_PDB_model_num
+HETATM 1 K K K A 1 . 0.0 0.0 0.0 1 1
+HETATM 2 K K K B 1 . 7.5 0.0 0.0 2 1
+`;
+
+describe('Shrake-Rupley lookup radius', () => {
+  it('reaches the neighbours of atoms with radii above the standard ones', async () => {
+    const parsed = await CIF.parse(TwoIons).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run();
+    const structure = Structure.ofModel(trajectory.representative);
+    const asa = await AccessibleSurfaceArea.compute(structure, { nonPolymer: true }).run();
+    const r = 1.4 + 2.75;
+    const free = 4 * Math.PI * r * r;
+    expect(asa.area.length).toBe(2);
+    for (const a of asa.area) {
+      expect(a).toBeGreaterThan(0);
+      expect(a).toBeLessThan(0.99 * free);
+    }
+  });
+});

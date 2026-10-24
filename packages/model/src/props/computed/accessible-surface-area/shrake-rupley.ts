@@ -70,6 +70,7 @@ namespace AccessibleSurfaceArea {
     const ctx = initialize(structure, props);
 
     assignRadiusForHeavyAtoms(ctx);
+    ctx.maxLookupRadius = getMaxLookupRadius(ctx);
     await computeArea(runtime, ctx);
 
     const { area, serialResidueIndex } = ctx;
@@ -87,11 +88,25 @@ namespace AccessibleSurfaceArea {
       traceOnly,
       spherePoints: generateSpherePoints(numberOfSpherePoints),
       scalingConstant: (4.0 * Math.PI) / numberOfSpherePoints,
-      maxLookupRadius: 2 * props.probeSize + 2 * VdWLookup[2], // 2x probe size + 2x largest VdW
+      maxLookupRadius: 0, // set once the radii are assigned (getMaxLookupRadius)
       atomRadiusType: new Int8Array(elementCount),
       serialResidueIndex: new Int32Array(elementCount),
       area: new Float32Array(atomicResidueCount),
     };
+  }
+
+  /**
+   * 2x probe size + 2x the largest radius assigned. Radii above the standard ones (Se, metal ions) are appended to
+   * `VdWLookup` while the radii are assigned, so this is known only after (perf-audit-2 06/B6).
+   */
+  function getMaxLookupRadius(ctx: ShrakeRupleyContext) {
+    const { atomRadiusType, probeSize } = ctx;
+    let maxRadius = VdWLookup[2]; // the largest standard one
+    for (let i = 0, il = atomRadiusType.length; i < il; ++i) {
+      const r = VdWLookup[atomRadiusType[i]];
+      if (r > maxRadius) maxRadius = r;
+    }
+    return 2 * probeSize + 2 * maxRadius;
   }
 
   /** Creates a collection of points on a sphere by the Golden Section Spiral algorithm. */
