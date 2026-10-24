@@ -45,12 +45,14 @@ export class PrismScriptHost implements ScriptHost {
     ctx: ApiContext,
     readonly holder: StateHolder,
     readonly files: ReadonlyMap<string, File>,
+    /** The texts of the scripts among the files (what `@file.pml` and `source file.tcl` run). */
+    readonly scripts: ReadonlyMap<string, string> = new Map(),
   ) {
     this.#ops = new Ops(ctx, holder);
   }
 
   env() {
-    return envOf(this.#ops.ctx, this.holder.value, [...this.files.keys()]);
+    return { ...envOf(this.#ops.ctx, this.holder.value, [...this.files.keys()]), scripts: this.scripts };
   }
 
   /** Names every loaded structure in the state (an object name and a molecule id), so they last once used. */

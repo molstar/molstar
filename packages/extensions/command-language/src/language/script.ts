@@ -5,7 +5,7 @@
  */
 
 import type { DialectImpl } from './dialect.js';
-import { type Diagnostic, error, ScriptError, type Span } from './diagnostics.js';
+import { type Diagnostic, error, positionOf, ScriptError, type Span } from './diagnostics.js';
 import { type AtomSelectHandle, CompileState, createScriptSession, type ScriptEnv, type ScriptSession } from './env.js';
 import type { Command, Dialect } from './ir.js';
 import { DialectNames } from './ir.js';
@@ -86,30 +86,9 @@ export function compileScript(
   const impl = DialectImpls[dialect];
   const working = cloneSession(session);
   const state = new CompileState(env, working);
-  const { units, diagnostics: splitDiagnostics } = impl.split(text);
-  const diagnostics: Diagnostic[] = [...splitDiagnostics];
+  const diagnostics: Diagnostic[] = [];
   const commands: Command[] = [];
-  for (const unit of units) {
-    try {
-      const bodies = impl.compile(unit, {
-        dialect,
-        state,
-        at: unit.at,
-        source: unit.source,
-        report: (d) => diagnostics.push(d),
-      });
-      for (const body of bodies) {
-        const cmd = { ...body, at: unit.at, source: unit.source } as Command;
-        state.apply(cmd);
-        commands.push(cmd);
-      }
-    } catch (e) {
-      if (!(e instanceof ScriptError)) throw e;
-      const d = e.diagnostic;
-      const other = d.code === 'unknown-command' ? otherDialectHint(dialect, unit.name) : undefined;
-      diagnostics.push(other ? { ...d, hint: other } : d);
-    }
-  }
+  compileText(impl, text, state, commands, diagnostics, undefined, []);
   const history = commands.filter((c) => c.kind === 'history');
   if (history.length && commands.length > 1) {
     diagnostics.push(
@@ -117,6 +96,90 @@ export function compileScript(
     );
   }
   return { dialect, commands, diagnostics, session: working };
+}
+
+/** Scripts include scripts this deep at most (a script that includes itself stops here). */
+const MaxIncludeDepth = 8;
+
+/** Where an included script's commands are: the include's place in the submission, and the file's name. */
+interface Including {
+  readonly at: Span;
+  readonly name: string;
+  readonly text: string;
+}
+
+/**
+ * Compiles a text's commands into `commands` (an included script's too, `@file.pml`, `source file.tcl`: its commands
+ * take the include's place, their text named by the file, and their messages say the file's line).
+ */
+function compileText(
+  impl: DialectImpl,
+  text: string,
+  state: CompileState,
+  commands: Command[],
+  diagnostics: Diagnostic[],
+  including: Including | undefined,
+  stack: readonly string[],
+): void {
+  // A diagnostic of an included file: at the include, its message naming the file's line.
+  const place = (d: Diagnostic): Diagnostic =>
+    including
+      ? {
+          ...d,
+          at: including.at,
+          message: `${including.name} line ${positionOf(including.text, d.at.from).line}: ${d.message}`,
+        }
+      : d;
+  const { units, diagnostics: split } = impl.split(text);
+  for (const d of split) diagnostics.push(place(d));
+  for (const unit of units) {
+    try {
+      const include = impl.includeOf?.(unit);
+      if (include) {
+        const found = state.script(include.name);
+        if (!found) {
+          throw new ScriptError(
+            error(
+              'no-name',
+              `There is no script '${include.name}' with this one.`,
+              include.at,
+              'Open the scripts together (drop them all, with the files they load).',
+            ),
+          );
+        }
+        if (stack.length >= MaxIncludeDepth || stack.includes(found.name)) {
+          throw new ScriptError(error('syntax', `${found.name} includes itself.`, include.at));
+        }
+        const at = including?.at ?? unit.at;
+        compileText(impl, found.text, state, commands, diagnostics, { at, name: found.name, text: found.text }, [
+          ...stack,
+          found.name,
+        ]);
+        continue;
+      }
+      const bodies = impl.compile(unit, {
+        dialect: impl.id,
+        state,
+        at: unit.at,
+        source: unit.source,
+        report: (d) => diagnostics.push(place(d)),
+      });
+      for (const body of bodies) {
+        const cmd = {
+          ...body,
+          at: including?.at ?? unit.at,
+          source: including ? `${including.name}: ${unit.source}` : unit.source,
+        } as Command;
+        state.apply(cmd);
+        commands.push(cmd);
+      }
+    } catch (e) {
+      if (!(e instanceof ScriptError)) throw e;
+      const d = e.diagnostic;
+      const other = d.code === 'unknown-command' ? otherDialectHint(impl.id, unit.name) : undefined;
+      diagnostics.push(place(other ? { ...d, hint: other } : d));
+    }
+  }
 }
 
 export const hasErrors = (ds: readonly Diagnostic[]) => ds.some((d) => d.severity === 'error');

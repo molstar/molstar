@@ -51,7 +51,7 @@ handles’ `num`, `text`, `molid`, `get`, `delete`.
 | `puts` | `puts text` | Print text. |
 | `undo` | `undo` | Undo the last step (alone on its line; Mol*’s, VMD has none). |
 
-Also `help [command]`.
+Also `help [command]`, and `source file.tcl` or `play file.vmd`: a script given with this one runs in its place.
 
 ## Styles and coloring methods
 
@@ -70,7 +70,6 @@ Materials: `Opaque`, `Transparent` (others draw as Opaque, with a warning).
 | `expr` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
 | `switch` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
 | `eval` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
-| `source` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
 | `return` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
 | `break` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
 | `continue` | Tcl’s control flow is not supported. | The console runs VMD commands one by one; Tcl’s control flow and procedures are not run. |
@@ -107,7 +106,6 @@ Materials: `Opaque`, `Transparent` (others draw as Opaque, with a warning).
 | `menu` | VMD’s menus are not here. |  |
 | `plugin` | VMD’s plugins are not here. |  |
 | `light` | Lights are set in the canvas settings. |  |
-| `play` | Running files from a script is not supported yet. | Open the script itself. |
 | `logfile` | Log files are not written. |  |
 | `topo` | Changing the topology is not supported. | Mol* shows structures as they are loaded; it does not change coordinates. |
 | `quit` | There is nothing to quit. |  |

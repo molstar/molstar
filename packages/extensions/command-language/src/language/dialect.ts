@@ -25,4 +25,6 @@ export interface DialectImpl {
   split(text: string): { readonly units: readonly Unit[]; readonly diagnostics: readonly Diagnostic[] };
   /** Compiles one unit; throws `ScriptError` for an error, reports warnings through `c`. */
   compile(unit: Unit, c: Compiler): Compiled;
+  /** A unit that runs another script given with the submission (`@file.pml`, `source file.tcl`): its name. */
+  includeOf?(unit: Unit): { readonly name: string; readonly at: Span } | undefined;
 }

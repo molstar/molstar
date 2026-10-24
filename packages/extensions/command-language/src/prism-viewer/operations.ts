@@ -9,7 +9,14 @@ import { ApiArea, type ApiAreaContext, ApiResult } from '@molstar/prism-viewer/a
 import { formatDiagnostic } from '../language/diagnostics.js';
 import { createScriptSession, type ScriptEnv, type ScriptSession } from '../language/env.js';
 import { type Dialect, DialectNames } from '../language/ir.js';
-import { type CompiledScript, compileScript, hasErrors, runScript, type ScriptOutput } from '../language/script.js';
+import {
+  type CompiledScript,
+  compileScript,
+  dialectOfFile,
+  hasErrors,
+  runScript,
+  type ScriptOutput,
+} from '../language/script.js';
 import { PrismScriptHost } from './host.js';
 import { envOf, StateHolder } from './state.js';
 
@@ -36,6 +43,13 @@ export interface ScriptRunValue {
   readonly ran: number;
 }
 
+/** The texts of the scripts among files (by extension), by name. */
+export async function scriptTexts(files: readonly File[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (const f of files) if (dialectOfFile(f.name)) out.set(f.name, await f.text());
+  return out;
+}
+
 export class ScriptApi extends ApiArea {
   readonly id = 'script';
   readonly #state: StateHolder;
@@ -52,9 +66,17 @@ export class ScriptApi extends ApiArea {
     return envOf(this.ctx, this.#state.value, files);
   }
 
-  /** A submission compiled against the scene now, without running it (`files`: the names of those given with it). */
-  preview(text: string, dialect: Dialect, files: readonly string[] = []): CompiledScript {
-    return compileScript(text, dialect, this.env(files), this.session);
+  /**
+   * A submission compiled against the scene now, without running it: `files`, the names of those given with it;
+   * `scripts`, the texts of the scripts among them.
+   */
+  preview(
+    text: string,
+    dialect: Dialect,
+    files: readonly string[] = [],
+    scripts: ReadonlyMap<string, string> = new Map(),
+  ): CompiledScript {
+    return compileScript(text, dialect, { ...this.env(files), scripts }, this.session);
   }
 
   readonly run = this.operation({
@@ -71,7 +93,7 @@ export class ScriptApi extends ApiArea {
     run: async ({ dialect, text, files }, ctx): Promise<ApiResult<ScriptRunValue>> => {
       if (!text.trim()) return ApiResult.fail('invalid', 'There are no commands.', 'Type one: show sticks, ligand.');
       const byName = new Map((files ?? []).map((f) => [f.name, f]));
-      const host = new PrismScriptHost(ctx, this.#state, byName);
+      const host = new PrismScriptHost(ctx, this.#state, byName, await scriptTexts(files ?? []));
       const preview = compileScript(text, dialect, host.env(), this.session);
       if (preview.commands.length === 1 && preview.commands[0].kind === 'history' && !hasErrors(preview.diagnostics)) {
         return ApiResult.fail(

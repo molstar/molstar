@@ -25,6 +25,16 @@ export const PymolDialect: DialectImpl = {
     const units: PymolUnit[] = calls.map((call) => ({ name: call.name, at: call.at, source: call.source, call }));
     return { units, diagnostics };
   },
+  includeOf(unit) {
+    const { call } = unit as PymolUnit;
+    // `@file.pml`, and `load file.pml` (PyMOL runs a .pml it loads).
+    if (call.name.startsWith('@')) return { name: call.name.slice(1), at: call.at };
+    const first = call.args[0];
+    if (call.name === 'load' && first && !first.key && /\.pml$/i.test(unquote(first.text))) {
+      return { name: unquote(first.text), at: call.at };
+    }
+    return undefined;
+  },
   compile(unit, c) {
     const { call } = unit as PymolUnit;
     const name = call.name;
@@ -34,14 +44,6 @@ export const PymolDialect: DialectImpl = {
     }
     const command = PymolCommandsByName.get(name) ?? PymolCommandsByName.get(name.toLowerCase());
     if (command) return compilePymolCall(call, command, c);
-    if (name.startsWith('@')) {
-      return fail(
-        'unsupported',
-        `Running ${name.slice(1) || 'a file'} from a script is not supported yet.`,
-        call.nameAt,
-        'Open the script itself.',
-      );
-    }
     const head = name.split('.')[0].toLowerCase();
     const unsupported = PymolUnsupportedByName.get(name.toLowerCase()) ?? PymolUnsupportedByName.get(head);
     if (unsupported) {

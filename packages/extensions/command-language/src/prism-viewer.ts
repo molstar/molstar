@@ -5,9 +5,11 @@
  */
 
 import type { ViewerExtension } from '@molstar/prism-viewer/spec';
+import { ApiResult } from '@molstar/prism-viewer/api/area';
 import { VmdLinesPresetEntry } from './plugin/vmd-preset.js';
 import { commandLanguageCommands, commandPrefixes } from './prism-viewer/commands.js';
 import { ScriptApi } from './prism-viewer/operations.js';
+import { ConsoleTab } from './prism-viewer/parts.js';
 
 // PyMOL and VMD commands in the Prism viewer (_spec README): an opt-in extension, as Mol*'s others. It brings the
 // `script` area (`script.run`: a submission as one step), the command menu's `pymol `, `vmd ` and `!` prefixes, and
@@ -19,6 +21,23 @@ export const CommandLanguageExtension: ViewerExtension = {
   title: 'PyMOL and VMD commands',
   plugin: { registry: [VmdLinesPresetEntry] },
   api: { script: (ctx) => new ScriptApi(ctx) },
-  commands: (api) => commandLanguageCommands(api),
+  commands: (api) => [
+    ...commandLanguageCommands(api),
+    {
+      id: 'script.console',
+      title: 'Open the command console (PyMOL, VMD)',
+      category: 'Commands',
+      icon: 'file-code',
+      alias: ['console', 'pymol console', 'vmd console', 'tk console'],
+      // Opens the console's tab: a view, not a change.
+      async run() {
+        const r = await api.view.open({ tab: ConsoleTab });
+        if (ApiResult.isFailure(r)) throw new Error(r.message);
+        return { message: 'Opened the console.', ops: `view.open({ tab: "${ConsoleTab}" })` };
+      },
+    },
+  ],
   commandPrefixes,
+  // The console's view: a chunk of its own, loaded with the views.
+  ui: async (ctx) => (await import('./prism-viewer/console.js')).consoleUI(ctx),
 };

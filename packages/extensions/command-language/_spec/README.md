@@ -72,6 +72,13 @@ and newlines end a command; `#` at a command's start is a comment. Evaluated whi
 `[atomselect …]`, `[molinfo top]`, `puts`; atomselect handles' `num`, `text`, `molid`, `get`, `delete`. Tcl's control
 flow and the rest fail `unsupported`: the console runs VMD commands one by one.
 
+### 3.3 Scripts that run scripts
+
+`@file.pml` and `load file.pml` (PyMOL), `source file.tcl` and `play file.vmd` (VMD) run a script given with the
+submission (`ScriptEnv.scripts`: the texts of the `.pml`, `.tcl` and `.vmd` files among those given), compiled in place
+with the same names: its commands take the include's place, their text named by the file, and its messages name the
+file's line. A script that runs itself stops (8 deep at most). A file not given fails `no-name`.
+
 ## 4. The IR
 
 `ir.ts`: what to do in Mol\* terms, whoever typed it. JSON-safe (selections are MolQL), each command with its place and
@@ -188,11 +195,17 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
 - **The default dialect** is chosen in `!`'s own rows ("Read ! as PyMOL") and kept in the person's preferences
   (`command-language.dialect`); without preferences it lasts for the session, per viewer. Why there: the extension's
   settings group is not shown by Prism, and the choice belongs where it is used.
-- **Commands**: `script.run` (a form: dialect and text) and `script.names`.
+- **Commands**: `script.run` (a form: dialect and text), `script.names`, and `script.console` (opens the console).
+- **The console** (`console-model.ts`, DOM-free; `console.tsx`, its own chunk through `ViewerExtension.ui`): a foot tab
+  beside the Log. The submissions and what each did and printed; an input of several lines (Enter runs, ⇧Enter a new
+  line, ↑/↓ the history at its first and last line, Tab the first completion); the dialect, a line's `pymol ` / `vmd `
+  first word overriding it; every error of a submission at once, before anything runs; `undo` / `redo` alone as the
+  viewer's history; script files opened or dropped with the files they load, each script run whole in the dialect its
+  extension says. The history of lines is kept with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 
 Quick lane: `src/language/_test` (tokenizers, every table example, every unsupported command, diagnostics, names and
 objects, completion) and `src/prism-viewer/_test` (a headless viewer with 1CBS given as a file: show/hide/as on the
-tree, Undo of a submission, rollback, names, measurements with a stand-in canvas, VMD reps and handles, the menu's
-rows). No network.
+tree, Undo of a submission, rollback, names, measurements with a stand-in canvas, VMD reps and handles, the menu's rows,
+the console's model and its view under jsdom). No network.

@@ -142,3 +142,28 @@ describe('VMD commands to IR', () => {
     expect(errorOf('color Display Foreground white').code).toBe('unsupported');
   });
 });
+
+describe('scripts that run scripts', () => {
+  it('runs a VMD script given with this one, its commands in its place', () => {
+    const scripts = new Map([['reps.tcl', 'mol representation VDW\nmol addrep top']]);
+    const r = compileScript('mol delrep 0 top\nsource reps.tcl', 'vmd', { ...env, scripts });
+    expect(r.diagnostics).toEqual([]);
+    expect(r.commands.map((c) => c.kind)).toEqual(['rep.remove', 'rep.defaults', 'rep.add']);
+    expect(r.commands[2].source).toBe('reps.tcl: mol addrep top');
+  });
+
+  it('names the file and its line in an included script’s error, at the include', () => {
+    const scripts = new Map([['bad.tcl', 'puts ok\nmol addrp top']]);
+    const text = 'source bad.tcl';
+    const d = compileScript(text, 'vmd', { ...env, scripts }).diagnostics[0];
+    expect(d.message).toContain('bad.tcl line 2');
+    expect(text.slice(d.at.from, d.at.to)).toBe('source bad.tcl');
+  });
+
+  it('stops a script that runs itself', () => {
+    const scripts = new Map([['loop.tcl', 'source loop.tcl']]);
+    expect(compileScript('source loop.tcl', 'vmd', { ...env, scripts }).diagnostics[0].message).toContain(
+      'includes itself',
+    );
+  });
+});

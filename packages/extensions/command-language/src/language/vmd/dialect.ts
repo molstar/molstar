@@ -140,6 +140,15 @@ export const VmdDialect: DialectImpl = {
     }));
     return { units, diagnostics };
   },
+  includeOf(unit) {
+    const { command } = unit as VmdUnit;
+    // `source file.tcl` and `play file.vmd`: another script given with this one (a literal name).
+    const head = literal(command.words[0])?.toLowerCase();
+    const file = command.words[1] ? literal(command.words[1]) : undefined;
+    if ((head === 'source' || head === 'play') && file && command.words.length === 2)
+      return { name: file, at: command.at };
+    return undefined;
+  },
   compile(unit, c) {
     const { command, text: full } = unit as VmdUnit;
     const first = command.words[0];
@@ -174,6 +183,15 @@ export const VmdDialect: DialectImpl = {
         .trim()
         .toLowerCase();
       return [{ kind: 'print', text: helpText(topic, command.at) }];
+    }
+    if (head === 'source' || head === 'play') {
+      // Not an include (`includeOf`): the file's name is not written out, or there is more.
+      fail(
+        'unsupported',
+        `${head} runs a script given with this one, by its name as written: ${head} file.tcl.`,
+        command.at,
+        'Open the scripts together.',
+      );
     }
     if (head === 'atomselect') {
       const values = command.words.slice(1).map((w) => wordValue(w, full, c));

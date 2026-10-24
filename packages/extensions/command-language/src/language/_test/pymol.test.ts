@@ -224,3 +224,13 @@ describe('PyMOL commands to IR', () => {
     expect((ok('help')[0] as { text: string }).text).toContain('fetch');
   });
 });
+
+describe('PyMOL scripts that run scripts', () => {
+  it('runs @file.pml and load file.pml, and fails one not given', () => {
+    const scripts = new Map([['style.pml', 'hide everything\nshow cartoon']]);
+    const r = compileScript('@style.pml\nload style.pml', 'pymol', { ...env, scripts });
+    expect(r.diagnostics).toEqual([]);
+    expect(r.commands.map((c) => c.kind)).toEqual(['display', 'display', 'display', 'display']);
+    expect(errorOf('@missing.pml').code).toBe('no-name');
+  });
+});

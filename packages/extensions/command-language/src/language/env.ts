@@ -36,6 +36,8 @@ export interface ScriptEnv {
   readonly nextMolecule: number;
   /** The files given with the submission, by name (`load file.pdb`, `@script.pml`). */
   readonly files: readonly string[];
+  /** The texts of the scripts among them, by name (what `@file.pml` and `source file.tcl` run). */
+  readonly scripts?: ReadonlyMap<string, string>;
 }
 
 /** VMD's defaults for a new rep: Lines, `all`, colored by Name (VMD's own). */
@@ -83,6 +85,7 @@ export class CompileState {
   repDefaults: VmdRep;
   nextMolecule: number;
   readonly files: readonly string[];
+  readonly scripts: ReadonlyMap<string, string>;
   readonly session: ScriptSession;
 
   constructor(env: ScriptEnv, session: ScriptSession = createScriptSession()) {
@@ -92,6 +95,7 @@ export class CompileState {
     this.repDefaults = env.repDefaults;
     this.nextMolecule = env.nextMolecule;
     this.files = env.files;
+    this.scripts = env.scripts ?? new Map();
     this.session = session;
   }
 
@@ -109,6 +113,15 @@ export class CompileState {
     if (exact) return { name, sel: exact };
     const lower = name.toLowerCase();
     for (const [k, sel] of this.names) if (k.toLowerCase() === lower) return { name: k, sel };
+    return undefined;
+  }
+
+  /** A script given with the submission, by its name or the last part of its path. */
+  script(name: string): { readonly name: string; readonly text: string } | undefined {
+    const text = this.scripts.get(name);
+    if (text !== undefined) return { name, text };
+    const base = name.split(/[\\/]/).pop();
+    for (const [k, v] of this.scripts) if (k.split(/[\\/]/).pop() === base) return { name: k, text: v };
     return undefined;
   }
 

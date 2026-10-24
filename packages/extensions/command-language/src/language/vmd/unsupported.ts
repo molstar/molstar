@@ -12,9 +12,11 @@ const tcl = 'The console runs VMD commands one by one; Tcl’s control flow and 
 const coordinates = 'Mol* shows structures as they are loaded; it does not change coordinates.';
 
 export const VmdUnsupported: readonly Unsupported[] = [
-  ...['proc', 'if', 'for', 'foreach', 'while', 'expr', 'switch', 'eval', 'source', 'return', 'break', 'continue'].map(
-    (name) => ({ name, why: 'Tcl’s control flow is not supported.', hint: tcl }),
-  ),
+  ...['proc', 'if', 'for', 'foreach', 'while', 'expr', 'switch', 'eval', 'return', 'break', 'continue'].map((name) => ({
+    name,
+    why: 'Tcl’s control flow is not supported.',
+    hint: tcl,
+  })),
   ...['package', 'namespace', 'lindex', 'llength', 'lappend', 'list', 'incr', 'format', 'string', 'array', 'dict'].map(
     (name) => ({ name, why: 'Tcl’s commands are not supported (set, unset, puts and $variables are).', hint: tcl }),
   ),
@@ -72,7 +74,6 @@ export const VmdUnsupported: readonly Unsupported[] = [
   { name: 'menu', why: 'VMD’s menus are not here.' },
   { name: 'plugin', why: 'VMD’s plugins are not here.' },
   { name: 'light', why: 'Lights are set in the canvas settings.' },
-  { name: 'play', why: 'Running files from a script is not supported yet.', hint: 'Open the script itself.' },
   { name: 'logfile', why: 'Log files are not written.' },
   { name: 'topo', why: 'Changing the topology is not supported.', hint: coordinates },
   { name: 'quit', why: 'There is nothing to quit.' },

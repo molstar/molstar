@@ -66,7 +66,7 @@ What the PyMOL dialect does ([README](README.md)), written from the command tabl
 | `undo` | `undo` | Undo the last step (alone on its line). |
 | `redo` | `redo` | Redo what Undo took back. |
 
-Also `help [command]`.
+Also `help [command]`, and `@file.pml` or `load file.pml`: a script given with this one runs in its place.
 
 ## Representations
 

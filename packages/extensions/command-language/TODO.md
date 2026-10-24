@@ -3,13 +3,11 @@
 What is missing, and what was considered and deferred; an entry leaves when it is done (its `_spec` section says so
 then). The spec: [\_spec](_spec/README.md).
 
-## Phase 2
+## Next
 
-- **A console** (`_spec` §9): a foot tab with an input (dialect switch, multi-line, ↑↓ history kept in preferences), the
-  output per submission, and script files (`.pml`, `.tcl`, `.vmd`) opened or dropped with the files they load.
-- **`@file` and `play`**: run a script given with the submission.
 - **Readable targets**: an atom set written back as an address list (`A`, `B:12-14`) instead of source-index ranges
   (`compactExpression`), so the inspector reads it and MVS takes it as schema selectors.
+- **A key for the console** (\` was proposed): Prism's keybindings name commands; `script.console` could take one.
 
 ## Later
 

@@ -249,7 +249,9 @@ describe('what a first review found', () => {
     const v = await viewer();
     await ok(v, 'mol new 1cbs.cif\nmol representation Licorice\nmol addrep top', 'vmd');
     await ok(v, 'mol modmaterial 1 top Transparent', 'vmd');
-    const reps = v.plugin.managers.structure.hierarchy.current.structures[0].components.flatMap((c) => c.representations);
+    const reps = v.plugin.managers.structure.hierarchy.current.structures[0].components.flatMap(
+      (c) => c.representations,
+    );
     const params = (reps[1].cell.transform.params as { type: { params: { sizeAspectRatio: number; alpha: number } } })
       .type.params;
     expect(params.sizeAspectRatio).toBe(1);
