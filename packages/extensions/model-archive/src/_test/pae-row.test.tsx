@@ -62,7 +62,8 @@ function mountRow(v: PrismViewer) {
   }) as typeof person;
   const ui = paeUI({ api, sources: v.sources, managers: v.managers });
   const row = ui.rows!.find((r) => r.id === PaeRow)!;
-  const node = v.views.scene.roots.value[0];
+  // The structure's Other group, where the row is.
+  const node = v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'other')!;
   const host = document.createElement('div');
   document.body.append(host);
   row.render.mount(host, { shell: new ShellModel(), subject: node }, undefined as never);
@@ -75,6 +76,7 @@ describe("the PAE's row", () => {
     const { row, node, host, open } = mountRow(v);
     expect(row.when(node)).toBe(true);
     expect(row.when({ ...node, kind: 'component' } as SceneNode)).toBe(false);
+    expect(row.when(v.views.scene.roots.value[0])).toBe(false);
     await until(() => host.textContent?.includes('PAE') ?? false);
     expect(host.textContent).toContain('Not loaded · Model Archive');
 
@@ -88,7 +90,7 @@ describe("the PAE's row", () => {
     (host.querySelector('[data-tree-row]') as HTMLElement).click();
     await until(() => open.mock.calls.length > 0);
     expect(open).toHaveBeenCalledWith({ card: 'model-archive.overlay.pae' });
-    expect(v.api['model-archive']!.hasPae(node.id)).toBe(true);
+    expect(v.api['model-archive']!.hasPae(v.views.scene.roots.value[0].id)).toBe(true);
     await until(() => host.textContent?.includes('3 residues') ?? false);
     // Here now: a click opens the card without a request.
     vi.mocked(fetch).mockClear();

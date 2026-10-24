@@ -150,26 +150,26 @@ helpers, not a framework: every extension lives in this repository, no stability
   (assembly symmetry: only a PDB entry's assembly). A `when` that follows more than the node and its structure passes
   `whenChanged`, told when it may answer otherwise (a PAE fetched is a state cell, no change of the scene): the tree
   asks it again for the rows it shows. **A structure's rows are grouped by what they are** (David, 2026-10-24): Entities
-  (what it is made of, computed when opened), Sequence, Components (what is drawn of it, open at first), Layers (drawn
-  around or over it and mostly off, open at first: the unit cell, volume streaming, and the extensions' layer rows,
-  which ask for `node.kind === 'layers'` and read their structure with `layersStructure`; a membrane, symmetry axes).
-  Other extension rows ask for the structure (the PAE: data, as Sequence). A group is a node of its own (`components`,
-  `layers`), never removed; the agent's account says its rows as the structure's own. Components' eye hides its rows
-  that are shown, as one step, and shows back those it hid (the ones hidden on their own stay hidden; none left of them:
-  all), as the Measurements group's does; its menu adds a component from the selection or of a kind the structure has.
-  Layers has no eye (its rows are features turned on one by one: showing all would start streaming and fetches), nor has
-  Entities (hiding every entity is the structure's own eye): a row that shows or hides nothing as one has no eye
-  (`hasEye`), its place kept. Streaming starts in the Auto view (around the whole structure, the selection while there
-  is one). A structure with several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for a
-  simulation's coordinates) and has a row of its own first under it (`views/structure/trajectory-row.tsx`): the frame
-  shown, a scrubber, ‹ ›, play; picked, the same at full width and how it plays (mode, seconds per pass) in the
-  inspector. The row plays that structure (`trajectory.play` with `structure`; without one, the operation plays every
-  structure's frames, and every row says so); starting one stops what played. The canvas' trajectory bar follows the
-  structure that plays (paused, the one that played last): while that structure's row is on screen (the Structure tab
-  shown, the structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the
-  full bar (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the
-  canvas expanded). For a structure in a simulation box the full bar ends with the box menu (molecules whole, in the
-  box, centered on the polymers, no jumps, as in the file; `trajectory.periodic`) and a periodic images switch
+  (what it is made of, computed when opened), Sequence, Components (what is drawn of it, open at first), Other (the
+  rest, mostly off, open at first: the unit cell, volume streaming, and the extensions' rows, which ask for
+  `node.kind === 'other'` and read their structure with `structureOfGroup`: the PAE, assembly symmetry, a membrane; a
+  catch-all, so an extension row needs no group of its own). A group is a node of its own (`components`, `other`), never
+  removed; the agent's account says its rows as the structure's own. Components' eye hides its rows that are shown, as
+  one step, and shows back those it hid (the ones hidden on their own stay hidden; none left of them: all), as the
+  Measurements group's does; its menu adds a component from the selection or of a kind the structure has. Other has no
+  eye (its rows are features turned on one by one: showing all would start streaming and fetches), nor has Entities
+  (hiding every entity is the structure's own eye): a row that shows or hides nothing as one has no eye (`hasEye`), its
+  place kept. Streaming starts in the Auto view (around the whole structure, the selection while there is one). A
+  structure with several frames says how many on its row ("1,231 atoms · 10 models"; `frames` for a simulation's
+  coordinates) and has a row of its own first under it (`views/structure/trajectory-row.tsx`): the frame shown, a
+  scrubber, ‹ ›, play; picked, the same at full width and how it plays (mode, seconds per pass) in the inspector. The
+  row plays that structure (`trajectory.play` with `structure`; without one, the operation plays every structure's
+  frames, and every row says so); starting one stops what played. The canvas' trajectory bar follows the structure that
+  plays (paused, the one that played last): while that structure's row is on screen (the Structure tab shown, the
+  structure open, not under a card), a compact chip while frames play (name, frame, pause); otherwise the full bar
+  (scrubber, ‹ ›, play), paused or not, so the controls are always at hand (another tab, the panel closed, the canvas
+  expanded). For a structure in a simulation box the full bar ends with the box menu (molecules whole, in the box,
+  centered on the polymers, no jumps, as in the file; `trajectory.periodic`) and a periodic images switch
   (`structure.symmetry`, the cells -1 to 1).
 - **Where it lives**: `@molstar/<name>-extension/prism-viewer`, depending on `@molstar/prism-viewer` and prism-ui; a
   lazy stub in a module that imports nothing else. Data-only extensions are `{ id, title, plugin }`

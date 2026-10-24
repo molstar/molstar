@@ -167,7 +167,7 @@ describe('SceneRow', () => {
 
 describe('eyes in the scene tree', () => {
   for (const recycle of [true, false]) {
-    it(`draws no eye on a row that shows or hides nothing (Entities, Layers), its place kept (${recycle ? 'recycled' : 'keyed'} rows)`, () => {
+    it(`draws no eye on a row that shows or hides nothing (Entities, Other), its place kept (${recycle ? 'recycled' : 'keyed'} rows)`, () => {
       const scene = mockScene({ rows: [] });
       const container = document.createElement('div');
       document.body.append(container);
@@ -179,7 +179,7 @@ describe('eyes in the scene tree', () => {
         ) as HTMLElement;
         return row.querySelector('button[aria-label=Hide], button[aria-label=Show]') as HTMLButtonElement;
       };
-      for (const label of ['Entities', 'Layers']) {
+      for (const label of ['Entities', 'Other']) {
         expect(eyeOf(label).style.visibility).toBe('hidden');
         expect(eyeOf(label).getAttribute('tabindex')).toBe('-1');
       }

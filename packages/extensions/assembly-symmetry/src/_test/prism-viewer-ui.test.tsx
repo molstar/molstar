@@ -89,14 +89,14 @@ function mountRow(v: PrismViewer) {
   const ui = assemblySymmetryUI({ api: v.api.as({ kind: 'person' }), sources: v.sources, managers: v.managers });
   const host = document.createElement('div');
   document.body.append(host);
-  // A layer: mounted on the structure's Layers group.
-  const node = v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'layers')!;
+  // Mounted on the structure's Other group.
+  const node = v.views.scene.roots.value[0].children.value.find((c) => c.kind === 'other')!;
   ui.rows![0].render.mount(host, { shell: new ShellModel(), subject: node }, undefined as never);
   return { ui, host, node };
 }
 
 describe("the assembly symmetry's row", () => {
-  it("is a layer row (the structure's Layers group); it asks RCSB PDB nothing until its eye is clicked, then shows the axes", async () => {
+  it("is a row in the structure's Other group; it asks RCSB PDB nothing until its eye is clicked, then shows the axes", async () => {
     const v = await viewer('1grm_updated.cif');
     const { ui, host, node } = mountRow(v);
     expect(ui.rows?.map((r) => r.id)).toEqual([SymmetryRow]);

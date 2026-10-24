@@ -772,7 +772,7 @@ function TreeItem(props: {
       const c = node.swatch!.value;
       if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
     }
-    // A row that shows or hides nothing as one (Entities, Layers) has no eye; its place stays (the column lines up).
+    // A row that shows or hides nothing as one (Entities, Other) has no eye; its place stays (the column lines up).
     const eyeless = node.hasEye === false;
     if (eyeless !== lastEyeless) {
       lastEyeless = eyeless;
@@ -990,7 +990,7 @@ function nodeSlot(props: {
     if (d !== lastDescription) setText(description, (lastDescription = d) ?? '');
     const c = n.swatch?.value;
     if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
-    // A row that shows or hides nothing as one (Entities, Layers) has no eye; its place stays (the column lines up).
+    // A row that shows or hides nothing as one (Entities, Other) has no eye; its place stays (the column lines up).
     const eyeless = n.hasEye === false;
     if (eyeless !== lastEyeless) {
       lastEyeless = eyeless;

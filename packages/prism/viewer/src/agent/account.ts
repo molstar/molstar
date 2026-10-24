@@ -52,8 +52,8 @@ export function createAccount(viewer: Pick<PrismViewer, 'views' | 'sources'>): A
   };
 }
 
-/** A structure's group of rows (Components, Layers): not said itself. */
-const isGroup = (n: SceneNode) => n.kind === 'components' || n.kind === 'layers';
+/** A structure's group of rows (Components, Other): not said itself. */
+const isGroup = (n: SceneNode) => n.kind === 'components' || n.kind === 'other';
 /** Rows with the groups' rows in their place. */
 const ungrouped = (list: readonly SceneNode[]): SceneNode[] =>
   list.flatMap((c) => (isGroup(c) ? ungrouped(c.children.value) : [c]));
@@ -86,7 +86,7 @@ function outline(roots: readonly SceneNode[], max: number, detail: OutlineDetail
     );
   const walk = (nodes: readonly SceneNode[], depth: number) => {
     for (const n of nodes) {
-      // A structure's groups (Components, Layers) are the tree's arrangement: their rows are said as the structure's own.
+      // A structure's groups (Components, Other) are the tree's arrangement: their rows are said as the structure's own.
       if (isGroup(n)) {
         walk(n.children.value, depth);
         continue;

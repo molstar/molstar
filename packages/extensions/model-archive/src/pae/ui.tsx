@@ -11,7 +11,7 @@
 import { Button, domView, Select, Show } from '@molstar/prism-ui';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive, toState } from '@molstar/prism-ui/reactive/state';
-import type { SceneNode } from '@molstar/prism-viewer/model/scene';
+import { type SceneNode, structureOfGroup } from '@molstar/prism-viewer/model/scene';
 import { SceneRow } from '@molstar/prism-viewer/views/structure/scene-row';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import { type PaeMatrix, paePairTarget, paeRangeLabel, paeRangeTarget } from './data.js';
@@ -129,16 +129,19 @@ export function paeUI(ctx: ViewerUIContext): ViewerExtensionUI {
         }),
       },
     ],
-    // In the Structure panel too: a row under a structure that has a PAE or can fetch one; a click opens the card at it
-    // (a plot needs more room than the inspector has), fetching the PAE first when it is not here yet.
+    // In the Structure panel too: a row in the Other group of a structure that has a PAE or can fetch one; a click opens
+    // the card at it (a plot needs more room than the inspector has), fetching the PAE first when it is not here yet.
     rows: [
       {
         id: PaeRow,
-        when: (node) => node.kind === 'structure' && (area.hasPae(node.id) || area.canFetchPae(node.id)),
+        when: (node) => {
+          const structure = node.kind === 'other' ? structureOfGroup(node) : undefined;
+          return !!structure && (area.hasPae(structure) || area.canFetchPae(structure));
+        },
         // A fetched PAE is a state cell, not a change of the scene: the tree asks `when` again on the area's changes.
         whenChanged: changed,
         render: domView(({ ctx: view }) => {
-          const structure = (view.subject as SceneNode).id;
+          const structure = structureOfGroup(view.subject as SceneNode)!;
           const fetching = observableState(false);
           const description = derive([changed, fetching.asReadonly], (_, busy) =>
             area.hasPae(structure)

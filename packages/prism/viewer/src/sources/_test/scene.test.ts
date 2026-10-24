@@ -29,10 +29,10 @@ describe('the scene', () => {
     expect(kinds(roots)).toEqual(['structure:1CBS', 'focus:Focus']);
     // Its rows by what they are: the entities (and its sequence, where there is one), its components, its layers.
     const children = roots[0].children.value;
-    expect(children.map((c) => c.kind).filter((k) => k !== 'sequence')).toEqual(['contents', 'components', 'layers']);
+    expect(children.map((c) => c.kind).filter((k) => k !== 'sequence')).toEqual(['contents', 'components', 'other']);
     expect(children[0].label.value).toBe('Entities');
     expect(children.find((c) => c.kind === 'components')!.isExpanded.value).toBe(true);
-    expect(children.find((c) => c.kind === 'layers')!.isExpanded.value).toBe(true);
+    expect(children.find((c) => c.kind === 'other')!.isExpanded.value).toBe(true);
     const components = componentsOf(roots[0]);
     expect(components.length).toBeGreaterThan(0);
     expect(components.every((c) => c.kind === 'component')).toBe(true);
@@ -112,7 +112,7 @@ describe('the scene: component and representation rows', () => {
     expect(v.managers.history.steps.value).toHaveLength(steps + 2);
   });
 
-  it('hides its Components as a group, one step, and shows back only those it hid; Entities and Layers have no eye', async () => {
+  it('hides its Components as a group, one step, and shows back only those it hid; Entities and Other have no eye', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const structure = v.views.scene.roots.value[0];
     const group = structure.children.value.find((c) => c.kind === 'components')!;
@@ -120,7 +120,7 @@ describe('the scene: component and representation rows', () => {
     expect(rows.length).toBeGreaterThan(1);
     expect(group.hasEye).toBe(true);
     expect(structure.children.value.find((c) => c.kind === 'contents')!.hasEye).toBe(false);
-    expect(structure.children.value.find((c) => c.kind === 'layers')!.hasEye).toBe(false);
+    expect(structure.children.value.find((c) => c.kind === 'other')!.hasEye).toBe(false);
     // One hidden on its own first.
     const [own, ...rest] = rows;
     own.toggleVisibility();

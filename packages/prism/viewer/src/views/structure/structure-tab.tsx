@@ -409,7 +409,7 @@ function Inspector(props: {
         <Show when={derive(node.label, (l) => l.toLowerCase() !== kindName(node.kind))}>
           {() => <span class={classes.inspectorKind}>{kindName(node.kind)}</span>}
         </Show>
-        {/* No eye where nothing shows or hides as one (Entities, Layers, an emptied component). */}
+        {/* No eye where nothing shows or hides as one (Entities, Other, an emptied component). */}
         {node.hasEye === false ? null : (
           <VisibilityToggle
             hidden={node.isHidden}

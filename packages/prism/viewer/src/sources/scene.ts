@@ -62,7 +62,7 @@ import type {
   SequenceChainsPreset,
   SequenceInspectorModel,
 } from '../model/scene.js';
-import { componentsNodeId, layersNodeId, sequenceNodeId } from '../model/scene.js';
+import { componentsNodeId, otherNodeId, sequenceNodeId } from '../model/scene.js';
 import { filteredUnits } from '../sequence/chain-filter.js';
 import type { ChainFilter } from '../sequence/tracks.js';
 import { SceneChangeLog, sameChildren } from '../model/scene-changes.js';
@@ -325,7 +325,7 @@ class Node implements SceneNode {
     if (this.hasEye) this.actions.visibility?.(!this.#hidden.value);
   }
   /**
-   * It shows or hides as one: a row without an eye otherwise (Entities, Layers, an emptied component); a group
+   * It shows or hides as one: a row without an eye otherwise (Entities, Other, an emptied component); a group
    * (Components, Measurements) while one of its rows does.
    */
   get hasEye(): boolean {
@@ -1229,13 +1229,13 @@ export function createSceneSource(
   };
 
   /**
-   * A structure's group of rows (`components`, `layers`; both open at first): a node of its own, never removed; its rows
-   * are the ones under it. Components has an eye (`groupEye`); Layers none (its rows are features turned on one by one:
+   * A structure's group of rows (`components`, `other`; both open at first): a node of its own, never removed; its rows
+   * are the ones under it. Components has an eye (`groupEye`); Other none (its rows are features turned on one by one:
    * a "show all" would start streaming and fetches).
    */
   const groupNode = (
     id: string,
-    kind: 'components' | 'layers',
+    kind: 'components' | 'other',
     label: string,
     open: boolean,
     visibility?: (hide: boolean) => void,
@@ -1270,8 +1270,8 @@ export function createSceneSource(
     ids.push(ref);
     const contents = contentsNode(s, ref);
     ids.push(contents.id);
-    // Its rows by what they are (viewer-spec.md §3): its entities and sequence, its components (what is drawn), its
-    // layers (drawn around it, mostly off).
+    // Its rows by what they are (viewer-spec.md §3): its entities and sequence, its components (what is drawn), the
+    // other rows (mostly off).
     const kids: SceneNode[] = [contents];
     const comps: SceneNode[] = [];
     const layers: SceneNode[] = [];
@@ -1344,10 +1344,10 @@ export function createSceneSource(
       ids.push(vn.id);
       layers.push(vn);
     }
-    // Always there: the extensions' layer rows (a membrane, symmetry axes) go under it, which this source does not see.
-    const lg = groupNode(layersNodeId(ref), 'layers', 'Layers', true);
+    // Always there: the extensions' rows (the PAE, a membrane, symmetry axes) go under it, which this source does not see.
+    const lg = groupNode(otherNodeId(ref), 'other', 'Other', true);
     ids.push(lg.id);
-    lg.set('Layers', undefined, false);
+    lg.set('Other', undefined, false);
     lg.setChildren(layers);
     kids.push(lg);
     // Its sequence, under Contents (sequence.md §8.1): a structure with polymers, where the viewer has a sequence.

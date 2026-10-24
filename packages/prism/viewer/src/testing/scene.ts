@@ -536,7 +536,7 @@ export function mockScene(
     info: MockStructureInfo & { facts: readonly (readonly [string, string])[]; expanded?: boolean },
     ...components: MockNode[]
   ) => {
-    // Its rows grouped (viewer-spec.md §3): its components, then its layers (the unit cell, the extensions' rows).
+    // Its rows grouped (viewer-spec.md §3): its components, then the others (the unit cell, the extensions' rows).
     const comps = node(
       `${id}#components`,
       'components',
@@ -545,7 +545,7 @@ export function mockScene(
       `${components.length} component${components.length === 1 ? '' : 's'}`,
     ).add(...components);
     comps.removable = false;
-    const layers = node(`${id}#layers`, 'layers', 'layers', 'Layers');
+    const layers = node(`${id}#other`, 'other', 'layers', 'Other');
     layers.removable = false;
     layers.hasEye = false;
     const n = node(id, 'structure', 'structure', label, description, info.expanded ?? true).add(comps, layers);

@@ -43,22 +43,23 @@ export type SceneNodeKind =
   /** A structure's components, grouped (what is drawn of it): open at first. */
   | 'components'
   /**
-   * A structure's optional layers, grouped (drawn around or over it, mostly off: the unit cell, volume streaming, the
-   * extensions' rows that ask for it, `layersStructure`): open at first.
+   * A structure's other rows, grouped (mostly off: the unit cell, volume streaming, the extensions' rows that ask for
+   * it, `structureOfGroup`; the PAE, assembly symmetry, the membrane): open at first.
    */
-  | 'layers';
+  | 'other';
 
 /** The id of a structure's Sequence node (`reveal` takes it). */
 export const sequenceNodeId = (structure: string) => `${structure}#sequence`;
-/** The ids of a structure's Components and Layers groups. */
+/** The ids of a structure's Components and Other groups. */
 export const componentsNodeId = (structure: string) => `${structure}#components`;
-export const layersNodeId = (structure: string) => `${structure}#layers`;
+export const otherNodeId = (structure: string) => `${structure}#other`;
 /**
- * The structure (its state ref) a Layers group is of; undefined for any other node. An extension's row that is a layer
- * (a membrane, symmetry axes) asks for `node.kind === 'layers'` and reads its structure here.
+ * The structure (its state ref) a group (Components, Other) is of; undefined for any other node. An extension's row in
+ * the Other group (a membrane, symmetry axes, the PAE) asks for `node.kind === 'other'` and reads its structure here.
  */
-export function layersStructure(node: SceneNode): string | undefined {
-  return node.kind === 'layers' ? node.id.slice(0, node.id.length - '#layers'.length) : undefined;
+export function structureOfGroup(node: SceneNode): string | undefined {
+  if (node.kind !== 'components' && node.kind !== 'other') return undefined;
+  return node.id.slice(0, node.id.lastIndexOf('#'));
 }
 
 /**
@@ -92,7 +93,7 @@ export interface SceneNode {
   load?(peek?: boolean): void;
   toggleVisibility(): void;
   toggleExpanded(): void;
-  /** False: it shows or hides nothing as one (Entities, Layers), so its row has no eye. Absent: an eye. */
+  /** False: it shows or hides nothing as one (Entities, Other), so its row has no eye. Absent: an eye. */
   readonly hasEye?: boolean;
   /** Highlights it in 3D while hovered. */
   highlight(on: boolean): void;
