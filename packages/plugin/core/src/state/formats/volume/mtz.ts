@@ -32,12 +32,12 @@ type ParseMtz = typeof ParseMtz;
 const ParseMtz = PluginStateTransform.BuiltIn({
   name: 'parse-mtz',
   display: { name: 'Parse MTZ', description: 'Parse CCP4 MTZ reflection file from Binary data' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Mtz,
 })({
   apply({ a }) {
     return Task.create('Parse MTZ', async (ctx) => {
-      const parsed = await parseMtz(a.data, a.label).runInContext(ctx);
+      const parsed = await parseMtz(SO.Data.readBytes(a), a.label).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Mtz(parsed.result);
     });

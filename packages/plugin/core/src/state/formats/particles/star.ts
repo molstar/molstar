@@ -3,6 +3,7 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
@@ -111,6 +112,7 @@ export const RelionStarParticlesProvider = DataFormatProvider({
   description: 'RELION STAR Particles',
   category: ParticlesFormatCategory,
   stringExtensions: ['star'],
+  sniffsResponse: true,
   parse: async (plugin, data, params?: { label?: string; tomogram?: string }) => {
     const format = plugin.state.data
       .build()

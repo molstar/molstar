@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ReaderResult as Result } from '../result.js';
@@ -9,15 +10,17 @@ import { Task, type RuntimeContext } from '@molstar/core/task';
 import { ChunkedArray } from '@molstar/core/data/util';
 import type { ObjFile } from './schema.js';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { Tokenizer } from '../common/text/tokenizer.js';
-import { parseInt, parseFloat } from '@molstar/core/util/number-parser';
+import { TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
+import { parseIntBytes, parseFloatBytes } from '@molstar/core/util/number-parser';
+import { utf8ReadValue } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // OBJ file format specification: http://www.martinreddy.net/gfx/3d/OBJ.spec
 
 const MAX_FACE_VERTICES = 256;
 
 interface State {
-  tokenizer: Tokenizer;
+  tokenizer: TextByteTokenizer;
   positions: ChunkedArray<number, 3>;
   normals: ChunkedArray<number, 3>;
   vertexColors: ChunkedArray<number, 3>;
@@ -33,9 +36,9 @@ interface State {
   warnings: string[];
 }
 
-function State(data: StringLike): State {
+function State(data: ReadonlyUint8Array): State {
   return {
-    tokenizer: Tokenizer(data),
+    tokenizer: TextByteTokenizer(data),
     positions: ChunkedArray.create(Float32Array, 3, 1024),
     normals: ChunkedArray.create(Float32Array, 3, 1024),
     vertexColors: ChunkedArray.create(Float32Array, 3, 1024),
@@ -69,35 +72,41 @@ const CC_SPACE = 32; // ' '
 const CC_TAB = 9; // '\t'
 const CC_SLASH = 47; // '/'
 
+// The scanning helpers read the bytes into locals, not the tokenizer's fields, per byte: the hot loops of a large mesh.
+
 /** Skip to the end of the current line without returning it. */
-function skipLine(tokenizer: Tokenizer): void {
-  const { data } = tokenizer;
-  while (tokenizer.position < tokenizer.length) {
-    const c = data.charCodeAt(tokenizer.position);
+function skipLine(tokenizer: TextByteTokenizer): void {
+  const { data, length } = tokenizer;
+  let p = tokenizer.position;
+  while (p < length) {
+    const c = data[p];
     if (c === CC_NEWLINE) {
-      ++tokenizer.position;
+      tokenizer.position = p + 1;
       ++tokenizer.lineNumber;
       return;
     }
     if (c === CC_CR) {
-      ++tokenizer.position;
+      ++p;
       ++tokenizer.lineNumber;
-      if (tokenizer.position < tokenizer.length && data.charCodeAt(tokenizer.position) === CC_NEWLINE)
-        ++tokenizer.position;
+      if (p < length && data[p] === CC_NEWLINE) ++p;
+      tokenizer.position = p;
       return;
     }
-    ++tokenizer.position;
+    ++p;
   }
+  tokenizer.position = p;
 }
 
 /** Skip inline whitespace (space/tab only — does not cross newlines). */
-function skipInlineWS(tokenizer: Tokenizer): void {
-  const { data } = tokenizer;
-  while (tokenizer.position < tokenizer.length) {
-    const c = data.charCodeAt(tokenizer.position);
-    if (c !== CC_SPACE && c !== CC_TAB) return;
-    ++tokenizer.position;
+function skipInlineWS(tokenizer: TextByteTokenizer): void {
+  const { data, length } = tokenizer;
+  let p = tokenizer.position;
+  while (p < length) {
+    const c = data[p];
+    if (c !== CC_SPACE && c !== CC_TAB) break;
+    ++p;
   }
+  tokenizer.position = p;
 }
 
 /**
@@ -105,20 +114,33 @@ function skipInlineWS(tokenizer: Tokenizer): void {
  * Returns false when end-of-line / end-of-file is reached before any character.
  * Leaves tokenizer.tokenStart/tokenEnd set to the token boundaries.
  */
-function readInlineToken(tokenizer: Tokenizer): boolean {
-  skipInlineWS(tokenizer);
-  const { data } = tokenizer;
-  if (tokenizer.position >= tokenizer.length) return false;
-  const c = data.charCodeAt(tokenizer.position);
-  if (c === CC_NEWLINE || c === CC_CR || c === CC_HASH) return false;
-  tokenizer.tokenStart = tokenizer.position;
-  while (tokenizer.position < tokenizer.length) {
-    const ch = data.charCodeAt(tokenizer.position);
-    if (ch === CC_SPACE || ch === CC_TAB || ch === CC_NEWLINE || ch === CC_CR || ch === CC_HASH) break;
-    ++tokenizer.position;
+function readInlineToken(tokenizer: TextByteTokenizer): boolean {
+  const { data, length } = tokenizer;
+  let p = tokenizer.position;
+  while (p < length) {
+    const c = data[p];
+    if (c !== CC_SPACE && c !== CC_TAB) break;
+    ++p;
   }
-  tokenizer.tokenEnd = tokenizer.position;
-  return tokenizer.tokenEnd > tokenizer.tokenStart;
+  if (p >= length) {
+    tokenizer.position = p;
+    return false;
+  }
+  const c = data[p];
+  if (c === CC_NEWLINE || c === CC_CR || c === CC_HASH) {
+    tokenizer.position = p;
+    return false;
+  }
+  const start = p;
+  while (p < length) {
+    const ch = data[p];
+    if (ch === CC_SPACE || ch === CC_TAB || ch === CC_NEWLINE || ch === CC_CR || ch === CC_HASH) break;
+    ++p;
+  }
+  tokenizer.tokenStart = start;
+  tokenizer.tokenEnd = p;
+  tokenizer.position = p;
+  return p > start;
 }
 
 /**
@@ -127,7 +149,7 @@ function readInlineToken(tokenizer: Tokenizer): boolean {
  * Face vertex format: posIdx[/[texIdx][/normIdx]]  (all 1-based, may be negative).
  */
 function readFaceTokens(
-  tokenizer: Tokenizer,
+  tokenizer: TextByteTokenizer,
   facePos: Int32Array,
   faceNorm: Int32Array,
   maxCount: number,
@@ -143,7 +165,7 @@ function readFaceTokens(
     // Find first slash within [start, end)
     let slash1 = -1;
     for (let i = start; i < end; ++i) {
-      if (data.charCodeAt(i) === CC_SLASH) {
+      if (data[i] === CC_SLASH) {
         slash1 = i;
         break;
       }
@@ -154,16 +176,16 @@ function readFaceTokens(
 
     if (slash1 === -1) {
       // "v"
-      const p = parseInt(data, start, end);
+      const p = parseIntBytes(data, start, end);
       posIdx = p < 0 ? posCount + p : p - 1;
     } else {
-      const p = parseInt(data, start, slash1);
+      const p = parseIntBytes(data, start, slash1);
       posIdx = p < 0 ? posCount + p : p - 1;
 
       // Find second slash
       let slash2 = -1;
       for (let i = slash1 + 1; i < end; ++i) {
-        if (data.charCodeAt(i) === CC_SLASH) {
+        if (data[i] === CC_SLASH) {
           slash2 = i;
           break;
         }
@@ -171,7 +193,7 @@ function readFaceTokens(
 
       if (slash2 !== -1 && slash2 + 1 < end) {
         // "v/vt/vn" or "v//vn"
-        const n = parseInt(data, slash2 + 1, end);
+        const n = parseIntBytes(data, slash2 + 1, end);
         normIdx = n < 0 ? normCount + n : n - 1;
       }
       // else "v/vt" — no normal
@@ -187,7 +209,7 @@ function readFaceTokens(
 function handleUseMtl(state: State): void {
   const { tokenizer } = state;
   if (readInlineToken(tokenizer)) {
-    const name = tokenizer.data.substring(tokenizer.tokenStart, tokenizer.tokenEnd);
+    const name = utf8ReadValue(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd - tokenizer.tokenStart);
     if (!state.materialMap.has(name)) {
       const idx = state.materialNames.length;
       state.materialMap.set(name, idx);
@@ -203,9 +225,9 @@ function handleVertex(state: State): void {
   let x = 0,
     y = 0,
     z = 0;
-  if (readInlineToken(tokenizer)) x = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
-  if (readInlineToken(tokenizer)) y = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
-  if (readInlineToken(tokenizer)) z = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+  if (readInlineToken(tokenizer)) x = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+  if (readInlineToken(tokenizer)) y = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+  if (readInlineToken(tokenizer)) z = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
   ChunkedArray.add3(state.positions, x, y, z);
 
   // Non-standard vertex color extension: `v x y z r g b` with r,g,b in [0, 1].
@@ -214,13 +236,13 @@ function handleVertex(state: State): void {
     g = 1,
     b = 1;
   if (readInlineToken(tokenizer)) {
-    const r0 = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+    const r0 = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
     if (readInlineToken(tokenizer)) {
-      const g0 = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+      const g0 = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
       if (readInlineToken(tokenizer)) {
         r = r0;
         g = g0;
-        b = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+        b = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
         state.hasVertexColors = true;
       }
     }
@@ -234,9 +256,9 @@ function handleNormal(state: State): void {
   let x = 0,
     y = 0,
     z = 0;
-  if (readInlineToken(tokenizer)) x = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
-  if (readInlineToken(tokenizer)) y = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
-  if (readInlineToken(tokenizer)) z = parseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+  if (readInlineToken(tokenizer)) x = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+  if (readInlineToken(tokenizer)) y = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+  if (readInlineToken(tokenizer)) z = parseFloatBytes(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
   ChunkedArray.add3(state.normals, x, y, z);
   skipLine(tokenizer);
 }
@@ -269,14 +291,14 @@ function handleFace(state: State): void {
   skipLine(tokenizer);
 }
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<ObjFile>> {
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<ObjFile>> {
   const state = State(data);
   const { tokenizer } = state;
   const updateChunk = 100000;
 
   while (tokenizer.position < tokenizer.length) {
     // Skip full-line whitespace and newlines between lines
-    const c0 = tokenizer.data.charCodeAt(tokenizer.position);
+    const c0 = data[tokenizer.position];
     if (c0 === CC_NEWLINE) {
       ++tokenizer.position;
       ++tokenizer.lineNumber;
@@ -285,8 +307,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     if (c0 === CC_CR) {
       ++tokenizer.position;
       ++tokenizer.lineNumber;
-      if (tokenizer.position < tokenizer.length && tokenizer.data.charCodeAt(tokenizer.position) === CC_NEWLINE)
-        ++tokenizer.position;
+      if (tokenizer.position < tokenizer.length && data[tokenizer.position] === CC_NEWLINE) ++tokenizer.position;
       continue;
     }
     if (c0 === CC_SPACE || c0 === CC_TAB) {
@@ -299,7 +320,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
     }
 
     // Identify keyword by inspecting character codes — no string allocation
-    const c1 = tokenizer.position + 1 < tokenizer.length ? tokenizer.data.charCodeAt(tokenizer.position + 1) : -1;
+    const c1 = tokenizer.position + 1 < tokenizer.length ? data[tokenizer.position + 1] : -1;
 
     if (c0 === CC_f && (c1 === CC_SPACE || c1 === CC_TAB)) {
       // "f " — face
@@ -310,12 +331,12 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
       const p = tokenizer.position;
       if (
         p + 6 < tokenizer.length &&
-        tokenizer.data.charCodeAt(p + 1) === CC_s &&
-        tokenizer.data.charCodeAt(p + 2) === CC_e &&
-        tokenizer.data.charCodeAt(p + 3) === CC_m &&
-        tokenizer.data.charCodeAt(p + 4) === CC_t &&
-        tokenizer.data.charCodeAt(p + 5) === CC_l &&
-        (tokenizer.data.charCodeAt(p + 6) === CC_SPACE || tokenizer.data.charCodeAt(p + 6) === CC_TAB)
+        data[p + 1] === CC_s &&
+        data[p + 2] === CC_e &&
+        data[p + 3] === CC_m &&
+        data[p + 4] === CC_t &&
+        data[p + 5] === CC_l &&
+        (data[p + 6] === CC_SPACE || data[p + 6] === CC_TAB)
       ) {
         tokenizer.position += 7;
         handleUseMtl(state);
@@ -370,8 +391,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(result, state.warnings);
 }
 
-export function parseObj(data: StringLike) {
+/** Parses an OBJ file from its text or its UTF-8 bytes (a string is encoded once). */
+export function parseObj(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<ObjFile>>('Parse OBJ', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

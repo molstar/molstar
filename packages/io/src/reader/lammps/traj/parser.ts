@@ -7,16 +7,21 @@
  */
 
 import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
-import { Tokenizer, TokenBuilder } from '../../common/text/tokenizer.js';
+import {
+  TextByteTokenizer,
+  TextByteTokenBuilder as TokenBuilder,
+  type TextByteTokens,
+} from '../../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../../result.js';
-import { TokenColumnProvider as TokenColumn } from '../../common/text/column/token.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../../common/text/column/text-byte-token.js';
 import { Column } from '@molstar/core/data/db';
 import type { LammpsFrame, LammpsTrajectoryFile } from '../schema.js';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
-const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
+const { readLine } = TextByteTokenizer;
 
-function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
+function State(tokenizer: TextByteTokenizer, runtimeCtx: RuntimeContext) {
   return {
     tokenizer,
     runtimeCtx,
@@ -50,12 +55,26 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
   const iy = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
   const iz = TokenBuilder.create(tokenizer.data, hasImages ? count * 2 : 0);
 
-  const { position } = tokenizer;
-  tokenizer.position = position;
-
   const n = parts.length;
+  // the tokens each column goes to, by index: a lookup per token, not a switch over the column map; the first match
+  // wins, as in a switch (`x` is the first column starting with x, and so on)
+  const targets: (TextByteTokens | undefined)[] = new Array(n).fill(undefined);
+  const assign = (col: number | undefined, tokens: TextByteTokens) => {
+    if (col !== undefined && col >= 0 && col < n && !targets[col]) targets[col] = tokens;
+  };
+  assign(columnIndexMap['id'], atomId);
+  assign(columnIndexMap['mol'], moleculeType);
+  assign(columnIndexMap['type'], atomType);
+  assign(xCol, x);
+  assign(yCol, y);
+  assign(zCol, z);
+  if (hasImages) {
+    assign(columnIndexMap['ix'], ix);
+    assign(columnIndexMap['iy'], iy);
+    assign(columnIndexMap['iz'], iz);
+  }
 
-  const { length } = tokenizer;
+  const { data, length } = tokenizer;
   let linesAlreadyRead = 0;
   await chunkedSubtask(
     state.runtimeCtx,
@@ -63,45 +82,44 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
     void 0,
     (chunkSize) => {
       const linesToRead = Math.min(count - linesAlreadyRead, chunkSize);
+      // the tokenizer's skipWhitespace, eatValue and eatLine inlined with the position a local: the hot loop of a dump
+      let p = tokenizer.position;
+      let lineEnd = tokenizer.tokenEnd;
       for (let i = 0; i < linesToRead; ++i) {
         for (let j = 0; j < n; ++j) {
-          skipWhitespace(tokenizer);
-          markStart(tokenizer);
-          eatValue(tokenizer);
-          switch (j) {
-            case columnIndexMap['id']:
-              TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case columnIndexMap['mol']:
-              TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case columnIndexMap['type']:
-              TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case xCol:
-              TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case yCol:
-              TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case zCol:
-              TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case columnIndexMap['ix']:
-              TokenBuilder.addUnchecked(ix, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case columnIndexMap['iy']:
-              TokenBuilder.addUnchecked(iy, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
-            case columnIndexMap['iz']:
-              TokenBuilder.addUnchecked(iz, tokenizer.tokenStart, tokenizer.tokenEnd);
-              break;
+          while (p < length) {
+            const c = data[p];
+            if (c === 32 || c === 9 || c === 10 || c === 13) ++p;
+            else break;
           }
+          const start = p;
+          while (p < length) {
+            const c = data[p];
+            if (c <= 32 && (c === 32 || c === 10 || c === 13 || c === 9)) break;
+            ++p;
+          }
+          const tokens = targets[j];
+          if (tokens !== undefined) TokenBuilder.addUnchecked(tokens, start, p);
         }
         // ignore any extra columns
-        eatLine(tokenizer);
-        markStart(tokenizer);
+        lineEnd = length;
+        while (p < length) {
+          const c = data[p];
+          if (c === 10) {
+            lineEnd = p++;
+            break;
+          }
+          if (c === 13) {
+            lineEnd = p++;
+            if (data[p] === 10) ++p;
+            break;
+          }
+          ++p;
+        }
       }
+      tokenizer.position = p;
+      tokenizer.tokenStart = p;
+      tokenizer.tokenEnd = lineEnd;
       linesAlreadyRead += linesToRead;
       return linesToRead;
     },
@@ -151,8 +169,8 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
  * ylo_bound yhi_bound xz
  * zlo_bound zhi_bound yz
  */
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
-  const tokenizer = Tokenizer(data);
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
+  const tokenizer = TextByteTokenizer(data);
   const state = State(tokenizer, ctx);
   const f: LammpsTrajectoryFile = {
     frames: [],
@@ -208,8 +226,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(f);
 }
 
-export function parseLammpsTrajectory(data: StringLike) {
+/** Parses a LAMMPS dump from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
+export function parseLammpsTrajectory(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<LammpsTrajectoryFile>>('Parse Lammp Trajectory', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

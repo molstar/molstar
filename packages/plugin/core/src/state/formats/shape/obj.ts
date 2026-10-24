@@ -27,12 +27,12 @@ type ParseObj = typeof ParseObj;
 const ParseObj = PluginStateTransform.BuiltIn({
   name: 'parse-obj',
   display: { name: 'Parse OBJ', description: 'Parse OBJ from String data' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Obj,
 })({
   apply({ a }) {
     return Task.create('Parse OBJ', async (ctx) => {
-      const parsed = await OBJ.parseObj(a.data).runInContext(ctx);
+      const parsed = await OBJ.parseObj(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Obj(parsed.result, { label: 'OBJ Data' });
     });

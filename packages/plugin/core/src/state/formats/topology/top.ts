@@ -21,12 +21,12 @@ type ParseTop = typeof ParseTop;
 const ParseTop = PluginStateTransform.BuiltIn({
   name: 'parse-top',
   display: { name: 'Parse TOP', description: 'Parse TOP from String data' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Top,
 })({
   apply({ a }) {
     return Task.create('Parse TOP', async (ctx) => {
-      const parsed = await parseTop(a.data).runInContext(ctx);
+      const parsed = await parseTop(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Top(parsed.result);
     });

@@ -8,18 +8,28 @@
  */
 
 import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
-import { Tokenizer, TokenBuilder } from '../../common/text/tokenizer.js';
+import { TextByteTokenizer, TextByteTokenBuilder as TokenBuilder } from '../../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../../result.js';
-import { TokenColumnProvider as TokenColumn } from '../../common/text/column/token.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../../common/text/column/text-byte-token.js';
 import { Column } from '@molstar/core/data/db';
 import type { LammpsDataFile } from '../schema.js';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
-const { readLine, skipWhitespace, eatValue, eatLine, markStart, skipStrictWhitespace } = Tokenizer;
+const { skipWhitespace, eatValue, eatLine, markStart, markLine, getTokenString, skipStrictWhitespace } =
+  TextByteTokenizer;
+
+function hasLetter(data: ReadonlyUint8Array, start: number, end: number) {
+  for (let i = start; i < end; ++i) {
+    const c = data[i] | 32; // lower case for letters
+    if (c >= 97 && c <= 122) return true;
+  }
+  return false;
+}
 
 const reWhitespace = /\s+/;
 
-function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
+function State(tokenizer: TextByteTokenizer, runtimeCtx: RuntimeContext) {
   return {
     tokenizer,
     runtimeCtx,
@@ -44,10 +54,8 @@ async function handleAtoms(state: State, count: number, atom_style: AtomStyle): 
     bond: [atomId, moleculeId, atomType, x, y, z],
     molecular: [atomId, moleculeId, atomType, x, y, z],
   };
-  const n = columns[atom_style].length;
-  const { position } = tokenizer;
-  readLine(tokenizer).trim();
-  tokenizer.position = position;
+  const cols = columns[atom_style];
+  const n = cols.length;
 
   const { length } = tokenizer;
   let linesAlreadyRead = 0;
@@ -63,7 +71,7 @@ async function handleAtoms(state: State, count: number, atom_style: AtomStyle): 
           skipWhitespace(tokenizer);
           markStart(tokenizer);
           eatValue(tokenizer);
-          const column = columns[atom_style][j];
+          const column = cols[j];
           if (column) {
             TokenBuilder.addUnchecked(column, tokenizer.tokenStart, tokenizer.tokenEnd);
           }
@@ -160,10 +168,7 @@ async function handleMasses(state: State, count: number): Promise<NonNullable<La
       for (let i = 0; i < itemsToRead; ++i) {
         // skip any comment lines before the actual data line
         skipWhitespace(tokenizer);
-        while (
-          tokenizer.position < tokenizer.length &&
-          tokenizer.data.charCodeAt(tokenizer.position) === 35 /* '#' */
-        ) {
+        while (tokenizer.position < tokenizer.length && tokenizer.data[tokenizer.position] === 35 /* '#' */) {
           eatLine(tokenizer);
           skipWhitespace(tokenizer);
         }
@@ -183,7 +188,7 @@ async function handleMasses(state: State, count: number): Promise<NonNullable<La
 
         // optional trailing "# <symbol>" comment, e.g. "1 12.011  # C"
         skipStrictWhitespace(tokenizer);
-        if (tokenizer.position < tokenizer.length && tokenizer.data.charCodeAt(tokenizer.position) === 35 /* '#' */) {
+        if (tokenizer.position < tokenizer.length && tokenizer.data[tokenizer.position] === 35 /* '#' */) {
           ++tokenizer.position;
           skipStrictWhitespace(tokenizer);
           markStart(tokenizer);
@@ -214,8 +219,8 @@ async function handleMasses(state: State, count: number): Promise<NonNullable<La
 const AtomStyles = ['full', 'atomic', 'bond', 'molecular'] as const;
 type AtomStyle = (typeof AtomStyles)[number];
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
-  const tokenizer = Tokenizer(data);
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
+  const tokenizer = TextByteTokenizer(data);
   const state = State(tokenizer, ctx);
 
   let atoms = undefined as LammpsDataFile['atoms'] | undefined;
@@ -235,7 +240,11 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   // full list of atom_style
   // https://docs.lammps.org/atom_style.html
   while (tokenizer.tokenEnd < tokenizer.length) {
-    const line = readLine(state.tokenizer).trim();
+    markLine(tokenizer);
+    // every keyword below has a letter: a line without one (the rows of a section not read, e.g. Velocities) is
+    // skipped undecoded
+    if (!hasLetter(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd)) continue;
+    const line = getTokenString(tokenizer).trim();
     if (line.includes('atom types')) {
       numAtomTypes = parseInt(line.split(reWhitespace)[0]);
     } else if (line.includes('atoms')) {
@@ -310,8 +319,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(result);
 }
 
-export function parseLammpsData(data: StringLike) {
+/** Parses a LAMMPS data file from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
+export function parseLammpsData(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<LammpsDataFile>>('Parse LammpsData', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

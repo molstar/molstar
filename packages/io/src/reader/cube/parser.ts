@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from NGL.
  *
@@ -8,12 +8,13 @@
  */
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import { Tokenizer } from '../common/text/tokenizer.js';
+import { TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
 import { Column } from '@molstar/core/data/db';
 import { Task, chunkedSubtask, type RuntimeContext } from '@molstar/core/task';
 import { ReaderResult as Result } from '../result.js';
-import { parseFloat as fastParseFloat } from '@molstar/core/util/number-parser';
+import { parseFloatBytes } from '@molstar/core/util/number-parser';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html
 
@@ -50,8 +51,9 @@ export namespace CubeFile {
 
 const bohrToAngstromFactor = 0.529177210859;
 
-function readHeader(tokenizer: Tokenizer) {
-  const headerLines = Tokenizer.readLines(tokenizer, 6);
+function readHeader(tokenizer: TextByteTokenizer) {
+  // the header and atom lines are few: decoded and split; the values are scanned as bytes
+  const headerLines = TextByteTokenizer.readLines(tokenizer, 6);
   const h = (k: number, l: number) => {
     const field = +headerLines[k].trim().split(/\s+/g)[l];
     return Number.isNaN(field) ? 0 : field;
@@ -78,7 +80,7 @@ function readHeader(tokenizer: Tokenizer) {
     if (nVal === 0) nVal = 1;
     for (let i = 0; i < nVal; i++) dataSetIds.push(i);
   } else {
-    const counts = Tokenizer.readLine(tokenizer).trim().split(/\s+/g);
+    const counts = TextByteTokenizer.readLine(tokenizer).trim().split(/\s+/g);
     for (let i = 0, _i = +counts[0]; i < _i; i++) dataSetIds.push(+counts[i + 1]);
   }
 
@@ -97,7 +99,7 @@ function readHeader(tokenizer: Tokenizer) {
   return { header, atoms };
 }
 
-function readAtoms(tokenizer: Tokenizer, count: number, scaleFactor: number): CubeFile.Atoms {
+function readAtoms(tokenizer: TextByteTokenizer, count: number, scaleFactor: number): CubeFile.Atoms {
   const number = new Int32Array(count);
   const value = new Float64Array(count);
   const x = new Float32Array(count);
@@ -105,7 +107,7 @@ function readAtoms(tokenizer: Tokenizer, count: number, scaleFactor: number): Cu
   const z = new Float32Array(count);
 
   for (let i = 0; i < count; i++) {
-    const fields = Tokenizer.readLine(tokenizer).trim().split(/\s+/g);
+    const fields = TextByteTokenizer.readLine(tokenizer).trim().split(/\s+/g);
     number[i] = +fields[0];
     value[i] = +fields[1];
     x[i] = +fields[2] * scaleFactor;
@@ -123,24 +125,29 @@ function readAtoms(tokenizer: Tokenizer, count: number, scaleFactor: number): Cu
   };
 }
 
-function readValues(ctx: RuntimeContext, tokenizer: Tokenizer, header: CubeFile.Header) {
+function readValues(ctx: RuntimeContext, tokenizer: TextByteTokenizer, header: CubeFile.Header) {
   const N = header.dim[0] * header.dim[1] * header.dim[2] * header.dataSetIds.length;
   const chunkSize = 100 * 100 * 100;
-  const data = new Float64Array(N);
+  const values = new Float64Array(N);
+  const { data, length } = tokenizer;
   let offset = 0;
 
   return chunkedSubtask(
     ctx,
     chunkSize,
-    data,
-    (count, data) => {
+    values,
+    (count, values) => {
       const max = Math.min(N, offset + count);
+      // locals, not the tokenizer's fields, per byte: the hot loop of a large grid
+      let p = tokenizer.position;
       for (let i = offset; i < max; i++) {
-        Tokenizer.skipWhitespace(tokenizer);
-        tokenizer.tokenStart = tokenizer.position;
-        Tokenizer.eatValue(tokenizer);
-        data[i] = fastParseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+        let c = data[p];
+        while (p < length && (c === 32 || c === 10 || c === 13 || c === 9)) c = data[++p];
+        const start = p;
+        while (p < length && c !== 32 && c !== 10 && c !== 13 && c !== 9) c = data[++p];
+        values[i] = parseFloatBytes(data, start, p);
       }
+      tokenizer.position = p;
       offset = max;
       return max === N ? 0 : chunkSize;
     },
@@ -148,10 +155,11 @@ function readValues(ctx: RuntimeContext, tokenizer: Tokenizer, header: CubeFile.
   );
 }
 
-export function parseCube(data: StringLike, name: string) {
+/** Parses a Cube file from its text or its UTF-8 bytes (a string is encoded once). */
+export function parseCube(data: StringLike | ReadonlyUint8Array, name: string) {
   return Task.create<Result<CubeFile>>('Parse Cube', async (taskCtx) => {
     await taskCtx.update('Reading header...');
-    const tokenizer = Tokenizer(data);
+    const tokenizer = TextByteTokenizer(TextByteTokenizer.bytesOf(data));
     const { header, atoms } = readHeader(tokenizer);
     const values = await readValues(taskCtx, tokenizer, header);
     return Result.success({ header, atoms, values, name });

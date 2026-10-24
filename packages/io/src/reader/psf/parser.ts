@@ -1,15 +1,17 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
-import { Tokenizer, TokenBuilder } from '../common/text/tokenizer.js';
+import { TextByteTokenizer, TextByteTokenBuilder as TokenBuilder } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { Column } from '@molstar/core/data/db';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
 
@@ -34,12 +36,12 @@ export interface PsfFile {
   };
 }
 
-const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
+const { readLine, skipWhitespace, eatValue, eatLine, markStart } = TextByteTokenizer;
 
 const reWhitespace = /\s+/;
 const reTitle = /(^\*|REMARK)*/;
 
-function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
+function State(tokenizer: TextByteTokenizer, runtimeCtx: RuntimeContext) {
   return {
     tokenizer,
     runtimeCtx,
@@ -205,8 +207,8 @@ function parseTitle(state: State, count: number) {
   return title;
 }
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<PsfFile>> {
-  const tokenizer = Tokenizer(data);
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<PsfFile>> {
+  const tokenizer = TextByteTokenizer(data);
   const state = State(tokenizer, ctx);
 
   let title = undefined as string[] | undefined;
@@ -271,8 +273,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(result);
 }
 
-export function parsePsf(data: StringLike) {
+/** Parses a PSF file from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
+export function parsePsf(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<PsfFile>>('Parse PSF', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

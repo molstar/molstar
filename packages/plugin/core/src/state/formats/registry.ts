@@ -155,15 +155,19 @@ export class DataFormatRegistry {
     return this._map.has(name);
   }
 
-  auto(info: FileNameInfo, dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String) {
+  auto(
+    info: FileNameInfo,
+    dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String | PluginStateObject.Data.Response,
+  ) {
     const list = this.autoOrder;
+    const applies = DataFormatProvider.applicable(info, dataStateObject);
     for (let i = 0, il = list.length; i < il; ++i) {
       const p = list[i].provider;
 
       let hasExt = false;
       if (p.binaryExtensions?.includes(info.ext)) hasExt = true;
       else if (p.stringExtensions?.includes(info.ext)) hasExt = true;
-      if (hasExt && (!p.isApplicable || p.isApplicable(info, dataStateObject.data))) return p;
+      if (hasExt && applies(p)) return p;
     }
     return;
   }

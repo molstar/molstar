@@ -1175,3 +1175,71 @@ Readers in the repository were core's `Column` helpers and `sortAtomSite`.
   sessions load). `makeContinuousPaletteCheckpoints` (`@molstar/mvs/components/annotation-color-theme`) is removed:
   `makeValuePaletteFunction` evaluates a continuous palette, without sorting the props' colors in place as it did.
 - `decodeColor` reads only the color table's own names: `constructor` and other `Object.prototype` names are no colors.
+
+## `Download`, `ReadFile` and `DownloadBlob` give Response Data
+
+`Download`, `ReadFile` and `DownloadBlob` (`@molstar/plugin/state/transforms/data/fetch`) give
+`PluginStateObject.Data.Response` (`DownloadBlob`: `Data.ResponseBlob`) unless their `asResponse` param is `false`: the
+bytes, held once, and the reader chooses the form (`data.bytes`, `data.text(ctx)`, `data.json(ctx)`,
+`data.read(ctx, type)`). `asResponse` unset is `true`, so a snapshot saved before, and code that does not set it, now
+gets Response Data; `isBinary` matters only with `asResponse: false`. Why: text CIF parses from the bytes, never decoded
+to a string and encoded back (flat-192-cif: 388 → 270 MB retained).
+
+- Every built-in parser takes Response Data: a text parser `from: [String, Binary, Response]` (Binary Data is decoded),
+  reading `SO.Data.readText(ctx, a)`; a binary one `from: [Binary, Response]`, reading `SO.Data.readBytes(a)`
+  (`{ copy: true }` when it writes into its input or keeps views of it). TypeScript: a binary parser can no longer be
+  applied to a ref typed `String | Binary` (`RawData`'s): a `from` that neither contains nor is contained in its type
+  does not compile; such a ref is typed by what it holds, or goes through a format provider's `parse`.
+- **A custom parser on top of `Download` or `ReadFile` has to adjust**: add `SO.Data.Response` to its `from` and read
+  through `readText` / `readBytes`; or set `asResponse: false` on the download; or put `ReadResponse { isBinary }`
+  between them. Code that reads a download's `cell.obj.data` as a string or bytes reads `data.text(ctx)` or
+  `data.bytes`.
+- A response body holds one form at a time (`ResponseBody`): its bytes, or its text once a reader asks for it (then
+  `bytes` encodes it again). Its `header` (64 KiB) and its sniffs (`sniffBytes`, `sniffText`) work on either form.
+- A `DataFormatProvider.isApplicable` gets a response as itself (a `Sniffable`, core) when the provider sets
+  `sniffsResponse`, as bytes when it reads the extension as binary, else as its text, which turns the body to text
+  (`DataFormatProvider.applicable`).
+- Types: `builders.data.download`, `readFile` and `downloadBlob` return a `Data.Response` (`ResponseBlob`) selector,
+  or `String | Binary` (`Blob`) with `asResponse: false`. The transforms' output is `String | Binary | Response`: code
+  that writes it out as `String | Binary` (`StateBuilder.To<PSO.Data.Binary | PSO.Data.String>`) adds `Response`.
+- Memory: a text format other than CIF holds its text, and its bytes as the file it was read from or a blob (a
+  download), as before; CIF holds its bytes only.
+
+## `Download` and `ReadFile` inflate gzip by default
+
+`Download`, `ReadFile` and `DownloadBlob` have a `decompress` param, `'auto'` when unset: gzip data, told by its bytes and not the name,
+is inflated, for text, binary and Response Data alike. A server that sends `.gz` files without `Content-Encoding` (the
+EMDB maps) used to give the gzip bytes (garbage as a string); it gives the inflated data now. Code that downloads such a
+file as binary and inflates it itself gets inflated bytes: it drops its own `ungzip`, or sets `decompress: 'none'` to
+keep the bytes as received. `DeflateData` passes bytes that are not gzip through, so a `Download` followed by it still
+works. A file named `.gz` was already inflated by its name and still is.
+
+## CSV reader follows RFC 4180
+
+`parseCsv` (`@molstar/io/reader/csv/parser`) reads CSV as RFC 4180 has it, from bytes or a string. Behavior changes for
+input that read differently before:
+
+- Spaces and tabs in a field are kept (they were trimmed, and inner ones dropped from the value's end); numbers still
+  parse past them.
+- A doubled quote in a quoted field reads as one quote (it was kept doubled); only spaces and tabs may follow a closing
+  quote, other text is an error with its line, as is an unterminated quoted field.
+- An empty field is empty, also the last of a record (a trailing empty field, or an empty field after a quoted one,
+  moved the following values into the wrong columns). A record shorter than the header reads its missing fields as
+  empty, a longer one is cut to the header's count.
+- A column is a CSV column, not a CIF field: `.` and `?` are values; only an empty value is not present.
+- `comment` is off by default (it was `#`), and when set, it starts a comment only at the start of a line (a value
+  starting with it dropped the rest of its line).
+- A UTF-8 byte order mark is skipped; the last record is counted without a final line break.
+
+## Text parsers read bytes
+
+The text parsers on `TextByteTokenizer` (XYZ, GRO, MOL, SDF, MOL2, PSF, TOP, PRMTOP, LAMMPS, cube, DX, OBJ, PLY, Dynamo
+tbl, CSV) take `StringLike | Uint8Array`; passing a string still works (encoded to UTF-8 once). Differences:
+
+- Fixed-width columns (GRO, MOL/SDF, PRMTOP) count bytes, not chars: a non-ASCII char in such a line shifts the columns
+  after it (the formats are ASCII).
+- XYZ coordinates parse with Mol*'s number parser, not `+value`: some differ in the last bit (as every other text
+  format's numbers); a field that is no number reads its leading number or 0, not NaN.
+- `mol/parser`'s exported `handleAtoms`, `handleBonds` and `handlePropertiesBlock` take a `TextByteTokenizer`.
+- A PLY whose format line is not ascii or binary (little or big endian) fails as a string did; the plugin's bytes read
+  it as ASCII.

@@ -47,11 +47,10 @@ Example: 100k atoms × 500 frames peaks at about 2.5 GB of text + 2.4–3.6 GB o
 4. **The generic byte tokenizer** that this pass starts for CIF (`reader/cif/text/field.ts`, `parseFloatBytes`), shared
    by the line-based text formats.
 
-## Later: a byte-backed `StringLike`
+## Text formats on bytes: done
 
-An ASCII-only `StringLike` over the file's `Uint8Array` (`charCodeAt(i)` = `bytes[i]`, `substring` decoding a range),
-opt-in per format provider, so opened files stay `Data.String` while their text is never decoded to a JS string; the CIF
-byte tokenizer would detect it and read the bytes directly, skipping `utf8Encode`'s copy. Risks: code that assumes a
-small file is a primitive string, and a second `StringLike` kind at the other parsers' `charCodeAt` call sites (a
-polymorphic site is ~1.4–2× slower, as `ChunkedBigString` showed above).
-
+The LAMMPS readers (and the other line-based text formats) read bytes: `TextByteTokenizer`
+(`io/reader/common/text/text-byte-tokenizer.ts`), the plugin handing them the response's bytes (`readBytes`); the
+tokenizer refuses 4 GiB or more (the guard above). The dump's atom lines are scanned in one inlined loop, a token list per column
+(no `switch`). 20 frames of 100k atoms (75 MB, `node scripts/pipeline-bench.mjs parsers --only lammps-dump`): parse
+215 → 124 ms, parse and read 392 → 271 ms. Options 1–3 above stay open.

@@ -2,16 +2,18 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ReaderResult as Result } from '../result.js';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { PlyFile, PlyType, type PlyElement, PlyTypeByteLength } from './schema.js';
-import { Tokenizer, TokenBuilder, type Tokens } from '../common/text/tokenizer.js';
+import { TextByteTokenizer, TextByteTokenBuilder, type TextByteTokens } from '../common/text/text-byte-tokenizer.js';
 import { Column } from '@molstar/core/data/db';
-import { TokenColumn } from '../common/text/column/token.js';
+import { TextByteTokenColumn } from '../common/text/column/text-byte-token.js';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { utf8Read, utf8ReadLong } from '@molstar/core/util/utf8';
+import { utf8ReadValue } from '@molstar/core/util/utf8';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // TODO parse elements asynchronously
 // TODO handle lists with appended properties
@@ -19,13 +21,14 @@ import { utf8Read, utf8ReadLong } from '@molstar/core/util/utf8';
 type PlyFormat = 'ascii' | 'binary_little_endian' | 'binary_big_endian';
 
 interface State {
-  data: StringLike;
-  tokenizer: Tokenizer;
+  /** The bytes of the file: an ASCII body is tokenized from them, a binary body read from them. */
+  data: ReadonlyUint8Array;
+  tokenizer: TextByteTokenizer;
   runtimeCtx: RuntimeContext;
   format: PlyFormat;
-  formatPreset: boolean;
   littleEndian: boolean;
-  binaryData: Uint8Array | undefined;
+  /** The header, `ply` to `end_header` (decoded: it is small). */
+  headerText: string;
   binaryOffset: number;
 
   comments: string[];
@@ -33,16 +36,15 @@ interface State {
   elements: PlyElement[];
 }
 
-function State(data: StringLike, runtimeCtx: RuntimeContext, presetFormat?: PlyFormat): State {
-  const tokenizer = Tokenizer(data);
+function State(data: ReadonlyUint8Array, runtimeCtx: RuntimeContext): State {
+  const tokenizer = TextByteTokenizer(data);
   return {
     data,
     tokenizer,
     runtimeCtx,
-    format: presetFormat ?? 'ascii',
-    formatPreset: presetFormat !== undefined,
-    littleEndian: presetFormat !== 'binary_big_endian',
-    binaryData: undefined,
+    format: 'ascii',
+    littleEndian: true,
+    headerText: '',
     binaryOffset: 0,
 
     comments: [],
@@ -59,37 +61,44 @@ type TableElementSpec = { kind: 'table'; name: string; count: number; properties
 type ListElementSpec = { kind: 'list'; name: string; count: number; property: ListProperty };
 type ElementSpec = TableElementSpec | ListElementSpec;
 
-function markHeader(tokenizer: Tokenizer) {
-  const endHeaderIndex = tokenizer.data.indexOf('end_header', tokenizer.position);
-  if (endHeaderIndex === -1) throw new Error(`no 'end_header' record found`);
-  // TODO set `tokenizer.lineNumber` correctly
-  tokenizer.tokenStart = tokenizer.position;
-  tokenizer.tokenEnd = endHeaderIndex;
-  tokenizer.position = endHeaderIndex;
-  Tokenizer.eatLine(tokenizer);
+/**
+ * Reads the header, `ply` to the `end_header` line (which starts a line), into `state.headerText`, and moves the
+ * tokenizer to the first byte of the body.
+ */
+function markHeader(state: State) {
+  const { data, tokenizer } = state;
+  const start = findEndHeader(data);
+  let end = start + EndHeader.length;
+  // the rest of the `end_header` line
+  while (end < data.length && data[end] !== 10 && data[end] !== 13) end++;
+  state.headerText = utf8ReadValue(data, 0, end);
+  tokenizer.position = end;
+  if (data[tokenizer.position] === 13) tokenizer.position++;
+  if (data[tokenizer.position] === 10) tokenizer.position++;
+  state.binaryOffset = tokenizer.position;
 }
 
 function parseHeader(state: State) {
-  const { tokenizer, comments, elementSpecs } = state;
+  const { comments, elementSpecs } = state;
 
-  markHeader(tokenizer);
-  const headerLines = Tokenizer.getTokenString(tokenizer).split(/\r?\n/);
+  markHeader(state);
+  const headerLines = state.headerText.split(/\r?\n/);
 
-  if (headerLines[0] !== 'ply') throw new Error(`data not starting with 'ply'`);
-  if (!state.formatPreset) {
-    const formatLine = headerLines[1];
-    if (formatLine === 'format ascii 1.0') {
-      state.format = 'ascii';
-      state.littleEndian = true;
-    } else if (formatLine === 'format binary_little_endian 1.0') {
-      state.format = 'binary_little_endian';
-      state.littleEndian = true;
-    } else if (formatLine === 'format binary_big_endian 1.0') {
-      state.format = 'binary_big_endian';
-      state.littleEndian = false;
-    } else {
-      throw new Error(`unsupported PLY format '${formatLine}'`);
-    }
+  if (headerLines[0].trim() !== 'ply') throw new Error(`data not starting with 'ply'`);
+  const formatLine = headerLines[1];
+  // by its words, not the exact line: any version, spaces around them (files with a trailing space read before)
+  const [keyword, kind] = formatLine?.trim().split(/\s+/) ?? [];
+  if (keyword === 'format' && kind === 'ascii') {
+    state.format = 'ascii';
+    state.littleEndian = true;
+  } else if (keyword === 'format' && kind === 'binary_little_endian') {
+    state.format = 'binary_little_endian';
+    state.littleEndian = true;
+  } else if (keyword === 'format' && kind === 'binary_big_endian') {
+    state.format = 'binary_big_endian';
+    state.littleEndian = false;
+  } else {
+    throw new Error(`unsupported PLY format '${formatLine}'`);
   }
 
   let currentName: string | undefined;
@@ -271,7 +280,7 @@ function makeTypedArray(type: PlyType, count: number): PlyTypedArray {
 }
 
 function parseBinaryTableElement(state: State, spec: TableElementSpec) {
-  const { elements, binaryData, littleEndian } = state;
+  const { elements, data: binaryData, littleEndian } = state;
   const { count, properties } = spec;
   const propertyCount = properties.length;
   const propertyNames: string[] = [];
@@ -281,7 +290,7 @@ function parseBinaryTableElement(state: State, spec: TableElementSpec) {
   const arrays: PlyTypedArray[] = [];
   for (let i = 0; i < propertyCount; i++) arrays.push(makeTypedArray(properties[i].type, count));
 
-  const dv = new DataView(binaryData!.buffer, binaryData!.byteOffset);
+  const dv = new DataView(binaryData.buffer, binaryData.byteOffset);
   for (let i = 0; i < count; i++) {
     for (let j = 0; j < propertyCount; j++) {
       const { type } = properties[j];
@@ -309,10 +318,10 @@ function parseBinaryTableElement(state: State, spec: TableElementSpec) {
 }
 
 function parseBinaryListElement(state: State, spec: ListElementSpec) {
-  const { elements, binaryData, littleEndian } = state;
+  const { elements, data: binaryData, littleEndian } = state;
   const { count, property } = spec;
   const { countType, dataType } = property;
-  const dv = new DataView(binaryData!.buffer, binaryData!.byteOffset);
+  const dv = new DataView(binaryData.buffer, binaryData.byteOffset);
 
   const allEntries: number[] = [];
   const offsets = new Uint32Array(count + 1);
@@ -355,26 +364,26 @@ function parseTableElement(state: State, spec: TableElementSpec) {
   const propertyCount = properties.length;
   const propertyNames: string[] = [];
   const propertyTypes: PlyType[] = [];
-  const propertyTokens: Tokens[] = [];
+  const propertyTokens: TextByteTokens[] = [];
   const propertyColumns = new Map<string, Column<number>>();
 
   for (let i = 0, il = propertyCount; i < il; ++i) {
-    const tokens = TokenBuilder.create(tokenizer.data, count * 2);
+    const tokens = TextByteTokenBuilder.create(tokenizer.data, count * 2);
     propertyTokens.push(tokens);
   }
 
   for (let i = 0, il = count; i < il; ++i) {
     for (let j = 0, jl = propertyCount; j < jl; ++j) {
-      Tokenizer.skipWhitespace(tokenizer);
-      Tokenizer.markStart(tokenizer);
-      Tokenizer.eatValue(tokenizer);
-      TokenBuilder.addUnchecked(propertyTokens[j], tokenizer.tokenStart, tokenizer.tokenEnd);
+      TextByteTokenizer.skipWhitespace(tokenizer);
+      TextByteTokenizer.markStart(tokenizer);
+      TextByteTokenizer.eatValue(tokenizer);
+      TextByteTokenBuilder.addUnchecked(propertyTokens[j], tokenizer.tokenStart, tokenizer.tokenEnd);
     }
   }
 
   for (let i = 0, il = propertyCount; i < il; ++i) {
     const { type, name } = properties[i];
-    const column = TokenColumn(propertyTokens[i], getColumnSchema(type));
+    const column = TextByteTokenColumn(propertyTokens[i], getColumnSchema(type));
     propertyNames.push(name);
     propertyTypes.push(type);
     propertyColumns.set(name, column);
@@ -394,19 +403,22 @@ function parseListElement(state: State, spec: ListElementSpec) {
   const { count, property } = spec;
 
   // initial tokens size assumes triangle index data
-  const tokens = TokenBuilder.create(tokenizer.data, count * 2 * 3);
+  const tokens = TextByteTokenBuilder.create(tokenizer.data, count * 2 * 3);
 
   const offsets = new Uint32Array(count + 1);
   let entryCount = 0;
 
   for (let i = 0, il = count; i < il; ++i) {
-    Tokenizer.skipWhitespace(tokenizer);
-    Tokenizer.markStart(tokenizer);
-    while (Tokenizer.skipWhitespace(tokenizer) !== 10) {
+    TextByteTokenizer.skipWhitespace(tokenizer);
+    TextByteTokenizer.markStart(tokenizer);
+    while (true) {
+      // a row ends at its line break (\n, or \r alone) or at the end of the data (a last line without one hung)
+      const ws = TextByteTokenizer.skipWhitespace(tokenizer);
+      if (ws === 10 || ws === 13 || tokenizer.position >= tokenizer.length) break;
       ++entryCount;
-      Tokenizer.markStart(tokenizer);
-      Tokenizer.eatValue(tokenizer);
-      TokenBuilder.addToken(tokens, tokenizer);
+      TextByteTokenizer.markStart(tokenizer);
+      TextByteTokenizer.eatValue(tokenizer);
+      TextByteTokenBuilder.addToken(tokens, tokenizer);
     }
     offsets[i + 1] = entryCount;
   }
@@ -417,7 +429,7 @@ function parseListElement(state: State, spec: ListElementSpec) {
     count: 0,
   };
 
-  const column = TokenColumn(tokens, getColumnSchema(property.dataType));
+  const column = TextByteTokenColumn(tokens, getColumnSchema(property.dataType));
 
   elements.push({
     kind: 'list',
@@ -436,35 +448,9 @@ function parseListElement(state: State, spec: ListElementSpec) {
   });
 }
 
-async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext): Promise<Result<PlyFile>> {
-  let stateData: StringLike;
-  let binaryData: Uint8Array | undefined;
-  let binaryOffset = 0;
-  let presetFormat: PlyFormat | undefined;
-
-  if (data instanceof Uint8Array) {
-    binaryOffset = findEndHeaderByteOffset(data);
-    const headerText = utf8Read(data, 0, binaryOffset);
-    const format = detectPlyFormat(headerText);
-    presetFormat = format;
-    if (format !== 'ascii') {
-      stateData = headerText;
-      binaryData = data;
-    } else {
-      // ASCII PLY: decode the full byte array as text
-      stateData = utf8ReadLong(data, 0, data.length);
-    }
-  } else {
-    stateData = data;
-  }
-
-  const state = State(stateData, ctx, presetFormat);
-  if (binaryData !== undefined) {
-    state.binaryData = binaryData;
-    state.binaryOffset = binaryOffset;
-  }
-
-  ctx.update({ message: 'Parsing...', current: 0, max: data.length });
+async function parseInternal(data: StringLike | ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<PlyFile>> {
+  const state = State(TextByteTokenizer.bytesOf(data), ctx);
+  ctx.update({ message: 'Parsing...', current: 0, max: state.data.length });
   parseHeader(state);
   parseElements(state);
   const { elements, elementSpecs, comments } = state;
@@ -473,23 +459,15 @@ async function parseInternal(data: StringLike | Uint8Array, ctx: RuntimeContext)
   return Result.success(result);
 }
 
-/** Extracts the PLY format from the header text (second line). */
-function detectPlyFormat(headerText: string): PlyFormat {
-  const newline = headerText.indexOf('\n');
-  const formatLine =
-    newline === -1 ? '' : headerText.substring(newline + 1, headerText.indexOf('\n', newline + 1)).replace(/\r$/, '');
-  if (formatLine === 'format binary_little_endian 1.0') return 'binary_little_endian';
-  if (formatLine === 'format binary_big_endian 1.0') return 'binary_big_endian';
-  return 'ascii';
-}
+const EndHeader = 'end_header';
 
-/** Returns the byte offset of the first byte after the `end_header\n` line. */
-function findEndHeaderByteOffset(data: Uint8Array): number {
+/** Returns the byte offset of the `end_header` record, at the start of a line. */
+function findEndHeader(data: ReadonlyUint8Array): number {
   const target = [101, 110, 100, 95, 104, 101, 97, 100, 101, 114]; // 'end_header'
   const tlen = target.length;
   for (let i = 0; i <= data.length - tlen; i++) {
     // Only match at the start of a line
-    if (i !== 0 && data[i - 1] !== 10 /* \n */) continue;
+    if (i !== 0 && data[i - 1] !== 10 /* \n */ && data[i - 1] !== 13 /* \r */) continue;
     let matched = true;
     for (let j = 0; j < tlen; j++) {
       if (data[i + j] !== target[j]) {
@@ -497,17 +475,13 @@ function findEndHeaderByteOffset(data: Uint8Array): number {
         break;
       }
     }
-    if (!matched) continue;
-
-    let k = i + tlen;
-    if (k < data.length && data[k] === 13) k++; // skip \r
-    if (k < data.length && data[k] === 10) k++; // skip \n
-    return k;
+    if (matched) return i;
   }
   throw new Error(`no 'end_header' record found`);
 }
 
-export function parsePly(data: StringLike | Uint8Array) {
+/** Parses a PLY file, ASCII or binary (by its header), from its bytes or its text (a string is encoded once). */
+export function parsePly(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<PlyFile>>('Parse PLY', async (ctx) => {
     return await parseInternal(data, ctx);
   });

@@ -21,12 +21,12 @@ type TrajectoryFromGRO = typeof TrajectoryFromGRO;
 const TrajectoryFromGRO = PluginStateTransform.BuiltIn({
   name: 'trajectory-from-gro',
   display: { name: 'Parse GRO', description: 'Parse GRO string and create trajectory.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Trajectory,
 })({
   apply({ a }) {
     return Task.create('Parse GRO', async (ctx) => {
-      const parsed = await parseGRO(a.data).runInContext(ctx);
+      const parsed = await parseGRO(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromGRO(parsed.result).runInContext(ctx);
       const props = trajectoryProps(models);

@@ -22,12 +22,12 @@ type ParseDynamoTbl = typeof ParseDynamoTbl;
 const ParseDynamoTbl = PluginStateTransform.BuiltIn({
   name: 'parse-dynamo-tbl',
   display: { name: 'Parse Dynamo TBL', description: 'Parse Dynamo TBL from String data' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.DynamoTbl,
 })({
   apply({ a }) {
     return Task.create('Parse Dynamo TBL', async (ctx) => {
-      const parsed = await parseDynamoTbl(a.data).runInContext(ctx);
+      const parsed = await parseDynamoTbl(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.DynamoTbl(parsed.result, { label: a.label || 'Dynamo TBL' });
     });

@@ -21,12 +21,12 @@ type ParsePsf = typeof ParsePsf;
 const ParsePsf = PluginStateTransform.BuiltIn({
   name: 'parse-psf',
   display: { name: 'Parse PSF', description: 'Parse PSF from String data' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Psf,
 })({
   apply({ a }) {
     return Task.create('Parse PSF', async (ctx) => {
-      const parsed = await parsePsf(a.data).runInContext(ctx);
+      const parsed = await parsePsf(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Psf(parsed.result);
     });

@@ -9,7 +9,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RuntimeContext } from '@molstar/core/task';
 import { Asset, DefaultAssetManager } from '../assets.js';
-import { ajaxGet } from '../data-source.js';
+import { fetchData } from '../data-source.js';
 import { GraphQLClient } from '../graphql-client.js';
 
 describe('graphql transport', () => {
@@ -51,7 +51,7 @@ describe('graphql transport', () => {
   it('preserves POST body and headers in HTTP requests', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true })));
 
-    const result = await ajaxGet({
+    const result = await fetchData({
       url: 'https://example.org/graphql',
       type: 'json',
       body: '{"query":"{ test }"}',

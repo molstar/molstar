@@ -3,15 +3,17 @@
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import { CifCategory, CifField } from '../cif/data-model.js';
 import { toTable } from '../cif/schema.js';
 import type { StringLike } from '@molstar/core/util/string-like';
-import { TokenBuilder, Tokenizer, type Tokens } from '../common/text/tokenizer.js';
+import { TextByteTokenBuilder, TextByteTokenizer, type TextByteTokens } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
 import { DynamoTblSchema, type DynamoTblTable } from './schema.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 export type DynamoTblFieldName = keyof DynamoTblSchema;
 
@@ -69,8 +71,8 @@ const DynamoTblColumns: ReadonlyArray<{ readonly index: number; readonly name: D
   { index: 41, name: 'eig2' },
 ];
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext) {
-  const tokenizer = Tokenizer(data);
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext) {
+  const tokenizer = TextByteTokenizer(data);
   const warnings: string[] = [];
   let skippedRows = 0;
   let prevPosition = 0;
@@ -80,15 +82,19 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext) {
   // One Tokens builder per spec column. Each parsed row appends one
   // (start, end) pair to every column; columns absent (i.e. column index
   // beyond the row's token count) get an empty (0, 0) range so that
-  // CifField.ofTokens reports them as ValueKinds.NotPresent.
+  // CifField.ofTextByteTokens reports them as ValueKinds.NotPresent.
   const sizeHint = Math.max(10, (data.length / 80) | 0);
-  const columnTokens: Tokens[] = DynamoTblColumns.map(() => TokenBuilder.create(data, sizeHint));
+  const columnTokens: TextByteTokens[] = DynamoTblColumns.map(() => TextByteTokenBuilder.create(data, sizeHint));
 
   // Reverse map: token index in a row -> index into DynamoTblColumns (or -1).
   const maxColumnIndex = DynamoTblColumns[DynamoTblColumns.length - 1].index;
   const tokenIndexToColumn = new Int32Array(maxColumnIndex + 1);
   for (let i = 0; i < tokenIndexToColumn.length; ++i) tokenIndexToColumn[i] = -1;
   for (let i = 0; i < DynamoTblColumns.length; ++i) tokenIndexToColumn[DynamoTblColumns[i].index] = i;
+
+  // The (start, end) of the row's tokens up to the last spec column: added to the columns only once the row is
+  // accepted, so a skipped (incomplete) row adds nothing.
+  const rowTokens = new Uint32Array(2 * (maxColumnIndex + 1));
 
   while (tokenizer.position < tokenizer.length) {
     if (tokenizer.position - prevPosition > 100000 && ctx.shouldUpdate) {
@@ -97,8 +103,8 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext) {
     }
 
     // Read the next line.
-    Tokenizer.markStart(tokenizer);
-    Tokenizer.eatLine(tokenizer);
+    TextByteTokenizer.markStart(tokenizer);
+    TextByteTokenizer.eatLine(tokenizer);
     const lineStart = tokenizer.tokenStart;
     const lineEnd = tokenizer.tokenEnd;
     if (lineStart >= lineEnd) continue;
@@ -106,33 +112,32 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext) {
     // Skip leading whitespace and detect empty/comment lines.
     let i = lineStart;
     while (i < lineEnd) {
-      const c = data.charCodeAt(i);
+      const c = data[i];
       if (c !== 9 && c !== 32) break;
       i++;
     }
     if (i >= lineEnd) continue;
-    const firstChar = data.charCodeAt(i);
+    const firstChar = data[i];
     if (firstChar === 35 /* # */ || firstChar === 37 /* % */ || firstChar === 59 /* ; */) continue;
 
-    // Scan whitespace-separated tokens within the line, dispatching each
-    // directly to its target column if any.
+    // Scan whitespace-separated tokens within the line.
     let tokenCount = 0;
     while (i < lineEnd) {
-      let c = data.charCodeAt(i);
+      let c = data[i];
       while (i < lineEnd && (c === 9 || c === 32)) {
         i++;
-        c = data.charCodeAt(i);
+        c = data[i];
       }
       if (i >= lineEnd) break;
       const ts = i;
       while (i < lineEnd) {
-        const cc = data.charCodeAt(i);
+        const cc = data[i];
         if (cc === 9 || cc === 32) break;
         i++;
       }
       if (tokenCount <= maxColumnIndex) {
-        const colIdx = tokenIndexToColumn[tokenCount];
-        if (colIdx >= 0) TokenBuilder.add(columnTokens[colIdx], ts, i);
+        rowTokens[2 * tokenCount] = ts;
+        rowTokens[2 * tokenCount + 1] = i;
       }
       tokenCount++;
     }
@@ -147,11 +152,11 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext) {
       throw new Error(`Inconsistent Dynamo TBL row width: expected ${expectedTokenCount} columns, got ${tokenCount}.`);
     }
 
-    // Pad columns whose token index lies beyond the actual row width.
+    // Each spec column gets the row's token, or an empty range when its index lies beyond the row width.
     for (let c = 0; c < DynamoTblColumns.length; ++c) {
-      if (DynamoTblColumns[c].index >= tokenCount) {
-        TokenBuilder.add(columnTokens[c], 0, 0);
-      }
+      const index = DynamoTblColumns[c].index;
+      if (index < tokenCount) TextByteTokenBuilder.add(columnTokens[c], rowTokens[2 * index], rowTokens[2 * index + 1]);
+      else TextByteTokenBuilder.add(columnTokens[c], 0, 0);
     }
     rowCount++;
   }
@@ -168,7 +173,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext) {
   const fieldNames: DynamoTblFieldName[] = [];
   for (let c = 0; c < DynamoTblColumns.length; ++c) {
     const name = DynamoTblColumns[c].name;
-    cifFields[name] = CifField.ofTokens(columnTokens[c]);
+    cifFields[name] = CifField.ofTextByteTokens(columnTokens[c]);
     fieldNames.push(name);
   }
   const category = CifCategory.ofFields('dynamo_tbl', cifFields);
@@ -184,8 +189,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext) {
   );
 }
 
-export function parseDynamoTbl(data: StringLike) {
+/** Parses a Dynamo table from its text or its UTF-8 bytes (a string is encoded once). */
+export function parseDynamoTbl(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<DynamoTblFile>>('Parse Dynamo TBL', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

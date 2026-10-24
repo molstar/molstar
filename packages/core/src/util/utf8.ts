@@ -7,6 +7,7 @@
  */
 
 import { ChunkedBigString, MAX_STRING_LENGTH, type StringLike } from './string-like.js';
+import type { ReadonlyUint8Array } from './type-helpers.js';
 
 export function utf8Write(data: Uint8Array, offset: number, str: string) {
   for (let i = 0, l = str.length; i < l; i++) {
@@ -57,7 +58,7 @@ function throwError(err: string) {
   throw new Error(err);
 }
 
-function _utf8Read(data: Uint8Array, offset: number, length: number) {
+function _utf8Read(data: ReadonlyUint8Array, offset: number, length: number) {
   const chars = __chars;
   let str: string[] | undefined = void 0,
     chunkOffset = 0;
@@ -104,7 +105,7 @@ function _utf8Read(data: Uint8Array, offset: number, length: number) {
 const ShortAsciiLength = 24;
 
 /** The string of `length` ASCII bytes at `offset`, or `undefined` when one is not ASCII or the range is out of bounds. */
-function shortAscii(d: Uint8Array, o: number, length: number): string | undefined {
+function shortAscii(d: ReadonlyUint8Array, o: number, length: number): string | undefined {
   if (o + length > d.length) return;
   let mask = 0;
   for (let i = o, e = o + length; i < e; i++) mask |= d[i];
@@ -132,7 +133,7 @@ function shortAscii(d: Uint8Array, o: number, length: number): string | undefine
 
 const utf8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder() : undefined;
 /** Decode UTF8 data. Return as primitive `string` type, or fail if the result is longer than MAX_STRING_LENGTH. */
-export function utf8Read(data: Uint8Array, offset: number = 0, length: number = data.length): string {
+export function utf8Read(data: ReadonlyUint8Array, offset: number = 0, length: number = data.length): string {
   if (length <= ShortAsciiLength) {
     const ascii = shortAscii(data, offset, length);
     if (ascii !== void 0) return ascii;
@@ -150,7 +151,7 @@ const utf8ValueDecoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('u
  * Decode UTF8 data of a value in a text, keeping a leading U+FEFF: `utf8Read` (a `TextDecoder`) drops it, as the byte
  * order mark of a file.
  */
-export function utf8ReadValue(data: Uint8Array, offset: number = 0, length: number = data.length): string {
+export function utf8ReadValue(data: ReadonlyUint8Array, offset: number = 0, length: number = data.length): string {
   if (length <= ShortAsciiLength) {
     const ascii = shortAscii(data, offset, length);
     if (ascii !== void 0) return ascii;
@@ -160,7 +161,7 @@ export function utf8ReadValue(data: Uint8Array, offset: number = 0, length: numb
 }
 
 /** Decode UTF8 data, potentially exceeding MAX_STRING_LENGTH. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is longer than MAX_STRING_LENGTH. */
-export function utf8ReadLong(data: Uint8Array, offset: number = 0, length: number = data.length): StringLike {
+export function utf8ReadLong(data: ReadonlyUint8Array, offset: number = 0, length: number = data.length): StringLike {
   if (length <= MAX_STRING_LENGTH) {
     return utf8Read(data, offset, length);
   }
@@ -241,4 +242,41 @@ export function utf8ByteCount(str: string) {
     throwError('bad codepoint ' + codePoint);
   }
   return count;
+}
+
+/**
+ * The index of ASCII `needle` in UTF-8 `data` at or after `from`, or -1: `String.indexOf` on the text the bytes decode
+ * to, without decoding them (an ASCII byte never occurs inside a multi-byte sequence). The index is a byte index.
+ *
+ * The native `indexOf` finds the candidates for the needle's first lowercase letter (its first byte when it has
+ * none): in text formats lowercase is rare outside names and keys (in a 124 MB mmCIF, 327 `a` against 2.2M `_`), so
+ * the search runs at about the speed of a single native scan.
+ */
+export function asciiIndexOf(data: ReadonlyUint8Array, needle: string, from = 0): number {
+  const n = needle.length;
+  if (n === 0) return Math.min(from, data.length);
+  let k = 0;
+  for (let j = 0; j < n; j++) {
+    const c = needle.charCodeAt(j);
+    if (c >= 97 && c <= 122) {
+      k = j;
+      break;
+    }
+  }
+  const anchor = needle.charCodeAt(k);
+  const last = data.length - n;
+  for (let i = data.indexOf(anchor, from + k); i >= 0 && i - k <= last; i = data.indexOf(anchor, i + 1)) {
+    const start = i - k;
+    let j = 0;
+    while (j < n && data[start + j] === needle.charCodeAt(j)) j++;
+    if (j === n) return start;
+  }
+  return -1;
+}
+
+/** Whether UTF-8 `data` starts with ASCII `needle` (at byte `position`). */
+export function asciiStartsWith(data: ReadonlyUint8Array, needle: string, position = 0): boolean {
+  if (position + needle.length > data.length) return false;
+  for (let j = 0; j < needle.length; j++) if (data[position + j] !== needle.charCodeAt(j)) return false;
+  return true;
 }

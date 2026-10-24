@@ -1,12 +1,15 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zepei Xu <xuzepei19950617@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
+import { utf8Encode } from '@molstar/core/util/utf8';
 import { parseMol2 } from '../mol2/parser.js';
+import { plainResult } from './plain-result.js';
 
 const Mol2String = `@<TRIPOS>MOLECULE
 5816
@@ -801,5 +804,45 @@ describe('mol2 reader', () => {
       expect(data.substructures!.inter_bonds.value(0)).toBe(0);
       expect(data.substructures!.status_bits.value(0)).toBe('');
     }
+  });
+
+  it('parses the same from a string and from its bytes', async () => {
+    const texts = [
+      Mol2String,
+      Mol2StringMultiBlocks,
+      Mol2StringMinimal,
+      Mol2StringCrysin,
+      Mol2AtomWithStatusBit,
+      Mol2BondWithStatusBit,
+    ];
+    for (const text of texts) {
+      const fromString = await parseMol2(text, 'x').run();
+      const fromBytes = await parseMol2(utf8Encode(text), 'x').run();
+      expect(plainResult(fromBytes)).toEqual(plainResult(fromString));
+    }
+  });
+
+  it('skips a leading UTF-8 byte order mark', async () => {
+    for (const text of [Mol2String, Mol2StringMultiBlocks]) {
+      const withBom = new Uint8Array([0xef, 0xbb, 0xbf, ...utf8Encode(text)]);
+      const fromBom = await parseMol2(withBom, 'x').run();
+      expect(plainResult(fromBom)).toEqual(plainResult(await parseMol2(text, 'x').run()));
+    }
+  });
+
+  it('non-ASCII molecule name and atom name', async () => {
+    const text = Mol2String.replace('@<TRIPOS>MOLECULE\n5816', '@<TRIPOS>MOLECULE\nMolécule ÅÉ 水').replace(
+      ' O ',
+      ' Ó ',
+    );
+    const parsed = await parseMol2(utf8Encode(text), 'x').run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const reference = await parseMol2(Mol2String, 'x').run();
+    if (reference.isError) throw new Error(reference.message);
+    const { molecule, atoms } = parsed.result.structures[0];
+    expect(molecule.mol_name).toBe('Molécule ÅÉ 水');
+    expect(atoms.atom_name.value(0)).toBe('Ó');
+    expect(atoms.x.toArray()).toEqual(reference.result.structures[0].atoms.x.toArray());
+    expect(atoms.atom_type.toArray()).toEqual(reference.result.structures[0].atoms.atom_type.toArray());
   });
 });

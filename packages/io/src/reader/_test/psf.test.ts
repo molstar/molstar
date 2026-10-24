@@ -1,11 +1,14 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
+import { utf8Encode } from '@molstar/core/util/utf8';
 import { parsePsf } from '../psf/parser.js';
+import { plainResult } from './plain-result.js';
 
 const psfString = `PSF CMAP CHEQ
 
@@ -107,5 +110,21 @@ describe('psf reader', () => {
     expect(bonds.atomIdB.value(0)).toBe(1);
     expect(bonds.atomIdA.value(40)).toBe(39);
     expect(bonds.atomIdB.value(40)).toBe(42);
+  });
+
+  it('parses bytes as it parses the text', async () => {
+    const fromString = await parsePsf(psfString).run();
+    const fromBytes = await parsePsf(utf8Encode(psfString)).run();
+    expect(plainResult(fromBytes)).toEqual(plainResult(fromString));
+  });
+
+  it('reads non-ASCII text in titles and names', async () => {
+    const text = psfString.replace('BETA HARPIN', 'BÉTA HARPIN 中').replace('ALA  CAY', 'ALA  CÄY');
+    const parsed = await parsePsf(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    expect(parsed.result.title[0]).toBe('BÉTA HARPIN 中 IN IMPLICIT SOLVENT');
+    expect(parsed.result.atoms.atomName.value(0)).toBe('CÄY');
+    expect(parsed.result.atoms.atomType.value(0)).toBe('24');
+    expect(plainResult(parsed)).toEqual(plainResult(await parsePsf(text).run()));
   });
 });

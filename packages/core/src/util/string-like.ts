@@ -1,10 +1,12 @@
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { utf8Read } from './utf8.js';
+import type { ReadonlyUint8Array } from './type-helpers.js';
 
 /**
  * Essential subset of `string` functionality.
@@ -136,7 +138,7 @@ export class ChunkedBigString implements StringLikeInterface {
 
   /** Create instance from UTF8 data. (Do not call directly, prefer `utf8ReadLong` in utf8.ts.) */
   static fromUtf8Data(
-    data: Uint8Array,
+    data: ReadonlyUint8Array,
     start: number = 0,
     end: number = data.length,
     logStringChunkSize: number = DEFAULT_LOG_STRING_CHUNK_SIZE,

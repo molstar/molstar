@@ -69,6 +69,7 @@ export const CifCoreProvider = TrajectoryFormatProvider({
   description: 'CIF Core',
   category: TrajectoryFormatCategory,
   stringExtensions: ['cif'],
+  sniffsResponse: true,
   isApplicable: (info, data) => {
     if (info.ext === 'cif') return guessCifVariant(info, data) === 'coreCif';
     return false;

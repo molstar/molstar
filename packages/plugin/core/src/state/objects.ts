@@ -47,7 +47,11 @@ import type { Color } from '@molstar/core/util/color/color';
 import type { Asset } from '@molstar/core/util/assets';
 import type { PrmtopFile } from '@molstar/io/reader/prmtop/parser';
 import type { TopFile } from '@molstar/io/reader/top/parser';
-import type { StringLike } from '@molstar/core/util/string-like';
+import { StringLike } from '@molstar/core/util/string-like';
+import { Sniffable } from '@molstar/core/util/sniffable';
+import { type DataResponse, type DataType, decodeData } from '@molstar/core/util/data-source';
+import { utf8Encode, utf8ReadLong } from '@molstar/core/util/utf8';
+import type { RuntimeContext } from '@molstar/core/task';
 
 export type TypeClass = 'root' | 'data' | 'prop';
 
@@ -89,12 +93,114 @@ export namespace PluginStateObject {
     export class String extends Create<StringLike>({ name: 'String Data', typeClass: 'Data' }) {}
     export class Binary extends Create<Uint8Array<ArrayBuffer>>({ name: 'Binary Data', typeClass: 'Data' }) {}
 
+    /**
+     * The body of a `Download`, a `ReadFile` or a `DownloadBlob` entry: read eagerly, the form chosen by the reader,
+     * like a `fetch` `Response`. Unlike one, it reads any number of times, in any form.
+     *
+     * One form at a time (`.v6/data-response`): the bytes as read (shared with the asset manager), or the text once a
+     * reader asks for it. `text` decodes once, keeps the string and lets go of the bytes (the asset manager too, through
+     * `onText`), so a text format holds one copy; `bytes` after that encodes the text again (a copy; the body holds
+     * bytes again). The `header` (the first 64 KiB) and the sniffs work on either form and change neither.
+     */
+    export class ResponseBody implements Sniffable {
+      private _bytes: Uint8Array<ArrayBuffer> | undefined;
+      private _text: StringLike | undefined;
+      private readonly onText: (() => void) | undefined;
+      /** The first bytes (`Sniffable.HeaderBytes`), kept whichever form the rest is held in. */
+      readonly header: Uint8Array;
+
+      /** Which form the body holds. */
+      get form(): 'bytes' | 'text' {
+        return this._bytes ? 'bytes' : 'text';
+      }
+
+      /** The bytes themselves, not a copy: read-only (a reader that writes copies them first). */
+      get bytes(): Uint8Array<ArrayBuffer> {
+        if (!this._bytes) {
+          this._bytes = utf8Encode(this._text!) as Uint8Array<ArrayBuffer>;
+          this._text = undefined;
+        }
+        return this._bytes;
+      }
+
+      get heldBytes(): Uint8Array | undefined {
+        return this._bytes;
+      }
+
+      /** The text (UTF-8; past the string limit a `ChunkedBigString`): decoded once, then held instead of the bytes. */
+      textNow(): StringLike {
+        if (this._text === undefined) {
+          this._text = utf8ReadLong(this._bytes!);
+          this._bytes = undefined;
+          this.onText?.();
+        }
+        return this._text;
+      }
+
+      async text(ctx: RuntimeContext): Promise<StringLike> {
+        return this.textNow();
+      }
+
+      /** The data as `type`: `'string'` is `text`, `'binary'` a copy of the bytes, the others decode the held form. */
+      async read<T extends DataType>(ctx: RuntimeContext, type: T): Promise<DataResponse<T>> {
+        if (type === 'string') return this.textNow() as DataResponse<T>;
+        if (type === 'binary') return this.bytes.slice() as DataResponse<T>;
+        if (type === 'json' && this._text !== undefined) return JSON.parse(StringLike.toString(this._text));
+        return decodeData(ctx, this.bytes, type);
+      }
+
+      json(ctx: RuntimeContext): Promise<any> {
+        return this.read(ctx, 'json');
+      }
+
+      sniffBytes(needle: ArrayLike<number> | string, offset?: number): boolean {
+        return Sniffable.headerHas(this.header, needle, offset);
+      }
+
+      sniffText(needle: string, where?: 'anywhere' | 'start'): boolean {
+        return this._bytes
+          ? Sniffable.searchBytes(this._bytes, needle, where)
+          : Sniffable.searchText(this._text!, needle, where);
+      }
+
+      /** `onText`: the holder of the bytes lets go of them when the body turns to text (`Download`'s asset). */
+      constructor(bytes: Uint8Array<ArrayBuffer>, options?: { onText?: () => void }) {
+        this._bytes = bytes;
+        this.header = bytes.slice(0, Sniffable.HeaderBytes);
+        this.onText = options?.onText;
+      }
+    }
+    export class Response extends Create<ResponseBody>({ name: 'Response Data', typeClass: 'Data' }) {}
+
+    /**
+     * The text of String Data, of Binary Data or of a response (UTF-8; a response decodes once and then holds the text):
+     * what a text parser reads, whichever of the three it is given (`.v6/data-response`).
+     */
+    export async function readText(ctx: RuntimeContext, o: String | Binary | Response): Promise<StringLike> {
+      if (o instanceof Response) return o.data.text(ctx);
+      return o instanceof Binary ? utf8ReadLong(o.data) : o.data;
+    }
+
+    /**
+     * The bytes of Binary Data, of a response or of String Data (UTF-8): what a binary parser reads. A response's are
+     * shared and read-only, so a reader that writes into its input or keeps views of it in its result asks for a
+     * `copy`.
+     */
+    export function readBytes(o: String | Binary | Response, options?: { copy?: boolean }): Uint8Array<ArrayBuffer> {
+      if (o instanceof Response) return options?.copy ? o.data.bytes.slice() : o.data.bytes;
+      return o instanceof Binary ? o.data : (utf8Encode(o.data) as Uint8Array<ArrayBuffer>);
+    }
+
     export type BlobEntry = { id: string } & (
       | { kind: 'string'; data: string }
       | { kind: 'binary'; data: Uint8Array<ArrayBuffer> }
     );
     export type BlobData = BlobEntry[];
     export class Blob extends Create<BlobData>({ name: 'Data Blob', typeClass: 'Data' }) {}
+
+    /** The entries of a `DownloadBlob` with `asResponse`: each a response body, the reader chooses its form. */
+    export type ResponseBlobEntry = { id: string; data: ResponseBody };
+    export class ResponseBlob extends Create<ResponseBlobEntry[]>({ name: 'Response Blob', typeClass: 'Data' }) {}
   }
 
   export namespace Format {

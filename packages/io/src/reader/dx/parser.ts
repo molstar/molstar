@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from NGL.
  *
@@ -9,11 +9,11 @@
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { chunkedSubtask, type RuntimeContext, Task } from '@molstar/core/task';
-import { StringLike } from '@molstar/core/util/string-like';
-import { utf8Read } from '@molstar/core/util/utf8';
-import { parseFloat as fastParseFloat } from '@molstar/core/util/number-parser';
-import { Tokenizer } from '../common/text/tokenizer.js';
+import type { StringLike } from '@molstar/core/util/string-like';
+import { parseFloatBytes } from '@molstar/core/util/number-parser';
+import { TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // http://apbs-pdb2pqr.readthedocs.io/en/latest/formats/opendx.html
 
@@ -31,15 +31,16 @@ export namespace DxFile {
   }
 }
 
-function readHeader(tokenizer: Tokenizer): { header: DxFile.Header; headerByteCount: number } {
+/** Reads the header lines (decoded, few) up to `object 3`; the tokenizer is then at the first byte of the values. */
+function readHeader(tokenizer: TextByteTokenizer): DxFile.Header {
   const header: Partial<DxFile.Header> = { h: Vec3() };
-  let headerByteCount = 0;
   let deltaLineCount = 0;
 
   const reWhitespace = /\s+/g;
 
   while (true) {
-    const line = Tokenizer.readLine(tokenizer);
+    if (tokenizer.position >= tokenizer.length) throw new Error(`no 'object 3' record found`);
+    const line = TextByteTokenizer.readLine(tokenizer);
     let ls;
 
     if (line.startsWith('object 1')) {
@@ -61,34 +62,36 @@ function readHeader(tokenizer: Tokenizer): { header: DxFile.Header; headerByteCo
 
       deltaLineCount += 1;
     } else if (line.startsWith('object 3')) {
-      headerByteCount += line.length + 1;
       break;
     }
-
-    headerByteCount += line.length + 1;
   }
 
-  return { header: header as DxFile.Header, headerByteCount };
+  return header as DxFile.Header;
 }
 
-function readValuesText(ctx: RuntimeContext, tokenizer: Tokenizer, header: DxFile.Header) {
+function readValuesText(ctx: RuntimeContext, tokenizer: TextByteTokenizer, header: DxFile.Header) {
   const N = header.dim[0] * header.dim[1] * header.dim[2];
   const chunkSize = 100 * 100 * 100;
-  const data = new Float64Array(N);
+  const values = new Float64Array(N);
+  const { data, length } = tokenizer;
   let offset = 0;
 
   return chunkedSubtask(
     ctx,
     chunkSize,
-    data,
-    (count, data) => {
+    values,
+    (count, values) => {
       const max = Math.min(N, offset + count);
+      // locals, not the tokenizer's fields, per byte: the hot loop of a large grid
+      let p = tokenizer.position;
       for (let i = offset; i < max; i++) {
-        Tokenizer.skipWhitespace(tokenizer);
-        tokenizer.tokenStart = tokenizer.position;
-        Tokenizer.eatValue(tokenizer);
-        data[i] = fastParseFloat(tokenizer.data, tokenizer.tokenStart, tokenizer.tokenEnd);
+        let c = data[p];
+        while (p < length && (c === 32 || c === 10 || c === 13 || c === 9)) c = data[++p];
+        const start = p;
+        while (p < length && c !== 32 && c !== 10 && c !== 13 && c !== 9) c = data[++p];
+        values[i] = parseFloatBytes(data, start, p);
       }
+      tokenizer.position = p;
       offset = max;
       return max === N ? 0 : chunkSize;
     },
@@ -96,22 +99,22 @@ function readValuesText(ctx: RuntimeContext, tokenizer: Tokenizer, header: DxFil
   );
 }
 
-async function parseText(taskCtx: RuntimeContext, data: StringLike, name: string) {
+async function parseText(taskCtx: RuntimeContext, data: ReadonlyUint8Array, name: string) {
   await taskCtx.update('Reading header...');
-  const tokenizer = Tokenizer(data as string);
-  const { header } = readHeader(tokenizer);
+  const tokenizer = TextByteTokenizer(data);
+  const header = readHeader(tokenizer);
   await taskCtx.update('Reading values...');
   const values = await readValuesText(taskCtx, tokenizer, header);
   return Result.success({ header, values, name });
 }
 
-async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: string) {
+async function parseBinary(taskCtx: RuntimeContext, data: ReadonlyUint8Array, name: string) {
   await taskCtx.update('Reading header...');
 
-  const headerString = utf8Read(data, 0, 1000);
-
-  const tokenizer = Tokenizer(headerString);
-  const { header, headerByteCount } = readHeader(tokenizer);
+  const tokenizer = TextByteTokenizer(data);
+  const header = readHeader(tokenizer);
+  // the values start right after the `object 3` line
+  const headerByteCount = tokenizer.position;
 
   await taskCtx.update('Reading values...');
 
@@ -128,9 +131,16 @@ async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: stri
   return Result.success({ header, values, name });
 }
 
-export function parseDx(data: StringLike | Uint8Array, name: string) {
+/**
+ * Parses text DX from its text or its UTF-8 bytes, or binary DX (`.dxbin`: the text header, then little-endian
+ * float64 values) from its bytes. `binary` defaults to whether `data` is bytes; a caller with the bytes of a text DX
+ * passes `binary: false`.
+ */
+export function parseDx(data: StringLike | ReadonlyUint8Array, name: string, options?: { binary?: boolean }) {
   return Task.create<Result<DxFile>>('Parse DX', (taskCtx) => {
-    if (StringLike.is(data)) return parseText(taskCtx, data, name);
-    return parseBinary(taskCtx, data, name);
+    const binary = options?.binary ?? data instanceof Uint8Array;
+    const bytes = TextByteTokenizer.bytesOf(data);
+    if (binary) return parseBinary(taskCtx, bytes, name);
+    return parseText(taskCtx, bytes, name);
   });
 }

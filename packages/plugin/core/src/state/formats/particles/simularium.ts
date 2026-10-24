@@ -30,12 +30,12 @@ type ParseSimularium = typeof ParseSimularium;
 const ParseSimularium = PluginStateTransform.BuiltIn({
   name: 'parse-simularium',
   display: { name: 'Parse Simularium', description: 'Parse a Simularium trajectory (JSON or binary) from Binary data' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Simularium,
 })({
   apply({ a }) {
     return Task.create('Parse Simularium', async (ctx) => {
-      const parsed = await parseSimularium(a.data).runInContext(ctx);
+      const parsed = await parseSimularium(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Simularium(parsed.result, { label: a.label || 'Simularium' });
     });

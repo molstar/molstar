@@ -25,7 +25,7 @@ type TrajectoryFromLammpsData = typeof TrajectoryFromLammpsData;
 const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
   name: 'trajectory-from-lammps-data',
   display: { name: 'Parse Lammps Data', description: 'Parse Lammps Data from string and create trajectory.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Trajectory,
   params: {
     unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
@@ -33,7 +33,7 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }) {
     return Task.create('Parse Lammps Data', async (ctx) => {
-      const parsed = await parseLammpsData(a.data).runInContext(ctx);
+      const parsed = await parseLammpsData(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromLammpsData(parsed.result, params.unitsStyle).runInContext(ctx);
       const props = trajectoryProps(models);
@@ -47,7 +47,7 @@ type TrajectoryFromLammpsTrajData = typeof TrajectoryFromLammpsTrajData;
 const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
   name: 'trajectory-from-lammps-traj-data',
   display: { name: 'Parse Lammps traj Data', description: 'Parse Lammps Traj Data string and create trajectory.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Trajectory,
   params: {
     unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
@@ -55,7 +55,7 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
 })({
   apply({ a, params }) {
     return Task.create('Parse Lammps Data', async (ctx) => {
-      const parsed = await parseLammpsTrajectory(a.data).runInContext(ctx);
+      const parsed = await parseLammpsTrajectory(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromLammpsTrajectory(parsed.result, params.unitsStyle).runInContext(ctx);
       const props = trajectoryProps(models);

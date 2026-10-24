@@ -20,12 +20,12 @@ type CoordinatesFromLammpstraj = typeof CoordinatesFromLammpstraj;
 const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-lammpstraj',
   display: { name: 'Parse LAMMPSTRAJ', description: 'Parse LAMMPSTRAJ data.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {
     return Task.create('Parse LAMMPSTRAJ', async (ctx) => {
-      const parsed = await parseLammpsTrajectory(a.data).runInContext(ctx);
+      const parsed = await parseLammpsTrajectory(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const coordinates = await coordinatesFromLammpsTrajectory(parsed.result).runInContext(ctx);
       return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });

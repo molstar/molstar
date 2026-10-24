@@ -22,12 +22,12 @@ type TrajectoryFromSDF = typeof TrajectoryFromSDF;
 const TrajectoryFromSDF = PluginStateTransform.BuiltIn({
   name: 'trajectory-from-sdf',
   display: { name: 'Parse SDF', description: 'Parse SDF string and create trajectory.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Trajectory,
 })({
   apply({ a }) {
     return Task.create('Parse SDF', async (ctx) => {
-      const parsed = await parseSdf(a.data).runInContext(ctx);
+      const parsed = await parseSdf(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
 
       const models: Model[] = [];

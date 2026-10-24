@@ -21,12 +21,12 @@ type ParsePrmtop = typeof ParsePrmtop;
 const ParsePrmtop = PluginStateTransform.BuiltIn({
   name: 'parse-prmtop',
   display: { name: 'Parse PRMTOP', description: 'Parse PRMTOP from String data' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Prmtop,
 })({
   apply({ a }) {
     return Task.create('Parse PRMTOP', async (ctx) => {
-      const parsed = await parsePrmtop(a.data).runInContext(ctx);
+      const parsed = await parsePrmtop(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Prmtop(parsed.result);
     });

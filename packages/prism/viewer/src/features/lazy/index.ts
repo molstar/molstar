@@ -219,11 +219,8 @@ export const LazyParticles: LazyViewerExtension = {
       // CellPack and PetWorld assemblies are mmCIF: claimed by their content, other mmCIF stays a structure
       sniff: {
         extensions: ['cif', 'bcif'],
-        test: (file, content) =>
-          looksLikeMmcifParticles(
-            getFileNameInfo(file.name),
-            file.ext === 'cif' && typeof content !== 'string' ? new TextDecoder().decode(content) : content,
-          ),
+        // the sniff searches text as its bytes, without decoding them
+        test: (file, content) => looksLikeMmcifParticles(getFileNameInfo(file.name), content),
       },
     },
   },

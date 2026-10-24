@@ -24,12 +24,15 @@ type ParseDx = typeof ParseDx;
 const ParseDx = PluginStateTransform.BuiltIn({
   name: 'parse-dx',
   display: { name: 'Parse DX', description: 'Parse DX from Binary/String data' },
-  from: [SO.Data.Binary, SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Dx,
 })({
   apply({ a }) {
     return Task.create('Parse DX', async (ctx) => {
-      const parsed = await parseDx(a.data, a.label).runInContext(ctx);
+      // a response is binary DX by its name (`.dxbin`, the provider's binary extension; both start with the same text
+      // header), text otherwise; the text is parsed from its bytes
+      const binary = a instanceof SO.Data.Response ? /\.dxbin$/i.test(a.label) : a instanceof SO.Data.Binary;
+      const parsed = await parseDx(SO.Data.readBytes(a), a.label, { binary }).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Dx(parsed.result);
     });

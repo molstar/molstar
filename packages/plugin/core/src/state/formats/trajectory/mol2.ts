@@ -21,12 +21,12 @@ type TrajectoryFromMOL2 = typeof TrajectoryFromMOL2;
 const TrajectoryFromMOL2 = PluginStateTransform.BuiltIn({
   name: 'trajectory-from-mol2',
   display: { name: 'Parse MOL2', description: 'Parse MOL2 string and create trajectory.' },
-  from: [SO.Data.String],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Trajectory,
 })({
   apply({ a }) {
     return Task.create('Parse MOL2', async (ctx) => {
-      const parsed = await parseMol2(a.data, a.label).runInContext(ctx);
+      const parsed = await parseMol2(SO.Data.readBytes(a), a.label).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const models = await trajectoryFromMol2(parsed.result).runInContext(ctx);
       const props = trajectoryProps(models);

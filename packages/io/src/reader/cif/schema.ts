@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { type DatabaseCollection, Database, type Table, Column, ColumnHelpers } from '@molstar/core/data/db';
@@ -227,8 +228,10 @@ class CategoryTable implements Table<any> {
 
 function createDatabase(schema: Database.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases): Database<any> {
   const tables = Object.create(null);
+  // flattened once for all tables: flattening reads every field of the frame
+  const flatFrame = aliases ? flattenFrame(frame) : undefined;
   for (const k of Object.keys(schema)) {
-    tables[k] = createTable(k, schema[k], frame, aliases);
+    tables[k] = createTable(k, schema[k], frame, aliases, flatFrame);
   }
   return Database.ofTables(frame.header, schema, tables);
 }
@@ -258,10 +261,16 @@ function getField(field: string, category: string, flatFrame: FlatFrame, aliases
   }
 }
 
-function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, aliases?: Data.CifAliases) {
+function createTable(
+  key: string,
+  schema: Table.Schema,
+  frame: Data.CifFrame,
+  aliases?: Data.CifAliases,
+  flatFrame?: FlatFrame,
+) {
   let cat = frame.categories[key];
   if (aliases) {
-    const flatFrame = flattenFrame(frame);
+    flatFrame ??= flattenFrame(frame);
     const fields: { [k: string]: Data.CifField } = Object.create(null);
     const fieldNames: string[] = [];
     let rowCount = 0;

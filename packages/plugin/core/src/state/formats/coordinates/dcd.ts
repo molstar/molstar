@@ -20,12 +20,13 @@ type CoordinatesFromDcd = typeof CoordinatesFromDcd;
 const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-dcd',
   display: { name: 'Parse DCD', description: 'Parse DCD binary data.' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {
     return Task.create('Parse DCD', async (ctx) => {
-      const parsed = await parseDcd(a.data).runInContext(ctx);
+      // a copy of a response's bytes: its frames are views of its input
+      const parsed = await parseDcd(SO.Data.readBytes(a, { copy: true })).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const coordinates = await coordinatesFromDcd(parsed.result).runInContext(ctx);
       return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });

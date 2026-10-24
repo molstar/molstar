@@ -22,7 +22,7 @@ import { TopologyFormatCategory } from '@molstar/plugin/state/formats/topology/c
 import { TrajectoryFormatCategory } from '@molstar/plugin/state/formats/trajectory/category';
 import { VolumeFormatCategory } from '@molstar/plugin/state/formats/volume/category';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
-import type { PluginStateObject } from '@molstar/plugin/state/objects';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetch';
 import {
   CoordinatesWithBoxes,
@@ -394,7 +394,9 @@ const hasStructureOptions = (o: StructureOptions) => o.models === 'all' || !!o.a
  */
 async function parseAndShow(
   ctx: ApiContext,
-  data: StateObjectSelector<PluginStateObject.Data.String | PluginStateObject.Data.Binary>,
+  data: StateObjectSelector<
+    PluginStateObject.Data.String | PluginStateObject.Data.Binary | PluginStateObject.Data.Response
+  >,
   provider: DataFormatProvider,
   options: StructureOptions,
 ) {
@@ -439,12 +441,22 @@ async function withContent(
   name: string,
   content: unknown,
 ): Promise<FormatChoice> {
+  // a response is sniffed in the form it holds (its bytes, or its text once a reader decoded it), converting nothing;
+  // a text past the string limit is not sniffed, as a String cell's was not
+  if (content instanceof PluginStateObject.Data.ResponseBody) content = content.heldBytes ?? content.textNow();
   if (typeof content !== 'string' && !(content instanceof Uint8Array)) return choice;
   const again = await chooseFormat(ctx, { format: o.format, name, binary: choice.binary, content });
   return ApiResult.isFailure(again) ? choice : again;
 }
 
-async function dataCellOf(ctx: ApiContext, input: Input, binary: boolean, label: string) {
+async function dataCellOf(
+  ctx: ApiContext,
+  input: Input,
+  binary: boolean,
+  label: string,
+): Promise<
+  StateObjectSelector<PluginStateObject.Data.String | PluginStateObject.Data.Binary | PluginStateObject.Data.Response>
+> {
   const plugin = ctx.plugin;
   const ghost = { state: { isGhost: true } };
   const named = label ? { label } : {};

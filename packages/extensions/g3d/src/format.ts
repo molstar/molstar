@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -90,14 +90,16 @@ export type G3DHeaderFromFile = typeof G3DHeaderFromFile;
 export const G3DHeaderFromFile = PluginStateTransform.BuiltIn({
   name: 'g3d-header-from-file',
   display: { name: 'G3D Header', description: 'Parse G3D Header' },
-  from: SO.Data.Binary,
+  from: [SO.Data.Binary, SO.Data.Response],
   to: G3dHeaderObject,
 })({
   apply({ a }, plugin: PluginContext) {
     return Task.create('Parse G3D', async () => {
-      const header = await getG3dHeader(plugin, a.data);
+      // a response's bytes, shared: the header object keeps them and reads resolutions from them, never writing
+      const data = SO.Data.readBytes(a);
+      const header = await getG3dHeader(plugin, data);
       return new G3dHeaderObject(
-        { header, urlOrData: a.data, cache: {} },
+        { header, urlOrData: data, cache: {} },
         { label: header.name, description: header.genome },
       );
     });

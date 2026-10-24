@@ -1,16 +1,18 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task, type RuntimeContext } from '@molstar/core/task';
-import { Tokenizer, TokenBuilder } from '../common/text/tokenizer.js';
+import { TextByteTokenizer, TextByteTokenBuilder as TokenBuilder } from '../common/text/text-byte-tokenizer.js';
 import { ReaderResult as Result } from '../result.js';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 import { Column, Table } from '@molstar/core/data/db';
 import type { Mutable } from '@molstar/core/util/type-helpers';
 import type { StringLike } from '@molstar/core/util/string-like';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 // https://manual.gromacs.org/2021-current/reference-manual/file-formats.html#top
 
@@ -46,9 +48,9 @@ export interface TopFile {
   readonly compounds: Record<string, Compound>;
 }
 
-const { readLine, markLine, skipWhitespace, markStart, eatValue, eatLine } = Tokenizer;
+const { readLine, markLine, skipWhitespace, markStart, eatValue, eatLine } = TextByteTokenizer;
 
-function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
+function State(tokenizer: TextByteTokenizer, runtimeCtx: RuntimeContext) {
   return {
     tokenizer,
     runtimeCtx,
@@ -66,9 +68,9 @@ function handleMoleculetype(state: State) {
 
   while (tokenizer.tokenEnd < tokenizer.length) {
     skipWhitespace(tokenizer);
-    const c = tokenizer.data.charAt(tokenizer.position);
-    if (c === '[') break;
-    if (c === ';' || c === '*') {
+    const c = tokenizer.data[tokenizer.position];
+    if (c === 91 /* [ */) break;
+    if (c === 59 /* ; */ || c === 42 /* * */) {
       markLine(tokenizer);
       continue;
     }
@@ -98,9 +100,9 @@ function handleAtoms(state: State) {
 
   while (tokenizer.tokenEnd < tokenizer.length) {
     skipWhitespace(tokenizer);
-    const c = tokenizer.data.charAt(tokenizer.position);
-    if (c === '[') break;
-    if (c === ';' || c === '*') {
+    const c = tokenizer.data[tokenizer.position];
+    if (c === 91 /* [ */) break;
+    if (c === 59 /* ; */ || c === 42 /* * */) {
       markLine(tokenizer);
       continue;
     }
@@ -161,9 +163,9 @@ function handleBonds(state: State) {
 
   while (tokenizer.tokenEnd < tokenizer.length) {
     skipWhitespace(tokenizer);
-    const c = tokenizer.data.charAt(tokenizer.position);
-    if (c === '[') break;
-    if (c === ';' || c === '*') {
+    const c = tokenizer.data[tokenizer.position];
+    if (c === 91 /* [ */) break;
+    if (c === 59 /* ; */ || c === 42 /* * */) {
       markLine(tokenizer);
       continue;
     }
@@ -199,9 +201,9 @@ function handleSystem(state: State) {
 
   while (tokenizer.tokenEnd < tokenizer.length) {
     skipWhitespace(tokenizer);
-    const c = tokenizer.data.charAt(tokenizer.position);
-    if (c === '[') break;
-    if (c === ';' || c === '*') {
+    const c = tokenizer.data[tokenizer.position];
+    if (c === 91 /* [ */) break;
+    if (c === 59 /* ; */ || c === 42 /* * */) {
       markLine(tokenizer);
       continue;
     }
@@ -225,9 +227,9 @@ function handleMolecules(state: State) {
     skipWhitespace(tokenizer);
     if (tokenizer.position >= tokenizer.length) break;
 
-    const c = tokenizer.data.charAt(tokenizer.position);
-    if (c === '[') break;
-    if (c === ';' || c === '*') {
+    const c = tokenizer.data[tokenizer.position];
+    if (c === 91 /* [ */) break;
+    if (c === 59 /* ; */ || c === 42 /* * */) {
       markLine(tokenizer);
       continue;
     }
@@ -257,8 +259,8 @@ function handleMolecules(state: State) {
   });
 }
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<TopFile>> {
-  const t = Tokenizer(data);
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<TopFile>> {
+  const t = TextByteTokenizer(data);
   const state = State(t, ctx);
 
   const result: Mutable<TopFile> = Object.create(null);
@@ -311,7 +313,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
         result.molecules = handleMolecules(state);
       } else {
         while (t.tokenEnd < t.length) {
-          if (t.data.charAt(t.position) === '[') break;
+          if (t.data[t.position] === 91 /* [ */) break;
           markLine(t);
         }
       }
@@ -321,8 +323,9 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(result);
 }
 
-export function parseTop(data: StringLike) {
+/** Parses a GROMACS topology from its text or its UTF-8 bytes (scanned as bytes: `TextByteTokenizer`). */
+export function parseTop(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<TopFile>>('Parse TOP', async (ctx) => {
-    return await parseInternal(data, ctx);
+    return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
   });
 }

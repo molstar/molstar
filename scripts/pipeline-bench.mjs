@@ -13,10 +13,11 @@
 //        node scripts/pipeline-bench.mjs many-fixtures [--count 500]                # N small entries, once
 //        node scripts/pipeline-bench.mjs many --count 300 [many options]            # N structures (many.ts)
 //        node scripts/pipeline-bench.mjs playback [playback options]                # per-frame playback (playback.ts)
+//        node scripts/pipeline-bench.mjs parsers [parsers options]                  # text parsers, text vs bytes (parsers.ts)
 //        node scripts/pipeline-bench.mjs analyze <profile dir> [topN]               # hotspots of a --profile run
 //                                                                                    (CPU, or allocations with --alloc)
 //
-// `run`, `many` and `playback` pass --heap <MB> as --max-old-space-size (default 14000) and everything else to bench.ts / many.ts / playback.ts.
+// `run`, `many`, `playback` and `parsers` pass --heap <MB> as --max-old-space-size (default 14000) and everything else to bench.ts / many.ts / playback.ts.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -181,7 +182,7 @@ if (command === 'fixtures') {
   node(await bundle('fixtures'), rest, 14000);
 } else if (command === 'many-fixtures') {
   node(await bundle('many-fixtures'), rest, 14000);
-} else if (command === 'run' || command === 'many' || command === 'playback') {
+} else if (command === 'run' || command === 'many' || command === 'playback' || command === 'parsers') {
   const name = command === 'run' ? 'bench' : command;
   const i = rest.indexOf('--heap');
   const heap = i >= 0 ? +rest.splice(i, 2)[1] : 14000;
@@ -196,7 +197,7 @@ if (command === 'fixtures') {
   analyze(rest[0], +(rest[1] ?? 10));
 } else {
   console.error(
-    'usage: node scripts/pipeline-bench.mjs fixtures|run|many-fixtures|many|playback|analyze ... (see the header of this file)',
+    'usage: node scripts/pipeline-bench.mjs fixtures|run|many-fixtures|many|playback|parsers|analyze ... (see the header of this file)',
   );
   process.exit(1);
 }

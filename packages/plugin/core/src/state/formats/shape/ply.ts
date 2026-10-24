@@ -25,12 +25,13 @@ type ParsePly = typeof ParsePly;
 const ParsePly = PluginStateTransform.BuiltIn({
   name: 'parse-ply',
   display: { name: 'Parse PLY', description: 'Parse PLY from String or Binary data' },
-  from: [SO.Data.String, SO.Data.Binary],
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Ply,
 })({
   apply({ a }) {
     return Task.create('Parse PLY', async (ctx) => {
-      const parsed = await PLY.parsePly(a.data).runInContext(ctx);
+      // the bytes: the parser tells ASCII from binary by the header
+      const parsed = await PLY.parsePly(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Ply(parsed.result, { label: parsed.result.comments[0] || 'PLY Data' });
     });

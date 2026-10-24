@@ -32,6 +32,7 @@ import { Task, type RuntimeContext, chunkedSubtask } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { utf8Encode, utf8ReadValue } from '@molstar/core/util/utf8';
 import { ByteTokens, byteTokensField } from './field.js';
+import { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 /**
  * Types of supported mmCIF tokens.
@@ -47,7 +48,7 @@ const enum CifTokenType {
 }
 
 interface TokenizerState {
-  data: Uint8Array;
+  data: ReadonlyUint8Array;
 
   position: number;
   length: number;
@@ -491,7 +492,7 @@ function moveNext(state: TokenizerState) {
   while (state.tokenType === CifTokenType.Comment) moveNextInternal(state);
 }
 
-function createTokenizer(data: Uint8Array, runtimeCtx: RuntimeContext): TokenizerState {
+function createTokenizer(data: ReadonlyUint8Array, runtimeCtx: RuntimeContext): TokenizerState {
   return {
     data,
     length: data.length,
@@ -798,7 +799,7 @@ function result(data: Data.CifFile) {
  *
  * @returns CifParserResult wrapper of the result.
  */
-async function parseInternal(data: Uint8Array, runtimeCtx: RuntimeContext) {
+async function parseInternal(data: ReadonlyUint8Array, runtimeCtx: RuntimeContext) {
   const dataBlocks: Data.CifBlock[] = [];
   const tokenizer = createTokenizer(data, runtimeCtx);
   let blockHeader = '';
@@ -888,9 +889,9 @@ async function parseInternal(data: Uint8Array, runtimeCtx: RuntimeContext) {
  * Parses text CIF from its UTF-8 bytes, or from a string, which is encoded to them first (`utf8Encode`: one pass for
  * ASCII, a copy of the text while parsing).
  */
-export function parseCifText(data: StringLike | Uint8Array) {
+export function parseCifText(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<Data.CifFile>>('Parse CIF', async (ctx) => {
-    const bytes = data instanceof Uint8Array ? data : utf8Encode(data);
+    const bytes = ReadonlyUint8Array.is(data) ? data : utf8Encode(data);
     // token starts are Uint32
     if (bytes.length > 0xffffffff) return error(0, 'Text CIF larger than 4 GiB is not supported.');
     return await parseInternal(bytes, ctx);

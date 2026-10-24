@@ -45,12 +45,12 @@ type ParseCube = typeof ParseCube;
 const ParseCube = PluginStateTransform.BuiltIn({
   name: 'parse-cube',
   display: { name: 'Parse Cube', description: 'Parse Cube from String data' },
-  from: SO.Data.String,
+  from: [SO.Data.String, SO.Data.Binary, SO.Data.Response],
   to: SO.Format.Cube,
 })({
   apply({ a }) {
     return Task.create('Parse Cube', async (ctx) => {
-      const parsed = await parseCube(a.data, a.label).runInContext(ctx);
+      const parsed = await parseCube(SO.Data.readBytes(a), a.label).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Cube(parsed.result);
     });

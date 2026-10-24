@@ -20,12 +20,12 @@ type CoordinatesFromNctraj = typeof CoordinatesFromNctraj;
 const CoordinatesFromNctraj = PluginStateTransform.BuiltIn({
   name: 'coordinates-from-nctraj',
   display: { name: 'Parse NCTRAJ', description: 'Parse NCTRAJ binary data.' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Molecule.Coordinates,
 })({
   apply({ a }) {
     return Task.create('Parse NCTRAJ', async (ctx) => {
-      const parsed = await parseNctraj(a.data).runInContext(ctx);
+      const parsed = await parseNctraj(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       const coordinates = await coordinatesFromNctraj(parsed.result).runInContext(ctx);
       return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });

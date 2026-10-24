@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { utf8ByteCount, utf8Read, utf8ReadValue, utf8Write } from '../utf8.js';
+import { asciiIndexOf, asciiStartsWith, utf8ByteCount, utf8Read, utf8ReadValue, utf8Write } from '../utf8.js';
 
 function write(s: string) {
   const data = new Uint8Array(utf8ByteCount(s));
@@ -65,5 +65,25 @@ describe('utf8', () => {
     expect(utf8Read(data)).toBe('abc');
     expect(utf8ReadValue(data)).toBe(`${bom}abc`);
     expect(utf8ReadValue(new TextEncoder().encode(' é '), 1, 2)).toBe('é');
+  });
+});
+
+describe('asciiIndexOf / asciiStartsWith', () => {
+  const texts = ['', 'a', 'data_x\n_atom_site.id 1\n', 'ééé _refln.pdbx_FWT ü', '__a_ab_abc', 'abcabcabd'];
+  const needles = ['', 'a', '_', '_refln.pdbx_FWT', 'abd', 'abc', 'x\n_', 'zz'];
+
+  it('equals String.indexOf on ASCII text, as byte indices', () => {
+    for (const t of texts) {
+      const bytes = write(t);
+      for (const n of needles) {
+        for (const from of [0, 1, 3]) {
+          const i = t.indexOf(n, from);
+          const expected = i < 0 ? -1 : utf8ByteCount(t.substring(0, i));
+          if (!/[^\x00-\x7f]/.test(t)) expect(asciiIndexOf(bytes, n, from)).toBe(expected);
+          else if (from === 0) expect(asciiIndexOf(bytes, n) >= 0).toBe(i >= 0);
+        }
+        expect(asciiStartsWith(bytes, n)).toBe(t.startsWith(n));
+      }
+    }
   });
 });

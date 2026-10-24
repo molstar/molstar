@@ -25,12 +25,12 @@ type ParseArtiatomiEm = typeof ParseArtiatomiEm;
 const ParseArtiatomiEm = PluginStateTransform.BuiltIn({
   name: 'parse-artiatomi-em',
   display: { name: 'Parse Artiatomi EM', description: 'Parse Artiatomi EM motivelist from Binary data' },
-  from: [SO.Data.Binary],
+  from: [SO.Data.Binary, SO.Data.Response],
   to: SO.Format.ArtiatomiEm,
 })({
   apply({ a }) {
     return Task.create('Parse Artiatomi EM', async () => {
-      const parsed = await parseArtiatomiEm(a.data).run();
+      const parsed = await parseArtiatomiEm(SO.Data.readBytes(a)).run();
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.ArtiatomiEm(parsed.result, { label: a.label || 'Artiatomi EM' });
     });

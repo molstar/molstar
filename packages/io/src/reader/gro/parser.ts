@@ -6,19 +6,24 @@
  */
 
 import { Column } from '@molstar/core/data/db';
-import { Tokenizer } from '../common/text/tokenizer.js';
-import { FixedColumnProvider as FixedColumn } from '../common/text/column/fixed.js';
+import { TextByteTokenizer } from '../common/text/text-byte-tokenizer.js';
+import { TextByteFixedColumnProvider as FixedColumn } from '../common/text/column/text-byte-fixed.js';
 import type * as Schema from './schema.js';
 import { ReaderResult as Result } from '../result.js';
 import { Task, type RuntimeContext } from '@molstar/core/task';
 import type { StringLike } from '@molstar/core/util/string-like';
+import { parseIntBytes } from '@molstar/core/util/number-parser';
+import type { ReadonlyUint8Array } from '@molstar/core/util/type-helpers';
 
 interface State {
-  tokenizer: Tokenizer;
+  tokenizer: TextByteTokenizer;
   header: Schema.GroHeader;
   numberOfAtoms: number;
   runtimeCtx: RuntimeContext;
 }
+
+/** A malformed file: a `ReaderResult` error, not a failed task */
+class GroError extends Error {}
 
 function createEmptyHeader(): Schema.GroHeader {
   return {
@@ -31,7 +36,7 @@ function createEmptyHeader(): Schema.GroHeader {
   };
 }
 
-function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext): State {
+function State(tokenizer: TextByteTokenizer, runtimeCtx: RuntimeContext): State {
   return {
     tokenizer,
     header: createEmptyHeader(),
@@ -45,11 +50,11 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext): State {
  */
 function handleTitleString(state: State) {
   const { tokenizer, header } = state;
-  let line = Tokenizer.readLine(tokenizer);
+  let line = TextByteTokenizer.readLine(tokenizer);
 
   // skip potential empty lines...
   if (line.trim().length === 0) {
-    line = Tokenizer.readLine(tokenizer);
+    line = TextByteTokenizer.readLine(tokenizer);
   }
 
   const timeOffset = line.lastIndexOf('t=');
@@ -69,9 +74,13 @@ function handleTitleString(state: State) {
  */
 function handleNumberOfAtoms(state: State) {
   const { tokenizer } = state;
-  Tokenizer.markLine(tokenizer);
-  const line = Tokenizer.getTokenString(tokenizer);
-  state.numberOfAtoms = parseInt(line);
+  TextByteTokenizer.markLine(tokenizer);
+  // `parseInt` of the line, from its bytes: leading spaces skipped, NaN without a digit
+  const { data, tokenEnd } = tokenizer;
+  let s = tokenizer.tokenStart;
+  while (s < tokenEnd && (data[s] === 32 || data[s] === 9)) s++;
+  const d = data[s] === 45 || data[s] === 43 ? s + 1 : s;
+  state.numberOfAtoms = d < tokenEnd && data[d] >= 48 && data[d] <= 57 ? parseIntBytes(data, s, tokenEnd) : NaN;
 }
 
 /**
@@ -92,15 +101,16 @@ function handleNumberOfAtoms(state: State) {
  */
 async function handleAtoms(state: State): Promise<Schema.GroAtoms> {
   const { tokenizer, numberOfAtoms } = state;
-  const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms, state.runtimeCtx, 100000);
+  const lines = await TextByteTokenizer.readLinesAsync(tokenizer, numberOfAtoms, state.runtimeCtx, 100000);
 
-  const positionSample = tokenizer.data.substring(lines.indices[0], lines.indices[1]).substring(20);
-  const precisions = positionSample.match(/\.\d+/g)!;
+  // the decimal places of the numbers of the first atom line after its position columns (byte 20): `/\.\d+/g`
+  const precisions = decimalPlaces(tokenizer.data, Math.min(lines.indices[0] + 20, lines.indices[1]), lines.indices[1]);
+  if (numberOfAtoms > 0 && precisions.length < 3) throw new GroError('No decimal coordinates in the first atom line.');
   const hasVelocities = precisions.length === 6;
 
   state.header.hasVelocities = hasVelocities;
-  state.header.precision.position = precisions[0].length - 1;
-  state.header.precision.velocity = hasVelocities ? precisions[3].length - 1 : 0;
+  state.header.precision.position = precisions[0];
+  state.header.precision.velocity = hasVelocities ? precisions[3] : 0;
 
   const pO = 20;
   const pW = state.header.precision.position + 5;
@@ -135,14 +145,28 @@ async function handleAtoms(state: State): Promise<Schema.GroAtoms> {
  */
 function handleBoxVectors(state: State) {
   const { tokenizer } = state;
-  const values = Tokenizer.readLine(tokenizer).trim().split(/\s+/g);
+  // one line a frame: decoded, the values read by `+value` as before
+  const values = TextByteTokenizer.readLine(tokenizer).trim().split(/\s+/g);
   const v = (i: number) => (values.length > i ? +values[i] : 0);
   state.header.box = [v(0), v(1), v(2)];
   state.header.boxVectors = [v(0), v(3), v(4), v(5), v(1), v(6), v(7), v(8), v(2)];
 }
 
-async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
-  const tokenizer = Tokenizer(data);
+/** The lengths of the runs of digits after each '.' in the bytes `start` to `end` (a run of at least one digit). */
+function decimalPlaces(data: ReadonlyUint8Array, start: number, end: number) {
+  const ret: number[] = [];
+  for (let i = start; i < end; i++) {
+    if (data[i] !== 46) continue;
+    let j = i + 1;
+    while (j < end && data[j] >= 48 && data[j] <= 57) j++;
+    if (j > i + 1) ret.push(j - i - 1);
+    i = j - 1;
+  }
+  return ret;
+}
+
+async function parseInternal(data: ReadonlyUint8Array, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
+  const tokenizer = TextByteTokenizer(data);
 
   await ctx.update({ message: 'Parsing...', current: 0, max: data.length });
   const structures: Schema.GroStructure[] = [];
@@ -159,8 +183,14 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
   return Result.success(result);
 }
 
-export function parseGRO(data: StringLike) {
+/** Parses GRO from its text or its UTF-8 bytes (read, not modified). */
+export function parseGRO(data: StringLike | ReadonlyUint8Array) {
   return Task.create<Result<Schema.GroFile>>('Parse GRO', async (ctx) => {
-    return await parseInternal(data, ctx);
+    try {
+      return await parseInternal(TextByteTokenizer.bytesOf(data), ctx);
+    } catch (e) {
+      if (e instanceof GroError) return Result.error<Schema.GroFile>(e.message);
+      throw e;
+    }
   });
 }

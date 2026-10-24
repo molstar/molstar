@@ -1,8 +1,10 @@
 /**
- * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StructureProperties, StructureElement, Bond, type Structure, Unit } from '@molstar/model/model/structure';
@@ -85,6 +87,25 @@ function getEntityId(location: StructureElement.Location): string {
   }
 }
 
+const EntityIdSerialMapProp = '__EntityIdColorTheme_SerialMaps__';
+
+/**
+ * Cached on `structure`, not on its root: the source serials come from `structure`'s models.
+ * Every theme created for the structure (one per representation) shares the maps.
+ */
+function getCachedSerialMaps(structure: Structure): {
+  sourceSerialMap: WeakMap<ModelFormat, number>;
+  entityIdSerialMap: Map<string, number>;
+} {
+  const cached = structure.currentPropertyData[EntityIdSerialMapProp];
+  if (cached) return cached;
+  const sourceSerialMap = getSourceSerialMap(structure);
+  const entityIdSerialMap = getEntityIdSerialMap(structure.root, sourceSerialMap);
+  const maps = { sourceSerialMap, entityIdSerialMap };
+  structure.currentPropertyData[EntityIdSerialMapProp] = maps;
+  return maps;
+}
+
 export function EntityIdColorTheme(
   ctx: ThemeDataContext,
   props: PD.Values<EntityIdColorThemeParams>,
@@ -94,8 +115,7 @@ export function EntityIdColorTheme(
 
   if (ctx.structure) {
     const l = StructureElement.Location.create(ctx.structure.root);
-    const sourceSerialMap = getSourceSerialMap(ctx.structure);
-    const entityIdSerialMap = getEntityIdSerialMap(ctx.structure.root, sourceSerialMap);
+    const { sourceSerialMap, entityIdSerialMap } = getCachedSerialMaps(ctx.structure);
 
     const labelTable = Array.from(entityIdSerialMap.keys());
     const valueLabel = (i: number) => labelTable[i];

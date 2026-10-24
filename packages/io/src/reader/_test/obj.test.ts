@@ -2,12 +2,14 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
 import { parseObj } from '../obj/parser.js';
 import { parseMtl } from '../obj/mtl-parser.js';
 import { Color } from '@molstar/core/util/color';
+import { utf8Encode } from '@molstar/core/util/utf8';
 
 // Simple triangle
 const objTriangle = `# simple triangle
@@ -401,6 +403,27 @@ describe('obj reader', () => {
     expect(obj.materialNames).toEqual(['MyMtl']);
     // both triangles belong to the single material
     expect(Array.from(obj.faceGroups)).toEqual([0, 0]);
+  });
+
+  it('parses the same from a string and from its UTF-8 bytes', async () => {
+    for (const text of [objMultiMaterial, objCRLF, objNegativeIndices, objMixedNormals, objDegenerateFace]) {
+      const fromString = await parseObj(text).run();
+      const fromBytes = await parseObj(utf8Encode(text)).run();
+      expect(fromBytes).toEqual(fromString);
+    }
+  });
+
+  it('skips a leading UTF-8 byte order mark', async () => {
+    const withBom = new Uint8Array([0xef, 0xbb, 0xbf, ...utf8Encode(objNegativeIndices)]);
+    expect(await parseObj(withBom).run()).toEqual(await parseObj(objNegativeIndices).run());
+  });
+
+  it('decodes a non-ASCII material name', async () => {
+    const text = 'v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl červená_ü\nf 1 2 3\n';
+    const parsed = await parseObj(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    expect(parsed.result.materialNames).toEqual(['červená_ü']);
+    expect(parsed.result.triangleCount).toBe(1);
   });
 });
 
