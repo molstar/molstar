@@ -12,7 +12,14 @@ import { parsePDB } from '@molstar/io/reader/pdb/parser';
 import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
 import { Structure, type StructureElement, Unit } from '@molstar/model/model/structure';
 import type { ElementIndex } from '@molstar/model/model/structure/model/indexing';
-import { calcPlaneAngle, closestHydrogen, closestHydrogenIndex } from '../geometry.js';
+import {
+  calcAngles,
+  calcAnglesInto,
+  calcPlaneAngle,
+  closestHydrogen,
+  closestHydrogenIndex,
+  closestHydrogenInto,
+} from '../geometry.js';
 import { eachBondedAtom, typeSymbol } from '../util.js';
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../data/examples');
@@ -107,5 +114,33 @@ describe('calcPlaneAngle', () => {
     );
     expect(angle).toBeDefined();
     expect(angle!).toBeGreaterThan(0.1);
+  });
+});
+
+describe('geometry helpers without allocation (perf-audit-2 06/P12)', async () => {
+  const parsed = await parsePDB(fs.readFileSync(path.join(examples, 'ace2.pdbqt'), 'utf8'), 'ace2', 'pdbqt').run();
+  if (parsed.isError) throw new Error(parsed.message);
+  const structure = Structure.ofModel((await trajectoryFromPDB(parsed.result).run()).representative);
+  const unit = structure.units[0] as Unit.Atomic;
+
+  it('calcAnglesInto and closestHydrogenInto give what calcAngles and closestHydrogen give, in reused arrays', () => {
+    const angles: number[] = [],
+      anglesH: number[] = [];
+    const out = { unit, index: 0 as StructureElement.UnitIndex };
+    const n = Math.min(unit.elements.length, 60);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j += 7) {
+        if (i === j) continue;
+        const a = i as StructureElement.UnitIndex,
+          b = j as StructureElement.UnitIndex;
+        for (const ignoreHydrogens of [true, false]) {
+          calcAnglesInto(structure, unit, a, unit, b, ignoreHydrogens, angles, anglesH);
+          expect([angles, anglesH]).toEqual(calcAngles(structure, unit, a, unit, b, ignoreHydrogens));
+        }
+        expect(closestHydrogenInto(structure, unit, a, unit, b, out)).toEqual(
+          closestHydrogen(structure, unit, a, unit, b),
+        );
+      }
+    }
   });
 });
