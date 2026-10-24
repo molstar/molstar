@@ -11,18 +11,23 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { StructConn } from '@molstar/model/formats/structure/property/bonds/struct_conn';
 import { Structure, Unit } from '@molstar/model/model/structure';
+import { InterUnitGraph } from '@molstar/core/math/graph/inter-unit-graph';
 import { MoleculeType } from '../../../../model/types.js';
 import { computeInterUnitBonds } from '../inter-compute.js';
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../../../data/examples');
 
+async function load1tup() {
+  const parsed = await CIF.parseBinary(new Uint8Array(fs.readFileSync(path.join(examples, '1tup.bcif')))).run();
+  if (parsed.isError) throw new Error(parsed.message);
+  return (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative;
+}
+
 // Water and ion units pair with another unit only through a common struct_conn record (1tup: Zn, metalc); a unit's
 // partners are read once, not per pair and computation (perf-audit-2 05/P17).
 describe('inter-unit bonds of ion units', () => {
   it('read the struct_conn rows of a unit once; the bonds are the same', async () => {
-    const parsed = await CIF.parseBinary(new Uint8Array(fs.readFileSync(path.join(examples, '1tup.bcif')))).run();
-    if (parsed.isError) throw new Error(parsed.message);
-    const model = (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative;
+    const model = await load1tup();
     const structure = Structure.ofModel(model);
     const isIon = (u: Unit) =>
       Unit.isAtomic(u) &&
@@ -45,5 +50,38 @@ describe('inter-unit bonds of ion units', () => {
     expect(b.edgeCount).toBe(a.edgeCount);
     // every Zn is bonded through its metalc records
     for (const u of ions) expect(a.getConnectedUnits(u.id).length).toBeGreaterThan(0);
+  });
+});
+
+// A child made of whole parent units (a component of chain units) shares the parent's unit-pair lists between its units
+// instead of rebuilding every edge (perf-audit-2 05/P20).
+describe('inter-unit bonds of a child of whole units', () => {
+  it('are the parent bonds between its units, without a rebuild', async () => {
+    const parent = Structure.ofModel(await load1tup());
+    const bonds = parent.interUnitBonds;
+    // the Zn ions and the units bonded to them, and one unit without bonds
+    const zn = parent.units.filter((u) => bonds.getConnectedUnits(u.id).length > 0);
+    const lone = parent.units.find((u) => bonds.getConnectedUnits(u.id).length === 0)!;
+    const units = [...zn.slice(0, zn.length - 1), lone].sort((a, b) => a.id - b.id);
+    expect(units.length).toBeGreaterThan(2);
+    const child = Structure.create(units, { parent });
+
+    const add = vi.spyOn(InterUnitGraph.Builder.prototype, 'add');
+    const childBonds = child.interUnitBonds;
+    const adds = add.mock.calls.length;
+    add.mockRestore();
+    expect(adds).toBe(0);
+
+    const ids = new Set(units.map((u) => u.id));
+    const key = (e: { unitA: number; unitB: number; indexA: number; indexB: number }) =>
+      `${e.unitA}:${e.indexA}-${e.unitB}:${e.indexB}`;
+    const expected = bonds.edges.filter((e) => ids.has(e.unitA) && ids.has(e.unitB)).map(key);
+    expect(expected.length).toBeGreaterThan(0);
+    expect(expected.length).toBeLessThan(bonds.edgeCount);
+    expect(childBonds.edges.map(key).sort()).toEqual(expected.sort());
+    expect(childBonds.edgeCount).toBe(expected.length);
+    for (const e of childBonds.edges) {
+      expect(childBonds.getEdgeIndex(e.indexA, e.unitA, e.indexB, e.unitB)).toBeGreaterThanOrEqual(0);
+    }
   });
 });

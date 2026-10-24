@@ -177,6 +177,7 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
   // the parent indices of a child unit's elements, or null when it has every element of the parent unit
   const maps = new Map<number, Int32Array | null>();
   let whole = child.units.length === parent.units.length;
+  let wholeUnits = true;
   const sameMotion = SymmetryOperator.rigidMotionTest();
   for (const u of child.units) {
     const p = parent.unitMap.get(u.id);
@@ -191,8 +192,10 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
     if (!parentIndices) return;
     maps.set(u.id, parentIndices);
     whole = false;
+    wholeUnits = false;
   }
   if (whole) return bonds;
+  if (wholeUnits) return wholeUnitBonds(bonds, child, maps);
 
   type UnitIndex = StructureElement.UnitIndex;
   const builder = new InterUnitGraph.Builder<number, UnitIndex, InterUnitEdgeProps>();
@@ -217,4 +220,18 @@ export function subsetInterUnitBonds(bonds: InterUnitBonds, parent: Structure, c
     }
   }
   return new InterUnitBonds(builder.getMap());
+}
+
+/**
+ * The bonds of a child whose units are whole parent units (a polymer or ligand component of a structure whose units
+ * are chains): the parent's unit-pair lists between the child's units, shared, not rebuilt edge by edge
+ * (perf-audit-2 05/P20)
+ */
+function wholeUnitBonds(bonds: InterUnitBonds, child: Structure, units: ReadonlyMap<number, unknown>) {
+  const map = new Map<number, InterUnitGraph.UnitPairEdges<number, StructureElement.UnitIndex, InterUnitEdgeProps>[]>();
+  for (const u of child.units) {
+    const pairs = bonds.getConnectedUnits(u.id).filter((pair) => units.has(pair.unitB));
+    if (pairs.length > 0) map.set(u.id, pairs);
+  }
+  return new InterUnitBonds(map);
 }

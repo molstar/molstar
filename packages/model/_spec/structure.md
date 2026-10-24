@@ -83,15 +83,15 @@ property bags (`currentPropertyData`; `inheritedPropertyData` is the root's).
   model or the master model; waters and ions skipped unless `dynamicBonds` or a common struct_conn record). Per pair,
   A's atoms near B come from A's grid (P4). Index pairs, else struct_conn, else distance.
 - A child's inter-unit bonds: empty if the root's are empty and `dynamicBonds` and `bondProvider` are the root's; else
-  restricted from the root's (`subsetInterUnitBonds`, `unit/bonds/subset.ts`) when the bond props and the provider are
-  the root's and the units' operators are the root's after one common rigid motion (the identity included; same operator
-  keys); else computed. A child moved that way (`Structure.transform`, its components) computes the root's first if the
-  root has none: such children are made again at every move, the root stays. The restriction keeps what the root shows
-  where a recompute could differ (struct_conn partners outside the child, which unit of a pair is iterated, water and
-  ion pairing by a unit's first element) and for bonds the root carried over from another frame: a child shows a subset
-  of its root. A provider's `inter` must allow both: its bonds of a subset are among those of the whole, and a common
-  rigid motion of all units keeps them (no absolute coordinates: a box, a slab, `structure.boundary`). The shipped
-  providers do.
+  restricted from the root's (`subsetInterUnitBonds`, `unit/bonds/subset.ts`; a child of whole root units shares the
+  root's unit-pair lists) when the bond props and the provider are the root's and the units' operators are the root's
+  after one common rigid motion (the identity included; same operator keys); else computed. A child moved that way
+  (`Structure.transform`, its components) computes the root's first if the root has none: such children are made again
+  at every move, the root stays. The restriction keeps what the root shows where a recompute could differ (struct_conn
+  partners outside the child, which unit of a pair is iterated, water and ion pairing by a unit's first element) and for
+  bonds the root carried over from another frame: a child shows a subset of its root. A provider's `inter` must allow
+  both: its bonds of a subset are among those of the whole, and a common rigid motion of all units keeps them (no
+  absolute coordinates: a box, a slab, `structure.boundary`). The shipped providers do.
 - `IntraUnitBonds` store both directions (`edgeCount` undirected); `InterUnitBonds` list a pair under both units
   (`edgeCount` directed; `Structure.bondCount` halves it).
 
