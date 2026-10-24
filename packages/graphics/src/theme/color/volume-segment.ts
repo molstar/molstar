@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Color } from '@molstar/core/util/color';
@@ -36,14 +37,17 @@ export function VolumeSegmentColorTheme(
 
   if (segmentation) {
     const size = segmentation.segments.size;
-    const segments = Array.from(segmentation.segments.keys());
+    // a segment's place among the segments, its palette index (a Map: indexOf was O(segments) per location, perf-audit-2
+    // 09/P18)
+    const places = new Map<number, number>();
+    for (const segment of segmentation.segments.keys()) places.set(segment, places.size);
 
     const palette = getPalette(size, props);
     legend = palette.legend;
 
     color = (location: Location): Color => {
       if (Volume.Segment.isLocation(location)) {
-        return palette.color(segments.indexOf(location.segment));
+        return palette.color(places.get(location.segment) ?? -1);
       }
       return DefaultColor;
     };

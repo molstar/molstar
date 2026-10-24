@@ -147,6 +147,8 @@ export function linkViews(
   view3d: StructureView3D,
   link: StructureLink,
   o: LinkViewsOptions = {},
+  /** False on a frame step (sequence.md §2): the 3D view holds the selection already, so it is not sent again. */
+  replay = true,
 ): () => void {
   const stops: (() => void)[] = [];
   const scratch = Extents.create(16);
@@ -180,10 +182,10 @@ export function linkViews(
     // Seq* holds only in part (an atom, a unit no system covers) is not replaced by its image on a data edit.
     let sent3d: StructureElement.Loci | null = null;
     let seen: StructureElement.Loci | null = null;
-    let replay = true;
+    let replaying = true;
     const sub = ctx.selection.current.subscribe((sel) => {
-      const first = replay;
-      replay = false;
+      const first = replaying;
+      replaying = false;
       const parts = [sel.seq, sel.aligned, sel.rows, sel.items, sel.boundaries] as (Loci | null)[];
       const size = { items: 0, length: 0 };
       for (const l of parts) {
@@ -196,6 +198,11 @@ export function linkViews(
       // The replay at link time sends a selection Seq* holds, never a clear; a carry only what it changed.
       const same = sameLoci(next, seen);
       seen = next;
+      if (first && !replay) {
+        // a frame step: the selection's image on the new frame is what 3D holds (perf-audit-2 10/B6)
+        sent3d = next;
+        return;
+      }
       if (sel.origin === 'host:3d' || ((first || sel.origin === 'graph') && same)) return;
       sent3d = next;
       view3d.select(sent3d);

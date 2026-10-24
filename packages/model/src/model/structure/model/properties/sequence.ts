@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -118,7 +118,8 @@ namespace StructureSequence {
       cI--;
 
       const eStart = offsets[start];
-      const eEnd = offsets[cI + 1] - 1;
+      // exclusive, so the chain's last element is in (perf-audit-2 04/B4)
+      const eEnd = offsets[cI + 1];
 
       const seqIdBegin = Column.window(seq_id_begin, eStart, eEnd);
       const seqIdEnd = Column.window(seq_id_end, eStart, eEnd);

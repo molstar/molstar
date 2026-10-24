@@ -82,7 +82,9 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toIntArray())).toEqual([1, 0, 3, 0, 5]);
     expect(Array.from(f.toIntArray({ start: 1, end: 4 }))).toEqual([0, 3, 0]);
 
-    expect(Array.from(arrayOf(f)!)).toEqual(IntValues);
+    // the storage reads as the values (01/B16), and the arrays above did not change it
+    expect(Array.from(arrayOf(f)!)).toEqual([1, 0, 3, 0, 5]);
+    expect(Array.from(f.toIntArray())).toEqual([1, 0, 3, 0, 5]);
   });
 
   it('toFloatArray defaults masked values to 0', () => {
@@ -91,7 +93,7 @@ describe('binary-cif Field', () => {
     expect(Array.from(f.toFloatArray())).toEqual([1.5, 0, 3.5, 0, 5.5]);
     expect(Array.from(f.toFloatArray({ start: 1, end: 4 }))).toEqual([0, 3.5, 0]);
 
-    expect(Array.from(arrayOf(f)!)).toEqual(FloatValues);
+    expect(Array.from(arrayOf(f)!)).toEqual([1.5, 0, 3.5, 0, 5.5]);
   });
 
   it('leaves str and valueKind unchanged', () => {
@@ -245,6 +247,46 @@ describe('binary-cif Field', () => {
         Array.from({ length: window.rowCount }, (_, i) => window.value(i)),
         k,
       ).toEqual(expected[k].slice(2, 5));
+    }
+  });
+
+  // an encoder that does not zero masked slots: a view, window, array copy or comparison of the column reads a masked
+  // row as its value reads it (0, or ''), not the slot (perf-audit-2 01/B16)
+  it('views, windows, array copies and comparisons read masked rows as the values do', () => {
+    const ints = Field(intColumn([1, 7, 3, 8], [Present, Unknown, Present, NotPresent]));
+    const floats = Field(floatColumn([1.5, 7.5, 3.5, 8.5], [Present, NotPresent, Present, Unknown]));
+    const strs = Field(
+      {
+        name: 's',
+        data: E.by(E.stringArray).encode(['a', 'junk', 'c', 'more']),
+        mask: intColumn([0, 2, 0, 1]).data,
+      } as any,
+      4,
+    );
+    const category = CifCategory('t', 4, ['i', 'f', 's'], { i: ints, f: floats, s: strs });
+    const table = toTable({ i: Column.Schema.int, f: Column.Schema.float, s: Column.Schema.str }, category) as any;
+    for (const [k, missing] of [
+      ['i', 0],
+      ['f', 0],
+      ['s', ''],
+    ] as const) {
+      const c = table[k] as Column<any>;
+      expect(c.value(1), k).toBe(missing);
+      expect(Column.view(c, [3, 1, 2, 0]).value(1), k).toBe(missing);
+      expect(Column.window(c, 1, 3).value(0), k).toBe(missing);
+      const copy = k === 's' ? new Array(4) : new Float64Array(4);
+      Column.copyToArray(c as Column<any>, copy);
+      expect(copy[1], k).toBe(missing);
+      // two missing numbers are equal, whatever their slots (7 and 8); a string field compares its slots, as its int
+      // and float read them
+      expect(c.areValuesEqual(1, 3), k).toBe(k !== 's');
+      expect(
+        Column.areEqual(
+          c,
+          Column.ofArray({ array: Array.from({ length: 4 }, (_, i) => c.value(i)), schema: c.schema }),
+        ),
+        k,
+      ).toBe(true);
     }
   });
 });

@@ -54,7 +54,7 @@ Counts: 15 v1 items (P1-P11, B1-B3, 14/NF2 Prism part): fixed 12, partly fixed 1
 | Rank | Id | vs v1 | Title | Where | Kind | Impact | Estimate | Effort | Verdict | Frozen |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | P12 | new | `Canvas3D.update(repr)` re-records every renderable's precompile signature; callers loop per representation | [canvas3d.ts:2240](../../packages/graphics/src/canvas3d/canvas3d.ts#L2240) | time | high | drag N=100 ~12 ms → <0.5 ms per move; color over all O(N²) → O(N): ~0.3 s at N=100, ~8 s at N=500 | S | confirmed | yes |
-| 2 | P13 | new | Frame step restarts the link views: `highlight.clear` per frame, `select.set` replay with a Seq\* selection | [link.ts:104](../../packages/prism/viewer/src/sequence/link.ts#L104) | time | low | 1-2 API runs and mark passes per frame fewer | S | confirmed | no |
+| 2 | P13 | new; partly fixed #2044 (no clear, no replay on a frame step; a new view and label provider per frame remain) | Frame step restarts the link views: `highlight.clear` per frame, `select.set` replay with a Seq\* selection | [link.ts:104](../../packages/prism/viewer/src/sequence/link.ts#L104) | time | low | 1-2 API runs and mark passes per frame fewer | S | confirmed | no |
 | 3 | P5 | **fixed** (#2026) | (plugin) measurement sync: one full walk per state change with no group | [measurement.ts:426](../../packages/plugin/core/src/state/manager/structure/measurement.ts#L426) | time | low | ~1.15 ms per change at 4201 cells | S | confirmed | no |
 | 4 | P15 | new | `findCuts` gathers targets with a linear `.some`: O(K²) per read | [cuts.ts:101](../../packages/prism/viewer/src/sources/clipping/cuts.ts#L101) | time | low | 8 ms → 0.1 ms at K=1500 per state change while shown | S | confirmed | no |
 | 5 | P14 | new; **fixed** #2032 | `trajectory.frame`/`particles.frame` log ~9 transform lines per seek | [trajectory.ts:102](../../packages/prism/viewer/src/api/trajectory.ts#L102) | time+memory | low | 9 log entries per seek fewer; plugin log stops growing with scrubbing | S | confirmed | no |
@@ -134,7 +134,7 @@ Counts: 15 v1 items (P1-P11, B1-B3, 14/NF2 Prism part): fixed 12, partly fixed 1
 | Id | vs v1 | Severity | Title | Where | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | B4 | new | medium | While any animation (camera spin included) or a snapshot plays, outside changes never invalidate checkpoints | [checkpoint.ts:205](../../packages/prism/viewer/src/sources/checkpoint.ts#L205) | confirmed (code) |
-| B6 | new | low | Linked sequence: each frame step clears the 3D highlight and, with a Seq\* selection, writes a `select.set` record entry | [link-views.ts:183](../../packages/prism/viewer/src/sequence/molstar/link-views.ts#L183) | confirmed |
+| B6 | new; **fixed** #2044 | low | Linked sequence: each frame step clears the 3D highlight and, with a Seq\* selection, writes a `select.set` record entry | [link-views.ts:183](../../packages/prism/viewer/src/sequence/molstar/link-views.ts#L183) | confirmed |
 | B5 | new; **fixed** #2034 | low | `wholeChains` drops a non-polymer chain's hydrogens after its last heavy atom | [link-views.ts:107](../../packages/prism/viewer/src/sequence/molstar/link-views.ts#L107) | confirmed (code) |
 
 - **B4**: `watchOutsideChanges` returns on `isViewing(plugin)` = the viewing counter or

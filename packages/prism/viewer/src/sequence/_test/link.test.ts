@@ -70,6 +70,41 @@ describe('linking the sequence to a 3D view', () => {
     h.viewers.dispose();
   });
 
+  it('follows a frame step without clearing the 3D hover or sending the selection again (perf-audit-2 10/B6)', async () => {
+    const h = headlessViewers();
+    const fake = fakeView();
+    const views: Structure[] = [];
+    const stop = linkSequence(h.viewer, (s) => {
+      views.push(s);
+      return fake.view;
+    });
+    const host = await hostStructure();
+    h.structure.set(host);
+    await shown(h);
+    const seq = h.viewer.seq;
+    const set = seq.graph.assembled.value?.set;
+    const ref = set?.strings.get(set.units.key[0]) ?? '';
+    seq.selection.set(seq.refs.toLoci(ref, { start: 0, stop: 5 }), 'pointer');
+    expect(fake.calls.slice(0, 2)).toEqual(['select(loci)', 'focus']);
+    fake.calls.length = 0;
+
+    // a frame: a new Structure of the same atoms, under the same key
+    for (let i = 0; i < 3; i++) {
+      const frame = Structure.create(host.structure.units);
+      h.structure.set({ ...host, structure: frame });
+      expect(h.viewer.frame.value).toBe(frame);
+    }
+    expect(views.length).toBe(4);
+    expect(fake.calls).toEqual([]);
+    expect(fake.select.size).toBe(1);
+
+    // the views of the new frame still send what the person does
+    seq.selection.set(null, 'pointer');
+    expect(fake.calls[0]).toBe('select(null)');
+    stop();
+    h.viewers.dispose();
+  });
+
   it('is remade for another structure, and not made without a 3D view of it', async () => {
     const h = headlessViewers();
     const fake = fakeView();

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -67,7 +67,8 @@ export function MarchingCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): 
 export function MarchingCubesLinesBuilder(vertexChunkSize: number, lines?: Lines): MarchingCubesBuilder<Lines> {
   const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize);
   const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize);
-  const indices = ChunkedArray.create(Float32Array, 2, vertexChunkSize);
+  // vertex ids, exact past 2^24 (perf-audit-2 08/B4)
+  const indices = ChunkedArray.create(Uint32Array, 2, vertexChunkSize);
 
   let linesCount = 0;
 

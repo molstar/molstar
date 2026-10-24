@@ -6,7 +6,7 @@
  */
 
 import { gzipSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { deflate, inflate, ungzip, unzip, zip, type UnzipLimits } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 
@@ -39,6 +39,38 @@ describe('zip', () => {
     withExtra.set(plain.subarray(10), 10 + 2 + extra.length);
     expect(await ungzip(SyncRuntimeContext, new Uint8Array(plain))).toEqual(data);
     expect(await ungzip(SyncRuntimeContext, withExtra)).toEqual(data);
+  });
+
+  // the platform's gzip decoder checks the CRC-32 and the size, with no JS CRC pass over the output (perf-audit-2 01/P1)
+  it('ungzip decodes with the platform gzip decoder', async () => {
+    const formats: string[] = [];
+    const Native = globalThis.DecompressionStream;
+    vi.stubGlobal(
+      'DecompressionStream',
+      class extends Native {
+        constructor(format: CompressionFormat) {
+          formats.push(format);
+          super(format);
+        }
+      },
+    );
+    const data = new TextEncoder().encode('data_1ABC\n_entry.id 1ABC\n'.repeat(1000));
+    const gz = new Uint8Array(gzipSync(data));
+    try {
+      expect(await ungzip(SyncRuntimeContext, gz)).toEqual(data);
+      expect(formats).toEqual(['gzip']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('ungzip reads a file the platform decoder refuses as before: a wrong CRC-32 is logged', async () => {
+    const data = new TextEncoder().encode('data_1ABC\n_entry.id 1ABC\n'.repeat(100));
+    const gz = new Uint8Array(gzipSync(data));
+    gz[gz.length - 8] ^= 0xff; // the CRC-32's low byte
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await ungzip(SyncRuntimeContext, gz)).toEqual(data);
+    expect(error).toHaveBeenCalledWith("ungzip: checksums don't match");
   });
 
   describe('untrusted archives', () => {

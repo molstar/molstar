@@ -200,19 +200,21 @@ export type GroupMapping = {
  */
 export function createGroupMapping(groups: ArrayLike<number>, dataCount: number, step = 1): GroupMapping {
   const maxId = arrayMax(groups);
+  // one bucket per group id, not per item: a shape's group ids may exceed its item count (perf-audit-2 08/B2)
+  const groupCount = dataCount > 0 ? maxId + 1 : 0;
 
-  const offsets = new Int32Array(maxId + 2);
-  const bucketFill = new Int32Array(dataCount);
-  const bucketSizes = new Int32Array(dataCount);
+  const offsets = new Int32Array(groupCount + 1);
+  const bucketFill = new Int32Array(groupCount);
+  const bucketSizes = new Int32Array(groupCount);
 
   for (let i = 0, il = dataCount * step; i < il; i += step) ++bucketSizes[groups[i]];
 
   let offset = 0;
-  for (let i = 0; i < dataCount; i++) {
+  for (let i = 0; i < groupCount; i++) {
     offsets[i] = offset;
     offset += bucketSizes[i];
   }
-  offsets[dataCount] = offset;
+  offsets[groupCount] = offset;
 
   const indices = new Int32Array(offset);
   for (let i = 0, il = dataCount * step; i < il; i += step) {

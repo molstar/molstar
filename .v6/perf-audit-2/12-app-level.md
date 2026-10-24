@@ -71,7 +71,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 | 7 | H3 | Latest-wins and abort in the state/task layer | FIFO queue, no coalescing, a queued update cannot be dropped before it starts | P5 checkpoints (M), opt-in coalescing (M) | K × full cost → 1× for API bursts; abort latency s → ≤100 ms | M | plausible |
 | 8 | H2 | Progressive/LOD loading, quality per symmetry group | quality by root atoms; reprs show after all visuals | 13/P2 (S); coarse-first refine (M–L, needs H3) | better look on assemblies; first pixel ~5–10× sooner (estimate) | M | plausible |
 | 9 | H4 | Persistent cache of computed props and downloads | in-memory ref-counted byte cache only | opt-in content-keyed PropertyCache (Prism first) | repeated loads only: molsurf 6.5 → ~0.2 s | L | plausible (defer) |
-| 10 | H5 | Byte-level text CIF tokenizer | BCIF default; `ChunkedBigString` above 512 MB | tokenizer over Uint8Array | above 512 MB parse ~1.7–2× faster | L | confirmed (low; defer) |
+| 10 | H5 | Byte-level text CIF tokenizer (**done** #2036: flat-192-cif parse 644 → 310 ms median) | BCIF default; `ChunkedBigString` above 512 MB | tokenizer over Uint8Array | above 512 MB parse ~1.7–2× faster | L | confirmed (low; defer) |
 
 ### H7 Startup and bundle size
 
@@ -225,6 +225,8 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
   1,319–4,073 ms; ratio 1.7–2×; UTF-8 decode 5–10 ms.
 - **Win.** Only above 512 MB of text: parse ~2× faster, one fewer copy (~0.5 GB at 5M atoms). **Defer**; document BCIF
   for >1M atoms.
+- **Done (#2036):** text CIF is tokenized from its bytes (`TextByteTokenizer` for the other text formats, #2040):
+  flat-192-cif parse 594–726 → 285–327 ms, retained 320 → 256 MB.
 
 ## Open findings, ranked
 
@@ -412,7 +414,7 @@ layer smoothing (#2005, #2012); Prism's event consumers coalesce per frame (`wat
 | B4 | new | low | Bench stages record errors as fast results | [stage.ts:99](../../tests/src/pipeline/stage.ts#L99) | confirmed |
 | B1 | new | low | Pipeline bench crashes on coarse-only entries | [bench.ts:324](../../tests/src/pipeline/bench.ts#L324) | confirmed |
 | 03/B7 | still open | low | Late abort discards a completed result undisposed | [observable.ts:106](../../packages/core/src/task/execution/observable.ts#L106) | confirmed |
-| B3 | new | low | Plugin log entries grow without bound | [context.ts:692](../../packages/plugin/core/src/context.ts#L692) | confirmed |
+| B3 | new; **fixed** #2044 | low | Plugin log entries grow without bound | [context.ts:692](../../packages/plugin/core/src/context.ts#L692) | confirmed |
 | 03/B8 | still open | low | `chunkedSubtask` sizing compounds | [chunked.ts:28](../../packages/core/src/task/util/chunked.ts#L28) | confirmed |
 
 - **B2.** `budgets: { 'index.js': 3200000 }` is checked per output file (`scripts/esbuild/app.mjs:304`). With

@@ -117,18 +117,18 @@ export function eachVolumeLoci(
     } else {
       const segmentation = Volume.Segmentation.get(volume);
       if (segmentation) {
-        const set = new Set<number>();
         for (const { segments, instances } of loci.elements) {
+          // this element's sets, and the instances it names (perf-audit-2 07/N3)
+          const set = new Set<number>();
           for (let i = 0, _i = OrderedSet.size(segments); i < _i; i++) {
             const o = OrderedSet.getAt(segments, i);
             SetUtils.add(set, segmentation.segments.get(o)!);
           }
-          const s = Array.from(set.values());
           const d = volume.grid.cells.data;
           for (let i = 0, il = d.length; i < il; ++i) {
-            if (s.includes(d[i])) {
+            if (set.has(d[i])) {
               for (let j = 0, _j = OrderedSet.size(instances); j < _j; j++) {
-                const offset = j * cellCount;
+                const offset = OrderedSet.getAt(instances, j) * cellCount;
                 if (apply(Interval.ofSingleton(i + offset))) changed = true;
               }
             }
