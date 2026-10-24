@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column, Table } from '@molstar/core/data/db';
@@ -160,12 +161,12 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
     const _models = await createModels(basic, Mol2Format.create(mol2), ctx);
 
     if (_models.frameCount > 0) {
-      const indexA = Column.ofIntArray(Column.mapToArray(bonds.origin_atom_id, (x) => x - 1, Int32Array));
-      const indexB = Column.ofIntArray(Column.mapToArray(bonds.target_atom_id, (x) => x - 1, Int32Array));
-      const key = bonds.bond_id;
+      const { indexA, indexB, rows } = bondAtomRows(atoms.atom_id, bonds.origin_atom_id, bonds.target_atom_id);
+      const bondType = rows ? Column.view(bonds.bond_type, rows) : bonds.bond_type;
+      const key = rows ? Column.view(bonds.bond_id, rows) : bonds.bond_id;
       const order = Column.ofIntArray(
         Column.mapToArray(
-          bonds.bond_type,
+          bondType,
           (x) => {
             switch (x) {
               case 'ar': // aromatic
@@ -184,7 +185,7 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
       );
       const flag = Column.ofIntArray(
         Column.mapToArray(
-          bonds.bond_type,
+          bondType,
           (x) => {
             switch (x) {
               case 'ar': // aromatic
@@ -224,6 +225,52 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
   }
 
   return new ArrayTrajectory(models);
+}
+
+/**
+ * The atom rows of the bonds' atoms. Atom ids need not be 1..N in file order (a writer may keep the ids of deleted
+ * atoms), so a bond names its atoms by id (perf-audit-2 04/B12). A bond with an id no atom has is dropped: `rows` lists
+ * the bonds kept, undefined when all are.
+ */
+function bondAtomRows(atomId: Column<number>, originId: Column<number>, targetId: Column<number>) {
+  const atomCount = atomId.rowCount;
+  let sequential = true;
+  for (let i = 0; i < atomCount; i++) {
+    if (atomId.value(i) !== i + 1) {
+      sequential = false;
+      break;
+    }
+  }
+  let byId: Map<number, number> | undefined;
+  if (!sequential) {
+    byId = new Map();
+    for (let i = 0; i < atomCount; i++) byId.set(atomId.value(i), i);
+  }
+  const rowOf = (id: number) => {
+    const row = byId ? byId.get(id) : id - 1;
+    return row !== undefined && row >= 0 && row < atomCount ? row : -1;
+  };
+
+  const bondCount = originId.rowCount;
+  const a = new Int32Array(bondCount);
+  const b = new Int32Array(bondCount);
+  const kept: number[] = [];
+  let k = 0;
+  for (let i = 0; i < bondCount; i++) {
+    const ra = rowOf(originId.value(i));
+    const rb = rowOf(targetId.value(i));
+    if (ra < 0 || rb < 0) continue;
+    a[k] = ra;
+    b[k] = rb;
+    kept.push(i);
+    k++;
+  }
+  const rows = k === bondCount ? undefined : kept;
+  return {
+    indexA: Column.ofIntArray(rows ? a.slice(0, k) : a),
+    indexB: Column.ofIntArray(rows ? b.slice(0, k) : b),
+    rows,
+  };
 }
 
 function getSymmetry(crysin: Mol2Crysin): Symmetry | undefined {

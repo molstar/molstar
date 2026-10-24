@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -12,6 +13,7 @@ import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { getOperatorsForSetting, SettingsByNumber, trajectoryFromMol2 } from '../mol2.js';
 import { ModelSymmetry } from '../property/symmetry.js';
+import { IndexPairBonds } from '../property/bonds/index-pair.js';
 
 // real CSD-derived CRYSIN record (spaceGroup 29, setting 5), taken from
 // src/mol-io/reader/_test/mol2.test.ts 'crysin' test fixture
@@ -217,5 +219,41 @@ describe('mol2 crysin setting', () => {
     expect(result.name).toBe('C 4');
     expect(result.basisop).toBe('x+y,-x+y,z');
     expect(result.operators.length).toBe(base.length * 2);
+  });
+});
+
+// atom ids with a gap (a writer that kept the ids of deleted atoms): bonds name atoms by id, not by row; a bond to an
+// id no atom has is dropped (perf-audit-2 04/B12)
+const Mol2StringIdGap = `@<TRIPOS>MOLECULE
+gap
+    4     4     1     0     0
+SMALL
+NO_CHARGES
+
+@<TRIPOS>ATOM
+     1 C1       0.0000   0.0000   0.0000   C.3       1 LIG   0.0000
+     2 C2       1.5000   0.0000   0.0000   C.3       1 LIG   0.0000
+     4 O1       2.0000   1.4000   0.0000   O.3       1 LIG   0.0000
+     5 N1      -0.5000  -1.4000   0.0000   N.3       1 LIG   0.0000
+@<TRIPOS>BOND
+     1     1     2    1
+     2     2     4    2
+     3     1     5    1
+     4     5     9    1
+`;
+
+describe('mol2 bonds', () => {
+  it('maps bond atom ids to rows', async () => {
+    const parsed = await parseMol2(Mol2StringIdGap, '').run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const model = (await trajectoryFromMol2(parsed.result).run()).representative;
+    const bonds = IndexPairBonds.Provider.get(model)!;
+    const { a, b, edgeProps } = bonds.bonds;
+    const names = model.atomicHierarchy.atoms.label_atom_id;
+    const pairs: string[] = [];
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] < b[i]) pairs.push(`${names.value(a[i])}-${names.value(b[i])}:${edgeProps.order[i]}`);
+    }
+    expect(pairs.sort()).toEqual(['C1-C2:1', 'C1-N1:1', 'C2-O1:2']);
   });
 });
