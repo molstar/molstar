@@ -1,13 +1,14 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  * @author Tadej Satler <tadej.satler@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * Minimal MRC/CCP4 binary writer (MODE=2, float32).
  * Spec: https://www.ccpem.ac.uk/mrc_format/mrc2014.php
  */
 
 import { Grid } from '@molstar/model/model/volume';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 
 const HEADER_BYTES = 1024;
 
@@ -94,9 +95,26 @@ export namespace CCP4Writer {
     const { dataOffset } = space;
     const dataView = new Float32Array(buf, HEADER_BYTES, voxelCount);
     let o = 0;
-    for (let k = 0; k < nz; k++) {
-      for (let j = 0; j < ny; j++) {
-        for (let i = 0; i < nx; i++) dataView[o++] = data[dataOffset(i, j, k)];
+    const strides = Tensor.strides(space);
+    if (strides) {
+      // a row's offsets from strides, no `dataOffset` call per voxel; a contiguous x row copied at once (perf-audit-2 04/12/L2)
+      const [sx, sy, sz] = strides;
+      for (let k = 0; k < nz; k++) {
+        for (let j = 0; j < ny; j++) {
+          const base = j * sy + k * sz;
+          if (sx === 1) {
+            dataView.set(data.subarray(base, base + nx), o);
+            o += nx;
+          } else {
+            for (let i = 0; i < nx; i++) dataView[o++] = data[base + i * sx];
+          }
+        }
+      }
+    } else {
+      for (let k = 0; k < nz; k++) {
+        for (let j = 0; j < ny; j++) {
+          for (let i = 0; i < nx; i++) dataView[o++] = data[dataOffset(i, j, k)];
+        }
       }
     }
 
