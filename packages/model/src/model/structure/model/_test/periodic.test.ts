@@ -6,6 +6,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { setFlagsFromString } from 'node:v8';
+import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { Column } from '@molstar/core/data/db';
 import { PeriodicBox } from '@molstar/core/math/geometry/periodic-box';
@@ -75,6 +77,29 @@ describe('ModelPeriodicity', () => {
       whole.atomicConformation,
     );
     expect(Array.from(again.x)).toEqual(Array.from(whole.atomicConformation.x));
+  });
+
+  it('does not keep the frames it made once the trajectory is dropped (perf-audit-3 05/P23)', async () => {
+    // a trajectory of its own, made whole and in the box frame by frame, then dropped
+    const made = await (async () => {
+      const own = await trajectoryFromGRO(parsed.result).run();
+      const refs: WeakRef<Model>[] = [];
+      for (let i = 0; i < own.frameCount; i++) {
+        const frame = own.getFrameAtIndex(i) as Model;
+        refs.push(new WeakRef(ModelPeriodicity.apply(frame, ModelPeriodicity.InBox)));
+        // still the same model while the topology is alive
+        expect(ModelPeriodicity.apply(frame, ModelPeriodicity.InBox)).toBe(refs[i].deref());
+      }
+      return refs;
+    })();
+    setFlagsFromString('--expose-gc');
+    const gc: () => void = runInNewContext('gc');
+    // WeakRef targets are kept until the job that made them ends
+    await new Promise((r) => setTimeout(r, 0));
+    gc();
+    await new Promise((r) => setTimeout(r, 0));
+    gc();
+    expect(made.filter((r) => r.deref() !== undefined).length).toBe(0);
   });
 
   it('does not depend on which image an atom other than a root is in', () => {
