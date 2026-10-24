@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { utf8Encode } from '@molstar/core/util/utf8';
 import { parseMol, formalChargeMapper } from '../mol/parser.js';
+import { plainResult } from './plain-result.js';
 
 const MolString = `2244
   -OEChem-04072009073D
@@ -202,5 +204,34 @@ describe('mol reader', () => {
     expect(attachmentPoints?.length).toBe(1);
     expect(attachmentPoints![0].atomIdx).toBe(2);
     expect(attachmentPoints![0].kind).toBe(1);
+  });
+
+  it('parses the same from a string and from its bytes', async () => {
+    const texts = [
+      MolString,
+      MolStringWithAtomBlockCharge,
+      MolStringWithPropertyBlockCharge,
+      MolStringWithMultipleChargeLines,
+      MolStringWithAPOProperty,
+    ];
+    for (const text of texts) {
+      const fromString = await parseMol(text).run();
+      const fromBytes = await parseMol(utf8Encode(text)).run();
+      expect(plainResult(fromBytes)).toEqual(plainResult(fromString));
+    }
+  });
+
+  it('non-ASCII title and comment', async () => {
+    const text =
+      'Molécule ÅÉ 水\n  program\nkommentář' +
+      MolString.substring(MolString.indexOf('\n', MolString.indexOf('\n', MolString.indexOf('\n') + 1) + 1));
+    const parsed = await parseMol(utf8Encode(text)).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const reference = await parseMol(MolString).run();
+    if (reference.isError) throw new Error(reference.message);
+    expect(parsed.result.title).toBe('Molécule ÅÉ 水');
+    expect(parsed.result.comment).toBe('kommentář');
+    expect(plainResult(parsed.result.atoms)).toEqual(plainResult(reference.result.atoms));
+    expect(plainResult(parsed.result.bonds)).toEqual(plainResult(reference.result.bonds));
   });
 });

@@ -1,14 +1,19 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Jason Pattle <jpattle@exscientia.co.uk>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '@molstar/core/data/db';
 import type { MolFile } from '../mol/parser.js';
-import { Tokenizer, TokenBuilder, type Tokens } from '../common/text/tokenizer.js';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token.js';
+import {
+  TextByteTokenizer as Tokenizer,
+  TextByteTokenBuilder as TokenBuilder,
+  type TextByteTokens as Tokens,
+} from '../common/text/text-byte-tokenizer.js';
+import { TextByteTokenColumnProvider as TokenColumn } from '../common/text/column/text-byte-token.js';
 
 export function isV3(versionLine: string): boolean {
   return versionLine.trim().endsWith('V3000');
