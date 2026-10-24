@@ -7,6 +7,7 @@
  */
 
 import type { Structure } from '@molstar/model/model/structure';
+import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molstar/model/props/computed/secondary-structure';
 import type { LegendItem, ReadonlyState } from '@molstar/prism-ui';
 import type { DocNode } from '@molstar/seq-core/format';
 import type { SequenceTrackMenuItem } from './behaviors.js';
@@ -97,7 +98,15 @@ export const LettersTrackProvider: SequenceTrackProvider = {
   menu: [{ id: 'color-default', label: 'Apply default coloring', icon: 'paintbrush', theme: 'default' }],
 };
 
-/** The model's own helices, strands and turns (blocks and arrows over a coil line; Text: underlines). */
+/**
+ * The settings of the secondary structure a structure's 3D view draws (Mol*'s computed property: Automatic, Model, DSSP
+ * and its params): the track's data names them, so a change of them (the person's, in the 3D view) recomputes it.
+ */
+export function secondaryAssignmentOf(structure: Structure): string {
+  return JSON.stringify(ComputedSecondaryStructure.props(structure.root).type);
+}
+
+/** The helices, strands and turns the 3D view draws (blocks and arrows over a coil line; Text: underlines). */
 export const SecondaryTrackProvider: SequenceTrackProvider = {
   id: 'prism-viewer.sequence.secondary',
   label: 'Secondary structure',
@@ -110,7 +119,10 @@ export const SecondaryTrackProvider: SequenceTrackProvider = {
       {
         kind: 'computed',
         ref: SecondaryData,
-        params: { provider: 'molstar:secondary_structure', options: { of: ctx.complex } },
+        params: {
+          provider: 'molstar:secondary_structure',
+          options: { of: ctx.complex, assignment: secondaryAssignmentOf(ctx.structure) },
+        },
       },
     ],
     track: track(SecondaryTrack, [

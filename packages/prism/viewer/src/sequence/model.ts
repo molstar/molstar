@@ -7,6 +7,7 @@
  */
 
 import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
+import { deepEqual } from '@molstar/core/util';
 import type { Structure } from '@molstar/model/model/structure';
 import {
   archiveLoaders,
@@ -89,6 +90,11 @@ export interface HostStructure {
   readonly structure: Structure;
   /** The ligands the 3D view draws, by chemical component id; absent: every ligand. The sequence lists the same ones. */
   readonly ligands?: readonly string[];
+  /**
+   * The settings of the secondary structure the 3D view draws (`secondaryAssignmentOf`): told again when they change,
+   * so the tracks' data that name them follow (a patch, not a new document).
+   */
+  readonly assignment?: string;
 }
 
 /**
@@ -469,8 +475,11 @@ class Viewer implements SequenceViewer {
       }),
       deps.structure.subscribe((host) => {
         // A frame of the structure shown (sequence.md §2): no new document; the link follows the new Structure.
-        if (host && host.key === this.documentKey) this.frameState.set(host.structure);
-        else void this.build();
+        // The same structure (a frame, or its secondary structure's settings changed): the tracks' data follow (`syncNow`).
+        if (host && host.key === this.documentKey) {
+          this.frameState.set(host.structure);
+          void this.sync();
+        } else void this.build();
       }),
       // The tracks the band shows, for the tree and the commands: read from the document shown (behaviors' patches
       // included).
@@ -720,6 +729,21 @@ class Viewer implements SequenceViewer {
         (b.data ?? []).flatMap((d) => (d.ref ? [d.ref] : [])),
       );
       anchor = p.track;
+    }
+    // The tracks already in: their data as the providers build it now (an option can follow the 3D view, as the secondary
+    // structure's assignment): a param that differs is set, which recomputes the node.
+    // Those the document was built with (a base provider's) as those a sync put in; not the ones this sync puts in.
+    for (const p of applying(this.providersState.value, host.structure)) {
+      if (!trackIn(p, edits, this.svsShown) || placed.get(p.track) !== this.placed.get(p.track)) continue;
+      if (!findRef(base.root, p.track)) continue;
+      const b = this.built(p, ctx);
+      for (const d of b?.data ?? []) {
+        const n = d.ref ? findRef(base.root, d.ref) : undefined;
+        if (!n || !d.params) continue;
+        const changed = Object.keys(d.params).filter((k) => !deepEqual(n.params?.[k], d.params![k]));
+        if (changed.length)
+          ops.push({ op: 'set', ref: d.ref!, params: Object.fromEntries(changed.map((k) => [k, d.params![k]])) });
+      }
     }
     // The chain filter (not under a loaded SeqViewSpec: its sections keep their own blocks).
     if (!this.svsShown) {

@@ -12,7 +12,15 @@
 // model carries (mmCIF's `struct_conf` and `struct_sheet_range`). Coil is no range. Nothing the 3D view would not
 // compute itself, and no network.
 
-import { type ProviderEntry, RequiredField, ref, SimpleParamsSchema } from '@molstar/seq-core/format';
+import {
+  nullable,
+  OptionalField,
+  type ProviderEntry,
+  RequiredField,
+  ref,
+  SimpleParamsSchema,
+  str,
+} from '@molstar/seq-core/format';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ModelSecondaryStructure } from '@molstar/model/formats/structure/property/secondary-structure';
@@ -58,7 +66,11 @@ export function secondaryCategory(type: SecondaryStructureType, bends = true): S
  */
 export const SecondaryStructureProvider: ProviderEntry = {
   name: 'molstar:secondary_structure',
-  options: SimpleParamsSchema({ of: RequiredField(ref('complex'), 'the complex of a structure') }),
+  options: SimpleParamsSchema({
+    of: RequiredField(ref('complex'), 'the complex of a structure'),
+    // Not read: the host writes the drawn assignment's settings here, so a change of them recomputes the annotation.
+    assignment: OptionalField(nullable(str), null, "the 3D view's assignment settings, as the host knows them"),
+  }),
   geometry: 'ranges',
   async compute(ctx, options) {
     const of = (options as { of: string }).of;

@@ -36,3 +36,5 @@
   and weights.
 - Prism: the sequence's secondary-structure track is the one the 3D view draws (Mol*'s computed assignment: the file's
   where it has one, else DSSP), so a predicted model (Model Archive, AlphaFold DB) without `struct_conf` has one.
+- Prism: the sequence's secondary-structure track follows the 3D view's secondary structure when it is set otherwise
+  (Automatic, Model, DSSP), by a patch of its data, not a new document.

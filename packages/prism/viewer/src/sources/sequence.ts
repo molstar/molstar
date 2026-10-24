@@ -17,6 +17,7 @@ import { merge } from 'rxjs';
 import type { ViewerApi } from '../api/area.js';
 import type { SequenceView3D } from '../sequence/link.js';
 import type { DataByUrl, HostActions, HostStructure, StructureColoring } from '../sequence/model.js';
+import { secondaryAssignmentOf } from '../sequence/tracks.js';
 import { cifFrameOf, createDataByUrl } from './data-by-url.js';
 import { structureNames } from './naming.js';
 import { onceATask, type SourceScope } from './state.js';
@@ -105,7 +106,7 @@ function channel(): Channel {
 export function createSequenceSource(scope: SourceScope, plugin: PluginContext, link: ViewerApi): SequenceSource {
   // A new key or a new frame of it (the same key, another Structure: sequence.md §2).
   const structure = observableState<HostStructure | undefined>(undefined, {
-    compare: (a, b) => a?.key === b?.key && a?.structure === b?.structure,
+    compare: (a, b) => a?.key === b?.key && a?.structure === b?.structure && a?.assignment === b?.assignment,
   });
   const followed = observableState<string | undefined>(undefined);
   const shows = observableState<string | undefined>(undefined);
@@ -192,8 +193,9 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     // the sequence keeps its document and the link follows the new Structure (sequence.md §2).
     if (now?.ref === ref && now.structure !== data && now.source.trajectory === trajectory) {
       if (sameAtoms(now.structure, data)) {
+        now.source.drawn = data;
         keys.set(data, keys.get(now.structure)!);
-        structure.set({ ...now, structure: data });
+        structure.set({ ...now, structure: data, assignment: secondaryAssignmentOf(data) });
         return;
       }
     }
@@ -202,6 +204,7 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     const key = keyOf(ref, data);
     if (now?.key === key) return;
     structure.set({
+      assignment: secondaryAssignmentOf(data),
       key,
       ref,
       title: structureNames(plugin.managers.structure.hierarchy.current.structures).get(ref) ?? ref,
@@ -239,6 +242,16 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
     ).subscribe(() => update()),
   );
   scope.add(followed.asReadonly.subscribe(() => update()));
+  // The shown structure's secondary structure set otherwise in the 3D view (its custom properties updated, the Structure
+  // the same): told again, so the sequence's track follows (`secondaryAssignmentOf` names the settings in its data).
+  scope.add(
+    plugin.state.data.events.object.updated.subscribe((e) => {
+      const now = structure.value;
+      const data = e.obj?.data;
+      if (!now || !(data instanceof Structure) || data.root !== now.structure.root) return;
+      structure.set({ ...now, assignment: secondaryAssignmentOf(now.structure) });
+    }),
+  );
   scope.add(shows.asReadonly.subscribe(() => update()));
 
   const actions: HostActions = {

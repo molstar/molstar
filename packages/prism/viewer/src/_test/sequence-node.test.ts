@@ -279,4 +279,31 @@ describe("each structure's sequence", () => {
     await until(() => viewer.structure.value?.title === '1CRN' && viewer.tracks.value.length === 3);
     expect(refs(viewer)).toEqual(['letters', 'ss-track', 'test.extra']);
   });
+
+  it("follows the 3D view's secondary structure when the person sets it otherwise (the structure's properties)", async () => {
+    const { v, viewer } = await opened();
+    const state = v.plugin.state.data;
+    const props = [...state.cells.values()].find((c) =>
+      c.transform.transformer.id.endsWith('custom-structure-properties'),
+    );
+    expect(props).toBeDefined();
+    const ss = () => JSON.stringify(viewer.seq.document.shown.value).match(/"assignment":"([^"\\]|\\.)*"/)?.[0] ?? '';
+    expect(ss()).toContain('auto');
+    const params = props!.transform.params as { properties: Record<string, unknown> };
+    await v.plugin.runTask(
+      state.updateTree(
+        state
+          .build()
+          .to(props!.transform.ref)
+          .update({
+            ...params,
+            properties: {
+              ...params.properties,
+              molstar_computed_secondary_structure: { type: { name: 'model', params: {} } },
+            },
+          }),
+      ),
+    );
+    await until(() => ss().includes('model'));
+  });
 });

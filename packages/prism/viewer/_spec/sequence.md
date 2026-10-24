@@ -84,11 +84,13 @@ The code is the truth for how.
   (its data nodes and its one track over the structure, the complex's ref and the letters' color), its `menu` (colorings
   of the 3D view by theme) and `legend` blocks (shown while its track is in). **Only what comes with the structure**:
   `applies` and the data read the structure and what the plugin holds; a provider fetches nothing (§2). A provider whose
-  answer can change without a new structure (a property computed later) passes `whenChanged`. `describe` says in a few
-  words what it draws (the tree's second line). The viewer's own: ruler, letters, secondary structure
-  (`molstar:secondary_structure`), keeping their short refs (`ruler`, `letters`, `ss-track`: saved edits name them).
-  Plain data, no Seq\* module: the core spec lists them. A provider that throws in `build` is left out (a warning),
-  never the document.
+  answer can change without a new structure (a property computed later) passes `whenChanged`. Its data is built again at
+  each sync and a param that differs is set (Seq\* computes the node again): the secondary structure's names the 3D
+  view's assignment settings (`HostStructure.assignment`, told again when the person sets them otherwise), so its track
+  follows the cartoon without a new document. `describe` says in a few words what it draws (the tree's second line). The
+  viewer's own: ruler, letters, secondary structure (`molstar:secondary_structure`), keeping their short refs (`ruler`,
+  `letters`, `ss-track`: saved edits name them). Plain data, no Seq\* module: the core spec lists them. A provider that
+  throws in `build` is left out (a warning), never the document.
 - **In by a patch**: the document is built with the providers' tracks that are in; adding, removing, a provider that
   comes or goes, the filter and the eye are one base patch on the document shown (origin
   `host:prism-viewer.sequence.edits`, in order: each reads the document the one before left), never a new document; a
