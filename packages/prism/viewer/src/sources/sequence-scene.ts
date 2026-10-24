@@ -110,7 +110,10 @@ export function createSceneSequence(
     }));
     // How many tracks (the style is the band's, said in its menu), whether the rule picked it, its chains.
     const hidden = tracks.filter((t) => t.hidden).length;
-    const count = `${tracks.length} track${tracks.length === 1 ? '' : 's'}${hidden ? `, ${hidden} hidden` : ''}`;
+    // No count before the sequence's runtime is in: its tracks are not known yet (not none).
+    const count = v
+      ? `${tracks.length} track${tracks.length === 1 ? '' : 's'}${hidden ? `, ${hidden} hidden` : ''}`
+      : undefined;
     const description = [
       shown ? undefined : 'Not shown',
       count,
