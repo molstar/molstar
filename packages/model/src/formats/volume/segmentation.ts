@@ -100,9 +100,11 @@ export function volumeFromSegmentationData(
     for (let i = 0, il = d.length; i < il; ++i) {
       const v = d[i];
       if (v === 0) continue;
+      const b = setBounds[v];
+      // a label with no set in `segmentation_data_table` (perf-audit-2 04/B13)
+      if (!b) continue;
 
       getCoords(i, c);
-      const b = setBounds[v];
       if (c[0] < b[0]) b[0] = c[0];
       if (c[1] < b[1]) b[1] = c[1];
       if (c[2] < b[2]) b[2] = c[2];
