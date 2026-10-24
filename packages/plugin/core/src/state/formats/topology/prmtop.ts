@@ -26,7 +26,7 @@ const ParsePrmtop = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse PRMTOP', async (ctx) => {
-      const parsed = await parsePrmtop(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parsePrmtop(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Prmtop(parsed.result);
     });
