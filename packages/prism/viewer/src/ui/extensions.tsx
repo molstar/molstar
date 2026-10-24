@@ -82,6 +82,7 @@ export function extensionUIPort(
         const tab = (t: (typeof ui.tabs)[number]) => ({
           id: t.id,
           title: t.title,
+          ...(t.heading ? { heading: t.heading } : {}),
           icon: t.icon,
           ...(t.dock ? { dock: t.dock } : {}),
           ...(t.order !== undefined ? { order: t.order } : {}),

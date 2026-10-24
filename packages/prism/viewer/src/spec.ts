@@ -411,7 +411,10 @@ export interface ViewerExtensionUI {
   }[];
   readonly tabs?: readonly {
     readonly id: PartId;
+    /** Its name: the rail's tooltip, and the panel's header unless `heading` says otherwise. */
     readonly title: string;
+    /** The panel's header when the title is longer than it needs (the PyMOL / VMD console: "Console"). */
+    readonly heading?: string;
     readonly icon: IconName;
     readonly dock?: DockId;
     readonly order?: number;
