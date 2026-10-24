@@ -626,9 +626,13 @@ export class ModelArchiveApi extends ApiArea {
     );
   }
 
-  /** The addresses a fetch reaches before it runs: the associated files named (AlphaFold DB is a known service). */
+  /**
+   * The addresses a fetch reaches before it runs: the associated files named (AlphaFold DB is a known service). A
+   * structure named by its state ref gives its own; any other name (a label, which `run` resolves) every loaded
+   * structure's, so the agent's policy never sees fewer addresses than the run reaches.
+   */
   #addresses(structure: string): string[] {
-    const refs = structure
+    const refs = this.#tree().structures.has(structure)
       ? [structure]
       : this.ctx.plugin.managers.structure.hierarchy.current.structures.map((s) => s.cell.transform.ref);
     return refs.flatMap((ref) => {

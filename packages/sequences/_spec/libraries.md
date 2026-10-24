@@ -122,12 +122,13 @@ canvas, no plugin UI), so its format half runs in a page, in Node and on a serve
 - **`molstar:plddt`**: per-residue pLDDT from B-factors, colored by AlphaFold DB's bands by default.
   **`molstar:secondary_structure`**: the secondary structure the host's 3D view draws, where the host gives its drawn
   Structure (`StructureSource.drawn`: Mol*'s computed property, the file's assignment where it has one, else DSSP, as
-  the cartoon shows it; attached with its props when the 3D view has not yet), else the model's own (mmCIF's
-  `struct_conf` and `struct_sheet_range`; none is computed: a predicted model's file has none) as `ranges` on the
-  complex's polymer units, category `helix`, `strand` or `turn` (a bend is a turn; coil is no range), one row per
-  element of the assignment: two elements that touch stay two rows. A chain with no assignment has no rows, and a model
-  with none gives an empty annotation, not an error. It and `molstar:plddt` read the source's first model as deposited
-  (the asymmetric unit), whatever model or assembly the complex shows; an assembly's copy of a chain gets that chain's
+  the cartoon shows it; attached with its props when the 3D view has not yet) and its chain has the source's residues
+  (the same hierarchy: another model of a trajectory may not), else the model's own (mmCIF's `struct_conf` and
+  `struct_sheet_range`; none is computed: a predicted model's file has none) as `ranges` on the complex's polymer units,
+  category `helix`, `strand` or `turn` (a file's bend is a turn, DSSP's is coil; coil is no range), one row per element
+  of the assignment: two elements that touch stay two rows. A chain with no assignment has no rows, and a model with
+  none gives an empty annotation, not an error. It and `molstar:plddt` read the source's first model as deposited (the
+  asymmetric unit), whatever model or assembly the complex shows; an assembly's copy of a chain gets that chain's
   values. **`molstar:sifts_coverage`**: the listed structures' chains on one UniProt sequence, one `ranges` row per
   resolved stretch with a `structure` field (`instance: true`: rows on each chain's own unit); `molstar:sifts_depth`
   beside it. **`molstar:pae`**: a model's predicted aligned error (`seqspec:sources#formats-and-services`) as a `grid`,

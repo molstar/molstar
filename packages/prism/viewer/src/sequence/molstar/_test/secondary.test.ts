@@ -7,7 +7,8 @@
  */
 
 // `molstar:secondary_structure` over a recorded structure (2OCJ, p53's core domain): helices, strands and turns as
-// ranges on the polymer units, read from the model's own assignment, one row per element of it; no network.
+// ranges on the polymer units, one row per element of the assignment: the model's own, or the drawn structure's computed
+// one (DSSP for a file without one) where the host gives it; no network.
 
 import { readFileSync } from 'node:fs';
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
@@ -128,5 +129,24 @@ describe('molstar:secondary_structure', () => {
     src.drawn = await structureOf(src, 0, null);
     const { byUnit } = await secondary(source, host);
     expect([...byUnit.values()].flat().some((r) => r.endsWith('helix'))).toBe(true);
+  });
+
+  it("keeps a file's bends and drops DSSP's, and ignores a drawn model whose residues are not the source's", async () => {
+    // 2OCJ drawn: Mol*'s computed assignment is the file's own, bends and all.
+    const bytes = bytesOf('2ocj.bcif');
+    const src = await readStructure(bytes, 'bcif');
+    const host = {
+      load: async () => bytes,
+      parsed: async () => ({ kind: 'object', value: src }),
+    } as unknown as Loaders;
+    const source = { host_file: 'structure:2ocj', format: 'bcif' };
+    const own = (await secondary(source, host)).byUnit.get('c/A');
+    src.drawn = await structureOf(src, 0, null);
+    expect((await secondary(source, host)).byUnit.get('c/A')).toEqual(own);
+    // Another file's structure as the drawn one (another hierarchy): its assignment is not read onto these residues.
+    const crn = readFileSync(new URL('../../../../../../../data/examples/1crn.cif', import.meta.url));
+    const other = await readStructure(new Uint8Array(crn), 'mmcif');
+    src.drawn = await structureOf(other, 0, null);
+    expect((await secondary(source, host)).byUnit.get('c/A')).toEqual(own);
   });
 });

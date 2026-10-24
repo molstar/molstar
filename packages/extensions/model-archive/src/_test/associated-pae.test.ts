@@ -81,6 +81,9 @@ describe('fetching the PAE a Model Archive model names', () => {
     expect(area.afdbEntry(ref)).toBeUndefined();
     // The agent's policy sees the address before the run (Model Archive is a known service).
     expect(area.fetchPae.definition.addresses?.({ structure: ref })).toEqual([Zip]);
+    // Named by its label (which the run resolves), or not at all: the address is listed all the same.
+    expect(area.fetchPae.definition.addresses?.({ structure: 'ma-test-0001' })).toEqual([Zip]);
+    expect(area.fetchPae.definition.addresses?.({ structure: '' })).toEqual([Zip]);
 
     const seen = stub(Zip, await archive({ [Path]: paeCif(), 'A.a3m': '>A\nAGS\n' }));
     const r = await area.fetchPae({});
@@ -129,6 +132,14 @@ describe('fetching the PAE a Model Archive model names', () => {
     const missing = await area.fetchPae({});
     expect(!missing.ok && missing.message).toMatch(/Could not get the PAE of ma-test-0001 .*has no/);
     expect(v.plugin.state.data.cells.size).toBe(cells);
+
+    // An empty file fails as well, every time, and leaves nothing behind.
+    stub(Zip, await archive({ [Path]: '# nothing\n' }));
+    for (let k = 0; k < 2; k++) {
+      const empty = await area.fetchPae({});
+      expect(!empty.ok && empty.message).toMatch(/no data block/);
+      expect(v.plugin.state.data.cells.size).toBe(cells);
+    }
 
     stub(Zip, await archive({ [Path]: paeCif('Z') }));
     const wrong = await area.fetchPae({});

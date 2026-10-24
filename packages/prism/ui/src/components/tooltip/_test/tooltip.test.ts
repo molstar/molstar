@@ -101,5 +101,13 @@ describe('tooltips', () => {
     expect([a.textContent, a.style.fontSize, a.style.fontWeight]).toEqual(['PAE of a model', '12px', '500']);
     expect([b.textContent, b.style.fontSize]).toEqual(['1098 residues', '11px']);
     expect(Number.parseFloat(tip().style.paddingBlock)).toBeCloseTo(4.6);
+    // Wrapped, taller than the row: the card keeps its own padding.
+    label.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
+    tip().getBoundingClientRect = () =>
+      ({ top: 0, height: 60, left: 0, right: 300, bottom: 60, width: 300 }) as DOMRect;
+    over(label);
+    vi.advanceTimersByTime(400);
+    expect(tip().hidden).toBe(false);
+    expect(tip().style.paddingBlock).toBe('');
   });
 });

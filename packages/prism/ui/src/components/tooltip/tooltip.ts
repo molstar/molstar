@@ -45,11 +45,15 @@ export function installTooltips(root: HTMLElement): () => void {
     tip.dataset.kind = row ? 'row' : '';
     tip.style.paddingBlock = '';
     tip.hidden = false;
-    // A row's card is the row's height (one line), its text level with the row's.
+    // A row's card on one line is the row's height, its text level with the row's; wrapped (a long text), it keeps its
+    // own padding.
     if (row) {
       const line = Number.parseFloat(getComputedStyle(tip).lineHeight);
       const height = el.getBoundingClientRect().height;
-      if (line > 0 && height > line) tip.style.paddingBlock = `${(height - line) / 2}px`;
+      if (line > 0 && height > line) {
+        tip.style.paddingBlock = `${(height - line) / 2}px`;
+        if (tip.getBoundingClientRect().height > height + 0.5) tip.style.paddingBlock = '';
+      }
     }
     const side = row ? 'beside' : (el.dataset.tipSide ?? 'bottom');
     const r = el.getBoundingClientRect();

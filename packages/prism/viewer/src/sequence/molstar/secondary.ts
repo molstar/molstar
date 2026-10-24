@@ -17,6 +17,7 @@ import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ModelSecondaryStructure } from '@molstar/model/formats/structure/property/secondary-structure';
 import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molstar/model/props/computed/secondary-structure';
+import type { AtomicHierarchy } from '@molstar/model/model/structure/model/properties/atomic';
 import type { SecondaryStructure } from '@molstar/model/model/structure/model/properties/secondary-structure';
 import { type Structure, Unit } from '@molstar/model/model/structure';
 import type { ResidueIndex } from '@molstar/model/model/structure/model/indexing';
@@ -27,8 +28,11 @@ import { StructureSource, structureOf } from './source.js';
 /** A range's `category` in `molstar:secondary_structure`'s annotation. */
 export type SecondaryCategory = 'helix' | 'strand' | 'turn';
 
-/** A residue's class from Mol*'s flags: a helix (any), a strand (beta), a turn or bend; null: coil. */
-export function secondaryCategory(type: SecondaryStructureType): SecondaryCategory | null {
+/**
+ * A residue's class from Mol*'s flags: a helix (any), a strand (beta), a turn or bend; null: coil. `bends` false: a bend
+ * is coil (a computed assignment's: DSSP assigns them freely, and the cartoon draws none; a file lists the ones it means).
+ */
+export function secondaryCategory(type: SecondaryStructureType, bends = true): SecondaryCategory | null {
   if (
     SecondaryStructureType.is(type, SecondaryStructureType.Flag.Helix) ||
     SecondaryStructureType.is(type, SecondaryStructureType.Flag.DoubleHelix)
@@ -37,19 +41,20 @@ export function secondaryCategory(type: SecondaryStructureType): SecondaryCatego
   if (SecondaryStructureType.is(type, SecondaryStructureType.Flag.Beta)) return 'strand';
   if (
     SecondaryStructureType.is(type, SecondaryStructureType.Flag.Turn) ||
-    SecondaryStructureType.is(type, SecondaryStructureType.Flag.Bend)
+    (bends && SecondaryStructureType.is(type, SecondaryStructureType.Flag.Bend))
   )
     return 'turn';
   return null;
 }
 
 /**
- * One row per element of the model's assignment (a `struct_conf` helix or turn, a `struct_sheet_range` strand) on each
- * polymer unit of the complex `of`: two elements that touch stay two rows (a kinked helix given as two helices is two).
- * It reads the source's first model as deposited (the asymmetric unit), as `molstar:plddt` does, whatever model or
- * assembly the complex shows: the assignment is the file's, per `label_asym_id`, so an assembly's copy of a chain gets
- * its chain's rows. A chain the model assigns nothing to (or a model with none) has no rows: the annotation can be
- * empty, never an error; no assignment is computed (no DSSP).
+ * One row per element of the assignment (a helix, strand, turn or a file's bend) on each polymer unit of the complex `of`: two elements
+ * that touch stay two rows (a kinked helix given as two helices is two). The residues are the source's first model as
+ * deposited (the asymmetric unit), as `molstar:plddt` reads them, whatever assembly the complex shows; the assignment is
+ * per `label_asym_id`, so an assembly's copy of a chain gets its chain's rows. It is the drawn Structure's computed one
+ * where the drawn chain has the same residues (its model's hierarchy: another model of a trajectory may not), else the
+ * model's own (`struct_conf`, `struct_sheet_range`). A chain with none has no rows: the annotation can be empty, never an
+ * error.
  */
 export const SecondaryStructureProvider: ProviderEntry = {
   name: 'molstar:secondary_structure',
@@ -69,7 +74,10 @@ export const SecondaryStructureProvider: ProviderEntry = {
     for (const u of complexUnits(ctx.set, of)) {
       const c = chainFor(structure, u.mvs);
       if (c?.kind !== 'polymer') continue;
-      const ss = drawn?.get(c.labelAsymId) ?? ModelSecondaryStructure.Provider.get(c.unit.model);
+      // The drawn assignment indexes the drawn model's residues: only where they are this model's (the same hierarchy).
+      const d = drawn?.get(c.labelAsymId);
+      const own = ModelSecondaryStructure.Provider.get(c.unit.model);
+      const ss = d && d.hierarchy === c.unit.model.atomicHierarchy ? d.ss : own;
       if (!ss) continue;
       let open: SecondaryCategory | null = null;
       let element = -1;
@@ -86,7 +94,8 @@ export const SecondaryStructureProvider: ProviderEntry = {
       for (let x = 0; x < c.count; x++) {
         // The assignment's own index of the residue (`getIndex`), and its element there (`key`).
         const i = ss.getIndex(c.residues[x] as ResidueIndex);
-        const kind = secondaryCategory(ss.type[i]);
+        // A file's bends are rows; DSSP's are not (Mol*'s computed assignment is the file's own object where it has one).
+        const kind = secondaryCategory(ss.type[i], ss === own);
         const key = ss.key[i];
         const at = c.labels[x] - u.first;
         // A run goes on while the element does and the residues are consecutive.
@@ -107,19 +116,25 @@ export const SecondaryStructureProvider: ProviderEntry = {
 };
 
 /**
- * The secondary structure the 3D view draws, by `label_asym_id`: Mol*'s computed property on the drawn Structure (per
- * unit symmetry group), attached with its props as they are when the 3D view has not yet (the same computation its
- * cartoon makes, done once: attaching again with equal props does nothing). Undefined: no drawn Structure.
+ * The secondary structure the 3D view draws, by `label_asym_id`, with the hierarchy its residue indices are of: Mol*'s
+ * computed property on the drawn Structure (per unit symmetry group), attached with its props as they are when the 3D
+ * view has not yet (the same computation its cartoon makes, done once: attaching again with equal props does nothing).
+ * Undefined: no drawn Structure.
  */
-async function drawnAssignment(drawn: Structure | undefined): Promise<Map<string, SecondaryStructure> | undefined> {
+async function drawnAssignment(
+  drawn: Structure | undefined,
+): Promise<Map<string, { ss: SecondaryStructure; hierarchy: AtomicHierarchy }> | undefined> {
   if (!drawn) return undefined;
   const root = drawn.root;
   if (!ComputedSecondaryStructure.get(root).value) {
-    await ComputedSecondaryStructure.attach({ runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() }, root);
+    await ComputedSecondaryStructure.attach(
+      { runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() },
+      root,
+    );
   }
   const value = ComputedSecondaryStructure.get(root).value;
   if (!value) return undefined;
-  const byChain = new Map<string, SecondaryStructure>();
+  const byChain = new Map<string, { ss: SecondaryStructure; hierarchy: AtomicHierarchy }>();
   for (const group of root.unitSymmetryGroups) {
     const u = group.units[0];
     if (!Unit.isAtomic(u)) continue;
@@ -127,7 +142,7 @@ async function drawnAssignment(drawn: Structure | undefined): Promise<Map<string
     if (!ss) continue;
     const h = u.model.atomicHierarchy;
     const asym = h.chains.label_asym_id.value(h.chainAtomSegments.index[u.elements[0]]);
-    if (!byChain.has(asym)) byChain.set(asym, ss);
+    if (!byChain.has(asym)) byChain.set(asym, { ss, hierarchy: h });
   }
   return byChain;
 }

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateTransformer } from '@molstar/core/state';
+import { StateTransformer } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { Asset } from '@molstar/core/util/assets';
 import { unzip } from '@molstar/core/util/zip/zip';
@@ -74,18 +74,25 @@ const FetchAssociatedPae = PluginStateTransform.BuiltIn({
     return Task.create('Fetch PAE', async (ctx) => {
       const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
       const asset = await plugin.managers.asset.resolve(url, 'binary').runInContext(ctx);
-      (cache as { asset?: Asset.Wrapper }).asset = asset;
       let bytes: Uint8Array = asset.data;
       if (p.path) {
-        const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-        const entries = await unzip(ctx, buf, false, ArchiveLimits, (name) => name === p.path);
-        const entry = entries[p.path];
-        if (!(entry instanceof Uint8Array)) throw new Error(`the archive has no ${p.path}`);
-        bytes = entry;
+        // The archive is not needed once its entry is out (a PAE's zip is MBs, kept beside the parse otherwise).
+        try {
+          const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+          const entries = await unzip(ctx, buf, false, ArchiveLimits, (name) => name === p.path);
+          const entry = entries[p.path];
+          if (!(entry instanceof Uint8Array)) throw new Error(`the archive has no ${p.path}`);
+          bytes = entry;
+        } finally {
+          asset.dispose();
+        }
+      } else {
+        (cache as { asset?: Asset.Wrapper }).asset = asset;
       }
       const parsed = await CIF.parse(bytes).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
-      if (parsed.result.blocks.length === 0) return StateObject.Null;
+      // An empty file is an error, not a Null cell: the fetch reports it and leaves nothing under the model.
+      if (parsed.result.blocks.length === 0) throw new Error('the file has no data block');
       return new SO.Format.Cif(parsed.result, { label: p.label || p.path || url.url });
     });
   },
