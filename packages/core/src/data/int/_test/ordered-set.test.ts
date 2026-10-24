@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -244,5 +244,17 @@ describe('ordered set', () => {
       set = OrderedSet.ofSortedArray([2, 3, 4]);
     expect(OrderedSet.forEach(int, (v, i, ctx) => (ctx[i] = v), [] as number[])).toEqual([1, 2]);
     expect(OrderedSet.forEach(set, (v, i, ctx) => (ctx[i] = v), [] as number[])).toEqual([2, 3, 4]);
+  });
+
+  it('forEachSegment emits each segment once', () => {
+    // perf-audit-2 01/B3: an Interval's last segment was emitted twice
+    const segs = (set: OrderedSet, seg: (v: number) => number) =>
+      OrderedSet.forEachSegment(set, seg, (s, i, ctx) => ctx.push([s, i]), [] as [number, number][]);
+    expect(segs(OrderedSet.ofRange(0, 3), () => 0)).toEqual([[0, 0]]);
+    expect(segs(OrderedSet.ofRange(0, 5), (v) => (v < 2 ? 0 : 1))).toEqual([
+      [0, 0],
+      [1, 1],
+    ]);
+    expect(segs(OrderedSet.ofSortedArray([0, 1, 2, 3]), () => 0)).toEqual([[0, 0]]);
   });
 });

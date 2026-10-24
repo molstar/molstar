@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -354,7 +354,7 @@ export function forEachSegment(
     for (let i = I.min(set), _i = I.max(set); i <= _i; i++) {
       const s = segment(i);
       let endI = i + 1;
-      while (endI < _i && segment(endI) === s) endI++;
+      while (endI <= _i && segment(endI) === s) endI++;
       i = endI - 1;
       f(s, sI, ctx);
       sI++;
