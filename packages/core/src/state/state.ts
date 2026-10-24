@@ -748,13 +748,10 @@ async function update(ctx: UpdateContext) {
     }
   }
 
-  // Set status of cells that will be updated to 'pending'.
+  // Set status of cells that will be updated to 'pending', and collect the refs that will be (re-)evaluated this
+  // pass so that `updateSubtree` can distinguish "dep not produced yet" (defer + retry) from "dep can never be
+  // produced" (throw via resolveDependencies). One walk for both (perf-audit-2 03/P4).
   initCellStatus(ctx, roots);
-
-  // Build the set of refs that will be (re-)evaluated this pass so that
-  // `updateSubtree` can distinguish "dep not produced yet" (defer + retry)
-  // from "dep can never be produced" (throw via resolveDependencies).
-  ctx.scheduled = collectScheduled(ctx, roots);
 
   // Sequentially update all the subtrees.
   for (const root of roots) {
@@ -886,9 +883,11 @@ function initCellStatusVisitor(t: StateTransform, _: any, ctx: UpdateContext) {
     checkDependenciesCycle(cell);
   }
   setCellStatus(ctx, t.ref, 'pending');
+  ctx.scheduled!.add(t.ref);
 }
 
 function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
+  ctx.scheduled = new Set<Ref>();
   for (const root of roots) {
     StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), ctx, initCellStatusVisitor);
   }
@@ -1304,20 +1303,6 @@ type UpdateNodeResult =
   | { action: 'none' };
 
 const ParentNullErrorText = 'Parent is null';
-
-function collectScheduledVisitor(t: StateTransform, _: any, s: Set<Ref>) {
-  s.add(t.ref);
-}
-
-function collectScheduled(ctx: UpdateContext, roots: Ref[]): Set<Ref> {
-  const out = new Set<Ref>();
-  for (const root of roots) {
-    const node = ctx.tree.transforms.get(root);
-    if (!node) continue;
-    StateTree.doPreOrder(ctx.tree, node, out, collectScheduledVisitor);
-  }
-  return out;
-}
 
 /**
  * Refs that `cell` depends on which are scheduled for evaluation in this

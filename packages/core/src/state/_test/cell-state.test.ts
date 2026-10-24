@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { State, StateObject, StateTransform, StateTransformer, StateTree } from '../index.js';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -220,6 +220,21 @@ describe('flag carry cost', () => {
     await state.runTask(state.updateTree(mid!));
     expect(state.tree.transforms.get('a').state.isHidden).toBe(true);
     expect(state.tree.transforms.get('b').state.isCollapsed).toBe(true);
+  });
+});
+
+describe('evaluated subtrees', () => {
+  it('are walked once to set their status and collect them (perf-audit-2 03/P4)', async () => {
+    const state = await withLeaves('a', 'b');
+    const walks = vi.spyOn(StateTree, 'doPreOrder');
+    try {
+      await state.runTask(state.updateTree(state.build().to('a').update({ value: 3 })));
+      // initCells (new cells) and initCellStatus; the scheduled set took a third walk
+      expect(walks.mock.calls.filter((c) => c[1].ref === 'a').length).toBe(2);
+    } finally {
+      walks.mockRestore();
+    }
+    expect(state.cells.get('a')!.obj!.data.value).toBe(3);
   });
 });
 
