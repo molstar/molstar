@@ -41,6 +41,8 @@ export interface ConsoleEntry {
   readonly lines: readonly ConsoleLine[];
   /** How long it ran (ms), once done. */
   readonly ms?: number;
+  /** It ran files (a script, a drop), not a typed line. */
+  readonly files?: true;
 }
 
 /** What the input will do, read as it is typed (the composer's line under it). */
@@ -178,6 +180,7 @@ export class ConsoleModel {
       this.#push({
         dialect: this.#dialect.value,
         input: files.map((f) => f.name).join(', '),
+        files: true,
         state: 'failed',
         lines: [
           { kind: 'error', text: 'No script among these: open a .pml, .tcl or .vmd file (with the files it loads).' },
@@ -187,14 +190,20 @@ export class ConsoleModel {
     }
     for (const script of scripts) {
       await this.#enqueue(() =>
-        this.#run(dialectOfFile(script.name)!, texts.get(script.name) ?? '', script.name, files),
+        this.#run(dialectOfFile(script.name)!, texts.get(script.name) ?? '', script.name, files, true),
       );
     }
   }
 
-  async #run(dialect: Dialect, text: string, input: string, files: readonly File[]): Promise<ConsoleEntry> {
+  async #run(
+    dialect: Dialect,
+    text: string,
+    input: string,
+    files: readonly File[],
+    file = false,
+  ): Promise<ConsoleEntry> {
     const area = this.api.script;
-    const id = this.#push({ dialect, input, state: 'running', lines: [] });
+    const id = this.#push({ dialect, input, state: 'running', lines: [], ...(file ? { files: true as const } : {}) });
     if (!area) return this.#finish(id, 'failed', [{ kind: 'error', text: 'This viewer has no command language.' }]);
     // Everything that does not read, at once (the run would say only the first).
     const preview = area.preview(
@@ -303,8 +312,14 @@ export class ConsoleModel {
 
   /** An entry's text back in the input, to change and run again. */
   edit(entry: ConsoleEntry): void {
-    if (dialectOfFile(entry.input)) return;
+    if (!this.editable(entry)) return;
+    this.setDialect(entry.dialect);
     this.setDraft(entry.input);
+  }
+
+  /** Whether an entry's input is a line to edit (not a script file's name, nor the files of a drop). */
+  editable(entry: ConsoleEntry): boolean {
+    return !entry.files;
   }
 
   #remember(text: string): void {

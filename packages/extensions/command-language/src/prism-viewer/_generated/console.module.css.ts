@@ -218,6 +218,10 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
     opacity: 1;
   }
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   &:hover {
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
@@ -331,6 +335,10 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
+.msp-command-language-console-suggestions .msp-command-language-console-suggestion:not(:hover) {
+  background: var(--msp-color-well);
+}
+
 .msp-command-language-console-composer {
   gap: var(--msp-space-1);
   margin: 0 var(--msp-space-2) var(--msp-space-2);
@@ -356,10 +364,6 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   &:empty {
     display: none;
   }
-}
-
-.msp-command-language-console-suggestion {
-  background: var(--msp-color-well);
 }
 
 .msp-command-language-console-field {

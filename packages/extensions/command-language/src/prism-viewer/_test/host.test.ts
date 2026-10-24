@@ -332,3 +332,23 @@ describe('the assistant’s run', () => {
     expect(CommandLanguageSkill.tools.map((t) => t.operation)).toEqual(['script.run']);
   });
 });
+
+describe('the assistant’s run and Tcl variables', () => {
+  it('starts without variables each call, so none can name what its approval did not see', async () => {
+    const v = await viewer();
+    await ok(v, 'mol new 1cbs.cif', 'vmd');
+    // The person's variables, and an earlier call's, are not the assistant's.
+    await ok(v, 'set u https://evil.example/x.pdb; set m 0', 'vmd');
+    const agent = v.api.as({ kind: 'agent', turn: 't1' });
+    const load = await agent.script!.run({ dialect: 'vmd', text: 'mol new $u' });
+    expect(!load.ok && load.message).toContain("no variable 'u'");
+    const removed = await agent.script!.run({ dialect: 'vmd', text: 'mol delete $m' });
+    expect(removed.ok).toBe(false);
+    expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(1);
+    // A variable set in the same text is seen by the approval too.
+    const def = v.api.describe('script.run')!.definition;
+    expect(def.addresses!({ dialect: 'vmd', text: 'set u https://a.example/x.pdb; mol new $u', files: [] })).toEqual([
+      'https://a.example/x.pdb',
+    ]);
+  });
+});

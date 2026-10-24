@@ -19,8 +19,8 @@ export const CommandLanguageSkill: ViewerSkill = {
     'Skill command-language: run_commands runs PyMOL (dialect pymol) or VMD (dialect vmd) commands as one undoable',
     'step: what the person pasted or asked to run, as written. One command a line or separated by ;. Prefer the',
     "viewer's own tools for what you decide yourself; use this when the person speaks PyMOL or VMD. A line that does",
-    'not read fails with the line and a hint: fix it, or tell the person. Removing structures, deleting names and',
-    'saving images are refused here: use the viewer’s own tools, which ask the person.',
+    'not read fails with the line and a hint: fix it, or tell the person. Each call starts without Tcl variables. Removing',
+    'structures and saving images are refused here: use the viewer’s own tools, which ask the person.',
   ].join('\n'),
   tools: [
     {

@@ -68,15 +68,17 @@ function EntryView(props: { entry: ConsoleEntry; model: ConsoleModel }) {
       </div>
       <div class={classes.side}>
         <span class={classes.time}>{timeOf(entry.ms)}</span>
-        <button
-          type="button"
-          class={classes.action}
-          aria-label="Edit and run again"
-          data-tip="Edit and run again"
-          onClick={() => model.edit(entry)}
-        >
-          <Icon name="pencil" size={13} />
-        </button>
+        {model.editable(entry) ? (
+          <button
+            type="button"
+            class={classes.action}
+            aria-label="Edit and run again"
+            data-tip="Edit and run again"
+            onClick={() => model.edit(entry)}
+          >
+            <Icon name="pencil" size={13} />
+          </button>
+        ) : null}
       </div>
       {entry.lines.length ? (
         <div class={classes.lines}>
@@ -143,17 +145,21 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       </For>
     </div>
   ) as HTMLElement;
-  // The newest at the bottom, in view.
+  // The newest at the bottom, in view, unless the person scrolled up to read (then the transcript stays).
+  let following = true;
+  list.addEventListener('scroll', () => {
+    following = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+  });
   effect(model.entries, () =>
     queueMicrotask(() => {
-      list.scrollTop = list.scrollHeight;
+      if (following) list.scrollTop = list.scrollHeight;
     }),
   );
 
   const input = (
     <textarea
       class={classes.input}
-      rows={1}
+      rows={2}
       spellcheck={false}
       aria-label="Command"
       onInput={(e) => model.setDraft((e.currentTarget as HTMLTextAreaElement).value)}
@@ -197,9 +203,12 @@ export function ConsoleView(props: { model: ConsoleModel }) {
     input.placeholder = model.placeholder(d);
   });
 
-  // What the input will do, and its completions: read from the draft (and the dialect) as it changes.
-  const inspection = derive([model.draft, model.dialect], (t) => model.inspect(t));
-  const suggestions = derive([model.draft, model.dialect], (t) => (t.trim() ? model.completions(t) : []));
+  // What the input will do, and its completions: read again as the draft, the dialect or the scene change (a run that
+  // ends, a structure loaded: the entries change with it).
+  const inspection = derive([model.draft, model.dialect, model.entries], (t) => model.inspect(t));
+  const suggestions = derive([model.draft, model.dialect, model.entries], (t) =>
+    t.trim() ? model.completions(t) : [],
+  );
   const empty = derive(model.draft, (t) => !t.trim());
 
   const picker = (

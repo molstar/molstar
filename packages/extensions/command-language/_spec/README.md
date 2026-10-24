@@ -200,6 +200,13 @@ session's names and objects, and after `chain` / `resn` the structures' chains a
   (`command-language.dialect`); without preferences it lasts for the session, per viewer. Why there: the extension's
   settings group is not shown by Prism, and the choice belongs where it is used.
 - **Commands**: `script.run` (a form: dialect and text), `script.names`, and `script.console` (opens the console).
+- **The assistant** (`skill.ts`): a skill, not a core tool, with one tool, `run_commands` over `script.run`, for what
+  the person pasted or asked to run as written; the agent's own vocabulary stays the viewer's operations. Under the
+  agent's policy (Prism's agent.md §4): `script.run` is `approval: 'network'` with `addresses` (a URL a load reaches;
+  entries: the known services); an agent's run starts without Tcl variables (a variable set before cannot name what the
+  approval did not see), loads only the addresses approved, and refuses what would ask the person on its own (removing
+  structures, saving an image). Hiding and changing representations run inside the one undoable step, unasked: Undo
+  takes the whole run back. Files cannot be given by the agent (`files` is hidden), so neither can included scripts.
 - **The console** (`console-model.ts`, DOM-free; `console.tsx` and its CSS module, its own chunk through
   `ViewerExtension.ui`): a foot tab beside the Log, in the look of the assistant's cards. A transcript of runs, each a
   status mark (running, done, failed), its dialect, the command and what it said: what it did, what reads printed (in a

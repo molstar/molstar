@@ -139,3 +139,19 @@ describe('the console, from a second review', () => {
     expect(c.entries.value.map((e) => e.state)).toEqual(['done', 'done']);
   });
 });
+
+describe('editing an entry', () => {
+  it('puts its line back in its own dialect; a script file is not edited', async () => {
+    const v = await viewer();
+    const c = new ConsoleModel(v.api);
+    await c.openFiles([new File(['load 1cbs.cif'], 'a.pml'), structureFile()]);
+    c.setDialect('vmd');
+    await c.submit('mol list');
+    c.setDialect('pymol');
+    const [file, line] = c.entries.value;
+    expect(c.editable(file)).toBe(false);
+    c.edit(line);
+    expect(c.dialect.value).toBe('vmd');
+    expect(c.draft.value).toBe('mol list');
+  });
+});

@@ -175,6 +175,11 @@
     opacity: 1;
   }
 
+  /* No hover on a touch screen: shown. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   &:hover {
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
@@ -292,6 +297,11 @@
   }
 }
 
+/* A completion sits in the composer, on the control's color: a well. */
+.suggestions .suggestion:not(:hover) {
+  background: var(--msp-color-well);
+}
+
 /* --- The composer. --- */
 
 .composer {
@@ -321,10 +331,6 @@
   &:empty {
     display: none;
   }
-}
-
-.suggestion {
-  background: var(--msp-color-well);
 }
 
 .field {

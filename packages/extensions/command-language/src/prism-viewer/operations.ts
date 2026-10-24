@@ -45,6 +45,9 @@ export interface ScriptRunValue {
 
 /** The addresses a submission's loads reach: none for entries (the known services), a URL's own for a URL. */
 export function loadAddresses(text: string, dialect: Dialect): string[] {
+  // A fresh session, as the agent's run has (Tcl variables are only those the text sets). A command that does not
+  // compile here (it names an object) adds no address; the run, compiled against the scene, refuses a load to any
+  // address not among these.
   const { commands } = compileScript(text, dialect, EmptyEnv);
   return commands.flatMap((c) => (c.kind === 'load' && 'url' in c.from ? [c.from.url] : []));
 }
@@ -102,12 +105,21 @@ export class ScriptApi extends ApiArea {
     addresses: ({ dialect, text }) => loadAddresses(text, dialect),
     run: async ({ dialect, text, files }, ctx): Promise<ApiResult<ScriptRunValue>> => {
       if (!text.trim()) return ApiResult.fail('invalid', 'There are no commands.', 'Type one: show sticks, ligand.');
-      // The agent's run: what would ask the person on its own (removing structures, saving a file) is refused here,
-      // where nothing inside would ask (agent.md §4).
-      if (ctx.origin.kind === 'agent') {
-        const asks = compileScript(text, dialect, this.env((files ?? []).map((f) => f.name))).commands.find(
-          (c) => c.kind === 'object.remove' || c.kind === 'export.image',
-        );
+      // The agent's run (agent.md §4): its own session each call, so a Tcl variable set before (by the person or an
+      // earlier call) cannot name a URL or a molecule its approval did not see; the loads it will make are exactly the
+      // addresses approved; what would ask the person on its own (removing structures, saving a file) is refused, as
+      // nothing inside asks.
+      const agent = ctx.origin.kind === 'agent';
+      const session = agent ? createScriptSession() : this.session;
+      if (agent) {
+        const compiled = compileScript(text, dialect, this.env((files ?? []).map((f) => f.name)), session);
+        const approved = new Set(loadAddresses(text, dialect));
+        const reach = compiled.commands.flatMap((c) => (c.kind === 'load' && 'url' in c.from ? [c.from.url] : []));
+        const unapproved = reach.find((u) => !approved.has(u));
+        if (unapproved) {
+          return ApiResult.fail('blocked', `${unapproved} was not among the addresses approved for this run.`);
+        }
+        const asks = compiled.commands.find((c) => c.kind === 'object.remove' || c.kind === 'export.image');
         if (asks) {
           return ApiResult.fail(
             'blocked',
@@ -118,7 +130,7 @@ export class ScriptApi extends ApiArea {
       }
       const byName = new Map((files ?? []).map((f) => [f.name, f]));
       const host = new PrismScriptHost(ctx, this.#state, byName, await scriptTexts(files ?? []));
-      const preview = compileScript(text, dialect, host.env(), this.session);
+      const preview = compileScript(text, dialect, host.env(), session);
       if (preview.commands.length === 1 && preview.commands[0].kind === 'history' && !hasErrors(preview.diagnostics)) {
         return ApiResult.fail(
           'invalid',
@@ -127,7 +139,7 @@ export class ScriptApi extends ApiArea {
         );
       }
       host.keepObjects();
-      const r = await runScript(host, text, dialect, { session: this.session, signal: ctx.signal });
+      const r = await runScript(host, text, dialect, { session, signal: ctx.signal });
       const failed = r.diagnostics.find((d) => d.severity === 'error');
       if (!r.ok && failed) {
         const others = r.diagnostics.filter((d) => d.severity === 'error').length - 1;
