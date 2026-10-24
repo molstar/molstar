@@ -9,10 +9,12 @@
 // `molstar:secondary_structure` over a recorded structure (2OCJ, p53's core domain): helices, strands and turns as
 // ranges on the polymer units, read from the model's own assignment, one row per element of it; no network.
 
+import { readFileSync } from 'node:fs';
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { compile, type Loaders } from '@molstar/seq-core/format';
 import { describe, expect, it } from 'vitest';
 import { categoryTable, readStructure } from '../index.js';
+import { structureOf } from '../source.js';
 import { bytesOf, loaders, registries } from './fixtures.js';
 
 /** The annotation's rows by unit: `start-stop category`, 0-based and half-open on the unit's label_seq_id - 1. */
@@ -103,5 +105,28 @@ describe('molstar:secondary_structure', () => {
     } as Loaders);
     expect(none.issues).toEqual([]);
     expect(none.annotation?.count).toBe(0);
+  });
+
+  it("reads the 3D view's assignment where the host gives its drawn structure: DSSP where the file has none", async () => {
+    // 1CRN without its helices and strands (`struct_conf`, `struct_sheet_range`), as a predicted model's file is.
+    const text = readFileSync(new URL('../../../../../../../data/examples/1crn.cif', import.meta.url), 'utf8');
+    const stripped = text
+      .split(/^#\s*$/m)
+      .filter((block) => !/^\s*(loop_\s*)?_struct_(conf|sheet_range)\./.test(block))
+      .join('#\n');
+    expect(stripped).not.toContain('_struct_conf.');
+    const bytes = new TextEncoder().encode(stripped);
+    const src = await readStructure(bytes, 'mmcif');
+    const host = {
+      load: async () => bytes,
+      parsed: async () => ({ kind: 'object', value: src }),
+    } as unknown as Loaders;
+    const source = { host_file: 'structure:1crn', format: 'mmcif' };
+    // No drawn structure: the file's assignment, none.
+    expect((await secondary(source, host)).annotation?.count).toBe(0);
+    // The host's drawn structure: Mol*'s computed assignment (DSSP here, as the cartoon draws it).
+    src.drawn = await structureOf(src, 0, null);
+    const { byUnit } = await secondary(source, host);
+    expect([...byUnit.values()].flat().some((r) => r.endsWith('helix'))).toBe(true);
   });
 });

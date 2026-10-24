@@ -7,12 +7,18 @@
  */
 
 // `molstar:secondary_structure` (seqspec:libraries#the-mol-adapter): a structure's helices, strands and turns as a
-// `ranges` annotation on its complex's polymer units, from the secondary structure its model carries (mmCIF's
-// `struct_conf` and `struct_sheet_range`: what Mol*'s own "model" assignment reads). Coil is no range. No computation
-// beyond reading, and no network.
+// `ranges` annotation on its complex's polymer units. The assignment the host's 3D view draws (Mol*'s computed secondary
+// structure on the drawn Structure: the file's where it has one, else DSSP, as the cartoon shows it), else the one the
+// model carries (mmCIF's `struct_conf` and `struct_sheet_range`). Coil is no range. Nothing the 3D view would not
+// compute itself, and no network.
 
 import { type ProviderEntry, RequiredField, ref, SimpleParamsSchema } from '@molstar/seq-core/format';
+import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ModelSecondaryStructure } from '@molstar/model/formats/structure/property/secondary-structure';
+import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molstar/model/props/computed/secondary-structure';
+import type { SecondaryStructure } from '@molstar/model/model/structure/model/properties/secondary-structure';
+import { type Structure, Unit } from '@molstar/model/model/structure';
 import type { ResidueIndex } from '@molstar/model/model/structure/model/indexing';
 import { SecondaryStructureType } from '@molstar/model/model/structure/model/types';
 import { chainFor, complexUnits } from './seq-units.js';
@@ -55,6 +61,7 @@ export const SecondaryStructureProvider: ProviderEntry = {
     const src = parsed?.kind === 'object' ? parsed.value : null;
     if (!StructureSource.is(src) || !ctx.set) return null;
     const structure = await structureOf(src, 0, null);
+    const drawn = await drawnAssignment(src.drawn);
     const target: string[] = [];
     const start: number[] = [];
     const stop: number[] = [];
@@ -62,7 +69,7 @@ export const SecondaryStructureProvider: ProviderEntry = {
     for (const u of complexUnits(ctx.set, of)) {
       const c = chainFor(structure, u.mvs);
       if (c?.kind !== 'polymer') continue;
-      const ss = ModelSecondaryStructure.Provider.get(c.unit.model);
+      const ss = drawn?.get(c.labelAsymId) ?? ModelSecondaryStructure.Provider.get(c.unit.model);
       if (!ss) continue;
       let open: SecondaryCategory | null = null;
       let element = -1;
@@ -98,3 +105,29 @@ export const SecondaryStructureProvider: ProviderEntry = {
     return { key: '', geometry: 'ranges', label: 'Secondary structure', columns: { target, start, stop, category } };
   },
 };
+
+/**
+ * The secondary structure the 3D view draws, by `label_asym_id`: Mol*'s computed property on the drawn Structure (per
+ * unit symmetry group), attached with its props as they are when the 3D view has not yet (the same computation its
+ * cartoon makes, done once: attaching again with equal props does nothing). Undefined: no drawn Structure.
+ */
+async function drawnAssignment(drawn: Structure | undefined): Promise<Map<string, SecondaryStructure> | undefined> {
+  if (!drawn) return undefined;
+  const root = drawn.root;
+  if (!ComputedSecondaryStructure.get(root).value) {
+    await ComputedSecondaryStructure.attach({ runtime: SyncRuntimeContext, assetManager: new DefaultAssetManager() }, root);
+  }
+  const value = ComputedSecondaryStructure.get(root).value;
+  if (!value) return undefined;
+  const byChain = new Map<string, SecondaryStructure>();
+  for (const group of root.unitSymmetryGroups) {
+    const u = group.units[0];
+    if (!Unit.isAtomic(u)) continue;
+    const ss = value.get(u.invariantId);
+    if (!ss) continue;
+    const h = u.model.atomicHierarchy;
+    const asym = h.chains.label_asym_id.value(h.chainAtomSegments.index[u.elements[0]]);
+    if (!byChain.has(asym)) byChain.set(asym, ss);
+  }
+  return byChain;
+}

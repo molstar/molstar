@@ -197,6 +197,8 @@ export function createSequenceSource(scope: SourceScope, plugin: PluginContext, 
         return;
       }
     }
+    // The structure the 3D view draws, for what the sequence reads of its computed properties (its secondary structure).
+    sourceOf(s, trajectory, format).drawn = data;
     const key = keyOf(ref, data);
     if (now?.key === key) return;
     structure.set({
