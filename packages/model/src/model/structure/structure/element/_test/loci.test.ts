@@ -2,6 +2,8 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -234,5 +236,36 @@ describe('StructureElement.Loci.getBoundary', () => {
     fresh.box.min[0] = 9999;
 
     expect(structure0.boundary.box.min).toEqual(originalMin);
+  });
+});
+
+describe('StructureElement.Loci.extendToRadius', () => {
+  let structure: Structure;
+  let unit: Unit;
+
+  beforeAll(async () => {
+    structure = await buildSingleChainStructure();
+    unit = structure.units[0];
+  });
+
+  function atomLoci(index: number) {
+    return Loci(structure, [{ unit, indices: OrderedSet.ofSingleton(index as UnitIndex) }]);
+  }
+
+  function indicesOf(loci: Loci) {
+    return loci.elements.flatMap((e) => OrderedSet.toArray(e.indices));
+  }
+
+  // atoms at (0,0,0), (2,0,0), (0,2,0), (0,0,2)
+  it('collects the atoms within the radius, sorted', () => {
+    expect(indicesOf(Loci.extendToRadius(atomLoci(0), 1))).toEqual([0]);
+    expect(indicesOf(Loci.extendToRadius(atomLoci(0), 2.5))).toEqual([0, 1, 2, 3]);
+  });
+
+  it('a later call leaves earlier results alone (the per-unit map is reused between calls)', () => {
+    const all = Loci.extendToRadius(atomLoci(0), 2.5);
+    const one = Loci.extendToRadius(atomLoci(1), 1);
+    expect(indicesOf(one)).toEqual([1]);
+    expect(indicesOf(all)).toEqual([0, 1, 2, 3]);
   });
 });

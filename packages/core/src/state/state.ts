@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Taylor Hoffmann <taylor@hoffmann.io>
  */
 
 import { StateObject, type StateObjectCell, StateObjectSelector } from './object.js';
@@ -1046,9 +1047,11 @@ function relinkCells(target: StateObjectCell, ctx: UpdateContext): boolean {
 
   // Fast path: same number and all current refs are still in effective (and it waits for none).
   if (current.length === effective.length && !ctx.dependencyWaiters.isWaiting(target)) {
+    // a set only pays off for many dependencies; most cells have a few
+    const effectiveSet = effective.length > 8 ? new Set(effective) : undefined;
     let same = true;
     for (const c of current) {
-      if (effective.indexOf(c.transform.ref) < 0) {
+      if (effectiveSet ? !effectiveSet.has(c.transform.ref) : effective.indexOf(c.transform.ref) < 0) {
         same = false;
         break;
       }
