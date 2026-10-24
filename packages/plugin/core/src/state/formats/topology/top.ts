@@ -26,7 +26,7 @@ const ParseTop = PluginStateTransform.BuiltIn({
 })({
   apply({ a }) {
     return Task.create('Parse TOP', async (ctx) => {
-      const parsed = await parseTop(await SO.Data.readText(ctx, a)).runInContext(ctx);
+      const parsed = await parseTop(SO.Data.readBytes(a)).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);
       return new SO.Format.Top(parsed.result);
     });
