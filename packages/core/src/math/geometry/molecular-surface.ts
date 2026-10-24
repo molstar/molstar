@@ -484,9 +484,12 @@ export async function calcMolecularSurface(
   const gridy = fillGridDim(dimY, minY, resolution);
   const gridz = fillGridDim(dimZ, minZ, resolution);
 
-  // atoms per yield by the voxels an atom visits; `1e5 / (maxRadius⁹ · scale)` gave whole structures for small radii
-  // (perf-audit-2 02/B2)
-  const updateChunk = Math.max(1, Math.ceil(2e6 / Math.pow(2 * (maxRadius + probeRadius) * scaleFactor + 2, 3)));
+  // atoms per yield by the work an atom costs: the voxels the points loop visits plus a fixed cost (`find`, the
+  // neighbour load, the tori) in voxel-visit units, which dominates at coarse resolution. `1e5 / (maxRadius⁹ · scale)`
+  // gave whole structures for small radii (perf-audit-2 02/B2); voxels alone gave seconds per chunk at res 8
+  // (perf-audit-3 02/B6)
+  const ngAtom = Math.ceil((maxRadius + probeRadius) * scaleFactor) + ngPoints;
+  const updateChunk = Math.max(1, Math.ceil(2e6 / (Math.pow(2 * ngAtom + 2, 3) + 2000)));
   // console.timeEnd('MolecularSurface createState')
 
   // console.time('MolecularSurface projectPoints')
