@@ -38,6 +38,11 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
   and the flip (`reshape`); a plane or cone has none, so the new one is sized from what it cuts.
 - **Directions** are unit; one of length 0 is refused.
 - **A refused edit** reloads the form from the cut (no state change would).
+- **Settings** (`settings`): `variant` (pixel: through, pixel by pixel; instance: whole copies left out by their center)
+  and `solidSurface` (a cut surface closed by a cap). The variant is one for the scene: the component options' clip and
+  every cut representation's (their own clip, which the options leave), and a cut written takes it (`withObject`). Why:
+  Mol\* keeps it per representation, so a per-cut choice would change the other cuts on the same representations. Solid
+  surface is the look's default (api.md §2, "Look"): a representation with its own keeps it.
 
 ## 3. The section
 
@@ -54,6 +59,9 @@ code is in `src/sources/clipping` (the viewer's boundary: only sources and opera
 - **Clip…** in the selection menu (`ui.selectionActions`) opens the section; **Clip this…** in a row's menu
   (`ui.nodeActions`: components, representations, volumes, particles) adds a plane through what the row draws, active,
   the selection left as it is.
+
+- **Settings**: a fold under the cuts, the variant (Cut by) and Solid surface; its meta says "whole copies" while cuts
+  cut by instance.
 
 ## 4. Gizmos
 

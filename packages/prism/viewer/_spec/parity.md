@@ -42,7 +42,7 @@ state behind a row: [state.md](state.md). The code is the truth for how.
 | selection mode, granularity                          | canvas mode switch; Selection tab summary                                      | `select.mode`, `.granularity`  |
 | selection toolbar, theme layers, Modify by Selection | selection bar, Selection tab's style and layer list ([targets.md](targets.md)) | `select.*`, `representation.*` |
 | focus, its history, the picker's entries             | `focus.set` targets with completions; "Focus again…"                           | `focus.*`                      |
-| procedural animation                                 | Animation card › Procedural                                                    | `animation.wiggle`             |
+| procedural animation (wiggle, tumble)                | Animation card › Wiggle                                                        | `animation.wiggle`             |
 
 ## 4. The canvas
 

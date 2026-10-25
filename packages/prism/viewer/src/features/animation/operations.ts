@@ -7,6 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { areAnimationPropsEqual } from '@molstar/graphics/geo/geometry/animation';
 import type { PluginContext } from '@molstar/plugin/context';
 import {
   clearStructureWiggle,
@@ -28,6 +29,7 @@ import {
   wiggleOf,
   type AnimationSource,
   type WiggleMode,
+  type WiggleType,
 } from './source.js';
 
 // The `animation` feature's operations (api.md §2): the plugin's animation manager as `play` (an animation by
@@ -93,19 +95,46 @@ const PlayParams = (ctx: ApiAreaContext) => ({
 });
 
 const WiggleParams = {
-  mode: PD.Select<WiggleMode>(
-    'dynamics',
-    [
-      ['dynamics', 'Dynamics (B-factor)'],
-      ['uncertainty', 'Model uncertainty'],
-      ['off', 'Off'],
-    ],
-    { description: 'Move atoms by noise (dynamics), by their B-factor or RMSF (uncertainty), or stop' },
+  mode: OptionalParam(
+    PD.Select<WiggleMode>(
+      'dynamics',
+      [
+        ['dynamics', 'Dynamics (B-factor)'],
+        ['uncertainty', 'Model uncertainty'],
+        ['off', 'Off'],
+      ],
+      {
+        description: 'Move atoms by noise (dynamics), by their B-factor or RMSF (uncertainty), or stop; absent: as now',
+      },
+    ),
   ),
-  amplitude: PD.Numeric(
-    1,
-    { min: 0.01, max: 5, step: 0.01 },
-    { description: 'How far the atoms move; ignored when off' },
+  amplitude: OptionalParam(
+    PD.Numeric(1, { min: 0.01, max: 5, step: 0.01 }, { description: 'How far the atoms move; absent: as now, else 1' }),
+  ),
+  type: OptionalParam(
+    PD.Select<WiggleType>(
+      'position',
+      [
+        ['position', 'Position'],
+        ['group', 'Group'],
+      ],
+      { description: 'position: nearby atoms move together; group: each atom (group) on its own' },
+    ),
+  ),
+  speed: OptionalParam(PD.Numeric(7, { min: 0, max: 10, step: 0.1 }, { description: 'How fast the atoms move' })),
+  frequency: OptionalParam(
+    PD.Numeric(0.2, { min: 0.01, max: 2, step: 0.01 }, { description: 'Lower: nearby atoms move more together' }),
+  ),
+  tumble: OptionalParam(
+    PD.Numeric(
+      0,
+      { min: 0, max: 10, step: 0.1 },
+      { description: 'How far whole copies (instances) tumble, in Å; 0: off' },
+    ),
+  ),
+  tumbleSpeed: OptionalParam(PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, { description: 'How fast they tumble' })),
+  tumbleFrequency: OptionalParam(
+    PD.Numeric(0.2, { min: 0, max: 2, step: 0.01 }, { description: 'Lower: nearby copies tumble more together' }),
   ),
 };
 
@@ -228,65 +257,76 @@ export class AnimationApi extends ApiArea {
     title: 'Wiggle',
     params: WiggleParams,
     // It is representation state (the animation params of every representation, the uncertainty layers): a step.
-    async run({ mode, amplitude }, ctx) {
+    // Each value absent is kept as it is.
+    async run({ mode, amplitude, type, speed, frequency, tumble, tumbleSpeed, tumbleFrequency }, ctx) {
       const plugin = ctx.plugin;
       const structures = plugin.managers.structure.hierarchy.current.structures;
       if (!structures.length) return ApiResult.fail('not-found', 'Nothing is loaded.', 'Load a structure first.');
       const now = wiggleOf(plugin);
-      if (mode === 'off' && now.mode === 'off') return ApiResult.already('Nothing wiggles.');
-      if (mode === 'dynamics' && now.mode === 'dynamics' && now.amplitude === amplitude) {
-        return ApiResult.already(`The structures already wiggle by dynamics (amplitude ${amplitude}).`);
-      }
+      const nextMode = mode ?? now.mode;
+      const nextAmplitude = amplitude ?? (nextMode === now.mode && now.amplitude > 0 ? now.amplitude : 1);
+      const manager = plugin.managers.structure.component;
+      const options = manager.state.options;
+      const animation = {
+        ...options.animation,
+        ...(type !== undefined ? { wiggleMode: type } : {}),
+        ...(speed !== undefined ? { wiggleSpeed: speed } : {}),
+        ...(frequency !== undefined ? { wiggleFrequency: frequency } : {}),
+        ...(tumble !== undefined ? { tumbleAmplitude: tumble } : {}),
+        ...(tumbleSpeed !== undefined ? { tumbleSpeed } : {}),
+        ...(tumbleFrequency !== undefined ? { tumbleFrequency } : {}),
+        // As the classic's Procedural Animation: dynamics is the scene's amplitude (every representation); uncertainty
+        // each component's layers. One mode at a time.
+        wiggleAmplitude: nextMode === 'dynamics' ? nextAmplitude : 0,
+      };
       // Uncertainty: the amplitude is the layers' largest value, so the same amplitude is the same wiggle.
-      if (
-        mode === 'uncertainty' &&
-        now.mode === 'uncertainty' &&
-        Math.abs(uncertaintyScale(plugin) - amplitude) < 1e-6
-      ) {
-        return ApiResult.already(`The structures already wiggle by uncertainty (amplitude ${amplitude}).`);
-      }
-      const components = structures.flatMap((s) => s.components);
-      // As the classic's Procedural Animation: the options are the scene's (every representation), the layers each
-      // component's; one mode at a time.
-      if (mode === 'off') {
-        await setWiggleOptions(plugin, 0);
-        await clearStructureWiggle(plugin, components);
-        return ApiResult.ok('Stopped the wiggle.', { nodes: nodesOf(ctx) });
-      }
-      if (mode === 'dynamics') {
-        await setWiggleOptions(plugin, amplitude, { wiggleSpeed: 7, wiggleFrequency: 0.2 });
-        await clearStructureWiggle(plugin, components);
-        return ApiResult.ok(`Started the wiggle (dynamics, amplitude ${amplitude}).`, { nodes: nodesOf(ctx) });
-      }
-      await setWiggleOptions(plugin, 0);
-      await setStructureWiggleFromUncertainty(plugin, components, amplitude);
-      if (!wiggleCells(plugin).length) {
-        return ApiResult.fail(
-          'blocked',
-          'The structures have no uncertainty to wiggle by: their B-factors do not vary.',
-          'Use mode dynamics.',
+      const layers =
+        nextMode === 'uncertainty'
+          ? !(now.mode === 'uncertainty' && Math.abs(uncertaintyScale(plugin) - nextAmplitude) < 1e-6)
+          : wiggleCells(plugin).length > 0;
+      const kept = areAnimationPropsEqual(options.animation, animation);
+      if (kept && !layers) {
+        return ApiResult.already(
+          nextMode === 'off'
+            ? animation.tumbleAmplitude > 0
+              ? 'Nothing wiggles; the copies tumble so already.'
+              : 'Nothing wiggles.'
+            : `The structures already wiggle so (${nextMode}, amplitude ${nextAmplitude}).`,
         );
       }
-      return ApiResult.ok(`Started the wiggle (uncertainty, amplitude ${amplitude}).`, { nodes: nodesOf(ctx) });
+      const components = structures.flatMap((s) => s.components);
+      if (!kept) await manager.setOptions({ ...options, animation });
+      if (nextMode !== 'uncertainty' && layers) await clearStructureWiggle(plugin, components);
+      if (nextMode === 'uncertainty' && layers) {
+        await setStructureWiggleFromUncertainty(plugin, components, nextAmplitude);
+        if (!wiggleCells(plugin).length) {
+          return ApiResult.fail(
+            'blocked',
+            'The structures have no uncertainty to wiggle by: their B-factors do not vary.',
+            'Use mode dynamics.',
+          );
+        }
+      }
+      const tumbling = animation.tumbleAmplitude > 0 ? `; the copies tumble (${animation.tumbleAmplitude} Å)` : '';
+      if (nextMode === 'off') {
+        return ApiResult.ok(
+          now.mode !== 'off'
+            ? `Stopped the wiggle${tumbling}.`
+            : tumbling
+              ? `The copies tumble (${animation.tumbleAmplitude} Å).`
+              : 'Stopped the tumble.',
+          { nodes: nodesOf(ctx) },
+        );
+      }
+      const started = now.mode === nextMode ? 'Changed' : 'Started';
+      return ApiResult.ok(`${started} the wiggle (${nextMode}, amplitude ${nextAmplitude})${tumbling}.`, {
+        nodes: nodesOf(ctx),
+      });
     },
   });
 }
 
 const nodesOf = (ctx: ApiContext) =>
   ctx.plugin.managers.structure.hierarchy.current.structures.map((s) => s.cell.transform.ref);
-
-/** The scene's animation options: the wiggle's amplitude (and what goes with it), the tumble off. */
-async function setWiggleOptions(
-  plugin: PluginContext,
-  wiggleAmplitude: number,
-  more: { wiggleSpeed?: number; wiggleFrequency?: number } = {},
-) {
-  const manager = plugin.managers.structure.component;
-  const options = manager.state.options;
-  await manager.setOptions({
-    ...options,
-    animation: { ...options.animation, ...more, wiggleAmplitude, tumbleAmplitude: 0 },
-  });
-}
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);

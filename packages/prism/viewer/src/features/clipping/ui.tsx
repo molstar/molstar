@@ -29,7 +29,7 @@ import {
   LocalUp,
   rotated,
 } from '../../sources/clipping/cuts.js';
-import type { ClippingApi } from './operations.js';
+import type { ClippingApi, ClipSettings } from './operations.js';
 import { classes } from './_generated/clipping.module.css.js';
 import { ClippingSectionId } from './index.js';
 
@@ -230,8 +230,45 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           />
         )}
       </For>
+      <Fold title="Settings" meta={derive(clipping.cutSettings, settingsMeta)}>
+        {() => <CutSettings ctx={ctx} clipping={clipping} />}
+      </Fold>
     </div>
   );
+}
+
+/** "· whole copies" while cuts leave out whole instances; nothing for the usual pixel cuts */
+const settingsMeta = (s: ClipSettings) => (s.variant === 'instance' ? '· whole copies' : '');
+
+const SettingsParams = {
+  variant: PD.Select<'pixel' | 'instance'>(
+    'pixel',
+    [
+      ['pixel', 'Pixel'],
+      ['instance', 'Instance'],
+    ],
+    {
+      label: 'Cut by',
+      description: 'Pixel: cut through, pixel by pixel. Instance: leave out whole copies whose center is cut away.',
+    },
+  ),
+  solidSurface: PD.Boolean(true, {
+    label: 'Solid surface',
+    description: 'Close a cut surface with a solid cap (also where the camera cuts it)',
+  }),
+};
+
+/** How every cut cuts (clipping.settings): the variant, the solid caps; following them as they change elsewhere */
+function CutSettings(props: { ctx: ViewerUIContext; clipping: ClippingApi }) {
+  const { ctx, clipping } = props;
+  const form = new ParamsFormModel(SettingsParams, clipping.cutSettings.value, {
+    onChange: (values, name) => void ctx.api.run('clipping.settings', { [name]: values[name] }),
+  });
+  effect(clipping.cutSettings, (s) => {
+    const v = form.values.value;
+    if (v.variant !== s.variant || v.solidSurface !== s.solidSurface) form.load(s);
+  });
+  return <ParamsForm form={form} />;
 }
 
 function sameNumbers(a: readonly number[], b: readonly number[]) {

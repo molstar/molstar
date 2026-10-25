@@ -11,7 +11,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `animation.get` | List the animations | read |  |
 | `animation.play` | Play an animation | view; needs canvas | name, params |
 | `animation.stop` | Stop the animation | view |  |
-| `animation.wiggle` | Wiggle |  | mode, amplitude |
+| `animation.wiggle` | Wiggle |  | mode, amplitude, type, speed, frequency, tumble, tumbleSpeed, tumbleFrequency |
 | `annotations.apply` | Show what a structure carries | network (addresses) | annotation, structure |
 | `annotations.list` | List what the structures carry | read | structure |
 | `camera.frame` | Frame | view; needs canvas | target, structure, language, animate |
@@ -35,6 +35,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `clipping.list` | List the cuts | read |  |
 | `clipping.release` | Cut atoms kept whole again |  | cut, tag |
 | `clipping.remove` | Remove a cut | destructive | cut, tag |
+| `clipping.settings` | Set how cuts cut |  | variant, solidSurface |
 | `clipping.show` | Draw a cut in the scene, or not |  | cut, tag, on, options |
 | `clipping.update` | Change a cut |  | cut, tag, shape, position, normal, rotation, scale, invert |
 | `component.add` | Add a component |  | target, label, representation, structure, language |

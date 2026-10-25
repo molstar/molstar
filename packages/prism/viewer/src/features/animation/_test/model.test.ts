@@ -87,11 +87,17 @@ describe('the animation model', () => {
       await until(() => !model.isPlaying.value);
 
       model.wiggleForm.set('amplitude', 2);
+      model.wiggleForm.set('speed', 4);
+      model.wiggleForm.set('tumble', { amplitude: 1.5, speed: 2, frequency: 0.2 });
       model.applyWiggle();
       await until(() => model.wiggle.value.mode === 'dynamics');
-      expect(model.wiggle.value.amplitude).toBe(2);
+      expect(model.wiggle.value).toMatchObject({ amplitude: 2, speed: 4, tumble: 1.5, tumbleSpeed: 2 });
       model.clearWiggle();
-      await until(() => model.wiggle.value.mode === 'off');
+      await until(() => model.wiggle.value.mode === 'off' && model.wiggle.value.tumble === 0);
+      // set elsewhere: the form takes it when the section shows again
+      expectOk(await v.api.animation!.wiggle({ mode: 'dynamics', amplitude: 0.7, type: 'group' }));
+      model.refreshWiggle();
+      expect(model.wiggleForm.values.value).toMatchObject({ mode: 'dynamics', amplitude: 0.7, type: 'group' });
     } finally {
       await v.dispose();
     }

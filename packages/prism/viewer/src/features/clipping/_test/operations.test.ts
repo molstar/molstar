@@ -423,3 +423,29 @@ describe('the clipping area', () => {
     expect(radius()).toBeLessThan(0.6 * auto);
   });
 });
+
+describe('clipping.settings', () => {
+  it('makes every cut representation, and the cuts added later, cut by instance; solid surface is the scene default', async () => {
+    const v = await create(cbs(), triangle());
+    const clipping = v.api.clipping;
+    ok(await v.api.select.set({ target: 'ligand' }));
+    const cut = ok<Cut>(await clipping.add({ shape: 'plane' }));
+    const ligand = cut.targets[0].ref;
+    expect(clipOf(v, ligand).variant).toBe('pixel');
+
+    const r = await clipping.settings({ variant: 'instance' });
+    expect(r.ok && r.did).toBe('Cuts leave out whole copies.');
+    expect(clipOf(v, ligand).variant).toBe('instance');
+    expect(v.plugin.managers.structure.component.state.options.clipObjects.variant).toBe('instance');
+    expect(clipping.cutSettings.value).toEqual({ variant: 'instance', solidSurface: true });
+    expect(await clipping.settings({ variant: 'instance' })).toMatchObject({ ok: true, unchanged: true });
+
+    // a cut added now, on the mesh (not the component manager's), cuts so too
+    const mesh = ok<Cut>(await clipping.add({ shape: 'plane', node: 'shape' }));
+    expect(clipOf(v, mesh.targets[0].ref).variant).toBe('instance');
+
+    ok(await clipping.settings({ solidSurface: false }));
+    expect(v.plugin.managers.structure.component.state.options.solidSurface).toBe(false);
+    expect(clipping.cutSettings.value.solidSurface).toBe(false);
+  });
+});

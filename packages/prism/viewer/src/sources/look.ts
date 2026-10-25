@@ -49,20 +49,20 @@ function lookFormParams() {
   };
 }
 
-/** The scene defaults' form: the look and, until they move to their own tabs, the clip objects, interactions and animation. */
+/**
+ * The scene defaults' form: the look but the solid surface (the Clipping section's Settings), and the interactions'
+ * settings. The clip objects are the Clipping section's cuts, the animation the Animation card's Wiggle.
+ */
 function sceneFormParams() {
-  return {
-    ...lookFormParams(),
-    clip: { ...P.clipObjects, label: 'Clip Objects' },
-    interactions: P.interactions,
-    animation: P.animation,
-  };
+  const { solidSurface: _, ...look } = lookFormParams();
+  return { ...look, interactions: P.interactions };
 }
 
 /** The component manager's options by the form's names. */
 function sceneValues(plugin: PluginContext) {
-  const o = plugin.managers.structure.component.state.options;
-  return { ...lookDefaults({ plugin }), clip: o.clipObjects, interactions: o.interactions };
+  const { hydrogens, quality, ignoreLight, material, interior } = lookDefaults({ plugin });
+  const interactions = plugin.managers.structure.component.state.options.interactions;
+  return { hydrogens, quality, ignoreLight, material, interior, interactions };
 }
 
 /**

@@ -1,8 +1,12 @@
 ## Prism: the look's scene defaults and overrides
 
 - Prism: the Structure panel's sliders (was a gear) open the scene defaults in a popover: hydrogens, quality, ignore
-  light, material, solid surface, interior (the clip objects, interactions and animation there until they move to their
-  tabs). Changing them works again (the form's values were refused by the command).
+  light, material, interior, interactions. Changing them works again (the form's values were refused by the command).
+- Prism: the Animation card's Wiggle sets the wiggle's type (position, group), speed and frequency, and the tumble of
+  whole copies (amplitude, speed, frequency); `animation.wiggle` takes them, each kept when absent (mode and amplitude
+  too). Off stops the wiggle; the tumble stops at 0; Clear stops both.
+- Prism: the Clipping section's Settings: Cut by (pixel, or whole copies by their center) for every cut, and Solid
+  surface; `clipping.settings`. Cuts added later cut the same way.
 - Prism: a structure's, component's or representation's inspector has its own sliders: a look over the scene defaults
   for the representations under it. Values of its own are overrides, kept when the default changes; marked by a dot on
   the sliders, by the sliders glyph on the tree rows (faint on the rows above), and listed in both popovers with Use
