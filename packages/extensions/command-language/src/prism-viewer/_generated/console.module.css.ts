@@ -334,7 +334,7 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
 
 .msp-command-language-console-card {
   right: 0;
-  bottom: calc(100% + var(--msp-space-1));
+  bottom: calc(100% + var(--msp-space-3));
   z-index: var(--msp-z-overlay);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-color-panel);

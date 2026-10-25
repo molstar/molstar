@@ -296,7 +296,8 @@
 .card {
   position: absolute;
   right: 0;
-  bottom: calc(100% + var(--msp-space-1));
+  /* Clear of the composer's focus ring (2px outside it), with room to read as a card of its own. */
+  bottom: calc(100% + var(--msp-space-3));
   left: 0;
   z-index: var(--msp-z-overlay);
   display: flex;
