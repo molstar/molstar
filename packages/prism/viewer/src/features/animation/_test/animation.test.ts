@@ -441,9 +441,11 @@ describe('wiggle', () => {
     expect(repr()).toMatchObject({ tumbleAmplitude: 2, tumbleSpeed: 4 });
 
     // off stops the wiggle, the tumble goes on; then it stops too
-    expect((await v.api.animation!.wiggle({ mode: 'off' })).did).toBe('Stopped the wiggle; the copies tumble (2 Å).');
+    expect(await v.api.animation!.wiggle({ mode: 'off' })).toMatchObject({
+      did: 'Stopped the wiggle; the copies tumble (2 Å).',
+    });
     expect(await v.api.animation!.wiggle({ mode: 'off' })).toMatchObject({ unchanged: true });
-    expect((await v.api.animation!.wiggle({ tumble: 0 })).did).toBe('Stopped the tumble.');
+    expect(await v.api.animation!.wiggle({ tumble: 0 })).toMatchObject({ did: 'Stopped the tumble.' });
     expect(wiggleOf(v.plugin)).toMatchObject({ mode: 'off', tumble: 0 });
   });
 

@@ -28,6 +28,10 @@ export type SceneNodeKind =
   | 'volume-representation'
   | 'particles'
   | 'particles-representation'
+  /** The shapes loaded on their own (a mesh file): one group after the data, a shape each, its representations under. */
+  | 'shapes'
+  | 'shape'
+  | 'shape-representation'
   | 'measurements'
   | 'measurement'
   | 'unit-cell'

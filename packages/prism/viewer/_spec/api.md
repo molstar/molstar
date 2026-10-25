@@ -62,6 +62,7 @@ command menu, the tools, the run log and the docs.
 | `styles`, `annotations`        | representation presets and looks; what extensions can apply         | `structure`; `annotations`    |
 | `volume`                       | `managers.volume`                                                   | `volume`                      |
 | `particles`                    | `managers.particles`                                                | `particles` (lazy)            |
+| `shape`                        | the state tree's shape providers loaded on their own (a mesh file)  | `shapes`                      |
 | `trajectory`                   | the model-index transforms; a simulation box's display (`periodic`) | `trajectory`                  |
 | `select`, `focus`, `highlight` | `managers.structure.selection`, `.focus`, `managers.interactivity`  | core                          |
 | `measure`                      | `managers.structure.measurement`                                    | `measurements`                |
@@ -85,11 +86,13 @@ command menu, the tools, the run log and the docs.
   interactions are only the scene's); `look.set` with a node writes the representations at or under it. An override is a
   value other than the default, read from the params themselves (nothing stored, sessions need nothing): a change of the
   default reaches the representations that had the old one and keeps the rest (`StructureComponentManager.setOptions`);
-  `look.reset` takes overrides back, from the scene (Apply to all) or a node. The Structure panel's sliders show the
-  defaults but the solid surface (the Clipping section's Settings, `clipping.settings`), the animation (the Animation
-  card's Wiggle, `animation.wiggle`) and the clip objects (the cuts). The UI marks overrides where they are: a dot on
-  the Structure panel's sliders and a node inspector's, the sliders glyph on the tree rows (faint on the rows above).
-  Why: a value set on one structure must survive a scene-wide change, and be findable.
+  `look.reset` takes overrides back, from the scene (Apply to all) or a node. By node, the look reaches a volume's,
+  particles' and a shape's representations too (their params: no scene default to follow, so no overrides). The
+  Structure panel's sliders show the defaults but the solid surface (the Clipping section's Settings,
+  `clipping.settings`), the animation (the Animation card's Wiggle, `animation.wiggle`) and the clip objects (the cuts).
+  The UI marks overrides where they are: a dot on the Structure panel's sliders and a node inspector's, the sliders
+  glyph on the tree rows (faint on the rows above). Why: a value set on one structure must survive a scene-wide change,
+  and be findable.
 - **Registries are arguments, not operations**: one `structure.preset` takes a preset id, `representation.color` a theme
   name; completions and the tool's enum come from the registry.
 - **Events** for embedding hosts (v5's `structureInteractivity`): `viewer.events.hover`, `click`, with the target under

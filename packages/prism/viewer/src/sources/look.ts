@@ -20,7 +20,10 @@ import {
   LookLabels,
   lookDefaults,
   ownLookValues,
-  representationsUnder,
+  lookCellsUnder,
+  cellTakes,
+  cellLookValue,
+  structureReprsOf,
 } from '../api/look.js';
 import { componentName, isFailure, labelOf } from '../api/scope.js';
 import type { LookOverrideSummary, NodeLookModel, SceneLookMark, SceneLookModel } from '../model/look.js';
@@ -154,23 +157,37 @@ export function createSceneLookModel(scope: SourceScope, plugin: PluginContext, 
   };
 }
 
-/** A node's look (its inspector's sliders): the values under it, a change `look.set` of the node, Reset. */
+/**
+ * A node's look (its inspector's sliders): the values of the representations under it (structures', volumes',
+ * particles', shapes'), a change `look.set` of the node, Use default. Only the values some of them take are in the form
+ * (hydrogens: a structure's); only structure representations follow the scene defaults, so only they have values of
+ * their own.
+ */
 export function createNodeLookModel(plugin: PluginContext, api: ViewerApi, ref: string): NodeLookModel | undefined {
-  const reprs = () => {
-    const r = representationsUnder({ plugin }, ref);
+  const cells = () => {
+    const r = lookCellsUnder({ plugin }, ref);
     return isFailure(r) ? [] : r;
   };
-  if (!reprs().length) return undefined;
-  const params = lookFormParams();
+  const found = cells();
+  if (!found.length) return undefined;
+  const all = lookFormParams() as Record<string, PD.Any>;
+  const params: Record<string, PD.Any> = {};
+  for (const k of LookKeyNames) if (all[k] && found.some((c) => cellTakes(c, k))) params[k] = all[k];
+  // each value as the first representation that takes it has it
   const values = () => {
+    const now = cells();
     const out = lookDefaults({ plugin }) as Record<string, unknown>;
-    const first = reprs()[0];
-    if (first) Object.assign(out, ownLookValues({ plugin }, first));
+    for (const k of Object.keys(params) as LookKey[]) {
+      const cell = now.find((c) => cellTakes(c, k));
+      const v = cell ? cellLookValue(cell, k) : undefined;
+      if (v !== undefined) out[k] = v;
+    }
     return out;
   };
   const form = new ParamsFormModel(params, values() as never, {
     onChange: batched(undefined, (changed) => void api.run('look.set', { node: ref, ...changed })) as never,
   });
+  const reprs = () => structureReprsOf({ plugin }, cells());
   const own = observableState<readonly LookOverrideSummary[]>(summarize(plugin, reprs()), { compare: sameSummary });
   return {
     form,

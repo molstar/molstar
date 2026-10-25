@@ -10,6 +10,8 @@ import type { StateObjectCell } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
 import type { StructureRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
+import { ClipVolumesTag } from '@molstar/plugin/state/transforms/shape/clip-volumes';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
 import { selectNodes } from './nodes.js';
@@ -70,6 +72,7 @@ export interface LookState {
 }
 
 const P = StructureComponentManager.OptionsParams;
+const DefaultOptions = PD.getDefaultValues(P);
 
 /** The params of `set`: each value optional (absent: kept). */
 function lookParams() {
@@ -132,17 +135,25 @@ export class LookApi extends ApiArea {
           'Leave node empty to set it for the scene; clipping.cut cuts a node.',
         );
       }
-      const reprs = representationsUnder(ctx, node);
-      if (isFailure(reprs)) return reprs;
+      const cells = lookCellsUnder(ctx, node);
+      if (isFailure(cells)) return cells;
       const keys = LookKeyNames.filter((k) => given[k] !== undefined);
       if (!keys.length) return ApiResult.already('Nothing to set: give a value (hydrogens, quality, material, …).');
+      const taken = keys.filter((k) => cells.some((c) => cellTakes(c, k)));
+      if (!taken.length) {
+        return ApiResult.fail(
+          'invalid',
+          `${cellsText(ctx, cells)} ${cells.length > 1 ? 'take' : 'takes'} no ${listText(keys.map((k) => LookLabels[k]))}.`,
+          'Hydrogens are a structure representation’s; solid surface a surface’s.',
+        );
+      }
       const options = { ...manager.state.options } as StructureComponentManager.Options;
       for (const k of keys) (options as Record<string, unknown>)[LookKeys[k]] = given[k];
-      const done = await writeLook(ctx, reprs, keys, options);
+      const done = await writeLook(ctx, cells, taken, options);
       if (!done.length)
-        return ApiResult.already(`${reprsText(ctx, reprs)} already ${reprs.length > 1 ? 'have' : 'has'} that.`);
-      return ApiResult.ok(`Set ${listText(keys.map((k) => LookLabels[k]))} of ${reprsText(ctx, done)}.`, {
-        nodes: done.map(refOf),
+        return ApiResult.already(`${cellsText(ctx, cells)} already ${cells.length > 1 ? 'have' : 'has'} that.`);
+      return ApiResult.ok(`Set ${listText(taken.map((k) => LookLabels[k]))} of ${cellsText(ctx, done)}.`, {
+        nodes: done.map((c) => c.transform.ref),
       });
     },
   });
@@ -160,7 +171,7 @@ export class LookApi extends ApiArea {
     },
     async run({ node, keys }, ctx) {
       const which = keys.length ? keys : LookKeyNames;
-      const reprs = node ? representationsUnder(ctx, node) : everyRepresentation(ctx);
+      const reprs = node ? structureReprsUnder(ctx, node) : everyRepresentation(ctx);
       if (isFailure(reprs)) return reprs;
       const own = overridesOf(ctx, reprs, which);
       if (!own.length) {
@@ -172,13 +183,13 @@ export class LookApi extends ApiArea {
       const byRef = new Set(own.map((o) => o.ref));
       const done = await writeLook(
         ctx,
-        reprs.filter((r) => byRef.has(refOf(r))),
+        reprs.filter((r) => byRef.has(refOf(r))).map((r) => r.cell),
         which,
         manager.state.options,
       );
       return ApiResult.ok(
-        `${reprsText(ctx, done)} ${done.length > 1 ? 'use' : 'uses'} the scene's ${listText(which.filter((k) => own.some((o) => k in o.values)).map((k) => LookLabels[k]))} again.`,
-        { nodes: done.map(refOf) },
+        `${cellsText(ctx, done)} ${done.length > 1 ? 'use' : 'uses'} the scene's ${listText(which.filter((k) => own.some((o) => k in o.values)).map((k) => LookLabels[k]))} again.`,
+        { nodes: done.map((c) => c.transform.ref) },
       );
     },
   });
@@ -189,7 +200,7 @@ export class LookApi extends ApiArea {
     params: { node: NodeParam('Only the overrides under these nodes; empty: all of them') },
     read: true,
     async run({ node }, ctx) {
-      const reprs = node ? representationsUnder(ctx, node) : everyRepresentation(ctx);
+      const reprs = node ? structureReprsUnder(ctx, node) : everyRepresentation(ctx);
       if (isFailure(reprs)) return reprs;
       const state: LookState = { defaults: lookDefaults(ctx), overrides: overridesOf(ctx, reprs, LookKeyNames) };
       const d = state.defaults;
@@ -241,11 +252,11 @@ export function everyRepresentation(ctx: Pick<ApiContext, 'plugin'>): StructureR
   return out;
 }
 
-/** The structure representations at or under the nodes a selector matches. */
-export function representationsUnder(
-  ctx: Pick<ApiContext, 'plugin'>,
-  node: string,
-): StructureRepresentationRef[] | ApiFailure {
+/**
+ * The representations at or under the nodes a selector matches that take a look: a structure's, a volume's, particles',
+ * a shape's (not a cut's drawing).
+ */
+export function lookCellsUnder(ctx: Pick<ApiContext, 'plugin'>, node: string): StateObjectCell[] | ApiFailure {
   const state = ctx.plugin.state.data;
   const cells = selectNodes(state, node);
   if (isFailure(cells)) return cells;
@@ -257,15 +268,91 @@ export function representationsUnder(
     }
     return false;
   };
-  const out = everyRepresentation(ctx).filter((r) => under(refOf(r)));
+  const out: StateObjectCell[] = [];
+  state.cells.forEach((cell) => {
+    if (cell.state.isGhost || !cell.obj || !PluginStateObject.isRepresentation3D(cell.obj)) return;
+    if (cell.transform.tags?.includes(ClipVolumesTag) || !lookParamsOf(cell.transform.params)) return;
+    if (under(cell.transform.ref)) out.push(cell);
+  });
   if (!out.length) {
     return ApiResult.fail(
       'not-found',
-      `No structure representation is at or under '${node}'.`,
-      'A structure, a component or a representation (state.get lists them).',
+      `No representation is at or under '${node}'.`,
+      'A structure, a component, a volume, a shape or a representation (state.get lists them).',
     );
   }
   return out;
+}
+
+/** The structure representations at or under the nodes a selector matches (those that follow the scene defaults). */
+export function structureReprsUnder(
+  ctx: Pick<ApiContext, 'plugin'>,
+  node: string,
+): StructureRepresentationRef[] | ApiFailure {
+  const cells = lookCellsUnder(ctx, node);
+  if (isFailure(cells)) return cells;
+  return structureReprsOf(ctx, cells);
+}
+
+/** The structure representations among these cells, as the hierarchy has them. */
+export function structureReprsOf(
+  ctx: Pick<ApiContext, 'plugin'>,
+  cells: readonly StateObjectCell[],
+): StructureRepresentationRef[] {
+  const refs = ctx.plugin.managers.structure.hierarchy.current.refs;
+  const out: StructureRepresentationRef[] = [];
+  for (const c of cells) {
+    const r = refs.get(c.transform.ref);
+    if (r?.kind === 'structure-representation' && c.transform.transformer === StructureRepresentation3D) out.push(r);
+  }
+  return out;
+}
+
+/** Where a representation's look params are: its type's params (structure, volume, particles), or its own (a shape). */
+export function lookParamsOf(params: unknown): Record<string, unknown> | undefined {
+  const p = params as { type?: { params?: Record<string, unknown> } } & Record<string, unknown>;
+  const at = p?.type?.params ?? p;
+  return at && typeof at === 'object' && 'material' in at && 'ignoreLight' in at ? at : undefined;
+}
+
+/** The params with the look params `at` in place of theirs (the same path). */
+function withLookParams(params: unknown, at: Record<string, unknown>): unknown {
+  const p = params as { type?: { name: string; params?: Record<string, unknown> } } & Record<string, unknown>;
+  return p.type?.params ? { ...p, type: { ...p.type, params: at } } : at;
+}
+
+/** The look params each value is written to, outside a structure representation (which the component manager reads). */
+const LookParams: Readonly<Record<Exclude<LookKey, 'hydrogens'>, string>> = {
+  quality: 'quality',
+  ignoreLight: 'ignoreLight',
+  material: 'material',
+  solidSurface: 'solidInterior',
+  interior: 'interior',
+  animation: 'animation',
+};
+
+const isStructureRepr = (cell: StateObjectCell) => cell.transform.transformer === StructureRepresentation3D;
+
+/** Whether a representation takes a look value (hydrogens: a structure's; solid surface: a surface's). */
+export function cellTakes(cell: StateObjectCell, key: LookKey): boolean {
+  if (isStructureRepr(cell)) {
+    const { type } = cell.transform.params as { type: { name: string; params: Record<string, unknown> } };
+    // undefined: the type does not take it (whichever value the options have)
+    return StructureComponentManager.reprHasOption(type.name, type.params, LookKeys[key], DefaultOptions) !== undefined;
+  }
+  if (key === 'hydrogens') return false;
+  const at = lookParamsOf(cell.transform.params);
+  return !!at && LookParams[key] in at;
+}
+
+/** A representation's look value, by the look's names; undefined where it takes none. */
+export function cellLookValue(cell: StateObjectCell, key: LookKey): unknown {
+  if (isStructureRepr(cell)) {
+    const { type } = cell.transform.params as { type: { name: string; params: Record<string, unknown> } };
+    return StructureComponentManager.reprOptionValue(type.name, type.params, LookKeys[key]);
+  }
+  if (key === 'hydrogens') return undefined;
+  return lookParamsOf(cell.transform.params)?.[LookParams[key]];
 }
 
 /** The representations among these with values of their own (of the keys asked). */
@@ -282,27 +369,48 @@ function overridesOf(
   return out;
 }
 
-/** Writes the keys' values of `options` to the representations that differ; returns those written. */
+/**
+ * Writes the keys' values of `options` to the representations that take them and differ, as one update; returns those
+ * written. A structure representation through the component manager's rules (`applyReprOption`), the others' look
+ * params as they are named there.
+ */
 async function writeLook(
   ctx: ApiContext,
-  reprs: readonly StructureRepresentationRef[],
+  cells: readonly StateObjectCell[],
   keys: readonly LookKey[],
   options: StructureComponentManager.Options,
-): Promise<StructureRepresentationRef[]> {
+): Promise<StateObjectCell[]> {
   const update = ctx.plugin.state.data.build();
-  const done: StructureRepresentationRef[] = [];
-  for (const r of reprs) {
-    const { type } = r.cell.transform.params as { type: { name: string; params: Record<string, unknown> } };
-    const todo = keys.filter(
-      (k) => StructureComponentManager.reprHasOption(type.name, type.params, LookKeys[k], options) === false,
-    );
-    if (!todo.length) continue;
-    done.push(r);
-    update.to(r.cell).update(StructureRepresentation3D, (old) => {
-      for (const k of todo) {
-        StructureComponentManager.applyReprOption(old.type.name, old.type.params, LookKeys[k], options);
-      }
-    });
+  const done: StateObjectCell[] = [];
+  for (const cell of cells) {
+    if (isStructureRepr(cell)) {
+      const { type } = cell.transform.params as { type: { name: string; params: Record<string, unknown> } };
+      const todo = keys.filter(
+        (k) => StructureComponentManager.reprHasOption(type.name, type.params, LookKeys[k], options) === false,
+      );
+      if (!todo.length) continue;
+      done.push(cell);
+      update.to(cell).update(StructureRepresentation3D, (old) => {
+        for (const k of todo) {
+          StructureComponentManager.applyReprOption(old.type.name, old.type.params, LookKeys[k], options);
+        }
+      });
+      continue;
+    }
+    const at = lookParamsOf(cell.transform.params);
+    if (!at) continue;
+    const next = { ...at };
+    let changed = false;
+    for (const k of keys) {
+      if (k === 'hydrogens' || !(LookParams[k] in at)) continue;
+      const key = LookKeys[k];
+      if (PD.isParamEqual(P[key] as PD.Any, at[LookParams[k]], options[key])) continue;
+      next[LookParams[k]] = options[key];
+      changed = true;
+    }
+    if (!changed) continue;
+    done.push(cell);
+    update.to(cell).update(withLookParams(cell.transform.params, next) as never);
   }
   if (done.length) await update.commit();
   return done;
@@ -314,6 +422,20 @@ function reprLabel(ctx: Pick<ApiContext, 'plugin'>, r: StructureRepresentationRe
   const type = (r.cell.transform.params as { type: { name: string } }).type.name;
   const name = ctx.plugin.representation.structure.registry.get(type)?.label ?? type;
   return `${name} of ${componentName(r.component)} (${labelOf(ctx, r.component.structure)})`;
+}
+
+/** A representation for a line: a structure representation as `reprLabel`, another by its label and its parent's. */
+function cellLabel(ctx: Pick<ApiContext, 'plugin'>, cell: StateObjectCell): string {
+  const [r] = structureReprsOf(ctx, [cell]);
+  if (r) return reprLabel(ctx, r);
+  const parent = ctx.plugin.state.data.cells.get(cell.transform.parent);
+  const label = cell.obj?.label ?? cell.transform.transformer.definition.display.name;
+  return parent?.obj?.label ? `${label} of ${parent.obj.label}` : label;
+}
+
+/** "Mesh of Shape", "3 representations". */
+function cellsText(ctx: Pick<ApiContext, 'plugin'>, cells: readonly StateObjectCell[]): string {
+  return cells.length === 1 ? cellLabel(ctx, cells[0]) : `${cells.length} representations`;
 }
 
 /** "cartoon of Polymer (1CBS)", "3 representations". */

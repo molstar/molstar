@@ -437,9 +437,11 @@ function Inspector(props: {
           ))}
         </div>
       ) : null}
-      {/* A component's representations: each a row to open (its inspector), its eye beside it; not only behind the
-          tree's chevron. */}
-      {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
+      {/* A component's or a shape's representations: each a row to open (its inspector), its eye beside it; not only
+          behind the tree's chevron. */}
+      {node.kind === 'component' || node.kind === 'shape' ? (
+        <Representations node={node} onPick={props.onPick} />
+      ) : null}
       {/* A structure's sequence: the band's style and letters, Add track, its chains (sequence.md §8.1). */}
       {props.inspection.sequence ? <SequenceInspector model={props.inspection.sequence} /> : null}
       {/* A structure's contents: its counts, its entities to open in the tree. */}
@@ -476,7 +478,9 @@ function Inspector(props: {
  * menu: Remove, its type, …); a click opens it.
  */
 function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
-  const reprs = derive(props.node.children, (c) => c.filter((n) => n.kind === 'representation'));
+  const reprs = derive(props.node.children, (c) =>
+    c.filter((n) => n.kind === 'representation' || n.kind === 'shape-representation'),
+  );
   return (
     <Show when={derive(reprs, (r) => r.length > 0)}>
       {() => (

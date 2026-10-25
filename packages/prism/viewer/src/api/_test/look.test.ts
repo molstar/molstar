@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
+import { mapFile } from './volume-fixtures.js';
 import type { PrismViewer } from '../../viewer.js';
 import type { LookState } from '../look.js';
 
@@ -112,7 +113,24 @@ describe('look.get and look.reset', () => {
 
     // the rest, from the scene (Apply to all)
     expectOk(await v.api.look.reset({ keys: ['material'] }));
-    expect(((await v.api.look.get({})).value as LookState).overrides).toEqual([]);
+    expect(await v.api.look.get({})).toMatchObject({ value: { overrides: [] } });
     expect(await v.api.look.reset({})).toMatchObject({ ok: true, unchanged: true });
+  });
+});
+
+describe('look by node on other representations', () => {
+  it('sets a map isosurface’s light and material: its own, no scene default to follow', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const iso = [...v.plugin.state.data.cells.values()].find(
+      (c) => c.obj && (c.transform.params as any)?.type?.name === 'isosurface',
+    )!;
+    expect((iso.transform.params as any).type.params.ignoreLight).toBe(false);
+    expectOk(await v.api.look.set({ node: iso.transform.ref, ignoreLight: true }));
+    expect((v.plugin.state.data.cells.get(iso.transform.ref)!.transform.params as any).type.params.ignoreLight).toBe(
+      true,
+    );
+    expect(await v.api.look.set({ node: iso.transform.ref, ignoreLight: true })).toMatchObject({ unchanged: true });
+    // nothing of a map follows the defaults: nothing to reset
+    expect(await v.api.look.reset({})).toMatchObject({ unchanged: true });
   });
 });

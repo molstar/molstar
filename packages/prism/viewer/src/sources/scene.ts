@@ -11,7 +11,7 @@ import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynam
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
-import { type State, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
+import { type State, type StateObject, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
@@ -92,6 +92,7 @@ import { type Observable, of } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
 import { createNodeLookModel, groupLookMark, representationLookMark, sameLookMark } from './look.js';
+import { type ShapeEntry, shapeEntries } from './shapes.js';
 import type { SceneLookMark } from '../model/look.js';
 import {
   createRepresentationQuick,
@@ -124,14 +125,25 @@ export const ReprIcons: Readonly<Record<string, IconName>> = {
   ellipsoid: 'spacefill',
 };
 
-/** The operation that applies an inspector form, by the kind of representation it edits. */
 /** The nodes with a look (the structure representations under them). */
-const LookKinds: ReadonlySet<SceneNodeKind> = new Set(['structure', 'component', 'representation']);
+const LookKinds: ReadonlySet<SceneNodeKind> = new Set([
+  'structure',
+  'component',
+  'representation',
+  'volume',
+  'volume-representation',
+  'particles',
+  'particles-representation',
+  'shape',
+  'shape-representation',
+]);
 
+/** The operation that applies an inspector form, by the kind of representation it edits. */
 const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   representation: 'representation.update',
   'volume-representation': 'volume.update',
   'particles-representation': 'particles.update',
+  'shape-representation': 'shape.update',
 };
 
 /** What a node id is kept by: the part before its `#` (a structure's contents, entities and chains), else itself. */
@@ -1091,6 +1103,73 @@ export function createSceneSource(
     return n;
   };
 
+  // Shapes loaded on their own (a mesh file): one group, a row each, their representations under them; eyes, removes
+  // and focus through `shape.*` (the shapes feature).
+  const shapesNode = (): Node => {
+    const id = '#shapes';
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(id, 'shapes', 'shapes', 'Shapes', true, {
+        visibility: groupEye(
+          'Shapes visibility',
+          () => nodes.get(id)?.children.value ?? [],
+          (g, row, visible) => g.run('shape.visibility', { node: row.id, visible }),
+        ),
+      });
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    return n;
+  };
+
+  const shapeNode = (e: ShapeEntry): Node => {
+    const ref = e.cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'shape', 'shapes', e.label, false, {
+        visibility: (hide) => void api.run('shape.visibility', { node: ref, visible: !hide }),
+        focus: () => void api.run('shape.focus', { node: ref }),
+        remove: () => void api.run('shape.remove', { node: ref }),
+      });
+      n.removable = !!api.describe('shape.remove');
+      nodes.set(ref, n);
+    }
+    n.set(
+      e.label,
+      e.representations.map((r) => r.obj?.label ?? 'Representation').join(', ') || undefined,
+      !!e.cell.state.isHidden,
+    );
+    inspections.get(ref)?.look?.refresh();
+    return n;
+  };
+
+  const shapeReprNode = (cell: StateObjectCell): Node => {
+    const ref = cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'shape-representation', 'shapes', '', false, {
+        visibility: (hide) => void api.run('shape.visibility', { node: ref, visible: !hide }),
+        focus: () => void api.run('shape.focus', { node: ref }),
+        remove: () => void api.run('shape.remove', { node: ref }),
+      });
+      n.removable = !!api.describe('shape.remove');
+      nodes.set(ref, n);
+    }
+    const p = cell.transform.params as { coloring?: { name?: string }; alpha?: number } | undefined;
+    const coloring = p?.coloring?.name;
+    const alpha = p?.alpha !== undefined && p.alpha < 1 ? `${Math.round(p.alpha * 100)}%` : undefined;
+    n.set(
+      cell.obj?.label ?? 'Representation',
+      [coloring ? `${coloring[0].toUpperCase()}${coloring.slice(1)} colors` : undefined, alpha]
+        .filter(Boolean)
+        .join(' · ') || undefined,
+      !!cell.state.isHidden,
+    );
+    inspections.get(ref)?.form?.load(cell.transform.params as never);
+    inspections.get(ref)?.look?.refresh();
+    return n;
+  };
+
   /** A particle list's unit cell (its periodic box): its eye and inspector through `particles.unit-cell`. */
   const particlesUnitCellNode = (cell: StateObjectCell, listRef: string): Node => {
     const ref = cell.transform.ref;
@@ -1145,6 +1224,8 @@ export function createSceneSource(
   const seenCount = new Map<string, number>();
   /** The ids held by the rows after the structures (the focus, volumes, particles, measurements) at the last sync. */
   let restIds: readonly string[] = [];
+  /** The shapes' cells as the last sync saw them (a removal of one rebuilds: `shapeEntries`). */
+  let shapeRefs: ReadonlySet<string> = new Set();
   /** Structures built anew at the next sync whatever their signature (a streaming cell came or went under one). */
   const stale = new Set<string>();
   const markStale = (ref: string | undefined) => {
@@ -1505,6 +1586,30 @@ export function createSceneSource(
       ]);
       top.push(ln);
     }
+    const shapes = shapeEntries(plugin.state.data);
+    shapeRefs = new Set(
+      shapes.flatMap((e) => [e.cell.transform.ref, ...e.representations.map((r) => r.transform.ref)]),
+    );
+    if (shapes.length) {
+      const gn = shapesNode();
+      rest.push(gn.id);
+      gn.setChildren(
+        shapes.map((e) => {
+          const sn = shapeNode(e);
+          rest.push(sn.id);
+          sn.setChildren(
+            e.representations.map((r) => {
+              const rn = shapeReprNode(r);
+              rest.push(rn.id);
+              return rn;
+            }),
+          );
+          return sn;
+        }),
+      );
+      gn.set('Shapes', shapes.length === 1 ? '1 shape' : `${shapes.length} shapes`, allHidden(gn.children.value));
+      top.push(gn);
+    }
     // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
     // through `measure.*` (the measurements feature), their hover and focus through the measured atoms.
     // The group is there once something is loaded, empty or not: its inspector says how to measure.
@@ -1701,6 +1806,15 @@ export function createSceneSource(
       if (!same) sync();
     }),
   );
+  // Shapes are in no hierarchy: a shape's or its representation's object made, recreated or removed rebuilds the rows
+  // (once a burst: `sync` runs in the change log's batch).
+  const isShapeObj = (obj: StateObject | undefined) =>
+    PluginStateObject.Shape.Provider.is(obj) || PluginStateObject.Shape.Representation3D.is(obj);
+  scope.add(plugin.state.data.events.object.created.subscribe((e) => isShapeObj(e.obj) && sync()));
+  scope.add(
+    plugin.state.data.events.object.removed.subscribe((e) => (shapeRefs.has(e.ref) || isShapeObj(e.obj)) && sync()),
+  );
+  scope.add(plugin.state.data.events.object.updated.subscribe((e) => shapeRefs.has(e.ref) && sync()));
   // Streaming's cells are not in the hierarchies: their coming and going rebuilds, a params change refreshes the row.
   const isStreaming = (t: { transformer: unknown } | undefined) =>
     t?.transformer === CreateVolumeStreamingInfo || t?.transformer === CreateVolumeStreamingBehavior;
@@ -1765,7 +1879,9 @@ export function createSceneSource(
           ? nodes.get(componentsNodeId(ref.structure.cell.transform.ref))
           : n.kind === 'measurement'
             ? nodes.get('#measurements')
-            : undefined;
+            : n.kind === 'shape'
+              ? nodes.get('#shapes')
+              : undefined;
       if (group) group.set(group.label.value, group.description.value, allHidden(group.children.value));
     }),
   );
@@ -2998,7 +3114,12 @@ function inspect(
   const updateOperation = UpdateOperations[node.kind];
   if (updateOperation && cell) {
     const parent = plugin.state.data.cells.get(cell.transform.parent);
-    const def = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
+    const all = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
+    // A shape's colors beside its opacity, not under Advanced: what a mesh is changed by first.
+    const def =
+      all && node.kind === 'shape-representation' && all.coloring
+        ? { ...all, coloring: { ...all.coloring, isEssential: true, label: 'Color' } }
+        : all;
     if (def) {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const form = new ParamsFormModel(def, cell.transform.params as PD.Values<PD.Params>, {

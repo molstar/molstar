@@ -22,6 +22,7 @@ import { ExportSessionFeature } from './features/export-session/index.js';
 import { LazyParticles, LazyRemoteStates, LazyStateTree, LazySuperposition } from './features/lazy/index.js';
 import { LoadersFeature } from './features/loaders/index.js';
 import { ClippingFeature } from './features/clipping/index.js';
+import { ShapesFeature } from './features/shapes/index.js';
 import { MeasurementsFeature } from './features/measurements/index.js';
 import { SnapshotsFeature } from './features/snapshots/index.js';
 import { prismViewerPluginParts } from './sources/base.js';
@@ -37,11 +38,12 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
   return {
     plugin: prismViewerPluginParts(),
     extensions: [
-      // The scene's API (structure, components, representations, styles), maps and particles, trajectories,
+      // The scene's API (structure, components, representations, styles), maps, particles and shapes, trajectories,
       // annotations: first, as the rest use them.
       StructureFeature,
       VolumeFeature,
       LazyParticles,
+      ShapesFeature,
       TrajectoryFeature,
       AnnotationsFeature,
       // The panels: Home, Structure, Selection, Help (with the core's tab ids).

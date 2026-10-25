@@ -14,6 +14,7 @@ Numbered rows (code cites `§1, row 2`); files under `src/sources/` unless a pat
 | 3   | a structure's entities and chains                          | `scene.ts`, on first expand → contents nodes                      |
 | 4   | `managers.volume`, volume streaming                        | `scene.ts` → volume nodes, the streaming row                      |
 | 5   | `managers.particles`                                       | `scene.ts` → particle nodes                                       |
+| 5a  | shape providers in the state tree (no manager)             | `shapes.ts` → `scene.ts`'s Shapes group, `shape.*`                |
 | 6   | `managers.structure.component`                             | `structure-tab.ts` → `PresetsModel`; `look.ts` → `SceneLookModel` |
 | 7   | `managers.structure.selection`                             | `selection.ts`, `interaction.ts` → `SelectionModel`               |
 | 8   | selection mode, `managers.interactivity.props`             | `interaction.ts` → `ModeSwitch`                                   |

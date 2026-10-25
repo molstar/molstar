@@ -398,6 +398,7 @@ export const BuiltInAreaFeatures: Readonly<Record<keyof BuiltInApis, string>> = 
   volume: 'VolumeFeature',
   trajectory: 'TrajectoryFeature',
   clipping: 'ClippingFeature',
+  shape: 'ShapesFeature',
 };
 
 /**

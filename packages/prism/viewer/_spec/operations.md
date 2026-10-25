@@ -143,6 +143,11 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `session.save` | Save the session | view; no undo | kind, name, record, options |
 | `settings.get` | Read the settings | read | group |
 | `settings.set` | Change settings | agent-only | group, values |
+| `shape.focus` | Focus a shape | view | node |
+| `shape.list` | List the shapes | read |  |
+| `shape.remove` | Remove a shape | destructive | node |
+| `shape.update` | Update a shape representation | ui-only | node, params |
+| `shape.visibility` | Show or hide a shape |  | node, visible |
 | `snapshot.add` | Add a snapshot | no undo | name, description, key, showFor, options |
 | `snapshot.apply` | Apply a snapshot | no undo | entry |
 | `snapshot.clear` | Remove all snapshots | no undo; destructive; agent-only |  |

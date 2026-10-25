@@ -22,3 +22,9 @@
 - Prism: a structure representation's colors offer Element (carbons by chain, as before) and Element, grey C (every
   carbon the element's grey); their swatches show their carbons, then N, O and S (were the first entries of the
   periodic table). The tree row says "grey C".
+- Prism: a Shapes group in the Structure panel: each mesh loaded on its own (OBJ, PLY, VTP) by its file's name, its
+  representations under it; an eye, Remove, a look (sliders) and its representation's form (color and opacity first).
+  The `shape` area: `list`, `visibility`, `update`, `remove`, `focus`, and their commands. Stories: Structure panel ›
+  Shapes, Shape representation (meshes made in code).
+- Prism: `look.set` by node reaches volumes', particles' and shapes' representations too, and their inspectors have the
+  sliders (the values they take: no hydrogens); only structure representations follow the scene defaults.
