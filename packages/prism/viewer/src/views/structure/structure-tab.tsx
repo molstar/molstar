@@ -13,8 +13,8 @@ import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import type { SceneLookModel } from '../../model/look.js';
 import type { SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
-import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { keyedState } from '@molstar/prism-ui/reactive/keyed-state';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
@@ -30,6 +30,7 @@ import { SequenceInspector } from './sequence-inspector.js';
 import { RepresentationQuick } from './representation-quick.js';
 import { VolumeTransfer } from '../volume/volume-transfer.js';
 import { classes } from './_generated/structure-tab.module.css.js';
+import { LookButton, NodeLookPopover, SceneLookPopover, sceneOverridesText } from './look-popover.js';
 import { menuOf, NodeActions, RowMenu, SceneTree } from './scene-tree.js';
 import { type SceneRowPick, SceneRowPickEvent } from './scene-row.js';
 
@@ -42,10 +43,10 @@ export interface StructureTabProps {
    */
   openCommands?: (group: 'preset' | 'styles') => void;
   /**
-   * The component options (Mol*'s component manager options: hydrogens, quality, lighting, material, clipping,
-   * interactions, interior, animation), applied to every component; the sliders button opens them.
+   * The scene defaults of the look (api.md §2, "Look": hydrogens, quality, lighting, material, …), which every
+   * representation follows unless it has its own; the sliders button opens them, its dot telling of overrides.
    */
-  options?: ParamsFormModel<any>;
+  look?: SceneLookModel;
 }
 
 /**
@@ -56,9 +57,6 @@ export interface StructureTabProps {
  */
 export function StructureTab(props: StructureTabProps) {
   const { shell, scene } = props;
-  // The component options, an inline block under the header while open.
-  const open = observableState<'options' | undefined>(undefined);
-  const toggle = (block: 'options') => open.set(open.value === block ? undefined : block);
   // The tree's search: a field over the tree while open; closed, no filter.
   // An extension's row picked (its controls in the inspector); a node picked takes its place.
   const pickedRow = observableState<SceneRowPick | undefined>(undefined);
@@ -142,32 +140,15 @@ export function StructureTab(props: StructureTabProps) {
           pressed={searchShown}
           onClick={() => (searchShown.value ? closeSearch() : searchOpen.set(true))}
         />
-        {props.options ? (
-          <Button
-            size="sm"
-            variant="ghost"
+        {props.look ? (
+          <LookButton
+            title="Scene defaults"
             class={classes.optionsButton}
-            icon={<Icon name="settings" />}
-            title="Component options"
-            pressed={derive(open.asReadonly, (o) => o === 'options')}
-            onClick={() => toggle('options')}
+            marked={derive(props.look.overrides, sceneOverridesText)}
+            popover={(anchor, close) => <SceneLookPopover model={props.look!} anchor={anchor} onClose={close} />}
           />
         ) : null}
       </div>
-      <Show when={open} reveal>
-        {(block) =>
-          block === 'options' && props.options ? (
-            <ScrollArea
-              class={classes.options}
-              contentClass={classes.optionsContent}
-              role="region"
-              aria-label="Component options"
-            >
-              <ParamsForm form={props.options} />
-            </ScrollArea>
-          ) : null
-        }
-      </Show>
       <Show when={searchShown}>
         {() => (
           <div
@@ -409,6 +390,21 @@ function Inspector(props: {
         <Show when={derive(node.label, (l) => l.toLowerCase() !== kindName(node.kind))}>
           {() => <span class={classes.inspectorKind}>{kindName(node.kind)}</span>}
         </Show>
+        {/* Its look (the representations under it): their own values over the scene defaults, a dot while it has some. */}
+        {props.inspection.look ? (
+          <LookButton
+            title="Look"
+            marked={derive(props.inspection.look.own, (o) => (o.length ? 'not the scene defaults' : undefined))}
+            popover={(anchor, close) => (
+              <NodeLookPopover
+                model={props.inspection.look!}
+                title={derive(node.label, (l) => `Look of ${l}`)}
+                anchor={anchor}
+                onClose={close}
+              />
+            )}
+          />
+        ) : null}
         {/* No eye where nothing shows or hides as one (Entities, Other, an emptied component). */}
         {node.hasEye === false ? null : (
           <VisibilityToggle
@@ -441,9 +437,11 @@ function Inspector(props: {
           ))}
         </div>
       ) : null}
-      {/* A component's representations: each a row to open (its inspector), its eye beside it; not only behind the
-          tree's chevron. */}
-      {node.kind === 'component' ? <Representations node={node} onPick={props.onPick} /> : null}
+      {/* A component's or a shape's representations: each a row to open (its inspector), its eye beside it; not only
+          behind the tree's chevron. */}
+      {node.kind === 'component' || node.kind === 'shape' ? (
+        <Representations node={node} onPick={props.onPick} />
+      ) : null}
       {/* A structure's sequence: the band's style and letters, Add track, its chains (sequence.md §8.1). */}
       {props.inspection.sequence ? <SequenceInspector model={props.inspection.sequence} /> : null}
       {/* A structure's contents: its counts, its entities to open in the tree. */}
@@ -480,7 +478,9 @@ function Inspector(props: {
  * menu: Remove, its type, …); a click opens it.
  */
 function Representations(props: { node: SceneNode; onPick(node: SceneNode): void }) {
-  const reprs = derive(props.node.children, (c) => c.filter((n) => n.kind === 'representation'));
+  const reprs = derive(props.node.children, (c) =>
+    c.filter((n) => n.kind === 'representation' || n.kind === 'shape-representation'),
+  );
   return (
     <Show when={derive(reprs, (r) => r.length > 0)}>
       {() => (

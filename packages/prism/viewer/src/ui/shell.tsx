@@ -49,6 +49,7 @@ import {
   debounceTime,
   distinctUntilChanged,
   map,
+  merge,
   type Observable,
   of,
   shareReplay,
@@ -69,7 +70,7 @@ import type { ViewerCore } from '../viewer.js';
 import { createTrajectoryControls } from './trajectory.js';
 import { downloadBlob } from './download.js';
 import { decodeColor } from '@molstar/core/util/color/utils';
-import { frameBelowTop } from '../sources/framing.js';
+import { FrameGlideMs, frameBelowTop } from '../sources/framing.js';
 import { watchToasts } from '../sources/toasts.js';
 import { createXrSource } from '../sources/xr.js';
 
@@ -855,14 +856,44 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     const followTheme = theme.theme.pipe(skip(1)).subscribe(themeCanvas);
     steps.push(() => followTheme.unsubscribe());
     // Resets frame the scene below the sequence band (a frameless top tab; its faded bottom lets the scene through), not
-    // under it (sequence.md §8, README decision 28).
+    // under it (sequence.md §8, README decision 28), Mol*'s first framing of a scene too. The band comes a few frames
+    // after the scene (Seq* makes its document first): the first framing counts it in while it is coming, so its arrival
+    // moves nothing. It is coming while it has not been shown yet (Seq* shows it by itself only the first time: closed,
+    // or the sequence left out of the UI, it does not come), and the structure it follows has a polymer to show.
     const canvas3d = core.plugin.canvas3d;
     if (canvas3d) {
       const top = shell.dock('top');
+      let bandShown = false;
+      const bandComing = () => {
+        if (bandShown || !sequence || !core.options.ui.showSequence) return false;
+        const host = sequence.source.structure.value;
+        return !!host && host.structure.polymerResidueCount > 0;
+      };
+      const bandPx = () => {
+        const active = top.active.value;
+        if (active?.frame === 'none' || (!active && bandComing()))
+          return Math.max(0, top.state.value.size - BandFadePx);
+        return 0;
+      };
+      const framing = frameBelowTop(canvas3d, canvasHost, bandPx);
+      let last = bandPx();
+      // a scene framed before this hold (a load the options started) with the band already there
+      framing.reframe();
+      // The band shown or closed otherwise (by the person, its menu): the scene glides to its new frame while the
+      // camera is where the last framing left it; a resize (a drag of its edge) moves nothing.
+      const follow = merge(top.state, top.active).subscribe(() => {
+        if (top.active.value) bandShown = true;
+        const now = bandPx();
+        if (now > 0 === last > 0) {
+          last = now;
+          return;
+        }
+        last = now;
+        framing.reframe(FrameGlideMs);
+      });
       steps.push(
-        frameBelowTop(canvas3d, canvasHost, () =>
-          top.active.value?.frame === 'none' ? Math.max(0, top.state.value.size - BandFadePx) : 0,
-        ),
+        () => follow.unsubscribe(),
+        () => framing.undo(),
       );
     }
 

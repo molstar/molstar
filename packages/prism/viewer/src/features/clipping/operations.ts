@@ -90,6 +90,13 @@ export class ClippingApi extends ApiArea {
     { compare: sameCuts },
   );
 
+  /** How the cuts cut and what they leave (the section's Settings): read again when the options change */
+  readonly cutSettings: ReadonlyState<ClipSettings> = watchedState(
+    () => settingsOf(this.ctx.plugin),
+    () => [this.ctx.plugin.managers.structure.component.events.optionsUpdated],
+    { compare: (a, b) => a.variant === b.variant && a.solidSurface === b.solidSurface },
+  );
+
   /** The cuts' gizmos in the canvas (the section's Show handles): their drags commit through the person's API */
   readonly gizmos = new ClipGizmos(this.ctx.plugin, this.cuts);
 
@@ -164,6 +171,68 @@ export class ClippingApi extends ApiArea {
       const cuts = findCuts(ctx.plugin);
       if (!cuts.length) return ApiResult.ok('Nothing is cut.', {}, { value: cuts });
       return ApiResult.ok(cuts.map(describe).join('\n'), {}, { value: cuts });
+    },
+  });
+
+  // clipping.md §2 "Settings": the variant is the scene's (the component options' clip) and every cut representation's;
+  // solid surface is the look's default (`look.set`: a representation with its own keeps it).
+  readonly settings = this.operation({
+    id: 'clipping.settings',
+    title: 'Set how cuts cut',
+    params: {
+      variant: OptionalParam(
+        PD.Select<Clip.Variant>(
+          'pixel',
+          [
+            ['pixel', 'Pixel'],
+            ['instance', 'Instance'],
+          ],
+          {
+            description:
+              'pixel: cut through, pixel by pixel; instance: leave out whole copies (instances) whose center is cut away',
+          },
+        ),
+      ),
+      solidSurface: OptionalParam(
+        PD.Boolean(true, { description: 'Close a cut surface with a solid cap (also where the camera cuts it)' }),
+      ),
+    },
+    async run({ variant, solidSurface }, ctx) {
+      const manager = ctx.plugin.managers.structure.component;
+      const options = manager.state.options;
+      const state = ctx.plugin.state.data;
+      const differ = variant
+        ? clippableCells(state).filter((c) => {
+            const clip = RepresentationClip.get(c.transform.params)!;
+            return clip.objects.length > 0 && clip.variant !== variant;
+          })
+        : [];
+      const setVariant = variant !== undefined && (options.clipObjects.variant !== variant || differ.length > 0);
+      const setSolid = solidSurface !== undefined && options.solidSurface !== solidSurface;
+      if (!setVariant && !setSolid) return ApiResult.already('The cuts are set so already.');
+      if (options.clipObjects.variant !== (variant ?? options.clipObjects.variant) || setSolid) {
+        await manager.setOptions({
+          ...options,
+          ...(setVariant ? { clipObjects: { ...options.clipObjects, variant: variant! } } : {}),
+          ...(setSolid ? { solidSurface: solidSurface! } : {}),
+        });
+      }
+      // the cut representations hold their own clip, which the options leave (RepresentationClip.replaceOwned)
+      if (setVariant && differ.length) {
+        const b = state.build();
+        for (const cell of differ) {
+          const clip = RepresentationClip.get(cell.transform.params)!;
+          b.to(cell).update(RepresentationClip.set(cell.transform.params, { ...clip, variant: variant! }) as never);
+        }
+        await ctx.plugin.runTask(state.updateTree(b));
+      }
+      const said = [
+        setVariant ? (variant === 'instance' ? 'cuts leave out whole copies' : 'cuts go through, pixel by pixel') : '',
+        setSolid ? (solidSurface ? 'cut surfaces are solid' : 'cut surfaces are open') : '',
+      ].filter(Boolean);
+      return ApiResult.ok(`${said.join('; ').replace(/^./, (c) => c.toUpperCase())}.`, {
+        nodes: differ.map((c) => c.transform.ref),
+      });
     },
   });
 
@@ -516,6 +585,18 @@ export class ClippingApi extends ApiArea {
   });
 }
 
+/** How the cuts cut (the section's Settings, `clipping.settings`). */
+export interface ClipSettings {
+  readonly variant: Clip.Variant;
+  readonly solidSurface: boolean;
+}
+
+/** The settings: the component options' (the scene's) */
+export function settingsOf(plugin: PluginContext): ClipSettings {
+  const options = plugin.managers.structure.component.state.options;
+  return { variant: options.clipObjects.variant, solidSurface: options.solidSurface };
+}
+
 /** A cut in words: "Cut 1: plane through (12.0, 3.1, −4.0) · cartoon of Polymer, molecular-surface of Ligand" */
 function describe(cut: Cut): string {
   const p = [...cut.object.position].map((x) => x.toFixed(1)).join(', ');
@@ -608,7 +689,8 @@ async function commit(
         ) ?? -1;
       if (at >= 0) remapLayer(state, b, cell, [at]);
     }
-    b.to(cell).update(withObject(cell.transform.params, previous, next) as never);
+    // a cut written takes the scene's variant (clipping.settings), so every cut representation cuts the same way
+    b.to(cell).update(withObject(cell.transform.params, previous, next, settingsOf(ctx.plugin).variant) as never);
   }
   await ctx.plugin.runTask(state.updateTree(b));
   await reconcileDrawings(ctx);

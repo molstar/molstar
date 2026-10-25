@@ -10,6 +10,10 @@ here.
 
 ## [Unreleased]
 
+- [Breaking] Component options keep overrides: `StructureComponentManager.setOptions` changes only the representations
+  that had the previous value of a changed option (a representation given its own material, quality, … keeps it);
+  `reset` writes options to every representation. Representation presets give their representations the material, clip
+  objects, interior and animation of the component options, as `addRepresentation` does
 - [Breaking] The volume direct-volume representation no longer has `jumpLength`: volumes skip transparent bricks
   instead; the Gaussian volume keeps it
 - Direct volume rendering marches only through the volume's box (from its entry to its exit or the nearest opaque

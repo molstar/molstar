@@ -137,6 +137,10 @@ export const Skills: readonly SkillDeclaration[] = [
       'set_transparency and color act on targets; hide_contents hides entities or chains everywhere.',
       "show_unit_cell shows a crystal's unit cell; transform_structure moves or rotates a structure (about its",
       'center; compose: true adds to the current placement), reset_transform puts it back where it was loaded.',
+      '- set_look: how representations are drawn (hydrogens, quality, ignoreLight, material, solidSurface, interior);',
+      '  without node it sets the scene defaults, with node (a structure, component, representation, volume, shape: #ref)',
+      "  those representations' own values, which a later default change keeps; reset_look takes them back to the",
+      '  defaults, get_look lists the defaults and who has values of its own.',
     ].join('\n'),
     tools: [
       {
@@ -145,6 +149,17 @@ export const Skills: readonly SkillDeclaration[] = [
         description: 'Makes a component of a target, with a representation.',
       },
       { id: 'remove_component', operation: 'component.remove', description: 'Removes a component.' },
+      {
+        id: 'set_look',
+        operation: 'look.set',
+        description: 'Sets the scene defaults of how representations are drawn, or the representations under a node.',
+      },
+      { id: 'reset_look', operation: 'look.reset', description: 'Takes representations back to the scene defaults.' },
+      {
+        id: 'get_look',
+        operation: 'look.get',
+        description: 'The scene defaults, and the representations with their own.',
+      },
       {
         id: 'set_representation',
         operation: 'representation.set',
@@ -261,7 +276,7 @@ export const Skills: readonly SkillDeclaration[] = [
     title: 'Animation and trajectories',
     summary: 'spin, rock, wiggle; trajectory frames',
     guidance:
-      'Skill animation: frames of a trajectory or an NMR ensemble are shown by index (from 0). A simulation in a periodic box shows its molecules whole by default; periodic_box moves them into the box (centered on the protein with center: polymers), keeps them from jumping between frames (nojump), or shows the file as written (off); periodic_images shows the neighbouring boxes (mode box tiles them).',
+      'Skill animation: frames of a trajectory or an NMR ensemble are shown by index (from 0). A simulation in a periodic box shows its molecules whole by default; periodic_box moves them into the box (centered on the protein with center: polymers), keeps them from jumping between frames (nojump), or shows the file as written (off); periodic_images shows the neighbouring boxes (mode box tiles them). wiggle moves atoms by noise (dynamics) or by their uncertainty; type, speed, frequency shape it, tumble turns whole copies; what is not given stays.',
     tools: [
       { id: 'play_animation', operation: 'animation.play' },
       { id: 'stop_animation', operation: 'animation.stop' },

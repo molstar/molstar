@@ -12,7 +12,7 @@ import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { combineLatest, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { AnimationApi } from './operations.js';
-import type { WiggleState } from './source.js';
+import { sameWiggle, type WiggleState, type WiggleType } from './source.js';
 
 // The Animation card's view model (state.md §4, a feature's own contract; it could move to `src/model/` with the others
 // if another UI wants it): what the card's sections read, over the animation area's state and `params`, and what they
@@ -33,8 +33,10 @@ export interface AnimationModel {
   readonly isPlaying: ReadonlyState<boolean>;
   play(): void;
   stop(): void;
-  /** The procedural animation: mode (dynamics, uncertainty) and its strength. */
+  /** The procedural animation: mode (dynamics, uncertainty), strength, type, speed, frequency, and the tumble. */
   readonly wiggleForm: ParamsFormModel<any>;
+  /** The form from the scene's wiggle (the Wiggle section, whenever the wiggle changes). */
+  refreshWiggle(): void;
   readonly wiggle: ReadonlyState<WiggleState>;
   applyWiggle(): void;
   clearWiggle(): void;
@@ -50,7 +52,43 @@ const WiggleFormParams = {
     { description: 'Move atoms by noise, or by how uncertain their position is (B-factor or RMSF)' },
   ),
   amplitude: PD.Numeric(1, { min: 0.01, max: 5, step: 0.01 }, { label: 'Amplitude' }),
+  type: PD.Select<WiggleType>(
+    'position',
+    [
+      ['position', 'Position'],
+      ['group', 'Group'],
+    ],
+    { label: 'Type', description: 'Position: nearby atoms move together. Group: each atom (group) on its own.' },
+  ),
+  speed: PD.Numeric(7, { min: 0, max: 10, step: 0.1 }, { label: 'Speed' }),
+  frequency: PD.Numeric(
+    0.2,
+    { min: 0.01, max: 2, step: 0.01 },
+    { label: 'Frequency', description: 'Lower: nearby atoms move more together (position type)' },
+  ),
+  tumble: PD.Group(
+    {
+      amplitude: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, { label: 'Amplitude', description: 'In Å; 0: off' }),
+      speed: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, { label: 'Speed' }),
+      frequency: PD.Numeric(0.2, { min: 0, max: 2, step: 0.01 }, { label: 'Frequency' }),
+    },
+    { label: 'Tumble', description: 'Whole copies (instances) turning in place', isExpanded: false },
+  ),
 };
+
+type WiggleFormValues = PD.Values<typeof WiggleFormParams>;
+
+/** The form's values from the scene's wiggle (off: the mode and amplitude the form has, the rest the scene's). */
+function wiggleValues(w: WiggleState, form: WiggleFormValues): WiggleFormValues {
+  return {
+    mode: w.mode === 'off' ? form.mode : w.mode,
+    amplitude: w.mode === 'off' ? form.amplitude : w.amplitude,
+    type: w.type,
+    speed: w.speed,
+    frequency: w.frequency,
+    tumble: { amplitude: w.tumble, speed: w.tumbleSpeed, frequency: w.tumbleFrequency },
+  };
+}
 
 const Axes = ['x', 'y', 'z'] as const;
 
@@ -153,6 +191,8 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
   Object.defineProperty(blocked, 'value', { get: reason, enumerable: true });
 
   const wiggleForm = new ParamsFormModel(WiggleFormParams);
+  const refreshWiggle = () => wiggleForm.load(wiggleValues(area.state.value.wiggle, wiggleForm.values.value));
+  refreshWiggle();
   return {
     get form() {
       return current.value;
@@ -174,17 +214,23 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
       void api.animation?.stop();
     },
     wiggleForm,
-    wiggle: mapState(
-      area.state,
-      (s) => s.wiggle,
-      (a, b) => a.mode === b.mode && a.amplitude === b.amplitude,
-    ),
+    refreshWiggle,
+    wiggle: mapState(area.state, (s) => s.wiggle, sameWiggle),
     applyWiggle() {
       const v = wiggleForm.values.value;
-      void api.animation?.wiggle({ mode: v.mode, amplitude: v.amplitude });
+      void api.animation?.wiggle({
+        mode: v.mode,
+        amplitude: v.amplitude,
+        type: v.type,
+        speed: v.speed,
+        frequency: v.frequency,
+        tumble: v.tumble.amplitude,
+        tumbleSpeed: v.tumble.speed,
+        tumbleFrequency: v.tumble.frequency,
+      });
     },
     clearWiggle() {
-      void api.animation?.wiggle({ mode: 'off' });
+      void api.animation?.wiggle({ mode: 'off', tumble: 0 });
     },
   };
 }

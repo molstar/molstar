@@ -1,0 +1,28 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A panel of controls over the layout, raised as a menu is; taller than the window, it scrolls. */
+.popover {
+  display: grid;
+  gap: var(--msp-space-2);
+  width: min(340px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-overlay);
+  font-size: var(--msp-font-size-sm);
+}
+
+.title {
+  font-weight: 600;
+  color: var(--msp-color-text);
+}

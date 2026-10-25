@@ -58,29 +58,93 @@ export function paddedFocus(camera: FramingCamera, center: V3, radius: number, t
   return focus;
 }
 
+/** The framing's hold on the plugin's camera resets. */
+export interface FrameBelowTop {
+  /**
+   * Frames the scene again below the band as it is now (the band shown or gone), over `durationMs` (0: at once), if the
+   * camera is where the last framing put it: the user's camera is never moved.
+   */
+  reframe(durationMs?: number): void;
+  undo(): void;
+}
+
+/** How long the scene glides to its new frame when the band is shown or closed (not at its first coming: counted in). */
+export const FrameGlideMs = 250;
+
+/** How far (relative to the framed radius) the camera may be from the last framing and still count as not moved. */
+const Untouched = 1e-3;
+
 /**
  * Makes the plugin's camera resets that bring no framing of their own (Reset view, the sequence's reset) frame the scene
  * below the top `topPx()` CSS px of `canvas` (the sequence band; 0: the whole canvas), by `paddedFocus`. A reset with
- * its own snapshot (a snapshot, a session's camera) is left as it is; so is Mol*'s own first framing of a scene, which
- * has no hook short of changing the graphics package (README decision 28). Returns the undo.
+ * its own snapshot (a snapshot, a session's camera) is left as it is. Mol*'s own first framing of a scene (the scene
+ * from empty to drawn) is framed so too, with no change to the graphics package (README decision 28): Canvas3D asks for
+ * that reset in its commit and tells `reprCount` after, before the reset is resolved, so a reset asked there joins it
+ * (each commit until one has framed a drawn scene).
  */
-export function frameBelowTop(canvas3d: Canvas3D, canvas: HTMLElement, topPx: () => number): () => void {
+export function frameBelowTop(canvas3d: Canvas3D, canvas: HTMLElement, topPx: () => number): FrameBelowTop {
   const original = canvas3d.requestCameraReset;
-  canvas3d.requestCameraReset = (options) => {
-    if (options?.snapshot) return original.call(canvas3d, options);
+  // Where the last framing put the camera (its target and position), and the radius it framed.
+  let framed: { target: number[]; position: number[]; radius: number } | undefined;
+  // The scene drawn has had its first framing (ours, or a camera of its own: a session's, a snapshot's)
+  let firstDone = false;
+  const reset = (options?: Parameters<Canvas3D['requestCameraReset']>[0]) => {
+    if (options?.snapshot) {
+      framed = undefined;
+      firstDone = true;
+      return original.call(canvas3d, options);
+    }
     original.call(canvas3d, {
       ...options,
       snapshot: (scene, camera) => {
+        const { center, radius } = scene.boundingSphereVisible;
         const top = topPx();
-        if (!(top > 0)) return {};
         // The band in the camera's pixels (its viewport is the drawing buffer's).
         const scale = camera.viewport.height / (canvas.clientHeight || camera.viewport.height);
-        const { center, radius } = scene.boundingSphereVisible;
-        return paddedFocus(camera, center, radius, top * scale) as Partial<Camera.Snapshot>;
+        const focus = (
+          top > 0 ? paddedFocus(camera, center, radius, top * scale) : camera.getFocus(center, radius)
+        ) as Partial<Camera.Snapshot>;
+        firstDone = true;
+        framed =
+          focus.target && focus.position
+            ? { target: [...focus.target], position: [...focus.position], radius: Math.max(radius, 1e-6) }
+            : undefined;
+        return top > 0 ? focus : {};
       },
     });
   };
-  return () => {
-    canvas3d.requestCameraReset = original;
+  canvas3d.requestCameraReset = reset;
+  // The scene from empty to drawn: Mol*'s first framing, asked in a commit, takes the framing below the band. Asked
+  // again at each commit until a framing has run on a drawn scene: the first commit's reset may meet a scene with
+  // nothing visible yet (no framing, its options dropped), and Mol*'s next one would be its own. The scene emptied,
+  // the next one is a first framing again.
+  const first = canvas3d.reprCount?.subscribe((n) => {
+    if (n === 0) {
+      framed = undefined;
+      firstDone = false;
+    } else if (!firstDone) reset({ durationMs: 0 });
+  });
+  const near = (a: ArrayLike<number>, b: ArrayLike<number>, d: number) =>
+    Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= d;
+  return {
+    reframe(durationMs = 0) {
+      const camera = canvas3d.camera;
+      if (!camera || camera.transition?.inTransition) return;
+      const at = (f: { target?: ArrayLike<number>; position?: ArrayLike<number> } | undefined, radius: number) =>
+        !!f?.target &&
+        !!f.position &&
+        near(camera.state.target, f.target, radius * Untouched) &&
+        near(camera.state.position, f.position, radius * Untouched);
+      // Where the last framing put it, or where Mol*'s own framing of the scene does (one made before this hold, or
+      // before the band was known): not moved by the person since.
+      const sphere = canvas3d.boundingSphereVisible;
+      const own = sphere && sphere.radius > 0 ? camera.getFocus(sphere.center, sphere.radius) : undefined;
+      if (!(framed && at(framed, framed.radius)) && !(own && at(own, sphere.radius))) return;
+      reset({ durationMs });
+    },
+    undo() {
+      first?.unsubscribe();
+      canvas3d.requestCameraReset = original;
+    },
   };
 }

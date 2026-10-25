@@ -11,7 +11,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `animation.get` | List the animations | read |  |
 | `animation.play` | Play an animation | view; needs canvas | name, params |
 | `animation.stop` | Stop the animation | view |  |
-| `animation.wiggle` | Wiggle |  | mode, amplitude |
+| `animation.wiggle` | Wiggle |  | mode, amplitude, type, speed, frequency, tumble, tumbleSpeed, tumbleFrequency |
 | `annotations.apply` | Show what a structure carries | network (addresses) | annotation, structure |
 | `annotations.list` | List what the structures carry | read | structure |
 | `camera.frame` | Frame | view; needs canvas | target, structure, language, animate |
@@ -35,12 +35,12 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `clipping.list` | List the cuts | read |  |
 | `clipping.release` | Cut atoms kept whole again |  | cut, tag |
 | `clipping.remove` | Remove a cut | destructive | cut, tag |
+| `clipping.settings` | Set how cuts cut |  | variant, solidSurface |
 | `clipping.show` | Draw a cut in the scene, or not |  | cut, tag, on, options |
 | `clipping.update` | Change a cut |  | cut, tag, shape, position, normal, rotation, scale, invert |
 | `component.add` | Add a component |  | target, label, representation, structure, language |
 | `component.list` | List the components | read | structure |
 | `component.modify` | Change what a component holds |  | component, target, mode, structure, language |
-| `component.options` | Set how representations are made |  | hydrogens, quality, ignoreLight, solidSurface, material, clip, interior, animation |
 | `component.remove` | Remove a component | destructive | component, structure |
 | `component.rename` | Rename a component |  | component, label, structure |
 | `component.visibility` | Show or hide a component |  | component, visible, structure |
@@ -74,6 +74,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `load.url` | Load from a URL | network (addresses); needs network | url, format, binary, models, assembly |
 | `load.viewport` | Load a viewport state | needs canvas | file, json |
 | `load.volume` | Load a volume | network (addresses) | url, data, file, format, binary, isovalues, entryId, lazy |
+| `look.get` | Read how representations are drawn | read | node |
+| `look.reset` | Use the scene defaults again |  | node, keys |
+| `look.set` | Set how representations are drawn |  | node, hydrogens, quality, ignoreLight, material, solidSurface, interior, animation, clip, interactions |
 | `measure.angle` | Measure an angle |  | a, b, c, text, structure, language |
 | `measure.dihedral` | Measure a dihedral angle |  | a, b, c, d, text, structure, language |
 | `measure.distance` | Measure a distance |  | a, b, text, structure, language |
@@ -140,6 +143,11 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `session.save` | Save the session | view; no undo | kind, name, record, options |
 | `settings.get` | Read the settings | read | group |
 | `settings.set` | Change settings | agent-only | group, values |
+| `shape.focus` | Focus a shape | view | node |
+| `shape.list` | List the shapes | read |  |
+| `shape.remove` | Remove a shape | destructive | node |
+| `shape.update` | Update a shape representation | ui-only | node, params |
+| `shape.visibility` | Show or hide a shape |  | node, visible |
 | `snapshot.add` | Add a snapshot | no undo | name, description, key, showFor, options |
 | `snapshot.apply` | Apply a snapshot | no undo | entry |
 | `snapshot.clear` | Remove all snapshots | no undo; destructive; agent-only |  |

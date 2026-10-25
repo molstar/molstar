@@ -29,7 +29,7 @@ import {
   LocalUp,
   rotated,
 } from '../../sources/clipping/cuts.js';
-import type { ClippingApi } from './operations.js';
+import type { ClippingApi, ClipSettings } from './operations.js';
 import { classes } from './_generated/clipping.module.css.js';
 import { ClippingSectionId } from './index.js';
 
@@ -230,8 +230,33 @@ function ClippingSection(props: { ctx: ViewerUIContext; clipping: ClippingApi })
           />
         )}
       </For>
+      <Fold title="Settings" meta={derive(clipping.cutSettings, settingsMeta)}>
+        {() => <CutSettings ctx={ctx} clipping={clipping} />}
+      </Fold>
     </div>
   );
+}
+
+/** "· whole copies" while cuts leave out whole instances; nothing for the usual pixel cuts */
+const settingsMeta = (s: ClipSettings) => (s.variant === 'instance' ? '· whole copies' : '');
+
+/** How every cut cuts (clipping.settings): the variant, the solid caps; following them as they change elsewhere */
+function CutSettings(props: { ctx: ViewerUIContext; clipping: ClippingApi }) {
+  const { ctx, clipping } = props;
+  // the operation's own params (each optional there: absent, kept), labeled as a form's rows
+  const op = clipping.settings.definition.params as PD.Params;
+  const params = {
+    variant: { ...op.variant, isOptional: false, label: 'Cut by' },
+    solidSurface: { ...op.solidSurface, isOptional: false, label: 'Solid surface' },
+  } as PD.Params;
+  const form = new ParamsFormModel(params, clipping.cutSettings.value as never, {
+    onChange: (values, name) => void ctx.api.run('clipping.settings', { [name]: values[name] }),
+  });
+  effect(clipping.cutSettings, (s) => {
+    const v = form.values.value;
+    if (v.variant !== s.variant || v.solidSurface !== s.solidSurface) form.load(s as never);
+  });
+  return <ParamsForm form={form} />;
 }
 
 function sameNumbers(a: readonly number[], b: readonly number[]) {

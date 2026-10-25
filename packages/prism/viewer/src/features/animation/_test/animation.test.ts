@@ -345,7 +345,7 @@ describe('wiggle', () => {
 
     const r = await v.api.animation!.wiggle({ mode: 'dynamics', amplitude: 0.5 });
     expectOk(r);
-    expect(wiggleOf(v.plugin)).toEqual({ mode: 'dynamics', amplitude: 0.5 });
+    expect(wiggleOf(v.plugin)).toMatchObject({ mode: 'dynamics', amplitude: 0.5 });
     // It is on the representations, not just the options.
     const repr = v.plugin.managers.structure.hierarchy.current.structures[0].components[0].representations[0];
     expect((repr.cell.transform.params as any).type.params.animation.wiggleAmplitude).toBe(0.5);
@@ -360,7 +360,7 @@ describe('wiggle', () => {
     expect(v.managers.history.steps.value.length).toBe(steps + 1);
 
     expectOk(await v.api.history.undo());
-    expect(wiggleOf(v.plugin)).toEqual({ mode: 'dynamics', amplitude: 0.5 });
+    expect(wiggleOf(v.plugin)).toMatchObject({ mode: 'dynamics', amplitude: 0.5 });
   });
 
   it('wiggles by uncertainty with layers, and clears them', async () => {
@@ -412,6 +412,41 @@ describe('wiggle', () => {
     expectOk(await v.api.animation!.wiggle({ mode: 'dynamics' }));
     expect(wiggleOf(v.plugin).mode).toBe('dynamics');
     expect(wiggleCells(v.plugin).length).toBe(0);
+  });
+
+  it('sets the type, speed, frequency and tumble; keeps what is not given', async () => {
+    const v = await headlessViewer({ files: [cbs()], extensions: [AnimationFeature] });
+    expectOk(
+      await v.api.animation!.wiggle({ mode: 'dynamics', amplitude: 0.5, type: 'group', speed: 3, frequency: 0.5 }),
+    );
+    expect(wiggleOf(v.plugin)).toMatchObject({
+      mode: 'dynamics',
+      amplitude: 0.5,
+      type: 'group',
+      speed: 3,
+      frequency: 0.5,
+    });
+    const repr = () =>
+      (
+        v.plugin.managers.structure.hierarchy.current.structures[0].components[0].representations[0].cell.transform
+          .params as any
+      ).type.params.animation;
+    expect(repr()).toMatchObject({ wiggleMode: 'group', wiggleSpeed: 3, wiggleFrequency: 0.5 });
+
+    // the tumble alone: the wiggle as it was
+    const t = await v.api.animation!.wiggle({ tumble: 2, tumbleSpeed: 4 });
+    expectOk(t);
+    expect(t.did).toBe('Changed the wiggle (dynamics, amplitude 0.5); the copies tumble (2 Å).');
+    expect(wiggleOf(v.plugin)).toMatchObject({ mode: 'dynamics', amplitude: 0.5, speed: 3, tumble: 2, tumbleSpeed: 4 });
+    expect(repr()).toMatchObject({ tumbleAmplitude: 2, tumbleSpeed: 4 });
+
+    // off stops the wiggle, the tumble goes on; then it stops too
+    expect(await v.api.animation!.wiggle({ mode: 'off' })).toMatchObject({
+      did: 'Stopped the wiggle; the copies tumble (2 Å).',
+    });
+    expect(await v.api.animation!.wiggle({ mode: 'off' })).toMatchObject({ unchanged: true });
+    expect(await v.api.animation!.wiggle({ tumble: 0 })).toMatchObject({ did: 'Stopped the tumble.' });
+    expect(wiggleOf(v.plugin)).toMatchObject({ mode: 'off', tumble: 0 });
   });
 
   it('needs a structure', async () => {

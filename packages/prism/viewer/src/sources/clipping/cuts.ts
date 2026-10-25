@@ -370,8 +370,16 @@ export const AroundRoom = 4;
 /** The least radius (Å) a new cut is sized from: a few atoms' bounds would make a cut too small to see or grab */
 export const MinPlacedRadius = 12;
 
-/** Each representation's params with `next` in place of `previous` (or appended when absent; removed when undefined) */
-export function withObject(params: unknown, previous: CutObject | undefined, next: CutObject | undefined): unknown {
+/**
+ * Each representation's params with `next` in place of `previous` (or appended when absent; removed when undefined);
+ * with `variant`, a cut written makes the representation cut that way
+ */
+export function withObject(
+  params: unknown,
+  previous: CutObject | undefined,
+  next: CutObject | undefined,
+  variant?: Clip.Variant,
+): unknown {
   const clip = RepresentationClip.get(params);
   if (!clip) return params;
   const at = previous ? clip.objects.findIndex((o) => RepresentationClip.sameCut(o, previous)) : -1;
@@ -380,5 +388,5 @@ export function withObject(params: unknown, previous: CutObject | undefined, nex
     if (next) objects[at] = next;
     else objects.splice(at, 1);
   } else if (next) objects.push(next);
-  return RepresentationClip.set(params, { ...clip, objects });
+  return RepresentationClip.set(params, { ...clip, objects, ...(next && variant ? { variant } : {}) });
 }

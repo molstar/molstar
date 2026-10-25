@@ -206,11 +206,11 @@ framework: every extension lives in this repository, no stability promise beyond
 - **Built-in features** (`DefaultPrismViewerSpec().extensions`, `src/features/<name>`): `structure`, `volume`,
   `trajectory`, `annotations` (the scene's API; `requires` lists what must come before), `home`, `structure-panel`,
   `particles` (lazy: Mol*'s particles are opt-in, `ParticlesRegistry` is its plugin registry, so a viewer holds no
-  particle code until a particle file, an mmCIF holding particles or a session with particles needs it),
-  `selection-panel`, `help`, `loaders`, `canvas-settings`, `measurements`, `clipping` ([clipping.md](clipping.md)),
-  `superposition` (lazy), `state-tree` (lazy), `remote-states` (lazy, behind its setting), `snapshots`, `animation`,
-  `export-image`, `export-session`. Opt-in (not in the default spec; the Prism app adds it): `structure-move`
-  ([structure-move.md](structure-move.md)).
+  particle code until a particle file, an mmCIF holding particles or a session with particles needs it), `shapes` (the
+  `shape` area: meshes loaded on their own, the Structure panel's Shapes group), `selection-panel`, `help`, `loaders`,
+  `canvas-settings`, `measurements`, `clipping` ([clipping.md](clipping.md)), `superposition` (lazy), `state-tree`
+  (lazy), `remote-states` (lazy, behind its setting), `snapshots`, `animation`, `export-image`, `export-session`. Opt-in
+  (not in the default spec; the Prism app adds it): `structure-move` ([structure-move.md](structure-move.md)).
 - Built-in features' areas and operations in core areas are typed as present (`BuiltInApis`,
   `BuiltInOperationFeatures`); left out of a spec, reading one throws, naming the feature ([api.md](api.md) §2).
 - **Panels keep the core's ids** (`home`, `structure`, `selection`, `help`; `core.tab.*` as parts). Built-in features

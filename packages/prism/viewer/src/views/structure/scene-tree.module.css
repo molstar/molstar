@@ -115,6 +115,18 @@
 }
 
 /* A row's color (a volume's isosurface), before its description; a theme's colors: a split swatch. */
+/* A row with its own look (api.md §2, "Look"): the sliders glyph; faint where only rows under it have theirs. */
+.look {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  color: var(--msp-color-accent);
+}
+
+.lookInside {
+  opacity: 0.5;
+}
+
 .swatch {
   flex: none;
   width: 8px;

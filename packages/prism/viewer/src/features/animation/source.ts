@@ -35,10 +35,20 @@ export interface AnimationInfo {
 /** Wiggle: Mol*'s procedural animation of a structure's atoms. */
 export type WiggleMode = 'dynamics' | 'uncertainty' | 'off';
 
+/** How the wiggle's noise is seeded: by position (nearby atoms move together) or by group (each on its own). */
+export type WiggleType = 'position' | 'group';
+
 export interface WiggleState {
   readonly mode: WiggleMode;
-  /** The amplitude of the dynamics (0 when off or by uncertainty). */
+  /** How far the atoms move: the dynamics' amplitude, the uncertainty layers' largest; 0 when off. */
   readonly amplitude: number;
+  readonly type: WiggleType;
+  readonly speed: number;
+  readonly frequency: number;
+  /** How far whole copies (instances) tumble, in Å; 0: they do not. */
+  readonly tumble: number;
+  readonly tumbleSpeed: number;
+  readonly tumbleFrequency: number;
 }
 
 export interface AnimationState {
@@ -111,11 +121,25 @@ export function uncertaintyScale(plugin: PluginContext): number {
   return scale;
 }
 
+/** The wiggle and the tumble: the scene's animation options (`look`'s defaults) and the uncertainty layers. */
 export function wiggleOf(plugin: PluginContext): WiggleState {
-  const amplitude = plugin.managers.structure.component.state.options.animation.wiggleAmplitude;
-  if (amplitude > 0) return { mode: 'dynamics', amplitude };
-  return { mode: wiggleCells(plugin).length ? 'uncertainty' : 'off', amplitude: 0 };
+  const a = plugin.managers.structure.component.state.options.animation;
+  const rest = {
+    type: a.wiggleMode,
+    speed: a.wiggleSpeed,
+    frequency: a.wiggleFrequency,
+    tumble: a.tumbleAmplitude,
+    tumbleSpeed: a.tumbleSpeed,
+    tumbleFrequency: a.tumbleFrequency,
+  };
+  if (a.wiggleAmplitude > 0) return { mode: 'dynamics', amplitude: a.wiggleAmplitude, ...rest };
+  if (wiggleCells(plugin).length) return { mode: 'uncertainty', amplitude: uncertaintyScale(plugin), ...rest };
+  return { mode: 'off', amplitude: 0, ...rest };
 }
+
+/** Whether two wiggle states are the same. */
+export const sameWiggle = (a: WiggleState, b: WiggleState) =>
+  (Object.keys(a) as (keyof WiggleState)[]).every((k) => a[k] === b[k]);
 
 const sameInfo = (a: AnimationInfo, b: AnimationInfo) =>
   a.id === b.id && a.title === b.title && a.description === b.description && a.available === b.available;
@@ -146,10 +170,7 @@ export function createAnimationSource(plugin: PluginContext): AnimationSource {
       ),
     {
       compare: (a, b) =>
-        a.playing === b.playing &&
-        a.wiggle.mode === b.wiggle.mode &&
-        a.wiggle.amplitude === b.wiggle.amplitude &&
-        sameItems(a.animations, b.animations, sameInfo),
+        a.playing === b.playing && sameWiggle(a.wiggle, b.wiggle) && sameItems(a.animations, b.animations, sameInfo),
     },
   );
   return { state, dispose: () => {} };

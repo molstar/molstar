@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { cbs, crambin, headlessViewer, until } from '../../_test/harness.js';
 import type { SceneNode } from '../../model/scene.js';
 import type { PrismViewer } from '../../viewer.js';
+import { PlainCarbonElement } from '../representation-quick.js';
 
 // A structure representation's quick settings (model/representation-quick.ts) over a headless viewer: the common types
 // and themes that apply, a theme or one color picked, another type keeping the color and opacity, the size as a multiple
@@ -66,6 +67,31 @@ describe('the quick settings of a structure representation', () => {
     expect(isApplicable).not.toHaveBeenCalled();
     quick.settle();
     await idle(v);
+  });
+
+  it('offers Element with carbons by chain and with grey carbons, and moves between them', async () => {
+    const { v, row, quick } = await cartoon();
+    const ids = quick.themes.value.map((t) => t.id);
+    expect(ids).toContain('element-symbol');
+    expect(ids).toContain(PlainCarbonElement);
+    // each swatch shows its carbons (1CBS has one chain: its color; or the grey), then N, O, S
+    const colors = (id: string) => quick.themes.value.find((t) => t.id === id)!.swatch!.match(/#[0-9a-f]{6}/g)!;
+    expect(colors('element-symbol')).toHaveLength(4);
+    expect(colors(PlainCarbonElement)).toHaveLength(4);
+    expect(colors('element-symbol')[0]).not.toBe(colors(PlainCarbonElement)[0]);
+    expect(colors('element-symbol').slice(1)).toEqual(colors(PlainCarbonElement).slice(1));
+
+    quick.change({ theme: PlainCarbonElement, color: undefined });
+    quick.settle();
+    await until(() => params(v, row.id).colorTheme.params.carbonColor?.name === 'element-symbol');
+    expect(params(v, row.id).colorTheme.name).toBe('element-symbol');
+    expect(quick.theme.value).toBe(PlainCarbonElement);
+
+    // back to carbons by chain: the same theme, its default carbons
+    quick.change({ theme: 'element-symbol', color: undefined });
+    quick.settle();
+    await until(() => params(v, row.id).colorTheme.params.carbonColor?.name === 'chain-id');
+    expect(quick.theme.value).toBe('element-symbol');
   });
 
   it('offers no pLDDT for an experimental structure whose file does not say how it was determined', async () => {

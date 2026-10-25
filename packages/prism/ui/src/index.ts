@@ -67,6 +67,7 @@ export { GlassWordmark } from './views/shell/glass-wordmark.js';
 export { Markdown, type MarkdownHost, type MarkdownLinkEvent } from './components/markdown/markdown.js';
 export { ParamsForm } from './components/params/params-form.js';
 export { PresetsButton, PresetsList, presetIndex } from './components/params/presets.js';
+export { Popover } from './components/popover/popover.js';
 export { ScrollArea, type ScrollAreaProps } from './components/scroll-area/scroll-area.js';
 export {
   Floating,

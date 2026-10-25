@@ -36,6 +36,8 @@ export const ClippingSkill: ViewerSkill = {
     '  (scale) or inverts one; clipping.apply turns one on or off for a representation (its ref, as the list gives it);',
     '  clipping.keep leaves atoms (a target; the selection by default) whole in a cut, clipping.release cuts them again;',
     '  clipping.show draws a cut in the scene (saved with it); clipping.remove and clipping.clear take them away.',
+    '- clipping.settings: variant instance leaves out whole copies whose center is cut away (pixel cuts through), for',
+    '  every cut; solidSurface closes cut surfaces with a cap.',
   ].join('\n'),
   tools: [
     {
@@ -55,6 +57,11 @@ export const ClippingSkill: ViewerSkill = {
       description: 'Turns a cut on or off for one representation (leaves it whole).',
     },
     { id: 'remove_cut', operation: 'clipping.remove', description: 'Removes a cut.' },
+    {
+      id: 'cut_settings',
+      operation: 'clipping.settings',
+      description: 'How every cut cuts: through (pixel) or whole copies (instance); solid caps.',
+    },
   ],
 };
 
@@ -102,6 +109,13 @@ export const ClippingFeature: ViewerExtension = {
         title: 'Draw a cut in the scene…',
         alias: ['show cut', 'clip volume', 'draw clipping', 'show clipping'],
         action: 'Draw',
+      }),
+      operationCommand(api, x.settings, {
+        category,
+        icon: 'sliders-horizontal',
+        title: 'Set how cuts cut…',
+        alias: ['clip variant', 'clip instance', 'clip pixel', 'solid surface', 'solid cap', 'cut settings'],
+        action: 'Set',
       }),
       operationCommand(api, x.remove, { category, icon: 'trash-2', alias: ['remove clip', 'uncut'], action: 'Remove' }),
       operationCommand(api, x.clear, { category, icon: 'trash-2', alias: ['remove all clipping'], action: 'Remove' }),

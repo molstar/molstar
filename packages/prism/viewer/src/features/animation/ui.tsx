@@ -8,14 +8,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ActionFooter, domView, ParamsForm, SectionList, Show } from '@molstar/prism-ui';
+import { ActionFooter, domView, effect, ParamsForm, SectionList, Show } from '@molstar/prism-ui';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { createAnimationModel } from './model.js';
+import type { WiggleState } from './source.js';
 
 import { derive } from '@molstar/prism-ui/reactive/state';
 // The Animation card (parity.md §4; the mock's `registerMockAnimation`): a list of sections in the `animation` slot,
 // like Export's. Play chooses an animation of the plugin's (with its own params) and plays or stops it; Wiggle is
 // Mol*'s procedural animation. Both act through the person's API; other extensions add sections to the same slot.
+
+/** What moves now, under the Wiggle section's Apply. */
+function wiggleInfo(w: WiggleState): string {
+  if (w.mode === 'off') return w.tumble > 0 ? 'Tumbling' : '';
+  return `Wiggling by ${w.mode}${w.tumble > 0 ? ', tumbling' : ''}`;
+}
 
 export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const area = ctx.api.animation;
@@ -70,21 +77,27 @@ export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
         slot: 'animation',
         title: 'Wiggle',
         icon: 'orbit',
-        keywords: ['wiggle', 'dynamics', 'uncertainty', 'b-factor'],
+        keywords: ['wiggle', 'dynamics', 'uncertainty', 'b-factor', 'tumble', 'motion'],
         order: 1,
-        // Mol*'s wiggle: motion from noise (dynamics) or from model uncertainty; Clear removes it.
-        render: domView(() => (
-          <div style="display: grid; gap: var(--msp-space-3)">
-            <ParamsForm form={model.wiggleForm} />
-            <ActionFooter
-              icon="orbit"
-              label="Apply"
-              info={derive(model.wiggle, (w) => (w.mode === 'off' ? '' : `Wiggling by ${w.mode}`))}
-              secondary={{ icon: 'x', label: 'Clear', onClick: () => model.clearWiggle() }}
-              onApply={() => model.applyWiggle()}
-            />
-          </div>
-        )),
+        // Mol*'s wiggle: motion from noise (dynamics) or from model uncertainty, and whole copies tumbling (the scene's
+        // animation options: `look`'s defaults); Clear stops both.
+        render: domView(() => {
+          // The scene's wiggle, followed (set elsewhere: a command, a session, Undo); a paused section reads it again
+          // when it shows (`effect` resumes with its scope).
+          effect(model.wiggle, () => model.refreshWiggle());
+          return (
+            <div style="display: grid; gap: var(--msp-space-3)">
+              <ParamsForm form={model.wiggleForm} />
+              <ActionFooter
+                icon="orbit"
+                label="Apply"
+                info={derive(model.wiggle, wiggleInfo)}
+                secondary={{ icon: 'x', label: 'Clear', onClick: () => model.clearWiggle() }}
+                onApply={() => model.applyWiggle()}
+              />
+            </div>
+          );
+        }),
       },
     ],
     toolbar: [

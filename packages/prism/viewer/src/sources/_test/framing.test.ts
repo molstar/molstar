@@ -72,7 +72,7 @@ describe('the framing below the band', () => {
     const canvas3d = { requestCameraReset: (o?: { snapshot?: unknown }) => void calls.push(o ?? {}) };
     const element = { clientHeight: 500 } as HTMLElement;
     let band = 120;
-    const undo = frameBelowTop(canvas3d as never, element, () => band);
+    const { undo } = frameBelowTop(canvas3d as never, element, () => band);
 
     // A reset of its own (a snapshot, a session's camera): as it is.
     const own = { radius: 3 };
@@ -88,9 +88,130 @@ describe('the framing below the band', () => {
     // No band: Mol*'s own focus (nothing added).
     band = 0;
     expect(provider(scene, cam)).toEqual({});
+    band = 120;
 
     undo();
     canvas3d.requestCameraReset();
     expect(calls[2].snapshot).toBeUndefined();
+  });
+
+  it("frames Mol*'s first framing of a scene below the band, and again when the band comes, unless the camera moved", () => {
+    const calls: { snapshot?: unknown; durationMs?: number }[] = [];
+    let n = 0;
+    const listeners: ((n: number) => void)[] = [];
+    const state = { target: [0, 0, 0], position: [0, 0, 30] };
+    const canvas3d = {
+      requestCameraReset: (o?: { snapshot?: unknown; durationMs?: number }) => void calls.push(o ?? {}),
+      reprCount: {
+        get value() {
+          return n;
+        },
+        subscribe: (fn: (n: number) => void) => {
+          listeners.push(fn);
+          fn(n);
+          return { unsubscribe: () => listeners.splice(listeners.indexOf(fn), 1) };
+        },
+      },
+      camera: { state, transition: { inTransition: false } },
+    };
+    const element = { clientHeight: 1000 } as HTMLElement;
+    let band = 0;
+    const framing = frameBelowTop(canvas3d as never, element, () => band);
+    const resolve = (i: number) => {
+      // what Canvas3D does with the reset asked: the snapshot read, the camera put there
+      const provider = calls[i].snapshot as (
+        scene: unknown,
+        camera: FramingCamera,
+      ) => { target?: number[]; position?: number[] };
+      const cam = camera(1000);
+      const own = provider({ boundingSphereVisible: { center: [0, 0, 0], radius: 10 } }, cam);
+      const f = own.target ? own : cam.getFocus([0, 0, 0], 10);
+      state.target = [...(f.target as number[])];
+      state.position = [...(f.position as number[])];
+    };
+
+    // the scene from empty to drawn: a reset joins Mol*'s first framing, instantly
+    n = 3;
+    for (const l of listeners) l(n);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].durationMs).toBe(0);
+    resolve(0);
+
+    // the band comes: framed again, the camera not moved since
+    band = 200;
+    framing.reframe();
+    expect(calls).toHaveLength(2);
+    resolve(1);
+    expect(state.target[1]).toBeGreaterThan(0);
+
+    // the person turned the camera: the band going leaves it
+    state.position = [5, 5, 5];
+    band = 0;
+    framing.reframe();
+    expect(calls).toHaveLength(2);
+    framing.undo();
+    expect(listeners).toHaveLength(0);
+  });
+
+  it("frames again a scene Mol* framed before the hold (or before the band), the camera where Mol*'s framing put it", () => {
+    const calls: unknown[] = [];
+    const cam = camera(1000);
+    const own = cam.getFocus([0, 0, 0], 10);
+    const state = { target: [...(own.target as number[])], position: [...(own.position as number[])] };
+    const canvas3d = {
+      requestCameraReset: (o?: unknown) => void calls.push(o ?? {}),
+      boundingSphereVisible: { center: [0, 0, 0], radius: 10 },
+      camera: { state, transition: { inTransition: false }, getFocus: cam.getFocus },
+    };
+    const framing = frameBelowTop(canvas3d as never, { clientHeight: 1000 } as HTMLElement, () => 200);
+    framing.reframe();
+    expect(calls).toHaveLength(1);
+    // turned by the person: left alone
+    state.position = [1, 2, 3];
+    framing.reframe();
+    expect(calls).toHaveLength(1);
+    framing.undo();
+  });
+
+  it('joins each commit’s reset until one has framed a drawn scene; a camera of its own (a session’s) is left', () => {
+    const calls: { snapshot?: unknown; durationMs?: number }[] = [];
+    let n = 0;
+    const listeners: ((n: number) => void)[] = [];
+    const canvas3d = {
+      requestCameraReset: (o?: { snapshot?: unknown; durationMs?: number }) => void calls.push(o ?? {}),
+      reprCount: {
+        get value() {
+          return n;
+        },
+        subscribe: (fn: (n: number) => void) => {
+          listeners.push(fn);
+          return { unsubscribe: () => listeners.splice(listeners.indexOf(fn), 1) };
+        },
+      },
+    };
+    const commit = (count: number) => {
+      n = count;
+      for (const l of listeners) l(n);
+    };
+    const framing = frameBelowTop(canvas3d as never, { clientHeight: 1000 } as HTMLElement, () => 0);
+    // the first commit's reset met nothing visible: its snapshot never read (Canvas3D frames nothing then)
+    commit(1);
+    expect(calls).toHaveLength(1);
+    // the next commit asks again; this one frames
+    commit(4);
+    expect(calls).toHaveLength(2);
+    (calls[1].snapshot as (scene: unknown, camera: FramingCamera) => unknown)(
+      { boundingSphereVisible: { center: [0, 0, 0], radius: 10 } },
+      camera(1000),
+    );
+    commit(5);
+    expect(calls).toHaveLength(2);
+
+    // emptied, and a session's camera restored with the next scene: its own, not framed again
+    commit(0);
+    canvas3d.requestCameraReset({ snapshot: { radius: 3 } });
+    commit(3);
+    expect(calls).toHaveLength(3);
+    framing.undo();
   });
 });

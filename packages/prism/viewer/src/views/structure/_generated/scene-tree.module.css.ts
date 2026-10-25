@@ -27,6 +27,8 @@ export const classes = {
   'label': 'msp-viewer-scene-tree-label',
   'leaf': 'msp-viewer-scene-tree-leaf',
   'loading': 'msp-viewer-scene-tree-loading',
+  'look': 'msp-viewer-scene-tree-look',
+  'lookInside': 'msp-viewer-scene-tree-lookInside',
   'menu': 'msp-viewer-scene-tree-menu',
   'menuItem': 'msp-viewer-scene-tree-menuItem',
   'more': 'msp-viewer-scene-tree-more',
@@ -139,6 +141,17 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   animation-fill-mode: both;
   animation-timeline: scroll(self inline);
   overflow: hidden;
+}
+
+.msp-viewer-scene-tree-look {
+  color: var(--msp-color-accent);
+  flex: none;
+  place-items: center;
+  display: inline-grid;
+}
+
+.msp-viewer-scene-tree-lookInside {
+  opacity: .5;
 }
 
 .msp-viewer-scene-tree-swatch {

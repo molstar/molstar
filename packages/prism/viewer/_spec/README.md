@@ -154,9 +154,13 @@ Numbered as code cites them (`README decision 30`); numbers of dropped decisions
 - **28. No changes to the GL layer** (WebGPU is being built): resizes improve at the shell and plugin level. Floating
   panels float over the canvas and do not resize it; a pinned panel sits beside it (the canvas ends where it begins: a
   resize only as it is pinned, unpinned, opened or closed). Camera resets frame the scene below the sequence band
-  (`sources/framing.ts` `frameBelowTop`, `paddedFocus`); Mol*'s own first framing of a scene does not (no hook without
-  changing the graphics package). A ResizeObserver on the viewer's element sizes and draws the canvas in the same
-  callback, and an unchanged size is not set again (`sources/canvas-host.ts`).
+  (`sources/framing.ts` `frameBelowTop`, `paddedFocus`), Mol*'s own first framing of a scene too (a reset asked when
+  `reprCount` tells of a commit joins the one Canvas3D asked in it, until one has framed a drawn scene). The band comes
+  a few frames after the scene (Seq* makes its document first): while it is coming (not shown yet this session, the
+  sequence in the UI, the followed structure with a polymer) the first framing counts it in, so its arrival moves
+  nothing; closed or shown later, the scene glides to its new frame (`FrameGlideMs`) if the camera is where a framing
+  (ours or Mol*'s) left it. Reset view moves no camera nobody moved. A ResizeObserver on the viewer's element sizes and
+  draws the canvas in the same callback, and an unchanged size is not set again (`sources/canvas-host.ts`).
 - **29. Several viewers on a page** (`src/page.ts`, the stories `Viewer/Several viewers`): each is a shadow root with a
   plugin of its own, and nothing it owns is page-wide. Keys go to the viewer that has focus (`ownsKey`, never the
   window; also the assistant's Esc and Inspector keys); menus and the pick level live in the viewer's root; fullscreen

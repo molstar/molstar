@@ -11,7 +11,7 @@ import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynam
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
-import { type State, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
+import { type State, type StateObject, type StateObjectCell, StateSelection, StateTree } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
@@ -91,9 +91,14 @@ import { fromChanged, onceATask, type SourceScope } from './state.js';
 import { type Observable, of } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
+import { createNodeLookModel, groupLookMark, representationLookMark, sameLookMark } from './look.js';
+import { type ShapeEntry, shapeEntries } from './shapes.js';
+import type { SceneLookMark } from '../model/look.js';
 import {
   createRepresentationQuick,
   representationChoices,
+  choiceOfTheme,
+  PlainCarbonElement,
   type RepresentationQuickSource,
 } from './representation-quick.js';
 import type { RepresentationQuickChange } from '../model/representation-quick.js';
@@ -120,11 +125,28 @@ export const ReprIcons: Readonly<Record<string, IconName>> = {
   ellipsoid: 'spacefill',
 };
 
+/** The nodes with a look (the structure representations under them). */
+const LookKinds: ReadonlySet<SceneNodeKind> = new Set([
+  'structure',
+  'component',
+  'representation',
+  'volume',
+  'volume-representation',
+  'particles',
+  'particles-representation',
+  'shape',
+  'shape-representation',
+]);
+
+/** The rows a look mark can show on: structure representations and what holds them (their overrides). */
+const MarkedKinds: ReadonlySet<SceneNodeKind> = new Set(['structure', 'components', 'component', 'representation']);
+
 /** The operation that applies an inspector form, by the kind of representation it edits. */
 const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   representation: 'representation.update',
   'volume-representation': 'volume.update',
   'particles-representation': 'particles.update',
+  'shape-representation': 'shape.update',
 };
 
 /** What a node id is kept by: the part before its `#` (a structure's contents, entities and chains), else itself. */
@@ -232,6 +254,8 @@ class Node implements SceneNode {
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
   #swatch?: ObservableState<number | undefined>;
+  /** Only a node that can have a look gets the state (its row builds the mark then): `LookKinds`. */
+  readonly #look?: ObservableState<SceneLookMark | undefined>;
   /** A structure's frames (several): `structureNode` sets it, and takes it away when it has one model again. */
   trajectory?: SceneTrajectory;
   icon: IconName;
@@ -258,6 +282,8 @@ class Node implements SceneNode {
     },
   ) {
     this.icon = icon;
+    if (MarkedKinds.has(kind))
+      this.#look = observableState<SceneLookMark | undefined>(undefined, { compare: sameLookMark });
     this.#label = observableState(label);
     this.#expanded = observableState(expanded);
   }
@@ -298,6 +324,15 @@ class Node implements SceneNode {
   }
   get swatch(): ReadonlyState<number | undefined> | undefined {
     return this.#swatch?.asReadonly;
+  }
+
+  get look(): ReadonlyState<SceneLookMark | undefined> | undefined {
+    return this.#look?.asReadonly;
+  }
+
+  /** Its look mark: its own values (a representation), or rows under it with theirs (api.md §2, "Look"). */
+  setLook(mark: SceneLookMark | undefined): void {
+    this.#look?.set(mark);
   }
 
   /** The row's color (a volume's isosurface); only rows that have one get it. */
@@ -527,8 +562,15 @@ export function createSceneSource(
         return now?.kind === 'structure' ? structureMenu(plugin, api, now) : undefined;
       };
     }
+    n.setLook(
+      groupLookMark(
+        plugin,
+        s.components.flatMap((c) => c.representations),
+      ),
+    );
     // An open inspector follows the source and the transform (Undo, superposition), without reporting it as an edit.
     if (data) inspections.get(ref)?.form?.load(structureValues(s, data));
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -809,6 +851,8 @@ export function createSceneSource(
         undefined,
       !!c.cell.state.isHidden,
     );
+    n.setLook(groupLookMark(plugin, c.representations));
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -829,6 +873,8 @@ export function createSceneSource(
     }
     n.icon = ReprIcons[type] ?? 'cartoon';
     n.set(reprLabel(plugin, r), colorLabel(plugin, r), !!r.cell.state.isHidden);
+    n.setLook(representationLookMark(plugin, r));
+    inspections.get(ref)?.look?.refresh();
     // An open inspector follows the cell (Undo, another surface), without reporting it as an edit.
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
     (inspections.get(ref)?.quick as RepresentationQuickSource | undefined)?.refresh();
@@ -998,6 +1044,7 @@ export function createSceneSource(
     const stats = data && volumeStats(data);
     n.set(name, stats ? `${gridText(stats)} · ${voxelText(stats)}` : undefined, !!v.cell.state.isHidden);
     refreshLevels(ref);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -1028,6 +1075,7 @@ export function createSceneSource(
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
     refreshLevels(ref);
     refreshLevels(volumeRef);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -1047,6 +1095,7 @@ export function createSceneSource(
     // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
     if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref, openCommand);
     inspections.get(ref)?.form?.load(l.cell.transform.params as never);
+    inspections.get(ref)?.look?.refresh();
     // A trajectory's frames (Simularium): a row under it shows and plays them, as a structure's (`particles.frame`)
     const frames = particleFrames(plugin, l.cell);
     const before = n.trajectory;
@@ -1060,6 +1109,70 @@ export function createSceneSource(
       n.trajectory = t;
     }
     if (n.trajectory !== before) n.log?.touch(n.id);
+    return n;
+  };
+
+  // Shapes loaded on their own (a mesh file): one group, a row each, their representations under them; eyes, removes
+  // and focus through `shape.*` (the shapes feature).
+  const shapesNode = (): Node => {
+    const id = '#shapes';
+    let n = nodes.get(id);
+    if (!n) {
+      // its eye: every shape at once, one run (`shape.visibility` with no node)
+      n = new Node(id, 'shapes', 'shapes', 'Shapes', true, {
+        visibility: (hide) => void api.run('shape.visibility', { visible: !hide }),
+      });
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    return n;
+  };
+
+  const shapeNode = (e: ShapeEntry): Node => {
+    const ref = e.cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'shape', 'shapes', e.label, false, {
+        visibility: (hide) => void api.run('shape.visibility', { node: ref, visible: !hide }),
+        focus: () => void api.run('shape.focus', { node: ref }),
+        remove: () => void api.run('shape.remove', { node: ref }),
+      });
+      n.removable = !!api.describe('shape.remove');
+      nodes.set(ref, n);
+    }
+    n.set(
+      e.label,
+      e.representations.map((r) => r.obj?.label ?? 'Representation').join(', ') || undefined,
+      !!e.cell.state.isHidden,
+    );
+    inspections.get(ref)?.look?.refresh();
+    return n;
+  };
+
+  const shapeReprNode = (cell: StateObjectCell): Node => {
+    const ref = cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'shape-representation', 'shapes', '', false, {
+        visibility: (hide) => void api.run('shape.visibility', { node: ref, visible: !hide }),
+        focus: () => void api.run('shape.focus', { node: ref }),
+        remove: () => void api.run('shape.remove', { node: ref }),
+      });
+      n.removable = !!api.describe('shape.remove');
+      nodes.set(ref, n);
+    }
+    const p = cell.transform.params as { coloring?: { name?: string }; alpha?: number } | undefined;
+    const coloring = p?.coloring?.name;
+    const alpha = p?.alpha !== undefined && p.alpha < 1 ? `${Math.round(p.alpha * 100)}%` : undefined;
+    n.set(
+      cell.obj?.label ?? 'Representation',
+      [coloring ? `${coloring[0].toUpperCase()}${coloring.slice(1)} colors` : undefined, alpha]
+        .filter(Boolean)
+        .join(' · ') || undefined,
+      !!cell.state.isHidden,
+    );
+    inspections.get(ref)?.form?.load(cell.transform.params as never);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -1106,6 +1219,7 @@ export function createSceneSource(
     if (!n.menuSource)
       n.menuSource = () => particlesRepresentationMenu(plugin, api, ref, () => picked.set(nodes.get(ref)));
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -1117,6 +1231,8 @@ export function createSceneSource(
   const seenCount = new Map<string, number>();
   /** The ids held by the rows after the structures (the focus, volumes, particles, measurements) at the last sync. */
   let restIds: readonly string[] = [];
+  /** The shapes' cells as the last sync saw them (a removal of one rebuilds: `shapeEntries`). */
+  let shapeRefs: ReadonlySet<string> = new Set();
   /** Structures built anew at the next sync whatever their signature (a streaming cell came or went under one). */
   const stale = new Set<string>();
   const markStale = (ref: string | undefined) => {
@@ -1324,6 +1440,12 @@ export function createSceneSource(
     ids.push(cg.id);
     cg.set('Components', comps.length === 1 ? '1 component' : `${comps.length} components`, allHidden(comps));
     cg.setChildren(comps);
+    cg.setLook(
+      groupLookMark(
+        plugin,
+        s.components.flatMap((c) => c.representations),
+      ),
+    );
     kids.push(cg);
     rows.parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
     rows.focused = focused;
@@ -1429,13 +1551,6 @@ export function createSceneSource(
     }
     stale.clear();
     const rest: string[] = [];
-    if (list.length) {
-      // Named by its structure when there are several.
-      const fn = focusNode(allFocusParts, list.length > 1 ? focusedOn : undefined);
-      rest.push(fn.id);
-      fn.setChildren(allFocused);
-      top.push(fn);
-    }
     const volumes = plugin.managers.volume.hierarchy.current.volumes;
     const volumeLabels = namesOf(volumes);
     for (const v of volumes) {
@@ -1470,6 +1585,38 @@ export function createSceneSource(
         }),
       ]);
       top.push(ln);
+    }
+    const shapes = shapeEntries(plugin.state.data);
+    shapeRefs = new Set(
+      shapes.flatMap((e) => [e.cell.transform.ref, ...e.representations.map((r) => r.transform.ref)]),
+    );
+    if (shapes.length) {
+      const gn = shapesNode();
+      rest.push(gn.id);
+      gn.setChildren(
+        shapes.map((e) => {
+          const sn = shapeNode(e);
+          rest.push(sn.id);
+          sn.setChildren(
+            e.representations.map((r) => {
+              const rn = shapeReprNode(r);
+              rest.push(rn.id);
+              return rn;
+            }),
+          );
+          return sn;
+        }),
+      );
+      gn.set('Shapes', shapes.length === 1 ? '1 shape' : `${shapes.length} shapes`, allHidden(gn.children.value));
+      top.push(gn);
+    }
+    // The focus after the data (structures, maps, particles, shapes), before the measurements.
+    if (list.length) {
+      // Named by its structure when there are several.
+      const fn = focusNode(allFocusParts, list.length > 1 ? focusedOn : undefined);
+      rest.push(fn.id);
+      fn.setChildren(allFocused);
+      top.push(fn);
     }
     // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
     // through `measure.*` (the measurements feature), their hover and focus through the measured atoms.
@@ -1547,9 +1694,17 @@ export function createSceneSource(
 
   const build = (n: SceneNode): SceneInspection => {
     if (n.kind === 'sequence' && sequence) return inspectSequence(n);
-    return inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) =>
-      picked.set(row),
+    const inspection = inspect(
+      plugin,
+      api,
+      n,
+      unitCellOwners.get(n.id) ?? streamingOwners.get(n.id),
+      levelUnit,
+      (row) => picked.set(row),
     );
+    // What is drawn under a structure, a component, a representation: its look, over the scene defaults.
+    const look = LookKinds.has(n.kind) ? createNodeLookModel(plugin, api, n.id) : undefined;
+    return look ? { ...inspection, look } : inspection;
   };
 
   /**
@@ -1637,6 +1792,32 @@ export function createSceneSource(
     );
   }
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
+  // The scene defaults changed: the rows' look marks are read again (an override is a value other than the default),
+  // every structure's, not only those a sync rebuilds (an options change that rewrites no representation leaves the
+  // tree's signatures as they were: `signed`); an open inspector's look too. Once a burst, after it.
+  const refreshLook = () => {
+    for (const s of plugin.managers.structure.hierarchy.current.structures) {
+      const ref = s.cell.transform.ref;
+      nodes.get(ref)?.setLook(
+        groupLookMark(
+          plugin,
+          s.components.flatMap((c) => c.representations),
+        ),
+      );
+      nodes.get(componentsNodeId(ref))?.setLook(
+        groupLookMark(
+          plugin,
+          s.components.flatMap((c) => c.representations),
+        ),
+      );
+      for (const c of s.components) {
+        nodes.get(c.cell.transform.ref)?.setLook(groupLookMark(plugin, c.representations));
+        for (const r of c.representations) nodes.get(r.cell.transform.ref)?.setLook(representationLookMark(plugin, r));
+      }
+    }
+    for (const i of inspections.values()) i.look?.refresh();
+  };
+  scope.add(onceATask(plugin.managers.structure.component.events.optionsUpdated).subscribe(refreshLook));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
   // The measurements (one added, removed, or given new params: its label, its unit): the manager says its state
@@ -1655,6 +1836,32 @@ export function createSceneSource(
       const same = now.length === measured.length && now.every((x, i) => x === measured[i]);
       measured = now;
       if (!same) sync();
+    }),
+  );
+  // Shapes are in no hierarchy: a shape provider's object made, or one of the shapes' (or their representations')
+  // made, recreated or removed, rebuilds the rows; not a structure's own shapes (a unit cell). Never while a state
+  // transaction runs (a structure removed is still in the hierarchy then, its cell gone): once it ends, once a burst.
+  let shapesStale = false;
+  const syncShapes = () => {
+    if (plugin.state.data.behaviors.isUpdating.value) {
+      shapesStale = true;
+      return;
+    }
+    shapesStale = false;
+    sync();
+  };
+  const isShapeOfItsOwn = (ref: string, obj: StateObject | undefined) => {
+    if (PluginStateObject.Shape.Provider.is(obj)) return true;
+    if (!PluginStateObject.Shape.Representation3D.is(obj)) return false;
+    const parent = plugin.state.data.tree.transforms.get(ref)?.parent;
+    return parent !== undefined && PluginStateObject.Shape.Provider.is(plugin.state.data.cells.get(parent)?.obj);
+  };
+  scope.add(plugin.state.data.events.object.created.subscribe((e) => isShapeOfItsOwn(e.ref, e.obj) && syncShapes()));
+  scope.add(plugin.state.data.events.object.removed.subscribe((e) => shapeRefs.has(e.ref) && syncShapes()));
+  scope.add(plugin.state.data.events.object.updated.subscribe((e) => shapeRefs.has(e.ref) && syncShapes()));
+  scope.add(
+    plugin.state.data.behaviors.isUpdating.subscribe((updating) => {
+      if (!updating && shapesStale) syncShapes();
     }),
   );
   // Streaming's cells are not in the hierarchies: their coming and going rebuilds, a params change refreshes the row.
@@ -1721,7 +1928,9 @@ export function createSceneSource(
           ? nodes.get(componentsNodeId(ref.structure.cell.transform.ref))
           : n.kind === 'measurement'
             ? nodes.get('#measurements')
-            : undefined;
+            : n.kind === 'shape'
+              ? nodes.get('#shapes')
+              : undefined;
       if (group) group.set(group.label.value, group.description.value, allHidden(group.children.value));
     }),
   );
@@ -2007,9 +2216,13 @@ function reprLabel(plugin: PluginContext, r: StructureRepresentationRef): string
 }
 
 function colorLabel(plugin: PluginContext, r: StructureRepresentationRef): string | undefined {
-  const name = (r.cell.transform.params as { colorTheme?: { name: string } } | undefined)?.colorTheme?.name;
-  if (!name) return undefined;
-  return plugin.representation.structure.themes.colorThemeRegistry.get(name)?.label ?? name;
+  const theme = (
+    r.cell.transform.params as { colorTheme?: { name: string; params: Record<string, unknown> } } | undefined
+  )?.colorTheme;
+  if (!theme) return undefined;
+  const label = plugin.representation.structure.themes.colorThemeRegistry.get(theme.name)?.label ?? theme.name;
+  // the quick settings' Element with grey carbons: one theme, told apart
+  return choiceOfTheme(theme) === PlainCarbonElement ? `${label}, grey C` : label;
 }
 
 /** Mol*'s component menu: add representation, color, modify by the selection, select this. */
@@ -2950,7 +3163,12 @@ function inspect(
   const updateOperation = UpdateOperations[node.kind];
   if (updateOperation && cell) {
     const parent = plugin.state.data.cells.get(cell.transform.parent);
-    const def = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
+    const all = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
+    // A shape's colors beside its opacity, not under Advanced: what a mesh is changed by first.
+    const def =
+      all && node.kind === 'shape-representation' && all.coloring
+        ? { ...all, coloring: { ...all.coloring, isEssential: true, label: 'Color' } }
+        : all;
     if (def) {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const form = new ParamsFormModel(def, cell.transform.params as PD.Values<PD.Params>, {

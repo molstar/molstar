@@ -187,7 +187,7 @@ export class PrismScriptHost implements ScriptHost {
       case 'hide-contents':
         return this.#hideContents(cmd.sel);
       case 'hydrogens':
-        await ops.run('component.options', { hydrogens: cmd.visible ? 'all' : 'hide-all' });
+        await ops.run('look.set', { hydrogens: cmd.visible ? 'all' : 'hide-all' });
         return cmd.visible ? 'Showed hydrogens.' : 'Hid hydrogens.';
       case 'camera':
         return this.#camera(cmd);

@@ -7,36 +7,37 @@ how.
 
 Numbered rows (code cites `§1, row 2`); files under `src/sources/` unless a path is given.
 
-| #   | Plugin state                                               | Read by → shown through                                          |
-| --- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| 1   | `state.data`                                               | `features/state-tree/source.ts` → `StateTreeModel`               |
-| 2   | `managers.structure.hierarchy`                             | `scene.ts` (a record per node) → `SceneModel`                    |
-| 3   | a structure's entities and chains                          | `scene.ts`, on first expand → contents nodes                     |
-| 4   | `managers.volume`, volume streaming                        | `scene.ts` → volume nodes, the streaming row                     |
-| 5   | `managers.particles`                                       | `scene.ts` → particle nodes                                      |
-| 6   | `managers.structure.component`                             | `structure-tab.ts` → `PresetsModel`, component options           |
-| 7   | `managers.structure.selection`                             | `selection.ts`, `interaction.ts` → `SelectionModel`              |
-| 8   | selection mode, `managers.interactivity.props`             | `interaction.ts` → `ModeSwitch`                                  |
-| 9   | `managers.structure.focus`                                 | `interaction.ts` → `focus.*`                                     |
-| 10  | `managers.structure.measurement`                           | `measurements.ts`, `features/measurements/source.ts`             |
-| 11  | superposition (v5: in the view)                            | `features/superposition/operations.ts` → `SuperpositionModel`    |
-| 12  | style layers (overpaint, transparency, emissive, clipping) | `style-layers.ts` → `representation.layers`                      |
-| 13  | `managers.snapshot`, `.markdownExtensions`                 | `features/snapshots/source.ts` → `SnapshotsModel`                |
-| 14  | remote states                                              | `features/remote-states/` → `RemoteStatesModel`                  |
-| 15  | trajectory frames                                          | `trajectory.ts` → the scene's `SceneTrajectory`, the canvas chip |
-| 16  | `managers.animation`, procedural animation                 | `features/animation/source.ts` → `AnimationModel`                |
-| 17  | `canvas3d.props`                                           | `viewer-sources.ts`, `settings.ts` → Canvas card, Settings       |
-| 18  | `canvas3d.xr`                                              | `xr.ts` → toolbar XR item                                        |
-| 19  | `managers.camera`                                          | `framing.ts`, `features/export-image/source.ts`                  |
-| 20  | `helpers.viewportScreenshot`                               | `features/export-image/operations.ts` → `ImageExportModel`       |
-| 21  | `behaviors.labels.highlight`                               | `pointer.ts` → `HoverLabelModel`                                 |
-| 22  | `state.behaviors`, `config`                                | `settings.ts` → `SettingsModel`; config read at start            |
-| 23  | `managers.toast`, `events.log`                             | `toasts.ts` → status column, History's Log                       |
-| 24  | `managers.task`                                            | `viewer-sources.ts` `tasks` → status pill (Cancel), busy overlay |
-| 25  | registry: actions, formats                                 | `home.ts` (follows registrations) → `HomeModel.actions`          |
-| 26  | registry: presets, themes                                  | `structure-tab.ts` → `PresetsModel`, `QuickStylesModel`          |
-| 27  | sequence                                                   | `sequence.ts` → `SequenceViewers` ([sequence.md](sequence.md))   |
-| 28  | bindings                                                   | `ui/bindings.ts` → Help tab                                      |
+| #   | Plugin state                                               | Read by → shown through                                           |
+| --- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | `state.data`                                               | `features/state-tree/source.ts` → `StateTreeModel`                |
+| 2   | `managers.structure.hierarchy`                             | `scene.ts` (a record per node) → `SceneModel`                     |
+| 3   | a structure's entities and chains                          | `scene.ts`, on first expand → contents nodes                      |
+| 4   | `managers.volume`, volume streaming                        | `scene.ts` → volume nodes, the streaming row                      |
+| 5   | `managers.particles`                                       | `scene.ts` → particle nodes                                       |
+| 5a  | shape providers in the state tree (no manager)             | `shapes.ts` → `scene.ts`'s Shapes group, `shape.*`                |
+| 6   | `managers.structure.component`                             | `structure-tab.ts` → `PresetsModel`; `look.ts` → `SceneLookModel` |
+| 7   | `managers.structure.selection`                             | `selection.ts`, `interaction.ts` → `SelectionModel`               |
+| 8   | selection mode, `managers.interactivity.props`             | `interaction.ts` → `ModeSwitch`                                   |
+| 9   | `managers.structure.focus`                                 | `interaction.ts` → `focus.*`                                      |
+| 10  | `managers.structure.measurement`                           | `measurements.ts`, `features/measurements/source.ts`              |
+| 11  | superposition (v5: in the view)                            | `features/superposition/operations.ts` → `SuperpositionModel`     |
+| 12  | style layers (overpaint, transparency, emissive, clipping) | `style-layers.ts` → `representation.layers`                       |
+| 13  | `managers.snapshot`, `.markdownExtensions`                 | `features/snapshots/source.ts` → `SnapshotsModel`                 |
+| 14  | remote states                                              | `features/remote-states/` → `RemoteStatesModel`                   |
+| 15  | trajectory frames                                          | `trajectory.ts` → the scene's `SceneTrajectory`, the canvas chip  |
+| 16  | `managers.animation`, procedural animation                 | `features/animation/source.ts` → `AnimationModel`                 |
+| 17  | `canvas3d.props`                                           | `viewer-sources.ts`, `settings.ts` → Canvas card, Settings        |
+| 18  | `canvas3d.xr`                                              | `xr.ts` → toolbar XR item                                         |
+| 19  | `managers.camera`                                          | `framing.ts`, `features/export-image/source.ts`                   |
+| 20  | `helpers.viewportScreenshot`                               | `features/export-image/operations.ts` → `ImageExportModel`        |
+| 21  | `behaviors.labels.highlight`                               | `pointer.ts` → `HoverLabelModel`                                  |
+| 22  | `state.behaviors`, `config`                                | `settings.ts` → `SettingsModel`; config read at start             |
+| 23  | `managers.toast`, `events.log`                             | `toasts.ts` → status column, History's Log                        |
+| 24  | `managers.task`                                            | `viewer-sources.ts` `tasks` → status pill (Cancel), busy overlay  |
+| 25  | registry: actions, formats                                 | `home.ts` (follows registrations) → `HomeModel.actions`           |
+| 26  | registry: presets, themes                                  | `structure-tab.ts` → `PresetsModel`, `QuickStylesModel`           |
+| 27  | sequence                                                   | `sequence.ts` → `SequenceViewers` ([sequence.md](sequence.md))    |
+| 28  | bindings                                                   | `ui/bindings.ts` → Help tab                                       |
 
 ## 3. View state and undo
 

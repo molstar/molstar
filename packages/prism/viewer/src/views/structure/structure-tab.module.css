@@ -259,17 +259,6 @@
   margin-right: var(--msp-space-2);
 }
 
-.options {
-  flex: none;
-  max-height: 50%;
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-}
-
-.optionsContent {
-  padding: var(--msp-space-2) var(--msp-space-3);
-}
-
 /* A component's representations: rows to open them (their inspector), each with its eye. */
 .children {
   display: grid;

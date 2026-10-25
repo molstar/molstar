@@ -250,40 +250,6 @@ describe('component.modify', () => {
   });
 });
 
-describe('component.options', () => {
-  it('changes the manager options and the representations, and says when they are already so', async () => {
-    const { v } = await withLigand();
-    const manager = v.plugin.managers.structure.component;
-    const repr = () => named(v, 'Retinoic acid')[0].representations[0].cell.transform.params as any;
-    expect(manager.state.options.ignoreLight).toBe(false);
-    const stepsBefore = steps(v);
-
-    expectOk(await v.api.component.options({ ignoreLight: true }));
-    expect(manager.state.options.ignoreLight).toBe(true);
-    expect(repr().type.params.ignoreLight).toBe(true);
-    expect(steps(v)).toBe(stepsBefore + 1);
-
-    // what is not given stays; the same value is already so
-    expect(await v.api.component.options({ ignoreLight: true })).toMatchObject({ ok: true, unchanged: true });
-    expect(await v.api.component.options({})).toMatchObject({ ok: true, unchanged: true });
-    expect(steps(v)).toBe(stepsBefore + 1);
-
-    expectOk(await v.api.component.options({ hydrogens: 'hide-all', quality: 'high' }));
-    expect(manager.state.options).toMatchObject({ hydrogens: 'hide-all', visualQuality: 'high', ignoreLight: true });
-    expect(repr().type.params.ignoreHydrogens).toBe(true);
-
-    const bad = await v.api.component.options({ hydrogens: 'some' as never });
-    expect(bad).toMatchObject({ ok: false, code: 'invalid' });
-  });
-
-  it('gives a representation added later the options', async () => {
-    const v = await headlessViewer({ files: [cbs()] });
-    expectOk(await v.api.component.options({ ignoreLight: true }));
-    expectOk(await v.api.component.add({ target: 'ligand', label: 'RA' }));
-    expect((named(v, 'RA')[0].representations[0].cell.transform.params as any).type.params.ignoreLight).toBe(true);
-  });
-});
-
 describe('component.list', () => {
   it('reads the components of each structure with their representations', async () => {
     const { v, r } = await withLigand();

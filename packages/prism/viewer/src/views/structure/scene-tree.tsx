@@ -28,6 +28,7 @@ import { setShown } from '@molstar/prism-ui/dom/writes';
 import { setAttr, setClass, setStyle, setText } from '@molstar/prism-ui/dom/writes';
 import { TreeNavigation } from '@molstar/prism-ui/dom/tree-keys';
 import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
+import type { SceneLookMark } from '../../model/look.js';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { batch, observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { type KeyedSelector, keyedSelector } from '@molstar/prism-ui/reactive/keyed-selector';
@@ -650,6 +651,7 @@ function TreeItem(props: {
   let expander!: HTMLElement;
   let eyeButton!: HTMLElement;
   let swatch: HTMLElement | undefined;
+  let lookMark: HTMLElement | undefined;
   let menuButton: HTMLElement | undefined;
   // The eye: one icon shown, the other made the first time it is needed (most rows are never hidden).
   const eye = Icon({ name: 'eye', size: 14 });
@@ -659,7 +661,7 @@ function TreeItem(props: {
     <div
       role="treeitem"
       aria-level={depth + 1}
-      aria-labelledby={`${labelId} ${labelId}-d`}
+      aria-labelledby={`${labelId} ${labelId}-d${node.look ? ` ${labelId}-l` : ''}`}
       tabIndex={-1}
       class={classes.item}
       ref={props.nav.row(node.id)}
@@ -695,6 +697,11 @@ function TreeItem(props: {
         <span class={classes.label} id={labelId} data-tip-part="">
           {label}
         </span>
+        {node.look ? (
+          <span class={classes.look} id={`${labelId}-l`} role="img" ref={(e: HTMLElement) => (lookMark = e)}>
+            <Icon name="sliders-horizontal" size={12} />
+          </span>
+        ) : null}
         {node.swatch ? <span class={classes.swatch} aria-hidden="true" ref={(e: HTMLElement) => (swatch = e)} /> : null}
         <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
           {description}
@@ -751,6 +758,7 @@ function TreeItem(props: {
   const isPicked = props.picked.key(node);
   const sources: WatchSource[] = [node.label, node.description, node.isHidden, isPicked, place];
   if (node.swatch) sources.push(node.swatch);
+  if (node.look) sources.push(node.look);
   if (menu) sources.push(menuOpen);
   // What the last render wrote, by source: a render that runs for one source's change compares the others' values here,
   // in JS, and touches the DOM only for what changed (a pick renders every row: most write nothing).
@@ -758,6 +766,7 @@ function TreeItem(props: {
   let lastLabel: unknown = NotYet;
   let lastDescription: unknown = NotYet;
   let lastSwatch: unknown = NotYet;
+  let lastLook: unknown = NotYet;
   let lastHidden: unknown = NotYet;
   let lastEyeless: unknown = NotYet;
   let lastPicked: unknown = NotYet;
@@ -771,6 +780,10 @@ function TreeItem(props: {
     if (swatch) {
       const c = node.swatch!.value;
       if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
+    }
+    if (lookMark) {
+      const m = node.look!.value;
+      if (m !== lastLook) writeLookMark(lookMark, (lastLook = m));
     }
     // A row that shows or hides nothing as one (Entities, Other) has no eye; its place stays (the column lines up).
     const eyeless = node.hasEye === false;
@@ -848,6 +861,7 @@ function nodeSlot(props: {
   let expander!: HTMLElement;
   let labelEl!: HTMLElement;
   let swatch!: HTMLElement;
+  let lookMark!: HTMLElement;
   let eyeButton!: HTMLElement;
   let menuButton!: HTMLElement;
   let actionSlot!: HTMLElement;
@@ -855,7 +869,7 @@ function nodeSlot(props: {
   let eyeOff: SVGSVGElement | undefined;
   let eyeShown: SVGSVGElement = eye;
   const el = (
-    <div role="treeitem" aria-labelledby={`${labelId} ${labelId}-d`} tabIndex={-1} class={classes.item}>
+    <div role="treeitem" aria-labelledby={`${labelId} ${labelId}-d ${labelId}-l`} tabIndex={-1} class={classes.item}>
       <div
         data-tip-row=""
         data-tree-row=""
@@ -887,6 +901,9 @@ function nodeSlot(props: {
         </button>
         <span class={classes.label} id={labelId} data-tip-part="" ref={(e: HTMLElement) => (labelEl = e)}>
           {label}
+        </span>
+        <span class={classes.look} id={`${labelId}-l`} role="img" ref={(e: HTMLElement) => (lookMark = e)}>
+          <Icon name="sliders-horizontal" size={12} />
         </span>
         <span class={classes.swatch} aria-hidden="true" ref={(e: HTMLElement) => (swatch = e)} />
         <span class={classes.description} id={`${labelId}-d`} data-tip-part="">
@@ -946,6 +963,7 @@ function nodeSlot(props: {
   let lastLabel: unknown = NotYet;
   let lastDescription: unknown = NotYet;
   let lastSwatch: unknown = NotYet;
+  let lastLook: unknown = NotYet;
   let lastHidden: unknown = NotYet;
   let lastEyeless: unknown = NotYet;
   let lastPicked: unknown = NotYet;
@@ -990,6 +1008,8 @@ function nodeSlot(props: {
     if (d !== lastDescription) setText(description, (lastDescription = d) ?? '');
     const c = n.swatch?.value;
     if (c !== lastSwatch) setStyle(swatch, 'background', (lastSwatch = c) === undefined ? '' : colorToHex(c!));
+    const m = n.look?.value;
+    if (m !== lastLook) writeLookMark(lookMark, (lastLook = m));
     // A row that shows or hides nothing as one (Entities, Other) has no eye; its place stays (the column lines up).
     const eyeless = n.hasEye === false;
     if (eyeless !== lastEyeless) {
@@ -1060,9 +1080,21 @@ function nodeSlot(props: {
       isPicked = props.picked.key(n);
       const sources: WatchSource[] = [n.label, n.description, n.isHidden, isPicked, place, menuOpen];
       if (n.swatch) sources.push(n.swatch);
+      if (n.look) sources.push(n.look);
       handle.retarget(sources);
     },
   };
+}
+
+/**
+ * A row's look mark (api.md §2, "Look"): the sliders glyph while the node has values of its own (full) or rows under it
+ * do (faint); its tooltip and name say which.
+ */
+function writeLookMark(el: HTMLElement, mark: SceneLookMark | undefined) {
+  setShown(el, !!mark);
+  setClass(el, classes.lookInside, mark?.kind === 'inside');
+  setAttr(el, 'data-tip', mark?.text);
+  setAttr(el, 'aria-label', mark?.text);
 }
 
 /** Loading…: a quiet row while a lazy node computes its rows. */

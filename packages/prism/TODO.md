@@ -68,6 +68,11 @@ section); an entry leaves when it is done (its spec section says so then). The s
 
 ## Missing: the viewer
 
+- **Scene defaults for maps, particles and shapes** (2026-10-25, [api.md §2 "Look"](viewer/_spec/api.md)): the scene
+  defaults (the Structure panel's sliders) are the component manager's options, which only structure representations
+  follow; a volume's, particles' or a shape's look is set by node and is its own. Following them too needs the volume
+  and particles managers (and the shape loaders) to read the options and `setOptions` to reach their representations.
+
 - **The Bonds field follows the registry live** (David, 2026-10-20): the structure's "Bonds" field (`sources/scene.ts`,
   `sourceForm`; [bond-providers plan §4.1](../../.v6/plans/bond-providers.md)) reads `plugin.bondProviders` when the
   form is built. A provider added or removed while the inspector is open shows after the next pick. Needs a change event
