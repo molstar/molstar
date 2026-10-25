@@ -1,7 +1,7 @@
 ## Fixes from the perf audit
 
 - Fix molecular surfaces of large structures at coarse resolution computing for seconds without a progress update or
-  an abort check (res 8: 1 chunk per pass → 1 per 902 atoms)
+  an abort check (res 8: 1 chunk per pass → 1 per 903 atoms)
 - Fix `PeriodicBox.minimumImage` giving a farther image in skewed boxes (rhombic dodecahedron, L = 10, d = (0, 0, 4.5):
   7.52 → 4.5 Å), which put a chain of a centred complex at a wrong image
 - Pipeline bench: coarse-only entries run through; a stage that throws fails the run (exit 1, no numbers in its row)

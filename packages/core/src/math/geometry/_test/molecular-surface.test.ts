@@ -320,7 +320,7 @@ describe('calcMolecularSurface progress', () => {
   });
 
   it('counts the per-atom fixed cost at coarse resolution (perf-audit-3 02/B6)', async () => {
-    // 8,000 atoms of radius 1.7 with tori at resolution 8: 902 atoms per chunk in both passes (voxels alone: 93.5k,
+    // 8,000 atoms of radius 1.7 with tori at resolution 8: 903 atoms per chunk in both passes (voxels alone: 93.5k,
     // one synchronous chunk of seconds on a 186k-atom structure surface)
     const { position, boundary } = lattice(20, 4, 1.7, 1.4);
     const props = { probeRadius: 1.4, resolution: 8, probePositions: 12 };
