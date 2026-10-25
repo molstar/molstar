@@ -1,0 +1,62 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
+import { describe, expect, it } from 'vitest';
+import { EveryLoci, type Loci } from '@molstar/model/model/loci';
+import type { Representation } from '../../repr/representation.js';
+import { MarkIndex } from '../mark-index.js';
+
+/** a representation that marks the structure loci of roots with `hashes` (`undefined`: of any root) */
+const repr = (hashes?: number[]) =>
+  ({ getStructureRootHashes: hashes === undefined ? undefined : () => hashes }) as unknown as Representation.Any;
+
+/** the loci kinds `MarkIndex` reads: the root's `hashCode` */
+const elementLoci = (hash: number) =>
+  ({ kind: 'element-loci', structure: { root: { hashCode: hash } } }) as unknown as Loci;
+const structureLoci = (hash: number) =>
+  ({ kind: 'structure-loci', structure: { root: { hashCode: hash } } }) as unknown as Loci;
+
+const visited = (index: MarkIndex, loci: Loci) => {
+  const out: Representation.Any[] = [];
+  index.forEach(loci, (r) => out.push(r));
+  return out;
+};
+
+describe('MarkIndex', () => {
+  it('visits the representations of a structure loci root and those that may mark any', () => {
+    const index = new MarkIndex();
+    const a = repr([1]);
+    const b = repr([2]);
+    const ab = repr([1, 2]);
+    const any = repr();
+    const none = repr([]);
+    for (const r of [a, b, ab, any, none]) index.set(r);
+
+    expect(new Set(visited(index, elementLoci(1)))).toEqual(new Set([a, ab, any]));
+    expect(new Set(visited(index, structureLoci(2)))).toEqual(new Set([b, ab, any]));
+    expect(visited(index, elementLoci(3))).toEqual([any]);
+    // other loci: all, each once
+    expect(new Set(visited(index, EveryLoci))).toEqual(new Set([a, b, ab, any, none]));
+    expect(visited(index, EveryLoci).length).toBe(5);
+  });
+
+  it('takes a representation again when its root changed, and forgets it', () => {
+    const index = new MarkIndex();
+    let hashes = [1];
+    const r = { getStructureRootHashes: () => hashes } as unknown as Representation.Any;
+    index.set(r);
+    expect(visited(index, elementLoci(1))).toEqual([r]);
+
+    hashes = [2];
+    index.set(r);
+    expect(visited(index, elementLoci(1))).toEqual([]);
+    expect(visited(index, elementLoci(2))).toEqual([r]);
+
+    index.delete(r);
+    expect(visited(index, elementLoci(2))).toEqual([]);
+    expect(visited(index, EveryLoci)).toEqual([]);
+  });
+});

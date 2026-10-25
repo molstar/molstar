@@ -6,11 +6,12 @@
  */
 
 // The canvas of the plugin benches (many.ts, playback.ts): there is no WebGL in Node, so `plugin.canvas3d` is a stub
-// that does what Canvas3D does with representations (add, remove, mark every representation, update) but has no
+// that does what Canvas3D does with representations (add, remove, mark the representations of a loci's root, update) but has no
 // scene. It counts the calls that reach the scene, whose cost (gl internals) is measured in the browser.
 
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { type Canvas3DCameraResetOptions, Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { MarkIndex } from '@molstar/graphics/canvas3d/mark-index';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
@@ -40,11 +41,15 @@ export function graphicsStub(meshMode: boolean) {
  */
 export function stubCanvas(graphics: any) {
   const reprs = new Map<Representation.Any, number>();
+  /** as Canvas3D's: the representations a mark without one visits */
+  const markIndex = new MarkIndex();
   const counts = {
     add: 0,
     remove: 0,
     update: 0,
     mark: 0,
+    /** `repr.mark` calls of the marks without a representation (`MarkIndex`) */
+    reprMark: 0,
     markChanged: 0,
     sceneUpdated: 0,
     syncVisibility: 0,
@@ -98,24 +103,35 @@ export function stubCanvas(graphics: any) {
       // Canvas3D's `add` ends with `scene.update` of the representation's objects: those in the scene not updated again
       for (const ro of repr.renderObjects) if (live.has(ro)) changedObjects.delete(ro);
       setObjects(repr, [...repr.renderObjects]);
+      markIndex.set(repr);
     },
     remove(repr: Representation.Any) {
       counts.remove++;
       renderObjects -= reprs.get(repr) ?? 0;
       reprs.delete(repr);
       setObjects(repr, []);
+      markIndex.delete(repr);
     },
     update(repr?: Representation.Any) {
       counts.update++;
       // all updated: so are the changed ones; a representation's objects are not updated again (`Scene.update`)
-      if (!repr) changedObjects.clear();
-      else for (const ro of repr.renderObjects) changedObjects.delete(ro);
+      if (!repr) {
+        changedObjects.clear();
+        for (const r of reprs.keys()) markIndex.set(r);
+      } else {
+        for (const ro of repr.renderObjects) changedObjects.delete(ro);
+        if (reprs.has(repr)) markIndex.set(repr);
+      }
     },
     mark(reprLoci: Representation.Loci, action: MarkerAction) {
       counts.mark++;
       let changed = false;
       if (reprLoci.repr) changed = reprLoci.repr.mark(reprLoci.loci, action);
-      else for (const r of reprs.keys()) changed = r.mark(reprLoci.loci, action) || changed;
+      else
+        markIndex.forEach(reprLoci.loci, (r) => {
+          counts.reprMark++;
+          changed = r.mark(reprLoci.loci, action) || changed;
+        });
       if (changed) {
         counts.markChanged++;
         for (const ro of changedObjects) if (live.has(ro)) counts.sceneUpdated++;

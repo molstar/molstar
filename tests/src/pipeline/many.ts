@@ -11,7 +11,7 @@
 // (state cell, structure, component, representation, visual), not per atom. Results: .v6/perf-audit/14-many-structures.md.
 //
 // There is no WebGL in Node: `plugin.canvas3d` is a stub that does what Canvas3D does with representations (add,
-// remove, mark every representation, update) but has no scene; it counts the calls that reach the scene, whose cost
+// remove, mark the representations of a loci's root, update) but has no scene; it counts the calls that reach the scene, whose cost
 // (gl internals) is measured in the browser. The graphics context is the CPU stub of bench.ts (impostors on).
 //
 // usage (through scripts/pipeline-bench.mjs, which bundles this file):
@@ -211,7 +211,7 @@ async function pipeline(results: Record<string, StageResult>) {
     }),
   );
 
-  // interactive: events on the middle structure, through the behaviors (labels, marks on every representation)
+  // interactive: events on the middle structure, through the behaviors (labels, marks on its root's representations)
   const target = mid(hierarchy()).cell.obj!.data as Structure;
   const hovers = 20;
   const before = { ...c.counts };
@@ -221,7 +221,7 @@ async function pipeline(results: Record<string, StageResult>) {
     () => {
       for (let k = 0; k < hovers; k++) hover(plugin, residueLoci(target, k));
       hover(plugin, EmptyLoci);
-      return `marks=${c.counts.mark - before.mark} sceneUpdate(ROs)=${c.counts.sceneUpdated - before.sceneUpdated}`;
+      return `marks=${c.counts.mark - before.mark} reprMarks=${c.counts.reprMark - before.reprMark} sceneUpdate(ROs)=${c.counts.sceneUpdated - before.sceneUpdated}`;
     },
     { count: hovers + 1 },
   );

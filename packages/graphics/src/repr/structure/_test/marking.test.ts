@@ -40,6 +40,7 @@ import { GaussianSurfaceMeshParams, GaussianSurfaceMeshVisual } from '../visual/
 import { Transparency } from '@molstar/graphics/theme/transparency';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import type { Representation } from '../../representation.js';
+import { MarkIndex } from '@molstar/graphics/canvas3d/mark-index';
 import { BallAndStickRepresentationProvider } from '../representation/ball-and-stick.js';
 import { CartoonRepresentationProvider } from '../representation/cartoon.js';
 import { GaussianSurfaceRepresentationProvider } from '../representation/gaussian-surface.js';
@@ -469,5 +470,40 @@ describe('layer updates and picking', async () => {
     const unknown = Math.max(...repr.renderObjects.map((o) => o.id)) + 1000;
     expect(repr.getLoci({ objectId: unknown, instanceId: 0, groupId: 0 }).kind).toBe('empty-loci');
     repr.destroy();
+  });
+});
+
+describe('marks through the index of Canvas3D', async () => {
+  const root = await load1cbs();
+  const seqId = StructureProperties.residue.label_seq_id;
+  /** a subset of `parent` with `parent` as its root, as the plugin's components */
+  const subset = (parent: Structure, pick: (l: StructureElement.Location) => boolean) =>
+    Structure.create(StructureElement.Loci.toStructure(lociOf(parent, pick)).units, { parent });
+
+  it('visits the representations a mark changes: includeParent (`asParent`), a child, not another root', async () => {
+    const child = subset(root, (l) => seqId(l) < 50);
+    // the child's root is `root`; the proxy `asParent` makes is a root of its own, equivalent to `root` (equal hashes)
+    expect(child.root).toBe(root);
+    expect(child.asParent().root).not.toBe(root);
+    // ball-and-stick's `getData` with `includeParent`: the parent, `child` as its child
+    const withParent = await createRepr(BallAndStickRepresentationProvider, child.asParent(), { includeParent: true });
+    const ofChild = await createRepr(CartoonRepresentationProvider, child);
+    // another root: a structure of its own (no parent), not equivalent to `root`
+    const other = await createRepr(CartoonRepresentationProvider, Structure.create(child.units));
+    const reprs = [withParent, ofChild, other];
+    const index = new MarkIndex();
+    for (const r of reprs) index.set(r);
+
+    for (const loci of [lociOf(child, (l) => seqId(l) === 10), lociOf(root, (l) => seqId(l) === 20)]) {
+      const visited = new Set<Representation.Any>();
+      index.forEach(loci, (r) => visited.add(r));
+      expect(visited).toEqual(new Set([withParent, ofChild]));
+      // exact: those visited change, the one left out would not
+      for (const r of reprs) {
+        expect(r.mark(loci, MarkerAction.Highlight)).toBe(visited.has(r));
+        r.mark(loci, MarkerAction.RemoveHighlight);
+      }
+    }
+    for (const r of reprs) r.destroy();
   });
 });

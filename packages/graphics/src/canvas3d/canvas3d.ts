@@ -62,6 +62,7 @@ import { StereoCamera, StereoCameraParams } from './camera/stereo.js';
 import type { CameraTransitionManager } from './camera/transition.js';
 import { TransitionTrajectoryParamDefinition, type TransitionTrajectory } from './camera/transition-functions.js';
 import { Viewport } from './camera/util.js';
+import { MarkIndex } from './mark-index.js';
 import { DefaultTrackballControlsAttribs, TrackballControls, TrackballControlsParams } from './controls/trackball.js';
 import { CameraHelperParams } from './helper/camera-helper.js';
 import type { DebugRegistry } from './helper/debug-registry.js';
@@ -958,6 +959,8 @@ namespace Canvas3D {
 
     const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
     const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
+    /** the representations a loci marked on all of them may change (`applyMark`) */
+    const markIndex = new MarkIndex();
     const reprCount = new BehaviorSubject(0);
     const interactionEvent = new Subject<void>();
 
@@ -1222,7 +1225,7 @@ namespace Canvas3D {
       if (repr) {
         changed = repr.mark(loci, action) || changed;
       } else {
-        reprRenderObjects.forEach((_, _repr) => {
+        markIndex.forEach(loci, (_repr) => {
           changed = _repr.mark(loci, action) || changed;
         });
       }
@@ -1991,6 +1994,7 @@ namespace Canvas3D {
         repr.renderObjects.forEach((o) => scene.add(o));
       }
       reprRenderObjects.set(repr, newRO);
+      markIndex.set(repr);
 
       scene.update(repr.renderObjects, false);
       forceDrawAfterAllCommited = true;
@@ -2000,6 +2004,7 @@ namespace Canvas3D {
     function remove(repr: Representation.Any) {
       unregisterAutoUpdate(repr);
       busy();
+      markIndex.delete(repr);
 
       const renderObjects = reprRenderObjects.get(repr);
       if (renderObjects) {
@@ -2303,6 +2308,7 @@ namespace Canvas3D {
         // updated values may have changed defines: the updated renderables recorded again
         if (repr) {
           if (!reprRenderObjects.has(repr)) return;
+          markIndex.set(repr);
           const { renderObjects } = repr;
           scene.update(renderObjects, !!keepSphere);
           // only the representation's, not the whole scene's: callers update one representation at a time (a drag)
@@ -2313,6 +2319,7 @@ namespace Canvas3D {
           }
           precompileRecorder.recordAgain(renderables);
         } else {
+          reprRenderObjects.forEach((_, r) => markIndex.set(r));
           scene.update(void 0, !!keepSphere);
           precompileRecorder.invalidate();
           precompileRecorder.record(scene.renderables);
@@ -2324,6 +2331,7 @@ namespace Canvas3D {
         reprUpdatedSubscriptions.forEach((v) => v.unsubscribe());
         reprUpdatedSubscriptions.clear();
         reprRenderObjects.clear();
+        markIndex.clear();
         scene.clear();
         helper.debug.clear();
         requestDraw();
