@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, type Child, domView, effect, For, Icon, onCleanup, Show } from '@molstar/prism-ui';
+import { Button, type Child, domView, effect, For, Icon, Show } from '@molstar/prism-ui';
 import { chordFromEvent, chordId, formatChord } from '@molstar/prism-ui/commands/keys';
-import { observeResize } from '@molstar/prism-ui/dom/scoped';
+import { frames, observeResize } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
 import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
@@ -57,10 +57,10 @@ function LineView(props: { line: ConsoleLine }) {
   );
 }
 
-function EntryView(props: { entry: ConsoleEntry; model: ConsoleModel }) {
+function EntryView(props: { entry: ConsoleEntry; model: ConsoleModel; onSize: () => void }) {
   const { entry, model } = props;
   const label = entry.state === 'running' ? 'Running' : entry.state === 'failed' ? 'Failed' : 'Done';
-  return (
+  const el = (
     <div class={classes.entry} data-state={entry.state}>
       <span class={classes.mark} role="img" aria-label={label}>
         <Icon name={Marks[entry.state]} size={14} />
@@ -91,7 +91,10 @@ function EntryView(props: { entry: ConsoleEntry; model: ConsoleModel }) {
         </div>
       ) : null}
     </div>
-  );
+  ) as HTMLElement;
+  // Its size, from its first layout and as what it said comes in: the transcript follows (ConsoleView).
+  observeResize(el, props.onSize);
+  return el;
 }
 
 function EmptyView(props: { model: ConsoleModel; onPick: (text: string) => void }) {
@@ -197,34 +200,16 @@ export function ConsoleView(props: { model: ConsoleModel }) {
   const list = (
     <div class={classes.output} role="log" aria-live="off" aria-label="Console output">
       <For each={model.entries} fallback={() => <EmptyView model={model} onPick={(t) => fill(t)} />}>
-        {(e) => <EntryView entry={e} model={model} />}
+        {(e) => <EntryView entry={e} model={model} onSize={() => stick()} />}
       </For>
     </div>
   ) as HTMLElement;
-  // The newest at the bottom, always in view: a run appended, what it said once it ends, and whatever else changes the
-  // transcript's height or the box's (an entry renders its outcome on its own: sizes, not the list of entries, say when).
-  // Once a frame, however many changes come in it.
-  let scrolling = false;
-  const stick = () => {
-    if (scrolling) return;
-    scrolling = true;
-    requestAnimationFrame(() => {
-      scrolling = false;
-      list.scrollTop = list.scrollHeight;
-    });
-  };
-  const sizes = observeResize(list, stick);
-  // The entries there already (the tab opened again: the model outlives its view), then each one added.
-  for (const c of list.children) sizes?.observe(c);
-  const added = new MutationObserver((records) => {
-    for (const r of records) {
-      for (const n of r.addedNodes) if (n instanceof Element && n.parentNode === list) sizes?.observe(n);
-      for (const n of r.removedNodes) if (n instanceof Element) sizes?.unobserve(n);
-    }
-    stick();
-  });
-  added.observe(list, { childList: true });
-  onCleanup(() => added.disconnect());
+  // The newest at the bottom, always in view: a run appended, what it said once it ends, the box resized. Each entry
+  // says when its size changes (it renders its outcome on its own); scrolled once a frame, however many say so.
+  const stick = frames(() => {
+    list.scrollTop = list.scrollHeight;
+  }).request;
+  observeResize(list, stick);
 
   const input = (
     <textarea

@@ -236,9 +236,9 @@ lines.
   saying where): scripts with the files they load, the ones no other includes run (`rootScripts`), each whole in the
   dialect its extension says; files without a script are loaded as the line that loads them (`load 1cbs.cif`,
   `mol new 1cbs.cif`), shown in the transcript. A log, not live (the viewer says each run). The tab fills the panel: the
-  transcript scrolls, the bar and the composer stay, and the newest is always in view (it follows the transcript's
-  sizes: an entry renders its outcome on its own). The history of lines is kept with the preferences
-  (`command-language.history`, the last 200).
+  transcript scrolls, the bar and the composer stay, and the newest is always in view (each entry observes its own size,
+  as it renders its outcome on its own, and the box its; one scroll a frame, `frames`). The history of lines is kept
+  with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 
