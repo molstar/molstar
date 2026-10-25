@@ -346,6 +346,15 @@ export class PrismField {
     if (this.#still) this.#drawStill();
   }
 
+  /**
+   * Draws the last state now, at once: a resized canvas is blank, and the next frame comes after this one is painted
+   * (from a resize observer, past the frame's tick), so without it every step of a resize shows one blank frame.
+   */
+  redraw(): void {
+    if (this.#still || !this.#running || !this.#width) return;
+    this.#draw(this.#ambient.asleep ? 0 : this.#ambient.level);
+  }
+
   /** The theme's colors (it may change under the canvas: the chrome follows the canvas background). */
   readColors(): void {
     if (typeof getComputedStyle !== 'function') return;

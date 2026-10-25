@@ -195,14 +195,17 @@ and the React/Preact adapter (`src/react/`). The code is the truth for how.
 - **One frame request a page** (`reactive/frame-state.ts`): what a component would ask `requestAnimationFrame` for (a
   label's placement, a canvas's draw, a drag's step, the splash's simulation, Seq*'s frames) is a frame callback
   (`requestFrameCallback`, `cancelFrameCallback`; `frame(fn)` in a component, released with its scope, run after its
-  resume when it is paused), run in the frame's tick before the frame states publish. A cancel reaches a callback of the
-  frame running now too (one callback cancelling another, a `frames().cancel()`), so a cancelled one never runs. A hover
-  sweep in the viewer asked for up to 3 frames a browser frame (the hover label's, Seq*'s scheduler's and the frame
-  lane's), now 1 (the in-app browser, a predicted model: 20 requests in 12 frames before, 13 in 14 after). A loaded
-  viewer at rest asks for none and queues no microtask (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop
-  left running, a frame per event). Mol*'s own canvas loop is not Prism's, but at rest it asks for none either: the
-  viewer turns on `PluginConfig.General.PauseLoopWhenIdle` (`options.ui.pauseWhenIdle`), so the loop sleeps once
-  Canvas3D has been idle for 250 ms and wakes on its `wake` (viewer README decision 29).
+  resume when it is paused), run in the frame's tick before the frame states publish. A canvas resized from a resize
+  observer is the exception that draws at once: its size wiped it, and the observer runs past the frame's tick, so a
+  frame callback would paint a blank frame first (the splash blinked through a window's resize; `PrismField.redraw`). A
+  cancel reaches a callback of the frame running now too (one callback cancelling another, a `frames().cancel()`), so a
+  cancelled one never runs. A hover sweep in the viewer asked for up to 3 frames a browser frame (the hover label's,
+  Seq*'s scheduler's and the frame lane's), now 1 (the in-app browser, a predicted model: 20 requests in 12 frames
+  before, 13 in 14 after). A loaded viewer at rest asks for none and queues no microtask
+  (`viewer/src/ui/_test/frames.quick.ts`, with controls: a loop left running, a frame per event). Mol*'s own canvas loop
+  is not Prism's, but at rest it asks for none either: the viewer turns on `PluginConfig.General.PauseLoopWhenIdle`
+  (`options.ui.pauseWhenIdle`), so the loop sleeps once Canvas3D has been idle for 250 ms and wakes on its `wake`
+  (viewer README decision 29).
 - **What is a frame state**: a value fed by input events: the virtual lists' scroll position, the canvas's hover label
   (`sources/pointer.ts`, from Mol*'s label at every pick), a drag (a dock's splitter, a slider). Not one: what an event
   decides once (a click, a key), what the model says; a resize observer's callback already comes once a frame, after

@@ -17,3 +17,4 @@
 - query-language: PyMOL selections can name objects and named selections through `TranspileOptions.resolveName`.
 - Fixed: `not X` in PyMOL and VMD selections selected nothing when `X` selected nothing (`not hydro` in a structure
   without hydrogens).
+- Prism: the empty canvas's splash no longer blinks while the window is resized.
