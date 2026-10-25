@@ -484,7 +484,9 @@ namespace ModelPeriodicity {
     const y = Float32Array.from(conformation.y);
     const z = Float32Array.from(conformation.z);
     const { parent, order } = plan;
-    // the minimum image inlined (PeriodicBox.minimumImage): this runs once per atom per frame
+    // the image by rounding the fractional difference, inlined: this runs once per atom per frame. Rounding is the
+    // minimum image only for short displacements in a skewed box (in a dodecahedron up to ~0.35 L, `PeriodicBox.
+    // minimumImage` is exact for any): a plan's hops are bonds and 3.8 Å links, under that in a box of `MinBoxVector`
     const [b0, b1, b2, b3, b4, b5, b6, b7, b8] = box.basis;
     const [i0, i1, i2, i3, i4, i5, i6, i7, i8] = box.inverse;
     for (let k = 0, n = parent.length; k < n; k++) {

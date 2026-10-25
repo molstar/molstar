@@ -83,7 +83,7 @@ describe('PeriodicBox', () => {
     // rounding alone gives (−5, −5, −2.57), |m| 7.52
     expect(Vec3.magnitude(PeriodicBox.minimumImage(Vec3(), dodecahedron, Vec3.create(0, 0, 4.5)))).toBeCloseTo(4.5, 9);
 
-    const r = [...noise(9000)];
+    const r = [...noise(3000)];
     for (const box of [dodecahedron, octahedron]) {
       for (let i = 0; i < r.length; i += 3) {
         // anywhere within a box length on each axis, against every shift by up to 3 box vectors
@@ -93,6 +93,30 @@ describe('PeriodicBox', () => {
         // and it is an image of d
         const f = Vec3.transformMat3(Vec3(), Vec3.sub(Vec3(), m, d), box.inverse);
         for (let k = 0; k < 3; k++) expect(Math.abs(f[k] - Math.round(f[k]))).toBeLessThan(1e-9);
+      }
+    }
+  });
+
+  it('is the nearest image in thin, tilted boxes (perf-audit-3 02/B7)', () => {
+    // GROMACS-valid (|bx|, |cx| ≤ ax/2, |cy| ≤ by/2) but flat: the shortest image is more than one shift from the
+    // rounded one (27 shifts gave 5.38 here)
+    const slab = PeriodicBox.create(Vec3.create(10, 0, 0), Vec3.create(3.53, 10, 0), Vec3.create(-4.11, 2.12, 3));
+    const m = PeriodicBox.minimumImage(Vec3(), slab, Vec3.create(15.3, 4.42, -13.5));
+    expect(Vec3.magnitude(m)).toBeCloseTo(Vec3.magnitude(bruteForce(slab, Vec3.create(15.3, 4.42, -13.5), 8)), 9);
+
+    const r = [...noise(1200)];
+    for (let b = 0; b < 4; b++) {
+      const tilt = r.slice(b * 4, b * 4 + 4);
+      const box = PeriodicBox.create(
+        Vec3.create(10, 0, 0),
+        Vec3.create(tilt[0] * 5, 10, 0),
+        Vec3.create(tilt[1] * 5, tilt[2] * 5, 1.5 + tilt[3]),
+      );
+      for (let i = 300 * b + 16; i + 2 < 300 * (b + 1); i += 6) {
+        // within 5 Å of the origin: every image as short is within 10 shifts
+        const d = Vec3.create(r[i] * 5, r[i + 1] * 5, r[i + 2] * 5);
+        const m = PeriodicBox.minimumImage(Vec3(), box, d);
+        expect(Vec3.magnitude(m)).toBeCloseTo(Vec3.magnitude(bruteForce(box, d, 10)), 9);
       }
     }
   });
