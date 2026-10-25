@@ -63,6 +63,11 @@ export function secondaryCategory(type: SecondaryStructureType, bends = true): S
  * where the drawn chain has the same residues (its model's hierarchy: another model of a trajectory may not), else the
  * model's own (`struct_conf`, `struct_sheet_range`). A chain with none has no rows: the annotation can be empty, never an
  * error.
+ *
+ * `copies: "one"` (a section that merges its copies): one row set per molecule, on the molecule (it reaches every copy),
+ * merged from its chains' so a merged block shows one, not every chain's stacked (3J3Q: 1,356 chains, each its own DSSP).
+ * Per residue the class most of its chains observing it have, the first chain's on a tie; an element ends where most of
+ * the chains with its class start a new one.
  */
 export const SecondaryStructureProvider: ProviderEntry = {
   name: 'molstar:secondary_structure',
@@ -70,20 +75,27 @@ export const SecondaryStructureProvider: ProviderEntry = {
     of: RequiredField(ref('complex'), 'the complex of a structure'),
     // Not read: the host writes the drawn assignment's settings here, so a change of them recomputes the annotation.
     assignment: OptionalField(nullable(str), null, "the 3D view's assignment settings, as the host knows them"),
+    copies: OptionalField(
+      nullable(str),
+      null,
+      '"one": each molecule\'s chains merged into one row set on the molecule (a section merging copies); else per chain',
+    ),
   }),
   geometry: 'ranges',
   async compute(ctx, options) {
-    const of = (options as { of: string }).of;
+    const { of, copies } = options as { of: string; copies?: string | null };
     const parsed = ctx.source(of);
     const src = parsed?.kind === 'object' ? parsed.value : null;
-    if (!StructureSource.is(src) || !ctx.set) return null;
+    const set = ctx.set;
+    if (!StructureSource.is(src) || !set) return null;
     const structure = await structureOf(src, 0, null);
     const drawn = await drawnAssignment(src.drawn);
     const target: string[] = [];
     const start: number[] = [];
     const stop: number[] = [];
     const category: string[] = [];
-    for (const u of complexUnits(ctx.set, of)) {
+    const merged = copies === 'one' ? new Map<number, Votes>() : null;
+    for (const u of complexUnits(set, of)) {
       const c = chainFor(structure, u.mvs);
       if (c?.kind !== 'polymer') continue;
       // The drawn assignment indexes the drawn model's residues: only where they are this model's (the same hierarchy).
@@ -91,41 +103,147 @@ export const SecondaryStructureProvider: ProviderEntry = {
       const own = ModelSecondaryStructure.Provider.get(c.unit.model);
       const ss = d && d.hierarchy === c.unit.model.atomicHierarchy ? d.ss : own;
       if (!ss) continue;
-      let open: SecondaryCategory | null = null;
-      let element = -1;
-      let from = 0;
-      let last = 0;
-      const close = () => {
-        if (open === null) return;
-        target.push(u.ref);
-        start.push(from);
-        stop.push(last + 1);
-        category.push(open);
-        open = null;
-      };
-      for (let x = 0; x < c.count; x++) {
-        // The assignment's own index of the residue (`getIndex`), and its element there (`key`).
-        const i = ss.getIndex(c.residues[x] as ResidueIndex);
-        // A file's bends are rows; DSSP's are not (Mol*'s computed assignment is the file's own object where it has one).
-        const kind = secondaryCategory(ss.type[i], ss === own);
-        const key = ss.key[i];
-        const at = c.labels[x] - u.first;
-        // A run goes on while the element does and the residues are consecutive.
-        if (kind !== open || key !== element || (open !== null && at !== last + 1)) {
-          close();
-          if (kind !== null) {
-            open = kind;
-            element = key;
-            from = at;
-          }
-        }
-        last = at;
+      if (!merged) {
+        elements(c, ss, ss === own, u.first, null, (kind, from, to) => {
+          target.push(u.ref);
+          start.push(from);
+          stop.push(to);
+          category.push(Categories[kind]);
+        });
+        continue;
       }
-      close();
+      const mol = set.units.molecule[u.unit];
+      let v = merged.get(mol);
+      if (!v) {
+        v = votesFor(set.molecules[mol]?.length ?? 0);
+        merged.set(mol, v);
+      }
+      const votes = v;
+      const firstChain = votes.chains++ === 0;
+      elements(
+        c,
+        ss,
+        ss === own,
+        u.first,
+        (at) => {
+          if (at < 0 || at >= votes.length) return;
+          votes.observed[at]++;
+          if (firstChain) votes.first[at] = 0;
+        },
+        (kind, from, to) => {
+          for (let at = Math.max(0, from); at < Math.min(to, votes.length); at++) {
+            votes.votes[3 * at + kind]++;
+            if (firstChain) votes.first[at] = kind + 1;
+          }
+          if (from >= 0 && from < votes.length) votes.starts[3 * from + kind]++;
+        },
+      );
+    }
+    for (const [mol, v] of merged ?? []) {
+      const key = set.strings.get(set.molecules[mol]?.key ?? -1);
+      consensus(v, (kind, from, to) => {
+        target.push(key);
+        start.push(from);
+        stop.push(to);
+        category.push(Categories[kind]);
+      });
     }
     return { key: '', geometry: 'ranges', label: 'Secondary structure', columns: { target, start, stop, category } };
   },
 };
+
+/** The classes rows are of, by index (`elements`, `Votes`). */
+const Categories: readonly SecondaryCategory[] = ['helix', 'strand', 'turn'];
+const categoryIndex = (c: SecondaryCategory) => (c === 'helix' ? 0 : c === 'strand' ? 1 : 2);
+
+/**
+ * A chain's elements as `element(class, from, to)`, positions on its molecule (label_seq_id less the numbering's
+ * first): a run goes on while its element does and the residues are consecutive; `residue(at)` per residue observed.
+ */
+function elements(
+  c: { count: number; residues: ArrayLike<number>; labels: ArrayLike<number> },
+  ss: SecondaryStructure,
+  fileOwn: boolean,
+  first: number,
+  residue: ((at: number) => void) | null,
+  element: (kind: number, from: number, to: number) => void,
+) {
+  let open: SecondaryCategory | null = null;
+  let key = -1;
+  let from = 0;
+  let last = 0;
+  const close = () => {
+    if (open === null) return;
+    element(categoryIndex(open), from, last + 1);
+    open = null;
+  };
+  for (let x = 0; x < c.count; x++) {
+    // The assignment's own index of the residue (`getIndex`), and its element there (`key`).
+    const i = ss.getIndex(c.residues[x] as ResidueIndex);
+    // A file's bends are rows; DSSP's are not (Mol*'s computed assignment is the file's own object where it has one).
+    const kind = secondaryCategory(ss.type[i], fileOwn);
+    const k = ss.key[i];
+    const at = c.labels[x] - first;
+    residue?.(at);
+    if (kind !== open || k !== key || (open !== null && at !== last + 1)) {
+      close();
+      if (kind !== null) {
+        open = kind;
+        key = k;
+        from = at;
+      }
+    }
+    last = at;
+  }
+  close();
+}
+
+/**
+ * A molecule's chains' assignments counted per residue: chains observing it, chains with each class there and chains
+ * whose element of that class starts there (3 per residue, `Categories`' order), and the first chain's (0: coil, else
+ * its class + 1; -1: not observed).
+ */
+interface Votes {
+  readonly length: number;
+  chains: number;
+  readonly observed: Int32Array;
+  readonly votes: Int32Array;
+  readonly starts: Int32Array;
+  readonly first: Int8Array;
+}
+const votesFor = (length: number): Votes => ({
+  length,
+  chains: 0,
+  observed: new Int32Array(length),
+  votes: new Int32Array(3 * length),
+  starts: new Int32Array(3 * length),
+  first: new Int8Array(length).fill(-1),
+});
+
+/** The chains' merged elements (`SecondaryStructureProvider`, `copies: "one"`). */
+function consensus(v: Votes, element: (kind: number, from: number, to: number) => void) {
+  let open = -1;
+  let from = 0;
+  for (let at = 0; at <= v.length; at++) {
+    // The class most chains observing the residue have (coil: -1), the first chain's on a tie, else the lowest.
+    let best = -1;
+    if (at < v.length && v.observed[at] > 0) {
+      const count = (k: number) =>
+        k < 0 ? v.observed[at] - v.votes[3 * at] - v.votes[3 * at + 1] - v.votes[3 * at + 2] : v.votes[3 * at + k];
+      let most = count(-1);
+      for (let k = 0; k < 3; k++) most = Math.max(most, count(k));
+      const mine = v.first[at] - 1;
+      if (mine >= -1 && count(mine) === most) best = mine;
+      else while (count(best) !== most) best++;
+    }
+    const split = best >= 0 && best === open && 2 * v.starts[3 * at + best] > v.votes[3 * at + best];
+    if (best !== open || split) {
+      if (open >= 0) element(open, from, at);
+      open = best;
+      from = at;
+    }
+  }
+}
 
 /**
  * The secondary structure the 3D view draws, by `label_asym_id`, with the hierarchy its residue indices are of: Mol*'s

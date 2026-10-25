@@ -12,7 +12,8 @@ import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molst
 import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ComplexRef, sequenceDocument } from '../document.js';
+import type { DocNode } from '@molstar/seq-core/format';
+import { ComplexRef, findRef, SecondaryRef, sequenceDocument } from '../document.js';
 import { DefaultTracksRail } from '../presets.js';
 import { SecondaryTrackProvider } from '../tracks.js';
 import { applySaved } from '../runtime.js';
@@ -103,6 +104,21 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
+  it('merged copies get one secondary structure, merged; each chain its own once the chains are shown apart', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    const ss = () => findRef(h.viewer.seq.document.shown.value?.root as DocNode, SecondaryRef)?.params?.options;
+    expect(ss()).toMatchObject({ of: ComplexRef, copies: 'one' });
+    await h.viewer.setChains({ each: true });
+    await settled(h);
+    expect(ss()).not.toHaveProperty('copies');
+    await h.viewer.setChains(undefined);
+    await settled(h);
+    expect(ss()).toMatchObject({ copies: 'one' });
+    h.viewers.dispose();
+  });
+
   it("the text style's render props are the model's: centered, colored, the letters' size", async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());
@@ -149,6 +165,32 @@ describe('the sequence model', () => {
     expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain('taylor');
     expect(h.viewer.seq.graph.assembled.value?.set).toBe(set);
     expect(h.viewer.legend.value.title).toBe('Taylor');
+    h.viewers.dispose();
+  });
+
+  it('another structure opens on its whole sequence; the same one rebuilt keeps its zoom', async () => {
+    const h = headlessViewers();
+    const host = await hostStructure();
+    h.structure.set(host);
+    await settled(h);
+    const vp = () => h.viewer.seq.viewports.get('main');
+    vp()?.setSize(1000, 200, 1);
+    h.scheduler.advance(50);
+    const zoomed = () => (vp()?.live.current.cell ?? 0) > (vp()?.live.current.minCell ?? 0) * 1.5;
+    vp()?.zoomTo(0, 10, 30, { durationMs: 0 });
+    h.scheduler.advance(50);
+    expect(zoomed()).toBe(true);
+    // The same structure's document made again (the letters' colors): the zoom stays.
+    h.viewer.setTheme({ letters: 'taylor' });
+    await settled(h);
+    expect(zoomed()).toBe(true);
+    // Removed, then loaded again (a new key, as a reload has): the whole sequence.
+    h.structure.set(undefined);
+    await h.viewer.seq.graph.update();
+    h.structure.set({ ...host, key: `${host.key}-again` });
+    await settled(h);
+    expect(zoomed()).toBe(false);
+    expect(vp()?.live.current.cell).toBe(vp()?.live.current.minCell);
     h.viewers.dispose();
   });
 

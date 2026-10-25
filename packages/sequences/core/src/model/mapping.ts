@@ -693,6 +693,23 @@ function graph(set: SeqSet): Map<string, Edge[]> {
   return g;
 }
 
+const unitEnds = new WeakMap<SeqSet, boolean>();
+/**
+ * Whether a mapping ends on a unit: the only way one copy can reach another (seqspec:model#copies). Without one, a
+ * unit's search to a sibling unit is a dead end, so a caller over a merged block skips it (3J3Q: 1,356 copies, 1.8M
+ * searches).
+ */
+function unitsMapped(set: SeqSet): boolean {
+  let out = unitEnds.get(set);
+  if (out === undefined) {
+    out = set.mappings.some(
+      (m) => m !== null && (m.from.kind === CoordinateSystemKind.unit || m.to.kind === CoordinateSystemKind.unit),
+    );
+    unitEnds.set(set, out);
+  }
+  return out;
+}
+
 /**
  * A search state: a system, whether a codon step was taken, the molecule an up step reached (the copy rule: no down
  * step from it) and whether the last step was a down step (no up step right after: it would only clip).
@@ -877,6 +894,7 @@ export const Mappings = {
   systemLength,
   domainOf,
   path,
+  unitsMapped,
   compose,
   sameComposed,
   /** States the last uncached search expanded. */

@@ -404,6 +404,8 @@ class Viewer implements SequenceViewer {
   private builds = 0;
   /** The host key the document shown (or being made) is for: a frame of it changes only `frame`. */
   private documentKey: string | undefined;
+  /** The host key the sections' view (zoom, scroll) is of: another structure's document opens fitted (`build`). */
+  private viewKey: string | undefined;
   /** The secondary structure's settings the tracks' data were last brought to (`HostStructure.assignment`). */
   private assignment: string | undefined;
   private readonly frameState = observableState<Structure | undefined>(undefined, { compare: (a, b) => a === b });
@@ -660,11 +662,15 @@ class Viewer implements SequenceViewer {
     return { ...op, node };
   }
 
-  /** What providers build over: the structure shown and the document's complex. */
-  private trackContext(structure: Structure, complex: string): SequenceTrackContext {
+  /**
+   * What providers build over: the structure shown, the document's complex and whether its section merges copies (the
+   * chain filter's, or a loaded SeqViewSpec's section's).
+   */
+  private trackContext(structure: Structure, complex: string, each: boolean): SequenceTrackContext {
     return {
       structure,
       complex,
+      copies: each ? 'each' : 'one',
       letters: lettersColor(this.themeState.value, plainCellHex(this.deps.ink.value)),
     };
   }
@@ -718,7 +724,8 @@ class Viewer implements SequenceViewer {
       for (const d of data) if (findRef(base.root, d)) ops.push({ op: 'remove', ref: d });
       placed.delete(track);
     }
-    const ctx = this.trackContext(host.structure, shown.complex);
+    const each = this.svsShown ? section.params?.copies === 'each' : !!edits?.chains?.each;
+    const ctx = this.trackContext(host.structure, shown.complex, each);
     const blocks = (section.children ?? []).filter((n) => n.kind === 'block' && n.ref).map((n) => n.ref!);
     let anchor: string = this.svsShown ? (this.svsAfter ?? 'first') : (blocks[blocks.length - 1] ?? 'first');
     for (const p of wanted) {
@@ -767,7 +774,6 @@ class Viewer implements SequenceViewer {
           after = b.ref!;
         }
       }
-      const each = !!edits?.chains?.each;
       if (each !== (section.params?.copies === 'each'))
         ops.push({ op: 'set', ref: shown.section, params: { copies: each ? 'each' : null } });
     }
@@ -1073,6 +1079,12 @@ class Viewer implements SequenceViewer {
       this.shownState.set(undefined);
       return { ok: true, issues: [] };
     }
+    // Another structure (a new key: a load, a reload, another followed) opens on its whole sequence; the same one rebuilt
+    // (a theme, a track, the chain filter) keeps its zoom. Fitted before the new axis comes (no zoomed frame first: the
+    // viewport's `resolve` keeps a fitted view whole) and again once it is in (its own cell width).
+    const fresh = this.viewKey !== host.key;
+    this.viewKey = host.key;
+    if (fresh) for (const s of this.sections) this.seq.viewports.get(s)?.fit({ animate: false });
     const ref = structureKey(host);
     const edits = this.editsState.value[ref];
     // A loaded SeqViewSpec over its structure (sequence.md §6), else the document built for the structure.
@@ -1088,7 +1100,8 @@ class Viewer implements SequenceViewer {
         : undefined;
     const svsShown = !!svs;
     // The providers' tracks in (sequence.md §3): their data under the data node, their tracks in order.
-    const ctx = this.trackContext(host.structure, svs?.complex ?? ComplexRef);
+    const each = svs ? findRef(svs.doc.root, svs.section)?.params?.copies === 'each' : !!edits?.chains?.each;
+    const ctx = this.trackContext(host.structure, svs?.complex ?? ComplexRef, each);
     const placed = new Map<string, readonly string[]>();
     const tracks: BuiltTrack[] = [];
     const before = this.svsShown;
@@ -1118,7 +1131,7 @@ class Viewer implements SequenceViewer {
         format: host.source.format,
         ligands: host.ligands,
         ...(units ? { units } : {}),
-        ...(edits?.chains?.each ? { each: true } : {}),
+        ...(each ? { each: true } : {}),
         tracks,
       });
     }
@@ -1135,6 +1148,7 @@ class Viewer implements SequenceViewer {
     // The person's style over the document's sections (a loaded SeqViewSpec's presets too).
     this.sections = svs?.sections ?? [SectionRef];
     for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(this.styleState.value));
+    if (fresh) for (const s of this.sections) this.seq.viewports.get(s)?.fit({ animate: false });
     const complex = svs?.complex ?? ComplexRef;
     const section = svs?.section ?? SectionRef;
     // The frame shown now (frames stepped while the document was made), before the link reads it.

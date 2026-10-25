@@ -128,15 +128,18 @@ canvas, no plugin UI), so its format half runs in a page, in Node and on a serve
   category `helix`, `strand` or `turn` (a file's bend is a turn, DSSP's is coil; coil is no range), one row per element
   of the assignment: two elements that touch stay two rows. A chain with no assignment has no rows, and a model with
   none gives an empty annotation, not an error. Its `assignment` option is not read: the host writes the drawn
-  assignment's settings there, so a change of them recomputes the annotation. It and `molstar:plddt` read the source's
-  first model as deposited (the asymmetric unit), whatever model or assembly the complex shows; an assembly's copy of a
-  chain gets that chain's values. **`molstar:sifts_coverage`**: the listed structures' chains on one UniProt sequence,
-  one `ranges` row per resolved stretch with a `structure` field (`instance: true`: rows on each chain's own unit);
-  `molstar:sifts_depth` beside it. **`molstar:pae`**: a model's predicted aligned error
-  (`seqspec:sources#formats-and-services`) as a `grid`, a row per pair of the complex's polymer units (a residue a
-  token, in the complex's order), side a the scored residue and side b the one aligned on (a dot plot draws it as
-  AlphaFold DB does), values in Å; its size must be the units' residues together (`svs.source.format` otherwise). Its
-  default color is AlphaFold DB's green, 0 to 30 Å (`PaeScale`).
+  assignment's settings there, so a change of them recomputes the annotation. With `copies: "one"` (for a section that
+  merges copies) it gives one row set per molecule, on the molecule, merged from its chains': per residue the class most
+  of the chains observing it have (the first chain's on a tie), an element ending where most of the chains with its
+  class start a new one; a merged block of many chains, each with its own assignment (an EM model's, DSSP's), shows one
+  set instead of every chain's stacked. It and `molstar:plddt` read the source's first model as deposited (the
+  asymmetric unit), whatever model or assembly the complex shows; an assembly's copy of a chain gets that chain's
+  values. **`molstar:sifts_coverage`**: the listed structures' chains on one UniProt sequence, one `ranges` row per
+  resolved stretch with a `structure` field (`instance: true`: rows on each chain's own unit); `molstar:sifts_depth`
+  beside it. **`molstar:pae`**: a model's predicted aligned error (`seqspec:sources#formats-and-services`) as a `grid`,
+  a row per pair of the complex's polymer units (a residue a token, in the complex's order), side a the scored residue
+  and side b the one aligned on (a dot plot draws it as AlphaFold DB does), values in Å; its size must be the units'
+  residues together (`svs.source.format` otherwise). Its default color is AlphaFold DB's green, 0 to 30 Å (`PaeScale`).
 - **The link** (`StructureLink`): each chain instance but waters is an external system mapped onto the unit with the
   same `label_asym_id` and `instance_id` (else the first with that `label_asym_id`; polymers by `label_seq_id`, others
   by heavy-atom order), so a structure in 3D and its sequences light each other through the registry (`ctx.systems`, or
