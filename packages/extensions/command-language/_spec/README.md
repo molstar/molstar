@@ -92,8 +92,8 @@ reverse. Representations are the people's words (`sticks`, `mesh`, `tube`); the 
   names no part for). Each part is plain MolQL on one structure. Why: exact, serializable, no MolQL extension.
 - **Named selections are inlined when used**: a name means what it selected when defined (its parts fixed to the objects
   there were: `fixedTo`; by object name, so an object deleted and loaded again under its name is in it). A name the
-  selection language reads as its own word (`b`, the B-factor; `chain`; a name may start with one: `b2`) is refused when
-  defined.
+  selection language reads as its own word (`b`, the B-factor; `chain`) is refused when defined; one that only starts
+  with such a word (`b2`, `both`) is a name.
 - **VMD selections are scoped to the command's molecule** (VMD's selections never name molecules).
 - **Names come from the env**: object names (the state's, else the entry, lowercased, deduplicated) and VMD molecule ids
   (never reused) for every loaded structure, the named selections, the top molecule.
@@ -220,19 +220,22 @@ lines.
   dialect is two pressed buttons, as the Log's filters; a line's `pymol ` / `vmd ` first word overrides it. The
   composer: the input (Enter runs, ⇧Enter a new line, ↑/↓ the history at its first and last line, Tab the first
   completion), a Run button, and one line under it, of one height whatever it says, so the composer never changes height
-  as one types. The completions of the word at the input's end list over the transcript (`assist`; a combobox: ↑/↓ pick,
-  Tab or Enter take the one picked, Tab the first when none is, Enter with none picked runs, Esc closes until the next
-  keystroke; Tab on the empty input lists every command, so it does not move focus there); a row is its kind or a
-  color's swatch, the label with the part typed marked, and the detail, left out when every row has the same one. The
-  line: while the list is open or the arguments do not read yet, the signature with the argument being typed in bold;
-  else what Enter will do or the first error (the whole, with its hint, in the line's tip; `inspect`). The tab's icon is
-  `terminal` (`>_`). Every error of a submission shows at once, before anything runs; `undo` / `redo` alone are the
-  viewer's history; submissions run one after another. **Import** (and dropping on the tab, an overlay saying where):
-  scripts with the files they load, the ones no other includes run (`rootScripts`), each whole in the dialect its
-  extension says; files without a script are loaded as the line that loads them (`load 1cbs.cif`, `mol new 1cbs.cif`),
-  shown in the transcript. A log, not live (the viewer says each run). The tab fills the panel: the transcript scrolls,
-  the bar and the composer stay, and the newest is always in view (it follows the transcript's sizes: an entry renders
-  its outcome on its own). The history of lines is kept with the preferences (`command-language.history`, the last 200).
+  as one types. The completions of the word at the input's end list over the transcript (`assist`; the textarea says
+  `aria-autocomplete`, `aria-controls` and the row picked, a textarea taking no combobox role; with the caret at the
+  end: ↑/↓ pick, Tab or Enter take the one picked, Tab the first when none is, Enter with none picked runs, Esc closes
+  until the next keystroke; a row picked is none again whenever the rows change; a line recalled from the history comes
+  without its list, so ↑/↓ go on through the history; Tab on the empty input lists every command, so it does not move
+  focus there: Shift+Tab leaves); a row is its kind or a color's swatch, the label with the part typed marked, and the
+  detail, left out when every row has the same one. The line: while the list is open or the arguments do not read yet,
+  the signature with the argument being typed in bold; else what Enter will do or the first error (the whole, with its
+  hint, in the line's tip; `inspect`). The tab's icon is `terminal` (`>_`). Every error of a submission shows at once,
+  before anything runs; `undo` / `redo` alone are the viewer's history; submissions run one after another. **Import**
+  (and dropping on the tab, an overlay saying where): scripts with the files they load, the ones no other includes run
+  (`rootScripts`), each whole in the dialect its extension says; files without a script are loaded as the line that
+  loads them (`load 1cbs.cif`, `mol new 1cbs.cif`), shown in the transcript. A log, not live (the viewer says each run).
+  The tab fills the panel: the transcript scrolls, the bar and the composer stay, and the newest is always in view (it
+  follows the transcript's sizes: an entry renders its outcome on its own). The history of lines is kept with the
+  preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 

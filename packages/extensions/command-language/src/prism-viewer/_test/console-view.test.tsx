@@ -88,7 +88,7 @@ describe('the console view', () => {
     const list = () => t.container.querySelector('[role=listbox]');
     const options = () => [...t.container.querySelectorAll('[role=option]')];
     expect(list()).not.toBeNull();
-    expect(t.input.getAttribute('aria-expanded')).toBe('true');
+    expect(t.input.getAttribute('aria-controls')).toBe(list()!.id);
     // The signature says which argument is being typed.
     expect(t.container.querySelector('strong')?.textContent).toBe('[representation]');
     t.key('ArrowDown');
@@ -101,7 +101,7 @@ describe('the console view', () => {
     expect(t.input.value).toBe(`show ${second}, `);
     t.key('Escape');
     expect(list()).toBeNull();
-    expect(t.input.getAttribute('aria-expanded')).toBe('false');
+    expect(t.input.hasAttribute('aria-controls')).toBe(false);
     t.type('count_atoms');
     t.key('Enter');
     await tick();
@@ -121,6 +121,34 @@ describe('the console view', () => {
     expect(t.input.value).toMatch(/^\w+ ?$/);
     t.type('');
     expect(options()).toHaveLength(0);
+  });
+
+  it('picks none when the rows change under a pick (the dialect switched): Enter runs, nothing throws', async () => {
+    const t = open();
+    t.type('color ');
+    t.key('ArrowUp');
+    expect(t.input.hasAttribute('aria-activedescendant')).toBe(true);
+    t.model.setDialect('vmd');
+    expect(t.input.hasAttribute('aria-activedescendant')).toBe(false);
+    t.key('Enter');
+    await tick();
+    expect(t.run).toHaveBeenCalled();
+  });
+
+  it('goes on through the history when a recalled line has completions', async () => {
+    const t = open();
+    for (const line of ['show sticks', 'color ']) {
+      t.type(line);
+      t.key('Escape');
+      t.key('Enter');
+      await tick();
+      await tick();
+    }
+    t.key('ArrowUp');
+    expect(t.input.value).toBe('color ');
+    expect(t.container.querySelector('[role=listbox]')).toBeNull();
+    t.key('ArrowUp');
+    expect(t.input.value).toBe('show sticks');
   });
 
   it('marks the part typed and shows a color as its swatch', () => {

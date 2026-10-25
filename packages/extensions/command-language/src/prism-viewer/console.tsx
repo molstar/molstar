@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, type Child, domView, effect, For, Icon, Show } from '@molstar/prism-ui';
+import { Button, type Child, domView, effect, For, Icon, onCleanup, Show } from '@molstar/prism-ui';
 import { observeResize } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -197,6 +197,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
   ) as HTMLElement;
   // The newest at the bottom, always in view: a run appended, what it said once it ends, and whatever else changes the
   // transcript's height or the box's (an entry renders its outcome on its own: sizes, not the list of entries, say when).
+  // Once a frame, however many changes come in it.
   let scrolling = false;
   const stick = () => {
     if (scrolling) return;
@@ -207,13 +208,17 @@ export function ConsoleView(props: { model: ConsoleModel }) {
     });
   };
   const sizes = observeResize(list, stick);
-  new MutationObserver((records) => {
+  // The entries there already (the tab opened again: the model outlives its view), then each one added.
+  for (const c of list.children) sizes?.observe(c);
+  const added = new MutationObserver((records) => {
     for (const r of records) {
       for (const n of r.addedNodes) if (n instanceof Element && n.parentNode === list) sizes?.observe(n);
       for (const n of r.removedNodes) if (n instanceof Element) sizes?.unobserve(n);
     }
     stick();
-  }).observe(list, { childList: true });
+  });
+  added.observe(list, { childList: true });
+  onCleanup(() => added.disconnect());
 
   const input = (
     <textarea
@@ -221,18 +226,18 @@ export function ConsoleView(props: { model: ConsoleModel }) {
       rows={2}
       spellcheck={false}
       aria-label="Command"
-      role="combobox"
+      // A textarea takes no combobox role (ARIA in HTML): a textbox that says it completes from a list, which one, and
+      // the row picked in it.
       aria-autocomplete="list"
-      aria-haspopup="listbox"
       onInput={(e) => model.setDraft((e.currentTarget as HTMLTextAreaElement).value)}
       onKeyDown={(e) => {
-        // Composing text (an input method) owns its keys.
-        if (e.isComposing) return;
+        // Composing text (an input method) owns its keys; Safari confirms with an Enter that says so by its code only.
+        if (e.isComposing || e.keyCode === 229) return;
         const el = e.currentTarget as HTMLTextAreaElement;
-        // The completion list, while open: ↑ ↓ move in it, Tab or Enter take the one picked (Tab: the first when none
-        // is), Esc closes it; Enter with none picked runs, as always.
+        // The completion list, while open and the caret at the end (what it completes): ↑ ↓ move in it, Tab or Enter
+        // take the one picked (Tab: the first when none is), Esc closes it; Enter with none picked runs, as always.
         const items = shown.value;
-        if (items.length) {
+        if (items.length && el.selectionStart === el.value.length) {
           const at = active.value;
           if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
@@ -262,10 +267,10 @@ export function ConsoleView(props: { model: ConsoleModel }) {
           run();
         } else if (e.key === 'ArrowUp' && !el.value.slice(0, el.selectionStart).includes('\n')) {
           e.preventDefault();
-          model.previous();
+          recall(() => model.previous());
         } else if (e.key === 'ArrowDown' && !el.value.slice(el.selectionEnd).includes('\n')) {
           e.preventDefault();
-          model.next();
+          recall(() => model.next());
         } else if (e.key === 'Tab' && !e.shiftKey && !el.value.trim()) {
           e.preventDefault();
           dismissed.set(false);
@@ -285,6 +290,11 @@ export function ConsoleView(props: { model: ConsoleModel }) {
     input.focus();
   };
   const accept = (item: ConsoleCompletion) => fill(item.text);
+  // A line from the history comes without its list, so ↑ ↓ go on through the history; typing brings the list back.
+  const recall = (step: () => void) => {
+    step();
+    dismissed.set(true);
+  };
   const run = () => {
     if (input.value.trim()) void model.submit(input.value);
   };
@@ -314,14 +324,17 @@ export function ConsoleView(props: { model: ConsoleModel }) {
   effect(model.draft, () => {
     asked.set(false);
     dismissed.set(false);
-    active.set(-1);
   });
   const shown = derive([help, dismissed.asReadonly], (h, d) => (d ? [] : h.assist.items));
+  // None picked whenever the rows change: a keystroke, the dialect, a run that ends (the index would name another row,
+  // or none).
+  effect(shown, () => active.set(-1));
   const listId = `msp-console-completions-${(nextList += 1)}`;
   effect(
     derive([shown, active.asReadonly], (l, a) => (l.length ? a : undefined)),
     (at) => {
-      input.setAttribute('aria-expanded', String(at !== undefined));
+      if (at !== undefined) input.setAttribute('aria-controls', listId);
+      else input.removeAttribute('aria-controls');
       if (at !== undefined && at >= 0) {
         input.setAttribute('aria-activedescendant', `${listId}-${at}`);
         root.querySelector(`#${listId}-${at}`)?.scrollIntoView?.({ block: 'nearest' });
