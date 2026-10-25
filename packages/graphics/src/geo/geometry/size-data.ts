@@ -5,8 +5,7 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { Vec2 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import type { LocationIterator } from '../util/location-iterator.js';
 import { type Location, NullLocation } from '@molstar/model/model/location';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
@@ -17,8 +16,7 @@ export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'ver
 
 export type SizeData = {
   uSize: ValueCell<number>;
-  tSize: ValueCell<TextureImage<Uint8Array>>;
-  uSizeTexDim: ValueCell<Vec2>;
+  tSize: ValueCell<DataArray<Uint8Array>>;
   /** the index of `tSize` by the size type (`SizeTypeIndex`) */
   uSizeIndexType: ValueCell<number>;
   /** the size type's define (`getSizeTypeDefine`) */
@@ -100,8 +98,9 @@ export function getMaxSize(sizeData: SizeData): number {
     case 'vertex':
     case 'vertexInstance':
       let maxSize = 0;
-      const array = sizeData.tSize.ref.value.array;
-      for (let i = 0, il = array.length; i < il; i += 4) {
+      // the elements only: a reused array may be longer
+      const { array, count } = sizeData.tSize.ref.value;
+      for (let i = 0, il = count * 4; i < il; i += 4) {
         const value = unpackRGBToInt(array[i], array[i + 1], array[i + 2]);
         if (maxSize < value) maxSize = value;
       }
@@ -111,12 +110,9 @@ export function getMaxSize(sizeData: SizeData): number {
 
 export type LocationSize = (location: Location) => number;
 
-const emptySizeTexture = { array: new Uint8Array(4), width: 1, height: 1 };
+const emptySizeTexture = { array: new Uint8Array(4), count: 1 };
 function createEmptySizeTexture() {
-  return {
-    tSize: ValueCell.create(emptySizeTexture),
-    uSizeTexDim: ValueCell.create(Vec2.create(1, 1)),
-  };
+  return { tSize: ValueCell.create(emptySizeTexture) };
 }
 
 export function createValueSize(value: number, sizeData?: SizeData): SizeData {
@@ -140,17 +136,15 @@ export function createUniformSize(locationIt: LocationIterator, sizeFn: Location
   return createValueSize(sizeFn(location), sizeData);
 }
 
-export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeType, sizeData?: SizeData): SizeData {
+export function createTextureSize(sizes: DataArray<Uint8Array>, type: SizeType, sizeData?: SizeData): SizeData {
   if (sizeData) {
     ValueCell.update(sizeData.tSize, sizes);
-    ValueCell.update(sizeData.uSizeTexDim, Vec2.create(sizes.width, sizes.height));
     setSizeType(sizeData, type);
     return sizeData;
   } else {
     return {
       uSize: ValueCell.create(0),
       tSize: ValueCell.create(sizes),
-      uSizeTexDim: ValueCell.create(Vec2.create(sizes.width, sizes.height)),
       ...createSizeType(type),
     };
   }
@@ -159,12 +153,7 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
 /** Creates size texture with size for each instance/unit */
 export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { instanceCount } = locationIt;
-  const sizes = createTextureImage(
-    Math.max(1, instanceCount),
-    4,
-    Uint8Array,
-    sizeData && sizeData.tSize.ref.value.array,
-  );
+  const sizes = createDataArray(Math.max(1, instanceCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
@@ -177,7 +166,7 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
 /** Creates size texture with size for each group (i.e. shared across instances/units) */
 export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createTextureImage(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
@@ -194,7 +183,7 @@ export function createGroupInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createTextureImage(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
@@ -206,7 +195,7 @@ export function createGroupInstanceSize(
 /** Creates size texture with size for each vertex */
 export function createVertexSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createTextureImage(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
@@ -223,7 +212,7 @@ export function createVertexInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createTextureImage(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();

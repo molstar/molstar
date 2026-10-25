@@ -5,15 +5,13 @@
  */
 
 import { ValueCell } from '@molstar/core/util/value-cell';
-import { Vec2 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 
 export type MarkerType = 'instance' | 'groupInstance';
 
 export type MarkerData = {
   uMarker: ValueCell<number>;
-  tMarker: ValueCell<TextureImage<Uint8Array>>;
-  uMarkerTexDim: ValueCell<Vec2>;
+  tMarker: ValueCell<DataArray<Uint8Array>>;
   markerAverage: ValueCell<number>;
   markerStatus: ValueCell<number>;
   /** the type (`MarkerType`); the object uniform `uInstanceGranularity` selects the index */
@@ -70,21 +68,19 @@ export function getMarkersAverage(array: Uint8Array, count: number): number {
 
 export function createMarkers(count: number, type: MarkerType, markerData?: MarkerData): MarkerData {
   if (markerData) {
-    const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData.tMarker.ref.value.array);
+    const markers = createDataArray(Math.max(1, count), 1, Uint8Array, markerData.tMarker.ref.value.array);
     markers.array.fill(0, 0, count);
     ValueCell.updateIfChanged(markerData.uMarker, 0);
     ValueCell.update(markerData.tMarker, markers);
-    ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
     ValueCell.updateIfChanged(markerData.markerAverage, 0);
     ValueCell.updateIfChanged(markerData.markerStatus, 0);
     ValueCell.updateIfChanged(markerData.markerType, type);
     return markerData;
   } else {
-    const markers = createTextureImage(Math.max(1, count), 1, Uint8Array);
+    const markers = createDataArray(Math.max(1, count), 1, Uint8Array);
     return {
       uMarker: ValueCell.create(0),
       tMarker: ValueCell.create(markers),
-      uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
       markerAverage: ValueCell.create(0),
       markerStatus: ValueCell.create(0),
       markerType: ValueCell.create<string>(type),
@@ -92,12 +88,11 @@ export function createMarkers(count: number, type: MarkerType, markerData?: Mark
   }
 }
 
-const emptyMarkerTexture = { array: new Uint8Array(1), width: 1, height: 1 };
+const emptyMarkerTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
   if (markerData) {
     ValueCell.updateIfChanged(markerData.uMarker, 0);
     ValueCell.update(markerData.tMarker, emptyMarkerTexture);
-    ValueCell.update(markerData.uMarkerTexDim, Vec2.create(1, 1));
     ValueCell.updateIfChanged(markerData.markerAverage, 0);
     ValueCell.updateIfChanged(markerData.markerStatus, 0);
     return markerData;
@@ -105,7 +100,6 @@ export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
     return {
       uMarker: ValueCell.create(0),
       tMarker: ValueCell.create(emptyMarkerTexture),
-      uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
       markerAverage: ValueCell.create(0),
       markerStatus: ValueCell.create(0),
       markerType: ValueCell.create<string>('groupInstance'),

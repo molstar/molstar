@@ -24,6 +24,62 @@ fn unpack2x4(f: f32) -> vec2<f32> {
 `;
 
 /**
+ * `getOutline(coords)`: the nearest opaque and transparent outlines within `oOutlineScale` texels, read from
+ * `tOutlines` (`read_tOutlines`, with `pack_2x4_wgsl`); for the compose passes with outlines on
+ */
+export const outline_read_wgsl = /* wgsl */ `
+override oOutlineScale: i32 = 1;
+
+struct Outline {
+    hasOpaque: bool,
+    hasTransparent: bool,
+    opaqueDepth: f32,
+    transparentDepth: f32,
+    alpha: f32,
+};
+
+fn getOutline(coords: vec2<f32>) -> Outline {
+    let invTexSize = 1.0 / uObject.uTexSize;
+    let squaredOutlineScale = oOutlineScale * oOutlineScale;
+
+    var o = Outline(false, false, 0.0, 0.0, 0.0);
+    for (var y = -oOutlineScale; y <= oOutlineScale; y++) {
+        for (var x = -oOutlineScale; x <= oOutlineScale; x++) {
+            if (x * x + y * y > squaredOutlineScale) {
+                continue;
+            }
+
+            let sampleCoords = coords + vec2<f32>(f32(x), f32(y)) * invTexSize;
+
+            let sampleOutlineCombined = read_tOutlines(sampleCoords);
+            let sampleOpaqueDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
+            let sampleTransparentDepth = sampleOutlineCombined.a;
+            let sampleFlagWithAlpha = unpack2x4(sampleOutlineCombined.r);
+
+            let sampleFlag = sampleFlagWithAlpha.x;
+            let sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
+
+            let isOpaque = sampleFlag > 0.20 && sampleFlag < 0.30;
+            let isTransparent = sampleFlag > 0.45 && sampleFlag < 0.55;
+            let isBoth = sampleFlag > 0.70 && sampleFlag < 0.80;
+
+            if ((isOpaque || isBoth) && sampleOpaqueDepth > o.opaqueDepth) {
+                o.hasOpaque = true;
+                o.opaqueDepth = sampleOpaqueDepth;
+            }
+
+            if ((isTransparent || isBoth) && sampleTransparentDepth > o.transparentDepth) {
+                o.hasTransparent = true;
+                o.transparentDepth = sampleTransparentDepth;
+                o.alpha = sampleAlpha;
+            }
+        }
+    }
+    return o;
+}
+`;
+
+/**
  * Outline edges of the opaque and transparent depth: packed outline type and transparent alpha
  * (r), the packed opaque or transparent edge depth (gb) and the transparent edge depth (a). Depth textures are always
  * available on WebGPU, so the opaque depth is never packed.

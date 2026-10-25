@@ -193,7 +193,9 @@ export function getRepresentationSignatures(
   if (!provider) return [];
   const repr = provider.factory({ graphics: ctx.graphics, ...themes }, provider.getParams);
   try {
-    const props = { ...provider.defaultValues, ...params.type.params };
+    // an undefined param is the default, as in a state read from JSON (MVS writes `clip: undefined` without clip nodes)
+    const props: { [k: string]: unknown } = { ...provider.defaultValues };
+    for (const [k, v] of Object.entries(params.type.params ?? {})) if (v !== undefined) props[k] = v;
     return (
       repr.getSignatures?.(props, {
         graphics: ctx.graphics,

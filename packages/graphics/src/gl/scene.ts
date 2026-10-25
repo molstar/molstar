@@ -13,12 +13,11 @@ import { CommitQueue } from './commit-queue.js';
 import { now } from '@molstar/core/util/now';
 import { arraySetRemove } from '@molstar/core/util/array';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
-import { hash1 } from '@molstar/core/data/util';
 import type { GraphicsRenderable } from './renderable.js';
 import type { Transparency } from './render-item.js';
-import { clamp } from '@molstar/core/math/interpolate';
 import type { GlobalDefines } from './renderable/schema.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import { createDrawTable, DrawFact, DrawRow, DrawState, type DrawTable } from './draw-table.js';
 
 const boundaryHelper = new BoundaryHelper('98');
 
@@ -72,6 +71,8 @@ function renderableSort(a: GraphicsRenderable, b: GraphicsRenderable) {
 interface Scene extends Object3D {
   readonly count: number;
   readonly renderables: ReadonlyArray<GraphicsRenderable>;
+  /** all renderables as rows (`DrawTable`): the scene drawn as a group (`Renderer.renderBlended`) */
+  readonly table: DrawTable;
   readonly boundingSphere: Sphere3D;
   readonly boundingSphereVisible: Sphere3D;
   readonly transparency: Transparency;
@@ -84,6 +85,11 @@ interface Scene extends Object3D {
   setTransparency: (transparency: Transparency) => void;
   setGlobals: (values: GlobalDefines) => void;
   update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void;
+  /**
+   * `update` of the renderables whose values changed since the last `update` of all or of the changed ones (a change of
+   * a few of many objects, e.g. markers on hover), `keepBoundingSphere` as for `update`
+   */
+  updateChanged: (keepBoundingSphere: boolean) => void;
   add: (o: GraphicsRenderObject) => void; // GraphicsRenderable
   remove: (o: GraphicsRenderObject) => void;
   commit: (maxTimeMs?: number) => boolean;
@@ -99,7 +105,7 @@ interface Scene extends Object3D {
    * producers create them again
    */
   setContext: (ctx: GraphicsContext) => GraphicsRenderObject[];
-  /** Marker average of primitive renderables */
+  /** Marker average of primitive and direct volume renderables */
   readonly markerAverage: number;
   /** Emissive average of primitive renderables */
   readonly emissiveAverage: number;
@@ -118,6 +124,8 @@ interface Scene extends Object3D {
 namespace Scene {
   export interface Group extends Object3D {
     readonly renderables: ReadonlyArray<GraphicsRenderable>;
+    /** the renderables as rows (`DrawTable`), in their order; not for groups only planned with (no scene's) */
+    readonly table?: DrawTable;
   }
 
   export function create(
@@ -133,6 +141,9 @@ namespace Scene {
 
     const primitives: GraphicsRenderable[] = [];
     const volumes: GraphicsRenderable[] = [];
+    const renderablesTable = createDrawTable(renderables);
+    const primitivesTable = createDrawTable(primitives);
+    const volumesTable = createDrawTable(volumes);
 
     let boundingSphereDirty = true;
     let boundingSphereVisibleDirty = true;
@@ -160,10 +171,13 @@ namespace Scene {
       if (!renderableMap.has(o)) {
         const renderable = createRenderable(ctx, o, transparency, globals);
         renderables.push(renderable);
+        renderablesTable.add(renderable);
         if (o.type === 'direct-volume') {
           volumes.push(renderable);
+          volumesTable.add(renderable);
         } else {
           primitives.push(renderable);
+          primitivesTable.add(renderable);
         }
         renderableMap.set(o, renderable);
         boundingSphereDirty = true;
@@ -180,6 +194,9 @@ namespace Scene {
         arraySetRemove(renderables, renderable);
         arraySetRemove(primitives, renderable);
         arraySetRemove(volumes, renderable);
+        renderablesTable.remove(renderable);
+        primitivesTable.remove(renderable);
+        volumesTable.remove(renderable);
         renderableMap.delete(o);
         boundingSphereDirty = true;
         boundingSphereVisibleDirty = true;
@@ -207,6 +224,7 @@ namespace Scene {
       }
 
       renderables.sort(renderableSort);
+      renderablesTable.invalidateOrder();
       markerAverageDirty = true;
       emissiveAverageDirty = true;
       wiggleAverageDirty = true;
@@ -221,6 +239,9 @@ namespace Scene {
 
     function clear() {
       for (let i = 0, il = renderables.length; i < il; ++i) {
+        renderablesTable.remove(renderables[i]);
+        primitivesTable.remove(renderables[i]);
+        volumesTable.remove(renderables[i]);
         renderables[i].dispose();
       }
       renderables.length = 0;
@@ -253,6 +274,7 @@ namespace Scene {
         else dropped.push(o);
       }
       renderables.sort(renderableSort);
+      renderablesTable.invalidateOrder();
       markerAverageDirty = true;
       emissiveAverageDirty = true;
       wiggleAverageDirty = true;
@@ -263,21 +285,29 @@ namespace Scene {
       return dropped;
     }
 
-    let visibleHash = -1;
-    function computeVisibleHash() {
-      let hash = 23;
-      for (let i = 0, il = renderables.length; i < il; ++i) {
-        if (!renderables[i].state.visible) continue;
-        hash = (31 * hash + renderables[i].id) | 0;
+    /** the visibility of the renderables last synced (`DrawTable.visibleVersion` of all renderables) */
+    let visibleVersion = -1;
+
+    /** after renderables were updated: what depends on their values computed again when read */
+    function updated(keepBoundingSphere: boolean) {
+      if (!keepBoundingSphere) {
+        boundingSphereDirty = true;
+        boundingSphereVisibleDirty = true;
+      } else {
+        syncVisibility();
       }
-      hash = hash1(hash);
-      if (hash === -1) hash = 0;
-      return hash;
+      markerAverageDirty = true;
+      emissiveAverageDirty = true;
+      wiggleAverageDirty = true;
+      opacityAverageDirty = true;
+      transparencyMinDirty = true;
+      hasOpaqueDirty = true;
+      hasAnimationDirty = true;
     }
 
     function syncVisibility() {
-      const newVisibleHash = computeVisibleHash();
-      if (newVisibleHash !== visibleHash) {
+      renderablesTable.refresh();
+      if (renderablesTable.visibleVersion !== visibleVersion) {
         boundingSphereVisibleDirty = true;
         markerAverageDirty = true;
         emissiveAverageDirty = true;
@@ -286,127 +316,92 @@ namespace Scene {
         transparencyMinDirty = true;
         hasOpaqueDirty = true;
         hasAnimationDirty = true;
-        visibleHash = newVisibleHash;
+        visibleVersion = renderablesTable.visibleVersion;
         return true;
       } else {
         return false;
       }
     }
 
-    function calculateMarkerAverage() {
-      if (primitives.length === 0) return 0;
-      let count = 0;
-      let markerAverage = 0;
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        if (!primitives[i].state.visible) continue;
-        markerAverage += primitives[i].values.markerAverage.ref.value;
-        count += 1;
+    /**
+     * the visible objects' slots in `t`, its rows refreshed: the averages below read its contribution columns (written
+     * with the rows) instead of the objects' values
+     */
+    function visibleSlotsOf(t: DrawTable, slots: number[]) {
+      t.refresh();
+      const { order, bits, count } = t;
+      slots.length = 0;
+      for (let i = 0; i < count; ++i) {
+        const slot = order[i];
+        if (bits[slot * DrawRow.Stride + DrawRow.State] & DrawState.Visible) slots.push(slot);
       }
-      return count > 0 ? markerAverage / count : 0;
+      return slots;
+    }
+    const visibleSlots: number[] = [];
+    const visibleVolumeSlots: number[] = [];
+
+    function visiblePrimitiveSlots() {
+      return visibleSlotsOf(primitivesTable, visibleSlots);
+    }
+
+    function average(column: Float32Array) {
+      const slots = visiblePrimitiveSlots();
+      if (slots.length === 0) return 0;
+      let sum = 0;
+      for (let i = 0, il = slots.length; i < il; ++i) sum += column[slots[i]];
+      return sum / slots.length;
+    }
+
+    /** of the primitives and the direct volumes: both are drawn by the marking pass */
+    function calculateMarkerAverage() {
+      const slots = visiblePrimitiveSlots();
+      const volumeSlots = visibleSlotsOf(volumesTable, visibleVolumeSlots);
+      const count = slots.length + volumeSlots.length;
+      if (count === 0) return 0;
+      let sum = 0;
+      const marker = primitivesTable.contributions.marker;
+      for (let i = 0, il = slots.length; i < il; ++i) sum += marker[slots[i]];
+      const volumeMarker = volumesTable.contributions.marker;
+      for (let i = 0, il = volumeSlots.length; i < il; ++i) sum += volumeMarker[volumeSlots[i]];
+      return sum / count;
     }
 
     function calculateEmissiveAverage() {
-      if (primitives.length === 0) return 0;
-      let count = 0;
-      let emissiveAverage = 0;
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        if (!primitives[i].state.visible) continue;
-        emissiveAverage += primitives[i].values.emissiveAverage.ref.value + primitives[i].values.uEmissive.ref.value;
-        count += 1;
-      }
-      return count > 0 ? emissiveAverage / count : 0;
+      return average(primitivesTable.contributions.emissive);
     }
 
     function calculateWiggleAverage() {
-      if (primitives.length === 0) return 0;
-      let count = 0;
-      let wiggleAverage = 0;
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        if (!primitives[i].state.visible) continue;
-        wiggleAverage += primitives[i].values.wiggleAverage.ref.value;
-        count += 1;
-      }
-      return count > 0 ? wiggleAverage / count : 0;
+      return average(primitivesTable.contributions.wiggle);
     }
 
     function calculateOpacityAverage() {
-      if (primitives.length === 0) return 0;
-      let count = 0;
-      let opacityAverage = 0;
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        const p = primitives[i];
-        if (!p.state.visible) continue;
-        // TODO: simplify, handle in renderable.state???
-        // uAlpha is updated in "render" so we need to recompute it here
-        const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
-        const xray =
-          p.values.dXrayShaded?.ref.value === 'on' || p.values.dXrayShaded?.ref.value === 'inverted' ? 0.5 : 1;
-        const fuzzy = p.values.dPointStyle?.ref.value === 'fuzzy' ? 0.5 : 1;
-        const text = p.values.dGeometryType.ref.value === 'text' ? 0.5 : 1;
-        const image = p.values.dGeometryType.ref.value === 'image' ? 0.5 : 1;
-        opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha * xray * fuzzy * text * image;
-        count += 1;
-      }
-      return count > 0 ? opacityAverage / count : 0;
+      return average(primitivesTable.contributions.opacity);
     }
 
     /** exclude fully opaque parts */
     function calculateTransparencyMin() {
-      if (primitives.length === 0) return 1;
+      const slots = visiblePrimitiveSlots();
+      const column = primitivesTable.contributions.transparencyMin;
       let transparencyMin = 1;
-      const transparenyValues: number[] = [];
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        const p = primitives[i];
-        if (!p.state.visible) continue;
-        transparenyValues.length = 0;
-        const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
-        if (alpha < 1) transparenyValues.push(1 - alpha);
-        if (
-          p.values.dXrayShaded?.ref.value === 'on' ||
-          p.values.dXrayShaded?.ref.value === 'inverted' ||
-          p.values.dPointStyle?.ref.value === 'fuzzy' ||
-          p.values.dGeometryType.ref.value === 'text' ||
-          p.values.dGeometryType.ref.value === 'image'
-        )
-          transparenyValues.push(0.5);
-        if (p.values.transparencyMin.ref.value > 0) transparenyValues.push(p.values.transparencyMin.ref.value);
-        transparencyMin = Math.min(transparencyMin, ...transparenyValues);
-      }
+      for (let i = 0, il = slots.length; i < il; ++i) transparencyMin = Math.min(transparencyMin, column[slots[i]]);
       return transparencyMin;
     }
 
     function calculateHasOpaque() {
-      if (primitives.length === 0) return false;
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        const p = primitives[i];
-        if (!p.state.visible) continue;
-
-        if (p.state.opaque) return true;
-        if (p.state.alphaFactor === 1 && p.values.alpha.ref.value === 1 && p.values.transparencyAverage.ref.value !== 1)
-          return true;
-        if (p.values.dTransparentBackfaces?.ref.value === 'opaque') return true;
+      const slots = visiblePrimitiveSlots();
+      const { bits, contributions } = primitivesTable;
+      for (let i = 0, il = slots.length; i < il; ++i) {
+        const slot = slots[i];
+        if (contributions.opaque[slot] || bits[slot * DrawRow.Stride + DrawRow.State] & DrawState.Opaque) return true;
       }
       return false;
     }
 
     function calculateHasAnimation() {
-      for (let i = 0, il = primitives.length; i < il; ++i) {
-        const p = primitives[i];
-        if (!p.state.visible) continue;
-
-        if (
-          (p.values.uWiggleAmplitude?.ref.value > 0 || p.values.wiggleAverage.ref.value > 0) &&
-          p.values.uWiggleSpeed?.ref.value > 0 &&
-          p.values.uWiggleFrequency?.ref.value > 0
-        )
-          return true;
-
-        if (
-          p.values.uTumbleAmplitude?.ref.value > 0 &&
-          p.values.uTumbleSpeed?.ref.value > 0 &&
-          p.values.uTumbleFrequency?.ref.value > 0
-        )
-          return true;
+      const slots = visiblePrimitiveSlots();
+      const { bits } = primitivesTable;
+      for (let i = 0, il = slots.length; i < il; ++i) {
+        if (bits[slots[i] * DrawRow.Stride + DrawRow.Facts] & DrawFact.Animated) return true;
       }
       return false;
     }
@@ -418,8 +413,9 @@ namespace Scene {
       up,
 
       renderables,
-      primitives: { view, position, direction, up, renderables: primitives },
-      volumes: { view, position, direction, up, renderables: volumes },
+      table: renderablesTable,
+      primitives: { view, position, direction, up, renderables: primitives, table: primitivesTable },
+      volumes: { view, position, direction, up, renderables: volumes, table: volumesTable },
 
       syncVisibility,
       setTransparency: (value: Transparency) => {
@@ -427,6 +423,10 @@ namespace Scene {
         for (let i = 0, il = renderables.length; i < il; ++i) {
           renderables[i].setTransparency(value);
         }
+        // the programs changed
+        renderablesTable.invalidate();
+        primitivesTable.invalidate();
+        volumesTable.invalidate();
       },
       setGlobals: (values: GlobalDefines) => {
         globals = values;
@@ -442,23 +442,19 @@ namespace Scene {
             renderableMap.get(objects[i])?.update();
           }
         } else {
+          // all updated: so are the changed ones
+          renderablesTable.takeChanged();
           for (let i = 0, il = renderables.length; i < il; ++i) {
             renderables[i].update();
           }
         }
-        if (!keepBoundingSphere) {
-          boundingSphereDirty = true;
-          boundingSphereVisibleDirty = true;
-        } else {
-          syncVisibility();
-        }
-        markerAverageDirty = true;
-        emissiveAverageDirty = true;
-        wiggleAverageDirty = true;
-        opacityAverageDirty = true;
-        transparencyMinDirty = true;
-        hasOpaqueDirty = true;
-        hasAnimationDirty = true;
+        updated(keepBoundingSphere);
+      },
+      updateChanged(keepBoundingSphere) {
+        const slots = renderablesTable.takeChanged();
+        const { objects } = renderablesTable;
+        for (let i = 0, il = slots.length; i < il; ++i) objects[slots[i]]?.update();
+        updated(keepBoundingSphere);
       },
       add: (o: GraphicsRenderObject) => commitQueue.add(o),
       remove: (o: GraphicsRenderObject) => commitQueue.remove(o),

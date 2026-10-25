@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -20,6 +21,7 @@ import { TextureSpec } from '../renderable/schema.js';
 import { createTextureImage, type TextureImage } from '../renderable/util.js';
 import { Scene } from '../scene.js';
 import { createSharedTextures } from '../shared-texture.js';
+import { TextureChanges } from '../renderable/texture-changes.js';
 import type { Texture } from '../texture.js';
 import { createContext } from '../webgl/context.js';
 import { createGl } from './gl.shim.js';
@@ -127,6 +129,61 @@ describe('shared textures, the cache', () => {
     expect(texture.load).toHaveBeenCalledTimes(5);
   });
 
+  it('advances its version when an upload replaces the storage of a held texture', () => {
+    // a texture whose storage is replaced when the image's size changes, as WebGPU's (`WebGPUTexture.version`)
+    let storage = 0;
+    let size = -1;
+    const texture = {
+      ...fakeTexture(),
+      load: (image: { width: number }) => {
+        if (image.width !== size) storage += 1;
+        size = image.width;
+      },
+    } as unknown as Texture;
+    const textures = createSharedTextures(
+      () => texture,
+      () => storage,
+    );
+    const atlas = createAtlas(16);
+    // the first upload: nothing was bound to it
+    const a = textures.acquire(spec, atlas);
+    textures.acquire(spec, atlas);
+    expect(textures.version).toBe(0);
+    // new glyphs in place: the same storage
+    atlas.version! += 1;
+    a.sync();
+    expect(textures.version).toBe(0);
+    // the atlas grown: the other holder's recorded draws are stale too
+    (atlas as { width: number }).width = 32;
+    atlas.version! += 1;
+    a.sync();
+    expect(textures.version).toBe(1);
+  });
+
+  it('uploads the rows written since its last upload, all where they are not logged', () => {
+    const texture = { ...fakeTexture(), loadRows: vi.fn() } as unknown as Texture & {
+      load: ReturnType<typeof vi.fn>;
+      loadRows: ReturnType<typeof vi.fn>;
+    };
+    const textures = createSharedTextures(() => texture);
+    const atlas = createAtlas(64 * 64);
+    const a = textures.acquire(spec, atlas);
+    expect(texture.load).toHaveBeenCalledTimes(1);
+    // two glyphs in the same rows, one below
+    TextureChanges.writeRows(atlas, 0, 4);
+    TextureChanges.writeRows(atlas, 0, 4);
+    TextureChanges.writeRows(atlas, 4, 8);
+    a.sync();
+    expect(texture.loadRows).toHaveBeenCalledTimes(1);
+    expect(texture.loadRows).toHaveBeenLastCalledWith(atlas, [0, 8]);
+    expect(texture.load).toHaveBeenCalledTimes(1);
+    // written without rows: all of it
+    atlas.version! += 1;
+    a.sync();
+    expect(texture.load).toHaveBeenCalledTimes(2);
+    expect(texture.loadRows).toHaveBeenCalledTimes(1);
+  });
+
   it("kind 'texture' cannot be shared", () => {
     expect(() => TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, { shared: true })).toThrow();
   });
@@ -165,9 +222,11 @@ describe('shared textures, WebGL render items', () => {
     const [ra, rb] = scene.renderables.filter((r) => r.values.tFont.ref.value === atlas);
     expect(ra.getByteCount() + rb.getByteCount()).toBeGreaterThanOrEqual(atlasBytes);
     expect(ra.getByteCount() + rb.getByteCount()).toBeLessThan(2 * atlasBytes);
-    // a texture per item for the other image textures, one per atlas for tFont
-    const perItem = (ctx.stats.resourceCounts.texture - textures - 2) / 3;
-    expect(Number.isInteger(perItem)).toBe(true);
+    // one per atlas for tFont, one per item for its other image texture (the palette), the items' data arrays in the
+    // data pages (a texture per format, `data-pages.ts`)
+    const pages = ctx.stats.resourceCounts.texture - textures - 2 - 3;
+    expect(pages).toBeGreaterThan(0);
+    expect(pages).toBeLessThanOrEqual(3);
     ctx.destroy();
   });
 
@@ -195,6 +254,21 @@ describe('shared textures, WebGL render items', () => {
     scene.update([a, b], false);
     expect(uploads()).toBe(1);
     expect(ctx.resources.sharedTextures.count).toBe(1);
+
+    // a glyph written as rows (the font atlas): those rows uploaded, once for all items
+    const rows: number[] = [];
+    const texSubImage2D = gl.texSubImage2D.bind(gl);
+    (gl as any).texSubImage2D = (...args: any[]) => {
+      rows.push(args[3], args[5]);
+      return (texSubImage2D as any)(...args);
+    };
+    atlas.array.fill(7, 2 * atlas.width, 3 * atlas.width);
+    TextureChanges.writeRows(atlas, 2, 3);
+    ValueCell.update(a.values.tFont, atlas);
+    ValueCell.update(b.values.tFont, atlas);
+    scene.update([a, b], false);
+    expect(rows).toEqual([2, 1]);
+    expect(uploads()).toBe(1);
     ctx.destroy();
   });
 

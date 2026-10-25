@@ -25,12 +25,22 @@ namespace SizeTheme {
   export const EmptyFactory = () => Empty;
   export const Empty: SizeTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', size: () => 1, props: {} };
 
+  /** per pair of themes whether they are equal: the visuals of a representation compare the same pair each update */
+  const equalThemes = new WeakMap<SizeTheme<any>, WeakMap<SizeTheme<any>, boolean>>();
+
   export function areEqual(themeA: SizeTheme<any>, themeB: SizeTheme<any>) {
-    return (
-      themeA.contextHash === themeB.contextHash &&
-      themeA.factory === themeB.factory &&
-      deepEqual(themeA.props, themeB.props)
-    );
+    if (themeA === themeB) return true;
+    let byB = equalThemes.get(themeA);
+    let equal = byB?.get(themeB);
+    if (equal === undefined) {
+      equal =
+        themeA.contextHash === themeB.contextHash &&
+        themeA.factory === themeB.factory &&
+        deepEqual(themeA.props, themeB.props);
+      if (!byB) equalThemes.set(themeA, (byB = new WeakMap()));
+      byB.set(themeB, equal);
+    }
+    return equal;
   }
 
   export interface Provider<P extends PD.Params = any, Id extends string = string>

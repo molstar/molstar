@@ -24,8 +24,9 @@ import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Subject } from 'rxjs';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import type { VolumeVisual } from './visual.js';
-import { getFactorySignatures, getQualitySignatures, type SignatureContext } from '../signatures.js';
+import type { VolumeKey, VolumeVisual } from './visual.js';
+import { getQualitySignatures, type SignatureContext } from '../signatures.js';
+import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> {}
 
@@ -52,13 +53,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
   label: string,
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<Volume, P>,
-  visualCtor: (
-    materialId: number,
-    volume: Volume,
-    key: number,
-    props: PD.Values<P>,
-    graphics?: GraphicsContext,
-  ) => VolumeVisual<P>,
+  visualCtor: VisualFactory<VolumeKey, P>,
   getLoci: (volume: Volume, props: PD.Values<P>) => Loci,
   getKeys: (props: PD.Values<P>, volume: Volume) => ArrayLike<number> = () => [-1],
 ): VolumeRepresentation<P> {
@@ -80,11 +75,11 @@ export function VolumeRepresentation<P extends VolumeParams>(
   async function visual(runtime: RuntimeContext, key: number) {
     let visual = visuals.get(key);
     if (!visual) {
-      visual = visualCtor(materialId, _volume, key, _props, graphics);
+      visual = createVisual(visualCtor, materialId, { volume: _volume, key }, _props, graphics);
       visuals.set(key, visual);
     } else if (visual.mustRecreate?.({ volume: _volume, key }, _props, graphics)) {
       visual.destroy();
-      visual = visualCtor(materialId, _volume, key, _props, graphics);
+      visual = createVisual(visualCtor, materialId, { volume: _volume, key }, _props, graphics);
       visuals.set(key, visual);
     }
     const renderObject = visual.renderObject;
@@ -143,7 +138,6 @@ export function VolumeRepresentation<P extends VolumeParams>(
 
   function setVisualState(visual: VolumeVisual<P>, state: Partial<Representation.State>) {
     if (state.visible !== undefined && visual) visual.setVisibility(state.visible);
-    if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor);
     if (state.pickable !== undefined && visual) visual.setPickable(state.pickable);
     if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint);
     if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency);
@@ -158,7 +152,6 @@ export function VolumeRepresentation<P extends VolumeParams>(
   function setState(state: Partial<Representation.State>) {
     const {
       visible,
-      alphaFactor,
       pickable,
       overpaint,
       transparency,
@@ -174,7 +167,6 @@ export function VolumeRepresentation<P extends VolumeParams>(
     const newState: Partial<Representation.State> = {};
 
     if (visible !== undefined) newState.visible = visible;
-    if (alphaFactor !== undefined) newState.alphaFactor = alphaFactor;
     if (pickable !== undefined) newState.pickable = pickable;
     if (overpaint !== undefined) newState.overpaint = overpaint;
     if (transparency !== undefined) newState.transparency = transparency;
@@ -256,15 +248,7 @@ export function VolumeRepresentation<P extends VolumeParams>(
       graphics = value;
     },
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
-      getQualitySignatures(props, (props) =>
-        getFactorySignatures(
-          visualCtor,
-          // without a volume: factories that read it name their visuals
-          () => visualCtor(materialId, undefined as unknown as Volume, -1, props, ctx.graphics),
-          props,
-          ctx,
-        ),
-      ),
+      getQualitySignatures(props, (props) => getFactorySignatures(visualCtor, props, ctx)),
     destroy,
   };
 }

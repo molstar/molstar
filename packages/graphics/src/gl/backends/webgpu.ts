@@ -7,7 +7,7 @@
 import type { GraphicsBackendDescriptor } from '../backend.js';
 import { WebGPUBackend } from '../webgpu/backend.js';
 
-/** Backend set WebGPU: WebGPU only, for builds without WebGL (see `./default`); `preferWebGl1` is ignored */
-export function getDefaultGraphicsBackends(_options: { preferWebGl1?: boolean } = {}): GraphicsBackendDescriptor[] {
+/** Backend set WebGPU: WebGPU only, for builds without WebGL (see `./default`) */
+export function getDefaultGraphicsBackends(): GraphicsBackendDescriptor[] {
   return [WebGPUBackend];
 }

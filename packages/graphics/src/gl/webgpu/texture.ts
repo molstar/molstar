@@ -11,6 +11,7 @@ import type { GraphicsStats } from '../stats.js';
 import type { Texture, TextureFilter, TextureFormat, TextureKind, TextureSource, TextureType } from '../texture.js';
 import { TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
+import type { AttachmentRef } from '../framebuffer.js';
 import { asWebGPUFramebuffer } from './framebuffer.js';
 import { getMipLevelCount, type MipmapGenerator } from './mipmap.js';
 
@@ -79,13 +80,21 @@ export interface WebGPUResourceEnv {
 }
 
 export interface WebGPUTexture extends Texture {
+  /** as attachment (`Framebuffer.getAttachments`) */
+  readonly ref: AttachmentRef;
   readonly format: GPUTextureFormat;
   readonly dimension: GPUTextureDimension;
-  /** view for sampling (depth aspect of depth-stencil formats), undefined before `define` or `load` */
+  /**
+   * view for sampling (depth aspect of depth-stencil formats), undefined while the texture has no storage: before it is
+   * first written (bindings use a placeholder then, see `getTextureEntries`)
+   */
   getView: () => GPUTextureView | undefined;
-  /** view for render pass attachments (all aspects), undefined before `define` or `load` */
+  /** view for render pass attachments and storage bindings (all aspects): allocates the storage of a defined texture */
   getAttachmentView: () => GPUTextureView | undefined;
+  /** the GPU texture, for copies and reads: allocates the storage of a defined texture */
   getGPUTexture: () => GPUTexture | undefined;
+  /** whether the texture has GPU storage (written, or read or copied since `define`) */
+  readonly hasStorage: boolean;
   readonly hasStencil: boolean;
   /** as on WebGL, a property of the texture; programs sample linear textures filtered, see `isLinearFiltered` */
   readonly filter: TextureFilter;
@@ -210,6 +219,8 @@ export function createWebGPUTexture(
   let mipmapped = false;
   /** a destroyed texture allocates nothing again (e.g. an image decoded after the background changed) */
   let destroyed = false;
+  /** defined (`define`) without storage yet: allocated by the first write, copy or read (`ensureStorage`) */
+  let defined = false;
 
   function allocate(w: number, h: number, d = 1) {
     if (texture && w === width && h === height && d === depth) return;
@@ -217,6 +228,7 @@ export function createWebGPUTexture(
     width = w;
     height = h;
     depth = d;
+    defined = false;
     account(Math.max(1, w) * Math.max(1, h) * Math.max(1, d) * channelsOf(format) * bytesPerChannel);
     texture = env.device.createTexture({
       size: { width: Math.max(1, w), height: Math.max(1, h), depthOrArrayLayers: Math.max(1, d) },
@@ -237,12 +249,33 @@ export function createWebGPUTexture(
     allocate(w, h, d);
   }
 
-  /** without data, the contents are undefined until rendered into */
+  /**
+   * Records the size; the storage is allocated when the texture is first written, copied or read (lazy: targets of
+   * passes that never draw take no memory). Without data, the contents are undefined until rendered into.
+   */
   function define(w: number, h: number, d = 1) {
     if (destroyed) return;
     loaded = undefined;
     mipmapped = false;
-    allocate(w, h, d);
+    // storage of this size is kept (its contents are undefined either way)
+    if (texture && w === width && h === height && d === depth) return;
+    if (texture) {
+      release(texture);
+      texture = undefined;
+      view = undefined;
+      attachmentView = undefined;
+      account(0);
+      version += 1;
+    }
+    width = w;
+    height = h;
+    depth = d;
+    defined = true;
+  }
+
+  /** Allocates the storage of a defined texture, see `define` */
+  function ensureStorage() {
+    if (!texture && defined && !destroyed) allocate(width, height, depth);
   }
 
   function load(image: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap) {
@@ -279,13 +312,57 @@ export function createWebGPUTexture(
     );
   }
 
+  /** `Texture.loadRows`: a queue write per range of rows, from the array in place */
+  function loadRows(image: TextureImage<any>, rows: readonly number[]) {
+    if (destroyed) return;
+    const { array } = image;
+    const converted = type === 'fp16' && array instanceof Float32Array;
+    if (
+      dimension !== '2d' ||
+      image.flipY ||
+      converted ||
+      !texture ||
+      image.width !== width ||
+      image.height !== height
+    ) {
+      load(image);
+      return;
+    }
+    // queue writes run before the commands recorded so far, which may still read the current contents
+    env.flush();
+    const stride = (array.length / image.height) * array.BYTES_PER_ELEMENT;
+    for (let k = 0; k < rows.length; k += 2) {
+      const start = rows[k];
+      const end = Math.min(rows[k + 1], image.height);
+      if (end <= start) continue;
+      env.device.queue.writeTexture(
+        { texture, origin: { x: 0, y: start } },
+        array,
+        { offset: start * stride, bytesPerRow: stride, rowsPerImage: end - start },
+        { width, height: end - start },
+      );
+    }
+    loaded = image;
+  }
+
+  const id = getNextTextureId();
   const t: WebGPUTexture = {
-    id: getNextTextureId(),
+    id,
+    ref: { kind: 'texture', id },
     format: gpuFormat,
     dimension,
     getView: () => view,
-    getAttachmentView: () => attachmentView,
-    getGPUTexture: () => texture,
+    getAttachmentView: () => {
+      ensureStorage();
+      return attachmentView;
+    },
+    getGPUTexture: () => {
+      ensureStorage();
+      return texture;
+    },
+    get hasStorage() {
+      return texture !== undefined;
+    },
     getSource: () => ({ kind, format, type, filter, data: loaded as TextureSource['data'], mipmap: mipmapped }),
     hasStencil,
     filter,
@@ -296,10 +373,11 @@ export function createWebGPUTexture(
     getWidth: () => width,
     getHeight: () => height,
     getDepth: () => depth,
-    getByteCount: () => width * height * depth * (channelsOf(format) * bytesPerChannel),
+    getByteCount: () => (texture ? width * height * depth * (channelsOf(format) * bytesPerChannel) : 0),
 
     define,
     load,
+    loadRows,
     mipmap: () => {
       if (!texture || dimension !== '2d' || isDepth || !isFilterableFormat(env.device, gpuFormat)) return;
       const mipLevelCount = getMipLevelCount(width, height);
@@ -336,11 +414,18 @@ export function createWebGPUTexture(
       if (dimension !== '3d') notSupported('attaching layers of 2d textures');
       // a slice of the 3d view of level 0
       asWebGPUFramebuffer(framebuffer).attach(attachment, {
+        ref: t.ref,
         format: gpuFormat,
         hasStencil,
         depthSlice: layer,
-        getAttachmentView: () => attachmentView,
-        getGPUTexture: () => texture,
+        getAttachmentView: () => {
+          ensureStorage();
+          return attachmentView;
+        },
+        getGPUTexture: () => {
+          ensureStorage();
+          return texture;
+        },
         getWidth: () => width,
         getHeight: () => height,
       });
@@ -351,6 +436,7 @@ export function createWebGPUTexture(
     copyFromFramebuffer: (framebuffer, x, y, w, h, dstX, dstY) => {
       const src = asWebGPUFramebuffer(framebuffer).getColorAttachment(0);
       const srcTexture = src?.getGPUTexture();
+      ensureStorage();
       if (!srcTexture || !texture) throw new Error('copyFromFramebuffer needs a defined source and destination');
       env.encode((encoder) => {
         encoder.copyTextureToTexture(
@@ -361,6 +447,19 @@ export function createWebGPUTexture(
       });
     },
 
+    releaseStorage: () => {
+      if (!texture || destroyed) return;
+      release(texture);
+      texture = undefined;
+      view = undefined;
+      attachmentView = undefined;
+      loaded = undefined;
+      mipmapped = false;
+      account(0);
+      version += 1;
+      // allocated again at this size by the next write
+      defined = true;
+    },
     destroy: () => {
       if (destroyed) return;
       destroyed = true;
@@ -369,6 +468,7 @@ export function createWebGPUTexture(
       view = undefined;
       attachmentView = undefined;
       loaded = undefined;
+      defined = false;
       account(0);
       uncount();
     },
@@ -451,13 +551,18 @@ export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean
     version += 1;
   }
 
+  const cubeId = getNextTextureId();
   const t: WebGPUTexture & { loadFaces: typeof loadFaces } = {
-    id: getNextTextureId(),
+    id: cubeId,
+    ref: { kind: 'texture', id: cubeId },
     format: gpuFormat,
     dimension: '2d',
     getView: () => view,
     getAttachmentView: () => undefined,
     getGPUTexture: () => texture,
+    get hasStorage() {
+      return texture !== undefined;
+    },
     hasStencil: false,
     filter: 'linear',
     get version() {
@@ -476,6 +581,8 @@ export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean
     attachFramebuffer: () => notSupported('attaching cube textures'),
     detachFramebuffer: () => notSupported('detaching cube textures'),
     copyFromFramebuffer: () => notSupported('copying into cube textures'),
+    // loaded from images, not a target
+    releaseStorage: () => {},
 
     destroy: () => {
       if (destroyed) return;

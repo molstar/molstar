@@ -15,6 +15,8 @@ import { createWebGPUContext, requestWebGPUDevice, type WebGPUFeatures, type Web
 export function createWebGPUBackend(
   options: {
     strict?: boolean;
+    /** the binding limit of the theme layers' pages, below the device's (`WebGPUContextOptions.maxDataBindingSize`) */
+    maxDataBindingSize?: number;
     limits?: WebGPULimits;
     features?: WebGPUFeatures;
     requiredFeatures?: readonly GPUFeatureName[];
@@ -34,6 +36,7 @@ export function createWebGPUBackend(
         canvas,
         pixelScale: attribs.pixelScale,
         strict: options.strict,
+        maxDataBindingSize: options.maxDataBindingSize,
         // a lost device is replaced by one of the same adapter preference
         requestDevice: () => request(attribs.powerPreference),
         ownsDevice: true,

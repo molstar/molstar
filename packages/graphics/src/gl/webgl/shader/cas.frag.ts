@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 export const cas_frag = `
 precision mediump float;
 
@@ -87,9 +93,10 @@ vec3 FsrRcasF(
         float nz = .25 * (bL + dL + fL + hL) - eL;
         nz=clamp(
             abs(nz)
-            /(
+            /max(
                 max(max(bL,dL),max(eL,max(fL,hL)))
-                -min(min(bL,dL),min(eL,min(fL,hL)))
+                -min(min(bL,dL),min(eL,min(fL,hL))),
+                1e-5 // a flat area has no range (0 / 0)
             ),
             0., 1.
         );
@@ -97,15 +104,16 @@ vec3 FsrRcasF(
     #endif
 
     // Min and max of ring.
-    vec3 mn4 = min(b, min(f, h));
-    vec3 mx4 = max(b, max(f, h));
+    vec3 mn4 = min(min(b, d), min(f, h));
+    vec3 mx4 = max(max(b, d), max(f, h));
 
     // Immediate constants for peak range.
     vec2 peakC = vec2(1., -4.);
 
     // Limiters, these need to be high precision RCPs.
-    vec3 hitMin = mn4 / (4. * mx4);
-    vec3 hitMax = (peakC.x - mx4) / (4.* mn4 + peakC.y);
+    // black (mx4 = 0) and white (mn4 = 1) channels are 0 / 0
+    vec3 hitMin = mn4 / max(4. * mx4, vec3(1e-5));
+    vec3 hitMax = (peakC.x - mx4) / min(4.* mn4 + peakC.y, vec3(-1e-5));
     vec3 lobeRGB = max(-hitMin, hitMax);
     float lobe = max(
         -FSR_RCAS_LIMIT,

@@ -2,9 +2,11 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { TextureSpec } from './renderable/schema.js';
+import { TextureChanges } from './renderable/texture-changes.js';
 import type { TextureImage, TextureVolume } from './renderable/util.js';
 import type { Texture, TextureKind } from './texture.js';
 
@@ -30,6 +32,11 @@ export interface SharedTextures {
   acquire: (spec: TextureSpec<TextureKind>, image: SharedTextureImage) => SharedTexture;
   /** The number of live shared textures */
   readonly count: number;
+  /**
+   * Advances when an upload replaced the storage of a held texture (a grown image): draws recorded with it bind the old
+   * storage, also those of the other holders, whose values did not change (`GraphicsContext.drawResourcesVersion`)
+   */
+  readonly version: number;
 }
 
 type Entry = {
@@ -46,19 +53,38 @@ function getSpecKey(spec: TextureSpec<TextureKind>) {
   return `${kind}|${format}|${dataType}|${filter}|${dim}|${sampleType}`;
 }
 
-/** `create` gives an unloaded texture from the backend's factory, so that resource and byte counts see it once */
-export function createSharedTextures(create: (spec: TextureSpec<TextureKind>) => Texture): SharedTextures {
+/**
+ * `create` gives an unloaded texture from the backend's factory, so that resource and byte counts see it once;
+ * `storage` tells a texture's storage apart (one whose bindings are recorded, e.g. WebGPU's `version`), for `version`
+ */
+export function createSharedTextures(
+  create: (spec: TextureSpec<TextureKind>) => Texture,
+  storage?: (texture: Texture) => number,
+): SharedTextures {
   const entries = new WeakMap<SharedTextureImage, Map<string, Entry>>();
   let count = 0;
+  let version = 0;
 
-  function load(entry: Entry, image: SharedTextureImage) {
-    entry.texture.load(image);
+  /** All of `image`, or its `rows` (`Texture.loadRows`) */
+  function load(entry: Entry, image: SharedTextureImage, rows?: readonly number[]) {
+    const { texture } = entry;
+    const before = storage?.(texture);
+    if (rows) texture.loadRows!(image as TextureImage<any>, rows);
+    else texture.load(image);
     entry.uploaded = (image as TextureImage<any>).version;
+    // a texture without holders yet was bound by no draw
+    if (entry.holders > 0 && before !== storage?.(texture)) version += 1;
   }
 
+  /** Uploads what changed since the last upload: the rows written in place where logged (`TextureChanges.writeRows`) */
   function sync(entry: Entry, image: SharedTextureImage) {
-    const version = (image as TextureImage<any>).version;
-    if (version === undefined || version !== entry.uploaded) load(entry, image);
+    const current = (image as TextureImage<any>).version;
+    if (current !== undefined && current === entry.uploaded) return;
+    const rows =
+      current !== undefined && entry.uploaded !== undefined && entry.texture.loadRows && !('depth' in image)
+        ? TextureChanges.getImageRows(image, entry.uploaded, current)
+        : undefined;
+    load(entry, image, rows);
   }
 
   return {
@@ -106,6 +132,9 @@ export function createSharedTextures(create: (spec: TextureSpec<TextureKind>) =>
     },
     get count() {
       return count;
+    },
+    get version() {
+      return version;
     },
   };
 }

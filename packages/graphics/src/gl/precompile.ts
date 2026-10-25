@@ -39,11 +39,17 @@ export interface ObjectSignature extends RenderableKind {
   readonly opaque: boolean;
   readonly transparent: boolean;
   readonly emissive: boolean;
+  /**
+   * Culled on the GPU (a merged object's `gpuCulling`): its programs are the same, the culling's kernels prepared with
+   * them; not part of the key. Unset in lists derived from params (whether an object is culled there depends on its
+   * instances)
+   */
+  readonly gpuCulled?: boolean;
 }
 
-/** How an object with `values` (and its state's alpha factor) draws now, see `ObjectSignature.opaque` */
-function getDrawFlags(values: { [k: string]: ValueCell<unknown> | undefined }, alphaFactor: number) {
-  const alpha = Math.min(Math.max(((values.alpha?.ref.value as number) ?? 1) * alphaFactor, 0), 1);
+/** How an object with `values` (its final alpha, `uAlpha`) draws now, see `ObjectSignature.opaque` */
+function getDrawFlags(values: { [k: string]: ValueCell<unknown> | undefined }) {
+  const alpha = (values.uAlpha?.ref.value as number) ?? 1;
   const transparency = (values.transparencyAverage?.ref.value as number) ?? 0;
   const emissive =
     ((values.emissiveAverage?.ref.value as number) ?? 0) + ((values.uEmissive?.ref.value as number) ?? 0);
@@ -56,12 +62,19 @@ function getDrawFlags(values: { [k: string]: ValueCell<unknown> | undefined }, a
 
 /** `a` with the draw flags of `b` added (signatures of the same key) */
 export function mergeSignatures(a: ObjectSignature, b: ObjectSignature): ObjectSignature {
-  if ((a.opaque || !b.opaque) && (a.transparent || !b.transparent) && (a.emissive || !b.emissive)) return a;
+  if (
+    (a.opaque || !b.opaque) &&
+    (a.transparent || !b.transparent) &&
+    (a.emissive || !b.emissive) &&
+    (a.gpuCulled || !b.gpuCulled)
+  )
+    return a;
   return {
     ...a,
     opaque: a.opaque || b.opaque,
     transparent: a.transparent || b.transparent,
     emissive: a.emissive || b.emissive,
+    gpuCulled: a.gpuCulled || b.gpuCulled,
   };
 }
 
@@ -84,7 +97,8 @@ export function getObjectSignature(renderable: GraphicsRenderable): ObjectSignat
     linearTextures: [...(renderable.renderItem.getLinearTextures?.() ?? [])].sort(),
     doubleSided: !!renderable.values.uDoubleSided?.ref.value,
     hasReflection: !!renderable.values.hasReflection?.ref.value,
-    ...getDrawFlags(renderable.values as { [k: string]: ValueCell<unknown> | undefined }, renderable.state.alphaFactor),
+    ...getDrawFlags(renderable.values as { [k: string]: ValueCell<unknown> | undefined }),
+    gpuCulled: !!renderable.values.gpuCulling?.ref.value,
   };
 }
 
@@ -132,7 +146,8 @@ export function getRenderObjectSignature(object: GraphicsRenderObject): ObjectSi
     linearTextures: getSchemaLinearTextures(source.schema, defines),
     doubleSided: !!values.uDoubleSided?.ref.value,
     hasReflection: !!values.hasReflection?.ref.value,
-    ...getDrawFlags(values, object.state.alphaFactor),
+    ...getDrawFlags(values),
+    gpuCulled: !!values.gpuCulling?.ref.value,
   };
 }
 

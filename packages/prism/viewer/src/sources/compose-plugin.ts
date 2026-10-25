@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { decodeColor } from '@molstar/core/util/color/utils';
@@ -105,10 +106,8 @@ function focusBehaviors(
 export function optionsConfig(o: PrismViewerOptionValues): [PluginConfigItem, unknown][] {
   const r = o.renderer;
   const d = o.data;
-  // v5's prefer-webgl1 wins: the backends listed, the plugin's own WebGL1 preference is not read
-  const backend = r.preferWebgl1 === 'yes' ? 'webgl1' : r.graphicsBackend;
   const items: [PluginConfigItem, unknown][] = [
-    [PluginConfig.General.GraphicsBackends, getGraphicsBackends(backend)],
+    [PluginConfig.General.GraphicsBackends, getGraphicsBackends(r.graphicsBackend)],
     [PluginConfig.General.PixelScale, r.pixelScale],
     [PluginConfig.General.PickScale, r.pickScale],
     [PluginConfig.General.ResolutionMode, r.resolutionMode],
@@ -125,7 +124,6 @@ export function optionsConfig(o: PrismViewerOptionValues): [PluginConfigItem, un
     [PluginConfig.General.PauseLoopWhenIdle, o.ui.pauseWhenIdle],
   ];
   if (r.transparency !== 'auto') items.push([PluginConfig.General.Transparency, r.transparency]);
-  if (r.preferWebgl1 !== 'auto') items.push([PluginConfig.General.PreferWebGl1, r.preferWebgl1 === 'yes']);
   return items;
 }
 

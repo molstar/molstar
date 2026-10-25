@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IsosurfaceChunkSize } from '../../compute/marching-cubes/chunk-size.js';
+import { iso_vertex_wgsl } from './marching-cubes-chunks.wgsl.js';
 
 /** Fixed-point scale of the accumulated weights and weighted colors */
 const fixed_point_wgsl = /* wgsl */ `
@@ -24,6 +24,8 @@ fn unpackRGBToInt(rgb: vec3<f32>) -> u32 {
     return (v.r << 16u) + (v.g << 8u) + v.b - 1u;
 }
 
+${iso_vertex_wgsl('isoTable', 'isoVertices')}
+
 fn texelOf(index: u32, width: u32) -> vec2<u32> {
     return vec2<u32>(index % width, index / width);
 }
@@ -39,13 +41,17 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>, @builtin(num_workgroups) g
     let vertex = (index % sampleCount) * u32(uParams.uStride);
     // in pages of the vertex arena (see \`computeChunkedIsosurface\`), drawn up to the page table's fourth word;
     // \`uVertexCount\` is an upper bound
-    if (vertex >= min(u32(uParams.uVertexCount), isoTable[3u])) {
+    if (vertex >= min(u32(uParams.uVertexCount), isoDrawn())) {
         return;
     }
-    let slot = isoTable[4u + vertex / ${IsosurfaceChunkSize}u] * ${IsosurfaceChunkSize}u + vertex % ${IsosurfaceChunkSize}u;
-    let positionGroup = isoPositions[slot];
-    let localPosition = positionGroup.xyz;
-    let group = unpackRGBToInt(unpack4x8unorm(bitcast<u32>(positionGroup.w)).rgb);
+    let slot = isoSlot(vertex);
+    let localPosition = isoPosition(slot);
+    let packedGroup = isoPackedGroup(slot);
+    // a vertex no end of whose edge has a group: no color (the group would wrap to 0xFFFFFFFF)
+    if (packedGroup == 0u) {
+        return;
+    }
+    let group = packedGroup - 1u;
     let position = (transforms[instance] * vec4<f32>(localPosition, 1.0)).xyz;
 
     #if defined(dColorType_groupInstance)

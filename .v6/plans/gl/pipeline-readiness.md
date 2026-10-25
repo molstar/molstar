@@ -43,10 +43,14 @@
     volume grids as 3d textures where supported. A visual adds what it decides (`signatureDefines`: surfaces' varying
     groups by flat interpolation, the Gaussian density's packed group, a volume's six axis orders).
   - **Representations** (`Representation.getSignatures(props, ctx)`): the visuals the props select, created without
-    data (cheap: closures); factories that decide by data name their visuals (`withSignatureVisuals`: Gaussian surfaces
-    and volume isosurfaces, GPU or CPU by size, both when the props and context allow the GPU); the quality presets as
+    data (cheap: closures); factories that choose name the visuals they may create (`selectVisual`, `chooseVisual`:
+    Gaussian surfaces and volume isosurfaces and segments, GPU or CPU by size, both when the props and context allow
+    the GPU; impostors or meshes by the props and context, the one chosen); the quality presets as
     representations apply them (`getQualitySignatures`: 'auto' quality as medium and low, which differ in
-    double-sidedness, i.e. pipelines only); units representations also merged where `renderMerged` is on or 'auto'.
+    double-sidedness, i.e. pipelines only); units representations also merged where `renderMerged` is on, or
+    `gpuCulling` (an object alone merged, `gpuCulled`: the culling's kernels prepared with it; `withMergedSignatures`,
+    with the merged programs' `dSegmented`); 'auto' of either is taken as unmerged and culled on the CPU, by the
+    objects' counts (large objects, which compile while they build).
   - **Themes**: created without data, as the theme legends are (`getColorThemeSignature`); themes whose data decides
     the granularity name what it may be (`ThemeProvider.getSignatureGranularities`: the MVS multilayer theme, its layer
     themes with any selection granularity).
@@ -421,8 +425,8 @@ Done:
 
 1. **What a signature is drawn with**: `ObjectSignature.opaque`, `transparent` and `emissive` (how the object may draw;
    not part of the key, merged by OR where signatures of one key meet: `mergeSignatures`, the recorder, the lists). Derived
-   from the props (alpha 1 or below, emission) and the layers (transparency, emissive); recorded from the values (alpha
-   with the alpha factor, transparency and emissive averages). `renderer.collectSignatures` makes a stand-in per way the
+   from the props (alpha 1 or below, emission) and the layers (transparency, emissive); recorded from the values (the
+   final alpha `uAlpha`, transparency and emissive averages). `renderer.collectSignatures` makes a stand-in per way the
    object may draw (alpha 1 or 0.5, emissive or not, with the values the passes check) and lets the passes' own checks
    select, `all` only where a plan asks for it (marking as if marked), as `collect` does for objects.
 2. **What large data decides, resolved as small data does**: 'auto' merging as unmerged (`renderMerged: true` gives

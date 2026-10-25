@@ -28,6 +28,7 @@ import type { LocationCallback } from '../../../util.js';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { OrderedSet } from '@molstar/core/data/int';
 import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../../../merged.js';
+import { canCullOnGpu } from '@molstar/graphics/gl/renderable/merged';
 import {
   ParticleTargetRepresentationParams,
   type ParticleTargetRepresentationProps,
@@ -147,12 +148,18 @@ export function ParticleTargetRepresentation(
   }
 
   function updateRenderObjectList(entries: { visual: TargetVisual; renderObject: GraphicsRenderObject }[]) {
-    mergedByType = mergeRenderObjectsByType(entries, _props.renderMerged, mergedByType, renderObjects);
+    mergedByType = mergeRenderObjectsByType(
+      entries,
+      _props.renderMerged,
+      mergedByType,
+      renderObjects,
+      _props.gpuCulling,
+      canCullOnGpu(ctx.graphics),
+    );
   }
 
   function applyState(renderObject: GraphicsRenderObject, state: Partial<Representation.State>) {
     if (state.visible !== undefined) renderObject.state.visible = state.visible;
-    if (state.alphaFactor !== undefined) renderObject.state.alphaFactor = state.alphaFactor;
     if (state.pickable !== undefined) renderObject.state.pickable = state.pickable;
   }
 

@@ -11,7 +11,7 @@ import { BlurShaderCode, CompositeShaderCode, LuminosityShaderCode } from './blo
 import { CasShaderCode } from './cas.js';
 import { DofShaderCode } from './dof.js';
 import { FxaaShaderCode } from './fxaa.js';
-import { DimShaderCode, EdgeShaderCode, type MarkingProps, OverlayShaderCode } from './marking.js';
+import { DimShaderCode, type MarkingProps, OverlayShaderCode } from './marking.js';
 import { ComposeShaderCode, type MultiSampleProps } from './multi-sample.js';
 import { OutlinesShaderCode } from './outline.js';
 import type { PostprocessingProps } from './postprocessing.js';
@@ -37,7 +37,7 @@ function supports(ctx: GraphicsContext, ...shaderCodes: ShaderCode[]) {
 export function limitToSupported(ctx: GraphicsContext, props: SupportedProps): string[] {
   const off: string[] = [];
 
-  if (props.marking.enabled && !supports(ctx, EdgeShaderCode, OverlayShaderCode, DimShaderCode)) {
+  if (props.marking.enabled && !supports(ctx, OverlayShaderCode, DimShaderCode)) {
     props.marking = { ...props.marking, enabled: false };
     off.push('marking');
   }

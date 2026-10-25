@@ -10,6 +10,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { edt } from '@molstar/core/math/geometry/distance-transform';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { TextureChanges } from '@molstar/graphics/gl/renderable/texture-changes';
 import { RUNNING_IN_NODEJS } from '@molstar/core/util/nodejs-shims';
 import { LRUCache } from '@molstar/core/util/lru-cache';
 import { TextMeasure } from '@molstar/core/util/text-measure';
@@ -320,8 +321,8 @@ export class FontAtlas {
       }
 
       this.currentX += this.scratchW;
-      // written in place: shared textures of the atlas upload it again (`.v6/plans/gl/shared-textures.md` §3)
-      this.texture.version = (this.texture.version ?? 0) + 1;
+      // written in place: shared textures of the atlas upload these rows again (`.v6/plans/gl/shared-textures.md` §3)
+      TextureChanges.writeRows(this.texture, this.currentY, this.currentY + this.scratchH);
     }
 
     return this.mapped[char];

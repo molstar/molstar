@@ -2,8 +2,9 @@
 
 ## Status
 
-- **Current**: Default backend decided and done for the Viewer (`graphics-backend=auto`, see Default backend); the
-  plugin default (`PluginConfig.General.GraphicsBackends`) follows after a release without regressions. Steps 1
+- **Current**: Default backend decided and done (`auto`, see Default backend): the Viewer's `graphics-backend` and the
+  plugin default (`PluginConfig.General.GraphicsBackends` unset, `@molstar/graphics/gl/backends/default` the `all`
+  set). Steps 1
   (descriptors, async creation, the plugin config item), 2 (import hygiene: the guard test, per-backend program
   registries of [glsl-in-webgl.md](glsl-in-webgl.md)), 3 (GPU compute behind the backends, chosen by capability:
   [backend-narrowing.md](backend-narrowing.md) step 3) and 4 (backend sets, the bundle check and Viewer variants with
@@ -47,14 +48,14 @@
   `createWebGLCanvas3DContext` in `@molstar/graphics/canvas3d/webgl` (the Canvas3D layer's WebGL convenience; the `gl`
   layer doesn't import `canvas3d`), with `Canvas3DContext.fromGraphics` public. Backend sets
   `@molstar/graphics/gl/backends/{webgl,webgpu,all}` export `getDefaultGraphicsBackends`, `.../default` re-exports the
-  WebGL set and the plugin takes its default from it, so a lean build aliases one import (esbuild `alias`). No
+  `all` set and the plugin takes its default from it, so a lean build aliases one import (esbuild `alias`). No
   `sideEffects` needed: esbuild drops the other backend without it. `pnpm check:backend-bundles`
   (`scripts/check-backend-bundles.mjs`, not in CI) builds Canvas3D with each backend and the plugin with the default and
-  with it aliased to WebGPU, and fails on code of an excluded backend (GLSL and WGSL sources included), naming the
+  with it aliased to each backend, and fails on code of an excluded backend (GLSL and WGSL sources included), naming the
   import: Canvas3D with WebGPU 1504 KiB (was 1865 KiB with 353 KiB of WebGL), with WebGL 1585 KiB, the plugin 2003 KiB
   with WebGL and 1923 KiB aliased to WebGPU.
 - Viewer variants: the Viewer takes its backends from the backend sets (`graphics-backend`: `webgpu` the WebGPU and
-  WebGL sets, `auto` the `all` set, `webgl` the plugin default), and `molstar.variants` in its manifest (`webgl`,
+  WebGL sets, `auto` the `all` set (the plugin default), `webgl` the WebGL set), and `molstar.variants` in its manifest (`webgl`,
   `webgpu`) builds it with one backend (`node scripts/esbuild/app.mjs apps/viewer --variants` into `build/<variant>/`,
   the other set modules aliased to the kept one, `scripts/esbuild/backend-sets.mjs`): 4.55 MB (WebGL) and 4.47 MB
   (WebGPU) against 4.83 MB, no code of the other backend (`pnpm check:backend-bundles`);
@@ -270,7 +271,8 @@ Recommendation: C, once the blockers below are done.
    Safari's own WebGPU (Playwright's builds have no adapter), macOS/Metal, Linux, integrated GPUs.
 6. **Switch** (done for the Viewer): the Viewer's `graphics-backend` defaults to `auto` (WebGPU where the adapter has
    `float32-blendable`, else WebGL2, then WebGL), `graphics-backend=webgl` to opt out, recorded in the v6 changelog; the
-   plugin default (`PluginConfig.General.GraphicsBackends`) follows after a release without regressions.
+   plugin default (`PluginConfig.General.GraphicsBackends` unset) followed: the `all` set. `PreferWebGl1` is removed: WebGL1 by listing
+   only its backend. Headless stays WebGL.
 
 ## Steps
 
@@ -307,8 +309,8 @@ Recommendation: C, once the blockers below are done.
 ## Open questions
 
 - Default backend set of the Viewer bundle: all with WebGL preferred until WebGPU reaches parity, plus lean
-  single-backend builds? Recommended: staged, the Viewer on WebGPU where available once the blockers of Default backend
-  are done, the plugin default following a release later.
+  single-backend builds? Decided: `auto` (WebGPU where capable) for the Viewer and the
+  plugin default, single-backend builds by aliasing the backend sets.
 - Automatic fallback on device loss or missing features, or only explicit switching?
 - Should the sync readback APIs (screenshots, `getImageData`) be async everywhere before switching lands (backend-split
   step 5), since WebGPU readback is async only?

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -75,8 +75,8 @@ vec3 getBlurredImage(vec2 coords) {
             count+=coc;
         }
     }
-    blurColor = blurColor / count;
-    return blurColor.rgb;
+    // no sample out of focus: the pixel itself
+    return count > 0.0 ? blurColor.rgb / count : texture2D(tColor, coords).rgb;
 }
 
 // simplification from https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/

@@ -52,11 +52,16 @@ fn cellIndex(c: vec3<u32>, cells: vec3<u32>) -> u32 {
 /** The gradient normal and the group packing of the emit kernel */
 export const mc_vertex_wgsl = /* wgsl */ `
 fn gradientNormal(p: vec3<i32>) -> vec3<f32> {
-    return -normalize(vec3<f32>(
+    let g = vec3<f32>(
         value(p - vec3<i32>(1, 0, 0)) - value(p + vec3<i32>(1, 0, 0)),
         value(p - vec3<i32>(0, 1, 0)) - value(p + vec3<i32>(0, 1, 0)),
         value(p - vec3<i32>(0, 0, 1)) - value(p + vec3<i32>(0, 0, 1))
-    ));
+    );
+    // a flat neighbourhood has no gradient (\`normalize\` of a zero vector is NaN): no normal, as the callers check
+    if (all(g == vec3<f32>(0.0))) {
+        return vec3<f32>(0.0);
+    }
+    return -normalize(g);
 }
 
 /** an integer (group id) packed into rgb, as \`packIntToRGB\` */

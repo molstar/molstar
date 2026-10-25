@@ -5,7 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
-import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
+import { type PassBuilder } from './pass-builder.js';
 import {
   type CopyRenderable,
   createCopyRenderable,
@@ -19,6 +19,7 @@ import { ShaderCode } from '@molstar/graphics/gl/shader-code';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { RenderState } from '@molstar/graphics/gl/render-state';
 import type { Texture } from '@molstar/graphics/gl/texture';
+import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -34,6 +35,7 @@ import { Scene } from '@molstar/graphics/gl/scene';
 import { clearJitter, setJitter } from './jitter.js';
 import type { RenderContext as BaseRenderContext } from '../util.js';
 import { updateOcclusionUpsample } from './ssao.js';
+import type { PassTargets } from './pass-targets.js';
 
 export const MarkingParams = {
   enabled: PD.Boolean(true),
@@ -96,6 +98,7 @@ export type MarkingShading =
 type RenderContext = BaseRenderContext<ICamera | StereoCamera>;
 
 export class MarkingPass {
+  private readonly graphics: GraphicsContext;
   static isEnabled(props: MarkingProps) {
     return props.enabled;
   }
@@ -106,11 +109,9 @@ export class MarkingPass {
 
   private readonly depthTarget: RenderTarget;
   private readonly maskTarget: RenderTarget;
-  private readonly edgesTarget: RenderTarget;
   /** premultiplied marking, the running average of the samples taken so far */
   private readonly layerTarget: RenderTarget;
 
-  private readonly edge: EdgeRenderable;
   private readonly overlay: OverlayRenderable;
   private readonly composite: CopyRenderable;
 
@@ -132,23 +133,29 @@ export class MarkingPass {
 
   private readonly renderBuilder: PassBuilder;
 
+  /**
+   * `depthStencil`: the depth-stencil buffer of the passes' size the depth and the mask are drawn with (depth cleared
+   * per pass, stencil per solid interior cap), not read after; shared with passes that use it earlier in the frame
+   */
   constructor(
-    private graphics: GraphicsContext,
+    private readonly targets: PassTargets,
     width: number,
     height: number,
+    depthStencil: Renderbuffer,
   ) {
+    const graphics = (this.graphics = targets.graphics);
     const { floatBlend, halfFloatRenderTarget } = graphics.capabilities;
-    this.depthTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+    this.depthTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
     // linear so that it can be used as antialiasing input
-    this.maskTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
-    this.edgesTarget = graphics.createRenderTarget(width, height);
+    this.maskTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    depthStencil.attachFramebuffer(this.depthTarget.framebuffer);
+    depthStencil.attachFramebuffer(this.maskTarget.framebuffer);
     const layerType = halfFloatRenderTarget ? 'fp16' : floatBlend ? 'float32' : 'uint8';
-    this.layerTarget = graphics.createRenderTarget(width, height, 'none', layerType);
+    this.layerTarget = targets.createRenderTarget(width, height, 'none', layerType);
 
-    this.edge = getEdgeRenderable(graphics, this.maskTarget.texture);
-    this.overlay = getOverlayRenderable(graphics, this.edgesTarget.texture, this.maskTarget.texture);
+    this.overlay = getOverlayRenderable(graphics, this.maskTarget.texture);
     this.composite = createCopyRenderable(graphics, this.layerTarget.texture);
-    this.renderBuilder = createRenderBuilder(graphics);
+    this.renderBuilder = targets.createRenderBuilder();
   }
 
   getByteCount() {
@@ -156,17 +163,10 @@ export class MarkingPass {
     return (
       this.depthTarget.getByteCount() +
       this.maskTarget.getByteCount() +
-      this.edgesTarget.getByteCount() +
       this.layerTarget.getByteCount() +
       (this.antialiasing?.getByteCount() ?? 0) +
       dimByteCount
     );
-  }
-
-  private setEdgeState(viewport: Viewport) {
-    this.graphics.setRenderState(RenderState.Additive);
-    this.setViewport(viewport);
-    this.graphics.clear({ color: [0, 0, 0, 0] });
   }
 
   private setViewport(viewport: Viewport) {
@@ -182,7 +182,6 @@ export class MarkingPass {
     if (width !== w || height !== h) {
       this.depthTarget.setSize(width, height);
       this.maskTarget.setSize(width, height);
-      this.edgesTarget.setSize(width, height);
       this.layerTarget.setSize(width, height);
       this.antialiasing?.setSize(width, height);
       if (this.dim) {
@@ -196,10 +195,6 @@ export class MarkingPass {
       this.sampleCount = 0;
       this.invalidate();
 
-      ValueCell.update(
-        this.edge.values.uTexSizeInv,
-        Vec2.set(this.edge.values.uTexSizeInv.ref.value, 1 / width, 1 / height),
-      );
       ValueCell.update(
         this.overlay.values.uTexSizeInv,
         Vec2.set(this.overlay.values.uTexSizeInv.ref.value, 1 / width, 1 / height),
@@ -230,10 +225,8 @@ export class MarkingPass {
       selectEdgeStrength,
     } = props.marking;
 
-    const { values: edgeValues } = this.edge;
-    ValueCell.updateIfChanged(edgeValues.uEdgeScale, Math.max(1, edgeScale * this.graphics.pixelRatio));
-
     const { values: overlayValues } = this.overlay;
+    ValueCell.updateIfChanged(overlayValues.uEdgeScale, Math.max(1, edgeScale * this.graphics.pixelRatio));
     ValueCell.update(
       overlayValues.uHighlightEdgeColor,
       Color.toVec3Normalized(overlayValues.uHighlightEdgeColor.ref.value, highlightEdgeColor),
@@ -465,6 +458,9 @@ export class MarkingPass {
   ) {
     const { renderer, scene } = ctx;
     const camera = ctx.camera as ICamera;
+    // direct volumes write the depth where they look solid (their `surfaceOpacity`); none: no pass (a replay of an empty
+    // list still costs)
+    const volumes = this.graphics.capabilities.fragDepth && scene.volumes.renderables.length > 0;
     if (depthTest) {
       b.begin(this.depthTarget, { label: 'marking depth' });
       if (b.drawing) renderer.clearDepth(true);
@@ -476,6 +472,14 @@ export class MarkingPass {
           () => renderer.renderMarkingDepth(scene.primitives, camera),
           asIfMarked,
         );
+        if (volumes) {
+          b.renderer(
+            { name: 'markingDepth' },
+            scene.volumes,
+            () => renderer.renderMarkingDepth(scene.volumes, camera),
+            asIfMarked,
+          );
+        }
       }
     }
 
@@ -488,6 +492,14 @@ export class MarkingPass {
       () => renderer.renderMarkingMask(scene.primitives, camera, depthTest ? this.depthTarget.texture : null),
       asIfMarked,
     );
+    if (volumes) {
+      b.renderer(
+        { name: 'markingMask' },
+        scene.volumes,
+        () => renderer.renderMarkingMask(scene.volumes, camera, depthTest ? this.depthTarget.texture : null),
+        asIfMarked,
+      );
+    }
 
     this.renderSample(b, camera, props.postprocessing, weight, dim);
   }
@@ -497,9 +509,9 @@ export class MarkingPass {
     if (!props.enabled || props.antialiasing.name === 'off') return null;
 
     if (!this.antialiasing) {
-      // linear, as the edge pass samples the mask between texels
+      // linear, as the overlay samples the mask between texels for the edges
       this.antialiasing = new AntialiasingPass(
-        this.graphics,
+        this.targets,
         this.maskTarget.getWidth(),
         this.maskTarget.getHeight(),
         'linear',
@@ -526,8 +538,8 @@ export class MarkingPass {
       const height = this.maskTarget.getHeight();
       this.dim = {
         // linear so that it can be used as antialiasing input
-        target: this.graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear'),
-        aaTarget: this.graphics.createRenderTarget(width, height, 'none'),
+        target: this.targets.createRenderTarget(width, height, 'none', 'uint8', 'linear'),
+        aaTarget: this.targets.createRenderTarget(width, height, 'none'),
         renderable: getDimRenderable(this.graphics, this.depthTarget.texture, this.maskTarget.texture),
       };
     }
@@ -572,9 +584,7 @@ export class MarkingPass {
       ? this.antialias(b, camera, postprocessingProps, this.maskTarget, aa.target)
       : this.maskTarget.texture;
 
-    if (this.edge.values.tMaskTexture.ref.value !== maskTexture) {
-      ValueCell.update(this.edge.values.tMaskTexture, maskTexture);
-      this.edge.update();
+    if (this.overlay.values.tMaskTexture.ref.value !== maskTexture) {
       ValueCell.update(this.overlay.values.tMaskTexture, maskTexture);
       this.overlay.update();
     }
@@ -583,12 +593,7 @@ export class MarkingPass {
       this.overlay.update();
     }
 
-    const viewport = camera.viewport;
-    b.begin(this.edgesTarget, { label: 'marking edges' });
-    if (b.drawing) this.setEdgeState(viewport);
-    b.quad(this.edge, RenderState.Additive);
-
-    this.renderOverlay(b, viewport, weight);
+    this.renderOverlay(b, camera.viewport, weight);
     if (timing) this.graphics.timer.groupEnd('MarkingPass.renderSample');
   }
 
@@ -615,34 +620,6 @@ export class MarkingPass {
     if (b.drawing) this.setViewport(viewport);
     b.quad(copy, RenderState.Default);
   }
-}
-
-//
-
-export const EdgeSchema = {
-  ...QuadSchema,
-  tMaskTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
-  uTexSizeInv: UniformSpec('v2'),
-  uEdgeScale: UniformSpec('f'),
-};
-export const EdgeShaderCode = ShaderCode('edge');
-type EdgeRenderable = ComputeRenderable<Values<typeof EdgeSchema>>;
-
-function getEdgeRenderable(ctx: GraphicsContext, maskTexture: Texture): EdgeRenderable {
-  const width = maskTexture.getWidth();
-  const height = maskTexture.getHeight();
-
-  const values: Values<typeof EdgeSchema> = {
-    ...QuadValues,
-    tMaskTexture: ValueCell.create(maskTexture),
-    uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
-    uEdgeScale: ValueCell.create(1),
-  };
-
-  const schema = { ...EdgeSchema };
-  const renderItem = ctx.createComputeRenderItem('triangles', EdgeShaderCode, schema, values);
-
-  return createComputeRenderable(renderItem, values);
 }
 
 //
@@ -687,7 +664,6 @@ function getDimRenderable(ctx: GraphicsContext, depthTexture: Texture, maskTextu
 
 export const OverlaySchema = {
   ...QuadSchema,
-  tEdgeTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tMaskTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tDimTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
@@ -698,6 +674,7 @@ export const OverlaySchema = {
   uGhostEdgeStrength: UniformSpec('f'),
   uDepthTest: UniformSpec('b'),
   uInnerEdgeFactor: UniformSpec('f'),
+  uEdgeScale: UniformSpec('f'),
   uHighlightFillColor: UniformSpec('v3'),
   uSelectFillColor: UniformSpec('v3'),
   uHighlightFillStrength: UniformSpec('f'),
@@ -724,13 +701,12 @@ export const OverlaySchema = {
 export const OverlayShaderCode = ShaderCode('overlay');
 type OverlayRenderable = ComputeRenderable<Values<typeof OverlaySchema>>;
 
-function getOverlayRenderable(ctx: GraphicsContext, edgeTexture: Texture, maskTexture: Texture): OverlayRenderable {
-  const width = edgeTexture.getWidth();
-  const height = edgeTexture.getHeight();
+function getOverlayRenderable(ctx: GraphicsContext, maskTexture: Texture): OverlayRenderable {
+  const width = maskTexture.getWidth();
+  const height = maskTexture.getHeight();
 
   const values: Values<typeof OverlaySchema> = {
     ...QuadValues,
-    tEdgeTexture: ValueCell.create(edgeTexture),
     tMaskTexture: ValueCell.create(maskTexture),
     // placeholder until dimming is used
     tDimTexture: ValueCell.create(maskTexture),
@@ -742,6 +718,7 @@ function getOverlayRenderable(ctx: GraphicsContext, edgeTexture: Texture, maskTe
     uGhostEdgeStrength: ValueCell.create(0),
     uDepthTest: ValueCell.create(false),
     uInnerEdgeFactor: ValueCell.create(0),
+    uEdgeScale: ValueCell.create(1),
     uHighlightFillColor: ValueCell.create(Vec3()),
     uSelectFillColor: ValueCell.create(Vec3()),
     uHighlightFillStrength: ValueCell.create(0),

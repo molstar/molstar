@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // A large set's summary in 3D (`wholeChains`, link-views.ts): the whole chains its runs touch. Mol* merges consecutive
@@ -22,7 +23,7 @@ import { registries } from './fixtures.js';
 
 /** ins1.cif (a nine-residue chain A) with three zinc ions, chains B, C and D of one author chain (one Mol* unit). */
 function withIons(): Uint8Array {
-  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8');
+  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   text = text.replace(
     "1 polymer 'Heavy chain fragment'\n",
     "1 polymer 'Heavy chain fragment'\n2 non-polymer 'ZINC ION'\n",
@@ -42,7 +43,7 @@ function withIons(): Uint8Array {
 
 /** ins1.cif with a ligand, chain B: its heavy atoms first, its hydrogens after them (as wwPDB lists them). */
 function withLigand(): Uint8Array {
-  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8');
+  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   text = text.replace(
     "1 polymer 'Heavy chain fragment'\n",
     "1 polymer 'Heavy chain fragment'\n2 non-polymer 'LIGAND'\n",

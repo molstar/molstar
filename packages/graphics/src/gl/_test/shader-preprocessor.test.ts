@@ -139,7 +139,7 @@ type DefineValues = { [k: string]: string | boolean | number };
 
 /** the count replacement of `shader-code.ts` (`replaceCounts`), applied before preprocessing */
 function replaceCounts(source: string, values: DefineValues) {
-  for (const name of ['dLightCount', 'dClipObjectCount']) {
+  for (const name of ['dLightCount']) {
     if (values[name] !== undefined) source = source.replace(new RegExp(name, 'g'), `${values[name]}`);
   }
   return source;

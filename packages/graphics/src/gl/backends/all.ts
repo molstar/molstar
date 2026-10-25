@@ -9,9 +9,8 @@ import { WebGL2Backend, WebGLBackend } from '../webgl/backend.js';
 import { AutoWebGPUBackend } from '../webgpu/backend.js';
 
 /**
- * Backend set all: WebGPU where it has the features of WebGL2 (`AutoWebGPUBackend`), else WebGL2, then WebGL; WebGL only
- * with `preferWebGl1`
+ * Backend set all: WebGPU where it has the features of WebGL2 (`AutoWebGPUBackend`), else WebGL2, then WebGL
  */
-export function getDefaultGraphicsBackends(options: { preferWebGl1?: boolean } = {}): GraphicsBackendDescriptor[] {
-  return options.preferWebGl1 ? [WebGLBackend] : [AutoWebGPUBackend, WebGL2Backend, WebGLBackend];
+export function getDefaultGraphicsBackends(): GraphicsBackendDescriptor[] {
+  return [AutoWebGPUBackend, WebGL2Backend, WebGLBackend];
 }

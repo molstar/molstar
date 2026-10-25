@@ -2,7 +2,13 @@
 
 ## Status
 
-- **Current**: analysed (measurements below), nothing changed. The WGSL `discard` idea did not hold up (Tint emits a
+- **Indexed quads, done** (option 7, [below](#indexed-quads)): 18-28% of the opaque pass where many small
+  spheres are drawn (mesoscale), on a discrete and an integrated GPU, never slower, pixel-identical; one shared index
+  buffer per context. One triangle per sphere measured and dropped (faster for small spheres, up to 10% slower for
+  large ones on an integrated GPU).
+- **WebGPU's shading gap re-measured** with Chrome 156 (`render/globule-300k-spacefill-large`, timestamp queries): the
+  opaque pass 10.3 ms on WebGL2, 14.3 on WebGPU, as before; nothing in reach (see option 2).
+- **Before**: analysed (measurements below), nothing changed. The WGSL `discard` idea did not hold up (Tint emits a
   native `discard`); the WebGPU gap is in the shading code of the generated HLSL, half of it strict math (option 1).
   Conservative depth waits for measurements on other GPUs and a Chrome that compiles WGSL `fragment_depth` on D3D12.
 - **Option 3 done: WebGPU has early-Z**, the earlier finding was wrong. A minimal WebGPU page (Chrome 155, D3D12,
@@ -107,8 +113,85 @@
    the lighting it saves.
 6. **Fewer fragments**: an octagon instead of the quad (5% instead of 21% outside the circle), at the cost of more
    vertices; small spheres (a few pixels) are dominated by 2x2 quad rasterization anyway.
-7. **Fewer vertex invocations**: four vertices with elements (the post-transform cache shares them) instead of six: at
-   most a third of the 0.2-0.4 ms.
+7. **Fewer vertex invocations**: four vertices with elements (the post-transform cache shares them) instead of six.
+   Estimated at most a third of the 0.2-0.4 ms of a 300k-atom scene; with many small spheres the vertex stage dominates
+   (mesoscale: 13.4 of 20.4 ms), measured below. Done: [Indexed quads](#indexed-quads).
+8. **One triangle per sphere** around the projected ellipse (its center and half-axes on the image plane, the
+   equilateral triangle around the circle stretched along them: 30% more area than the quad, 3 vertices): measured and
+   dropped. RTX 4070 Ti, 720p opaque pass, quad / triangle: PetWorld zoomed 7.12 / 5.33 ms (pixel LOD), 20.5 / 13.1
+   (`quality` distances); globule 300k 4.32 / 4.50 (WebGPU), 3.85 / 3.34 (WebGL2). Integrated Radeon (2 CUs): 7qpd 4.98
+   / 5.50 ms, globule 300k 300 / 317 ms (WebGPU), WebGL2 alike: the extra area costs where fragments dominate, the
+   indexed quad gains without it.
+
+## Indexed quads
+
+- **Measured** (prototype: the spheres' own `elements`, `tests/src/benchmark` `merging/postsyn-indexed-*`,
+  `render/*-spacefill-indexed`), opaque pass at 720p, quad / indexed:
+
+  | case                                     | RTX WebGPU      | RTX WebGL2      | iGPU WebGPU   | iGPU WebGL2   |
+  | ---------------------------------------- | --------------- | --------------- | ------------- | ------------- |
+  | PetWorld whole, pixel LOD                | 1.37 / 1.12 ms  | 1.87 / 1.57 ms  |               |               |
+  | PetWorld zoomed, pixel LOD               | 7.13 / 5.71 ms  | 8.46 / 6.64 ms  |               |               |
+  | PetWorld zoomed, `quality` distances     | 20.6 / 15.5 ms  | 24.8 / 18.0 ms  |               |               |
+  | 7qpd (11.5k atoms)                       | 0.07 / 0.07 ms  | 0.08 / 0.08 ms  | 4.96 / 4.87   | 4.07 / 3.97   |
+  | globule 300k                             | 4.22 / 4.12 ms  | 4.04 / 4.01 ms  | 301 / 300     | 243 / 241     |
+
+  The images are identical where the indexed quad splits along the same diagonal as the six vertices.
+- **One pattern for every quad item**: the indices `6i + [0, 1, 2, 1, 4, 2]` reference ids of the six-vertex quad (the
+  corners the shaders already map: 0 (-1, 1), 1 (-1, -1), 2 (1, 1), 4 (1, -1)), its two triangles those of the six
+  vertices. Why: the shaders, the draw counts (6 per item, now indices), the level offsets, the merged draw bases and
+  `uVertexCount` stay as they are, an indexed and an unindexed draw of the same range draw the same, and no define is
+  needed (no program variants).
+- **One shared index buffer per context** (`GraphicsResources` on WebGL, the WebGPU context): the pattern, `uint32`
+  (`OES_element_index_uint` is a minimum capability of WebGL1), grown on demand by doubling to the largest range drawn
+  (`first + count`), never per item. A draw of the items `[first, first + count)` is the indexed draw of the same
+  `first` and `count`, base vertex 0. Why: the pattern is the same for every item, merged or not (a merged item's ranges
+  are absolute as its vertex ids), so one buffer serves all; per item it would cost 24 B per sphere each (88 MB for the
+  PetWorld model's items) instead of once for the largest. Counted once as elements bytes.
+- **Who draws indexed**: the quad items, spheres and points (`dGeometryType`, a flag of their renderable schemas), on
+  both backends, direct, multi-draw (WebGL `multiDrawElementsInstancedBaseVertexBaseInstance` where present), batched
+  levels and indirect (the GPU culler writes indexed records for them: `firstIndex` the draw base, base vertex 0).
+- **Beyond the buffer limit** (`maxBufferSize`, `maxStorageBufferBindingSize` does not apply; 256 MB is about 11 M
+  spheres in one range) the item draws unindexed, as now: correct, without the gain.
+- **Growth replaces the buffer**: draw lists and render bundles that bound it are not current (its id in the draw key,
+  as the indirect buffers'); WebGL rebinds it at the draw (the VAO does not keep it for other items).
+- **Gone**: the prototype's switch (`Spheres.setImpostorShape`), its triangle path (`sphereTriangle`, `squareMapping`,
+  `dSphereTriangle`), `dSphereIndexed`, the spheres' `elements` and the merged objects' `hasMergedElements`; the corner
+  chunk back to the six-vertex table.
+
+Steps:
+
+1. **The shared buffer** (done, `quad-indices.ts`): `QuadIndices` per context (`get(itemCount)` returns the buffer,
+   at least that large, or none beyond the limit), its pattern from one CPU array (also grown), its bytes; unit tests
+   of the pattern and the growth.
+2. **Direct draws and lists** (done): the quad items (`ShaderCode.quads`: spheres, points) without elements of their
+   own bind the shared buffer and draw indexed, direct, level lists and multi-draws (WebGL: the elements paths with the
+   lists' offsets, `first * 4` for quads; WebGPU: `setIndexBuffer`, `drawIndexed`), unindexed past the limit. Points
+   came along (they share the shaders' quad). Draw lists: `GraphicsContext.drawResourcesVersion` (WebGPU: the buffer's
+   id) in the snapshot inputs, and a recording binding a replaced buffer does not replay after the walk either
+   (`drawChunk`); the growth within a frame is safe, the old buffer released after the submission (`draw-lists`: a
+   replaced buffer records again, fails without the checks). Images identical (`render/7qpd-spacefill`,
+   `render/globule-300k-spacefill`, `merging/postsyn-cpu-zoom`, `merging/postsyn-gpu-hiz-zoom`; the last on WebGL2 9
+   pixels, the CPU Hi-Z test's readback reaching another frame). Opaque pass, RTX, before / after: PetWorld zoomed CPU
+   culled 23.4 / 17.1 ms (WebGPU), 25.4 / 18.6 (WebGL2); WebGL2's culled case with Hi-Z 25.1 / 18.1; globule 4.38 /
+   4.17 (WebGPU), 4.08 / 4.03 (WebGL2); WebGPU's GPU-culled (indirect) draws unchanged until step 3.
+3. **Indirect** (done): the GPU culler writes indexed records for quads (`firstIndex` the draw base, base vertex 0)
+   while the merged draw fits the shared indices (`GraphicsLimits.maxQuadItemCount`), unindexed records past it; the
+   indirect lists say which (`MultiDrawIndirect.indexed`), the render item draws them with `drawIndexedIndirect`.
+   Images identical, opaque pass on WebGPU (RTX), before / after: PetWorld zoomed (`quality` distances) 20.6 / 15.0
+   ms, whole with pixel LOD 1.36 / 1.10, zoomed with pixel LOD 7.12 / 5.71. `webgpu-gpu-culling` reads the indexed
+   records.
+4. **Points** (done, with step 2): the visual suite's point cases.
+5. **Measured again** (done): `setQuadIndexing(false)` (render items created meanwhile draw their quads unindexed, the
+   culler's records alike), the benchmark's `quadIndexing` and its `*-unindexed` cases. Opaque pass at 720p, indexed /
+   unindexed, the images identical:
+
+   | case                       | RTX WebGPU      | RTX WebGL2      | iGPU WebGPU     | iGPU WebGL2     |
+   | -------------------------- | --------------- | --------------- | --------------- | --------------- |
+   | PetWorld whole, pixel LOD  | 1.09 / 1.36 ms  | 1.46 / 2.13 ms  | 54.6 / 71.1 ms  | 81.0 / 113 ms   |
+   | PetWorld zoomed, pixel LOD | 5.70 / 7.14 ms  | 6.66 / 8.43 ms  |                 |                 |
+   | 7qpd                       | 0.08 / 0.07 ms  | 0.07 / 0.08 ms  | 4.87 / 4.93 ms  | 3.97 / 4.04 ms  |
+   | globule 300k               | 4.14 / 4.18 ms  | 4.00 / 4.04 ms  | 300 / 301 ms    | 241 / 243 ms    |
 
 ## Steps
 

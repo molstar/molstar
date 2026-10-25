@@ -20,6 +20,7 @@ import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode } from '@molstar/core/util/debug';
+import type { PassTargets } from './pass-targets.js';
 
 export const BlendBackDpoitSchema = {
   ...QuadSchema,
@@ -82,7 +83,11 @@ export class DpoitPass {
 
   private readonly depthTextures: Texture[];
   private readonly colorFrontTextures: Texture[];
-  private readonly colorBackTextures: Texture[];
+  /**
+   * the back layer of the current peel, one for both ping-pong sides: the peel doesn't read the previous one, each is
+   * blended back (`renderBlendBack`) before the next peel clears it
+   */
+  private readonly colorBackTexture: Texture;
 
   private _supported = false;
   get supported() {
@@ -96,8 +101,7 @@ export class DpoitPass {
       this.depthTextures[1].getByteCount() +
       this.colorFrontTextures[0].getByteCount() +
       this.colorFrontTextures[1].getByteCount() +
-      this.colorBackTextures[0].getByteCount() +
-      this.colorBackTextures[1].getByteCount()
+      this.colorBackTexture.getByteCount()
     );
   }
 
@@ -124,7 +128,6 @@ export class DpoitPass {
     return {
       depth: this.depthTextures[1],
       frontColor: this.colorFrontTextures[1],
-      backColor: this.colorBackTextures[1],
     };
   }
 
@@ -149,14 +152,10 @@ export class DpoitPass {
     return {
       depth: this.depthTextures[this.readId],
       frontColor: this.colorFrontTextures[this.readId],
-      backColor: this.colorBackTextures[this.readId],
     };
   }
 
   renderBlendBack(b: PassBuilder) {
-    ValueCell.update(this.blendBackRenderable.values.tDpoitBackColor, this.colorBackTextures[this.writeId]);
-
-    this.blendBackRenderable.update();
     b.quad(this.blendBackRenderable, RenderState.Alpha);
   }
 
@@ -173,8 +172,8 @@ export class DpoitPass {
       for (let i = 0; i < 2; i++) {
         this.depthTextures[i].define(width, height);
         this.colorFrontTextures[i].define(width, height);
-        this.colorBackTextures[i].define(width, height);
       }
+      this.colorBackTexture.define(width, height);
       ValueCell.update(
         this.renderable.values.uTexSize,
         Vec2.set(this.renderable.values.uTexSize.ref.value, width, height),
@@ -192,7 +191,7 @@ export class DpoitPass {
       this.depthFramebuffers[i].setDrawBuffers(3);
 
       this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
-      this.colorBackTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color1');
+      this.colorBackTexture.attachFramebuffer(this.depthFramebuffers[i], 'color1');
       this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
       this.stencil?.attachFramebuffer(this.depthFramebuffers[i]);
 
@@ -200,7 +199,7 @@ export class DpoitPass {
       this.colorFramebuffers[i].setDrawBuffers(2);
 
       this.colorFrontTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color0');
-      this.colorBackTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color1');
+      this.colorBackTexture.attachFramebuffer(this.colorFramebuffers[i], 'color1');
     }
   }
 
@@ -223,11 +222,12 @@ export class DpoitPass {
   }
 
   constructor(
-    graphics: GraphicsContext,
+    targets: PassTargets,
     width: number,
     height: number,
     private stencil: Renderbuffer | null = null,
   ) {
+    const { graphics } = targets;
     if (!DpoitPass.isSupported(graphics)) return;
 
     const {
@@ -239,46 +239,37 @@ export class DpoitPass {
 
     if (mixedAttachmentFormats) {
       this.depthTextures = [
-        resources.texture('image-float32', 'rg', 'float', 'nearest'),
-        resources.texture('image-float32', 'rg', 'float', 'nearest'),
+        targets.texture('image-float32', 'rg', 'float', 'nearest'),
+        targets.texture('image-float32', 'rg', 'float', 'nearest'),
       ];
 
       this.colorFrontTextures = halfFloatRenderTarget
         ? [
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+            targets.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+            targets.texture('image-float16', 'rgba', 'fp16', 'nearest'),
           ]
         : [
-            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+            targets.texture('image-float32', 'rgba', 'float', 'nearest'),
+            targets.texture('image-float32', 'rgba', 'float', 'nearest'),
           ];
 
-      this.colorBackTextures = halfFloatRenderTarget
-        ? [
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-          ]
-        : [
-            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-          ];
+      this.colorBackTexture = halfFloatRenderTarget
+        ? targets.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        : targets.texture('image-float32', 'rgba', 'float', 'nearest');
     } else {
       // webgl1 requires consistent bit plane counts
 
       this.depthTextures = [
-        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+        targets.texture('image-float32', 'rgba', 'float', 'nearest'),
+        targets.texture('image-float32', 'rgba', 'float', 'nearest'),
       ];
 
       this.colorFrontTextures = [
-        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+        targets.texture('image-float32', 'rgba', 'float', 'nearest'),
+        targets.texture('image-float32', 'rgba', 'float', 'nearest'),
       ];
 
-      this.colorBackTextures = [
-        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-        resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-      ];
+      this.colorBackTexture = targets.texture('image-float32', 'rgba', 'float', 'nearest');
     }
 
     this.depthTextures[0].define(width, height);
@@ -287,8 +278,7 @@ export class DpoitPass {
     this.colorFrontTextures[0].define(width, height);
     this.colorFrontTextures[1].define(width, height);
 
-    this.colorBackTextures[0].define(width, height);
-    this.colorBackTextures[1].define(width, height);
+    this.colorBackTexture.define(width, height);
 
     // framebuffers
 
@@ -297,7 +287,7 @@ export class DpoitPass {
 
     // renderables
 
-    this.blendBackRenderable = getBlendBackDpoitRenderable(graphics, this.colorBackTextures[0]);
+    this.blendBackRenderable = getBlendBackDpoitRenderable(graphics, this.colorBackTexture);
     this.renderable = getEvaluateDpoitRenderable(graphics, this.colorFrontTextures[0]);
 
     this._supported = true;

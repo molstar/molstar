@@ -18,6 +18,7 @@ import {
   UniformBlocks,
 } from '../uniform-layout.js';
 import { ShaderStage } from './constants.js';
+import { DataLayerPagesName, getDataLayerAccessors, getReadDataPages } from './data-layers.js';
 import {
   getWgslDrawBinding,
   getWgslDrawLayout,
@@ -240,6 +241,8 @@ export interface WebGPUProgram {
   readonly vertexConstants: Record<string, number>;
   readonly fragmentConstants: Record<string, number>;
   readonly pipelines: Map<string, GPURenderPipeline>;
+  /** the pipeline of the last lookup (`getPipelineFor`): draws of a program one after another mostly ask the same */
+  lastPipeline?: { state: object; target: object; drawMode: string; pipeline: GPURenderPipeline };
 }
 
 export function createWebGPUProgram(
@@ -255,14 +258,18 @@ export function createWebGPUProgram(
   const body = preprocessShader(source, defines, { expandMacros: true });
 
   const identifiers = new Set(body.match(/\b[A-Za-z_]\w*\b/g) ?? []);
-  const isReferenced = (n: string) => identifiers.has(n);
+  // the data layers' pages are read by the generated accessors (`getDataLayerAccessors`), each layer from its page
+  const dataPages = Number(defineValues[DataLayerPagesName]?.ref.value ?? 0);
+  const readPages = getReadDataPages(schema, (n) => identifiers.has(n), dataPages);
+  const isReferenced = (n: string) => identifiers.has(n) || readPages.has(n);
 
   const bindingLayout = getBindingLayout(schema, lookup);
   const declarations = getWgslDeclarations(schema, bindingLayout, lookup, isReferenced);
   if (declarations.unsupported.length > 0) {
     throw new Error(`uniforms without a block are not supported by WebGPU: ${declarations.unsupported.join(', ')}`);
   }
-  const code = `${declarations.code}\n\n${body}`;
+  const accessors = getDataLayerAccessors(schema, isReferenced, dataPages);
+  const code = accessors ? `${declarations.code}\n\n${accessors}\n\n${body}` : `${declarations.code}\n\n${body}`;
 
   const module = device.createShaderModule({ code, label: name });
   module.getCompilationInfo().then((info) => {

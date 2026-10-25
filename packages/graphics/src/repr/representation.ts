@@ -272,8 +272,6 @@ namespace Representation {
   export interface State {
     /** Controls if the representation's renderobjects are rendered or not */
     visible: boolean;
-    /** A factor applied to alpha value of the representation's renderobjects */
-    alphaFactor: number;
     /** Controls if the representation's renderobjects are pickable or not */
     pickable: boolean;
     /** Controls if the representation's renderobjects is rendered in color pass (i.e., not pick and depth) or not */
@@ -302,7 +300,6 @@ namespace Representation {
   export function createState(): State {
     return {
       visible: true,
-      alphaFactor: 1,
       pickable: true,
       colorOnly: false,
       syncManually: false,
@@ -319,7 +316,6 @@ namespace Representation {
   }
   export function updateState(state: State, update: Partial<State>) {
     if (update.visible !== undefined) state.visible = update.visible;
-    if (update.alphaFactor !== undefined) state.alphaFactor = update.alphaFactor;
     if (update.pickable !== undefined) state.pickable = update.pickable;
     if (update.colorOnly !== undefined) state.colorOnly = update.colorOnly;
     if (update.overpaint !== undefined) state.overpaint = update.overpaint;
@@ -618,7 +614,6 @@ namespace Representation {
       },
       setState: (state: Partial<State>) => {
         if (state.visible !== undefined) Visual.setVisibility(renderObject, state.visible);
-        if (state.alphaFactor !== undefined) Visual.setAlphaFactor(renderObject, state.alphaFactor);
         if (state.pickable !== undefined) Visual.setPickable(renderObject, state.pickable);
         if (state.colorOnly !== undefined) Visual.setColorOnly(renderObject, state.colorOnly);
         if (state.overpaint !== undefined) {

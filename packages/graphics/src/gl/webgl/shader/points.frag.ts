@@ -82,7 +82,7 @@ void main(){
             ${wboit_write}
             ${dpoit_write}
         #elif defined(dRenderVariant_tracing)
-            gl_FragData[1] = vec4(normalize(vViewPosition), emissive);
+            gl_FragData[1] = packNormalToRGBA(normalize(vViewPosition), emissive);
             gl_FragData[2] = vec4(material.rgb, uDensity);
         #endif
     #endif

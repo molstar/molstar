@@ -417,9 +417,6 @@ export function ParticleVisual<G extends Geometry, P extends ParticleParams & Ge
     setVisibility(visible: boolean) {
       Visual.setVisibility(renderObject, visible);
     },
-    setAlphaFactor(alphaFactor: number) {
-      Visual.setAlphaFactor(renderObject, alphaFactor);
-    },
     setPickable(pickable: boolean) {
       Visual.setPickable(renderObject, pickable);
     },

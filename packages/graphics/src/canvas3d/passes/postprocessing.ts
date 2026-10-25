@@ -35,6 +35,7 @@ import { BloomParams, BloomPass } from './bloom.js';
 import { OutlinePass, type OutlineProps, OutlineParams } from './outline.js';
 import { ShadowPass, type ShadowProps, ShadowParams } from './shadow.js';
 import { SsaoPass, type SsaoProps, SsaoParams, updateOcclusionUpsample } from './ssao.js';
+import type { PassTargets } from './pass-targets.js';
 
 export const PostprocessingSchema = {
   ...QuadSchema,
@@ -215,14 +216,15 @@ export const PostprocessingParams = {
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>;
 
 export class PostprocessingPass {
-  static isEnabled(props: PostprocessingProps) {
+  /** Whether the pass draws: bloom only counts when it draws in `scene` (`BloomPass.isActive`) */
+  static isEnabled(scene: Scene, props: PostprocessingProps) {
     return (
       props.enabled &&
       (SsaoPass.isEnabled(props) ||
         ShadowPass.isEnabled(props) ||
         OutlinePass.isEnabled(props) ||
         props.background.variant.name !== 'off' ||
-        BloomPass.isEnabled(props))
+        BloomPass.isActive(scene, props))
     );
   }
 
@@ -236,7 +238,8 @@ export class PostprocessingPass {
       (DofPass.isEnabled(props) ||
         (OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props)) ||
         (SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props)) ||
-        BloomPass.isEnabled(props))
+        // bloom reads it when it draws, with blended transparency only, see `BloomPass.update`
+        (BloomPass.isActive(scene, props) && scene.opacityAverage < 1))
     );
   }
 
@@ -276,16 +279,17 @@ export class PostprocessingPass {
     readonly drawPass: DrawPass,
   ) {
     const { colorTarget, transparentColorTarget, depthTextureOpaque, depthTextureTransparent, packedDepth } = drawPass;
+    const { targets } = drawPass;
     const width = colorTarget.getWidth();
     const height = colorTarget.getHeight();
 
     // needs to be linear for anti-aliasing pass
-    this.target = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.target = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
-    this.ssao = new SsaoPass(graphics, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
-    this.shadow = new ShadowPass(graphics, width, height, depthTextureOpaque);
-    this.outline = new OutlinePass(graphics, width, height, depthTextureTransparent, depthTextureOpaque);
-    this.bloom = new BloomPass(graphics, width, height);
+    this.ssao = new SsaoPass(targets, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
+    this.shadow = new ShadowPass(targets, width, height, depthTextureOpaque);
+    this.outline = new OutlinePass(targets, width, height, depthTextureTransparent, depthTextureOpaque);
+    this.bloom = new BloomPass(targets, width, height);
 
     this.renderable = getPostprocessingRenderable(
       graphics,
@@ -523,12 +527,13 @@ export class AntialiasingPass {
   private readonly smaa: SmaaPass;
   private readonly cas: CasPass;
 
-  constructor(graphics: GraphicsContext, width: number, height: number, filter: TextureFilter = 'nearest') {
-    this.target = graphics.createRenderTarget(width, height, 'none', 'uint8', filter);
-    this.internalTarget = graphics.createRenderTarget(width, height, 'none');
+  constructor(targets: PassTargets, width: number, height: number, filter: TextureFilter = 'nearest') {
+    const { graphics } = targets;
+    this.target = targets.createRenderTarget(width, height, 'none', 'uint8', filter);
+    this.internalTarget = targets.createRenderTarget(width, height, 'none');
 
     this.fxaa = new FxaaPass(graphics, this.target.texture);
-    this.smaa = new SmaaPass(graphics, this.target.texture);
+    this.smaa = new SmaaPass(targets, this.target.texture);
     this.cas = new CasPass(graphics, this.target.texture);
   }
 

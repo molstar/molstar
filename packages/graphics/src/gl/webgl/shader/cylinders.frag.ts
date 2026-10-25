@@ -59,7 +59,7 @@ bool isCap = false;
         vec3 cameraRayDir = (uView * vec4(rayDir, 0.0)).xyz;
         float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
         float sNear = frontDepth < 1.0 ? 0.0 : clamp((nearT - frontT) / (t - frontT), 0.0, 1.0);
-        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #if defined(dClipVariant_pixel) && defined(dClipObjects)
             float sCap = objectClipped || frontDepth >= 1.0 ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
             if (sCap < 0.0) return false;
         #else
@@ -71,7 +71,7 @@ bool isCap = false;
             viewPosition = cameraRayOrigin + nearT * cameraRayDir;
             modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
         }
-        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #if defined(dClipVariant_pixel) && defined(dClipObjects)
             else if (objectClipped || frontDepth >= 1.0) {
                 modelPosition = mix(frontModelPosition, modelPosition, sCap);
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
@@ -85,7 +85,7 @@ bool isCap = false;
 
     // back-depth pass: move the exit point towards the entry until it is not clipped
     bool solidInteriorBackCap(in vec3 entryPosition, inout vec3 cameraNormal, inout vec3 modelPosition, inout vec3 viewPosition, inout float fragmentDepth) {
-        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #if defined(dClipVariant_pixel) && defined(dClipObjects)
             float s = clipExit(modelPosition / uModelScale, entryPosition / uModelScale, 0.0);
             if (s < 0.0) return false;
             if (s > 0.0) {
@@ -166,7 +166,7 @@ bool CylinderImpostor(
         frontT = t;
         frontDepth = fragmentDepth;
         frontModelPosition = modelPosition;
-        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #if defined(dClipVariant_pixel) && defined(dClipObjects)
             if (clipTest(modelPosition / uModelScale)) {
                 objectClipped = true;
                 fragmentDepth = 2.0;
@@ -189,7 +189,7 @@ bool CylinderImpostor(
                 frontT = t;
                 frontDepth = fragmentDepth;
                 frontModelPosition = modelPosition;
-                #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                #if defined(dClipVariant_pixel) && defined(dClipObjects)
                     if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = 2.0;
@@ -199,7 +199,7 @@ bool CylinderImpostor(
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
-                    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    #if defined(dClipVariant_pixel) && defined(dClipObjects)
                         return true;
                     #else
                         return !interior;
@@ -218,7 +218,7 @@ bool CylinderImpostor(
                 frontT = t;
                 frontDepth = fragmentDepth;
                 frontModelPosition = modelPosition;
-                #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                #if defined(dClipVariant_pixel) && defined(dClipObjects)
                     if (clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = 2.0;
@@ -228,7 +228,7 @@ bool CylinderImpostor(
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
-                    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    #if defined(dClipVariant_pixel) && defined(dClipObjects)
                         return true;
                     #else
                         return !interior;
@@ -360,7 +360,7 @@ void main() {
             ${wboit_write}
             ${dpoit_write}
         #elif defined(dRenderVariant_tracing)
-            gl_FragData[1] = vec4(normal, emissive);
+            gl_FragData[1] = packNormalToRGBA(normal, emissive);
             gl_FragData[2] = vec4(material.rgb, uDensity);
         #endif
     #endif

@@ -9,7 +9,11 @@ import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Color } from '@molstar/core/util/color';
 import { cartesian, mergeRequires, variants } from '../framework/matrix.js';
 import { type SceneContext, type VisualTestCase } from '../framework/test-case.js';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
 import { meshBox, meshTorus, shapeRepr, sphereGrid } from '../scenes/primitives.js';
+import { blobVolume, volumeRepr } from '../scenes/volume.js';
+import { DirectVolumeRepresentationProvider } from '@molstar/graphics/repr/volume/direct-volume';
 import { Impostor, ObliqueView } from './geometry.js';
 import { Representation } from '@molstar/graphics/repr/representation';
 
@@ -29,6 +33,21 @@ const modes = variants<{ transparency: Transparency; dpoitIterations?: number }>
   },
 );
 
+/**
+ * A direct volume behind a transparent box (between it and the camera of \`ObliqueView\`): the volumes are drawn before
+ * the transparent objects, which cover them
+ */
+async function volumeBehindScene({ graphics }: SceneContext) {
+  return [
+    await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(32), {}),
+    await shapeRepr('box', meshBox(10), {
+      colors: [Color(0x377eb8)],
+      transforms: [Mat4.fromTranslation(Mat4(), Vec3.create(26, 20, 28))],
+      props: { alpha: 0.5 },
+    }),
+  ];
+}
+
 const scenes = variants<(ctx: SceneContext) => Promise<Representation.Any[]>>(
   {
     overlap: async () => [
@@ -40,6 +59,18 @@ const scenes = variants<(ctx: SceneContext) => Promise<Representation.Any[]>>(
     backfaces: async () => [
       await shapeRepr('torus', meshTorus(3), { props: { alpha: 0.5, transparentBackfaces: 'on', doubleSided: true } }),
     ],
+    /**
+     * a direct volume around an opaque box: each mode draws the volume its own way (at half resolution weighted blended
+     * targets of its own or the volume pass), cut at the box
+     */
+    volume: async ({ graphics }) => [
+      await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(32), {}),
+      await shapeRepr('box', meshBox(8), {
+        colors: [Color(0x999999)],
+        transforms: [Mat4.fromTranslation(Mat4(), Vec3.create(16, 16, 16))],
+      }),
+    ],
+    'volume-behind': volumeBehindScene,
     /** caps of the clipped torus, stencil-marked and filled in the transparent passes */
     'solid-interior': async () => [
       await shapeRepr('torus', meshTorus(3), {
@@ -83,6 +114,35 @@ export const TransparencyCases: VisualTestCase[] = [
     view: ObliqueView,
     scene: scene.value,
   })),
+  ...(['blended', 'wboit', 'dpoit'] as const).flatMap((transparency): VisualTestCase[] => [
+    {
+      id: `transparency/${transparency}/volume-behind-full-resolution`,
+      description: 'The volume behind the transparent box at the full resolution, as the transparency mode draws it.',
+      requires: transparency === 'blended' ? undefined : [transparency],
+      contextProps: { transparency },
+      canvasProps: { volumeResolutionScale: 1 },
+      view: ObliqueView,
+      scene: volumeBehindScene,
+    },
+    {
+      id: `transparency/${transparency}/volume-behind-postprocessing`,
+      description:
+        'The volume behind the transparent box, drawn into the transparent layer that postprocessing blends.',
+      requires: transparency === 'blended' ? undefined : [transparency],
+      contextProps: { transparency },
+      canvasProps: { postprocessing: { occlusion: { name: 'on', params: PD.getDefaultValues(SsaoParams) } } },
+      view: ObliqueView,
+      scene: volumeBehindScene,
+    },
+  ]),
+  {
+    id: 'transparency/illumination/volume-behind',
+    description: 'The volume behind the transparent box with the traced shading.',
+    requires: ['illumination'],
+    canvasProps: { illumination: { enabled: true, maxIterations: 3 } },
+    view: ObliqueView,
+    scene: volumeBehindScene,
+  },
   {
     id: 'transparency/background/transparent',
     description: 'Alpha channel is compared in memory; PNG snapshots of non-opaque images are lossy.',

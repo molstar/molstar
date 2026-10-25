@@ -22,7 +22,8 @@ import type { Scene } from '@molstar/graphics/gl/scene';
  *
  * A plan runs its control flow under both. Code that only matters for drawing (per-frame uniforms, viewports, clears,
  * timers, readbacks) goes behind `drawing`; code that selects programs or targets (props applied to renderables, e.g.
- * defines, and attachment changes, which change the formats of targets) runs in both.
+ * defines, and attachment changes, which change the formats of targets) runs in both. Every target a frame draws into
+ * is begun in both, also for a clear only: plans name the targets that keep their storage (`PassTargets`).
  */
 export interface PassBuilder {
   /** true when rendering, false when preparing */

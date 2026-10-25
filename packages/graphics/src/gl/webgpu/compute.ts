@@ -64,8 +64,12 @@ export interface WebGPUComputeEnv {
 const getNextStorageBufferId = idFactory();
 const getNextKernelPipelineId = idFactory();
 
-/** Storage buffers can also be copied, cleared, read back and used for indirect dispatches */
-const StorageBufferUsage = BufferUsage.STORAGE | BufferUsage.COPY_SRC | BufferUsage.COPY_DST | BufferUsage.INDIRECT;
+/**
+ * Storage buffers can also be copied, cleared, read back, used for indirect dispatches and draws, and bound as vertex
+ * buffers (instanced attributes written by kernels, GPU culling)
+ */
+const StorageBufferUsage =
+  BufferUsage.STORAGE | BufferUsage.COPY_SRC | BufferUsage.COPY_DST | BufferUsage.INDIRECT | BufferUsage.VERTEX;
 
 export interface WebGPUStorageBuffer extends StorageBuffer {
   getGPUBuffer: () => GPUBuffer;
@@ -74,6 +78,10 @@ export interface WebGPUStorageBuffer extends StorageBuffer {
 }
 
 const StorageBuffers = new WeakSet<StorageBuffer>();
+
+export function isWebGPUStorageBuffer(x: unknown): x is WebGPUStorageBuffer {
+  return StorageBuffers.has(x as StorageBuffer);
+}
 
 export function asWebGPUStorageBuffer(buffer: StorageBuffer): WebGPUStorageBuffer {
   if (!StorageBuffers.has(buffer)) throw new Error('expected a WebGPU storage buffer');
@@ -442,6 +450,8 @@ function createKernel<S extends KernelSchema>(
         keys.push(buffer.id, buffer.version);
       } else {
         const texture = asWebGPUTexture(values[b.name].ref.value as never);
+        // read before written: allocated (zeros), as a kernel input of undefined contents
+        if (b.kind === 'texture') texture.getGPUTexture();
         const view = b.kind === 'texture' ? texture.getView() : texture.getAttachmentView();
         if (!view) throw new Error(`texture '${b.name}' of kernel '${code.name}' has no storage`);
         entries.push({ binding: b.binding, resource: view });
@@ -498,6 +508,13 @@ function createKernel<S extends KernelSchema>(
 const uniformBuffers = new WeakMap<GPUBuffer, number>();
 let nextUniformBufferId = 0;
 
+/** The storage buffers a kernel of `schema` binds (one under a condition counted: it may bind it) */
+function getStorageBufferCount(schema: KernelSchema) {
+  let count = 0;
+  for (const k in schema) if (schema[k].type === 'storage-buffer') count += 1;
+  return count;
+}
+
 export function createWebGPUComputeContext(env: WebGPUComputeEnv): ComputeContext {
   /** pipelines per kernel name, defines and schema */
   const pipelines = new Map<string, KernelPipeline>();
@@ -508,7 +525,9 @@ export function createWebGPUComputeContext(env: WebGPUComputeEnv): ComputeContex
   return {
     maxStorageBufferSize: Math.min(limits.maxStorageBufferBindingSize, limits.maxBufferSize),
     getStorageBufferByteCount: () => env.storageBufferBytes,
-    isKernelSupported: (code) => getKernelSource(code) !== undefined,
+    isKernelSupported: (code, schema) =>
+      getKernelSource(code) !== undefined &&
+      (!schema || getStorageBufferCount(schema) <= env.device.limits.maxStorageBuffersPerShaderStage),
     createKernel: (code, schema, values) => createKernel(env, pipelines, code, schema, values),
     prepareKernels: (requests) => prepareKernelPipelines(env, pipelines, compiling, requests),
     hasKernels: (requests) => {
@@ -517,6 +536,17 @@ export function createWebGPUComputeContext(env: WebGPUComputeEnv): ComputeContex
     },
     createBuffer: (byteLength, label) => {
       const buffer = createStorageBuffer(env, byteLength, label);
+      ownBuffers.add(buffer);
+      return buffer;
+    },
+    tryCreateBuffer: async (byteLength, label) => {
+      env.device.pushErrorScope('out-of-memory');
+      const buffer = createStorageBuffer(env, byteLength, label);
+      const error = await env.device.popErrorScope();
+      if (error) {
+        buffer.destroy();
+        return undefined;
+      }
       ownBuffers.add(buffer);
       return buffer;
     },

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -122,6 +122,7 @@ void main(void) {
         #pragma unroll_loop_end
     #endif
 
-    gl_FragColor = vec4(l / a);
+    // no light: no shadow
+    gl_FragColor = vec4(a > 0.0 ? l / a : 1.0);
 }
 `;

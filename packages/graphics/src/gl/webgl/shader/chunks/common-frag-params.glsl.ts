@@ -1,5 +1,12 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
+ */
+
 export const common_frag_params = `
-#if dClipObjectCount != 0
+#if defined(dClipObjects)
     #if defined(dClipping)
         #if __VERSION__ == 100 || !defined(dVaryingGroup)
             varying float vClipping;

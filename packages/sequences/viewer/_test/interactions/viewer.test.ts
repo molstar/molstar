@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The viewer half, headless (seqspec:viewer#extension-points). Case 6's poses through `InteractionsViewerRegistry`: the
@@ -15,6 +16,7 @@
 // here. The draws: draws.test.ts; the hit's heap guard: fingerprint.heap.ts.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { describe, expect, it } from 'vitest';
 import { case6 } from '../../../core/_test/format/cases.js';
@@ -462,7 +464,7 @@ describe('without the viewer half', () => {
         } else if (/\.(ts|tsx)$/.test(name)) files.push(p);
       }
     };
-    walk(root.pathname.replace(/\/$/, ''));
+    walk(fileURLToPath(root).replace(/[\\/]$/, ''));
     expect(files.length).toBeGreaterThan(40);
     const imports = /(?:from|import)\s*\(?\s*["']([^"']+)["']/g;
     const offending = files.flatMap((f) =>

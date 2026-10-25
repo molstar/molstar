@@ -25,6 +25,7 @@ import { Clip } from '@molstar/core/util/clip';
 import type { DrawIndirect, StorageBuffer, StorageBufferSpec } from '../compute.js';
 import { convertDepthRange, type DepthRangeConversion, type DepthRangeTag } from '../depth-range.js';
 import { flipWindowRects, type WindowRectTag } from '../window-rect.js';
+import type { DataArray } from './util.js';
 
 export type ValueKindType = {
   number: number;
@@ -39,6 +40,7 @@ export type ValueKindType = {
   sphere: Sphere3D;
   instanceGrid: InstanceGrid;
   drawIndirect: DrawIndirect | undefined;
+  clipObjects: Clip.Objects;
   /** storage buffers of render schemas (`StorageBufferSpec`), unset on backends without them */
   'storage-buffer': StorageBuffer | undefined;
 };
@@ -46,7 +48,14 @@ export type ValueKind = keyof ValueKindType;
 
 //
 
-export type KindValue = UniformKindValue & DataTypeArrayType & TextureKindValue & ValueKindType;
+export type DataKindValue = {
+  'data-uint8': DataArray<Uint8Array>;
+  'data-float32': DataArray<Float32Array>;
+};
+export type DataKind = keyof DataKindValue;
+export type DataValues = { [k: string]: ValueCell<DataArray<any>> };
+
+export type KindValue = UniformKindValue & DataTypeArrayType & TextureKindValue & ValueKindType & DataKindValue;
 
 export type Values<S extends RenderableSchema> = { readonly [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> };
 export type UnboxedValues<S extends RenderableSchema> = { readonly [k in keyof S]: KindValue[S[k]['kind']] };
@@ -65,6 +74,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues, 
   const defineValues: DefineValues = {};
   const textureValues: TextureValues = {};
   const materialTextureValues: TextureValues = {};
+  const dataValues: DataValues = {};
   const uniformValues: UniformValues = {};
   const materialUniformValues: UniformValues = {};
   const bufferedUniformValues: UniformValues = {};
@@ -74,6 +84,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues, 
     const spec = schema[k];
     if (spec.type === 'attribute') attributeValues[k] = values[k];
     if (spec.type === 'define') defineValues[k] = values[k];
+    if (spec.type === 'data' && values[k] !== undefined) dataValues[k] = values[k];
     // check if k exists in values to exclude global textures
     if (spec.type === 'texture' && values[k] !== undefined) {
       if (spec.variant === 'material') materialTextureValues[k] = values[k];
@@ -91,6 +102,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues, 
     defineValues,
     textureValues,
     materialTextureValues,
+    dataValues,
     uniformValues: convertUniforms(schema, uniformValues, conversions),
     materialUniformValues: convertUniforms(schema, materialUniformValues, conversions),
     bufferedUniformValues: convertUniforms(schema, bufferedUniformValues, conversions),
@@ -101,15 +113,6 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues, 
 function convertUniforms(schema: RenderableSchema, values: UniformValues, conversions: UniformConversions) {
   const converted = convertDepthRange(schema, values, conversions.depthRange);
   return flipWindowRects(schema, converted, conversions.targetHeight);
-}
-
-export type Versions<T extends RenderableValues> = { -readonly [k in keyof T]: number };
-export function getValueVersions<T extends RenderableValues>(values: T) {
-  const versions: Versions<any> = {};
-  Object.keys(values).forEach((k) => {
-    versions[k] = values[k].ref.version;
-  });
-  return versions as Versions<T>;
 }
 
 //
@@ -274,6 +277,8 @@ export type TextureSpec<K extends TextureKind> = {
   usedIf?: UsedIf;
   /** see `TextureSpecOptions.shared` */
   shared?: boolean;
+  /** a backend's texture of a data array (`DataSpec`) of this format, read by its accessor (WebGL data textures) */
+  data?: DataFormat;
 };
 export type TextureSpecOptions = {
   /** defaults to '3d' for 'volume-*' kinds, '2d' otherwise */
@@ -332,6 +337,28 @@ export function getTextureDimension(spec: TextureSpec<TextureKind>, defines?: De
   return resolved;
 }
 
+/**
+ * Elements of a data array by index (`DataSpec`): `rgba8` four bytes, `r8` one, `rgba32f` four floats; read as `vec4`
+ * (`r8` in `.r`) by the generated accessors `read_<name>(i)`
+ */
+export type DataFormat = 'rgba8' | 'r8' | 'rgba32f';
+export const DataFormatItemSize: { readonly [F in DataFormat]: number } = { rgba8: 4, r8: 1, rgba32f: 4 };
+/**
+ * Data read by element index (group, instance or vertex), a flat array without a 2D layout (`DataArray`): the backends
+ * lay it out, WebGL as a data texture (its size uniform its own), WebGPU in storage pages; shaders read it with the
+ * accessor `read_<name>(i)`
+ */
+export type DataSpec<K extends DataKind = DataKind> = { type: 'data'; kind: K; format: DataFormat; usedIf?: UsedIf };
+export function DataSpec<F extends DataFormat>(
+  format: F,
+  usedIf?: UsedIf,
+): DataSpec<F extends 'rgba32f' ? 'data-float32' : 'data-uint8'> {
+  const kind = (format === 'rgba32f' ? 'data-float32' : 'data-uint8') as F extends 'rgba32f'
+    ? 'data-float32'
+    : 'data-uint8';
+  return { type: 'data', kind, format, usedIf };
+}
+
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements'; kind: K };
 export function ElementsSpec<K extends ElementsKind>(kind: K): ElementsSpec<K> {
   return { type: 'elements', kind };
@@ -354,6 +381,7 @@ export type RenderableSchema = {
     | AttributeSpec<AttributeKind>
     | UniformSpec<UniformKind>
     | TextureSpec<TextureKind>
+    | DataSpec
     | ValueSpec<ValueKind>
     | DefineSpec<DefineKind>
     | ElementsSpec<ElementsKind>
@@ -447,9 +475,6 @@ export const GlobalTextureSchema = {
   tDpoitFrontColor: TextureSpec('texture', 'rgba', 'float', 'nearest', undefined, {
     usedIf: ['dRenderVariant_colorDpoit'],
   }),
-  tDpoitBackColor: TextureSpec('texture', 'rgba', 'float', 'nearest', undefined, {
-    usedIf: ['dRenderVariant_colorDpoit'],
-  }),
 } as const;
 export type GlobalTextureSchema = typeof GlobalTextureSchema;
 export type GlobalTextureValues = Values<GlobalTextureSchema>;
@@ -493,14 +518,15 @@ export type SegmentValues = Values<SegmentSchema>;
 
 export const ColorSchema = {
   uColor: MaterialUniformSpec('v3'),
-  uColorTexDim: ObjectUniformSpec('v2'),
   /** the index of `tColor` the 'texture' color type reads, see `ColorTypeIndex` */
   uColorIndexType: ObjectUniformSpec('i'),
   uColorGridDim: ObjectUniformSpec('v3'),
+  /** the size of the 2D layout of the grid (`tColorGrid`) */
+  uColorGridTexDim: ObjectUniformSpec('v2'),
   uColorGridTransform: ObjectUniformSpec('v4'),
   uPaletteDomain: ObjectUniformSpec('v2'),
   uPaletteDefault: ObjectUniformSpec('v3'),
-  tColor: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+  tColor: DataSpec('rgba8'),
   tPalette: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest', undefined, { usedIf: ['dUsePalette'] }),
   tColorGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
     usedIf: ['dColorType_grid'],
@@ -519,8 +545,7 @@ export type ColorValues = Values<ColorSchema>;
 
 export const SizeSchema = {
   uSize: MaterialUniformSpec('f'),
-  uSizeTexDim: ObjectUniformSpec('v2'),
-  tSize: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+  tSize: DataSpec('rgba8'),
   /** the index of `tSize` by the size type (`SizeTypeIndex`) */
   uSizeIndexType: ObjectUniformSpec('i'),
   /** the size type's define (`getSizeTypeDefine`): the texture types share 'texture', `uSizeIndexType` selects */
@@ -534,8 +559,7 @@ export type SizeValues = Values<SizeSchema>;
 
 export const MarkerSchema = {
   uMarker: ObjectUniformSpec('f'),
-  uMarkerTexDim: ObjectUniformSpec('v2'),
-  tMarker: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
+  tMarker: DataSpec('r8'),
   markerAverage: ValueSpec('number'),
   markerStatus: ValueSpec('number'),
   /** the marker type (`MarkerType`); `uInstanceGranularity` selects the index */
@@ -545,11 +569,11 @@ export type MarkerSchema = typeof MarkerSchema;
 export type MarkerValues = Values<MarkerSchema>;
 
 export const OverpaintSchema = {
-  uOverpaintTexDim: ObjectUniformSpec('v2'),
-  tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+  tOverpaint: DataSpec('rgba8'),
   dOverpaint: DefineSpec('boolean'),
 
   uOverpaintGridDim: ObjectUniformSpec('v3'),
+  uOverpaintGridTexDim: ObjectUniformSpec('v2'),
   uOverpaintGridTransform: ObjectUniformSpec('v4'),
   tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
     usedIf: ['dOverpaintType_volumeInstance'],
@@ -564,13 +588,13 @@ export type OverpaintSchema = typeof OverpaintSchema;
 export type OverpaintValues = Values<OverpaintSchema>;
 
 export const TransparencySchema = {
-  uTransparencyTexDim: ObjectUniformSpec('v2'),
-  tTransparency: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
+  tTransparency: DataSpec('r8'),
   dTransparency: DefineSpec('boolean'),
   transparencyAverage: ValueSpec('number'),
   transparencyMin: ValueSpec('number'),
 
   uTransparencyGridDim: ObjectUniformSpec('v3'),
+  uTransparencyGridTexDim: ObjectUniformSpec('v2'),
   uTransparencyGridTransform: ObjectUniformSpec('v4'),
   tTransparencyGrid: TextureSpec('texture', 'r', 'ubyte', 'linear', undefined, {
     usedIf: ['dTransparencyType_volumeInstance'],
@@ -585,12 +609,12 @@ export type TransparencySchema = typeof TransparencySchema;
 export type TransparencyValues = Values<TransparencySchema>;
 
 export const EmissiveSchema = {
-  uEmissiveTexDim: ObjectUniformSpec('v2'),
-  tEmissive: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
+  tEmissive: DataSpec('r8'),
   dEmissive: DefineSpec('boolean'),
   emissiveAverage: ValueSpec('number'),
 
   uEmissiveGridDim: ObjectUniformSpec('v3'),
+  uEmissiveGridTexDim: ObjectUniformSpec('v2'),
   uEmissiveGridTransform: ObjectUniformSpec('v4'),
   tEmissiveGrid: TextureSpec('texture', 'r', 'ubyte', 'linear', undefined, {
     usedIf: ['dEmissiveType_volumeInstance'],
@@ -605,11 +629,11 @@ export type EmissiveSchema = typeof EmissiveSchema;
 export type EmissiveValues = Values<EmissiveSchema>;
 
 export const SubstanceSchema = {
-  uSubstanceTexDim: ObjectUniformSpec('v2'),
-  tSubstance: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+  tSubstance: DataSpec('rgba8'),
   dSubstance: DefineSpec('boolean'),
 
   uSubstanceGridDim: ObjectUniformSpec('v3'),
+  uSubstanceGridTexDim: ObjectUniformSpec('v2'),
   uSubstanceGridTransform: ObjectUniformSpec('v4'),
   tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
     usedIf: ['dSubstanceType_volumeInstance'],
@@ -624,8 +648,7 @@ export type SubstanceSchema = typeof SubstanceSchema;
 export type SubstanceValues = Values<SubstanceSchema>;
 
 export const ClippingSchema = {
-  uClippingTexDim: ObjectUniformSpec('v2'),
-  tClipping: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
+  tClipping: DataSpec('r8'),
   dClipping: DefineSpec('boolean'),
   /** the clipping type (`ClippingType`); `uInstanceGranularity` selects the index */
   clippingType: ValueSpec('string'),
@@ -634,8 +657,7 @@ export type ClippingSchema = typeof ClippingSchema;
 export type ClippingValues = Values<ClippingSchema>;
 
 export const WiggleSchema = {
-  uWiggleTexDim: ObjectUniformSpec('v2'),
-  tWiggle: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
+  tWiggle: DataSpec('r8'),
   dWiggle: DefineSpec('boolean'),
   wiggleAverage: ValueSpec('number'),
   /** the wiggle type (`WiggleType`); `uInstanceGranularity` selects the index */
@@ -667,14 +689,22 @@ export const BaseSchema = {
   ...ClippingSchema,
   ...WiggleSchema,
 
+  /** whether there are clip objects */
+  dClipObjects: DefineSpec('boolean'),
+  /**
+   * the clip object count, the bound of the clip loops: on WebGPU a pipeline constant (`oClipObjectCount`, the number
+   * define), unrolled (a uniform bound cost 6-23% of clipped fragment-bound frames there); on WebGL the uniform
+   * (`dClipObjectCount` ignored: one program for all counts; a define on WebGL1, `loopBound`), its loops faster so
+   */
   dClipObjectCount: DefineSpec('number'),
+  uClipObjectCount: { ...MaterialUniformSpec('i'), loopBound: true },
   dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-  uClipObjectType: MaterialUniformSpec('i[]', Clip.MaxObjectCount, 'dClipObjectCount'),
-  uClipObjectInvert: MaterialUniformSpec('b[]', Clip.MaxObjectCount, 'dClipObjectCount'),
-  uClipObjectPosition: MaterialUniformSpec('v3[]', Clip.MaxObjectCount, 'dClipObjectCount'),
-  uClipObjectRotation: MaterialUniformSpec('v4[]', Clip.MaxObjectCount, 'dClipObjectCount'),
-  uClipObjectScale: MaterialUniformSpec('v3[]', Clip.MaxObjectCount, 'dClipObjectCount'),
-  uClipObjectTransform: MaterialUniformSpec('m4[]', Clip.MaxObjectCount, 'dClipObjectCount'),
+  /** the clip objects as given (`Clip.Objects`), for the CPU (cap culling); the shaders read frame and shape */
+  clipObjects: ValueSpec('clipObjects'),
+  /** per clip object the transform of a point into its frame (`Clip.Objects.frame`) */
+  uClipObjectFrame: MaterialUniformSpec('m4[]', Clip.MaxObjectCount, 'uClipObjectCount'),
+  /** per clip object its half size, the type in `w`, negative where inverted (`Clip.Objects.shape`) */
+  uClipObjectShape: MaterialUniformSpec('v4[]', Clip.MaxObjectCount, 'uClipObjectCount'),
 
   aInstance: AttributeSpec('float32', 1, 1),
   /**
@@ -685,9 +715,7 @@ export const BaseSchema = {
   /** vertex index, emulates `gl_VertexID`; the render item fills it when used */
   aVertex: AttributeSpec('float32', 1, 0, ['emulateVertexId']),
 
-  /**
-   * final alpha, calculated as `values.alpha * state.alpha`
-   */
+  /** final alpha, the base alpha clamped to [0, 1] (set with it) */
   uAlpha: MaterialUniformSpec('f'),
   uMetalness: MaterialUniformSpec('f'),
   uRoughness: MaterialUniformSpec('f'),

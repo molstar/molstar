@@ -31,7 +31,8 @@ import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { PCG } from '@molstar/core/data/util/hash-functions';
-import { type VolumeKey, VolumeVisual } from './visual.js';
+import { VolumeVisual } from './visual.js';
+import { chooseVisual } from '../visual-factory.js';
 
 export const VolumeDotParams = {
   isoValue: Volume.IsoValueParam,
@@ -49,21 +50,17 @@ export const VolumeSphereParams = {
   solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
   tryUseImpostor: PD.Boolean(true),
   detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
+  // levels by size on screen for the dots' own size (their size theme)
+  lodRadius: Spheres.getLodRadiusParam(0),
 };
 export type VolumeSphereParams = typeof VolumeSphereParams;
 export type VolumeSphereProps = PD.Values<VolumeSphereParams>;
 
-export function VolumeSphereVisual(
-  materialId: number,
-  volume: Volume,
-  key: number,
-  props: PD.Values<VolumeSphereParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
-    ? VolumeSphereImpostorVisual(materialId)
-    : VolumeSphereMeshVisual(materialId);
-}
+export const VolumeSphereVisual = chooseVisual(
+  { impostor: VolumeSphereImpostorVisual, mesh: VolumeSphereMeshVisual },
+  (props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && graphics && graphics.capabilities.fragDepth ? 'impostor' : 'mesh',
+);
 
 export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<VolumeSphereParams> {
   return VolumeVisual<Spheres, VolumeSphereParams>(
@@ -88,9 +85,6 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
           (newProps.lodLevels.length > 0 && currentProps.lodLevels.length === 0);
       },
       geometryUtils: Spheres.Utils,
-      mustRecreate: (_volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) => {
-        return !props.tryUseImpostor || !graphics?.capabilities.fragDepth;
-      },
     },
     materialId,
   );
@@ -120,9 +114,6 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
           newProps.detail !== currentProps.detail;
       },
       geometryUtils: Mesh.Utils,
-      mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSphereParams>, graphics?: GraphicsContext) => {
-        return props.tryUseImpostor && !!graphics?.capabilities.fragDepth;
-      },
     },
     materialId,
   );

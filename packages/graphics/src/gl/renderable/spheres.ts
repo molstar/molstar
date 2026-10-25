@@ -18,7 +18,7 @@ import {
   DefineSpec,
   GlobalTextureSchema,
   UniformSpec,
-  TextureSpec,
+  DataSpec,
   type GlobalDefineValues,
   type GlobalDefines,
   GlobalDefineSchema,
@@ -32,8 +32,7 @@ export const SpheresSchema = {
   ...BaseSchema,
   ...SizeSchema,
 
-  uTexDim: UniformSpec('v2'),
-  tPositionGroup: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
+  tPositionGroup: DataSpec('rgba32f'),
 
   padding: ValueSpec('number'),
   uDoubleSided: UniformSpec('b', 'material'),

@@ -30,6 +30,7 @@ export function getWebGLCapabilities(gl: GLRenderingContext, extensions: WebGLEx
     multiDraw: !!e.multiDraw,
     clipControl: !!e.clipControl,
     depthClamp: !!e.depthClamp,
+    indirectInstanceRanges: false,
     compute: false,
   };
 }

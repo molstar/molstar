@@ -6,7 +6,7 @@
 
 import './index.html';
 import { setDebugMode } from '@molstar/core/util/debug';
-import { AllCases } from './cases/index.js';
+import { AllCases, OnDemandCases } from './cases/index.js';
 import { getBackendProfile, ReferenceProfileId } from './framework/backend.js';
 import { encodePngDataUrl } from './framework/image-io.js';
 import { DefaultSnapshotTolerance, summaryToJson, VisualTestRunner } from './framework/runner.js';
@@ -50,10 +50,15 @@ async function main() {
 
   // `shard=i/n`: every n-th of the selected cases from the i-th (0-based), to run a suite in several pages
   const [shardIndex, shardCount] = (params.get('shard') ?? '0/1').split('/').map(Number);
-  const tests = AllCases.filter(
-    (c) =>
-      (filter.length === 0 || matchesAny(c.id, filter)) && (tags.length === 0 || tags.some((t) => c.tags?.includes(t))),
-  ).filter((_, i) => i % shardCount === shardIndex);
+  // the on-demand cases only where a filter or tags select cases
+  const candidates = filter.length > 0 || tags.length > 0 ? [...AllCases, ...OnDemandCases] : AllCases;
+  const tests = candidates
+    .filter(
+      (c) =>
+        (filter.length === 0 || matchesAny(c.id, filter)) &&
+        (tags.length === 0 || tags.some((t) => c.tags?.includes(t))),
+    )
+    .filter((_, i) => i % shardCount === shardIndex);
 
   const runner = new VisualTestRunner({
     target,
@@ -62,6 +67,7 @@ async function main() {
     snapshotTolerance: DefaultSnapshotTolerance,
     referencesUrl,
     sharedReferencesUrl: params.get('shared') ?? undefined,
+    drawLists: params.get('drawLists') === '1',
   });
 
   const rerun = (id: string) => runner.runTest(tests.find((t) => t.id === id)!);

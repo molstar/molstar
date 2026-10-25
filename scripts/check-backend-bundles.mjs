@@ -49,10 +49,18 @@ const Cases = [
     excludes: ['webgpu'],
   },
   {
-    name: 'plugin with the default backends (WebGL)',
+    name: 'plugin with the default backends (all)',
     contents: `
       import { PluginContext } from '@molstar/plugin/context';
       console.log(PluginContext);`,
+    excludes: [],
+  },
+  {
+    name: 'plugin with the default backends aliased to WebGL',
+    contents: `
+      import { PluginContext } from '@molstar/plugin/context';
+      console.log(PluginContext);`,
+    alias: getBackendSetAlias('webgl'),
     excludes: ['webgpu'],
   },
   {

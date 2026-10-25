@@ -23,8 +23,9 @@ import {
 import { Subject } from 'rxjs';
 import { Task } from '@molstar/core/task';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import type { ParticleVisual, ParticleParams } from './visual.js';
-import { getFactorySignatures, getQualitySignatures, type SignatureContext } from '../signatures.js';
+import type { ParticleVisual, ParticleParams, ParticleKey } from './visual.js';
+import { getQualitySignatures, type SignatureContext } from '../signatures.js';
+import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
 
 export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> {}
 
@@ -46,12 +47,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
   label: string,
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<ParticleList, P>,
-  visualCtor: (
-    materialId: number,
-    particles: ParticleList,
-    props: PD.Values<P>,
-    graphics?: GraphicsContext,
-  ) => ParticleVisual<P>,
+  visualCtor: VisualFactory<ParticleKey, P>,
   getLoci: (particles: ParticleList, props: PD.Values<P>) => ModelLoci,
 ): ParticleRepresentation<P> {
   let version = 0;
@@ -71,7 +67,6 @@ export function ParticleRepresentation<P extends ParticleParams>(
   function setVisualState(state: Partial<Representation.State>) {
     if (!visual) return;
     if (state.visible !== undefined) visual.setVisibility(state.visible);
-    if (state.alphaFactor !== undefined) visual.setAlphaFactor(state.alphaFactor);
     if (state.pickable !== undefined) visual.setPickable(state.pickable);
     if (state.colorOnly !== undefined) visual.setColorOnly(state.colorOnly);
     if (state.overpaint !== undefined) visual.setOverpaint(state.overpaint);
@@ -97,10 +92,10 @@ export function ParticleRepresentation<P extends ParticleParams>(
 
     const task = Task.create(`Creating or updating '${label}' representation`, async (runtime) => {
       if (!visual) {
-        visual = visualCtor(materialId, _particles, _props, graphics);
+        visual = createVisual(visualCtor, materialId, { particles: _particles }, _props, graphics);
       } else if (visual.mustRecreate?.({ particles: _particles }, _props, graphics)) {
         visual.destroy();
-        visual = visualCtor(materialId, _particles, _props, graphics);
+        visual = createVisual(visualCtor, materialId, { particles: _particles }, _props, graphics);
       }
       const renderObject = visual.renderObject;
       await visual.createOrUpdate({ graphics, runtime }, _theme, _props, { particles: _particles });
@@ -121,7 +116,6 @@ export function ParticleRepresentation<P extends ParticleParams>(
   function setState(state: Partial<Representation.State>) {
     const newState: Partial<Representation.State> = {};
     if (state.visible !== undefined) newState.visible = state.visible;
-    if (state.alphaFactor !== undefined) newState.alphaFactor = state.alphaFactor;
     if (state.pickable !== undefined) newState.pickable = state.pickable;
     if (state.colorOnly !== undefined) newState.colorOnly = state.colorOnly;
     if (state.overpaint !== undefined) newState.overpaint = state.overpaint;
@@ -193,15 +187,7 @@ export function ParticleRepresentation<P extends ParticleParams>(
       graphics = value;
     },
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
-      getQualitySignatures(props, (props) =>
-        getFactorySignatures(
-          visualCtor,
-          // without particles: factories that read them name their visuals
-          () => visualCtor(materialId, undefined as unknown as ParticleList, props, ctx.graphics),
-          props,
-          ctx,
-        ),
-      ),
+      getQualitySignatures(props, (props) => getFactorySignatures(visualCtor, props, ctx)),
     destroy,
   };
 }

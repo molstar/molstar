@@ -6,7 +6,7 @@
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import type { Framebuffer } from '../framebuffer.js';
+import type { AttachmentRef, Framebuffer } from '../framebuffer.js';
 import type { WebGLExtensions } from './extensions.js';
 import { endRenderPass } from './render-pass.js';
 import type { WebGLState } from './state.js';
@@ -51,6 +51,50 @@ function getFramebuffer(gl: GLRenderingContext) {
     throw new Error('Could not create WebGL framebuffer');
   }
   return framebuffer;
+}
+
+/**
+ * Allocates the storage of each attachment of framebuffers (by attachment point): textures and renderbuffers get their
+ * storage when a framebuffer they are attached to is bound for use (`Framebuffer.bind`: drawing, reading, copying), not
+ * when attached, so that targets of passes that never draw take no memory
+ */
+const AttachmentStorage = new WeakMap<WebGLFramebuffer, Map<number, { resource: AttachmentRef; ensure: () => void }>>();
+
+/** A framebuffer of `createFramebuffer`: its GL object, also of copies (the resources wrap what they create) */
+type GLFramebufferObject = Framebuffer & { getGLFramebuffer?: () => WebGLFramebuffer };
+
+/**
+ * Sets `resource` as `attachment` of `framebuffer` with what allocates its storage (`ensure`), or with `resource`
+ * undefined removes the attachment
+ */
+export function setAttachmentStorage(
+  gl: GLRenderingContext,
+  framebuffer: Framebuffer,
+  attachment: number,
+  resource: AttachmentRef | undefined,
+  ensure?: () => void,
+) {
+  const glFramebuffer = (framebuffer as GLFramebufferObject).getGLFramebuffer?.();
+  // not an object with stand-ins of `gl` in tests
+  if (typeof glFramebuffer !== 'object' || glFramebuffer === null) return;
+  let storage = AttachmentStorage.get(glFramebuffer);
+  if (!storage) AttachmentStorage.set(glFramebuffer, (storage = new Map()));
+  // the combined point replaces the depth and stencil ones and the other way round
+  if (attachment === gl.DEPTH_STENCIL_ATTACHMENT) {
+    storage.delete(gl.DEPTH_ATTACHMENT);
+    storage.delete(gl.STENCIL_ATTACHMENT);
+  } else if (attachment === gl.DEPTH_ATTACHMENT || attachment === gl.STENCIL_ATTACHMENT) {
+    storage.delete(gl.DEPTH_STENCIL_ATTACHMENT);
+  }
+  if (resource && ensure) storage.set(attachment, { resource, ensure });
+  else storage.delete(attachment);
+}
+
+/** Binds `framebuffer` to change its attachments, without allocating their storage (see `setAttachmentStorage`) */
+export function bindForAttachment(gl: GLRenderingContext, framebuffer: Framebuffer) {
+  const glFramebuffer = (framebuffer as GLFramebufferObject).getGLFramebuffer?.();
+  if (glFramebuffer) gl.bindFramebuffer(gl.FRAMEBUFFER, glFramebuffer);
+  else framebuffer.bind();
 }
 
 /** The height of the attachments of framebuffers, to flip rectangles to GL's bottom-left origin */
@@ -99,14 +143,24 @@ export function createFramebuffer(gl: GLRenderingContext, extensions: WebGLExten
 
   let destroyed = false;
 
-  return {
+  const framebuffer: GLFramebufferObject = {
     id: getNextFramebufferId(),
+    getGLFramebuffer: () => _framebuffer,
 
-    bind: () => gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer),
+    bind: () => {
+      // the attachments' storage before the framebuffer is used (it binds textures and renderbuffers)
+      const storage = typeof _framebuffer === 'object' ? AttachmentStorage.get(_framebuffer) : undefined;
+      if (storage) for (const { ensure } of storage.values()) ensure();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer);
+    },
     setDrawBuffers: (count: number) => {
       endRenderPass(state);
       gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer);
       setDrawBuffers(extensions, count);
+    },
+    getAttachments: () => {
+      const storage = typeof _framebuffer === 'object' ? AttachmentStorage.get(_framebuffer) : undefined;
+      return storage ? [...storage.values()].map((s) => s.resource) : [];
     },
     destroy: () => {
       if (destroyed) return;
@@ -114,6 +168,7 @@ export function createFramebuffer(gl: GLRenderingContext, extensions: WebGLExten
       destroyed = true;
     },
   };
+  return framebuffer;
 }
 
 //
@@ -124,6 +179,7 @@ export function createNullFramebuffer(): Framebuffer {
 
     bind: () => {},
     setDrawBuffers: () => {},
+    getAttachments: () => [],
     destroy: () => {},
   };
 }

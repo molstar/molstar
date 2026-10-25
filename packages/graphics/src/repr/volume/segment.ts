@@ -43,6 +43,7 @@ import { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { type VolumeKey, VolumeVisual } from './visual.js';
+import { selectVisual } from '../visual-factory.js';
 import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
 
 export const VolumeSegmentParams = {
@@ -66,10 +67,16 @@ function getSegmentTransform(grid: Grid, segmentBox: Box3D) {
   return Mat4.mul(Mat4(), transform, translate);
 }
 
-/** GPU segments: the WebGL histogram pyramid, or compute kernels where available (WebGPU) */
-function getGpuFallbackReason(volume: Volume, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) {
+/** Why not on the GPU by the props and the context alone, see `getGpuFallbackReason` */
+function getPropsGpuFallbackReason(props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) {
   if (!props.tryUseGpu) return 'tryUseGpu is off';
   if (!graphics) return 'no graphics context';
+}
+
+/** GPU segments: the WebGL histogram pyramid, or compute kernels where available (WebGPU) */
+function getGpuFallbackReason(volume: Volume, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) {
+  const reason = getPropsGpuFallbackReason(props, graphics);
+  if (reason || !graphics) return reason;
   return getVolumeGpuFallbackReason(volume, graphics, Padding, ['floatRenderTarget', 'multipleRenderTargets']);
 }
 
@@ -79,18 +86,12 @@ function useGpu(volume: Volume, props: PD.Values<SegmentMeshParams>, graphics?: 
   return !reason;
 }
 
-export function SegmentVisual(
-  materialId: number,
-  volume: Volume,
-  key: number,
-  props: PD.Values<SegmentMeshParams>,
-  graphics?: GraphicsContext,
-) {
-  if (useGpu(volume, props, graphics)) {
-    return SegmentTextureMeshVisual(materialId);
-  }
-  return SegmentMeshVisual(materialId);
-}
+export const SegmentVisual = selectVisual(
+  { gpu: SegmentTextureMeshVisual, cpu: SegmentMeshVisual },
+  ({ volume }: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) =>
+    useGpu(volume, props, graphics) ? 'gpu' : 'cpu',
+  (props, graphics) => (getPropsGpuFallbackReason(props, graphics) ? ['cpu'] : ['gpu', 'cpu']),
+);
 
 function getLoci(volume: Volume, props: VolumeSegmentProps) {
   const segments = SortedArray.ofUnsortedArray<Volume.SegmentIndex>(props.segments);
@@ -234,9 +235,6 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         currentProps: PD.Values<SegmentMeshParams>,
       ) => {},
       geometryUtils: Mesh.Utils,
-      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) => {
-        return useGpu(volumeKey.volume, props, graphics);
-      },
     },
     materialId,
   );
@@ -422,9 +420,6 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         currentProps: PD.Values<SegmentMeshParams>,
       ) => {},
       geometryUtils: TextureMesh.Utils,
-      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) => {
-        return !useGpu(volumeKey.volume, props, graphics);
-      },
       dispose: (geometry: TextureMesh) => {
         geometry.vertexTexture.ref.value.destroy();
         geometry.groupTexture.ref.value.destroy();

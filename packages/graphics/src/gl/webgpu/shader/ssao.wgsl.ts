@@ -6,24 +6,21 @@
 
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
+import type { DefineLookup } from '../../renderable/schema.js';
 
-const DepthTextures = [
-  'tDepth',
-  'tDepthHalf',
-  'tDepthQuarter',
-  'tDepthTransparent',
-  'tDepthHalfTransparent',
-  'tDepthQuarterTransparent',
-];
+const DepthTextures = ['tDepth', 'tDepthHalf', 'tDepthQuarter'];
+/** read with `dIncludeTransparent` */
+const TransparentDepthTextures = ['tDepthTransparent', 'tDepthHalfTransparent', 'tDepthQuarterTransparent'];
 
 /**
  * Screen space ambient occlusion (StarCraft II AO, Filion and McNaughton 2008) into packed occlusion (rg) and depth
- * (ba).
+ * (ba); the transparent depths are read by the variants that include transparency.
  */
-export const ssao_wgsl = /* wgsl */ `
+export const ssao_wgsl = (d: DefineLookup) => /* wgsl */ `
 ${packing_wgsl}
 ${quad_vert_wgsl}
 ${DepthTextures.map(texture_read_wgsl).join('\n')}
+${d('dIncludeTransparent') ? TransparentDepthTextures.map(texture_read_wgsl).join('\n') : ''}
 
 override oNSamples: i32 = 32;
 override oLevels: i32 = 3;

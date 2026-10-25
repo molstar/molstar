@@ -43,7 +43,8 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { sphereVertexCount } from '@molstar/graphics/geo/primitive/sphere';
 import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
-import { checkSphereImpostorSupport, type StructureGroup } from './util/common.js';
+import { checkSphereImpostorSupport } from './util/common.js';
+import { chooseVisual } from '../../visual-factory.js';
 
 const pTrace = Vec3();
 
@@ -75,16 +76,11 @@ interface NucleotideAtomicElementImpostorProps {
   sizeFactor: number;
 }
 
-export function NucleotideAtomicElementVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<NucleotideAtomicElementParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkSphereImpostorSupport(graphics)
-    ? NucleotideAtomicElementImpostorVisual(materialId)
-    : NucleotideAtomicElementMeshVisual(materialId);
-}
+export const NucleotideAtomicElementVisual = chooseVisual(
+  { impostor: NucleotideAtomicElementImpostorVisual, mesh: NucleotideAtomicElementMeshVisual },
+  (props: PD.Values<NucleotideAtomicElementParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkSphereImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 function createNucleotideAtomicElementImpostor(
   ctx: VisualContext,
@@ -214,13 +210,6 @@ export function NucleotideAtomicElementImpostorVisual(materialId: number): Units
         currentProps: PD.Values<NucleotideAtomicElementParams>,
       ) => {
         state.createGeometry = newProps.sizeFactor !== currentProps.sizeFactor;
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<NucleotideAtomicElementParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -369,13 +358,6 @@ export function NucleotideAtomicElementMeshVisual(materialId: number): UnitsVisu
       ) => {
         state.createGeometry =
           newProps.sizeFactor !== currentProps.sizeFactor || newProps.detail !== currentProps.detail;
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<NucleotideAtomicElementParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
       },
     },
     materialId,

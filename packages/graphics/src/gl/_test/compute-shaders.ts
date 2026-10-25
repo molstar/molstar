@@ -20,6 +20,7 @@ import * as smaa from '../../canvas3d/passes/smaa.js';
 import * as ssao from '../../canvas3d/passes/ssao.js';
 import * as tracing from '../../canvas3d/passes/tracing.js';
 import * as wboit from '../../canvas3d/passes/wboit.js';
+import * as volume from '../../canvas3d/passes/volume.js';
 import * as gaussianDensity from '../../geo/gaussian-density/gpu.js';
 import * as colorSmoothing from '../../geo/geometry/texture-mesh/color-smoothing.js';
 import * as histogramReduction from '../webgl/compute/histogram-pyramid/reduction.js';
@@ -50,7 +51,6 @@ export const ComputeShaders: [name: string, shaderCode: ShaderCode, schema: Rend
     illumination.MultiSampleComposeShaderCode,
     illumination.MultiSampleComposeSchema,
   ],
-  ['marking-edge', marking.EdgeShaderCode, marking.EdgeSchema],
   ['marking-dim', marking.DimShaderCode, marking.DimSchema],
   ['marking-overlay', marking.OverlayShaderCode, marking.OverlaySchema],
   ['multi-sample-compose', multiSample.ComposeShaderCode, multiSample.ComposeSchema],
@@ -63,8 +63,8 @@ export const ComputeShaders: [name: string, shaderCode: ShaderCode, schema: Rend
   ['ssao', ssao.SsaoShaderCode, ssao.SsaoSchema],
   ['ssao-blur', ssao.SsaoBlurShaderCode, ssao.SsaoBlurSchema],
   ['tracing-trace', tracing.TraceShaderCode, tracing.TraceSchema],
-  ['tracing-accumulate', tracing.AccumulateShaderCode, tracing.AccumulateSchema],
   ['wboit-evaluate', wboit.EvaluateWboitShaderCode, wboit.EvaluateWboitSchema],
+  ['volume-composite', volume.VolumeCompositeShaderCode, volume.VolumeCompositeSchema],
   ['gaussian-density', gaussianDensity.GaussianDensityShaderCode, gaussianDensity.GaussianDensitySchema],
   ['color-accumulate', colorSmoothing.ColorAccumulateShaderCode, colorSmoothing.ColorAccumulateSchema],
   ['color-normalize', colorSmoothing.ColorNormalizeShaderCode, colorSmoothing.ColorNormalizeSchema],
@@ -98,6 +98,7 @@ export const ShaderModules: { [path: string]: object } = {
   'canvas3d/passes/ssao.ts': ssao,
   'canvas3d/passes/tracing.ts': tracing,
   'canvas3d/passes/wboit.ts': wboit,
+  'canvas3d/passes/volume.ts': volume,
   'geo/gaussian-density/gpu.ts': gaussianDensity,
   'geo/geometry/texture-mesh/color-smoothing.ts': colorSmoothing,
   'gl/webgl/compute/histogram-pyramid/reduction.ts': histogramReduction,

@@ -8,7 +8,7 @@ import { isTimingMode } from '@molstar/core/util/debug';
 import { now } from '@molstar/core/util/now';
 import type { TargetDescriptor } from '../context.js';
 import type { ClearValues } from '../render-state.js';
-import { ShaderStage } from './constants.js';
+import { BufferUsage, ShaderStage } from './constants.js';
 import { notSupported } from './errors.js';
 import { createUniformSnapshot, type UniformRing } from './uniform-ring.js';
 
@@ -83,7 +83,18 @@ const UniformSize = 32;
  * Clears within the scissor rectangle by drawing: WebGPU only clears whole attachments, as load operations
  * at the start of a pass. Like GL clears, this ignores the write masks of the current render state.
  */
-export function createClearDraw(device: GPUDevice, ring: UniformRing) {
+/**
+ * Clears inside a pass as a draw: `draw` with the target's viewport and the stencil reference (pass state, for a pass);
+ * `drawInBundle` without them, for a render bundle: under the pass's viewport (and scissor), a stencil clear to 0 with
+ * the `zero` operation, the values in a constant buffer per values (the ring's slots are rewritten every frame, a
+ * replayed bundle reads them later); false for other stencil values (the reference is the pass's)
+ */
+export interface ClearDraw {
+  draw: (pass: GPURenderPassEncoder, target: PassTarget, values: ClearValues) => void;
+  drawInBundle: (bundle: GPURenderBundleEncoder, target: PassTarget, values: ClearValues) => boolean;
+}
+
+export function createClearDraw(device: GPUDevice, ring: UniformRing): ClearDraw {
   const bindGroupLayout = device.createBindGroupLayout({
     entries: [
       {
@@ -109,11 +120,11 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing) {
     return module;
   }
 
-  function getPipeline(target: PassTarget, values: ClearValues) {
+  function getPipeline(target: PassTarget, values: ClearValues, zeroStencil = false) {
     const hasColor = values.color !== undefined;
     const hasDepth = values.depth !== undefined && !!target.depthFormat;
     const hasStencil = values.stencil !== undefined && target.hasStencil;
-    const key = `${target.key}|${hasColor}|${hasDepth}|${hasStencil}`;
+    const key = `${target.key}|${hasColor}|${hasDepth}|${hasStencil}|${zeroStencil}`;
     let pipeline = pipelines.get(key);
     if (!pipeline) {
       const module = getModule(target.colorFormats.length);
@@ -121,7 +132,7 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing) {
         compare: 'always',
         failOp: 'keep',
         depthFailOp: 'keep',
-        passOp: hasStencil ? 'replace' : 'keep',
+        passOp: hasStencil ? (zeroStencil ? 'zero' : 'replace') : 'keep',
       };
       const start = isTimingMode ? now() : 0;
       pipeline = device.createRenderPipeline({
@@ -159,13 +170,48 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing) {
     return pipeline;
   }
 
-  return (pass: GPURenderPassEncoder, target: PassTarget, values: ClearValues) => {
-    const { color, depth = 0, stencil = 0 } = values;
+  function setData(values: ClearValues) {
+    const { color, depth = 0 } = values;
     data[0] = color?.[0] ?? 0;
     data[1] = color?.[1] ?? 0;
     data[2] = color?.[2] ?? 0;
     data[3] = color?.[3] ?? 0;
     data[4] = depth;
+  }
+
+  /** bind groups of constant buffers, per values (a few: the clears of solid interior caps) */
+  const constantGroups = new Map<string, GPUBindGroup>();
+  function getConstantGroup(values: ClearValues) {
+    setData(values);
+    const key = Array.from(data.subarray(0, 5)).join(',');
+    let group = constantGroups.get(key);
+    if (!group) {
+      const buffer = device.createBuffer({
+        size: UniformSize,
+        usage: BufferUsage.UNIFORM | BufferUsage.COPY_DST,
+        label: 'clear values',
+      });
+      device.queue.writeBuffer(buffer, 0, data.buffer, data.byteOffset, UniformSize);
+      group = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [{ binding: 0, resource: { buffer, offset: 0, size: UniformSize } }],
+      });
+      constantGroups.set(key, group);
+    }
+    return group;
+  }
+
+  const drawInBundle = (bundle: GPURenderBundleEncoder, target: PassTarget, values: ClearValues) => {
+    if (values.stencil !== undefined && values.stencil !== 0 && target.hasStencil) return false;
+    bundle.setPipeline(getPipeline(target, values, true));
+    bundle.setBindGroup(0, getConstantGroup(values), [0]);
+    bundle.draw(3);
+    return true;
+  };
+
+  const draw = (pass: GPURenderPassEncoder, target: PassTarget, values: ClearValues) => {
+    const { stencil = 0 } = values;
+    setData(values);
     snapshot.markChanged();
     const slot = snapshot.getSlot();
     let bindGroup = bindGroups.get(slot.buffer);
@@ -182,4 +228,6 @@ export function createClearDraw(device: GPUDevice, ring: UniformRing) {
     pass.setStencilReference(stencil);
     pass.draw(3);
   };
+
+  return { draw, drawInBundle };
 }

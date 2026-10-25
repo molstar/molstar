@@ -29,10 +29,20 @@ import { printTimerResults } from '@molstar/graphics/gl/timer';
 import { ShaderManager } from '../helper/shader-manager.js';
 import type { RenderContext } from '../util.js';
 import { createPrepareBuilder, type PassBuilder } from './pass-builder.js';
+import { PassTargets } from './pass-targets.js';
 
 export const ImageParams = {
   transparentBackground: PD.Boolean(false),
   dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
+  volumeResolutionScale: PD.Numeric(
+    0.5,
+    { min: 0.25, max: 1, step: 0.05 },
+    {
+      description:
+        'Resolution of direct volumes relative to the drawing buffer, upsampled with the depth (volumes are smooth, ' +
+        'their cost is per pixel)',
+    },
+  ),
   multiSample: PD.Group(MultiSampleParams),
   postprocessing: PD.Group(PostprocessingParams),
   marking: PD.Group(MarkingParams),
@@ -62,6 +72,8 @@ export class ImagePass {
     return this._colorTarget;
   }
 
+  /** the targets of the passes, see `PassTargets` */
+  private targets!: PassTargets;
   private drawPass!: DrawPass;
   private illuminationPass!: IlluminationPass;
   private multiSamplePass!: MultiSamplePass;
@@ -95,7 +107,8 @@ export class ImagePass {
     this.limitToSupported = createSupportedPropsLimiter(graphics);
     this.limitToSupported(this.props);
 
-    this.drawPass = new DrawPass(graphics, this.assetManager, 128, 128, this.scene.transparency);
+    this.targets = new PassTargets(graphics);
+    this.drawPass = new DrawPass(this.targets, this.assetManager, 128, 128, this.scene.transparency);
     this.illuminationPass = new IlluminationPass(graphics, this.drawPass);
     this.multiSamplePass = new MultiSamplePass(graphics, this.drawPass);
     this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
@@ -153,7 +166,20 @@ export class ImagePass {
     if (props.cameraHelper) this.helper.camera.setProps(props.cameraHelper);
   }
 
+  /**
+   * Renders the image (`colorTarget`); the targets' storage is released a while after the last render (see
+   * `PassTargets.scheduleRelease`), so that an image pass kept for later screenshots takes no memory meanwhile
+   */
   async render(runtime: RuntimeContext) {
+    this.targets.cancelRelease();
+    try {
+      await this.renderUnreleased(runtime);
+    } finally {
+      this.targets.scheduleRelease(() => this.targets.releaseAll());
+    }
+  }
+
+  private async renderUnreleased(runtime: RuntimeContext) {
     // `prepare` makes what the render draws with ready, so that no draw is skipped while a WebGPU pipeline compiles;
     // should a render still start work (it may have settled during the render, e.g. between illumination
     // iterations), render again, so that the image is complete and doesn't depend on timing; the context changing
@@ -254,7 +280,7 @@ export class ImagePass {
         this._colorTarget = this.multiSamplePass.colorTarget;
       } else {
         this.drawPass.render(ctx, this.props, false);
-        this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
+        this._colorTarget = this.drawPass.getColorTarget(this.scene, this.props.postprocessing);
       }
       if (isTimingMode) this.graphics.timer.groupEnd('ImagePass.render');
     }

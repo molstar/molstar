@@ -5,15 +5,13 @@
  */
 
 import { ValueCell } from '@molstar/core/util/value-cell';
-import { Vec2 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
 
 export type ClippingType = 'instance' | 'groupInstance';
 
 export type ClippingData = {
-  tClipping: ValueCell<TextureImage<Uint8Array>>;
-  uClippingTexDim: ValueCell<Vec2>;
+  tClipping: ValueCell<DataArray<Uint8Array>>;
   dClipping: ValueCell<boolean>;
   /** the type (`ClippingType`); the object uniform `uInstanceGranularity` selects the index */
   clippingType: ValueCell<string>;
@@ -29,7 +27,7 @@ export function clearClipping(array: Uint8Array, start: number, end: number) {
 }
 
 export function createClipping(count: number, type: ClippingType, clippingData?: ClippingData): ClippingData {
-  const clipping = createTextureImage(
+  const clipping = createDataArray(
     Math.max(1, count),
     1,
     Uint8Array,
@@ -37,31 +35,27 @@ export function createClipping(count: number, type: ClippingType, clippingData?:
   );
   if (clippingData) {
     ValueCell.update(clippingData.tClipping, clipping);
-    ValueCell.update(clippingData.uClippingTexDim, Vec2.create(clipping.width, clipping.height));
     ValueCell.updateIfChanged(clippingData.dClipping, count > 0);
     ValueCell.updateIfChanged(clippingData.clippingType, type);
     return clippingData;
   } else {
     return {
       tClipping: ValueCell.create(clipping),
-      uClippingTexDim: ValueCell.create(Vec2.create(clipping.width, clipping.height)),
       dClipping: ValueCell.create(count > 0),
       clippingType: ValueCell.create<string>(type),
     };
   }
 }
 
-const emptyClippingTexture = { array: new Uint8Array(1), width: 1, height: 1 };
+const emptyClippingTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyClipping(clippingData?: ClippingData): ClippingData {
   if (clippingData) {
     ValueCell.update(clippingData.tClipping, emptyClippingTexture);
-    ValueCell.update(clippingData.uClippingTexDim, Vec2.create(1, 1));
     ValueCell.updateIfChanged(clippingData.dClipping, false);
     return clippingData;
   } else {
     return {
       tClipping: ValueCell.create(emptyClippingTexture),
-      uClippingTexDim: ValueCell.create(Vec2.create(1, 1)),
       dClipping: ValueCell.create(false),
       clippingType: ValueCell.create<string>('groupInstance'),
     };

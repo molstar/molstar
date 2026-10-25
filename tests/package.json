@@ -41,6 +41,7 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
-    "@types/webxr": "catalog:"
+    "@types/webxr": "catalog:",
+    "@molstar/plugin-headless": "workspace:*"
   }
 }

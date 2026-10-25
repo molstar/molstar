@@ -99,6 +99,8 @@ export const PostprocessingCases: VisualTestCase[] = [
   pp('occlusion/multi-scale-full-resolution', {
     occlusion: { name: 'on', params: { ...ssao, multiScale, resolutionScale: 1 } },
   }),
+  // a depth bias of 0 blurs nothing: the blur passes are skipped
+  pp('occlusion/no-blur', { occlusion: { name: 'on', params: { ...ssao, blurDepthBias: 0 } } }),
   pp('occlusion/transparent', { occlusion: { name: 'on', params: ssao } }, transparentScene, { requires: Impostor }),
   pp('shadow/default', { shadow: { name: 'on', params: { ...shadow, steps: 4 } } }),
   pp('outline/default', { outline: { name: 'on', params: outline } }, primitivesScene, { tags: ['smoke'] }),
@@ -110,6 +112,8 @@ export const PostprocessingCases: VisualTestCase[] = [
   ),
   pp('dof/plane', { dof: { name: 'on', params: { ...dof, mode: 'plane' } } }),
   pp('dof/sphere', { dof: { name: 'on', params: { ...dof, mode: 'sphere' } } }),
+  // every sample on the pixel: those in focus have no weight
+  pp('dof/no-spread', { dof: { name: 'on', params: { ...dof, blurSpread: 0 } } }),
   pp('antialiasing/fxaa', { antialiasing: { name: 'fxaa', params: PD.getDefaultValues(FxaaParams) } }),
   pp('antialiasing/smaa', { antialiasing: { name: 'smaa', params: PD.getDefaultValues(SmaaParams) } }),
   pp('sharpening/cas', { sharpening: { name: 'on', params: PD.getDefaultValues(CasParams) } }),

@@ -2,7 +2,7 @@
 
 ## Status
 
-- **Current**: steps 1–3 done; decisions 1A, 2A, 4A (4 K vertex chunks) and 5A (one growable arena) made, 3
+- **Current**: steps 1–3 done; decisions 1A, 2A, 4A (4 K vertex chunks) and 5C (several arenas, a surface in one) made, 3
   superseded by chunked storage. Step 4 postponed: multi-draw indirect only replaces the per-range draw loop of
   render items with multi-draw lists (culling, level of detail of instanced structures), needs
   `indirect-first-instance` for its fallback, and few adapters offer it (as `WEBGL_multi_draw` on WebGL, which still
@@ -20,8 +20,8 @@
   `meta.chunkByteCount`), and the debug console stats show the arena (`getVertexArenaStats`: used and allocated pages).
 - Step 3 done: render schemas declare read-only storage buffers (`StorageBufferSpec` with `usedIf`, WebGL ignores
   them; WebGPU numbers them after the draw uniforms of the object group, bound when referenced); the vertex arena
-  (`gl/compute/marching-cubes/chunks.ts`: one growable arena of 4 K vertex pages per context, positions with the
-  group's rgba bits in `w` and snorm16 normals, 24 B per vertex, a free page stack) with the kernels `mc-chunk-count`
+  (`gl/compute/marching-cubes/chunks.ts`: one growable arena of 4 K vertex pages per context, 12 B per vertex since
+  the compact format follow-up, a free page stack) with the kernels `mc-chunk-count`
   (one atomic reservation per workgroup), `mc-chunk-allocate`, `mc-chunk-emit`, `mc-chunk-free` and `mc-chunk-push`;
   texture meshes in the arena (`TextureMesh.createChunked`, `dIsoChunks`, the WGSL mesh program reading through the
   page table, vertices beyond the drawn count clipped), the color smoothing kernel and the readback (position
@@ -170,7 +170,7 @@ Superseded by the chunked storage (earlier choice: ×1.5 steps).
 
 ### 4. Chunk size
 
-- **A. 4 K vertices** (96 KB at 24 B): little waste for small units (waters, ligands), page tables of a few thousand
+- **A. 4 K vertices** (48 KB at 12 B): little waste for small units (waters, ligands), page tables of a few thousand
   entries for the largest surfaces (11 M vertices: 2.7 K pages).
 - **B. 16 K vertices** (384 KB): smaller tables, up to 384 KB unused per surface (21 units of 7qpd: up to 8 MB).
 - **C. 64 K vertices** (1.5 MB): fewest pages, up to 1.5 MB unused per surface.
@@ -180,12 +180,18 @@ Chosen: A (the table lookup per vertex is the same for all; small units are comm
 ### 5. Arenas
 
 - **A. One growable arena**: one buffer per vertex attribute holding all pages; growing allocates larger buffers and
-  copies on the GPU (rare, off the critical path). Fewest bindings (page table and two arena buffers), simplest
-  shaders; the total is limited by the storage buffer binding size (8.4 M vertices at the 128 MiB default).
+  copies on the GPU (rare, off the critical path). Fewest bindings (page table and the arena buffer), simplest
+  shaders; the total is limited by the storage buffer binding size (11 M vertices at the 128 MiB default).
 - **B. Several fixed arenas**: growing adds a buffer without copying; shaders select the arena with a `switch` (no
   binding arrays in WebGPU), two bindings per arena, about 3 arenas within the default 8 storage buffers per stage.
 
-Chosen: A (more arenas only if the binding size is ever reached).
+Chosen first: A (more arenas only if the binding size is ever reached). Then C, when 3j3q at medium quality needed
+more than a 2 GiB buffer (see Follow-ups):
+
+- **C. Several arenas, a surface in one**: as B, but a surface's pages are all in one arena and what draws it binds
+  that one buffer (no `switch`, one binding as A). The first arena grows (copying) to 256 MiB, more are added at
+  256 MiB (larger for a surface of more pages, up to the storage buffer limit) without copying; a surface whose arena
+  can't take its pages moves (its pages freed, taken from the other arena).
 
 ## Steps
 
@@ -202,6 +208,43 @@ Chosen: A (more arenas only if the binding size is ever reached).
    GPU surfaces in multi-draw lists. Benchmark on an instanced scene with culling (`render/*`).
 
 ## Follow-ups
+
+- **Compact vertices, the arena's limit reported** (done): 3j3q (1356 chains, 2.44 M atoms) at medium quality
+  (resolution 0.8) has about 124 vertices per atom, 303 M vertices: 6.8 GiB at 24 B, the arena capped at a 2 GiB
+  storage buffer (2 GiB of positions, 1 GiB of normals: 134 M vertices) and surfaces past it drawn incomplete
+  without notice. Vertices are 12 B now, one buffer (`iso_vertex_wgsl`): the position quantized to 16 bits per axis in
+  the box of the grid's vertices (its min and step in the page table header, written by `mc-chunk-allocate` in queue
+  order; extent / 65535, about 0.002 Å for a 100 Å unit), the normal octahedral in 24 bits, the group as packed rgb
+  (24 bits, as before); 179 M vertices fit a 2 GiB arena. Page tables are sized to the estimate (twice it and 16
+  pages, not the arena's pages: 128 KiB per surface at 2 GiB), a surface beyond its table is extracted again with its
+  count. A surface still missing pages with the arena at its limit is not extracted again but reported, all of them
+  in one message (`GraphicsResources.outOfMemory`, `Canvas3D.outOfMemory`, logged as an error by the plugin: Prism's
+  notifications), as WebGPU out-of-memory errors (once per 5 s).
+- **Several arenas** (done, decision 5C): the pages of an extraction are reserved before it
+  (`reserveVertexArenaPages`, in turn per context): an arena with the free pages, else one grown, else a new one, its
+  buffers created in an out-of-memory error scope and awaited (`ComputeContext.tryCreateBuffer`): a buffer that failed
+  invalidates the command buffer using it, the other surfaces' work and the frame with it. So extractions await before
+  recording and compute shared inputs themselves: the Gaussian surface computes its density in each extraction
+  (`IsosurfaceExtraction`). Without memory for another arena, the arenas are exhausted until a surface returns its pages;
+  the surfaces that did not fit are reported.
+- **Indexed surfaces** (done): a vertex per crossed edge of the grid, owned by the edge's lower point and shared by
+  the cells around it (as the CPU marching cubes, whose vertex counts the Dawn test matches), a triangle the 3 indices
+  of its vertices; a page holds 4 K vertices or 4 K triangles (12 B each), the table lists vertex pages, then triangle
+  pages. `mc-chunk-count` runs per grid point: its crossed edges (a bit per axis) and first vertex in a scratch word
+  per point (`pointBases`, 4 B a point, as the old per-cell scratch), the cell's triangles per workgroup;
+  `mc-chunk-emit` writes a point's vertices and its cell's triangles, a corner's vertex the base of the edge's point
+  and the crossed edges before it (`countOneBits`, no value reads). Draws pull through the indices (`isoSlot`, 3 per
+  triangle, non-indexed draws), so the mesh and color smoothing programs are unchanged; readbacks expand to the
+  unindexed layout. A vertex's group is of the nearer edge end (else the other), a triangle's of its first vertex
+  (flat), as the CPU path; before, a group per cell. 18 B a triangle against 36 B: 3j3q at medium about 1.7 GiB.
+  The kernels compile in about 150–250 ms on Dawn against 90 ms (the emit kernel's edges in a loop of the set bits,
+  not unrolled per axis: 1 s unrolled).
+- **Empty arenas released** (done): an arena without surfaces (counted, not by its free pages, which a readback still
+  pending leaves too high) and without reservations is released after 3 s (`ArenaIdleMs`), the first too (a 64-page
+  one is created again when needed); a reservation or a surface in between keeps it. Longer than a frame of a
+  trajectory played back, whose surfaces may be created again each frame (the new one's pages taken before the old
+  one's are freed): its arenas are kept while playing (a Dawn test of 5 frames) and released when it stops. New
+  surfaces fill the first arenas that fit, so the later ones drain.
 
 - **Size estimates for volume isosurfaces** (done): volume isosurfaces and segments pass an estimate from the grid
   (`estimateIsosurfaceVertexCount`): the triangles of the cells by `TriTable`, classified as the compute kernels'

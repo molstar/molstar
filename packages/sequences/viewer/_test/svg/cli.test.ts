@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // `seqv-render` (SV1b; seqspec:viewer#the-render-backend) run as a process: a document file in, the SVG the library
@@ -216,8 +217,9 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('is executable, starts with a shebang, and package.json lists it as a bin', () => {
-    expect(statSync(source).mode & 0o111).toBe(0o111);
-    expect(readFileSync(source, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true);
+    // Windows has no execute bits (git keeps the mode in the index)
+    if (process.platform !== 'win32') expect(statSync(source).mode & 0o111).toBe(0o111);
+    expect(readFileSync(source, 'utf8')).toMatch(/^#!\/usr\/bin\/env node\r?\n/);
     const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '../../package.json'), 'utf8'));
     expect(pkg.bin).toEqual({ 'seqv-render': './lib/cli/seqv-render.js' });
   });

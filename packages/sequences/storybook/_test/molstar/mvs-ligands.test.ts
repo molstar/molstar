@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // structureMvs's `ligandComps` (seqspec:libraries#the-mol-adapter): the named ligands as ball and stick, never a
@@ -24,7 +25,7 @@ function withLigandAndIon(): Uint8Array {
   let text = readFileSync(
     new URL('../../../../prism/viewer/src/sequence/molstar/_test/fixtures/structures/ins1.cif', import.meta.url),
     'utf8',
-  );
+  ).replace(/\r\n/g, '\n');
   text = text
     .replace('1 1 TRP n\n', '1 1 MSE n\n')
     .replace(' TRP A 1 1 ', ' MSE A 1 1 ')

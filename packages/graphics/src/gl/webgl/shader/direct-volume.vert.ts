@@ -1,17 +1,23 @@
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
+import { common } from './chunks/common.glsl.js';
+
 export const directVolume_vert = `
 precision highp float;
+
+${common}
 
 varying vec3 vModelPosition;
 varying float vInstance;
 varying vec4 vBoundingSphere;
 varying mat4 vTransform;
+// the normal matrix per instance: per fragment it costs as if it were computed per lit sample (WebGL2: up to 25 %)
+varying mat3 vNormalMatrix;
 
 void main() {
     vec4 unitCoord = vec4(aPosition + vec3(0.5), 1.0);
@@ -24,6 +30,7 @@ void main() {
         uModelScale * uInvariantBoundingSphere.w
     );
     vTransform = aTransform;
+    vNormalMatrix = adjoint(uModelView * aTransform);
 
     gl_Position = uProjection * mvPosition;
 

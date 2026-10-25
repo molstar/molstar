@@ -22,6 +22,7 @@ import { Viewport } from '../camera/util.js';
 import type { DrawPass } from './draw.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { TextureReader } from '@molstar/graphics/gl/texture-reader';
+import type { OcclusionPyramid } from '@molstar/graphics/gl/compute/cell-cull';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
@@ -101,6 +102,10 @@ export const HiZParams = {
     { description: 'Maximum number of frames to wait for Z-buffer data.' },
   ),
   minLevel: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
+  gpu: PD.Boolean(true, {
+    description:
+      "Occlusion culling on the GPU of the objects culled there (gpuCulling), against the previous frame's depth without reading it back; also with Hi-Z off.",
+  }),
 };
 export type HiZProps = PD.Values<typeof HiZParams>;
 
@@ -117,7 +122,15 @@ export class HiZPass {
   private readonly nextView = Mat4();
   private readonly nextProjection = Mat4();
 
+  /** the camera of the levels being built and of those last built (`gpuPyramid`) */
+  private buildNear = 0;
+  private buildFar = 0;
+  private readonly buildView = Mat4();
+  private readonly buildProjection = Mat4();
+  private pyramid?: OcclusionPyramid;
+
   private readonly aabb = Vec4();
+  private readonly levelZeroInvSize = Vec2();
   private readonly vp = Vec3();
 
   private readonly levelData: LevelData = [];
@@ -131,6 +144,8 @@ export class HiZPass {
 
   /** whether a read of `tex` was started and is pending */
   private reading = false;
+  /** whether objects are culled on the GPU (`setGpuCulling`): the levels built for them also with Hi-Z off */
+  private gpuCulling = false;
   private buffer = new Float32Array(0);
   private frameLag = 0;
   private ready = false;
@@ -153,6 +168,7 @@ export class HiZPass {
     this.reading = false;
     this.frameLag = 0;
     this.ready = false;
+    this.pyramid = undefined;
 
     if (this.debug) {
       this.debug.rect.style.display = 'none';
@@ -164,23 +180,34 @@ export class HiZPass {
     this.plan(this.renderBuilder, camera);
   }
 
+  /** Whether objects are culled on the GPU this frame (`Renderer.gpuCulledCount`), see `gpu` */
+  setGpuCulling(value: boolean) {
+    this.gpuCulling = value;
+  }
+
+  /** Built: for the CPU test (`enabled`), or for the GPU's alone (`gpu` with objects culled there) */
+  private get active() {
+    return this.supported && (this.props.enabled || (this.props.gpu && this.gpuCulling));
+  }
+
   /**
    * What `render` draws, see `PassBuilder`; preparing covers the first level (from the scene depth) and one of the
    * following ones (each from the level before), and keeps the reading state
    */
   plan(b: PassBuilder, camera: Camera) {
-    if (!this.supported || !this.props.enabled) return;
+    if (!this.active) return;
+    // no viewport yet (`setViewport`): no levels to build or read
+    if (this.levelData.length <= this.props.minLevel) return;
     const { pending } = this.graphics.resources;
     if (b.drawing) {
-      if (this.reading) return;
       // draws are skipped while work is pending (e.g. a pipeline compiling), levels missing them would occlude
       // everything
       if (!pending.isReady()) return;
-
-      this.nextNear = camera.near;
-      this.nextFar = camera.far;
-      Mat4.copy(this.nextView, camera.view);
-      Mat4.copy(this.nextProjection, camera.projection);
+      // built every frame for the tests on the GPU (`gpuPyramid`), also while the last read for the CPU test is pending
+      this.buildNear = camera.near;
+      this.buildFar = camera.far;
+      Mat4.copy(this.buildView, camera.view);
+      Mat4.copy(this.buildProjection, camera.projection);
     }
 
     const { graphics } = this;
@@ -210,7 +237,8 @@ export class HiZPass {
         ValueCell.update(v.uRect, Vec4.set(v.uRect.ref.value, 0, 0, 1, 1));
         ValueCell.update(v.tPreviousLevel, this.levelData[i - 1].texture);
       } else {
-        ValueCell.update(v.uInvSize, Vec2.set(v.uInvSize.ref.value, 1 / s, 1 / s));
+        // a vector of its own: the cell holds a level's `invSize` after that level, set in place it would change it
+        ValueCell.update(v.uInvSize, Vec2.set(this.levelZeroInvSize, 1 / s, 1 / s));
         // the level covers `td.size / s` of the drawing buffer from the top-left corner of the viewport
         ValueCell.update(
           v.uRect,
@@ -240,12 +268,44 @@ export class HiZPass {
     //
 
     if (b.drawing && pending.trackedCount === trackedCount) {
-      this.reader.start([this.tex], 0, 0, this.tex.getWidth(), this.tex.getHeight());
-      this.reading = true;
-      this.frameLag = 0;
+      const { width, height } = this.viewport;
+      this.pyramid = {
+        texture: this.tex,
+        levelCount: this.levelData.length,
+        minLevel: this.props.minLevel,
+        width,
+        height,
+        view: Mat4.copy(this.pyramid?.view ?? Mat4(), this.buildView),
+        projection: Mat4.copy(this.pyramid?.projection ?? Mat4(), this.buildProjection),
+        near: this.buildNear,
+        far: this.buildFar,
+      };
+      if (this.props.enabled && !this.reading) {
+        // the CPU test reads these levels with this camera once read back (`tick`)
+        this.nextNear = this.buildNear;
+        this.nextFar = this.buildFar;
+        Mat4.copy(this.nextView, this.buildView);
+        Mat4.copy(this.nextProjection, this.buildProjection);
+        this.reader.start([this.tex], 0, 0, this.tex.getWidth(), this.tex.getHeight());
+        this.reading = true;
+        this.frameLag = 0;
+      }
     }
 
     if (timing) graphics.timer.groupEnd('hi-Z');
+  }
+
+  /**
+   * The occlusion test for the renderer (`Renderer.setOcclusionTest`), null while Hi-Z is off or unsupported: no test
+   * then, so that what culling read stays unchanged (e.g. draw lists replay without planning)
+   */
+  get occlusionTest() {
+    return this.supported && this.props.enabled ? this.isOccluded : null;
+  }
+
+  /** The levels last built, for tests on the GPU (`OcclusionPyramid`): undefined while not built (see `active`) */
+  get gpuPyramid(): OcclusionPyramid | undefined {
+    return this.active ? this.pyramid : undefined;
   }
 
   /** A readback under way: `tick` polls it. */
@@ -310,35 +370,28 @@ export class HiZPass {
     const z = vp[2] + r;
     if (-z < near) return false;
 
-    const { aabb, w, h, lod } = this.project(vp, r);
+    const { aabb, lod } = this.project(vp, r);
     if (lod >= this.levelData.length || lod < this.props.minLevel) return false;
 
     const { offset, size } = this.levelData[lod];
-
-    const u = aabb[0] + w / 2;
-    const v = aabb[1] + h / 2;
-
     const ts = size[0];
-    const x = u * ts;
-    const y = v * ts;
 
-    const dx = Math.floor(x);
-    const dy = Math.ceil(y);
+    // the texels the rectangle covers (rows top to bottom, as the rectangle's y): at most two per axis at this level,
+    // its size at most a texel; the 2x2 texels around its center miss a side where it is off the texel's center
+    const x0 = Math.floor(aabb[0] * ts);
+    const x1 = Math.floor(aabb[2] * ts);
+    const y0 = Math.floor(aabb[1] * ts);
+    const y1 = Math.floor(aabb[3] * ts);
+    if (x0 < 0 || y0 < 0 || x1 >= ts || y1 >= ts || x1 - x0 > 1 || y1 - y0 > 1) return false;
+
+    // the levels side by side at the top of the texture
     const dw = this.tex.getWidth();
-
-    if (dx + 1 >= ts || dy + 1 >= ts) return false;
-
-    // rows top to bottom, the levels side by side at the top of the texture
-    const di = dy * dw + dx + offset;
-    if (z > depthToViewZ(this.buffer[di], near, far, projection)) return false;
-
-    if (z > depthToViewZ(this.buffer[di + 1], near, far, projection)) return false;
-
-    const di2 = (dy - 1) * dw + dx + offset;
-    if (z > depthToViewZ(this.buffer[di2], near, far, projection)) return false;
-
-    if (z > depthToViewZ(this.buffer[di2 + 1], near, far, projection)) return false;
-
+    const { buffer } = this;
+    for (const y of [y0, y1]) {
+      for (const x of [x0, x1]) {
+        if (z > depthToViewZ(buffer[y * dw + x + offset], near, far, projection)) return false;
+      }
+    }
     return true;
   };
 

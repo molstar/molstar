@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,7 +20,14 @@ varying vec4 vColor;
 
 void main() {
     vec3 position = readFromTexture(tPosition, SampleID, uGeoTexDim).xyz;
-    float group = unpackRGBToInt(readFromTexture(tGroup, SampleID, uGeoTexDim).rgb);
+    vec3 packedGroup = readFromTexture(tGroup, SampleID, uGeoTexDim).rgb;
+    // a vertex of a cell no corner of which has a group: no color (outside the target)
+    if (packedGroup == vec3(0.0)) {
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        gl_PointSize = 0.0;
+        return;
+    }
+    float group = unpackRGBToInt(packedGroup);
 
     position = (aTransform * vec4(position, 1.0)).xyz;
     gl_PointSize = 7.0;

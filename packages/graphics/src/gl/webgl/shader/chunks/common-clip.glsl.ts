@@ -12,56 +12,42 @@ vec3 quaternionTransform(const in vec4 q, const in vec3 v) {
     return v + q.w * t + cross(q.xyz, t);
 }
 
-vec4 computePlane(const in vec3 normal, const in vec3 inPoint) {
-    return vec4(normalize(normal), -dot(normal, inPoint));
+// signed distance of \`t\` (in the shape's frame) to a shape of half size \`size\` (1 plane, 2 sphere, 3 cube, 4 cylinder,
+// 5 infinite cone)
+float localSD(const in int type, const in vec3 t, const in vec3 size) {
+    if (type == 1) {
+        return -t.y;
+    } else if (type == 2) {
+        return (length(t / size) - 1.0) * min(min(size.x, size.y), size.z);
+    } else if (type == 3) {
+        vec3 d = abs(t) - size;
+        return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
+    } else if (type == 4) {
+        vec2 d = abs(vec2(length(t.xz), t.y)) - size.xy;
+        return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+    } else if (type == 5) {
+        return dot(size.xy, vec2(length(t.xy), t.z));
+    }
+    return 0.1;
 }
 
-float planeSD(const in vec4 plane, const in vec3 center) {
-    return -dot(plane.xyz, center - plane.xyz * -plane.w);
-}
-
-float sphereSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
-    return (
-        length(quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position) / size) - 1.0
-    ) * min(min(size.x, size.y), size.z);
-}
-
-float cubeSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
-    vec3 d = abs(quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position)) - size;
-    return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
-}
-
-float cylinderSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
-    vec3 t = quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position);
-
-    vec2 d = abs(vec2(length(t.xz), t.y)) - size.xy;
-    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
-}
-
-float infiniteConeSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
-    vec3 t = quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position);
-
-    float q = length(t.xy);
-    return dot(size.xy, vec2(q, t.z));
-}
-
+// signed distance of \`center\` to a shape given by position, rotation, scale and the transform of the point (image trims)
 float getSignedDistance(const in vec3 center, const in int type, const in vec3 position, const in vec4 rotation, const in vec3 scale, const in mat4 transform) {
     vec3 c = (transform * vec4(center, 1.0)).xyz;
-    if (type == 1) {
-        vec3 normal = quaternionTransform(rotation, vec3(0.0, 1.0, 0.0));
-        vec4 plane = computePlane(normal, position);
-        return planeSD(plane, c);
-    } else if (type == 2) {
-        return sphereSD(position, rotation, scale * 0.5, c);
-    } else if (type == 3) {
-        return cubeSD(position, rotation, scale * 0.5, c);
-    } else if (type == 4) {
-        return cylinderSD(position, rotation, scale * 0.5, c);
-    } else if (type == 5) {
-        return infiniteConeSD(position, rotation, scale * 0.5, c);
-    } else {
-        return 0.1;
-    }
+    return localSD(type, quaternionTransform(vec4(-rotation.xyz, rotation.w), c - position), scale * 0.5);
+}
+
+// a clip object by its frame and shape (\`Clip.Objects\`): the type in \`shape.w\`, negative where inverted
+int clipType(const in vec4 shape) {
+    return int(abs(shape.w) + 0.5);
+}
+
+bool clipInverted(const in vec4 shape) {
+    return shape.w < 0.0;
+}
+
+float clipObjectSD(const in vec3 center, const in mat4 frame, const in vec4 shape) {
+    return localSD(clipType(shape), (frame * vec4(center, 1.0)).xyz, shape.xyz);
 }
 
 #if __VERSION__ == 100
@@ -103,7 +89,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
     }
 #endif
 
-#if dClipObjectCount != 0
+#if defined(dClipObjects)
     bool clipIgnored(const in int index) {
         #if defined(dClipping)
             int flag = int(floor(vClipping * 255.0 + 0.5));
@@ -121,16 +107,14 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
             int flag = 0;
         #endif
 
-        #pragma unroll_loop_start
-        for (int i = 0; i < dClipObjectCount; ++i) {
-            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(UNROLLED_LOOP_INDEX)))) {
-                bool test = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]) <= 0.0;
-                if ((!uClipObjectInvert[i] && test) || (uClipObjectInvert[i] && !test)) {
+        for (int i = 0; i < uClipObjectCount; ++i) {
+            if (i != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(i)))) {
+                bool test = clipObjectSD(center, uClipObjectFrame[i], uClipObjectShape[i]) <= 0.0;
+                if (test != clipInverted(uClipObjectShape[i])) {
                     return true;
                 }
             }
         }
-        #pragma unroll_loop_end
         return false;
     }
 
@@ -142,14 +126,12 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         #endif
 
         float d = 1.0e10;
-        #pragma unroll_loop_start
-        for (int i = 0; i < dClipObjectCount; ++i) {
-            if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(UNROLLED_LOOP_INDEX)))) {
-                float sd = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]);
-                d = min(d, uClipObjectInvert[i] ? -sd : sd);
+        for (int i = 0; i < uClipObjectCount; ++i) {
+            if (i != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(i)))) {
+                float sd = clipObjectSD(center, uClipObjectFrame[i], uClipObjectShape[i]);
+                d = min(d, clipInverted(uClipObjectShape[i]) ? -sd : sd);
             }
         }
-        #pragma unroll_loop_end
         return d;
     }
 
@@ -183,17 +165,12 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         return vec2((-b - sq) / a, (-b + sq) / a);
     }
 
-    vec2 clipObjectInterval(const in int type, const in vec3 position, const in vec4 rotation, const in vec3 scale, const in mat4 transform, const in vec3 pFront, const in vec3 pBack) {
-        vec3 cF = (transform * vec4(pFront, 1.0)).xyz;
-        vec3 cB = (transform * vec4(pBack, 1.0)).xyz;
-        if (type == 1) {
-            vec4 plane = computePlane(quaternionTransform(rotation, vec3(0.0, 1.0, 0.0)), position);
-            return clipHalfLine(planeSD(plane, cF), planeSD(plane, cB));
-        }
-        vec4 invRotation = vec4(-rotation.xyz, rotation.w);
-        vec3 qF = quaternionTransform(invRotation, cF - position);
-        vec3 qB = quaternionTransform(invRotation, cB - position);
-        vec3 size = scale * 0.5;
+    vec2 clipObjectInterval(const in mat4 frame, const in vec4 shape, const in vec3 pFront, const in vec3 pBack) {
+        vec3 qF = (frame * vec4(pFront, 1.0)).xyz;
+        vec3 qB = (frame * vec4(pBack, 1.0)).xyz;
+        int type = clipType(shape);
+        if (type == 1) return clipHalfLine(-qF.y, -qB.y);
+        vec3 size = shape.xyz;
         if (type == 2) {
             vec3 o = qF / size, d = (qB - qF) / size;
             return clipQuadratic(dot(d, d), dot(o, d), dot(o, o) - 1.0);
@@ -238,13 +215,12 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
         #endif
 
         float s = sStart;
-        for (int k = 0; k <= dClipObjectCount; ++k) {
+        for (int k = 0; k <= uClipObjectCount; ++k) {
             float sNext = s;
-            #pragma unroll_loop_start
-            for (int i = 0; i < dClipObjectCount; ++i) {
-                if (UNROLLED_LOOP_INDEX != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(UNROLLED_LOOP_INDEX)))) {
-                    vec2 iv = clipObjectInterval(uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i], pFront, pBack);
-                    if (uClipObjectInvert[i]) {
+            for (int i = 0; i < uClipObjectCount; ++i) {
+                if (i != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(i)))) {
+                    vec2 iv = clipObjectInterval(uClipObjectFrame[i], uClipObjectShape[i], pFront, pBack);
+                    if (clipInverted(uClipObjectShape[i])) {
                         if (iv.x > iv.y || s > iv.y) sNext = 1.0e6;
                         else if (s < iv.x) sNext = max(sNext, iv.x);
                     } else if (s > iv.x && s < iv.y) {
@@ -252,7 +228,6 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
                     }
                 }
             }
-            #pragma unroll_loop_end
             if (sNext == s) return s;
             s = sNext;
             if (s >= 1.0) return -1.0;
@@ -262,27 +237,23 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
 
     float clipCapExit(const in vec3 pFront, const in vec3 pBack, const in bool back) {
         float s = -1.0;
-        #pragma unroll_loop_start
-        for (int i = 0; i < dClipObjectCount; ++i) {
-            if (UNROLLED_LOOP_INDEX == uSolidInteriorClip) {
-                vec2 iv = clipObjectInterval(uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i], pFront, pBack);
-                if (iv.x < iv.y) s = uClipObjectInvert[i] != back ? iv.x : iv.y;
+        for (int i = 0; i < uClipObjectCount; ++i) {
+            if (i == uSolidInteriorClip) {
+                vec2 iv = clipObjectInterval(uClipObjectFrame[i], uClipObjectShape[i], pFront, pBack);
+                if (iv.x < iv.y) s = clipInverted(uClipObjectShape[i]) != back ? iv.x : iv.y;
             }
         }
-        #pragma unroll_loop_end
         return s;
     }
 
     float clipCapDistance(const in vec3 center) {
         float d = 0.0;
-        #pragma unroll_loop_start
-        for (int i = 0; i < dClipObjectCount; ++i) {
-            if (UNROLLED_LOOP_INDEX == uSolidInteriorClip) {
-                float sd = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]);
-                d = uClipObjectInvert[i] ? -sd : sd;
+        for (int i = 0; i < uClipObjectCount; ++i) {
+            if (i == uSolidInteriorClip) {
+                float sd = clipObjectSD(center, uClipObjectFrame[i], uClipObjectShape[i]);
+                d = clipInverted(uClipObjectShape[i]) ? -sd : sd;
             }
         }
-        #pragma unroll_loop_end
         return d;
     }
 

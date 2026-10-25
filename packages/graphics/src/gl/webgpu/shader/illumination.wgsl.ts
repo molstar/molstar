@@ -8,13 +8,15 @@
 import { depth_wgsl } from './chunks/depth.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
-import { pack_2x4_wgsl } from './outlines.wgsl.js';
+import { outline_read_wgsl, pack_2x4_wgsl } from './outlines.wgsl.js';
+import type { DefineLookup } from '../../renderable/schema.js';
 
-const TraceTextures = ['tColor', 'tNormal', 'tShaded', 'tThickness', 'tAccumulate', 'tDepth'];
+const TraceTextures = ['tColor', 'tNormal', 'tShaded', 'tThickness', 'tDepth'];
 
 /**
- * Screen space path tracing of the opaque scene, averaged with the previous frames (`tAccumulate`); the random numbers
- * are seeded with the GL fragment coordinates, so that the noise matches WebGL
+ * Screen space path tracing of the opaque scene, blended into the average of the previous frames (the pass's blend
+ * constant, see `TracingPass`) with the frame's weight in alpha; the random numbers are seeded with the GL fragment
+ * coordinates, so that the noise matches WebGL
  *
  * parts adapted from
  * - https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/
@@ -183,12 +185,14 @@ fn trace(rayPos: vec3<f32>, rayDir: vec3<f32>) -> RayHitInfo {
     var hitInfo: RayHitInfo;
     hitInfo.missed = missed;
     hitInfo.position = hitPos;
-    hitInfo.normal = -read_tNormal(coords).rgb;
+    hitInfo.normal = -unpackRGBAToNormal(read_tNormal(coords));
     hitInfo.color = read_tColor(coords).rgb;
     hitInfo.emissive = read_tColor(coords).rgb * read_tNormal(coords).a * 2.0;
 
+    // the background, whatever color it is cleared to: no emitter or surface normal (as transparent, cleared to zero)
     if (isBackground(getDepth(coords))) {
         hitInfo.emissive = vec3<f32>(0.0);
+        hitInfo.normal = vec3<f32>(0.0);
     }
     return hitInfo;
 }
@@ -214,7 +218,7 @@ fn colorForRay(startRayPos: vec3<f32>, startRayDir: vec3<f32>, rngState: ptr<fun
 
             hitInfo.missed = false;
             hitInfo.position = screenSpaceToViewSpace(vec3<f32>(fragCoords, depth), uObject.uInvProjection);
-            hitInfo.normal = -read_tNormal(fragCoords).rgb;
+            hitInfo.normal = -unpackRGBAToNormal(read_tNormal(fragCoords));
             hitInfo.color = read_tShaded(fragCoords).rgb;
             hitInfo.emissive = read_tColor(fragCoords).rgb * read_tNormal(fragCoords).a;
 
@@ -286,7 +290,8 @@ fn colorForRay(startRayPos: vec3<f32>, startRayDir: vec3<f32>, rngState: ptr<fun
         // As the throughput gets smaller, the ray is more likely to get terminated early.
         // Survivors have their value boosted to make up for fewer samples being in the average.
         let p = max(throughput.r, max(throughput.g, throughput.b));
-        if (randomFloat(rngState) > p) {
+        // \`p\` is 0 after a black hit and \`randomFloat\` may return 0: \`1 / p\` would make the throughput NaN
+        if (p <= 0.0 || randomFloat(rngState) >= p) {
             break;
         }
 
@@ -323,42 +328,54 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         color += colorForRay(cameraPos, rayDir, &rngState) / f32(uObject.uRendersPerFrame);
     }
 
-    // average the frames together
-    let lastFrameColor = read_tAccumulate(fragCoords);
-    let blend = select(1.0 / (1.0 + (1.0 / lastFrameColor.a)), 1.0, uObject.uFrameNo < 1 || lastFrameColor.a == 0.0);
-    color = mix(lastFrameColor.rgb, color, blend);
-
-    // show the result
-    return vec4<f32>(color, blend);
+    // the frame's weight in the running average (blended with it), kept for the denoiser
+    return vec4<f32>(color, 1.0 / f32(uObject.uFrameNo + 1));
 }
 `;
 
-const ComposeTextures = [
-  'tColor',
-  'tNormal',
-  'tTransparentColor',
-  'tSsaoDepth',
-  'tSsaoDepthTransparent',
-  'tDepthOpaque',
-  'tDepthTransparent',
-  'tOutlines',
-  'tBloom',
-];
+/** The textures a variant of the compose pass reads through `read_<name>` (upsampled occlusion samples directly) */
+function getComposeTextures(d: DefineLookup) {
+  const blend = d('dBlendTransparency');
+  const occlusion = d('dOcclusionEnable');
+  const upsample = d('dOcclusionUpsample');
+  const transparentDepth = d('dTransparentOutline') || occlusion || d('dBloomEnable');
+  return [
+    'tColor',
+    'tDepthOpaque',
+    d('dDenoise') && 'tNormal',
+    blend && 'tTransparentColor',
+    blend && transparentDepth && 'tDepthTransparent',
+    occlusion && !upsample && 'tSsaoDepth',
+    blend && occlusion && !upsample && 'tSsaoDepthTransparent',
+    d('dOutlineEnable') && 'tOutlines',
+    d('dBloomEnable') && 'tBloom',
+  ].filter((t): t is string => !!t);
+}
+
+/** `getDepthTransparent(coords)`: depth of the blended transparency, for the compose pass with it */
+const depth_transparent_wgsl = /* wgsl */ `
+fn getDepthTransparent(coords: vec2<f32>) -> f32 {
+    #if defined(dTransparentOutline) || defined(dOcclusionEnable) || defined(dBloomEnable)
+        return unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords)).x;
+    #else
+        return 0.0;
+    #endif
+}
+`;
 
 /**
  * Denoises the traced image and composes fog, occlusion, outlines, blended transparency and bloom onto it. Depth
- * textures are always available on WebGPU, so the opaque depth is never packed.
+ * textures are always available on WebGPU, so the opaque depth is never packed. The texture reads, the denoiser and
+ * the outline helper are included by the variant's defines (`WgslProgram.source`).
  */
-export const illumination_compose_wgsl = /* wgsl */ `
+export const illumination_compose_wgsl = (d: DefineLookup) => /* wgsl */ `
 ${depth_wgsl}
 ${packing_wgsl}
-${pack_2x4_wgsl}
 ${quad_vert_wgsl}
-${ComposeTextures.map(texture_read_wgsl).join('\n')}
-
-override oOutlineScale: i32 = 1;
-
-const EPSILON = 1e-6;
+${getComposeTextures(d).map(texture_read_wgsl).join('\n')}
+${d('dOutlineEnable') ? `${pack_2x4_wgsl}\n${outline_read_wgsl}` : ''}
+${d('dBlendTransparency') ? depth_transparent_wgsl : ''}
+${d('dDenoise') ? denoise_wgsl : ''}
 
 fn getViewZ(depth: f32) -> f32 {
     #if dOrthographic == 1
@@ -368,27 +385,23 @@ fn getViewZ(depth: f32) -> f32 {
     #endif
 }
 
-fn getDepthTransparent(coords: vec2<f32>) -> f32 {
-    #if defined(dTransparentOutline) || defined(dOcclusionEnable) || defined(dBloomEnable)
-        return unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords)).x;
-    #else
-        return 0.0;
-    #endif
-}
-
 fn isBackground(depth: f32) -> bool {
     // the far plane (depth is reversed), packed or raw
     return depth == 0.0;
 }
 
-//
+${compose_fragment_wgsl}`;
 
+/** `smartDeNoise(uv)`: the traced color denoised with normal weights, for the compose pass with `dDenoise` */
+const denoise_wgsl = /* wgsl */ `
+const EPSILON = 1e-6;
 const INV_SQRT_OF_2PI = 0.39894228040143267793994605993439; // 1.0/SQRT_OF_2PI
 const INV_PI = 0.31830988618379067153776752674503;
 
 // https://github.com/BrutPitt/glslSmartDeNoise, with normal weights; sigma 3, kSigma 2
 
-const NormalWeightStrength = 6.0;
+/** exp(-i² / (2 sigma²)) for i in 0..6: the spatial weight of an offset (x, y) is w[|x|] w[|y|] */
+const SpatialWeights = array<f32, 7>(1.0, 0.94595947, 0.80073740, 0.60653066, 0.41111229, 0.24935221, 0.13533528);
 
 fn smartDeNoise(uv: vec2<f32>) -> vec4<f32> {
     let sigma = 3.0;
@@ -408,18 +421,25 @@ fn smartDeNoise(uv: vec2<f32>) -> vec4<f32> {
     var zBuff = 0.0;
     var colorBuff = vec4<f32>(0.0);
 
-    let normal = read_tNormal(uv).xyz;
+    let normal = unpackRGBAToNormal(read_tNormal(uv));
+    // the background: every sample's normal weight is 0
+    if (all(normal == vec3<f32>(0.0))) {
+        return centrPx;
+    }
 
     for (var x = -6; x <= 6; x++) {
+        let wx = SpatialWeights[abs(x)] * invSigmaQx2PI;
         for (var y = -6; y <= 6; y++) {
             let d = vec2<f32>(f32(x), f32(y));
 
-            var blurFactor = exp(-dot(d, d) * invSigmaQx2) * invSigmaQx2PI;
+            var blurFactor = wx * SpatialWeights[abs(y)];
             let uvSample = uv + d / uObject.uTexSize;
 
-            let normalSample = read_tNormal(uvSample).xyz;
-            let normalW = pow(saturate(dot(normal, normalSample)), NormalWeightStrength);
-            blurFactor *= normalW;
+            let normalSample = unpackRGBAToNormal(read_tNormal(uvSample));
+            // the normal weight to the power of 6
+            let n1 = saturate(dot(normal, normalSample));
+            let n2 = n1 * n1;
+            blurFactor *= n2 * n2 * n2;
 
             let walkPx = read_tColor(uvSample);
 
@@ -437,55 +457,9 @@ fn smartDeNoise(uv: vec2<f32>) -> vec4<f32> {
 
     return colorBuff / zBuff;
 }
+`;
 
-struct Outline {
-    hasOpaque: bool,
-    hasTransparent: bool,
-    opaqueDepth: f32,
-    transparentDepth: f32,
-    alpha: f32,
-};
-
-fn getOutline(coords: vec2<f32>) -> Outline {
-    let invTexSize = 1.0 / uObject.uTexSize;
-    let squaredOutlineScale = oOutlineScale * oOutlineScale;
-
-    var o = Outline(false, false, 0.0, 0.0, 0.0);
-    for (var y = -oOutlineScale; y <= oOutlineScale; y++) {
-        for (var x = -oOutlineScale; x <= oOutlineScale; x++) {
-            if (x * x + y * y > squaredOutlineScale) {
-                continue;
-            }
-
-            let sampleCoords = coords + vec2<f32>(f32(x), f32(y)) * invTexSize;
-
-            let sampleOutlineCombined = read_tOutlines(sampleCoords);
-            let sampleOpaqueDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
-            let sampleTransparentDepth = sampleOutlineCombined.a;
-            let sampleFlagWithAlpha = unpack2x4(sampleOutlineCombined.r);
-
-            let sampleFlag = sampleFlagWithAlpha.x;
-            let sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
-
-            let isOpaque = sampleFlag > 0.20 && sampleFlag < 0.30;
-            let isTransparent = sampleFlag > 0.45 && sampleFlag < 0.55;
-            let isBoth = sampleFlag > 0.70 && sampleFlag < 0.80;
-
-            if ((isOpaque || isBoth) && sampleOpaqueDepth > o.opaqueDepth) {
-                o.hasOpaque = true;
-                o.opaqueDepth = sampleOpaqueDepth;
-            }
-
-            if ((isTransparent || isBoth) && sampleTransparentDepth > o.transparentDepth) {
-                o.hasTransparent = true;
-                o.transparentDepth = sampleTransparentDepth;
-                o.alpha = sampleAlpha;
-            }
-        }
-    }
-    return o;
-}
-
+const compose_fragment_wgsl = /* wgsl */ `
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let coords = fragmentUv(in.position, uObject.uTexSize);

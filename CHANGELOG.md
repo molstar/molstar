@@ -10,6 +10,54 @@ here.
 
 ## [Unreleased]
 
+- [Breaking] The volume direct-volume representation no longer has `jumpLength`: volumes skip transparent bricks
+  instead; the Gaussian volume keeps it
+- Direct volume rendering marches only through the volume's box (from its entry to its exit or the nearest opaque
+  surface), skips the work of fully transparent samples and skips bricks of 8³ cells the transfer function makes
+  transparent: sparse maps and tomograms 7-9x faster (256³ map at 2560x1440: 8.5 → 1.0 ms on WebGL2, float data 15.9 →
+  1.6 ms)
+- Direct volumes offset each pixel's samples by a fraction of a step (varied per multi-sample sample), and take 2
+  samples per cell by default (was 3): the same look, a quarter faster
+- `volumeResolutionScale` Canvas3D and image param: direct volumes at that resolution relative to the drawing buffer,
+  composited with depth-aware upsampling; 0.5 by default (frames with a volume filling the view 2.5x faster); in Prism,
+  the Canvas card's Advanced section (Volume resolution)
+- Lit direct volumes render up to a quarter faster on WebGL (the normal matrix computed per instance, not per pixel)
+- Direct volumes are created faster: their 3d texture is built 2-3x faster (256³ map: 0.9 → 0.4 s)
+- Direct volumes look the same at any `stepsPerCell` also for dense transfer functions: the opacity per step is
+  corrected exactly, not linearly
+- Highlighted or selected direct volumes (with the marking pass off) no longer fill their whole box with a faint haze;
+  only the visible density is highlighted
+- Highlighted or selected direct volumes show the marking pass's edges and fill (the default; were not marked at all),
+  drawn where the volume looks solid
+- `surfaceOpacity` param of direct volumes (0.3 by default): the opacity along a ray at which a volume counts as solid,
+  where marking draws its edges and picking finds it
+- Direct volumes can be picked (were not): hovering or clicking where a volume looks solid gives its cell there
+- Fix: in the `dpoit` transparency mode, draws before the first depth-peeling pass of a canvas no longer read stale
+  texture units (a WebGL error now and then, e.g. after a direct volume was drawn)
+- Direct volumes are drawn under transparent objects (were over them, also over those in front): transparent surfaces in
+  front of a volume cover it, as do those behind it (volumes are not split at transparent surfaces)
+- Fix: direct volumes in the `wboit` transparency mode (the default) no longer show holes (white speckles) where their
+  rays turn fully opaque, e.g. a transfer function reaching 1
+- Fix: direct volumes of grids with non-cubic cells (e.g. 1x1x4 Å) are no longer cut off at their far side
+- Fix: direct volumes colored per cell no longer show black pixels on grid-aligned samples
+- Sphere impostors and points draw each quad as four vertices of a shared index buffer instead of six: scenes of many
+  small spheres (mesoscale) draw up to a quarter faster, others as before
+- `lodPixelSize` sphere param (Culling & LOD): levels of detail chosen by the size of their spheres on screen (the
+  smallest sphere drawn, in CSS pixels) instead of by distance, the same look at any zoom, field of view and resolution;
+  the mesoscale preset and the Mesoscale Explorer's graphics modes use it (`Spheres.LodPixelPresets`, coarser levels for
+  whole scenes), and particle representations by default (`lodPixelSize` 3): large mesoscale scenes draw about three
+  times faster at the `quality` look; volume dots switch levels by their own size
+- Hi-Z occlusion culling: no longer culls visible objects (its depth levels went wrong after the first frames, and the
+  test missed a side of objects off a texel center)
+- `gpuCulling` geometry param (Culling & LOD): render objects of many instances culled per cell of instances on the GPU
+  (WebGPU), `auto` by default (from 20k instances, merging a single object for it), and tested for occlusion there
+  against the previous frame's depth (`hiZ.gpu`, on by default, also with Hi-Z off: no readback)
+- Color theme updates are faster (about twice as fast for representations of many units, the element index colors of
+  large assemblies twice as fast, the particle entity and compartment colors of mesoscale models nearly three times)
+- Geometry export: merged render objects (`renderMerged`) are exported as their members, each with its own colors
+- `renderMerged: auto` merges the render objects of representations with more than 30 units (was 100), updates of merged
+  objects (colors, marking) are faster with many units, and merged objects no longer keep a copy of their members'
+  geometry and theme layers (half the CPU memory of merged geometry); on WebGL2 they draw up to three times faster
 - Fix a state builder's `updateState` evaluating its node, and a rebased builder losing its tag, `dependsOn` and flag
   edits
 - Fix `setDependsOn` not updating the tree's dependencies (deleting the dependency left the dependent in error)

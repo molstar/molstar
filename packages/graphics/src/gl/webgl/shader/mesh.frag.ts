@@ -48,7 +48,7 @@ void main() {
                 float nearZ = -uNear * 1.0001;
                 vec3 nearPosition = vec3(mix(vViewPosition.xy * (nearZ / vViewPosition.z), vViewPosition.xy, uIsOrtho), nearZ);
                 float s = 0.0;
-                #if dClipObjectCount != 0
+                #if defined(dClipObjects)
                     if (uSolidInteriorClip >= 0) {
                         // exempt parts are not cut by this clip object, so they neither count nor fill
                         if (clipIgnored(uSolidInteriorClip)) discard;
@@ -69,7 +69,7 @@ void main() {
             }
             gl_FragDepthEXT = fragmentDepth;
         #endif
-        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #if defined(dClipVariant_pixel) && defined(dClipObjects)
             if (clipTest(modelPosition / uModelScale)) discard;
         #endif
         vec3 vViewPosition = viewPosition;
@@ -110,7 +110,7 @@ void main() {
         #ifdef dSolidInterior
             if (capPass) {
                 normal = vec3(0.0, 0.0, -1.0);
-                #if dClipObjectCount != 0
+                #if defined(dClipObjects)
                     if (uSolidInteriorClip >= 0) normal = normalize(clipCapNormal(vModelPosition / uModelScale) * mat3(uInvView));
                 #endif
             }
@@ -155,7 +155,7 @@ void main() {
             ${wboit_write}
             ${dpoit_write}
         #elif defined(dRenderVariant_tracing)
-            gl_FragData[1] = vec4(normal, emissive);
+            gl_FragData[1] = packNormalToRGBA(normal, emissive);
             gl_FragData[2] = vec4(material.rgb, uDensity);
         #endif
     #endif

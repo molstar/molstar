@@ -127,8 +127,9 @@ export function isMergedRenderObject<T extends RenderObjectType>(
   return 'members' in o;
 }
 
-export function canMergeRenderObjects(members: readonly GraphicsRenderObject[]): boolean {
-  if (members.length < 2) return false;
+/** `minCount`: 1 for a merged object of one member (culled on the GPU, `mergeRenderObjectsByType`) */
+export function canMergeRenderObjects(members: readonly GraphicsRenderObject[], minCount = 2): boolean {
+  if (members.length < minCount) return false;
   const { type, materialId } = members[0];
   if (!isMergeableType(type)) return false;
   for (const m of members) {
@@ -151,11 +152,13 @@ export function canMergeRenderObjects(members: readonly GraphicsRenderObject[]):
  */
 export function createMergedRenderObject<T extends RenderObjectType>(
   members: readonly GraphicsRenderObject<T>[],
+  options?: { readonly gpuCulling?: boolean },
 ): MergedGraphicsRenderObject<T> {
   if (!isMergeableType(members[0].type)) throw new Error(`unsupported merged render object type '${members[0].type}'`);
   const merged = createMergedValues(
     members[0].type,
     members.map((m) => m.values as MergeableValues),
+    options?.gpuCulling,
   );
   return {
     id: getNextId(),
@@ -224,10 +227,19 @@ function hasForeignBuffers(o: GraphicsRenderObject, graphics: GraphicsContext): 
   return foreign;
 }
 
-/** Whether values of `o` hold textures or storage buffers of another graphics context than `graphics` */
+/**
+ * Whether values of `o` hold textures or storage buffers of another graphics context than `graphics`. Checked by every
+ * visual update: a render object found without any is remembered for its context (values set later come from the
+ * context their producers draw with), checked again for another one (a restore, a backend switch)
+ */
 export function hasForeignResources(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
-  return getForeignTextureCells(o, graphics).length > 0 || hasForeignBuffers(o, graphics);
+  if (checkedContexts.get(o) === graphics) return false;
+  const foreign = getForeignTextureCells(o, graphics).length > 0 || hasForeignBuffers(o, graphics);
+  if (!foreign) checkedContexts.set(o, graphics);
+  return foreign;
 }
+/** The context each render object was found without foreign resources for (`hasForeignResources`) */
+const checkedContexts = new WeakMap<GraphicsRenderObject, GraphicsContext>();
 
 /**
  * `hasForeignResources` for the render objects of one visual, remembered while clean: a visual creates its resources

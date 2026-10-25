@@ -39,6 +39,7 @@ import { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import { EmptyLocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { checkCylinderImpostorSupport } from './util/common.js';
+import { chooseVisual } from '../../visual-factory.js';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -240,16 +241,11 @@ export const InterUnitBondCylinderParams = {
 };
 export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams;
 
-export function InterUnitBondCylinderVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<InterUnitBondCylinderParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
-    ? InterUnitBondCylinderImpostorVisual(materialId)
-    : InterUnitBondCylinderMeshVisual(materialId);
-}
+export const InterUnitBondCylinderVisual = chooseVisual(
+  { impostor: InterUnitBondCylinderImpostorVisual, mesh: InterUnitBondCylinderMeshVisual },
+  (props: PD.Values<InterUnitBondCylinderParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkCylinderImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 export function InterUnitBondCylinderImpostorVisual(materialId: number): ComplexVisual<InterUnitBondCylinderParams> {
   return ComplexCylindersVisual<InterUnitBondCylinderParams>(
@@ -310,13 +306,6 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
           state.updateSize = true;
         }
       },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<InterUnitBondCylinderParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
-      },
     },
     materialId,
   );
@@ -375,13 +364,6 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
           state.updateColor = true;
           state.updateSize = true;
         }
-      },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<InterUnitBondCylinderParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,

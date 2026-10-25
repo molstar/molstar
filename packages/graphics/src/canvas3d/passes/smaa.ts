@@ -18,6 +18,7 @@ import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Viewport } from '../camera/util.js';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
+import type { PassTargets } from './pass-targets.js';
 
 export const SmaaParams = {
   edgeThreshold: PD.Numeric(0.1, { min: 0.05, max: 0.15, step: 0.01 }),
@@ -26,6 +27,7 @@ export const SmaaParams = {
 export type SmaaProps = PD.Values<typeof SmaaParams>;
 
 export class SmaaPass {
+  private readonly graphics: GraphicsContext;
   private readonly edgesTarget: RenderTarget;
   private readonly weightsTarget: RenderTarget;
 
@@ -38,10 +40,8 @@ export class SmaaPass {
     return this._supported;
   }
 
-  constructor(
-    private graphics: GraphicsContext,
-    input: Texture,
-  ) {
+  constructor(targets: PassTargets, input: Texture) {
+    const graphics = (this.graphics = targets.graphics);
     if (typeof HTMLImageElement === 'undefined') {
       if (isDebugMode) console.log(`Missing "HTMLImageElement" required for "SMAA"`);
       return;
@@ -50,8 +50,8 @@ export class SmaaPass {
     const width = input.getWidth();
     const height = input.getHeight();
 
-    this.edgesTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
-    this.weightsTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.edgesTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.weightsTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.edgesRenderable = getEdgesRenderable(graphics, input);
     this.weightsRenderable = getWeightsRenderable(graphics, this.edgesTarget.texture);

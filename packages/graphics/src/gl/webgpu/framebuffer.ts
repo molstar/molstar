@@ -5,7 +5,7 @@
  */
 
 import { idFactory } from '@molstar/core/util/id-factory';
-import type { Framebuffer } from '../framebuffer.js';
+import type { AttachmentRef, Framebuffer } from '../framebuffer.js';
 import type { TextureAttachment } from '../texture.js';
 
 const getNextFramebufferId = idFactory();
@@ -20,6 +20,8 @@ export interface WebGPUAttachment {
   getGPUTexture: () => GPUTexture | undefined;
   getWidth: () => number;
   getHeight: () => number;
+  /** what it is of, for `Framebuffer.getAttachments` (layer attachments: their texture's) */
+  readonly ref: AttachmentRef;
 }
 
 /** Attachments of a render pass target; WebGPU has no framebuffer objects, passes name their attachments */
@@ -78,6 +80,12 @@ export function createWebGPUFramebuffer(): WebGPUFramebuffer {
       return out.some((t) => t) ? out : [];
     },
     getColorAttachment: (index) => colors[index],
+    getAttachments: () => {
+      const out: AttachmentRef[] = [];
+      for (const a of colors) if (a) out.push(a.ref);
+      if (depth) out.push(depth.ref);
+      return out;
+    },
     getDepthAttachment: () => depth,
     destroy: () => {
       colors.length = 0;

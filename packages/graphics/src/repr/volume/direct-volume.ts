@@ -19,6 +19,7 @@ import type { RepresentationContext, RepresentationParamsGetter } from '../repre
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import {
+  createVolumeBrickRange,
   createVolumeCellLocationIterator,
   createVolumeTexture2d,
   createVolumeTexture3d,
@@ -87,6 +88,7 @@ export function createDirectVolume2d(
     axisOrder,
     dataType,
     directVolume,
+    createVolumeBrickRange(volume),
   );
 }
 
@@ -161,6 +163,7 @@ export function createDirectVolume3d(
     axisOrder,
     dataType,
     directVolume,
+    createVolumeBrickRange(volume),
   );
 }
 

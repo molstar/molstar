@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { createDataArray } from '@molstar/graphics/gl/renderable/util';
 import { Color } from '@molstar/core/util/color';
 import {
   type ColorType,
@@ -28,7 +28,7 @@ describe('color-data', () => {
   });
 
   it('keeps the color type, its define and index in step', () => {
-    const data = createTextureColor(createTextureImage(4, 4, Uint8Array), 'groupInstance');
+    const data = createTextureColor(createDataArray(4, 4, Uint8Array), 'groupInstance');
     expect(data.colorType.ref.value).toBe('groupInstance');
     expect(data.dColorType.ref.value).toBe('texture');
     expect(data.uColorIndexType.ref.value).toBe(ColorTypeIndex.groupInstance);

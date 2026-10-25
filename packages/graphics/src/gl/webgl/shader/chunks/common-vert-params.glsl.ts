@@ -1,5 +1,11 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 export const common_vert_params = `
-#if dClipObjectCount != 0
+#if defined(dClipObjects)
     #if defined(dClipping)
         #if __VERSION__ == 100 || !defined(dVaryingGroup)
             varying float vClipping;
@@ -32,6 +38,23 @@ varying vec3 vViewPosition;
     #define DrawID gl_DrawID
 #else
     #define DrawID uDrawId
+#endif
+
+#if defined(dInstanceData)
+    // the instance data of merged render items on WebGL2 without base instances (see \`getInstanceDataSchema\`): read
+    // from a texture at the draw's first instance plus gl_InstanceID, instead of instanced attributes re-pointed per draw
+    // (those stay declared, unread); 7 texels per instance: the transform's columns, (instance, segment), the segment's
+    // sphere and level scales
+    vec4 instanceTexel(const in int k) {
+        int t = (uInstanceBase + gl_InstanceID) * 7 + k;
+        int w = textureSize(tInstanceData, 0).x;
+        return texelFetch(tInstanceData, ivec2(t % w, t / w), 0);
+    }
+    #define aTransform mat4(instanceTexel(0), instanceTexel(1), instanceTexel(2), instanceTexel(3))
+    #define aInstance instanceTexel(4).x
+    #define aSegment instanceTexel(4).yzw
+    #define aSegmentSphere instanceTexel(5)
+    #define aSegmentLod instanceTexel(6)
 #endif
 
 #if defined(dSegmented)

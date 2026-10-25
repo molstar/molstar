@@ -4,16 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { OcclusionPyramid } from '../compute/cell-cull.js';
+import { createMergedCuller } from './merged-culler.js';
 import { ValueCell } from '@molstar/core/util';
-import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import type { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import type { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { createEmptyInstanceGrid } from '@molstar/core/math/geometry/instance-grid';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
-import { clamp } from '@molstar/core/math/interpolate';
-import { createTextureImage, type TextureImage } from './util.js';
+import { createDataArray, type DataArray } from './util.js';
+import { SegmentedArray } from '../segmented-array.js';
 import {
   GlobalUniformSchema,
   GlobalTextureSchema,
@@ -41,15 +42,36 @@ import {
   PointsShaderCode,
   type ShaderCode,
 } from '../shader-code.js';
-import type { DrawMode, GlobalBindings, GraphicsRenderVariant, Transparency } from '../render-item.js';
+import type {
+  DrawMode,
+  GlobalBindings,
+  GraphicsRenderVariant,
+  MultiDrawBaseData,
+  Transparency,
+} from '../render-item.js';
 import type { GraphicsContext } from '../context.js';
+
+import {
+  CellCullKernel,
+  CellCullSchema,
+  CullArgsKernel,
+  CullArgsSchema,
+  InstanceCopyKernel,
+  InstanceCopySchema,
+} from '../compute/cell-cull.js';
+import { isQuadIndexing, QuadIndicesPerItem } from '../quad-indices.js';
 import type { GraphicsStats } from '../stats.js';
 import {
   type Renderable,
   type RenderableState,
+  appendMdbDrawKey,
+  createDrawVersion,
+  createCullView,
   createSegmentedMdbList,
+  getCullCells,
   type CullSegment,
   type LodLevelsValue,
+  LodView,
   type CullValues,
   type Frame,
   createClipInfoCache,
@@ -58,6 +80,32 @@ import {
 export type MergeableValues = RenderableValues & BaseValues;
 
 export const MergedTypes = ['spheres', 'mesh', 'cylinders', 'lines', 'points'] as const;
+
+/**
+ * Vec4s per instance of merged instance data read by index (the WebGL2 `dInstanceData` texture):
+ * the transform's columns, (instance, segment), the segment's sphere, its level scales
+ */
+export const InstanceDataVec4s = 7;
+
+/** Packs the instance data of merged `values` into `out` (at least instances times `InstanceDataVec4s` vec4s) */
+export function packInstanceData(values: RenderableValues, out: Float32Array) {
+  const count: number = values.instanceCount.ref.value;
+  const transform = values.aTransform.ref.value as Float32Array;
+  const instance = values.aInstance.ref.value as Float32Array;
+  const segment = values.aSegment.ref.value as Float32Array;
+  const sphere = values.aSegmentSphere.ref.value as Float32Array;
+  const lod = values.aSegmentLod.ref.value as Float32Array;
+  for (let i = 0; i < count; ++i) {
+    const o = i * InstanceDataVec4s * 4;
+    for (let k = 0; k < 16; ++k) out[o + k] = transform[i * 16 + k];
+    out[o + 16] = instance[i];
+    out[o + 17] = segment[i * 3];
+    out[o + 18] = segment[i * 3 + 1];
+    out[o + 19] = segment[i * 3 + 2];
+    for (let k = 0; k < 4; ++k) out[o + 20 + k] = sphere[i * 4 + k];
+    for (let k = 0; k < 4; ++k) out[o + 24 + k] = lod[i * 4 + k];
+  }
+}
 export type MergedType = (typeof MergedTypes)[number];
 
 export function isMergeableType(type: string): type is MergedType {
@@ -70,7 +118,6 @@ type Granularity = 'instance' | 'group' | 'groupInstance' | 'vertex' | 'none';
 
 type MergedTexSpec = {
   tex: string;
-  dim: string;
   itemSize: number;
   float?: boolean;
   granularity: (v: MergeableValues) => Granularity;
@@ -96,46 +143,46 @@ function pickGranularity(type: string): Granularity {
 const BaseTexSpecs: MergedTexSpec[] = [
   {
     tex: 'tColor',
-    dim: 'uColorTexDim',
+
     itemSize: 4,
     granularity: (v) => pickGranularity(v.colorType.ref.value),
     factor: (v) => (v.dDualColor?.ref.value ? 2 : 1),
   },
-  { tex: 'tSize', dim: 'uSizeTexDim', itemSize: 4, granularity: (v) => pickGranularity(v.sizeType.ref.value) },
-  { tex: 'tMarker', dim: 'uMarkerTexDim', itemSize: 1, granularity: (v) => pickGranularity(v.markerType.ref.value) },
+  { tex: 'tSize', itemSize: 4, granularity: (v) => pickGranularity(v.sizeType.ref.value) },
+  { tex: 'tMarker', itemSize: 1, granularity: (v) => pickGranularity(v.markerType.ref.value) },
   {
     tex: 'tOverpaint',
-    dim: 'uOverpaintTexDim',
+
     itemSize: 4,
     granularity: (v) => (v.dOverpaint.ref.value ? pickGranularity(v.overpaintType.ref.value) : 'none'),
   },
   {
     tex: 'tTransparency',
-    dim: 'uTransparencyTexDim',
+
     itemSize: 1,
     granularity: (v) => (v.dTransparency.ref.value ? pickGranularity(v.transparencyType.ref.value) : 'none'),
   },
   {
     tex: 'tEmissive',
-    dim: 'uEmissiveTexDim',
+
     itemSize: 1,
     granularity: (v) => (v.dEmissive.ref.value ? pickGranularity(v.emissiveType.ref.value) : 'none'),
   },
   {
     tex: 'tSubstance',
-    dim: 'uSubstanceTexDim',
+
     itemSize: 4,
     granularity: (v) => (v.dSubstance.ref.value ? pickGranularity(v.substanceType.ref.value) : 'none'),
   },
   {
     tex: 'tClipping',
-    dim: 'uClippingTexDim',
+
     itemSize: 1,
     granularity: (v) => (v.dClipping.ref.value ? pickGranularity(v.clippingType.ref.value) : 'none'),
   },
   {
     tex: 'tWiggle',
-    dim: 'uWiggleTexDim',
+
     itemSize: 1,
     granularity: (v) => (v.dWiggle.ref.value ? pickGranularity(v.wiggleType.ref.value) : 'none'),
   },
@@ -168,6 +215,19 @@ type MergedTypeDescriptor = {
   readonly vertexAttributes: VertexAttribute[];
 };
 
+/** Whether merged objects can be culled on the GPU (`gpuCulling`): compute and indirect draws by first instance */
+export function canCullOnGpu(ctx: GraphicsContext | undefined) {
+  const compute = ctx?.compute;
+  return (
+    !!compute &&
+    !!ctx.capabilities.indirectInstanceRanges &&
+    // the instance copy binds 10 storage buffers: more than the core limits allow (8)
+    compute.isKernelSupported(CellCullKernel, CellCullSchema) &&
+    compute.isKernelSupported(InstanceCopyKernel, InstanceCopySchema) &&
+    compute.isKernelSupported(CullArgsKernel, CullArgsSchema)
+  );
+}
+
 const MergedTypeDescriptors: { [k in MergedType]: MergedTypeDescriptor } = {
   spheres: {
     drawMode: 'triangles',
@@ -176,7 +236,7 @@ const MergedTypeDescriptors: { [k in MergedType]: MergedTypeDescriptor } = {
     hasElements: false,
     // six vertices per sphere impostor share one position texel
     vertexTexels: (v) => v.uVertexCount.ref.value / 6,
-    extraTextures: [{ tex: 'tPositionGroup', dim: 'uTexDim', itemSize: 4, float: true, granularity: () => 'vertex' }],
+    extraTextures: [{ tex: 'tPositionGroup', itemSize: 4, float: true, granularity: () => 'vertex' }],
     vertexAttributes: getVertexAttributes(SpheresSchema),
   },
   mesh: {
@@ -213,7 +273,7 @@ const MergedTypeDescriptors: { [k in MergedType]: MergedTypeDescriptor } = {
     hasElements: false,
     // six vertices per point quad share one position texel, the vertex count is the point count
     vertexTexels: (v) => v.uVertexCount.ref.value,
-    extraTextures: [{ tex: 'tPositionGroup', dim: 'uTexDim', itemSize: 4, float: true, granularity: () => 'vertex' }],
+    extraTextures: [{ tex: 'tPositionGroup', itemSize: 4, float: true, granularity: () => 'vertex' }],
     vertexAttributes: getVertexAttributes(PointsSchema),
   },
 };
@@ -236,15 +296,58 @@ function isDefineKey(k: string) {
  * selected in the shader via `uLodLevel`, so they never need to match here.
  */
 export function getMergeKey(values: MergeableValues): string {
+  // checked per member on every update of a merged representation: computed again only where a cell it reads changed
+  let cached = mergeKeys.get(values);
+  if (!cached) {
+    const keys = Object.keys(values).filter(isDefineKey).sort();
+    const cells = [...keys.map((k) => values[k]), values.uInstanceGranularity, values.uLod];
+    if (values.lodLevels) cells.push(values.lodLevels);
+    // the index of `uLod` (compared by its components), not looked up per cell: values have too many keys for fast reads
+    const lod = keys.length + 1;
+    cached = { keys, cells, lod, versions: cells.map(() => -1), seen: cells.map(() => undefined), key: '' };
+    mergeKeys.set(values, cached);
+  }
+  // updates bump versions of cells whose values stay (`ValueCell.update` of the same define): compared by value
+  const { cells, versions, seen, lod } = cached;
+  let changed = false;
+  for (let i = 0, il = cells.length; i < il; ++i) {
+    const cell = cells[i];
+    if (cell.ref.version === versions[i]) continue;
+    versions[i] = cell.ref.version;
+    const value = cell.ref.value;
+    if (i === lod) {
+      const last = seen[i] as Vec4 | undefined;
+      if (!last || !Vec4.exactEquals(last, value as Vec4)) {
+        seen[i] = Vec4.clone(value as Vec4);
+        changed = true;
+      }
+    } else if (value !== seen[i]) {
+      seen[i] = value;
+      changed = true;
+    }
+  }
+  if (changed) cached.key = computeMergeKey(values, cached.keys);
+  return cached.key;
+}
+
+/** `getMergeKey` per values, with the define keys and the cells it reads and their versions when it was computed */
+const mergeKeys = new WeakMap<
+  MergeableValues,
+  { keys: string[]; cells: ValueCell<unknown>[]; lod: number; versions: number[]; seen: unknown[]; key: string }
+>();
+
+function computeMergeKey(values: MergeableValues, defineKeys: readonly string[]) {
   const parts: string[] = [];
-  const keys = Object.keys(values).filter(isDefineKey).sort();
-  for (const k of keys) {
+  for (const k of defineKeys) {
     parts.push(`${k}:${values[k].ref.value}`);
   }
   parts.push(`ig:${values.uInstanceGranularity.ref.value}`);
   parts.push(`uLod:${(values.uLod.ref.value as Vec4).join(',')}`);
   const lodLevels = values.lodLevels?.ref.value as LodLevelsValue | undefined;
-  parts.push('lod:' + (lodLevels ? lodLevels.map((l) => `${l[0]},${l[1]},${l[2]}`).join(';') : ''));
+  parts.push(
+    `lod${lodLevels?.pixelSize ? `px${lodLevels.pixelSize}` : ''}:` +
+      (lodLevels ? lodLevels.map((l) => `${l[0]},${l[1]},${l[2]}`).join(';') : ''),
+  );
   return parts.join('|');
 }
 
@@ -253,7 +356,8 @@ const SupportedIgTypes = ['instance', 'groupInstance'];
 
 export function canMergeValues(type: string, members: readonly MergeableValues[]): boolean {
   if (!isMergeableType(type)) return false;
-  if (members.length < 2) return false;
+  // a single member merges as well (culled on the GPU): how many is the caller's (`canMergeRenderObjects`)
+  if (members.length < 1) return false;
 
   const first = members[0];
   if (first.dUsePalette?.ref.value) return false;
@@ -305,7 +409,86 @@ function ensureArray<T extends Uint8Array | Uint32Array | Float32Array>(
 
 const boundaryHelper = new BoundaryHelper('98');
 
-export function createMergedValues(type: MergedType, members: readonly MergeableValues[]): Merged {
+type Cell = ValueCell<any>;
+
+/** The cells of a member `sync` reads, see `getMemberCells` */
+interface MemberCells {
+  readonly instanceCount: Cell;
+  readonly uGroupCount: Cell;
+  readonly uVertexCount: Cell;
+  readonly drawCount: Cell;
+  readonly aTransform: Cell;
+  readonly aInstance: Cell;
+  readonly boundingSphere: Cell;
+  readonly invariantBoundingSphere: Cell;
+  readonly markerStatus: Cell;
+  readonly markerAverage: Cell;
+  readonly transparencyAverage: Cell;
+  readonly transparencyMin: Cell;
+  readonly emissiveAverage: Cell;
+  readonly wiggleAverage: Cell;
+  readonly hasReflection: Cell;
+  readonly lodLevels: Cell | undefined;
+  readonly elements: Cell | undefined;
+  /** in the order of the type's `vertexAttributes` */
+  readonly attributes: readonly Cell[];
+  /** in the order of the merged textures (`texSpecs`) */
+  readonly textures: readonly Cell[];
+}
+
+/** The cells of `v`: they stay for the values' lifetime (updates replace their values, not the cells) */
+function getMemberCells(
+  v: MergeableValues,
+  vertexAttributes: readonly { key: string }[],
+  hasElements: boolean,
+  texSpecs: readonly MergedTexSpec[],
+): MemberCells {
+  return {
+    instanceCount: v.instanceCount,
+    uGroupCount: v.uGroupCount,
+    uVertexCount: v.uVertexCount,
+    drawCount: v.drawCount,
+    aTransform: v.aTransform,
+    aInstance: v.aInstance,
+    boundingSphere: v.boundingSphere,
+    invariantBoundingSphere: v.invariantBoundingSphere,
+    markerStatus: v.markerStatus,
+    markerAverage: v.markerAverage,
+    transparencyAverage: v.transparencyAverage,
+    transparencyMin: v.transparencyMin,
+    emissiveAverage: v.emissiveAverage,
+    wiggleAverage: v.wiggleAverage,
+    hasReflection: v.hasReflection,
+    lodLevels: v.lodLevels,
+    elements: hasElements ? v.elements : undefined,
+    attributes: vertexAttributes.map((a) => v[a.key]),
+    textures: texSpecs.map((s) => v[s.tex]),
+  };
+}
+
+/** The versions of a member's cells `sync` saw last (-1: none) */
+function createMemberVersions(attributeCount: number, textureCount: number) {
+  return {
+    aTransform: -1,
+    aInstance: -1,
+    boundingSphere: -1,
+    invariantBoundingSphere: -1,
+    markerStatus: -1,
+    markerAverage: -1,
+    transparencyAverage: -1,
+    transparencyMin: -1,
+    emissiveAverage: -1,
+    wiggleAverage: -1,
+    hasReflection: -1,
+    lodLevels: -1,
+    elements: -1,
+    attributes: new Int32Array(attributeCount).fill(-1),
+    textures: new Int32Array(textureCount).fill(-1),
+  };
+}
+
+/** `gpuCulling`: culled on the GPU where available (`merged-culler.ts`), fixed for the merged object's lifetime */
+export function createMergedValues(type: MergedType, members: readonly MergeableValues[], gpuCulling = false): Merged {
   const descriptor = MergedTypeDescriptors[type];
   const { hasElements, vertexAttributes } = descriptor;
   const first = members[0];
@@ -348,17 +531,18 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     hasReflection: ValueCell.create(false),
     instanceGrid: ValueCell.create({ ...createEmptyInstanceGrid(), cellSize: 2 }),
     dSegmented: ValueCell.create(true),
+    gpuCulling: ValueCell.create(gpuCulling),
   };
+  // the members' geometry is not copied: the render item uploads their arrays as parts (`SegmentedArray`)
   for (const { key } of vertexAttributes) {
-    own[key] = ValueCell.create(new Float32Array(0));
+    own[key] = ValueCell.create(SegmentedArray.create(Float32Array, []));
   }
   if (hasElements) {
-    own.elements = ValueCell.create(new Uint32Array(0));
+    own.elements = ValueCell.create(SegmentedArray.create(Uint32Array, []));
   }
   for (const spec of texSpecs) {
     const ctor = (spec.float ? Float32Array : Uint8Array) as new (length: number) => any;
-    own[spec.tex] = ValueCell.create(createTextureImage(1, spec.itemSize, ctor));
-    own[spec.dim] = ValueCell.create(Vec2.create(1, 1));
+    own[spec.tex] = ValueCell.create(createDataArray(1, spec.itemSize, ctor));
   }
 
   const values = {
@@ -376,9 +560,8 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     let span = v.uGroupCount.ref.value;
     for (const spec of texSpecs) {
       if (spec.granularity(first) !== 'group') continue;
-      const image = v[spec.tex].ref.value as TextureImage<any>;
-      const texels = image.width * image.height;
-      if (texels > span) span = texels;
+      const { count } = v[spec.tex].ref.value as DataArray<any>;
+      if (count > span) span = count;
     }
     return span;
   }
@@ -406,52 +589,90 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     texBases.set(spec.tex, new Array(n).fill(0));
   }
 
-  const memberVersions: { [key: string]: number }[] = members.map(() => ({}));
-  let layoutKey = '';
+  // the cells `sync` reads per member, resolved once into objects of one shape: values objects have too many keys for
+  // fast named reads, and a sync reads some 30 cells of each member
+  const memberCells = members.map((v) => getMemberCells(v, vertexAttributes, hasElements, texSpecs));
+  const memberVersions = members.map(() => createMemberVersions(vertexAttributes.length, texSpecs.length));
 
-  function getLayoutKey() {
-    let key = '';
-    for (let i = 0; i < n; ++i) {
-      const v = members[i];
-      key += `${v.instanceCount.ref.value},${v.uGroupCount.ref.value},${getGroupSpan(i)},${v.uVertexCount.ref.value},${v.drawCount.ref.value};`;
+  /** per member its instance, group, group span, vertex and draw counts: a change is a new layout */
+  const layout = new Float64Array(n * 5).fill(-1);
+  let layoutMergeKey = '';
+
+  /** Whether the layout changed since the last call (also the first member's merge key), stores the new one */
+  function updateLayout() {
+    let changed = false;
+    const groupTextures: number[] = [];
+    for (let t = 0; t < texSpecs.length; ++t) {
+      if (texSpecs[t].granularity(first) === 'group') groupTextures.push(t);
     }
-    return key + '#' + getMergeKey(first);
+    for (let i = 0; i < n; ++i) {
+      const c = memberCells[i];
+      let span: number = c.uGroupCount.ref.value;
+      for (const t of groupTextures) {
+        const { count } = c.textures[t].ref.value as DataArray<any>;
+        if (count > span) span = count;
+      }
+      const o = i * 5;
+      if (
+        layout[o] !== c.instanceCount.ref.value ||
+        layout[o + 1] !== c.uGroupCount.ref.value ||
+        layout[o + 2] !== span ||
+        layout[o + 3] !== c.uVertexCount.ref.value ||
+        layout[o + 4] !== c.drawCount.ref.value
+      ) {
+        layout[o] = c.instanceCount.ref.value;
+        layout[o + 1] = c.uGroupCount.ref.value;
+        layout[o + 2] = span;
+        layout[o + 3] = c.uVertexCount.ref.value;
+        layout[o + 4] = c.drawCount.ref.value;
+        changed = true;
+      }
+    }
+    const mergeKey = getMergeKey(first);
+    if (mergeKey !== layoutMergeKey) {
+      layoutMergeKey = mergeKey;
+      changed = true;
+    }
+    return changed;
   }
 
-  function copyTexBlock(image: TextureImage<any>, spec: MergedTexSpec, i: number, base: number) {
-    const texels = getTexelCount(i, spec);
-    const src = members[i][spec.tex].ref.value as TextureImage<any>;
-    image.array.set(src.array.subarray(0, texels * spec.itemSize), base * spec.itemSize);
+  /** the layer's array of the merged data array: the members' layers as parts (`SegmentedArray`), not copied */
+  const layerArray = (spec: MergedTexSpec) => (own[spec.tex].ref.value as DataArray<any>).array as SegmentedArray;
+
+  /** member i's part of the layer of `spec` read again from the member (its array may be another one) */
+  function updateTexPart(spec: MergedTexSpec, i: number) {
+    const part = layerArray(spec).parts[i] as SegmentedArray.Part;
+    part.array = (members[i][spec.tex].ref.value as DataArray<any>).array;
+    part.version += 1;
   }
 
   function mergeTextureFull(spec: MergedTexSpec) {
     const cell = own[spec.tex];
-    const dimCell = own[spec.dim];
     const bases = texBases.get(spec.tex)!;
-    const ctor = (spec.float ? Float32Array : Uint8Array) as new (length: number) => any;
+    const ctor = spec.float ? Float32Array : Uint8Array;
 
     if (spec.granularity(first) === 'none') {
-      // no per-segment data used, mirror the content of the first member
-      const src = first[spec.tex].ref.value as TextureImage<any>;
-      const array = ensureArray(cell.ref.value.array, src.array.length, ctor);
-      array.set(src.array);
+      // no per-segment data used, the first member's layer
+      const src = first[spec.tex].ref.value as DataArray<any>;
+      const part = { array: src.array, offset: 0, count: src.count * spec.itemSize, bias: 0, version: 0 };
       bases.fill(0);
-      ValueCell.update(cell, { array, width: src.width, height: src.height });
-      ValueCell.update(dimCell, Vec2.set(dimCell.ref.value, src.width, src.height));
+      ValueCell.update(cell, { array: SegmentedArray.create(ctor, [part]), count: src.count });
       return;
     }
 
     let total = 0;
+    const parts: SegmentedArray.Part[] = [];
     for (let i = 0; i < n; ++i) {
       bases[i] = total;
-      total += getTexelCount(i, spec);
+      const texels = getTexelCount(i, spec);
+      const { array } = members[i][spec.tex].ref.value as DataArray<any>;
+      parts.push({ array, offset: total * spec.itemSize, count: texels * spec.itemSize, bias: 0, version: 0 });
+      total += texels;
     }
-    const image = createTextureImage(Math.max(1, total), spec.itemSize, ctor, cell.ref.value.array);
-    for (let i = 0; i < n; ++i) {
-      copyTexBlock(image, spec, i, bases[i]);
-    }
-    ValueCell.update(cell, image);
-    ValueCell.update(dimCell, Vec2.set(dimCell.ref.value, image.width, image.height));
+    // whole words, as `createDataArray`
+    const count = Math.max(1, total);
+    const length = Math.ceil((count * spec.itemSize * ctor.BYTES_PER_ELEMENT) / 4) * (4 / ctor.BYTES_PER_ELEMENT);
+    ValueCell.update(cell, { array: SegmentedArray.create(ctor, parts, length), count });
   }
 
   function unionSpheres(out: Sphere3D, key: 'boundingSphere' | 'invariantBoundingSphere') {
@@ -518,24 +739,33 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     ValueCell.updateIfChanged(own.hasReflection, hasReflection);
   }
 
-  function copyVertexBlock(attr: VertexAttribute, i: number) {
-    const vertexCount = members[i].uVertexCount.ref.value;
-    const array = own[attr.key].ref.value as Float32Array;
-    array.set(
-      (members[i][attr.key].ref.value as Float32Array).subarray(0, vertexCount * attr.itemSize),
-      segments.vertexBases[i] * attr.itemSize,
-    );
+  /** member i's vertex attribute as a part: its vertices at its vertex base */
+  function vertexPart(attr: VertexAttribute, i: number): SegmentedArray.Part {
+    return {
+      array: members[i][attr.key].ref.value as Float32Array,
+      offset: segments.vertexBases[i] * attr.itemSize,
+      count: members[i].uVertexCount.ref.value * attr.itemSize,
+      bias: 0,
+      version: 0,
+    };
   }
 
-  function copyElementsBlock(i: number) {
-    const drawCount = members[i].drawCount.ref.value;
-    const vertexBase = segments.vertexBases[i];
-    const elementBase = segments.elementOffsets[i] / 4;
-    const src = members[i].elements.ref.value as Uint32Array;
-    const dst = own.elements.ref.value as Uint32Array;
-    for (let k = 0; k < drawCount; ++k) {
-      dst[elementBase + k] = src[k] + vertexBase;
-    }
+  /** member i's elements as a part: its indices at its element offset, made absolute by its vertex base */
+  function elementsPart(i: number): SegmentedArray.Part {
+    return {
+      array: members[i].elements.ref.value as Uint32Array,
+      offset: segments.elementOffsets[i] / 4,
+      count: members[i].drawCount.ref.value,
+      bias: segments.vertexBases[i],
+      version: 0,
+    };
+  }
+
+  /** member i's part of `key` read again from the member (its array may be another of the same size) */
+  function updatePart(key: string, i: number) {
+    const part = (own[key].ref.value as SegmentedArray).parts[i] as SegmentedArray.Part;
+    part.array = members[i][key].ref.value;
+    part.version += 1;
   }
 
   /** per-segment values for the aSegment attribute */
@@ -638,14 +868,17 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     rebuildInstances(instanceTotal);
 
     for (const attr of vertexAttributes) {
-      ValueCell.update(own[attr.key], ensureArray(own[attr.key].ref.value, vertexTotal * attr.itemSize, Float32Array));
-      for (let i = 0; i < n; ++i) copyVertexBlock(attr, i);
-      ValueCell.update(own[attr.key], own[attr.key].ref.value);
+      const parts = members.map((_, i) => vertexPart(attr, i));
+      ValueCell.update(own[attr.key], SegmentedArray.create(Float32Array, parts));
     }
     if (hasElements) {
-      ValueCell.update(own.elements, ensureArray(own.elements.ref.value, drawTotal, Uint32Array));
-      for (let i = 0; i < n; ++i) copyElementsBlock(i);
-      ValueCell.update(own.elements, own.elements.ref.value);
+      ValueCell.update(
+        own.elements,
+        SegmentedArray.create(
+          Uint32Array,
+          members.map((_, i) => elementsPart(i)),
+        ),
+      );
     }
 
     for (const spec of texSpecs) {
@@ -665,36 +898,28 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
 
   function snapshotAll() {
     for (let i = 0; i < n; ++i) {
-      const v = members[i];
+      const c = memberCells[i];
       const mv = memberVersions[i];
-      mv.aTransform = v.aTransform.ref.version;
-      mv.aInstance = v.aInstance.ref.version;
-      mv.boundingSphere = v.boundingSphere.ref.version;
-      mv.invariantBoundingSphere = v.invariantBoundingSphere.ref.version;
-      mv.markerStatus = v.markerStatus.ref.version;
-      mv.markerAverage = v.markerAverage.ref.version;
-      mv.transparencyAverage = v.transparencyAverage.ref.version;
-      mv.transparencyMin = v.transparencyMin.ref.version;
-      mv.emissiveAverage = v.emissiveAverage.ref.version;
-      mv.wiggleAverage = v.wiggleAverage.ref.version;
-      mv.hasReflection = v.hasReflection.ref.version;
-      mv.lodLevels = v.lodLevels ? v.lodLevels.ref.version : -1;
-      for (const attr of vertexAttributes) {
-        mv[attr.key] = v[attr.key].ref.version;
-      }
-      if (hasElements) {
-        mv.elements = v.elements.ref.version;
-      }
-      for (const spec of texSpecs) {
-        mv[spec.tex] = v[spec.tex].ref.version;
-      }
+      mv.aTransform = c.aTransform.ref.version;
+      mv.aInstance = c.aInstance.ref.version;
+      mv.boundingSphere = c.boundingSphere.ref.version;
+      mv.invariantBoundingSphere = c.invariantBoundingSphere.ref.version;
+      mv.markerStatus = c.markerStatus.ref.version;
+      mv.markerAverage = c.markerAverage.ref.version;
+      mv.transparencyAverage = c.transparencyAverage.ref.version;
+      mv.transparencyMin = c.transparencyMin.ref.version;
+      mv.emissiveAverage = c.emissiveAverage.ref.version;
+      mv.wiggleAverage = c.wiggleAverage.ref.version;
+      mv.hasReflection = c.hasReflection.ref.version;
+      mv.lodLevels = c.lodLevels ? c.lodLevels.ref.version : -1;
+      for (let a = 0; a < c.attributes.length; ++a) mv.attributes[a] = c.attributes[a].ref.version;
+      mv.elements = c.elements ? c.elements.ref.version : -1;
+      for (let t = 0; t < c.textures.length; ++t) mv.textures[t] = c.textures[t].ref.version;
     }
   }
 
   function sync() {
-    const key = getLayoutKey();
-    if (key !== layoutKey) {
-      layoutKey = key;
+    if (updateLayout()) {
       rebuild();
       snapshotAll();
       return true;
@@ -709,76 +934,104 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     const attributesChanged = new Set<string>();
 
     for (let i = 0; i < n; ++i) {
-      const v = members[i];
+      const c = memberCells[i];
       const mv = memberVersions[i];
+      const transform = c.aTransform.ref.version;
+      const instance = c.aInstance.ref.version;
+      const bounds = c.boundingSphere.ref.version;
+      const invariantBounds = c.invariantBoundingSphere.ref.version;
+      const markerAverage = c.markerAverage.ref.version;
+      const transparencyAverage = c.transparencyAverage.ref.version;
+      const transparencyMin = c.transparencyMin.ref.version;
+      const emissiveAverage = c.emissiveAverage.ref.version;
+      const wiggleAverage = c.wiggleAverage.ref.version;
+      const hasReflection = c.hasReflection.ref.version;
 
       // the shared grid placement depends on transforms and invariant spheres
-      if (
-        mv.aTransform !== v.aTransform.ref.version ||
-        mv.aInstance !== v.aInstance.ref.version ||
-        mv.invariantBoundingSphere !== v.invariantBoundingSphere.ref.version
-      ) {
+      if (mv.aTransform !== transform || mv.aInstance !== instance || mv.invariantBoundingSphere !== invariantBounds) {
         instancesChanged = true;
       }
-      if (
-        mv.boundingSphere !== v.boundingSphere.ref.version ||
-        mv.invariantBoundingSphere !== v.invariantBoundingSphere.ref.version
-      ) {
+      if (mv.boundingSphere !== bounds || mv.invariantBoundingSphere !== invariantBounds) {
         boundsChanged = true;
       }
-      if (mv.markerStatus !== v.markerStatus.ref.version || mv.markerAverage !== v.markerAverage.ref.version) {
+      if (mv.markerStatus !== c.markerStatus.ref.version || mv.markerAverage !== markerAverage) {
         markersChanged = true;
       }
       if (
-        mv.transparencyAverage !== v.transparencyAverage.ref.version ||
-        mv.transparencyMin !== v.transparencyMin.ref.version ||
-        mv.emissiveAverage !== v.emissiveAverage.ref.version ||
-        mv.wiggleAverage !== v.wiggleAverage.ref.version ||
-        mv.hasReflection !== v.hasReflection.ref.version
+        mv.transparencyAverage !== transparencyAverage ||
+        mv.transparencyMin !== transparencyMin ||
+        mv.emissiveAverage !== emissiveAverage ||
+        mv.wiggleAverage !== wiggleAverage ||
+        mv.hasReflection !== hasReflection
       ) {
         aggregatesChanged = true;
       }
-      for (const attr of vertexAttributes) {
-        if (mv[attr.key] !== v[attr.key].ref.version) {
-          copyVertexBlock(attr, i);
-          attributesChanged.add(attr.key);
+      for (let a = 0; a < c.attributes.length; ++a) {
+        const version = c.attributes[a].ref.version;
+        if (mv.attributes[a] !== version) {
+          updatePart(vertexAttributes[a].key, i);
+          attributesChanged.add(vertexAttributes[a].key);
+          mv.attributes[a] = version;
         }
       }
-      if (hasElements && mv.elements !== v.elements.ref.version) {
-        copyElementsBlock(i);
+      if (c.elements && mv.elements !== c.elements.ref.version) {
+        updatePart('elements', i);
         elementsChanged = true;
+        mv.elements = c.elements.ref.version;
       }
 
-      const lodVersion = v.lodLevels ? v.lodLevels.ref.version : -1;
+      const lodVersion = c.lodLevels ? c.lodLevels.ref.version : -1;
       if (mv.lodLevels !== lodVersion) {
         copySegmentLodBlock(i, own.aSegmentLod.ref.value as Float32Array);
         lodChanged = true;
       }
+
+      // the versions seen, as `snapshotAll` (the textures' and `markerStatus` below: the texture loop reads them)
+      mv.aTransform = transform;
+      mv.aInstance = instance;
+      mv.boundingSphere = bounds;
+      mv.invariantBoundingSphere = invariantBounds;
+      mv.markerAverage = markerAverage;
+      mv.transparencyAverage = transparencyAverage;
+      mv.transparencyMin = transparencyMin;
+      mv.emissiveAverage = emissiveAverage;
+      mv.wiggleAverage = wiggleAverage;
+      mv.hasReflection = hasReflection;
+      mv.lodLevels = lodVersion;
     }
 
-    for (const spec of texSpecs) {
-      const bases = texBases.get(spec.tex)!;
+    for (let t = 0; t < texSpecs.length; ++t) {
+      const spec = texSpecs[t];
       let texChanged = false;
       if (spec.granularity(first) === 'none') {
-        if (memberVersions[0][spec.tex] !== first[spec.tex].ref.version) {
-          mergeTextureFull(spec);
+        if (memberVersions[0].textures[t] !== memberCells[0].textures[t].ref.version) {
+          // an array of another size is a new layout (`mergeTextureFull`)
+          const src = first[spec.tex].ref.value as DataArray<any>;
+          if (src.count === (own[spec.tex].ref.value as DataArray<any>).count) {
+            updateTexPart(spec, 0);
+            ValueCell.update(own[spec.tex], own[spec.tex].ref.value);
+          } else {
+            mergeTextureFull(spec);
+          }
         }
+        // only the first member's is read while the granularity stays (a change of it rebuilds)
+        memberVersions[0].textures[t] = memberCells[0].textures[t].ref.version;
         continue;
       }
-      const image = own[spec.tex].ref.value as TextureImage<any>;
+      const marker = spec.tex === 'tMarker';
       for (let i = 0; i < n; ++i) {
-        const v = members[i];
-        const changed =
-          memberVersions[i][spec.tex] !== v[spec.tex].ref.version ||
-          // uniform-status marking updates the array without bumping the texture cell
-          (spec.tex === 'tMarker' && memberVersions[i].markerStatus !== v.markerStatus.ref.version);
-        if (changed) {
-          copyTexBlock(image, spec, i, bases[i]);
+        const c = memberCells[i];
+        const mv = memberVersions[i];
+        const version = c.textures[t].ref.version;
+        // uniform-status marking updates the array without bumping the texture cell
+        if (mv.textures[t] !== version || (marker && mv.markerStatus !== c.markerStatus.ref.version)) {
+          updateTexPart(spec, i);
           texChanged = true;
         }
+        mv.textures[t] = version;
       }
       if (texChanged) {
-        ValueCell.update(own[spec.tex], image);
+        ValueCell.update(own[spec.tex], own[spec.tex].ref.value);
       }
     }
 
@@ -790,11 +1043,11 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     if (markersChanged) updateMarkerAggregates();
     if (aggregatesChanged) updateAggregates();
 
-    snapshotAll();
+    for (let i = 0; i < n; ++i) memberVersions[i].markerStatus = memberCells[i].markerStatus.ref.version;
     return false;
   }
 
-  layoutKey = getLayoutKey();
+  updateLayout();
   rebuild();
   snapshotAll();
 
@@ -845,6 +1098,23 @@ export function MergedRenderable(
     dLightCount: ValueCell.create(globals.dLightCount),
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
+  /**
+   * Whether the culler's records are indexed: with elements, or quads drawn by the shared quad indices (their draws
+   * within its limit, else unindexed as the render item draws them)
+   */
+  const indexed =
+    descriptor.hasElements ||
+    (!!descriptor.shaderCode.quads &&
+      isQuadIndexing() &&
+      merged.values.drawCount.ref.value / QuadIndicesPerItem <= ctx.resources.limits.maxQuadItemCount);
+  // culled on the GPU where asked for and available (`merged-culler.ts`)
+  const gpuCulling = !!(merged.values as { gpuCulling?: ValueCell<boolean> }).gpuCulling?.ref.value;
+  const culler =
+    gpuCulling && canCullOnGpu(ctx)
+      ? createMergedCuller(ctx.compute!, ctx.resources, merged, members, indexed)
+      : undefined;
+  // drawn with the culler's compacted instanced attributes
+  if (culler) Object.assign(renderValues, culler.attributes);
   const renderItem = ctx.createGraphicsRenderItem(
     descriptor.drawMode,
     descriptor.shaderCode,
@@ -856,8 +1126,72 @@ export function MergedRenderable(
 
   const mdb = createSegmentedMdbList();
   const clipInfo = createClipInfoCache(renderValues);
-  let mode: 'none' | 'full' | 'cull' = 'none';
+  let mode: 'none' | 'full' | 'cull' | 'gpu' = 'none';
   let lastCullFrame: Frame | undefined;
+
+  /** the frame culled on the GPU (its first view) and the planes it was culled with */
+  let gpuFrame: Frame | undefined;
+  const gpuPlanes = new Float64Array(28);
+  let gpuLists: MultiDrawBaseData[] = [];
+  const getPlane = (i: number, cameraPlane: Plane3D, frustum: Frustum3D) => (i < 6 ? frustum[i as 0] : cameraPlane);
+  function isGpuView(cameraPlane: Plane3D, frustum: Frustum3D) {
+    for (let i = 0; i < 7; ++i) {
+      const { normal, constant } = getPlane(i, cameraPlane, frustum);
+      const o = i * 4;
+      if (
+        gpuPlanes[o] !== normal[0] ||
+        gpuPlanes[o + 1] !== normal[1] ||
+        gpuPlanes[o + 2] !== normal[2] ||
+        gpuPlanes[o + 3] !== constant
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+  function setGpuView(cameraPlane: Plane3D, frustum: Frustum3D) {
+    for (let i = 0; i < 7; ++i) {
+      const { normal, constant } = getPlane(i, cameraPlane, frustum);
+      gpuPlanes.set([normal[0], normal[1], normal[2], constant], i * 4);
+    }
+  }
+
+  /** the CPU culling's lists, shifted to the identity region of the compacted attributes where culled on the GPU */
+  const shiftedLists: MultiDrawBaseData[] = [];
+  let shiftedVersion = -1;
+  function getCpuLists() {
+    if (!culler) return mdb.list;
+    if (shiftedVersion === drawVersion && shiftedLists.length === mdb.list.length) return shiftedLists;
+    shiftedVersion = drawVersion;
+    const base = culler.identityBase;
+    shiftedLists.length = mdb.list.length;
+    for (let j = 0, jl = mdb.list.length; j < jl; ++j) {
+      const l = mdb.list[j];
+      const previous = shiftedLists[j];
+      const baseInstances =
+        previous && previous.baseInstances.length >= l.count
+          ? previous.baseInstances
+          : new Uint32Array(l.baseInstances.length);
+      for (let i = 0; i < l.count; ++i) baseInstances[i] = l.baseInstances[i] + base;
+      shiftedLists[j] = { ...l, baseInstances };
+    }
+    return shiftedLists;
+  }
+  const getLists = () => (mode === 'gpu' ? gpuLists : getCpuLists());
+
+  // the members' cells culling reads every frame, resolved once: values objects have too many keys for fast named reads
+  const memberCull: CullValues[] = members.map((v) => ({
+    drawCount: v.drawCount,
+    instanceCount: v.instanceCount,
+    uLod: v.uLod,
+    instanceGrid: v.instanceGrid,
+    boundingSphere: v.boundingSphere,
+    lodLevels: v.lodLevels,
+  }));
+
+  /** what the last CPU cull read: a still frame keeps its lists (`createCullView`) */
+  const cullView = createCullView();
+  const cullCells = memberCull.flatMap(getCullCells);
 
   const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
   function setSegment(i: number) {
@@ -871,20 +1205,20 @@ export function MergedRenderable(
   function getCapacity() {
     let capacity = 0;
     for (let i = 0, il = members.length; i < il; ++i) {
-      capacity += Math.max(1, (members[i] as CullValues).instanceGrid.ref.value.cellCount) + 1;
+      capacity += Math.max(1, memberCull[i].instanceGrid.ref.value.cellCount) + 1;
     }
     return capacity;
   }
 
   function getMemberLod(i: number, hasLodLevels: boolean): LodLevelsValue | undefined {
     // per-member lod counts, the level ranges are equal across members
-    return hasLodLevels ? (members[i].lodLevels!.ref.value as LodLevelsValue) : undefined;
+    return hasLodLevels ? (memberCull[i].lodLevels!.ref.value as LodLevelsValue) : undefined;
   }
 
-  function buildFullList() {
-    const hasLodLevels = !!mdb.prepare(members[0].lodLevels, getCapacity(), true);
+  function buildFullList(lod: LodView) {
+    const hasLodLevels = !!mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
     for (let i = 0, il = members.length; i < il; ++i) {
-      mdb.fullSegment(members[i] as CullValues, setSegment(i), getMemberLod(i, hasLodLevels));
+      mdb.fullSegment(memberCull[i], setSegment(i), getMemberLod(i, hasLodLevels));
     }
     mode = 'full';
   }
@@ -895,6 +1229,7 @@ export function MergedRenderable(
     isOccluded: ((s: Sphere3D) => boolean) | null,
     stats: GraphicsStats,
     frame: Frame,
+    lod: LodView,
   ) {
     // skip recomputation if this renderable was already culled for the current frame
     if (frame === lastCullFrame) {
@@ -902,12 +1237,29 @@ export function MergedRenderable(
       return;
     }
 
-    const lodLevels = mdb.prepare(members[0].lodLevels, getCapacity(), true);
+    if (culler && frame === gpuFrame && isGpuView(cameraPlane, frustum)) {
+      // culled on the GPU before the passes (`prepareCull`): the level lists for their uniforms only
+      mdb.prepare(memberCull[0].lodLevels, 0, true, lod);
+      gpuLists = culler.getLists(mdb.list);
+      mode = 'gpu';
+      lastCullFrame = frame;
+      drawVersion = getDrawVersion();
+      return;
+    }
+
+    // the same view and members' data as the last CPU cull (a still frame): its lists stand
+    if (mode === 'cull' && cullView.isSame(lod, isOccluded, cullCells)) {
+      lastCullFrame = frame;
+      stats.cacheHits.cull++;
+      return;
+    }
+    cullView.set(lod, cullCells);
+    const lodLevels = mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
     mode = 'cull';
 
     for (let i = 0, il = members.length; i < il; ++i) {
       mdb.cullSegment(
-        members[i] as CullValues,
+        memberCull[i],
         setSegment(i),
         getMemberLod(i, !!lodLevels),
         cameraPlane,
@@ -919,23 +1271,28 @@ export function MergedRenderable(
     }
 
     lastCullFrame = frame;
+    drawVersion = getDrawVersion();
   }
 
-  function cullSimple(d: number, radius: number, scale: number) {
-    const lodLevels = mdb.prepare(members[0].lodLevels, getCapacity(), true);
+  function cullSimple(d: number, radius: number, scale: number, lod: LodView) {
+    cullView.invalidate();
+    const lodLevels = mdb.prepare(memberCull[0].lodLevels, getCapacity(), true, lod);
     if (!lodLevels) {
-      buildFullList();
-      return;
+      buildFullList(lod);
+    } else {
+      mode = 'cull';
+      for (let i = 0, il = members.length; i < il; ++i) {
+        mdb.cullSimpleSegment(memberCull[i], setSegment(i), getMemberLod(i, true)!, d, radius, scale);
+      }
     }
-    mode = 'cull';
-
-    for (let i = 0, il = members.length; i < il; ++i) {
-      mdb.cullSimpleSegment(members[i] as CullValues, setSegment(i), getMemberLod(i, true)!, d, radius, scale);
-    }
+    drawVersion = getDrawVersion();
   }
 
-  buildFullList();
+  buildFullList(LodView());
 
+  let programVersion = 0;
+  const getDrawVersion = createDrawVersion((out) => appendMdbDrawKey(mode === 'gpu' ? gpuLists : mdb.list, out));
+  let drawVersion = getDrawVersion();
   return {
     id,
     materialId,
@@ -944,27 +1301,51 @@ export function MergedRenderable(
     state,
 
     cull,
-    uncull: () => {
-      if (mode !== 'full') buildFullList();
+    uncull: (lod: LodView) => {
       lastCullFrame = undefined;
+      // levels by size on screen convert their ranges with the view (`prepare`)
+      const pixel = ((members[0].lodLevels?.ref.value as LodLevelsValue | undefined)?.pixelSize ?? 0) > 0;
+      if (mode === 'full' && !pixel) return;
+      buildFullList(lod);
+      drawVersion = getDrawVersion();
     },
     cullSimple,
+    prepareCull: culler
+      ? (cameraPlane: Plane3D, frustum: Frustum3D, frame: Frame, lod: LodView, pyramid?: OcclusionPyramid) => {
+          // once per frame, for its first view; other views of the frame draw the CPU culling's lists
+          if (frame === gpuFrame) return true;
+          gpuFrame = culler.dispatch(cameraPlane, frustum, lod, pyramid) ? frame : undefined;
+          if (gpuFrame) setGpuView(cameraPlane, frustum);
+          return !!gpuFrame;
+        }
+      : undefined,
     render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
-      if (renderValues.uAlpha && renderValues.alpha) {
-        ValueCell.updateIfChanged(renderValues.uAlpha, clamp(renderValues.alpha.ref.value * state.alphaFactor, 0, 1));
-      }
-      renderItem.render(variant, globals, mdb.list);
+      renderItem.render(variant, globals, getLists());
     },
     getClipInfo: clipInfo.get,
     getByteCount: () => renderItem.getByteCount(),
     getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
-    setTransparency: (value: Transparency) => renderItem.setTransparency(value),
+    setTransparency: (value: Transparency) => {
+      renderItem.setTransparency(value);
+      programVersion += 1;
+    },
+    get programVersion() {
+      return programVersion;
+    },
+    get drawVersion() {
+      return drawVersion;
+    },
     update: () => {
       merged.sync();
+      culler?.sync();
+      gpuFrame = undefined;
       mode = 'none';
       renderItem.update();
       lastCullFrame = undefined;
     },
-    dispose: () => renderItem.destroy(),
+    dispose: () => {
+      renderItem.destroy();
+      culler?.destroy();
+    },
   };
 }

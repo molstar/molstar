@@ -6,9 +6,11 @@
 
 import type { ProgramVariant } from '../../render-item.js';
 import type { DefineValues } from '../../shader-code.js';
+import type { DefineLookup } from '../../renderable/schema.js';
+import { getWgslDefineLookup, getWgslDefines } from '../program.js';
 import { copy_wgsl } from './copy.wgsl.js';
 import { cylinders_wgsl } from './cylinders.wgsl.js';
-import { dim_wgsl, edge_wgsl, overlay_wgsl } from './marking.wgsl.js';
+import { dim_wgsl, overlay_wgsl } from './marking.wgsl.js';
 import { evaluate_wboit_wgsl } from './wboit.wgsl.js';
 import { blend_back_dpoit_wgsl, evaluate_dpoit_wgsl } from './dpoit.wgsl.js';
 import { bloom_blur_wgsl, bloom_composite_wgsl, bloom_luminosity_wgsl } from './bloom.wgsl.js';
@@ -22,6 +24,7 @@ import { direct_volume_wgsl } from './direct-volume.wgsl.js';
 import { dof_wgsl } from './dof.wgsl.js';
 import { illumination_compose_wgsl, trace_wgsl } from './illumination.wgsl.js';
 import { hi_z_wgsl } from './hi-z.wgsl.js';
+import { volume_composite_wgsl } from './volume-composite.wgsl.js';
 import { image_wgsl } from './image.wgsl.js';
 import { fxaa_wgsl } from './fxaa.wgsl.js';
 import { outlines_wgsl } from './outlines.wgsl.js';
@@ -33,13 +36,22 @@ import { ssao_wgsl } from './ssao.wgsl.js';
 import { spheres_wgsl } from './spheres.wgsl.js';
 import { text_wgsl } from './text.wgsl.js';
 
-/** A WGSL program, by the name of the `ShaderCode` it replaces */
+/**
+ * A WGSL program, by the name of the `ShaderCode` it replaces. `source` may depend on the variant's defines (a lookup
+ * of the flattened names, `dX` and `dX_value`): what a variant turns off (a feature's helpers, the reads of its
+ * textures) is left out of the source, so that it is not bound; defines inside the source are for small branches
+ */
 export interface WgslProgram {
-  readonly source: string;
+  readonly source: string | ((defines: DefineLookup) => string);
   /** render variants the source implements */
   readonly variants: readonly ProgramVariant[];
   /** the first feature selected by `defines` that the source doesn't implement */
   readonly getUnsupported?: (defines: DefineValues) => string | undefined;
+}
+
+/** The source of a program (`WgslProgram.source`) for the variant of `defineValues` */
+export function resolveWgslSource(source: WgslProgram['source'], defineValues: DefineValues) {
+  return typeof source === 'string' ? source : source(getWgslDefineLookup(getWgslDefines(defineValues)));
 }
 
 function value(defines: DefineValues, name: string) {
@@ -90,10 +102,12 @@ function getImageUnsupported(defines: DefineValues) {
   }
 }
 
-/** Features of direct volumes not implemented yet; only the color variants are drawn, as on WebGL */
+/** Features of direct volumes not implemented yet; the color, marking and pick variants are drawn, as on WebGL */
 function getDirectVolumeUnsupported(defines: DefineValues) {
   const variant = value(defines, 'dRenderVariant') as string;
-  if (!['colorBlended', 'colorWboit', 'colorDpoit'].includes(variant)) return `render variant '${variant}'`;
+  if (!['colorBlended', 'colorWboit', 'colorDpoit', 'marking', 'pick'].includes(variant)) {
+    return `render variant '${variant}'`;
+  }
   if (value(defines, 'dGridTexType') !== '3d') return `grid texture type '${value(defines, 'dGridTexType')}'`;
   const color = value(defines, 'dColorType') as string;
   if (!ColorTypes.has(color) && color !== 'direct') return `color type '${color}'`;
@@ -123,7 +137,7 @@ const Programs: { [name: string]: WgslProgram } = {
   },
   ssao: { source: ssao_wgsl, variants: ['compute'] },
   'hi-z': { source: hi_z_wgsl, variants: ['compute'] },
-  edge: { source: edge_wgsl, variants: ['compute'] },
+  'volume-composite': { source: volume_composite_wgsl, variants: ['compute'] },
   'evaluate-wboit': { source: evaluate_wboit_wgsl, variants: ['compute'] },
   'Bloom Luminosity': { source: bloom_luminosity_wgsl, variants: ['compute'] },
   'Bloom Blur': { source: bloom_blur_wgsl, variants: ['compute'] },
@@ -132,8 +146,6 @@ const Programs: { [name: string]: WgslProgram } = {
   'blend-back-dpoit': { source: blend_back_dpoit_wgsl, variants: ['compute'] },
   'multi-sample-compose': { source: multi_sample_compose_wgsl, variants: ['compute'] },
   trace: { source: trace_wgsl, variants: ['compute'] },
-  // a weighted texel, as the multi-sample compose
-  'trace-accumulate': { source: multi_sample_compose_wgsl, variants: ['compute'] },
   'illumination-compose': { source: illumination_compose_wgsl, variants: ['compute'] },
   'illumination-multi-sample-compose': { source: multi_sample_compose_wgsl, variants: ['compute'] },
   'smaa-edges': { source: smaa_edges_wgsl, variants: ['compute'] },
@@ -159,7 +171,11 @@ const Programs: { [name: string]: WgslProgram } = {
     variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
     getUnsupported: getImageUnsupported,
   },
-  'direct-volume': { source: direct_volume_wgsl, variants: ['color'], getUnsupported: getDirectVolumeUnsupported },
+  'direct-volume': {
+    source: direct_volume_wgsl,
+    variants: ['color', 'marking', 'pick'],
+    getUnsupported: getDirectVolumeUnsupported,
+  },
   text: {
     source: text_wgsl,
     variants: ['color', 'pick', 'depth', 'marking', 'emissive', 'tracing'],
@@ -174,4 +190,9 @@ const Programs: { [name: string]: WgslProgram } = {
 
 export function getWgslProgram(name: string): WgslProgram | undefined {
   return Programs[name];
+}
+
+/** The names of the registered programs (e.g. for a check that every one compiles) */
+export function getWgslProgramNames(): string[] {
+  return Object.keys(Programs);
 }

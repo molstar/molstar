@@ -12,6 +12,7 @@ import { GpuPathCases } from './gpu-paths.js';
 import { MergedCases } from './merged.js';
 import { PostprocessingCases } from './postprocessing.js';
 import { RendererCases } from './renderer.js';
+import { ShaderVariantCases } from './shader-variants.js';
 import { ThemeDataCases } from './theme-data.js';
 import { TransparencyCases } from './transparency.js';
 
@@ -32,3 +33,6 @@ for (const c of AllCases) {
   if (ids.has(c.id)) throw new Error(`Duplicate visual test id '${c.id}'`);
   ids.add(c.id);
 }
+
+/** Cases run only when a filter or tags select cases (`--filter`, `--tags`): too slow for every run */
+export const OnDemandCases: VisualTestCase[] = [...ShaderVariantCases];

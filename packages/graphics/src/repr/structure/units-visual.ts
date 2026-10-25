@@ -249,15 +249,18 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       updateState.updateTransform = true;
     }
 
+    // the representation keeps its props object while no prop changes (`shallowMerge2`): the same props, no prop changed
+    const propsChanged = newProps !== currentProps;
     if (
-      newProps.instanceGranularity !== currentProps.instanceGranularity ||
-      newProps.cellSize !== currentProps.cellSize ||
-      newProps.batchSize !== currentProps.batchSize
+      propsChanged &&
+      (newProps.instanceGranularity !== currentProps.instanceGranularity ||
+        newProps.cellSize !== currentProps.cellSize ||
+        newProps.batchSize !== currentProps.batchSize)
     ) {
       updateState.updateTransform = true;
     }
 
-    if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+    if (propsChanged && !deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
       // console.log('new unitKinds');
       updateState.createGeometry = true;
     }
@@ -334,8 +337,15 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         throw new Error('expected renderObject to be available');
       }
 
-      if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
-        // console.log('update locationIterator');
+      // a new iterator where what it iterates may differ: the transform, the group, the structure or the props (the
+      // color and size writers reset it); a recolor keeps it
+      if (
+        updateState.updateTransform ||
+        ((updateState.updateColor || updateState.updateSize) &&
+          (newProps !== currentProps ||
+            newStructureGroup.group !== currentStructureGroup.group ||
+            newStructureGroup.structure !== currentStructureGroup.structure))
+      ) {
         locationIt = createLocationIterator(newStructureGroup, newProps);
       }
 
@@ -394,8 +404,18 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         createColors(locationIt, positionIt, newTheme.color, renderObject.values);
       }
 
-      updateValues(renderObject.values, newProps);
-      updateRenderableState(renderObject.state, newProps);
+      // the values from the props: again where the props or what the values derive from besides them changed (counts,
+      // bounds, sizes); a recolor of many units keeps them
+      if (
+        newProps !== currentProps ||
+        updateState.createGeometry ||
+        updateState.updateTransform ||
+        updateState.updateMatrix ||
+        updateState.updateSize
+      ) {
+        updateValues(renderObject.values, newProps);
+        updateRenderableState(renderObject.state, newProps);
+      }
     }
 
     currentProps = newProps;
@@ -560,9 +580,6 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     },
     setVisibility(visible: boolean) {
       Visual.setVisibility(renderObject, visible);
-    },
-    setAlphaFactor(alphaFactor: number) {
-      Visual.setAlphaFactor(renderObject, alphaFactor);
     },
     setPickable(pickable: boolean) {
       Visual.setPickable(renderObject, pickable);

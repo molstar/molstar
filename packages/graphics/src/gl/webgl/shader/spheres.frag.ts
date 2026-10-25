@@ -70,7 +70,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
             modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
             cameraNormal = -normalize(cameraPos - cameraSpherePos);
             interior = true;
-            #if defined(dSolidInterior) && !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+            #if defined(dSolidInterior) && !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
                 vec3 frontModelPos = (uInvView * vec4(rayDirection * negT + rayOrigin, 1.0)).xyz;
                 float s = clipExit(modelPos / uModelScale, frontModelPos / uModelScale, 0.0);
                 if (s < 0.0) return false;
@@ -95,7 +95,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 
     bool objectClipped = false;
 
-    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
         if (clipTest(modelPos / uModelScale)) {
             objectClipped = true;
             fragmentDepth = 2.0;
@@ -116,7 +116,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
             #ifdef dSolidInterior
                 float nearT = - (uNear + rayOrigin.z) / rayDirection.z;
                 float sNear = frontDepth < 1.0 ? 0.0 : clamp((nearT - negT) / (posT - negT), 0.0, 1.0);
-                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
                     float sCap = clipExit(frontModelPos / uModelScale, modelPos / uModelScale, sNear);
                     if (sCap < 0.0) return false;
                 #else
@@ -128,7 +128,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                     cameraPos = rayDirection * nearT + rayOrigin;
                     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
                 }
-                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
                     else {
                         cameraPos = rayDirection * mix(negT, posT, sCap) + rayOrigin;
                         modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
@@ -175,7 +175,7 @@ void main(void){
     #endif
 
     ${fade_lod}
-    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
         if (!isCap) {
             ${clip_pixel}
         }
@@ -226,7 +226,7 @@ void main(void){
             ${wboit_write}
             ${dpoit_write}
         #elif defined(dRenderVariant_tracing)
-            gl_FragData[1] = vec4(normal, emissive);
+            gl_FragData[1] = packNormalToRGBA(normal, emissive);
             gl_FragData[2] = vec4(material.rgb, uDensity);
         #endif
     #endif

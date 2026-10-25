@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -13,7 +14,8 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import {
   calculateTransformBoundingSphere,
-  createTextureImage,
+  createDataArray,
+  type DataArray,
   type TextureImage,
 } from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
@@ -86,7 +88,7 @@ function createTransforms() {
 }
 
 function fillImage(count: number, itemSize: 1 | 4, seed: number) {
-  const image = createTextureImage(count, itemSize, Uint8Array);
+  const image = createDataArray(count, itemSize, Uint8Array);
   const rnd = rng(seed);
   for (let i = 0; i < count * itemSize; ++i) image.array[i] = Math.floor(rnd() * 256);
   return image;
@@ -152,8 +154,8 @@ function layerValues(values: MeshValues, layer: Layer) {
   const v = values as unknown as Record<string, ValueCell<any>>;
   return {
     type: v[`${layer}Type`].ref.value as string,
-    texture: v[`t${prefix}`].ref.value as TextureImage<Uint8Array>,
-    texDim: v[`u${prefix}TexDim`].ref.value as number[],
+    texture: v[`t${prefix}`].ref.value as DataArray<Uint8Array>,
+    texDim: v[`u${prefix}GridTexDim`].ref.value as number[],
     gridDim: v[`u${prefix}GridDim`].ref.value as number[],
     gridTransform: v[`u${prefix}GridTransform`].ref.value as number[],
   };

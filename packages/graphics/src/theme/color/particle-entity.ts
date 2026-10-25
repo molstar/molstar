@@ -152,9 +152,12 @@ export function ParticleEntityColorTheme(
     const palette = getPalette(entityCount, props);
     legend = palette.legend;
 
+    // a color per entity, not per particle (the palette interpolates)
+    const colors: Color[] = [];
+    for (let k = 0; k < entityCount; ++k) colors[k] = palette.color(k);
     const pick = (particleIndex: number) => {
       const ci = colorIndex[particleIndex];
-      return ci >= 0 ? palette.color(ci) : DefaultColor;
+      return ci >= 0 ? colors[ci] : DefaultColor;
     };
 
     color = (location: Location): Color => {

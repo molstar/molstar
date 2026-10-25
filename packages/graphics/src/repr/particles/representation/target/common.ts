@@ -104,10 +104,12 @@ export const ParticleTargetCommonParams = {
     (o) => `${o.stride}`,
     {
       ...BaseGeometry.CullingLodCategory,
-      defaultValue: Spheres.LodLevelsPresets['quality'],
+      // by size on screen (`lodPixelSize`)
+      defaultValue: Spheres.LodPixelPresets.quality.lodLevels,
       presets: Object.entries(Spheres.LodLevelsPresets).map(([k, v]) => [v, k]),
     },
   ),
+  lodPixelSize: Spheres.getLodPixelSizeParam(Spheres.LodPixelPresets.quality.lodPixelSize),
 };
 export type ParticleTargetCommonParams = typeof ParticleTargetCommonParams;
 
@@ -175,6 +177,8 @@ export const ParticleTargetVolumeParams = {
   scaleByRadius: PD.Boolean(false, {
     description: 'Scale each instance of the volume geometry by the radius of the particle it is placed at.',
   }),
+  // dots: levels by size on screen for the dots' own size
+  lodRadius: Spheres.getLodRadiusParam(0),
 };
 export type ParticleTargetVolumeParams = typeof ParticleTargetVolumeParams;
 
@@ -515,16 +519,22 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
    *  Uses the original (unfiltered) `ParticleList` so that themes receive the correct particle index. */
   function createLocIt(particles: ParticleList, indices: OrderedSet<number>): LocationIterator {
     const loc = Particle.Location(particles, 0);
-    return LocationIterator(
-      1,
-      OrderedSet.size(indices),
-      1,
-      (_groupIndex, instanceIndex) => {
-        loc.index = OrderedSet.getAt(indices, instanceIndex);
+    // the set's kind resolved once, not per instance (`OrderedSet.getAt`): a theme reads every particle's location
+    let getLocation: (groupIndex: number, instanceIndex: number) => Particle.Location;
+    if (OrderedSet.isInterval(indices)) {
+      const start = Interval.start(indices);
+      getLocation = (_groupIndex, instanceIndex) => {
+        loc.index = start + instanceIndex;
         return loc;
-      },
-      false,
-    );
+      };
+    } else {
+      const array = indices as SortedArray<number>;
+      getLocation = (_groupIndex, instanceIndex) => {
+        loc.index = array[instanceIndex];
+        return loc;
+      };
+    }
+    return LocationIterator(1, OrderedSet.size(indices), 1, getLocation, false);
   }
 
   /** Create a renderObject from scratch for a geometry + the target's particles. */

@@ -7,7 +7,7 @@ unproven), **observed** (seen in the running viewer).
 
 Fixed since the review, in the same branch:
 
-- Graphics: correctness 1 to 16, memory 1, 2 and 3 (each marked below).
+- Graphics: correctness 1 to 16, memory 1 to 6 (each marked below).
 
 - Prism: `graphics-backend` option (`auto` by default), as the Viewer; canvas presence counts a released context at once
   (WebGPU reports the loss a task later) and never clears `released` on a refused second release; mounts are admitted
@@ -20,8 +20,8 @@ Fixed since the review, in the same branch:
 
 ## Decision
 
-- Decided: `PluginFeatureDetection.preferWebGl1` removed, `PluginConfig.General.PreferWebGl1` off by default (changelog
-  and `breaking-v6-changes.md`).
+- Decided: `PluginFeatureDetection.preferWebGl1` and `PluginConfig.General.PreferWebGl1` removed (changelog and
+  `breaking-v6-changes.md`).
 ## Correctness
 
 1. Fixed: the Hi-Z reduction reads the GLSL block (`p + (-1,-1)`, `p + (0,-1)`); `renderer/hi-z/viewport` now matches
@@ -64,17 +64,14 @@ Fixed since the review, in the same branch:
 2. Fixed: WebGPU 2D and cube textures keep a `destroyed` flag; loads after `destroy` do nothing.
 3. Fixed: the canvas is configured with `getPreferredCanvasFormat()` (`bgra8unorm` on Windows and macOS), the drawing
    buffer's target descriptor per context; drawing-buffer reads swap red and blue back.
-4. **Per-unit Gaussian surfaces gated by the whole structure** (confirmed). `gaussian-surface-mesh.ts:112-131` checks the
-   structure's box cubed against `maxStorageBufferSize / 4`, but each unit computes on its own box: assemblies above
-   ~300 Å at resolution ≤ 1 fall back to the CPU on WebGPU (core limits; higher with the adapter's). The small-surface
-   cutoff (cells and atoms) has the same flaw the other way: many small chains go to the GPU, each paying its fixed
-   dispatch and readback cost. Gate on the unit's box and atoms. Deferred: the visual factory and `mustRecreate` see the
-   structure only, a per-unit decision moves into `UnitsVisual`.
-5. **Pass targets allocated up front** (measured; pre-existing on master). Deferred: part of rethinking the pass
-   framework. Prism at 1872×1536 (DPR 2): ~836 MiB of textures on both backends (master WebGL 797 MiB). dpoit targets (132 MiB) exist with transparency `wboit`, tracing
-   targets (167 MiB) with illumination off. Allocating passes on use would save ~300 MiB at this size. The branch adds
-   ~40 MiB in the marking pass (93 → 137 MiB, target not identified) and, on WebGPU, ~58 MiB of depth-stencil
-   (`depth24plus-stencil8`/`depth32float-stencil8` sizes, presumably).
+4. Fixed: per-unit Gaussian surfaces choose the GPU or the CPU by the unit's box and atoms, not the structure's: units
+   visual factories receive the symmetry group, and `selectVisual` recreates a group's visual when its choice changes.
+5. Fixed: pass targets were allocated up front (pre-existing on master; Prism at 1872×1536: ~836 MiB of textures,
+   master WebGL 797 MiB, with the depth peeling and tracing targets of modes turned off). They are allocated on use,
+   released a second after the props or scene stop drawing into them, and fewer and smaller: a default frame takes
+   77 MiB opaque and 132 MiB transparent at that size, 274 MiB with illumination
+   ([../plans/gl/pass-targets.md](../plans/gl/pass-targets.md), checked by `webgpu-pass-target-bytes`). The marking
+   pass's growth on the branch is gone with it (55 MiB, once highlighted).
 6. WebGL, minor (from the review), done: the program cache memoizes the declaration hash per schema and defines, and
    WebGL1 items share one adapted schema per schema (`getWebGL1Schema`); emulated vertex ids past 2^24 (WebGL1) warn, a
    known limit (`minimum-capabilities.md`). Accepted as is: `setSolidInteriorPass` invalidating the globals per cap draw.

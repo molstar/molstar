@@ -6,21 +6,21 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { getLayerTypeDefine, type LayerType } from './layer-type.js';
 
 export type TransparencyType = LayerType;
 
 export type TransparencyData = {
-  tTransparency: ValueCell<TextureImage<Uint8Array>>;
-  uTransparencyTexDim: ValueCell<Vec2>;
+  tTransparency: ValueCell<DataArray<Uint8Array>>;
   dTransparency: ValueCell<boolean>;
   transparencyAverage: ValueCell<number>;
   transparencyMin: ValueCell<number>;
 
   tTransparencyGrid: ValueCell<Texture>;
   uTransparencyGridDim: ValueCell<Vec3>;
+  uTransparencyGridTexDim: ValueCell<Vec2>;
   uTransparencyGridTransform: ValueCell<Vec4>;
   /** the layer type (`TransparencyType`) */
   transparencyType: ValueCell<string>;
@@ -73,7 +73,7 @@ export function createTransparency(
   type: TransparencyType,
   transparencyData?: TransparencyData,
 ): TransparencyData {
-  const transparency = createTextureImage(
+  const transparency = createDataArray(
     Math.max(1, count),
     1,
     Uint8Array,
@@ -81,7 +81,6 @@ export function createTransparency(
   );
   if (transparencyData) {
     ValueCell.update(transparencyData.tTransparency, transparency);
-    ValueCell.update(transparencyData.uTransparencyTexDim, Vec2.create(transparency.width, transparency.height));
     ValueCell.updateIfChanged(transparencyData.dTransparency, count > 0);
     ValueCell.updateIfChanged(transparencyData.transparencyAverage, getTransparencyAverage(transparency.array, count));
     ValueCell.updateIfChanged(transparencyData.transparencyMin, getTransparencyMin(transparency.array, count));
@@ -90,13 +89,13 @@ export function createTransparency(
   } else {
     return {
       tTransparency: ValueCell.create(transparency),
-      uTransparencyTexDim: ValueCell.create(Vec2.create(transparency.width, transparency.height)),
       dTransparency: ValueCell.create(count > 0),
       transparencyAverage: ValueCell.create(0),
       transparencyMin: ValueCell.create(1),
 
       tTransparencyGrid: ValueCell.create(createNullTexture()),
       uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+      uTransparencyGridTexDim: ValueCell.create(Vec2.create(1, 1)),
       uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
       transparencyType: ValueCell.create<string>(type),
       dTransparencyType: ValueCell.create(getLayerTypeDefine(type)),
@@ -105,22 +104,21 @@ export function createTransparency(
   }
 }
 
-const emptyTransparencyTexture = { array: new Uint8Array(1), width: 1, height: 1 };
+const emptyTransparencyTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyTransparency(transparencyData?: TransparencyData): TransparencyData {
   if (transparencyData) {
     ValueCell.update(transparencyData.tTransparency, emptyTransparencyTexture);
-    ValueCell.update(transparencyData.uTransparencyTexDim, Vec2.create(1, 1));
     return transparencyData;
   } else {
     return {
       tTransparency: ValueCell.create(emptyTransparencyTexture),
-      uTransparencyTexDim: ValueCell.create(Vec2.create(1, 1)),
       dTransparency: ValueCell.create(false),
       transparencyAverage: ValueCell.create(0),
       transparencyMin: ValueCell.create(1),
 
       tTransparencyGrid: ValueCell.create(createNullTexture()),
       uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+      uTransparencyGridTexDim: ValueCell.create(Vec2.create(1, 1)),
       uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
       transparencyType: ValueCell.create<string>('groupInstance'),
       dTransparencyType: ValueCell.create(getLayerTypeDefine('groupInstance')),

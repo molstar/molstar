@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { ValueCell } from '@molstar/core/util';
 import { getDepthRangeCell } from '../depth-range.js';
 import type { UniformBlockWriter } from '../uniform-layout.js';
 import type { GlobalBindings } from '../render-item.js';
@@ -41,6 +42,13 @@ export function createGlobalBindings(
   textures: Textures,
 ): WebGLGlobalBindings {
   const { state, resources } = ctx;
+  const globalTextureNames = Object.keys(schema).filter((k) => schema[k].type === 'texture');
+  /** the global textures of `schema` not in `textures` (filled by passes as they run) */
+  const getMissingTextures = () => {
+    const missing: string[] = [];
+    for (const k of globalTextureNames) if (!textures.some((t) => t[0] === k)) missing.push(k);
+    return missing;
+  };
   // the projections mapped to the context's clip depth
   uniforms = uniforms.map(([k, v]) => [k, getDepthRangeCell(schema, k, v, ctx.depthRangeConversion)]);
 
@@ -60,6 +68,8 @@ export function createGlobalBindings(
     : uniforms;
 
   let needsUpdate = true;
+  const capPass = uniforms.find(([k]) => k === 'uSolidInteriorPass')?.[1] as ValueCell<number> | undefined;
+  const capClip = uniforms.find(([k]) => k === 'uSolidInteriorClip')?.[1] as ValueCell<number> | undefined;
 
   const globals: WebGLGlobalBindings = {
     textures,
@@ -67,6 +77,12 @@ export function createGlobalBindings(
       needsUpdate = true;
       // render items rebind all of their values, the shared texture count may have changed
       state.currentRenderItemId = -1;
+    },
+    setSolidInteriorCap: (pass: number, clip: number) => {
+      if (!capPass || !capClip || (capPass.ref.value === pass && capClip.ref.value === clip)) return;
+      ValueCell.update(capPass, pass);
+      ValueCell.update(capClip, clip);
+      globals.invalidate();
     },
     apply: (program: Program) => {
       if (state.currentProgramId !== program.id) {
@@ -82,6 +98,9 @@ export function createGlobalBindings(
       }
       program.setUniforms(classicUniforms);
       program.bindTextures(textures);
+      // the program's global samplers this pass does not provide (the DPOIT textures before the first DPOIT pass):
+      // unbound, else they sample what their unit last held, possibly a texture drawn into (a feedback loop)
+      program.unbindTextures(getMissingTextures());
       needsUpdate = false;
     },
     destroy: () => {

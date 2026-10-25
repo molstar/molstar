@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'node:fs';
@@ -59,6 +60,6 @@ describe('the operations spec', () => {
   it('is what the code says', async () => {
     const text = await generate();
     if (process.env.UPDATE_SPEC) fs.writeFileSync(file, text);
-    expect(fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '').toBe(text);
+    expect(fs.existsSync(file) ? fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n') : '').toBe(text);
   });
 });

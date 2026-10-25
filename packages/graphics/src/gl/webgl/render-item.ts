@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isQuadIndexing, QuadIndicesPerItem } from '../quad-indices.js';
 import type { UniformBlockWriter } from '../uniform-layout.js';
 import { createAttributeBuffers, type ElementsBuffer, type AttributeBuffers } from './buffer.js';
 import type { AttributeKind } from '../buffer.js';
@@ -33,16 +34,27 @@ import {
   type RenderableSchema,
   type RenderableValues,
   type AttributeSpec,
-  getValueVersions,
   isUsed,
   splitValues,
   DefineSpec,
-  type UniformSpec,
-  type TextureSpec,
+  TextureSpec,
+  UniformSpec,
 } from '../renderable/schema.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import { ValueCell } from '@molstar/core/util';
-import type { TextureImage, TextureVolume } from '../renderable/util.js';
+import { createTextureImage, type DataArray, type TextureImage, type TextureVolume } from '../renderable/util.js';
+import {
+  getDataTextureDimName,
+  getDataTextureItemSize,
+  getDataTextureNames,
+  getDataTextureOffsetName,
+  getDataTextureSchema,
+} from './data-textures.js';
+import { Vec2 } from '@molstar/core/math/linear-algebra';
+import { SegmentedArray } from '../segmented-array.js';
+import type { DataTexturePages, DataTextureRange } from './data-pages.js';
+import { InstanceDataVec4s, packInstanceData } from '../renderable/merged.js';
+import { TextureChanges } from '../renderable/texture-changes.js';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import type { VertexArray } from './vertex-array.js';
 import { fillSerial } from '@molstar/core/util/array';
@@ -148,10 +160,13 @@ export function createWebGLProgramItem(
   transparency: Transparency,
 ): ProgramItem {
   const programs = new Map<GraphicsRenderVariant, Program>();
+  // the schema and defines render items make their programs with: the same programs
+  const adapted = getProgramItemSchema(ctx, schema, defineValues);
   const getProgram = (variant: GraphicsRenderVariant) => {
     let program = programs.get(variant);
     if (!program) {
-      program = createProgramVariant(ctx, getRenderVariant(variant, transparency), defineValues, shaderCode, schema);
+      const renderVariant = getRenderVariant(variant, transparency);
+      program = createProgramVariant(ctx, renderVariant, adapted.defineValues, shaderCode, adapted.schema);
       programs.set(variant, program);
     }
     return program;
@@ -195,6 +210,58 @@ export function createComputeRenderItem(
  */
 const MaxEmulatedVertexCount = 2 ** 24;
 
+/** A data array of a render item in its range of the data pages, with its uniforms */
+type DataTextureState = {
+  readonly pages: DataTexturePages;
+  /** components per element */
+  readonly itemSize: number;
+  range: DataTextureRange;
+  readonly dim: ValueCell<Vec2>;
+  readonly offset: ValueCell<number>;
+  /** of a segmented array, its parts written */
+  parts: SegmentedArray.Uploaded | undefined;
+};
+
+/**
+ * The schema and define values the programs of a render item are made with (`createRenderItem`), from those a program
+ * item is given (the renderable's): the loop bounds as number defines on WebGL1, their values from the defines that
+ * mirror them (`dClipObjectCount` for `uClipObjectCount`; throws for one without, as the direct volume's step count,
+ * which only the data gives); the instance data of merged objects on WebGL2 without base instances; the data arrays as
+ * data textures. Define values in the adapted schema's order, as render items have them (`splitValues`)
+ */
+function getProgramItemSchema(ctx: WebGLContext, schema: RenderableSchema, defineValues: DefineValues) {
+  let adapted = schema;
+  let values = defineValues;
+  if (!ctx.isWebGL2) {
+    adapted = getWebGL1Schema(schema);
+    if (adapted !== schema) {
+      values = {};
+      for (const k of Object.keys(adapted)) {
+        if (adapted[k].type !== 'define' || !(k in defineValues || schema[k].type === 'uniform')) continue;
+        if (schema[k].type === 'uniform') {
+          const mirror = defineValues[`d${k.slice(1)}`];
+          if (!mirror) throw new Error(`the value of the loop bound '${k}' is not among the defines (WebGL1)`);
+          values[k] = ValueCell.create(mirror.ref.value);
+        } else {
+          values[k] = defineValues[k];
+        }
+      }
+    }
+  }
+  const { multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
+  const instanceData =
+    ctx.isWebGL2 &&
+    !multiDrawInstancedBaseVertexBaseInstance &&
+    !drawInstancedBaseVertexBaseInstance &&
+    !!values.dSegmented?.ref.value &&
+    adapted.aSegment !== undefined;
+  if (instanceData) {
+    adapted = getInstanceDataSchema(adapted);
+    values = { ...values, dInstanceData: ValueCell.create(true) };
+  }
+  return { schema: getDataTextureSchema(adapted), defineValues: values };
+}
+
 /** The WebGL1 schemas of schemas, one per schema: the program cache keys declarations by the schema object */
 const webGL1Schemas = new WeakMap<RenderableSchema, RenderableSchema>();
 
@@ -212,6 +279,42 @@ function getWebGL1Schema(schema: RenderableSchema): RenderableSchema {
   const result = adapted ?? schema;
   webGL1Schemas.set(schema, result);
   return result;
+}
+
+/** The instance data schemas of schemas, one per schema: the program cache keys declarations by the schema object */
+const instanceDataSchemas = new WeakMap<RenderableSchema, RenderableSchema>();
+
+/**
+ * Merged render items (`dSegmented`) on WebGL2 without base instances read their instance data (transforms, instance
+ * ids, segment data) from a texture at the draw's first instance (`uInstanceBase`) plus `gl_InstanceID`
+ * (`dInstanceData`, see `common-vert-params`): re-pointing the instanced attributes per draw of a segment cost about
+ * 40% of a frame of 1000 merged units
+ */
+export function getInstanceDataSchema(schema: RenderableSchema): RenderableSchema {
+  let result = instanceDataSchemas.get(schema);
+  if (!result) {
+    result = {
+      ...schema,
+      tInstanceData: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
+      uInstanceBase: UniformSpec('i', undefined, 'draw'),
+      dInstanceData: DefineSpec('boolean'),
+    };
+    instanceDataSchemas.set(schema, result);
+  }
+  return result;
+}
+
+/** Writes the instance data of merged `values` into the image of `tInstanceData`, grown where too small */
+function updateInstanceData(values: RenderableValues) {
+  const count: number = values.instanceCount.ref.value;
+  const image = createTextureImage(
+    Math.max(1, count * InstanceDataVec4s),
+    4,
+    Float32Array,
+    (values.tInstanceData.ref.value as TextureImage<Float32Array>).array,
+  );
+  packInstanceData(values, image.array);
+  ValueCell.update(values.tInstanceData, image);
 }
 
 /**
@@ -238,6 +341,92 @@ export function createRenderItem<T extends string>(
     multiDrawInstancedBaseVertexBaseInstance,
     drawInstancedBaseVertexBaseInstance,
   } = ctx.extensions;
+  const instanceData =
+    ctx.isWebGL2 &&
+    !multiDrawInstancedBaseVertexBaseInstance &&
+    !drawInstancedBaseVertexBaseInstance &&
+    !!values.dSegmented?.ref.value &&
+    schema.aSegment !== undefined;
+  /** the versions of the instance values `tInstanceData` was written from */
+  const instanceDataVersions: number[] = [];
+  const instanceDataKeys = ['instanceCount', 'aTransform', 'aInstance', 'aSegment', 'aSegmentSphere', 'aSegmentLod'];
+  const syncInstanceData = () => {
+    let changed = false;
+    for (let i = 0; i < instanceDataKeys.length; ++i) {
+      const v = values[instanceDataKeys[i]].ref.version;
+      if (v !== instanceDataVersions[i]) {
+        instanceDataVersions[i] = v;
+        changed = true;
+      }
+    }
+    if (changed) updateInstanceData(values);
+  };
+  if (instanceData) {
+    schema = getInstanceDataSchema(schema);
+    values = {
+      ...values,
+      tInstanceData: ValueCell.create(createTextureImage(1, 4, Float32Array)),
+      uInstanceBase: ValueCell.create(0),
+      dInstanceData: ValueCell.create(true),
+    };
+    syncInstanceData();
+  }
+
+  // the data arrays (`DataSpec`) in ranges of the context's data pages, the texture's size and the offset object uniforms
+  // of this backend (`data-pages.ts`, `data-textures.ts`)
+  const dataTextures = new Map<string, DataTextureState>();
+  const dataSchema = getDataTextureSchema(schema);
+  if (dataSchema !== schema) {
+    schema = dataSchema;
+    const uniforms: { [k: string]: ValueCell<any> } = {};
+    for (const name of getDataTextureNames(schema)) {
+      if (!values[name]) continue;
+      const format = (schema[name] as TextureSpec<TextureKind>).data!;
+      const pages = resources.dataPages(format);
+      const range = pages.allocate((values[name].ref.value as DataArray<any>).count);
+      const dim = ValueCell.create(Vec2.create(range.width, range.height));
+      const offset = ValueCell.create(range.offset);
+      uniforms[getDataTextureDimName(name)] = dim;
+      uniforms[getDataTextureOffsetName(name)] = offset;
+      dataTextures.set(name, { pages, itemSize: getDataTextureItemSize(format), range, dim, offset, parts: undefined });
+    }
+    values = { ...values, ...uniforms };
+  }
+  /**
+   * Writes the element `ranges` of `data` (all where undefined) into the range of the data array `name`, moved to a
+   * larger one when outgrown; of a segmented array (merged objects), the parts changed since its last write
+   */
+  const writeData = (name: string, data: DataArray<any>, ranges?: readonly number[]) => {
+    const d = dataTextures.get(name)!;
+    let all = ranges === undefined;
+    if (data.count > d.range.size) {
+      d.pages.free(d.range);
+      d.range = d.pages.allocate(data.count);
+      ValueCell.updateIfChanged(d.offset, d.range.offset);
+      if (d.dim.ref.value[0] !== d.range.width || d.dim.ref.value[1] !== d.range.height) {
+        ValueCell.update(d.dim, Vec2.create(d.range.width, d.range.height));
+      }
+      all = true;
+    }
+    const array = data.array as unknown;
+    if (SegmentedArray.is(array)) {
+      // the parts' ranges are by component, the texels by element
+      const parts = all ? undefined : SegmentedArray.changedRanges(array, d.parts);
+      if (parts) {
+        const elements: number[] = [];
+        for (let k = 0; k < parts.length; k += 2) {
+          elements.push(Math.floor(parts[k] / d.itemSize), Math.ceil(parts[k + 1] / d.itemSize));
+        }
+        d.pages.write(d.range, data, elements);
+      } else {
+        d.parts = SegmentedArray.uploaded(array);
+        d.pages.write(d.range, data);
+      }
+    } else {
+      d.parts = undefined;
+      d.pages.write(d.range, data, all ? undefined : ranges);
+    }
+  };
 
   // filter out unsupported variants
   renderVariants = renderVariants.filter((v) => {
@@ -337,8 +526,6 @@ export function createRenderItem<T extends string>(
     materialUniforms.write();
   }
 
-  const versions = getValueVersions(values);
-
   const glDrawMode = getDrawMode(ctx, drawMode);
 
   const programs: Programs = {};
@@ -349,21 +536,52 @@ export function createRenderItem<T extends string>(
   // the textures of specs with `shared`, by name, released instead of destroyed (`.v6/plans/gl/shared-textures.md` §4)
   const sharedTextures = new Map<string, SharedTexture>();
   const textures = createTextures(ctx, schema, textureValues, sharedTextures);
+  for (const [name, d] of dataTextures) {
+    writeData(name, textureValues[name].ref.value as unknown as DataArray<any>);
+    textures.push([name, d.range.texture]);
+  }
   const materialTextures = createTextures(ctx, schema, materialTextureValues, sharedTextures);
   const getTextureByteCount = (k: string, texture: Texture) =>
     sharedTextures.get(k)?.getByteCount() ?? texture.getByteCount();
   const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues, contextDefines);
   const instanceBuffers: AttributeBuffers = [];
+  // the versions of the values as last seen by `update`, per list in its order: compared for every item on every update,
+  // not looked up by name in an object of all the values (a dictionary of a hundred keys)
+  const versionsOf = (list: readonly (readonly [string, unknown])[], values: Record<string, ValueCell<any>>) =>
+    list.map(([k]) => values[k].ref.version);
+  const defineVersions = versionsOf(defineValueEntries, defineValues);
+  const attributeVersions = versionsOf(attributeBuffers, attributeValues);
+  const textureVersions = versionsOf(textures, textureValues);
+  const materialTextureVersions = versionsOf(materialTextures, materialTextureValues);
+  const backBufferUniformVersions = versionsOf(backBufferUniformValueEntries, bufferedUniformValues);
+  let drawCountVersion = values.drawCount.ref.version;
+  let instanceCountVersion = values.instanceCount.ref.version;
+  let elementsVersion = values.elements?.ref.version ?? -1;
   for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
     const ab = attributeBuffers[i];
     if (ab[1].divisor === 1) instanceBuffers.push(ab);
   }
+  /**
+   * per program whether draws without base instances offset its instanced attributes: not where it reads none (the
+   * instance data from a texture, `dInstanceData`); the names stay, a buffer replaced by an update keeps its entry
+   */
+  const offsetsInstances = new WeakMap<Program, boolean>();
+  const getOffsetsInstances = (program: Program) => {
+    let value = offsetsInstances.get(program);
+    if (value === undefined) {
+      value = program.readsAnyAttribute(instanceBuffers);
+      offsetsInstances.set(program, value);
+    }
+    return value;
+  };
 
   let elementsBuffer: ElementsBuffer | undefined;
   const elements = values.elements;
   if (elements && elements.ref.value) {
     elementsBuffer = resources.elements(elements.ref.value);
   }
+  /** quads without elements of their own draw indexed by the shared quad indices (`quad-indices.ts`) */
+  const quads = shaderCode.quads && !elementsBuffer && isQuadIndexing();
 
   // attribute locations are fixed per schema, so all variants share one vertex array
   const attributeLayout = getAttributeLayout(schema);
@@ -393,9 +611,10 @@ export function createRenderItem<T extends string>(
       }
       if (elementsBuffer) count += elementsBuffer.getByteCount();
       if (objectUniforms) count += objectUniforms.buffer.getByteCount();
-      // a shared texture by the item's share (§5)
+      // a shared texture by the item's share (§5), a data array by its range of the page
       for (let i = 0, il = textures.length; i < il; ++i) {
-        count += getTextureByteCount(textures[i][0], textures[i][1]);
+        const d = dataTextures.get(textures[i][0]);
+        count += d ? d.range.size * d.pages.bytesPerElement : getTextureByteCount(textures[i][0], textures[i][1]);
       }
       for (let i = 0, il = materialTextures.length; i < il; ++i) {
         count += getTextureByteCount(materialTextures[i][0], materialTextures[i][1]);
@@ -471,22 +690,30 @@ export function createRenderItem<T extends string>(
         }
         state.currentRenderItemId = id;
       }
+      // the shared quad indices, bound on every draw (shared, and replaced when grown); unindexed past their limit
+      const eb = quads ? resources.quadIndices.get(drawCount / QuadIndicesPerItem)?.buffer : elementsBuffer;
+      if (quads && eb) eb.bind();
       if (isDebugMode) {
         ctx.checkFramebufferStatus(`Framebuffer error rendering item id ${id}`);
       }
       if (mdbDataList) {
+        // the instanced attributes' offset: 0 where a render begins (each ends with it, a vertex array starts with it),
+        // changed only where a draw's first instance differs (one instance per object: never)
+        let instanceOffset = 0;
         for (const mdbData of mdbDataList) {
           if (mdbData.count === 0) continue;
+          // `indirectInstanceRanges` is false on WebGL: lists with GPU-written arguments are not made for it
+          if (mdbData.indirect) throw new Error('indirect draw lists are not supported on WebGL');
 
           program.setUniforms(mdbData.uniforms);
           // console.log(mdbData.uniforms)
           if (multiDrawInstancedBaseVertexBaseInstance) {
-            if (elementsBuffer) {
+            if (eb) {
               multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(
                 glDrawMode,
                 mdbData.counts,
                 0,
-                elementsBuffer._dataType,
+                eb._dataType,
                 mdbData.offsets,
                 0,
                 mdbData.instanceCounts,
@@ -512,14 +739,14 @@ export function createRenderItem<T extends string>(
               );
             }
           } else if (drawInstancedBaseVertexBaseInstance) {
-            if (elementsBuffer) {
+            if (eb) {
               for (let i = 0; i < mdbData.count; ++i) {
                 if (mdbData.counts[i] > 0) {
                   program.uniform('uDrawId', i);
                   drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(
                     glDrawMode,
                     mdbData.counts[i],
-                    elementsBuffer._dataType,
+                    eb._dataType,
                     mdbData.offsets[i],
                     mdbData.instanceCounts[i],
                     mdbData.baseVertices[i],
@@ -542,15 +769,20 @@ export function createRenderItem<T extends string>(
               }
             }
           } else {
-            if (elementsBuffer) {
+            const offsets = getOffsetsInstances(program);
+            if (eb) {
               for (let i = 0; i < mdbData.count; ++i) {
                 if (mdbData.counts[i] > 0) {
                   program.uniform('uDrawId', i);
-                  program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
+                  if (instanceData) program.uniform('uInstanceBase', mdbData.baseInstances[i]);
+                  if (offsets && mdbData.baseInstances[i] !== instanceOffset) {
+                    instanceOffset = mdbData.baseInstances[i];
+                    program.offsetAttributes(instanceBuffers, instanceOffset);
+                  }
                   instancedArrays.drawElementsInstanced(
                     glDrawMode,
                     mdbData.counts[i],
-                    elementsBuffer._dataType,
+                    eb._dataType,
                     mdbData.offsets[i],
                     mdbData.instanceCounts[i],
                   );
@@ -560,7 +792,11 @@ export function createRenderItem<T extends string>(
               for (let i = 0; i < mdbData.count; ++i) {
                 if (mdbData.counts[i] > 0) {
                   program.uniform('uDrawId', i);
-                  program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
+                  if (instanceData) program.uniform('uInstanceBase', mdbData.baseInstances[i]);
+                  if (offsets && mdbData.baseInstances[i] !== instanceOffset) {
+                    instanceOffset = mdbData.baseInstances[i];
+                    program.offsetAttributes(instanceBuffers, instanceOffset);
+                  }
                   instancedArrays.drawArraysInstanced(
                     glDrawMode,
                     mdbData.firsts[i],
@@ -586,20 +822,14 @@ export function createRenderItem<T extends string>(
         }
         if (!multiDrawInstancedBaseVertexBaseInstance && !drawInstancedBaseVertexBaseInstance) {
           // offsets are recorded in the vertex array, later draws without base instances expect 0
-          program.offsetAttributes(instanceBuffers, 0);
+          if (instanceOffset !== 0) program.offsetAttributes(instanceBuffers, 0);
         }
       } else {
         let offset = 0;
         while (true) {
           const count = Math.min(drawCount - offset, MaxDrawCount);
-          if (elementsBuffer) {
-            instancedArrays.drawElementsInstanced(
-              glDrawMode,
-              count,
-              elementsBuffer._dataType,
-              offset * elementsBuffer._bpe,
-              instanceCount,
-            );
+          if (eb) {
+            instancedArrays.drawElementsInstanced(glDrawMode, count, eb._dataType, offset * eb._bpe, instanceCount);
           } else {
             instancedArrays.drawArraysInstanced(glDrawMode, offset, count, instanceCount);
           }
@@ -622,13 +852,13 @@ export function createRenderItem<T extends string>(
       currentProgramId = -1;
 
       if (emulateVertexId) ensureVertexIds(getEmulatedVertexCount());
+      if (instanceData) syncInstanceData();
 
       for (let i = 0, il = defineValueEntries.length; i < il; ++i) {
-        const [k, value] = defineValueEntries[i];
-        if (value.ref.version !== versions[k]) {
-          // console.log('define version changed', k);
+        const value = defineValueEntries[i][1];
+        if (value.ref.version !== defineVersions[i]) {
           valueChanges.defines = true;
-          versions[k] = value.ref.version;
+          defineVersions[i] = value.ref.version;
         }
       }
 
@@ -646,25 +876,25 @@ export function createRenderItem<T extends string>(
         }
       }
 
-      if (values.drawCount.ref.version !== versions.drawCount) {
+      if (values.drawCount.ref.version !== drawCountVersion) {
         // console.log('drawCount version changed');
         stats.drawCount += values.drawCount.ref.value - drawCount;
         stats.instancedDrawCount += instanceCount * values.drawCount.ref.value - instanceCount * drawCount;
         drawCount = values.drawCount.ref.value;
-        versions.drawCount = values.drawCount.ref.version;
+        drawCountVersion = values.drawCount.ref.version;
       }
-      if (values.instanceCount.ref.version !== versions.instanceCount) {
+      if (values.instanceCount.ref.version !== instanceCountVersion) {
         // console.log('instanceCount version changed');
         stats.instanceCount += values.instanceCount.ref.value - instanceCount;
         stats.instancedDrawCount += values.instanceCount.ref.value * drawCount - instanceCount * drawCount;
         instanceCount = values.instanceCount.ref.value;
-        versions.instanceCount = values.instanceCount.ref.version;
+        instanceCountVersion = values.instanceCount.ref.version;
       }
 
       for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
         const [k, buffer] = attributeBuffers[i];
         const value = attributeValues[k];
-        if (value.ref.version !== versions[k]) {
+        if (value.ref.version !== attributeVersions[i]) {
           if (buffer.length >= value.ref.value.length) {
             // console.log('attribute array large enough to update', buffer.id, k, value.ref.id, value.ref.version);
             buffer.updateSubData(value.ref.value, 0, buffer.length);
@@ -675,11 +905,11 @@ export function createRenderItem<T extends string>(
             attributeBuffers[i][1] = resources.attribute(value.ref.value, itemSize, divisor);
             valueChanges.attributes = true;
           }
-          versions[k] = value.ref.version;
+          attributeVersions[i] = value.ref.version;
         }
       }
 
-      if (elementsBuffer && values.elements.ref.version !== versions.elements) {
+      if (elementsBuffer && values.elements.ref.version !== elementsVersion) {
         if (elementsBuffer.length >= values.elements.ref.value.length) {
           // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version);
           elementsBuffer.updateSubData(values.elements.ref.value, 0, elementsBuffer.length);
@@ -689,7 +919,7 @@ export function createRenderItem<T extends string>(
           elementsBuffer = resources.elements(values.elements.ref.value);
           valueChanges.elements = true;
         }
-        versions.elements = values.elements.ref.version;
+        elementsVersion = values.elements.ref.version;
       }
 
       if (valueChanges.attributes || valueChanges.elements) {
@@ -703,7 +933,7 @@ export function createRenderItem<T extends string>(
       for (let i = 0, il = textures.length; i < il; ++i) {
         const [k, texture] = textures[i];
         const value = textureValues[k];
-        if (value.ref.version !== versions[k]) {
+        if (value.ref.version !== textureVersions[i]) {
           const held = sharedTextures.get(k);
           if (held) {
             // the same image uploads once for all its items, another image is another texture (§4)
@@ -718,22 +948,27 @@ export function createRenderItem<T extends string>(
               textures[i][1] = next.texture;
             }
             valueChanges.textures = true;
+          } else if ((schema[k] as TextureSpec<TextureKind>).data !== undefined) {
+            // a data array (`DataSpec`): the changed elements only where logged (`TextureChanges`)
+            const data = value.ref.value as unknown as DataArray<any>;
+            writeData(k, data, TextureChanges.get(data, textureVersions[i], value.ref.version));
+            textures[i][1] = dataTextures.get(k)!.range.texture;
+            valueChanges.textures = true;
           } else if (schema[k].kind !== 'texture') {
             // update of textures with kind 'texture' is done externally
-            // console.log('texture version changed, uploading image', k);
             texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
             valueChanges.textures = true;
           } else {
             textures[i][1] = value.ref.value as Texture;
           }
-          versions[k] = value.ref.version;
+          textureVersions[i] = value.ref.version;
         }
       }
 
       for (let i = 0, il = materialTextures.length; i < il; ++i) {
         const [k, texture] = materialTextures[i];
         const value = materialTextureValues[k];
-        if (value.ref.version !== versions[k]) {
+        if (value.ref.version !== materialTextureVersions[i]) {
           const held = sharedTextures.get(k);
           if (held) {
             // the same image uploads once for all its items, another image is another texture (§4)
@@ -756,16 +991,15 @@ export function createRenderItem<T extends string>(
           } else {
             materialTextures[i][1] = value.ref.value as Texture;
           }
-          versions[k] = value.ref.version;
+          materialTextureVersions[i] = value.ref.version;
         }
       }
 
       for (let i = 0, il = backBufferUniformValueEntries.length; i < il; ++i) {
-        const [k, uniform] = backBufferUniformValueEntries[i];
-        if (uniform.ref.version !== versions[k]) {
-          // console.log('back-buffer uniform version changed, updating front-buffer', k);
+        const uniform = backBufferUniformValueEntries[i][1];
+        if (uniform.ref.version !== backBufferUniformVersions[i]) {
           ValueCell.update(frontBufferUniformValueEntries[i][1], deepClone(uniform.ref.value));
-          versions[k] = uniform.ref.version;
+          backBufferUniformVersions[i] = uniform.ref.version;
         }
       }
     },
@@ -778,7 +1012,9 @@ export function createRenderItem<T extends string>(
         for (const list of [textures, materialTextures]) {
           for (const [k, texture] of list) {
             const held = sharedTextures.get(k);
+            const d = dataTextures.get(k);
             if (held) held.release();
+            else if (d) d.pages.free(d.range);
             // lifetime of textures with kind 'texture' is defined externally
             else if (schema[k].kind !== 'texture') texture.destroy();
           }

@@ -6,7 +6,7 @@
  */
 
 import { sort, arraySwap } from '@molstar/core/data/util';
-import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import type { LinesValues } from '@molstar/graphics/gl/renderable/lines';
 import type { PointsValues } from '@molstar/graphics/gl/renderable/points';
@@ -14,7 +14,7 @@ import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import type { CylindersValues } from '@molstar/graphics/gl/renderable/cylinders';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import type { BaseValues, SizeValues } from '@molstar/graphics/gl/renderable/schema';
-import type { TextureImage } from '@molstar/graphics/gl/renderable/util';
+import type { DataArray } from '@molstar/graphics/gl/renderable/util';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import type { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
@@ -71,7 +71,7 @@ export interface AddMeshInput {
   values: BaseValues & {
     readonly uDoubleSided?: ValueCell<boolean>;
     readonly aGroup?: ValueCell<Float32Array>;
-    readonly tPositionGroup?: ValueCell<TextureImage<Float32Array>>;
+    readonly tPositionGroup?: ValueCell<DataArray<Float32Array>>;
   };
   isGeoTexture: boolean;
   mode: MeshMode;
@@ -83,7 +83,7 @@ export interface AddMeshInput {
 export type MeshGeoData = {
   values: BaseValues & {
     readonly aGroup?: ValueCell<Float32Array>;
-    readonly tPositionGroup?: ValueCell<TextureImage<Float32Array>>;
+    readonly tPositionGroup?: ValueCell<DataArray<Float32Array>>;
   };
   groups?: Float32Array | Uint8Array;
   vertexCount: number;
@@ -96,7 +96,7 @@ export type MeshGeoData = {
 export abstract class MeshExporter<D extends RenderObjectExportData> implements RenderObjectExporter<D> {
   abstract readonly fileExtension: string;
 
-  private static getSizeFromTexture(tSize: TextureImage<Uint8Array>, i: number): number {
+  private static getSizeFromTexture(tSize: DataArray<Uint8Array>, i: number): number {
     const r = tSize.array[i * 4];
     const g = tSize.array[i * 4 + 1];
     const b = tSize.array[i * 4 + 2];
@@ -160,7 +160,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const { values, vertexCount, vertices, colorType, stride } = input;
     const colorGridTransform = values.uColorGridTransform.ref.value;
     const colorGridDim = values.uColorGridDim.ref.value;
-    const colorTexDim = values.uColorTexDim.ref.value;
+    const colorTexDim = values.uColorGridTexDim.ref.value;
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
@@ -195,7 +195,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const { values, vertexCount, vertices, colorType, stride } = input;
     const overpaintGridTransform = values.uOverpaintGridTransform.ref.value;
     const overpaintGridDim = values.uOverpaintGridDim.ref.value;
-    const overpaintTexDim = values.uOverpaintTexDim.ref.value;
+    const overpaintTexDim = values.uOverpaintGridTexDim.ref.value;
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
@@ -230,7 +230,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const { values, vertexCount, vertices, colorType, stride } = input;
     const transparencyGridTransform = values.uTransparencyGridTransform.ref.value;
     const transparencyGridDim = values.uTransparencyGridDim.ref.value;
-    const transparencyTexDim = values.uTransparencyTexDim.ref.value;
+    const transparencyTexDim = values.uTransparencyGridTexDim.ref.value;
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
@@ -983,12 +983,17 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
   private async addTextureMesh(values: TextureMeshValues, graphics: GraphicsContext, ctx: RuntimeContext) {
     const table = values.sIsoTable.ref.value;
-    if (values.dIsoChunks.ref.value && table && graphics.compute) {
+    const arena = values.sIsoVertices.ref.value;
+    if (values.dIsoChunks.ref.value && table && arena && graphics.compute) {
       // in pages of the vertex arena (WebGPU): the count read back, the vertices gathered from the pages
       await graphics.resources.pending.whenReady();
       const meta = values.meta.ref.value as TextureMesh['meta'];
       const count = meta.readVertexCount ?? values.drawCount.ref.value;
-      const { vertices, normals, groups, vertexCount } = await readChunkedVertices(graphics.compute, table, count);
+      const { vertices, normals, groups, vertexCount } = await readChunkedVertices(
+        graphics.compute,
+        { table, vertices: arena },
+        count,
+      );
       await this.addMeshWithColors({
         mesh: { vertices, normals, indices: undefined, groups, vertexCount, drawCount: vertexCount },
         meshes: undefined,
@@ -1030,8 +1035,14 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     });
   }
 
-  add(renderObject: GraphicsRenderObject, graphics: GraphicsContext, ctx: RuntimeContext) {
+  async add(renderObject: GraphicsRenderObject, graphics: GraphicsContext, ctx: RuntimeContext): Promise<void> {
     if (!renderObject.state.visible && !this.options.includeHidden) return;
+    // a merged object's values are its members' in segments (group and layer offsets per member): its members are
+    // exported, each with its own values
+    if (isMergedRenderObject(renderObject)) {
+      for (const member of renderObject.members) await this.add(member, graphics, ctx);
+      return;
+    }
     if (renderObject.values.drawCount.ref.value === 0) return;
     if (renderObject.values.instanceCount.ref.value === 0) return;
 

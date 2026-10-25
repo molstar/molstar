@@ -2,10 +2,46 @@
 
 ## Status
 
-- **Current**: not started. Layer B of [webgpu-draw-submission.md](webgpu-draw-submission.md) (paused) builds on it,
-  shared per context in pages.
-- Not started; planning only. Part of the WebGPU work in [backend-split.md](backend-split.md); rules in
-  [minimum-capabilities.md](minimum-capabilities.md).
+- **Current**: done, in part by other work. On WebGPU the index-addressed theme layers (tColor, tSize, tMarker, the
+  layers, tPositionGroup) are read from storage since [shared-draw-resources.md](shared-draw-resources.md) step 3.1:
+  shared per-context data pages (`webgpu/data-layers.ts`, an item's layers in one range, word offsets in object
+  uniforms, range uploads), generated `read_tX(i)` accessors (sizes as rgba8), not an arena per render object. GPU
+  surfaces read a vertex arena ([gpu-surface-buffers.md](gpu-surface-buffers.md)), GPU culling writes instance data into
+  storage buffers used as vertex buffers ([merged-render-objects.md](merged-render-objects.md) step 6). Palettes and
+  images stay sampled textures.
+- Steps 1 and 2 done: the layers are `DataSpec`s (`rgba8`, `r8`, `rgba32f`), their values `DataArray`s (`{ array,
+  count }`, no 2D layout, no padding; producers allocate whole words), read by accessors `read_<name>(i)` in GLSL and
+  WGSL alike. WebGL lays each out as a data texture (`webgl/data-textures.ts`: the schema's data specs become textures
+  and object size uniforms `u<Name>TexDim` of the backend, the GLSL accessors generated with the declarations; rows
+  uploaded from views of the array, the last row's elements apart, no padded copy, `Texture.loadData`); WebGPU reads
+  them from the pages, direct volumes too now (their trilinear vertex colors read element by element). The grids'
+  2D layouts have uniforms of their own (`u…GridTexDim`, were the layers'). Deviations from the design below:
+  `tPalette` (sampled, filtered) and `tGroupTex` (image) stay textures; no neutral `getDataLayout` (step 3), each
+  backend lays out by count. Compute consumers that load a layer into a texture of their own (texture-mesh color
+  smoothing) lay it out with `getDataTextureImage` (a copy). Frames, recolor and hover unchanged within the noise on
+  WebGL 2 and WebGPU; WebGL's texture count per stage is unchanged (the minimum-limits test counts the accessors).
+- WebGL data pages, as WebGPU's: the data arrays in ranges of textures shared per context and format
+  (`webgl/data-pages.ts`: 1M elements of the 8-bit formats, 256K of `rgba32f`, 2048 wide; larger arrays a texture of
+  their own; the range allocator shared with WebGPU, `range-allocator.ts`), offsets in object uniforms `u<Name>Offset`
+  (integer math on WebGL2, float math on WebGL1, whose integers may be 16-bit), writes by element range from any offset.
+  Programs skip binding a page where its unit has it (`WebGLState.boundTextures`, pages only: they are never render
+  targets). Measured, three interleaved runs: WebGL2 1000 unmerged spacefill units 10.7 to 2.9 ms per frame, hover 21.6
+  to 5.4, cartoon 8.4 to 4.2, `boxes-1000` 7.5 to 4.8; WebGL1 spacefill 10.9 to 6.2; merged objects unchanged. Found on
+  the way: allocating a texture's storage left it bound at the active unit, where a sampler no pass provided (the DPOIT
+  textures before the first DPOIT pass) read it while drawn into, a feedback loop; now unbound, and a pass unbinds the
+  global samplers it does not provide.
+- Step 5 done in this form: an item's layers together beyond the binding limit (`WebGPUContext.dataBindingSize`, the
+  device's `maxStorageBufferBindingSize` or less by option) are packed largest first into up to 4 pages, each within it
+  (`sDataPage`, `sDataPage1..3`); the layout is a define (`dDataLayerPages`, 2 bits per layer) present only where not
+  0, so items within the limit keep their programs and precompile keys. Items beyond it compile their programs on
+  demand, not precompiled (their layout is known only from the data), again when an update changes it; their draws are
+  skipped until the pipelines are ready. A single layer beyond the limit is not drawn, with a warning: windows of one
+  layer are not done (a group-instance layer of 128 MiB is 32M elements). Updates skip an item whose layers' versions
+  are unchanged (the update stage of unmerged recolor of 1000 units 6.0-6.5 to 4.7-5.3 ms; rendering unchanged).
+  Multi-page draws measured with the limit lowered (`pnpm benchmark --data-binding 1572864`): the 300k-atom globule's
+  sphere items (1.9 MB of layers) read color and size from a second page; `globule-300k-spacefill` 4.39 / 4.39 ms,
+  `-large` 14.61 / 14.62, the images the same. Where the design below says an arena per render object, the code shares
+  pages per context.
 
 ## Question
 
@@ -78,23 +114,26 @@ Availability (WebGPU core, default limits):
 
 ## Steps
 
-1. Introduce `DataSpec` with flat typed array values and convert the data arrays listed above; the WebGL backend lays
-   them out into data textures and owns the `uXTexDim` uniforms (removed from the schemas, generated with the
-   accessors); value producers (themes, `createValues`, merged objects) stop computing texture sizes. Unit test that
-   every `DataSpec` is only read through its accessor.
-2. Introduce accessor functions in the GLSL chunks (WebGL behavior unchanged, visual tests on all profiles).
-3. Neutral data layout (`getDataLayout`) with packing rules and unit tests (offsets, word counts, merged segments).
-4. WGSL: arena declaration and accessors generated from the layout; minimum-limits tests for storage buffers per stage
-   and binding sizes.
-5. Large arrays: windowed bindings per instance range at default limits; optional higher `requiredLimits`; documented in
-   minimum-capabilities.
+1. (done, but `tPalette` and `tGroupTex`, see Status) Introduce `DataSpec` with flat typed array values and convert the
+   data arrays listed above; the WebGL backend lays them out into data textures and owns the `uXTexDim` uniforms
+   (removed from the schemas, generated with the accessors); value producers (themes, `createValues`, merged objects)
+   stop computing texture sizes. Unit test that every `DataSpec` is only read through its accessor
+   (`data-accessors.test.ts`).
+2. (done) Introduce accessor functions in the GLSL chunks (WebGL behavior unchanged, visual tests on all profiles).
+3. (not needed) Neutral data layout (`getDataLayout`): each backend lays out by count (WebGL rows, WebGPU pages).
+4. (done, as pages) WGSL accessors generated from the schema; minimum-limits tests for storage buffers per stage and
+   binding sizes.
+5. (done, by pages) Large arrays: an item's layers across up to 4 bound pages, each within the binding limit (see
+   Status); one layer beyond the limit is not drawn (windows of one layer not done); higher limits with
+   `limits: 'adapter'`.
 6. Vertex pulling on the same mechanism (attribute-bindings step 6).
 
 ## Decisions
 
 - `DataSpec` for index-addressed data arrays, `TextureSpec` only for genuine 2D/3D textures.
 - One data arena per render object for now (smallest change from the per-render-object data textures); sharing per
-  material/visual can come later.
+  material/visual can come later: planned in [shared-draw-resources.md](shared-draw-resources.md) (the data arrays as
+  ranges of a store shared with the geometry, by representation and material, updated by range).
 - WebGPU core only, no compatibility mode.
 - `DataSpec` values are flat typed arrays with an element count (and element format); the 2D texture layout
   (width/height, padding, `uXTexDim`) is a WebGL implementation detail computed by the WebGL backend.

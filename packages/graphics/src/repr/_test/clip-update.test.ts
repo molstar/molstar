@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -154,8 +155,8 @@ function changedValues(before: ReturnType<typeof versions>, after: readonly Grap
   return [...changed].sort();
 }
 
-/** What a clip-only update may touch: uniforms (some are set on every update, `uLod`) and the clip defines */
-const ClipValues = /^(u\w+|dClipObjectCount|dClipVariant)$/;
+/** What a clip-only update may touch: uniforms (some are set on every update, `uLod`), the clip defines and objects */
+const ClipValues = /^(u\w+|dClipObjects|dClipObjectCount|dClipVariant|clipObjects)$/;
 
 describe('a clip-only update', async () => {
   const structure = await load1cbs();
@@ -194,7 +195,7 @@ describe('a clip-only update', async () => {
       expect(repr.renderObjects.map((ro) => ro.id)).toEqual(ros.map((ro) => ro.id));
       const changed = changedValues(before, repr.renderObjects);
       expect(changed.filter((k) => !ClipValues.test(k))).toEqual([]);
-      expect(changed).toContain('dClipObjectCount');
+      expect(changed).toContain('uClipObjectCount');
     });
   }
 });

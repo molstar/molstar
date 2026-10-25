@@ -32,7 +32,7 @@ import { TextureMesh } from './texture-mesh.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { computeColorSmoothing, isComputeColorSmoothingSupported } from '@molstar/graphics/gl/compute/color-smoothing';
 import type { StorageBuffer } from '@molstar/graphics/gl/compute';
-import type { TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, getDataTextureImage } from '@molstar/graphics/gl/renderable/util';
 import { getRowReachedTest, getSplatInstances } from '../mesh/color-smoothing.js';
 
 export const ColorAccumulateSchema = {
@@ -79,7 +79,7 @@ interface AccumulateInput {
   groupTexture: Texture;
   /** the page table and positions of a surface in the vertex arena (WebGPU), instead of the textures; smoothed with
    * compute kernels */
-  chunks?: { table: StorageBuffer; positions: StorageBuffer };
+  chunks?: { table: StorageBuffer; vertices: StorageBuffer };
   colorData: Texture;
   colorType: 'group' | 'groupInstance';
 }
@@ -92,8 +92,8 @@ function getVertexBox(values: TextureMeshValues) {
 /** The vertices in pages of the vertex arena, see `TextureMesh.isoChunks` */
 function getChunks(values: TextureMeshValues): AccumulateInput['chunks'] {
   const table = values.sIsoTable.ref.value;
-  const positions = values.sIsoPositions.ref.value;
-  return values.dIsoChunks.ref.value && table && positions ? { table, positions } : undefined;
+  const vertices = values.sIsoVertices.ref.value;
+  return values.dIsoChunks.ref.value && table && vertices ? { table, vertices } : undefined;
 }
 
 function getSampleBuffer(sampleCount: number, stride: number) {
@@ -278,8 +278,8 @@ function getTexture2dSize(gridDim: Vec3) {
 interface ColorSmoothingInput extends AccumulateInput {
   boundingSphere: Sphere3D;
   invariantBoundingSphere: Sphere3D;
-  /** the layer as loaded into `colorData`, with `itemSize` values per texel */
-  layer?: { image: TextureImage<Uint8Array>; itemSize: 4 | 1 };
+  /** the layer as loaded into `colorData`, with `itemSize` values per element */
+  layer?: { image: DataArray<Uint8Array>; itemSize: 4 | 1 };
   /** a box holding every untransformed vertex (`TextureMesh['meta']['vertexBox']`) */
   vertexBox?: Box3D;
 }
@@ -667,7 +667,7 @@ export function applyTextureMeshColorSmoothing(
       );
     }
     const colorData = graphics.namedTextures[ColorSmoothingColorName];
-    colorData.load(values.tColor.ref.value);
+    colorData.load(getDataTextureImage(values.tColor.ref.value, 4));
 
     const smoothingData = calcTextureMeshColorSmoothing(
       {
@@ -694,7 +694,7 @@ export function applyTextureMeshColorSmoothing(
     colorTexture = smoothingData.texture;
     setColorType(values, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);
-    ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uColorGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
     ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
   };
@@ -730,7 +730,7 @@ export function applyTextureMeshOverpaintSmoothing(
       );
     }
     const colorData = graphics.namedTextures[ColorSmoothingRgbaName];
-    colorData.load(values.tOverpaint.ref.value);
+    colorData.load(getDataTextureImage(values.tOverpaint.ref.value, 4));
 
     const smoothingData = calcTextureMeshColorSmoothing(
       {
@@ -758,7 +758,7 @@ export function applyTextureMeshOverpaintSmoothing(
     colorTexture = smoothingData.texture;
     setOverpaintType(values, smoothingData.type);
     ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
-    ValueCell.update(values.uOverpaintTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uOverpaintGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uOverpaintGridDim, smoothingData.gridDim);
     ValueCell.update(values.uOverpaintGridTransform, smoothingData.gridTransform);
   };
@@ -794,7 +794,7 @@ export function applyTextureMeshTransparencySmoothing(
       );
     }
     const colorData = graphics.namedTextures[ColorSmoothingAlphaName];
-    colorData.load(values.tTransparency.ref.value);
+    colorData.load(getDataTextureImage(values.tTransparency.ref.value, 1));
 
     const smoothingData = calcTextureMeshColorSmoothing(
       {
@@ -822,7 +822,7 @@ export function applyTextureMeshTransparencySmoothing(
     colorTexture = smoothingData.texture;
     setTransparencyType(values, smoothingData.type);
     ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
-    ValueCell.update(values.uTransparencyTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uTransparencyGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
     ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
   };
@@ -858,7 +858,7 @@ export function applyTextureMeshEmissiveSmoothing(
       );
     }
     const colorData = graphics.namedTextures[ColorSmoothingAlphaName];
-    colorData.load(values.tEmissive.ref.value);
+    colorData.load(getDataTextureImage(values.tEmissive.ref.value, 1));
 
     const smoothingData = calcTextureMeshColorSmoothing(
       {
@@ -886,7 +886,7 @@ export function applyTextureMeshEmissiveSmoothing(
     colorTexture = smoothingData.texture;
     setEmissiveType(values, smoothingData.type);
     ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
-    ValueCell.update(values.uEmissiveTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uEmissiveGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uEmissiveGridDim, smoothingData.gridDim);
     ValueCell.update(values.uEmissiveGridTransform, smoothingData.gridTransform);
   };
@@ -922,7 +922,7 @@ export function applyTextureMeshSubstanceSmoothing(
       );
     }
     const colorData = graphics.namedTextures[ColorSmoothingRgbaName];
-    colorData.load(values.tSubstance.ref.value);
+    colorData.load(getDataTextureImage(values.tSubstance.ref.value, 4));
 
     const smoothingData = calcTextureMeshColorSmoothing(
       {
@@ -950,7 +950,7 @@ export function applyTextureMeshSubstanceSmoothing(
     colorTexture = smoothingData.texture;
     setSubstanceType(values, smoothingData.type);
     ValueCell.update(values.tSubstanceGrid, smoothingData.texture);
-    ValueCell.update(values.uSubstanceTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uSubstanceGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uSubstanceGridDim, smoothingData.gridDim);
     ValueCell.update(values.uSubstanceGridTransform, smoothingData.gridTransform);
   };

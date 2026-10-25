@@ -24,6 +24,7 @@ import { Interval } from '@molstar/core/data/int';
 import { type LocationCallback, VisualUpdateState } from '../util.js';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { ValueCell, deepEqual } from '@molstar/core/util';
+import { shallowMerge2 } from '@molstar/core/util/object';
 import { createSizes, type SizeData } from '@molstar/graphics/geo/geometry/size-data';
 import { createColors } from '@molstar/graphics/geo/geometry/color-data';
 import { MarkerAction } from '@molstar/core/util/marker-action';
@@ -169,7 +170,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
       throw new Error('missing structure');
     }
 
-    newProps = Object.assign({}, currentProps, props);
+    // the same object while no prop changes (compared with the visual's own: callers may change theirs in place)
+    newProps = currentProps ? shallowMerge2(currentProps, props) : Object.assign({}, currentProps, props);
     newTheme = theme;
     newStructure = structure;
 
@@ -210,7 +212,9 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
       updateState.updateSize = true;
     }
 
-    if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+    // the representation keeps its props object while no prop changes (`shallowMerge2`): the same props, no prop changed
+    const propsChanged = newProps !== currentProps;
+    if (propsChanged && !deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
       updateState.createGeometry = true;
     }
 
@@ -220,7 +224,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
       updateState.updateTransform = true;
     }
 
-    if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+    if (propsChanged && newProps.instanceGranularity !== currentProps.instanceGranularity) {
       updateState.updateTransform = true;
     }
 
@@ -250,8 +254,13 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         throw new Error('expected renderObject to be available');
       }
 
-      if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
-        // console.log('update locationIterator');
+      // a new iterator where what it iterates may differ: the transform, the structure or the props (the color and size
+      // writers reset it); a recolor keeps it
+      if (
+        updateState.updateTransform ||
+        ((updateState.updateColor || updateState.updateSize) &&
+          (newProps !== currentProps || newStructure !== currentStructure))
+      ) {
         locationIt = createLocationIterator(newStructure, newProps);
       }
 
@@ -292,8 +301,18 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         createColors(locationIt, positionIt, newTheme.color, renderObject.values);
       }
 
-      updateValues(renderObject.values, newProps);
-      updateRenderableState(renderObject.state, newProps);
+      // the values from the props: again where the props or what the values derive from besides them changed (counts,
+      // bounds, sizes)
+      if (
+        newProps !== currentProps ||
+        updateState.createGeometry ||
+        updateState.updateTransform ||
+        updateState.updateMatrix ||
+        updateState.updateSize
+      ) {
+        updateValues(renderObject.values, newProps);
+        updateRenderableState(renderObject.state, newProps);
+      }
     }
 
     currentProps = newProps;
@@ -395,9 +414,6 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     },
     setVisibility(visible: boolean) {
       Visual.setVisibility(renderObject, visible);
-    },
-    setAlphaFactor(alphaFactor: number) {
-      Visual.setAlphaFactor(renderObject, alphaFactor);
     },
     setPickable(pickable: boolean) {
       Visual.setPickable(renderObject, pickable);

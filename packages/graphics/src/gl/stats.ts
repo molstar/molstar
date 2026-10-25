@@ -55,6 +55,21 @@ export function createGraphicsStats() {
     cacheHits: {
       cull: 0,
     },
+
+    /**
+     * passes drawn from draw lists (`RendererProps.drawLists`): replayed (`unplanned`: of them, without planning, nothing
+     * the plan read changed; `flushed`: with changed data written first), and recorded in part or whole (or drawn,
+     * where a recording failed; `chunksRecorded`: the chunks of their objects recorded; `chunksDirect`: drawn without
+     * their recordings while changing every frame)
+     */
+    drawLists: {
+      replayed: 0,
+      unplanned: 0,
+      flushed: 0,
+      recorded: 0,
+      chunksRecorded: 0,
+      chunksDirect: 0,
+    },
   };
 }
 

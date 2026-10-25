@@ -84,8 +84,16 @@ function createGaussianDensityVolume(
   return create(directVolume);
 }
 
+/**
+ * Empty space skipping of the Gaussian volume: a sample this far ahead (in Å) is probed where the density is below 0.01
+ * and the space between skipped if it is too (approximate: may step over thin features); volumes skip bricks the
+ * transfer function makes transparent instead, which the GPU-made density has no CPU grid for
+ */
+const JumpLengthParam = PD.Numeric(4, { min: 0, max: 20, step: 0.1 });
+
 export const GaussianDensityVolumeParams = {
   ...ComplexDirectVolumeParams,
+  jumpLength: JumpLengthParam,
   ...omitObjectKeys(GaussianDensityParams, ['floodfill']),
   ignoreHydrogens: PD.Boolean(false),
   ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
@@ -182,6 +190,7 @@ function createUnitsGaussianDensityVolume(
 
 export const UnitsGaussianDensityVolumeParams = {
   ...UnitsDirectVolumeParams,
+  jumpLength: JumpLengthParam,
   ...omitObjectKeys(GaussianDensityParams, ['floodfill']),
   ignoreHydrogens: PD.Boolean(false),
   ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),

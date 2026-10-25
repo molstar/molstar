@@ -10,8 +10,11 @@ import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cu
 import { createHistogramPyramid } from '@molstar/graphics/gl/webgl/compute/histogram-pyramid/reduction';
 import { calcActiveVoxels } from '@molstar/graphics/gl/webgl/compute/marching-cubes/active-voxels';
 import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
-import { computeChunkedIsosurface, destroyChunkedSurface } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
-import { IsosurfaceChunkSize } from '@molstar/graphics/gl/compute/marching-cubes/chunk-size';
+import {
+  computeChunkedIsosurface,
+  destroyChunkedSurface,
+  getChunkByteCount,
+} from '@molstar/graphics/gl/compute/marching-cubes/chunks';
 import { createIsosurfaceBuffers } from '@molstar/graphics/gl/webgl/compute/marching-cubes/isosurface';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
@@ -139,8 +142,8 @@ async function webgpuPath(graphics: GraphicsContext, { volume, isoLevel }: Volum
   );
   const { count, pages } = await result.count;
   await timer.stage('marching cubes');
-  // 24 B per vertex of the pages taken
-  const bytes = pages * IsosurfaceChunkSize * 24;
+  // the bytes of the pages taken
+  const bytes = getChunkByteCount(pages);
   buffer.destroy();
   destroyChunkedSurface(compute, result.surface);
   return { stages: timer.stages, triangles: count / 3, bytes };

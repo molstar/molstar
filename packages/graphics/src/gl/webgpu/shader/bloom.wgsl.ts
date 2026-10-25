@@ -7,25 +7,49 @@
 import { depth_wgsl } from './chunks/depth.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
+import type { DefineLookup } from '../../renderable/schema.js';
 
-/** Bloom seed: bright parts of the composited scene (luminosity) or the emissive prepass */
-export const bloom_luminosity_wgsl = /* wgsl */ `
-${depth_wgsl}
-${packing_wgsl}
-${quad_vert_wgsl}
-${texture_read_wgsl('tColorOpaque')}
+/** The blended transparency of the luminosity seed, read with `dBlendTransparency` only */
+const luminosity_transparent_wgsl = /* wgsl */ `
 ${texture_read_wgsl('tColorTransparent')}
-${texture_read_wgsl('tEmissive')}
-${texture_read_wgsl('tDepthOpaque')}
 ${texture_read_wgsl('tDepthTransparent')}
 
-fn getDepthOpaque(coords: vec2<f32>) -> f32 {
-    // depth textures are always available on WebGPU
-    return read_tDepthOpaque(coords).r;
+fn getColorTransparent(coords: vec2<f32>) -> vec4<f32> {
+    return read_tColorTransparent(coords);
 }
 
 fn getDepthTransparent(coords: vec2<f32>) -> f32 {
     return unpackRGBAToDepthWithAlpha(read_tDepthTransparent(coords)).x;
+}
+`;
+
+/** Without blended transparency: nothing in front of the opaque scene (the far plane, depth reversed) */
+const luminosity_opaque_wgsl = /* wgsl */ `
+fn getColorTransparent(coords: vec2<f32>) -> vec4<f32> {
+    return vec4<f32>(0.0);
+}
+
+fn getDepthTransparent(coords: vec2<f32>) -> f32 {
+    return 0.0;
+}
+`;
+
+/**
+ * Bloom seed: bright parts of the composited scene (luminosity) or the emissive prepass; the transparent textures are
+ * read with `dBlendTransparency` only (`WgslProgram.source`)
+ */
+export const bloom_luminosity_wgsl = (d: DefineLookup) => /* wgsl */ `
+${depth_wgsl}
+${packing_wgsl}
+${quad_vert_wgsl}
+${texture_read_wgsl('tColorOpaque')}
+${texture_read_wgsl('tEmissive')}
+${texture_read_wgsl('tDepthOpaque')}
+${d('dBlendTransparency') ? luminosity_transparent_wgsl : luminosity_opaque_wgsl}
+
+fn getDepthOpaque(coords: vec2<f32>) -> f32 {
+    // depth textures are always available on WebGPU
+    return read_tDepthOpaque(coords).r;
 }
 
 fn isBackground(depth: f32) -> bool {
@@ -37,7 +61,7 @@ fn isBackground(depth: f32) -> bool {
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let coords = fragmentUv(in.position, 1.0 / uObject.uTexSizeInv);
     var opaqueTexel = read_tColorOpaque(coords);
-    let transparentTexel = read_tColorTransparent(coords);
+    let transparentTexel = getColorTransparent(coords);
     // fog illumination's un-fogged opaque seed by the opaque depth, matching standard's per-layer fog
     if (uObject.uOpaqueFogged == 0u) {
         let viewZ = depthToViewZ(uObject.uIsOrtho, getDepthOpaque(coords), uObject.uNear, uObject.uFar);

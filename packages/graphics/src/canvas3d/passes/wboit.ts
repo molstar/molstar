@@ -19,6 +19,7 @@ import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode } from '@molstar/core/util/debug';
 import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
+import type { PassTargets } from './pass-targets.js';
 
 export const EvaluateWboitSchema = {
   ...QuadSchema,
@@ -57,7 +58,8 @@ export class WboitPass {
   private readonly framebuffer: Framebuffer;
   private readonly textureA: Texture;
   private readonly textureB: Texture;
-  private readonly depthRenderbuffer: Renderbuffer;
+  /** the stencil (and depth) of solid interior caps, shared, see the constructor */
+  private readonly depthRenderbuffer: Renderbuffer | null;
 
   private _supported = false;
   get supported() {
@@ -66,7 +68,7 @@ export class WboitPass {
 
   getByteCount() {
     if (!this._supported) return 0;
-    return this.textureA.getByteCount() + this.textureB.getByteCount() + this.depthRenderbuffer.getByteCount();
+    return this.textureA.getByteCount() + this.textureB.getByteCount();
   }
 
   bind(b: PassBuilder) {
@@ -83,7 +85,6 @@ export class WboitPass {
     if (width !== w || height !== h) {
       this.textureA.define(width, height);
       this.textureB.define(width, height);
-      this.depthRenderbuffer.setSize(width, height);
       ValueCell.update(
         this.renderable.values.uTexSize,
         Vec2.set(this.renderable.values.uTexSize.ref.value, width, height),
@@ -97,7 +98,7 @@ export class WboitPass {
     this.textureA.attachFramebuffer(this.framebuffer, 'color0');
     this.textureB.attachFramebuffer(this.framebuffer, 'color1');
 
-    this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
+    this.depthRenderbuffer?.attachFramebuffer(this.framebuffer);
   }
 
   /** Why wboit is not available, if it is not: programs or capabilities missing */
@@ -113,18 +114,33 @@ export class WboitPass {
     return !reason;
   }
 
-  constructor(graphics: GraphicsContext, width: number, height: number) {
+  /**
+   * `depthStencil`: the depth-stencil buffer of the passes' size the transparent objects are drawn with, only used by
+   * solid interior caps (their stencil, cleared per cap) and for the depth the impostors write; shared with a pass
+   * that uses it earlier in the frame (the transparent depth target), not of this pass, which owns no depth
+   */
+  constructor(targets: PassTargets, width: number, height: number, depthStencil: Renderbuffer | null = null) {
+    const { graphics } = targets;
     if (!WboitPass.isSupported(graphics)) return;
 
     const { resources } = graphics;
 
-    this.textureA = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    const { mixedAttachmentFormats, halfFloatRenderTarget } = graphics.capabilities;
+    // the weighted colors and the revealage: half floats, as in the original method, where the attachments may differ
+    // in format (WebGL1: not, both float)
+    this.textureA =
+      mixedAttachmentFormats && halfFloatRenderTarget
+        ? targets.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        : targets.texture('image-float32', 'rgba', 'float', 'nearest');
     this.textureA.define(width, height);
 
-    this.textureB = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    // the summed weights (read from `.r`): a red target where the attachments may differ in format
+    this.textureB = mixedAttachmentFormats
+      ? targets.texture('image-float32', 'r', 'float', 'nearest')
+      : targets.texture('image-float32', 'rgba', 'float', 'nearest');
     this.textureB.define(width, height);
 
-    this.depthRenderbuffer = resources.renderbuffer('depth32f-stencil8', 'depth-stencil', width, height);
+    this.depthRenderbuffer = depthStencil;
 
     this.renderable = getEvaluateWboitRenderable(graphics, this.textureA, this.textureB);
     this.framebuffer = resources.framebuffer();

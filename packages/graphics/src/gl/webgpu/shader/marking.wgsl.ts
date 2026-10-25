@@ -7,51 +7,7 @@
 import { depth_wgsl } from './chunks/depth.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
-
-/** Marking mask edges */
-export const edge_wgsl = /* wgsl */ `
-${quad_vert_wgsl}
-${texture_read_wgsl('tMaskTexture')}
-
-// the mask is antialiased, so the coverage can be taken from a single texel
-fn getMask(coords: vec2<f32>) -> vec4<f32> {
-    return read_tMaskTexture(coords);
-}
-
-@fragment
-fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
-    let texSizeInv = uObject.uTexSizeInv;
-    let coords = fragmentUv(in.position, 1.0 / texSizeInv);
-    let edgeScale = uObject.uEdgeScale;
-    let offset = vec4<f32>(edgeScale, 0.0, 0.0, edgeScale) * vec4<f32>(texSizeInv, texSizeInv);
-
-    let m1 = getMask(coords + offset.xy);
-    let m2 = getMask(coords - offset.xy);
-    let m3 = getMask(coords + offset.yw);
-    let m4 = getMask(coords - offset.yw);
-
-    let edge = max(abs(m1.r - m2.r), abs(m3.r - m4.r));
-    if (edge <= 0.0) {
-        discard;
-    }
-
-    // the sample covering the most of the marked region, mask values are 0.0 where marked
-    let mx = select(m2, m1, m1.r < m2.r);
-    let my = select(m4, m3, m3.r < m4.r);
-    let m = select(my, mx, mx.r < my.r);
-
-    // the samples average marked and unmarked texels and unmarked ones are 1.0 in every channel,
-    // so the values of the marked texels can be recovered from how much they are covered
-    let marked = clamp((m.gba - m.r) / max(1.0 - m.r, 0.001), vec3<f32>(0.0), vec3<f32>(1.0));
-
-    let visibility = select(0.0, 1.0, marked.x > 0.5);
-    let mask = read_tMaskTexture(coords).r;
-    let marker = select(0.0, 1.0, marked.y > 0.5);
-    let fogAlpha = marked.z;
-    // premultiplied, so that a blurred sample of this can be decoded the same way
-    return vec4<f32>(visibility, mask, marker, 1.0) * (edge * fogAlpha);
-}
-`;
+import type { DefineLookup } from '../../renderable/schema.js';
 
 /** Coverage of the visible unmarked geometry */
 export const dim_wgsl = /* wgsl */ `
@@ -85,17 +41,9 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 `;
 
-/** Marking edges, fill and dimming of one sample */
-export const overlay_wgsl = /* wgsl */ `
-${depth_wgsl}
-${packing_wgsl}
-${quad_vert_wgsl}
-${texture_read_wgsl('tEdgeTexture')}
-${texture_read_wgsl('tMaskTexture')}
-${texture_read_wgsl('tDimTexture')}
-${texture_read_wgsl('tSsaoDepth')}
-${texture_read_wgsl('tDepth')}
-${texture_read_wgsl('tBase')}
+/** The SSAO shading of the overlay (`dMarkingShading_ssao`): the occlusion read with or without upsampling */
+const overlay_ssao_wgsl = (d: DefineLookup) => /* wgsl */ `
+${d('dOcclusionUpsample') ? texture_read_wgsl('tDepth') : texture_read_wgsl('tSsaoDepth')}
 
 /** occlusion at \`coords\`, depth-aware upsampled from a lower SSAO resolution with the scene's opaque depth */
 fn getOcclusion(coords: vec2<f32>) -> f32 {
@@ -106,11 +54,6 @@ fn getOcclusion(coords: vec2<f32>) -> f32 {
         return unpackSsao(read_tSsaoDepth(coords + uObject.uOcclusionOffset));
     #endif
 }
-${texture_read_wgsl('tShaded')}
-
-fn unpackMarkingOpacity(g: f32) -> f32 {
-    return clamp(1.0 - 4.0 * min(g, 1.0 - g), 0.0, 1.0);
-}
 
 // mixes toward the SSAO occlusion color, like the postprocessing pass
 fn applyOcclusion(color: vec3<f32>, occlusion: f32, fogAlpha: f32) -> vec3<f32> {
@@ -120,6 +63,12 @@ fn applyOcclusion(color: vec3<f32>, occlusion: f32, fogAlpha: f32) -> vec3<f32> 
     }
     return mix(occlusionColor, color, occlusion);
 }
+`;
+
+/** The traced shading of the overlay (`dMarkingShading_traced`): the traced image relative to the direct shading */
+const overlay_traced_wgsl = /* wgsl */ `
+${texture_read_wgsl('tBase')}
+${texture_read_wgsl('tShaded')}
 
 fn luminance(c: vec3<f32>) -> f32 {
     // https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
@@ -135,6 +84,54 @@ fn getTracedShading(baseLuminance: f32, shadedLuminance: f32, fogAlpha: f32) -> 
         l = baseLuminance / a;
     }
     return clamp(l / max(shadedLuminance, 0.001), 0.0, 1.0);
+}
+`;
+
+/** Marking edges, fill and dimming of one sample; the shading's reads and helpers by the variant's defines */
+export const overlay_wgsl = (d: DefineLookup) => /* wgsl */ `
+${depth_wgsl}
+${packing_wgsl}
+${quad_vert_wgsl}
+${texture_read_wgsl('tMaskTexture')}
+${texture_read_wgsl('tDimTexture')}
+${d('dMarkingShading_ssao') ? overlay_ssao_wgsl(d) : ''}
+${d('dMarkingShading_traced') ? overlay_traced_wgsl : ''}
+
+// edge of the marked regions at \`coords\` (alpha 0 if none): the mask is antialiased, so the coverage can be taken from
+// single texels, \`uEdgeScale\` texels apart; rgb: hidden, outer (the mask), highlight
+fn getEdge(coords: vec2<f32>) -> vec4<f32> {
+    let texSizeInv = uObject.uTexSizeInv;
+    let edgeScale = uObject.uEdgeScale;
+    let offset = vec4<f32>(edgeScale, 0.0, 0.0, edgeScale) * vec4<f32>(texSizeInv, texSizeInv);
+
+    let m1 = read_tMaskTexture(coords + offset.xy);
+    let m2 = read_tMaskTexture(coords - offset.xy);
+    let m3 = read_tMaskTexture(coords + offset.yw);
+    let m4 = read_tMaskTexture(coords - offset.yw);
+
+    let edge = max(abs(m1.r - m2.r), abs(m3.r - m4.r));
+    if (edge <= 0.0) {
+        return vec4<f32>(0.0);
+    }
+
+    // the sample covering the most of the marked region, mask values are 0.0 where marked
+    let mx = select(m2, m1, m1.r < m2.r);
+    let my = select(m4, m3, m3.r < m4.r);
+    let m = select(my, mx, mx.r < my.r);
+
+    // the samples average marked and unmarked texels and unmarked ones are 1.0 in every channel,
+    // so the values of the marked texels can be recovered from how much they are covered
+    let marked = clamp((m.gba - m.r) / max(1.0 - m.r, 0.001), vec3<f32>(0.0), vec3<f32>(1.0));
+
+    let visibility = select(0.0, 1.0, marked.x > 0.5);
+    let mask = read_tMaskTexture(coords).r;
+    let marker = select(0.0, 1.0, marked.y > 0.5);
+    let fogAlpha = marked.z;
+    return vec4<f32>(visibility, mask, marker, edge * fogAlpha);
+}
+
+fn unpackMarkingOpacity(g: f32) -> f32 {
+    return clamp(1.0 - 4.0 * min(g, 1.0 - g), 0.0, 1.0);
 }
 
 @fragment
@@ -186,12 +183,11 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     #endif
 
-    let e = read_tEdgeTexture(coords);
+    let e = getEdge(coords);
     var edgeRgb = vec3<f32>(0.0);
     var edgeAlpha = 0.0;
     if (e.a > 0.0) {
-        // the edge is stored premultiplied, see edge
-        let edgeValue = e.rgb / e.a;
+        let edgeValue = e.rgb;
         let isHighlight = edgeValue.z > 0.5;
         edgeRgb = select(uObject.uSelectEdgeColor, uObject.uHighlightEdgeColor, isHighlight);
         if (edgeValue.y <= 0.5) {

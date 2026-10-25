@@ -6,7 +6,7 @@
 
 import { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import { ImagePass } from '@molstar/graphics/canvas3d/passes/image';
-import { DefaultAssetManager } from '@molstar/core/util/assets';
+import { type AssetManager, DefaultAssetManager } from '@molstar/core/util/assets';
 import { isWebGPUContext, type WebGPUFeatures, type WebGPULimits } from '@molstar/graphics/gl/webgpu/context';
 import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
@@ -21,6 +21,11 @@ export interface BackendProfile {
   readonly description: string;
   /** Resolves to undefined if the profile cannot be created in this browser */
   create(size: { width: number; height: number }): Promise<BackendInstance | undefined>;
+  /**
+   * A context of the profile alone on `canvas` (its backend, options and masked extensions), nothing drawn or compiled
+   * with it yet (`create` builds a `Canvas3D` and an image pass on it); undefined where the profile can't be created
+   */
+  createContext(canvas: HTMLCanvasElement, assetManager: AssetManager): Promise<Canvas3DContext | undefined>;
 }
 
 /** Renders through `Canvas3D` and `ImagePass` */
@@ -61,6 +66,14 @@ const ContextAttribs: WebGLContextAttributes = {
   alpha: true,
   depth: true,
   premultipliedAlpha: true,
+};
+
+/** The context attributes of every profile (`BackendProfile.createContext`) */
+const ContextOptions = {
+  powerPreference: ContextAttribs.powerPreference,
+  failIfMajorPerformanceCaveat: ContextAttribs.failIfMajorPerformanceCaveat,
+  antialias: ContextAttribs.antialias,
+  preserveDrawingBuffer: ContextAttribs.preserveDrawingBuffer,
 };
 
 /** WebGL2 (OpenGL ES 3.0) minimum limits, except `UNIFORM_BUFFER_OFFSET_ALIGNMENT` which is a maximum */
@@ -145,6 +158,13 @@ function WebGLProfile(
     id,
     kind: 'webgl',
     description,
+    createContext: async (canvas, assetManager) => {
+      if (!getMaskedContext(canvas, type, mask)) return undefined;
+      return Canvas3DContext.create(canvas, assetManager, [backend], ContextOptions, {
+        pixelScale: 1,
+        resolutionMode: 'native',
+      });
+    },
     create: async ({ width, height }) => {
       const canvas = document.createElement('canvas');
       canvas.width = width;
@@ -158,27 +178,13 @@ function WebGLProfile(
       host.appendChild(canvas);
       document.body.appendChild(host);
 
-      if (!getMaskedContext(canvas, type, mask)) {
+      const assetManager = new DefaultAssetManager();
+      const context = await profile.createContext(canvas, assetManager);
+      if (!context) {
+        assetManager.dispose();
         host.remove();
         return undefined;
       }
-
-      const assetManager = new DefaultAssetManager();
-      const context = await Canvas3DContext.create(
-        canvas,
-        assetManager,
-        [backend],
-        {
-          powerPreference: ContextAttribs.powerPreference,
-          failIfMajorPerformanceCaveat: ContextAttribs.failIfMajorPerformanceCaveat,
-          antialias: ContextAttribs.antialias,
-          preserveDrawingBuffer: ContextAttribs.preserveDrawingBuffer,
-        },
-        {
-          pixelScale: 1,
-          resolutionMode: 'native',
-        },
-      );
       // no idle-time picking warm-up: cases don't hover, and it slows the runs
       const canvas3d = Canvas3D.create(context, {}, { warmUp: false });
       canvas3d.handleResize();
@@ -232,25 +238,24 @@ function WebGPUProfile(
     id,
     kind: 'webgpu',
     description,
+    createContext: async (canvas, assetManager) => {
+      if (!backend.isAvailable()) return undefined;
+      try {
+        return await Canvas3DContext.create(canvas, assetManager, [backend], ContextOptions, {
+          pixelScale: 1,
+          resolutionMode: 'native',
+        });
+      } catch {
+        return undefined;
+      }
+    },
     create: async ({ width, height }) => {
       if (!backend.isAvailable()) return undefined;
       const { canvas, host } = createHostedCanvas(width, height);
       const assetManager = new DefaultAssetManager();
-      let context: Canvas3DContext;
-      try {
-        context = await Canvas3DContext.create(
-          canvas,
-          assetManager,
-          [backend],
-          {
-            powerPreference: ContextAttribs.powerPreference,
-            failIfMajorPerformanceCaveat: ContextAttribs.failIfMajorPerformanceCaveat,
-            antialias: ContextAttribs.antialias,
-            preserveDrawingBuffer: ContextAttribs.preserveDrawingBuffer,
-          },
-          { pixelScale: 1, resolutionMode: 'native' },
-        );
-      } catch {
+      const context = await profile.createContext(canvas, assetManager);
+      if (!context) {
+        assetManager.dispose();
         host.remove();
         return undefined;
       }

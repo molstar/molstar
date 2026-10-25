@@ -45,7 +45,8 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '@molstar/graphics/geo/geometry/cylinders/cylinders-builder';
-import { checkCylinderImpostorSupport, type StructureGroup } from './util/common.js';
+import { checkCylinderImpostorSupport } from './util/common.js';
+import { chooseVisual } from '../../visual-factory.js';
 
 const pTrace = Vec3();
 
@@ -77,16 +78,11 @@ interface NucleotideAtomicBondImpostorProps {
   sizeFactor: number;
 }
 
-export function NucleotideAtomicBondVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<NucleotideAtomicBondParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
-    ? NucleotideAtomicBondImpostorVisual(materialId)
-    : NucleotideAtomicBondMeshVisual(materialId);
-}
+export const NucleotideAtomicBondVisual = chooseVisual(
+  { impostor: NucleotideAtomicBondImpostorVisual, mesh: NucleotideAtomicBondMeshVisual },
+  (props: PD.Values<NucleotideAtomicBondParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkCylinderImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 function createNucleotideAtomicBondImpostor(
   ctx: VisualContext,
@@ -238,13 +234,6 @@ export function NucleotideAtomicBondImpostorVisual(materialId: number): UnitsVis
         currentProps: PD.Values<NucleotideAtomicBondParams>,
       ) => {
         state.createGeometry = newProps.sizeFactor !== currentProps.sizeFactor;
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<NucleotideAtomicBondParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -413,13 +402,6 @@ export function NucleotideAtomicBondMeshVisual(materialId: number): UnitsVisual<
       ) => {
         state.createGeometry =
           newProps.sizeFactor !== currentProps.sizeFactor || newProps.radialSegments !== currentProps.radialSegments;
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<NucleotideAtomicBondParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,

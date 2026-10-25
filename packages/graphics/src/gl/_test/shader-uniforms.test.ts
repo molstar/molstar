@@ -37,6 +37,7 @@ import {
 import { ComputeShaders, getComputeDefineVariants } from './compute-shaders.js';
 import { GraphicsShaders, getProgramDefines } from './graphics-shaders.js';
 import { getGlslProgram, registerGlslProgram } from '../webgl/programs.js';
+import { getInstanceDataSchema } from '../webgl/render-item.js';
 
 /**
  * Removes inactive branches of conditionals that only test `dGeometryType_*`,
@@ -103,14 +104,15 @@ describe('shader identifiers', () => {
   // all identifiers referenced in any preprocessor branch of the shader code must be in the schema,
   // uniform declarations are generated from it (textures and attributes will be too)
   for (const [name, shaderCode, renderableSchema, geometryType] of GraphicsShaders) {
-    const schema: RenderableSchema = {
+    // with what the WebGL backend adds for merged render items (`dInstanceData`)
+    const schema = getInstanceDataSchema({
       ...GlobalUniformSchema,
       ...GlobalTextureSchema,
       ...GlobalDefineSchema,
       ...InternalSchema,
       ...renderableSchema,
       ...SegmentSchema,
-    };
+    });
     const vert = resolveGeometryType(getGlslProgram(shaderCode.name).vert, geometryType);
     const frag = resolveGeometryType(getGlslProgram(shaderCode.name).frag, geometryType);
     for (const [kind, prefix, type, allowed] of Guards) {
@@ -170,7 +172,9 @@ describe('generated declarations', () => {
     it(`array length defines: ${name}`, () => {
       const invalid = Object.entries(schema).filter(([, spec]) => {
         if (spec.type !== 'uniform' || spec.lengthDefine === undefined) return false;
+        // a number define, or a loop-bound integer uniform (a define on WebGL1, the maximum `length` elsewhere)
         const define = schema[spec.lengthDefine];
+        if (define?.type === 'uniform') return define.kind !== 'i' || !define.loopBound || spec.length === undefined;
         return define?.type !== 'define' || define.kind !== 'number';
       });
       expect(invalid.map(([k]) => k)).toEqual([]);

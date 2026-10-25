@@ -10,6 +10,7 @@ import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import type { TextureFilter } from '../texture.js';
 import { arrayMinMax } from '@molstar/core/util/array';
+import { SegmentedArray } from '../segmented-array.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -52,6 +53,51 @@ export function createTextureImage<T extends Uint8Array | Float32Array>(
 ): TextureImage<T> {
   const { length, width, height } = calculateTextureInfo(n, itemSize);
   array = array && array.length >= length ? array : new arrayCtor(length);
+  return { array, width, height };
+}
+
+/**
+ * The value of a `DataSpec`: `count` elements by index in `array`, which may be longer (reused by producers, rounded
+ * up to whole words); no 2D layout, backends lay it out (WebGL data textures, WebGPU storage pages)
+ */
+export interface DataArray<T extends Uint8Array | Float32Array> {
+  readonly array: T;
+  readonly count: number;
+}
+
+/**
+ * `count` elements of `itemSize` components, in `array` where long enough (its contents kept), else a new one of whole
+ * words
+ */
+export function createDataArray<T extends Uint8Array | Float32Array>(
+  count: number,
+  itemSize: number,
+  arrayCtor: new (length: number) => T,
+  array?: T,
+): DataArray<T> {
+  const length = count * itemSize;
+  if (!array || array.length < length) {
+    const bpe = (arrayCtor as unknown as { BYTES_PER_ELEMENT: number }).BYTES_PER_ELEMENT;
+    array = new arrayCtor(Math.ceil((length * bpe) / 4) * (4 / bpe));
+  }
+  return { array, count };
+}
+
+/**
+ * `data` laid out as a 2D image of `itemSize` components per texel (`calculateTextureInfo`), for consumers that load it
+ * into a texture of their own (e.g. compute passes); a copy, padded
+ */
+export function getDataTextureImage<T extends Uint8Array | Float32Array>(
+  data: DataArray<T>,
+  itemSize: number,
+): TextureImage<T> {
+  const { width, height, length } = calculateTextureInfo(data.count, itemSize);
+  const source = data.array as T | SegmentedArray;
+  const segmented = SegmentedArray.is(source);
+  const ctor = (segmented ? source.ctor : source.constructor) as new (length: number) => T;
+  const array = new ctor(length);
+  const n = Math.min(length, data.count * itemSize);
+  array.set(segmented ? (SegmentedArray.read(source, 0, n) as T) : source.subarray(0, n));
   return { array, width, height };
 }
 

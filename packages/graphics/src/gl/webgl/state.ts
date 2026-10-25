@@ -12,6 +12,11 @@ export type WebGLState = {
   currentProgramId: number;
   currentMaterialId: number;
   currentRenderItemId: number;
+  /**
+   * per texture unit the data page last bound by programs (`Program.bindTextures`; undefined: another texture or
+   * unknown), so that draws of items sharing pages skip binding them again; emptied by any other binding (texture loads)
+   */
+  boundTextures: (object | undefined)[];
   /** Whether a render pass is open, see `GraphicsContext.beginRenderPass` */
   inRenderPass: boolean;
   /** Called when an open render pass ends (timer pass boundaries) */
@@ -167,6 +172,7 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
     currentProgramId: -1,
     currentMaterialId: -1,
     currentRenderItemId: -1,
+    boundTextures: [],
     inRenderPass: false,
     onRenderPassEnd: undefined,
 

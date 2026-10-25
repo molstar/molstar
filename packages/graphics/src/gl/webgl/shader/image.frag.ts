@@ -154,7 +154,8 @@ void main() {
     #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing) || defined(dRenderVariant_marking))
         float transparency = 0.0;
         #if defined(dTransparencyType_texture)
-            transparency = readFromTexture(tTransparency, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uTransparencyTexDim).r;
+            // an empty pixel (no group) has no data
+            if (group != -1.0) transparency = read_tTransparency((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r;
         #endif
         transparency *= uTransparencyStrength;
 
@@ -183,7 +184,7 @@ void main() {
         if (group == -1.0) {
             marker = 0.0;
         } else if (uMarker == -1.0) {
-            marker = readFromTexture(tMarker, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uMarkerTexDim).r;
+            marker = read_tMarker((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r;
             marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
         }
     #endif
@@ -195,7 +196,7 @@ void main() {
         } else {
             #ifdef dEmissive
                 #if defined(dEmissiveType_texture)
-                    emissive += readFromTexture(tEmissive, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uEmissiveTexDim).r * uEmissiveStrength;
+                    emissive += read_tEmissive((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r * uEmissiveStrength;
                 #endif
             #endif
         }
@@ -245,7 +246,7 @@ void main() {
             vec4 overpaint = vec4(0.0);
             if (group != -1.0) {
                 #if defined(dOverpaintType_texture)
-                    overpaint = readFromTexture(tOverpaint, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uOverpaintTexDim);
+                    overpaint = read_tOverpaint((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group));
                 #endif
                 overpaint *= uOverpaintStrength;
             }
@@ -260,7 +261,7 @@ void main() {
             ${wboit_write}
             ${dpoit_write}
         #elif defined(dRenderVariant_tracing)
-            gl_FragData[1] = vec4(normalize(vViewPosition), emissive);
+            gl_FragData[1] = packNormalToRGBA(normalize(vViewPosition), emissive);
             gl_FragData[2] = vec4(material.rgb, uDensity);
         #endif
     #endif

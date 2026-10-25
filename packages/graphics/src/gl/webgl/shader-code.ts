@@ -17,7 +17,6 @@ import type { ShaderDeclarations } from './shader-declarations.js';
 
 function replaceCounts(str: string, defines: ShaderDefines) {
   if (defines.dLightCount) str = str.replace(/dLightCount/g, `${defines.dLightCount.ref.value}`);
-  if (defines.dClipObjectCount) str = str.replace(/dClipObjectCount/g, `${defines.dClipObjectCount.ref.value}`);
   return str;
 }
 

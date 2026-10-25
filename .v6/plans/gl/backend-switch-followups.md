@@ -227,6 +227,9 @@ interfaces' `reset` members (breaking changes recorded). The `restore` attribute
 
 - **Fallback timeout**: 3 s of visible page (`ContextRestoreTimeoutMs`); the timer pauses while the page is hidden, so a
   background tab whose restore the browser delays doesn't fall back.
+- **Explicit restores wait longer**: `restore` of a released context (`release`) has 30 s of visible page
+  (`ReleasedRestoreTimeoutMs`): no fallback waits for it, and under load a new WebGPU device took over 6 s (the visual
+  suite's release cases on 8 parallel shards); not restored, the context stays released.
 - **The plugin's Graphics Backend setting** follows a fallback: it shows the backend in use (`backendChanged`).
 - **A lost backend is tried again only on the next page load**: within the page a fallback goes only down the list and
   never back; nothing about the loss is persisted, so a new page starts from the full list. Switching back by hand

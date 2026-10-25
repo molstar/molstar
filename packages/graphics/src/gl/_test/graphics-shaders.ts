@@ -77,7 +77,7 @@ export function preprocessProgram(
   defines: ReadonlyMap<string, string>,
   values: { [k: string]: DefineType | number },
 ): string {
-  for (const name of ['dLightCount', 'dClipObjectCount']) {
+  for (const name of ['dLightCount']) {
     if (values[name] !== undefined) source = source.replace(new RegExp(name, 'g'), `${values[name]}`);
   }
   return preprocessShader(source, defines)

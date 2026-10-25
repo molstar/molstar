@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 export const assign_size = `
 #if defined(dSizeType_uniform)
     float size = uSize;
@@ -13,7 +19,7 @@ export const assign_size = `
     } else if (uSizeIndexType == 4) {
         sizeIndex = float(int(aInstance) * uVertexCount + vertexId);
     }
-    float size = unpackRGBToInt(readFromTexture(tSize, sizeIndex, uSizeTexDim).rgb);
+    float size = unpackRGBToInt(read_tSize(sizeIndex).rgb);
     size /= 100.0; // NOTE factor also set in TypeScript
 #endif
 

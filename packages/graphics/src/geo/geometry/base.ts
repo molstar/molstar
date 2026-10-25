@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { RenderableState } from '@molstar/graphics/gl/renderable';
+import { RenderableState } from '@molstar/graphics/gl/renderable';
 import { ValueCell } from '@molstar/core/util';
+import { clamp } from '@molstar/core/math/interpolate';
 import type { BaseValues } from '@molstar/graphics/gl/renderable/schema';
 import type { DrawIndirect } from '@molstar/graphics/gl/compute';
 import { LocationIterator } from '../util/location-iterator.js';
@@ -108,6 +109,34 @@ export function resolveInstanceGranularity(
 
 //
 
+export type GpuCullingValue = true | false | 'auto';
+export const GpuCullingOptions: [GpuCullingValue, string][] = [
+  [true, 'On'],
+  [false, 'Off'],
+  ['auto', 'Auto'],
+];
+
+/**
+ * Instances per draw (a segment and level) from which `gpuCulling: 'auto'` culls on the GPU: it replays a draw per
+ * segment and level every frame (about 0.28 µs each), the CPU culling costs about 10 ns per instance in frames whose
+ * view changed (`merged-render-objects.md`, step 6)
+ */
+export const AutoGpuCullingThreshold = 30;
+
+/**
+ * Instances from which `gpuCulling: 'auto'` culls on the GPU: a GPU-culled object costs about 0.1 ms per frame of its
+ * own (its dispatches, the Hi-Z levels it asks for), the CPU's 10 ns per instance (`merging/instances-*`)
+ */
+export const AutoGpuCullingMinInstances = 20000;
+
+/** Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels */
+export function resolveGpuCulling(value: GpuCullingValue, instanceCount: number, drawCount: number): boolean {
+  if (value === 'auto') {
+    return instanceCount >= Math.max(AutoGpuCullingMinInstances, AutoGpuCullingThreshold * Math.max(1, drawCount));
+  }
+  return value;
+}
+
 export type RenderMergedValue = true | false | 'auto';
 export const RenderMergedOptions: [RenderMergedValue, string][] = [
   [true, 'On'],
@@ -119,7 +148,7 @@ export const RenderMergedOptions: [RenderMergedValue, string][] = [
  * Threshold (in number of mergeable units) above which `renderMerged: 'auto'`
  * resolves to `true`.
  */
-export const AutoRenderMergedThreshold = 100;
+export const AutoRenderMergedThreshold = 30;
 
 /**
  * Resolves the `renderMerged` param value to a boolean.
@@ -166,6 +195,11 @@ export namespace BaseGeometry {
       description:
         'Render all units of the representation through a single shared render item per geometry kind to reduce draw calls. When set to `auto`, enabled if the number of mergeable units exceeds `AutoRenderMergedThreshold`. Supported for spheres, mesh, cylinders, lines, and points geometry.',
     }),
+    gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
+      ...CullingLodCategory,
+      description:
+        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`).',
+    }),
     lod: PD.Vec3(Vec3(), undefined, {
       ...CullingLodCategory,
       description: 'Level of detail.',
@@ -207,7 +241,7 @@ export namespace BaseGeometry {
     const clip = Clip.getClip(props.clip);
     return {
       alpha: ValueCell.create(props.alpha),
-      uAlpha: ValueCell.create(props.alpha),
+      uAlpha: ValueCell.create(clamp(props.alpha, 0, 1)),
       uVertexCount: ValueCell.create(counts.vertexCount),
       // filled by the render item when used, see `BaseSchema.aVertex`
       aVertex: ValueCell.create(new Float32Array(0)),
@@ -220,14 +254,13 @@ export namespace BaseGeometry {
       uEmissive: ValueCell.create(props.emissive),
       uDensity: ValueCell.create(props.density),
 
+      dClipObjects: ValueCell.create(clip.objects.count > 0),
       dClipObjectCount: ValueCell.create(clip.objects.count),
+      uClipObjectCount: ValueCell.create(clip.objects.count),
       dClipVariant: ValueCell.create(clip.variant),
-      uClipObjectType: ValueCell.create(clip.objects.type),
-      uClipObjectInvert: ValueCell.create(clip.objects.invert),
-      uClipObjectPosition: ValueCell.create(clip.objects.position),
-      uClipObjectRotation: ValueCell.create(clip.objects.rotation),
-      uClipObjectScale: ValueCell.create(clip.objects.scale),
-      uClipObjectTransform: ValueCell.create(clip.objects.transform),
+      clipObjects: ValueCell.create(clip.objects),
+      uClipObjectFrame: ValueCell.create(clip.objects.frame),
+      uClipObjectShape: ValueCell.create(clip.objects.shape),
 
       uInstanceGranularity: ValueCell.create(
         resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount),
@@ -236,23 +269,30 @@ export namespace BaseGeometry {
     };
   }
 
+  /** The clip props each values were updated with last (`updateValues`) */
+  const clipProps = new WeakMap<BaseValues, Clip.Props>();
+
   export function updateValues(values: BaseValues, props: PD.Values<Params>) {
-    ValueCell.updateIfChanged(values.alpha, props.alpha); // `uAlpha` is set in renderable.render
+    ValueCell.updateIfChanged(values.alpha, props.alpha);
+    ValueCell.updateIfChanged(values.uAlpha, clamp(props.alpha, 0, 1));
     ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
     ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
     ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
     ValueCell.updateIfChanged(values.uEmissive, props.emissive);
     ValueCell.updateIfChanged(values.uDensity, props.density);
 
-    const clip = Clip.getClip(props.clip);
-    ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);
-    ValueCell.updateIfChanged(values.dClipVariant, clip.variant);
-    ValueCell.update(values.uClipObjectType, clip.objects.type);
-    ValueCell.update(values.uClipObjectInvert, clip.objects.invert);
-    ValueCell.update(values.uClipObjectPosition, clip.objects.position);
-    ValueCell.update(values.uClipObjectRotation, clip.objects.rotation);
-    ValueCell.update(values.uClipObjectScale, clip.objects.scale);
-    ValueCell.update(values.uClipObjectTransform, clip.objects.transform);
+    // the clip of the props applied last: updates keep the props' clip unless it changed (e.g. a recolor of many units)
+    if (clipProps.get(values) !== props.clip) {
+      clipProps.set(values, props.clip);
+      const clip = Clip.getClip(props.clip);
+      ValueCell.updateIfChanged(values.dClipObjects, clip.objects.count > 0);
+      ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);
+      ValueCell.updateIfChanged(values.uClipObjectCount, clip.objects.count);
+      ValueCell.updateIfChanged(values.dClipVariant, clip.variant);
+      ValueCell.update(values.clipObjects, clip.objects);
+      ValueCell.update(values.uClipObjectFrame, clip.objects.frame);
+      ValueCell.update(values.uClipObjectShape, clip.objects.shape);
+    }
 
     ValueCell.updateIfChanged(
       values.uInstanceGranularity,
@@ -267,19 +307,18 @@ export namespace BaseGeometry {
 
   export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
     const opaque = props.alpha === undefined ? true : props.alpha === 1;
-    return {
+    return RenderableState.create({
       disposed: false,
       visible: true,
-      alphaFactor: 1,
       pickable: true,
       colorOnly: false,
       opaque,
       writeDepth: opaque,
-    };
+    });
   }
 
   export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
-    state.opaque = props.alpha * state.alphaFactor >= 1;
+    state.opaque = props.alpha >= 1;
     state.writeDepth = state.opaque;
   }
 }

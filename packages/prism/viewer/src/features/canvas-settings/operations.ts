@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -40,6 +41,7 @@ export const CanvasSections = {
     multiSample: Canvas3DParams.multiSample,
     sharpening: Canvas3DParams.postprocessing.params.sharpening,
     bloom: Canvas3DParams.postprocessing.params.bloom,
+    volumeResolutionScale: { ...Canvas3DParams.volumeResolutionScale, label: 'Volume resolution' },
   }),
 };
 
@@ -55,6 +57,7 @@ const SectionNames: Readonly<Record<string, string>> = {
   outline: 'Outline',
   fog: 'Fog',
   multiSample: 'Multi-sampling',
+  volumeResolutionScale: 'Volume resolution',
 };
 
 /** A section's values, read from the canvas's props. */
@@ -86,6 +89,7 @@ export function sectionValues(section: CanvasSection, p: Canvas3DProps): Record<
         multiSample: p.multiSample,
         sharpening: p.postprocessing.sharpening,
         bloom: p.postprocessing.bloom,
+        volumeResolutionScale: p.volumeResolutionScale,
       };
   }
 }
@@ -115,6 +119,7 @@ export function sectionProps(section: CanvasSection, v: Record<string, any>): Pa
         illumination: v.illumination,
         multiSample: v.multiSample,
         postprocessing: { sharpening: v.sharpening, bloom: v.bloom },
+        volumeResolutionScale: v.volumeResolutionScale,
       };
   }
 }

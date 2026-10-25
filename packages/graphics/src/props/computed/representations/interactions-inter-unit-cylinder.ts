@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { chooseVisual } from '@molstar/graphics/repr/visual-factory';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { VisualContext } from '@molstar/graphics/repr/visual';
 import { Structure, StructureElement } from '@molstar/model/model/structure';
@@ -258,16 +259,11 @@ export const InteractionsInterUnitParams = {
 };
 export type InteractionsInterUnitParams = typeof InteractionsInterUnitParams;
 
-export function InteractionsInterUnitVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<InteractionsInterUnitParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
-    ? InteractionsInterUnitImpostorVisual(materialId)
-    : InteractionsInterUnitMeshVisual(materialId);
-}
+export const InteractionsInterUnitVisual = chooseVisual(
+  { impostor: InteractionsInterUnitImpostorVisual, mesh: InteractionsInterUnitMeshVisual },
+  (props: PD.Values<InteractionsInterUnitParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkCylinderImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 function setUpdateState(
   state: VisualUpdateState,

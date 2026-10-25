@@ -152,7 +152,11 @@ export interface ComputeContext {
   readonly maxStorageBufferSize: number;
   /** Bytes of the storage buffers created and not destroyed yet */
   getStorageBufferByteCount: () => number;
-  isKernelSupported: (code: KernelCode) => boolean;
+  /**
+   * Whether the backend has the kernel; with `schema`, also whether its storage buffers fit in a stage (WebGPU's
+   * `maxStorageBuffersPerShaderStage`: 8 under the core limits)
+   */
+  isKernelSupported: (code: KernelCode, schema?: KernelSchema) => boolean;
   createKernel: <S extends KernelSchema>(code: KernelCode, schema: S, values: KernelValues<S>) => ComputeKernel;
   /**
    * Compiles the pipelines of `requests` in the background (tracked as pending work) and resolves when they are ready;
@@ -166,6 +170,11 @@ export interface ComputeContext {
    */
   hasKernels: (requests: Iterable<KernelRequest>) => boolean;
   createBuffer: (byteLength: number, label?: string) => StorageBuffer;
+  /**
+   * As `createBuffer`, resolving once the device created it, or to `undefined` when it ran out of memory (WebGPU: an
+   * error scope): a buffer that failed would invalidate the commands using it, those recorded with them too
+   */
+  tryCreateBuffer: (byteLength: number, label?: string) => Promise<StorageBuffer | undefined>;
   /** Whether `buffer` was created by this context (not by one it replaced, e.g. before a restore or backend switch) */
   ownsBuffer: (buffer: StorageBuffer) => boolean;
   /**

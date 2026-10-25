@@ -60,7 +60,7 @@
   Builds on [backend-split.md](backend-split.md) (second WebGPU milestone: `Canvas3D` and `ImagePass` on WebGPU) and
   [backend-selection.md](backend-selection.md) (descriptors, async creation). Illumination done: `tracing` render
   variant of all ported geometry (shaded color, normal with emissive, material color with density), `trace`,
-  `trace-accumulate`, `illumination-compose` and `illumination-multi-sample-compose` programs, traced marking shading in
+  `illumination-compose` and `illumination-multi-sample-compose` programs, traced marking shading in
   `overlay`, and the sphere impostor back depth of the thickness pass; fragment-position reads of the shared depth
   textures clamp their coordinates, so the 1×1 placeholders (passes without a depth texture, e.g. the back-depth pass)
   read their texel as on WebGL instead of an out-of-bounds value; `ImagePass` renders again when a render started work

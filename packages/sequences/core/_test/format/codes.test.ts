@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // V6's drift guards: every `svs.*` literal in the sources is registered, and every `model.*` literal of the model lands
@@ -11,17 +12,18 @@
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Issue } from '@molstar/seq-core/model';
 import { describe, expect, it } from 'vitest';
 import { issueOf } from '../../src/format/index.js';
 import { svsIssue } from '../../src/format/load/issues.js';
 import { kernel } from './fixtures.js';
 
-const here = (p: string) => new URL(p, import.meta.url).pathname;
+const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const sources = (dir: string): [string, string][] =>
   readdirSync(dir, { recursive: true, encoding: 'utf8' })
     .filter((f) => f.endsWith('.ts'))
-    .map((f) => [f, readFileSync(join(dir, f), 'utf8')]);
+    .map((f) => [f, readFileSync(join(dir, f), 'utf8').replace(/\r\n/g, '\n')]);
 
 describe('the issue codes', () => {
   const reg = kernel();

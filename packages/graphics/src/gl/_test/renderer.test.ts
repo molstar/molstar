@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -57,7 +57,8 @@ describe('renderer', () => {
     scene.add(points);
     scene.commit();
     expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 2 : 3);
-    expect(ctx.stats.resourceCounts.texture).toBe(13);
+    // the data arrays in the context's data pages, a texture per format (`data-pages.ts`)
+    expect(ctx.stats.resourceCounts.texture).toBe(6);
     expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 1 : 0);
     expect(ctx.stats.resourceCounts.program).toBe(5);
     expect(ctx.stats.resourceCounts.shader).toBe(10);
@@ -65,7 +66,8 @@ describe('renderer', () => {
     scene.remove(points);
     scene.commit();
     expect(ctx.stats.resourceCounts.attribute).toBe(0);
-    expect(ctx.stats.resourceCounts.texture).toBe(2);
+    // the last data page of each format stays for the next items
+    expect(ctx.stats.resourceCounts.texture).toBe(5);
     expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
     expect(ctx.stats.resourceCounts.program).toBe(5);
     expect(ctx.stats.resourceCounts.shader).toBe(10);
@@ -94,7 +96,7 @@ describe('renderer', () => {
     sceneDpoit.commit();
 
     expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 6 : 9);
-    expect(ctx.stats.resourceCounts.texture).toBe(35);
+    expect(ctx.stats.resourceCounts.texture).toBe(8);
     expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 3 : 0);
     expect(ctx.stats.resourceCounts.program).toBe(7);
     expect(ctx.stats.resourceCounts.shader).toBe(14);

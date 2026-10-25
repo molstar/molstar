@@ -24,7 +24,6 @@ import { Representation, type RepresentationContext, type RepresentationParamsGe
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation.js';
 import { ParticleVisual } from '../visual.js';
 import type { Location } from '@molstar/model/model/location';
-import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
@@ -151,12 +150,7 @@ function eachAxesLoci(
   return changed;
 }
 
-export function AxesParticlesVisual(
-  materialId: number,
-  _particles?: ParticleList,
-  _props?: PD.Values<AxesParticlesParams>,
-  _graphics?: GraphicsContext,
-): ParticleVisual<AxesParticlesParams> {
+export function AxesParticlesVisual(materialId: number): ParticleVisual<AxesParticlesParams> {
   return ParticleVisual<Lines, AxesParticlesParams>(
     {
       defaultProps: PD.getDefaultValues(AxesParticlesParams),

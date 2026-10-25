@@ -27,6 +27,11 @@ textures, attributes) and rendering equivalent images where both backends suppor
   with their value.
 - Prefer WGSL functions to function-like macros; keep `#if` for small switches inside chunks and TS composition for
   structural choices (which chunks, outputs, entry points).
+- A program binds every texture its source names (layouts come from the referenced names), so a feature a variant turns
+  off is left out of that variant's source, not only out of its calls: `WgslProgram.source` may be a function of the
+  variant's define lookup (`resolveWgslSource`) that includes the feature's helpers and `read_<name>` functions only
+  when the feature is on (the compose passes, the marking overlay, SSAO). Checked on Dawn (`webgpu-unused-bindings`): a
+  pipeline without any one of its bindings must fail validation.
 - No `__VERSION__`, extension or precision switches: WGSL has one language version and `f32` everywhere.
 
 ## Override constants

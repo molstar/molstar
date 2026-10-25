@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 import { common } from '../chunks/common.glsl.js';
 
 export const compose_frag = `
@@ -74,7 +80,16 @@ float getSsaoTransparent(vec2 coords, float viewZ) {
 //      kSigma * sigma  -->  radius of the circular kernel
 //  float threshold   - edge sharpening threshold
 
-float NormalWeightStrength = 6.0;
+// exp(-i^2 / (2 sigma^2)) for i in 0..6: the spatial weight of an offset (x, y) is w(|x|) w(|y|)
+float spatialWeight(const in int i) {
+    if (i == 0) return 1.0;
+    if (i == 1) return 0.94595947;
+    if (i == 2) return 0.80073740;
+    if (i == 3) return 0.60653066;
+    if (i == 4) return 0.41111229;
+    if (i == 5) return 0.24935221;
+    return 0.13533528;
+}
 
 vec4 smartDeNoise(sampler2D tex, vec2 uv) {
     float sigma = 3.0;
@@ -93,19 +108,23 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
     float zBuff = 0.0;
     vec4 colorBuff = vec4(0.0);
 
-    vec3 normal = texture2D(tNormal, uv).xyz;
+    vec3 normal = unpackRGBAToNormal(texture2D(tNormal, uv));
+    // the background: every sample's normal weight is 0
+    if (normal == vec3(0.0)) return centrPx;
 
     for (int x = -6; x <= 6; ++x) {
+        float wx = spatialWeight(x < 0 ? -x : x) * invSigmaQx2PI;
         for (int y = -6; y <= 6; ++y) {
             vec2 d = vec2(float(x), float(y));
 
-            float blurFactor = exp(-dot(d , d) * invSigmaQx2) * invSigmaQx2PI;
+            float blurFactor = wx * spatialWeight(y < 0 ? -y : y);
             vec2 uvSample = uv + d / uTexSize;
 
-            vec3 normalSample = texture2D(tNormal, uvSample).xyz;
-            float normalW = saturate(dot(normal, normalSample));
-            normalW = pow(normalW, NormalWeightStrength);
-            blurFactor *= normalW;
+            vec3 normalSample = unpackRGBAToNormal(texture2D(tNormal, uvSample));
+            // the normal weight to the power of 6
+            float n1 = saturate(dot(normal, normalSample));
+            float n2 = n1 * n1;
+            blurFactor *= n2 * n2 * n2;
 
             vec4 walkPx = texture2D(tex, uvSample);
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,7 +21,8 @@ import { getShaderDeclarations } from './shader-declarations.js';
 import { type AttributeBuffers, bindAttributeBuffers, getAttribType } from './buffer.js';
 import { type AttributeLayout, getAttributeLayout } from '../attribute-layout.js';
 import { asGLTexture, type GLTexture, type TextureId } from './texture.js';
-import { isNullTexture, type Textures } from '../texture.js';
+import { isDataPageTexture } from './data-pages.js';
+import { isNullTexture, type Texture, type Textures } from '../texture.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import {
   type DefineLookup,
@@ -33,6 +34,7 @@ import {
   type TextureDimension,
 } from '../renderable/schema.js';
 import { isDebugMode } from '@molstar/core/util/debug';
+import { arrayEqual } from '@molstar/core/util/array';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
 import type { ShaderType, Shader } from './shader.js';
 import type { WebGLParameters } from './context.js';
@@ -51,8 +53,12 @@ export interface Program extends GraphicsProgram {
   uniform: (k: string, v: UniformType) => void;
   bindAttributes: (attribueBuffers: AttributeBuffers) => void;
   offsetAttributes: (attributeBuffers: AttributeBuffers, offset: number) => void;
+  /** Whether the program reads any of `attributeBuffers` (once finalized): else `offsetAttributes` changes nothing */
+  readsAnyAttribute: (attributeBuffers: AttributeBuffers) => boolean;
   /** Binds `textures` at their units, fixed per program (see `getTextureUnits`) */
   bindTextures: (textures: Textures) => void;
+  /** Binds no texture at the units of the samplers `names` the program reads */
+  unbindTextures: (names: readonly string[]) => void;
 
   destroy: () => void;
 }
@@ -60,6 +66,15 @@ export interface Program extends GraphicsProgram {
 export type Programs = { [k: string]: Program };
 
 type Locations = { [k: string]: number };
+
+type TextureBindings = {
+  readonly units: (TextureId | undefined)[];
+  readonly textures: (Texture | undefined)[];
+  /** the GL texture, `null` for a null texture */
+  readonly resolved: (GLTexture | null)[];
+  /** whether a data page (`data-pages.ts`), whose binding is skipped where the unit has it */
+  readonly paged: boolean[];
+};
 
 function getLocations(gl: GLRenderingContext, program: WebGLProgram, schema: RenderableSchema, useBlocks: boolean) {
   const locations: Locations = {};
@@ -418,8 +433,34 @@ export function createProgram(
   }
 
   let locations: Locations;
+  /**
+   * the layout's attributes the program reads: the others are not offset per draw (e.g. the instanced attributes of
+   * merged render items reading their instance data from a texture, `dInstanceData`)
+   */
+  let activeAttributes: Set<string>;
   let uniformSetters: UniformSetters;
+  /**
+   * The value last set per classic uniform (a GL program keeps them): an unchanged one is not set again, e.g. the
+   * draw-scope `uLod`, the same for most objects (`uniform4fv` was 14% of the frames of 1000 unmerged objects)
+   */
+  const uploaded: { [k: string]: unknown } = Object.create(null);
+  function setUniform(k: string, l: number, v: UniformType) {
+    const prev = uploaded[k];
+    if (typeof v === 'object') {
+      if (prev !== undefined && arrayEqual(prev as ArrayLike<number>, v as ArrayLike<number>)) return;
+      uploaded[k] = (v as unknown as { slice(): unknown }).slice();
+    } else {
+      if (prev === v) return;
+      uploaded[k] = v;
+    }
+    uniformSetters[k](gl, l, v);
+  }
   let textureUnits: { [k: string]: TextureId };
+  /**
+   * per textures list the units of its entries and their textures resolved (`isNullTexture`, `asGLTexture` are set
+   * lookups), checked by identity per draw: the textures of a list may be replaced in place
+   */
+  let textureBindings = new WeakMap<Textures, TextureBindings>();
   /** only set in debug mode */
   let samplerTypes: { [k: string]: number } | undefined;
 
@@ -445,6 +486,7 @@ export function createProgram(
   function setTextureUnits(defines: DefineLookup) {
     // textures of inactive samplers get no unit and are not bound
     textureUnits = getTextureUnits(schema, defines, (k) => locations[k] !== null && locations[k] !== undefined);
+    textureBindings = new WeakMap();
     const current = gl.getParameter(gl.CURRENT_PROGRAM) as WebGLProgram | null;
     gl.useProgram(program);
     for (const k of Object.keys(textureUnits)) gl.uniform1i(locations[k], textureUnits[k]);
@@ -453,6 +495,10 @@ export function createProgram(
 
   function finalize() {
     locations = getLocations(gl, program, schema, useBlocks);
+    activeAttributes = new Set();
+    for (const { name } of attributeLayout.entries) {
+      if (gl.getAttribLocation(program, name) !== -1) activeAttributes.add(name);
+    }
     uniformSetters = getUniformSetters(schema);
     setTextureUnits(getShaderDefineLookup(shaderCode));
     if (useBlocks && isWebGL2(gl)) {
@@ -519,7 +565,7 @@ export function createProgram(
           if (l === undefined) {
             if (isDebugMode) throwMissingLocation(k);
           } else if (l !== null) {
-            uniformSetters[k](gl, l, v.ref.value);
+            setUniform(k, l, v.ref.value);
           }
         }
       }
@@ -529,7 +575,7 @@ export function createProgram(
       if (l === undefined) {
         if (isDebugMode) throwMissingLocation(k);
       } else if (l !== null) {
-        uniformSetters[k](gl, l, v);
+        setUniform(k, l, v);
       }
     },
     bindAttributes: (attributeBuffers: AttributeBuffers) => {
@@ -538,22 +584,58 @@ export function createProgram(
     offsetAttributes: (attributeBuffers: AttributeBuffers, offset) => {
       for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
         const [k, buffer] = attributeBuffers[i];
-        buffer.changeOffset(attributeLayout.byName[k].location, offset);
+        if (activeAttributes.has(k)) buffer.changeOffset(attributeLayout.byName[k].location, offset);
+      }
+    },
+    readsAnyAttribute: (attributeBuffers: AttributeBuffers) => {
+      for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+        if (activeAttributes.has(attributeBuffers[i][0])) return true;
+      }
+      return false;
+    },
+    unbindTextures: (names: readonly string[]) => {
+      for (const k of names) {
+        const unit = textureUnits[k];
+        if (unit === undefined) continue;
+        state.boundTextures[unit] = undefined;
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_2D, null);
       }
     },
     bindTextures: (textures: Textures) => {
+      let b = textureBindings.get(textures);
+      if (!b) {
+        b = { units: textures.map(([k]) => textureUnits[k]), textures: [], resolved: [], paged: [] };
+        textureBindings.set(textures, b);
+      }
+      const { units, resolved, paged } = b;
+      const bound = state.boundTextures;
       for (let i = 0, il = textures.length; i < il; ++i) {
-        const [k, texture] = textures[i];
-        const unit = textureUnits[k];
-        if (unit !== undefined) {
-          if (isNullTexture(texture)) {
-            gl.activeTexture(gl.TEXTURE0 + unit);
-            gl.bindTexture(gl.TEXTURE_2D, null);
+        const unit = units[i];
+        if (unit === undefined) continue;
+        const texture = textures[i][1];
+        if (b.textures[i] !== texture) {
+          b.textures[i] = texture;
+          resolved[i] = isNullTexture(texture) ? null : asGLTexture(texture);
+          paged[i] = isDataPageTexture(texture);
+        }
+        const glTexture = resolved[i];
+        if (glTexture === null) {
+          bound[unit] = undefined;
+          gl.activeTexture(gl.TEXTURE0 + unit);
+          gl.bindTexture(gl.TEXTURE_2D, null);
+        } else {
+          const k = textures[i][0];
+          if (samplerTypes?.[k] !== undefined) checkTextureBinding(gl, k, glTexture, samplerTypes[k]);
+          // data pages only, which are never render targets: skipping others left a target bound while drawn into
+          // (a feedback loop, `transparency/dpoit/overlap`)
+          if (paged[i]) {
+            if (bound[unit] === glTexture) continue;
+            bound[unit] = glTexture;
           } else {
-            const glTexture = asGLTexture(texture);
-            if (samplerTypes?.[k] !== undefined) checkTextureBinding(gl, k, glTexture, samplerTypes[k]);
-            glTexture.bind(unit);
+            bound[unit] = undefined;
           }
+          glTexture.bind(unit);
         }
       }
     },

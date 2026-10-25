@@ -92,8 +92,52 @@ async function addScene(plugin: HeadlessPluginContext) {
   for (const type of ['cartoon', 'ball-and-stick', 'line'] as const) {
     await representation.addRepresentation(dna, { type });
   }
+
+  // merged (`renderMerged` on: 'auto' is derived as unmerged); one chain in 40 copies, merged alone to be culled
+  // on the GPU
+  const loadPdb = async (pdb: string, assembly: boolean) => {
+    const data = await plugin.builders.data.rawData({ data: pdb, label: 'pdb' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const model = await plugin.builders.structure.createModel(trajectory);
+    return plugin.builders.structure.createStructure(
+      model,
+      assembly ? { name: 'assembly', params: { id: '1' } } : undefined,
+    );
+  };
+  const chains = await loadPdb(chainsPdb(32, 0), false);
+  await representation.addRepresentation(chains, { type: 'spacefill', typeParams: { renderMerged: true } });
+  await representation.addRepresentation(chains, { type: 'ball-and-stick', typeParams: { renderMerged: true } });
+  const copies = await loadPdb(copiesPdb(40), true);
+  await representation.addRepresentation(copies, { type: 'spacefill', typeParams: { gpuCulling: true } });
   plugin.canvas3d!.commit(true);
 }
+
+const f = (v: number) => v.toFixed(3).padStart(8);
+/** `count` chains of four alanines' CA atoms, from `copies` assembly operators (none: 0) */
+function chainsPdb(count: number, copies: number) {
+  const ids = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const atoms: string[] = [];
+  for (let c = 0; c < count; ++c) {
+    for (let i = 0; i < 4; ++i) {
+      const serial = String(c * 4 + i + 1).padStart(5);
+      atoms.push(
+        `ATOM  ${serial}  CA  ALA ${ids[c]}${String(i + 1).padStart(4)}    ${f(i * 3.8)}${f(c * 8)}${f(0)}  1.00  0.00           C`,
+      );
+    }
+  }
+  const biomt: string[] = [];
+  if (copies) {
+    biomt.push('REMARK 350 BIOMOLECULE: 1', 'REMARK 350 APPLY THE FOLLOWING TO CHAINS: A');
+    for (let k = 0; k < copies; ++k) {
+      const n = String(k + 1).padStart(4);
+      biomt.push(`REMARK 350   BIOMT1 ${n}  1.000000  0.000000  0.000000 ${f((k % 8) * 20)}`);
+      biomt.push(`REMARK 350   BIOMT2 ${n}  0.000000  1.000000  0.000000 ${f(Math.floor(k / 8) * 20)}`);
+      biomt.push(`REMARK 350   BIOMT3 ${n}  0.000000  0.000000  1.000000 ${f(0)}`);
+    }
+  }
+  return `${[...biomt, ...atoms].join('\n')}\nEND\n`;
+}
+const copiesPdb = (copies: number) => chainsPdb(1, copies);
 
 describe.skipIf(!WebGPU.module)('precompile lists from params on WebGPU', () => {
   it('cover what the representations draw, and prepare it before the objects exist', async () => {
@@ -115,6 +159,11 @@ describe.skipIf(!WebGPU.module)('precompile lists from params on WebGPU', () => 
         .map((r) => [r.type, getMissingFlags(r, byKey.get(getSignatureKey(r))!)] as const)
         .filter(([, f]) => f.length);
       expect(flags).toEqual([]);
+      // merged objects, one of them culled on the GPU: derived as well, the GPU culling's kernels prepared with them
+      expect(recorded.some((r) => r.merged)).toBe(true);
+      const gpuCulled = recorded.filter((r) => r.gpuCulled);
+      expect(gpuCulled.length).toBeGreaterThan(0);
+      expect(gpuCulled.filter((r) => !byKey.get(getSignatureKey(r))?.gpuCulled).map((r) => r.type)).toEqual([]);
       // the over-approximation stays small: a few derived per recorded signature
       expect(derived.length, `recorded ${recorded.length}, derived ${derived.length}`).toBeLessThan(
         recorded.length * 4,

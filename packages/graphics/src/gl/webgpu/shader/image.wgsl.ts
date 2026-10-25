@@ -171,7 +171,8 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     // per-group transparency
     #if defined(dTransparency) && !defined(dRenderVariant_depth)
         #if defined(dTransparencyType_texture)
-            var transparency = readFromTexture(tTransparency, dataIndex).r;
+            // an empty pixel (no group) has no data
+            var transparency = select(read_tTransparency(dataIndex).r, 0.0, group == -1.0);
         #else
             var transparency = 0.0;
         #endif
@@ -205,7 +206,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         if (group == -1.0) {
             marker = 0.0;
         } else if (uObject.uMarker == -1.0) {
-            marker = readFromTexture(tMarker, dataIndex).r;
+            marker = read_tMarker(dataIndex).r;
             marker = floor(marker * 255.0 + 0.5);
         }
     #endif
@@ -217,7 +218,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         } else {
             #if defined(dEmissive)
                 #if defined(dEmissiveType_texture)
-                    emissive += readFromTexture(tEmissive, dataIndex).r * uMaterial.uEmissiveStrength;
+                    emissive += read_tEmissive(dataIndex).r * uMaterial.uEmissiveStrength;
                 #endif
             #endif
         }
@@ -262,7 +263,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
             var overpaint = vec4<f32>(0.0);
             if (group != -1.0) {
                 #if defined(dOverpaintType_texture)
-                    overpaint = readFromTexture(tOverpaint, dataIndex);
+                    overpaint = read_tOverpaint(dataIndex);
                 #endif
                 overpaint *= uMaterial.uOverpaintStrength;
             }

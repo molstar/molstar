@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -47,7 +47,8 @@ float getPixelSize(const in float viewZ) {
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
 
-    vec2 packedDepth = texture2D(tSsaoDepth, coords).zw;
+    vec4 selfSsaoDepth = texture2D(tSsaoDepth, coords);
+    vec2 packedDepth = selfSsaoDepth.zw;
 
     if (outsideBounds(coords)) {
         gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
@@ -96,6 +97,7 @@ void main(void) {
         sum += kernel * sampleValue;
         kernelSum += kernel;
     }
-    gl_FragColor = vec4(packUnitIntervalToRG(sum / kernelSum), packedDepth);
+    // no sample within the depth bias (a background pixel of the first pass): the pixel unblurred
+    gl_FragColor = kernelSum == 0.0 ? selfSsaoDepth : vec4(packUnitIntervalToRG(sum / kernelSum), packedDepth);
 }
 `;

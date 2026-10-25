@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isQuadIndexing, QuadIndicesPerItem } from '../quad-indices.js';
 import { ReversedZeroToOne } from '../depth-range.js';
 import { ValueCell } from '@molstar/core/util';
 import { idFactory } from '@molstar/core/util/id-factory';
@@ -18,17 +19,17 @@ import type {
   ProgramItem,
   Transparency,
 } from '../render-item.js';
+import { IndirectRecordBytes } from '../render-item.js';
 import {
   type RenderableSchema,
   type RenderableValues,
   DefineSpec,
-  getValueVersions,
   splitValues,
   type TextureSpec,
   type UniformSpec,
 } from '../renderable/schema.js';
-import type { TextureImage, TextureVolume } from '../renderable/util.js';
-import type { DefineValues, ShaderCode } from '../shader-code.js';
+import type { DataArray, TextureImage, TextureVolume } from '../renderable/util.js';
+import type { DefineType, DefineValues, ShaderCode } from '../shader-code.js';
 import type { Texture, TextureKind, Textures, TextureValues } from '../texture.js';
 import { type SharedTexture, type SharedTextureImage, updateSharedTexture } from '../shared-texture.js';
 import type { UniformKind, UniformsList } from '../uniform.js';
@@ -40,12 +41,27 @@ import {
   getUniformBlockLayout,
 } from '../uniform-layout.js';
 import { BufferUsage } from './constants.js';
-import { asWebGPUStorageBuffer } from './compute.js';
+import type { BufferRange } from './buffer-pages.js';
+import { SegmentedArray } from '../segmented-array.js';
+import {
+  type DataLayer,
+  DataLayerNames,
+  DataLayerElementBytes,
+  DataLayers,
+  DataLayerPagesName,
+  DataPageNames,
+  getDataLayerPages,
+  getDataLayerSchema,
+  getDataOffsetName,
+  MaxDataPages,
+} from './data-layers.js';
+import { TextureChanges } from '../renderable/texture-changes.js';
+import { asWebGPUStorageBuffer, isWebGPUStorageBuffer } from './compute.js';
 import type { DrawIndirect } from '../compute.js';
 import type { WebGPUDrawContext, WebGPULinkable } from './context.js';
 import { asWebGPUGlobalBindings, getTextureEntries } from './global-bindings.js';
 import type { VertexBufferSlot, WebGPUProgram } from './program.js';
-import { getWgslProgram } from './shader/programs.js';
+import { getWgslProgram, resolveWgslSource } from './shader/programs.js';
 import { notSupported, WebGPUUnsupportedError } from './errors.js';
 import {
   asWebGPUTexture,
@@ -84,10 +100,24 @@ function createVariantProgram(
   };
   const unsupported = wgsl.getUnsupported?.(variantDefines);
   if (unsupported) notSupported(`${unsupported} of '${shaderCode.name}'`);
-  return ctx.programs.get(shaderCode.name, wgsl.source, variantDefines, schema);
+  return ctx.programs.get(shaderCode.name, resolveWgslSource(wgsl.source, variantDefines), variantDefines, schema);
 }
 
 const getNextProgramItemId = idFactory();
+
+/**
+ * The schema the programs of a graphics item are made from: the theme layers (`DataSpec`) read from the data pages
+ * (`getDataLayerSchema`); with the render variant define
+ */
+function getGraphicsSchema(schema: RenderableSchema) {
+  const graphicsSchema = getDataLayerSchema(schema);
+  for (const s of [schema, graphicsSchema]) {
+    if (s.dRenderVariant === undefined) {
+      Object.defineProperty(s, 'dRenderVariant', { value: DefineSpec('string') });
+    }
+  }
+  return graphicsSchema;
+}
 
 /**
  * Programs of a render item without its data, see `GraphicsContext.createProgramItem`: `resources.preparePipelines`
@@ -97,15 +127,13 @@ export function createWebGPUProgramItem(
   ctx: WebGPUDrawContext,
   drawMode: DrawMode,
   shaderCode: ShaderCode,
-  schema: RenderableSchema,
+  renderableSchema: RenderableSchema,
   defineValues: DefineValues,
   linearTextures: readonly string[],
   transparency: Transparency,
 ): ProgramItem {
   const id = getNextProgramItemId();
-  if (schema.dRenderVariant === undefined) {
-    Object.defineProperty(schema, 'dRenderVariant', { value: DefineSpec('string') });
-  }
+  const schema = getGraphicsSchema(renderableSchema);
   const programs = new Map<ProgramVariant, WebGPUProgram | null>();
   const getProgram = (variant: ProgramVariant) => {
     let program = programs.get(variant);
@@ -144,43 +172,54 @@ function getRenderVariant(variant: ProgramVariant, transparency: Transparency | 
   }
 }
 
-type GPUData = { buffer: GPUBuffer; size: number; usage: number };
+/**
+ * Vertex or index data of a render item: a range of the context's geometry pages (`geometryPages`); of a segmented
+ * array, the parts written
+ */
+type GPUData = { range: BufferRange; usage: number; segmented?: SegmentedArray.Uploaded };
 
-/** Writes the bytes of `array`, a multiple of 4 */
-function writeBytes(device: GPUDevice, buffer: GPUBuffer, array: ArrayBufferView) {
-  const bytes = new Uint8Array(array.buffer as ArrayBuffer, array.byteOffset, Math.floor(array.byteLength / 4) * 4);
-  device.queue.writeBuffer(buffer, 0, bytes);
+type GPUDataSource = ArrayBufferView | SegmentedArray;
+
+/** Writes `array` into `data`'s range: of a segmented array the parts changed since `data` was written */
+function writeGPUData(ctx: WebGPUDrawContext, data: GPUData, array: GPUDataSource) {
+  if (SegmentedArray.is(array)) {
+    const bpe = array.BYTES_PER_ELEMENT;
+    data.segmented = SegmentedArray.writeChanged(array, data.segmented, (part, offset) =>
+      ctx.geometryPages.write(data.range, part, offset * bpe),
+    );
+  } else {
+    data.segmented = undefined;
+    ctx.geometryPages.write(data.range, array);
+  }
 }
 
 /** Vertex buffers count as attributes, index buffers as elements (`GraphicsResources.getByteCounts`) */
 const byteKind = (usage: number) => (usage & BufferUsage.INDEX ? 'elements' : 'attribute');
 
-function createGPUData(ctx: WebGPUDrawContext, array: ArrayBufferView, usage: number): GPUData {
-  const { device } = ctx;
-  const size = Math.max(4, Math.ceil(array.byteLength / 4) * 4);
-  const buffer = device.createBuffer({ size, usage: usage | BufferUsage.COPY_DST });
-  if (array.byteLength > 0) writeBytes(device, buffer, array);
+function createGPUData(ctx: WebGPUDrawContext, array: GPUDataSource, usage: number): GPUData {
+  const range = ctx.geometryPages.allocate(array.byteLength);
+  const data: GPUData = { range, usage };
+  writeGPUData(ctx, data, array);
   const kind = byteKind(usage);
-  ctx.byteCounts[kind] += size;
+  ctx.byteCounts[kind] += range.size;
   ctx.stats.resourceCounts[kind] += 1;
-  return { buffer, size, usage };
+  return data;
 }
 
 function releaseGPUData(ctx: WebGPUDrawContext, data: GPUData) {
-  ctx.release(data.buffer);
+  ctx.geometryPages.free(data.range);
   const kind = byteKind(data.usage);
-  ctx.byteCounts[kind] -= data.size;
+  ctx.byteCounts[kind] -= data.range.size;
   ctx.stats.resourceCounts[kind] -= 1;
 }
 
-/** Rewrites `data` with `array` or recreates it when too small */
-function updateGPUData(ctx: WebGPUDrawContext, data: GPUData, array: ArrayBufferView, usage: number): GPUData {
-  const { device } = ctx;
-  if (array.byteLength > data.size) {
+/** Rewrites `data` with `array` or moves it to a larger range */
+function updateGPUData(ctx: WebGPUDrawContext, data: GPUData, array: GPUDataSource, usage: number): GPUData {
+  if (array.byteLength > data.range.size) {
     releaseGPUData(ctx, data);
     return createGPUData(ctx, array, usage);
   }
-  if (array.byteLength > 0) writeBytes(device, data.buffer, array);
+  writeGPUData(ctx, data, array);
   return data;
 }
 
@@ -241,6 +280,36 @@ function createBlock(snapshot: UniformSnapshot, layout: UniformBlockLayout, entr
 }
 
 /** A bind group with what it was created for, see `isCurrent` */
+/** Stands for an absent buffer in the keys of `sharedGroups` */
+const NoBuffer = {};
+type GroupTrie = { group?: GPUBindGroup; next: WeakMap<object, GroupTrie> };
+/**
+ * Bind groups binding buffers only, by their layout and buffers (a trie of weak maps: dropped with a destroyed layout
+ * or buffer): one group for the items binding the same uniform arenas and storage pages, so that their draws bind one
+ * group at their dynamic offsets (`shared-draw-resources.md`, shared object groups)
+ */
+const sharedGroups = new WeakMap<GPUBindGroupLayout, GroupTrie>();
+function getSharedGroup(
+  device: GPUDevice,
+  layout: GPUBindGroupLayout,
+  entries: GPUBindGroupEntry[],
+  buffer: GPUBuffer | undefined,
+  drawBuffer: GPUBuffer | undefined,
+  storageBuffers: readonly GPUBuffer[],
+) {
+  let node = sharedGroups.get(layout);
+  if (!node) sharedGroups.set(layout, (node = { next: new WeakMap() }));
+  const step = (key: object) => {
+    let child = node!.next.get(key);
+    if (!child) node!.next.set(key, (child = { next: new WeakMap() }));
+    node = child;
+  };
+  step(buffer ?? NoBuffer);
+  step(drawBuffer ?? NoBuffer);
+  for (let i = 0, il = storageBuffers.length; i < il; ++i) step(storageBuffers[i]);
+  return (node.group ??= device.createBindGroup({ layout, entries }));
+}
+
 type CachedGroup = {
   group: GPUBindGroup;
   buffer: GPUBuffer | undefined;
@@ -251,6 +320,8 @@ type CachedGroup = {
   /** the bound storage buffers, see `WebGPUProgram.storageBindings` */
   storageBuffers: GPUBuffer[];
   offsets: number[];
+  /** what `getBindGroup` returns for the group, one object */
+  result: { group: GPUBindGroup; offsets: number[] };
 };
 
 /**
@@ -297,7 +368,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   ctx: WebGPUDrawContext,
   drawMode: DrawMode,
   shaderCode: ShaderCode,
-  schema: RenderableSchema,
+  renderableSchema: RenderableSchema,
   values: RenderableValues,
   materialId: number,
   transparency: Transparency | undefined,
@@ -305,15 +376,23 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   const id = getNextRenderItemId();
   const { stats } = ctx;
 
-  if (schema.dRenderVariant === undefined) {
-    Object.defineProperty(schema, 'dRenderVariant', { value: DefineSpec('string') });
+  // compute programs read their textures as they are
+  if (renderableSchema.dRenderVariant === undefined) {
+    Object.defineProperty(renderableSchema, 'dRenderVariant', { value: DefineSpec('string') });
   }
+  const schema = transparency !== undefined ? getGraphicsSchema(renderableSchema) : renderableSchema;
+  // the page of each of the item's layers, a define of its programs only where not 0 (all in one): programs of items
+  // within the binding limit are those of before, as precompile lists name them (`updateLayers`)
+  const layerPages = ValueCell.create(0);
+  /** the layout changed since `update` last looked: programs reading the layers from other pages */
+  let layerPagesChanged = false;
 
   const {
     attributeValues,
     defineValues,
     textureValues,
     materialTextureValues,
+    dataValues,
     uniformValues,
     materialUniformValues,
     bufferedUniformValues,
@@ -342,10 +421,184 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     itemBlocks.push(block);
     return block;
   };
+  /**
+   * The theme layers in a range of the data pages (`ctx.dataPages`), one after another (16-byte aligned), their word
+   * offsets in the object block; moved to a larger range when one outgrows it. Layers together beyond the binding limit
+   * (`ctx.dataBindingSize`) in up to `MaxDataPages` ranges, each within it, bound as pages of their own
+   * (`DataPageNames`, the layout in `layerPages`)
+   */
+  const layers: DataLayer[] =
+    schema === renderableSchema ? [] : DataLayerNames.filter((n) => dataValues[n] !== undefined);
+  const layerOffsets = layers.map((l) => ValueCell.create(0));
+  for (let i = 0; i < layers.length; ++i) objectEntries.push([getDataOffsetName(layers[i]), layerOffsets[i]]);
+  const layerVersions = layers.map(() => -1);
+  /** of segmented layers (merged objects: the members' layers as parts), the parts written */
+  const layerParts: (SegmentedArray.Uploaded | undefined)[] = layers.map(() => undefined);
+  /** per page its range, per layer its page and offset in it as written */
+  const layerRanges: (BufferRange | undefined)[] = new Array(MaxDataPages).fill(undefined);
+  const layerPageOf = layers.map(() => -1);
+  const layerPageOffsets = layers.map(() => -1);
+  // scratch of `updateLayers`, allocated once: per layer its size, page and offset, per page its bytes, cursor and whether moved
+  const nextSizes = layers.map(() => 0);
+  const nextPageOf = layers.map(() => 0);
+  const nextOffsets = layers.map(() => 0);
+  const pageBytes: number[] = new Array(MaxDataPages).fill(0);
+  const pageCursors: number[] = new Array(MaxDataPages).fill(0);
+  const movedPages: boolean[] = new Array(MaxDataPages).fill(false);
+  /** false where a layer alone exceeds the limit, or the layers more than the pages: not drawn (warned) */
+  let layersFit = true;
+  /**
+   * Writes the elements `ranges` (`[start, end)` pairs, all where undefined) of segmented `array` at `offset`: whole
+   * words, composed from the parts (a word may hold elements of two)
+   */
+  function writeSegmentedLayer(
+    range: BufferRange,
+    array: SegmentedArray,
+    ranges: readonly number[] | undefined,
+    offset: number,
+  ) {
+    const bpe = array.BYTES_PER_ELEMENT;
+    const write = (start: number, end: number) => {
+      const s = Math.floor((start * bpe) / 4) * 4;
+      const e = Math.min(array.byteLength, Math.ceil((end * bpe) / 4) * 4);
+      if (e > s) ctx.dataPages.write(range, SegmentedArray.read(array, s / bpe, Math.ceil(e / bpe)), offset + s);
+    };
+    if (ranges) {
+      for (let k = 0; k < ranges.length; k += 2) write(ranges[k], ranges[k + 1]);
+    } else {
+      for (const p of array.parts) if (p.count > 0) write(p.offset, p.offset + p.count);
+    }
+  }
+  const layerImage = (layer: DataLayer) => dataValues[layer].ref.value as DataArray<Uint8Array>;
+  /** the bytes of the elements of `layer` (its array may be longer) */
+  const layerBytes = (layer: DataLayer) => layerImage(layer).count * DataLayerElementBytes[DataLayers[layer]];
+  const alignLayer = (bytes: number) => Math.ceil(bytes / 16) * 16;
+  /**
+   * The pages of the layers of `sizes` (bytes) into `pageOf` and their bytes into `pageBytes`: all in the first within
+   * the limit, else packed largest first; false where they don't fit
+   */
+  function getLayerPages(sizes: readonly number[], pageOf: number[]) {
+    const limit = ctx.dataBindingSize;
+    let total = 0;
+    for (let i = 0, il = sizes.length; i < il; ++i) total += sizes[i];
+    pageBytes.fill(0);
+    if (total <= limit) {
+      pageOf.fill(0);
+      pageBytes[0] = total;
+      return true;
+    }
+    const order = sizes.map((_, i) => i).sort((a, b) => sizes[b] - sizes[a]);
+    for (const i of order) {
+      const p = pageBytes.findIndex((s) => s + sizes[i] <= limit);
+      if (p < 0) return false;
+      pageOf[i] = p;
+      pageBytes[p] += sizes[i];
+    }
+    return true;
+  }
+  function updateLayers() {
+    if (layers.length === 0) return;
+    // nothing to do where no layer changed (their sizes with them); not fitting is checked again on every update
+    if (layersFit) {
+      let changed = false;
+      for (let i = 0, il = layers.length; i < il; ++i) {
+        if (dataValues[layers[i]].ref.version !== layerVersions[i]) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return;
+    }
+    const sizes = nextSizes;
+    const pageOf = nextPageOf;
+    for (let i = 0, il = layers.length; i < il; ++i) sizes[i] = alignLayer(layerBytes(layers[i]));
+    if (!getLayerPages(sizes, pageOf)) {
+      if (layersFit) {
+        ctx.warnUnsupported(
+          `the layers of a '${shaderCode.name}' item (${sizes.join(', ')} bytes) exceed ${MaxDataPages} storage ` +
+            `bindings of ${ctx.dataBindingSize} bytes`,
+        );
+      }
+      layersFit = false;
+      return;
+    }
+    layersFit = true;
+    const pages = getDataLayerPages(layers, pageOf);
+    if (pages !== layerPages.ref.value) {
+      ValueCell.update(layerPages, pages);
+      if (pages === 0) delete defineValues[DataLayerPagesName];
+      else defineValues[DataLayerPagesName] = layerPages as unknown as ValueCell<DefineType>; // a number define
+      layerPagesChanged = true;
+    }
+    // per page its layers one after another, a range per page (moved to a larger one when outgrown)
+    const pageOffsets = nextOffsets;
+    pageCursors.fill(0);
+    for (let i = 0, il = layers.length; i < il; ++i) {
+      pageOffsets[i] = pageCursors[pageOf[i]];
+      pageCursors[pageOf[i]] += sizes[i];
+    }
+    for (let p = 0; p < MaxDataPages; ++p) {
+      const range = layerRanges[p];
+      movedPages[p] = false;
+      if (range && (pageBytes[p] === 0 || pageBytes[p] > range.size)) {
+        ctx.dataPages.free(range);
+        ctx.byteCounts.texture -= range.size;
+        layerRanges[p] = undefined;
+      }
+      if (pageBytes[p] > 0 && !layerRanges[p]) {
+        const allocated = ctx.dataPages.allocate(pageBytes[p]);
+        ctx.byteCounts.texture += allocated.size;
+        layerRanges[p] = allocated;
+        movedPages[p] = true;
+      }
+    }
+    for (let i = 0; i < layers.length; ++i) {
+      const range = layerRanges[pageOf[i]]!;
+      const offset = pageOffsets[i];
+      // written again where its range or its place in it changed (another layer before it grew)
+      const moved = movedPages[pageOf[i]] || layerPageOf[i] !== pageOf[i] || layerPageOffsets[i] !== offset;
+      layerPageOf[i] = pageOf[i];
+      layerPageOffsets[i] = offset;
+      const cell = dataValues[layers[i]];
+      const image = layerImage(layers[i]);
+      const { array } = image;
+      if (SegmentedArray.is(array)) {
+        if (moved || cell.ref.version !== layerVersions[i]) {
+          const ranges = moved ? undefined : SegmentedArray.changedRanges(array, layerParts[i]);
+          if (!ranges) layerParts[i] = SegmentedArray.uploaded(array);
+          writeSegmentedLayer(range, array, ranges, offset);
+          layerVersions[i] = cell.ref.version;
+        }
+      } else if (moved || cell.ref.version !== layerVersions[i]) {
+        layerParts[i] = undefined;
+        // the changed elements only where logged (`TextureChanges`), whole words of the page
+        const elementSize = DataLayerElementBytes[DataLayers[layers[i]]];
+        // whole words of the elements (the array may be longer, reused; its length is whole words)
+        const byteCount = Math.min(array.byteLength, Math.ceil(layerBytes(layers[i]) / 4) * 4);
+        const ranges = moved ? undefined : TextureChanges.get(image, layerVersions[i], cell.ref.version);
+        if (ranges) {
+          for (let k = 0; k < ranges.length; k += 2) {
+            const start = Math.floor((ranges[k] * elementSize) / 4) * 4;
+            const end = Math.min(byteCount, Math.ceil((ranges[k + 1] * elementSize) / 4) * 4);
+            const bytes = new Uint8Array(array.buffer, array.byteOffset + start, end - start);
+            ctx.dataPages.write(range, bytes, offset + start);
+          }
+        } else {
+          ctx.dataPages.write(range, new Uint8Array(array.buffer, array.byteOffset, byteCount), offset);
+        }
+        layerVersions[i] = cell.ref.version;
+      }
+      ValueCell.updateIfChanged(layerOffsets[i], (range.offset + offset) / 4);
+    }
+  }
+  updateLayers();
+  // the programs are created after, with the layout
+  layerPagesChanged = false;
+
   const objectLayout = getUniformBlockLayout('object', schema);
   const materialLayout = getUniformBlockLayout('material', schema);
   /** the object block and the draw blocks, in one buffer: one bind group (2) with dynamic offsets */
-  const arena = createUniformArena(ctx.ring, ctx.release);
+  const arena = createUniformArena(ctx.ring, ctx.release, ctx.uniformPages);
   const objectBlock = objectLayout
     ? ownBlock(arena.createSnapshot(objectLayout.size), objectLayout, objectEntries)
     : undefined;
@@ -355,63 +608,113 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   materialBlock?.write();
 
   // 'draw' uniforms of the render item and of the global bindings, per global bindings instance; multi-draw
-  // levels (`MultiDrawBaseData`) have their own block with their uniforms (e.g. `uLod`) replacing the item's
-  type DrawBlocks = { base?: Block; levels: WeakMap<MultiDrawBaseData, Block> };
-  const drawBlocks = new WeakMap<{ drawUniforms: UniformsList }, DrawBlocks>();
-  const noGlobals = { drawUniforms: [] as UniformsList };
-  function getDrawBlock(program: WebGPUProgram, globals: { drawUniforms: UniformsList }, level?: MultiDrawBaseData) {
+  // levels (`MultiDrawBaseData`) have their own block with their uniforms (e.g. `uLod`) replacing the item's; the
+  // draws of solid interior caps a block per cap (`GlobalBindings.setSolidInteriorCap`), its values constant, so that
+  // the item's other draws keep their slot and a recorded pass replays
+  type CapBlocks = Map<number, Block>;
+  type DrawBlocks = {
+    base?: Block;
+    levels: WeakMap<MultiDrawBaseData, Block>;
+    caps: CapBlocks;
+    levelCaps: WeakMap<MultiDrawBaseData, CapBlocks>;
+  };
+  type DrawGlobals = { drawUniforms: UniformsList; solidInteriorCap?: { pass: number; clip: number } };
+  const drawBlocks = new WeakMap<DrawGlobals, DrawBlocks>();
+  const noGlobals: DrawGlobals = { drawUniforms: [] };
+  function getDrawBlock(program: WebGPUProgram, globals: DrawGlobals, level?: MultiDrawBaseData) {
     if (!program.drawLayout) return;
     let blocks = drawBlocks.get(globals);
-    if (!blocks) drawBlocks.set(globals, (blocks = { levels: new WeakMap() }));
-    const { members, size } = program.drawLayout;
-    const layout: UniformBlockLayout = { block: 'object', members, size, hash: '' };
-    if (!level) {
-      return (blocks.base ??= ownBlock(arena.createSnapshot(size), layout, [...drawEntries, ...globals.drawUniforms]));
+    if (!blocks) {
+      blocks = { levels: new WeakMap(), caps: new Map(), levelCaps: new WeakMap() };
+      drawBlocks.set(globals, blocks);
     }
+    const { members, size } = program.drawLayout;
+    // the layout and entries for a block created: not per draw
+    const getLayout = (): UniformBlockLayout => ({ block: 'object', members, size, hash: '' });
+    /** the item's or the level's entries */
+    const getEntries = (): UniformsList => {
+      if (!level) return [...drawEntries, ...globals.drawUniforms];
+      const names = new Set(level.uniforms.map(([k]) => k));
+      return [...drawEntries.filter(([k]) => !names.has(k)), ...level.uniforms, ...globals.drawUniforms];
+    };
+    const cap = globals.solidInteriorCap;
+    if (cap && cap.pass !== 0) {
+      let caps = level ? blocks.levelCaps.get(level) : blocks.caps;
+      if (!caps) blocks.levelCaps.set(level!, (caps = new Map()));
+      // the clip index is -1 (near plane) or a clip object's
+      const key = cap.pass * 256 + cap.clip + 1;
+      let block = caps.get(key);
+      if (!block) {
+        const entries: UniformsList = getEntries().map(([k, v]) =>
+          k === 'uSolidInteriorPass'
+            ? [k, ValueCell.create(cap.pass)]
+            : k === 'uSolidInteriorClip'
+              ? [k, ValueCell.create(cap.clip)]
+              : [k, v],
+        );
+        block = ownBlock(arena.createSnapshot(size), getLayout(), entries);
+        caps.set(key, block);
+      }
+      return block;
+    }
+    if (!level) return (blocks.base ??= ownBlock(arena.createSnapshot(size), getLayout(), getEntries()));
     let block = blocks.levels.get(level);
     if (!block) {
       // levels are kept by the renderable, replaced when their capacity grows (the slot of a replaced one stays unused)
-      const names = new Set(level.uniforms.map(([k]) => k));
-      const entries = [...drawEntries.filter(([k]) => !names.has(k)), ...level.uniforms, ...globals.drawUniforms];
-      block = ownBlock(arena.createSnapshot(size), layout, entries);
+      block = ownBlock(arena.createSnapshot(size), getLayout(), getEntries());
       blocks.levels.set(level, block);
     }
     return block;
   }
-
-  const versions = getValueVersions(values);
 
   /** per vertex buffer slot of the programs, created and updated on use; `data` is unset until uploaded */
   const vertexBuffers = new Map<string, { cells: ValueCell<any>[]; versions: number[]; data?: GPUData }>();
   const slotEntries = new Map<VertexBufferSlot, NonNullable<ReturnType<typeof vertexBuffers.get>>>();
   function getVertexBuffer(slot: VertexBufferSlot) {
     // by slot object first (stable per program), by key across programs
-    let entry = slotEntries.get(slot) ?? vertexBuffers.get(slot.key);
+    let entry = slotEntries.get(slot);
     if (!entry) {
-      const cells = slot.names.map((name) => {
-        const cell = attributeValues[name];
-        if (!cell) throw new Error(`missing attribute '${name}' of '${shaderCode.name}'`);
-        return cell;
-      });
-      entry = { cells, versions: cells.map(() => -1) };
-      vertexBuffers.set(slot.key, entry);
+      entry = vertexBuffers.get(slot.key);
+      if (!entry) {
+        const cells = slot.names.map((name) => {
+          const cell = attributeValues[name];
+          if (!cell) throw new Error(`missing attribute '${name}' of '${shaderCode.name}'`);
+          return cell;
+        });
+        entry = { cells, versions: cells.map(() => -1) };
+        vertexBuffers.set(slot.key, entry);
+      }
+      slotEntries.set(slot, entry);
     }
-    slotEntries.set(slot, entry);
     const { cells, versions } = entry;
+    // written on the GPU (instanced attributes of GPU-culled merged objects): bound as they are
+    const value = cells.length === 1 ? cells[0].ref.value : undefined;
+    if (isWebGPUStorageBuffer(value)) {
+      const buffer = value.getGPUBuffer();
+      return { buffer, offset: 0, size: buffer.size };
+    }
     let changed = !entry.data;
     for (let i = 0, il = cells.length; i < il; ++i) {
       if (cells[i].ref.version !== versions[i]) changed = true;
     }
-    if (!changed) return entry.data!.buffer;
-    const arrays = cells.map((c) => c.ref.value as Float32Array);
-    const array = arrays.length === 1 ? arrays[0] : interleave(arrays, slot.itemSizes);
+    if (!changed) return entry.data!.range;
+    const arrays = cells.map((c) => c.ref.value as Float32Array | SegmentedArray<Float32Array>);
+    const array =
+      arrays.length === 1
+        ? arrays[0]
+        : interleave(
+            arrays.map((a) => (SegmentedArray.is(a) ? SegmentedArray.flatten(a) : a)),
+            slot.itemSizes,
+          );
     entry.data = entry.data
       ? updateGPUData(ctx, entry.data, array, BufferUsage.VERTEX)
       : createGPUData(ctx, array, BufferUsage.VERTEX);
     for (let i = 0, il = cells.length; i < il; ++i) versions[i] = cells[i].ref.version;
-    return entry.data.buffer;
+    return entry.data.range;
   }
   let indexBuffer: GPUData | undefined;
+  /** quads without elements of their own draw indexed by the shared quad indices (`quad-indices.ts`) */
+  const quads = !!shaderCode.quads && !values.elements?.ref.value && isQuadIndexing();
   function createIndexBuffer() {
     if (values.elements?.ref.value) {
       indexBuffer = createGPUData(ctx, values.elements.ref.value, BufferUsage.INDEX);
@@ -423,6 +726,48 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   const sharedTextures = new Map<string, SharedTexture>();
   const textures = createTextures(ctx, schema, textureValues, sharedTextures);
   const materialTextures = createTextures(ctx, schema, materialTextureValues, sharedTextures);
+  // the versions of the values as last seen by `update`, per list in its order: compared for every item on every update,
+  // not looked up by name in an object of all the values (a dictionary of a hundred keys); the layers' define is not
+  // among the defines (`layerPagesChanged`)
+  const defineEntries = Object.entries(defineValues);
+  const defineVersions = defineEntries.map(([, v]) => v.ref.version);
+  const textureVersions = textures.map(([k]) => textureValues[k].ref.version);
+  const materialTextureVersions = materialTextures.map(([k]) => materialTextureValues[k].ref.version);
+  let drawCountVersion = values.drawCount.ref.version;
+  let instanceCountVersion = values.instanceCount.ref.version;
+  let elementsVersion = values.elements?.ref.version ?? -1;
+  /** loads the changed textures of `list`; whether one was replaced by another */
+  function updateTextures(list: Textures, textureValues: TextureValues, versions: number[]) {
+    let replaced = false;
+    for (let i = 0, il = list.length; i < il; ++i) {
+      const [k, texture] = list[i];
+      const value = textureValues[k];
+      if (value.ref.version === versions[i]) continue;
+      const held = sharedTextures.get(k);
+      if (held) {
+        // the same image uploads once for all its items, another image is another texture (§4)
+        const next = updateSharedTexture(
+          ctx.sharedTextures,
+          held,
+          schema[k] as TextureSpec<TextureKind>,
+          value.ref.value as SharedTextureImage,
+        );
+        if (next !== held) {
+          sharedTextures.set(k, next);
+          list[i][1] = next.texture;
+          replaced = true;
+        }
+      } else if (schema[k].kind !== 'texture') {
+        // textures of kind 'texture' are managed externally
+        texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
+      } else if (list[i][1] !== value.ref.value) {
+        list[i][1] = value.ref.value as Texture;
+        replaced = true;
+      }
+      versions[i] = value.ref.version;
+    }
+    return replaced;
+  }
 
   let drawCount: number = values.drawCount.ref.value;
   let instanceCount: number = values.instanceCount.ref.value;
@@ -529,12 +874,34 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   }
   /** the storage buffers of the program being bound, in the order of its `storageBindings` */
   const currentStorageBuffers: GPUBuffer[] = [];
+  /**
+   * per program the cells of its storage bindings (a number: the data page of that index, `DataPageNames`), resolved
+   * once, not by name per draw
+   */
+  const storageCells = new WeakMap<WebGPUProgram, (ValueCell<any> | number)[]>();
   function getStorageBuffers(program: WebGPUProgram) {
-    currentStorageBuffers.length = 0;
-    for (const { name } of program.storageBindings) {
-      const buffer = storageBufferValues[name]?.ref.value;
-      if (!buffer) throw new Error(`missing storage buffer '${name}' of '${shaderCode.name}'`);
-      currentStorageBuffers.push(asWebGPUStorageBuffer(buffer).getGPUBuffer());
+    let cells = storageCells.get(program);
+    if (!cells) {
+      cells = program.storageBindings.map(({ name }) => {
+        const page = (DataPageNames as readonly string[]).indexOf(name);
+        if (page >= 0) return page;
+        const cell = storageBufferValues[name];
+        if (!cell) throw new Error(`missing storage buffer '${name}' of '${shaderCode.name}'`);
+        return cell;
+      });
+      storageCells.set(program, cells);
+    }
+    currentStorageBuffers.length = cells.length;
+    for (let i = 0, il = cells.length; i < il; ++i) {
+      const cell = cells[i];
+      if (typeof cell === 'number') {
+        currentStorageBuffers[i] = layerRanges[cell]!.buffer;
+        continue;
+      }
+      const buffer = cell.ref.value;
+      if (!buffer)
+        throw new Error(`missing storage buffer '${program.storageBindings[i].name}' of '${shaderCode.name}'`);
+      currentStorageBuffers[i] = asWebGPUStorageBuffer(buffer).getGPUBuffer();
     }
     return currentStorageBuffers;
   }
@@ -578,8 +945,12 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         const t = tierTextures.find((e) => e[0] === name)?.[1];
         textures.push(t ? asWebGPUTexture(t) : undefined);
       }
+      // an object group binding buffers only is shared by the items binding the same (their slots dynamic offsets)
+      const shared = index === 2 && textures.length === 0;
       cached = {
-        group: ctx.device.createBindGroup({ layout, entries }),
+        group: shared
+          ? getSharedGroup(ctx.device, layout, entries, slot?.buffer, drawSlot?.buffer, storageBuffers)
+          : ctx.device.createBindGroup({ layout, entries }),
         buffer: slot?.buffer,
         drawBuffer: drawSlot?.buffer,
         bindingsVersion,
@@ -587,15 +958,19 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         views: textures.map((t) => t?.getView()),
         storageBuffers: storageBuffers.slice(),
         offsets: [],
+        result: { group: undefined as unknown as GPUBindGroup, offsets: noOffsets },
       };
+      cached.result.group = cached.group;
       groups.set(layout, cached);
     }
     // dynamic offsets in binding order: the uniform block (0), then the draw uniforms
-    const { offsets } = cached;
+    const { offsets, result } = cached;
     offsets.length = 0;
     if (slot) offsets.push(slot.offset);
     if (drawSlot) offsets.push(drawSlot.offset);
-    return { group: cached.group, offsets: offsets.length ? offsets : noOffsets };
+    // one result per cached group (read before the next call)
+    result.offsets = offsets.length ? offsets : noOffsets;
+    return result;
   }
 
   // group 0 without global bindings (compute renderables): only the shared samplers
@@ -653,11 +1028,12 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         .filter((n) => n),
     getByteCount: () => {
       let count = 0;
-      for (const b of vertexBuffers.values()) count += b.data?.size ?? 0;
-      if (indexBuffer) count += indexBuffer.size;
+      for (const b of vertexBuffers.values()) count += b.data?.range.size ?? 0;
+      if (indexBuffer) count += indexBuffer.range.size;
       // a shared texture by the item's share (§5)
       for (const [k, t] of textures) count += sharedTextures.get(k)?.getByteCount() ?? t.getByteCount();
       for (const [k, t] of materialTextures) count += sharedTextures.get(k)?.getByteCount() ?? t.getByteCount();
+      for (const range of layerRanges) if (range) count += range.size;
       return count;
     },
     getProgram: getGraphicsProgram,
@@ -668,7 +1044,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     },
 
     render: (variant: T, globals?: GlobalBindings, mdbDataList?: MultiDrawBaseData[]) => {
-      if (drawCount === 0 || instanceCount === 0) return;
+      if (drawCount === 0 || instanceCount === 0 || !layersFit) return;
       const gpuGlobals = globals ? asWebGPUGlobalBindings(globals) : undefined;
       const program = getWebGPUProgram(variant);
       if (!program) return;
@@ -696,9 +1072,18 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       objectBlock?.write();
       const slots = program.vertexBufferSlots;
       for (let i = 0, il = slots.length; i < il; ++i) {
-        state.setVertexBuffer(i, getVertexBuffer(slots[i]));
+        const range = getVertexBuffer(slots[i]);
+        state.setVertexBuffer(i, range.buffer, range.offset, range.size);
       }
-      if (indexBuffer) state.setIndexBuffer(indexBuffer.buffer, 'uint32');
+      if (indexBuffer) {
+        const { range } = indexBuffer;
+        state.setIndexBuffer(range.buffer, 'uint32', range.offset, range.size);
+      }
+      // quads without elements of their own draw indexed by the shared quad indices (`quad-indices.ts`), unindexed
+      // past their limit
+      const quad = quads ? ctx.quadIndices.get(drawCount / QuadIndicesPerItem) : undefined;
+      if (quad) state.setIndexBuffer(quad.buffer, 'uint32', 0, quad.buffer.size);
+      const indexed = !!indexBuffer || !!quad;
 
       if (mdbDataList) {
         // culled and level-of-detail ranges, `firstInstance` offsets the instanced attributes
@@ -707,11 +1092,25 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
           const drawBlock = getDrawBlock(program, gpuGlobals ?? noGlobals, level);
           const object = getBindGroup(program, 2, objectBlock, textures, drawBlock);
           state.setBindGroup(2, object.group, object.offsets);
-          const { counts, instanceCounts, firsts, offsets, baseVertices, baseInstances } = level;
+          const { counts, instanceCounts, firsts, offsets, baseVertices, baseInstances, indirect } = level;
+          if (indirect) {
+            // arguments written on the GPU (GPU culling): a draw per record, drawn or not
+            const buffer = asWebGPUStorageBuffer(indirect.buffer).getGPUBuffer();
+            // indexed records of quads need the shared indices bound (within their limit, see the culler)
+            const indexedRecords = indirect.indexed ?? !!indexBuffer;
+            if (indexedRecords && !indexed) continue;
+            const stride = indexedRecords ? IndirectRecordBytes.indexed : IndirectRecordBytes.vertex;
+            for (let i = 0; i < level.count; ++i) {
+              if (indexedRecords) pass.drawIndexedIndirect(buffer, indirect.byteOffset + i * stride);
+              else pass.drawIndirect(buffer, indirect.byteOffset + i * stride);
+            }
+            stats.calls.drawInstancedBase += level.count;
+            continue;
+          }
           for (let i = 0; i < level.count; ++i) {
             if (counts[i] === 0 || instanceCounts[i] === 0) continue;
-            if (indexBuffer) {
-              // element offsets are in bytes
+            if (indexed) {
+              // element offsets are in bytes (those of quads are their first vertex times 4)
               pass.drawIndexed(counts[i], instanceCounts[i], offsets[i] / 4, baseVertices[i] ?? 0, baseInstances[i]);
             } else {
               pass.draw(counts[i], instanceCounts[i], firsts[i], baseInstances[i]);
@@ -728,7 +1127,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         if (indirect?.count !== undefined) pass.draw(indirect.count, instanceCount);
         else if (indirect)
           pass.drawIndirect(asWebGPUStorageBuffer(indirect.buffer).getGPUBuffer(), indirect.byteOffset);
-        else if (indexBuffer) pass.drawIndexed(drawCount, instanceCount);
+        else if (indexed) pass.drawIndexed(drawCount, instanceCount);
         else pass.draw(drawCount, instanceCount);
         stats.calls.drawInstanced += 1;
         stats.calls.counts += instanceCount;
@@ -737,65 +1136,41 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
 
     update: () => {
       let definesChanged = false;
-      for (const k of Object.keys(defineValues)) {
-        const v = defineValues[k];
-        if (v.ref.version !== versions[k]) {
+      for (let i = 0, il = defineEntries.length; i < il; ++i) {
+        const v = defineEntries[i][1];
+        if (v.ref.version !== defineVersions[i]) {
           definesChanged = true;
-          versions[k] = v.ref.version;
+          defineVersions[i] = v.ref.version;
         }
       }
       if (definesChanged) invalidatePrograms(true);
 
-      if (values.drawCount.ref.version !== versions.drawCount) {
+      if (values.drawCount.ref.version !== drawCountVersion) {
         stats.drawCount += values.drawCount.ref.value - drawCount;
         stats.instancedDrawCount += instanceCount * (values.drawCount.ref.value - drawCount);
         drawCount = values.drawCount.ref.value;
-        versions.drawCount = values.drawCount.ref.version;
+        drawCountVersion = values.drawCount.ref.version;
       }
-      if (values.instanceCount.ref.version !== versions.instanceCount) {
+      if (values.instanceCount.ref.version !== instanceCountVersion) {
         stats.instanceCount += values.instanceCount.ref.value - instanceCount;
         stats.instancedDrawCount += (values.instanceCount.ref.value - instanceCount) * drawCount;
         instanceCount = values.instanceCount.ref.value;
-        versions.instanceCount = values.instanceCount.ref.version;
+        instanceCountVersion = values.instanceCount.ref.version;
       }
 
-      if (indexBuffer && values.elements.ref.version !== versions.elements) {
+      if (indexBuffer && values.elements.ref.version !== elementsVersion) {
         indexBuffer = updateGPUData(ctx, indexBuffer, values.elements.ref.value, BufferUsage.INDEX);
-        versions.elements = values.elements.ref.version;
+        elementsVersion = values.elements.ref.version;
       }
 
-      let texturesReplaced = false;
-      const updateTextures = (list: Textures, textureValues: TextureValues) => {
-        for (let i = 0, il = list.length; i < il; ++i) {
-          const [k, texture] = list[i];
-          const value = textureValues[k];
-          if (value.ref.version === versions[k]) continue;
-          const held = sharedTextures.get(k);
-          if (held) {
-            // the same image uploads once for all its items, another image is another texture (§4)
-            const next = updateSharedTexture(
-              ctx.sharedTextures,
-              held,
-              schema[k] as TextureSpec<TextureKind>,
-              value.ref.value as SharedTextureImage,
-            );
-            if (next !== held) {
-              sharedTextures.set(k, next);
-              list[i][1] = next.texture;
-              texturesReplaced = true;
-            }
-          } else if (schema[k].kind !== 'texture') {
-            // textures of kind 'texture' are managed externally
-            texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
-          } else if (list[i][1] !== value.ref.value) {
-            list[i][1] = value.ref.value as Texture;
-            texturesReplaced = true;
-          }
-          versions[k] = value.ref.version;
-        }
-      };
-      updateTextures(textures, textureValues);
-      updateTextures(materialTextures, materialTextureValues);
+      let texturesReplaced = updateTextures(textures, textureValues, textureVersions);
+      if (updateTextures(materialTextures, materialTextureValues, materialTextureVersions)) texturesReplaced = true;
+      updateLayers();
+      // the layers' page layout changed (`layerPages`): programs reading them from other pages
+      if (layerPagesChanged) {
+        layerPagesChanged = false;
+        if (!definesChanged) invalidatePrograms(true);
+      }
       // another texture may be filtered differently (a program of other linear reads)
       if (texturesReplaced && !definesChanged) invalidatePrograms(false);
     },
@@ -810,6 +1185,13 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         else if (schema[k].kind !== 'texture') t.destroy();
       }
       sharedTextures.clear();
+      for (let p = 0; p < layerRanges.length; ++p) {
+        const range = layerRanges[p];
+        if (!range) continue;
+        ctx.dataPages.free(range);
+        ctx.byteCounts.texture -= range.size;
+        layerRanges[p] = undefined;
+      }
       stats.drawCount -= drawCount;
       stats.instanceCount -= instanceCount;
       stats.instancedDrawCount -= instanceCount * drawCount;

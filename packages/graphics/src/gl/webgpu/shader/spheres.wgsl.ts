@@ -192,7 +192,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         out.position.z = 2.0 * out.position.w;
     }
 
-    #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && dClipObjectCount != 0
+    #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && defined(dClipObjects)
         if (clipTest(out.vModelPosition / modelScale, clipFlag)) {
             // move out of [0, w] to 'discard' in the vertex stage
             out.position.z = 2.0 * out.position.w;
@@ -214,7 +214,7 @@ struct SphereHit {
     isCap: bool,
 };
 
-#if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+#if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
     #define dClipSphere
 #endif
 

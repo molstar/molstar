@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -46,15 +46,13 @@ export const PluginConfig = {
     ),
     /**
      * Graphics backends tried in order, e.g. `[WebGPUBackend, WebGL2Backend, WebGLBackend]`; by default those of
-     * `@molstar/graphics/gl/backends/default` (WebGL, WebGL1 only with `PreferWebGl1`; builds may alias the module)
+     * `@molstar/graphics/gl/backends/default` (WebGPU where capable, else WebGL2, then WebGL; builds may alias the
+     * module)
      */
     GraphicsBackends: item<readonly GraphicsBackendDescriptor[] | undefined>(
       'plugin-config.graphics-backends',
       undefined,
     ),
-    // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
-    // TODO: check back in a few weeks to see if it was fixed
-    PreferWebGl1: item('plugin-config.prefer-webgl1', false),
     AllowMajorPerformanceCaveat: item('plugin-config.allow-major-performance-caveat', false),
     PowerPreference: item<WebGLContextAttributes['powerPreference']>(
       'plugin-config.power-preference',

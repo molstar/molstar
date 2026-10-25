@@ -23,6 +23,7 @@ import {
 import { getAttributeLayout } from '../attribute-layout.js';
 import type { AttributeItemSize } from '../buffer.js';
 import { getUniformGlslType } from './uniform.js';
+import { getDataTextureAccessors } from './data-textures.js';
 
 export function getUniformBlockDeclaration(layout: UniformBlockLayout) {
   const lines = [`layout(std140) uniform ${UniformBlockInfo[layout.block].name} {`];
@@ -38,7 +39,7 @@ export function getUniformBlockDeclaration(layout: UniformBlockLayout) {
  * GLSL declarations of all uniforms of `schema`, the source of truth for shaders.
  * With `useBlocks`, blocks for block members and classic declarations for the rest,
  * otherwise classic declarations only. Textures are not included. Classic arrays are sized
- * by their `lengthDefine` (or `length`), arrays without either are left to the shader code.
+ * by their `lengthDefine` unless it is a uniform (or `length`), arrays without either are left to the shader code.
  */
 export function getShaderUniformDeclarations(
   schema: RenderableSchema,
@@ -69,10 +70,11 @@ export function getShaderUniformDeclarations(
     const type = getUniformGlslType(getElementKind(spec.kind));
     if (!spec.kind.endsWith('[]')) {
       lines.push(`uniform ${type} ${k};`);
-    } else if (spec.lengthDefine !== undefined) {
+    } else if (spec.lengthDefine !== undefined && schema[spec.lengthDefine]?.type !== 'uniform') {
       // zero-length arrays don't compile
       lines.push(`#if ${spec.lengthDefine} > 0`, `uniform ${type} ${k}[${spec.lengthDefine}];`, '#endif');
     } else if (spec.length !== undefined) {
+      // the maximum, where the length is a uniform (a loop bound, a define on WebGL1 only)
       lines.push(`uniform ${type} ${k}[${spec.length}];`);
     } else {
       continue;
@@ -129,8 +131,9 @@ export type ShaderDeclarations = {
 };
 
 /**
- * GLSL declarations of the schema's uniforms (see `getShaderUniformDeclarations`), samplers and
- * attributes (vertex shader only; with fixed locations, see `getAttributeLayout`).
+ * GLSL declarations of the schema's uniforms (see `getShaderUniformDeclarations`), samplers, the data textures'
+ * accessors (`getDataTextureAccessors`) and attributes (vertex shader only; with fixed locations, see
+ * `getAttributeLayout`).
  * Define-dependent sampler dimensions are resolved with `defines`. Uniform blocks with `useBlocks` (WebGL2 only).
  */
 export function getShaderDeclarations(
@@ -178,6 +181,9 @@ export function getShaderDeclarations(
     shared.push(`uniform highp ${type} ${name};`);
     samplerTypes.set(name, handWritten);
   }
+  // the accessors of the data textures (`read_<name>(i)`), after their samplers and size uniforms
+  const accessors = getDataTextureAccessors(schema, isWebGL2);
+  if (accessors) shared.push(accessors);
 
   const attributes: string[] = [];
   const attributeTypes = new Map<string, string>();

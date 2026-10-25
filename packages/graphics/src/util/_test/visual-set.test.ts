@@ -193,12 +193,12 @@ describe('VisualSet', () => {
       themeData: { structure },
       properties: { runtime: RuntimeContext.Synchronous, assetManager: new DefaultAssetManager() },
       colorTheme: { name: 'uniform', params: { value: Color(0xcccccc) } },
-      state: { alphaFactor: 0.5 },
+      state: { pickable: false },
     });
 
     expect(added.has(repr)).toBe(true);
     expect(repr.renderObjects.length).toBeGreaterThan(0);
-    expect(repr.state.alphaFactor).toBe(0.5);
+    expect(repr.state.pickable).toBe(false);
     expect(repr.theme.color.factory).toBe(colorThemeRegistry.get('uniform').factory);
 
     set.remove(repr);

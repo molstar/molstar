@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { PartialOptions } from './spec.js';
@@ -45,12 +46,6 @@ export const PrismViewerOptions = {
       ],
       { description: 'Automatic: WebGPU where it has the features of WebGL 2, else WebGL; WebGPU falls back to WebGL' },
     ),
-    /** v5's: `yes` is `graphicsBackend: 'webgl1'`. */
-    preferWebgl1: PD.Select<'auto' | 'yes' | 'no'>('auto', [
-      ['auto', 'Automatic'],
-      ['yes', 'Yes'],
-      ['no', 'No'],
-    ]),
     allowMajorPerformanceCaveat: PD.Boolean(false),
     disableAntialiasing: PD.Boolean(false),
     illumination: PD.Boolean(false, { description: 'Path-traced global illumination' }),

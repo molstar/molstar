@@ -14,6 +14,7 @@ import {
   mc_chunk_push_wgsl,
 } from './marching-cubes-chunks.wgsl.js';
 import { scan_add_wgsl, scan_block_wgsl } from './prefix-sum.wgsl.js';
+import { cell_cull_wgsl, cull_args_wgsl, instance_copy_wgsl } from './cell-cull.wgsl.js';
 
 /** WGSL compute kernels by the name of their `KernelCode`, like `programs.ts` for render programs */
 const Kernels = new Map<string, string>([
@@ -29,6 +30,9 @@ const Kernels = new Map<string, string>([
   ['gd-accumulate', gd_accumulate_wgsl],
   ['gd-group', gd_group_wgsl],
   ['gd-write', gd_write_wgsl],
+  ['cell-cull', cell_cull_wgsl],
+  ['instance-copy', instance_copy_wgsl],
+  ['cull-args', cull_args_wgsl],
 ]);
 
 /** Registers the WGSL source of a kernel; the bindings are declared from its schema, see `getWgslKernelDeclarations` */
@@ -39,4 +43,9 @@ export function registerWgslKernel(name: string, source: string) {
 
 export function getWgslKernel(name: string): string | undefined {
   return Kernels.get(name);
+}
+
+/** The names of the registered kernels (e.g. for a check that every one compiles) */
+export function getWgslKernelNames(): string[] {
+  return [...Kernels.keys()];
 }

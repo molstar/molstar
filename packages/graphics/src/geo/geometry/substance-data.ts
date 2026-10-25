@@ -6,7 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { Material } from '@molstar/core/util/material';
 import { getLayerTypeDefine, type LayerType } from './layer-type.js';
@@ -14,12 +14,12 @@ import { getLayerTypeDefine, type LayerType } from './layer-type.js';
 export type SubstanceType = LayerType;
 
 export type SubstanceData = {
-  tSubstance: ValueCell<TextureImage<Uint8Array>>;
-  uSubstanceTexDim: ValueCell<Vec2>;
+  tSubstance: ValueCell<DataArray<Uint8Array>>;
   dSubstance: ValueCell<boolean>;
 
   tSubstanceGrid: ValueCell<Texture>;
   uSubstanceGridDim: ValueCell<Vec3>;
+  uSubstanceGridTexDim: ValueCell<Vec2>;
   uSubstanceGridTransform: ValueCell<Vec4>;
   /** the layer type (`SubstanceType`) */
   substanceType: ValueCell<string>;
@@ -51,7 +51,7 @@ export function setSubstanceType(
 }
 
 export function createSubstance(count: number, type: SubstanceType, substanceData?: SubstanceData): SubstanceData {
-  const substance = createTextureImage(
+  const substance = createDataArray(
     Math.max(1, count),
     4,
     Uint8Array,
@@ -59,18 +59,17 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
   );
   if (substanceData) {
     ValueCell.update(substanceData.tSubstance, substance);
-    ValueCell.update(substanceData.uSubstanceTexDim, Vec2.create(substance.width, substance.height));
     ValueCell.updateIfChanged(substanceData.dSubstance, count > 0);
     setSubstanceType(substanceData, type);
     return substanceData;
   } else {
     return {
       tSubstance: ValueCell.create(substance),
-      uSubstanceTexDim: ValueCell.create(Vec2.create(substance.width, substance.height)),
       dSubstance: ValueCell.create(count > 0),
 
       tSubstanceGrid: ValueCell.create(createNullTexture()),
       uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+      uSubstanceGridTexDim: ValueCell.create(Vec2.create(1, 1)),
       uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
       substanceType: ValueCell.create<string>(type),
       dSubstanceType: ValueCell.create(getLayerTypeDefine(type)),
@@ -79,20 +78,19 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
   }
 }
 
-const emptySubstanceTexture = { array: new Uint8Array(4), width: 1, height: 1 };
+const emptySubstanceTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptySubstance(substanceData?: SubstanceData): SubstanceData {
   if (substanceData) {
     ValueCell.update(substanceData.tSubstance, emptySubstanceTexture);
-    ValueCell.update(substanceData.uSubstanceTexDim, Vec2.create(1, 1));
     return substanceData;
   } else {
     return {
       tSubstance: ValueCell.create(emptySubstanceTexture),
-      uSubstanceTexDim: ValueCell.create(Vec2.create(1, 1)),
       dSubstance: ValueCell.create(false),
 
       tSubstanceGrid: ValueCell.create(createNullTexture()),
       uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+      uSubstanceGridTexDim: ValueCell.create(Vec2.create(1, 1)),
       uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
       substanceType: ValueCell.create<string>('groupInstance'),
       dSubstanceType: ValueCell.create(getLayerTypeDefine('groupInstance')),
