@@ -15,7 +15,7 @@ import { StateObject } from '@molstar/core/state';
 
 /**
  * A response's bytes go through `CIF.parse`, which tells text CIF from BinaryCIF (as `ParseCif`); a binary entry stays
- * strict BinaryCIF (`.v6/designs/cif-parsing.md`).
+ * strict BinaryCIF (`io/_spec/cif.md` §2).
  */
 function parseBlobEntry(e: SO.Data.BlobEntry | SO.Data.ResponseBlobEntry) {
   if (!('kind' in e)) return CIF.parse(e.data.bytes);
@@ -83,7 +83,7 @@ const ParseCif = PluginStateTransform.BuiltIn({
   apply({ a }) {
     return Task.create('Parse CIF', async (ctx) => {
       // a response's bytes as they are held: text CIF is tokenized from them, never decoded to a string, and the
-      // parsed file shares them (`.v6/designs/cif-parsing.md`)
+      // parsed file shares them (`io/_spec/cif.md` §7)
       const data = a instanceof SO.Data.Response ? a.data.bytes : a.data;
       const parsed = await CIF.parse(data).runInContext(ctx);
       if (parsed.isError) throw new Error(parsed.message);

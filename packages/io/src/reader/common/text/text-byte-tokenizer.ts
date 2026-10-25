@@ -9,7 +9,7 @@
  * `charCodeAt` on a string. The delimiters of the text formats are ASCII, so scanning bytes is safe, and values decode
  * as UTF-8 when read (`getTokenString`, `TextByteTokenColumn`). Why: a downloaded or read file is its bytes
  * (`Data.Response`); a parser over them neither decodes the whole text nor holds a string of it, and the scan is about
- * 2x faster than over a string (`.v6/designs/cif-parsing.md`; the CIF tokenizer is the byte tokenizer of its own).
+ * 2x faster than over a string (`io/_spec/README.md`, Decisions; the CIF tokenizer is a byte tokenizer of its own).
  *
  * Offsets are byte offsets (Uint32 in the tokens): a text of 4 GiB or more is refused (`TextByteTokenizer.bytesOf`).
  * The bytes are `ReadonlyUint8Array` (core `type-helpers`): a parser only reads them, so the plugin hands it a response's
