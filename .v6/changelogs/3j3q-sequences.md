@@ -11,3 +11,5 @@
 - The Canvas2D backend leaves out the `closePath` a fill makes itself and draws long opaque strokes in chunks: Chrome's
   `closePath` slows as its path grows (16,000 closed subpaths: 574 ms; 0.7 ms unclosed). Dragging the navigator over
   3J3Q's unmerged secondary structure in Chrome: 10.9 s → 0.6 s (Firefox was fast already).
+- Prism's sequence opens a newly shown structure (a load, a reload, another followed) on its whole sequence; the same
+  structure's document made again keeps its zoom.

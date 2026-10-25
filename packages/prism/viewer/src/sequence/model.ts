@@ -404,6 +404,8 @@ class Viewer implements SequenceViewer {
   private builds = 0;
   /** The host key the document shown (or being made) is for: a frame of it changes only `frame`. */
   private documentKey: string | undefined;
+  /** The host key the sections' view (zoom, scroll) is of: another structure's document opens fitted (`build`). */
+  private viewKey: string | undefined;
   /** The secondary structure's settings the tracks' data were last brought to (`HostStructure.assignment`). */
   private assignment: string | undefined;
   private readonly frameState = observableState<Structure | undefined>(undefined, { compare: (a, b) => a === b });
@@ -1077,6 +1079,12 @@ class Viewer implements SequenceViewer {
       this.shownState.set(undefined);
       return { ok: true, issues: [] };
     }
+    // Another structure (a new key: a load, a reload, another followed) opens on its whole sequence; the same one rebuilt
+    // (a theme, a track, the chain filter) keeps its zoom. Fitted before the new axis comes (no zoomed frame first: the
+    // viewport's `resolve` keeps a fitted view whole) and again once it is in (its own cell width).
+    const fresh = this.viewKey !== host.key;
+    this.viewKey = host.key;
+    if (fresh) for (const s of this.sections) this.seq.viewports.get(s)?.fit({ animate: false });
     const ref = structureKey(host);
     const edits = this.editsState.value[ref];
     // A loaded SeqViewSpec over its structure (sequence.md §6), else the document built for the structure.
@@ -1140,6 +1148,7 @@ class Viewer implements SequenceViewer {
     // The person's style over the document's sections (a loaded SeqViewSpec's presets too).
     this.sections = svs?.sections ?? [SectionRef];
     for (const s of this.sections) this.seq.ui.setStyle(s, presetOf(this.styleState.value));
+    if (fresh) for (const s of this.sections) this.seq.viewports.get(s)?.fit({ animate: false });
     const complex = svs?.complex ?? ComplexRef;
     const section = svs?.section ?? SectionRef;
     // The frame shown now (frames stepped while the document was made), before the link reads it.

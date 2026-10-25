@@ -168,6 +168,32 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
+  it('another structure opens on its whole sequence; the same one rebuilt keeps its zoom', async () => {
+    const h = headlessViewers();
+    const host = await hostStructure();
+    h.structure.set(host);
+    await settled(h);
+    const vp = () => h.viewer.seq.viewports.get('main');
+    vp()?.setSize(1000, 200, 1);
+    h.scheduler.advance(50);
+    const zoomed = () => (vp()?.live.current.cell ?? 0) > (vp()?.live.current.minCell ?? 0) * 1.5;
+    vp()?.zoomTo(0, 10, 30, { durationMs: 0 });
+    h.scheduler.advance(50);
+    expect(zoomed()).toBe(true);
+    // The same structure's document made again (the letters' colors): the zoom stays.
+    h.viewer.setTheme({ letters: 'taylor' });
+    await settled(h);
+    expect(zoomed()).toBe(true);
+    // Removed, then loaded again (a new key, as a reload has): the whole sequence.
+    h.structure.set(undefined);
+    await h.viewer.seq.graph.update();
+    h.structure.set({ ...host, key: `${host.key}-again` });
+    await settled(h);
+    expect(zoomed()).toBe(false);
+    expect(vp()?.live.current.cell).toBe(vp()?.live.current.minCell);
+    h.viewers.dispose();
+  });
+
   it("the tracks version has no header column; its rail is the host's choice", async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());

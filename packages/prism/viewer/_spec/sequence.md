@@ -36,7 +36,9 @@ The code is the truth for how.
 - **One parse.** The document names its structure by host file `structure:<key>`; the loaders' `parsed` answers it with
   a `StructureSource` over the trajectory the 3D view drew, so `StructureLink` maps the very `Structure` the 3D view
   draws. One source per trajectory, with the CIF block it was parsed from (`cifFrameOf`: SIFTS numberings, a predicted
-  model's origin, the scheme's auth labels). A new key rebuilds the view.
+  model's origin, the scheme's auth labels). A new key rebuilds the view and opens it on the whole sequence (a removed
+  structure loaded again is a new key); the same structure's document made again (a theme, a track, the chain filter)
+  keeps its zoom.
 - **A frame keeps the document.** A trajectory step or the model-index animation makes a new `Structure` of the same
   atoms (unit ids, element indices and model hierarchies equal, same trajectory): it keeps the key, so no document is
   made and the band does not empty. Only `SequenceViewer.frame` changes; the link rebinds `StructureLink` to it (its
