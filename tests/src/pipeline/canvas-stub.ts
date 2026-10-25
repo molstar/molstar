@@ -126,11 +126,15 @@ export function stubCanvas(graphics: any) {
     mark(reprLoci: Representation.Loci, action: MarkerAction) {
       counts.mark++;
       let changed = false;
-      if (reprLoci.repr) changed = reprLoci.repr.mark(reprLoci.loci, action);
-      else
-        markIndex.forEach(reprLoci.loci, (r) => {
+      if (reprLoci.repr) {
+        changed = reprLoci.repr.mark(reprLoci.loci, action);
+        if (changed) markIndex.note(reprLoci.repr, action);
+      } else
+        markIndex.forEach(reprLoci.loci, action, (r) => {
           counts.reprMark++;
-          changed = r.mark(reprLoci.loci, action) || changed;
+          if (!r.mark(reprLoci.loci, action)) return;
+          markIndex.note(r, action);
+          changed = true;
         });
       if (changed) {
         counts.markChanged++;

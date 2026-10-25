@@ -234,7 +234,11 @@ async function pipeline(results: Record<string, StageResult>) {
     },
     { count: clicks },
   );
-  await stage('deselect-all', results, () => plugin.managers.interactivity.lociSelects.deselectAll());
+  const beforeDeselect = { ...c.counts };
+  await stage('deselect-all', results, () => {
+    plugin.managers.interactivity.lociSelects.deselectAll();
+    return `reprMarks=${c.counts.reprMark - beforeDeselect.reprMark} sceneUpdate(ROs)=${c.counts.sceneUpdated - beforeDeselect.sceneUpdated}`;
+  });
 
   const overpaintOne = mid(hierarchy()).components;
   await stage('overpaint:one', results, () =>

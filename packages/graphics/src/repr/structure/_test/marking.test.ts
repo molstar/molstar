@@ -19,7 +19,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
-import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
+import { EmptyLoci, EveryLoci, type Loci } from '@molstar/model/model/loci';
 import { Bond, Structure, StructureElement, StructureProperties, Unit } from '@molstar/model/model/structure';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
@@ -496,7 +496,7 @@ describe('marks through the index of Canvas3D', async () => {
 
     for (const loci of [lociOf(child, (l) => seqId(l) === 10), lociOf(root, (l) => seqId(l) === 20)]) {
       const visited = new Set<Representation.Any>();
-      index.forEach(loci, (r) => visited.add(r));
+      index.forEach(loci, MarkerAction.Highlight, (r) => visited.add(r));
       expect(visited).toEqual(new Set([withParent, ofChild]));
       // exact: those visited change, the one left out would not
       for (const r of reprs) {
@@ -505,5 +505,36 @@ describe('marks through the index of Canvas3D', async () => {
       }
     }
     for (const r of reprs) r.destroy();
+  });
+
+  it('deselects all on the representations a select reached, the others hold no selection', async () => {
+    const a = await createRepr(CartoonRepresentationProvider, root);
+    // a root of its own, not equivalent to `root`
+    const b = await createRepr(
+      CartoonRepresentationProvider,
+      Structure.create(subset(root, (l) => seqId(l) < 50).units),
+    );
+    const index = new MarkIndex();
+    for (const r of [a, b]) index.set(r);
+    // as `Canvas3D.applyMark`
+    const mark = (loci: Loci, action: MarkerAction) => {
+      const visited: Representation.Any[] = [];
+      index.forEach(loci, action, (r) => {
+        visited.push(r);
+        if (r.mark(loci, action)) index.note(r, action);
+      });
+      return visited;
+    };
+    expect(
+      mark(
+        lociOf(root, (l) => seqId(l) === 10),
+        MarkerAction.Select,
+      ),
+    ).toEqual([a]);
+    expect(mark(EveryLoci, MarkerAction.Deselect)).toEqual([a]);
+    expect(a.renderObjects.every((o) => o.values.markerStatus.ref.value === 0)).toBe(true);
+    // the one left out: nothing to deselect
+    expect(b.mark(EveryLoci, MarkerAction.Deselect)).toBe(false);
+    for (const r of [a, b]) r.destroy();
   });
 });

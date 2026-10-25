@@ -1223,10 +1223,15 @@ namespace Canvas3D {
       const { repr, loci } = reprLoci;
       let changed = false;
       if (repr) {
-        changed = repr.mark(loci, action) || changed;
+        if (repr.mark(loci, action)) {
+          markIndex.note(repr, action);
+          changed = true;
+        }
       } else {
-        markIndex.forEach(loci, (_repr) => {
-          changed = _repr.mark(loci, action) || changed;
+        markIndex.forEach(loci, action, (_repr) => {
+          if (!_repr.mark(loci, action)) return;
+          markIndex.note(_repr, action);
+          changed = true;
         });
       }
       const handleChanged = helper.handle.mark(loci, action);

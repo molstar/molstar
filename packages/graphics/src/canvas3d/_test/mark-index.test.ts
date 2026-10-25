@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { MarkerAction } from '@molstar/core/util/marker-action';
 import { EveryLoci, type Loci } from '@molstar/model/model/loci';
 import type { Representation } from '../../repr/representation.js';
 import { MarkIndex } from '../mark-index.js';
@@ -19,9 +20,9 @@ const elementLoci = (hash: number) =>
 const structureLoci = (hash: number) =>
   ({ kind: 'structure-loci', structure: { root: { hashCode: hash } } }) as unknown as Loci;
 
-const visited = (index: MarkIndex, loci: Loci) => {
+const visited = (index: MarkIndex, loci: Loci, action = MarkerAction.Highlight) => {
   const out: Representation.Any[] = [];
-  index.forEach(loci, (r) => out.push(r));
+  index.forEach(loci, action, (r) => out.push(r));
   return out;
 };
 
@@ -58,5 +59,38 @@ describe('MarkIndex', () => {
     index.delete(r);
     expect(visited(index, elementLoci(2))).toEqual([]);
     expect(visited(index, EveryLoci)).toEqual([]);
+  });
+
+  it('deselects all on the representations markers were added to, also after a remove and add', () => {
+    const index = new MarkIndex();
+    const [a, b, c] = [repr([1]), repr([2]), repr()];
+    for (const r of [a, b, c]) index.set(r);
+    // nothing marked: nothing to remove
+    expect(visited(index, EveryLoci, MarkerAction.Deselect)).toEqual([]);
+
+    index.note(a, MarkerAction.Select);
+    index.note(b, MarkerAction.RemoveHighlight); // removing: not noted
+    index.note(c, MarkerAction.Highlight);
+    expect(new Set(visited(index, EveryLoci, MarkerAction.Deselect))).toEqual(new Set([a, c]));
+    // kept: a deselect leaves highlights, a remove of highlights selections
+    expect(new Set(visited(index, EveryLoci, MarkerAction.RemoveHighlight))).toEqual(new Set([a, c]));
+    // adding actions on `EveryLoci`: all
+    expect(new Set(visited(index, EveryLoci, MarkerAction.Select))).toEqual(new Set([a, b, c]));
+
+    // removed and added again: still holds its markers
+    index.delete(a);
+    expect(visited(index, EveryLoci, MarkerAction.Deselect)).toEqual([c]);
+    index.set(a);
+    expect(new Set(visited(index, EveryLoci, MarkerAction.Deselect))).toEqual(new Set([a, c]));
+
+    // noted before it was added
+    const d = repr([3]);
+    index.note(d, MarkerAction.Toggle);
+    index.set(d);
+    expect(visited(index, EveryLoci, MarkerAction.Deselect)).toContain(d);
+
+    // a clear removes all markers: none left to remove
+    expect(new Set(visited(index, EveryLoci, MarkerAction.Clear))).toEqual(new Set([a, c, d]));
+    expect(visited(index, EveryLoci, MarkerAction.Deselect)).toEqual([]);
   });
 });

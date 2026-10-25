@@ -61,7 +61,9 @@ item stands as written.
   - 14/N1, the representation half: a mark without a representation visits the representations of its structure
     loci's root only (`MarkIndex`, by `Representation.getStructureRootHashes`; other loci all of them). N = 200:
     `repr.mark` 534 → 33 per mark (the equivalent copies of the fixture), hover 1.7–2.1 → 0.40 ms and select
-    1.8–3.7 → 0.25 ms per event. Left: clearing highlights marks `EveryLoci`, every representation.
+    1.8–3.7 → 0.25 ms per event (clearing highlights marks the previous loci, so indexed too). Deselect all
+    (`EveryLoci`, an action that only removes) visits the representations markers were added to (`MarkIndex.note`):
+    534 → 1, 12.6 → 0.6 ms, the same objects changed.
 - **Fixed after #2051**: 10/P12 (Canvas3D side): `Canvas3D.update(repr)` records that representation's renderables
   again (`PrecompileRecorder.recordAgain`), not every renderable of the scene
   ([pipeline-readiness.md](../plans/gl/pipeline-readiness.md) step 6c). The callers still update one representation at
