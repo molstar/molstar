@@ -96,6 +96,8 @@ import type { SceneLookMark } from '../model/look.js';
 import {
   createRepresentationQuick,
   representationChoices,
+  choiceOfTheme,
+  PlainCarbonElement,
   type RepresentationQuickSource,
 } from './representation-quick.js';
 import type { RepresentationQuickChange } from '../model/representation-quick.js';
@@ -2049,9 +2051,13 @@ function reprLabel(plugin: PluginContext, r: StructureRepresentationRef): string
 }
 
 function colorLabel(plugin: PluginContext, r: StructureRepresentationRef): string | undefined {
-  const name = (r.cell.transform.params as { colorTheme?: { name: string } } | undefined)?.colorTheme?.name;
-  if (!name) return undefined;
-  return plugin.representation.structure.themes.colorThemeRegistry.get(name)?.label ?? name;
+  const theme = (
+    r.cell.transform.params as { colorTheme?: { name: string; params: Record<string, unknown> } } | undefined
+  )?.colorTheme;
+  if (!theme) return undefined;
+  const label = plugin.representation.structure.themes.colorThemeRegistry.get(theme.name)?.label ?? theme.name;
+  // the quick settings' Element with grey carbons: one theme, told apart
+  return choiceOfTheme(theme) === PlainCarbonElement ? `${label}, grey C` : label;
 }
 
 /** Mol*'s component menu: add representation, color, modify by the selection, select this. */

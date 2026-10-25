@@ -19,3 +19,6 @@
   presets give their representations the material, clip objects, interior and animation of the options, as
   `addRepresentation` does.
 - `Popover` in `@molstar/prism-ui`: a panel of controls from a button, which a select inside it does not close.
+- Prism: a structure representation's colors offer Element (carbons by chain, as before) and Element, grey C (every
+  carbon the element's grey); their swatches show their carbons, then N, O and S (were the first entries of the
+  periodic table). The tree row says "grey C".

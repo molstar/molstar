@@ -53,10 +53,41 @@ const TypeIcons: Readonly<Record<string, IconName>> = {
   'gaussian-surface': 'volume',
 };
 
+/**
+ * A color choice that is a theme with some of its params set: Element with every carbon the element's grey (the theme's
+ * default colors carbons by chain). Its id is not a theme's (`<theme>:<variant>`).
+ */
+interface ThemeVariant {
+  readonly theme: string;
+  readonly params: Record<string, unknown>;
+  /** Whether a theme's params are this variant's. */
+  is(params: Record<string, unknown>): boolean;
+}
+
+export const PlainCarbonElement = 'element-symbol:plain-carbon';
+
+const ThemeVariants: Readonly<Record<string, ThemeVariant>> = {
+  [PlainCarbonElement]: {
+    theme: 'element-symbol',
+    params: { carbonColor: { name: 'element-symbol', params: {} } },
+    is: (p) => (p.carbonColor as { name?: string } | undefined)?.name === 'element-symbol',
+  },
+};
+
+/** The theme a choice is (a variant's theme, or the id itself). */
+export const themeOfChoice = (id: string) => ThemeVariants[id]?.theme ?? id;
+
+/** The choice a color theme is: a variant when its params are the variant's, else the theme's id. */
+export function choiceOfTheme(theme: { name: string; params: Record<string, unknown> }): string {
+  for (const [id, v] of Object.entries(ThemeVariants)) if (v.theme === theme.name && v.is(theme.params)) return id;
+  return theme.name;
+}
+
 /** The color themes offered at once, in order (those that apply). */
 export const CommonThemes: readonly [string, string][] = [
   ['chain-id', 'Chain'],
   ['element-symbol', 'Element'],
+  [PlainCarbonElement, 'Element, grey C'],
   ['secondary-structure', 'Secondary'],
   ['residue-name', 'Residue'],
   ['sequence-id', 'Rainbow'],
@@ -79,21 +110,38 @@ function isPredicted(model: Model): boolean {
 const sameChoices = (a: readonly QuickChoice[], b: readonly QuickChoice[]) =>
   a.length === b.length && a.every((c, i) => c.id === b[i].id && c.swatch === b[i].swatch);
 
+const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
+
+/** Colors as equal bands of a CSS background. */
+function bandsSwatch(colors: readonly number[]): string | undefined {
+  if (!colors.length) return undefined;
+  const w = 100 / colors.length;
+  const bands = colors.map((c, i) => `${hex(c)} ${(i * w).toFixed(1)}% ${((i + 1) * w).toFixed(1)}%`);
+  return `linear-gradient(90deg, ${bands.join(', ')})`;
+}
+
 /** A legend as a CSS background: a scale's gradient, a table's first colors as bands. */
 export function legendSwatch(legend: ScaleLegend | TableLegend | undefined): string | undefined {
-  const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
   if (legend?.kind === 'scale-legend') {
     const colors = legend.colors.map((c) => (Array.isArray(c) ? c[0] : c) as number);
     return colors.length ? `linear-gradient(90deg, ${colors.map(hex).join(', ')})` : undefined;
   }
-  if (legend?.kind === 'table-legend') {
-    const colors = legend.table.slice(0, 6).map(([, c]) => c as number);
-    if (!colors.length) return undefined;
-    const w = 100 / colors.length;
-    const bands = colors.map((c, i) => `${hex(c)} ${(i * w).toFixed(1)}% ${((i + 1) * w).toFixed(1)}%`);
-    return `linear-gradient(90deg, ${bands.join(', ')})`;
-  }
+  if (legend?.kind === 'table-legend') return bandsSwatch(legend.table.slice(0, 6).map(([, c]) => c as number));
   return undefined;
+}
+
+/** The elements an Element swatch shows after its carbons: what a structure is mostly drawn with. */
+const SwatchElements = ['N', 'O', 'S'];
+
+/**
+ * An Element swatch: its carbons (two of the chains' colors, or the element's grey), then nitrogen, oxygen, sulfur;
+ * the legend's first entries (hydrogen, helium, …) say nothing of how it looks.
+ */
+export function elementSwatch(elements: TableLegend | undefined, carbons: readonly number[]): string | undefined {
+  if (elements?.kind !== 'table-legend') return undefined;
+  const of = (e: string) => elements.table.find(([name]) => name === e)?.[1] as number | undefined;
+  const rest = SwatchElements.map(of).filter((c): c is number => c !== undefined);
+  return bandsSwatch([...carbons, ...rest]);
 }
 
 /** The common choices that apply, and the current one when it is not among them. */
@@ -116,7 +164,8 @@ function typeApplies(plugin: PluginContext, s: Structure | undefined, id: string
   return registry.has(id) && !!s && registry.get(id).isApplicable(s);
 }
 
-export function themeApplies(plugin: PluginContext, s: Structure | undefined, id: string) {
+export function themeApplies(plugin: PluginContext, s: Structure | undefined, choice: string) {
+  const id = themeOfChoice(choice);
   const themes = plugin.representation.structure.themes;
   if (!themes.colorThemeRegistry.has(id) || !s || !themes.colorThemeRegistry.get(id).isApplicable({ structure: s })) {
     return false;
@@ -141,7 +190,7 @@ export function representationChoices(
   const { registry, themes } = plugin.representation.structure;
   return {
     type: p.type.name,
-    theme: p.colorTheme.name,
+    theme: choiceOfTheme(p.colorTheme),
     types: choices(
       CommonTypes,
       p.type.name,
@@ -151,7 +200,7 @@ export function representationChoices(
     ),
     themes: choices(
       CommonThemes,
-      p.colorTheme.name,
+      choiceOfTheme(p.colorTheme),
       (id) => themeApplies(plugin, s, id),
       (id) => themes.colorThemeRegistry.get(id)?.label ?? id,
       () => ({}),
@@ -194,6 +243,13 @@ export function createRepresentationQuick(
     const provider = themes.colorThemeRegistry.get(name);
     return s && provider ? (PD.getDefaultValues(provider.getParams({ structure: s })) as Record<string, unknown>) : {};
   };
+  /** A color choice's theme and params: a variant's theme with its params over the defaults. */
+  const themeOf = (choice: string) => {
+    const v = ThemeVariants[choice];
+    return v
+      ? { name: v.theme, params: { ...themeDefaults(v.theme), ...v.params } }
+      : { name: choice, params: themeDefaults(choice) };
+  };
   /** A theme's colors on this structure (its legend, with its defaults), once each. */
   const swatches = new Map<string, string | undefined>();
   const swatchOf = (id: string): Partial<QuickChoice> => {
@@ -202,8 +258,23 @@ export function createRepresentationQuick(
       const s = structure();
       let swatch: string | undefined;
       try {
-        const provider = themes.colorThemeRegistry.get(id);
-        if (s && provider) swatch = legendSwatch(provider.factory({ structure: s }, themeDefaults(id) as never).legend);
+        const { name, params } = themeOf(id);
+        const provider = themes.colorThemeRegistry.get(name);
+        const legend = s && provider ? provider.factory({ structure: s }, params as never).legend : undefined;
+        if (s && name === 'element-symbol') {
+          // carbons by chain (the default): two of the chains' colors; grey carbons: the element's own
+          const plain = id === PlainCarbonElement;
+          const chains = plain ? undefined : themes.colorThemeRegistry.get('chain-id');
+          const chainLegend = chains?.factory({ structure: s }, themeDefaults('chain-id') as never).legend;
+          const carbon = (legend as TableLegend | undefined)?.table.find(([e]) => e === 'C')?.[1] as number | undefined;
+          const carbons =
+            chainLegend?.kind === 'table-legend'
+              ? chainLegend.table.slice(0, 2).map(([, c]) => c as number)
+              : carbon !== undefined
+                ? [carbon]
+                : [];
+          swatch = elementSwatch(legend as TableLegend | undefined, carbons);
+        } else swatch = legendSwatch(legend);
       } catch {
         swatch = undefined;
       }
@@ -234,7 +305,7 @@ export function createRepresentationQuick(
     if (!p) return;
     const o = steps.overlay('rep');
     const t = o?.type ?? p.type.name;
-    const th = o?.color !== undefined ? 'uniform' : (o?.theme ?? p.colorTheme.name);
+    const th = o?.color !== undefined ? 'uniform' : (o?.theme ?? choiceOfTheme(p.colorTheme));
     type.set(t);
     theme.set(th);
     const s = structure();
@@ -283,9 +354,8 @@ export function createRepresentationQuick(
         if (base !== undefined) type = { ...type, params: { ...type.params, sizeFactor: round(base * change.size) } };
       }
       let colorTheme = p.colorTheme;
-      if (change.theme && change.theme !== p.colorTheme.name) {
-        colorTheme = { name: change.theme, params: themeDefaults(change.theme) };
-      }
+      // by choice: Element and Element with grey carbons are one theme
+      if (change.theme && change.theme !== choiceOfTheme(p.colorTheme)) colorTheme = themeOf(change.theme);
       if (change.color !== undefined) {
         const base = colorTheme.name === 'uniform' ? colorTheme.params : themeDefaults('uniform');
         colorTheme = { name: 'uniform', params: { ...base, value: Color(change.color) } };
