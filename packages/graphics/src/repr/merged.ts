@@ -20,18 +20,37 @@ import type { ValueCell } from '@molstar/core/util/value-cell';
  * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
  * LOD), as the cells and their versions when it last passed. A group of the same members with none of them changed
  * was mergeable then and is now: the check (a sorted key string per member) is skipped (perf-audit-2 07/P17).
+ * `uLod` and `lodLevels` are kept by value, as `getMergeKey` reads them: `BaseGeometry.updateValues` sets `uLod` on
+ * every update, and a structure update `lodLevels`, with the same values (perf-audit-3 07/P17).
  */
-type MergeFingerprint = { keyCount: number; cells: ValueCell<any>[]; versions: number[] };
+type MergeFingerprint = { keyCount: number; cells: ValueCell<any>[]; versions: number[]; lod: string };
 const mergeFingerprints = new WeakMap<GraphicsRenderObject, MergeFingerprint>();
+
+/** The `*Type` cells `canMergeValues` reads; not `uClipObjectType`, which `updateValues` sets on every update */
+const MergeTypeKeys = new Set([
+  'colorType',
+  'sizeType',
+  'overpaintType',
+  'transparencyType',
+  'emissiveType',
+  'substanceType',
+  'clippingType',
+  'wiggleType',
+]);
 
 function isMergeRelevantKey(k: string) {
   return (
-    (k.length > 1 && k[0] === 'd' && k[1] >= 'A' && k[1] <= 'Z') ||
-    k.endsWith('Type') ||
-    k === 'uInstanceGranularity' ||
-    k === 'uLod' ||
-    k === 'lodLevels'
+    (k.length > 1 && k[0] === 'd' && k[1] >= 'A' && k[1] <= 'Z') || MergeTypeKeys.has(k) || k === 'uInstanceGranularity'
   );
+}
+
+/** `uLod` and `lodLevels` as `getMergeKey` writes them */
+function lodOf(values: { [k: string]: ValueCell<any> }) {
+  const lod = values.uLod?.ref.value as ArrayLike<number> | undefined;
+  const levels = values.lodLevels?.ref.value as ArrayLike<number>[] | undefined;
+  let s = lod ? `${lod[0]},${lod[1]},${lod[2]},${lod[3]}` : '';
+  if (levels) for (const l of levels) s += `;${l[0]},${l[1]},${l[2]}`;
+  return s;
 }
 
 function recordMergeFingerprint(ro: GraphicsRenderObject) {
@@ -44,7 +63,7 @@ function recordMergeFingerprint(ro: GraphicsRenderObject) {
     cells.push(values[k]);
     versions.push(values[k].ref.version);
   }
-  mergeFingerprints.set(ro, { keyCount: keys.length, cells, versions });
+  mergeFingerprints.set(ro, { keyCount: keys.length, cells, versions, lod: lodOf(values) });
 }
 
 function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
@@ -55,7 +74,7 @@ function isMergeFingerprintUnchanged(ro: GraphicsRenderObject) {
   for (let i = 0, il = f.cells.length; i < il; ++i) {
     if (f.cells[i].ref.version !== f.versions[i]) return false;
   }
-  return true;
+  return lodOf(values) === f.lod;
 }
 
 /** One visual and its renderObject, ready to be grouped/merged by `mergeRenderObjectsByType`. */
