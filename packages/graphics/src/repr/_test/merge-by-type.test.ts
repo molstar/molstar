@@ -78,4 +78,42 @@ describe('mergeRenderObjectsByType', () => {
       sort.mockRestore();
     }
   });
+
+  it('checks again when any `*Type` cell the merge check reads is set (perf-audit-3 07/P17)', () => {
+    const entries = [spheres(3), spheres(2)].map((renderObject, visual) => ({ visual, renderObject }));
+    const values = entries[0].renderObject.values as unknown as Record<string, ValueCell<any>>;
+    // every `*Type` cell of a member other than the defines (watched as all `d*` are): the ones `canMergeValues`
+    // (gl/renderable/merged.ts) reads, and those it does not (`markerType` only shapes the merged layout, in `sync`).
+    // A new `*Type` cell fails here until it is put in one of the lists (and in `MergeTypeKeys` if read).
+    const read = [
+      'colorType',
+      'sizeType',
+      'overpaintType',
+      'transparencyType',
+      'emissiveType',
+      'substanceType',
+      'clippingType',
+      'wiggleType',
+    ];
+    const notRead = ['uClipObjectType', 'markerType', 'uColorIndexType', 'uSizeIndexType'];
+    expect(
+      Object.keys(values)
+        .filter((k) => k.endsWith('Type') && !/^d[A-Z]/.test(k))
+        .sort(),
+    ).toEqual([...read, ...notRead].sort());
+
+    const out: GraphicsRenderObject[] = [];
+    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
+    const sort = vi.spyOn(Array.prototype, 'sort');
+    try {
+      for (const k of [...read, ...notRead]) {
+        sort.mockClear();
+        ValueCell.update(values[k], values[k].ref.value);
+        merged = mergeRenderObjectsByType(entries, true, merged, out);
+        expect(sort.mock.calls.length > 0, k).toBe(read.includes(k));
+      }
+    } finally {
+      sort.mockRestore();
+    }
+  });
 });
