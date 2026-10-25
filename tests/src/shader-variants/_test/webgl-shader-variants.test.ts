@@ -8,22 +8,18 @@ import { describe, expect, it } from 'vitest';
 import { buildSources, compileSource, recordCompiles, SourceNames, walkVariants } from '../matrix.js';
 import { createVariantPlugin, GL, readRepositoryFile } from './node.js';
 
-if (!GL) console.warn('Skipping the WebGL shader variants: optional native package "gl" is unavailable.');
-
 /** Programs the native `gl` package can't run: SMAA reads its lookup tables as `HTMLImageElement`s */
 const NodeUnsupported = new Set(['smaa-edges', 'smaa-weights', 'smaa-blend']);
 
 const takeErrors = (graphics: unknown) => (graphics as { takeErrors?: () => string[] }).takeErrors?.() ?? [];
-const test = GL ? it : it.skip;
 
-// The variants scenes reach (`.v6/plans/gl/shader-analysis.md`, step 3), compiled and linked as WebGL1 GLSL by the
-// native `gl` package: each source alone (`-t '<source>'` runs one) without a compile or link failure, and all of them
-// for the coverage of every program
-describe('shader variants on WebGL', () => {
+// The variants scenes reach, compiled and linked as WebGL1 GLSL by the native `gl` package: each source alone
+// (`-t '<source>'` runs one) without a compile or link failure, and all of them for the coverage of every program.
+// Minutes per source: on demand only (`SHADER_VARIANTS=1 pnpm native:run -- pnpm test:unit tests/src/shader-variants`)
+describe.skipIf(process.env.SHADER_VARIANTS !== '1' || !GL)('shader variants on WebGL', () => {
   for (const name of SourceNames) {
-    test(
+    it(
       `${name} compile and link`,
-      { tags: ['medium'] },
       async () => {
         const { plugin, dispose } = await createVariantPlugin({ gl: GL! }, 'webgl');
         try {
@@ -42,9 +38,8 @@ describe('shader variants on WebGL', () => {
     );
   }
 
-  test(
+  it(
     'cover every program',
-    { tags: ['medium'] },
     async () => {
       const { plugin, dispose } = await createVariantPlugin({ gl: GL! }, 'webgl');
       try {

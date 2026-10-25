@@ -21,7 +21,10 @@ const NodeUnsupported = new Set(['smaa-edges', 'smaa-weights', 'smaa-blend']);
 
 const takeErrors = (graphics: unknown) => (graphics as { takeErrors?: () => string[] }).takeErrors?.() ?? [];
 
-describe('shader variants', () => {
+// Minutes per source: on demand only (`SHADER_VARIANTS=1 pnpm native:run -- pnpm test:unit tests/src/shader-variants`)
+const OnDemand = process.env.SHADER_VARIANTS === '1';
+
+describe.skipIf(!OnDemand)('shader variants', () => {
   it('read every MolViewSpec document of the repository', () => {
     const documents = [
       ...listMVSDocuments('data/examples/mvs/'),
@@ -31,10 +34,9 @@ describe('shader variants', () => {
   });
 });
 
-// The variants scenes reach (`.v6/plans/gl/shader-analysis.md`, steps 1 and 2), compiled on WebGPU: each source alone
-// (`-t '<source>'` runs one) without an error or a warning from Dawn (Tint), the kernels, and all of them for the
-// coverage of every program and kernel
-describe.skipIf(!WebGPU)('shader variants on WebGPU', () => {
+// The variants scenes reach, compiled on WebGPU: each source alone (`-t '<source>'` runs one) without an error or a
+// warning from Dawn (Tint), the kernels, and all of them for the coverage of every program and kernel
+describe.skipIf(!OnDemand || !WebGPU)('shader variants on WebGPU', () => {
   it.each(SourceNames)(
     '%s compile cleanly',
     async (name) => {

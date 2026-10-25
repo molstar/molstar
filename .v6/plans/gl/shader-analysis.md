@@ -12,8 +12,9 @@
     (`prepareAllKernels`), and what a context compiles (`recordCompiles`: WebGPU, Tint's messages of every shader module
     and the pipelines; WebGL, every program asked for and the compile and link logs, queried late so that compiling
     stays parallel). Files through a reader (Node: the file system; the browser: the served repository);
-  - `_test/`: Dawn (`webgpu-shader-variants.test.ts`, by hand) and native `gl` (`webgl-shader-variants.test.ts`, medium
-    lane, where `gl` installs), a test per source (`-t '<source>'` runs one), the kernels, the coverage;
+  - `_test/`: Dawn (`webgpu-shader-variants.test.ts`) and native `gl` (`webgl-shader-variants.test.ts`), a test per
+    source (`-t '<source>'` runs one), the kernels, the coverage. On demand only, never in a lane or CI (minutes per
+    source): `SHADER_VARIANTS=1 pnpm native:run -- pnpm test:unit tests/src/shader-variants`;
   - the visual suite's on-demand cases (`tests/src/visual/cases/shader-variants.ts`, run when `--filter` or `--tags`
     select cases): `shaders/<source>`, `shaders/kernels`, `shaders/coverage`, on a context of the profile alone
     (`BackendProfile.createContext`: nothing compiled with it before). Coverage is required on profiles with every
@@ -187,8 +188,8 @@ disturbed by load on the other GPU: measured again, illumination trace is 37 / 7
    sources: the default presets, the MolViewSpec examples and mesoscale scenes. Add each define axis varied alone from
    the mesh baseline. Output: program × variant × backend.
 2. **WGSL**: compile each variant in Dawn (Tint) and collect `getCompilationInfo` errors and warnings, uniformity
-   analysis included. Dawn lane, one test that walks the matrix.
-3. **GLSL**: compile and link each variant with the native `gl` package (WebGL1 and WebGL2 contexts, medium lane), and
+   analysis included. One test that walks the matrix, on demand.
+3. **GLSL**: compile and link each variant with the native `gl` package (WebGL1 and WebGL2 contexts, on demand), and
    in the browser with a visual-suite `check` per profile, so that `webgl1-minimal` and `webgl2-minimum` meet their
    limits (loop bounds, uniform and varying counts, dynamic indexing).
 4. **Report**: a table of failures and warnings per backend, each turned into a fix with the test that found it.
@@ -251,8 +252,8 @@ disturbed by load on the other GPU: measured again, illumination trace is 37 / 7
 
 ## Phase 4: guard rails
 
-- The phase 1 compile walk stays as tests: WGSL in the Dawn lane, GLSL in the medium lane and the visual suite's check.
-  WGSL warnings fail them.
+- The phase 1 compile walk stays as on-demand tests (`SHADER_VARIANTS=1`, never in a lane or CI): WGSL in Dawn, GLSL
+  in native `gl`, and the visual suite's on-demand cases. WGSL warnings fail them.
 - The parity script stays for reviews of shader changes: a change to one language prints the other's variant beside it.
 
 ## Steps
