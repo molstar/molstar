@@ -87,22 +87,29 @@ function normalizeSource(text: string) {
     .replace(reMultipleLinebreaks, '\n');
 }
 
-/** GLSL sources by program name (`ShaderCode.name`) */
-const Programs = new Map<string, GlslProgram>();
+/**
+ * GLSL sources by program name (`ShaderCode.name`), as registered; normalized on first use (`getGlslProgram`): the
+ * regexes over every program's sources at module load were most of its import, for programs a session may never draw
+ */
+const Programs = new Map<string, { source: GlslProgram; normalized?: GlslProgram }>();
 
 /**
  * Registers the GLSL sources of the program `name` (`ShaderCode.name`), replacing earlier ones; for programs
  * generated at runtime (e.g. grid3d) and custom programs
  */
 export function registerGlslProgram(name: string, vert: string, frag: string, outTypes: FragOutTypes = {}) {
-  Programs.set(name, { vert: normalizeSource(vert), frag: normalizeSource(frag), outTypes });
+  Programs.set(name, { source: { vert, frag, outTypes } });
 }
 
 /** The GLSL sources of the program `name`, throws for unknown programs */
 export function getGlslProgram(name: string): GlslProgram {
   const program = Programs.get(name);
   if (!program) throw new Error(`no GLSL sources for program '${name}'`);
-  return program;
+  if (!program.normalized) {
+    const { vert, frag, outTypes } = program.source;
+    program.normalized = { vert: normalizeSource(vert), frag: normalizeSource(frag), outTypes };
+  }
+  return program.normalized;
 }
 
 export function hasGlslProgram(name: string) {

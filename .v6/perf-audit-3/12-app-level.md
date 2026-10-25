@@ -187,6 +187,8 @@ waiters), #2048 (P8, 14/N3 doc, 13/P4).
 - Startup is compile-bound now: 481 of 816 ms profiled under load in `compileSourceTextModule` for a 6.8 MB bundle;
   `normalizeSource` regexes over every GLSL program at module load are ~17 ms of samples
   ([programs.ts:80](../../packages/graphics/src/gl/webgl/programs.ts#L80), frozen).
+  **Fixed after #2051**: normalized on first use (`getGlslProgram`); the module's import 17.4–19.0 → 5.1–7.4 ms, all
+  42 programs normalized later about 12 ms, none in a WebGPU session.
 - Classic bundles (scratch production builds): Viewer `molstar.js` 5.079 MB / 1.467 gzip (v2 5.00 / 1.44),
   docking-viewer 3.908 / 1.134, mesoscale-explorer 3.966 / 1.145, mvs-stories 4.134 / 1.205, Prism single file 7.240 /
   2.221 (budget 8.0). Only Prism has budgets (H10).
