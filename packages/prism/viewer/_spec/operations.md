@@ -40,7 +40,6 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `component.add` | Add a component |  | target, label, representation, structure, language |
 | `component.list` | List the components | read | structure |
 | `component.modify` | Change what a component holds |  | component, target, mode, structure, language |
-| `component.options` | Set how representations are made |  | hydrogens, quality, ignoreLight, solidSurface, material, clip, interior, animation |
 | `component.remove` | Remove a component | destructive | component, structure |
 | `component.rename` | Rename a component |  | component, label, structure |
 | `component.visibility` | Show or hide a component |  | component, visible, structure |
@@ -74,6 +73,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `load.url` | Load from a URL | network (addresses); needs network | url, format, binary, models, assembly |
 | `load.viewport` | Load a viewport state | needs canvas | file, json |
 | `load.volume` | Load a volume | network (addresses) | url, data, file, format, binary, isovalues, entryId, lazy |
+| `look.get` | Read how representations are drawn | read | node |
+| `look.reset` | Use the scene defaults again |  | node, keys |
+| `look.set` | Set how representations are drawn |  | node, hydrogens, quality, ignoreLight, material, solidSurface, interior, animation, clip, interactions |
 | `measure.angle` | Measure an angle |  | a, b, c, text, structure, language |
 | `measure.dihedral` | Measure a dihedral angle |  | a, b, c, d, text, structure, language |
 | `measure.distance` | Measure a distance |  | a, b, text, structure, language |

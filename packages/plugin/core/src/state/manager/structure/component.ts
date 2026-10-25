@@ -84,13 +84,22 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     this.events.optionsUpdated.next(void 0);
   }
 
-  async setOptions(options: StructureComponentManager.Options) {
+  /**
+   * Sets the options, the scene-wide defaults of the representations. A changed option reaches the representations that
+   * still follow it (their value is the previous default); a representation given a value of its own keeps it (an
+   * override, `reprOptionOverrides`). The options in `reset` are written to every representation, overrides included.
+   */
+  async setOptions(
+    options: StructureComponentManager.Options,
+    params?: { reset?: readonly StructureComponentManager.ReprOptionKey[] },
+  ) {
     const changedOptions = (Object.keys(options) as StructureComponentManager.OptionKey[]).filter(
       (k) => options[k] !== this.state.options[k],
     );
+    const previous = this.state.options;
     // The clip objects these options put on every representation, to be replaced by the new ones (a representation's
     // own objects, set by a clipping editor or by code, are kept: RepresentationClip.replaceOwned)
-    const previousClip = this.state.options.clipObjects.objects;
+    const previousClip = previous.clipObjects.objects;
     this.updateState({ options });
     this.events.optionsUpdated.next(void 0);
 
@@ -98,7 +107,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
     for (const s of this.currentStructures) {
       for (const c of s.components) {
-        this.updateReprParams(update, c, previousClip);
+        this.updateReprParams(update, c, previous, previousClip, params?.reset ?? []);
       }
     }
 
@@ -158,51 +167,33 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
   private updateReprParams(
     update: StateBuilder.Root,
     component: StructureComponentRef,
+    previous: StructureComponentManager.Options,
     previousClip: readonly RepresentationClip.Object[],
+    reset: readonly StructureComponentManager.ReprOptionKey[],
   ) {
-    const {
-      hydrogens,
-      visualQuality: quality,
-      ignoreLight,
-      materialStyle: material,
-      clipObjects: clip,
-      solidSurface,
-      interior,
-      animation,
-    } = this.state.options;
-    const ignoreHydrogens = hydrogens !== 'all';
-    const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
+    const options = this.state.options;
+    const changed = StructureComponentManager.ReprOptionKeys.filter(
+      (k) =>
+        reset.includes(k) ||
+        !PD.isParamEqual(StructureComponentManager.OptionsParams[k] as PD.Any, previous[k], options[k]),
+    );
     for (const r of component.representations) {
       if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
       const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-      const nextClip = RepresentationClip.replaceOwned(params.type.params.clip, previousClip, clip);
-      const isSurface = isSurfaceRepresentationType(params.type.name);
-      const pInterior = params.type.params.interior;
-      const pAnimation = params.type.params.animation;
-      if (
-        !!params.type.params.ignoreHydrogens !== ignoreHydrogens ||
-        params.type.params.ignoreHydrogensVariant !== ignoreHydrogensVariant ||
-        params.type.params.quality !== quality ||
-        params.type.params.ignoreLight !== ignoreLight ||
-        !Material.areEqual(params.type.params.material, material) ||
-        !PD.areEqual(Clip.Params, params.type.params.clip, nextClip) ||
-        (isSurface && params.type.params.solidInterior !== solidSurface) ||
-        (pInterior && !areInteriorPropsEquals(pInterior, interior)) ||
-        (pAnimation && !areAnimationPropsEqual(pAnimation, animation))
-      ) {
-        update.to(r.cell).update((old) => {
-          old.type.params.ignoreHydrogens = ignoreHydrogens;
-          old.type.params.ignoreHydrogensVariant = ignoreHydrogensVariant;
-          old.type.params.quality = quality;
-          old.type.params.ignoreLight = ignoreLight;
-          old.type.params.material = material;
-          old.type.params.clip = nextClip;
-          if (isSurface) old.type.params.solidInterior = solidSurface;
-          if (pInterior) old.type.params.interior = interior;
-          if (pAnimation) old.type.params.animation = animation;
-        });
-      }
+      const nextClip = RepresentationClip.replaceOwned(params.type.params.clip, previousClip, options.clipObjects);
+      // what follows the previous default (or is reset) and is not the new one already
+      const keys = changed.filter(
+        (k) =>
+          (reset.includes(k) ||
+            StructureComponentManager.reprHasOption(params.type.name, params.type.params, k, previous) === true) &&
+          StructureComponentManager.reprHasOption(params.type.name, params.type.params, k, options) === false,
+      );
+      if (!keys.length && PD.areEqual(Clip.Params, params.type.params.clip, nextClip)) continue;
+      update.to(r.cell).update((old) => {
+        for (const k of keys) StructureComponentManager.applyReprOption(old.type.name, old.type.params, k, options);
+        old.type.params.clip = nextClip;
+      });
     }
   }
 
@@ -689,6 +680,120 @@ namespace StructureComponentManager {
   };
   export type Options = PD.Values<typeof OptionsParams>;
   export type OptionKey = keyof Options;
+
+  /**
+   * The options each representation takes as its own params: scene-wide defaults it follows until it is given a value
+   * of its own (an override, kept by `setOptions`). Clip objects are not among them: those of the options and a
+   * representation's own are kept apart (`RepresentationClip.replaceOwned`).
+   */
+  export const ReprOptionKeys = [
+    'hydrogens',
+    'visualQuality',
+    'ignoreLight',
+    'materialStyle',
+    'solidSurface',
+    'interior',
+    'animation',
+  ] as const satisfies readonly OptionKey[];
+  export type ReprOptionKey = (typeof ReprOptionKeys)[number];
+
+  /** The structure representation params an option is written to. */
+  type ReprTypeParams = Record<string, any>;
+
+  /**
+   * Whether a representation (its type and type params) has the option's value of `options`; undefined when it does not
+   * take that option (solid surface on a cartoon, interior on a type without one).
+   */
+  export function reprHasOption(type: string, p: ReprTypeParams, key: ReprOptionKey, options: Options) {
+    switch (key) {
+      case 'hydrogens': {
+        const ignore = options.hydrogens !== 'all';
+        if (!!p.ignoreHydrogens !== ignore) return false;
+        // shown, which hydrogens would be hidden does not matter
+        return (
+          !ignore || (p.ignoreHydrogensVariant ?? 'all') === (options.hydrogens === 'only-polar' ? 'non-polar' : 'all')
+        );
+      }
+      case 'visualQuality':
+        return p.quality === options.visualQuality;
+      case 'ignoreLight':
+        return !!p.ignoreLight === options.ignoreLight;
+      case 'materialStyle':
+        return !!p.material && Material.areEqual(p.material, options.materialStyle);
+      case 'solidSurface':
+        return isSurfaceRepresentationType(type) ? p.solidInterior === options.solidSurface : undefined;
+      case 'interior':
+        return p.interior ? areInteriorPropsEquals(p.interior, options.interior) : undefined;
+      case 'animation':
+        return p.animation ? areAnimationPropsEqual(p.animation, options.animation) : undefined;
+    }
+  }
+
+  /** Writes the option's value of `options` into a representation's type params (mutated), where it takes the option. */
+  export function applyReprOption(type: string, p: ReprTypeParams, key: ReprOptionKey, options: Options) {
+    switch (key) {
+      case 'hydrogens':
+        p.ignoreHydrogens = options.hydrogens !== 'all';
+        p.ignoreHydrogensVariant = options.hydrogens === 'only-polar' ? 'non-polar' : 'all';
+        return;
+      case 'visualQuality':
+        p.quality = options.visualQuality;
+        return;
+      case 'ignoreLight':
+        p.ignoreLight = options.ignoreLight;
+        return;
+      case 'materialStyle':
+        p.material = options.materialStyle;
+        return;
+      case 'solidSurface':
+        if (isSurfaceRepresentationType(type)) p.solidInterior = options.solidSurface;
+        return;
+      case 'interior':
+        if (p.interior) p.interior = options.interior;
+        return;
+      case 'animation':
+        if (p.animation) p.animation = options.animation;
+        return;
+    }
+  }
+
+  /**
+   * The options a representation overrides: those it takes with a value other than the options' (its own). For a
+   * structure representation's params (`StructureRepresentation3D`).
+   */
+  export function reprOptionOverrides(type: string, p: ReprTypeParams, options: Options): ReprOptionKey[] {
+    return ReprOptionKeys.filter((k) => reprHasOption(type, p, k, options) === false);
+  }
+
+  /**
+   * A representation's value of an option, in the options' terms (`hydrogens: 'hide-all'`); undefined when it does not
+   * take it.
+   */
+  export function reprOptionValue<K extends ReprOptionKey>(
+    type: string,
+    p: ReprTypeParams,
+    key: K,
+  ): Options[K] | undefined {
+    switch (key) {
+      case 'hydrogens':
+        return (
+          !p.ignoreHydrogens ? 'all' : p.ignoreHydrogensVariant === 'non-polar' ? 'only-polar' : 'hide-all'
+        ) as Options[K];
+      case 'visualQuality':
+        return p.quality;
+      case 'ignoreLight':
+        return !!p.ignoreLight as Options[K];
+      case 'materialStyle':
+        return p.material;
+      case 'solidSurface':
+        return isSurfaceRepresentationType(type) ? p.solidInterior : undefined;
+      case 'interior':
+        return p.interior;
+      case 'animation':
+        return p.animation;
+    }
+    return undefined;
+  }
   /** Applies a changed option value, see `registerOptionHandler`. */
   export type OptionHandler<K extends OptionKey> = (
     value: Options[K],

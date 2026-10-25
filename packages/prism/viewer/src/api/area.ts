@@ -365,7 +365,7 @@ export interface CoreApi {
 }
 
 /**
- * The built-in features' areas (viewer-spec.md §3.1): `structure` (structure, contents, component, representation,
+ * The built-in features' areas (viewer-spec.md §3.1): `structure` (structure, contents, component, look, representation,
  * styles), `volume`, `trajectory`, `annotations`. Typed as present, as they are in the default spec,
  * so a script writes `api.structure.preset(...)`; in a viewer whose spec leaves the feature out, reading the area throws,
  * naming the feature to add. Code that works either way asks `api.area(id)`.
@@ -374,6 +374,7 @@ export interface BuiltInApis {
   readonly structure: import('./structure.js').StructureApi;
   readonly contents: import('./contents.js').ContentsApi;
   readonly component: import('./component.js').ComponentApi;
+  readonly look: import('./look.js').LookApi;
   readonly representation: import('./representation.js').RepresentationApi;
   readonly styles: import('./styles.js').StylesApi;
   readonly annotations: import('./annotations.js').AnnotationsApi;
@@ -390,6 +391,7 @@ export const BuiltInAreaFeatures: Readonly<Record<keyof BuiltInApis, string>> = 
   structure: 'StructureFeature',
   contents: 'StructureFeature',
   component: 'StructureFeature',
+  look: 'StructureFeature',
   representation: 'StructureFeature',
   styles: 'StructureFeature',
   annotations: 'AnnotationsFeature',

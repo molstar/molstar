@@ -14,6 +14,7 @@ import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import type { Structure } from '@molstar/model/model/structure';
 import type { SequenceChain } from '../sequence/chain-filter.js';
 import type { ChainFilter } from '../sequence/tracks.js';
+import type { NodeLookModel, SceneLookMark } from './look.js';
 import type { RepresentationQuickModel } from './representation-quick.js';
 import type { SceneChanges } from './scene-changes.js';
 import type { VolumeLevelsModel } from './volume-levels.js';
@@ -77,6 +78,8 @@ export interface SceneNode {
   description: ReadonlyState<string | undefined>;
   /** A color shown before the description (a volume's isosurface: which one is which); undefined: a theme's colors. */
   swatch?: ReadonlyState<number | undefined>;
+  /** Marked when it has a look of its own, or rows under it do (api.md §2, "Look": an override of the scene defaults). */
+  look?: ReadonlyState<SceneLookMark | undefined>;
   isHidden: ReadonlyState<boolean>;
   isExpanded: ReadonlyState<boolean>;
   children: ReadonlyState<readonly SceneNode[]>;
@@ -190,6 +193,8 @@ export interface SceneInspection {
   transfer?: readonly VolumeTransferModel[];
   /** A structure representation's quick settings (type, color, opacity, size), above the form. */
   quick?: RepresentationQuickModel;
+  /** A structure's, a component's or a representation's look (its inspector's sliders): its own values, the defaults'. */
+  look?: NodeLookModel;
   /** A structure's contents: its counts, and its entities to open in the tree. */
   contents?: ContentsSummary;
   /** A Sequence node's controls: the band's style and letters, Add track, the chains (sequence.md §8.1). */

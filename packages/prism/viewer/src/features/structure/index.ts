@@ -9,6 +9,7 @@
 import type { CommandDefinition } from '@molstar/prism-ui/core';
 import { ComponentApi } from '../../api/component.js';
 import { ContentsApi } from '../../api/contents.js';
+import { LookApi } from '../../api/look.js';
 import type { ViewerCommandContext } from '../../api/managers.js';
 import { RepresentationApi } from '../../api/representation.js';
 import { StructureApi } from '../../api/structure.js';
@@ -20,7 +21,7 @@ import type { ViewerApi } from '../../api/area.js';
 import type { ViewerExtension } from '../../spec.js';
 
 // The `structure` feature (viewer-spec.md §3.1): the scene's API, without its panel: `structure` (presets, models,
-// assemblies, symmetry, transforms), `contents`, `component`, `representation`, `styles`, and their commands. The
+// assemblies, symmetry, transforms), `contents`, `component`, `look`, `representation`, `styles`, and their commands. The
 // Structure panel is the `structure-panel` feature, on top of this one.
 
 export const StructureFeature: ViewerExtension = {
@@ -31,6 +32,7 @@ export const StructureFeature: ViewerExtension = {
     structure: (c) => new StructureApi(c),
     contents: (c) => new ContentsApi(c),
     component: (c) => new ComponentApi(c),
+    look: (c) => new LookApi(c),
     representation: (c) => new RepresentationApi(c),
     styles: (c) => new StylesApi(c),
   },

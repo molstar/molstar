@@ -17,7 +17,6 @@ import {
   structureUnion,
 } from '@molstar/model/model/structure/query/utils/structure-set';
 import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
-import { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
 import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { Expression } from '@molstar/query-language/language/expression';
@@ -38,7 +37,7 @@ import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './ta
 
 // `component` (api.md §2): the components of a structure, which are the unit the representations hang
 // off. `add` makes one of what a target selects (with a representation), `modify` changes what one holds by a target,
-// `remove`, `rename`, `visibility`, and the component manager's `options`; `list` reads them. The scene areas share a
+// `remove`, `rename`, `visibility`; `list` reads them (the component manager's options are `look`'s). The scene areas share a
 // shape (see `structure.ts`): a `structure` field naming one by label or ref, a component by label or ref, registry
 // ids validated with the valid ones in the hint, "already so" when nothing would change. `add` follows decision 30:
 // a component of exactly that target on the structure already exists, unless `copy` asks for another.
@@ -65,18 +64,6 @@ export interface StructureComponents {
   readonly structure: { readonly ref: string; readonly label: string };
   readonly components: readonly ComponentInfo[];
 }
-
-/** How the component manager's options are named here (the manager's names where they were long or odd). */
-const OptionKeys = {
-  hydrogens: 'hydrogens',
-  quality: 'visualQuality',
-  ignoreLight: 'ignoreLight',
-  solidSurface: 'solidSurface',
-  material: 'materialStyle',
-  clip: 'clipObjects',
-  interior: 'interior',
-  animation: 'animation',
-} as const satisfies Record<string, keyof StructureComponentManager.Options>;
 
 // The selection's words (api.md §1 "Words"): add, remove, intersect.
 const ModeParam = () =>
@@ -409,28 +396,6 @@ export class ComponentApi extends ApiArea {
     },
   });
 
-  readonly options = this.operation({
-    id: 'component.options',
-    title: 'Set how representations are made',
-    // Defaults are the current values, so what is not given stays as it is.
-    params: (ctx) => optionParams(ctx.plugin.managers.structure.component.state.options),
-    async run(values, ctx) {
-      const manager = ctx.plugin.managers.structure.component;
-      const current = manager.state.options;
-      const next: StructureComponentManager.Options = { ...current };
-      const changed: string[] = [];
-      for (const [name, key] of Object.entries(OptionKeys) as [keyof typeof OptionKeys, keyof typeof current][]) {
-        const param = StructureComponentManager.OptionsParams[key] as PD.Any;
-        if (PD.isParamEqual(param, current[key], values[name])) continue;
-        (next as Record<string, unknown>)[key] = values[name];
-        changed.push(name);
-      }
-      if (!changed.length) return ApiResult.already('Those options are already set.');
-      await manager.setOptions(next);
-      return ApiResult.ok(`Set ${changed.join(', ')}.`, {}, { value: changed });
-    },
-  });
-
   readonly list = this.operation({
     id: 'component.list',
     title: 'List the components',
@@ -454,22 +419,6 @@ export class ComponentApi extends ApiArea {
       return ApiResult.ok(lines.join('\n'), {}, { value });
     },
   });
-}
-
-/** The options as params whose defaults are the current values. */
-function optionParams(current: StructureComponentManager.Options) {
-  const P = StructureComponentManager.OptionsParams;
-  const withDefault = <T extends PD.Any>(p: T, value: unknown): T => ({ ...p, defaultValue: value }) as T;
-  return {
-    hydrogens: withDefault(P.hydrogens, current.hydrogens),
-    quality: withDefault(P.visualQuality, current.visualQuality),
-    ignoreLight: withDefault(P.ignoreLight, current.ignoreLight),
-    solidSurface: withDefault(P.solidSurface, current.solidSurface),
-    material: withDefault(P.materialStyle, current.materialStyle),
-    clip: withDefault(P.clipObjects, current.clipObjects),
-    interior: withDefault(P.interior, current.interior),
-    animation: withDefault(P.animation, current.animation),
-  };
 }
 
 function componentInfo(c: StructureComponentRef): ComponentInfo {

@@ -91,6 +91,8 @@ import { fromChanged, onceATask, type SourceScope } from './state.js';
 import { type Observable, of } from 'rxjs';
 import { createVolumeLevels, mapLevels, streamingLevels, type VolumeLevelsSource } from './volume-levels.js';
 import { createVolumeTransfer, type VolumeTransferSource } from './volume-transfer.js';
+import { createNodeLookModel, groupLookMark, representationLookMark, sameLookMark } from './look.js';
+import type { SceneLookMark } from '../model/look.js';
 import {
   createRepresentationQuick,
   representationChoices,
@@ -121,6 +123,9 @@ export const ReprIcons: Readonly<Record<string, IconName>> = {
 };
 
 /** The operation that applies an inspector form, by the kind of representation it edits. */
+/** The nodes with a look (the structure representations under them). */
+const LookKinds: ReadonlySet<SceneNodeKind> = new Set(['structure', 'component', 'representation']);
+
 const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   representation: 'representation.update',
   'volume-representation': 'volume.update',
@@ -232,6 +237,7 @@ class Node implements SceneNode {
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
   #swatch?: ObservableState<number | undefined>;
+  readonly #look = observableState<SceneLookMark | undefined>(undefined, { compare: sameLookMark });
   /** A structure's frames (several): `structureNode` sets it, and takes it away when it has one model again. */
   trajectory?: SceneTrajectory;
   icon: IconName;
@@ -298,6 +304,15 @@ class Node implements SceneNode {
   }
   get swatch(): ReadonlyState<number | undefined> | undefined {
     return this.#swatch?.asReadonly;
+  }
+
+  get look(): ReadonlyState<SceneLookMark | undefined> {
+    return this.#look.asReadonly;
+  }
+
+  /** Its look mark: its own values (a representation), or rows under it with theirs (api.md §2, "Look"). */
+  setLook(mark: SceneLookMark | undefined): void {
+    this.#look.set(mark);
   }
 
   /** The row's color (a volume's isosurface); only rows that have one get it. */
@@ -527,8 +542,15 @@ export function createSceneSource(
         return now?.kind === 'structure' ? structureMenu(plugin, api, now) : undefined;
       };
     }
+    n.setLook(
+      groupLookMark(
+        plugin,
+        s.components.flatMap((c) => c.representations),
+      ),
+    );
     // An open inspector follows the source and the transform (Undo, superposition), without reporting it as an edit.
     if (data) inspections.get(ref)?.form?.load(structureValues(s, data));
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -809,6 +831,8 @@ export function createSceneSource(
         undefined,
       !!c.cell.state.isHidden,
     );
+    n.setLook(groupLookMark(plugin, c.representations));
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -829,6 +853,8 @@ export function createSceneSource(
     }
     n.icon = ReprIcons[type] ?? 'cartoon';
     n.set(reprLabel(plugin, r), colorLabel(plugin, r), !!r.cell.state.isHidden);
+    n.setLook(representationLookMark(plugin, r));
+    inspections.get(ref)?.look?.refresh();
     // An open inspector follows the cell (Undo, another surface), without reporting it as an edit.
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
     (inspections.get(ref)?.quick as RepresentationQuickSource | undefined)?.refresh();
@@ -1324,6 +1350,12 @@ export function createSceneSource(
     ids.push(cg.id);
     cg.set('Components', comps.length === 1 ? '1 component' : `${comps.length} components`, allHidden(comps));
     cg.setChildren(comps);
+    cg.setLook(
+      groupLookMark(
+        plugin,
+        s.components.flatMap((c) => c.representations),
+      ),
+    );
     kids.push(cg);
     rows.parts = focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount);
     rows.focused = focused;
@@ -1547,9 +1579,17 @@ export function createSceneSource(
 
   const build = (n: SceneNode): SceneInspection => {
     if (n.kind === 'sequence' && sequence) return inspectSequence(n);
-    return inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) =>
-      picked.set(row),
+    const inspection = inspect(
+      plugin,
+      api,
+      n,
+      unitCellOwners.get(n.id) ?? streamingOwners.get(n.id),
+      levelUnit,
+      (row) => picked.set(row),
     );
+    // What is drawn under a structure, a component, a representation: its look, over the scene defaults.
+    const look = LookKinds.has(n.kind) ? createNodeLookModel(plugin, api, n.id) : undefined;
+    return look ? { ...inspection, look } : inspection;
   };
 
   /**
@@ -1637,6 +1677,8 @@ export function createSceneSource(
     );
   }
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
+  // The scene defaults changed: the rows' look marks are read again (an override is a value other than the default).
+  scope.add(plugin.managers.structure.component.events.optionsUpdated.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
   // The measurements (one added, removed, or given new params: its label, its unit): the manager says its state

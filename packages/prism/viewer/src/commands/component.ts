@@ -45,11 +45,24 @@ export function componentCommands(api: ViewerApi): CommandDefinition<ViewerComma
       alias: ['delete component', 'remove component'],
       action: 'Remove',
     }),
-    operationCommand(api, api.component.options, {
-      category,
+    operationCommand(api, api.look.set, {
+      category: 'Style',
       icon: 'sliders-horizontal',
-      alias: ['component options', 'hydrogens', 'quality', 'representation options'],
+      title: 'Set how representations are drawn…',
+      alias: ['scene defaults', 'component options', 'hydrogens', 'quality', 'material', 'ignore light', 'look'],
       action: 'Set',
+    }),
+    operationCommand(api, api.look.reset, {
+      category: 'Style',
+      icon: 'rotate-ccw',
+      title: 'Use the scene defaults again…',
+      alias: ['reset look', 'clear overrides', 'scene defaults'],
+      action: 'Reset',
+    }),
+    operationCommand(api, api.look.get, {
+      category: 'Style',
+      icon: 'list',
+      alias: ['overrides', 'look', 'scene defaults'],
     }),
     operationCommand(api, api.contents.visibility, {
       category,

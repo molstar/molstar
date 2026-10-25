@@ -88,12 +88,19 @@ export namespace StructureRepresentationPresetProvider {
   export function reprBuilder(plugin: PluginContext, params: CommonParams, structure?: Structure) {
     const update = plugin.state.data.build();
     const builder = plugin.builders.structure.representation;
-    const h = plugin.managers.structure.component.state.options.hydrogens;
+    const options = plugin.managers.structure.component.state.options;
+    const h = options.hydrogens;
+    // the component options, as the component manager gives its representations: a representation follows them
+    // (StructureComponentManager.setOptions) unless the preset sets its own value below
     const typeParams = {
-      quality: plugin.managers.structure.component.state.options.visualQuality,
+      quality: options.visualQuality,
       ignoreHydrogens: h !== 'all',
       ignoreHydrogensVariant: (h === 'only-polar' ? 'non-polar' : 'all') as 'all' | 'non-polar',
-      ignoreLight: plugin.managers.structure.component.state.options.ignoreLight,
+      ignoreLight: options.ignoreLight,
+      material: options.materialStyle,
+      clip: options.clipObjects,
+      interior: options.interior,
+      animation: options.animation,
     };
     if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
     if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
@@ -112,7 +119,7 @@ export namespace StructureRepresentationPresetProvider {
     const globalColorParams = params.theme?.globalColorParams ? { ...params.theme?.globalColorParams } : undefined;
     const surfaceTypeParams = {
       ...typeParams,
-      solidInterior: plugin.managers.structure.component.state.options.solidSurface,
+      solidInterior: options.solidSurface,
     };
 
     return {

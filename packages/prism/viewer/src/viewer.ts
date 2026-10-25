@@ -791,7 +791,7 @@ function createSequence(
 const BuiltInViewFeatures: Readonly<Record<keyof BuiltInViews, string>> = {
   scene: 'StructurePanelFeature',
   presets: 'StructurePanelFeature',
-  componentOptions: 'StructurePanelFeature',
+  look: 'StructurePanelFeature',
   quickStyles: 'StructurePanelFeature',
   homeActions: 'HomeFeature',
 };

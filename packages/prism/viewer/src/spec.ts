@@ -340,8 +340,8 @@ export interface BuiltInViews {
   readonly scene: import('./model/scene.js').SceneModel;
   /** The representation presets, from the registry (the Structure panel's Preset menu). */
   readonly presets: import('./model/scene.js').PresetsModel;
-  /** The component manager's options as a form (the Structure panel's options). */
-  readonly componentOptions: import('@molstar/prism-ui/forms/params-form').ParamsFormModel<any>;
+  /** The look's scene defaults and the overrides kept (the Structure panel's sliders; api.md §2, "Look"). */
+  readonly look: import('./model/look.js').SceneLookModel;
   /** Quick styles (the Structure panel's Styles). */
   readonly quickStyles: import('./model/scene.js').QuickStylesModel;
   /** Home's loading actions, from the registry. */

@@ -58,6 +58,7 @@ command menu, the tools, the run log and the docs.
 | `session`                      | sessions, the remote-states client                                  | core; `remote-states`         |
 | `structure`, `contents`        | `managers.structure.hierarchy`, hierarchy presets; entities, chains | `structure`                   |
 | `component`, `representation`  | `managers.structure.component`, themes, the style layers            | `structure`                   |
+| `look`                         | `managers.structure.component`'s options, representation params     | `structure`                   |
 | `styles`, `annotations`        | representation presets and looks; what extensions can apply         | `structure`; `annotations`    |
 | `volume`                       | `managers.volume`                                                   | `volume`                      |
 | `particles`                    | `managers.particles`                                                | `particles` (lazy)            |
@@ -79,6 +80,14 @@ command menu, the tools, the run log and the docs.
 - **Hiding contents** (README decision 18): `contents.visibility` makes each component hold what it held minus the
   hidden entities and chains; the hidden set is custom state (`prism-viewer.contents`), and `structure.preset` and
   `component.add` apply it in their step. A component left empty is a null cell, restored when shown again.
+- **Look**: how representations are drawn (hydrogens, quality, ignore light, material, solid surface, interior,
+  animation). The scene defaults are the component manager's options (`look.set` without a node; the clip objects and
+  interactions are only the scene's); `look.set` with a node writes the representations at or under it. An override is a
+  value other than the default, read from the params themselves (nothing stored, sessions need nothing): a change of the
+  default reaches the representations that had the old one and keeps the rest (`StructureComponentManager.setOptions`);
+  `look.reset` takes overrides back, from the scene (Apply to all) or a node. The UI marks overrides where they are: a
+  dot on the Structure panel's sliders and a node inspector's, the sliders glyph on the tree rows (faint on the rows
+  above). Why: a value set on one structure must survive a scene-wide change, and be findable.
 - **Registries are arguments, not operations**: one `structure.preset` takes a preset id, `representation.color` a theme
   name; completions and the tool's enum come from the registry.
 - **Events** for embedding hosts (v5's `structureInteractivity`): `viewer.events.hover`, `click`, with the target under
