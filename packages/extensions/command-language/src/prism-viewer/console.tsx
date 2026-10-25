@@ -116,7 +116,7 @@ function EmptyView(props: { model: ConsoleModel; onPick: (text: string) => void 
 }
 
 /** The composer's line, one row whatever it says: what Enter will do, or why it will not (the whole in its tip). */
-function StatusView(props: { inspection: ConsoleInspection }) {
+function StatusView(props: { inspection: ConsoleInspection; usageShown?: boolean }) {
   const i = props.inspection;
   if (i.kind === 'empty') return <span class={classes.does} />;
   if (i.kind === 'error') {
@@ -124,7 +124,8 @@ function StatusView(props: { inspection: ConsoleInspection }) {
     return (
       <span class={classes.does} data-kind="error" data-tip={full}>
         {i.message}
-        {i.hint ? <span class={classes.hint}> {i.hint}</span> : null}
+        {/* The hint is mostly the usage: left to the card when it shows it (still in the tip). */}
+        {i.hint && !props.usageShown ? <span class={classes.hint}> {i.hint}</span> : null}
       </span>
     );
   }
@@ -486,7 +487,9 @@ export function ConsoleView(props: { model: ConsoleModel }) {
           </button>
         </div>
         <div class={classes.status}>
-          <Show when={derive(help, (h) => h.inspection)}>{(i) => <StatusView inspection={i} />}</Show>
+          <Show when={derive([help, card], (h, c) => ({ inspection: h.inspection, usageShown: !!c?.signature }))}>
+            {(st) => <StatusView inspection={st.inspection} usageShown={st.usageShown} />}
+          </Show>
           <span
             class={classes.keys}
             data-tip={`Enter runs · Shift+Enter a new line · Tab completes · ${formatChord(ListChord)} lists the completions · ↑ ↓ the list or the history · Esc closes the help and the list`}
