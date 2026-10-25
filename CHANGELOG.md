@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix molecular surfaces of large structures at coarse resolution not yielding for seconds (no progress, no abort)
+- Fix `PeriodicBox.minimumImage` not giving the nearest image in skewed (triclinic) boxes
 - Fix a state builder's `updateState` evaluating its node, and a rebased builder losing its tag, `dependsOn` and flag
   edits
 - Fix `setDependsOn` not updating the tree's dependencies (deleting the dependency left the dependent in error)
