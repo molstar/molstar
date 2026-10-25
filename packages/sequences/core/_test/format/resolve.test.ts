@@ -845,4 +845,41 @@ describe('VW4: links memoized per set (V7)', () => {
     resolveView(doc, set, 'v', reg, all);
     expect([first.links.count, t1 - t0, pathsSearched() - t1]).toEqual([120, 120, 0]);
   });
+
+  // 3J3Q: 1,356 copies of one chain merged into one block, each with its own secondary structure, searched every copy
+  // from every copy (1.8M dead-end searches, seconds). A unit reaches only itself among its copies, unsearched.
+  const copies = (n: number, mapped: boolean) => {
+    const b = createSeqViewSpec();
+    const s = b.data.sequence({ ref: 's', value: 'MKVLAAGIVG' });
+    const units = Array.from({ length: n }, (_, k) => b.data.unit({ ref: `u${k}`, sequence: s }));
+    if (mapped) b.data.mapping({ from: units[0], to: units[1], method: 'identity' });
+    const per = b.data.annotation({
+      ref: 'per',
+      geometry: 'ranges',
+      value: { target: units, start: units.map((_, k) => k % 5), stop: units.map(() => 8) },
+    });
+    const v = b.view({ ref: 'v', label: 'V' });
+    for (const u of units) v.block({ unit: u });
+    v.track({ label: 'L' }).ranges({ ref: 'v.per', data: per });
+    return b.getDocument();
+  };
+
+  it('1,000 merged copies with data of their own: each on its own member, no path searched', async () => {
+    const doc = copies(1000, false);
+    const { set } = await compile(doc, reg, fixtureLoaders());
+    const t0 = pathsSearched();
+    const { view } = resolveView(doc, set, 'v', reg, all);
+    const ps = placed(view, set, 'v.per');
+    expect([view.blocks.count, ps.length, pathsSearched() - t0]).toEqual([1, 1000, 0]);
+    expect(ps.every((p, k) => p[1] === id(set, `u${k}`) && p[3] === -1)).toBe(true);
+  });
+
+  it('a mapping onto a unit still takes one copy onto another', async () => {
+    const doc = copies(3, true);
+    const { set } = await compile(doc, reg, fixtureLoaders());
+    const ps = placed(resolveView(doc, set, 'v', reg, all).view, set, 'v.per');
+    // Each copy's own, unpathed; and through the mapping, u0's data on u1 and u1's on u0.
+    expect(ps.filter((p) => p[3] === -1).map((p) => p[1])).toEqual([0, 1, 2].map((k) => id(set, `u${k}`)));
+    expect(ps.filter((p) => p[3] >= 0).map((p) => p[1])).toEqual([id(set, 'u1'), id(set, 'u0')]);
+  });
 });

@@ -21,6 +21,7 @@ import {
   type PathStep,
   Paths,
   type SeqSet,
+  SortedArray,
   type Targets,
 } from '@molstar/seq-core/model';
 import { numberColumn } from '../palettes/fields.js';
@@ -123,6 +124,16 @@ export function reach(
     return true;
   }
   const merged = block.members !== null;
+  // A unit onto its own copies: only itself, unless a mapping ends on a unit (seqspec:model#copies); no search per copy.
+  if (
+    from.kind === CoordinateSystemKind.unit &&
+    set.units.molecule[from.id] === set.units.molecule[block.unit] &&
+    !Mappings.unitsMapped(set)
+  ) {
+    if (block.members ? SortedArray.has(block.members, from.id) : from.id === block.unit)
+      cb(merged ? from.id : -1, null, -1);
+    return true;
+  }
   let ok = true;
   for (const m of block.members ?? [block.unit]) {
     if (from.kind === CoordinateSystemKind.unit && from.id === m) {
