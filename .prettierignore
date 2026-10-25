@@ -18,6 +18,8 @@ coverage/
 .cache/
 .pnpm-store/
 **/pnpm-lock.yaml
+# Claude Code's worktrees live inside the checkout; a format from the root must not reach into them.
+.claude/
 
 # The v6 designs, plans and notes are not formatted.
 .v6/
