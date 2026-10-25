@@ -311,11 +311,22 @@ function countingContext(counts: Map<string, number>): RuntimeContext {
 
 describe('calcMolecularSurface progress', () => {
   it('yields within a pass for small radii (perf-audit-2 02/B2)', async () => {
-    // 15,625 atoms of radius 0.3: about 12.7k atoms of work per chunk at resolution 1 (1e5 / r⁹ gave billions)
+    // 15,625 atoms of radius 0.3: 797 atoms of work per chunk at resolution 1 (1e5 / r⁹ gave billions)
     const { position, boundary } = lattice(25, 4, 0.3, 1.4);
     const props = { probeRadius: 1.4, resolution: 1, probePositions: 12 };
     const counts = new Map<string, number>();
     await calcMolecularSurface(countingContext(counts), position, boundary, 0.3, boundary.box, props);
-    expect(counts.get('projecting points')).toBe(2);
+    expect(counts.get('projecting points')).toBe(20);
+  });
+
+  it('counts the per-atom fixed cost at coarse resolution (perf-audit-3 02/B6)', async () => {
+    // 8,000 atoms of radius 1.7 with tori at resolution 8: 903 atoms per chunk in both passes (voxels alone: 93.5k,
+    // one synchronous chunk of seconds on a 186k-atom structure surface)
+    const { position, boundary } = lattice(20, 4, 1.7, 1.4);
+    const props = { probeRadius: 1.4, resolution: 8, probePositions: 12 };
+    const counts = new Map<string, number>();
+    await calcMolecularSurface(countingContext(counts), position, boundary, 1.7, boundary.box, props);
+    expect(counts.get('projecting points')).toBe(9);
+    expect(counts.get('projecting torii')).toBe(9);
   });
 });

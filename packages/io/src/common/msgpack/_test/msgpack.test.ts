@@ -16,6 +16,30 @@ describe('msgpack', () => {
     expect(roundTrip(v)).toEqual(v);
   });
 
+  it('decodes bin as an exact-size copy, also from a Node Buffer at an offset (perf-audit-3 13/P1)', () => {
+    const bytes = Uint8Array.from({ length: 300 }, (_, i) => (i * 7) & 255);
+    const encoded = encodeMsgPack({ a: bytes, b: bytes.subarray(10, 13) });
+    // the document inside a larger buffer, as a Buffer view and as a Uint8Array view
+    const host = new Uint8Array(encoded.length + 9);
+    host.set(encoded, 5);
+    for (const input of [Buffer.from(host.buffer, 5, encoded.length), host.subarray(5, 5 + encoded.length)]) {
+      const v = decodeMsgPack(input) as { a: Uint8Array; b: Uint8Array };
+      for (const [out, expected] of [
+        [v.a, bytes],
+        [v.b, bytes.subarray(10, 13)],
+      ] as const) {
+        expect(out.constructor).toBe(Uint8Array);
+        expect(out.byteOffset).toBe(0);
+        expect(out.buffer.byteLength).toBe(expected.length);
+        expect(Array.from(out)).toEqual(Array.from(expected));
+      }
+      // a copy: changing the input leaves the decoded bytes as they were
+      input.fill(0);
+      expect(v.a[1]).toBe(7);
+      host.set(encoded, 5);
+    }
+  });
+
   it('writes a character outside the BMP as one 4-byte sequence', () => {
     expect(Array.from(encodeMsgPack('🧬'))).toEqual([0xa4, 0xf0, 0x9f, 0xa7, 0xac]);
   });

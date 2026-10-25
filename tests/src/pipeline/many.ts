@@ -42,7 +42,7 @@ import { setStructureOverpaint, clearStructureOverpaint } from '@molstar/plugin/
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { graphicsStub, stubCanvas } from './canvas-stub.js';
 import { ROOT } from './common.js';
-import { createStageRunner, type StageResult, summarize } from './stage.js';
+import { createStageRunner, exitOnFailures, type StageResult, summarize } from './stage.js';
 
 const args = process.argv.slice(2);
 const arg = (n: string, d?: string) => {
@@ -319,3 +319,4 @@ if (profileDir) {
   if (outFile) (await import('node:fs')).writeFileSync(outFile, JSON.stringify(out, null, 1));
   else console.log(JSON.stringify(out));
 }
+exitOnFailures(runner.failureCount());

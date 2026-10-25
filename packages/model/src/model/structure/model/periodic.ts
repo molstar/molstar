@@ -60,24 +60,31 @@ namespace ModelPeriodicity {
 
   const plans = new WeakMap<object, UnwrapPlan>();
   // The frames made, by source frame and mode: the same model for the same frame while it is recent. Not every frame:
-  // a trajectory read in full would be held twice.
+  // a trajectory read in full would be held twice. One LRU per topology (the frames of a topology share the hierarchy,
+  // and so do the made models), held weakly by it: a dropped trajectory takes its frames with it (perf-audit-3 05/P23)
   const CacheSize = 16;
-  const recent = new Map<Model, Map<unknown, Model>>();
+  const recent = new WeakMap<object, Map<Model, Map<unknown, Model>>>();
 
   function cached(model: Model, key: unknown) {
-    const byMode = recent.get(model);
-    if (!byMode) return;
-    recent.delete(model);
-    recent.set(model, byMode);
+    const lru = recent.get(model.atomicHierarchy);
+    const byMode = lru?.get(model);
+    if (!lru || !byMode) return;
+    lru.delete(model);
+    lru.set(model, byMode);
     return byMode.get(key);
   }
 
   function remember(model: Model, key: unknown, made: Model) {
-    let byMode = recent.get(model);
+    let lru = recent.get(model.atomicHierarchy);
+    if (!lru) {
+      lru = new Map();
+      recent.set(model.atomicHierarchy, lru);
+    }
+    let byMode = lru.get(model);
     if (!byMode) {
       byMode = new Map();
-      recent.set(model, byMode);
-      if (recent.size > CacheSize) recent.delete(recent.keys().next().value!);
+      lru.set(model, byMode);
+      if (lru.size > CacheSize) lru.delete(lru.keys().next().value!);
     }
     byMode.set(key, made);
   }
@@ -477,7 +484,9 @@ namespace ModelPeriodicity {
     const y = Float32Array.from(conformation.y);
     const z = Float32Array.from(conformation.z);
     const { parent, order } = plan;
-    // the minimum image inlined (PeriodicBox.minimumImage): this runs once per atom per frame
+    // the image by rounding the fractional difference, inlined: this runs once per atom per frame. Rounding is the
+    // minimum image only for short displacements in a skewed box (in a dodecahedron up to ~0.35 L, `PeriodicBox.
+    // minimumImage` is exact for any): a plan's hops are bonds and 3.8 Å links, under that in a box of `MinBoxVector`
     const [b0, b1, b2, b3, b4, b5, b6, b7, b8] = box.basis;
     const [i0, i1, i2, i3, i4, i5, i6, i7, i8] = box.inverse;
     for (let k = 0, n = parent.length; k < n; k++) {

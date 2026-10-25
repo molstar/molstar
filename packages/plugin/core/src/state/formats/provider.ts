@@ -8,6 +8,7 @@
 import { binaryCifHasCategory, binaryCifHasColumn, getBinaryCifHeader } from '@molstar/io/common/binary-cif';
 import type { StringLike } from '@molstar/core/util/string-like';
 import { Sniffable } from '@molstar/core/util/sniffable';
+import { asciiIndexOf, asciiStartsWith } from '@molstar/core/util/utf8';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StateObject, StateObjectRef, StateTransformer } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
@@ -192,10 +193,37 @@ function sniffCifVariant(info: FileNameInfo, data: Uint8Array | StringLike | Sni
       if (has('_segmentation_data_3d.')) return 'segcif';
     }
 
-    // Structure factor CIF: has _refln category with map coefficients
-    if (has('_refln.pdbx_FWT') || has('_refln.pdbx_DELFWT')) return 'sfcif';
+    // a plain mmCIF holds none of the needles, so each search reads all of it: the needles of a pair share a prefix,
+    // searched once (perf-audit-3 01/P13)
+    const text = Sniffable.is(data) || data instanceof Uint8Array ? undefined : data;
+    const hasEither = (prefix: string, a: string, b: string) =>
+      hasPrefixThen(sniffable.heldBytes ?? text, prefix, a, b) ?? (has(prefix + a) || has(prefix + b));
 
-    if (has('atom_site_fract_x') || has('atom_site.fract_x')) return 'coreCif';
+    // Structure factor CIF: has _refln category with map coefficients
+    if (hasEither('_refln.pdbx_', 'FWT', 'DELFWT')) return 'sfcif';
+
+    if (hasEither('atom_site', '_fract_x', '.fract_x')) return 'coreCif';
   }
   return -1;
+}
+
+/**
+ * Whether ASCII `prefix` followed by `a` or `b` occurs in the bytes (UTF-8) or the text, as `includes(prefix + a) ||
+ * includes(prefix + b)` but with one search: every occurrence of either is one of the prefix. `undefined` without them.
+ */
+function hasPrefixThen(data: Uint8Array | StringLike | undefined, prefix: string, a: string, b: string) {
+  if (data === undefined) return;
+  const n = prefix.length;
+  if (data instanceof Uint8Array) {
+    for (let i = asciiIndexOf(data, prefix); i >= 0; i = asciiIndexOf(data, prefix, i + 1)) {
+      if (asciiStartsWith(data, a, i + n) || asciiStartsWith(data, b, i + n)) return true;
+    }
+    return false;
+  }
+  // in range only: a `ChunkedBigString` reads past its end
+  const at = (s: string, i: number) => i + s.length <= data.length && data.startsWith(s, i);
+  for (let i = data.indexOf(prefix); i >= 0; i = data.indexOf(prefix, i + 1)) {
+    if (at(a, i + n) || at(b, i + n)) return true;
+  }
+  return false;
 }

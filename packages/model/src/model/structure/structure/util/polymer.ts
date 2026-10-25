@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Unit, type ElementIndex } from '../../../structure.js';
-import { Segmentation, OrderedSet, Interval, SortedArray } from '@molstar/core/data/int';
+import { Segmentation, SortedArray } from '@molstar/core/data/int';
 import { SortedRanges } from '@molstar/core/data/int/sorted-ranges';
 import { isNucleic, isProtein } from '../../model/types.js';
 
@@ -20,12 +21,11 @@ export function getAtomicPolymerElements(unit: Unit.Atomic) {
     const polymerSegment = polymerIt.move();
     residueIt.setSegment(polymerSegment);
     while (residueIt.hasNext) {
-      const residueSegment = residueIt.move();
-      const { start, end, index } = residueSegment;
-      if (OrderedSet.areIntersecting(Interval.ofRange(elements[start], elements[end - 1]), elements)) {
-        const elementIndex = traceElementIndex[index];
-        indices.push(elementIndex === -1 ? residueAtomSegments.offsets[index] : elementIndex);
-      }
+      // the iterator yields only residues with elements in the unit (`start < end`), so every one counts; testing
+      // its own element range against the unit's elements was always true (perf-audit-3 05/P25)
+      const { index } = residueIt.move();
+      const elementIndex = traceElementIndex[index];
+      indices.push(elementIndex === -1 ? residueAtomSegments.offsets[index] : elementIndex);
     }
   }
   return SortedArray.ofSortedArray<ElementIndex>(indices);

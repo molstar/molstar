@@ -5,11 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, type RuntimeContext } from '@molstar/core/task';
+import { Task, RuntimeContext } from '@molstar/core/task';
 import { Tensor } from '@molstar/core/math/linear-algebra';
 import type { Mesh } from '../../geometry/mesh/mesh.js';
 import { type Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables.js';
 import { defaults } from '@molstar/core/util';
+import { anchorMap } from '@molstar/core/util/map-anchor';
 import { type MarchingCubesBuilder, MarchingCubesMeshBuilder, MarchingCubesLinesBuilder } from './builder.js';
 import type { Lines } from '../../geometry/lines/lines.js';
 
@@ -72,7 +73,8 @@ export function computeMarchingCubesLines(params: MarchingCubesParams, lines?: L
 class MarchingCubesComputation {
   private size: number;
   private sliceSize: number;
-  private edgeFilter: number;
+  // set here, not first in `doSlices`, so that a computation has its final map when made (`anchorMap` below)
+  private edgeFilter = 0;
 
   private minX = 0;
   private minY = 0;
@@ -429,4 +431,12 @@ class MarchingCubesState {
       }
     }
   }
+}
+
+// keeps the maps of a computation, its state and the mesh builder, which the optimized code of `slice`, `processCell`,
+// `interpolate` & co. embeds (`anchorMap`); made, not run, so that it adds no feedback (perf-audit-3 08/P15)
+{
+  const space = Tensor.Space([2, 2, 2], [0, 1, 2], Float32Array);
+  const params = getInputParams({ isoLevel: 0.5, scalarField: Tensor.create(space, space.create()) });
+  anchorMap(new MarchingCubesComputation(RuntimeContext.Synchronous, MarchingCubesMeshBuilder(1), params));
 }

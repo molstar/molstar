@@ -11,7 +11,7 @@ reads `Data.String` or `Data.Binary` today changes.
 - `Download` and `ReadFile` (`plugin/core/src/state/transforms/data/fetch.ts`) choose the form before reading, by
   `isBinary`: `Data.String` or `Data.Binary`.
 - A `.cif` arrives as `Data.String`: bytes, then `TextDecoder` to a string (`utf8ReadLong`), then `parseCifText` encodes
-  it back (`utf8Encode`) for the byte tokenizer (`.v6/designs/cif-parsing.md`). flat-192-cif: 124 MB string plus 124 MB
+  it back (`utf8Encode`) for the byte tokenizer (`packages/io/_spec/cif.md` §3). flat-192-cif: 124 MB string plus 124 MB
   of bytes retained, about 15 ms of encode, the decode, and the 512 MB string limit.
 - The asset manager (`core/src/util/assets.ts`) holds a URL's bytes as a `File` (`new File([data], 'raw-data')`, a
   copy), and every `resolve` reads it again into a new `ArrayBuffer` (`readFromFile`, another copy). A file asset holds
@@ -140,6 +140,4 @@ adjusts. The run-time and TypeScript breaks are recorded in `.v6/plans/breaking-
 - `Download` / `ReadFile` / `DownloadBlob` `asResponse`, `Data.Response`, `readText` / `readBytes`, `ReadResponse`,
   `sniffsResponse`, `DataFormatProvider.applicable`, the one-form body:
   `packages/plugin/core` has no `_spec`; open: start `packages/plugin/core/_spec/data.md`.
-- `ParseCif` reading shared bytes: `.v6/designs/cif-parsing.md` (`CIF.parse` and the plugin), replacing its "the plugin
-  keeps reading `.cif` as strings" and the byte-backed `StringLike` pointer; the same pointer in
-  `13-lammps-large-text.md`.
+- `ParseCif` reading shared bytes: `packages/io/_spec/cif.md` §2 and §7.

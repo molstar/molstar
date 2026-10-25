@@ -7,6 +7,7 @@
 
 import { Vec3, type Mat4, Mat3 } from '@molstar/core/math/linear-algebra';
 import { ChunkedArray } from '@molstar/core/data/util';
+import { anchorMap } from '@molstar/core/util/map-anchor';
 import { Mesh } from './mesh.js';
 import type { Primitive } from '../../primitive/primitive.js';
 import type { Cage } from '../../primitive/cage.js';
@@ -128,6 +129,9 @@ export namespace MeshBuilder {
       mesh,
     };
   }
+
+  // keeps the state's map, which the optimized code of `addTube`, `addSheet` & co. embeds (`anchorMap`)
+  anchorMap(createState(1, 1));
 
   export function addTriangle(state: State, a: Vec3, b: Vec3, c: Vec3) {
     const { vertices, normals, indices, groups, currentGroup } = state;

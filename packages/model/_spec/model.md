@@ -73,15 +73,16 @@ whose atom, residue and chain tables equal the previous one's (`createModels`).
   a cell list that wraps at the box's faces, never to water, ions or metals; `planFromHierarchyAndDistances`). The whole
   frame is `Model.withAtomicConformation`: new coordinates, the ranges found again on whole coordinates (shared by the
   topology's whole frames), the reader's dynamic data without `__Center__`; one model per recent source frame and mode
-  (an LRU of 16 frames: caching every frame would hold a trajectory twice). `apply(frame, { kind: 'box', center? })`
-  then moves each whole molecule by a lattice vector so its center is in the box (at the box's origin); with `center`
-  atoms, their molecules are kept together, everything is translated so their mean is at the box's center, and every
-  other molecule is moved into the box around them. `applyNoJump(trajectory, index)` keeps each molecule's center from
-  moving a box length between frames: shifts in box vectors walked from the last frame asked or a checkpoint every 64
-  frames (sequential by nature). A frame whose file gives unwrapped coordinates beside the wrapped ones
-  (`Frame.unwrapped`: LAMMPS image flags) has `Model.UnwrappedConformation` (made when first asked): whole moves each
-  molecule's unwrapped coordinates so its root is where the frame has it, and no jump is frame 0's shifts on them, no
-  walk; the frame itself stays as read. `Unit.remapModel` drops polymer and gap elements when the ranges differ.
+  (an LRU of 16 frames per topology, held weakly by its hierarchy: caching every frame would hold a trajectory twice,
+  and a module-level LRU would hold a dropped one). `apply(frame, { kind: 'box', center? })` then moves each whole
+  molecule by a lattice vector so its center is in the box (at the box's origin); with `center` atoms, their molecules
+  are kept together, everything is translated so their mean is at the box's center, and every other molecule is moved
+  into the box around them. `applyNoJump(trajectory, index)` keeps each molecule's center from moving a box length
+  between frames: shifts in box vectors walked from the last frame asked or a checkpoint every 64 frames (sequential by
+  nature). A frame whose file gives unwrapped coordinates beside the wrapped ones (`Frame.unwrapped`: LAMMPS image
+  flags) has `Model.UnwrappedConformation` (made when first asked): whole moves each molecule's unwrapped coordinates so
+  its root is where the frame has it, and no jump is frame 0's shifts on them, no walk; the frame itself stays as read.
+  `Unit.remapModel` drops polymer and gap elements when the ranges differ.
 
 ## 5. Other models
 

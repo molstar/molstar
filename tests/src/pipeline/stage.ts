@@ -23,6 +23,8 @@ export type StageResult = {
   /** what one stage is divided by in the per-item column (structures, hovers, ...) */
   count?: number;
   info?: string;
+  /** the stage threw: its time and memory columns measure the failure, not the work (perf-audit-3 12/B4) */
+  error?: string;
 };
 
 const v8gc = (globalThis as any).gc as (options?: object) => void;
@@ -69,6 +71,7 @@ export function createStageRunner(options: { only: string[]; skip: string[]; pro
   const { only, skip, profileDir, alloc } = options;
   let session: Session | undefined;
   const profiles: Record<string, any> = {};
+  let failures = 0;
   const enabled = (name: string) =>
     !skip.some((p) => matches(name, p)) && (!only.length || only.some((p) => matches(name, p)));
 
@@ -92,11 +95,13 @@ export function createStageRunner(options: { only: string[]; skip: string[]; pro
       });
     } else if (session) await session.post('Profiler.start');
     const t0 = performance.now();
-    let info: string | void;
+    let info: string | void = undefined;
+    let error: string | undefined;
     try {
       info = await fn();
     } catch (e) {
-      info = `ERROR: ${(e as Error).message}`;
+      error = (e as Error)?.message ?? String(e);
+      failures++;
       console.error(e);
     }
     const t1 = performance.now();
@@ -119,9 +124,14 @@ export function createStageRunner(options: { only: string[]; skip: string[]; pro
       gcMs: stageGcMs,
       count: opts.count,
       info: info || undefined,
+      error,
     };
     results[name] = r;
     if (!session) {
+      if (r.error) {
+        console.error(`${name.padEnd(36)} FAILED: ${r.error}`);
+        return;
+      }
       const per = r.count ? `${(r.ms / r.count).toFixed(2).padStart(8)} ms/${r.count}` : ''.padStart(14);
       console.error(
         `${name.padEnd(36)} ${r.ms.toFixed(1).padStart(9)} ms ${per} ${r.allocMB.toFixed(0).padStart(6)} MB alloc ${(r.retainedHeapMB + r.retainedAbMB).toFixed(0).padStart(6)} MB ret ${r.rssMB.toFixed(0).padStart(6)} MB rss ${r.gcMs.toFixed(0).padStart(6)} ms gc  ${r.info ?? ''}`,
@@ -151,7 +161,10 @@ export function createStageRunner(options: { only: string[]; skip: string[]; pro
     console.log('profiles written to', profileDir);
   }
 
-  return { stage, enabled, startProfiling, writeProfiles };
+  /** stages that threw so far; a run with any exits non-zero (`exitOnFailures`) */
+  const failureCount = () => failures;
+
+  return { stage, enabled, startProfiling, writeProfiles, failureCount };
 }
 
 const median = (xs: number[]) => {
@@ -159,9 +172,20 @@ const median = (xs: number[]) => {
   return a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2;
 };
 
-/** median of runs per stage, the JSON row format of bench.ts */
+/**
+ * Median of runs per stage, the JSON row format of bench.ts. A stage that failed in any run has no numbers (null), so
+ * that a comparison does not read the failure as a speedup, and its `error`.
+ */
 export function summarize(all: Record<string, StageResult[]>) {
-  return Object.entries(all).map(([k, v]) => ({
+  return Object.entries(all).map(([k, v]) => {
+    const error = v.find((x) => x.error)?.error;
+    if (error) return { stage: k, error, coldMs: null, medMs: null, allocMB: null, info: v[0].info ?? '' };
+    return summarizeRow(k, v);
+  });
+}
+
+function summarizeRow(k: string, v: StageResult[]) {
+  return {
     stage: k,
     coldMs: +v[0].ms.toFixed(1),
     medMs: +median(v.map((x) => x.ms)).toFixed(1),
@@ -172,5 +196,12 @@ export function summarize(all: Record<string, StageResult[]>) {
     rssMB: +Math.max(...v.map((x) => x.rssMB)).toFixed(0),
     gcMs: +median(v.map((x) => x.gcMs)).toFixed(0),
     info: v[0].info ?? '',
-  }));
+  };
+}
+
+/** Exits non-zero after a run in which a stage threw: the table is still written, but the run is not a result */
+export function exitOnFailures(failures: number) {
+  if (failures === 0) return;
+  console.error(`${failures} stage${failures === 1 ? '' : 's'} failed`);
+  process.exitCode = 1;
 }

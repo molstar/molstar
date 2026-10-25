@@ -23,7 +23,7 @@
  *
  * The tokenizer reads bytes (a `Uint8Array` of UTF-8, or a string encoded to one up front): the delimiters are ASCII, so
  * scanning bytes is safe, and values decode as UTF-8 when read (`field.ts`). About 2x faster than `charCodeAt` over a
- * string, and the tokens are 5 bytes a value (see `.v6/designs/cif-parsing.md`).
+ * string, and the tokens are 5 bytes a value (`io/_spec/cif.md` §3).
  */
 
 import * as Data from '../data-model.js';
