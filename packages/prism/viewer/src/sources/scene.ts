@@ -1838,15 +1838,32 @@ export function createSceneSource(
       if (!same) sync();
     }),
   );
-  // Shapes are in no hierarchy: a shape's or its representation's object made, recreated or removed rebuilds the rows
-  // (once a burst: `sync` runs in the change log's batch).
-  const isShapeObj = (obj: StateObject | undefined) =>
-    PluginStateObject.Shape.Provider.is(obj) || PluginStateObject.Shape.Representation3D.is(obj);
-  scope.add(plugin.state.data.events.object.created.subscribe((e) => isShapeObj(e.obj) && sync()));
+  // Shapes are in no hierarchy: a shape provider's object made, or one of the shapes' (or their representations')
+  // made, recreated or removed, rebuilds the rows; not a structure's own shapes (a unit cell). Never while a state
+  // transaction runs (a structure removed is still in the hierarchy then, its cell gone): once it ends, once a burst.
+  let shapesStale = false;
+  const syncShapes = () => {
+    if (plugin.state.data.behaviors.isUpdating.value) {
+      shapesStale = true;
+      return;
+    }
+    shapesStale = false;
+    sync();
+  };
+  const isShapeOfItsOwn = (ref: string, obj: StateObject | undefined) => {
+    if (PluginStateObject.Shape.Provider.is(obj)) return true;
+    if (!PluginStateObject.Shape.Representation3D.is(obj)) return false;
+    const parent = plugin.state.data.tree.transforms.get(ref)?.parent;
+    return parent !== undefined && PluginStateObject.Shape.Provider.is(plugin.state.data.cells.get(parent)?.obj);
+  };
+  scope.add(plugin.state.data.events.object.created.subscribe((e) => isShapeOfItsOwn(e.ref, e.obj) && syncShapes()));
+  scope.add(plugin.state.data.events.object.removed.subscribe((e) => shapeRefs.has(e.ref) && syncShapes()));
+  scope.add(plugin.state.data.events.object.updated.subscribe((e) => shapeRefs.has(e.ref) && syncShapes()));
   scope.add(
-    plugin.state.data.events.object.removed.subscribe((e) => (shapeRefs.has(e.ref) || isShapeObj(e.obj)) && sync()),
+    plugin.state.data.behaviors.isUpdating.subscribe((updating) => {
+      if (!updating && shapesStale) syncShapes();
+    }),
   );
-  scope.add(plugin.state.data.events.object.updated.subscribe((e) => shapeRefs.has(e.ref) && sync()));
   // Streaming's cells are not in the hierarchies: their coming and going rebuilds, a params change refreshes the row.
   const isStreaming = (t: { transformer: unknown } | undefined) =>
     t?.transformer === CreateVolumeStreamingInfo || t?.transformer === CreateVolumeStreamingBehavior;
