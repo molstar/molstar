@@ -242,7 +242,6 @@ function createBoundingSphereRenderObject(mesh: Mesh, color: Color, materialId: 
     {
       disposed: false,
       visible: true,
-      alphaFactor: 1,
       pickable: false,
       colorOnly: false,
       opaque: false,

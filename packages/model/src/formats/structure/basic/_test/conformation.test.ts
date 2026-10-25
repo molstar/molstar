@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -57,7 +58,7 @@ describe('BinaryCIF conformation', () => {
   });
 
   it('reads the models of a multi-model file as Float32, text and binary alike', async () => {
-    const text = fs.readFileSync(path.join(examples, '1crn.cif'), 'utf8');
+    const text = fs.readFileSync(path.join(examples, '1crn.cif'), 'utf8').replace(/\r\n/g, '\n');
     const block = text.slice(text.indexOf('_atom_site.group_PDB') - 'loop_\n'.length);
     const header = text.slice(0, text.indexOf('_atom_site.group_PDB') - 'loop_\n'.length);
     const lines = block.split('\n');
@@ -91,7 +92,7 @@ describe('BinaryCIF conformation', () => {
   });
 
   it('reads the sorted models of a multi-model file from their own rows', async () => {
-    const text = fs.readFileSync(path.join(examples, '1crn.cif'), 'utf8');
+    const text = fs.readFileSync(path.join(examples, '1crn.cif'), 'utf8').replace(/\r\n/g, '\n');
     const at = text.indexOf('_atom_site.group_PDB') - 'loop_\n'.length;
     const lines = text.slice(at).split('\n');
     const rows = lines.filter((l) => l.startsWith('ATOM') || l.startsWith('HETATM'));

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -22,13 +23,9 @@ describe('optionsConfig: graphics backends', () => {
     expect(backends({})).toEqual(['webgpu', 'webgl2', 'webgl']);
   });
 
-  it("leaves the plugin's default for webgl, one version for webgl2 and webgl1", () => {
-    expect(backends({ renderer: { graphicsBackend: 'webgl' } })).toBeUndefined();
+  it('lists WebGL2, then WebGL1 for webgl, one version for webgl2 and webgl1', () => {
+    expect(backends({ renderer: { graphicsBackend: 'webgl' } })).toEqual(['webgl2', 'webgl']);
     expect(backends({ renderer: { graphicsBackend: 'webgl2' } })).toEqual(['webgl2']);
     expect(backends({ renderer: { graphicsBackend: 'webgl1' } })).toEqual(['webgl']);
-  });
-
-  it("takes v5's prefer-webgl1 as webgl1", () => {
-    expect(backends({ renderer: { graphicsBackend: 'webgpu', preferWebgl1: 'yes' } })).toEqual(['webgl']);
   });
 });

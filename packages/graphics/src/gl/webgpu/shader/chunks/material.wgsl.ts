@@ -186,12 +186,12 @@ export const apply_marker_wgsl = /* wgsl */ `
         if (marker > 0.0) {
             let priority = uGlobal.uMarkerPriority;
             if ((priority == 1 && marker != 2.0) || (priority != 1 && marker == 1.0)) {
-                color = vec4<f32>(mix(color.rgb, uGlobal.uHighlightColor, uGlobal.uHighlightStrength), max(color.a, uGlobal.uHighlightStrength * 0.002));
+                color = vec4<f32>(mix(color.rgb, uGlobal.uHighlightColor, uGlobal.uHighlightStrength), color.a);
             } else {
-                color = vec4<f32>(mix(color.rgb, uGlobal.uSelectColor, uGlobal.uSelectStrength), max(color.a, uGlobal.uSelectStrength * 0.002));
+                color = vec4<f32>(mix(color.rgb, uGlobal.uSelectColor, uGlobal.uSelectStrength), color.a);
             }
         } else if (uGlobal.uMarkerAverage > 0.0) {
-            color = vec4<f32>(mix(color.rgb, uGlobal.uDimColor, uGlobal.uDimStrength), max(color.a, uGlobal.uDimStrength * 0.002));
+            color = vec4<f32>(mix(color.rgb, uGlobal.uDimColor, uGlobal.uDimStrength), color.a);
         }
     #endif
 `;

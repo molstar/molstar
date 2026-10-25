@@ -38,8 +38,7 @@ export const TextureMeshSchema = {
   /** vertices in pages of the vertex arena instead of the textures (WebGPU), see `computeChunkedIsosurface` */
   dIsoChunks: DefineSpec('boolean'),
   sIsoTable: StorageBufferSpec('u32', 'read', ['dIsoChunks']),
-  sIsoPositions: StorageBufferSpec('vec4<f32>', 'read', ['dIsoChunks']),
-  sIsoNormals: StorageBufferSpec('vec2<u32>', 'read', ['dIsoChunks']),
+  sIsoVertices: StorageBufferSpec('u32', 'read', ['dIsoChunks']),
   dVaryingGroup: DefineSpec('boolean'),
   dFlatShaded: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),

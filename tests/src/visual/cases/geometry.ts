@@ -38,7 +38,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { StructureElement, type Structure } from '@molstar/model/model/structure';
 import type { DrawIndirect } from '@molstar/graphics/gl/compute';
 import { FillKernel, FillSchema } from './compute.js';
-import { Vec3 } from '@molstar/core/math/linear-algebra';
+import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import {
   getTextureMeshSplatInstances,
@@ -539,6 +539,8 @@ export const GeometryCases: VisualTestCase[] = [
       view: ObliqueView,
       scene: async ({ graphics }) => [
         await structureRepr(graphics, GaussianSurfaceRepresentationProvider, await globuleStructure(6000), {
+          // the resolution as given ('auto' quality chooses one by the structure's size)
+          quality: 'custom',
           resolution,
           tryUseGpu: true,
         }),
@@ -570,6 +572,54 @@ export const GeometryCases: VisualTestCase[] = [
     tags: ['smoke'],
     view: ObliqueView,
     scene: async ({ graphics }) => [await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(32), {})],
+  },
+  {
+    id: 'geometry/direct-volume/blobs-full-resolution',
+    description:
+      'As blobs at the full resolution (`volumeResolutionScale` 1): the volume drawn by the scene passes, not upsampled.',
+    view: ObliqueView,
+    canvasProps: { volumeResolutionScale: 1 },
+    scene: async ({ graphics }) => [await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(32), {})],
+  },
+  {
+    id: 'geometry/direct-volume/opaque-edges',
+    description:
+      'Blobs with an opaque isosurface inside: the rays stop at its depth, and the half-resolution volume is upsampled ' +
+      'by the depth at its edges.',
+    view: ObliqueView,
+    scene: async ({ graphics }) => {
+      const volume = blobVolume(32);
+      return [
+        await volumeRepr(graphics, IsosurfaceRepresentationProvider, volume, {
+          isoValue: Volume.IsoValue.absolute(1.15),
+        }),
+        await volumeRepr(graphics, DirectVolumeRepresentationProvider, volume, {}),
+      ];
+    },
+  },
+  {
+    id: 'geometry/direct-volume/opaque-transfer',
+    description:
+      'A transfer function reaching 1: rays opaque after one sample, in the default WBOIT mode (which draws direct ' +
+      'volumes also where they are opaque: they have no opaque pass).',
+    contextProps: { transparency: 'wboit' },
+    requires: ['wboit'],
+    view: ObliqueView,
+    scene: async ({ graphics }) => [
+      await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(48), {
+        controlPoints: [Vec2.create(0.3, 0), Vec2.create(0.35, 1), Vec2.create(1, 1)],
+      }),
+    ],
+  },
+  {
+    id: 'geometry/direct-volume/bricks',
+    description: 'A narrow transfer function at high values: the rays skip most bricks (`createVolumeBrickRange`).',
+    view: ObliqueView,
+    scene: async ({ graphics }) => [
+      await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(48), {
+        controlPoints: [Vec2.create(0.7, 0), Vec2.create(0.75, 0.3), Vec2.create(0.85, 0.3), Vec2.create(0.9, 0)],
+      }),
+    ],
   },
   {
     id: 'geometry/image/slice',

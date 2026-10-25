@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
+ */
+
 export const assign_color_varying = `
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
     #if defined(dColorType_texture)
@@ -18,19 +26,19 @@ export const assign_color_varying = `
             bool dualColor = uColorIndexType == 1 || uColorIndexType == 2;
             vec4 color2;
             if (dualColor && aColorMode != 2.0) {
-                vColor.rgb = readFromTexture(tColor, colorIndex * 2.0, uColorTexDim).rgb;
-                color2.rgb = readFromTexture(tColor, colorIndex * 2.0 + 1.0, uColorTexDim).rgb;
+                vColor.rgb = read_tColor(colorIndex * 2.0).rgb;
+                color2.rgb = read_tColor(colorIndex * 2.0 + 1.0).rgb;
             } else {
-                vColor.rgb = readFromTexture(tColor, colorIndex, uColorTexDim).rgb;
+                vColor.rgb = read_tColor(colorIndex).rgb;
             }
         #else
-            vColor.rgb = readFromTexture(tColor, colorIndex, uColorTexDim).rgb;
+            vColor.rgb = read_tColor(colorIndex).rgb;
         #endif
     #elif defined(dColorType_grid)
         // the local position (volume) or the model position (volumeInstance), see \`ColorTypeIndex\`
         vec3 cgridSource = uColorIndexType == 1 ? vModelPosition / uModelScale : position;
         vec3 cgridPos = (uColorGridTransform.w * (cgridSource - uColorGridTransform.xyz)) / uColorGridDim;
-        vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
+        vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorGridTexDim).rgb;
     #endif
 
     #ifdef dUsePalette
@@ -39,12 +47,12 @@ export const assign_color_varying = `
 
     #ifdef dOverpaint
         #if defined(dOverpaintType_texture)
-            vOverpaint = readFromTexture(tOverpaint, granularityIndex(aInstance, group), uOverpaintTexDim);
+            vOverpaint = read_tOverpaint(granularityIndex(aInstance, group));
         #elif defined(dOverpaintType_vertexInstance)
-            vOverpaint = readFromTexture(tOverpaint, int(aInstance) * uVertexCount + vertexId, uOverpaintTexDim);
+            vOverpaint = read_tOverpaint(int(aInstance) * uVertexCount + vertexId);
         #elif defined(dOverpaintType_volumeInstance)
             vec3 ogridPos = (uOverpaintGridTransform.w * (vModelPosition / uModelScale - uOverpaintGridTransform.xyz)) / uOverpaintGridDim;
-            vOverpaint = texture3dFrom2dLinear(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintTexDim);
+            vOverpaint = texture3dFrom2dLinear(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintGridTexDim);
         #endif
 
         // pre-mix to avoid darkening due to empty overpaint
@@ -58,24 +66,24 @@ export const assign_color_varying = `
 
     #ifdef dEmissive
         #if defined(dEmissiveType_texture)
-            vEmissive = readFromTexture(tEmissive, granularityIndex(aInstance, group), uEmissiveTexDim).r;
+            vEmissive = read_tEmissive(granularityIndex(aInstance, group)).r;
         #elif defined(dEmissiveType_vertexInstance)
-            vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + vertexId, uEmissiveTexDim).r;
+            vEmissive = read_tEmissive(int(aInstance) * uVertexCount + vertexId).r;
         #elif defined(dEmissiveType_volumeInstance)
             vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition / uModelScale - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
-            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).r;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
         #endif
         vEmissive *= uEmissiveStrength;
     #endif
 
     #ifdef dSubstance
         #if defined(dSubstanceType_texture)
-            vSubstance = readFromTexture(tSubstance, granularityIndex(aInstance, group), uSubstanceTexDim);
+            vSubstance = read_tSubstance(granularityIndex(aInstance, group));
         #elif defined(dSubstanceType_vertexInstance)
-            vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + vertexId, uSubstanceTexDim);
+            vSubstance = read_tSubstance(int(aInstance) * uVertexCount + vertexId);
         #elif defined(dSubstanceType_volumeInstance)
             vec3 sgridPos = (uSubstanceGridTransform.w * (vModelPosition / uModelScale - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
-            vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceTexDim);
+            vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceGridTexDim);
         #endif
 
         // pre-mix to avoid artifacts due to empty substance
@@ -85,12 +93,12 @@ export const assign_color_varying = `
 #elif defined(dRenderVariant_emissive)
     #ifdef dEmissive
         #if defined(dEmissiveType_texture)
-            vEmissive = readFromTexture(tEmissive, granularityIndex(aInstance, group), uEmissiveTexDim).r;
+            vEmissive = read_tEmissive(granularityIndex(aInstance, group)).r;
         #elif defined(dEmissiveType_vertexInstance)
-            vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + vertexId, uEmissiveTexDim).r;
+            vEmissive = read_tEmissive(int(aInstance) * uVertexCount + vertexId).r;
         #elif defined(dEmissiveType_volumeInstance)
             vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition / uModelScale - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
-            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).r;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
         #endif
         vEmissive *= uEmissiveStrength;
     #endif
@@ -112,12 +120,12 @@ export const assign_color_varying = `
 
 #ifdef dTransparency
     #if defined(dTransparencyType_texture)
-        vTransparency = readFromTexture(tTransparency, granularityIndex(aInstance, group), uTransparencyTexDim).r;
+        vTransparency = read_tTransparency(granularityIndex(aInstance, group)).r;
     #elif defined(dTransparencyType_vertexInstance)
-        vTransparency = readFromTexture(tTransparency, int(aInstance) * uVertexCount + vertexId, uTransparencyTexDim).r;
+        vTransparency = read_tTransparency(int(aInstance) * uVertexCount + vertexId).r;
     #elif defined(dTransparencyType_volumeInstance)
         vec3 tgridPos = (uTransparencyGridTransform.w * (vModelPosition / uModelScale - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
-        vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyTexDim).r;
+        vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyGridTexDim).r;
     #endif
     vTransparency *= uTransparencyStrength;
 #endif

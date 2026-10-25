@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The link's whole-residue reaction (seqspec:libraries#the-mol-adapter): `linkViews`' hover and selection light a
@@ -38,7 +39,7 @@ import { registries } from './fixtures.js';
  * alternate locations, a hydrogen) and a glycan C (branched: NAG 1 with C1, O1 and a hydrogen, NAG 2 with C1, O1).
  */
 function mixed(): Uint8Array {
-  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8');
+  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   text = text.replace(
     "1 polymer 'Heavy chain fragment'\n",
     "1 polymer 'Heavy chain fragment'\n2 non-polymer 'A small ligand'\n3 branched 'A glycan'\n",

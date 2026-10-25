@@ -87,21 +87,21 @@ is binary).
 
 These are read when the viewer is created.
 
-| Parameter                                                                                                     | Sets                                                                                           |
-| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `pixel-scale`, `pick-scale`                                                                                   | The resolution of the canvas and of picking.                                                   |
-| `transparency`                                                                                                | `auto`, `blended`, `wboit` or `dpoit`.                                                         |
-| `resolution-mode`                                                                                             | `auto`, `scaled` or `native`.                                                                  |
-| `power-preference`                                                                                            | `default`, `high-performance` or `low-power`.                                                  |
-| `graphics-backend`                                                                                            | `auto` (default: WebGPU where available, else WebGL), `webgpu`, `webgl`, `webgl2` or `webgl1`. |
-| `prefer-webgl1` (same as `graphics-backend=webgl1`), `allow-major-performance-caveat`, `disable-antialiasing` | Flags.                                                                                         |
-| `illumination`                                                                                                | Flag: path-traced global illumination.                                                         |
-| `bg-color` (or `viewport-background-color`)                                                                   | The canvas background, a CSS color.                                                            |
-| `viewport-focus-behavior`                                                                                     | `default`, `secondary-zoom` or `disabled`.                                                     |
-| `pdb-provider`                                                                                                | `pdbe`, `rcsb` or `pdbj`.                                                                      |
-| `emdb-provider`                                                                                               | `pdbe` or `rcsb`.                                                                              |
-| `volume-streaming-server`, `volume-streaming-disabled`, `state-server`                                        | The servers the viewer talks to.                                                               |
-| `collapse-left-panel` (or `hide-controls`)                                                                    | Flag: start with no panel open.                                                                |
+| Parameter                                                              | Sets                                                                                           |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pixel-scale`, `pick-scale`                                            | The resolution of the canvas and of picking.                                                   |
+| `transparency`                                                         | `auto`, `blended`, `wboit` or `dpoit`.                                                         |
+| `resolution-mode`                                                      | `auto`, `scaled` or `native`.                                                                  |
+| `power-preference`                                                     | `default`, `high-performance` or `low-power`.                                                  |
+| `graphics-backend`                                                     | `auto` (default: WebGPU where available, else WebGL), `webgpu`, `webgl`, `webgl2` or `webgl1`. |
+| `allow-major-performance-caveat`, `disable-antialiasing`               | Flags.                                                                                         |
+| `illumination`                                                         | Flag: path-traced global illumination.                                                         |
+| `bg-color` (or `viewport-background-color`)                            | The canvas background, a CSS color.                                                            |
+| `viewport-focus-behavior`                                              | `default`, `secondary-zoom` or `disabled`.                                                     |
+| `pdb-provider`                                                         | `pdbe`, `rcsb` or `pdbj`.                                                                      |
+| `emdb-provider`                                                        | `pdbe` or `rcsb`.                                                                              |
+| `volume-streaming-server`, `volume-streaming-disabled`, `state-server` | The servers the viewer talks to.                                                               |
+| `collapse-left-panel` (or `hide-controls`)                             | Flag: start with no panel open.                                                                |
 
 A flag is true for an empty value, `1` or `true`.
 

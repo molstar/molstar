@@ -16,7 +16,7 @@ import {
 } from '@molstar/graphics/gl/renderable/schema';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { RenderState } from '@molstar/graphics/gl/render-state';
+import { BlendState, RenderState } from '@molstar/graphics/gl/render-state';
 import { ValueCell } from '@molstar/core/util';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { Renderer } from '@molstar/graphics/gl/renderer';
@@ -85,61 +85,60 @@ export class TracingPass {
   readonly shadedTextureOpaque: Texture;
 
   private readonly thicknessTarget: RenderTarget;
-  private readonly holdTarget: RenderTarget;
   readonly accumulateTarget: RenderTarget;
   readonly composeTarget: RenderTarget;
 
   private readonly traceRenderable: TraceRenderable;
-  private readonly accumulateRenderable: AccumulateRenderable;
 
   constructor(
     private readonly graphics: GraphicsContext,
     private readonly drawPass: DrawPass,
   ) {
     const {
-      capabilities: { halfFloatRenderTarget, mixedAttachmentFormats },
-      resources,
+      capabilities: { mixedAttachmentFormats },
     } = graphics;
+    const { targets } = drawPass;
 
     const { depthTextureOpaque } = drawPass;
     const width = depthTextureOpaque.getWidth();
     const height = depthTextureOpaque.getHeight();
 
     if (mixedAttachmentFormats) {
-      this.shadedTextureOpaque = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+      this.shadedTextureOpaque = targets.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
       this.shadedTextureOpaque.define(width, height);
 
-      this.normalTextureOpaque = halfFloatRenderTarget
-        ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-        : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+      // octahedral-encoded normals with the emissive strength, `packNormalToRGBA`
+      this.normalTextureOpaque = targets.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
       this.normalTextureOpaque.define(width, height);
 
-      this.colorTextureOpaque = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+      this.colorTextureOpaque = targets.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
       this.colorTextureOpaque.define(width, height);
     } else {
       // webgl1 requires consistent bit plane counts
 
-      this.shadedTextureOpaque = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+      this.shadedTextureOpaque = targets.texture('image-float32', 'rgba', 'float', 'nearest');
       this.shadedTextureOpaque.define(width, height);
 
-      this.normalTextureOpaque = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+      this.normalTextureOpaque = targets.texture('image-float32', 'rgba', 'float', 'nearest');
       this.normalTextureOpaque.define(width, height);
 
-      this.colorTextureOpaque = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+      this.colorTextureOpaque = targets.texture('image-float32', 'rgba', 'float', 'nearest');
       this.colorTextureOpaque.define(width, height);
     }
 
-    this.framebuffer = resources.framebuffer();
+    this.framebuffer = graphics.resources.framebuffer();
     this.framebuffer.setDrawBuffers(3);
 
     this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
     this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
     this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
 
-    this.thicknessTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
-    this.holdTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
-    this.accumulateTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
-    this.composeTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    // the farthest back faces, drawn with the transparency passes' depth-stencil buffer (depth cleared by the pass,
+    // stencil per solid interior cap, not read after): the trace reads the packed depth only
+    this.thicknessTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
+    drawPass.depthTargetTransparent.depthRenderbuffer!.attachFramebuffer(this.thicknessTarget.framebuffer);
+    this.accumulateTarget = targets.createRenderTarget(width, height, 'none', 'float32');
+    this.composeTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.traceRenderable = getTraceRenderable(
       graphics,
@@ -147,16 +146,13 @@ export class TracingPass {
       this.normalTextureOpaque,
       this.shadedTextureOpaque,
       this.thicknessTarget.texture,
-      this.accumulateTarget.texture,
       this.drawPass.depthTextureOpaque,
     );
-    this.accumulateRenderable = getAccumulateRenderable(graphics, this.holdTarget.texture);
   }
 
   getByteCount() {
     return (
       this.thicknessTarget.getByteCount() +
-      this.holdTarget.getByteCount() +
       this.accumulateTarget.getByteCount() +
       this.composeTarget.getByteCount() +
       this.colorTextureOpaque.getByteCount() +
@@ -195,7 +191,6 @@ export class TracingPass {
 
     if (width !== w || height !== h) {
       this.thicknessTarget.setSize(width, height);
-      this.holdTarget.setSize(width, height);
       this.accumulateTarget.setSize(width, height);
       this.composeTarget.setSize(width, height);
 
@@ -206,10 +201,6 @@ export class TracingPass {
       ValueCell.update(
         this.traceRenderable.values.uTexSize,
         Vec2.set(this.traceRenderable.values.uTexSize.ref.value, width, height),
-      );
-      ValueCell.update(
-        this.accumulateRenderable.values.uTexSize,
-        Vec2.set(this.accumulateRenderable.values.uTexSize.ref.value, width, height),
       );
     }
   }
@@ -355,8 +346,8 @@ export class TracingPass {
       renderer.props.ambientIntensity,
     );
 
-    // trace
-    b.begin(this.holdTarget, { label: 'trace' });
+    // trace, blended into the running average: the new frame weighs 1 / (iteration + 1), so the first replaces
+    b.begin(this.accumulateTarget, { label: 'trace' });
     let needsUpdateTrace = false;
     ValueCell.update(this.traceRenderable.values.uFrameNo, iteration);
     // the adapted quality (see `getAdjustedProps`) is loop bound uniforms, so adapting it compiles nothing (but on
@@ -422,14 +413,25 @@ export class TracingPass {
     ValueCell.updateIfChanged(this.traceRenderable.values.uShadowSoftness, props.shadowSoftness);
     ValueCell.updateIfChanged(this.traceRenderable.values.uShadowThickness, props.shadowThickness);
     if (needsUpdateTrace) this.traceRenderable.update();
-    b.quad(this.traceRenderable, RenderState.Default);
-
-    // accumulate
-    b.begin(this.accumulateTarget, { label: 'trace accumulate' });
-    b.quad(this.accumulateRenderable, RenderState.Default);
+    if (b.drawing) {
+      const weight = 1 / (iteration + 1);
+      this.graphics.setBlendConstant(weight, weight, weight, weight);
+    }
+    b.quad(this.traceRenderable, TraceRenderState);
     if (isTimingMode && b.drawing) this.graphics.timer.groupEnd('TracePass.render');
   }
 }
+
+/**
+ * The color blended with the weight of the frame (the blend constant), the alpha replaced: the shader writes the weight,
+ * which the denoiser reads
+ */
+const TraceRenderState: RenderState = {
+  blend: BlendState(
+    BlendState.Component('add', 'constant', 'one-minus-constant'),
+    BlendState.Component('add', 'one', 'zero'),
+  ),
+};
 
 //
 
@@ -439,7 +441,6 @@ export const TraceSchema = {
   tNormal: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tThickness: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-  tAccumulate: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
 
@@ -487,7 +488,6 @@ function getTraceRenderable(
   normalTexture: Texture,
   shadedTexture: Texture,
   thicknessTexture: Texture,
-  accumulateTexture: Texture,
   depthTexture: Texture,
 ): TraceRenderable {
   const values: Values<typeof TraceSchema> = {
@@ -496,7 +496,6 @@ function getTraceRenderable(
     tNormal: ValueCell.create(normalTexture),
     tShaded: ValueCell.create(shadedTexture),
     tThickness: ValueCell.create(thicknessTexture),
-    tAccumulate: ValueCell.create(accumulateTexture),
     tDepth: ValueCell.create(depthTexture),
     uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
@@ -537,31 +536,6 @@ function getTraceRenderable(
 
   const schema = { ...TraceSchema };
   const renderItem = ctx.createComputeRenderItem('triangles', TraceShaderCode, schema, values);
-
-  return createComputeRenderable(renderItem, values);
-}
-
-//
-
-export const AccumulateSchema = {
-  ...QuadSchema,
-  tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-  uTexSize: UniformSpec('v2'),
-  uWeight: UniformSpec('f'),
-};
-export const AccumulateShaderCode = ShaderCode('trace-accumulate');
-type AccumulateRenderable = ComputeRenderable<Values<typeof AccumulateSchema>>;
-
-function getAccumulateRenderable(ctx: GraphicsContext, colorTexture: Texture): AccumulateRenderable {
-  const values: Values<typeof AccumulateSchema> = {
-    ...QuadValues,
-    tColor: ValueCell.create(colorTexture),
-    uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
-    uWeight: ValueCell.create(1.0),
-  };
-
-  const schema = { ...AccumulateSchema };
-  const renderItem = ctx.createComputeRenderItem('triangles', AccumulateShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

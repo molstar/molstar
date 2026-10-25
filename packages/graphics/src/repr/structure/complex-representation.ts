@@ -6,6 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { shallowMerge2 } from '@molstar/core/util/object';
 import {
   type ComplexVisual,
   type StructureRepresentation,
@@ -30,18 +31,14 @@ import { Substance } from '@molstar/graphics/theme/substance';
 import type { LocationCallback } from '../util.js';
 import { Emissive } from '@molstar/graphics/theme/emissive';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
-import { getFactorySignatures, type SignatureContext } from '../signatures.js';
+import type { SignatureContext } from '../signatures.js';
+import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
 
 export function ComplexRepresentation<P extends StructureParams>(
   label: string,
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<Structure, P>,
-  visualCtor: (
-    materialId: number,
-    structure: Structure,
-    props: PD.Values<P>,
-    graphics?: GraphicsContext,
-  ) => ComplexVisual<P>,
+  visualCtor: VisualFactory<Structure, P>,
 ): StructureRepresentation<P> {
   let version = 0;
   let { graphics } = ctx;
@@ -65,16 +62,17 @@ export function ComplexRepresentation<P extends StructureParams>(
       _structure = structure;
       if (!_props) _props = PD.getDefaultValues(_params);
     }
-    _props = Object.assign({}, _props, props);
+    // the same object while no prop changes: visuals skip what depends on the props alone
+    _props = _props ? shallowMerge2(_props, props) : Object.assign({}, _props, props);
 
     const task = Task.create('Creating or updating ComplexRepresentation', async (runtime) => {
       let newVisual = false;
       if (!visual) {
-        visual = visualCtor(materialId, _structure, _props, graphics);
+        visual = createVisual(visualCtor, materialId, _structure, _props, graphics);
         newVisual = true;
       } else if (visual.mustRecreate?.(_structure, _props, graphics)) {
         visual.destroy();
-        visual = visualCtor(materialId, _structure, _props, graphics);
+        visual = createVisual(visualCtor, materialId, _structure, _props, graphics);
         newVisual = true;
       }
       const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, structure);
@@ -131,7 +129,6 @@ export function ComplexRepresentation<P extends StructureParams>(
       // hide visual when _unitTransforms is set and not the identity
       visual.setVisibility(state.visible && (_state.unitTransforms === null || _state.unitTransforms.isIdentity));
     }
-    if (state.alphaFactor !== undefined && visual) visual.setAlphaFactor(state.alphaFactor);
     if (state.pickable !== undefined && visual) visual.setPickable(state.pickable);
     if (state.overpaint !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
@@ -213,14 +210,7 @@ export function ComplexRepresentation<P extends StructureParams>(
     setGraphics: (value: GraphicsContext) => {
       graphics = value;
     },
-    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
-      getFactorySignatures(
-        visualCtor,
-        // without a structure: factories that read it name their visuals
-        () => visualCtor(materialId, undefined as unknown as Structure, props, ctx.graphics),
-        props,
-        ctx,
-      ),
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => getFactorySignatures(visualCtor, props, ctx),
     destroy,
   };
 }

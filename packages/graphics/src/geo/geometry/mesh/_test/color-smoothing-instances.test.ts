@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -22,7 +23,7 @@ import { StructureSymmetry } from '@molstar/model/model/structure/structure/symm
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
-import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { createDataArray, type DataArray, type TextureImage } from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import type { Representation } from '@molstar/graphics/repr/representation';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
@@ -130,7 +131,7 @@ function rng(seed: number) {
 function layerImage(geometry: Geometry, itemSize: 1 | 4, reach: (instance: number, group: number) => boolean) {
   const { groupCount } = geometry;
   const instanceCount = geometry.colorType === 'group' ? 1 : geometry.instanceCount;
-  const image = createTextureImage(groupCount * instanceCount, itemSize, Uint8Array);
+  const image = createDataArray(groupCount * instanceCount, itemSize, Uint8Array);
   const rnd = rng(31);
   for (let i = 0; i < instanceCount; ++i) {
     for (let g = 0; g < groupCount; ++g) {
@@ -144,7 +145,7 @@ function layerImage(geometry: Geometry, itemSize: 1 | 4, reach: (instance: numbe
   return image;
 }
 
-function createValues(geometry: Geometry, layer: Layer, image: TextureImage<Uint8Array>) {
+function createValues(geometry: Geometry, layer: Layer, image: DataArray<Uint8Array>) {
   const { positions, groups, vertexCount, transforms, instanceCount } = geometry;
   const mesh = Mesh.create(
     positions.slice(),
@@ -209,8 +210,8 @@ function layerValues(values: MeshValues, layer: Layer) {
   const v = values as unknown as Record<string, ValueCell<any>>;
   return {
     type: v[`${layer}Type`].ref.value as string,
-    texture: v[`t${prefix}`].ref.value as TextureImage<Uint8Array>,
-    texDim: v[`u${prefix}TexDim`].ref.value as number[],
+    texture: v[`t${prefix}`].ref.value as DataArray<Uint8Array>,
+    texDim: v[`u${prefix}GridTexDim`].ref.value as number[],
     gridDim: v[`u${prefix}GridDim`].ref.value as number[],
     gridTransform: v[`u${prefix}GridTransform`].ref.value as number[],
   };
@@ -251,7 +252,7 @@ function perInstance(array: Uint8Array, geometry: Geometry, itemSize: number) {
 }
 
 /** the CPU output (per vertex, per instance) and the GPU path's grid */
-function smoothed(geometry: Geometry, layer: Layer, image: TextureImage<Uint8Array>, options: ColorSmoothingOptions) {
+function smoothed(geometry: Geometry, layer: Layer, image: DataArray<Uint8Array>, options: ColorSmoothingOptions) {
   const itemSize = ItemSize[layer];
   const cpuValues = createValues(geometry, layer, { ...image, array: image.array.slice() });
   apply[layer](cpuValues, options);

@@ -71,7 +71,8 @@ import { ColorSmoothingParams, getColorSmoothingProps } from '@molstar/graphics/
 import { Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { ValueCell } from '@molstar/core/util/value-cell';
-import { getSurfaceSignatureDefines, withSignatureVisuals } from '@molstar/graphics/repr/signatures';
+import { getSurfaceSignatureDefines } from '@molstar/graphics/repr/signatures';
+import { selectVisual } from '../../visual-factory.js';
 
 const SharedParams = {
   ...GaussianDensityParams,
@@ -97,12 +98,24 @@ export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurface
 /** Of the WebGL path */
 const GpuCapabilities = ['floatRenderTarget', 'floatTextureLinear', 'multipleRenderTargets'] as const;
 
+/**
+ * What a density is computed over: the unit's box and atoms for the surface of a symmetry group (each unit has its own
+ * density), the structure's for the surface of the whole structure
+ */
+type DensityExtent = { readonly box: Box3D; readonly elementCount: number };
+
+function getDensityExtent(target: Structure | Unit): DensityExtent {
+  return 'units' in target
+    ? { box: target.boundary.box, elementCount: target.elementCount }
+    : { box: target.boundary.box, elementCount: target.elements.length };
+}
+
 /** Why the 2d density of the WebGL path doesn't fit, if it doesn't */
-function unsuitableForGpu(structure: Structure, props: PD.Values<SharedParams>, graphics: GraphicsContext) {
+function unsuitableForGpu(extent: DensityExtent, props: PD.Values<SharedParams>, graphics: GraphicsContext) {
   // the GPU is much more memory contraint, especially true for integrated GPUs,
   // being conservative here still allows for small and medium sized assemblies
   const d = graphics.resources.limits.maxTextureSize / 3;
-  const { areaCells, maxAreaCells } = getVolumeSliceInfo(structure.boundary.box, props.resolution, d * d);
+  const { areaCells, maxAreaCells } = getVolumeSliceInfo(extent.box, props.resolution, d * d);
   if (areaCells >= maxAreaCells) return `the largest slice has ${areaCells} cells, at most ${maxAreaCells} fit`;
 }
 
@@ -112,26 +125,27 @@ function unsuitableForGpu(structure: Structure, props: PD.Values<SharedParams>, 
  * medium structures)
  */
 function unsuitableForCompute(
-  structure: Structure,
+  extent: DensityExtent,
   props: PD.Values<SharedParams>,
   graphics: GraphicsContext & { compute: ComputeContext },
 ) {
-  const { dim, cells } = getComputeDensityGrid(structure, props);
+  const { dim, cells } = getComputeDensityGrid(extent.box, props);
   const max3d = graphics.resources.limits.max3dTextureSize;
   const n = Math.max(dim[0], dim[1], dim[2]);
   if (n > max3d) return `the density grid has ${n} cells along an axis, 3d textures at most ${max3d}`;
   const maxCells = getComputeDensityMaxCells(graphics.compute);
   if (cells > maxCells) return `the density grid has ${cells} cells, at most ${maxCells}`;
-  if (cells < SmallSurfaceCells && structure.elementCount < SmallSurfaceAtoms) {
-    return `small (${cells} density cells, ${structure.elementCount} atoms): faster on the CPU`;
+  // without the counts: logged once, not once per small unit (`logGpuFallback`)
+  if (cells < SmallSurfaceCells && extent.elementCount < SmallSurfaceAtoms) {
+    return `small (under ${SmallSurfaceCells} density cells and ${SmallSurfaceAtoms} atoms): faster on the CPU`;
   }
 }
 
-/** The cells of the compute path's 3d density of `structure` */
-function getComputeDensityGrid(structure: Structure, props: PD.Values<SharedParams>) {
+/** The cells of the compute path's 3d density of `box` */
+function getComputeDensityGrid(box: Box3D, props: PD.Values<SharedParams>) {
   // the padding of the density: twice the largest radius (3 Å bounds it) and four cells
   const pad = 2 * 3 + 4 * props.resolution;
-  const size = Box3D.size(Vec3(), structure.boundary.box);
+  const size = Box3D.size(Vec3(), box);
   const dim = [0, 1, 2].map((i) => Math.ceil((size[i] + 2 * pad) / props.resolution));
   return { dim, cells: dim[0] * dim[1] * dim[2] };
 }
@@ -184,25 +198,28 @@ function getPropsGpuFallbackReason(props: PD.Values<SharedParams>, graphics?: Gr
   if (missing.length) return `missing ${missing.join(', ')}`;
 }
 
-/** Why the Gaussian surface of `structure` is computed on the CPU, if it is (the props, the context, the size) */
+/**
+ * Why the Gaussian surface of `target` is computed on the CPU, if it is (the props, the context, the size): a unit's
+ * as a surface per symmetry group, a structure's as the surface of the whole structure
+ */
 export function getGaussianSurfaceGpuFallbackReason(
-  structure: Structure,
+  target: Structure | Unit,
   props: PD.Values<SharedParams>,
   graphics?: GraphicsContext,
 ) {
-  return getGpuFallbackReason(structure, props, graphics);
+  return getGpuFallbackReason(getDensityExtent(target), props, graphics);
 }
 
-function getGpuFallbackReason(structure: Structure, props: PD.Values<SharedParams>, graphics?: GraphicsContext) {
+function getGpuFallbackReason(extent: DensityExtent, props: PD.Values<SharedParams>, graphics?: GraphicsContext) {
   const reason = getPropsGpuFallbackReason(props, graphics);
   if (reason || !graphics) return reason;
-  if (computeSupport(graphics)) return unsuitableForCompute(structure, props, graphics);
-  return unsuitableForGpu(structure, props, graphics);
+  if (computeSupport(graphics)) return unsuitableForCompute(extent, props, graphics);
+  return unsuitableForGpu(extent, props, graphics);
 }
 
 /** GPU surfaces: the WebGL histogram pyramid on the 2d density, or compute kernels on the 3d density (WebGPU) */
-function useGpu(structure: Structure, props: PD.Values<SharedParams>, graphics?: GraphicsContext): boolean {
-  const reason = getGpuFallbackReason(structure, props, graphics);
+function useGpu(target: Structure | Unit, props: PD.Values<SharedParams>, graphics?: GraphicsContext): boolean {
+  const reason = getGpuFallbackReason(getDensityExtent(target), props, graphics);
   if (reason && props.tryUseGpu) logGpuFallback('Gaussian surface', reason);
   return !reason;
 }
@@ -233,8 +250,7 @@ function estimateVertexCount(atomCount: number, resolution: number) {
 
 /**
  * The isosurface of a 3d gaussian density with compute kernels, the group packed in the density's rgb; drawn
- * indirectly. `computeDensity` is called again when the vertex count exceeded the estimate (the density texture is
- * shared)
+ * indirectly. `computeDensity` is called by each extraction (the density texture is shared)
  */
 /** The visual's props: the density, and the color smoothing applied to the surface once created */
 type GaussianSurfaceProps = GaussianDensityProps & Partial<Pick<PD.Values<GaussianSurfaceMeshParams>, 'smoothColors'>>;
@@ -259,65 +275,49 @@ async function createComputeGaussianSurface(
     kernels.push(...getColorSmoothingKernels('group'), ...getColorSmoothingKernels('groupInstance'));
   }
   await graphics.compute.prepareKernels(kernels);
-  let density = computeDensity();
+  // computed by each extraction, right before its commands: the texture is shared, and the pages of the surface are
+  // reserved (awaited) before
+  const last: { density?: GaussianDensityTextureData } = {};
   const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
-  const boundingSphere = Sphere3D.expand(Sphere3D(), sphere, density.maxRadius + extraRadius);
-  let extractions = 0;
   const surface = await computeTextureMeshIsosurface(
     graphics,
     (target) => {
-      if (extractions++ > 0) density = computeDensity();
-      const isoLevel = Math.exp(-props.smoothness) / density.radiusFactor;
-      const input = { ...DensityInput, texture: density.texture };
-      return extractIsosurface(graphics, input, density.gridDim, isoLevel, density.transform, false, target);
+      const d = computeDensity();
+      last.density = d;
+      const isoLevel = Math.exp(-props.smoothness) / d.radiusFactor;
+      const input = { ...DensityInput, texture: d.texture };
+      return extractIsosurface(graphics, input, d.gridDim, isoLevel, d.transform, false, target);
     },
     groupCount,
-    boundingSphere,
+    () => Sphere3D.expand(Sphere3D(), sphere, (last.density?.maxRadius ?? 0) + extraRadius),
     textureMesh,
-    estimateVertexCount(groupCount, density.resolution),
+    // by the resolution asked for (the density's may be coarser for large grids: fewer vertices)
+    estimateVertexCount(groupCount, props.resolution),
   );
+  const { density } = last;
+  if (!density) throw new Error('expected the density of the surface');
   (surface.meta as GaussianSurfaceMeta).resolution = density.resolution;
   // a re-extraction computes the same grid
   surface.meta.vertexBox = TextureMesh.getGridVertexBox(density.gridDim, density.transform);
   return surface;
 }
 
-export function GaussianSurfaceVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<GaussianSurfaceMeshParams>,
-  graphics?: GraphicsContext,
-) {
-  if (useGpu(structure, props, graphics)) {
-    return GaussianSurfaceTextureMeshVisual(materialId);
-  }
-  return GaussianSurfaceMeshVisual(materialId);
+/** The surfaces the props and context allow, before the size decides (`useGpu`) */
+function getSurfaceCandidates(props: PD.Values<SharedParams>, graphics?: GraphicsContext) {
+  return getPropsGpuFallbackReason(props, graphics) ? (['cpu'] as const) : (['gpu', 'cpu'] as const);
 }
 
-export function StructureGaussianSurfaceVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<StructureGaussianSurfaceMeshParams>,
-  graphics?: GraphicsContext,
-) {
-  if (useGpu(structure, props, graphics)) {
-    return StructureGaussianSurfaceTextureMeshVisual(materialId);
-  }
-  return StructureGaussianSurfaceMeshVisual(materialId);
-}
-
-// the structure decides between GPU and CPU surfaces too
-withSignatureVisuals(GaussianSurfaceVisual, (props: PD.Values<GaussianSurfaceMeshParams>, graphics) =>
-  getPropsGpuFallbackReason(props, graphics)
-    ? [GaussianSurfaceMeshVisual(-1)]
-    : [GaussianSurfaceTextureMeshVisual(-1), GaussianSurfaceMeshVisual(-1)],
+export const GaussianSurfaceVisual = selectVisual(
+  { gpu: GaussianSurfaceTextureMeshVisual, cpu: GaussianSurfaceMeshVisual },
+  // by the unit the geometry is created of (`createGaussianSurfaceMesh`), each unit having its own density
+  ({ group }: StructureGroup, props, graphics) => (useGpu(group.units[0], props, graphics) ? 'gpu' : 'cpu'),
+  getSurfaceCandidates,
 );
-withSignatureVisuals(
-  StructureGaussianSurfaceVisual,
-  (props: PD.Values<StructureGaussianSurfaceMeshParams>, graphics) =>
-    getPropsGpuFallbackReason(props, graphics)
-      ? [StructureGaussianSurfaceMeshVisual(-1)]
-      : [StructureGaussianSurfaceTextureMeshVisual(-1), StructureGaussianSurfaceMeshVisual(-1)],
+
+export const StructureGaussianSurfaceVisual = selectVisual(
+  { gpu: StructureGaussianSurfaceTextureMeshVisual, cpu: StructureGaussianSurfaceMeshVisual },
+  (structure: Structure, props, graphics) => (useGpu(structure, props, graphics) ? 'gpu' : 'cpu'),
+  getSurfaceCandidates,
 );
 
 type GaussianSurfaceMeta = {
@@ -404,13 +404,6 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
           if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride)
             state.updateColor = true;
         }
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<GaussianSurfaceMeshParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return useGpu(structureGroup.structure, props, graphics);
       },
       processValues: (
         values: MeshValues,
@@ -513,13 +506,6 @@ export function StructureGaussianSurfaceMeshVisual(
           if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride)
             state.updateColor = true;
         }
-      },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<StructureGaussianSurfaceMeshParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return useGpu(structure, props, graphics);
       },
       processValues: (
         values: MeshValues,
@@ -683,13 +669,6 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
           if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride)
             state.updateColor = true;
         }
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<GaussianSurfaceMeshParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !useGpu(structureGroup.structure, props, graphics);
       },
       processValues: (
         values: TextureMeshValues,
@@ -855,13 +834,6 @@ export function StructureGaussianSurfaceTextureMeshVisual(
           if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride)
             state.updateColor = true;
         }
-      },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<StructureGaussianSurfaceMeshParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !useGpu(structure, props, graphics);
       },
       processValues: (
         values: TextureMeshValues,

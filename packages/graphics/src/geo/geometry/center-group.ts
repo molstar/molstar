@@ -5,27 +5,25 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { hashFnv32a } from '@molstar/core/data/util';
 import {
-  type TextureImage,
+  type DataArray,
   calculateInvariantBoundingSphere,
-  createTextureImage,
+  createDataArray,
 } from '@molstar/graphics/gl/renderable/util';
 import { createGroupMapping, type GroupMapping } from '../util.js';
 
 /**
  * Center (xyz) and group per item, shared by the geometries drawn as one quad of 6 vertices per item
  * (spheres, points): the buffers, the derived bounding sphere and group mapping, and the
- * `tPositionGroup` texture the shaders read the item data from (vertex pulling)
+ * `tPositionGroup` data the shaders read the item data from (vertex pulling)
  */
 export interface CenterGroupData {
   readonly centerBuffer: ValueCell<Float32Array>;
   readonly groupBuffer: ValueCell<Float32Array>;
   /** center xyz and group per item, ordered by level of detail when strides are given */
-  readonly positionGroup: ValueCell<TextureImage<Float32Array>>;
-  readonly texDim: ValueCell<Vec2>;
+  readonly positionGroup: ValueCell<DataArray<Float32Array>>;
 
   getBoundingSphere(): Sphere3D;
   getGroupMapping(): GroupMapping;
@@ -45,8 +43,7 @@ export function createCenterGroupData(
 ): CenterGroupData {
   const centerBuffer = ValueCell.create(centers);
   const groupBuffer = ValueCell.create(groups);
-  const positionGroup = ValueCell.create(createTextureImage(1, 4, Float32Array));
-  const texDim = ValueCell.create(Vec2.create(0, 0));
+  const positionGroup = ValueCell.create(createDataArray(1, 4, Float32Array));
 
   const boundingSphere = Sphere3D();
   let groupMapping: GroupMapping;
@@ -59,7 +56,6 @@ export function createCenterGroupData(
     centerBuffer,
     groupBuffer,
     positionGroup,
-    texDim,
     getBoundingSphere() {
       const newHash = hashCode();
       if (newHash !== currentHash) {
@@ -85,10 +81,9 @@ export function createCenterGroupData(
     },
     updatePositionGroup(strides: number[] = []) {
       const count = getCount();
-      const pgt = createTextureImage(count, 4, Float32Array, positionGroup.ref.value.array);
+      const pgt = createDataArray(count, 4, Float32Array, positionGroup.ref.value.array);
       const offsets = setPositionGroup(pgt, centerBuffer.ref.value, groupBuffer.ref.value, count, strides);
       ValueCell.update(positionGroup, pgt);
-      ValueCell.update(texDim, Vec2.set(texDim.ref.value, pgt.width, pgt.height));
       return offsets;
     },
   };
@@ -99,7 +94,7 @@ export function createCenterGroupData(
  * of detail when `strides` are given
  */
 export function setPositionGroup(
-  out: TextureImage<Float32Array>,
+  out: DataArray<Float32Array>,
   centers: Float32Array,
   groups: Float32Array,
   count: number,

@@ -14,6 +14,7 @@ import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/grap
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Scene } from '@molstar/graphics/gl/scene';
 import { type Texture, createNullTexture } from '@molstar/graphics/gl/texture';
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
@@ -24,6 +25,7 @@ import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { memoize1 } from '@molstar/core/util/memoize';
 import type { PostprocessingProps } from './postprocessing.js';
+import type { PassTargets } from './pass-targets.js';
 
 const MipCount = 5;
 
@@ -47,8 +49,18 @@ export const BloomParams = {
 export type BloomProps = PD.Values<typeof BloomParams>;
 
 export class BloomPass {
+  private readonly graphics: GraphicsContext;
   static isEnabled(props: PostprocessingProps) {
     return props.enabled && props.bloom.name === 'on';
+  }
+
+  /** Whether bloom draws: enabled, and in emissive mode (the default) something in the scene is emissive */
+  static isActive(scene: Scene, props: PostprocessingProps) {
+    return (
+      props.enabled &&
+      props.bloom.name === 'on' &&
+      !(props.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0)
+    );
   }
 
   readonly emissiveTarget: RenderTarget;
@@ -62,21 +74,18 @@ export class BloomPass {
   private readonly blurRenderable: BlurRenderable;
   private readonly compositeRenderable: CompositeRenderable;
 
-  constructor(
-    private graphics: GraphicsContext,
-    width: number,
-    height: number,
-  ) {
-    this.emissiveTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+  constructor(targets: PassTargets, width: number, height: number) {
+    const graphics = (this.graphics = targets.graphics);
+    this.emissiveTarget = targets.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
 
-    this.luminosityTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
-    this.compositeTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.luminosityTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.compositeTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     let blurWidth = Math.round(width / 2);
     let blurHeight = Math.round(height / 2);
     for (let i = 0; i < MipCount; ++i) {
-      this.horizontalBlurTargets[i] = graphics.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
-      this.verticalBlurTargets[i] = graphics.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
+      this.horizontalBlurTargets[i] = targets.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
+      this.verticalBlurTargets[i] = targets.createRenderTarget(blurWidth, blurHeight, 'none', 'uint8', 'linear');
       blurWidth = Math.round(blurWidth / 2);
       blurHeight = Math.round(blurHeight / 2);
     }
@@ -151,6 +160,8 @@ export class BloomPass {
     props: BloomProps,
     camera: ICamera,
     opaqueFogged: boolean,
+    /** whether the transparent color and depth are composited in (read), as in the postprocessing compose */
+    blendTransparency: boolean,
   ) {
     let luminosityNeedsUpdate = false;
 
@@ -176,6 +187,11 @@ export class BloomPass {
 
     if (this.luminosityRenderable.values.tDepthTransparent.ref.value !== depthTransparent) {
       ValueCell.update(this.luminosityRenderable.values.tDepthTransparent, depthTransparent);
+      luminosityNeedsUpdate = true;
+    }
+
+    if (this.luminosityRenderable.values.dBlendTransparency.ref.value !== blendTransparency) {
+      ValueCell.update(this.luminosityRenderable.values.dBlendTransparency, blendTransparency);
       luminosityNeedsUpdate = true;
     }
 
@@ -280,6 +296,7 @@ export const LuminositySchema = {
   uFogNear: UniformSpec('f'),
   uFogFar: UniformSpec('f'),
   uOpaqueFogged: UniformSpec('b'),
+  dBlendTransparency: DefineSpec('boolean'),
   dMode: DefineSpec('string', ['luminosity', 'emissive']),
 };
 export const LuminosityShaderCode = ShaderCode('Bloom Luminosity');
@@ -315,6 +332,7 @@ function getLuminosityRenderable(
     uFogNear: ValueCell.create(10000),
     uFogFar: ValueCell.create(10000),
     uOpaqueFogged: ValueCell.create(true),
+    dBlendTransparency: ValueCell.create(true),
     dMode: ValueCell.create('emissive'),
   };
 

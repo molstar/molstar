@@ -27,7 +27,14 @@ export interface PathRun {
 }
 
 /** The context of the page, for cases that render with a `Canvas3D`; `gpuTiming` with timing mode on */
-export const BenchmarkEnv: { context?: Canvas3DContext; gpuTiming?: boolean } = {};
+export const BenchmarkEnv: {
+  context?: Canvas3DContext;
+  gpuTiming?: boolean;
+  /** every render case with draw lists or without (`RendererProps.drawLists`, `--draw-lists`, `--no-draw-lists`) */
+  drawLists?: boolean;
+  /** the canvas after the last run of each render case, as PNG data URLs by case id (`--images`) */
+  images?: { [id: string]: string };
+} = {};
 
 /**
  * Waits until the GPU completed the submitted work: on WebGL with a 1-pixel readback (the fence of
@@ -172,7 +179,8 @@ export async function runPath(
       stages,
       triangles: first.triangles,
       bytes: first.bytes,
-      drawCalls: first.drawCalls,
+      // of the measured runs: the first may draw otherwise while what it needs compiles
+      drawCalls: runs[runs.length - 1]?.drawCalls ?? first.drawCalls,
       gpuPasses: runs[runs.length - 1]?.gpuPasses,
       notes: runs[runs.length - 1]?.notes,
     };

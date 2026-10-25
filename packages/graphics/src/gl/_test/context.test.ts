@@ -16,7 +16,12 @@ import { tryGetGLContext } from './gl.js';
 
 /** stand-ins for objects of another backend */
 const foreignTexture = { id: -1 } as Texture;
-const foreignGlobals: GlobalBindings = { textures: [], invalidate: () => {}, destroy: () => {} };
+const foreignGlobals: GlobalBindings = {
+  textures: [],
+  invalidate: () => {},
+  setSolidInteriorCap: () => {},
+  destroy: () => {},
+};
 
 /** whether the optional `gl` package can create a context (`pnpm native:install`) */
 const hasGl = (() => {

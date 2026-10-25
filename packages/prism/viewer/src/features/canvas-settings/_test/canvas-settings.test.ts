@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -149,6 +150,18 @@ describe('canvas settings', () => {
     expect(await run('background', { transparent: 'yes' })).toMatchObject({ ok: false, code: 'invalid' });
     expect(sets).toEqual([]);
     expectOk(await run('lighting', { fog: { name: 'off', params: {} } }));
+  });
+
+  it("sets the direct volumes' resolution in the advanced section, within its range", async () => {
+    const { v, props } = await withCanvas();
+    const run = (volumeResolutionScale: number) =>
+      v.api.run('canvas.settings', { section: 'advanced', values: { volumeResolutionScale } });
+    const full = await run(1);
+    expectOk(full);
+    expect(props.volumeResolutionScale).toBe(1);
+    expect(full.did).toBe('Changed the advanced settings: Volume resolution 1.');
+    expect(await run(0.1)).toMatchObject({ ok: false, code: 'invalid' });
+    expect(props.volumeResolutionScale).toBe(1);
   });
 
   it('names the changed fields in words', async () => {

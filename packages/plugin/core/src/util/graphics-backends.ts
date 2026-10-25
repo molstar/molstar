@@ -11,13 +11,13 @@ import type { GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
 
 /**
  * `auto`: WebGPU where it has the features of WebGL2 (blending into float32 targets, missing in older browsers), else
- * WebGL2, then WebGL1; `webgpu`: WebGPU, else WebGL; `webgl`: WebGL2, else WebGL1 (WebGL1 only with
- * `PluginConfig.General.PreferWebGl1`); `webgl2` and `webgl1`: only that version
+ * WebGL2, then WebGL1; `webgpu`: WebGPU, else WebGL; `webgl`: WebGL2, else WebGL1; `webgl2` and `webgl1`: only that
+ * version
  */
 export type GraphicsBackendChoice = 'auto' | 'webgpu' | 'webgl' | 'webgl2' | 'webgl1';
 
 /**
- * The backends of `choice` for `PluginConfig.General.GraphicsBackends`, undefined for the plugin's default (`webgl`);
+ * The backends of `choice` for `PluginConfig.General.GraphicsBackends`, undefined for any other value (the plugin's default, `auto`);
  * from the backend sets (not the backends), so that builds with one backend alias the others away (see
  * `molstar.variants` in the Viewer's manifest)
  */
@@ -25,6 +25,8 @@ export function getGraphicsBackends(choice: GraphicsBackendChoice): readonly Gra
   switch (choice) {
     case 'auto':
       return getAllBackends();
+    case 'webgl':
+      return getWebGLBackends();
     case 'webgpu':
       return [...new Set([...getWebGPUBackends(), ...getWebGLBackends()])];
     case 'webgl2':

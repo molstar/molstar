@@ -28,7 +28,7 @@ import {
   tracing_output_wgsl,
   wboit_output_wgsl,
 } from './chunks/output.wgsl.js';
-import { IsosurfaceChunkSize } from '../../compute/marching-cubes/chunk-size.js';
+import { iso_vertex_wgsl } from './marching-cubes-chunks.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { read_from_texture_wgsl } from './chunks/read-from-texture.wgsl.js';
 import { assign_varyings_wgsl, grid_functions_wgsl, vertex_output_wgsl } from './chunks/varyings.wgsl.js';
@@ -50,10 +50,7 @@ ${fragment_output_wgsl(`#if defined(dSolidInterior)
 #endif`)}
 
 #if defined(dGeometryType_textureMesh) && defined(dIsoChunks)
-/** The slot of vertex \`i\` in the vertex arena, through the page table (see \`computeChunkedIsosurface\`) */
-fn isoSlot(i: u32) -> u32 {
-    return sIsoTable[4u + i / ${IsosurfaceChunkSize}u] * ${IsosurfaceChunkSize}u + i % ${IsosurfaceChunkSize}u;
-}
+${iso_vertex_wgsl('sIsoTable', 'sIsoVertices')}
 #endif
 
 @vertex
@@ -64,13 +61,11 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #if defined(dGeometryType_textureMesh) && defined(dIsoChunks)
         // unindexed, the vertex data in pages of the vertex arena; vertices beyond the drawn count (the page table's
         // fourth word, e.g. of draws of the CPU's upper bound) are left out below
-        let isDrawn = in.vertexIndex < sIsoTable[3u];
+        let isDrawn = in.vertexIndex < isoDrawn();
         let slot = select(0u, isoSlot(in.vertexIndex), isDrawn);
-        let positionGroup = sIsoPositions[slot];
-        let packedNormal = sIsoNormals[slot];
-        let group = unpackRGBToInt(unpack4x8unorm(bitcast<u32>(positionGroup.w)).rgb);
-        let basePosition = positionGroup.xyz;
-        let baseNormal = vec3<f32>(unpack2x16snorm(packedNormal.x), unpack2x16snorm(packedNormal.y).x);
+        let group = f32(isoPackedGroup(slot)) - 1.0;
+        let basePosition = isoPosition(slot);
+        let baseNormal = isoNormal(slot);
     #elif defined(dGeometryType_textureMesh)
         // unindexed, the vertex data in textures (e.g. computed on the GPU)
         let group = unpackRGBToInt(readFromTexture(tGroup, vertexId).rgb);
@@ -143,7 +138,7 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
             let vp = in.vViewPosition;
             let nearPosition = vec3<f32>(mix(vp.xy * (nearZ / vp.z), vp.xy, uGlobal.uIsOrtho), nearZ);
             var s = 0.0;
-            #if dClipObjectCount != 0
+            #if defined(dClipObjects)
                 if (uDraw.uSolidInteriorClip >= 0) {
                     // exempt parts are not cut by this clip object, so they neither count nor fill
                     if (clipIgnored(uDraw.uSolidInteriorClip, clipFlag)) {
@@ -215,7 +210,7 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
     #if defined(dSolidInterior)
         if (capPass) {
             normal = vec3<f32>(0.0, 0.0, -1.0);
-            #if dClipObjectCount != 0
+            #if defined(dClipObjects)
                 if (uDraw.uSolidInteriorClip >= 0) {
                     let invView = uGlobal.uInvView;
                     let invView3 = mat3x3<f32>(invView[0].xyz, invView[1].xyz, invView[2].xyz);

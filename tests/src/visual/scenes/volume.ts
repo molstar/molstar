@@ -196,7 +196,8 @@ export async function volumeRepr<P extends PD.Params>(
   repr.setTheme(
     Theme.create(
       registries,
-      { volume },
+      // as the plugin: direct volumes color by value in the shader (`direct-location`), not per cell
+      { volume, locationKinds: provider.locationKinds },
       {
         colorTheme: {
           name: colorTheme?.name ?? provider.defaultColorTheme.name,

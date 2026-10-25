@@ -5,14 +5,12 @@
  */
 
 import { ValueCell } from '@molstar/core/util/value-cell';
-import { Vec2 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 
 export type WiggleType = 'instance' | 'groupInstance';
 
 export type WiggleData = {
-  tWiggle: ValueCell<TextureImage<Uint8Array>>;
-  uWiggleTexDim: ValueCell<Vec2>;
+  tWiggle: ValueCell<DataArray<Uint8Array>>;
   dWiggle: ValueCell<boolean>;
   wiggleAverage: ValueCell<number>;
   /** the type (`WiggleType`); the object uniform `uInstanceGranularity` selects the index */
@@ -41,15 +39,9 @@ export function clearWiggle(array: Uint8Array, start: number, end: number) {
 }
 
 export function createWiggle(count: number, type: WiggleType, wiggleData?: WiggleData): WiggleData {
-  const wiggle = createTextureImage(
-    Math.max(1, count),
-    1,
-    Uint8Array,
-    wiggleData && wiggleData.tWiggle.ref.value.array,
-  );
+  const wiggle = createDataArray(Math.max(1, count), 1, Uint8Array, wiggleData && wiggleData.tWiggle.ref.value.array);
   if (wiggleData) {
     ValueCell.update(wiggleData.tWiggle, wiggle);
-    ValueCell.update(wiggleData.uWiggleTexDim, Vec2.create(wiggle.width, wiggle.height));
     ValueCell.updateIfChanged(wiggleData.dWiggle, count > 0);
     ValueCell.updateIfChanged(wiggleData.wiggleAverage, getWiggleAverage(wiggle.array, count));
     ValueCell.updateIfChanged(wiggleData.wiggleType, type);
@@ -57,7 +49,6 @@ export function createWiggle(count: number, type: WiggleType, wiggleData?: Wiggl
   } else {
     return {
       tWiggle: ValueCell.create(wiggle),
-      uWiggleTexDim: ValueCell.create(Vec2.create(wiggle.width, wiggle.height)),
       dWiggle: ValueCell.create(count > 0),
       wiggleAverage: ValueCell.create(0),
       wiggleType: ValueCell.create<string>(type),
@@ -66,16 +57,14 @@ export function createWiggle(count: number, type: WiggleType, wiggleData?: Wiggl
   }
 }
 
-const emptyWiggleTexture = { array: new Uint8Array(1), width: 1, height: 1 };
+const emptyWiggleTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyWiggle(wiggleData?: WiggleData): WiggleData {
   if (wiggleData) {
     ValueCell.update(wiggleData.tWiggle, emptyWiggleTexture);
-    ValueCell.update(wiggleData.uWiggleTexDim, Vec2.create(1, 1));
     return wiggleData;
   } else {
     return {
       tWiggle: ValueCell.create(emptyWiggleTexture),
-      uWiggleTexDim: ValueCell.create(Vec2.create(1, 1)),
       dWiggle: ValueCell.create(false),
       wiggleAverage: ValueCell.create(0),
       wiggleType: ValueCell.create<string>('groupInstance'),

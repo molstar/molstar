@@ -12,6 +12,7 @@ import { type ColorType, getColorTypeDefine } from '@molstar/graphics/geo/geomet
 import { getSizeTypeDefine, type SizeType } from '@molstar/graphics/geo/geometry/size-data';
 import { getRenderableProgramSource, type RenderObjectType } from '@molstar/graphics/gl/render-object';
 import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
+import { isMergeableType } from '@molstar/graphics/gl/renderable/merged';
 import {
   ContextDefines,
   getSchemaLinearTextures,
@@ -195,6 +196,29 @@ export function getGeometrySignatures<G extends Geometry>(
   return signatures;
 }
 
+/**
+ * `signatures` and their merged variants where `props` merge the objects: `renderMerged` on, or `gpuCulling` on (an
+ * object alone merged to be culled on the GPU, `gpuCulled`); not with a palette (`canMergeValues`). 'auto' (either) is
+ * taken as unmerged and culled on the CPU: by the objects' counts, large objects that compile while they build
+ */
+export function withMergedSignatures(
+  signatures: readonly ObjectSignature[],
+  props: { readonly renderMerged?: unknown; readonly gpuCulling?: unknown },
+): ObjectSignature[] {
+  const gpuCulled = props.gpuCulling === true;
+  if (props.renderMerged !== true && !gpuCulled) return [...signatures];
+  const out = [...signatures];
+  for (const s of signatures) {
+    if (!isMergeableType(s.type) || s.defines.dUsePalette) continue;
+    const source = getRenderableProgramSource({ type: s.type, merged: true });
+    if (!source) continue;
+    const defines = { ...s.defines, dSegmented: true };
+    const linearTextures = getSchemaLinearTextures(source.schema, defines);
+    out.push({ ...s, merged: true, defines, linearTextures, gpuCulled });
+  }
+  return out;
+}
+
 /** `signatures` without duplicates, the draw flags of those of the same key merged (`mergeSignatures`) */
 export function uniqueSignatures(signatures: Iterable<ObjectSignature>): ObjectSignature[] {
   const map = new Map<string, ObjectSignature>();
@@ -204,34 +228,6 @@ export function uniqueSignatures(signatures: Iterable<ObjectSignature>): ObjectS
     map.set(key, known ? mergeSignatures(known, s) : s);
   }
   return [...map.values()];
-}
-
-type SignatureVisual<P> = { getSignatures?: (props: P, ctx: SignatureContext) => ObjectSignature[] };
-
-/** The visuals a factory may create with `props`, for their signatures, see `withSignatureVisuals` */
-export type SignatureVisuals<P> = (props: P, graphics?: GraphicsContext) => SignatureVisual<P>[];
-
-/**
- * `factory`, naming the visuals it may create without data: for factories that decide by data (e.g. GPU or CPU
- * surfaces by size), which representations can't call without it
- */
-export function withSignatureVisuals<F extends object, P>(factory: F, visuals: SignatureVisuals<P>) {
-  return Object.assign(factory, { signatureVisuals: visuals });
-}
-
-/**
- * The signatures of the visuals `factory` creates with `props`: those it names (`withSignatureVisuals`), else the one
- * `create` makes without data
- */
-export function getFactorySignatures<P>(
-  factory: object,
-  create: () => SignatureVisual<P>,
-  props: P,
-  ctx: SignatureContext,
-): ObjectSignature[] {
-  const visuals =
-    'signatureVisuals' in factory ? (factory.signatureVisuals as SignatureVisuals<P>)(props, ctx.graphics) : [create()];
-  return visuals.flatMap((v) => v.getSignatures?.(props, ctx) ?? []);
 }
 
 /**

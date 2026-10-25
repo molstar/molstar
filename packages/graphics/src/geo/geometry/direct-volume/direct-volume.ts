@@ -8,7 +8,12 @@ import { hashFnv32a } from '@molstar/core/data/util';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
 import type { DirectVolumeValues } from '@molstar/graphics/gl/renderable/direct-volume';
-import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
+import {
+  calculateTransformBoundingSphere,
+  createTextureImage,
+  type TextureImage,
+} from '@molstar/graphics/gl/renderable/util';
+import { clamp } from '@molstar/core/math/interpolate';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
@@ -33,6 +38,30 @@ import { createEmptyWiggle } from '../wiggle-data.js';
 
 const VolumeBox = Box();
 
+/** the four diagonals of a unit cube, by their signs */
+const BoxDiagonals = [
+  [1, 1, 1],
+  [-1, 1, 1],
+  [1, -1, 1],
+  [1, 1, -1],
+] as const;
+
+/**
+ * The value range of the grid's bricks of `BrickSize`³ cells, for skipping bricks the transfer function makes
+ * transparent: per brick the lowest and highest value (normalized, times 255, rounded outwards), of its cells and the
+ * next cell along each axis (trilinear samples in a brick read those); `dim` the bricks per axis, 0 when not known (no
+ * skipping)
+ */
+export interface BrickRange {
+  readonly array: Uint8Array;
+  readonly dim: Vec3;
+}
+
+/** The edge of a brick in cells, see `BrickRange` */
+export const BrickSize = 8;
+
+const EmptyBrickRange: BrickRange = { array: new Uint8Array(0), dim: Vec3.create(0, 0, 0) };
+
 export interface DirectVolume {
   readonly kind: 'direct-volume';
 
@@ -51,6 +80,7 @@ export interface DirectVolume {
   readonly packedGroup: ValueCell<boolean>;
   readonly axisOrder: ValueCell<Vec3>;
   readonly dataType: ValueCell<'byte' | 'float' | 'halfFloat'>;
+  readonly brickRange: ValueCell<BrickRange>;
 
   /** Bounding sphere of the volume */
   readonly boundingSphere: Sphere3D;
@@ -74,6 +104,7 @@ export namespace DirectVolume {
     axisOrder: Vec3,
     dataType: 'byte' | 'float' | 'halfFloat',
     directVolume?: DirectVolume,
+    brickRange: BrickRange = EmptyBrickRange,
   ): DirectVolume {
     return directVolume
       ? update(
@@ -87,6 +118,7 @@ export namespace DirectVolume {
           packedGroup,
           axisOrder,
           dataType,
+          brickRange,
           directVolume,
         )
       : fromData(
@@ -100,6 +132,7 @@ export namespace DirectVolume {
           packedGroup,
           axisOrder,
           dataType,
+          brickRange,
         );
   }
 
@@ -124,6 +157,7 @@ export namespace DirectVolume {
     packedGroup: boolean,
     axisOrder: Vec3,
     dataType: 'byte' | 'float' | 'halfFloat',
+    brickRange: BrickRange,
   ): DirectVolume {
     const boundingSphere = Sphere3D();
     let currentHash = -1;
@@ -157,6 +191,7 @@ export namespace DirectVolume {
       packedGroup: ValueCell.create(packedGroup),
       axisOrder: ValueCell.create(axisOrder),
       dataType: ValueCell.create(dataType),
+      brickRange: ValueCell.create(brickRange),
       setBoundingSphere(sphere: Sphere3D) {
         Sphere3D.copy(boundingSphere, sphere);
         currentHash = hashCode(directVolume);
@@ -180,6 +215,7 @@ export namespace DirectVolume {
     packedGroup: boolean,
     axisOrder: Vec3,
     dataType: 'byte' | 'float' | 'halfFloat',
+    brickRange: BrickRange,
     directVolume: DirectVolume,
   ): DirectVolume {
     const width = texture.getWidth();
@@ -206,6 +242,7 @@ export namespace DirectVolume {
     ValueCell.updateIfChanged(directVolume.packedGroup, packedGroup);
     ValueCell.updateIfChanged(directVolume.axisOrder, Vec3.fromArray(directVolume.axisOrder.ref.value, axisOrder, 0));
     ValueCell.updateIfChanged(directVolume.dataType, dataType);
+    ValueCell.update(directVolume.brickRange, brickRange);
     return directVolume;
   }
 
@@ -261,8 +298,16 @@ export namespace DirectVolume {
       ],
       { isEssential: true, yAxis: { scale: 'log' } },
     ),
-    stepsPerCell: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
-    jumpLength: PD.Numeric(0, { min: 0, max: 20, step: 0.1 }),
+    stepsPerCell: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
+    surfaceOpacity: PD.Numeric(
+      0.3,
+      { min: 0.05, max: 0.95, step: 0.05 },
+      {
+        description:
+          'Opacity along a ray at which the volume counts as solid: where highlights and selections draw their edges ' +
+          'and picking finds it. Lower for faint transfer functions.',
+      },
+    ),
   };
   export type Params = typeof Params;
 
@@ -300,8 +345,19 @@ export namespace DirectVolume {
     return LocationIterator(groupCount, instanceCount, 1, getLocation);
   }
 
-  function getMaxSteps(gridDim: Vec3, stepsPerCell: number) {
-    return Math.ceil(Vec3.magnitude(gridDim) * stepsPerCell);
+  /** the steps along the longest diagonal of the grid's box (`unitToCartn`'s unit cube), the ray marcher's loop bound */
+  function getMaxSteps(unitToCartn: Mat4, cellDim: Vec3, stepsPerCell: number) {
+    const stepScale = getStepScale(cellDim, stepsPerCell);
+    if (!(stepScale > 0)) return 0;
+    const m = unitToCartn;
+    let diagonal = 0;
+    for (const [sx, sy, sz] of BoxDiagonals) {
+      const x = sx * m[0] + sy * m[4] + sz * m[8];
+      const y = sx * m[1] + sy * m[5] + sz * m[9];
+      const z = sx * m[2] + sy * m[6] + sz * m[10];
+      diagonal = Math.max(diagonal, Math.sqrt(x * x + y * y + z * z));
+    }
+    return Math.ceil(diagonal / stepScale) + 1;
   }
 
   function getStepScale(cellDim: Vec3, stepsPerCell: number) {
@@ -310,6 +366,36 @@ export namespace DirectVolume {
 
   function getTransferScale(stepsPerCell: number) {
     return 1 / stepsPerCell;
+  }
+
+  /**
+   * The `jumpLength` of the Gaussian volume's params (no CPU grid for bricks: it probes a step that far ahead in empty
+   * space instead), 0 for volumes (they skip transparent bricks)
+   */
+  function getJumpLength(props: PD.Values<Params>) {
+    return (props as { jumpLength?: number }).jumpLength ?? 0;
+  }
+
+  /**
+   * Per brick 255 where the transfer function is above 0 somewhere in the brick's value range (`BrickRange`), else 0:
+   * the ray marcher skips the bricks of 0
+   */
+  function getBrickVisibility(brickRange: BrickRange, transfer: Uint8Array, image?: TextureImage<Uint8Array>) {
+    const [bx, by, bz] = brickRange.dim;
+    const count = bx * by * bz;
+    const out = createTextureImage(count, 1, Uint8Array, image?.array);
+    const n = transfer.length;
+    // the transfer entries above 0 before each entry
+    const above = new Uint32Array(n + 1);
+    for (let i = 0; i < n; ++i) above[i + 1] = above[i] + (transfer[i] > 0 ? 1 : 0);
+    const { array } = brickRange;
+    for (let i = 0; i < count; ++i) {
+      // the transfer texels that values in [lo, hi] / 255 filter from (linear filtering of `n` texels, clamped)
+      const t0 = clamp(Math.floor((array[2 * i] / 255) * n - 0.5), 0, n - 1);
+      const t1 = clamp(Math.ceil((array[2 * i + 1] / 255) * n - 0.5), 0, n - 1);
+      out.array[i] = above[t1 + 1] - above[t0] > 0 ? 255 : 0;
+    }
+    return out;
   }
 
   function createValues(
@@ -349,6 +435,8 @@ export namespace DirectVolume {
 
     const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
     const transferTex = createTransferFunctionTexture(controlPoints);
+    const brickRange = directVolume.brickRange.ref.value;
+    const brickImage = getBrickVisibility(brickRange, transferTex.ref.value.array);
 
     return {
       dGeometryType: ValueCell.create('directVolume'),
@@ -373,13 +461,20 @@ export namespace DirectVolume {
       uBboxMin: bboxMin,
       uBboxMax: bboxMax,
       uBboxSize: bboxSize,
-      uMaxSteps: ValueCell.create(getMaxSteps(gridDimension.ref.value, props.stepsPerCell)),
+      uMaxSteps: ValueCell.create(
+        getMaxSteps(directVolume.unitToCartn.ref.value, directVolume.cellDim.ref.value, props.stepsPerCell),
+      ),
       uStepScale: ValueCell.create(getStepScale(directVolume.cellDim.ref.value, props.stepsPerCell)),
-      uJumpLength: ValueCell.create(props.jumpLength),
+      uJumpLength: ValueCell.create(getJumpLength(props)),
       uTransform: gridTransform,
       uGridDim: gridDimension,
       tTransferTex: transferTex,
       uTransferScale: ValueCell.create(getTransferScale(props.stepsPerCell)),
+      uSurfaceOpacity: ValueCell.create(props.surfaceOpacity),
+      brickRange: directVolume.brickRange,
+      tBrickTex: ValueCell.create(brickImage),
+      uBrickTexDim: ValueCell.create(Vec2.create(brickImage.width, brickImage.height)),
+      uBrickDim: ValueCell.create(Vec3.clone(brickRange.dim)),
 
       dGridTexType: ValueCell.create(gridTexture.ref.value.getDepth() > 0 ? '3d' : '2d'),
       uGridTexDim: gridTextureDim,
@@ -425,11 +520,23 @@ export namespace DirectVolume {
 
     const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
     createTransferFunctionTexture(controlPoints, values.tTransferTex);
+    // the transfer function or the bricks (a new geometry) may have changed
+    const brickRange = values.brickRange.ref.value as BrickRange;
+    const brickImage = getBrickVisibility(brickRange, values.tTransferTex.ref.value.array, values.tBrickTex.ref.value);
+    ValueCell.update(values.tBrickTex, brickImage);
+    ValueCell.update(values.uBrickTexDim, Vec2.set(values.uBrickTexDim.ref.value, brickImage.width, brickImage.height));
+    if (!Vec3.exactEquals(values.uBrickDim.ref.value, brickRange.dim)) {
+      ValueCell.update(values.uBrickDim, Vec3.copy(values.uBrickDim.ref.value, brickRange.dim));
+    }
 
-    ValueCell.updateIfChanged(values.uMaxSteps, getMaxSteps(values.uGridDim.ref.value, props.stepsPerCell));
+    ValueCell.updateIfChanged(
+      values.uMaxSteps,
+      getMaxSteps(values.uUnitToCartn.ref.value, values.uCellDim.ref.value, props.stepsPerCell),
+    );
     ValueCell.updateIfChanged(values.uStepScale, getStepScale(values.uCellDim.ref.value, props.stepsPerCell));
     ValueCell.updateIfChanged(values.uTransferScale, getTransferScale(props.stepsPerCell));
-    ValueCell.updateIfChanged(values.uJumpLength, props.jumpLength);
+    ValueCell.updateIfChanged(values.uSurfaceOpacity, props.surfaceOpacity);
+    ValueCell.updateIfChanged(values.uJumpLength, getJumpLength(props));
   }
 
   function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {

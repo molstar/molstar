@@ -46,7 +46,7 @@ export const ColorAccumulateSchema = {
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   dColorType: DefineSpec('string', ['group', 'groupInstance']),
   isoTable: StorageBufferSpec('u32', 'read'),
-  isoPositions: StorageBufferSpec('vec4<f32>', 'read'),
+  isoVertices: StorageBufferSpec('u32', 'read'),
   transforms: StorageBufferSpec('mat4x4<f32>', 'read'),
   instances: StorageBufferSpec('f32', 'read'),
   sums: StorageBufferSpec('atomic<u32>', 'read-write'),
@@ -93,7 +93,7 @@ export interface ColorSmoothingSamples {
   transformBuffer: Float32Array;
   instanceBuffer: Float32Array;
   /** the page table and positions of the surface in the vertex arena */
-  chunks: { table: StorageBuffer; positions: StorageBuffer };
+  chunks: { table: StorageBuffer; vertices: StorageBuffer };
   colorData: Texture;
   colorType: 'group' | 'groupInstance';
 }
@@ -134,7 +134,7 @@ export function computeColorSmoothing(
   const slab = ValueCell.create(Vec2.create(0, slabDepth));
   const accumulateKernel = compute.createKernel(ColorAccumulateKernel, ColorAccumulateSchema, {
     isoTable: ValueCell.create(samples.chunks.table),
-    isoPositions: ValueCell.create(samples.chunks.positions),
+    isoVertices: ValueCell.create(samples.chunks.vertices),
     uVertexCount: ValueCell.create(samples.vertexCount),
     uSampleCount: ValueCell.create(sampleCount),
     uInstanceCount: ValueCell.create(samples.instanceCount),

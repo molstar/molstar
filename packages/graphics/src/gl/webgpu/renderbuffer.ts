@@ -67,8 +67,11 @@ export function createWebGPURenderbuffer(
   const account = createByteAccount(env.byteCounts, 'renderbuffer');
   const uncount = countResource(env.stats, 'renderbuffer');
 
-  function init() {
-    if (texture) release(texture);
+  let destroyed = false;
+
+  /** Allocates the storage when first attached to a render pass (lazy: unused attachments take no memory) */
+  function ensureStorage() {
+    if (texture || destroyed) return;
     account(Math.max(1, width) * Math.max(1, height) * getBytesPerTexel(gpuFormat));
     texture = env.device.createTexture({
       size: { width: Math.max(1, width), height: Math.max(1, height) },
@@ -78,18 +81,34 @@ export function createWebGPURenderbuffer(
     });
     view = texture.createView();
   }
-  init();
 
+  /** Releases the storage of the previous size; the next attachment allocates it at the new one */
+  function releaseStorage() {
+    if (!texture) return;
+    release(texture);
+    texture = undefined;
+    view = undefined;
+    account(0);
+  }
+
+  const id = getNextRenderbufferId();
   const renderbuffer: WebGPURenderbuffer = {
-    id: getNextRenderbufferId(),
+    id,
+    ref: { kind: 'renderbuffer', id },
     format: gpuFormat,
     hasStencil,
-    getAttachmentView: () => view,
-    getGPUTexture: () => texture,
+    getAttachmentView: () => {
+      ensureStorage();
+      return view;
+    },
+    getGPUTexture: () => {
+      ensureStorage();
+      return texture;
+    },
     getWidth: () => width,
     getHeight: () => height,
 
-    getByteCount: () => width * height * getBytesPerTexel(gpuFormat),
+    getByteCount: () => (texture ? width * height * getBytesPerTexel(gpuFormat) : 0),
     bind: () => {},
     attachFramebuffer: (framebuffer) => {
       asWebGPUFramebuffer(framebuffer).attach(attachment, renderbuffer);
@@ -97,17 +116,17 @@ export function createWebGPURenderbuffer(
     detachFramebuffer: (framebuffer) => {
       asWebGPUFramebuffer(framebuffer).detach(attachment);
     },
+    releaseStorage,
     setSize: (w: number, h: number) => {
       if (w === width && h === height) return;
       width = w;
       height = h;
-      init();
+      releaseStorage();
     },
     destroy: () => {
-      if (texture) release(texture);
-      texture = undefined;
-      view = undefined;
-      account(0);
+      if (destroyed) return;
+      destroyed = true;
+      releaseStorage();
       uncount();
     },
   };

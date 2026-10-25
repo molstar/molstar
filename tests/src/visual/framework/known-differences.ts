@@ -53,6 +53,14 @@ export const KnownDifferences: KnownDifference[] = [
     doc: 'illumination-rng',
     action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.03 } },
   },
+  {
+    profiles: ['webgpu*'],
+    tests: ['geometry/direct-volume/opaque-transfer'],
+    reason:
+      'A transfer function stepping from 0 to 1 within one cell: where a sample falls on the step, the backends round ' +
+      'the interpolated value to either side, so the ray turns opaque one step earlier or later.',
+    action: { kind: 'tolerance', tolerance: { maxDiffRatio: 0.004 } },
+  },
 ];
 
 export function findKnownDifference(profileId: string, testId: string): KnownDifference | undefined {

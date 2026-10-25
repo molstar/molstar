@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { chooseVisual } from '@molstar/graphics/repr/visual-factory';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import type { VisualContext } from '@molstar/graphics/repr/visual';
@@ -350,16 +351,11 @@ export const BridgeParams = {
 };
 export type BridgeParams = typeof BridgeParams;
 
-export function BridgeVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<BridgeParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
-    ? BridgeImpostorVisual(materialId)
-    : BridgeMeshVisual(materialId);
-}
+export const BridgeVisual = chooseVisual(
+  { impostor: BridgeImpostorVisual, mesh: BridgeMeshVisual },
+  (props: PD.Values<BridgeParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkCylinderImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 function setUpdateState(
   state: VisualUpdateState,

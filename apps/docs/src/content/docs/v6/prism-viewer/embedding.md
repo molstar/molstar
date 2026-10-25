@@ -173,7 +173,7 @@ An override of an id that nothing registers is an error at creation, naming it.
 
 | Group      | Values                                                                                                                                                                                                                         |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `renderer` | `pixelScale`, `pickScale`, `transparency`, `resolutionMode`, `powerPreference`, `graphicsBackend`, `preferWebgl1`, `allowMajorPerformanceCaveat`, `disableAntialiasing`, `illumination`                                        |
+| `renderer` | `pixelScale`, `pickScale`, `transparency`, `resolutionMode`, `powerPreference`, `graphicsBackend`, `allowMajorPerformanceCaveat`, `disableAntialiasing`, `illumination`                                                        |
 | `canvas`   | `background` (a CSS color; empty for the default), `focusBehavior`                                                                                                                                                             |
 | `data`     | `pdbProvider`, `emdbProvider`, `volumeStreamingServer`, `volumeStreamingDisabled`, `stateServer`, `saccharideCompIdMapType`                                                                                                    |
 | `ui`       | `showSequence`, `showHistory`, `showRemoteStates`, `collapsed`, `splash` (the empty canvas's splash; on), and `buttons`: `reset`, `screenshot`, `expand`, `fullscreen`, `settings`, `selectionMode`, `animation`, `trajectory` |

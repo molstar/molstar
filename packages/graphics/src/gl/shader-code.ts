@@ -44,15 +44,27 @@ export interface ShaderCode {
   /** feature requirements, e.g. frag depth or draw buffers on WebGL */
   readonly extensions: ShaderExtensions;
   readonly ignoreDefine?: IgnoreDefine;
+  /**
+   * Whether the items are quads of six vertex ids without elements (`QuadIndicesPerItem`): drawn indexed by the
+   * context's shared quad indices (`quad-indices.ts`)
+   */
+  readonly quads?: boolean;
 }
 
-export function ShaderCode(name: string, extensions: ShaderExtensions = {}, ignoreDefine?: IgnoreDefine): ShaderCode {
-  return { id: shaderCodeId(), name, extensions, ignoreDefine };
+export function ShaderCode(
+  name: string,
+  extensions: ShaderExtensions = {},
+  ignoreDefine?: IgnoreDefine,
+  quads?: boolean,
+): ShaderCode {
+  return { id: shaderCodeId(), name, extensions, ignoreDefine, quads };
 }
 
 // Note: `drawBuffers` need to be 'optional' for wboit
 
 function ignoreDefine(name: string, variant: string, defines: ShaderDefines): boolean {
+  // WebGL bounds the clip loops by the uniform `uClipObjectCount` (a define on WebGL1): one program for all counts
+  if (name === 'dClipObjectCount') return true;
   if (variant.startsWith('color') || variant === 'tracing') {
     if (name === 'dLightCount') {
       return !!defines.dIgnoreLight?.ref.value;
@@ -76,11 +88,12 @@ function ignoreDefineUnlit(name: string, variant: string, defines: ShaderDefines
   return ignoreDefine(name, variant, defines);
 }
 
-export const PointsShaderCode = ShaderCode('points', { drawBuffers: 'optional' }, ignoreDefineUnlit);
+export const PointsShaderCode = ShaderCode('points', { drawBuffers: 'optional' }, ignoreDefineUnlit, true);
 export const SpheresShaderCode = ShaderCode(
   'spheres',
   { fragDepth: 'required', drawBuffers: 'optional' },
   ignoreDefine,
+  true,
 );
 export const CylindersShaderCode = ShaderCode(
   'cylinders',

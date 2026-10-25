@@ -27,9 +27,9 @@ import { fxaa_frag } from './shader/fxaa.frag.js';
 import { gaussianDensity_frag } from './shader/gaussian-density.frag.js';
 import { gaussianDensity_vert } from './shader/gaussian-density.vert.js';
 import { hiZ_frag } from './shader/hi-z.frag.js';
+import { volumeComposite_frag } from './shader/volume-composite.frag.js';
 import { reduction_frag } from './shader/histogram-pyramid/reduction.frag.js';
 import { sum_frag } from './shader/histogram-pyramid/sum.frag.js';
-import { accumulate_frag as traceAccumulate_frag } from './shader/illumination/accumulate.frag.js';
 import { compose_frag as illuminationCompose_frag } from './shader/illumination/compose.frag.js';
 import { trace_frag } from './shader/illumination/trace.frag.js';
 import { image_frag } from './shader/image.frag.js';
@@ -39,7 +39,6 @@ import { lines_vert } from './shader/lines.vert.js';
 import { activeVoxels_frag } from './shader/marching-cubes/active-voxels.frag.js';
 import { isosurface_frag } from './shader/marching-cubes/isosurface.frag.js';
 import { dim_frag } from './shader/marking/dim.frag.js';
-import { edge_frag } from './shader/marking/edge.frag.js';
 import { overlay_frag } from './shader/marking/overlay.frag.js';
 import { mesh_frag } from './shader/mesh.frag.js';
 import { mesh_vert } from './shader/mesh.vert.js';
@@ -110,6 +109,11 @@ export function hasGlslProgram(name: string) {
   return Programs.has(name);
 }
 
+/** The names of the registered programs (e.g. for a check that every one compiles) */
+export function getGlslProgramNames(): string[] {
+  return [...Programs.keys()];
+}
+
 // geometry
 registerGlslProgram('points', points_vert, points_frag);
 registerGlslProgram('spheres', spheres_vert, spheres_frag);
@@ -132,7 +136,6 @@ registerGlslProgram('evaluate-dpoit', quad_vert, evaluateDpoit_frag);
 registerGlslProgram('fxaa', quad_vert, fxaa_frag);
 registerGlslProgram('illumination-compose', quad_vert, illuminationCompose_frag);
 registerGlslProgram('illumination-multi-sample-compose', quad_vert, multiSampleCompose_frag);
-registerGlslProgram('edge', quad_vert, edge_frag);
 registerGlslProgram('dim', quad_vert, dim_frag);
 registerGlslProgram('overlay', quad_vert, overlay_frag);
 registerGlslProgram('multi-sample-compose', quad_vert, multiSampleCompose_frag);
@@ -145,10 +148,10 @@ registerGlslProgram('smaa-blend', smaaBlend_vert, smaaBlend_frag);
 registerGlslProgram('ssao', quad_vert, ssao_frag);
 registerGlslProgram('ssao_blur', quad_vert, ssaoBlur_frag);
 registerGlslProgram('trace', quad_vert, trace_frag);
-registerGlslProgram('trace-accumulate', quad_vert, traceAccumulate_frag);
 registerGlslProgram('evaluate-wboit', quad_vert, evaluateWboit_frag);
 registerGlslProgram('copy', quad_vert, copy_frag);
 registerGlslProgram('hi-z', quad_vert, hiZ_frag);
+registerGlslProgram('volume-composite', quad_vert, volumeComposite_frag);
 
 // compute
 registerGlslProgram('gaussian-density', gaussianDensity_vert, gaussianDensity_frag);

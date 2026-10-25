@@ -5,7 +5,7 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { type Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { type Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { transformPositionArray, type GroupMapping } from '../../util.js';
 import type { GeometryUtils } from '../geometry.js';
 import { createColors } from '../color-data.js';
@@ -14,7 +14,7 @@ import { createSizes } from '../size-data.js';
 import type { TransformData } from '../transform-data.js';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { type TextureImage, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { PointsValues } from '@molstar/graphics/gl/renderable/points';
@@ -57,8 +57,7 @@ export namespace Points {
   /** Data read by the shaders, points are drawn as quads of 6 vertices that pull their center and group */
   export interface ShaderData {
     /** center xyz and group per point */
-    readonly positionGroup: ValueCell<TextureImage<Float32Array>>;
-    readonly texDim: ValueCell<Vec2>;
+    readonly positionGroup: ValueCell<DataArray<Float32Array>>;
     update(): void;
   }
 
@@ -90,7 +89,6 @@ export namespace Points {
       hasBoundingSphere: data.hasBoundingSphere,
       shaderData: {
         positionGroup: data.positionGroup,
-        texDim: data.texDim,
         update() {
           data.updatePositionGroup();
         },
@@ -200,7 +198,6 @@ export namespace Points {
     return {
       dGeometryType: ValueCell.create('points'),
 
-      uTexDim: points.shaderData.texDim,
       tPositionGroup: points.shaderData.positionGroup,
       centerBuffer: points.centerBuffer,
       groupBuffer: points.groupBuffer,

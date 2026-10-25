@@ -5,6 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Subject } from 'rxjs';
+import type { SegmentedArray } from '../segmented-array.js';
 import { type ProgramProps, createProgram, type Program } from './program.js';
 import { type ShaderType, createShader, type Shader, type ShaderProps } from './shader.js';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
@@ -53,15 +55,21 @@ import type { UniformBlockLayout } from '../uniform-layout.js';
 import type { AttributeLayout } from '../attribute-layout.js';
 import { getShaderDeclarations } from './shader-declarations.js';
 import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
+import { createQuadIndices, getMaxQuadItemCount, type QuadIndices } from '../quad-indices.js';
 import { getDefineLookup, getDefineValueNames } from '../renderable/schema.js';
 import { now } from '@molstar/core/util/now';
 import type { ProgramVariant, RenderItem } from '../render-item.js';
 import { isTimingMode } from '@molstar/core/util/debug';
+import type { DataFormat } from '../renderable/schema.js';
+import { createDataTexturePages, type DataTexturePages } from './data-pages.js';
 import type { GraphicsLimits, GraphicsResources, PipelineRequest } from '../context.js';
 
 function defineValueHash(v: boolean | number | string): number {
   return typeof v === 'boolean' ? (v ? 1 : 0) : typeof v === 'number' ? v * 10000 : hashString(v);
 }
+
+/** The largest shared quad index buffer (`quad-indices.ts`): WebGL buffers are sized by the driver */
+const QuadIndicesMaxBytes = 2 ** 31;
 
 function wrapCached<T extends Resource>(resourceItem: ReferenceItem<T>) {
   const wrapped = {
@@ -83,8 +91,13 @@ interface Resource {
 type ResourceName = keyof GraphicsStats['resourceCounts'];
 
 export interface WebGLResources extends GraphicsResources {
-  attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => AttributeBuffer;
-  elements: (array: ElementsType, usageHint?: UsageHint) => ElementsBuffer;
+  attribute: (
+    array: ArrayType | SegmentedArray,
+    itemSize: AttributeItemSize,
+    divisor: number,
+    usageHint?: UsageHint,
+  ) => AttributeBuffer;
+  elements: (array: ElementsType | SegmentedArray, usageHint?: UsageHint) => ElementsBuffer;
   pixelPack: (format: TextureFormat, type: TextureType) => PixelPackBuffer;
   program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program;
   shader: (type: ShaderType, source: string) => Shader;
@@ -92,6 +105,10 @@ export interface WebGLResources extends GraphicsResources {
   cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => GLTexture;
   /** Textures shared by render items, from `texture` (`.v6/plans/gl/shared-textures.md` §2) */
   sharedTextures: SharedTextures;
+  /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`) */
+  quadIndices: QuadIndices<ElementsBuffer>;
+  /** The pages of the data arrays (`DataSpec`) of a format, shared by render items (`data-pages.ts`) */
+  dataPages: (format: DataFormat) => DataTexturePages;
   vertexArray: (
     layout: AttributeLayout,
     attributeBuffers: AttributeBuffers,
@@ -158,6 +175,7 @@ export function createResources(
   const ownTextures = new WeakSet<Texture>();
   const pendingPrograms = new Set<Program>();
   const pending = createPendingWork();
+  const outOfMemory = new Subject<string>();
 
   /** programs linking in parallel (`KHR_parallel_shader_compile`), pending work until they finished */
   const compilingPrograms = new Set<Program>();
@@ -256,6 +274,7 @@ export function createResources(
     maxRenderbufferSize: parameters.maxRenderbufferSize,
     maxDrawBuffers: parameters.maxDrawBuffers,
     maxTextureImageUnits: parameters.maxTextureImageUnits,
+    maxQuadItemCount: getMaxQuadItemCount(QuadIndicesMaxBytes),
   };
 
   function texture(kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) {
@@ -268,13 +287,33 @@ export function createResources(
 
   // gone with the resources: a restored context gets new ones (§6)
   const sharedTextures = createSharedTextures((spec) => texture(spec.kind, spec.format, spec.dataType, spec.filter));
+  // counted with the elements buffers
+  const quadIndices = createQuadIndices(
+    (indices) => wrap('elements', createElementsBuffer(gl, indices)),
+    (buffer) => buffer.destroy(),
+    QuadIndicesMaxBytes,
+  );
+
+  // gone with the resources, their textures with the others
+  const dataPages: { [F in DataFormat]?: DataTexturePages } = {};
+  const createDataPageTexture = (format: DataFormat) =>
+    format === 'rgba32f'
+      ? texture('image-float32', 'rgba', 'float', 'nearest')
+      : texture('image-uint8', format === 'r8' ? 'r' : 'rgba', 'ubyte', 'nearest');
 
   return {
     limits,
-    attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => {
+    dataPages: (format: DataFormat) =>
+      (dataPages[format] ??= createDataTexturePages(format, createDataPageTexture, parameters.maxTextureSize)),
+    attribute: (
+      array: ArrayType | SegmentedArray,
+      itemSize: AttributeItemSize,
+      divisor: number,
+      usageHint?: UsageHint,
+    ) => {
       return wrap('attribute', createAttributeBuffer(gl, state, extensions, array, itemSize, divisor, usageHint));
     },
-    elements: (array: ElementsType, usageHint?: UsageHint) => {
+    elements: (array: ElementsType | SegmentedArray, usageHint?: UsageHint) => {
       return wrap('elements', createElementsBuffer(gl, array, usageHint));
     },
     pixelPack: (format: TextureFormat, type: TextureType) => {
@@ -304,6 +343,7 @@ export function createResources(
     shader: getShader,
     texture,
     sharedTextures,
+    quadIndices,
     ownsTexture: (texture: Texture) => ownTextures.has(texture),
     cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => {
       // settles once: a face that fails to load reports an error of its own
@@ -359,6 +399,7 @@ export function createResources(
     },
 
     pending,
+    outOfMemory,
     loadImage: (texture: Texture, source: string, cell?: ValueCell<Texture>, label = 'image') => {
       const load = decodeImage(source).then((image) => {
         // uploaded with `UNPACK_COLORSPACE_CONVERSION_WEBGL` `NONE`

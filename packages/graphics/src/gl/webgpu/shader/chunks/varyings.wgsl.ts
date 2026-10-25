@@ -45,7 +45,7 @@ struct VertexOutput {
 #if defined(dUsePalette)
     @location(14) vPaletteV: f32,
 #endif
-#if dClipObjectCount != 0 && defined(dClipping)
+#if defined(dClipObjects) && defined(dClipping)
     #if !defined(dVaryingGroup)
         @location(15) vClipping: f32,
     #else
@@ -72,7 +72,7 @@ export const assign_quad_position_group_wgsl = /* wgsl */ `
         mapping = vec2<f32>(1.0, -1.0);
     }
     let vertexId = i32(in.vertexIndex) / 6;
-    let positionGroup = readFromTexture(tPositionGroup, vertexId);
+    let positionGroup = read_tPositionGroup(vertexId);
     var position = positionGroup.xyz;
     let group = positionGroup.w;
 `;
@@ -99,7 +99,7 @@ export const grid_functions_wgsl = GridTextures.map(
 #if defined(${type}_volume) || defined(${type}_volumeInstance) || defined(${type}_grid)
     fn texture3dFrom2dLinear_${texture}(pos: vec3<f32>) -> vec4<f32> {
         let gridDim = uObject.u${prefix}GridDim;
-        let texDim = uObject.u${prefix}TexDim;
+        let texDim = uObject.u${prefix}GridTexDim;
         let zSlice0 = floor(pos.z * gridDim.z);
         // the tile of a slice in integers: f32 division may be off by an ULP, which put the slices starting an atlas
         // row (x / x just below 1) past the end of the row above
@@ -152,7 +152,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
     #if defined(dNeedsMarker)
         ${assign_data_index_wgsl(undefined, 'markerIndex')}
-        out.vMarker = readFromTexture(tMarker, markerIndex).r;
+        out.vMarker = read_tMarker(markerIndex).r;
     #endif
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
@@ -172,13 +172,13 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 let dualColor = uObject.uColorIndexType == 1 || uObject.uColorIndexType == 2;
                 var color2 = vec3<f32>(0.0);
                 if (dualColor && in.aColorMode != 2.0) {
-                    out.vColor = vec4<f32>(readFromTexture(tColor, colorIndex * 2).rgb, 1.0);
-                    color2 = readFromTexture(tColor, colorIndex * 2 + 1).rgb;
+                    out.vColor = vec4<f32>(read_tColor(colorIndex * 2).rgb, 1.0);
+                    color2 = read_tColor(colorIndex * 2 + 1).rgb;
                 } else {
-                    out.vColor = vec4<f32>(readFromTexture(tColor, colorIndex).rgb, 1.0);
+                    out.vColor = vec4<f32>(read_tColor(colorIndex).rgb, 1.0);
                 }
             #else
-                out.vColor = vec4<f32>(readFromTexture(tColor, colorIndex).rgb, 1.0);
+                out.vColor = vec4<f32>(read_tColor(colorIndex).rgb, 1.0);
             #endif
         #elif defined(dColorType_grid)
             // the local position (volume) or the model position (volumeInstance), see \`ColorTypeIndex\`
@@ -196,7 +196,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 let overpaint = ${grid_value_wgsl('tOverpaintGrid', GridModelPosition)};
             #else
                 ${assign_data_index_wgsl('dOverpaintType', 'overpaintIndex')}
-                let overpaint = readFromTexture(tOverpaint, overpaintIndex);
+                let overpaint = read_tOverpaint(overpaintIndex);
             #endif
             // pre-mix to avoid darkening due to empty overpaint
             #if defined(dColorType_uniform)
@@ -212,7 +212,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 out.vEmissive = ${grid_value_wgsl('tEmissiveGrid', GridModelPosition)}.r * uMaterial.uEmissiveStrength;
             #else
                 ${assign_data_index_wgsl('dEmissiveType', 'emissiveIndex')}
-                out.vEmissive = readFromTexture(tEmissive, emissiveIndex).r * uMaterial.uEmissiveStrength;
+                out.vEmissive = read_tEmissive(emissiveIndex).r * uMaterial.uEmissiveStrength;
             #endif
         #endif
 
@@ -221,7 +221,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 let substance = ${grid_value_wgsl('tSubstanceGrid', GridModelPosition)};
             #else
                 ${assign_data_index_wgsl('dSubstanceType', 'substanceIndex')}
-                let substance = readFromTexture(tSubstance, substanceIndex);
+                let substance = read_tSubstance(substanceIndex);
             #endif
             // pre-mix to avoid artifacts due to empty substance
             let baseSubstance = vec3<f32>(uMaterial.uMetalness, uMaterial.uRoughness, uMaterial.uBumpiness);
@@ -234,13 +234,13 @@ export const assign_varyings_wgsl = /* wgsl */ `
             out.vTransparency = ${grid_value_wgsl('tTransparencyGrid', GridModelPosition)}.r * uMaterial.uTransparencyStrength;
         #else
             ${assign_data_index_wgsl('dTransparencyType', 'transparencyIndex')}
-            out.vTransparency = readFromTexture(tTransparency, transparencyIndex).r * uMaterial.uTransparencyStrength;
+            out.vTransparency = read_tTransparency(transparencyIndex).r * uMaterial.uTransparencyStrength;
         #endif
     #endif
 
-    #if dClipObjectCount != 0 && defined(dClipping)
+    #if defined(dClipObjects) && defined(dClipping)
         ${assign_data_index_wgsl(undefined, 'clippingIndex')}
-        out.vClipping = readFromTexture(tClipping, clippingIndex).r;
+        out.vClipping = read_tClipping(clippingIndex).r;
     #endif
     ${clip_flag_wgsl('out.vClipping')}
 `;
@@ -261,7 +261,7 @@ export const assign_size_wgsl = /* wgsl */ `
             default: {}
         }
         // sizes are stored times 100
-        var size = unpackRGBToInt(readFromTexture(tSize, sizeIndex).rgb) / 100.0;
+        var size = unpackRGBToInt(read_tSize(sizeIndex).rgb) / 100.0;
     #endif
     size *= uMaterial.uSizeFactor;
 `;

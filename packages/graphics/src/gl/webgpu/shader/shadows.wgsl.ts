@@ -118,6 +118,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     #endif
 
-    return vec4<f32>(l / a);
+    // no light: no shadow
+    return vec4<f32>(select(1.0, l / a, a > 0.0));
 }
 `;

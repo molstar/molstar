@@ -103,7 +103,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         out.position.z = out.position.w;
     }
 
-    #if defined(dDualColor) && defined(dRenderVariant_color) && defined(dColorType_texture)
+    #if defined(dDualColor) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)) && defined(dColorType_texture)
         // dual-color mixing (group color types)
         // - for aColorMode between 0 and 1 use aColorMode to interpolate
         // - for aColorMode == 2 do nothing, i.e., use vColor
@@ -131,7 +131,7 @@ struct CylinderHit {
     isCap: bool,
 };
 
-#if defined(dClipVariant_pixel) && dClipObjectCount != 0
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
     #define dClipCylinder
 #endif
 

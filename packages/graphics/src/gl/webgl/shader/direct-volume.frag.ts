@@ -16,6 +16,7 @@ import { apply_light_color } from './chunks/apply-light-color.glsl.js';
 import { apply_marker_color } from './chunks/apply-marker-color.glsl.js';
 import { apply_fog } from './chunks/apply-fog.glsl.js';
 import { wboit_write } from './chunks/wboit-write.glsl.js';
+import { apply_marking } from './chunks/apply-marking.glsl.js';
 
 export const directVolume_frag = `
 precision highp float;
@@ -37,6 +38,7 @@ varying vec3 vModelPosition;
 varying float vInstance;
 varying vec4 vBoundingSphere;
 varying mat4 vTransform;
+varying mat3 vNormalMatrix;
 
 #if defined(dGridTexType_2d)
     vec4 textureVal(vec3 pos) {
@@ -73,24 +75,51 @@ float getDepth(const in vec2 coords) {
 
 const float gradOffset = 0.5;
 
+/**
+ * The offset of a pixel's samples in [0, 1) steps, against the banding of samples at the same depths: interleaved
+ * gradient noise (Jimenez 2014), varied by the projection's off-center terms (the sub-pixel offset of multi-sampling,
+ * 0 otherwise) so that multi-sampling averages the noise out
+ */
+float rayJitter(const in vec2 fragCoord) {
+    float noise = fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
+    vec4 offset = vec4(uProjection[2].xy, uProjection[3].xy);
+    return fract(noise + fract(sin(dot(offset, vec4(12.9898, 78.233, 37.719, 4.581))) * 43758.5453));
+}
+
+// the edge of a brick in cells, \`BrickSize\` of the direct-volume geometry
+const float BrickSize = 8.0;
+
 vec3 v3m4(vec3 p, mat4 m) {
     return (m * vec4(p, 1.0)).xyz;
 }
 
 float preFogAlphaBlended = 0.0;
 
+// the surface of the marking, pick and depth variants: where the opacity of the samples the pass looks at (all, but
+// for marking: unmarked ones in its depth pass, marked ones in its mask pass) first reaches \`uSurfaceOpacity\` (the
+// \`surfaceOpacity\` param, low so that it is where the volume looks solid)
+float surfaceDepth = -1.0;
+float surfaceMarker = 0.0;
+float surfaceGroup = 0.0;
+
+/** 1 / v, with components close to 0 as a large positive number (a ray parallel to a slab) */
+vec3 safeInverse(const in vec3 v) {
+    return vec3(
+        abs(v.x) > 1e-8 ? 1.0 / v.x : 1e8,
+        abs(v.y) > 1e-8 ? 1.0 / v.y : 1e8,
+        abs(v.z) > 1e-8 ? 1.0 / v.z : 1e8
+    );
+}
+
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
-    mat3 normalMatrix = adjoint(uModelView * vTransform);
     mat4 cartnToUnit = uCartnToUnit * inverse4(vTransform);
-    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
         mat4 modelTransform = uModel * vTransform * uTransform;
     #endif
     mat4 modelViewTransform = uModelView * vTransform * uTransform;
 
     vec3 scaleVol = vec3(1.0) / uGridDim;
-    vec3 pos = startLoc;
     vec4 cell;
-    float prevValue = -1.0;
     float value = 0.0;
     vec4 src = vec4(0.0);
     vec4 dst = vec4(0.0);
@@ -99,10 +128,46 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec3 posMin = vec3(0.0);
     vec3 posMax = vec3(1.0) - vec3(1.0) / uGridDim;
 
-    vec3 unitPos;
+    // the samples of the ray, in unit grid coordinates and in view space, are affine in the step \`t\`
+    vec3 unitStart = v3m4(startLoc / uModelScale, cartnToUnit);
+    vec3 unitStep = (cartnToUnit * vec4(step / uModelScale, 0.0)).xyz;
+    vec3 viewStart = (modelViewTransform * vec4(unitStart * uGridDim, 1.0)).xyz;
+    vec3 viewStep = (modelViewTransform * vec4(unitStep * uGridDim, 0.0)).xyz;
 
-    vec3 nextPos;
-    float nextValue;
+    // the steps inside the grid's box (slab test)
+    vec3 invStep = safeInverse(unitStep);
+    vec3 t0 = (posMin - unitStart) * invStep;
+    vec3 t1 = (posMax - unitStart) * invStep;
+    vec3 slabNear = min(t0, t1);
+    vec3 slabFar = max(t0, t1);
+    float enterT = max(max(slabNear.x, slabNear.y), slabNear.z);
+    float endT = min(min(slabFar.x, slabFar.y), slabFar.z);
+
+    // before the far plane
+    float stepLength = length(step);
+    endT = min(endT, (uFar - uNear) / stepLength);
+
+    // before the opaque depth (depth is reversed: a sample is behind it where its view z is smaller)
+    float opaqueViewZ = depthToViewZ(uIsOrtho, getDepth(gl_FragCoord.xy / uDrawingBufferSize), uNear, uFar);
+    if (viewStep.z < 0.0) {
+        endT = min(endT, (opaqueViewZ - viewStart.z) / viewStep.z);
+    } else if (viewStart.z < opaqueViewZ) {
+        return dst;
+    }
+
+    #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
+        // the same phase for neighboring rays: a coherent surface, its edges not frayed by noise
+        float jitter = 0.5;
+    #else
+        float jitter = rayJitter(gl_FragCoord.xy);
+    #endif
+    float t = max(0.0, ceil(enterT - jitter)) + jitter;
+    float jumpSteps = uJumpLength / stepLength;
+
+    vec3 unitPos;
+    float nextT;
+    float currentBrick = -1.0;
+    bool brickVisible = true;
 
     vec4 material;
     vec4 overpaint;
@@ -115,54 +180,63 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
     vec3 dz = vec3(0.0, 0.0, gradOffset * scaleVol.z);
 
-    float maxDist = min(vBoundingSphere.w * 2.0, uFar - uNear);
-    float maxDistSq = maxDist * maxDist;
+    #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
+        float surfaceOpacity = 0.0;
+    #endif
 
     for (int i = 0; i < uMaxSteps; ++i) {
-        // break when beyond bounding-sphere or far-plane
-        vec3 distVec = startLoc - pos;
-        if (dot(distVec, distVec) > maxDistSq) break;
+        if (t > endT) break;
 
-        unitPos = v3m4(pos / uModelScale, cartnToUnit);
+        unitPos = unitStart + t * unitStep;
 
-        // continue when outside of grid
-        if (unitPos.x > posMax.x || unitPos.y > posMax.y || unitPos.z > posMax.z ||
-            unitPos.x < posMin.x || unitPos.y < posMin.y || unitPos.z < posMin.z
-        ) {
-            prevValue = value;
-            pos += step;
-            continue;
+        // the rest of a brick the transfer function makes transparent is skipped
+        if (uBrickDim.x > 0.0) {
+            vec3 brick = floor(unitPos * uGridDim / BrickSize);
+            float brickIndex = brick.x + uBrickDim.x * (brick.y + uBrickDim.y * brick.z);
+            if (brickIndex != currentBrick) {
+                currentBrick = brickIndex;
+                brickVisible = readFromTexture(tBrickTex, brickIndex, uBrickTexDim).r > 0.0;
+            }
+            if (!brickVisible) {
+                // the first step past the brick's exit face (a step on the face is tested again)
+                vec3 exitFace = vec3(
+                    invStep.x > 0.0 ? brick.x + 1.0 : brick.x,
+                    invStep.y > 0.0 ? brick.y + 1.0 : brick.y,
+                    invStep.z > 0.0 ? brick.z + 1.0 : brick.z
+                ) * BrickSize / uGridDim;
+                vec3 exits = (exitFace - unitStart) * invStep;
+                t = max(t + 1.0, ceil(min(min(exits.x, exits.y), exits.z) - jitter - 1e-3) + jitter);
+                continue;
+            }
         }
 
         cell = textureVal(unitPos);
         value = cell.a; // current voxel value
 
         if (uJumpLength > 0.0 && value < 0.01) {
-            nextPos = pos + rayDir * uJumpLength;
-            nextValue = textureVal(v3m4(nextPos / uModelScale, cartnToUnit)).a;
-            if (nextValue < 0.01) {
-                prevValue = nextValue;
-                pos = nextPos;
+            nextT = t + jumpSteps;
+            if (textureVal(unitStart + nextT * unitStep).a < 0.01) {
+                t = nextT;
                 continue;
             }
         }
 
-        vec4 mvPosition = modelViewTransform * vec4(unitPos * uGridDim, 1.0);
-        // behind the opaque depth (depth is reversed)
-        if (calcDepth(mvPosition.xyz) < getDepth(gl_FragCoord.xy / uDrawingBufferSize))
-            break;
+        // transparent samples add nothing (markers don't lift them either)
+        material.a = transferFunction(value);
+        if (material.a <= 0.0) {
+            t += 1.0;
+            continue;
+        }
 
-        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #if defined(dClipVariant_pixel) && defined(dClipObjects)
             vec3 modelPosition = v3m4(unitPos * uGridDim, modelTransform);
             if (clipTest(modelPosition)) {
-                prevValue = value;
-                pos += step;
+                t += 1.0;
                 continue;
             }
         #endif
 
-        vec3 vViewPosition = mvPosition.xyz;
-        material.a = transferFunction(value);
+        vec3 vViewPosition = viewStart + t * viewStep;
 
         #ifdef dPackedGroup
             float group = unpackRGBToInt(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
@@ -184,6 +258,30 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             #endif
         #endif
 
+        #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
+            #if defined(dRenderVariant_marking)
+                float sampleMarker = uMarker;
+                if (uMarker == -1.0) {
+                    sampleMarker = read_tMarker((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r;
+                    sampleMarker = floor(sampleMarker * 255.0 + 0.5);
+                }
+                bool surfaceSample = (uMarkingType == 1) == (sampleMarker == 0.0);
+            #else
+                float sampleMarker = 0.0;
+                bool surfaceSample = true;
+            #endif
+            if (surfaceSample) {
+                surfaceOpacity += (1.0 - surfaceOpacity) * (1.0 - pow(1.0 - clamp(material.a * uAlpha, 0.0, 1.0), uTransferScale));
+                if (surfaceOpacity >= uSurfaceOpacity) {
+                    surfaceDepth = calcDepth(vViewPosition);
+                    surfaceMarker = sampleMarker;
+                    surfaceGroup = group;
+                    break;
+                }
+            }
+            t += 1.0;
+        #else
+
         #if defined(dColorType_direct) && defined(dUsePalette)
             float paletteValue = (value - uPaletteDomain[0]) / (uPaletteDomain[1] - uPaletteDomain[0]);
             material.rgb = texture2D(tPalette, vec2(clamp(paletteValue, 0.0, 1.0), 0.0)).rgb;
@@ -192,23 +290,23 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #elif defined(dColorType_texture)
             // by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex, vertexInstance
             if (uColorIndexType == 0) {
-                material.rgb = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
+                material.rgb = read_tColor(vInstance).rgb;
             } else if (uColorIndexType == 1) {
-                material.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+                material.rgb = read_tColor(group).rgb;
             } else if (uColorIndexType == 2) {
-                material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+                material.rgb = read_tColor(vInstance * float(uGroupCount) + group).rgb;
             } else if (uColorIndexType == 3) {
-                material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, 0.0).rgb;
+                material.rgb = texture3dFrom1dTrilinear(0, unitPos, uGridDim, 0.0).rgb;
             } else {
-                material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+                material.rgb = texture3dFrom1dTrilinear(0, unitPos, uGridDim, vInstance * float(uVertexCount)).rgb;
             }
         #endif
 
         #ifdef dOverpaint
             #if defined(dOverpaintType_texture)
-                overpaint = readFromTexture(tOverpaint, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uOverpaintTexDim);
+                overpaint = read_tOverpaint((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group));
             #elif defined(dOverpaintType_vertexInstance)
-                overpaint = texture3dFrom1dTrilinear(tOverpaint, unitPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
+                overpaint = texture3dFrom1dTrilinear(1, unitPos, uGridDim, vInstance * float(uVertexCount));
             #endif
 
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
@@ -226,26 +324,29 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                 #else
                     gradient = cell.xyz * 2.0 - 1.0;
                 #endif
-                vec3 normal = -normalize(normalMatrix * normalize(gradient));
+                // a zero gradient (byte normals filtered halfway between 127 and 128) faces the camera, not NaN
+                vec3 normal = dot(gradient, gradient) > 1e-12 ? -normalize(vNormalMatrix * gradient) : vec3(0.0, 0.0, 1.0);
                 ${apply_light_color}
             } else {
                 gl_FragColor.rgb = material.rgb;
             }
         #endif
 
-        gl_FragColor.a = material.a * uAlpha * uTransferScale;
+        // the transfer function's opacity is per cell: a step of 1 / stepsPerCell cells (\`uTransferScale\`) is as opaque
+        // as that fraction of a cell, exactly (the linear \`a * uTransferScale\` is only close for small opacities)
+        gl_FragColor.a = 1.0 - pow(1.0 - clamp(material.a * uAlpha, 0.0, 1.0), uTransferScale);
 
         #if defined(dColorMarker)
             float marker = uMarker;
             if (uMarker == -1.0) {
-                marker = readFromTexture(tMarker, (uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group), uMarkerTexDim).r;
+                marker = read_tMarker((uInstanceGranularity ? vInstance : vInstance * float(uGroupCount) + group)).r;
                 marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
             }
         #endif
         ${apply_marker_color}
 
         preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
-        fragmentDepth = calcDepth(mvPosition.xyz);
+        fragmentDepth = calcDepth(vViewPosition);
         ${apply_fog}
 
         src = gl_FragColor;
@@ -260,7 +361,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         if (dst.a > 0.95)
             break;
 
-        pos += step;
+        t += 1.0;
+        #endif
     }
 
     return dst;
@@ -282,11 +384,50 @@ void main() {
         float boundingSphereNear = distance(vBoundingSphere.xyz, uCameraPosition) - vBoundingSphere.w;
         float d = max(uNear, boundingSphereNear) - mix(0.0, distance(vModelPosition, uCameraPosition), uIsOrtho);
         vec3 start = mix(uCameraPosition, vModelPosition, uIsOrtho) + (d * rayDir);
-        gl_FragColor = raymarch(start, step, rayDir);
 
-        float fragmentDepth = calcDepth((uView * vec4(start, 1.0)).xyz);
-        float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
-        ${wboit_write}
+        #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
+            #if defined(enabledFragDepth)
+                raymarch(start, step, rayDir);
+                if (surfaceDepth < 0.0) discard;
+                float fragmentDepth = surfaceDepth;
+                gl_FragDepthEXT = fragmentDepth;
+                #if defined(dRenderVariant_marking)
+                    float marker = surfaceMarker;
+                    vec4 material = vec4(0.0, 0.0, 0.0, 1.0);
+                    ${apply_marking}
+                    gl_FragColor = material;
+                #elif defined(dRenderVariant_pick)
+                    // too deep in the fog to be picked, as other objects (\`check_picking_alpha\`)
+                    float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+                    if ((1.0 - smoothstep(uFogNear, uFogFar, abs(viewZ))) * uAlpha < 0.1) discard;
+                    #ifdef requiredDrawBuffers
+                        gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
+                        gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
+                        gl_FragData[2] = vec4(packIntToRGB(surfaceGroup), 1.0);
+                        gl_FragData[3] = packDepthToRGBA(fragmentDepth);
+                    #else
+                        if (uPickType == 1) {
+                            gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
+                        } else if (uPickType == 2) {
+                            gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
+                        } else {
+                            gl_FragColor = vec4(packIntToRGB(surfaceGroup), 1.0);
+                        }
+                    #endif
+                #else
+                    gl_FragColor = packDepthToRGBA(fragmentDepth);
+                #endif
+            #else
+                // the surface's depth can't be written
+                discard;
+            #endif
+        #else
+            gl_FragColor = raymarch(start, step, rayDir);
+
+            float fragmentDepth = calcDepth((uView * vec4(start, 1.0)).xyz);
+            float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
+            ${wboit_write}
+        #endif
     #endif
 }
 `;

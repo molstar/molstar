@@ -40,7 +40,7 @@ Measured in the Viewer (1cbs, 800 × 600, Chrome, NVIDIA), turning on illuminati
 Two causes:
 
 1. **Skipped draws are presented (WebGPU).** The first frame with illumination needs about 11 new pipelines: the
-   `tracing` variants of the geometry programs, `trace`, `trace-accumulate`, `illumination-compose`, `copy`. Their draws
+   `tracing` variants of the geometry programs, `trace`, `illumination-compose`, `copy`. Their draws
    are skipped while they compile in the background, and the frame is shown without them.
 2. **Adaptive tracing recompiles (both backends).** `TracingPass.getAdjustedProps` adapts `steps`, `refineSteps` and
    `rendersPerFrame` per frame to reach `targetFps`, and all three are defines (`dSteps`, `dRefineSteps`,

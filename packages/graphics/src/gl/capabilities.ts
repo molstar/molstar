@@ -37,6 +37,11 @@ export const GraphicsFeatures = [
   'depthClamp',
   /** compute shaders (`GraphicsContext.compute`): kernels, storage buffers and storage textures */
   'compute',
+  /**
+   * indirect draws of instance ranges: a first instance other than 0 in the arguments (`MultiDrawBaseData.indirect`,
+   * GPU culling)
+   */
+  'indirectInstanceRanges',
 ] as const;
 export type GraphicsFeature = (typeof GraphicsFeatures)[number];
 

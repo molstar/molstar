@@ -159,6 +159,9 @@ function readCanvas(canvas: HTMLCanvasElement): ImageData {
   return ctx.getImageData(0, 0, copy.width, copy.height);
 }
 
+/** the error of a release whose context was not restored (`releaseAndRestore`) */
+const NotRestored = 'not restored';
+
 /**
  * Releases the context of `instance` and restores it (`Canvas3DContext.release`, `restore`): the release is reported
  * as a loss and not restored on its own, the restore gives a new live context that Canvas3D rebuilds the scene on
@@ -179,7 +182,8 @@ async function releaseAndRestore(instance: BackendInstance): Promise<string[]> {
   if (!context.isReleased) errors.push('not released once the loss was reported');
   await new Promise((resolve) => setTimeout(resolve, 100));
   if (context.graphics !== released || !released.isContextLost) errors.push('restored without restore');
-  if (!(await context.restore!())) return [...errors, 'not restored'];
+  // a busy GPU process may hand out the new device late: a released context stays released, restored once more
+  if (!(await context.restore!()) && !(await context.restore!())) return [...errors, NotRestored];
   if (context.graphics === released || context.graphics.isContextLost) errors.push('no new live context');
   // the representations update on the new context asynchronously, then are added again
   const deadline = performance.now() + 10_000;
@@ -192,7 +196,20 @@ async function releaseAndRestore(instance: BackendInstance): Promise<string[]> {
   return errors;
 }
 
-export async function renderTest(instance: BackendInstance, test: VisualTestCase): Promise<RenderOutput> {
+/** How a case renders besides its own props */
+export interface RenderOptions {
+  /**
+   * The renderer's draw lists on (`RendererProps.drawLists`), the case rendered three times and the last captured: the
+   * first may skip draws while pipelines compile, the second records, the third replays
+   */
+  readonly drawLists?: boolean;
+}
+
+export async function renderTest(
+  instance: BackendInstance,
+  test: VisualTestCase,
+  options: RenderOptions = {},
+): Promise<RenderOutput> {
   const { canvas, context, canvas3d, imagePass } = instance;
   const { width, height } = test.size ?? DefaultTestSize;
   const start = performance.now();
@@ -208,6 +225,8 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
   context.setProps({ transparency: test.contextProps?.transparency ?? 'blended' });
 
   const p = getTestCanvasProps(test);
+  p.renderer = { ...p.renderer, drawLists: !!options.drawLists };
+  const repeats = options.drawLists ? 2 : 0;
   canvas3d.setProps({
     camera: p.camera,
     cameraFog: p.cameraFog,
@@ -227,10 +246,22 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
   const log = captureConsole();
   let reprs: Representation.Any[] = [];
   try {
-    reprs = await test.scene(getSceneContext(instance));
+    const sceneContext = getSceneContext(instance);
+    reprs = await test.scene(sceneContext);
     for (const r of reprs) canvas3d.add(r);
     canvas3d.commit(true);
     fitCamera(canvas3d.camera, canvas3d.getRenderObjects(), test);
+    let interactErrors: string[] = [];
+    if (test.interact) {
+      // a frame updates the camera to the fitted view, as picking and projecting expect
+      await context.graphics.resources.pending.whenReady();
+      canvas3d.requestDraw();
+      canvas3d.tick(now(), { isSynchronous: true });
+      interactErrors = await test.interact(sceneContext, reprs);
+      // marks (`canvas3d.mark`) are applied with the next frame
+      canvas3d.requestDraw();
+      canvas3d.tick(now(), { isSynchronous: true });
+    }
 
     for (let i = 0; i < (test.frames ?? 0); ++i) {
       canvas3d.requestDraw();
@@ -239,17 +270,22 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
     }
 
     const releaseErrors = test.releaseContext ? await releaseAndRestore(instance) : [];
+    // capturing would read from the released context: its error instead of the read's
+    if (releaseErrors.includes(NotRestored)) throw new Error(releaseErrors.join('; '));
 
     if (test.capture === 'canvas') {
-      await context.graphics.resources.pending.whenReady();
-      canvas3d.requestDraw();
-      canvas3d.tick(now(), { isSynchronous: true });
+      for (let i = 0; i <= repeats; ++i) {
+        await context.graphics.resources.pending.whenReady();
+        canvas3d.requestDraw();
+        canvas3d.tick(now(), { isSynchronous: true });
+        if (i < repeats) await context.graphics.waitForGpuCommandsComplete();
+      }
       // in the task of the frame: a WebGPU canvas keeps its image only until it is presented
       const image = readCanvas(canvas);
       await context.graphics.waitForGpuCommandsComplete();
       return {
         image,
-        errors: [...releaseErrors, ...instance.takeErrors(), ...log.errors],
+        errors: [...interactErrors, ...releaseErrors, ...instance.takeErrors(), ...log.errors],
         warnings: log.warnings,
         timeMs: performance.now() - start,
       };
@@ -267,12 +303,20 @@ export async function renderTest(instance: BackendInstance, test: VisualTestCase
     });
     // no `updateBackground`: the render waits for the background images itself (pending work)
 
+    for (let i = 0; i < repeats; ++i) {
+      await imagePass.getImageData(SyncRuntimeContext, width, height);
+      await context.graphics.resources.pending.whenReady();
+    }
+    const { drawLists } = context.graphics.stats;
+    const replayed = drawLists.replayed;
     const image = await imagePass.getImageData(SyncRuntimeContext, width, height);
     await context.graphics.waitForGpuCommandsComplete();
+    if (options.drawLists && drawLists.replayed === replayed)
+      log.warnings.push('draw lists: the captured frame replayed nothing');
 
     return {
       image,
-      errors: [...releaseErrors, ...instance.takeErrors(), ...log.errors],
+      errors: [...interactErrors, ...releaseErrors, ...instance.takeErrors(), ...log.errors],
       warnings: log.warnings,
       timeMs: performance.now() - start,
     };

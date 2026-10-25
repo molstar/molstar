@@ -2,8 +2,24 @@
 
 ## Status
 
-- **Current**: done, steps 1–4. Continued by [webgpu-draw-submission.md](webgpu-draw-submission.md) (paused after its
-  upper bound).
+- **Current**: done, steps 1–6. Continued by [webgpu-draw-submission.md](webgpu-draw-submission.md). Since: persistent
+  slots are `UniformArena.createSnapshot` in the shared `uniformPages` (not a buffer per item), the writers' gap below
+  closed (they skip unchanged blocks).
+- Per draw of an unchanged object in direct mode (audited against `units-1000-spacefill-unmerged`, 2.31 ms CPU per
+  still frame; draw lists replay without these), done: the global group (`global-bindings.ts`) the last per layout,
+  compared by the uniform buffer, a generation of the textures list and the views, instead of its texture entries and
+  key built every draw (as step 1 did for groups 1 and 2; 3.7% to 0.6%); group 2's storage buffers by cells resolved
+  per program, one result object per cached group; `getDrawBlock` builds its layout and entries only for a new block;
+  `getVertexBuffer` keeps its slot entry. 2.31 to 2.20 ms (`boxes-1000` 2.64 to 2.50). Then the culling of still
+  frames: every gridded or leveled object culled again each frame (a frame token only); now skipped while the view and
+  the culled cells' versions stay (`createCullView`, renderables and merged ones; not with an occlusion test, not in
+  timing mode, invalidated by `uncull` and `cullSimple`; `cull-view` test). The view as a version (`LodView.version`):
+  the renderer compares the camera plane, frustum and level scales once, at the first cull after an update, with those
+  of the last cull (updates of other cameras between, as picking's, don't cull); compared per object first (28
+  numbers, 7% of WebGL2's unmerged frame). 2.20 to 1.62 ms (rotating 2.43 to 2.21; merged 1000 units 0.31 to 0.20,
+  100k CPU-culled instances about 1.0 to 0.12; WebGL2 the same for merged, its unmerged frame 5.8 to 5.5, bound by its
+  draws). Not done: the `Uint32Array` offsets of `setBindGroup` (`PassState`
+  copies the offsets to compare them, the native call is rare).
 - Steps 1–4 done. `render/boxes-1000`: CPU time per frame 10.5 → 7.1 ms (frame 10.8 → 7.3 ms; WebGL2 4.3 and 5.4 ms);
   `render/boxes-100`: 0.68 → 0.40 ms (WebGL2 0.24 ms); the other render cases unchanged (GPU-bound or few draws). By
   step: 1–2 (caches, linking) 10.5 → 8.9 ms, 3 (persistent uniform slots) → 7.1 ms, 4 (redundant state) no change at

@@ -381,9 +381,7 @@ export class PluginContext {
       if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
       if (!canvas3dContext) {
-        const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
-        const backends =
-          this.config.get(PluginConfig.General.GraphicsBackends) ?? getDefaultGraphicsBackends({ preferWebGl1 });
+        const backends = this.config.get(PluginConfig.General.GraphicsBackends) ?? getDefaultGraphicsBackends();
         this._graphicsBackends = backends;
         canvas3dContext = await Canvas3DContext.create(
           canvas,
@@ -392,7 +390,6 @@ export class PluginContext {
           {
             antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
             preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
-            preferWebGl1,
             failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
             powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
             handleResize: this.handleResize,
@@ -450,6 +447,7 @@ export class PluginContext {
         this.canvas3d!.xr.isPresenting.subscribe((e) => this.log.info(`WebXR ${e ? 'enabled' : 'disabled'}`)),
       );
       this.subs.push(this.canvas3d!.xr.requestFailed.subscribe((e) => this.log.error(`WebXR request failed: ${e}`)));
+      this.subs.push(this.canvas3d!.outOfMemory.subscribe((message) => this.log.error(message)));
       this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
       this.subs.push(
         this.canvas3d!.contextChanged.subscribe(({ reason }) => {

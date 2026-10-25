@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // An ESPript-like figure of the core's globin fixture (`pf00042-seed-8.aln`, Pfam's PF00042 seed, its first eight rows
@@ -24,7 +25,7 @@ export interface AlnRow {
 /** CLUSTAL W's blocks read back (`text`): a row per name, its segments joined, the number printed after each. */
 export function parseClustal(text: string): AlnRow[] {
   const rows = new Map<string, { gapped: string; ends: number[] }>();
-  for (const line of text.split('\n')) {
+  for (const line of text.split(/\r?\n/)) {
     const m = /^(\S+)\s+([A-Za-z.-]+)\s+(\d+)$/.exec(line);
     if (!m || line.startsWith('CLUSTAL')) continue;
     const r = rows.get(m[1]) ?? { gapped: '', ends: [] };

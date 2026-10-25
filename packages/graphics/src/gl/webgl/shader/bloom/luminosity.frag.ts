@@ -14,12 +14,12 @@ float getDepthOpaque(const in vec2 coords) {
     #endif
 }
 
-float getDepthTransparent(const in vec2 coords) {
-    return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
-}
-
 float getDepth(const in vec2 coords) {
-    return max(getDepthOpaque(coords), getDepthTransparent(coords));
+    #ifdef dBlendTransparency
+        return max(getDepthOpaque(coords), unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x);
+    #else
+        return getDepthOpaque(coords);
+    #endif
 }
 
 bool isBackground(const in float depth) {
@@ -30,7 +30,11 @@ bool isBackground(const in float depth) {
 void main(void) {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
     vec4 opaqueTexel = texture2D(tColorOpaque, coords);
-    vec4 transparentTexel = texture2D(tColorTransparent, coords);
+    #ifdef dBlendTransparency
+        vec4 transparentTexel = texture2D(tColorTransparent, coords);
+    #else
+        vec4 transparentTexel = vec4(0.0);
+    #endif
     // fog illumination's un-fogged opaque seed by the opaque depth, matching standard's per-layer fog
     if (!uOpaqueFogged) {
         opaqueTexel.rgb *= 1.0 - smoothstep(uFogNear, uFogFar, abs(depthToViewZ(uIsOrtho, getDepthOpaque(coords), uNear, uFar)));

@@ -59,6 +59,7 @@ import {
   type ComplexVisual,
 } from '../complex-visual.js';
 import { EmptyLocationIterator } from '@molstar/graphics/geo/util/location-iterator';
+import { chooseVisual } from '../../visual-factory.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
@@ -287,16 +288,11 @@ export const IntraUnitBondCylinderParams = {
 };
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams;
 
-export function IntraUnitBondCylinderVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<IntraUnitBondCylinderParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
-    ? IntraUnitBondCylinderImpostorVisual(materialId)
-    : IntraUnitBondCylinderMeshVisual(materialId);
-}
+export const IntraUnitBondCylinderVisual = chooseVisual(
+  { impostor: IntraUnitBondCylinderImpostorVisual, mesh: IntraUnitBondCylinderMeshVisual },
+  (props: PD.Values<IntraUnitBondCylinderParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkCylinderImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVisual<IntraUnitBondCylinderParams> {
   return UnitsCylindersVisual<IntraUnitBondCylinderParams>(
@@ -356,13 +352,6 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
           }
         }
       },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<IntraUnitBondCylinderParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
-      },
     },
     materialId,
   );
@@ -418,13 +407,6 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
             state.updateSize = true;
           }
         }
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<IntraUnitBondCylinderParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,
@@ -552,16 +534,11 @@ export const StructureIntraUnitBondCylinderParams = {
 };
 export type StructureIntraUnitBondCylinderParams = typeof StructureIntraUnitBondCylinderParams;
 
-export function StructureIntraUnitBondCylinderVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<StructureIntraUnitBondCylinderParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
-    ? StructureIntraUnitBondCylinderImpostorVisual(materialId)
-    : StructureIntraUnitBondCylinderMeshVisual(materialId);
-}
+export const StructureIntraUnitBondCylinderVisual = chooseVisual(
+  { impostor: StructureIntraUnitBondCylinderImpostorVisual, mesh: StructureIntraUnitBondCylinderMeshVisual },
+  (props: PD.Values<StructureIntraUnitBondCylinderParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && graphics && graphics.capabilities.fragDepth ? 'impostor' : 'mesh',
+);
 
 export function StructureIntraUnitBondCylinderImpostorVisual(
   materialId: number,
@@ -624,13 +601,6 @@ export function StructureIntraUnitBondCylinderImpostorVisual(
           state.updateSize = true;
         }
       },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<StructureIntraUnitBondCylinderParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkCylinderImpostorSupport(graphics);
-      },
     },
     materialId,
   );
@@ -691,13 +661,6 @@ export function StructureIntraUnitBondCylinderMeshVisual(
           state.updateColor = true;
           state.updateSize = true;
         }
-      },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<StructureIntraUnitBondCylinderParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkCylinderImpostorSupport(graphics);
       },
     },
     materialId,

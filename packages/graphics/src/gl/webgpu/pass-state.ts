@@ -14,8 +14,9 @@ export interface PassState {
   setPipeline: (pipeline: GPURenderPipeline) => void;
   /** `offsets` are compared by value (callers may reuse the array) */
   setBindGroup: (index: number, group: GPUBindGroup, offsets?: readonly number[]) => void;
-  setVertexBuffer: (slot: number, buffer: GPUBuffer) => void;
-  setIndexBuffer: (buffer: GPUBuffer, format: GPUIndexFormat) => void;
+  /** binds `size` bytes of `buffer` from `offset` (ranges of shared buffers, `BufferPages`) */
+  setVertexBuffer: (slot: number, buffer: GPUBuffer, offset: number, size: number) => void;
+  setIndexBuffer: (buffer: GPUBuffer, format: GPUIndexFormat, offset: number, size: number) => void;
   setViewport: (x: number, y: number, width: number, height: number) => void;
   setScissorRect: (x: number, y: number, width: number, height: number) => void;
   setStencilReference: (reference: number) => void;
@@ -24,6 +25,32 @@ export interface PassState {
 }
 
 const NoOffsets: readonly number[] = [];
+
+/**
+ * An encoder that only lists what the commands bind, as text (`GraphicsContext.captureDraws`): pipelines, bind groups
+ * with offsets, buffers and draw arguments, objects by an id per object; viewport, scissor and stencil reference are the
+ * pass's (not of a recording) and left out
+ */
+export function createCaptureEncoder(tokens: string[], getId: (o: object) => number): GPURenderPassEncoder {
+  const encoder = {
+    setPipeline: (p: GPURenderPipeline) => tokens.push(`p${getId(p)}`),
+    setBindGroup: (index: number, group: GPUBindGroup | null, offsets?: Iterable<number>) =>
+      tokens.push(`g${index}:${group ? getId(group) : -1}:${offsets ? Array.from(offsets).join(',') : ''}`),
+    setVertexBuffer: (slot: number, buffer: GPUBuffer | null, offset = 0, size?: number) =>
+      tokens.push(`v${slot}:${buffer ? getId(buffer) : -1}:${offset}:${size ?? ''}`),
+    setIndexBuffer: (buffer: GPUBuffer, format: GPUIndexFormat, offset = 0, size?: number) =>
+      tokens.push(`i${getId(buffer)}:${format}:${offset}:${size ?? ''}`),
+    draw: (...args: number[]) => tokens.push(`d${args.join(',')}`),
+    drawIndexed: (...args: number[]) => tokens.push(`x${args.join(',')}`),
+    drawIndirect: (buffer: GPUBuffer, offset: number) => tokens.push(`r${getId(buffer)}:${offset}`),
+    drawIndexedIndirect: (buffer: GPUBuffer, offset: number) => tokens.push(`s${getId(buffer)}:${offset}`),
+    setViewport: () => {},
+    setScissorRect: () => {},
+    setStencilReference: () => {},
+    setBlendConstant: () => {},
+  };
+  return encoder as unknown as GPURenderPassEncoder;
+}
 
 /**
  * The state of a render bundle being recorded for the pass of `pass`: pipelines, bind groups and buffers go into the
@@ -74,7 +101,9 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
   const groups: (GPUBindGroup | undefined)[] = [];
   const groupOffsets: number[][] = [];
   const vertexBuffers: (GPUBuffer | undefined)[] = [];
+  const vertexOffsets: number[] = [];
   let indexBuffer: GPUBuffer | undefined;
+  let indexOffset = NaN;
   const viewport = [NaN, NaN, NaN, NaN];
   const scissor = [NaN, NaN, NaN, NaN];
   let stencilReference = NaN;
@@ -113,15 +142,18 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
       for (let i = 0, il = offsets.length; i < il; ++i) last[i] = offsets[i];
       encoder.setBindGroup(index, group, offsets);
     },
-    setVertexBuffer: (slot, buffer) => {
-      if (vertexBuffers[slot] === buffer) return;
+    setVertexBuffer: (slot, buffer, offset, size) => {
+      // a range is bound with its size: the same buffer and offset bind the same range
+      if (vertexBuffers[slot] === buffer && vertexOffsets[slot] === offset) return;
       vertexBuffers[slot] = buffer;
-      encoder.setVertexBuffer(slot, buffer);
+      vertexOffsets[slot] = offset;
+      encoder.setVertexBuffer(slot, buffer, offset, size);
     },
-    setIndexBuffer: (buffer, format) => {
-      if (indexBuffer === buffer) return;
+    setIndexBuffer: (buffer, format, offset, size) => {
+      if (indexBuffer === buffer && indexOffset === offset) return;
       indexBuffer = buffer;
-      encoder.setIndexBuffer(buffer, format);
+      indexOffset = offset;
+      encoder.setIndexBuffer(buffer, format, offset, size);
     },
     setViewport: (x, y, width, height) => {
       if (sameRect(viewport, x, y, width, height)) return;
@@ -143,7 +175,9 @@ export function createPassState(encoder: GPURenderPassEncoder | GPURenderBundleE
       groups.length = 0;
       groupOffsets.length = 0;
       vertexBuffers.length = 0;
+      vertexOffsets.length = 0;
       indexBuffer = undefined;
+      indexOffset = NaN;
       setRect(viewport, NaN, NaN, NaN, NaN);
       setRect(scissor, NaN, NaN, NaN, NaN);
       stencilReference = NaN;

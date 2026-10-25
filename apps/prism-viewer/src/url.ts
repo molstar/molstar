@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import type { PartialOptions } from '@molstar/prism-viewer/spec';
@@ -39,7 +40,6 @@ export function optionsFromUrl(search: string): PartialOptions {
       resolutionMode: pick('resolution-mode', ['auto', 'scaled', 'native'] as const),
       powerPreference: pick('power-preference', ['default', 'high-performance', 'low-power'] as const),
       graphicsBackend: pick('graphics-backend', ['auto', 'webgpu', 'webgl', 'webgl2', 'webgl1'] as const),
-      preferWebgl1: flag('prefer-webgl1') === undefined ? undefined : flag('prefer-webgl1') ? 'yes' : 'no',
       allowMajorPerformanceCaveat: flag('allow-major-performance-caveat'),
       disableAntialiasing: flag('disable-antialiasing'),
       illumination: flag('illumination'),
@@ -98,7 +98,6 @@ export const KnownUrlParameters: readonly string[] = [
   'resolution-mode',
   'power-preference',
   'graphics-backend',
-  'prefer-webgl1',
   'allow-major-performance-caveat',
   'disable-antialiasing',
   'illumination',

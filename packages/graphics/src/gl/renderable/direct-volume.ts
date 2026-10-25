@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -43,6 +43,13 @@ export const DirectVolumeSchema = {
   uGridDim: UniformSpec('v3'),
   tTransferTex: TextureSpec('image-uint8', 'r', 'ubyte', 'linear'),
   uTransferScale: UniformSpec('f', 'material'),
+  /** the opacity at which the marking and pick variants put the volume's surface */
+  uSurfaceOpacity: UniformSpec('f'),
+  /** the grid's bricks (`BrickRange`), their visibility under the transfer function per brick and the bricks per axis */
+  brickRange: ValueSpec('unknown'),
+  tBrickTex: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
+  uBrickTexDim: UniformSpec('v2'),
+  uBrickDim: UniformSpec('v3'),
 
   dGridTexType: DefineSpec('string', ['2d', '3d']),
   uGridTexDim: UniformSpec('v3'),

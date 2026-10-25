@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Jesse Liang <jesse.liang@rcsb.org>
@@ -23,13 +23,17 @@ import { Passes } from '@molstar/graphics/canvas3d/passes/passes';
 import { PostprocessingParams, type PostprocessingProps } from '@molstar/graphics/canvas3d/passes/postprocessing';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createContext } from '@molstar/graphics/gl/webgl/context';
-import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/webgpu/context';
+import {
+  createWebGPUContext,
+  requestWebGPUDevice,
+  type WebGPUContextOptions,
+} from '@molstar/graphics/gl/webgpu/context';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { PixelData } from '@molstar/core/util/image';
 import { InputObserver } from '@molstar/core/util/input/input-observer';
 import { now } from '@molstar/core/util/now';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { ParamDefinition } from '@molstar/core/util/param-definition';
 import type { RuntimeContext } from '@molstar/core/task';
 
@@ -53,6 +57,8 @@ export type HeadlessScreenshotHelperOptions = {
   /** `webgpu` needs `ExternalModules.webgpu` and `HeadlessScreenshotHelper.create` (devices are requested asynchronously) */
   backend?: 'webgl' | 'webgpu';
   webgl?: WebGLContextAttributes;
+  /** of the WebGPU context, e.g. a lower data binding size (`maxDataBindingSize`) */
+  webgpu?: Pick<WebGPUContextOptions, 'maxDataBindingSize'>;
   canvas?: Partial<Canvas3DProps>;
   imagePass?: Partial<ImageProps>;
 };
@@ -76,7 +82,28 @@ function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScr
   let passes = new Passes(current, assetManager, props);
   const pixelScale = 1;
   const syncPixelScale = () => {};
-  const setProps = () => {};
+  const changed = new BehaviorSubject<undefined>(undefined);
+  /**
+   * As the canvas context's: the passes take the pick scale and transparency (`Canvas3D` follows `changed`); the
+   * resolution props are kept, a headless canvas draws at its size
+   */
+  const setProps = (next?: Partial<Canvas3DContext.Props>) => {
+    if (!next) return;
+    let hasChanged = false;
+    if (next.resolutionMode !== undefined) props.resolutionMode = next.resolutionMode;
+    if (next.pixelScale !== undefined) props.pixelScale = next.pixelScale;
+    if (next.pickScale !== undefined && next.pickScale !== props.pickScale) {
+      props.pickScale = next.pickScale;
+      passes.setPickScale(next.pickScale);
+      hasChanged = true;
+    }
+    if (next.transparency !== undefined && next.transparency !== props.transparency) {
+      props.transparency = next.transparency;
+      passes.setTransparency(next.transparency);
+      hasChanged = true;
+    }
+    if (hasChanged) changed.next(undefined);
+  };
   // a lost context is replaced by a new one where the backend can create it without a canvas (WebGPU devices), and
   // Canvas3D is built again on it (`contextChanged` with `restore`); a released one (`release`) only on `restore`
   const contextLost = new Subject<now.Timestamp>();
@@ -125,6 +152,7 @@ function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScr
     contextLost.complete();
     contextRestored.complete();
     contextChanged.complete();
+    changed.complete();
   };
   const context: Canvas3DContext = {
     get graphics() {
@@ -140,6 +168,7 @@ function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScr
     contextRestored,
     contextChanged,
     assetManager,
+    changed,
     pixelScale,
     syncPixelScale,
     setProps,
@@ -211,6 +240,7 @@ export class HeadlessScreenshotHelper {
       // also keeps `gpu` alive with the context, collecting it while its device is in use crashes Dawn's Node.js bindings
       requestDevice: () => requestWebGPUDevice('default', gpu),
       ownsDevice: true,
+      ...options.webgpu,
     });
     return new HeadlessScreenshotHelper(
       externalModules,

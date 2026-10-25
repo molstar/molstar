@@ -42,20 +42,22 @@ fn fsrRcas(sp: vec2<f32>, con: f32) -> vec3<f32> {
     // noise detection
     #if defined(dDenoise)
         var nz = 0.25 * (bL + dL + fL + hL) - eL;
-        nz = clamp(abs(nz) / (max(max(bL, dL), max(eL, max(fL, hL))) - min(min(bL, dL), min(eL, min(fL, hL)))), 0.0, 1.0);
+        // a flat area has no range (0 / 0)
+        nz = clamp(abs(nz) / max(max(max(bL, dL), max(eL, max(fL, hL))) - min(min(bL, dL), min(eL, min(fL, hL))), 1e-5), 0.0, 1.0);
         nz = 1.0 - 0.5 * nz;
     #endif
 
     // min and max of ring
-    let mn4 = min(b, min(f, h));
-    let mx4 = max(b, max(f, h));
+    let mn4 = min(min(b, d), min(f, h));
+    let mx4 = max(max(b, d), max(f, h));
 
     // immediate constants for peak range
     let peakC = vec2<f32>(1.0, -4.0);
 
     // limiters
-    let hitMin = mn4 / (4.0 * mx4);
-    let hitMax = (peakC.x - mx4) / (4.0 * mn4 + peakC.y);
+    // black (mx4 = 0) and white (mn4 = 1) channels are 0 / 0
+    let hitMin = mn4 / max(4.0 * mx4, vec3<f32>(1e-5));
+    let hitMax = (peakC.x - mx4) / min(4.0 * mn4 + peakC.y, vec3<f32>(-1e-5));
     let lobeRGB = max(-hitMin, hitMax);
     var lobe = max(-FsrRcasLimit, min(max(lobeRGB.r, max(lobeRGB.g, lobeRGB.b)), 0.0)) * con;
 

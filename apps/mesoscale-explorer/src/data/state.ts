@@ -86,6 +86,7 @@ export const StyleParams = {
 
 export const LodParams = {
   lodLevels: Spheres.Params.lodLevels,
+  lodPixelSize: Spheres.Params.lodPixelSize,
   cellSize: Spheres.Params.cellSize,
   batchSize: Spheres.Params.batchSize,
   approximate: Spheres.Params.approximate,
@@ -255,8 +256,9 @@ export function getMesoscaleGroupParams(graphicsMode: GraphicsMode): MesoscaleGr
 
 export type LodLevels = (typeof SpacefillRepresentationProvider.defaultValues)['lodLevels'];
 
+/** Levels of detail by size on screen (`lodPixelSize`) */
 export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): LodLevels {
-  return Spheres.LodLevelsPresets[graphicsMode];
+  return Spheres.LodPixelPresets[graphicsMode].lodLevels;
 }
 
 export type GraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance' | 'custom';
@@ -264,6 +266,7 @@ export type GraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance' | 'c
 export function getGraphicsModeProps(graphicsMode: Exclude<GraphicsMode, 'custom'>) {
   return {
     lodLevels: getLodLevels(graphicsMode),
+    lodPixelSize: Spheres.LodPixelPresets[graphicsMode].lodPixelSize,
     approximate: graphicsMode !== 'quality' && graphicsMode !== 'ultra',
     alphaThickness: graphicsMode === 'performance' ? 15 : 12,
   };

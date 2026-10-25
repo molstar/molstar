@@ -7,7 +7,7 @@
 import type { GraphicsBackendDescriptor } from '../backend.js';
 import { WebGL2Backend, WebGLBackend } from '../webgl/backend.js';
 
-/** Backend set WebGL: WebGL2, then WebGL; WebGL only with `preferWebGl1` */
-export function getDefaultGraphicsBackends(options: { preferWebGl1?: boolean } = {}): GraphicsBackendDescriptor[] {
-  return options.preferWebGl1 ? [WebGLBackend] : [WebGL2Backend, WebGLBackend];
+/** Backend set WebGL: WebGL2, then WebGL */
+export function getDefaultGraphicsBackends(): GraphicsBackendDescriptor[] {
+  return [WebGL2Backend, WebGLBackend];
 }

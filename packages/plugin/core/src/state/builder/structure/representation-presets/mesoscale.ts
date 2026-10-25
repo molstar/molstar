@@ -23,8 +23,9 @@ const updateFocusRepr = StructureRepresentationPresetProvider.updateFocusRepr;
 
 type MesoscaleGraphicsMode = keyof typeof Spheres.LodLevelsPresets;
 const MesoscaleGraphicsOptions = PD.arrayToOptions(Object.keys(Spheres.LodLevelsPresets) as MesoscaleGraphicsMode[]);
-function getMesoscaleLodLevels(mode: MesoscaleGraphicsMode) {
-  return Spheres.LodLevelsPresets[mode];
+/** Levels of detail by size on screen (`lodPixelSize`) */
+function getMesoscaleLod(mode: MesoscaleGraphicsMode) {
+  return Spheres.LodPixelPresets[mode];
 }
 
 export const MesoscalePreset = StructureRepresentationPresetProvider({
@@ -53,7 +54,7 @@ export const MesoscalePreset = StructureRepresentationPresetProvider({
     const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
 
     const graphics: MesoscaleGraphicsMode = params.graphics ?? 'quality';
-    const lodLevels = getMesoscaleLodLevels(graphics);
+    const { lodLevels, lodPixelSize } = getMesoscaleLod(graphics);
     const approximate = graphics !== 'quality' && graphics !== 'ultra';
     const alphaThickness = graphics === 'performance' ? 15 : 12;
 
@@ -67,6 +68,7 @@ export const MesoscalePreset = StructureRepresentationPresetProvider({
             ...typeParams,
             instanceGranularity: true,
             lodLevels,
+            lodPixelSize,
             approximate,
             alphaThickness,
             clipPrimitive: true,

@@ -359,4 +359,29 @@ float fbm(in vec3 p) {
 
     return f;
 }
+
+// the unit vector \`n\` octahedral-encoded in 2 × 12 bits over 8-bit rgb, \`a\` (unit interval) in alpha; rgb 0 is not
+// produced (a zero vector, nothing drawn, see \`unpackRGBAToNormal\`)
+vec4 packNormalToRGBA(const in vec3 n, const in float a) {
+    vec2 p = n.xy / (abs(n.x) + abs(n.y) + abs(n.z));
+    if (n.z < 0.0) p = (1.0 - abs(p.yx)) * vec2(p.x >= 0.0 ? 1.0 : -1.0, p.y >= 0.0 ? 1.0 : -1.0);
+    vec2 q = floor(clamp(p * 0.5 + 0.5, 0.0, 1.0) * 4095.0 + 0.5);
+    if (q.x == 0.0 && q.y == 0.0) q.y = 1.0;
+    float xHigh = floor(q.x / 16.0);
+    float yHigh = floor(q.y / 256.0);
+    return vec4(vec3(xHigh, (q.x - xHigh * 16.0) * 16.0 + yHigh, q.y - yHigh * 256.0) / 255.0, a);
+}
+
+// the unit vector of \`packNormalToRGBA\`, a zero vector for rgb 0 (cleared)
+vec3 unpackRGBAToNormal(const in vec4 v) {
+    vec3 c = floor(v.rgb * 255.0 + 0.5);
+    if (c == vec3(0.0)) return vec3(0.0);
+    float gHigh = floor(c.y / 16.0);
+    vec2 p = vec2(c.x * 16.0 + gHigh, (c.y - gHigh * 16.0) * 256.0 + c.z) / 4095.0 * 2.0 - 1.0;
+    vec3 n = vec3(p, 1.0 - abs(p.x) - abs(p.y));
+    float t = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
+}
 `;

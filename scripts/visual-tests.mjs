@@ -31,6 +31,8 @@
 //                  the last few commits kept), so comparing a change needs no run of the commit before it
 //   --images <dir> writes target, reference and diff PNGs of failed cases (of all cases with --all-images)
 //   --skipped      lists the skipped cases with the reason
+//   --draw-lists   the target profiles render with the renderer's draw lists (WebGPU render bundles), each case three
+//                  times and the replayed frame compared
 //   --dry-run      prints the profiles and the case filter of the run (e.g. what --changed selects) and exits
 //   --timing       the time per profile (page loads, renders of target and reference, the slowest shard) and the
 //                  slowest cases; a short summary is always printed
@@ -418,6 +420,7 @@ async function runShard(browser, origin, profile, shard, referenceShard) {
   if (!args.includes('--no-debug')) q.set('debug', '1');
   if (filter) q.set('filter', filter);
   if (tags) q.set('tags', tags);
+  if (args.includes('--draw-lists')) q.set('drawLists', '1');
   const pageStart = Date.now();
   // many pages load at once
   await page.goto(`${origin}/tests/build/visual/index.html?${q}`);
@@ -440,6 +443,7 @@ async function runShard(browser, origin, profile, shard, referenceShard) {
       reason: r.reason,
       metrics: r.metrics,
       timeMs: r.timeMs,
+      warnings: r.warnings,
     };
     if (r.status !== 'skipped') {
       const image = (kind) => page.evaluate(([id, k]) => window.__visualTestImage(id, k), [r.id, kind]);
@@ -621,6 +625,12 @@ async function main() {
     );
     if (listSkipped) {
       for (const r of rows.filter((r) => r.status === 'skipped')) console.log(`  skipped ${r.id}: ${r.reason ?? ''}`);
+    }
+    if (args.includes('--draw-lists')) {
+      const direct = rows.filter((r) => r.warnings?.some((w) => /replayed nothing/.test(w)));
+      console.log(
+        `  draw lists: ${direct.length} cases drawn without replay${direct.length ? `: ${direct.map((r) => r.id).join(', ')}` : ''}`,
+      );
     }
     for (const r of bad) {
       const m = r.metrics ? ` (${r.metrics.diffPixels} px differ)` : '';

@@ -76,9 +76,12 @@ export function ParticleCompartmentColorTheme(
     const palette = getPalette(compartmentCount, props);
     legend = palette.legend;
 
+    // a color per compartment, not per particle (the palette interpolates)
+    const colors: Color[] = [];
+    for (let k = 0; k < compartmentCount; ++k) colors[k] = palette.color(k);
     const pick = (particleIndex: number) => {
       const ci = colorIndex[particleIndex];
-      return ci >= 0 ? palette.color(ci) : DefaultColor;
+      return ci >= 0 ? colors[ci] : DefaultColor;
     };
 
     color = (location: Location): Color => {

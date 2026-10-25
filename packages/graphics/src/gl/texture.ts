@@ -9,7 +9,7 @@ import { idFactory } from '@molstar/core/util/id-factory';
 import type { ValueOf } from '@molstar/core/util/type-helpers';
 import type { Framebuffer } from './framebuffer.js';
 import type { GraphicsContext } from './context.js';
-import type { TextureImage, TextureVolume } from './renderable/util.js';
+import type { DataArray, TextureImage, TextureVolume } from './renderable/util.js';
 
 /** shared by all backends, texture ids are used as cache keys */
 export const getNextTextureId = idFactory();
@@ -69,6 +69,18 @@ export interface Texture {
    * `define` or `load` without `sub` must have been called before.
    */
   load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub?: boolean) => void;
+  /**
+   * Writes the data array `data` (`DataSpec`) at element `offset` of the texture of `width` × `height` texels (allocated
+   * at that size where it is another), an element per texel row by row: its element `ranges` (`[start, end)` pairs, see
+   * `TextureChanges`), all where undefined. A backend's data texture (WebGL)
+   */
+  loadData?: (data: DataArray<any>, width: number, height: number, offset?: number, ranges?: readonly number[]) => void;
+  /**
+   * Writes the `rows` (`[start, end)` pairs) of the 2d `image` into the texture that holds an earlier state of it at its
+   * size (`TextureChanges.writeRows`), the other rows kept; `image` stays the texture's source. Loads all of it where
+   * the texture holds another size, or the image is flipped
+   */
+  loadRows?: (image: TextureImage<any>, rows: readonly number[]) => void;
   /** no-op where unsupported (non-power-of-two sizes on WebGL1) */
   mipmap: () => void;
   /** Use `layer` to attach a z-slice of a 3D texture */
@@ -91,6 +103,12 @@ export interface Texture {
 
   /** How the texture was created and the data of its last `load`, see `transferTexture` */
   getSource?: () => TextureSource;
+
+  /**
+   * Frees the GPU storage, keeping the size: the next write allocates it again (`define`, lazy storage), the contents
+   * are lost. For render targets of passes that stopped drawing into them.
+   */
+  releaseStorage: () => void;
 
   destroy: () => void;
 }
@@ -193,6 +211,7 @@ export function createNullTexture(): Texture {
       throw new Error('cannot copy to null-texture');
     },
 
+    releaseStorage: () => {},
     destroy: () => {},
   };
   NullTextures.add(texture);

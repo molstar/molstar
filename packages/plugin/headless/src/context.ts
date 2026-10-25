@@ -7,7 +7,7 @@
 import fs from 'fs';
 import type { PNG } from 'pngjs'; // Only import type here, the actual import must be provided by the caller
 
-import type { Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
+import type { Canvas3D, Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PostprocessingProps } from '@molstar/graphics/canvas3d/passes/postprocessing';
 import { Task } from '@molstar/core/task';
 import { PluginContext } from '@molstar/plugin/context';
@@ -35,6 +35,8 @@ export class HeadlessPluginContext extends PluginContext {
     super(spec);
     this.renderer = renderer ?? new HeadlessScreenshotHelper(externalModules, canvasSize, undefined, rendererOptions);
     (this.canvas3d as Canvas3D) = this.renderer.canvas3d;
+    // its props (transparency, pick scale) are set through the plugin (`setCanvas3DContextProps`, state snapshots)
+    (this.canvas3dContext as Canvas3DContext | undefined) = this.renderer.canvas3dContext;
   }
 
   /** Like the constructor, also for the `webgpu` backend (`rendererOptions.backend`), whose device is requested asynchronously */

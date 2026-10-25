@@ -11,7 +11,12 @@ import {
   canMergeRenderObjects,
   createMergedRenderObject,
 } from '@molstar/graphics/gl/render-object';
-import { type RenderMergedValue, resolveRenderMerged } from '@molstar/graphics/geo/geometry/base';
+import {
+  type GpuCullingValue,
+  type RenderMergedValue,
+  resolveGpuCulling,
+  resolveRenderMerged,
+} from '@molstar/graphics/geo/geometry/base';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
@@ -97,6 +102,10 @@ export function mergeRenderObjectsByType<V>(
   renderMerged: RenderMergedValue,
   prevMergedByType: ReadonlyMap<string, MergedEntry<V>>,
   renderObjects: GraphicsRenderObject[],
+  /** culled on the GPU (`BaseGeometry.Params.gpuCulling`): a merged object of the other kind is a new one */
+  gpuCulling: GpuCullingValue = false,
+  /** whether the device culls on the GPU (`canCullOnGpu`): else no group is merged for it */
+  gpuSupported = false,
 ): Map<string, MergedEntry<V>> {
   renderObjects.length = 0;
   const nextMerged = new Map<string, MergedEntry<V>>();
@@ -110,20 +119,38 @@ export function mergeRenderObjectsByType<V>(
       else byType.set(e.renderObject.type, [e]);
     }
     byType.forEach((group, type) => {
-      if (group.length < 2 || !resolveRenderMerged(renderMerged, group.length)) return;
+      // culled on the GPU where many instances per draw (a segment and level): merged for it, also one object alone
+      let instances = 0;
+      for (const e of group) instances += e.renderObject.values.instanceCount.ref.value;
+      const levels = (group[0].renderObject.values as { lodLevels?: { ref: { value: unknown[] } } }).lodLevels;
+      const draws = group.length * Math.max(1, levels?.ref.value.length ?? 0);
+      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws);
+      const merge = gpu || (group.length >= 2 && resolveRenderMerged(renderMerged, group.length));
+      if (!merge) return;
 
-      const key = group.map((e) => e.renderObject.id).join(',');
+      const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}`;
       const prev = prevMergedByType.get(type);
       const same = !!prev && prev.key === key;
+      // the members checked again only where one of them changed what merging reads (the key: the same members, the
+      // same culling and so the same least count)
       if (!same || !group.every((e) => isMergeFingerprintUnchanged(e.renderObject))) {
-        if (!canMergeRenderObjects(group.map((e) => e.renderObject))) return;
+        if (
+          !canMergeRenderObjects(
+            group.map((e) => e.renderObject),
+            gpu ? 1 : 2,
+          )
+        )
+          return;
         for (const e of group) recordMergeFingerprint(e.renderObject);
       }
 
       const entry = same
         ? prev!
         : {
-            object: createMergedRenderObject(group.map((e) => e.renderObject)),
+            object: createMergedRenderObject(
+              group.map((e) => e.renderObject),
+              { gpuCulling: gpu },
+            ),
             visuals: group.map((e) => e.visual),
             key,
           };

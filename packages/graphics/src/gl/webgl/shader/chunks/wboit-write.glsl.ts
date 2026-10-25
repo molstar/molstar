@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -12,7 +12,13 @@ export const wboit_write = `
             discard;
         }
     } else if (uRenderMask == MaskTransparent) {
-        if (preFogAlpha != 1.0 && fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
+        // opaque fragments are drawn in the opaque pass; direct volumes have none: drawn here also where opaque
+        #ifdef dGeometryType_directVolume
+            bool wboitOpaque = false;
+        #else
+            bool wboitOpaque = preFogAlpha == 1.0;
+        #endif
+        if (!wboitOpaque && fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
             #ifdef dTransparentBackfaces_off
                 if (interior) discard;
             #endif

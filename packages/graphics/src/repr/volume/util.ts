@@ -15,12 +15,13 @@ import { Box3D } from '@molstar/core/math/geometry';
 import { toHalfFloat } from '@molstar/core/util/number-conversion';
 import { clamp } from '@molstar/core/math/interpolate';
 import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
-import type { Tensor } from '@molstar/core/math/linear-algebra/tensor';
+import { Tensor } from '@molstar/core/math/linear-algebra/tensor';
 import { Interval } from '@molstar/core/data/int/interval';
 import type { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import type { Image } from '@molstar/graphics/geo/geometry/image/image';
+import { type BrickRange, BrickSize } from '@molstar/graphics/geo/geometry/direct-volume/direct-volume';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { GraphicsFeature } from '@molstar/graphics/gl/capabilities';
 import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
@@ -300,13 +301,111 @@ export function createVolumeTexture2d(
   return textureImage;
 }
 
-export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | 'halfFloat' = 'byte') {
+/**
+ * The values of a 3d grid and the strides to read them by (`data[x * sx + y * sy + z * sz]`): the data itself where the
+ * space is linear (`Tensor.strides`), else a copy in x-fastest order read once through the space's accessors (spaces
+ * that override them: periodic and wrapped volumes, which `dataOffset` maps modulo the data)
+ */
+function getStridedGrid(cells: Tensor): { data: ArrayLike<number>; sx: number; sy: number; sz: number } {
+  const { space, data } = cells;
+  const strides = Tensor.strides(space);
+  if (strides) return { data, sx: strides[0], sy: strides[1], sz: strides[2] };
+  const [nx, ny, nz] = space.dimensions;
+  const copy = new Float32Array(nx * ny * nz);
+  for (let z = 0, i = 0; z < nz; ++z) {
+    for (let y = 0; y < ny; ++y) {
+      for (let x = 0; x < nx; ++x, ++i) copy[i] = data[space.dataOffset(x, y, z)];
+    }
+  }
+  return { data: copy, sx: 1, sy: nx, sz: nx * ny };
+}
+
+/**
+ * The value range per brick of `BrickSize`³ cells (`BrickRange`): the grid's values normalized by its min and max (as in
+ * `createVolumeTexture3d`), of a brick's cells and the next cell along each axis, times 255 and rounded outwards
+ */
+export function createVolumeBrickRange(volume: Volume): BrickRange {
   const {
-    cells: { space, data },
+    cells,
     stats: { max, min },
   } = volume.grid;
-  const [width, height, depth] = space.dimensions as Vec3;
-  const { dataOffset: o } = space;
+  const [nx, ny, nz] = cells.space.dimensions as Vec3;
+  // offsets from strides, not `dataOffset` per cell (polymorphic, slow)
+  const { data, sx, sy, sz } = getStridedGrid(cells);
+
+  const bx = Math.ceil(nx / BrickSize);
+  const by = Math.ceil(ny / BrickSize);
+  const bz = Math.ceil(nz / BrickSize);
+  const bxy = bx * by;
+  const count = bxy * bz;
+  // per brick the lowest and highest value, normalized, times 255; rounded once at the end
+  const lows = new Float32Array(count).fill(Infinity);
+  const highs = new Float32Array(count).fill(-Infinity);
+  const scale = max > min ? 255 / (max - min) : 0;
+
+  // per x its brick column, and whether it is on a brick's lower face (the next cell of the brick before)
+  const brickX = new Int32Array(nx);
+  const faceX = new Uint8Array(nx);
+  for (let x = 0; x < nx; ++x) {
+    brickX[x] = Math.floor(x / BrickSize);
+    faceX[x] = x > 0 && x % BrickSize === 0 ? 1 : 0;
+  }
+
+  let v = 0;
+  const add = (b: number) => {
+    if (v < lows[b]) lows[b] = v;
+    if (v > highs[b]) highs[b] = v;
+  };
+
+  for (let z = 0; z < nz; ++z) {
+    const bz0 = Math.floor(z / BrickSize);
+    const ez = z > 0 && z % BrickSize === 0;
+    for (let y = 0; y < ny; ++y) {
+      const by0 = Math.floor(y / BrickSize);
+      const ey = y > 0 && y % BrickSize === 0;
+      const row = bz0 * bxy + by0 * bx;
+      let i = z * sz + y * sy;
+      for (let x = 0; x < nx; ++x, i += sx) {
+        v = (data[i] - min) * scale;
+        const b = row + brickX[x];
+        if (v < lows[b]) lows[b] = v;
+        if (v > highs[b]) highs[b] = v;
+        if (faceX[x] === 0 && !ey && !ez) continue;
+        const ex = faceX[x] === 1;
+        if (ex) add(b - 1);
+        if (ey) {
+          add(b - bx);
+          if (ex) add(b - bx - 1);
+        }
+        if (ez) {
+          add(b - bxy);
+          if (ex) add(b - bxy - 1);
+          if (ey) {
+            add(b - bxy - bx);
+            if (ex) add(b - bxy - bx - 1);
+          }
+        }
+      }
+    }
+  }
+
+  const array = new Uint8Array(count * 2);
+  for (let b = 0; b < count; ++b) {
+    // a little wider than the values: half-float data rounds
+    array[2 * b] = clamp(Math.floor(lows[b] - 0.01), 0, 255);
+    array[2 * b + 1] = clamp(Math.ceil(highs[b] + 0.01), 0, 255);
+  }
+  return { array, dim: Vec3.create(bx, by, bz) };
+}
+
+export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | 'halfFloat' = 'byte') {
+  const {
+    cells,
+    stats: { max, min },
+  } = volume.grid;
+  const [width, height, depth] = cells.space.dimensions as Vec3;
+  // offsets from strides, not `dataOffset` per cell (polymorphic, seven calls a cell)
+  const { data, sx, sy, sz } = getStridedGrid(cells);
 
   const array =
     type === 'byte'
@@ -316,48 +415,54 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
         : new Float32Array(width * height * depth * 4);
   const textureVolume = { array, width, height, depth };
   const diff = max - min;
-
-  const n0 = Vec3();
-  const n1 = Vec3();
-
-  const width1 = width - 1;
-  const height1 = height - 1;
-  const depth1 = depth - 1;
+  const byte = type === 'byte';
+  const half = type === 'halfFloat';
 
   let i = 0;
   for (let z = 0; z < depth; ++z) {
+    // the neighbors' offsets, clamped at the grid's faces
+    const zm = z > 0 ? -sz : 0;
+    const zp = z < depth - 1 ? sz : 0;
     for (let y = 0; y < height; ++y) {
-      for (let x = 0; x < width; ++x) {
-        const offset = o(x, y, z);
+      const ym = y > 0 ? -sy : 0;
+      const yp = y < height - 1 ? sy : 0;
+      let offset = z * sz + y * sy;
+      for (let x = 0; x < width; ++x, offset += sx, i += 4) {
+        const xm = x > 0 ? -sx : 0;
+        const xp = x < width - 1 ? sx : 0;
 
-        v3set(
-          n0,
-          data[o(Math.max(0, x - 1), y, z)],
-          data[o(x, Math.max(0, y - 1), z)],
-          data[o(x, y, Math.max(0, z - 1))],
-        );
-        v3set(
-          n1,
-          data[o(Math.min(width1, x + 1), y, z)],
-          data[o(x, Math.min(height1, y + 1), z)],
-          data[o(x, y, Math.min(depth1, z + 1))],
-        );
-        v3normalize(n0, v3sub(n0, n0, n1));
-        v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
-
-        if (type === 'byte') {
-          v3toArray(v3scale(n0, n0, 255), array, i);
-          array[i + 3] = Math.round(((data[offset] - min) / diff) * 255);
-        } else if (type === 'halfFloat') {
-          array[i] = toHalfFloat(n0[0]);
-          array[i + 1] = toHalfFloat(n0[1]);
-          array[i + 2] = toHalfFloat(n0[2]);
-          array[i + 3] = toHalfFloat((data[offset] - min) / diff);
-        } else {
-          v3toArray(n0, array, i);
-          array[i + 3] = (data[offset] - min) / diff;
+        // the normal: the negated central differences, normalized (zero stays zero), mapped to [0, 1]
+        let nx = data[offset + xm] - data[offset + xp];
+        let ny = data[offset + ym] - data[offset + yp];
+        let nz = data[offset + zm] - data[offset + zp];
+        const len = nx * nx + ny * ny + nz * nz;
+        if (len > 0) {
+          const inv = 1 / Math.sqrt(len);
+          nx *= inv;
+          ny *= inv;
+          nz *= inv;
         }
-        i += 4;
+        nx = nx * 0.5 + 0.5;
+        ny = ny * 0.5 + 0.5;
+        nz = nz * 0.5 + 0.5;
+        const value = (data[offset] - min) / diff;
+
+        if (byte) {
+          array[i] = nx * 255;
+          array[i + 1] = ny * 255;
+          array[i + 2] = nz * 255;
+          array[i + 3] = Math.round(value * 255);
+        } else if (half) {
+          array[i] = toHalfFloat(nx);
+          array[i + 1] = toHalfFloat(ny);
+          array[i + 2] = toHalfFloat(nz);
+          array[i + 3] = toHalfFloat(value);
+        } else {
+          array[i] = nx;
+          array[i + 1] = ny;
+          array[i + 2] = nz;
+          array[i + 3] = value;
+        }
       }
     }
   }

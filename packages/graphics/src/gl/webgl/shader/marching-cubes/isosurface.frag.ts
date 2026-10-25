@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 import { common } from '../chunks/common.glsl.js';
 
 export const isosurface_frag = `
@@ -86,6 +92,35 @@ vec4 getGroup(const in vec3 p) {
     #endif
     return vec4(group > 16777215.5 ? vec3(1.0) : packIntToRGB(group), 1.0);
 }
+
+#ifdef dPackedGroup
+    // a corner of the cell of case \`k\` with a group (rgb not 0): the first inside the surface (its case bit unset), else
+    // the first outside
+    void cornerGroup(const in vec3 pos, const in float k, const in float bit, inout vec3 inside, inout vec3 outside) {
+        if (inside != vec3(0.0)) return;
+        vec3 rgb = voxel(pos).rgb;
+        if (rgb == vec3(0.0)) return;
+        if (mod(floor(k / bit), 2.0) < 0.5) inside = rgb;
+        else if (outside == vec3(0.0)) outside = rgb;
+    }
+
+    // the packed group of the cell at \`p\` of case \`k\`: its first corner's; where that corner has none (beyond the range
+    // the density records the nearest atom in, e.g. at coarse resolutions), an inside corner's, else an outside one's
+    vec3 cellGroup(const in vec3 p, const in float k) {
+        vec3 first = voxel(p).rgb;
+        if (first != vec3(0.0)) return first;
+        vec3 inside = vec3(0.0);
+        vec3 outside = vec3(0.0);
+        cornerGroup(p + c1, k, 2.0, inside, outside);
+        cornerGroup(p + c2, k, 4.0, inside, outside);
+        cornerGroup(p + c3, k, 8.0, inside, outside);
+        cornerGroup(p + c4, k, 16.0, inside, outside);
+        cornerGroup(p + c5, k, 32.0, inside, outside);
+        cornerGroup(p + c6, k, 64.0, inside, outside);
+        cornerGroup(p + c7, k, 128.0, inside, outside);
+        return inside != vec3(0.0) ? inside : outside;
+    }
+#endif
 
 void main(void) {
     // get 1D index
@@ -259,7 +294,7 @@ void main(void) {
         // webgl1 does not support 'flat' interpolation (i.e. no interpolation)
         // ensure a constant group id per triangle as needed
         #ifdef dPackedGroup
-            gl_FragData[1] = vec4(voxel(coord3d).rgb, 1.0);
+            gl_FragData[1] = vec4(cellGroup(coord3d, edgeIndex), 1.0);
         #else
             gl_FragData[1] = getGroup(coord3d);
         #endif
@@ -271,17 +306,19 @@ void main(void) {
         #endif
     #endif
 
-    // normals from gradients
-    vec3 n0 = -normalize(vec3(
+    // normals from gradients; a flat neighbourhood has none (normalize of a zero vector is undefined)
+    vec3 g0 = vec3(
         voxelValuePadded(b0 - c1) - voxelValuePadded(b0 + c1),
         voxelValuePadded(b0 - c3) - voxelValuePadded(b0 + c3),
         voxelValuePadded(b0 - c4) - voxelValuePadded(b0 + c4)
-    ));
-    vec3 n1 = -normalize(vec3(
+    );
+    vec3 g1 = vec3(
         voxelValuePadded(b1 - c1) - voxelValuePadded(b1 + c1),
         voxelValuePadded(b1 - c3) - voxelValuePadded(b1 + c3),
         voxelValuePadded(b1 - c4) - voxelValuePadded(b1 + c4)
-    ));
+    );
+    vec3 n0 = g0 == vec3(0.0) ? vec3(0.0) : -normalize(g0);
+    vec3 n1 = g1 == vec3(0.0) ? vec3(0.0) : -normalize(g1);
     gl_FragData[2].xyz = -vec3(
         n0.x + t * (n0.x - n1.x),
         n0.y + t * (n0.y - n1.y),

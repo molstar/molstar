@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -73,13 +74,13 @@ function expectState(renderObjects: ReadonlyArray<GraphicsRenderObject>) {
   expect(renderObjects.length).toBeGreaterThan(0);
   for (const ro of renderObjects) {
     expect(ro.state.visible).toBe(false);
-    expect(ro.state.alphaFactor).toBe(0.25);
+    expect(ro.state.pickable).toBe(false);
     expect(Mat4.areEqual(ro.values.matrix.ref.value as Mat4, transform, 1e-6)).toBe(true);
   }
 }
 
 describe('new render objects get the representation state (perf-audit-2 07/B1)', () => {
-  it('volume: data that is not equivalent keeps visibility, alpha and transform', async () => {
+  it('volume: data that is not equivalent keeps visibility, pickability and transform', async () => {
     const provider = IsosurfaceRepresentationProvider;
     const v1 = createVolume(3);
     const repr = provider.factory({ ...registries }, provider.getParams);
@@ -93,7 +94,7 @@ describe('new render objects get the representation state (perf-audit-2 07/B1)',
     await repr.createOrUpdate(params, v1).runInContext(RuntimeContext.Synchronous);
     const before = repr.renderObjects[0];
 
-    repr.setState({ visible: false, alphaFactor: 0.25, transform });
+    repr.setState({ visible: false, pickable: false, transform });
     // a streamed box: new data, a new render object
     await repr.createOrUpdate(params, createVolume(2)).runInContext(RuntimeContext.Synchronous);
 
@@ -107,7 +108,7 @@ describe('new render objects get the representation state (perf-audit-2 07/B1)',
     const particles = createParticles();
     const repr = provider.factory({ ...registries }, provider.getParams);
     repr.setTheme(Theme.create(registries, {}, { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'uniform' } }));
-    repr.setState({ visible: false, alphaFactor: 0.25, transform });
+    repr.setState({ visible: false, pickable: false, transform });
 
     const params = PD.getDefaultValues(provider.getParams(registries, particles));
     await repr.createOrUpdate(params, particles).runInContext(RuntimeContext.Synchronous);

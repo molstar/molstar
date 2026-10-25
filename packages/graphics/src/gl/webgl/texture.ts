@@ -6,12 +6,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { SegmentedArray } from '../segmented-array.js';
 import type { WebGLContext } from './context.js';
-import type { TextureImage, TextureVolume } from '../renderable/util.js';
+import type { DataArray, TextureImage, TextureVolume } from '../renderable/util.js';
 import type { RenderableSchema } from '../renderable/schema.js';
 import type { SharedTexture, SharedTextureImage } from '../shared-texture.js';
 import type { Framebuffer } from '../framebuffer.js';
-import { getFramebufferHeight, setFramebufferHeight, setIntegerColorAttachment } from './framebuffer.js';
+import {
+  bindForAttachment,
+  getFramebufferHeight,
+  setAttachmentStorage,
+  setFramebufferHeight,
+  setIntegerColorAttachment,
+} from './framebuffer.js';
 import { endRenderPass } from './render-pass.js';
 import type { WebGLState } from './state.js';
 import { isWebGL2, type GLRenderingContext } from './compat.js';
@@ -221,6 +228,9 @@ function isImage(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement): 
   return typeof HTMLImageElement !== 'undefined' && x instanceof HTMLImageElement;
 }
 
+/** Bytes of rows composed per upload of a segmented data array */
+const SegmentedChunkBytes = 4 * 1024 * 1024;
+
 function isTexture2d(
   x: TextureImage<any> | TextureVolume<any>,
   target: number,
@@ -324,6 +334,7 @@ export function createTexture(
   /** binding a texture replaces the one on the active unit, render items have to rebind theirs */
   function invalidateBindings() {
     state.currentRenderItemId = -1;
+    state.boundTextures.length = 0;
   }
 
   function init() {
@@ -348,8 +359,35 @@ export function createTexture(
   /** draw framebuffer with this texture attached, for `copyFromFramebuffer` on WebGL2 */
   let blitFramebuffer: WebGLFramebuffer | null = null;
 
+  /** the size of the GL image (the storage), the defined size once allocated, see `ensureStorage` */
+  let storedWidth = 0,
+    storedHeight = 0,
+    storedDepth = 0;
+  const is3d = isWebGL2(gl) && target === gl.TEXTURE_3D;
+
+  /** Specifies the GL image of the given size, contents undefined */
+  function specify(w: number, h: number, d: number) {
+    invalidateBindings();
+    gl.bindTexture(target, texture);
+    if (target === gl.TEXTURE_2D) {
+      gl.texImage2D(target, 0, internalFormat, w, h, 0, format, type, null);
+    } else if (is3d) {
+      gl.texImage3D(target, 0, internalFormat, w, h, d, 0, format, type, null);
+    } else {
+      throw new Error('unknown texture target');
+    }
+    // not left bound at the active unit: a sampler no pass provides would read it, also while it is drawn into
+    gl.bindTexture(target, null);
+    (storedWidth = w), (storedHeight = h), (storedDepth = d);
+  }
+
+  /**
+   * Records the size; the storage is allocated when the texture is first used as an attachment of a bound framebuffer,
+   * copied into or partially loaded (`ensureStorage`). Until then the GL image is 1×1: sampled, it reads zero as an
+   * undefined texture.
+   */
   function define(_width: number, _height: number, _depth?: number) {
-    if (_width === 0 || _height === 0 || (isWebGL2(gl) && target === gl.TEXTURE_3D && _depth === 0)) {
+    if (_width === 0 || _height === 0 || (is3d && _depth === 0)) {
       throw new Error('empty textures are not allowed');
     }
 
@@ -357,17 +395,69 @@ export function createTexture(
 
     sourceData = undefined;
     (width = _width), (height = _height), (depth = _depth || 0);
-    invalidateBindings();
-    gl.bindTexture(target, texture);
-    if (target === gl.TEXTURE_2D) {
-      gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, null);
-    } else if (isWebGL2(gl) && target === gl.TEXTURE_3D && depth !== undefined) {
-      gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null);
-    } else {
-      throw new Error('unknown texture target');
-    }
+    // storage of another size released
+    const d = is3d ? 1 : 0;
+    if (storedWidth !== 1 || storedHeight !== 1 || storedDepth !== d) specify(1, 1, d);
   }
-  define(1, 1, isWebGL2(gl) && target === gl.TEXTURE_3D ? 1 : 0);
+  define(1, 1, is3d ? 1 : 0);
+
+  /** Allocates the storage of the defined size, see `define` */
+  function ensureStorage() {
+    if (destroyed) return;
+    if (storedWidth !== width || storedHeight !== height || storedDepth !== depth) specify(width, height, depth);
+  }
+
+  /** components per texel of a data array: a data element per texel */
+  const dataItemSize = _format === 'r' ? 1 : 4;
+
+  /**
+   * Writes `data` (`DataSpec`) at element `offset` of the texture of `w` × `h` texels (allocated at that size where it is
+   * another), an element per texel row by row: the element `ranges` of `data` (`[start, end)` pairs), all where
+   * undefined. Whole rows from views of the array, the partial rows at the ends apart, no padded copy (composed from the
+   * parts where segmented, a few rows at a time)
+   */
+  function loadData(data: DataArray<any>, w: number, h: number, offset = 0, ranges?: readonly number[]) {
+    const array = data.array as (ArrayBufferView & ArrayLike<number>) | SegmentedArray;
+    const count = data.count;
+    invalidateBindings();
+    if (storedWidth !== w || storedHeight !== h) {
+      (width = w), (height = h), (depth = 0);
+      specify(w, h, 0);
+    }
+    gl.bindTexture(target, texture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    const segmented = SegmentedArray.is(array);
+    const read = (start: number, end: number) =>
+      segmented
+        ? SegmentedArray.read(array, start * dataItemSize, end * dataItemSize)
+        : (array as unknown as Uint8Array).subarray(start * dataItemSize, end * dataItemSize);
+    const chunkRows = segmented
+      ? Math.max(1, Math.floor(SegmentedChunkBytes / (w * dataItemSize * array.BYTES_PER_ELEMENT)))
+      : h;
+    const upload = (start: number, end: number) => {
+      end = Math.min(end, count);
+      let s = start;
+      if (end <= s) return;
+      // the elements before the first whole row
+      const x = (offset + s) % w;
+      if (x !== 0) {
+        const n = Math.min(end - s, w - x);
+        gl.texSubImage2D(target, 0, x, Math.floor((offset + s) / w), n, 1, format, type, read(s, s + n));
+        s += n;
+      }
+      while (end - s >= w) {
+        const rows = Math.min(chunkRows, Math.floor((end - s) / w));
+        gl.texSubImage2D(target, 0, 0, (offset + s) / w, w, rows, format, type, read(s, s + rows * w));
+        s += rows * w;
+      }
+      if (end > s) gl.texSubImage2D(target, 0, 0, (offset + s) / w, end - s, 1, format, type, read(s, end));
+    };
+    if (ranges) for (let k = 0; k < ranges.length; k += 2) upload(ranges[k], ranges[k + 1]);
+    else upload(0, count);
+    gl.bindTexture(target, null);
+    sourceData = undefined;
+  }
 
   function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub = false) {
     if (
@@ -378,6 +468,8 @@ export function createTexture(
       throw new Error('empty textures are not allowed');
     }
 
+    // partial loads write into the storage of the defined size
+    if (sub) ensureStorage();
     invalidateBindings();
     gl.bindTexture(target, texture);
     // unpack alignment of 1 since we use textures only for data
@@ -386,6 +478,7 @@ export function createTexture(
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
     if (isImage(data)) {
       (width = data.width), (height = data.height);
+      (storedWidth = width), (storedHeight = height);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, format, type, data);
@@ -398,6 +491,7 @@ export function createTexture(
         gl.texSubImage2D(target, 0, 0, 0, data.width, data.height, format, type, data.array);
       } else {
         (width = data.width), (height = data.height);
+        (storedWidth = width), (storedHeight = height), (storedDepth = depth);
         gl.texImage2D(target, 0, internalFormat, width, height, 0, format, type, data.array);
       }
     } else if (isWebGL2(gl) && isTexture3d(data, target, gl)) {
@@ -406,6 +500,7 @@ export function createTexture(
         gl.texSubImage3D(target, 0, 0, 0, 0, data.width, data.height, data.depth, format, type, data.array);
       } else {
         (width = data.width), (height = data.height), (depth = data.depth);
+        (storedWidth = width), (storedHeight = height), (storedDepth = depth);
         gl.texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, data.array);
       }
     } else {
@@ -415,12 +510,36 @@ export function createTexture(
     sourceData = sub ? undefined : data;
   }
 
+  /** `Texture.loadRows`: the rows from views of the array, as `loadData` writes */
+  function loadRows(image: TextureImage<any>, rows: readonly number[]) {
+    if (target !== gl.TEXTURE_2D || image.flipY || storedWidth !== image.width || storedHeight !== image.height) {
+      load(image);
+      return;
+    }
+    const array = image.array as Uint8Array;
+    const stride = array.length / image.height;
+    invalidateBindings();
+    gl.bindTexture(target, texture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    for (let k = 0; k < rows.length; k += 2) {
+      const start = rows[k];
+      const end = Math.min(rows[k + 1], image.height);
+      if (end <= start) continue;
+      const data = array.subarray(start * stride, end * stride);
+      gl.texSubImage2D(target, 0, 0, start, image.width, end - start, format, type, data);
+    }
+    gl.bindTexture(target, null);
+    sourceData = image;
+  }
+
   function mipmap() {
     if (target !== gl.TEXTURE_2D) {
       throw new Error('mipmap only supported for 2d textures');
     }
 
     if (isWebGL2(gl) || (isPowerOfTwo(width) && isPowerOfTwo(height))) {
+      ensureStorage();
       invalidateBindings();
       gl.bindTexture(target, texture);
       gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
@@ -437,7 +556,8 @@ export function createTexture(
   function attachFramebuffer(framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) {
     const att = resolveAttachment(attachment);
     endRenderPass(state);
-    framebuffer.bind();
+    bindForAttachment(gl, framebuffer);
+    setAttachmentStorage(gl, framebuffer, getAttachment(gl, extensions, att), { kind: 'texture', id }, ensureStorage);
     if (att === 'depth-stencil') {
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, null);
     }
@@ -465,10 +585,12 @@ export function createTexture(
     getHeight: () => height,
     getDepth: () => depth,
 
-    getByteCount: () => getByteCount(_format, _type, width, height, depth),
+    getByteCount: () => getByteCount(_format, _type, storedWidth, storedHeight, storedDepth),
 
     define,
     load,
+    loadData,
+    loadRows,
     mipmap,
     getSource: () => ({ kind, format: _format, type: _type, filter: _filter, data: sourceData, mipmap: hasMipmap }),
     bind: (id: TextureId) => {
@@ -476,6 +598,7 @@ export function createTexture(
       gl.bindTexture(target, texture);
     },
     unbind: (id: TextureId) => {
+      invalidateBindings();
       gl.activeTexture(gl.TEXTURE0 + id);
       gl.bindTexture(target, null);
     },
@@ -483,7 +606,8 @@ export function createTexture(
     detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => {
       const att = resolveAttachment(attachment);
       endRenderPass(state);
-      framebuffer.bind();
+      bindForAttachment(gl, framebuffer);
+      setAttachmentStorage(gl, framebuffer, getAttachment(gl, extensions, att), undefined);
       if (target === gl.TEXTURE_2D) {
         gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(gl, extensions, att), gl.TEXTURE_2D, null, 0);
       } else if (isWebGL2(gl) && target === gl.TEXTURE_3D) {
@@ -507,6 +631,7 @@ export function createTexture(
       const y = getFramebufferHeight(framebuffer) - srcY - h;
       const dstY = height - dstTopY - h;
       endRenderPass(state);
+      ensureStorage();
       framebuffer.bind();
       if (isWebGL2(gl)) {
         // blit into a framebuffer with this texture attached, leaves the texture units alone
@@ -530,6 +655,14 @@ export function createTexture(
         gl.copyTexSubImage2D(target, 0, dstX, dstY, x, y, w, h);
         gl.bindTexture(target, null);
       }
+    },
+    releaseStorage: () => {
+      if (destroyed) return;
+      sourceData = undefined;
+      hasMipmap = false;
+      // a 1×1 image until written again at the defined size (`ensureStorage`)
+      const d = is3d ? 1 : 0;
+      if (storedWidth !== 1 || storedHeight !== 1 || storedDepth !== d) specify(1, 1, d);
     },
     destroy: () => {
       if (destroyed) return;
@@ -560,6 +693,8 @@ export function createTextures(
           const held = resources.sharedTextures.acquire(spec, value.ref.value as SharedTextureImage);
           shared.set(k, held);
           textures[textures.length] = [k, held.texture];
+        } else if (spec.data !== undefined) {
+          // a data array (`DataSpec`): in a range of the data pages, which the render item binds
         } else {
           const texture = resources.texture(spec.kind, spec.format, spec.dataType, spec.filter);
           texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
@@ -697,6 +832,8 @@ export function createCubeTexture(
     copyFromFramebuffer: () => {
       throw new Error('copy not supported for cube textures');
     },
+    // loaded from images, not a target
+    releaseStorage: () => {},
 
     destroy: () => {
       if (destroyed) return;

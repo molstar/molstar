@@ -253,6 +253,10 @@ export class PickPass {
     }
     const pass = { name: 'pick', variant } as const;
     b.renderer(pass, scene.primitives, () => renderer.renderPick(scene.primitives, camera, variant, pickType));
+    // direct volumes are picked where they look solid (their `surfaceOpacity`), a depth they write
+    if (this.graphics.capabilities.fragDepth) {
+      b.renderer(pass, scene.volumes, () => renderer.renderPick(scene.volumes, camera, variant, pickType));
+    }
 
     if (helper.handle.isEnabled) {
       b.renderer(pass, helper.handle.scene, () => renderer.renderPick(helper.handle.scene, camera, variant, pickType));

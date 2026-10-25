@@ -95,7 +95,7 @@ export const assign_wiggle_wgsl = /* wgsl */ `
             let wiggleGroupInstance = i32(in.aInstance * f32(uObject.uGroupCount) + group);
         #endif
         let wiggleIndex = select(wiggleGroupInstance, i32(in.aInstance), uObject.uInstanceGranularity != 0u);
-        let wiggle = readFromTexture(tWiggle, wiggleIndex).r * uMaterial.uWiggleStrength;
+        let wiggle = read_tWiggle(wiggleIndex).r * uMaterial.uWiggleStrength;
     #else
         let wiggle = 0.0;
     #endif

@@ -188,6 +188,15 @@ arguments.
 (`visualCtor(materialId, data, props, graphics)`) and `applyMesh*Smoothing` take a `GraphicsContext`; use
 `isWebGLContext` from `@molstar/graphics/gl/webgl/context` for WebGL-only code paths.
 
+The visual constructors of `UnitsRepresentation`, `ComplexRepresentation`, `VolumeRepresentation` and
+`ParticleRepresentation` are a `VisualFactory` (`@molstar/graphics/repr/visual-factory`): either
+`(materialId) => visual`, creating the same visual whatever the data, props and context, or a factory made by
+`selectVisual` (choosing by the data, props and context) or `chooseVisual` (by the props and context), which names the
+visuals it may create for signatures. A selecting factory gets the data its visuals' `mustRecreate` gets: the symmetry
+group (`StructureGroup`) of a units representation, `{ volume, key }` (`VolumeKey`) and `{ particles }`
+(`ParticleKey`) in place of the separate arguments. `withSignatureVisuals` is removed; impostor and mesh visuals no
+longer recreate themselves (`mustRecreate`), their factory does when its choice changes.
+
 Render items are created through the context: `createGraphicsRenderItem(ctx, ...)` and
 `createComputeRenderItem(ctx, ...)` from `@molstar/graphics/gl/webgl/render-item` become
 `ctx.createGraphicsRenderItem(...)` and `ctx.createComputeRenderItem(...)`. `RenderItem.getProgram` and
@@ -289,8 +298,8 @@ from `tDepth` switch to `tDepthAlpha`.
 importing `Canvas3D` doesn't bundle the WebGL backend;
 `Canvas3DContext.fromGraphics(canvas, graphics, assetManager, attribs, props)` wraps a context created otherwise. The
 plugin's default backends (without `PluginConfig.General.GraphicsBackends`) come from
-`@molstar/graphics/gl/backends/default` (the WebGL set); builds without WebGL alias that module to
-`@molstar/graphics/gl/backends/webgpu`.
+`@molstar/graphics/gl/backends/default` (the `all` set: WebGPU where capable, else WebGL2, then WebGL); builds with one backend alias that module
+to `@molstar/graphics/gl/backends/webgl` or `@molstar/graphics/gl/backends/webgpu`.
 
 `Canvas3D` and `Canvas3DContext` have a `graphics: GraphicsContext` field; `Canvas3D.webgl` and `Canvas3DContext.webgl`
 were removed (narrow `graphics` with `isWebGLContext` from `@molstar/graphics/gl/webgl/context` where WebGL is
@@ -316,8 +325,10 @@ backend looks the sources up by the program name, which must be unique. Custom G
 `registerGlslProgram(name, vert, frag, outTypes?)` from `@molstar/graphics/gl/webgl/programs`. The GLSL assembly
 (`addShaderDefines`, `getContextDefineLookup`, `stripUniformDeclarations`, `stripSamplerDeclarations`,
 `stripAttributeDeclarations`, `ShaderUniformDeclarations`) moved to `@molstar/graphics/gl/webgl/shader-code`;
-`addShaderDefines` returns the GLSL sources (`{ vert, frag }`). The program names `accumulate` are now
-`trace-accumulate` (tracing) and `color-smoothing-accumulate` (texture mesh color smoothing).
+`addShaderDefines` returns the GLSL sources (`{ vert, frag }`). The program name `accumulate` is now
+`color-smoothing-accumulate` (texture mesh color smoothing); tracing's is gone (`trace` blends into its average).
+Marking's `edge` program is gone with `EdgeSchema` and `EdgeShaderCode` (`canvas3d/passes/marking`): the `overlay`
+program computes the edges from the mask.
 
 ## Color type define
 
@@ -337,6 +348,29 @@ selects the index (`SizeTypeIndex` in `@molstar/graphics/geo/geometry/size-data`
 `sizeType` of `SizeData`, set with `setSizeType(values, type)`; code that read the type from `dSizeType` reads
 `sizeType`. Custom shaders test `dSizeType_texture` and branch on `uSizeIndexType`.
 
+## Clip object uniforms
+
+The six clip object uniforms of renderables (`uClipObjectType`, `uClipObjectInvert`, `uClipObjectPosition`,
+`uClipObjectRotation`, `uClipObjectScale`, `uClipObjectTransform`) are two: `uClipObjectFrame` (per object the transform
+of a point into its frame) and `uClipObjectShape` (half the scale, the type in `w`, negative where inverted), derived by
+`Clip.getClip` (`Clip.Objects.frame`, `shape`). The objects as given are the value `clipObjects`; code that read the
+uniforms reads it. Custom shaders test shapes in the frame (`localSD`, `clipObjectSD` in GLSL, `localSD` and
+`clipLocal` in WGSL); `getSignedDistance` with position, rotation, scale and transform remains for image trims. Whether
+there are clip objects is the define `dClipObjects`, their count also the material uniform `uClipObjectCount` (custom
+GLSL tests `defined(dClipObjects)` and loops to `uClipObjectCount`; WGSL to the override `oClipObjectCount`, as
+`dClipObjectCount` sets it).
+
+## Draw lists on by default
+
+`RendererProps.drawLists` defaults to true: on WebGPU the passes replay recordings (render bundles), objects changing
+every frame are drawn directly; WebGL ignores it. Set it to false for direct drawing (e.g. to compare).
+
+## Renderable draw keys
+
+`Renderable` has `programVersion` (incremented by `setTransparency`) and `drawVersion` (advanced when the instance and
+level of detail ranges it draws change, see `createDrawVersion`), which the renderer's draw lists compare; custom
+implementations add them. `GraphicsContext.createDrawList` is optional (WebGPU render bundles).
+
 ## Instance granularity
 
 The instance granularity is the object uniform `uInstanceGranularity` (was the value `instanceGranularity`): the marker
@@ -348,6 +382,24 @@ and `dSubstanceType` have the values `texture` (instance and groupInstance), `ve
 code that set a layer's type define sets the type with `setOverpaintType(values, type)` (and the other layers' setters),
 code that read the type from the define reads the value. Custom shaders test `d…Type_texture` and select the index
 with `uInstanceGranularity`.
+
+## Data arrays (`DataSpec`)
+
+The data read by element index (`tColor`, `tSize`, `tMarker`, `tOverpaint`, `tTransparency`, `tEmissive`,
+`tSubstance`, `tClipping`, `tWiggle`, and `tPositionGroup` of spheres and points) are `DataSpec`s (`rgba8`, `r8` or
+`rgba32f`, `@molstar/graphics/gl/renderable/schema`), not textures: their values are `DataArray`s, `{ array, count }`
+(`createDataArray`, `@molstar/graphics/gl/renderable/util`), a flat array of `count` elements (it may be longer) without
+a 2D layout, and the size uniforms `uColorTexDim`, `uSizeTexDim`, `uMarkerTexDim`, `uOverpaintTexDim`,
+`uTransparencyTexDim`, `uEmissiveTexDim`, `uSubstanceTexDim`, `uClippingTexDim`, `uWiggleTexDim` and `uTexDim` are
+removed from the values (the WebGL backend lays the arrays out and owns them). The 2D layouts of the grid layers
+(`tColorGrid`, `tOverpaintGrid`, `tTransparencyGrid`, `tEmissiveGrid`, `tSubstanceGrid`) are the new
+`u…GridTexDim` uniforms (were the layers' `u…TexDim`). `createTextureColor` and `createTextureSize` take a `DataArray`,
+`getTrilinearlyInterpolated` (mesh color smoothing) returns one, `CenterGroupData` has no `texDim`. Shaders read the
+arrays with generated accessors, `read_tColor(i)` (GLSL and WGSL), instead of `readFromTexture(tColor, i,
+uColorTexDim)`. `Texture.loadRows` and `TextureChanges.getRows` are removed: data textures load with
+`Texture.loadData`; a consumer loading a layer into a texture of its own lays it out with `getDataTextureImage`.
+`getValueVersions` and `Versions` (`@molstar/graphics/gl/renderable/schema`) are removed: the render items keep their
+versions in arrays per list.
 
 ## Context loss and headless WebGPU
 
@@ -365,10 +417,14 @@ backends.
 
 The `preferWebgl1` option and the `prefer-webgl1` URL parameter of the Viewer and the Mesoscale Explorer are removed:
 `graphicsBackend: 'webgl1'` (`graphics-backend=webgl1`) asks for WebGL1. The default is `graphicsBackend: 'auto'`
-(WebGPU where it has the features of WebGL2, else WebGL2, then WebGL1), which does not read
-`PluginConfig.General.PreferWebGl1`. The Prism viewer keeps `prefer-webgl1` as `graphics-backend=webgl1`.
-`PluginFeatureDetection.preferWebGl1` is removed (iOS and Safari 15.1–15.3 no longer default to WebGL1);
-`PluginConfig.General.PreferWebGl1` is off by default and still selects WebGL1 (the `webgl` set) when set.
+(WebGPU where it has the features of WebGL2, else WebGL2, then WebGL1). The Prism viewer's `renderer.preferWebgl1`
+option and `prefer-webgl1` URL parameter are removed as well (`graphics-backend=webgl1`).
+
+WebGL1 is asked for by listing only its backend, nothing else: `PluginFeatureDetection.preferWebGl1` (iOS and Safari
+15.1–15.3 no longer default to WebGL1), `PluginConfig.General.PreferWebGl1` (use
+`PluginConfig.General.GraphicsBackends: [WebGLBackend]`), `Canvas3DContext.Attribs.preferWebGl1`, the `preferWebGl1`
+attribute of `getGLContext` and the `preferWebGl1` option of the backend sets' `getDefaultGraphicsBackends` are
+removed.
 
 ## Picking results
 
@@ -419,6 +475,24 @@ browser (CSS, pointer events, `ImageData`):
   `{ pose, layer }` (an `XRWebGLLayer`); custom implementations of the interface add both.
 - Data rendered into tiles of a texture by rectangles (Gaussian density, color smoothing atlases) is placed by texel
   rows from the bottom, converted explicitly; the WebGL backend's own compute converts its texel rectangles internally.
+
+## Lazy texture storage
+
+`Texture.define(width, height)` records the size; the GPU storage is allocated when the texture is first written (a
+render pass on a framebuffer it is attached to, a copy, an upload) or read back, not at `define`. Sampled before, a
+texture reads zero (WebGPU binds a placeholder, WebGL keeps a 1×1 image). Renderbuffers are allocated on first use in
+the same way. `getByteCount` of textures, renderbuffers, render targets and passes counts allocated storage only, so it
+varies with what frames draw.
+
+## Pass targets
+
+The passes that draw into targets take a `PassTargets` (the registry their targets are created through, see
+`canvas3d/passes/pass-targets.ts`) instead of the `GraphicsContext`: `DrawPass(targets, assetManager, width, height,
+transparency)`, `WboitPass`, `DpoitPass`, `MarkingPass`, `BloomPass`, `DofPass`, `OutlinePass`, `ShadowPass`,
+`SsaoPass`, `SmaaPass`, `AntialiasingPass`; `Passes.targets` and `DrawPass.targets` hold it. The storage of targets
+the current props don't draw into is released (see Lazy texture storage), also of an `ImagePass` a second after its
+last render. `Texture` and `Renderbuffer` have `releaseStorage`, `Framebuffer` has `getAttachments`; custom
+implementations add them.
 
 ## SSAO at half resolution
 
@@ -1101,6 +1175,12 @@ instead. `Unit.Base.parent` is new: the root unit a child was made from (§2). `
 `@molstar/model/model/sequence/alignment` was an empty module (as `mol-model/sequence/alignment.ts` was in v5) and is
 gone; `align` and `AlignSequences` are in `@molstar/model/model/sequence/alignment/alignment` and `.../sequence`.
 
+## Alpha factor removed
+
+`Representation.State.alphaFactor`, `Visual.setAlphaFactor` (and the visuals' `setAlphaFactor`) and
+`RenderableState.alphaFactor` are removed: nothing set them. `uAlpha` is the base alpha (`alpha`) clamped, set with it by
+the geometry's value update, no longer in `Renderable.render`; code changing `values.alpha` directly sets `uAlpha` too.
+
 ## AssetManager is an interface
 
 `AssetManager` (`@molstar/core/util/assets`) is an interface, implemented by `DefaultAssetManager` (the former class,
@@ -1243,3 +1323,11 @@ tbl, CSV) take `StringLike | Uint8Array`; passing a string still works (encoded 
 - `mol/parser`'s exported `handleAtoms`, `handleBonds` and `handlePropertiesBlock` take a `TextByteTokenizer`.
 - A PLY whose format line is not ascii or binary (little or big endian) fails as a string did; the plugin's bytes read
   it as ASCII.
+
+## Direct volume `jumpLength`
+
+`DirectVolume.Params` (`@molstar/graphics/geo/geometry/direct-volume/direct-volume`) and so the volume representation's
+`DirectVolumeParams` no longer have `jumpLength` (default 0, off): volumes skip bricks of 8³ cells the transfer function
+makes transparent instead, exactly and faster. The Gaussian volume keeps it (`GaussianDensityVolumeParams`,
+`UnitsGaussianDensityVolumeParams`, default 4 as before): its density is made on the GPU, and its own bricks measured
+slower. States and code passing `jumpLength` to a volume's direct-volume representation have it ignored.

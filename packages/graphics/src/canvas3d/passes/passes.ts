@@ -10,8 +10,11 @@ import { MultiSamplePass } from './multi-sample.js';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { AssetManager } from '@molstar/core/util/assets';
 import { IlluminationPass } from './illumination.js';
+import { PassTargets } from './pass-targets.js';
 
 export class Passes {
+  /** the targets of the passes, see `PassTargets` */
+  readonly targets: PassTargets;
   readonly draw: DrawPass;
   readonly pick: PickPass;
   readonly multiSample: MultiSamplePass;
@@ -23,7 +26,8 @@ export class Passes {
     attribs: Partial<{ pickScale: number; transparency: 'wboit' | 'dpoit' | 'blended' }> = {},
   ) {
     const drs = this.graphics.getDrawingBufferSize();
-    this.draw = new DrawPass(graphics, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
+    this.targets = new PassTargets(graphics);
+    this.draw = new DrawPass(this.targets, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
     this.pick = new PickPass(graphics, drs.width, drs.height, attribs.pickScale || 0.25);
     this.multiSample = new MultiSamplePass(graphics, this.draw);
     this.illumination = new IlluminationPass(graphics, this.draw);

@@ -36,7 +36,7 @@ import { text_wgsl } from '../webgpu/shader/text.wgsl.js';
 import { multi_sample_compose_wgsl } from '../webgpu/shader/multi-sample.wgsl.js';
 import { illumination_compose_wgsl, trace_wgsl } from '../webgpu/shader/illumination.wgsl.js';
 import { smaa_blend_wgsl, smaa_edges_wgsl, smaa_weights_wgsl } from '../webgpu/shader/smaa.wgsl.js';
-import { dim_wgsl, edge_wgsl, overlay_wgsl } from '../webgpu/shader/marking.wgsl.js';
+import { dim_wgsl, overlay_wgsl } from '../webgpu/shader/marking.wgsl.js';
 import { bloom_blur_wgsl, bloom_composite_wgsl, bloom_luminosity_wgsl } from '../webgpu/shader/bloom.wgsl.js';
 import { outlines_wgsl } from '../webgpu/shader/outlines.wgsl.js';
 import { shadows_wgsl } from '../webgpu/shader/shadows.wgsl.js';
@@ -51,7 +51,7 @@ import { CopySchema } from '../compute/util.js';
 import { points_wgsl } from '../webgpu/shader/points.wgsl.js';
 import { spheres_wgsl } from '../webgpu/shader/spheres.wgsl.js';
 import { cylinders_wgsl } from '../webgpu/shader/cylinders.wgsl.js';
-import { getWgslProgram } from '../webgpu/shader/programs.js';
+import { getWgslProgram, resolveWgslSource, type WgslProgram } from '../webgpu/shader/programs.js';
 import {
   getWgslDeclarations,
   getWgslSamplerBinding,
@@ -103,10 +103,13 @@ describe('wgsl declarations', () => {
     expect(code).toContain(`@group(0) @binding(${samplerBinding}) var sNearest: sampler;`);
     expect(code).toContain(`@group(0) @binding(${samplerBinding + 2}) var sLinearMipmap: sampler;`);
 
-    const referenced = getWgslTextureDeclarations(layout, (n) => n === 'tColor' || n === 'sLinear');
-    const tColor = layout.object.textures.find((t) => t.name === 'tColor')!;
+    // the theme layers (`DataSpec`) are no textures on WebGPU: read from the data pages
+    expect(layout.object.textures.find((t) => t.name === 'tColor')).toBeUndefined();
+    const gridLayout = getBindingLayout(MeshFullSchema, getDefineLookup(['dColorType_grid']));
+    const tColorGrid = gridLayout.object.textures.find((t) => t.name === 'tColorGrid')!;
+    const referenced = getWgslTextureDeclarations(gridLayout, (n) => n === 'tColorGrid' || n === 'sLinear');
     expect(referenced.split('\n')).toEqual([
-      `@group(2) @binding(${tColor.binding}) var tColor: texture_2d<f32>;`,
+      `@group(2) @binding(${tColorGrid.binding}) var tColorGrid: texture_2d<f32>;`,
       `@group(0) @binding(${samplerBinding + 1}) var sLinear: sampler;`,
     ]);
   });
@@ -234,16 +237,25 @@ describe('mesh wgsl', () => {
       ...base,
       dRenderVariant: 'pick',
       dSolidInterior: true,
+      dClipObjects: true,
       dClipObjectCount: 2,
       dClipVariant: 'pixel',
       dClipping: true,
     },
-    { ...base, dRenderVariant: 'depth', dSolidInterior: true, dClipObjectCount: 1, dClipVariant: 'pixel' },
-    { ...base, dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true },
-    { ...base, dClipObjectCount: 1, dClipVariant: 'instance', dClipping: true },
+    {
+      ...base,
+      dRenderVariant: 'depth',
+      dSolidInterior: true,
+      dClipObjects: true,
+      dClipObjectCount: 1,
+      dClipVariant: 'pixel',
+    },
+    { ...base, dClipObjects: true, dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true },
+    { ...base, dClipObjects: true, dClipObjectCount: 1, dClipVariant: 'instance', dClipping: true },
     {
       ...base,
       dRenderVariant: 'pick',
+      dClipObjects: true,
       dClipObjectCount: 3,
       dClipVariant: 'pixel',
       dVaryingGroup: true,
@@ -277,12 +289,13 @@ describe('mesh wgsl', () => {
     const { getUnsupported } = getWgslProgram('direct-volume')!;
     const dv = { ...base, dGeometryType: 'directVolume', dGridTexType: '3d' };
     expect(getUnsupported!(defineValues({ ...dv, dGridTexType: '2d' }))).toBe("grid texture type '2d'");
-    expect(getUnsupported!(defineValues({ ...dv, dRenderVariant: 'pick' }))).toBe("render variant 'pick'");
+    expect(getUnsupported!(defineValues({ ...dv, dRenderVariant: 'pick' }))).toBeUndefined();
+    expect(getUnsupported!(defineValues({ ...dv, dRenderVariant: 'tracing' }))).toBe("render variant 'tracing'");
   });
 });
 
 describe('quad wgsl', () => {
-  const clip = { dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true };
+  const clip = { dClipObjects: true, dClipObjectCount: 2, dClipVariant: 'pixel', dClipping: true };
   const base = {
     dRenderVariant: 'colorBlended',
     dColorType: 'texture',
@@ -291,7 +304,7 @@ describe('quad wgsl', () => {
     dClipObjectCount: 0,
     dColorMarker: true,
   };
-  const cases: [string, string, { [k: string]: string | number | boolean }][] = [
+  const cases: [string, WgslProgram['source'], { [k: string]: string | number | boolean }][] = [
     ['spheres', spheres_wgsl, { ...base, dGeometryType: 'spheres', dSolidInterior: true }],
     ['spheres', spheres_wgsl, { ...base, dGeometryType: 'spheres', dApproximate: true, dSizeType: 'texture' }],
     [
@@ -434,7 +447,7 @@ describe('quad wgsl', () => {
     it(`preprocesses ${name} ${JSON.stringify(values)}`, () => {
       const dv = defineValues(values);
       expect(getWgslProgram(name)!.getUnsupported!(dv)).toBeUndefined();
-      const code = preprocessShader(source, getWgslDefines(dv), { expandMacros: true });
+      const code = preprocessShader(resolveWgslSource(source, dv), getWgslDefines(dv), { expandMacros: true });
       expect(code).toContain('fn vertexMain(');
       expect(code).toContain('fn fragmentMain(');
       expect(code).not.toMatch(/^\s*#/m);
@@ -443,7 +456,7 @@ describe('quad wgsl', () => {
 });
 
 describe('compute wgsl', () => {
-  const cases: [string, string, { [k: string]: string | number | boolean }][] = [
+  const cases: [string, WgslProgram['source'], { [k: string]: string | number | boolean }][] = [
     ['ssao', ssao_wgsl, { dIncludeTransparent: true, dNSamples: 32, dLevels: 3 }],
     [
       'ssao',
@@ -456,7 +469,6 @@ describe('compute wgsl', () => {
       postprocessing_wgsl,
       { dOrthographic: 0, dOcclusionEnable: true, dBlendTransparency: true, dOcclusionIncludeTransparency: true },
     ],
-    ['edge', edge_wgsl, {}],
     ['dim', dim_wgsl, {}],
     ['overlay', overlay_wgsl, { dMarkingShading: 'ssao' }],
     ['overlay', overlay_wgsl, { dMarkingShading: 'off' }],
@@ -467,7 +479,6 @@ describe('compute wgsl', () => {
       { dOrthographic: 0, dLightCount: 2, dShadowEnable: true, dThicknessMode: 'auto', dSteps: 32, dBounces: 4 },
     ],
     ['trace', trace_wgsl, { dOrthographic: 1, dLightCount: 0, dThicknessMode: 'fixed', dRefineSteps: 0 }],
-    ['trace-accumulate', multi_sample_compose_wgsl, {}],
     [
       'illumination-compose',
       illumination_compose_wgsl,
@@ -487,8 +498,9 @@ describe('compute wgsl', () => {
     ['evaluate-dpoit', evaluate_dpoit_wgsl, {}],
     ['blend-back-dpoit', blend_back_dpoit_wgsl, {}],
     ['postprocessing', postprocessing_wgsl, { dOrthographic: 0, dBloomEnable: true }],
+    ['Bloom Luminosity', bloom_luminosity_wgsl, { dMode: 'luminosity', dBlendTransparency: true }],
     ['Bloom Luminosity', bloom_luminosity_wgsl, { dMode: 'luminosity' }],
-    ['Bloom Luminosity', bloom_luminosity_wgsl, { dMode: 'emissive' }],
+    ['Bloom Luminosity', bloom_luminosity_wgsl, { dMode: 'emissive', dBlendTransparency: true }],
     ['Bloom Blur', bloom_blur_wgsl, { dKernelRadius: 5 }],
     ['Bloom Composite', bloom_composite_wgsl, {}],
     [
@@ -516,7 +528,7 @@ describe('compute wgsl', () => {
     it(`preprocesses ${name} ${JSON.stringify(values)}`, () => {
       const dv = defineValues({ dRenderVariant: 'compute', ...values });
       expect(getWgslProgram(name)!.getUnsupported?.(dv)).toBeUndefined();
-      const code = preprocessShader(source, getWgslDefines(dv), { expandMacros: true });
+      const code = preprocessShader(resolveWgslSource(source, dv), getWgslDefines(dv), { expandMacros: true });
       expect(code).toContain('fn fragmentMain(');
       expect(code).not.toMatch(/^\s*#/m);
     });

@@ -25,6 +25,7 @@ import {
 } from '@molstar/graphics/gl/precompile';
 import type { ProgramItem } from '@molstar/graphics/gl/render-item';
 import type { GlobalDefines } from '@molstar/graphics/gl/renderable/schema';
+import { MergedCullKernels } from '@molstar/graphics/gl/renderable/merged-culler';
 import { Object3D } from '@molstar/graphics/gl/object3d';
 import {
   createGraphicsContext,
@@ -76,7 +77,8 @@ import { HiZParams, HiZPass } from './passes/hi-z.js';
 import { IlluminationParams } from './passes/illumination.js';
 import { ImagePass, type ImageProps } from './passes/image.js';
 import { isMaterialColorMarker, MarkingParams, MarkingPass, SingleSample } from './passes/marking.js';
-import { createPrepareBuilder, type PrepareCollect } from './passes/pass-builder.js';
+import { createPrepareBuilder, type PassBuilder, type PrepareCollect } from './passes/pass-builder.js';
+import { createTargetCollector } from './passes/pass-targets.js';
 import type { TransparencyMode } from './passes/draw.js';
 import { createSupportedPropsLimiter } from './passes/supported-props.js';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample.js';
@@ -160,6 +162,15 @@ export const Canvas3DParams = {
   transparentBackground: PD.Boolean(false),
   checkeredTransparentBackground: PD.Boolean(false),
   dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
+  volumeResolutionScale: PD.Numeric(
+    0.5,
+    { min: 0.25, max: 1, step: 0.05 },
+    {
+      description:
+        'Resolution of direct volumes relative to the drawing buffer, upsampled with the depth (volumes are smooth, ' +
+        'their cost is per pixel)',
+    },
+  ),
   pickPadding: PD.Numeric(
     3,
     { min: 0, max: 10, step: 1 },
@@ -259,7 +270,7 @@ interface Canvas3DContext {
   release?: () => boolean;
   /**
    * Restores a released context (`release`) as after a loss, once the loss was reported (`contextLost`): resolves to
-   * whether it was restored (`contextRestored`)
+   * whether it was restored (`contextRestored`) within `ReleasedRestoreTimeoutMs`; not restored, it stays released
    */
   restore?: () => Promise<boolean>;
   /** Released (`release`) and not restored yet */
@@ -275,7 +286,6 @@ namespace Canvas3DContext {
     antialias: true,
     /** true to support multiple Canvas3D objects with a single context */
     preserveDrawingBuffer: true,
-    preferWebGl1: false,
     /**
      * Falls back to the next of the backends the context was created from when the context is lost for good (not
      * restored within `ContextRestoreTimeoutMs` while the page is visible, a restore that failed, or more than
@@ -311,6 +321,11 @@ namespace Canvas3DContext {
 
   /** time a lost context has to be restored while the page is visible, before falling back */
   export const ContextRestoreTimeoutMs = 3000;
+  /**
+   * time a released context has to be restored by `restore` while the page is visible: no fallback waits for it, and a
+   * new device may take a while (a busy GPU process took over 6 s)
+   */
+  export const ReleasedRestoreTimeoutMs = 30_000;
   /** losses within `ContextLossWindowMs` beyond which the context counts as lost for good, even if restored */
   export const MaxContextLosses = 3;
   export const ContextLossWindowMs = 60_000;
@@ -491,10 +506,11 @@ namespace Canvas3DContext {
         else fallback(why);
         done(false);
       };
-      const timeout = visibleTimeout(ContextRestoreTimeoutMs, () => {
+      const timeoutMs = wasReleased ? ReleasedRestoreTimeoutMs : ContextRestoreTimeoutMs;
+      const timeout = visibleTimeout(timeoutMs, () => {
         if (settled) return;
         settled = true;
-        failed(`not restored within ${ContextRestoreTimeoutMs / 1000} s`);
+        failed(`not restored within ${timeoutMs / 1000} s`);
       });
       pendingRestore = {
         cancel: () => {
@@ -741,6 +757,8 @@ interface Canvas3D {
    * (`dropped`).
    */
   readonly contextChanged: Subject<Canvas3D.ContextChange>;
+  /** What the graphics context reports as not getting the GPU memory it needed (`GraphicsResources.outOfMemory`) */
+  readonly outOfMemory: Subject<string>;
 
   add(repr: Representation.Any): void;
   remove(repr: Representation.Any): void;
@@ -998,9 +1016,14 @@ namespace Canvas3D {
     const controls = TrackballControls.create(input, camera, scene, p.trackball, a.trackball);
     const helper = new Helper(graphics, scene, p);
     let hiZ = new HiZPass(graphics, passes.draw, canvas, p.hiZ);
+    // the pass's props are the props (`setProps` updates them), not a copy that goes stale
+    p.hiZ = hiZ.props;
 
     let renderer = Renderer.create(graphics, p.renderer);
-    renderer.setOcclusionTest(hiZ.isOccluded);
+    /** the depth pyramid of the previous frame, for GPU culling (`Renderer.setOcclusionPyramid`) */
+    const getOcclusionPyramid = () => hiZ.gpuPyramid;
+    renderer.setOcclusionTest(hiZ.occlusionTest);
+    renderer.setOcclusionPyramid(getOcclusionPyramid);
 
     let shaderManager = new ShaderManager(graphics, scene);
     shaderManager.updateRequired(p);
@@ -1180,9 +1203,10 @@ namespace Canvas3D {
       }
       markBuffer = [];
       if (changed) {
-        scene.update(void 0, true);
-        helper.handle.scene.update(void 0, true);
-        helper.camera.scene.update(void 0, true);
+        // the marked objects' values changed: those updated, not every object of the scene
+        scene.updateChanged(true);
+        helper.handle.scene.updateChanged(true);
+        helper.camera.scene.updateChanged(true);
 
         shaderManager.updateRequired(p);
         shaderManager.finalizeRequired(true);
@@ -1255,7 +1279,8 @@ namespace Canvas3D {
         : SingleSample;
       const redrawMarking = (restart: boolean, samples: number) => {
         // other passes (e.g. pick) reset this, it has to match the last full render
-        renderer.setOcclusionTest(illuminationEnabled ? null : hiZ.isOccluded);
+        renderer.setOcclusionTest(illuminationEnabled ? null : hiZ.occlusionTest);
+        renderer.setOcclusionPyramid(illuminationEnabled ? null : getOcclusionPyramid);
         if (isTimingMode) graphics.timer.group('Canvas3D.render', { captureStats: true });
         const redrawn = passes.draw.marking.redraw(
           { renderer, camera, scene, helper, frame },
@@ -1287,6 +1312,7 @@ namespace Canvas3D {
       if (illuminationEnabled) {
         if (shouldRender || markingUpdated) {
           renderer.setOcclusionTest(null);
+          renderer.setOcclusionPyramid(null);
           passes.illumination.restart();
         }
 
@@ -1309,7 +1335,8 @@ namespace Canvas3D {
         const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample) && !xrFrame;
 
         if (shouldRender || multiSampleChanged || markingUpdated) {
-          renderer.setOcclusionTest(hiZ.isOccluded);
+          renderer.setOcclusionTest(hiZ.occlusionTest);
+          renderer.setOcclusionPyramid(getOcclusionPyramid);
 
           let cam: Camera | StereoCamera = camera;
           if (p.camera.stereo.name === 'on' || xrChanged) {
@@ -1330,6 +1357,8 @@ namespace Canvas3D {
           } else {
             passes.draw.render(ctx, p, true);
           }
+          // the GPU's occlusion test of the objects culled there needs the levels (also with Hi-Z off)
+          hiZ.setGpuCulling(renderer.gpuCulledCount > 0);
           hiZ.render(camera);
           if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
@@ -1528,15 +1557,10 @@ namespace Canvas3D {
       }
     }
 
-    function prepare(options?: Canvas3DPrepareOptions): Promise<void> {
-      if (isContextLost || graphics.isContextLost) return Promise.resolve();
-      const props: Canvas3DProps = options?.props ? { ...p, ...options.props } : p;
-      // the variants the props require are linked for every render item when set (`ShaderManager.updateRequired`)
-      graphics.resources.linkPrograms(ShaderManager.getRequired(graphics, scene, props));
-      const b = createPrepareBuilder(graphics, renderer);
+    /** Plans the passes of a frame with `props` (as `render` chooses them, without XR); with `interaction`, hovering */
+    function planFrame(b: PassBuilder, props: Canvas3DProps, interaction: boolean) {
       const cam = props.camera.stereo.name === 'on' ? stereoCamera : camera;
       const ctx = { renderer, camera: cam, scene, helper, frame };
-      // as `render` chooses its passes (without XR)
       const illuminationEnabled = passes.illumination.supported && props.illumination.enabled;
       if (illuminationEnabled) {
         passes.illumination.plan(b, { ...ctx, camera }, props, true);
@@ -1548,15 +1572,40 @@ namespace Canvas3D {
         }
         hiZ.plan(b, camera);
       }
-      if (options?.interaction) {
-        // hover: picking, and marking, which draws only marked objects; the first marking also links the marking
-        // variant of every render item (see `ShaderManager.updateRequired`)
-        const marking = MarkingPass.isEnabled(props.marking);
-        graphics.resources.linkPrograms(marking ? ['pick', 'marking'] : ['pick']);
+      if (interaction) {
+        // picking, and marking, which draws only marked objects
         pickHelper.plan(b, cam, frame);
-        if (marking) passes.draw.plan(b, ctx, props, true, false, true);
+        if (MarkingPass.isEnabled(props.marking)) passes.draw.plan(b, ctx, props, true, false, true);
       }
+    }
+
+    function prepare(options?: Canvas3DPrepareOptions): Promise<void> {
+      if (isContextLost || graphics.isContextLost) return Promise.resolve();
+      const props: Canvas3DProps = options?.props ? { ...p, ...options.props } : p;
+      // the variants the props require are linked for every render item when set (`ShaderManager.updateRequired`)
+      graphics.resources.linkPrograms(ShaderManager.getRequired(graphics, scene, props));
+      if (options?.interaction) {
+        // the first marking links the marking variant of every render item (see `ShaderManager.updateRequired`)
+        graphics.resources.linkPrograms(MarkingPass.isEnabled(props.marking) ? ['pick', 'marking'] : ['pick']);
+      }
+      const b = createPrepareBuilder(graphics, renderer);
+      planFrame(b, props, !!options?.interaction);
       return b.whenReady();
+    }
+
+    /**
+     * Releases the storage of the pass targets that frames with the current props and scene don't draw into,
+     * hovering included (e.g. of a transparency mode or an effect turned off), a while after the props or the scene
+     * last changed (see `PassTargets`)
+     */
+    function scheduleTargetRelease() {
+      const { targets } = passes;
+      targets.scheduleRelease(() => {
+        if (isContextLost || graphics.isContextLost || targets !== passes.targets) return;
+        const b = createTargetCollector();
+        planFrame(b, p, true);
+        targets.releaseUnused(b.used);
+      });
     }
 
     const precompileRecorder = new PrecompileRecorder();
@@ -1662,7 +1711,12 @@ namespace Canvas3D {
       for (const [key, item] of previous) {
         if (!precompileItems.has(key)) item.destroy();
       }
-      return graphics.resources.pending.whenReady();
+      // the culling's kernels of objects culled on the GPU, else compiled once such an object is created
+      const kernels =
+        graphics.compute && list.objects.some((s) => s.gpuCulled)
+          ? graphics.compute.prepareKernels(MergedCullKernels)
+          : undefined;
+      return Promise.all([graphics.resources.pending.whenReady(), kernels]).then(() => {});
     }
 
     let warmUpScheduled = false;
@@ -1673,6 +1727,7 @@ namespace Canvas3D {
       const warmUp = () => {
         warmUpScheduled = false;
         prepare({ interaction: true });
+        scheduleTargetRelease();
       };
       if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(warmUp, { timeout: 1000 });
       else setTimeout(warmUp, 0);
@@ -1788,6 +1843,9 @@ namespace Canvas3D {
       }
       commitQueueSize.next(0);
       precompileRecorder.record(scene.renderables);
+      // frames held for the props (`holdFramesUntilPrepared`) wait for the new scene too: the hold's prepare had the
+      // previous one, so the first frame after it would compile (and skip) the draws of what was added meanwhile
+      if (propsPreparing > 0) holdFramesUntilPrepared();
       scheduleWarmUp();
 
       if (helper.debug.isEnabled) helper.debug.update();
@@ -1840,7 +1898,7 @@ namespace Canvas3D {
             storageBuffer: `${(storageBuffer / 1024 / 1024).toFixed(3)} MiB`,
             ...(arena
               ? {
-                  vertexArena: `${(arena.usedByteCount / 1024 / 1024).toFixed(3)} of ${(arena.byteCount / 1024 / 1024).toFixed(3)} MiB used (${arena.usedPages} of ${arena.pages} pages)`,
+                  vertexArena: `${(arena.usedByteCount / 1024 / 1024).toFixed(3)} of ${(arena.byteCount / 1024 / 1024).toFixed(3)} MiB used (${arena.usedPages} of ${arena.pages} pages, ${arena.arenas} arenas${arena.exhausted ? ', out of memory' : ''})`,
                 }
               : {}),
           },
@@ -2004,6 +2062,7 @@ namespace Canvas3D {
         transparentBackground: p.transparentBackground,
         checkeredTransparentBackground: p.checkeredTransparentBackground,
         dpoitIterations: p.dpoitIterations,
+        volumeResolutionScale: p.volumeResolutionScale,
         pickPadding: p.pickPadding,
         userInteractionReleaseMs: p.userInteractionReleaseMs,
         viewport: p.viewport,
@@ -2042,12 +2101,20 @@ namespace Canvas3D {
 
     const ctxChangedSub = ctx.changed?.subscribe(() => {
       scene.setTransparency(passes.draw.transparency);
+      // e.g. the pipelines of another transparency mode: frames wait for them as for a props change
+      holdFramesUntilPrepared();
+      // e.g. the targets of the transparency mode no longer drawn
+      scheduleTargetRelease();
       requestDraw();
     });
 
     // e.g. images loaded into textures: drawn with placeholders until then
     const onPendingSettled = () => requestDraw();
-    const subscribeContext = () => [graphics.resources.pending.settled.subscribe(onPendingSettled)];
+    const outOfMemory = new Subject<string>();
+    const subscribeContext = () => [
+      graphics.resources.pending.settled.subscribe(onPendingSettled),
+      graphics.resources.outOfMemory.subscribe((message) => outOfMemory.next(message)),
+    ];
     let contextSubs = subscribeContext();
 
     const contextChanged = new Subject<Canvas3D.ContextChange>();
@@ -2082,8 +2149,10 @@ namespace Canvas3D {
       limitToSupported(p);
 
       hiZ = new HiZPass(graphics, passes.draw, canvas, hiZProps);
+      p.hiZ = hiZ.props;
       renderer = Renderer.create(graphics, rendererProps);
-      renderer.setOcclusionTest(hiZ.isOccluded);
+      renderer.setOcclusionTest(hiZ.occlusionTest);
+      renderer.setOcclusionPyramid(getOcclusionPyramid);
       shaderManager = new ShaderManager(graphics, scene);
       pickHelper = new PickHelper(
         graphics,
@@ -2225,6 +2294,7 @@ namespace Canvas3D {
         return graphics;
       },
       contextChanged,
+      outOfMemory,
 
       add,
       remove,
@@ -2363,6 +2433,7 @@ namespace Canvas3D {
         if (props.checkeredTransparentBackground !== undefined)
           p.checkeredTransparentBackground = props.checkeredTransparentBackground;
         if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
+        if (props.volumeResolutionScale !== undefined) p.volumeResolutionScale = props.volumeResolutionScale;
         if (props.pickPadding !== undefined) {
           p.pickPadding = props.pickPadding;
           pickHelper.setPickPadding(p.pickPadding);
@@ -2424,6 +2495,7 @@ namespace Canvas3D {
 
         shaderManager.updateRequired(p);
         holdFramesUntilPrepared();
+        scheduleTargetRelease();
         if (!doNotRequestDraw) {
           requestDraw();
         }
@@ -2467,6 +2539,7 @@ namespace Canvas3D {
       debugRegistry: helper.debug,
       xr,
       dispose: () => {
+        passes.targets.cancelRelease();
         contextLostSub?.unsubscribe();
         ctxChangedSub?.unsubscribe();
         ctxContextChangedSub?.unsubscribe();
@@ -2505,6 +2578,7 @@ namespace Canvas3D {
         xr.isSupported.complete();
         xr.requestFailed.complete();
         contextChanged.complete();
+        outOfMemory.complete();
 
         removeConsoleStatsProvider(consoleStats);
       },

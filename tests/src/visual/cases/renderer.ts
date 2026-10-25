@@ -10,19 +10,20 @@ import type { Representation } from '@molstar/graphics/repr/representation';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { ValueCell } from '@molstar/core/util';
 import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
-import { EveryLoci } from '@molstar/model/model/loci';
+import { EveryLoci, Loci } from '@molstar/model/model/loci';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
-import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Clip } from '@molstar/core/util/clip';
 import { Color } from '@molstar/core/util/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';
-import { type VisualTestCase } from '../framework/test-case.js';
+import { type SceneContext, type VisualTestCase } from '../framework/test-case.js';
 import {
   cylinderStar,
   lineCages,
   meshBackdrop,
+  meshBox,
   meshPrimitives,
   meshTorus,
   pointSphere,
@@ -32,6 +33,11 @@ import {
 } from '../scenes/primitives.js';
 import { helixStructure, structureRepr } from '../scenes/structure.js';
 import { Impostor, ObliqueView } from './geometry.js';
+import { Interval } from '@molstar/core/data/int/interval';
+import { OrderedSet } from '@molstar/core/data/int/ordered-set';
+import { Volume } from '@molstar/model/model/volume';
+import { DirectVolumeRepresentationProvider } from '@molstar/graphics/repr/volume/direct-volume';
+import { blobVolume, volumeRepr } from '../scenes/volume.js';
 
 async function primitivesScene() {
   return [await shapeRepr('mesh', meshPrimitives())];
@@ -42,6 +48,54 @@ async function illuminationScene() {
     await shapeRepr('mesh', meshPrimitives()),
     await shapeRepr('backdrop', meshBackdrop(12, -2), { colors: [Color(0xcccccc)] }),
   ];
+}
+
+/** The scene of `renderer/pick/direct-volume`: a direct volume of blobs and an opaque box beside it */
+async function pickScene({ graphics }: SceneContext) {
+  const blobs = await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(32), {});
+  const box = await shapeRepr('box', meshBox(8), {
+    colors: [Color(0x999999)],
+    transforms: [Mat4.fromTranslation(Mat4(), Vec3.create(-12, 16, 16))],
+  });
+  return [blobs, box];
+}
+
+/**
+ * Picks the pixels of world points (`canvas3d.asyncIdentify`, on every backend): a blob of the volume is a cell where
+ * the volume looks solid, the box is the box, the corner nothing; selects the picked volume whole and highlights the box
+ */
+async function pickDirectVolume({ graphics, canvas3d }: SceneContext, reprs: Representation.Any[]) {
+  const [blobs, box] = reprs;
+  const errors: string[] = [];
+  const pick = async (point: Vec2) => {
+    const data = await canvas3d.asyncIdentify(point)?.wait();
+    return data ? canvas3d.getLoci(data.id) : undefined;
+  };
+  const pixelOf = (world: Vec3) => {
+    const p = canvas3d.camera.project(Vec4(), world);
+    return Vec2.create(p[0] / graphics.pixelRatio, p[1] / graphics.pixelRatio);
+  };
+
+  // the center of the third blob of \`blobVolume(32)\`, clear of the box
+  const volume = await pick(pixelOf(Vec3.create(16, 16 + 32 / 5, 16 + 32 / 8)));
+  if (!volume || !Volume.Cell.isLoci(volume.loci) || volume.repr !== blobs) {
+    errors.push(`volume: picked ${volume?.loci.kind ?? 'nothing'}, not a cell of the volume`);
+  } else {
+    const { volume: v, elements } = volume.loci;
+    const cell = OrderedSet.getAt(elements[0].indices, 0);
+    const value = v.grid.cells.data[cell];
+    if (OrderedSet.size(elements[0].indices) !== 1) errors.push('volume: picked more than one cell');
+    if (!(value > v.grid.stats.mean)) errors.push(`volume: picked cell ${cell} of value ${value}, not in a blob`);
+    canvas3d.mark({ loci: Loci.applyGranularity(volume.loci, 'structure'), repr: blobs }, MarkerAction.Select);
+  }
+
+  const boxPick = await pick(pixelOf(Vec3.create(-12, 16, 16)));
+  if (boxPick?.repr !== box) errors.push(`box: picked ${boxPick?.loci.kind ?? 'nothing'}, not the box`);
+  else canvas3d.mark(boxPick, MarkerAction.Highlight);
+
+  const corner = await pick(Vec2.create(1, 1));
+  if (corner && corner.loci.kind !== 'empty-loci') errors.push(`corner: picked ${corner.loci.kind}, not nothing`);
+  return errors;
 }
 
 export const RendererCases: VisualTestCase[] = [
@@ -181,6 +235,42 @@ export const RendererCases: VisualTestCase[] = [
       },
     }),
   ),
+  ...[0.3, 0.1].map(
+    (surfaceOpacity): VisualTestCase => ({
+      id: `renderer/marking/direct-volume${surfaceOpacity === 0.3 ? '' : '-surface-opacity'}`,
+      description:
+        'A direct volume with its lower half of cells selected around a highlighted opaque box: edges and fill where ' +
+        'the volume looks solid (its marking surface), ghost edges behind the box' +
+        (surfaceOpacity === 0.3 ? '.' : `; the surface at the opacity ${surfaceOpacity} (\`surfaceOpacity\`): wider.`),
+      view: ObliqueView,
+      scene: async ({ graphics }) => {
+        const n = 32;
+        const volume = blobVolume(n);
+        const blobs = await volumeRepr(graphics, DirectVolumeRepresentationProvider, volume, { surfaceOpacity });
+        const lower = Interval.ofBounds(0, (n * n * n) / 2) as Interval<Volume.CellIndex>;
+        blobs.mark(
+          Volume.Cell.Loci(volume, [{ indices: lower, instances: Interval.ofSingleton(0 as Volume.InstanceIndex) }]),
+          MarkerAction.Select,
+        );
+        const box = await shapeRepr('box', meshBox(8), {
+          colors: [Color(0x999999)],
+          transforms: [Mat4.fromTranslation(Mat4(), Vec3.create(16, 16, 16))],
+        });
+        box.mark(EveryLoci, MarkerAction.Highlight);
+        return [blobs, box];
+      },
+    }),
+  ),
+  {
+    id: 'renderer/pick/direct-volume',
+    description:
+      'Picking a direct volume where it looks solid (a cell in a blob), the opaque box beside it and the background; ' +
+      'the picked volume selected whole, the picked box highlighted.',
+    requires: Impostor,
+    view: ObliqueView,
+    scene: pickScene,
+    interact: pickDirectVolume,
+  },
   {
     id: 'renderer/marking/alpha-thickness',
     description:

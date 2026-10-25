@@ -72,8 +72,10 @@ describe.skipIf(!WebGPU.module)('resource counts on WebGPU', () => {
       const cleared = await clear();
       // what remains is the helpers' geometry (e.g. the camera helper), far less than the structure's
       expect(cleared.attribute).toBeLessThan(drawn.attribute);
-      expect(cleared.elements).toBe(0);
-      expect(cleared.texture).toBeLessThan(drawn.texture);
+      // what remains of elements is the context's shared quad indices (`quad-indices.ts`), kept for the next quads
+      expect(cleared.elements).toBeLessThan(drawn.elements);
+      // texture bytes include the pass targets, allocated by what frames draw (an empty scene draws other passes), so
+      // the totals of two scenes don't compare; the structure's textures are released by the check below
       // the structure's resources are released: after helpers and uniform arenas settled (a first cycle), loading and
       // clearing again leaves the same counts
       await load();

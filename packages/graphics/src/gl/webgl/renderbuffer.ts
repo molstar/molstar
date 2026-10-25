@@ -6,10 +6,9 @@
 
 import { idFactory } from '@molstar/core/util/id-factory';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
-import { checkFramebufferStatus, setFramebufferHeight } from './framebuffer.js';
+import { bindForAttachment, setAttachmentStorage, setFramebufferHeight } from './framebuffer.js';
 import type { Framebuffer } from '../framebuffer.js';
 import type { Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from '../renderbuffer.js';
-import { isDebugMode } from '@molstar/core/util/debug';
 import { endRenderPass } from './render-pass.js';
 import type { WebGLState } from './state.js';
 
@@ -111,39 +110,55 @@ export function createRenderbuffer(
   const _format = getFormat(gl, format);
   const _attachment = getAttachment(gl, attachment);
 
-  function init() {
+  /** the size of the storage, the defined size once allocated, see `ensureStorage` */
+  let storedWidth = 0;
+  let storedHeight = 0;
+  function specify(w: number, h: number) {
     bind();
-    gl.renderbufferStorage(gl.RENDERBUFFER, _format, _width, _height);
+    gl.renderbufferStorage(gl.RENDERBUFFER, _format, w, h);
+    (storedWidth = w), (storedHeight = h);
   }
-  init();
+  // 1×1 until a framebuffer it is attached to is used (lazy: unused attachments take no memory)
+  specify(1, 1);
 
   let destroyed = false;
 
-  return {
-    id: getNextRenderbufferId(),
+  function ensureStorage() {
+    if (destroyed) return;
+    if (storedWidth !== _width || storedHeight !== _height) specify(_width, _height);
+  }
 
-    getByteCount: () => getFormatSize(format) * _width * _height,
+  const id = getNextRenderbufferId();
+  return {
+    id,
+
+    getByteCount: () => getFormatSize(format) * storedWidth * storedHeight,
 
     bind,
     attachFramebuffer: (framebuffer: Framebuffer) => {
       endRenderPass(state);
-      framebuffer.bind();
+      bindForAttachment(gl, framebuffer);
+      setAttachmentStorage(gl, framebuffer, _attachment, { kind: 'renderbuffer', id }, ensureStorage);
       bind();
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, _renderbuffer);
       setFramebufferHeight(framebuffer, () => _height);
-      if (isDebugMode) checkFramebufferStatus(gl);
     },
     detachFramebuffer: (framebuffer: Framebuffer) => {
       endRenderPass(state);
-      framebuffer.bind();
+      bindForAttachment(gl, framebuffer);
+      setAttachmentStorage(gl, framebuffer, _attachment, undefined);
       bind();
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, _attachment, gl.RENDERBUFFER, null);
-      if (isDebugMode) checkFramebufferStatus(gl);
+    },
+    releaseStorage: () => {
+      if (!destroyed && (storedWidth !== 1 || storedHeight !== 1)) specify(1, 1);
     },
     setSize: (width: number, height: number) => {
+      if (width === _width && height === _height) return;
       _width = width;
       _height = height;
-      init();
+      // storage of another size released, allocated again when used
+      if (storedWidth !== 1 || storedHeight !== 1) specify(1, 1);
     },
     destroy: () => {
       if (destroyed) return;

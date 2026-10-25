@@ -200,13 +200,15 @@ void trace(in vec3 rayPos, in vec3 rayDir, inout RayHitInfo hitInfo) {
 
     hitInfo.missed = missed;
     hitInfo.position = hitPos;
-    hitInfo.normal = -texture2D(tNormal, coords).rgb;
+    hitInfo.normal = -unpackRGBAToNormal(texture2D(tNormal, coords));
     hitInfo.color = texture2D(tColor, coords).rgb;
     hitInfo.emissive = texture2D(tColor, coords).rgb * texture2D(tNormal, coords).a * 2.0;
 
+    // the background, whatever color it is cleared to: no emitter or surface normal (as transparent, cleared to zero)
     float depth = getDepth(coords);
     if (isBackground(depth)) {
         hitInfo.emissive = vec3(0.0);
+        hitInfo.normal = vec3(0.0);
     }
 }
 
@@ -230,7 +232,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
 
             hitInfo.missed = false;
             hitInfo.position = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
-            hitInfo.normal = -texture2D(tNormal, coords).rgb;
+            hitInfo.normal = -unpackRGBAToNormal(texture2D(tNormal, coords));
             hitInfo.color = texture2D(tShaded, coords).rgb;
             hitInfo.emissive = texture2D(tColor, coords).rgb * texture2D(tNormal, coords).a;
 
@@ -310,7 +312,8 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
         // Survivors have their value boosted to make up for fewer samples being in the average.
         {
             float p = max(throughput.r, max(throughput.g, throughput.b));
-            if (randomFloat(rngState) > p)
+            // p is 0 after a black hit and randomFloat may return 0: 1 / p would make the throughput NaN
+            if (p <= 0.0 || randomFloat(rngState) >= p)
                 break;
 
             // Add the energy we 'lose' by randomly terminating paths
@@ -348,12 +351,7 @@ void main() {
         color += colorForRay(cameraPos, rayDir, rngState) / float(uRendersPerFrame);
     }
 
-    // average the frames together
-    vec4 lastFrameColor = texture2D(tAccumulate, coords);
-    float blend = (uFrameNo < 1 || lastFrameColor.a == 0.0) ? 1.0 : 1.0 / (1.0 + (1.0 / lastFrameColor.a));
-    color = mix(lastFrameColor.rgb, color, blend);
-
-    // show the result
-    gl_FragColor = vec4(color, blend);
+    // the frame's weight in the running average (blended with it), kept for the denoiser
+    gl_FragColor = vec4(color, 1.0 / float(uFrameNo + 1));
 }
 `;

@@ -10,16 +10,24 @@
 //
 // usage: node scripts/benchmark.mjs [--backends webgl2,webgl2-no-ubo,webgl1,webgpu] [--paths cpu,webgl,webgpu] [--filter 'mc/volume/*']
 //                                   [--runs 7] [--warmup 2] [--out <file.json>] [--compare <file.json>]
-//                                   [--no-build] [--channel chrome] [--headed] [--profile <dir>]
+//                                   [--no-build] [--channel chrome] [--headed] [--profile <dir>] [--heap-profile <dir>]
 //
 //   --gpu-timing     GPU time per pass group of the render cases, per pass of the representation cases (timing mode,
 //                    timestamp queries), printed per case
 //   --strict-math off  WebGPU shader modules without strict math (`strictMath: false` in their descriptors, a Chrome
 //                    developer option: launched with `--enable-webgpu-developer-features`), for comparisons with the
 //                    default (strict) run
+//   --draw-lists, --no-draw-lists  every render case with draw lists or without (`RendererProps.drawLists`, WebGPU
+//                    render bundles; on by default)
+//   --data-binding <bytes>  WebGPU: the theme layers' storage binding limit (`maxDataBindingSize`), lower than the
+//                    device's, so that large items read their layers from several pages
 //   --browser-arg <flag>  an extra browser flag (repeatable), e.g. to choose the GPU of a machine with two
+//   --images <dir>   writes the canvas after the last run of each render case (<dir>/<backend>/<case id>.png)
 //   --profile <dir>  records a V8 CPU profile of each backend's page (<dir>/<backend>.cpuprofile, open in the DevTools
 //                    Performance panel); profile a single case (--filter) for readable results
+//   --heap-profile <dir>  records a V8 sampling heap profile of each backend's page with the objects garbage collected
+//                    since (<dir>/<backend>.heapprofile, open in the DevTools Memory panel): what is allocated, not only
+//                    what stays
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -44,6 +52,8 @@ const outFile = value('--out');
 const compareFile = value('--compare');
 const channel = value('--channel', 'chrome');
 const profileDir = value('--profile');
+const heapProfileDir = value('--heap-profile');
+const imagesDir = value('--images');
 const strictMath = value('--strict-math', 'on');
 if (strictMath !== 'on' && strictMath !== 'off') throw new Error(`--strict-math takes on or off, not '${strictMath}'`);
 
@@ -161,25 +171,47 @@ async function main() {
       if (paths) q.set('paths', paths);
       if (filter) q.set('filter', filter);
       if (args.includes('--gpu-timing')) q.set('gpuTiming', '1');
+      if (args.includes('--draw-lists')) q.set('drawLists', '1');
+      if (args.includes('--no-draw-lists')) q.set('drawLists', '0');
+      if (value('--data-binding')) q.set('dataBinding', value('--data-binding'));
+      if (imagesDir) q.set('images', '1');
       page.on('console', (m) => {
-        if (m.type() === 'error') console.log(`  [${backend}] ${m.text()}`);
+        if (m.type() === 'error' || m.type() === 'warning') console.log(`  [${backend}] ${m.text()}`);
       });
-      const cdp = profileDir ? await page.context().newCDPSession(page) : undefined;
-      if (cdp) {
+      const cdp = profileDir || heapProfileDir ? await page.context().newCDPSession(page) : undefined;
+      if (cdp && profileDir) {
         await cdp.send('Profiler.enable');
         await cdp.send('Profiler.setSamplingInterval', { interval: 100 });
         await cdp.send('Profiler.start');
       }
+      if (cdp && heapProfileDir) {
+        await cdp.send('HeapProfiler.enable');
+        await cdp.send('HeapProfiler.startSampling', {
+          samplingInterval: 4096,
+          includeObjectsCollectedByMajorGC: true,
+          includeObjectsCollectedByMinorGC: true,
+        });
+      }
       await page.goto(`${origin}/tests/build/benchmark/index.html?${q}`);
       await page.waitForFunction(() => window.__benchmark?.done, null, { timeout: 60 * 60 * 1000, polling: 1000 });
-      if (cdp) {
+      if (cdp && profileDir) {
         const { profile } = await cdp.send('Profiler.stop');
         fs.mkdirSync(profileDir, { recursive: true });
         fs.writeFileSync(path.join(profileDir, `${backend}.cpuprofile`), JSON.stringify(profile));
       }
+      if (cdp && heapProfileDir) {
+        const { profile } = await cdp.send('HeapProfiler.stopSampling');
+        fs.mkdirSync(heapProfileDir, { recursive: true });
+        fs.writeFileSync(path.join(heapProfileDir, `${backend}.heapprofile`), JSON.stringify(profile));
+      }
       const state = await page.evaluate(() => window.__benchmark);
       if (state.error) console.log(`${backend}: ${state.error}`);
       info[backend] = state.info;
+      for (const [id, url] of Object.entries(state.images ?? {})) {
+        const file = path.join(imagesDir, backend, `${id.replaceAll('/', '_')}.png`);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, Buffer.from(url.slice(url.indexOf(',') + 1), 'base64'));
+      }
       console.log(`${backend}: ${state.info.renderer}`);
       results.push(...state.results.map((r) => ({ ...r, backend })));
       await page.close();

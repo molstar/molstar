@@ -28,6 +28,7 @@ import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
 import { getTransformedLightDirection, type Light } from '@molstar/graphics/gl/renderer';
 import type { PostprocessingProps } from './postprocessing.js';
+import type { PassTargets } from './pass-targets.js';
 
 export const ShadowParams = {
   steps: PD.Numeric(1, { min: 1, max: 64, step: 1 }),
@@ -38,6 +39,7 @@ export const ShadowParams = {
 export type ShadowProps = PD.Values<typeof ShadowParams>;
 
 export class ShadowPass {
+  readonly graphics: GraphicsContext;
   static isEnabled(props: PostprocessingProps) {
     return props.enabled && props.shadow.name !== 'off';
   }
@@ -48,13 +50,9 @@ export class ShadowPass {
   private invProjection = Mat4.identity();
   private invHeadRotation = Mat4.identity();
 
-  constructor(
-    readonly graphics: GraphicsContext,
-    width: number,
-    height: number,
-    depthTextureOpaque: Texture,
-  ) {
-    this.target = graphics.createRenderTarget(width, height, 'none');
+  constructor(targets: PassTargets, width: number, height: number, depthTextureOpaque: Texture) {
+    const graphics = (this.graphics = targets.graphics);
+    this.target = targets.createRenderTarget(width, height, 'none');
     this.renderable = getShadowsRenderable(graphics, depthTextureOpaque);
   }
 

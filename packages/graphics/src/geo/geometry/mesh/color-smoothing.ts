@@ -11,7 +11,7 @@ import { setOverpaintType } from '../overpaint-data.js';
 import { setSubstanceType } from '../substance-data.js';
 import { setTransparencyType } from '../transparency-data.js';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
-import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { createDataArray, type DataArray, type TextureImage } from '@molstar/graphics/gl/renderable/util';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
@@ -28,7 +28,7 @@ interface ColorSmoothingInput {
   instanceBuffer: Float32Array;
   positionBuffer: Float32Array;
   groupBuffer: Float32Array;
-  colorData: TextureImage<Uint8Array>;
+  colorData: DataArray<Uint8Array>;
   colorType: 'group' | 'groupInstance';
   boundingSphere: Sphere3D;
   invariantBoundingSphere: Sphere3D;
@@ -570,7 +570,6 @@ export function calcMeshColorSmoothing(
       kind: 'vertex' as const,
       splatCount,
       texture: interpolated,
-      texDim: Vec2.create(interpolated.width, interpolated.height),
       type: isInstanceType ? 'vertexInstance' : 'vertex',
     };
   }
@@ -611,7 +610,7 @@ interface ColorInterpolationInput {
   instances?: Uint8Array;
 }
 
-export function getTrilinearlyInterpolated(input: ColorInterpolationInput): TextureImage<Uint8Array> {
+export function getTrilinearlyInterpolated(input: ColorInterpolationInput): DataArray<Uint8Array> {
   const {
     vertexCount,
     positionBuffer,
@@ -632,7 +631,7 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Text
 
   const isInstanceType = input.colorType.endsWith('Instance');
   const instanceCount = isInstanceType ? input.instanceCount : 1;
-  const image = createTextureImage(Math.max(1, instanceCount * vertexCount), outputStride, Uint8Array);
+  const image = createDataArray(Math.max(1, instanceCount * vertexCount), outputStride, Uint8Array);
   const { array } = image;
 
   const [xn, yn, zn] = gridDim;
@@ -746,13 +745,12 @@ export function applyMeshColorSmoothing(
   if (smoothingData.kind === 'volume') {
     setColorType(values, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);
-    ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uColorGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
     ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
     setColorType(values, smoothingData.type);
     ValueCell.update(values.tColor, smoothingData.texture);
-    ValueCell.update(values.uColorTexDim, smoothingData.texDim);
   }
 }
 
@@ -790,13 +788,12 @@ export function applyMeshOverpaintSmoothing(
   if (smoothingData.kind === 'volume') {
     setOverpaintType(values, smoothingData.type);
     ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
-    ValueCell.update(values.uOverpaintTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uOverpaintGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uOverpaintGridDim, smoothingData.gridDim);
     ValueCell.update(values.uOverpaintGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
     setOverpaintType(values, smoothingData.type);
     ValueCell.update(values.tOverpaint, smoothingData.texture);
-    ValueCell.update(values.uOverpaintTexDim, smoothingData.texDim);
   }
 }
 
@@ -834,13 +831,12 @@ export function applyMeshTransparencySmoothing(
   if (smoothingData.kind === 'volume') {
     setTransparencyType(values, smoothingData.type);
     ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
-    ValueCell.update(values.uTransparencyTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uTransparencyGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
     ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
     setTransparencyType(values, smoothingData.type);
     ValueCell.update(values.tTransparency, smoothingData.texture);
-    ValueCell.update(values.uTransparencyTexDim, smoothingData.texDim);
   }
 }
 
@@ -878,13 +874,12 @@ export function applyMeshEmissiveSmoothing(
   if (smoothingData.kind === 'volume') {
     setEmissiveType(values, smoothingData.type);
     ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
-    ValueCell.update(values.uEmissiveTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uEmissiveGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uEmissiveGridDim, smoothingData.gridDim);
     ValueCell.update(values.uEmissiveGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
     setEmissiveType(values, smoothingData.type);
     ValueCell.update(values.tEmissive, smoothingData.texture);
-    ValueCell.update(values.uEmissiveTexDim, smoothingData.texDim);
   }
 }
 
@@ -922,12 +917,11 @@ export function applyMeshSubstanceSmoothing(
   if (smoothingData.kind === 'volume') {
     setSubstanceType(values, smoothingData.type);
     ValueCell.update(values.tSubstanceGrid, smoothingData.texture);
-    ValueCell.update(values.uSubstanceTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uSubstanceGridTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uSubstanceGridDim, smoothingData.gridDim);
     ValueCell.update(values.uSubstanceGridTransform, smoothingData.gridTransform);
   } else if (smoothingData.kind === 'vertex') {
     setSubstanceType(values, smoothingData.type);
     ValueCell.update(values.tSubstance, smoothingData.texture);
-    ValueCell.update(values.uSubstanceTexDim, smoothingData.texDim);
   }
 }

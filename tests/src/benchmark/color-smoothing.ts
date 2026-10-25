@@ -14,7 +14,7 @@ import { calcTextureMeshColorSmoothing } from '@molstar/graphics/geo/geometry/te
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
 import { isComputeColorSmoothingSupported } from '@molstar/graphics/gl/compute/color-smoothing';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { createDataArray, type DataArray, getDataTextureImage } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import {
@@ -23,11 +23,7 @@ import {
   GaussianDensityParams,
 } from '@molstar/graphics/repr/structure/visual/util/gaussian';
 import type { Structure } from '@molstar/model/model/structure';
-import {
-  type ChunkedSurface,
-  computeChunkedIsosurface,
-  getVertexArena,
-} from '@molstar/graphics/gl/compute/marching-cubes/chunks';
+import { type ChunkedSurface, computeChunkedIsosurface } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
 import { type BenchmarkCase, type PathRun, StageTimer } from './framework.js';
 import { getPhysicalSizeTheme, globuleStructure } from './structures.js';
 
@@ -41,14 +37,14 @@ type SmoothingInput = {
   mesh: Mesh;
   groupCount: number;
   /** a color per group (atom) */
-  colors: TextureImage<Uint8Array>;
+  colors: DataArray<Uint8Array>;
   /** grid spacing, Å */
   resolution: number;
 };
 
 /** A color gradient over the atoms, as the `element-index` theme */
 function groupColors(groupCount: number) {
-  const image = createTextureImage(groupCount, 4, Uint8Array);
+  const image = createDataArray(groupCount, 4, Uint8Array);
   for (let i = 0; i < groupCount; ++i) {
     const t = i / Math.max(1, groupCount - 1);
     image.array[i * 4] = Math.round(255 * t);
@@ -156,7 +152,7 @@ function getTextureMeshData(graphics: GraphicsContext, input: SmoothingInput): T
     };
     data.position.load({ array: position, width, height });
     data.group.load({ array: group, width, height });
-    data.colors.load(colors);
+    data.colors.load(getDataTextureImage(colors, 4));
     perGraphics.set(graphics, data);
   }
   return data;
@@ -224,7 +220,7 @@ async function getChunkedData(graphics: GraphicsContext, input: SmoothingInput):
     );
     const { drawn } = await result.count;
     const colors = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    colors.load(input.colors);
+    colors.load(getDataTextureImage(input.colors, 4));
     data = { surface: result.surface, vertexCount: drawn, colors };
     perGraphics.set(graphics, data);
   }
@@ -236,7 +232,6 @@ async function webgpuPath(graphics: GraphicsContext, input: SmoothingInput): Pro
   if (!isComputeColorSmoothingSupported(graphics) || !graphics.compute) return 'needs compute shaders';
   const { mesh, groupCount, resolution } = input;
   const data = await getChunkedData(graphics, input);
-  const arena = getVertexArena(graphics.compute);
   const timer = new StageTimer(graphics);
   const result = calcTextureMeshColorSmoothing(
     {
@@ -248,7 +243,7 @@ async function webgpuPath(graphics: GraphicsContext, input: SmoothingInput): Pro
       // as the values of a texture mesh in the vertex arena
       positionTexture: NullTexture,
       groupTexture: NullTexture,
-      chunks: { table: data.surface.table, positions: arena.positions.ref.value },
+      chunks: { table: data.surface.table, vertices: data.surface.arena.vertices.ref.value },
       colorData: data.colors,
       colorType: 'group',
       boundingSphere: mesh.boundingSphere,

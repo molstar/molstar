@@ -27,5 +27,7 @@ export interface Renderbuffer {
   attachFramebuffer: (framebuffer: Framebuffer) => void;
   detachFramebuffer: (framebuffer: Framebuffer) => void;
   setSize: (width: number, height: number) => void;
+  /** Frees the GPU storage, keeping the size: the next use allocates it again, see `Texture.releaseStorage` */
+  releaseStorage: () => void;
   destroy: () => void;
 }

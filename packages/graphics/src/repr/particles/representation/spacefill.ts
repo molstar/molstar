@@ -28,7 +28,8 @@ import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Representation, type RepresentationContext, type RepresentationParamsGetter } from '../../representation.js';
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation.js';
-import { ParticleVisual, type ParticleKey } from '../visual.js';
+import { ParticleVisual } from '../visual.js';
+import { chooseVisual } from '../../visual-factory.js';
 
 // ---- Params -----------------------------------------------------------------
 
@@ -107,9 +108,6 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
         if (newProps.excludeTargets !== currentProps.excludeTargets) state.createGeometry = true;
       },
       geometryUtils: Spheres.Utils,
-      mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, graphics?: GraphicsContext) => {
-        return !props.tryUseImpostor || !graphics?.capabilities.fragDepth;
-      },
     },
     materialId,
   );
@@ -174,25 +172,17 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
         }
       },
       geometryUtils: Mesh.Utils,
-      mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, graphics?: GraphicsContext) => {
-        return props.tryUseImpostor && !!graphics?.capabilities.fragDepth;
-      },
     },
     materialId,
   );
 }
 
 /** Dispatch: returns an impostor visual when WebGL + required capabilities are available, mesh otherwise. */
-export function SpacefillParticlesVisual(
-  materialId: number,
-  _particles: ParticleList,
-  props: PD.Values<SpacefillParticlesParams>,
-  graphics?: GraphicsContext,
-): ParticleVisual<SpacefillParticlesParams> {
-  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
-    ? SpacefillParticlesImpostorVisual(materialId)
-    : SpacefillParticlesMeshVisual(materialId);
-}
+export const SpacefillParticlesVisual = chooseVisual(
+  { impostor: SpacefillParticlesImpostorVisual, mesh: SpacefillParticlesMeshVisual },
+  (props: PD.Values<SpacefillParticlesParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && graphics && graphics.capabilities.fragDepth ? 'impostor' : 'mesh',
+);
 
 // ---- Shared helpers ---------------------------------------------------------
 

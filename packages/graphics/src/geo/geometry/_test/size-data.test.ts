@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { createDataArray } from '@molstar/graphics/gl/renderable/util';
 import {
   createTextureSize,
   createValueSize,
@@ -24,12 +24,12 @@ describe('size-data', () => {
   });
 
   it('keeps the size type, its define and index in step', () => {
-    const data = createTextureSize(createTextureImage(4, 4, Uint8Array), 'group');
+    const data = createTextureSize(createDataArray(4, 4, Uint8Array), 'group');
     expect(data.sizeType.ref.value).toBe('group');
     expect(data.dSizeType.ref.value).toBe('texture');
     expect(data.uSizeIndexType.ref.value).toBe(SizeTypeIndex.group);
 
-    createTextureSize(createTextureImage(4, 4, Uint8Array), 'vertexInstance', data);
+    createTextureSize(createDataArray(4, 4, Uint8Array), 'vertexInstance', data);
     expect(data.sizeType.ref.value).toBe('vertexInstance');
     expect(data.uSizeIndexType.ref.value).toBe(SizeTypeIndex.vertexInstance);
 

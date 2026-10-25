@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The core's folder graph: what each folder of src/ may import of the others, as the packages it replaced declared
@@ -12,11 +13,13 @@
 // query/ and links/) and Node's built-ins (the CLIs, the tile server). The model's own rule (the query language and the matchers from model/query only) is layers.grit's.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const SRC = fileURLToPath(new URL('../src', import.meta.url));
+/** `file`'s path in `SRC`, with `/` on every platform */
+const inSrc = (file: string) => relative(SRC, file).split(sep).join('/');
 
 /** Each folder and the folders it may import. */
 const ALLOWED: Record<string, string[]> = {
@@ -53,18 +56,18 @@ describe("the core's folders", () => {
 
   it('every file sits in a known folder', () => {
     expect(all.length).toBeGreaterThan(150);
-    expect(all.map((f) => relative(SRC, f)).filter((f) => !folderOf(f))).toEqual([]);
+    expect(all.map(inSrc).filter((f) => !folderOf(f))).toEqual([]);
   });
 
   it('import only what their folder may', () => {
     const wrong: string[] = [];
     for (const file of all) {
-      const at = relative(SRC, file);
+      const at = inSrc(file);
       const own = folderOf(at) as string;
       for (const m of readFileSync(file, 'utf8').matchAll(SPECIFIER)) {
         const spec = m[1] ?? m[2] ?? m[3];
         if (spec.startsWith('.')) {
-          const target = folderOf(relative(SRC, resolve(dirname(file), spec)));
+          const target = folderOf(inSrc(resolve(dirname(file), spec)));
           if (target !== own) wrong.push(`${at}: ${spec} leaves ${own}/ (name the entry instead)`);
         } else if (spec.startsWith('@molstar/seq-core/')) {
           const target = folderOf(spec.slice('@molstar/seq-core/'.length));

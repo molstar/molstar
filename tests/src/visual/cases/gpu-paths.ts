@@ -218,6 +218,69 @@ async function checkAlphaOrbitals(graphics: GraphicsContext) {
   ];
 }
 
+/**
+ * `Texture.loadRows` on every backend: rows of an image changed in place after its upload (a font atlas's new glyphs)
+ * written in place, the other rows kept, the image the texture's source after (copied from on a backend switch); an
+ * image of another size loaded whole
+ */
+async function checkLoadRows(graphics: GraphicsContext) {
+  // an odd width: rows are not aligned to anything
+  const width = 37;
+  const height = 24;
+  const errors: string[] = [];
+  for (const c of [
+    { format: 'r', channels: 1 },
+    { format: 'rgba', channels: 4 },
+  ] as const) {
+    const texture = graphics.resources.texture('image-uint8', c.format, 'ubyte', 'nearest');
+    if (!texture.loadRows) {
+      texture.destroy();
+      errors.push(`${c.format}: no loadRows`);
+      continue;
+    }
+    const rowLength = width * c.channels;
+    const array = Uint8Array.from({ length: rowLength * height }, (_, i) => (i * 37) % 256);
+    const image = { array, width, height };
+    texture.load(image);
+    // three ranges of rows changed, the last row among them
+    const rows = [3, 7, 20, 21, 23, 24];
+    for (let k = 0; k < rows.length; k += 2) {
+      for (let i = rows[k] * rowLength; i < rows[k + 1] * rowLength; ++i) array[i] = (i * 11 + 101) % 256;
+    }
+    texture.loadRows(image, rows);
+    const compare = async (name: string, expected: { array: Uint8Array; width: number; height: number }) => {
+      const read = await graphics.readTextureData(texture);
+      if (read.width !== expected.width || read.height !== expected.height) {
+        errors.push(`${name}: read ${read.width}×${read.height}`);
+        return;
+      }
+      for (let i = 0; i < expected.width * expected.height; ++i) {
+        for (let k = 0; k < c.channels; ++k) {
+          const value = expected.array[i * c.channels + k];
+          if (read.array[i * 4 + k] !== value) {
+            const row = Math.floor(i / expected.width);
+            errors.push(`${name}: row ${row} texel ${i} channel ${k} is ${read.array[i * 4 + k]}, not ${value}`);
+            return;
+          }
+        }
+      }
+    };
+    await compare(`${c.format} rows`, image);
+    if (texture.getSource?.().data !== image) errors.push(`${c.format}: the image is not the texture's source`);
+
+    // another size: loaded whole
+    const other = {
+      array: Uint8Array.from({ length: rowLength * 2 * 8 }, (_, i) => (i * 7) % 256),
+      width: 2 * width,
+      height: 8,
+    };
+    texture.loadRows(other, [0, 2]);
+    await compare(`${c.format} other size`, other);
+    texture.destroy();
+  }
+  return errors;
+}
+
 /** Formats `readTextureData` reads on every backend; float textures where they are render targets (WebGL reads them) */
 async function checkReadTextureData(graphics: GraphicsContext) {
   const width = 3;
@@ -371,12 +434,12 @@ async function checkVertexColorsGpuSurface(graphics: GraphicsContext) {
   if (ro?.type !== 'texture-mesh') errors.push(`the GPU surface is '${ro?.type}', not a texture mesh`);
   else {
     const values = ro.values as unknown as {
-      tColor: { ref: { value: { array: Uint8Array; width: number; height: number } } };
+      tColor: { ref: { value: { array: Uint8Array; count: number } } };
       uVertexCount: { ref: { value: number } };
     };
-    const { array, width, height } = values.tColor.ref.value;
-    // the color texture is padded beyond the vertices, its texels rgb or rgba
-    const stride = array.length / (width * height);
+    // rgba per vertex (the data array may be longer)
+    const stride = 4;
+    const { array } = values.tColor.ref.value;
     const colors = new Set<number>();
     for (let i = 0; i < values.uVertexCount.ref.value * stride; i += stride) {
       colors.add((array[i] << 16) | (array[i + 1] << 8) | array[i + 2]);
@@ -567,6 +630,13 @@ export const GpuPathCases: VisualTestCase[] = [
     description: 'Texture readback in data order on every backend: rgba and r bytes, rgba floats where renderable.',
     scene: async () => [],
     check: checkReadTextureData,
+  },
+  {
+    id: 'gpu-paths/load-rows',
+    description:
+      'Rows of an image changed after its upload written in place (a font atlas), the rest kept; another size whole.',
+    scene: async () => [],
+    check: checkLoadRows,
   },
   {
     id: 'gpu-paths/export-gpu-surface',

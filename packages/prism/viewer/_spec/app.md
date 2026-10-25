@@ -54,9 +54,8 @@ in this order (`features/loaders/url.ts`; names without case); the app reads the
 - `all-models=1`, `assembly=<id>` → options of the `structure-url`/`url` loads (`assembly` also of `pdb`, `pdb-ihm`,
   `model-archive`); alone they load nothing
 - `pixel-scale`, `pick-scale`, `transparency`, `resolution-mode`, `power-preference`, `graphics-backend` (`auto`: WebGPU
-  where it can, else WebGL; `webgpu`, `webgl`, `webgl2`, `webgl1`), `prefer-webgl1` (v5's; `1` is
-  `graphics-backend=webgl1`), `allow-major-performance-caveat`, `disable-antialiasing`, `illumination` →
-  `options.renderer`
+  where it can, else WebGL; `webgpu`, `webgl`, `webgl2`, `webgl1`), `allow-major-performance-caveat`,
+  `disable-antialiasing`, `illumination` → `options.renderer`
 - `bg-color` (`viewport-background-color`), `viewport-focus-behavior`, `palette` → `options.canvas`
 - `pdb-provider`, `emdb-provider`, `map-provider` (as v5), `volume-streaming-server` (wins over `map-provider`),
   `volume-streaming-disabled`, `state-server` → `options.data`

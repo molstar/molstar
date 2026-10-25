@@ -48,7 +48,8 @@ fn getPixelSize(viewZ: f32) -> f32 {
 @fragment
 fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let coords = fragmentUv(in.position, uObject.uTexSize);
-    let packedDepth = read_tSsaoDepth(coords).zw;
+    let selfSsaoDepth = read_tSsaoDepth(coords);
+    let packedDepth = selfSsaoDepth.zw;
 
     if (outsideBounds(coords)) {
         return vec4<f32>(packUnitIntervalToRG(1.0), packedDepth);
@@ -96,6 +97,10 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
         sum += kernel * sampleValue;
         kernelSum += kernel;
+    }
+    // no sample within the depth bias (a background pixel of the first pass): the pixel unblurred
+    if (kernelSum == 0.0) {
+        return selfSsaoDepth;
     }
     return vec4<f32>(packUnitIntervalToRG(sum / kernelSum), packedDepth);
 }

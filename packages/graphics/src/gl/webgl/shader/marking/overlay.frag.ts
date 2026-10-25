@@ -34,6 +34,35 @@ float getTracedShading(const in float baseLuminance, const in float shadedLumina
     return clamp(l / max(shadedLuminance, 0.001), 0.0, 1.0);
 }
 
+// edge of the marked regions at \`coords\` (alpha 0 if none): the mask is antialiased, so the coverage can be taken from
+// single texels, \`uEdgeScale\` texels apart; rgb: hidden, outer (the mask), highlight
+vec4 getEdge(const in vec2 coords) {
+    vec4 offset = vec4(uEdgeScale, 0.0, 0.0, uEdgeScale) * vec4(uTexSizeInv, uTexSizeInv);
+
+    vec4 m1 = texture2D(tMaskTexture, coords + offset.xy);
+    vec4 m2 = texture2D(tMaskTexture, coords - offset.xy);
+    vec4 m3 = texture2D(tMaskTexture, coords + offset.yw);
+    vec4 m4 = texture2D(tMaskTexture, coords - offset.yw);
+
+    float edge = max(abs(m1.r - m2.r), abs(m3.r - m4.r));
+    if (edge <= 0.0) return vec4(0.0);
+
+    // the sample covering the most of the marked region, mask values are 0.0 where marked
+    vec4 mx = m1.r < m2.r ? m1 : m2;
+    vec4 my = m3.r < m4.r ? m3 : m4;
+    vec4 m = mx.r < my.r ? mx : my;
+
+    // the samples average marked and unmarked texels and unmarked ones are 1.0 in every channel,
+    // so the values of the marked texels can be recovered from how much they are covered
+    vec3 marked = clamp((m.gba - m.r) / max(1.0 - m.r, 0.001), 0.0, 1.0);
+
+    float visibility = marked.x > 0.5 ? 1.0 : 0.0;
+    float mask = texture2D(tMaskTexture, coords).r;
+    float marker = marked.y > 0.5 ? 1.0 : 0.0;
+    float fogAlpha = marked.z;
+    return vec4(visibility, mask, marker, edge * fogAlpha);
+}
+
 void main() {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
 
@@ -80,12 +109,11 @@ void main() {
         #endif
     }
 
-    vec4 e = texture2D(tEdgeTexture, coords);
+    vec4 e = getEdge(coords);
     vec3 edgeRgb = vec3(0.0);
     float edgeAlpha = 0.0;
     if (e.a > 0.0) {
-        // the edge is stored premultiplied, see edge.frag
-        vec3 edgeValue = e.rgb / e.a;
+        vec3 edgeValue = e.rgb;
         bool isHighlight = edgeValue.z > 0.5;
         edgeRgb = isHighlight ? uHighlightEdgeColor : uSelectEdgeColor;
         edgeRgb = edgeValue.y > 0.5 ? edgeRgb : edgeRgb * uInnerEdgeFactor;

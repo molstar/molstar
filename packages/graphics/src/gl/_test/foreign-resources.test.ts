@@ -80,15 +80,13 @@ describe('foreign resources of render objects', () => {
     const mesh = TextureMesh.createEmpty();
     ValueCell.update(mesh.isoChunks, true);
     ValueCell.update(mesh.isoTable, fakeBuffer());
-    ValueCell.update(mesh.isoPositions, fakeBuffer());
-    ValueCell.update(mesh.isoNormals, fakeBuffer());
+    ValueCell.update(mesh.isoVertices, fakeBuffer());
     ValueCell.update(mesh.drawIndirect, { buffer: fakeBuffer(), byteOffset: 0 });
     const texture = createNullTexture();
     TextureMesh.create(3, 1, texture, texture, texture, mesh.boundingSphere, mesh);
     expect(mesh.isoChunks.ref.value).toBe(false);
     expect(mesh.isoTable.ref.value).toBeUndefined();
-    expect(mesh.isoPositions.ref.value).toBeUndefined();
-    expect(mesh.isoNormals.ref.value).toBeUndefined();
+    expect(mesh.isoVertices.ref.value).toBeUndefined();
     expect(mesh.drawIndirect.ref.value).toBeUndefined();
   });
 });

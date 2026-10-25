@@ -5,7 +5,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
-import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
+import { type PassBuilder } from './pass-builder.js';
 import { type CopyRenderable, QuadSchema, QuadValues, createCopyRenderable } from '@molstar/graphics/gl/compute/util';
 import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import type { Texture } from '@molstar/graphics/gl/texture';
@@ -61,6 +61,7 @@ function checkIlluminationSupport(graphics: GraphicsContext) {
 type Props = {
   transparentBackground: boolean;
   dpoitIterations: number;
+  volumeResolutionScale: number;
   illumination: IlluminationProps;
   renderer: RendererProps;
   postprocessing: PostprocessingProps;
@@ -102,9 +103,10 @@ export class IlluminationPass {
   private readonly copyRenderable: CopyRenderable;
   private readonly composeRenderable: ComposeRenderable;
 
+  /** the weighted average of the samples so far, see `renderMultiSample` */
   private multiSampleComposeTarget: RenderTarget;
+  /** the first sample */
   private multiSampleHoldTarget: RenderTarget;
-  private multiSampleAccumulateTarget: RenderTarget;
   private multiSampleCompose: MultiSampleComposeRenderable;
   private readonly renderBuilder: PassBuilder;
 
@@ -132,8 +134,7 @@ export class IlluminationPass {
       this.transparentTarget.getByteCount() +
       this.outputTarget.getByteCount() +
       this.multiSampleComposeTarget.getByteCount() +
-      this.multiSampleHoldTarget.getByteCount() +
-      this.multiSampleAccumulateTarget.getByteCount()
+      this.multiSampleHoldTarget.getByteCount()
     );
   }
 
@@ -166,8 +167,8 @@ export class IlluminationPass {
     this.tracing = new TracingPass(graphics, this.drawPass);
     this.markingShading = { name: 'traced', shaded: this.tracing.shadedTextureOpaque };
 
-    this.transparentTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
-    this.outputTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.transparentTarget = drawPass.targets.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
+    this.outputTarget = drawPass.targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.copyRenderable = createCopyRenderable(graphics, this.transparentTarget.texture);
 
@@ -186,12 +187,11 @@ export class IlluminationPass {
       false,
     );
 
-    this.multiSampleComposeTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
-    this.multiSampleHoldTarget = graphics.createRenderTarget(width, height, 'none');
-    this.multiSampleAccumulateTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
+    this.multiSampleComposeTarget = drawPass.targets.createRenderTarget(width, height, 'none', 'float32');
+    this.multiSampleHoldTarget = drawPass.targets.createRenderTarget(width, height, 'none');
     this.multiSampleCompose = getMultiSampleComposeRenderable(graphics, this.outputTarget.texture);
 
-    this.renderBuilder = createRenderBuilder(graphics);
+    this.renderBuilder = drawPass.targets.createRenderBuilder();
     this._supported = true;
   }
 
@@ -211,7 +211,7 @@ export class IlluminationPass {
       PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
     const dofEnabled = DofPass.isEnabled(props.postprocessing);
     const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
-    const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
+    const bloomEnabled = BloomPass.isActive(scene, props.postprocessing);
 
     if ((outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) && b.drawing) {
       b.begin(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
@@ -219,17 +219,17 @@ export class IlluminationPass {
     }
 
     if (hasTransparent) {
+      // volumes under the transparent primitives (one layer, not split at their surfaces)
+      if (scene.volumes.renderables.length > 0) {
+        b.begin(this.transparentTarget, { label: 'volume' });
+        b.renderer({ name: 'volume' }, scene.volumes, () => renderer.renderVolume(scene.volumes, camera, depthOpaque));
+      }
+
       if (this.drawPass.transparency === 'wboit') {
         this.drawPass.wboit.bind(b);
         b.renderer({ name: 'wboitTransparent' }, scene.primitives, () =>
           renderer.renderWboitTransparent(scene.primitives, camera, depthOpaque),
         );
-
-        if (scene.volumes.renderables.length > 0) {
-          b.renderer({ name: 'wboitTransparent' }, scene.volumes, () =>
-            renderer.renderWboitTransparent(scene.volumes, camera, depthOpaque),
-          );
-        }
 
         b.begin(this.transparentTarget, { label: 'wboit evaluate' });
         this.drawPass.wboit.render(b);
@@ -259,12 +259,6 @@ export class IlluminationPass {
         // evaluate dpoit
         b.begin(this.transparentTarget, { label: 'dpoit evaluate' });
         this.drawPass.dpoit.render(b);
-
-        if (scene.volumes.renderables.length > 0) {
-          b.renderer({ name: 'volume' }, scene.volumes, () =>
-            renderer.renderVolume(scene.volumes, camera, depthOpaque),
-          );
-        }
       } else {
         depthOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
         b.begin(this.transparentTarget, { label: 'transparent' });
@@ -272,13 +266,6 @@ export class IlluminationPass {
           renderer.renderBlendedTransparent(scene.primitives, camera),
         );
         depthOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
-
-        if (scene.volumes.renderables.length > 0) {
-          b.begin(this.transparentTarget, { label: 'volume' });
-          b.renderer({ name: 'volume' }, scene.volumes, () =>
-            renderer.renderVolume(scene.volumes, camera, depthOpaque),
-          );
-        }
       }
 
       if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
@@ -375,7 +362,6 @@ export class IlluminationPass {
 
       this.multiSampleComposeTarget.setSize(width, height);
       this.multiSampleHoldTarget.setSize(width, height);
-      this.multiSampleAccumulateTarget.setSize(width, height);
       ValueCell.update(
         this.multiSampleCompose.values.uTexSize,
         Vec2.set(this.multiSampleCompose.values.uTexSize.ref.value, width, height),
@@ -459,7 +445,7 @@ export class IlluminationPass {
     const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
     const outlinesEnabled = OutlinePass.isEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
     const occlusionEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
-    const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
+    const bloomEnabled = BloomPass.isActive(scene, props.postprocessing);
     const dofEnabled = DofPass.isEnabled(props.postprocessing);
 
     const hasTransparent = scene.opacityAverage < 1 || scene.volumes.renderables.length > 0;
@@ -574,6 +560,8 @@ export class IlluminationPass {
           params,
           camera,
           false,
+          // the transparent target may hold helpers, see `renderInput`
+          true,
         );
         bloom.render(b, camera.viewport);
         bloomActive = true;
@@ -704,6 +692,9 @@ export class IlluminationPass {
     const { x, y, width, height } = camera.viewport;
     const sampleWeight = 1.0 / maxIterations;
 
+    // the compose target holds `w * (s_1 + ... + s_k) + (1 - k * w) * s_0` after iteration `k` (samples `s`, weight
+    // `w`): the first sample, the hold, until every following one has its weight; kept by adding `w * (s_k - s_0)`
+    // per iteration (the first sample has its weight in the sum of the last iteration, `k * w = 1`)
     if (iteration === 0) {
       this.renderInternal(b, ctx, props, false, true, iteration);
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
@@ -717,11 +708,14 @@ export class IlluminationPass {
         graphics.setScissor(x, y, width, height);
       }
       b.quad(multiSampleCompose, RenderState.Default);
-    } else {
-      ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
-      ValueCell.update(multiSampleCompose.values.uWeight, sampleWeight);
-      multiSampleCompose.update();
 
+      b.begin(multiSampleComposeTarget, { label: 'multi-sample compose' });
+      if (b.drawing) {
+        graphics.setViewport(x, y, width, height);
+        graphics.setScissor(x, y, width, height);
+      }
+      b.quad(multiSampleCompose, RenderState.Default);
+    } else {
       // render the scene multiple times, each slightly jitter offset
       // from the last and accumulate the results.
       if (b.drawing) setJitter(camera, offsetList[sampleIndex]);
@@ -729,43 +723,28 @@ export class IlluminationPass {
       // render scene
       this.renderInternal(b, ctx, props, false, !b.drawing || this.prevSampleIndex !== sampleIndex, iteration);
 
-      // compose rendered scene with compose target
+      // add the sample's weight and take it from the first sample (a float target, not clamped)
       b.begin(multiSampleComposeTarget, { label: 'multi-sample compose' });
       if (b.drawing) {
-        graphics.setRenderState(RenderState.Additive);
         graphics.setViewport(x, y, width, height);
         graphics.setScissor(x, y, width, height);
-        if (iteration === 1) graphics.clear({ color: [0, 0, 0, 0] });
       }
+      ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
+      ValueCell.update(multiSampleCompose.values.uWeight, sampleWeight);
+      multiSampleCompose.update();
+      b.quad(multiSampleCompose, RenderState.Additive);
+      ValueCell.update(multiSampleCompose.values.tColor, multiSampleHoldTarget.texture);
+      ValueCell.update(multiSampleCompose.values.uWeight, -sampleWeight);
+      multiSampleCompose.update();
       b.quad(multiSampleCompose, RenderState.Additive);
     }
 
     if (b.drawing) this.prevSampleIndex = sampleIndex;
 
-    b.begin(this.multiSampleAccumulateTarget, { label: 'multi-sample accumulate' });
-    if (b.drawing) {
-      graphics.setViewport(x, y, width, height);
-      graphics.setScissor(x, y, width, height);
-    }
-
-    const accumulationWeight = iteration * sampleWeight;
-    if (accumulationWeight > 0) {
-      ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
-      ValueCell.update(multiSampleCompose.values.tColor, multiSampleComposeTarget.texture);
-      multiSampleCompose.update();
-      b.quad(multiSampleCompose, RenderState.Default);
-    }
-    if (accumulationWeight < 1.0) {
-      ValueCell.update(multiSampleCompose.values.uWeight, 1.0 - accumulationWeight);
-      ValueCell.update(multiSampleCompose.values.tColor, multiSampleHoldTarget.texture);
-      multiSampleCompose.update();
-      b.quad(multiSampleCompose, accumulationWeight === 0 ? RenderState.Default : RenderState.Additive);
-    }
-
     if (!toDrawingBuffer) {
       b.begin(this.colorTarget, { label: 'multi-sample output' });
-      if (this.copyRenderable.values.tColor.ref.value !== this.multiSampleAccumulateTarget.texture) {
-        ValueCell.update(this.copyRenderable.values.tColor, this.multiSampleAccumulateTarget.texture);
+      if (this.copyRenderable.values.tColor.ref.value !== multiSampleComposeTarget.texture) {
+        ValueCell.update(this.copyRenderable.values.tColor, multiSampleComposeTarget.texture);
         this.copyRenderable.update();
       }
       b.quad(this.copyRenderable, RenderState.Default);
@@ -773,7 +752,7 @@ export class IlluminationPass {
 
     if (b.drawing) clearJitter(camera);
 
-    const base = toDrawingBuffer ? this.multiSampleAccumulateTarget : this._colorTarget;
+    const base = toDrawingBuffer ? multiSampleComposeTarget : this._colorTarget;
     // a single sample on the first iteration, which is also the one rendered while the camera moves
     const samples = iteration === 0 ? 1 : Math.ceil(offsetList.length / maxIterations);
     this.drawPass.marking.present(b, ctx, props, {

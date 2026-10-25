@@ -2,9 +2,25 @@
 
 ## Status
 
-- **Current**: paused, good enough for now: the color type, the instance granularity and the size type converted
-  (step 2, below). Open, in the order to take them up: the clip object count (candidates, 6: simple, varies most in
-  the visual suite), the shading switches one at a time (4), the layers' presence (5) last if at all.
+- **Current**: paused, good enough for now: the color type, the instance granularity, the size type and (on WebGL) the
+  clip object count converted (step 2, below). The shading switches (4) measured and not converted (below); open: the
+  layers' presence (5) last if at all.
+- Step 4 measured for cel shading and flip-sided, not adopted: as uniforms (`uCelShaded`, `uFlipSided`, one program
+  each way, WebGL ignoring the defines) they cost every frame, cel shading off on WebGPU 2.1% of the fragment-bound
+  globule (`render/globule-300k-spacefill-large`, 14.68 to 14.98 ms), both on WebGL2 0.3-0.9% and on WebGL1 1.0-1.7%
+  (the globule as impostors and meshes, three interleaved rounds); with cel shading on within 1%. These switches rarely
+  vary (one case each in the visual suite, none in the stories), so the programs saved do not pay for it. The other
+  switches (x-ray, ignore-light, transparent backfaces, solid interior) gate more code in the same fragment paths, so
+  not tried; `cel/*` benchmark cases (on demand) measure cel shading.
+- Step 2 done for the clip object count on WebGL: the presence is the boolean define `dClipObjects`, the count the
+  material uniform `uClipObjectCount` (`loopBound`: a define on WebGL1), WebGL ignores `dClipObjectCount`
+  (`ignoreDefine`), so WebGL2 has one program for all counts; the GLSL clip loops are no longer unrolled. WebGPU keeps
+  the count a pipeline constant (`oClipObjectCount` from the number define): a uniform bound cost it 15% with 1 and
+  23% with 3 clip objects (`clip/globule-300k-spacefill-large-*`, on demand: inverted spheres that cut nothing, every
+  fragment testing), a constant bound with a `break` still 6-10%, a guarded fixed loop 65%. Measured, three interleaved
+  rounds (2560x1440): WebGL2 3 clip objects 33.2 to 29.0 ms, WebGL1 33.3 to 24.9 ms, 1 clip object and none unchanged;
+  WebGPU unchanged. Checked: the visual suites (WebGL2, WebGL1, WebGPU, WebGL2 without uniform blocks), the headless
+  WebGPU tests.
 - Step 2 done for the size type, as the color type: `dSizeType` has `uniform` and `texture`, the object uniform
   `uSizeIndexType` selects the index (`SizeTypeIndex`: instance, group, groupInstance, vertex, vertexInstance; a
   `switch` in WGSL, an `if` chain in GLSL), the type itself is the value `sizeType` (`setSizeType`; read by merged

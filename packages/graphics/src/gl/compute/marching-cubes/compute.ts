@@ -21,7 +21,7 @@ import type { Texture } from '../../texture.js';
 /**
  * Marching cubes with compute kernels, into chunks of a vertex arena (`computeChunkedIsosurface`): the inputs, the
  * kernels and the tables they share. Results follow the WebGL isosurface: positions and normals in the space of the
- * transform, groups constant per triangle.
+ * transform; indexed, a group per vertex (of the nearer edge end, as the CPU marching cubes), a triangle's of its first.
  */
 
 export const WorkgroupSize: [number, number, number] = [4, 4, 4];
@@ -60,9 +60,16 @@ export const McChunkCountOutput = {
   triCounts: StorageBufferSpec('u32', 'read'),
   table: StorageBufferSpec('atomic<u32>', 'read-write'),
   bases: StorageBufferSpec('u32', 'read-write'),
+  /** the first vertex of each grid point */
+  pointBases: StorageBufferSpec('u32', 'read-write'),
 };
 
 export const McChunkAllocateSchema = {
+  /** the box of the surface's quantized positions: its min and its extent per step */
+  uBoxMin: UniformSpec('v3'),
+  uBoxStep: UniformSpec('v3'),
+  /** the vertex pages of the table, the triangle pages after them */
+  uVertexCapacity: UniformSpec('i'),
   table: StorageBufferSpec('u32', 'read-write'),
   free: StorageBufferSpec('u32', 'read-write'),
   drawArgs: StorageBufferSpec('u32', 'read-write'),
@@ -72,12 +79,15 @@ export const McChunkEmitOutput = {
   uInvert: UniformSpec('b'),
   uTransform: UniformSpec('m4'),
   uTransformAdjoint: UniformSpec('m3'),
+  /** the box of the quantized positions: its min and the steps per unit */
+  uBoxMin: UniformSpec('v3'),
+  uBoxScale: UniformSpec('v3'),
   triCounts: StorageBufferSpec('u32', 'read'),
   triTable: StorageBufferSpec('u32', 'read'),
   bases: StorageBufferSpec('u32', 'read'),
+  pointBases: StorageBufferSpec('u32', 'read'),
   table: StorageBufferSpec('u32', 'read'),
-  positions: StorageBufferSpec('vec4<f32>', 'read-write'),
-  normals: StorageBufferSpec('vec2<u32>', 'read-write'),
+  vertices: StorageBufferSpec('u32', 'read-write'),
 };
 
 export const McChunkFreeSchema = {

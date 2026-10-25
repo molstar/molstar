@@ -17,12 +17,34 @@ import { ColorSmoothingCases } from './color-smoothing.js';
 import { type BenchmarkCase, BenchmarkEnv, type BenchmarkPath, type PathResult, runPath } from './framework.js';
 import { GaussianSurfaceCases, GaussianSurfaceCutoffCases } from './gaussian-surface.js';
 import { MarchingCubesCases } from './marching-cubes.js';
-import { RenderBundleCases, RenderCases, disposeScene } from './render.js';
+import {
+  DrawTableCases,
+  MergingCases,
+  MergingAssemblyCases,
+  MergingInstanceCases,
+  MergingSingleInstanceCases,
+  MergingPostsynCases,
+  MergingPostsynSizeCases,
+  MergingPostsynPixelCases,
+  MergingPostsynChainCases,
+  MergingPostsynPixelModeCases,
+  MergingPostsynUpdateCases,
+  UnindexedQuadCases,
+  ClipCases,
+  CelCases,
+  RenderBundleCases,
+  RenderCases,
+  disposeScene,
+} from './render.js';
+import { DirectVolumeCases } from './direct-volume.js';
+import { DrawOverheadCases } from './draw-overhead.js';
+import { PassCases } from './passes.js';
 import { RepresentationCases } from './representations.js';
 
 /**
  * Benchmark page: `backend` (`webgl2`, which also runs the CPU paths, `webgl2-no-ubo`, `webgl1` or `webgpu`), `paths` (default: all of the
- * backend), `filter` (case id globs), `runs` and `warmup`. Cases run sequentially; results in `window.__benchmark`.
+ * backend), `filter` (case id globs), `runs` and `warmup`, `dataBinding` (WebGPU: the theme layers' binding limit, bytes).
+ * Cases run sequentially; results in `window.__benchmark`.
  */
 
 const AllCases: BenchmarkCase<any>[] = [
@@ -34,7 +56,27 @@ const AllCases: BenchmarkCase<any>[] = [
 ];
 
 /** Cases run only when a filter selects them (measurements for a decision, not the default run) */
-const OnDemandCases: BenchmarkCase<any>[] = [...GaussianSurfaceCutoffCases, ...RenderBundleCases];
+const OnDemandCases: BenchmarkCase<any>[] = [
+  ...GaussianSurfaceCutoffCases,
+  ...RenderBundleCases,
+  ...PassCases,
+  ...DrawTableCases,
+  ...DrawOverheadCases,
+  ...MergingCases,
+  ...MergingAssemblyCases,
+  ...MergingInstanceCases,
+  ...MergingSingleInstanceCases,
+  ...MergingPostsynCases,
+  ...MergingPostsynSizeCases,
+  ...MergingPostsynPixelCases,
+  ...MergingPostsynChainCases,
+  ...MergingPostsynPixelModeCases,
+  ...MergingPostsynUpdateCases,
+  ...UnindexedQuadCases,
+  ...ClipCases,
+  ...CelCases,
+  ...DirectVolumeCases,
+];
 
 const BackendPaths: { [backend: string]: BenchmarkPath[] } = {
   webgl2: ['cpu', 'webgl'],
@@ -50,7 +92,13 @@ const Backends = {
   webgpu: createWebGPUBackend(),
 };
 
-type BenchmarkState = { done: boolean; info: { [k: string]: string }; results: PathResult[]; error?: string };
+type BenchmarkState = {
+  done: boolean;
+  info: { [k: string]: string };
+  results: PathResult[];
+  images?: { [id: string]: string };
+  error?: string;
+};
 declare global {
   interface Window {
     __benchmark: BenchmarkState;
@@ -64,11 +112,14 @@ const log = (line: string) => {
   document.getElementById('log')!.textContent += `${line}\n`;
 };
 
-async function createContext(backend: string) {
+async function createContext(backend: string, dataBinding?: number) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 64;
   document.body.appendChild(canvas);
-  const descriptor = Backends[backend as keyof typeof Backends];
+  const descriptor =
+    backend === 'webgpu' && dataBinding
+      ? createWebGPUBackend({ maxDataBindingSize: dataBinding })
+      : Backends[backend as keyof typeof Backends];
   const context = await Canvas3DContext.create(
     canvas,
     new DefaultAssetManager(),
@@ -95,7 +146,9 @@ async function run() {
     setTimingMode(true);
     BenchmarkEnv.gpuTiming = true;
   }
-  const graphics = await createContext(backend);
+  if (params.get('images')) state.images = BenchmarkEnv.images = {};
+  if (params.get('drawLists')) BenchmarkEnv.drawLists = params.get('drawLists') === '1';
+  const graphics = await createContext(backend, Number(params.get('dataBinding') ?? 0));
   if (isWebGLContext(graphics)) {
     const ext = graphics.gl.getExtension('WEBGL_debug_renderer_info');
     state.info.renderer = ext ? graphics.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unknown';

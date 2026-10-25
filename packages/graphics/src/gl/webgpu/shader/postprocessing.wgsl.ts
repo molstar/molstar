@@ -7,32 +7,39 @@
 import { depth_wgsl } from './chunks/depth.wgsl.js';
 import { packing_wgsl } from './chunks/packing.wgsl.js';
 import { quad_vert_wgsl, texture_read_wgsl } from './chunks/quad.wgsl.js';
-import { pack_2x4_wgsl } from './outlines.wgsl.js';
+import { outline_read_wgsl, pack_2x4_wgsl } from './outlines.wgsl.js';
+import type { DefineLookup } from '../../renderable/schema.js';
 
-const Textures = [
-  'tColor',
-  'tTransparentColor',
-  'tDepthOpaque',
-  'tDepthTransparent',
-  'tSsaoDepth',
-  'tSsaoDepthTransparent',
-  'tShadows',
-  'tOutlines',
-  'tBloom',
-];
+/** The textures a variant reads through `read_<name>` (the upsampled occlusion samples its texture directly) */
+function getTextures(d: DefineLookup) {
+  const blend = d('dBlendTransparency');
+  const occlusion = d('dOcclusionEnable');
+  const transparentOcclusion = blend && occlusion && d('dOcclusionIncludeTransparency');
+  const upsample = d('dOcclusionUpsample');
+  return [
+    'tColor',
+    'tDepthOpaque',
+    blend && 'tTransparentColor',
+    transparentOcclusion && 'tDepthTransparent',
+    occlusion && !upsample && 'tSsaoDepth',
+    transparentOcclusion && !upsample && 'tSsaoDepthTransparent',
+    d('dShadowEnable') && 'tShadows',
+    d('dOutlineEnable') && 'tOutlines',
+    d('dBloomEnable') && 'tBloom',
+  ].filter((t): t is string => !!t);
+}
 
 /**
  * Composes occlusion, shadows, outlines, blended transparency and bloom onto the scene color. Depth textures are
- * always available on WebGPU, so the opaque depth is never packed.
+ * always available on WebGPU, so the opaque depth is never packed. The texture reads and the outline helper are
+ * included by the variant's defines (`WgslProgram.source`).
  */
-export const postprocessing_wgsl = /* wgsl */ `
+export const postprocessing_wgsl = (d: DefineLookup) => /* wgsl */ `
 ${depth_wgsl}
 ${packing_wgsl}
-${pack_2x4_wgsl}
 ${quad_vert_wgsl}
-${Textures.map(texture_read_wgsl).join('\n')}
-
-override oOutlineScale: i32 = 1;
+${getTextures(d).map(texture_read_wgsl).join('\n')}
+${d('dOutlineEnable') ? `${pack_2x4_wgsl}\n${outline_read_wgsl}` : ''}
 
 fn getViewZ(depth: f32) -> f32 {
     #if dOrthographic == 1
@@ -49,54 +56,6 @@ fn isBackground(depth: f32) -> bool {
 
 fn getFogFactor(depth: f32) -> f32 {
     return smoothstep(uObject.uFogNear, uObject.uFogFar, abs(getViewZ(depth)));
-}
-
-struct Outline {
-    hasOpaque: bool,
-    hasTransparent: bool,
-    opaqueDepth: f32,
-    transparentDepth: f32,
-    alpha: f32,
-};
-
-fn getOutline(coords: vec2<f32>) -> Outline {
-    let invTexSize = 1.0 / uObject.uTexSize;
-    let squaredOutlineScale = oOutlineScale * oOutlineScale;
-
-    var o = Outline(false, false, 0.0, 0.0, 0.0);
-    for (var y = -oOutlineScale; y <= oOutlineScale; y++) {
-        for (var x = -oOutlineScale; x <= oOutlineScale; x++) {
-            if (x * x + y * y > squaredOutlineScale) {
-                continue;
-            }
-
-            let sampleCoords = coords + vec2<f32>(f32(x), f32(y)) * invTexSize;
-
-            let sampleOutlineCombined = read_tOutlines(sampleCoords);
-            let sampleOpaqueDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
-            let sampleTransparentDepth = sampleOutlineCombined.a;
-            let sampleFlagWithAlpha = unpack2x4(sampleOutlineCombined.r);
-
-            let sampleFlag = sampleFlagWithAlpha.x;
-            let sampleAlpha = clamp(sampleFlagWithAlpha.y * 0.5, 0.01, 1.0);
-
-            let isOpaque = sampleFlag > 0.20 && sampleFlag < 0.30;
-            let isTransparent = sampleFlag > 0.45 && sampleFlag < 0.55;
-            let isBoth = sampleFlag > 0.70 && sampleFlag < 0.80;
-
-            if ((isOpaque || isBoth) && sampleOpaqueDepth > o.opaqueDepth) {
-                o.hasOpaque = true;
-                o.opaqueDepth = sampleOpaqueDepth;
-            }
-
-            if ((isTransparent || isBoth) && sampleTransparentDepth > o.transparentDepth) {
-                o.hasTransparent = true;
-                o.transparentDepth = sampleTransparentDepth;
-                o.alpha = sampleAlpha;
-            }
-        }
-    }
-    return o;
 }
 
 @fragment

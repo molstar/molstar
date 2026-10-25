@@ -70,7 +70,8 @@ fn getBlurredImage(coords: vec2<f32>) -> vec3<f32> {
             count += coc;
         }
     }
-    return blurColor / count;
+    // no sample out of focus: the pixel itself
+    return select(read_tColor(coords).rgb, blurColor / count, count > 0.0);
 }
 
 // simplification from https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/

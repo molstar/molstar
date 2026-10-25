@@ -40,6 +40,7 @@ function getSpacefillParams(color: Color, graphics: GraphicsMode) {
           objects: [],
         },
         clipPrimitive: true,
+        lodPixelSize: gmp.lodPixelSize,
         approximate: gmp.approximate,
         alphaThickness: gmp.alphaThickness,
         interior: {

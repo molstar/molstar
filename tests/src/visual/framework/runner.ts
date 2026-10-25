@@ -60,6 +60,8 @@ export interface RunOptions {
    * it renders the same (no fallback for the target only); cases without an image render it
    */
   sharedReferencesUrl?: string;
+  /** The target renders with the renderer's draw lists (`RenderOptions.drawLists`) */
+  drawLists?: boolean;
 }
 
 /** Loose by default: snapshots come from a different GPU/driver/browser */
@@ -167,7 +169,7 @@ export class VisualTestRunner {
           result.reason = `Missing capabilities: ${describeMissing(target.capabilities, lacks).join(', ')}`;
           return result;
         }
-        result.errors.push(...(await test.check(target.context.graphics)));
+        result.errors.push(...(await test.check(target.context.graphics, this.options.target)));
         result.status = result.errors.length > 0 ? 'fail' : 'pass';
         return result;
       }
@@ -197,7 +199,7 @@ export class VisualTestRunner {
       // a profile that is its own reference (the WebGL profiles) renders once: a second render on the same instance
       // only repeats the first (sequential renders are deterministic)
       const self = reference === target;
-      result.target = await renderTest(target, withFallback(targetLacks));
+      result.target = await renderTest(target, withFallback(targetLacks), { drawLists: this.options.drawLists });
       result.reference = self
         ? result.target
         : ((await this.loadSharedReference(test, !!fallback && targetLacks && !referenceLacks)) ??

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // A ligand in the link (seqspec:libraries#the-mol-adapter): its Seq* positions are its heavy atoms, but what a person
@@ -22,7 +23,7 @@ import { registries } from './fixtures.js';
 
 /** ins1.cif (a nine-residue chain) with a ligand B: three heavy atoms C1, C2, O1 and a hydrogen. */
 function withLigand(): Uint8Array {
-  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8');
+  let text = readFileSync(new URL('./fixtures/structures/ins1.cif', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   text = text.replace(
     "1 polymer 'Heavy chain fragment'\n",
     "1 polymer 'Heavy chain fragment'\n2 non-polymer 'A small ligand'\n",

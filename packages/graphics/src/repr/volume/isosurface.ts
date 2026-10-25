@@ -49,7 +49,7 @@ import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { type VolumeKey, VolumeVisual } from './visual.js';
 import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
-import { withSignatureVisuals } from '@molstar/graphics/repr/signatures';
+import { selectVisual } from '../visual-factory.js';
 
 export const VolumeIsosurfaceParams = {
   isoValue: Volume.IsoValueParam,
@@ -117,24 +117,11 @@ function useGpu(volume: Volume, props: PD.Values<IsosurfaceMeshParams>, graphics
   return !reason;
 }
 
-export function IsosurfaceVisual(
-  materialId: number,
-  volume: Volume,
-  key: number,
-  props: PD.Values<IsosurfaceMeshParams>,
-  graphics?: GraphicsContext,
-) {
-  if (useGpu(volume, props, graphics)) {
-    return IsosurfaceTextureMeshVisual(materialId);
-  }
-  return IsosurfaceMeshVisual(materialId);
-}
-
-// the volume decides between GPU and CPU isosurfaces too
-withSignatureVisuals(IsosurfaceVisual, (props: PD.Values<IsosurfaceMeshParams>, graphics) =>
-  getPropsGpuFallbackReason(props, graphics)
-    ? [IsosurfaceMeshVisual(-1)]
-    : [IsosurfaceTextureMeshVisual(-1), IsosurfaceMeshVisual(-1)],
+export const IsosurfaceVisual = selectVisual(
+  { gpu: IsosurfaceTextureMeshVisual, cpu: IsosurfaceMeshVisual },
+  ({ volume }: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) =>
+    useGpu(volume, props, graphics) ? 'gpu' : 'cpu',
+  (props, graphics) => (getPropsGpuFallbackReason(props, graphics) ? ['cpu'] : ['gpu', 'cpu']),
 );
 
 function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
@@ -243,9 +230,6 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
           newProps.floodfill !== currentProps.floodfill;
       },
       geometryUtils: Mesh.Utils,
-      mustRecreate: (volumekey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) => {
-        return useGpu(volumekey.volume, props, graphics);
-      },
     },
     materialId,
   );
@@ -453,9 +437,6 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
           newProps.wrap !== currentProps.wrap;
       },
       geometryUtils: TextureMesh.Utils,
-      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) => {
-        return !useGpu(volumeKey.volume, props, graphics);
-      },
       dispose: (geometry: TextureMesh) => {
         geometry.vertexTexture.ref.value.destroy();
         geometry.groupTexture.ref.value.destroy();

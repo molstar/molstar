@@ -23,6 +23,7 @@ import type {
   UsageHint,
 } from '../buffer.js';
 import type { AttributeLayout } from '../attribute-layout.js';
+import { SegmentedArray } from '../segmented-array.js';
 import { isDebugMode } from '@molstar/core/util/debug';
 
 const getNextBufferId = idFactory();
@@ -116,8 +117,9 @@ export interface Buffer {
   getByteCount: () => number;
 
   getBuffer: () => WebGLBuffer;
-  updateData: (array: ArrayType) => void;
-  updateSubData: (array: ArrayType, offset: number, count: number) => void;
+  updateData: (array: ArrayType | SegmentedArray) => void;
+  /** of a segmented array, the parts changed since it was written (`offset` and `count` unused) */
+  updateSubData: (array: ArrayType | SegmentedArray, offset: number, count: number) => void;
 
   destroy: () => void;
 }
@@ -130,18 +132,38 @@ export function getBuffer(gl: GLRenderingContext) {
   return buffer;
 }
 
-function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: UsageHint, bufferType: BufferType): Buffer {
+function createBuffer(
+  gl: GLRenderingContext,
+  array: ArrayType | SegmentedArray,
+  usageHint: UsageHint,
+  bufferType: BufferType,
+): Buffer {
   const _buffer = getBuffer(gl);
 
   const _usageHint = getUsageHint(gl, usageHint);
   const _bufferType = getBufferType(gl, bufferType);
-  const _dataType = dataTypeFromArray(gl, array);
+  // segmented arrays: of merged render objects, float attributes and uint32 elements
+  const _dataType = SegmentedArray.is(array)
+    ? bufferType === 'elements'
+      ? gl.UNSIGNED_INT
+      : gl.FLOAT
+    : dataTypeFromArray(gl, array);
   const _bpe = array.BYTES_PER_ELEMENT;
   const _length = array.length;
+  /** the parts of a segmented array written */
+  let segmented: SegmentedArray.Uploaded | undefined;
 
-  function updateData(array: ArrayType) {
+  const writePart = (data: ArrayType, offset: number) => gl.bufferSubData(_bufferType, offset * _bpe, data);
+
+  function updateData(array: ArrayType | SegmentedArray) {
     gl.bindBuffer(_bufferType, _buffer);
-    gl.bufferData(_bufferType, array, _usageHint);
+    if (SegmentedArray.is(array)) {
+      gl.bufferData(_bufferType, array.byteLength, _usageHint);
+      segmented = SegmentedArray.writeChanged(array, undefined, writePart);
+    } else {
+      segmented = undefined;
+      gl.bufferData(_bufferType, array, _usageHint);
+    }
   }
   updateData(array);
 
@@ -164,9 +186,11 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
     getBuffer: () => _buffer,
 
     updateData,
-    updateSubData: (array: ArrayType, offset: number, count: number) => {
+    updateSubData: (array: ArrayType | SegmentedArray, offset: number, count: number) => {
       gl.bindBuffer(_bufferType, _buffer);
-      if (count - offset === array.length) {
+      if (SegmentedArray.is(array)) {
+        segmented = SegmentedArray.writeChanged(array, segmented, writePart);
+      } else if (count - offset === array.length) {
         gl.bufferSubData(_bufferType, 0, array);
       } else {
         gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count));
@@ -212,7 +236,7 @@ export interface AttributeBuffer extends Buffer {
   changeOffset: (location: number, offset: number) => void;
 }
 
-export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(
+export function createAttributeBuffer<T extends ArrayType | SegmentedArray, S extends AttributeItemSize>(
   gl: GLRenderingContext,
   state: WebGLState,
   extensions: WebGLExtensions,
@@ -301,7 +325,7 @@ export interface ElementsBuffer extends Buffer {
 
 export function createElementsBuffer(
   gl: GLRenderingContext,
-  array: ElementsType,
+  array: ElementsType | SegmentedArray,
   usageHint: UsageHint = 'static',
 ): ElementsBuffer {
   const buffer = createBuffer(gl, array, usageHint, 'elements');

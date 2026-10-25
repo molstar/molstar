@@ -22,6 +22,7 @@ import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
 import { Color } from '@molstar/core/util/color';
 import type { PostprocessingProps } from './postprocessing.js';
+import type { PassTargets } from './pass-targets.js';
 
 export const OutlineParams = {
   scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
@@ -33,6 +34,7 @@ export const OutlineParams = {
 export type OutlineProps = PD.Values<typeof OutlineParams>;
 
 export class OutlinePass {
+  private readonly graphics: GraphicsContext;
   static isEnabled(props: PostprocessingProps) {
     return props.enabled && props.outline.name !== 'off';
   }
@@ -41,13 +43,14 @@ export class OutlinePass {
   private readonly renderable: OutlinesRenderable;
 
   constructor(
-    private readonly graphics: GraphicsContext,
+    targets: PassTargets,
     width: number,
     height: number,
     depthTextureTransparent: Texture,
     depthTextureOpaque: Texture,
   ) {
-    this.target = graphics.createRenderTarget(width, height, 'none');
+    const graphics = (this.graphics = targets.graphics);
+    this.target = targets.createRenderTarget(width, height, 'none');
     this.renderable = getOutlinesRenderable(graphics, depthTextureOpaque, depthTextureTransparent, true);
   }
 

@@ -105,7 +105,7 @@ describe('minimum limits: uniform blocks', () => {
 const FeatureDefines: { [k: string]: string | boolean | number } = {
   dLightCount: 1,
   dColorMarker: true,
-  dClipObjectCount: 1,
+  dClipObjects: true,
   dClipVariant: 'pixel',
   dColorType: 'texture',
   dUsePalette: true,
@@ -141,15 +141,18 @@ const WebGL2PrefixDefines = [
   'depthTextureSupport',
 ];
 
-/** schema textures and hand-declared samplers that are referenced (declarations are generated) */
+/**
+ * schema textures and hand-declared samplers that are referenced (declarations are generated); data arrays read by
+ * their accessors (`read_<name>`), a data texture each on WebGL
+ */
 function getActiveSamplers(source: string, schema: RenderableSchema) {
   const declaration = /uniform\s+(?:(?:lowp|mediump|highp)\s+)?\w*sampler\w+\s+(\w+)\s*;/g;
   const names = new Set([
-    ...Object.keys(schema).filter((k) => schema[k].type === 'texture'),
+    ...Object.keys(schema).filter((k) => schema[k].type === 'texture' || schema[k].type === 'data'),
     ...Array.from(source.matchAll(declaration), (m) => m[1]),
   ]);
   const code = source.replace(declaration, '');
-  return [...names].filter((name) => new RegExp(`\\b${name}\\b`).test(code));
+  return [...names].filter((name) => new RegExp(`\\b(?:read_)?${name}\\b`).test(code));
 }
 
 function getVaryingTypes(vertSource: string) {
@@ -227,7 +230,6 @@ describe('minimum limits: per program', () => {
       dColorType: 'texture',
       dColorMarker: true,
       dLightCount: 1,
-      dClipObjectCount: 0,
     };
     const defines = getProgramDefines(shaderCode, values, WebGL2PrefixDefines);
     defines.set('__VERSION__', '300');

@@ -25,6 +25,7 @@ import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { updateTransformData } from '@molstar/graphics/geo/geometry/transform-data';
 import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { ValueCell } from '@molstar/core/util';
+import { TextureChanges } from '@molstar/graphics/gl/renderable/texture-changes';
 import type { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { createOverpaint, clearOverpaint, applyOverpaintColor } from '@molstar/graphics/geo/geometry/overpaint-data';
 import { Interval } from '@molstar/core/data/int/interval';
@@ -92,7 +93,6 @@ interface Visual<D, P extends PD.Params> {
   eachLocation: (cb: LocationCallback) => void;
   mark: (loci: Loci, action: MarkerAction) => boolean;
   setVisibility: (visible: boolean) => void;
-  setAlphaFactor: (alphaFactor: number) => void;
   setPickable: (pickable: boolean) => void;
   setColorOnly: (colorOnly: boolean) => void;
   setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void;
@@ -168,10 +168,6 @@ namespace Visual {
     if (renderObject) renderObject.state.visible = visible;
   }
 
-  export function setAlphaFactor(renderObject: GraphicsRenderObject | undefined, alphaFactor: number) {
-    if (renderObject) renderObject.state.alphaFactor = alphaFactor;
-  }
-
   export function setPickable(renderObject: GraphicsRenderObject | undefined, pickable: boolean) {
     if (renderObject) renderObject.state.pickable = pickable;
   }
@@ -209,6 +205,8 @@ namespace Visual {
     let changed = false;
     let average = -1;
     let status: MarkerInfo['status'] = -1;
+    /** the element ranges changed, uploaded instead of the layer (`TextureChanges`); undefined: all of it */
+    let ranges: number[] | undefined;
     if (isEveryLoci(loci)) {
       const info = getMarkerInfo(action, currentStatus);
       if (info.status !== -1) {
@@ -222,11 +220,13 @@ namespace Visual {
     } else {
       // one pass that applies and sums the covered size, intervals assumed non-overlapping (perf-audit 07 P5)
       let size = 0;
+      ranges = [];
       lociApply(
         loci,
         (interval) => {
           size += Interval.size(interval);
           if (applyMarkerAction(array, interval, action)) changed = true;
+          ranges!.push(Interval.start(interval), Interval.end(interval));
           return true;
         },
         true,
@@ -267,7 +267,10 @@ namespace Visual {
         previous.status = currentStatus;
       }
       ValueCell.updateIfChanged(uMarker, status);
-      if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);
+      // with a status the uniform stands for the layer (`uMarker`): the image changed all the same, uploaded with the
+      // next update of the layer (only its changed ranges are)
+      if (status === -1) TextureChanges.update(tMarker, ranges);
+      else TextureChanges.defer(tMarker, ranges);
       ValueCell.updateIfChanged(markerAverage, average);
       ValueCell.updateIfChanged(markerStatus, status);
     }
@@ -377,6 +380,7 @@ namespace Visual {
 
     // clear all if requested
     if (clear) clearOverpaint(array, 0, count);
+    const ranges: number[] = [];
 
     let touched = false;
     for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
@@ -385,11 +389,13 @@ namespace Visual {
         touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
+        ranges.push(start, end);
         return clear ? clearOverpaint(array, start, end) : applyOverpaintColor(array, start, end, color);
       };
       lociApply(loci, apply, false);
     }
-    ValueCell.update(tOverpaint, tOverpaint.ref.value);
+    // cleared: all of it changed
+    TextureChanges.update(tOverpaint, clear ? undefined : ranges);
     ValueCell.updateIfChanged(dOverpaint, overpaint.layers.length > 0);
 
     setKnownClear(renderObject, 'overpaint', tOverpaint, count, type, clear && !touched && overpaint.layers.length > 0);
@@ -457,6 +463,7 @@ namespace Visual {
 
     // clear if requested
     if (clear) clearTransparency(array, 0, count);
+    const ranges: number[] = [];
 
     let touched = false;
     for (let i = 0, il = transparency.layers.length; i < il; ++i) {
@@ -465,11 +472,13 @@ namespace Visual {
         touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
+        ranges.push(start, end);
         return applyTransparencyValue(array, start, end, value);
       };
       lociApply(loci, apply, false);
     }
-    ValueCell.update(tTransparency, tTransparency.ref.value);
+    // cleared: all of it changed
+    TextureChanges.update(tTransparency, clear ? undefined : ranges);
     ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
     ValueCell.updateIfChanged(transparencyMin, getTransparencyMin(array, count));
     ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
@@ -545,6 +554,7 @@ namespace Visual {
 
     // clear if requested
     if (clear) clearEmissive(array, 0, count);
+    const ranges: number[] = [];
 
     let touched = false;
     for (let i = 0, il = emissive.layers.length; i < il; ++i) {
@@ -553,11 +563,13 @@ namespace Visual {
         touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
+        ranges.push(start, end);
         return applyEmissiveValue(array, start, end, value);
       };
       lociApply(loci, apply, false);
     }
-    ValueCell.update(tEmissive, tEmissive.ref.value);
+    // cleared: all of it changed
+    TextureChanges.update(tEmissive, clear ? undefined : ranges);
     ValueCell.updateIfChanged(emissiveAverage, getEmissiveAverage(array, count));
     ValueCell.updateIfChanged(dEmissive, emissive.layers.length > 0);
 
@@ -624,6 +636,7 @@ namespace Visual {
 
     // clear all if requested
     if (clear) clearSubstance(array, 0, count);
+    const ranges: number[] = [];
 
     let touched = false;
     for (let i = 0, il = substance.layers.length; i < il; ++i) {
@@ -632,11 +645,13 @@ namespace Visual {
         touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
+        ranges.push(start, end);
         return clear ? clearSubstance(array, start, end) : applySubstanceMaterial(array, start, end, material);
       };
       lociApply(loci, apply, false);
     }
-    ValueCell.update(tSubstance, tSubstance.ref.value);
+    // cleared: all of it changed
+    TextureChanges.update(tSubstance, clear ? undefined : ranges);
     ValueCell.updateIfChanged(dSubstance, substance.layers.length > 0);
 
     setKnownClear(renderObject, 'substance', tSubstance, count, type, clear && !touched && substance.layers.length > 0);
@@ -703,6 +718,7 @@ namespace Visual {
 
     // clear if requested
     if (clear) clearClipping(array, 0, count);
+    const ranges: number[] = [];
 
     let touched = false;
     for (let i = 0, il = clipping.layers.length; i < il; ++i) {
@@ -711,11 +727,13 @@ namespace Visual {
         touched = true;
         const start = Interval.start(interval);
         const end = Interval.end(interval);
+        ranges.push(start, end);
         return applyClippingGroups(array, start, end, groups);
       };
       lociApply(loci, apply, false);
     }
-    ValueCell.update(tClipping, tClipping.ref.value);
+    // cleared: all of it changed
+    TextureChanges.update(tClipping, clear ? undefined : ranges);
     ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
 
     setKnownClear(renderObject, 'clipping', tClipping, count, type, clear && !touched && layers.length > 0);

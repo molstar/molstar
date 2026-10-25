@@ -19,6 +19,7 @@ import type { RenderTarget } from './render-target.js';
 import type {
   ComputeRenderItem,
   DrawMode,
+  DrawList,
   GlobalBindings,
   GraphicsRenderItem,
   ProgramItem,
@@ -52,6 +53,8 @@ export interface GraphicsLimits {
   /** 0 without `multipleRenderTargets` */
   readonly maxDrawBuffers: number;
   readonly maxTextureImageUnits: number;
+  /** The most quad items a draw of the shared quad indices reaches (`quad-indices.ts`): past it quads draw unindexed */
+  readonly maxQuadItemCount: number;
 }
 
 export interface GraphicsResources {
@@ -88,6 +91,11 @@ export interface GraphicsResources {
 
   /** Asynchronous work frames may depend on; `ImagePass` waits for it, `Canvas3D` redraws when it settles */
   readonly pending: PendingWork;
+  /**
+   * Work that did not get the GPU memory it needed, with what it left out (e.g. surfaces drawn incomplete, WebGPU
+   * out-of-memory errors), for the user; `Canvas3D.outOfMemory` forwards it
+   */
+  readonly outOfMemory: Subject<string>;
   /**
    * Loads the image at `source` (a URL or data URL) into the rgba `ubyte` `texture` with the raw pixel values (no
    * color space conversion), then updates `cell`; tracked in `pending`
@@ -242,6 +250,25 @@ export interface GraphicsContext {
   ) => ProgramItem;
   /** Uniforms (`schema` and `uniforms`) and textures shared by the render items of a pass */
   createGlobalBindings: (schema: RenderableSchema, uniforms: UniformsList, textures: Textures) => GlobalBindings;
+  /** Draw lists for replaying a pass's draws (WebGPU render bundles); not where draws can't be recorded (WebGL) */
+  createDrawList?: () => DrawList;
+  /**
+   * Advances with each submission of the queued commands, where the per-submission uniform rings restart: the n-th
+   * global block written after a submission gets the same slot each time, what a draw list's recording binds (with
+   * draw lists, `createDrawList`)
+   */
+  readonly submitCount?: number;
+  /**
+   * Advances when a resource that recorded draws bind is replaced (the shared quad indices grown, a shared texture's
+   * storage replaced by a grown image): recordings made before are not current (with draw lists, `createDrawList`)
+   */
+  readonly drawResourcesVersion?: number;
+  /**
+   * Runs `draw` in the open pass without encoding it, its data written as by drawing (uniform slots, vertex data), and
+   * returns what its commands bind (pipelines, bind groups with offsets, buffers, draw arguments): equal for the
+   * draws of a recording means the recording draws the current data (with draw lists, `createDrawList`)
+   */
+  captureDraws?: (draw: () => void) => string;
 
   createRenderTarget: (
     width: number,

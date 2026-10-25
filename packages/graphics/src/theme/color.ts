@@ -173,12 +173,22 @@ namespace ColorTheme {
     props: {},
   };
 
+  /** per pair of themes whether they are equal: the visuals of a representation compare the same pair each update */
+  const equalThemes = new WeakMap<ColorTheme<any, any>, WeakMap<ColorTheme<any, any>, boolean>>();
+
   export function areEqual(themeA: ColorTheme<any, any>, themeB: ColorTheme<any, any>) {
-    return (
-      themeA.contextHash === themeB.contextHash &&
-      themeA.factory === themeB.factory &&
-      deepEqual(themeA.props, themeB.props)
-    );
+    if (themeA === themeB) return true;
+    let byB = equalThemes.get(themeA);
+    let equal = byB?.get(themeB);
+    if (equal === undefined) {
+      equal =
+        themeA.contextHash === themeB.contextHash &&
+        themeA.factory === themeB.factory &&
+        deepEqual(themeA.props, themeB.props);
+      if (!byB) equalThemes.set(themeA, (byB = new WeakMap()));
+      byB.set(themeB, equal);
+    }
+    return equal;
   }
 
   export interface Provider<P extends PD.Params = any, Id extends string = string, G extends ColorType = ColorType>

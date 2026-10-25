@@ -24,7 +24,6 @@ import { Representation, type RepresentationContext, type RepresentationParamsGe
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation.js';
 import { ParticleVisual } from '../visual.js';
 import { computeFrenetFrames } from '@molstar/core/math/linear-algebra/3d/frenet-frames';
-import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3spline = Vec3.spline;
@@ -291,12 +290,7 @@ function createParticleFibersLines(
   }
 }
 
-export function FibersLinesVisual(
-  materialId: number,
-  _particles?: ParticleList,
-  _props?: PD.Values<FibersLinesParams>,
-  _graphics?: GraphicsContext,
-): ParticleVisual<FibersLinesParams> {
+export function FibersLinesVisual(materialId: number): ParticleVisual<FibersLinesParams> {
   return ParticleVisual<Lines, FibersLinesParams>(
     {
       defaultProps: PD.getDefaultValues(FibersLinesParams),
@@ -405,12 +399,7 @@ function createParticleFibersTubeMesh(
   return m;
 }
 
-export function FibersTubeMeshVisual(
-  materialId: number,
-  _particles?: ParticleList,
-  _props?: PD.Values<FibersTubeMeshParams>,
-  _graphics?: GraphicsContext,
-): ParticleVisual<FibersTubeMeshParams> {
+export function FibersTubeMeshVisual(materialId: number): ParticleVisual<FibersTubeMeshParams> {
   return ParticleVisual<Mesh, FibersTubeMeshParams>(
     {
       defaultProps: PD.getDefaultValues(FibersTubeMeshParams),

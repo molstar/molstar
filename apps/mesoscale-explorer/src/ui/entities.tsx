@@ -670,12 +670,13 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     const update = this.plugin.state.data.build();
 
-    const { lodLevels, approximate, alphaThickness } = getGraphicsModeProps(graphics);
+    const { lodLevels, lodPixelSize, approximate, alphaThickness } = getGraphicsModeProps(graphics);
 
     for (const r of getAllEntities(this.plugin)) {
       update.to(r).update((old) => {
         if (old.type) {
           old.type.params.lodLevels = lodLevels;
+          old.type.params.lodPixelSize = lodPixelSize;
           old.type.params.approximate = approximate;
           old.type.params.alphaThickness = alphaThickness;
         }
@@ -685,6 +686,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
     for (const g of getAllGroups(this.plugin)) {
       update.to(g).update((old) => {
         old.lod.lodLevels = lodLevels;
+        old.lod.lodPixelSize = lodPixelSize;
         old.lod.approximate = approximate;
       });
     }
@@ -1005,6 +1007,7 @@ export class GroupNode extends Node<
       update.to(r).update((old) => {
         if (old.type) {
           old.type.params.lodLevels = values.lodLevels;
+          old.type.params.lodPixelSize = values.lodPixelSize;
           old.type.params.cellSize = values.cellSize;
           old.type.params.batchSize = values.batchSize;
           old.type.params.approximate = values.approximate;
@@ -1364,6 +1367,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip'; isDisabled
     if (!p) return;
     return {
       lodLevels: p.lodLevels,
+      lodPixelSize: p.lodPixelSize ?? 0,
       cellSize: p.cellSize,
       batchSize: p.batchSize,
       approximate: p.approximate,
@@ -1523,6 +1527,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip'; isDisabled
 
     if (
       !deepEqual(params.type.params.lodLevels, values.lodLevels) ||
+      params.type.params.lodPixelSize !== values.lodPixelSize ||
       params.type.params.cellSize !== values.cellSize ||
       params.type.params.batchSize !== values.batchSize ||
       params.type.params.approximate !== values.approximate
@@ -1532,6 +1537,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip'; isDisabled
         .to(this.ref)
         .update((old) => {
           old.type.params.lodLevels = values.lodLevels;
+          old.type.params.lodPixelSize = values.lodPixelSize;
           old.type.params.cellSize = values.cellSize;
           old.type.params.batchSize = values.batchSize;
           old.type.params.approximate = values.approximate;

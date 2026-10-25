@@ -10,6 +10,7 @@ import { type GraphicsContext } from '@molstar/graphics/gl/context';
 import { type WebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { Representation } from '@molstar/graphics/repr/representation';
 import { type CapabilityKey } from './capabilities.js';
+import type { BackendProfile } from './backend.js';
 import { type Tolerance } from './compare.js';
 
 export interface SceneContext {
@@ -67,10 +68,16 @@ export interface VisualTestCase {
   /** Called once per backend; GPU resources are per context */
   readonly scene: (ctx: SceneContext) => Promise<Representation.Any[]>;
   /**
-   * A check without an image (e.g. compute kernels against CPU results): run on the target backend only, the case
-   * passes if it returns no errors; `requires` applies to the target only and `scene` is not rendered
+   * Called with the scene added and the camera fitted, before the capture (e.g. picking with `canvas3d`, marking what
+   * was picked): the errors it returns fail the case
    */
-  readonly check?: (graphics: GraphicsContext) => Promise<string[]>;
+  readonly interact?: (ctx: SceneContext, reprs: Representation.Any[]) => Promise<string[]>;
+  /**
+   * A check without an image (e.g. compute kernels against CPU results): run on the target backend only, the case
+   * passes if it returns no errors; `requires` applies to the target only and `scene` is not rendered; `profile` makes
+   * contexts of its own (`createContext`)
+   */
+  readonly check?: (graphics: GraphicsContext, profile: BackendProfile) => Promise<string[]>;
 }
 
 export const DefaultTestSize = { width: 256, height: 256 };

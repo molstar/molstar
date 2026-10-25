@@ -82,7 +82,7 @@ void main() {
         gl_Position.z = gl_Position.w;
     }
 
-    #if defined(dDualColor) && defined(dRenderVariant_color) && defined(dColorType_texture)
+    #if defined(dDualColor) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)) && defined(dColorType_texture)
         // dual-color mixing (group color types)
         // - for aColorMode between 0 and 1 use aColorMode to interpolate
         // - for aColorMode == 2 do nothing, i.e., use vColor

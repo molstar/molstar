@@ -128,15 +128,17 @@ export class ClipObjectHelper implements DebugHelper<ClipObjectHelperProps> {
     this.parent.forEach((r, ro) => {
       if (!ro.state.visible) return;
 
-      const count = ro.values.dClipObjectCount.ref.value;
+      const count = ro.values.uClipObjectCount.ref.value;
       if (count === 0) return;
 
-      const types = ro.values.uClipObjectType.ref.value;
-      const inverts = ro.values.uClipObjectInvert.ref.value;
-      const positions = ro.values.uClipObjectPosition.ref.value;
-      const rotations = ro.values.uClipObjectRotation.ref.value;
-      const scales = ro.values.uClipObjectScale.ref.value;
-      const transforms = ro.values.uClipObjectTransform.ref.value;
+      const {
+        type: types,
+        invert: inverts,
+        position: positions,
+        rotation: rotations,
+        scale: scales,
+        transform: transforms,
+      } = ro.values.clipObjects.ref.value;
 
       for (let i = 0; i < count; ++i) {
         const type = types[i];
@@ -392,7 +394,6 @@ function createClipObjectRenderObject(mesh: Mesh, color: Color, materialId: numb
     {
       disposed: false,
       visible: true,
-      alphaFactor: 1,
       pickable: false,
       colorOnly: false,
       opaque: false,
@@ -487,7 +488,6 @@ function createIndicatorRenderObject(mesh: Mesh, materialId: number) {
     {
       disposed: false,
       visible: true,
-      alphaFactor: 1,
       pickable: false,
       colorOnly: false,
       opaque: false,

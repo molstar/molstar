@@ -43,13 +43,13 @@ ${extra}
 }
 
 /**
- * Inputs of the path tracer: the shaded `color`, the view space `normal` with `emissive`, and the unlit material color
- * with the density (to estimate thickness); expects `color`, `material` and `emissive`
+ * Inputs of the path tracer: the shaded `color`, the view space `normal` with `emissive` (8-bit, `packNormalToRGBA`),
+ * and the unlit material color with the density (to estimate thickness); expects `color`, `material` and `emissive`
  */
 export function tracing_output_wgsl(normal: string) {
   return /* wgsl */ `
     out.color = color;
-    out.normal = vec4<f32>(${normal}, emissive);
+    out.normal = packNormalToRGBA(${normal}, emissive);
     out.material = vec4<f32>(material.rgb, uMaterial.uDensity);
 `;
 }
@@ -67,7 +67,13 @@ export const wboit_output_wgsl = /* wgsl */ `
             }
         } else if (uGlobal.uRenderMask == MaskTransparent) {
             let opaqueDepth = ${fragment_texel_wgsl('tDepth')};
-            if (preFogAlpha != 1.0 && fragmentDepth > opaqueDepth) {
+            // opaque fragments are drawn in the opaque pass; direct volumes have none: drawn here also where opaque
+            #if defined(dGeometryType_directVolume)
+                let wboitOpaque = false;
+            #else
+                let wboitOpaque = preFogAlpha == 1.0;
+            #endif
+            if (!wboitOpaque && fragmentDepth > opaqueDepth) {
                 #if defined(dTransparentBackfaces_off)
                     if (interior) {
                         discard;

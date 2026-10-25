@@ -28,19 +28,24 @@ import type { AssetManager } from '@molstar/core/util/assets';
 import { DofPass } from './dof.js';
 import { BloomPass } from './bloom.js';
 import { SsaoPass } from './ssao.js';
+import { VolumePass } from './volume.js';
 import type { RenderContext } from '../util.js';
-import { createPrepareBuilder, createRenderBuilder, type PassBuilder } from './pass-builder.js';
+import { createPrepareBuilder, type PassBuilder } from './pass-builder.js';
+import type { PassTargets } from './pass-targets.js';
 
 type Props = {
   postprocessing: PostprocessingProps;
   marking: MarkingProps;
   transparentBackground: boolean;
   dpoitIterations: number;
+  /** see `Canvas3DParams.volumeResolutionScale` */
+  volumeResolutionScale: number;
 };
 
 export type TransparencyMode = 'wboit' | 'dpoit' | 'blended';
 
 export class DrawPass {
+  private readonly graphics: GraphicsContext;
   private readonly drawTarget: RenderTarget;
 
   readonly colorTarget: RenderTarget;
@@ -63,6 +68,9 @@ export class DrawPass {
   private readonly ssaoShading: MarkingShading;
   readonly antialiasing: AntialiasingPass;
   readonly dof: DofPass;
+  readonly volume: VolumePass;
+  /** `Props.volumeResolutionScale` of the eye planned */
+  private volumeScale = 1;
 
   private transparencyMode: TransparencyMode = 'blended';
   /** `transparency` as this context draws it: blended where the mode is not supported */
@@ -104,34 +112,39 @@ export class DrawPass {
   }
 
   constructor(
-    private graphics: GraphicsContext,
+    /** the targets of this pass and of the passes drawn with it, see `PassTargets` */
+    readonly targets: PassTargets,
     assetManager: AssetManager,
     width: number,
     height: number,
     transparency: 'wboit' | 'dpoit' | 'blended',
   ) {
-    const { capabilities, resources } = graphics;
+    const graphics = (this.graphics = targets.graphics);
+    const { capabilities } = graphics;
     this.drawTarget = graphics.createDrawTarget();
-    this.colorTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
-    this.transparentColorTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.colorTarget = targets.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+    this.transparentColorTarget = targets.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
     this.packedDepth = !capabilities.depthTexture;
 
-    this.depthTargetTransparent = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+    this.depthTargetTransparent = targets.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
     this.depthTextureTransparent = this.depthTargetTransparent.texture;
 
-    this.depthTargetOpaque = this.packedDepth ? graphics.createRenderTarget(width, height, 'depth-stencil') : null;
+    this.depthTargetOpaque = this.packedDepth ? targets.createRenderTarget(width, height, 'depth-stencil') : null;
 
     this.depthTextureOpaque = this.depthTargetOpaque
       ? this.depthTargetOpaque.texture
-      : resources.texture('image-depth', 'depth-stencil', 'float-stencil', 'nearest');
+      : targets.texture('image-depth', 'depth-stencil', 'float-stencil', 'nearest');
     if (!this.packedDepth) {
       this.depthTextureOpaque.define(width, height);
     }
 
-    this.wboit = new WboitPass(graphics, width, height);
-    this.dpoit = new DpoitPass(graphics, width, height, this.colorTarget.depthRenderbuffer);
-    this.marking = new MarkingPass(graphics, width, height);
+    // the transparency and marking passes draw with the depth-stencil buffer of the transparent depth target, used
+    // before them in a frame: for the caps' stencil and the depth impostors write, not read across the passes
+    const transparencyDepthStencil = this.depthTargetTransparent.depthRenderbuffer!;
+    this.wboit = new WboitPass(targets, width, height, transparencyDepthStencil);
+    this.dpoit = new DpoitPass(targets, width, height, transparencyDepthStencil);
+    this.marking = new MarkingPass(targets, width, height, transparencyDepthStencil);
     this.postprocessing = new PostprocessingPass(graphics, assetManager, this);
     this.ssaoShading = {
       name: 'ssao',
@@ -139,11 +152,12 @@ export class DrawPass {
       depth: this.depthTextureOpaque,
       packedDepth: this.packedDepth,
     };
-    this.antialiasing = new AntialiasingPass(graphics, width, height);
-    this.dof = new DofPass(graphics, width, height);
+    this.antialiasing = new AntialiasingPass(targets, width, height);
+    this.dof = new DofPass(targets, width, height);
+    this.volume = new VolumePass(targets);
 
     this.copyFbo = createCopyRenderable(graphics, this.colorTarget.texture);
-    this.renderBuilder = createRenderBuilder(graphics);
+    this.renderBuilder = targets.createRenderBuilder();
 
     this.setTransparency(transparency);
   }
@@ -160,7 +174,8 @@ export class DrawPass {
       this.marking.getByteCount() +
       this.postprocessing.getByteCount() +
       this.antialiasing.getByteCount() +
-      this.dof.getByteCount()
+      this.dof.getByteCount() +
+      this.volume.getByteCount()
     );
   }
 
@@ -228,22 +243,13 @@ export class DrawPass {
     scene: Scene,
     postprocessingProps: PostprocessingProps,
   ): boolean {
-    if (!BloomPass.isEnabled(postprocessingProps) || postprocessingProps.bloom.name !== 'on') return false;
+    if (!BloomPass.isActive(scene, postprocessingProps) || postprocessingProps.bloom.name !== 'on') return false;
     const bloom = this.postprocessing.bloom;
     const params = postprocessingProps.bloom.params;
     const emissiveBloom = params.mode === 'emissive';
-    if (emissiveBloom && scene.emissiveAverage === 0) return false;
 
     if (emissiveBloom) {
       this.renderEmissiveBloom(b, renderer, camera, scene, params.transparency);
-    }
-
-    // Clear transparent buffers when opaque-only so luminosity doesn't sample stale halos.
-    if (scene.opacityAverage >= 1 && b.drawing) {
-      b.begin(this.transparentColorTarget, { label: 'transparent clear' });
-      renderer.clear(false, false, true);
-      b.begin(this.depthTargetTransparent, { label: 'transparent depth clear' });
-      renderer.clearDepth(true);
     }
 
     bloom.update(
@@ -255,6 +261,8 @@ export class DrawPass {
       params,
       camera,
       true,
+      // opaque only: the transparent targets are neither drawn nor read
+      scene.opacityAverage < 1,
     );
     bloom.render(b, camera.viewport);
     return true;
@@ -280,6 +288,65 @@ export class DrawPass {
       renderer.ambientColor,
       this._renderBloom(b, renderer, camera, scene, postprocessingProps),
     );
+  }
+
+  /**
+   * Draws the volumes at the reduced resolution (`VolumePass`) onto `target`; the opaque depth, which the pass reads, is
+   * detached from `target` meanwhile where `depthAttached`
+   */
+  private renderVolumesReduced(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    target: RenderTarget,
+    depthAttached: boolean,
+  ) {
+    if (depthAttached) this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
+    this.volume.render(
+      b,
+      renderer,
+      camera,
+      scene,
+      this.depthTextureOpaque,
+      target,
+      this.volumeScale,
+      this.transparencyMode,
+    );
+    if (depthAttached) {
+      this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
+      b.begin(target, { label: 'volume composite' });
+    }
+  }
+
+  /**
+   * Draws the volumes onto `target` (at the reduced resolution, or as the transparency mode draws them at the full
+   * size); `depthAttached`: the opaque depth is attached to `target` (see `renderVolumesReduced`)
+   */
+  private renderVolumes(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    target: RenderTarget,
+    depthAttached: boolean,
+  ) {
+    if (VolumePass.isEnabled(this.volumeScale, this.packedDepth)) {
+      this.renderVolumesReduced(b, renderer, camera, scene, target, depthAttached);
+    } else if (this.transparencyMode === 'wboit' && this.wboit.supported) {
+      // a weighted blended layer of their own
+      this.wboit.bind(b);
+      b.renderer({ name: 'wboitTransparent' }, scene.volumes, () =>
+        renderer.renderWboitTransparent(scene.volumes, camera, this.depthTextureOpaque),
+      );
+      b.begin(target, { label: 'wboit evaluate' });
+      this.wboit.render(b);
+    } else {
+      b.begin(target, { label: 'volume' });
+      b.renderer({ name: 'volume' }, scene.volumes, () =>
+        renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque),
+      );
+    }
   }
 
   private _renderDpoit(
@@ -315,13 +382,18 @@ export class DrawPass {
     }
 
     // render transparent primitives
-    const isPostprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
-    if (scene.opacityAverage < 1) {
+    const isPostprocessingEnabled = PostprocessingPass.isEnabled(scene, postprocessingProps);
+    const hasVolumes = scene.volumes.renderables.length > 0;
+    const hasTransparent = scene.opacityAverage < 1;
+    if (hasTransparent) {
       const target = isPostprocessingEnabled ? this.transparentColorTarget : this.colorTarget;
       if (isPostprocessingEnabled && b.drawing) {
         b.begin(target, { label: 'transparent clear' });
         renderer.clear(false, false, true);
       }
+
+      // volumes under the transparent primitives (one layer, not split at their surfaces)
+      if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, target, false);
 
       const dpoitTextures = this.dpoit.bind(b);
       b.renderer({ name: 'dpoitTransparent' }, scene.primitives, () =>
@@ -349,18 +421,14 @@ export class DrawPass {
       this.dpoit.render(b);
     }
 
-    if (PostprocessingPass.isEnabled(postprocessingProps)) {
+    if (PostprocessingPass.isEnabled(scene, postprocessingProps)) {
       this.renderPostprocessing(b, renderer, camera, scene, transparentBackground, postprocessingProps);
     }
 
-    // render transparent volumes
-    if (scene.volumes.renderables.length > 0) {
-      b.begin(isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget, {
-        label: 'volume',
-      });
-      b.renderer({ name: 'volume' }, scene.volumes, () =>
-        renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque),
-      );
+    // without transparent primitives, volumes over the postprocessed image
+    if (hasVolumes && !hasTransparent) {
+      const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
+      this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget);
     }
   }
 
@@ -394,13 +462,18 @@ export class DrawPass {
     }
 
     // render transparent primitives
-    const isPostprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
-    if (scene.opacityAverage < 1) {
+    const isPostprocessingEnabled = PostprocessingPass.isEnabled(scene, postprocessingProps);
+    const hasVolumes = scene.volumes.renderables.length > 0;
+    const hasTransparent = scene.opacityAverage < 1;
+    if (hasTransparent) {
       const target = isPostprocessingEnabled ? this.transparentColorTarget : this.colorTarget;
       if (isPostprocessingEnabled && b.drawing) {
         b.begin(target, { label: 'transparent clear' });
         renderer.clear(false, false, true);
       }
+
+      // volumes under the transparent primitives (one layer, not split at their surfaces)
+      if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget);
 
       this.wboit.bind(b);
       b.renderer({ name: 'wboitTransparent' }, scene.primitives, () =>
@@ -412,22 +485,37 @@ export class DrawPass {
       this.wboit.render(b);
     }
 
-    if (PostprocessingPass.isEnabled(postprocessingProps)) {
+    if (PostprocessingPass.isEnabled(scene, postprocessingProps)) {
       this.renderPostprocessing(b, renderer, camera, scene, transparentBackground, postprocessingProps);
     }
 
-    // render volumes
-    if (scene.volumes.renderables.length > 0) {
-      this.wboit.bind(b);
-      b.renderer({ name: 'wboitTransparent' }, scene.volumes, () =>
-        renderer.renderWboitTransparent(scene.volumes, camera, this.depthTextureOpaque),
-      );
-
-      // evaluate wboit
+    // without transparent primitives, volumes over the postprocessed image
+    if (hasVolumes && !hasTransparent) {
       const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
-      b.begin(target, { label: 'wboit evaluate' });
-      this.wboit.render(b);
+      this.renderVolumes(b, renderer, camera, scene, target, target === this.colorTarget);
     }
+  }
+
+  /** Draws the volumes onto `target` of the blended mode, its opaque depth (texture or renderbuffer) detached meanwhile */
+  private renderBlendedVolumes(
+    b: PassBuilder,
+    renderer: Renderer,
+    camera: ICamera,
+    scene: Scene,
+    target: RenderTarget,
+  ) {
+    if (!this.packedDepth) {
+      this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
+    } else {
+      this.colorTarget.depthRenderbuffer?.detachFramebuffer(target.framebuffer);
+    }
+    this.renderVolumes(b, renderer, camera, scene, target, false);
+    if (!this.packedDepth) {
+      this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
+    } else {
+      this.colorTarget.depthRenderbuffer?.attachFramebuffer(target.framebuffer);
+    }
+    b.begin(target, { label: 'volume' });
   }
 
   private _renderBlended(
@@ -476,11 +564,15 @@ export class DrawPass {
       }
 
       // render transparent primitives
-      const isPostprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
-      if (scene.opacityAverage < 1) {
+      const isPostprocessingEnabled = PostprocessingPass.isEnabled(scene, postprocessingProps);
+      const hasVolumes = scene.volumes.renderables.length > 0;
+      const hasTransparent = scene.opacityAverage < 1;
+      if (hasTransparent) {
+        // volumes under the transparent primitives (one layer, not split at their surfaces)
         if (isPostprocessingEnabled) {
           b.begin(this.transparentColorTarget, { label: 'transparent' });
           if (b.drawing) renderer.clear(false, false, true);
+          if (hasVolumes) this.renderVolumes(b, renderer, camera, scene, this.transparentColorTarget, false);
 
           if (!this.packedDepth) {
             this.depthTextureOpaque.attachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
@@ -488,6 +580,9 @@ export class DrawPass {
             this.colorTarget.depthRenderbuffer?.attachFramebuffer(this.transparentColorTarget.framebuffer);
           }
           b.begin(this.transparentColorTarget, { label: 'transparent' });
+        } else if (hasVolumes) {
+          this.renderBlendedVolumes(b, renderer, camera, scene, this.colorTarget);
+          b.begin(this.colorTarget, { label: 'transparent' });
         }
 
         b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
@@ -519,28 +614,15 @@ export class DrawPass {
         }
       }
 
-      if (scene.volumes.renderables.length > 0) {
-        const target = PostprocessingPass.isEnabled(postprocessingProps)
-          ? this.postprocessing.target
-          : this.colorTarget;
-
-        if (!this.packedDepth) {
-          this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
-        } else {
-          this.colorTarget.depthRenderbuffer?.detachFramebuffer(target.framebuffer);
-        }
-        b.begin(target, { label: 'volume' });
-
-        b.renderer({ name: 'volume' }, scene.volumes, () =>
-          renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque),
+      // without transparent primitives, volumes over the postprocessed image
+      if (hasVolumes && !hasTransparent) {
+        this.renderBlendedVolumes(
+          b,
+          renderer,
+          camera,
+          scene,
+          isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget,
         );
-
-        if (!this.packedDepth) {
-          this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
-        } else {
-          this.colorTarget.depthRenderbuffer?.attachFramebuffer(target.framebuffer);
-        }
-        b.begin(target, { label: 'volume' });
       }
     } else if (scene.opacityAverage < 1) {
       b.renderer({ name: 'blendedTransparent' }, scene.primitives, () =>
@@ -560,9 +642,10 @@ export class DrawPass {
   ) {
     const { renderer, camera, scene, frame } = ctx;
     if (camera.disabled) return;
+    this.volumeScale = props.volumeResolutionScale;
 
     const volumeRendering = scene.volumes.renderables.length > 0;
-    const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
+    const postprocessingEnabled = PostprocessingPass.isEnabled(scene, props.postprocessing);
     const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
     const dofEnabled = DofPass.isEnabled(props.postprocessing);
     const hasMarking = !skipMarking && (asIfMarked || MarkingPass.hasMarking(scene, props));
@@ -573,6 +656,8 @@ export class DrawPass {
       const { x, y, width, height } = camera.viewport;
       renderer.setViewport(x, y, width, height);
       renderer.update(camera, scene, frame);
+      // no pass open yet: GPU culling for the frame's passes with this camera (others draw the CPU culling's lists)
+      renderer.prepareCull(scene.primitives);
     }
 
     if (transparentBackground && !antialiasingEnabled && !dofEnabled && !offscreen && !postprocessingEnabled) {
@@ -722,7 +807,7 @@ export class DrawPass {
         props.postprocessing.dof.params,
         scene.boundingSphereVisible,
       );
-      this.dof.render(b, camera.viewport, toBuffer ? undefined : this.getColorTarget(props.postprocessing));
+      this.dof.render(b, camera.viewport, toBuffer ? undefined : this.getColorTarget(scene, props.postprocessing));
     } else if (toBuffer && !antialiasingEnabled) {
       needsTargetCopy = true;
     }
@@ -735,7 +820,7 @@ export class DrawPass {
       }
     }
 
-    return offscreen ? this.getColorTarget(props.postprocessing) : undefined;
+    return offscreen ? this.getColorTarget(scene, props.postprocessing) : undefined;
   }
 
   private copyToDrawingBuffer(b: PassBuilder, src: RenderTarget, viewport: Viewport) {
@@ -829,11 +914,7 @@ export class DrawPass {
     const backgroundEnabled = this.postprocessing.background.isEnabled(pp);
     // premultiplied scene so bloom can composite the solid background last
     const bloomCompositesBackground =
-      !props.transparentBackground &&
-      !backgroundEnabled &&
-      BloomPass.isEnabled(pp) &&
-      pp.bloom.name === 'on' &&
-      !(pp.bloom.params.mode === 'emissive' && scene.emissiveAverage === 0);
+      !props.transparentBackground && !backgroundEnabled && BloomPass.isActive(scene, pp);
     return props.transparentBackground || backgroundEnabled || bloomCompositesBackground;
   }
 
@@ -842,12 +923,12 @@ export class DrawPass {
     return SsaoPass.isEnabled(postprocessingProps) ? this.ssaoShading : null;
   }
 
-  getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {
+  getColorTarget(scene: Scene, postprocessingProps: PostprocessingProps): RenderTarget {
     if (DofPass.isEnabled(postprocessingProps)) {
       return this.dof.target;
     } else if (AntialiasingPass.isEnabled(postprocessingProps)) {
       return this.antialiasing.target;
-    } else if (PostprocessingPass.isEnabled(postprocessingProps)) {
+    } else if (PostprocessingPass.isEnabled(scene, postprocessingProps)) {
       return this.postprocessing.target;
     }
     return this.colorTarget;

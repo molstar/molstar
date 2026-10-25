@@ -49,6 +49,16 @@ export namespace Clip {
     scale: number[];
     /** Transform point by this before testing */
     transform: number[];
+    /**
+     * Per object the transform of a point into the object's frame, `count` 4x4 matrices: `transform`, less `position`,
+     * rotated back by `rotation` (`getFrame`); where the shaders test the shape
+     */
+    frame: number[];
+    /**
+     * Per object the shape in its frame, `count` 4-vectors: half the scale, the type in `w`, negative where inverted
+     * (`getShape`)
+     */
+    shape: number[];
   };
 
   export type Rotation = { axis: Vec3; angle: number };
@@ -93,7 +103,32 @@ export namespace Clip {
       rotation: new Array(count * 4).fill(0),
       scale: new Array(count * 3).fill(1),
       transform: new Array(count * 16).fill(0),
+      frame: new Array(count * 16).fill(0),
+      shape: new Array(count * 4).fill(0),
     };
+  }
+
+  const mF = Mat4();
+  const mT = Mat4();
+  /** The frame of the object at `index` of `objects` (see `Objects.frame`) into `out` at `index` */
+  function setFrame(objects: Objects, index: number) {
+    const { position, rotation, transform, frame } = objects;
+    Quat.fromArray(qA, rotation, index * 4);
+    Quat.conjugate(qA, qA);
+    Mat4.fromQuat(mF, qA);
+    Mat4.fromTranslation(mT, Vec3.set(vB, -position[index * 3], -position[index * 3 + 1], -position[index * 3 + 2]));
+    Mat4.mul(mF, mF, mT);
+    Mat4.mul(mF, mF, Mat4.fromArray(mT, transform, index * 16));
+    Mat4.toArray(mF, frame, index * 16);
+  }
+  /** The shape of the object at `index` of `objects` (see `Objects.shape`) */
+  function setShape(objects: Objects, index: number) {
+    const { type, invert, scale, shape } = objects;
+    const o = index * 4;
+    shape[o] = scale[index * 3] * 0.5;
+    shape[o + 1] = scale[index * 3 + 1] * 0.5;
+    shape[o + 2] = scale[index * 3 + 2] * 0.5;
+    shape[o + 3] = invert[index] ? -type[index] : type[index];
   }
 
   const qA = Quat();
@@ -105,7 +140,8 @@ export namespace Clip {
 
   export function getClip(props: Props, clip?: Clip): Clip {
     const count = Math.min(props.objects.length, MaxObjectCount);
-    const { type, invert, position, rotation, scale, transform } = clip?.objects || createClipObjects(count);
+    const objects = clip?.objects || createClipObjects(count);
+    const { type, invert, position, rotation, scale, transform } = objects;
     for (let i = 0; i < count; ++i) {
       const p = props.objects[i];
       type[i] = Type[p.type];
@@ -115,11 +151,11 @@ export namespace Clip {
       Quat.toArray(Quat.setAxisAngle(qA, vA, degToRad(p.rotation.angle)), rotation, i * 4);
       Vec3.toArray(p.scale, scale, i * 3);
       Mat4.toArray(p.transform, transform, i * 16);
+      setFrame(objects, i);
+      setShape(objects, i);
     }
-    return {
-      variant: props.variant,
-      objects: { count, type, invert, position, rotation, scale, transform },
-    };
+    objects.count = count;
+    return { variant: props.variant, objects };
   }
 
   const v4A = Vec4();

@@ -27,6 +27,7 @@ import {
 import {
   ComputeRenderVariants,
   type ComputeRenderVariant,
+  type DrawList,
   type DrawMode,
   type GlobalBindings,
   type ComputeRenderItem,
@@ -43,7 +44,7 @@ import { createWebGPUTimerSource } from './timer.js';
 import { BufferUsage, MapMode, TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
 import { createWebGPUFramebuffer, isWebGPUFramebuffer, type WebGPUFramebuffer } from './framebuffer.js';
-import { createWebGPUGlobalBindings, type WebGPUBindingContext } from './global-bindings.js';
+import { asWebGPUGlobalBindings, createWebGPUGlobalBindings, type WebGPUBindingContext } from './global-bindings.js';
 import { createWebGPUProgramCache, type WebGPUProgram, type WebGPUProgramCache } from './program.js';
 import { createWebGPUProgramItem, createWebGPURenderItem } from './render-item.js';
 import {
@@ -69,10 +70,12 @@ import { createWebGPURenderbuffer } from './renderbuffer.js';
 import { createRenderTargetFromResources, type RenderTarget } from '../render-target.js';
 import { type CubeFaces, createNullTexture, decodeImage, type Texture } from '../texture.js';
 import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
+import { createQuadIndices, getMaxQuadItemCount, type QuadIndices } from '../quad-indices.js';
 import { createPendingWork } from '../pending-work.js';
 import { ValueCell } from '@molstar/core/util';
 import { createUniformRing } from './uniform-ring.js';
-import { createBundlePassState, createPassState, type PassState } from './pass-state.js';
+import { type BufferPages, createBufferPages } from './buffer-pages.js';
+import { createBundlePassState, createCaptureEncoder, createPassState, type PassState } from './pass-state.js';
 import { getWgslProgram } from './shader/programs.js';
 import type { WgslSampler } from './wgsl-declarations.js';
 
@@ -124,8 +127,24 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
   warnUnsupported: (message: string) => void;
   /** Render items whose programs `linkPrograms` creates ahead of their first draw */
   readonly linkables: WebGPULinkables;
+  /**
+   * Shared buffers the vertex and index data of render items is sub-allocated in: draws binding ranges of a few buffers
+   * replay far faster than draws binding buffers of their own (`shared-draw-resources.md`)
+   */
+  readonly geometryPages: BufferPages;
+  /** Shared storage buffers the theme layers of render items are sub-allocated in (`data-layers.ts`) */
+  readonly dataPages: BufferPages;
+  /** The bytes a data page binding may span: an item's layers beyond it go into more pages (`DataPageNames`) */
+  readonly dataBindingSize: number;
+  /**
+   * Shared uniform buffers the object and draw blocks of render items are sub-allocated in: items binding the same
+   * share their object bind group (`render-item.ts`)
+   */
+  readonly uniformPages: BufferPages;
   /** Textures shared by render items (`.v6/plans/gl/shared-textures.md` §2), gone with the device */
   readonly sharedTextures: SharedTextures;
+  /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`), a buffer of its own */
+  readonly quadIndices: QuadIndices<GPUBuffer>;
 }
 
 /**
@@ -148,6 +167,10 @@ export interface WebGPULinkable {
 
 export interface WebGPUContext extends GraphicsContext {
   readonly device: GPUDevice;
+  /** The index buffer of quad items, shared by all (`quad-indices.ts`) */
+  readonly quadIndices: QuadIndices<GPUBuffer>;
+  /** Textures shared by render items (`.v6/plans/gl/shared-textures.md`), as WebGL's `resources.sharedTextures` */
+  readonly sharedTextures: SharedTextures;
   /**
    * Records the draws of `draw` into a render bundle for the open pass's target, instead of the pass; undefined when
    * the draws can't be replayed from one (a clear between them, a pipeline still compiling, the viewport, scissor or
@@ -168,6 +191,18 @@ export interface WebGPUContext extends GraphicsContext {
   setDrawingBufferSize: (width: number, height: number) => void;
 }
 
+/**
+ * Bytes of a page of `WebGPUDrawContext.geometryPages`: many objects' geometry in one buffer, few pages for typical
+ * scenes; ranges beyond a quarter get a buffer of their own
+ */
+const GeometryPageSize = 32 * 1024 * 1024;
+
+/** Bytes of a page of `WebGPUDrawContext.dataPages`, bound whole as storage (at most the binding size limit) */
+const DataPageSize = 32 * 1024 * 1024;
+
+/** Bytes of a page of `WebGPUDrawContext.uniformPages`: the blocks of thousands of objects */
+const UniformPageSize = 8 * 1024 * 1024;
+
 /** Features used where available, see `capabilities` */
 const OptionalFeatures: GPUFeatureName[] = [
   'float32-filterable',
@@ -176,6 +211,8 @@ const OptionalFeatures: GPUFeatureName[] = [
   'depth32float-stencil8',
   // GPU timer
   'timestamp-query',
+  // indirect draws of instance ranges (GPU culling of merged render objects)
+  'indirect-first-instance',
 ];
 
 /** Image bitmap of `source` with the raw pixel values, as WebGL uploads with `UNPACK_COLORSPACE_CONVERSION_WEBGL` `NONE` */
@@ -276,7 +313,12 @@ export interface WebGPUContextOptions {
    * theirs; not for a device shared with others (e.g. tests creating contexts on one device)
    */
   ownsDevice?: boolean;
+  /** The bytes a data page binding may span, at most the device's `maxStorageBufferBindingSize` (lower in tests) */
+  maxDataBindingSize?: number;
 }
+
+/** The least time between reports of out-of-memory errors (`GraphicsResources.outOfMemory`) */
+const OutOfMemoryReportMs = 5000;
 
 export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOptions): WebGPUContext {
   /** the options of the context, where `destroy`'s parameter shadows `options` */
@@ -290,6 +332,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     errors.push(message);
   };
   const contextLost = new Subject<now.Timestamp>();
+  const outOfMemory = new Subject<string>();
+  /** when out-of-memory errors were last reported, see `OutOfMemoryReportMs` */
+  let outOfMemoryReported = -Infinity;
   let isContextLost = false;
   /** the device destroyed on purpose (`release`): its loss is expected */
   let released = false;
@@ -301,7 +346,15 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   function attachDevice(d: GPUDevice) {
     d.addEventListener('uncapturederror', (e) => {
-      onError(`WebGPU error: ${(e as GPUUncapturedErrorEvent).error.message}`);
+      const { error } = e as GPUUncapturedErrorEvent;
+      onError(`WebGPU error: ${error.message}`);
+      // one allocation failing is usually followed by many: reported once in a while
+      if (typeof GPUOutOfMemoryError !== 'undefined' && error instanceof GPUOutOfMemoryError) {
+        const time = now();
+        if (time - outOfMemoryReported < OutOfMemoryReportMs) return;
+        outOfMemoryReported = time;
+        outOfMemory.next(`Not enough GPU memory: ${error.message}`);
+      }
     });
     d.lost.then((info) => {
       // losses of replaced devices and of destroyed contexts are expected
@@ -603,9 +656,26 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   };
   const pendingReleases: { destroy(): void }[] = [];
   const release: Release = (resource) => {
-    if (commandEncoder) pendingReleases.push(resource);
-    else resource.destroy();
+    if (commandEncoder) {
+      pendingReleases.push(resource);
+    } else {
+      resource.destroy();
+      scheduleReclaim();
+    }
   };
+  /**
+   * Dawn frees the memory of destroyed resources when work is submitted after it: without frames (an idle canvas, a
+   * released pass target) a destroy keeps the memory until the next one, so an empty submission follows (once per task)
+   */
+  let reclaimScheduled = false;
+  function scheduleReclaim() {
+    if (reclaimScheduled) return;
+    reclaimScheduled = true;
+    setTimeout(() => {
+      reclaimScheduled = false;
+      if (!destroyed && !isContextLost) device.queue.submit([]);
+    }, 0);
+  }
   let computePassEncoder: GPUComputePassEncoder | undefined;
   /** label of the open compute pass, the encoder is begun on the first dispatch */
   let computePassLabel: string | undefined;
@@ -700,6 +770,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   }
 
   function endPassEncoder() {
+    if (passEncoder) flushBundles();
     if (passTarget && !passEncoder && hasClear(passClear)) {
       // a pass with clears only
       passEncoder = beginPassEncoder(passTarget);
@@ -722,6 +793,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   const scissorRect: TargetRect = { x: 0, y: 0, width: 0, height: 0 };
 
+  /** Whether the scissor (the target without one) lies inside the viewport (the target without one) */
+  function isScissorInViewport(target: PassTarget) {
+    const s = scissor ? toTargetScissor(scissor, target) : { x: 0, y: 0, width: target.width, height: target.height };
+    const v = viewport ?? { x: 0, y: 0, width: target.width, height: target.height };
+    return s.x >= v.x && s.y >= v.y && s.x + s.width <= v.x + v.width && s.y + s.height <= v.y + v.height;
+  }
+
   /** the part of the scissor inside the target (`intersectTargetRect`) */
   function toTargetScissor(rect: Rect, target: PassTarget): TargetRect {
     return intersectTargetRect(scissorRect, rect.x, rect.y, rect.width, rect.height, target.width, target.height);
@@ -729,11 +807,34 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   /** the render bundle being recorded (`recordRenderBundle`), the draws' state meanwhile */
   let recording: { state: PassState; failed?: string } | undefined;
+  /** the draws being captured (`captureDraws`): their state, encoding nothing */
+  let capturing: PassState | undefined;
+
+  /**
+   * Bundles replayed one after another, executed together before the next command of the pass (`getPassState`, the
+   * pass's end, a blend constant): one `executeBundles` for a pass replayed in chunks; `pendingKey` the dynamic state
+   * they run with (viewport, scissor, stencil reference)
+   */
+  let pendingBundles: GPURenderBundle[] = [];
+  let pendingKey = '';
+  function flushBundles() {
+    if (pendingBundles.length === 0) return;
+    passEncoder!.executeBundles(pendingBundles);
+    pendingBundles = [];
+    // a bundle leaves the pipeline, bind groups and buffers unset
+    passState!.invalidate();
+  }
+  function getDynamicStateKey() {
+    const v = viewport;
+    const s = scissor;
+    return `${v ? `${v.x},${v.y},${v.width},${v.height}` : ''}|${s ? `${s.x},${s.y},${s.width},${s.height}` : ''}|${renderState.stencil?.reference ?? 0}`;
+  }
 
   function getPassState() {
     if (!passTarget) throw new Error('draw outside of a render pass');
     if (!passEncoder) passEncoder = beginPassEncoder(passTarget);
-    const state = recording?.state ?? passState!;
+    flushBundles();
+    const state = capturing ?? recording?.state ?? passState!;
     const target = passTarget;
     if (viewport) {
       // as given: a viewport partly outside the target is cropped as in WebGL
@@ -797,9 +898,14 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     state: RenderState,
     target: WebGPUTargetDescriptor,
   ): GPURenderPipeline | undefined {
+    const last = program.lastPipeline;
+    if (last && last.state === state && last.target === target && last.drawMode === drawMode) return last.pipeline;
     const key = `${getRenderStateId(state)}|${target.key}|${drawMode}`;
     const existing = program.pipelines.get(key);
-    if (existing) return existing;
+    if (existing) {
+      program.lastPipeline = { state, target, drawMode, pipeline: existing };
+      return existing;
+    }
     let config = pipelineConfigs.get(key);
     if (!config) {
       config = {
@@ -921,24 +1027,107 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     current.state = createBundlePassState(encoder, pass, (what) => {
       current.failed ??= `the ${what} changing`;
     });
+    const arenaReplacements = ring.arenaReplacements;
     recording = current;
     try {
       draw();
     } finally {
       recording = undefined;
     }
+    // draws recorded before bind the released buffer
+    if (ring.arenaReplacements !== arenaReplacements) current.failed ??= 'a uniform arena growing';
     const bundle = encoder.finish();
     return current.failed ? undefined : bundle;
   }
 
-  function executeRenderBundles(bundles: readonly GPURenderBundle[]) {
-    if (recording) throw new Error('replaying render bundles while recording one');
-    const state = getPassState();
-    (state.encoder as GPURenderPassEncoder).executeBundles(bundles);
-    // a bundle leaves the pipeline, bind groups and buffers unset
-    state.invalidate();
+  const captureIds = new WeakMap<object, number>();
+  let nextCaptureId = 0;
+  const getCaptureId = (o: object) => {
+    let id = captureIds.get(o);
+    if (id === undefined) captureIds.set(o, (id = nextCaptureId++));
+    return id;
+  };
+
+  function captureDraws(draw: () => void): string {
+    if (!passTarget) throw new Error('capturing draws outside of a render pass');
+    if (recording || capturing) throw new Error('capturing draws while recording or capturing');
+    const tokens: string[] = [];
+    // a state of its own: every draw sets what it binds, whatever the draws before it bound
+    capturing = createPassState(createCaptureEncoder(tokens, getCaptureId));
+    try {
+      draw();
+    } finally {
+      capturing = undefined;
+    }
+    return tokens.join(' ');
   }
 
+  /** Recordings a draw list keeps, one per target layout its pass draws into (e.g. the canvas and image passes) */
+  const MaxDrawListTargets = 4;
+
+  /**
+   * Render bundles of a pass's draws, one per target layout (`PassTarget.key`: formats, read-only depth), each replayed
+   * while the pass binds the globals it was recorded with
+   */
+  function createDrawList(): DrawList {
+    type Recording = {
+      bundle: GPURenderBundle;
+      state: ReturnType<ReturnType<typeof asWebGPUGlobalBindings>['getState']>;
+      /** `UniformRing.arenaReplacements` when recorded: a replaced arena buffer may be bound by the bundle */
+      arenaReplacements: number;
+    };
+    const recordings = new Map<string, Recording>();
+    return {
+      replay: (globals) => {
+        if (!passTarget) return false;
+        const recording = recordings.get(passTarget.key);
+        if (!recording) return false;
+        const state = asWebGPUGlobalBindings(globals).getState();
+        const recorded = recording.state;
+        if (
+          state.buffer !== recorded.buffer ||
+          state.offset !== recorded.offset ||
+          state.textures !== recorded.textures ||
+          recording.arenaReplacements !== ring.arenaReplacements
+        ) {
+          recordings.delete(passTarget.key);
+          return false;
+        }
+        executeRenderBundles([recording.bundle]);
+        return true;
+      },
+      record: (globals, draw) => {
+        const target = passTarget;
+        if (!target) throw new Error('recording a draw list outside of a render pass');
+        const state = asWebGPUGlobalBindings(globals).getState();
+        const bundle = recordRenderBundle(draw);
+        recordings.delete(target.key);
+        if (bundle) {
+          if (recordings.size >= MaxDrawListTargets) recordings.delete(recordings.keys().next().value!);
+          recordings.set(target.key, { bundle, state, arenaReplacements: ring.arenaReplacements });
+          executeRenderBundles([bundle]);
+        } else {
+          draw();
+        }
+      },
+      reset: () => {
+        recordings.clear();
+      },
+    };
+  }
+
+  function executeRenderBundles(bundles: readonly GPURenderBundle[]) {
+    if (recording) throw new Error('replaying render bundles while recording one');
+    const key = getDynamicStateKey();
+    // the dynamic state applied (and earlier bundles executed) unless it is the one of the bundles pending
+    if (pendingBundles.length === 0 || key !== pendingKey) {
+      getPassState();
+      pendingKey = key;
+    }
+    for (const b of bundles) pendingBundles.push(b);
+  }
+
+  let submitCount = 0;
   function submit() {
     endPassEncoder();
     endComputePassEncoder();
@@ -951,8 +1140,12 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     commandEncoder = undefined;
     ring.reset();
     globalRing.reset();
-    for (const r of pendingReleases) r.destroy();
-    pendingReleases.length = 0;
+    submitCount += 1;
+    if (pendingReleases.length) {
+      for (const r of pendingReleases) r.destroy();
+      pendingReleases.length = 0;
+      scheduleReclaim();
+    }
   }
 
   const clearDraw = createClearDraw(device, ring);
@@ -1002,6 +1195,30 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   const strict = options.strict ?? false;
   const warned = new Set<string>();
 
+  const geometryPages = createBufferPages(device, {
+    usage: BufferUsage.VERTEX | BufferUsage.INDEX,
+    pageSize: Math.min(GeometryPageSize, device.limits.maxBufferSize),
+    label: 'geometry page',
+    getSubmitCount: () => submitCount,
+  });
+  const dataBindingSize = Math.min(
+    device.limits.maxStorageBufferBindingSize,
+    contextOptions.maxDataBindingSize ?? Number.POSITIVE_INFINITY,
+  );
+  const dataPages = createBufferPages(device, {
+    usage: BufferUsage.STORAGE,
+    pageSize: Math.min(DataPageSize, dataBindingSize),
+    label: 'data page',
+    getSubmitCount: () => submitCount,
+  });
+  const uniformPages = createBufferPages(device, {
+    usage: BufferUsage.UNIFORM,
+    pageSize: Math.min(UniformPageSize, device.limits.maxBufferSize),
+    alignment: device.limits.minUniformBufferOffsetAlignment,
+    label: 'uniform page',
+    getSubmitCount: () => submitCount,
+  });
+
   const drawContext: WebGPUDrawContext = {
     byteCounts,
     get generateMipmaps() {
@@ -1015,6 +1232,10 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     release,
     ring,
     globalRing,
+    geometryPages,
+    dataPages,
+    dataBindingSize,
+    uniformPages,
     samplers,
     stats,
     getPassState,
@@ -1031,8 +1252,29 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       warned.add(message);
       console.warn(`${message}, not drawn`);
     },
-    sharedTextures: createSharedTextures((spec) =>
-      createWebGPUTexture(drawContext, spec.kind, spec.format, spec.dataType, spec.filter),
+    sharedTextures: createSharedTextures(
+      (spec) => createWebGPUTexture(drawContext, spec.kind, spec.format, spec.dataType, spec.filter),
+      (texture) => asWebGPUTexture(texture).version,
+    ),
+    quadIndices: createQuadIndices(
+      (indices) => {
+        const buffer = device.createBuffer({
+          size: indices.byteLength,
+          usage: BufferUsage.INDEX | BufferUsage.COPY_DST,
+          label: 'quad indices',
+        });
+        device.queue.writeBuffer(buffer, 0, indices);
+        byteCounts.elements += indices.byteLength;
+        stats.resourceCounts.elements += 1;
+        return buffer;
+      },
+      (buffer) => {
+        byteCounts.elements -= buffer.size;
+        stats.resourceCounts.elements -= 1;
+        // recorded work may still bind it
+        release(buffer);
+      },
+      device.limits.maxBufferSize,
     ),
   };
 
@@ -1071,6 +1313,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     clipControl: true,
     depthClamp: device.features.has('depth-clip-control'),
     compute: true,
+    indirectInstanceRanges: device.features.has('indirect-first-instance'),
   };
 
   const resources: GraphicsResources = {
@@ -1080,6 +1323,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       maxRenderbufferSize: device.limits.maxTextureDimension2D,
       maxDrawBuffers: device.limits.maxColorAttachments,
       maxTextureImageUnits: device.limits.maxSampledTexturesPerShaderStage,
+      maxQuadItemCount: getMaxQuadItemCount(device.limits.maxBufferSize),
     },
     texture: (kind, format, type, filter) => {
       const texture = createWebGPUTexture(env, kind, format, type, filter);
@@ -1127,6 +1371,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     materialUniformBuffer: () => notSupported('materialUniformBuffer'),
     getByteCounts: () => ({ ...byteCounts, storageBuffer: compute.getStorageBufferByteCount() }),
     pending,
+    outOfMemory,
     loadImage: (texture: Texture, source: string, cell?: ValueCell<Texture>, label = 'image') => {
       const load = async () => {
         const element = await decodeImage(source);
@@ -1162,6 +1407,17 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     device,
     recordRenderBundle,
     executeRenderBundles,
+    createDrawList,
+    captureDraws,
+    get submitCount() {
+      return submitCount;
+    },
+    get drawResourcesVersion() {
+      // both only advance: their sum advances with either
+      return drawContext.quadIndices.id + drawContext.sharedTextures.version;
+    },
+    quadIndices: drawContext.quadIndices,
+    sharedTextures: drawContext.sharedTextures,
     capabilities,
     resources,
     stats,
@@ -1288,6 +1544,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     },
     setBlendConstant: (r: number, g: number, b: number, a: number) => {
       blendConstant = { r, g, b, a };
+      if (passEncoder) flushBundles();
       passEncoder?.setBlendConstant(blendConstant);
     },
     setViewport: (x: number, y: number, width: number, height: number) => {
@@ -1303,9 +1560,18 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       const target = passTarget;
       if (!target) throw new Error('clear outside of a render pass');
       checkReadOnlyClear(values);
+      if (capturing) {
+        capturing.encoder.draw(0, 0, 0, 0);
+        return;
+      }
       if (recording) {
-        // a clear is no bundle command: the recording can't replay the draws around it
-        recording.failed ??= 'a clear';
+        // a clear draw of the bundle covers the pass's viewport: the same as the pass's clear (the scissor) where the
+        // scissor lies inside the viewport (as for the clears between solid interior caps)
+        const recorded =
+          isScissorInViewport(target) &&
+          clearDraw.drawInBundle(recording.state.encoder as GPURenderBundleEncoder, target, values);
+        if (recorded) recording.state.invalidate();
+        else recording.failed ??= 'a clear';
         return;
       }
       if (!passEncoder && coversTarget(scissor, target)) {
@@ -1313,7 +1579,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
         passClear = { ...passClear, ...values };
       } else {
         const state = getPassState();
-        clearDraw(state.encoder as GPURenderPassEncoder, target, values);
+        clearDraw.draw(state.encoder as GPURenderPassEncoder, target, values);
         // the clear draws with pipelines and bind groups of its own
         state.invalidate();
       }
@@ -1419,6 +1685,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       timerSource?.destroy();
       ring.destroy();
       globalRing.destroy();
+      geometryPages.destroy();
+      dataPages.destroy();
+      uniformPages.destroy();
       if (!canvasContext) drawingBuffer?.color.destroy();
       zeroSizeBuffer?.color.destroy();
       zeroSizeBuffer?.depth.destroy();

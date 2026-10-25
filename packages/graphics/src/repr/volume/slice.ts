@@ -758,7 +758,7 @@ function eachSlice(
 
 //
 
-export function SliceVisual(materialId: number, volume: Volume, key: number): VolumeVisual<SliceParams> {
+export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
   return VolumeVisual<Image, SliceParams>(
     {
       defaultProps: PD.getDefaultValues(SliceParams),

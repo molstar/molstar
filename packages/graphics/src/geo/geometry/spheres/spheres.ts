@@ -15,16 +15,16 @@ import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import { createColors } from '../color-data.js';
 import { createCenterGroupData, setPositionGroup } from '../center-group.js';
 import { createMarkers } from '../marker-data.js';
-import { type TextureImage, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { createSizes, getMaxSize } from '../size-data.js';
+import { createSizes, getMaxSize, type SizeData } from '../size-data.js';
 import type { Color } from '@molstar/core/util/color';
 import { BaseGeometry, resolveInstanceGranularity } from '../base.js';
 import { createEmptyOverpaint } from '../overpaint-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
 import type { GroupMapping } from '../../util.js';
 import { createEmptyClipping } from '../clipping-data.js';
-import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
 import { createEmptySubstance } from '../substance-data.js';
 import { createEmptyEmissive } from '../emissive-data.js';
@@ -56,11 +56,10 @@ export interface Spheres {
 
 export namespace Spheres {
   export interface ShaderData {
-    readonly positionGroup: ValueCell<TextureImage<Float32Array>>;
-    readonly texDim: ValueCell<Vec2>;
+    readonly positionGroup: ValueCell<DataArray<Float32Array>>;
     readonly lodLevels: ValueCell<LodLevelsValue>;
     readonly sizeFactor: ValueCell<number>;
-    update(props?: { lodLevels: LodLevels; sizeFactor: number }): void;
+    update(props?: LodProps): void;
   }
 
   export function create(centers: Float32Array, groups: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
@@ -93,18 +92,19 @@ export namespace Spheres {
       hasBoundingSphere: data.hasBoundingSphere,
       shaderData: {
         positionGroup: data.positionGroup,
-        texDim: data.texDim,
         lodLevels,
         sizeFactor,
-        update(props?: { lodLevels: LodLevels; sizeFactor: number }) {
+        update(props?: LodProps) {
           const lodLevelsProp = props?.lodLevels ?? getLodLevels(lodLevels.ref.value);
           const sizeFactorProp = props?.sizeFactor ?? sizeFactor.ref.value;
+          const pixelSizeProp = props?.lodPixelSize ?? lodLevels.ref.value.pixelSize ?? 0;
+          const radiusProp = props?.lodRadius ?? lodLevels.ref.value.radius ?? LodNominalRadius;
 
           const strides = getStrides(lodLevelsProp, sizeFactorProp);
           const offsets = data.updatePositionGroup(strides);
           const newLodLevels = offsets
-            ? getLodLevelsValue(lodLevelsProp, sizeFactorProp, offsets, spheres.sphereCount)
-            : [];
+            ? getLodLevelsValue(lodLevelsProp, sizeFactorProp, offsets, spheres.sphereCount, pixelSizeProp, radiusProp)
+            : ([] as LodLevelsValue);
 
           ValueCell.update(lodLevels, newLodLevels);
           ValueCell.update(sizeFactor, sizeFactorProp);
@@ -143,35 +143,89 @@ export namespace Spheres {
     return true;
   }
 
+  /** `lodRadius` the radius the pixel boundaries assume (`getLodRadius`) */
+  type LodProps = { lodLevels: LodLevels; sizeFactor: number; lodPixelSize?: number; lodRadius?: number };
+
+  /**
+   * Per level its range (distances in Å, or with `pixelSize` above 0 the Å a CSS pixel covers), fade, vertex count and
+   * sphere scale (`renderable.ts` `LodLevelsValue`), then the level's props
+   */
   type LodLevelsValue = [
-    minDistance: number,
-    maxDistance: number,
+    min: number,
+    max: number,
     overlap: number,
     count: number,
     scale: number,
     stride: number,
     scaleBias: number,
-  ][];
+    minDistance: number,
+    maxDistance: number,
+  ][] & { readonly pixelSize?: number; readonly radius?: number };
 
-  function getLodLevelsValue(prop: LodLevels, sizeFactor: number, offsets: number[], count: number): LodLevelsValue {
-    return prop.map((l, i) => {
+  /** A carbon's van der Waals radius: the nominal sphere radius levels by size on screen are chosen for (atoms) */
+  const LodNominalRadius = 1.7;
+
+  /**
+   * The radius the pixel boundaries assume at size factor 1: `lodRadius`, or with 0 the largest of the size data (dots,
+   * sized by their theme)
+   */
+  function getLodRadius(lodRadius: number, size: SizeData) {
+    return lodRadius > 0 ? lodRadius : getMaxSize(size) || LodNominalRadius;
+  }
+
+  /** The `lodRadius` param: hidden, the nominal atom radius for spheres and 0 (from the size data) for dots */
+  export function getLodRadiusParam(defaultValue = LodNominalRadius) {
+    return PD.Numeric(
+      defaultValue,
+      { min: 0, max: 100, step: 0.1 },
+      {
+        ...BaseGeometry.CullingLodCategory,
+        isHidden: true,
+        description:
+          'The sphere radius levels of detail by size on screen are chosen for, at size factor 1; 0 for the largest size.',
+      },
+    );
+  }
+
+  /**
+   * Where level `j`'s spheres get smaller than `pixelSize` CSS pixels across, in Å a pixel covers: its nominal spheres
+   * (`LodNominalRadius` times the stride's scale) `pixelSize` pixels across (`screen-space-lod.md`). The preset's stride:
+   * the stride adjusted for `sizeFactor` draws spheres the size of those of the preset's stride at size factor 1
+   */
+  export function getLodPixelBoundary(level: LodLevels[0], pixelSize: number, radius = LodNominalRadius) {
+    return (2 * radius * Math.pow(Math.max(1, level.stride), 1 / level.scaleBias)) / pixelSize;
+  }
+
+  function getLodLevelsValue(
+    prop: LodLevels,
+    sizeFactor: number,
+    offsets: number[],
+    count: number,
+    pixelSize: number,
+    radius: number,
+  ): LodLevelsValue {
+    const pixel = pixelSize > 0;
+    const value = prop.map((l, i): LodLevelsValue[0] => {
       const stride = getAdjustedStride(l, sizeFactor);
       return [
-        l.minDistance,
-        l.maxDistance,
+        pixel ? (i === 0 ? 0 : getLodPixelBoundary(prop[i - 1], pixelSize, radius)) : l.minDistance,
+        pixel ? (i === prop.length - 1 ? Infinity : getLodPixelBoundary(l, pixelSize, radius)) : l.maxDistance,
         l.overlap,
         offsets[offsets.length - 1 - i],
         Math.pow(Math.min(count, stride), 1 / l.scaleBias),
         l.stride,
         l.scaleBias,
+        l.minDistance,
+        l.maxDistance,
       ];
     });
+    return pixel ? Object.assign(value, { pixelSize, radius }) : value;
   }
 
   function getLodLevels(lodLevelsValue: LodLevelsValue): LodLevels {
     return lodLevelsValue.map((l) => ({
-      minDistance: l[0],
-      maxDistance: l[1],
+      minDistance: l[7],
+      maxDistance: l[8],
       overlap: l[2],
       stride: l[5],
       scaleBias: l[6],
@@ -212,6 +266,56 @@ export namespace Spheres {
       { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
     ],
   };
+
+  /**
+   * Strides growing by 10 (scale biases 1, 3, 2.7, 2.3): levels by size on screen that reach a whole mesoscale scene
+   * with four levels and look as `quality` at 3 px (`screen-space-lod.md`)
+   */
+  const LodPixelChain = [
+    [1, 1],
+    [10, 3],
+    [100, 2.7],
+    [1000, 2.3],
+  ] as const;
+
+  /** As distances at 1280x720 and a field of view of 45°, the levels by size on screen at `pixelSize` */
+  const LodPixelReferenceDepthScale = (2 * Math.tan(Math.PI / 8)) / 720;
+
+  /** The chain's levels for `pixelSize`, their distances those at the reference view (for `lodPixelSize` 0) */
+  function getLodPixelLevels(pixelSize: number): LodLevels {
+    let minDistance = 1;
+    return LodPixelChain.map(([stride, scaleBias], j) => {
+      const level = { minDistance, maxDistance: 10000000, overlap: 0, stride, scaleBias };
+      if (j < LodPixelChain.length - 1) {
+        level.maxDistance = Math.round(getLodPixelBoundary(level, pixelSize) / LodPixelReferenceDepthScale / 10) * 10;
+      }
+      minDistance = level.maxDistance;
+      return level;
+    });
+  }
+
+  /** Levels by size on screen (`lodPixelSize`) for the graphics modes of `LodLevelsPresets` */
+  export const LodPixelPresets: {
+    [key in keyof typeof LodLevelsPresets]: { lodLevels: LodLevels; lodPixelSize: number };
+  } = {
+    performance: { lodLevels: getLodPixelLevels(6), lodPixelSize: 6 },
+    balanced: { lodLevels: getLodPixelLevels(4), lodPixelSize: 4 },
+    quality: { lodLevels: getLodPixelLevels(3), lodPixelSize: 3 },
+    ultra: { lodLevels: getLodPixelLevels(1.5), lodPixelSize: 1.5 },
+  };
+
+  /** Levels of detail by size on screen (`screen-space-lod.md`): the smallest sphere drawn, in CSS pixels; 0 for distances */
+  export function getLodPixelSizeParam(defaultValue = 0) {
+    return PD.Numeric(
+      defaultValue,
+      { min: 0, max: 10, step: 0.5 },
+      {
+        ...BaseGeometry.CullingLodCategory,
+        description:
+          'If above zero, the levels of detail are chosen by the size of their spheres on screen: the smallest sphere drawn, in CSS pixels. The distances of the levels are ignored.',
+      },
+    );
+  }
 
   export const Params = {
     ...BaseGeometry.Params,
@@ -266,6 +370,8 @@ export namespace Spheres {
         presets: Object.entries(LodLevelsPresets).map(([k, v]) => [v, k]),
       },
     ),
+    lodPixelSize: getLodPixelSizeParam(),
+    lodRadius: getLodRadiusParam(),
   };
   export type Params = typeof Params;
 
@@ -337,12 +443,16 @@ export namespace Spheres {
       0,
     );
 
-    spheres.shaderData.update({ lodLevels: props.lodLevels, sizeFactor: props.sizeFactor });
+    spheres.shaderData.update({
+      lodLevels: props.lodLevels,
+      sizeFactor: props.sizeFactor,
+      lodPixelSize: props.lodPixelSize,
+      lodRadius: getLodRadius(props.lodRadius, size),
+    });
 
     return {
       dGeometryType: ValueCell.create('spheres'),
 
-      uTexDim: spheres.shaderData.texDim,
       tPositionGroup: spheres.shaderData.positionGroup,
 
       boundingSphere: ValueCell.create(boundingSphere),
@@ -420,8 +530,15 @@ export namespace Spheres {
     updateInteriorValues(values, props.interior);
     updateAnimationValues(values, props.animation);
 
-    const lodLevels = getLodLevels(values.lodLevels.ref.value as LodLevelsValue);
-    if (!areLodLevelsEqual(props.lodLevels, lodLevels) || props.sizeFactor !== prevSizeFactor) {
+    const lodValue = values.lodLevels.ref.value as LodLevelsValue;
+    const lodLevels = getLodLevels(lodValue);
+    const lodRadius = getLodRadius(props.lodRadius, values);
+    if (
+      !areLodLevelsEqual(props.lodLevels, lodLevels) ||
+      props.sizeFactor !== prevSizeFactor ||
+      props.lodPixelSize !== (lodValue.pixelSize ?? 0) ||
+      (props.lodPixelSize > 0 && lodRadius !== lodValue.radius)
+    ) {
       const count = values.uVertexCount.ref.value / 6;
       const strides = getStrides(props.lodLevels, props.sizeFactor);
       const offsets = setPositionGroup(
@@ -431,7 +548,9 @@ export namespace Spheres {
         count,
         strides,
       );
-      const lodLevels = offsets ? getLodLevelsValue(props.lodLevels, props.sizeFactor, offsets, count) : [];
+      const lodLevels = offsets
+        ? getLodLevelsValue(props.lodLevels, props.sizeFactor, offsets, count, props.lodPixelSize, lodRadius)
+        : [];
       ValueCell.update(values.tPositionGroup, values.tPositionGroup.ref.value);
       ValueCell.update(values.lodLevels, lodLevels);
     }

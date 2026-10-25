@@ -14,67 +14,48 @@ fn quaternionTransform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {
     return v + q.w * t + cross(q.xyz, t);
 }
 
-fn computePlane(normal: vec3<f32>, inPoint: vec3<f32>) -> vec4<f32> {
-    return vec4<f32>(normalize(normal), -dot(normal, inPoint));
-}
-
-fn planeSD(plane: vec4<f32>, center: vec3<f32>) -> f32 {
-    return -dot(plane.xyz, center - plane.xyz * -plane.w);
-}
-
-fn sphereSD(position: vec3<f32>, rotation: vec4<f32>, size: vec3<f32>, center: vec3<f32>) -> f32 {
-    return (
-        length(quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), center - position) / size) - 1.0
-    ) * min(min(size.x, size.y), size.z);
-}
-
-fn cubeSD(position: vec3<f32>, rotation: vec4<f32>, size: vec3<f32>, center: vec3<f32>) -> f32 {
-    let d = abs(quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), center - position)) - size;
-    return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, vec3<f32>(0.0)));
-}
-
-fn cylinderSD(position: vec3<f32>, rotation: vec4<f32>, size: vec3<f32>, center: vec3<f32>) -> f32 {
-    let t = quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), center - position);
-    let d = abs(vec2<f32>(length(t.xz), t.y)) - size.xy;
-    return min(max(d.x, d.y), 0.0) + length(max(d, vec2<f32>(0.0)));
-}
-
-fn infiniteConeSD(position: vec3<f32>, rotation: vec4<f32>, size: vec3<f32>, center: vec3<f32>) -> f32 {
-    let t = quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), center - position);
-    let q = length(t.xy);
-    return dot(size.xy, vec2<f32>(q, t.z));
-}
-
-/** Signed distance of \`center\` to a shape (1 plane, 2 sphere, 3 cube, 4 cylinder, 5 infinite cone) */
-fn getShapeSignedDistance(center: vec3<f32>, type_: i32, position: vec3<f32>, rotation: vec4<f32>, scale: vec3<f32>, transform: mat4x4<f32>) -> f32 {
-    let c = (transform * vec4<f32>(center, 1.0)).xyz;
+/**
+ * Signed distance of \`t\` (in the shape's frame) to a shape of half size \`size\` (1 plane, 2 sphere, 3 cube,
+ * 4 cylinder, 5 infinite cone)
+ */
+fn localSD(type_: i32, t: vec3<f32>, size: vec3<f32>) -> f32 {
     if (type_ == 1) {
-        let normal = quaternionTransform(rotation, vec3<f32>(0.0, 1.0, 0.0));
-        return planeSD(computePlane(normal, position), c);
+        return -t.y;
     } else if (type_ == 2) {
-        return sphereSD(position, rotation, scale * 0.5, c);
+        return (length(t / size) - 1.0) * min(min(size.x, size.y), size.z);
     } else if (type_ == 3) {
-        return cubeSD(position, rotation, scale * 0.5, c);
+        let d = abs(t) - size;
+        return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, vec3<f32>(0.0)));
     } else if (type_ == 4) {
-        return cylinderSD(position, rotation, scale * 0.5, c);
+        let d = abs(vec2<f32>(length(t.xz), t.y)) - size.xy;
+        return min(max(d.x, d.y), 0.0) + length(max(d, vec2<f32>(0.0)));
     } else if (type_ == 5) {
-        return infiniteConeSD(position, rotation, scale * 0.5, c);
+        return dot(size.xy, vec2<f32>(length(t.xy), t.z));
     }
     return 0.1;
 }
 
-#if dClipObjectCount != 0
+/** Signed distance of \`center\` to a shape by position, rotation, scale and the transform of the point (image trims) */
+fn getShapeSignedDistance(center: vec3<f32>, type_: i32, position: vec3<f32>, rotation: vec4<f32>, scale: vec3<f32>, transform: mat4x4<f32>) -> f32 {
+    let c = (transform * vec4<f32>(center, 1.0)).xyz;
+    return localSD(type_, quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), c - position), scale * 0.5);
+}
+
+#if defined(dClipObjects)
 override oClipObjectCount: i32 = 1;
 
+/** The point \`p\` in the frame of clip object \`i\` (\`Clip.Objects.frame\`) */
+fn clipLocal(i: i32, p: vec3<f32>) -> vec3<f32> {
+    return (uMaterial.uClipObjectFrame[i] * vec4<f32>(p, 1.0)).xyz;
+}
+
+/** The type of clip object \`i\`: \`w\` of its shape, negative where inverted (\`Clip.Objects.shape\`) */
+fn clipType(i: i32) -> i32 {
+    return i32(abs(uMaterial.uClipObjectShape[i].w) + 0.5);
+}
+
 fn getSignedDistance(center: vec3<f32>, i: i32) -> f32 {
-    return getShapeSignedDistance(
-        center,
-        uMaterial.uClipObjectType[i].x,
-        uMaterial.uClipObjectPosition[i],
-        uMaterial.uClipObjectRotation[i],
-        uMaterial.uClipObjectScale[i],
-        uMaterial.uClipObjectTransform[i]
-    );
+    return localSD(clipType(i), clipLocal(i, center), uMaterial.uClipObjectShape[i].xyz);
 }
 
 fn isClipObjectActive(i: i32, flag: i32) -> bool {
@@ -82,7 +63,7 @@ fn isClipObjectActive(i: i32, flag: i32) -> bool {
 }
 
 fn isClipObjectInverted(i: i32) -> bool {
-    return uMaterial.uClipObjectInvert[i].x != 0u;
+    return uMaterial.uClipObjectShape[i].w < 0.0;
 }
 
 fn clipTest(center: vec3<f32>, flag: i32) -> bool {
@@ -146,20 +127,13 @@ fn clipQuadratic(a: f32, b: f32, c: f32) -> vec2<f32> {
 
 /** Interval of the segment from \`pFront\` (0) to \`pBack\` (1) inside clip object \`i\` */
 fn clipObjectInterval(i: i32, pFront: vec3<f32>, pBack: vec3<f32>) -> vec2<f32> {
-    let type_ = uMaterial.uClipObjectType[i].x;
-    let position = uMaterial.uClipObjectPosition[i];
-    let rotation = uMaterial.uClipObjectRotation[i];
-    let transform = uMaterial.uClipObjectTransform[i];
-    let cF = (transform * vec4<f32>(pFront, 1.0)).xyz;
-    let cB = (transform * vec4<f32>(pBack, 1.0)).xyz;
+    let type_ = clipType(i);
+    let qF = clipLocal(i, pFront);
+    let qB = clipLocal(i, pBack);
     if (type_ == 1) {
-        let plane = computePlane(quaternionTransform(rotation, vec3<f32>(0.0, 1.0, 0.0)), position);
-        return clipHalfLine(planeSD(plane, cF), planeSD(plane, cB));
+        return clipHalfLine(-qF.y, -qB.y);
     }
-    let invRotation = vec4<f32>(-rotation.xyz, rotation.w);
-    let qF = quaternionTransform(invRotation, cF - position);
-    let qB = quaternionTransform(invRotation, cB - position);
-    let size = uMaterial.uClipObjectScale[i] * 0.5;
+    let size = uMaterial.uClipObjectShape[i].xyz;
     if (type_ == 2) {
         let o = qF / size;
         let d = (qB - qF) / size;
@@ -284,7 +258,7 @@ fn clipCapNormal(center: vec3<f32>) -> vec3<f32> {
 /** The clip object bit-flag \`clipFlag\` from \`clipping\` (an expression of the clipping varying), 0 without one */
 export function clip_flag_wgsl(clipping: string) {
   return /* wgsl */ `
-#if dClipObjectCount != 0 && defined(dClipping)
+#if defined(dClipObjects) && defined(dClipping)
     let clipFlag = i32(floor(${clipping} * 255.0 + 0.5));
 #else
     let clipFlag = 0;
@@ -294,7 +268,7 @@ export function clip_flag_wgsl(clipping: string) {
 
 /** Instance clipping in the vertex stage: moves the vertex out of the clip volume; expects \`aTransform\` and \`clipFlag\` */
 export const clip_instance_wgsl = /* wgsl */ `
-#if defined(dClipVariant_instance) && dClipObjectCount != 0
+#if defined(dClipVariant_instance) && defined(dClipObjects)
     let clipCenter = (uGlobal.uModel * aTransform * vec4<f32>(invariantBoundingSphere(in).xyz, 1.0)).xyz;
     if (clipTest(clipCenter / uGlobal.uModelScale, clipFlag)) {
         // move out of [0, w] to 'discard' in the vertex stage
@@ -306,7 +280,7 @@ export const clip_instance_wgsl = /* wgsl */ `
 /** Pixel clipping of \`modelPosition\` (an expression) in the fragment stage; expects \`clipFlag\` */
 export function clip_pixel_wgsl(modelPosition: string) {
   return /* wgsl */ `
-#if defined(dClipVariant_pixel) && dClipObjectCount != 0
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
     if (clipTest(${modelPosition} / uGlobal.uModelScale, clipFlag)) {
         discard;
     }

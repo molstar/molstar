@@ -21,6 +21,7 @@ import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import type { PostprocessingProps } from './postprocessing.js';
+import type { PassTargets } from './pass-targets.js';
 
 export const DofParams = {
   blurSize: PD.Numeric(9, { min: 1, max: 32, step: 1 }),
@@ -42,6 +43,7 @@ export const DofParams = {
 export type DofProps = PD.Values<typeof DofParams>;
 
 export class DofPass {
+  private readonly graphics: GraphicsContext;
   static isEnabled(props: PostprocessingProps) {
     return props.enabled && props.dof.name !== 'off';
   }
@@ -49,12 +51,9 @@ export class DofPass {
   readonly target: RenderTarget;
   private readonly renderable: DofRenderable;
 
-  constructor(
-    private graphics: GraphicsContext,
-    width: number,
-    height: number,
-  ) {
-    this.target = graphics.createRenderTarget(width, height, 'none');
+  constructor(targets: PassTargets, width: number, height: number) {
+    const graphics = (this.graphics = targets.graphics);
+    this.target = targets.createRenderTarget(width, height, 'none');
 
     const nullTexture = createNullTexture();
     this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture);

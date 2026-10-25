@@ -15,6 +15,17 @@
 - T3.3 not needed: `usedIf` on the remaining feature textures has no consumer. WebGPU declares and binds only the
   textures a program references (`isReferenced` in `getWgslTextureDeclarations`), WebGL skips inactive samplers, and the
   per-stage limits hold (`_test/minimum-limits.test.ts`).
+- The survey (Today) and the steps describe the code before them; since: only compute and pass shaders still declare
+  samplers by hand (stripped at runtime); units are fixed per program, global → material → object (no `startUnit`);
+  T1.2 (`getTextureBinding`, capabilities in `getBindingLayout`) was not built, T4's generator is
+  `getWgslTextureDeclarations(layout, isReferenced?)`; the T4 test passes without `usedIf`. Depth `sampleType` is still
+  `depth` (`texture_depth_2d` in WGSL); decision 5 open on its own.
+- Measured and dropped: a cache of the units' bindings in `WebGLState` (the active unit, the texture per unit; binds
+  through it from `bindTextures` and `Texture.bind`, uploads and deletes invalidating it). WebGL binds every texture of
+  every object on every draw (with 1000 unmerged objects on WebGL2 about a fifth of the frame), but consecutive objects
+  bind their own textures to the same units: few binds repeat, the cache skipped little (`merging/units-1000-*`
+  unchanged within noise) and its own bind took the cost. The cube textures binding on image loads without resetting
+  the item bindings is harmless without such a cache (another target than the 2D units).
 - Rule: must work on WebGL2 minimums and WebGPU default limits; anything needing more has a documented fallback (see
   [minimum-capabilities.md](minimum-capabilities.md)). Relevant here: 16 sampled textures per stage on both. Checked by
   `_test/minimum-limits.test.ts`: with worst-case feature defines every graphics program uses ≤ 16 per stage, and

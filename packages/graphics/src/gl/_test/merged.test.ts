@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRenderObject, createMergedRenderObject, canMergeRenderObjects } from '../render-object.js';
 import { Scene } from '../scene.js';
+import { SegmentedArray } from '../segmented-array.js';
 import { getGLContext, tryGetGLContext } from './gl.js';
 import { setDebugMode } from '@molstar/core/util/debug';
 import { ColorNames } from '@molstar/core/util/color/names';
@@ -75,7 +76,7 @@ describe('merged', () => {
     expect(Array.from(aSegment.subarray(0, 6))).toEqual([g0, 0, 0, g1, 1 * g0 - 1 * g1, g0]);
 
     // second member's positions start at texel 3 in the merged position texture
-    const pg = mv.tPositionGroup.ref.value.array;
+    const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
     expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
 
@@ -86,13 +87,21 @@ describe('merged', () => {
     const [a, b] = createMembers();
     const merged = createMergedRenderObject([a, b]);
 
-    // member texture update flows into the merged values
+    // member texture update flows into the merged values: the member's layer is a part, its version advanced
+    const layer = merged.values.tPositionGroup;
+    const segmented = layer.ref.value.array as unknown as SegmentedArray<Float32Array>;
+    const before = segmented.parts.map((p) => p.version);
+    const version = layer.ref.version;
     const pgB = b.values.tPositionGroup.ref.value;
     pgB.array.set([3, 0, 0, 0], 0);
     ValueCell.update(b.values.tPositionGroup, pgB);
 
     merged.merged.sync();
-    const pg = merged.values.tPositionGroup.ref.value.array;
+    expect(layer.ref.value.array).toBe(segmented);
+    expect(layer.ref.version).toBe(version + 1);
+    expect(segmented.parts.map((p) => p.version)).toEqual([before[0], before[1] + 1]);
+    expect(SegmentedArray.changedRanges(segmented, { array: segmented, versions: before })).toEqual([3 * 4, 5 * 4]);
+    const pg = SegmentedArray.flatten(segmented);
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([3, 0, 0, 0]);
   });
 
@@ -116,7 +125,7 @@ describe('merged', () => {
     expect(merged.merged.segments.vertexBases).toEqual([0, 3]);
     expect(merged.merged.segments.drawBases).toEqual([0, 3 * 6]);
 
-    const pg = mv.tPositionGroup.ref.value.array;
+    const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
     expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
   });
@@ -137,15 +146,29 @@ describe('merged', () => {
     expect(segments.vertexBases).toEqual([0, 6]);
     expect(segments.elementOffsets).toEqual([0, 6 * 4]);
 
-    // indices of the second member are rewritten to absolute vertex ids
-    const elements = mv.elements.ref.value as Uint32Array;
+    // the members' arrays as parts, not copied: the second member's indices biased to absolute vertex ids
+    const segmentedElements = mv.elements.ref.value as unknown as SegmentedArray<Uint32Array>;
+    expect(segmentedElements.parts[1].array).toBe(b.values.elements.ref.value);
+    const elements = SegmentedArray.flatten(segmentedElements);
     expect(Array.from(elements.subarray(0, 6))).toEqual([0, 1, 2, 3, 4, 5]);
     expect(Array.from(elements.subarray(6, 15))).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
-    // concatenated vertex positions
-    const positions = mv.aPosition.ref.value as Float32Array;
+    // vertex positions at the members' vertex bases
+    const segmentedPositions = mv.aPosition.ref.value as unknown as SegmentedArray<Float32Array>;
+    expect(segmentedPositions.parts[0].array).toBe(a.values.aPosition.ref.value);
+    const positions = SegmentedArray.flatten(segmentedPositions);
     expect(positions[0]).toBe(0);
     expect(positions[6 * 3]).toBe(100);
+
+    // a member's change: its part only, read from the member again
+    const before = segmentedPositions.parts.map((p) => p.version);
+    const moved = b.values.aPosition.ref.value.slice();
+    moved[0] = 200;
+    ValueCell.update(b.values.aPosition, moved);
+    merged.merged.sync();
+    expect(mv.aPosition.ref.value).toBe(segmentedPositions);
+    expect(segmentedPositions.parts.map((p) => p.version)).toEqual([before[0], before[1] + 1]);
+    expect(SegmentedArray.flatten(segmentedPositions)[6 * 3]).toBe(200);
   });
 
   const ctx = tryGetGLContext(32, 32, { fragDepth: true });

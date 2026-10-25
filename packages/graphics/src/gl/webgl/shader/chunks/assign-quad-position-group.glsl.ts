@@ -26,7 +26,7 @@ if (m == 0) {
 
 int vertexId = VertexID / 6;
 
-vec4 positionGroup = readFromTexture(tPositionGroup, vertexId, uTexDim);
+vec4 positionGroup = read_tPositionGroup(vertexId);
 vec3 position = positionGroup.rgb;
 float group = positionGroup.a;
 `;

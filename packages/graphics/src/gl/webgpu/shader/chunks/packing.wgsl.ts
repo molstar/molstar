@@ -77,4 +77,34 @@ fn screenSpaceToViewSpace(ssPos: vec3<f32>, invProjection: mat4x4<f32>) -> vec3<
     let p = invProjection * vec4<f32>(ssPos.x * 2.0 - 1.0, 1.0 - ssPos.y * 2.0, ssPos.z, 1.0);
     return p.xyz / p.w;
 }
+
+// the unit vector \`n\` octahedral-encoded in 2 × 12 bits over 8-bit rgb, \`a\` (unit interval) in alpha; rgb 0 is not
+// produced (a zero vector, nothing drawn, see \`unpackRGBAToNormal\`), as in GLSL
+fn packNormalToRGBA(n: vec3<f32>, a: f32) -> vec4<f32> {
+    var p = n.xy / (abs(n.x) + abs(n.y) + abs(n.z));
+    if (n.z < 0.0) {
+        p = (1.0 - abs(p.yx)) * select(vec2<f32>(-1.0), vec2<f32>(1.0), p >= vec2<f32>(0.0));
+    }
+    var q = floor(clamp(p * 0.5 + 0.5, vec2<f32>(0.0), vec2<f32>(1.0)) * 4095.0 + 0.5);
+    if (q.x == 0.0 && q.y == 0.0) {
+        q.y = 1.0;
+    }
+    let xHigh = floor(q.x / 16.0);
+    let yHigh = floor(q.y / 256.0);
+    return vec4<f32>(vec3<f32>(xHigh, (q.x - xHigh * 16.0) * 16.0 + yHigh, q.y - yHigh * 256.0) / 255.0, a);
+}
+
+// the unit vector of \`packNormalToRGBA\`, a zero vector for rgb 0 (cleared)
+fn unpackRGBAToNormal(v: vec4<f32>) -> vec3<f32> {
+    let c = floor(v.rgb * 255.0 + 0.5);
+    if (all(c == vec3<f32>(0.0))) {
+        return vec3<f32>(0.0);
+    }
+    let gHigh = floor(c.y / 16.0);
+    let p = vec2<f32>(c.x * 16.0 + gHigh, (c.y - gHigh * 16.0) * 256.0 + c.z) / 4095.0 * 2.0 - 1.0;
+    var n = vec3<f32>(p, 1.0 - abs(p.x) - abs(p.y));
+    let t = max(-n.z, 0.0);
+    n = vec3<f32>(n.xy + select(vec2<f32>(t), vec2<f32>(-t), n.xy >= vec2<f32>(0.0)), n.z);
+    return normalize(n);
+}
 `;

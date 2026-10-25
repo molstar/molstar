@@ -6,18 +6,21 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { shallowMerge2 } from '@molstar/core/util/object';
 import {
   type StructureRepresentation,
   StructureRepresentationStateBuilder,
   type StructureRepresentationState,
 } from './representation.js';
 import type { Visual } from '../visual.js';
+import type { VisualContext } from '../visual.js';
+import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import { Representation, type RepresentationContext, type RepresentationParamsGetter } from '../representation.js';
 import { Structure, Unit, StructureElement, Bond, StructureSymmetry } from '@molstar/model/model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { Theme } from '@molstar/graphics/theme/theme';
-import { Task } from '@molstar/core/task';
+import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Loci, EmptyLoci, isEveryLoci, isDataLoci, EveryLoci } from '@molstar/model/model/loci';
 import { MarkerAction, MarkerActions, applyMarkerAction } from '@molstar/core/util/marker-action';
@@ -36,10 +39,11 @@ import { Emissive } from '@molstar/graphics/theme/emissive';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { HashMap } from '@molstar/core/util/map';
 import { hash2 } from '@molstar/core/data/util';
-import type { RenderMergedValue } from '@molstar/graphics/geo/geometry/base';
+import type { GpuCullingValue, RenderMergedValue } from '@molstar/graphics/geo/geometry/base';
+import { canCullOnGpu } from '@molstar/graphics/gl/renderable/merged';
 import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../merged.js';
-import { getFactorySignatures, type SignatureContext } from '../signatures.js';
-import { isMergeableType } from '@molstar/graphics/gl/renderable/merged';
+import { type SignatureContext, withMergedSignatures } from '../signatures.js';
+import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
 
 function createVisualsMap<P extends StructureParams>() {
   return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup; visual: UnitsVisual<P> }>(
@@ -54,12 +58,8 @@ export function UnitsRepresentation<P extends StructureParams>(
   label: string,
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<Structure, P>,
-  visualCtor: (
-    materialId: number,
-    structure: Structure,
-    props: PD.Values<P>,
-    graphics?: GraphicsContext,
-  ) => UnitsVisual<P>,
+  /** the visual of a symmetry group, which it may choose by the group (`selectVisual`) */
+  visualCtor: VisualFactory<StructureGroup, P>,
 ): StructureRepresentation<P> {
   let version = 0;
   let { graphics } = ctx;
@@ -101,6 +101,40 @@ export function UnitsRepresentation<P extends StructureParams>(
   let _props: PD.Values<P>;
   let _theme = Theme.createEmpty();
 
+  /** the visuals' context of the update running, one object for all of its visuals (a new one with new `graphics`) */
+  let visualContext: VisualContext | undefined;
+  const getVisualContext = (runtime: RuntimeContext) =>
+    visualContext?.runtime === runtime && visualContext.graphics === graphics
+      ? visualContext
+      : (visualContext = { graphics, runtime });
+
+  /**
+   * `visual` updated, or a visual of `structureGroup` created when there is none or it must be recreated
+   * (`mustRecreate`); `withData` false updates `visual` by the props and theme only, its group unchanged. A promise
+   * only where the visual's update is one: a recolor of many units updates them all synchronously, without a promise
+   * each (callers await only a promise)
+   */
+  function createOrUpdateVisual(
+    runtime: RuntimeContext,
+    visual: UnitsVisual<P> | undefined,
+    structureGroup: StructureGroup,
+    withData = true,
+  ): UnitsVisual<P> | Promise<UnitsVisual<P>> {
+    const ctx = getVisualContext(runtime);
+    if (visual && !visual.mustRecreate?.(structureGroup, _props, graphics)) {
+      const promise = visual.createOrUpdate(ctx, _theme, _props, withData ? structureGroup : undefined);
+      return promise ? promise.then(() => visual) : visual;
+    }
+    visual?.destroy();
+    const created = createVisual(visualCtor, materialId, structureGroup, _props, graphics);
+    const finish = () => {
+      setVisualState(created, structureGroup.group, _state, true); // current state for new visual
+      return created;
+    };
+    const promise = created.createOrUpdate(ctx, _theme, _props, structureGroup);
+    return promise ? promise.then(finish) : finish();
+  }
+
   /** updates one after another, see `Representation.createUpdateQueue` */
   const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
@@ -108,7 +142,8 @@ export function UnitsRepresentation<P extends StructureParams>(
       _params = getParams(ctx, structure);
       if (!_props) _props = PD.getDefaultValues(_params);
     }
-    _props = Object.assign({}, _props, props);
+    // the same object while no prop changes: visuals skip what depends on the props alone
+    _props = _props ? shallowMerge2(_props, props) : Object.assign({}, _props, props);
 
     const task = Task.create('Creating or updating UnitsRepresentation', async (runtime) => {
       if (!_structure && !structure) {
@@ -119,10 +154,8 @@ export function UnitsRepresentation<P extends StructureParams>(
         _groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
         for (let i = 0; i < _groups.length; i++) {
           const group = _groups[i];
-          const visual = visualCtor(materialId, structure, _props, graphics);
-          const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
-          if (promise) await promise;
-          setVisualState(visual, group, _state, true); // current state for new visual
+          const created = createOrUpdateVisual(runtime, undefined, { group, structure });
+          const visual = isPromiseLike(created) ? await created : created;
           visuals.set(group, { visual, group });
           visualsByUnitId = undefined;
           if (runtime.shouldUpdate)
@@ -143,40 +176,19 @@ export function UnitsRepresentation<P extends StructureParams>(
         for (let i = 0; i < _groups.length; i++) {
           const group = _groups[i];
           const visualGroup = oldVisuals.get(group);
+          const updated = createOrUpdateVisual(runtime, visualGroup?.visual, { group, structure });
+          const visual = isPromiseLike(updated) ? await updated : updated;
+          visuals.set(group, { visual, group });
+          visualsByUnitId = undefined;
           if (visualGroup) {
-            // console.log(label, 'found visualGroup to reuse');
-            // console.log('old', visualGroup.group)
-            // console.log('new', group)
-            let { visual } = visualGroup;
-            if (visual.mustRecreate?.({ group, structure }, _props, graphics)) {
-              visual.destroy();
-              visual = visualCtor(materialId, structure, _props, graphics);
-              const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
-              if (promise) await promise;
-              setVisualState(visual, group, _state, true); // current state for new visual
-            } else {
-              const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
-              if (promise) await promise;
-            }
-            visuals.set(group, { visual, group });
-            visualsByUnitId = undefined;
             oldVisuals.delete(group);
 
             // Remove highlight
             // TODO: remove selection too??
             if (visual.renderObject) {
-              const arr = visual.renderObject.values.tMarker.ref.value.array;
-              applyMarkerAction(arr, Interval.ofBounds(0, arr.length), MarkerAction.RemoveHighlight);
+              const { array, count } = visual.renderObject.values.tMarker.ref.value;
+              applyMarkerAction(array, Interval.ofBounds(0, count), MarkerAction.RemoveHighlight);
             }
-          } else {
-            // console.log(label, 'did not find visualGroup to reuse, creating new');
-            // newGroups.push(group)
-            const visual = visualCtor(materialId, structure, _props, graphics);
-            const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
-            if (promise) await promise;
-            setVisualState(visual, group, _state, true); // current state for new visual
-            visuals.set(group, { visual, group });
-            visualsByUnitId = undefined;
           }
           if (runtime.shouldUpdate)
             await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
@@ -197,18 +209,8 @@ export function UnitsRepresentation<P extends StructureParams>(
           const group = _groups[i];
           const visualGroup = visuals.get(group);
           if (visualGroup) {
-            let { visual } = visualGroup;
-            if (visual.mustRecreate?.({ group, structure }, _props, graphics)) {
-              visual.destroy();
-              visual = visualCtor(materialId, structure, _props, graphics);
-              visualGroup.visual = visual;
-              const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
-              if (promise) await promise;
-              setVisualState(visual, group, _state, true); // current state for new visual
-            } else {
-              const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, { group, structure });
-              if (promise) await promise;
-            }
+            const updated = createOrUpdateVisual(runtime, visualGroup.visual, { group, structure });
+            visualGroup.visual = isPromiseLike(updated) ? await updated : updated;
             visualGroup.group = group;
           } else {
             throw new Error(`expected to find visual for hashCode ${group.hashCode}`);
@@ -222,21 +224,10 @@ export function UnitsRepresentation<P extends StructureParams>(
         const visualsList: { group: Unit.SymmetryGroup; visual: UnitsVisual<P> }[] = []; // TODO avoid allocation
         visuals.forEach((vg) => visualsList.push(vg));
         for (let i = 0, il = visualsList.length; i < il; ++i) {
-          let { visual, group } = visualsList[i];
-          if (visual.mustRecreate?.({ group, structure: _structure }, _props, graphics)) {
-            visual.destroy();
-            visual = visualCtor(materialId, _structure, _props, graphics);
-            visualsList[i].visual = visual;
-            const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, {
-              group,
-              structure: _structure,
-            });
-            if (promise) await promise;
-            setVisualState(visual, group, _state, true); // current state for new visual
-          } else {
-            const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props);
-            if (promise) await promise;
-          }
+          const entry = visualsList[i];
+          const structureGroup = { group: entry.group, structure: _structure };
+          const updated = createOrUpdateVisual(runtime, entry.visual, structureGroup, false);
+          entry.visual = isPromiseLike(updated) ? await updated : updated;
           if (runtime.shouldUpdate)
             await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il });
         }
@@ -263,7 +254,15 @@ export function UnitsRepresentation<P extends StructureParams>(
   function updateRenderObjectList(entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[]) {
     // from BaseGeometry.Params, part of every units visual's props
     const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
-    mergedByType = mergeRenderObjectsByType(entries, renderMerged, mergedByType, renderObjects);
+    const gpuCulling = (_props as { gpuCulling?: GpuCullingValue }).gpuCulling ?? false;
+    mergedByType = mergeRenderObjectsByType(
+      entries,
+      renderMerged,
+      mergedByType,
+      renderObjects,
+      gpuCulling,
+      canCullOnGpu(ctx.graphics),
+    );
     mergedVisuals.clear();
     mergedByType.forEach(({ visuals }) => {
       for (const v of visuals) mergedVisuals.add(v);
@@ -383,10 +382,9 @@ export function UnitsRepresentation<P extends StructureParams>(
     state: Partial<StructureRepresentationState>,
     isNew = false,
   ) {
-    const { visible, alphaFactor, pickable, clipping, wiggle, themeStrength, transform, unitTransforms } = state;
+    const { visible, pickable, clipping, wiggle, themeStrength, transform, unitTransforms } = state;
 
     if (visible !== undefined) visual.setVisibility(visible);
-    if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
     if (pickable !== undefined) visual.setPickable(pickable);
     // a new visual's layers wait for `updateRenderObjectList`: smoothed before the merging is decided, they would keep
     // the group from merging (perf-audit-2 07/P16)
@@ -414,7 +412,6 @@ export function UnitsRepresentation<P extends StructureParams>(
   function setState(state: Partial<StructureRepresentationState>) {
     const {
       visible,
-      alphaFactor,
       pickable,
       overpaint,
       transparency,
@@ -431,7 +428,6 @@ export function UnitsRepresentation<P extends StructureParams>(
     const newState: Partial<StructureRepresentationState> = {};
 
     if (visible !== undefined) newState.visible = visible;
-    if (alphaFactor !== undefined) newState.alphaFactor = alphaFactor;
     if (pickable !== undefined) newState.pickable = pickable;
     if (overpaint !== undefined && _structure) {
       newState.overpaint = Overpaint.remap(overpaint, _structure);
@@ -517,19 +513,11 @@ export function UnitsRepresentation<P extends StructureParams>(
       graphics = value;
     },
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
-      const signatures = getFactorySignatures(
-        visualCtor,
-        // without a structure: factories that read it name their visuals
-        () => visualCtor(materialId, undefined as unknown as Structure, props, ctx.graphics),
-        props,
-        ctx,
-      );
-      // render objects of the same type are merged by `renderMerged` (groups of one stay unmerged); 'auto' merges
-      // above `AutoRenderMergedThreshold` units, taken as unmerged: such objects compile while they build
-      const renderMerged = (props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
-      if (renderMerged !== true) return signatures;
-      const merged = signatures.filter((s) => isMergeableType(s.type)).map((s) => ({ ...s, merged: true }));
-      return [...signatures, ...merged];
+      // render objects of the same type are merged by `renderMerged` (groups of one stay unmerged unless culled on the
+      // GPU); 'auto' merges above `AutoRenderMergedThreshold` units, taken as unmerged: such objects compile while they
+      // build
+      const p = props as { renderMerged?: RenderMergedValue; gpuCulling?: GpuCullingValue };
+      return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx), p);
     },
     destroy,
   };

@@ -56,10 +56,7 @@ import { createWebGLTextureReader } from './texture-reader.js';
 import { registerRenderPassTargetHeight } from './render-pass-target.js';
 import { type DepthRangeConversion, ReversedMinusOneToOne, ReversedZeroToOne } from '../depth-range.js';
 
-export function getGLContext(
-  canvas: HTMLCanvasElement,
-  attribs?: WebGLContextAttributes & { preferWebGl1?: boolean },
-): GLRenderingContext | null {
+export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes): GLRenderingContext | null {
   function get(id: 'webgl' | 'experimental-webgl' | 'webgl2') {
     try {
       return canvas.getContext(id, attribs) as GLRenderingContext | null;
@@ -67,7 +64,7 @@ export function getGLContext(
       return null;
     }
   }
-  const gl = (attribs?.preferWebGl1 ? null : get('webgl2')) || get('webgl') || get('experimental-webgl');
+  const gl = get('webgl2') || get('webgl') || get('experimental-webgl');
   if (isDebugMode) console.log(`isWebgl2: ${isWebGL2(gl)}`);
   return gl;
 }

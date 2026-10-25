@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // The skin (seqspec:interaction#the-skin): `skin.css` declares the `--seq-*` tokens at zero specificity in three
@@ -16,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DarkSkin, DefaultSkin } from '../src/index.js';
 
-const css = readFileSync(new URL('../src/skin.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/skin.css', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 /** The declarations of the first rule whose selector is `selector`, in order. */
 function block(selector: string): [string, string][] {

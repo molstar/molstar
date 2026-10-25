@@ -27,8 +27,7 @@ import {
 } from './util/element.js';
 import type { VisualUpdateState } from '../../util.js';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
-import type { Structure } from '@molstar/model/model/structure';
-import { checkSphereImpostorSupport, type StructureGroup } from './util/common.js';
+import { checkSphereImpostorSupport } from './util/common.js';
 import {
   ComplexMeshParams,
   ComplexMeshVisual,
@@ -36,6 +35,7 @@ import {
   ComplexSpheresVisual,
   type ComplexVisual,
 } from '../complex-visual.js';
+import { chooseVisual } from '../../visual-factory.js';
 
 export const CommonElementSphereParams = {
   sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
@@ -56,16 +56,11 @@ export const ElementSphereParams = {
 };
 export type ElementSphereParams = typeof ElementSphereParams;
 
-export function ElementSphereVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<ElementSphereParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && checkSphereImpostorSupport(graphics)
-    ? ElementSphereImpostorVisual(materialId)
-    : ElementSphereMeshVisual(materialId);
-}
+export const ElementSphereVisual = chooseVisual(
+  { impostor: ElementSphereImpostorVisual, mesh: ElementSphereMeshVisual },
+  (props: PD.Values<ElementSphereParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && checkSphereImpostorSupport(graphics) ? 'impostor' : 'mesh',
+);
 
 export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<ElementSphereParams> {
   return UnitsSpheresVisual<ElementSphereParams>(
@@ -85,13 +80,6 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
           newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
-      },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<ElementSphereParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -119,13 +107,6 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
       },
-      mustRecreate: (
-        structureGroup: StructureGroup,
-        props: PD.Values<ElementSphereParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
-      },
     },
     materialId,
   );
@@ -140,16 +121,11 @@ export const StructureElementSphereParams = {
 };
 export type StructureElementSphereParams = typeof ElementSphereParams;
 
-export function StructureElementSphereVisual(
-  materialId: number,
-  structure: Structure,
-  props: PD.Values<ElementSphereParams>,
-  graphics?: GraphicsContext,
-) {
-  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
-    ? StructureElementSphereImpostorVisual(materialId)
-    : StructureElementSphereMeshVisual(materialId);
-}
+export const StructureElementSphereVisual = chooseVisual(
+  { impostor: StructureElementSphereImpostorVisual, mesh: StructureElementSphereMeshVisual },
+  (props: PD.Values<ElementSphereParams>, graphics?: GraphicsContext) =>
+    props.tryUseImpostor && graphics && graphics.capabilities.fragDepth ? 'impostor' : 'mesh',
+);
 
 export function StructureElementSphereImpostorVisual(materialId: number): ComplexVisual<StructureElementSphereParams> {
   return ComplexSpheresVisual<StructureElementSphereParams>(
@@ -169,13 +145,6 @@ export function StructureElementSphereImpostorVisual(materialId: number): Comple
           newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
-      },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<StructureElementSphereParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return !props.tryUseImpostor || !checkSphereImpostorSupport(graphics);
       },
     },
     materialId,
@@ -202,13 +171,6 @@ export function StructureElementSphereMeshVisual(materialId: number): ComplexVis
           newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
-      },
-      mustRecreate: (
-        structure: Structure,
-        props: PD.Values<StructureElementSphereParams>,
-        graphics?: GraphicsContext,
-      ) => {
-        return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
       },
     },
     materialId,

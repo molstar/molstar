@@ -6,20 +6,20 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { getLayerTypeDefine, type LayerType } from './layer-type.js';
 
 export type EmissiveType = LayerType;
 
 export type EmissiveData = {
-  tEmissive: ValueCell<TextureImage<Uint8Array>>;
-  uEmissiveTexDim: ValueCell<Vec2>;
+  tEmissive: ValueCell<DataArray<Uint8Array>>;
   dEmissive: ValueCell<boolean>;
   emissiveAverage: ValueCell<number>;
 
   tEmissiveGrid: ValueCell<Texture>;
   uEmissiveGridDim: ValueCell<Vec3>;
+  uEmissiveGridTexDim: ValueCell<Vec2>;
   uEmissiveGridTransform: ValueCell<Vec4>;
   /** the layer type (`EmissiveType`) */
   emissiveType: ValueCell<string>;
@@ -58,7 +58,7 @@ export function setEmissiveType(
 }
 
 export function createEmissive(count: number, type: EmissiveType, emissiveData?: EmissiveData): EmissiveData {
-  const emissive = createTextureImage(
+  const emissive = createDataArray(
     Math.max(1, count),
     1,
     Uint8Array,
@@ -66,7 +66,6 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
   );
   if (emissiveData) {
     ValueCell.update(emissiveData.tEmissive, emissive);
-    ValueCell.update(emissiveData.uEmissiveTexDim, Vec2.create(emissive.width, emissive.height));
     ValueCell.updateIfChanged(emissiveData.dEmissive, count > 0);
     ValueCell.updateIfChanged(emissiveData.emissiveAverage, getEmissiveAverage(emissive.array, count));
     setEmissiveType(emissiveData, type);
@@ -74,12 +73,12 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
   } else {
     return {
       tEmissive: ValueCell.create(emissive),
-      uEmissiveTexDim: ValueCell.create(Vec2.create(emissive.width, emissive.height)),
       dEmissive: ValueCell.create(count > 0),
       emissiveAverage: ValueCell.create(0),
 
       tEmissiveGrid: ValueCell.create(createNullTexture()),
       uEmissiveGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+      uEmissiveGridTexDim: ValueCell.create(Vec2.create(1, 1)),
       uEmissiveGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
       emissiveType: ValueCell.create<string>(type),
       dEmissiveType: ValueCell.create(getLayerTypeDefine(type)),
@@ -88,21 +87,20 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
   }
 }
 
-const emptyEmissiveTexture = { array: new Uint8Array(1), width: 1, height: 1 };
+const emptyEmissiveTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyEmissive(emissiveData?: EmissiveData): EmissiveData {
   if (emissiveData) {
     ValueCell.update(emissiveData.tEmissive, emptyEmissiveTexture);
-    ValueCell.update(emissiveData.uEmissiveTexDim, Vec2.create(1, 1));
     return emissiveData;
   } else {
     return {
       tEmissive: ValueCell.create(emptyEmissiveTexture),
-      uEmissiveTexDim: ValueCell.create(Vec2.create(1, 1)),
       dEmissive: ValueCell.create(false),
       emissiveAverage: ValueCell.create(0),
 
       tEmissiveGrid: ValueCell.create(createNullTexture()),
       uEmissiveGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+      uEmissiveGridTexDim: ValueCell.create(Vec2.create(1, 1)),
       uEmissiveGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
       emissiveType: ValueCell.create<string>('groupInstance'),
       dEmissiveType: ValueCell.create(getLayerTypeDefine('groupInstance')),

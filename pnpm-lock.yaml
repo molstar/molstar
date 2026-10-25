@@ -3685,6 +3685,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/plugin-headless':
+        specifier: workspace:*
+        version: link:../packages/plugin/headless
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1

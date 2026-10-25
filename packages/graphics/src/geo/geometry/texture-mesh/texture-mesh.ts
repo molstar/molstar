@@ -34,7 +34,6 @@ import {
   type ChunkedSurface,
   destroyChunkedSurface,
   releaseRetiredTables,
-  getVertexArena,
   onVertexArenaGrow,
   readChunkedVertices,
 } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
@@ -67,8 +66,7 @@ export interface TextureMesh {
    */
   readonly isoChunks: ValueCell<boolean>;
   readonly isoTable: ValueCell<StorageBuffer | undefined>;
-  readonly isoPositions: ValueCell<StorageBuffer | undefined>;
-  readonly isoNormals: ValueCell<StorageBuffer | undefined>;
+  readonly isoVertices: ValueCell<StorageBuffer | undefined>;
 
   readonly boundingSphere: Sphere3D;
 
@@ -108,11 +106,14 @@ export namespace TextureMesh {
       return this.chunks?.surface;
     }
 
-    /** `surface` in the arena of `compute`, `onGrow` called when the arena grew (its buffers replaced) */
-    setChunks(surface: ChunkedSurface, compute: ComputeContext, onGrow: () => void) {
+    /** `surface` in an arena of `compute`, `onGrow` called with the current surface when an arena grew (its buffers replaced) */
+    setChunks(surface: ChunkedSurface, compute: ComputeContext, onGrow: (surface: ChunkedSurface) => void) {
       if (this.chunks?.compute !== compute) {
         this.chunks?.unsubscribe();
-        this.chunks = { surface, compute, unsubscribe: onVertexArenaGrow(compute, onGrow) };
+        const unsubscribe = onVertexArenaGrow(compute, () => {
+          if (this.chunks) onGrow(this.chunks.surface);
+        });
+        this.chunks = { surface, compute, unsubscribe };
       } else {
         this.chunks.surface = surface;
       }
@@ -190,8 +191,7 @@ export namespace TextureMesh {
       if (textureMesh.isoChunks.ref.value) {
         ValueCell.update(textureMesh.isoChunks, false);
         ValueCell.update(textureMesh.isoTable, undefined);
-        ValueCell.update(textureMesh.isoPositions, undefined);
-        ValueCell.update(textureMesh.isoNormals, undefined);
+        ValueCell.update(textureMesh.isoVertices, undefined);
       }
       Sphere3D.copy(textureMesh.boundingSphere, boundingSphere);
       return textureMesh;
@@ -210,8 +210,7 @@ export namespace TextureMesh {
         drawIndirect: ValueCell.create(drawIndirect),
         isoChunks: ValueCell.create(false),
         isoTable: ValueCell.create(undefined),
-        isoPositions: ValueCell.create(undefined),
-        isoNormals: ValueCell.create(undefined),
+        isoVertices: ValueCell.create(undefined),
         boundingSphere: Sphere3D.clone(boundingSphere),
         meta: {},
       };
@@ -263,24 +262,22 @@ export namespace TextureMesh {
         drawIndirect,
       );
     }
-    const arena = getVertexArena(compute);
-    const bindArena = () => {
-      ValueCell.updateIfChanged(mesh.isoPositions, arena.positions.ref.value);
-      ValueCell.updateIfChanged(mesh.isoNormals, arena.normals.ref.value);
-    };
-    bindArena();
     bindChunkedTable(mesh, surface);
     ValueCell.updateIfChanged(mesh.isoChunks, true);
-    mesh.doubleBuffer.setChunks(surface, compute, bindArena);
+    // an arena's buffers replaced when it grew
+    mesh.doubleBuffer.setChunks(surface, compute, (s) =>
+      ValueCell.updateIfChanged(mesh.isoVertices, s.arena.vertices.ref.value),
+    );
     return mesh;
   }
 
   /**
-   * Binds the current page table of `surface` (it grows with the arena, see `computeChunkedIsosurface`) and releases
-   * the tables it grew out of
+   * Binds the current page table of `surface` (grown for a larger count, see `computeChunkedIsosurface`) and the
+   * vertices of its arena (another after a move), and releases the tables it grew out of
    */
   export function bindChunkedTable(mesh: TextureMesh, surface: ChunkedSurface) {
     ValueCell.updateIfChanged(mesh.isoTable, surface.table);
+    ValueCell.updateIfChanged(mesh.isoVertices, surface.arena.vertices.ref.value);
     releaseRetiredTables(surface);
   }
 
@@ -313,9 +310,10 @@ export namespace TextureMesh {
   /** Reads the vertices and normals back into `meta.vertexData`, for the position iterator */
   async function readVertexData(textureMesh: TextureMesh, graphics: GraphicsContext) {
     const table = textureMesh.isoTable.ref.value;
-    if (textureMesh.isoChunks.ref.value && table && graphics.compute) {
+    const arena = textureMesh.isoVertices.ref.value;
+    if (textureMesh.isoChunks.ref.value && table && arena && graphics.compute) {
       const count = textureMesh.meta.readVertexCount ?? textureMesh.vertexCount;
-      const { vertices, normals } = await readChunkedVertices(graphics.compute, table, count);
+      const { vertices, normals } = await readChunkedVertices(graphics.compute, { table, vertices: arena }, count);
       textureMesh.meta.vertexData = { vertices, normals };
       return;
     }
@@ -501,8 +499,7 @@ export namespace TextureMesh {
       drawIndirect: textureMesh.drawIndirect,
       dIsoChunks: textureMesh.isoChunks,
       sIsoTable: textureMesh.isoTable,
-      sIsoPositions: textureMesh.isoPositions,
-      sIsoNormals: textureMesh.isoNormals,
+      sIsoVertices: textureMesh.isoVertices,
       uDoubleSided: ValueCell.create(props.doubleSided),
       dFlatShaded: ValueCell.create(props.flatShaded),
       dFlipSided: ValueCell.create(props.flipSided),

@@ -2,13 +2,14 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Texture } from '@molstar/graphics/gl/texture';
-import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import { createDataArray, type DataArray } from '@molstar/graphics/gl/renderable/util';
 import { getGridDim, getTextureMeshSplatInstances } from '../color-smoothing.js';
 
 // The instances the GPU smoothing of texture meshes draws (perf-audit 13/P1): the grid the shaders accumulate, emulated
@@ -57,7 +58,7 @@ function getInstances(count: number) {
   return { instanceCount: count, transformBuffer, instanceBuffer };
 }
 
-function getInput(instances: SplatInstances, layer: TextureImage<Uint8Array>, itemSize: 4 | 1) {
+function getInput(instances: SplatInstances, layer: DataArray<Uint8Array>, itemSize: 4 | 1) {
   const box = Box3D.setEmpty(Box3D());
   for (let i = 0; i < instances.instanceCount; ++i) {
     const t = Mat4.fromArray(Mat4(), instances.transformBuffer, i * 16);
@@ -91,7 +92,7 @@ function getGrid(input: ReturnType<typeof getInput>, resolution: number) {
 function accumulate(
   instances: SplatInstances,
   vertices: ReturnType<typeof getVertices>,
-  layer: TextureImage<Uint8Array>,
+  layer: DataArray<Uint8Array>,
   itemSize: number,
   grid: ReturnType<typeof getGrid>,
 ) {
@@ -142,7 +143,7 @@ function countDiffs(a: Uint8Array, b: Uint8Array) {
 
 /** A layer of `itemSize` that is non-zero in the rows `rows` (all groups), zero in the texels beyond */
 function getLayer(instanceCount: number, itemSize: number, rows: number[]) {
-  const layer = createTextureImage(instanceCount * GroupCount, itemSize, Uint8Array);
+  const layer = createDataArray(instanceCount * GroupCount, itemSize, Uint8Array);
   for (const r of rows) {
     for (let k = 0; k < GroupCount * itemSize; ++k) {
       layer.array[r * GroupCount * itemSize + k] = 50 + ((r * 31 + k) % 200);

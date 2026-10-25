@@ -4,10 +4,11 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { readFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -17,7 +18,7 @@ const src = join(dirname(fileURLToPath(import.meta.url)), '../..');
 function reached(entry: string): Set<string> {
   const seen = new Set<string>();
   const visit = (file: string) => {
-    const key = relative(src, file);
+    const key = relative(src, file).split(sep).join('/');
     if (seen.has(key)) return;
     seen.add(key);
     const text = readFileSync(file, 'utf8');

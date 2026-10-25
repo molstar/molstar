@@ -4,16 +4,18 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // SeqQL's code registry (seqspec:seqql#errors): one severity per code, and the runtime's warnings and failures each
 // under a code of their severity.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { queryIssue, SeqqlIssueCodes, seqqlSeverity } from '../../src/query/index.js';
 
-const here = (p: string) => new URL(p, import.meta.url).pathname;
+const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const sources = (dir: string): string[] =>
   readdirSync(dir, { recursive: true, encoding: 'utf8' })
     .filter((f) => f.endsWith('.ts'))
