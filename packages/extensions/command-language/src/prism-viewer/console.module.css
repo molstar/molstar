@@ -289,22 +289,54 @@
   }
 }
 
-/* The completions of the word at the input's end: a list over the composer, the one picked on the hover color. A row:
-   what it is (a few letters, or a color's swatch), the label with the part typed marked, the detail muted. */
-.completions {
+/* The card over the composer, while a command is typed: its help as the header (the usage with the argument being typed
+   in bold, then what it does, wrapping), and the completions of the word at the input's end under it, the one picked on
+   the hover color. A row: what it is (a few letters, or a color's swatch), the label with the part typed marked, the
+   detail muted. The list scrolls; the header stays. */
+.card {
   position: absolute;
   right: 0;
   bottom: calc(100% + var(--msp-space-1));
   left: 0;
   z-index: var(--msp-z-overlay);
-  max-height: 240px;
-  overflow-y: auto;
-  padding: var(--msp-space-1);
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
   border-radius: var(--msp-radius-lg);
   background: var(--msp-color-panel);
   box-shadow:
     inset 0 0 0 1px var(--msp-field-edge),
     var(--msp-shadow-float);
+}
+
+.signature {
+  flex: none;
+  display: grid;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.4;
+
+  /* A rule between it and the list, when there is one. */
+  &:not(:last-child) {
+    box-shadow: inset 0 -1px 0 var(--msp-field-edge);
+  }
+}
+
+.usage {
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  color: var(--msp-color-text-subtle);
+}
+
+.completions {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--msp-space-1);
 }
 
 .completion {
@@ -409,23 +441,19 @@
   }
 }
 
-/* The line under the field: what Enter will do, or why it will not; the keys at its end. */
+/* The line under the field: what Enter will do, or why it will not (the hint after it, quieter); the keys at its end. One
+   row whatever it says, so the composer keeps its height. */
 .status {
-  display: grid;
-  /* Two lines: the first (what Enter does, or the usage) beside the keys, the second under both (the warnings, the
-     hint, what the command does) wrapping once; their height fixed, so the composer keeps its own. */
-  grid-template-rows: 18px calc(2 * 16px);
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: var(--msp-space-2);
-  align-items: start;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
   min-width: 0;
+  height: 20px;
   font-size: var(--msp-font-size-xs);
-  line-height: 18px;
 }
 
 .does {
-  grid-row: 1;
-  grid-column: 1;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: var(--msp-color-text-muted);
@@ -437,10 +465,13 @@
   }
 }
 
-/* Signature help: the command's name and the argument being typed in bold; what it does is the second line (`.more`). */
+.hint {
+  color: var(--msp-color-text-muted);
+}
+
+/* In the usage: the command's name, and the argument being typed in bold. */
 .sigName {
   color: var(--msp-color-text);
-  font-family: var(--msp-font-mono);
 }
 
 .sigActive {
@@ -448,25 +479,8 @@
   font-weight: 600;
 }
 
-.more {
-  display: -webkit-box;
-  grid-row: 2;
-  grid-column: 1 / -1;
-  overflow: hidden;
-  color: var(--msp-color-text-subtle);
-  line-height: 16px;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-
-  &[data-kind="warning"] {
-    color: var(--msp-color-warning);
-  }
-}
-
 .keys {
-  grid-row: 1;
-  grid-column: 2;
+  flex: none;
   color: var(--msp-color-text-subtle);
   white-space: nowrap;
 }

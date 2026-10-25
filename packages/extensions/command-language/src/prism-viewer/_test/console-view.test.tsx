@@ -159,6 +159,19 @@ describe('the console view', () => {
     expect(t.input.value).toBe('show sticks');
   });
 
+  it("shows the command's help over the composer while it is typed, without a list where nothing completes", () => {
+    const t = open();
+    const card = () => t.container.querySelector('[class*=card]');
+    t.type('fetch 1abc, ');
+    expect(card()?.textContent).toContain('Load an entry');
+    expect(t.container.querySelector('[role=listbox]')).toBeNull();
+    expect(card()?.querySelector('strong')?.textContent).toBe('[name]');
+    t.key('Escape');
+    expect(card()).toBeNull();
+    t.type('');
+    expect(card()).toBeNull();
+  });
+
   it('marks the part typed and shows a color as its swatch', () => {
     const t = open();
     t.type('color sal');

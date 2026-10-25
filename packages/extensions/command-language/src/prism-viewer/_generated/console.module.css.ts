@@ -13,6 +13,7 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 export const classes = {
   'action': 'msp-command-language-console-action',
   'bar': 'msp-command-language-console-bar',
+  'card': 'msp-command-language-console-card',
   'chip': 'msp-command-language-console-chip',
   'code': 'msp-command-language-console-code',
   'command': 'msp-command-language-console-command',
@@ -38,7 +39,6 @@ export const classes = {
   'line': 'msp-command-language-console-line',
   'lines': 'msp-command-language-console-lines',
   'mark': 'msp-command-language-console-mark',
-  'more': 'msp-command-language-console-more',
   'notice': 'msp-command-language-console-notice',
   'noticeIcon': 'msp-command-language-console-noticeIcon',
   'output': 'msp-command-language-console-output',
@@ -48,12 +48,15 @@ export const classes = {
   'side': 'msp-command-language-console-side',
   'sigActive': 'msp-command-language-console-sigActive',
   'sigName': 'msp-command-language-console-sigName',
+  'signature': 'msp-command-language-console-signature',
   'spacer': 'msp-command-language-console-spacer',
   'spin': 'msp-command-language-console-spin',
   'status': 'msp-command-language-console-status',
+  'summary': 'msp-command-language-console-summary',
   'swatch': 'msp-command-language-console-swatch',
   'time': 'msp-command-language-console-time',
   'typed': 'msp-command-language-console-typed',
+  'usage': 'msp-command-language-console-usage',
   'value': 'msp-command-language-console-value',
 } as const;
 
@@ -329,18 +332,47 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
-.msp-command-language-console-completions {
+.msp-command-language-console-card {
   right: 0;
   bottom: calc(100% + var(--msp-space-1));
   z-index: var(--msp-z-overlay);
-  max-height: 240px;
-  padding: var(--msp-space-1);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-color-panel);
+  max-height: 280px;
   box-shadow: inset 0 0 0 1px var(--msp-field-edge),
     var(--msp-shadow-float);
+  flex-direction: column;
+  display: flex;
   position: absolute;
   left: 0;
+}
+
+.msp-command-language-console-signature {
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+  font-size: var(--msp-font-size-xs);
+  flex: none;
+  line-height: 1.4;
+  display: grid;
+
+  &:not(:last-child) {
+    box-shadow: inset 0 -1px 0 var(--msp-field-edge);
+  }
+}
+
+.msp-command-language-console-usage {
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.msp-command-language-console-summary {
+  color: var(--msp-color-text-subtle);
+}
+
+.msp-command-language-console-completions {
+  min-height: 0;
+  padding: var(--msp-space-1);
   overflow-y: auto;
 }
 
@@ -447,14 +479,12 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
 }
 
 .msp-command-language-console-status {
-  column-gap: var(--msp-space-2);
+  align-items: center;
+  gap: var(--msp-space-2);
   min-width: 0;
+  height: 20px;
   font-size: var(--msp-font-size-xs);
-  grid-template-rows: 18px 32px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  line-height: 18px;
-  display: grid;
+  display: flex;
 }
 
 .msp-command-language-console-does {
@@ -462,7 +492,7 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   color: var(--msp-color-text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
-  grid-area: 1 / 1;
+  flex: 1;
   overflow: hidden;
 
   &[data-kind="error"] {
@@ -470,9 +500,12 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   }
 }
 
+.msp-command-language-console-hint {
+  color: var(--msp-color-text-muted);
+}
+
 .msp-command-language-console-sigName {
   color: var(--msp-color-text);
-  font-family: var(--msp-font-mono);
 }
 
 .msp-command-language-console-sigActive {
@@ -480,25 +513,10 @@ defineStyles('command-language/prism-viewer/console.module.css', `@layer msp.com
   font-weight: 600;
 }
 
-.msp-command-language-console-more {
-  color: var(--msp-color-text-subtle);
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  grid-area: 2 / 1 / auto / -1;
-  line-height: 16px;
-  display: -webkit-box;
-  overflow: hidden;
-
-  &[data-kind="warning"] {
-    color: var(--msp-color-warning);
-  }
-}
-
 .msp-command-language-console-keys {
   color: var(--msp-color-text-subtle);
   white-space: nowrap;
-  grid-area: 1 / 2;
+  flex: none;
 }
 
 .msp-command-language-console-drop {
