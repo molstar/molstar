@@ -53,8 +53,10 @@ Apple M4, Node 25, `scripts/pipeline-bench.mjs` (flat-192 = 1tup ×192 as one mo
   byte-backed `StringLike` was the alternative, kept off: a second `StringLike` kind at every text parser's call sites.
 - Sniffing a `.cif` (`guessCifVariant`, `looksLikeMmcifParticles`) searches the bytes without decoding them
   (`asciiIndexOf`, anchored on a needle's first lowercase letter, rare in CIF data rows), once per data
-  (`guessCifVariant` keeps the last answer for bytes: every CIF provider asks in turn). flat-192-cif: one sniff of its
-  six needles ~265 ms, where every CIF provider sniffed the string (~117 ms each).
+  (`guessCifVariant` keeps the last answer for bytes: every CIF provider asks in turn). Needles that share a prefix
+  (`_refln.pdbx_` FWT/DELFWT, `atom_site` `_`/`.fract_x`) are one search for the prefix: a plain mmCIF holds none, so
+  every search reads all of it. flat-192-cif: one sniff 3 full scans, ~145 ms (5 scans ~240 ms), where every CIF
+  provider sniffed the string (~117 ms each).
 
 ## BinaryCIF
 
