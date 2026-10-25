@@ -6,6 +6,7 @@
 
 import { MolScriptBuilder as B } from '@molstar/query-language/language/builder';
 import { fail, note, type Span, warning } from '../diagnostics.js';
+import { PdbIdHint, pdbId } from '../entries.js';
 import type { ColorSpec, CommandBody, LabelPart, Sel } from '../ir.js';
 import type { CommandHelp, Compiled, Compiler, ParamSpec } from '../table.js';
 import { PymolArgs, pymolRep } from './args.js';
@@ -250,7 +251,7 @@ const Ignored = {
 export const PymolCommands: readonly PymolCommand[] = [
   {
     name: 'fetch',
-    summary: 'Load an entry from the PDB (4 characters) or AlphaFold DB (AF-…).',
+    summary: 'Load an entry from the PDB (1cbs, pdb_00001cbs) or AlphaFold DB (AF-…).',
     usage: 'fetch code [, name [, type=cif]]',
     params: [p('code', 'text', false), p('name', 'name'), p('type', 'enum', true, ['cif', 'pdb', 'mmtf'])],
     ignored: {
@@ -259,7 +260,7 @@ export const PymolCommands: readonly PymolCommand[] = [
       zoom: 'The camera frames what loads.',
       path: 'Nothing is saved.',
     },
-    examples: ['fetch 1cbs', 'fetch 1tqn, heme', 'fetch AF-P69905-F1'],
+    examples: ['fetch 1cbs', 'fetch 1tqn, heme', 'fetch pdb_00001cbs', 'fetch AF-P69905-F1'],
     compile(a, c) {
       const codes = a
         .text('code')
@@ -267,20 +268,16 @@ export const PymolCommands: readonly PymolCommand[] = [
         .filter(Boolean);
       return codes.map((code, i): CommandBody => {
         const af = /^AF-/i.test(code);
-        if (!af && !/^[0-9][A-Za-z0-9]{3}$/.test(code)) {
-          fail(
-            'argument',
-            `'${code}' is not a PDB id or an AlphaFold DB id.`,
-            a.at('code'),
-            'PDB ids are 4 characters.',
-          );
+        const pdb = af ? undefined : pdbId(code);
+        if (!af && !pdb) {
+          fail('argument', `'${code}' is not a PDB id or an AlphaFold DB id.`, a.at('code'), PdbIdHint);
         }
         const wish = i === 0 && a.has('name') ? a.text('name') : code.toLowerCase();
         // An object of that name already: PyMOL fetches into it; here the loaded one stays (no second copy).
         const known = c.state.object(wish);
         return {
           kind: 'load',
-          from: { entry: { db: af ? 'afdb' : 'pdb', id: af ? code.toUpperCase() : code.toLowerCase() } },
+          from: { entry: { db: af ? 'afdb' : 'pdb', id: af ? code.toUpperCase() : (pdb ?? code) } },
           name: known?.name ?? c.state.freeName(wish),
           molecule: known?.molecule ?? c.state.nextMolecule + i,
           copy: !known,

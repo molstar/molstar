@@ -7,7 +7,7 @@ What the PyMOL dialect does ([README](README.md)), written from the command tabl
 
 | Command | Usage | What it does in Mol\* |
 | --- | --- | --- |
-| `fetch` | `fetch code [, name [, type=cif]]` | Load an entry from the PDB (4 characters) or AlphaFold DB (AF-…). |
+| `fetch` | `fetch code [, name [, type=cif]]` | Load an entry from the PDB (1cbs, pdb_00001cbs) or AlphaFold DB (AF-…). |
 | `load` | `load filename [, object [, format=…]]` | Load a file given with the script, or a URL. |
 | `delete` | `delete name` | Remove an object (a structure), or forget a named selection; `all` removes everything. |
 | `enable` | `enable name` | Show an object. |

@@ -6,6 +6,7 @@
 
 import { vmdColor } from '../colors.js';
 import { fail, note, type Span, warning } from '../diagnostics.js';
+import { PdbIdHint, pdbId } from '../entries.js';
 import type { ObjectInfo } from '../env.js';
 import type { CommandBody, Sel } from '../ir.js';
 import { vmdSelection } from '../selection.js';
@@ -139,16 +140,16 @@ function newMolecule(w: VmdWords, c: Compiler, i: number, webpdb: boolean): Comm
     if (k !== 'type' && k !== 'waitfor')
       c.report(warning('unsupported-argument', `${k} is ignored: the whole file loads.`, v.at));
   }
-  const id = /^[0-9][A-Za-z0-9]{3}$/.test(file);
+  const id = pdbId(file);
   const given = c.state.files.some((f) => f === file || f.split('/').pop() === file.split('/').pop());
   const url = /^(https?|ftp):\/\//i.test(file);
   const molecule = c.state.nextMolecule;
   if (webpdb || type === 'webpdb' || (id && !given && !url)) {
-    if (!id) fail('argument', `'${file}' is not a PDB id.`, w.atOf(i));
+    if (!id) fail('argument', `'${file}' is not a PDB id.`, w.atOf(i), PdbIdHint);
     if (!webpdb && type !== 'webpdb') c.report(note(`${file} is read as a PDB id (there is no such file).`, w.atOf(i)));
     return {
       kind: 'load',
-      from: { entry: { db: 'pdb', id: file.toLowerCase() } },
+      from: { entry: { db: 'pdb', id } },
       name: c.state.freeName(file.toLowerCase()),
       molecule,
       look: 'vmd-lines',
@@ -191,7 +192,7 @@ export const VmdCommands: readonly VmdCommand[] = [
     summary: 'Load a PDB entry, with VMD’s Lines look.',
     usage: 'mol pdbload id',
     params: [p('id', 'text')],
-    examples: ['mol pdbload 1cbs'],
+    examples: ['mol pdbload 1cbs', 'mol pdbload pdb_00001cbs'],
     compile: (w, c) => [newMolecule(w, c, 0, true)],
   },
   {

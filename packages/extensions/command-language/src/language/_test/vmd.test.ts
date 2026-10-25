@@ -87,6 +87,7 @@ describe('the VMD table', () => {
 
 describe('VMD commands to IR', () => {
   it('loads with VMD’s look, the new molecule the next top', () => {
+    expect(ok('mol pdbload pdb_00004hhb')[0]).toMatchObject({ from: { entry: { db: 'pdb', id: '4hhb' } } });
     const cmds = ok('mol new 4hhb type webpdb\nmol delrep 0 top\nmol representation NewCartoon\nmol addrep top');
     expect(cmds[0]).toMatchObject({
       kind: 'load',

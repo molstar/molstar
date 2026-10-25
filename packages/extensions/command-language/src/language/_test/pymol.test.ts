@@ -121,6 +121,14 @@ describe('PyMOL commands to IR', () => {
     ]);
   });
 
+  it('fetches extended PDB ids: of the four-character era by those four, a later one as written', () => {
+    expect(ok('fetch pdb_00001cbs')[0]).toMatchObject({ from: { entry: { db: 'pdb', id: '1cbs' } } });
+    expect(ok('fetch PDB_00012ABC')[0]).toMatchObject({ from: { entry: { db: 'pdb', id: 'pdb_00012abc' } } });
+    for (const bad of ['fetch 1cb', 'fetch pdb_1cbs', 'fetch pdb_0000abcd']) {
+      expect(errorOf(bad)?.hint, bad).toContain('pdb_00001cbs');
+    }
+  });
+
   it('inlines a named selection, keeping what it meant when defined', () => {
     const cmds = ok('select lig, resn HEM; show sticks, lig and chain A; select lig, none');
     const shown = cmds.find((c) => c.kind === 'display') as Extract<Command, { kind: 'display' }>;
