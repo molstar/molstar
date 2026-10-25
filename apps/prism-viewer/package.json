@@ -31,6 +31,7 @@
     "@molstar/geo-export-extension": "workspace:*",
     "@molstar/kinemage-extension": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/command-language-extension": "workspace:*",
     "@molstar/model-archive-extension": "workspace:*",
     "@molstar/model-export-extension": "workspace:*",
     "@molstar/mvs": "workspace:*",

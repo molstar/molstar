@@ -233,3 +233,30 @@ export interface RecentsStore {
   load(): string[];
   save(ids: readonly string[]): void;
 }
+
+/** One thing a command-menu prefix offers (a scene node for `@`, a snapshot for `#`, a completion, …). */
+export interface CommandMenuItem {
+  id: string;
+  label: string;
+  detail?: string;
+  icon?: IconName;
+  /**
+   * Does it; return true to keep the menu open (it opened a command's form, or typed another prefix), or `{ text }` to
+   * put that text in the menu and keep it open (a completion that edits the line rather than runs it).
+   */
+  run(): boolean | void | { readonly text: string };
+}
+
+/**
+ * A prefix that turns the menu into another list: `@` goes to a scene node, `#` to a snapshot, `:` selects by residues
+ * or an expression, `pymol ` reads a PyMOL command. The host provides them (it knows the scene), and the viewer's
+ * extensions add theirs; `?` (help) is built in. `char` is matched as the text's start, so a word with its space works.
+ */
+export interface CommandMenuPrefix {
+  char: string;
+  title: string;
+  /** What to type after it. */
+  placeholder?: string;
+  /** The rows for the text after the prefix (leading spaces trimmed). */
+  items(text: string): readonly CommandMenuItem[];
+}

@@ -13,19 +13,21 @@ import { SymbolMap as MolScriptSymbols, transpileMolScript } from './script/mol-
 import { transpiler as pymol } from './transpilers/pymol/parser.js';
 import { transpiler as vmd } from './transpilers/vmd/parser.js';
 import { transpiler as jmol } from './transpilers/jmol/parser.js';
+import type { TranspileOptions } from './transpilers/transpiler.js';
 
 /** Translate supported selection text to MolQL and validate its syntax and argument names.
  * MolScript input must contain exactly one expression; aliases and macros are validated before expansion.
  * Does not compile an executable query or evaluate against molecular data. All languages are available without
- * registration imports. Import individual transpiler parsers for single-language consumers. */
-export function compileScript(language: Script['language'], source: string): Expression {
+ * registration imports. Import individual transpiler parsers for single-language consumers. `options` names what the
+ * text may use besides the language's words (PyMOL's objects and named selections). */
+export function compileScript(language: Script['language'], source: string, options?: TranspileOptions): Expression {
   let expression: Expression;
   switch (language) {
     case 'mol-script':
       expression = compileMolScript(source);
       break;
     case 'pymol':
-      expression = pymol(source);
+      expression = pymol(source, options);
       break;
     case 'vmd':
       expression = vmd(source);

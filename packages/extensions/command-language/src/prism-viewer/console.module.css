@@ -1,0 +1,509 @@
+/* The console tab (_spec §9), in the look of the assistant's cards: a transcript of runs, each a status mark, the
+   command in mono and what it said under it; a composer at the foot whose line says what the input will do before
+   Enter. Few edges: wells and the field's own edge where contrast needs it (theme.css, --msp-field-edge). */
+
+.console {
+  position: relative;
+  display: flex;
+  /* The panel's body exactly, not its content's height (a zero basis, as the snapshots panel): the transcript scrolls,
+     the bar and the composer stay. */
+  flex: 1 1 0;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* --- The bar: the dialect as a segmented switch, then the file and clear actions. --- */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2);
+}
+
+.segments {
+  display: inline-flex;
+  gap: var(--msp-space-1);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.picker {
+  display: none;
+}
+
+/* --- The transcript. --- */
+
+.output {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--msp-space-1);
+  min-height: 0;
+  overflow: auto;
+  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  scrollbar-gutter: stable;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--msp-space-2);
+  row-gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.mark {
+  display: inline-flex;
+  margin-top: calc(var(--msp-space-1) / 2);
+  color: var(--msp-color-success);
+
+  .entry[data-state="running"] & {
+    color: var(--msp-color-text-subtle);
+    animation: spin 0.9s linear infinite;
+  }
+
+  .entry[data-state="failed"] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.command {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  min-width: 0;
+}
+
+.chip {
+  flex: none;
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-well);
+  color: var(--msp-color-text-subtle);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.code {
+  min-width: 0;
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-height: 20px;
+}
+
+.time {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--msp-radius-sm);
+  background: transparent;
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--msp-motion-fast) var(--msp-ease);
+
+  .entry:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  /* No hover on a touch screen: shown. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+.lines {
+  display: grid;
+  grid-column: 2 / -1;
+  gap: calc(var(--msp-space-1) / 2);
+  min-width: 0;
+}
+
+.line {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* What a read printed: the value itself, in a well. */
+.value {
+  justify-self: start;
+  max-width: 100%;
+  padding: var(--msp-space-1) var(--msp-space-2);
+  /* The entry's own radius: at 2px a well this size reads as square. */
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.notice {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  column-gap: var(--msp-space-1);
+  align-items: start;
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+
+  &[data-kind="warning"] {
+    color: var(--msp-color-warning);
+  }
+
+  &[data-kind="note"] {
+    color: var(--msp-color-text-subtle);
+  }
+
+  &[data-kind="error"] {
+    color: var(--msp-color-danger);
+  }
+}
+
+.noticeIcon {
+  display: inline-flex;
+  margin-top: calc(var(--msp-space-1) / 2);
+}
+
+.hint {
+  grid-column: 2;
+  color: var(--msp-color-text-muted);
+}
+
+/* --- Empty: what it is, and lines to try. --- */
+
+.empty {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-3) var(--msp-space-2);
+}
+
+.emptyTitle {
+  color: var(--msp-color-text);
+  font-weight: 600;
+}
+
+.emptyText {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.5;
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-1);
+}
+
+.example {
+  max-width: 100%;
+  overflow: hidden;
+  padding: calc(var(--msp-space-1) / 2) var(--msp-space-2);
+  border: 0;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--msp-color-pressed);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+/* --- The composer. --- */
+
+.composer {
+  position: relative;
+  display: grid;
+  /* One column no wider than the box: the status line fades or wraps in it instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-1);
+  margin: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-control);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+  transition: box-shadow var(--msp-motion-fast) var(--msp-ease);
+
+  &:focus-within {
+    box-shadow:
+      inset 0 0 0 1px var(--msp-field-edge),
+      0 0 0 2px var(--msp-color-focus-ring);
+  }
+}
+
+/* The card over the composer, while a command is typed: its help as the header (the usage with the argument being typed
+   in bold, then what it does, wrapping), and the completions of the word at the input's end under it, the one picked on
+   the hover color. A row: what it is (a few letters, or a color's swatch), the label with the part typed marked, the
+   detail muted. The list scrolls; the header stays. */
+.card {
+  position: absolute;
+  right: 0;
+  /* Clear of the composer's focus ring (2px outside it), with room to read as a card of its own. */
+  bottom: calc(100% + var(--msp-space-3));
+  left: 0;
+  z-index: var(--msp-z-overlay);
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    inset 0 0 0 1px var(--msp-field-edge),
+    var(--msp-shadow-float);
+}
+
+.signature {
+  flex: none;
+  display: grid;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.4;
+
+  /* A rule between it and the list, when there is one. */
+  &:not(:last-child) {
+    box-shadow: inset 0 -1px 0 var(--msp-field-edge);
+  }
+}
+
+.usage {
+  color: var(--msp-color-text-muted);
+  font-family: var(--msp-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  color: var(--msp-color-text-subtle);
+}
+
+.completions {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--msp-space-1);
+}
+
+.completion {
+  display: grid;
+  grid-template-columns: 36px auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  font-size: var(--msp-font-size-xs);
+  line-height: 18px;
+  cursor: pointer;
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-hover);
+  }
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px var(--msp-field-edge);
+}
+
+.label {
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  white-space: nowrap;
+}
+
+.typed {
+  background: none;
+  color: var(--msp-color-accent);
+  font-weight: 600;
+}
+
+.detail {
+  overflow: hidden;
+  color: var(--msp-color-text-muted);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--msp-space-2);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  max-height: 160px;
+  padding: calc(var(--msp-space-1) / 2) 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.45;
+  field-sizing: content;
+  resize: none;
+
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--msp-color-accent);
+  color: var(--msp-color-on-accent);
+  cursor: pointer;
+  transition: opacity var(--msp-motion-fast) var(--msp-ease);
+
+  &:disabled {
+    background: var(--msp-color-well);
+    color: var(--msp-color-text-subtle);
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+/* The line under the field: what Enter will do, or why it will not (the hint after it, quieter); the keys at its end. One
+   row whatever it says, so the composer keeps its height. */
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 20px;
+  font-size: var(--msp-font-size-xs);
+}
+
+.does {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-kind="error"] {
+    color: var(--msp-color-danger);
+  }
+}
+
+.hint {
+  color: var(--msp-color-text-muted);
+}
+
+/* In the usage: the command's name, and the argument being typed in bold. */
+.sigName {
+  color: var(--msp-color-text);
+}
+
+.sigActive {
+  color: var(--msp-color-text);
+  font-weight: 600;
+}
+
+.keys {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  white-space: nowrap;
+}
+
+/* --- Dropping files on it. --- */
+
+.drop {
+  position: absolute;
+  inset: var(--msp-space-2);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--msp-space-4);
+  border: 1.5px dashed var(--msp-color-accent);
+  border-radius: var(--msp-radius-lg);
+  background: color-mix(in oklab, var(--msp-color-panel), transparent 8%);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-align: center;
+  pointer-events: none;
+
+  .console[data-dropping] & {
+    display: flex;
+  }
+}

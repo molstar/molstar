@@ -102,7 +102,6 @@ export {
   type CommandFormViewProps,
   type CommandMenuAssistant,
   CommandMenu,
-  type CommandMenuPrefix,
   type CommandMenuProps,
 } from './views/command-menu/command-menu.js';
 export { StatusLine, StatusPill, ToolMenuRows } from './views/shell/canvas-chrome.js';

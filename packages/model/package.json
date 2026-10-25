@@ -24,6 +24,7 @@
     "./model/sequence/alignment/_test/*": null,
     "./model/structure/model/_test/*": null,
     "./model/structure/model/properties/utils/_test/*": null,
+    "./model/structure/query/_test/*": null,
     "./model/structure/query/queries/_test/*": null,
     "./model/structure/query/utils/_test/*": null,
     "./model/structure/structure/_test/*": null,

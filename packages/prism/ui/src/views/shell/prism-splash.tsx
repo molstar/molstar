@@ -80,6 +80,8 @@ export function PrismSplash(props: {
       const scale = w.width / WordmarkGeometry.width;
       if (field.setWord(w.left - box.left + scale, w.top - box.top + scale, scale)) word.style.visibility = 'hidden';
     }
+    // Drawn now, in its new place: the resize left the canvas blank until the next frame (a blink).
+    field.redraw();
   };
   // The wordmark itself (`role=img`), in or as what `mark` gives.
   const wordOf = (): HTMLElement | undefined => {

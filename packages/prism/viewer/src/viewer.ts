@@ -168,7 +168,10 @@ export interface PrismViewer {
    * The extensions: which are loaded, each lazy one's status, loading one (README decision 22), and mounting one the
    * spec did not list, at runtime (viewer-spec.md §3).
    */
-  readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor' | 'mount'>;
+  readonly extensions: Pick<
+    ExtensionHost,
+    'loaded' | 'prefixes' | 'status' | 'events' | 'load' | 'ensureFor' | 'mount'
+  >;
   /** The session's record (journal.md): what the person and the agent did, in order; in memory until kept. */
   readonly record: SessionRecord;
   /** The records kept in earlier sessions (journal.md §3, §5): Home's list, one opened read-only in History, Forget. */
@@ -363,6 +366,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         : {}),
       applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
       overrides,
+      ...(spec.persist?.preferences ? { preferences: spec.persist.preferences } : {}),
+      post: (text, kind) => notifications.post(text, kind),
       task: (label) => {
         const id = `extension:${label}`;
         notifications.putTask({ id, label });

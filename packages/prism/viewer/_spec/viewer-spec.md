@@ -127,9 +127,11 @@ order. `options.representation.defaultPalette` picks `prism` (default), `classic
 
 A `ViewerExtension` (`spec.ts`) is a plain object: `id`, `title`, `plugin` (§2.1), `api` (its areas by id, each made
 once, [api.md](api.md) §6), `contributes` (operations into core areas: built-in features only), `builtIn`, `requires`,
-`commands(api)`, `annotations`, `skills`, `sequence` (`{ tracks?, behaviors? }`: track providers, the way to add
-sequence data, and behaviors; [sequence.md](sequence.md) §3), `settings`, `ui(ctx)` (its views, a chunk). Types and
-helpers, not a framework: every extension lives in this repository, no stability promise beyond it (README decision 13).
+`commands(api)`, `commandPrefixes({ api, preferences, post })` (command-menu prefixes, an eager extension's; a `char` is
+the viewer's once, a second fails the activation; `post` says a row's outcome on the status line, the menu having
+closed), `annotations`, `skills`, `sequence` (`{ tracks?, behaviors? }`: track providers, the way to add sequence data,
+and behaviors; [sequence.md](sequence.md) §3), `settings`, `ui(ctx)` (its views, a chunk). Types and helpers, not a
+framework: every extension lives in this repository, no stability promise beyond it (README decision 13).
 
 - **Headless-safe by shape**: everything but `ui` imports no DOM; `ui` is a function, so views load when first needed.
 - **Commands first** (README decision 27): operations with commands and tools; `ui` only where a view is needed.

@@ -33,6 +33,7 @@ const LUCIDE_VERSION = '1.48.0';
 /** Lucide icon names (file names in `lucide-static/icons`). */
 const ICONS = [
   'house',
+  'terminal',
   'locate-off',
   'circle',
   'cylinder',

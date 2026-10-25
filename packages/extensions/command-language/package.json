@@ -1,0 +1,48 @@
+{
+  "name": "@molstar/command-language-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* command-language-extension: PyMOL and VMD commands for the Prism viewer",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null,
+    "./prism-viewer/console": null,
+    "./language/_test/*": null,
+    "./prism-viewer/_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "styles": "node ../../prism/ui/scripts/css.mjs --root . --prefix command-language",
+    "styles:check": "node ../../prism/ui/scripts/css.mjs --root . --prefix command-language --check"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/query-language": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "@molstar/prism-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:"
+  }
+}

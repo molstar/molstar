@@ -11,6 +11,7 @@ import type { CanvasMenuItem, ShellModel } from '@molstar/prism-ui/shell/shell';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ModelSource } from '@molstar/ai';
 import type { CommandMenuAssistant } from '@molstar/prism-ui';
+import type { CommandMenuPrefix } from '@molstar/prism-ui/commands/types';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { Observable } from 'rxjs';
 import type { DomainRules } from './agent/policies.js';
@@ -299,6 +300,12 @@ export interface ViewerExtension {
   /** The extensions it needs in the spec before it (by id: the \`annotations\` feature needs \`structure\`). */
   readonly requires?: readonly string[];
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition<any>[];
+  /**
+   * Prefixes it adds to the command menu (`pymol `, ui's commands.md §5): typed at the start, they turn the menu into
+   * the prefix's list. Made once the extension's operations exist; an eager extension's only (a lazy stub declares
+   * none: the rows are made as the person types).
+   */
+  readonly commandPrefixes?: (ctx: CommandPrefixContext) => readonly CommandMenuPrefix[];
   /** Its tools, in skills: never core tools, they are disclosed (agent.md §3). */
   readonly skills?: readonly ViewerSkill[];
   /**
@@ -372,6 +379,20 @@ export interface ViewerUIContext {
   readonly api: ViewerApi;
   readonly sources: import('./sources/viewer-sources.js').ViewerSources;
   readonly managers: import('./api/managers.js').ViewerManagers;
+  /** The person's preferences (`persist.preferences`, journal.md §6): small and lasting; none, the session's only. */
+  readonly preferences?: PrismStore;
+}
+
+/** What an extension's command-menu prefixes are made with: the API as the person, the person's preferences. */
+export interface CommandPrefixContext {
+  readonly api: ViewerApi;
+  /** The person's preferences (`persist.preferences`); none, the session's only. */
+  readonly preferences?: PrismStore;
+  /**
+   * Says a row's outcome on the status line (and the log), as a command's is: a row runs after the menu closes, so
+   * this is where its result goes.
+   */
+  readonly post: (text: string, kind?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 export interface ViewerExtensionUI {
@@ -390,7 +411,10 @@ export interface ViewerExtensionUI {
   }[];
   readonly tabs?: readonly {
     readonly id: PartId;
+    /** Its name: the rail's tooltip, and the panel's header unless `heading` says otherwise. */
     readonly title: string;
+    /** The panel's header when the title is longer than it needs (the PyMOL / VMD console: "Console"). */
+    readonly heading?: string;
     readonly icon: IconName;
     readonly dock?: DockId;
     readonly order?: number;

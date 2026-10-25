@@ -367,10 +367,15 @@ export function querySelection(
 ): StructureQuery {
   return function query_querySelection(ctx) {
     const targetSel = selection(ctx);
-    if (StructureSelection.structureCount(targetSel) === 0) return targetSel;
+    const none = StructureSelection.structureCount(targetSel) === 0;
+    // Nothing selected: nothing to query in, except in the complement, which is then everything (`not hydro` in a
+    // structure without hydrogens is every atom).
+    if (none && !inComplement) return targetSel;
 
     const target = inComplement
-      ? structureSubtract(ctx.inputStructure, StructureSelection.unionStructure(targetSel))
+      ? none
+        ? ctx.inputStructure
+        : structureSubtract(ctx.inputStructure, StructureSelection.unionStructure(targetSel))
       : StructureSelection.unionStructure(targetSel);
 
     if (target.elementCount === 0) return StructureSelection.Empty(ctx.inputStructure);

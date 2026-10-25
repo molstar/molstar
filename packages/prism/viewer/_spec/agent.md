@@ -72,6 +72,9 @@ with (`agent/policies.ts`, the tool's `approvedBy`).
   (for that turn), domains the person allowed. Anything else asks, and so does an operation without `addresses` and an
   address not https written whole. A waiting call with blocked https hosts offers Allow <host> (`blockedHosts`,
   `hostsOf`); the rules (`createDomainRules`, session or browser) are the assistant's to keep.
+- **Operations that run others** (an extension's `script.run`): their inner calls join their step and are not asked
+  again; such an operation declares its own approval and addresses for what it reaches, and refuses for the agent what
+  would ask on its own (the command-language extension's _spec §9).
 - **Untrusted text**: the model sees compact state, tool results and metadata, never structure files. Text from data
   (titles, labels, entity names, file names, the person's notes) is `quoted()` (`agent/account.ts`): in quotes, escaped,
   controls and bidi/zero-width marks removed, at most 80 characters.

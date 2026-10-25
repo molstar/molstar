@@ -92,8 +92,11 @@ browsed, §5), `count?` (how much it would do, on its highlighted row, §5), `ch
   reaches them; the input keeps the focus otherwise); the choice holds for the session.
 - **The highlighted row** is previewed (the viewer lights its atoms in 3D) and its count ("1 residue · 20 atoms")
   replaces its path: that row only, through `browse` (§4). Closing the menu or opening a form clears it.
-- **Prefixes** (`CommandMenuPrefix`: `char`, `title`, `placeholder?`, `items(text)`) turn the menu into another list;
-  the host supplies them. `?` is built in: the prefixes, then every command with a shortcut.
+- **Prefixes** (`CommandMenuPrefix`: `char`, `title`, `placeholder?`, `items(text)`; DOM-free, in `commands/types.ts`)
+  turn the menu into another list; the host supplies them. `char` is matched as the text's start, so a word with its
+  space (`pymol `) is a prefix too. An item's `run` returns true to keep the menu open, or `{ text }` to put that text
+  in the menu and keep it open: a completion edits the line rather than runs. `?` is built in: the prefixes, then every
+  command with a shortcut.
 - **The sentence**: ↑↓ through completions, Tab takes one or moves on (Shift+Tab back), Enter runs once no required
   field is empty (else goes there), Backspace on an empty input clears the field, then goes back a field, then to the
   list; Esc back to the list, Esc there closes. "50%" reads as 0.5. A run that is done closes the menu; a failure keeps
