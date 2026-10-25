@@ -37,6 +37,9 @@ import {
 } from '../draw/backend.js';
 import { ColorGroups } from '../draw/group.js';
 
+/** An opaque stroke's items per path (`paths`): Chrome's closePath slows as a path grows. */
+const STROKE_CHUNK = 256;
+
 export type Paint2D = Pick<
   CanvasRenderingContext2D,
   | 'fillStyle'
@@ -364,7 +367,7 @@ export class Canvas2DBackend implements RenderBackend {
         g.moveTo(b.cx[i] + b.r1[i] * Math.cos(b.a0[i]), b.cy[i] + b.r1[i] * Math.sin(b.a0[i]));
         g.arc(b.cx[i], b.cy[i], b.r1[i], b.a0[i], b.a1[i], false);
         g.arc(b.cx[i], b.cy[i], b.r0[i], b.a1[i], b.a0[i], true);
-        g.closePath();
+        // No closePath: the fill closes each sector, and Chrome's slows as the path grows (`paths`).
       }
       this.fillStyle(b.color[o[st[q]]], b.alpha[o[st[q]]]);
       g.fill();
@@ -377,9 +380,18 @@ export class Canvas2DBackend implements RenderBackend {
       if (b.color[p] === NO_COLOR) continue;
       g.beginPath();
       let c = b.cstart[p];
+      // Chrome's closePath costs as much as the path holds so far (16,000 closed subpaths in one path: 574 ms, 0.7 ms
+      // unclosed), so a path never closes what it need not: a fill closes every subpath itself, so a close before the
+      // next move or at the path's end is left out; an opaque stroke is drawn every `STROKE_CHUNK` items.
+      const fill = b.mode[p] === PathMode.fill;
+      const chunked = !fill && b.alpha[p] === 255;
       // Subpaths of one style are one path: drawn when the next differs.
       let q = p;
       for (; q < b.n && (q === p || this.sameStyle(b, p, q)); q++) {
+        if (chunked && q > p && (q - p) % STROKE_CHUNK === 0) {
+          this.drawPath(b, p);
+          g.beginPath();
+        }
         const end = q + 1 < b.n ? b.start[q + 1] : b.nv;
         for (let v = b.start[q]; v < end; v++) {
           switch (b.verbs[v]) {
@@ -407,33 +419,51 @@ export class Canvas2DBackend implements RenderBackend {
               g.arcTo(x + k[c + 2], y + k[c + 3], x, y + k[c + 3], r);
               g.arcTo(x, y + k[c + 3], x, y, r);
               g.arcTo(x, y, x + k[c + 2], y, r);
-              g.closePath();
+              if (!fill || !this.closedByFill(b, v, end, q, p)) g.closePath();
               break;
             }
             default:
-              g.closePath();
+              if (!fill || !this.closedByFill(b, v, end, q, p)) g.closePath();
           }
           c += PathVerbCoords[b.verbs[v]];
         }
       }
-      if (b.mode[p] === PathMode.stroke && b.dash[p] > 0) {
-        // Dashed: the pattern set for this stroke alone (setLineDash copies the scratch), then solid again.
-        this.strokeStyle(b.color[p], b.alpha[p], b.width[p] / 2);
-        this.dashArr[0] = b.dash[p];
-        this.dashArr[1] = b.gap[p];
-        g.setLineDash(this.dashArr);
-        g.lineDashOffset = b.phase[p];
-        g.stroke();
-        g.setLineDash(NO_DASH);
-        g.lineDashOffset = 0;
-      } else if (b.mode[p] === PathMode.stroke) {
-        this.strokeStyle(b.color[p], b.alpha[p], b.width[p] / 2);
-        g.stroke();
-      } else {
-        this.fillStyle(b.color[p], b.alpha[p]);
-        g.fill();
-      }
+      this.drawPath(b, p);
       p = q - 1;
+    }
+  }
+  /**
+   * Whether a fill closes the subpath that verb v (of item q, `end` its items' end; p the path's first item) closes: the
+   * path ends there, or the next verb starts a subpath (a move, a round rect), as the next item's first verb does.
+   */
+  private closedByFill(b: PathBatch, v: number, end: number, q: number, p: number): boolean {
+    let next = v + 1;
+    if (next === end) {
+      if (q + 1 >= b.n || !this.sameStyle(b, p, q + 1)) return true;
+      next = b.start[q + 1];
+    }
+    const verb = b.verbs[next];
+    return verb === PathVerb.move || verb === PathVerb.roundRect;
+  }
+  /** The path built so far, in item p's style. */
+  private drawPath(b: PathBatch, p: number): void {
+    const g = this.g;
+    if (b.mode[p] === PathMode.stroke && b.dash[p] > 0) {
+      // Dashed: the pattern set for this stroke alone (setLineDash copies the scratch), then solid again.
+      this.strokeStyle(b.color[p], b.alpha[p], b.width[p] / 2);
+      this.dashArr[0] = b.dash[p];
+      this.dashArr[1] = b.gap[p];
+      g.setLineDash(this.dashArr);
+      g.lineDashOffset = b.phase[p];
+      g.stroke();
+      g.setLineDash(NO_DASH);
+      g.lineDashOffset = 0;
+    } else if (b.mode[p] === PathMode.stroke) {
+      this.strokeStyle(b.color[p], b.alpha[p], b.width[p] / 2);
+      g.stroke();
+    } else {
+      this.fillStyle(b.color[p], b.alpha[p]);
+      g.fill();
     }
   }
   glyphs(b: GlyphBatch): void {
