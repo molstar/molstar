@@ -123,10 +123,9 @@ const valueOperators: OperatorList = [
 
 const lang = P.MonadicParser.createLanguage({
   Parens: function (r: any) {
-    return P.MonadicParser.alt(r.Parens, r.Operator, r.Expression).wrap(
-      P.MonadicParser.string('('),
-      P.MonadicParser.string(')'),
-    );
+    // The operator chain holds a lone group or expression too: one alternative, so an unclosed group is read once per
+    // level, not once per alternative (exponential in the depth).
+    return r.Operator.wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
   },
 
   Expression: function (r: any) {
@@ -207,10 +206,8 @@ const lang = P.MonadicParser.createLanguage({
   },
 
   ValueParens: function (r: any) {
-    return P.MonadicParser.alt(r.ValueParens, r.ValueOperator, r.ValueExpressions).wrap(
-      P.MonadicParser.string('('),
-      P.MonadicParser.string(')'),
-    );
+    // As `Parens`: one alternative a level.
+    return r.ValueOperator.wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
   },
 
   ValuePropertyNames: function () {

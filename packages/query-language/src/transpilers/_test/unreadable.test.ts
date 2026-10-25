@@ -32,6 +32,22 @@ describe('unreadable text', () => {
   );
 });
 
+// Unclosed groups, deep: each level is read once, not once per alternative (three a level was exponential: 30 levels
+// did not finish in minutes). No clock: an exponential grammar times the test out.
+describe('deep groups', () => {
+  const deep = (n: number, closed: boolean) => `${'('.repeat(n)}chain A${closed ? ')'.repeat(n) : ''}`;
+
+  it('PyMOL reads 40 closed levels and fails readably on 40 unclosed', () => {
+    expect(pymol(deep(40, true))).toBeTruthy();
+    failsReadably(pymol, deep(40, false));
+  });
+
+  it('VMD reads 20 closed levels and fails readably on 20 unclosed', () => {
+    expect(vmd(deep(20, true))).toBeTruthy();
+    failsReadably(vmd, deep(20, false));
+  });
+});
+
 describe('PyMOL grammar', () => {
   const all = B.struct.generator.all();
 

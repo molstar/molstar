@@ -78,12 +78,9 @@ const Prefixes = operators
 
 const lang = P.MonadicParser.createLanguage({
   Parens: function (r: any) {
-    // The operator first: `((a) within 5 of b)` is a group holding an operator whose left side is a group; tried
-    // first, the inner group would match alone and the closing parenthesis would not.
-    return P.MonadicParser.alt(r.Operator, r.Parens, r.Expression).wrap(
-      P.MonadicParser.string('('),
-      P.MonadicParser.string(')'),
-    );
+    // An operator chain holds a lone group or expression too (`((a) within 5 of b)`, `(chain A)`): one alternative, so
+    // an unclosed group is read once per level, not once per alternative (three a level was exponential in the depth).
+    return r.Operator.wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
   },
 
   Expression: function (r: any) {
