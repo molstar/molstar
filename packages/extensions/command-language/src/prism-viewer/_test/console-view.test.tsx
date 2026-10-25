@@ -108,15 +108,23 @@ describe('the console view', () => {
     expect(t.run).toHaveBeenCalledWith({ dialect: 'pymol', text: 'count_atoms', files: [] });
   });
 
-  it('lists every command on Tab in the empty input, until the next keystroke', () => {
+  it('lists every command on Ctrl+I in the empty input, until the next keystroke; Tab there moves the focus on', () => {
     const t = open();
     const options = () => t.container.querySelectorAll('[role=option]');
+    const listKey = () =>
+      t.input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'i', code: 'KeyI', ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    // Tab is the page's: not taken.
+    expect(t.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))).toBe(
+      true,
+    );
     expect(options()).toHaveLength(0);
-    t.key('Tab');
+    listKey();
     expect(options().length).toBeGreaterThan(12);
     t.key('Escape');
     expect(options()).toHaveLength(0);
-    t.key('Tab');
+    listKey();
     t.key('Tab');
     expect(t.input.value).toMatch(/^\w+ ?$/);
     t.type('');

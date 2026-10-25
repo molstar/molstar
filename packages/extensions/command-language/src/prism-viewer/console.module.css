@@ -411,16 +411,21 @@
 
 /* The line under the field: what Enter will do, or why it will not; the keys at its end. */
 .status {
-  display: flex;
-  align-items: center;
-  gap: var(--msp-space-2);
+  display: grid;
+  /* Two lines: the first (what Enter does, or the usage) beside the keys, the second under both (the warnings, the
+     hint, what the command does) wrapping once; their height fixed, so the composer keeps its own. */
+  grid-template-rows: 18px calc(2 * 16px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--msp-space-2);
+  align-items: start;
   min-width: 0;
-  height: 20px;
   font-size: var(--msp-font-size-xs);
+  line-height: 18px;
 }
 
 .does {
-  flex: 1;
+  grid-row: 1;
+  grid-column: 1;
   min-width: 0;
   overflow: hidden;
   color: var(--msp-color-text-muted);
@@ -432,7 +437,7 @@
   }
 }
 
-/* Signature help: the command's name, the argument being typed in bold, the summary after it, quieter. */
+/* Signature help: the command's name and the argument being typed in bold; what it does is the second line (`.more`). */
 .sigName {
   color: var(--msp-color-text);
   font-family: var(--msp-font-mono);
@@ -443,12 +448,25 @@
   font-weight: 600;
 }
 
-.sigSummary {
+.more {
+  display: -webkit-box;
+  grid-row: 2;
+  grid-column: 1 / -1;
+  overflow: hidden;
   color: var(--msp-color-text-subtle);
+  line-height: 16px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+
+  &[data-kind="warning"] {
+    color: var(--msp-color-warning);
+  }
 }
 
 .keys {
-  flex: none;
+  grid-row: 1;
+  grid-column: 2;
   color: var(--msp-color-text-subtle);
   white-space: nowrap;
 }

@@ -7,6 +7,7 @@
  */
 
 import { Button, type Child, domView, effect, For, Icon, onCleanup, Show } from '@molstar/prism-ui';
+import { chordFromEvent, chordId, formatChord } from '@molstar/prism-ui/commands/keys';
 import { observeResize } from '@molstar/prism-ui/dom/scoped';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -114,24 +115,33 @@ function EmptyView(props: { model: ConsoleModel; onPick: (text: string) => void 
   );
 }
 
-/** The composer's line, one row whatever it says: what Enter will do, or why it will not (the whole in its tip). */
+/**
+ * The composer's lines, two whatever they say (the composer keeps its height): what Enter will do and its warnings, or
+ * why it will not and the hint; the whole in the tip.
+ */
 function StatusView(props: { inspection: ConsoleInspection }) {
   const i = props.inspection;
-  if (i.kind === 'empty') return <span class={classes.does} />;
+  if (i.kind === 'empty') return [<span class={classes.does} />, <span class={classes.more} />];
   if (i.kind === 'error') {
     const full = i.hint ? `${i.message} ${i.hint}` : i.message;
-    return (
+    return [
       <span class={classes.does} data-kind="error" data-tip={full}>
         {i.message}
-      </span>
-    );
+      </span>,
+      <span class={classes.more} data-tip={full}>
+        {i.hint ?? ''}
+      </span>,
+    ];
   }
   const said = [i.does, ...i.warnings].filter(Boolean).join(' · ');
-  return (
+  return [
     <span class={classes.does} data-tip={said}>
-      {DialectNames[i.dialect]} · {said}
-    </span>
-  );
+      {DialectNames[i.dialect]} · {i.does}
+    </span>,
+    <span class={classes.more} data-kind={i.warnings.length ? 'warning' : undefined} data-tip={said}>
+      {i.warnings.join(' · ')}
+    </span>,
+  ];
 }
 
 /** Signature help: the command's usage, the argument being typed in bold, its summary after. */
@@ -144,12 +154,16 @@ function SignatureView(props: { signature: Signature; dialect: Dialect }) {
     const text = p.optional ? `[${p.name}]` : p.name;
     parts.push(k === sig.active ? <strong class={classes.sigActive}>{text}</strong> : text);
   });
-  return (
-    <span class={classes.does} data-tip={`${sig.usage}: ${sig.summary}`}>
+  // The usage on the first line, what the command does on the second (a line of its own: the whole of it shows).
+  const tip = `${sig.usage}: ${sig.summary}`;
+  return [
+    <span class={classes.does} data-tip={tip}>
       {parts}
-      <span class={classes.sigSummary}> — {sig.summary}</span>
-    </span>
-  );
+    </span>,
+    <span class={classes.more} data-tip={tip}>
+      {sig.summary}
+    </span>,
+  ];
 }
 
 /** What a completion is, in a few letters (a color shows its swatch instead). */
@@ -179,6 +193,9 @@ function labelWithTyped(label: string, typed: string): Child {
     label.slice(at + typed.length),
   ];
 }
+
+/** What asks for the completion list (⌘I, Ctrl+I). */
+const ListChord = { key: 'i', mod: true } as const;
 
 /** Each console's list its own id (several viewers on a page). */
 let nextList = 0;
@@ -234,6 +251,14 @@ export function ConsoleView(props: { model: ConsoleModel }) {
         // Composing text (an input method) owns its keys; Safari confirms with an Enter that says so by its code only.
         if (e.isComposing || e.keyCode === 229) return;
         const el = e.currentTarget as HTMLTextAreaElement;
+        // ⌘I (Ctrl+I) asks for the list: every command on the empty input, the list again after Esc.
+        const chord = chordFromEvent(e);
+        if (chord && chordId(chord) === chordId(ListChord)) {
+          e.preventDefault();
+          dismissed.set(false);
+          asked.set(true);
+          return;
+        }
         // The completion list, while open and the caret at the end (what it completes): ↑ ↓ move in it, Tab or Enter
         // take the one picked (Tab: the first when none is), Esc closes it; Enter with none picked runs, as always.
         const items = shown.value;
@@ -271,11 +296,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
         } else if (e.key === 'ArrowDown' && !el.value.slice(el.selectionEnd).includes('\n')) {
           e.preventDefault();
           recall(() => model.next());
-        } else if (e.key === 'Tab' && !e.shiftKey && !el.value.trim()) {
-          e.preventDefault();
-          dismissed.set(false);
-          asked.set(true);
-        } else if (e.key === 'Tab' && !e.shiftKey && el.selectionStart === el.value.length) {
+        } else if (e.key === 'Tab' && !e.shiftKey && el.value.trim() && el.selectionStart === el.value.length) {
           const filled = completeLine(model, el.value);
           if (filled !== undefined) {
             e.preventDefault();
@@ -311,7 +332,8 @@ export function ConsoleView(props: { model: ConsoleModel }) {
   // What helps the input, read again as the draft, the dialect or the scene change (a run that ends, a structure
   // loaded: the entries change with it): the completions of the word at its end, the command it is in, and what Enter
   // will do.
-  // Tab on the empty input asks for the list: every command of the dialect, until the next keystroke.
+  // ⌘I on the empty input asks for the list: every command of the dialect, until the next keystroke. (Not Tab: there it
+  // moves the focus on, as anywhere.)
   const asked = observableState(false);
   const help = derive([model.draft, model.dialect, model.entries, asked.asReadonly], (t, _d, _e, a) => ({
     assist: a && !t.trim() ? model.assist(t, Number.POSITIVE_INFINITY, true) : model.assist(t),
@@ -472,7 +494,7 @@ export function ConsoleView(props: { model: ConsoleModel }) {
           </Show>
           <span
             class={classes.keys}
-            data-tip="Enter runs · Shift+Enter a new line · Tab completes · ↑ ↓ the list or the history · Esc closes the list"
+            data-tip={`Enter runs · Shift+Enter a new line · Tab completes · ${formatChord(ListChord)} lists the completions · ↑ ↓ the list or the history · Esc closes the list`}
           >
             ↵ run · ⇥ complete
           </span>

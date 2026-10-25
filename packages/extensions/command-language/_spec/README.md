@@ -219,23 +219,24 @@ lines.
   typed line back in the input, in its dialect. Empty, it says what it is and offers example lines of the dialect. The
   dialect is two pressed buttons, as the Log's filters; a line's `pymol ` / `vmd ` first word overrides it. The
   composer: the input (Enter runs, ⇧Enter a new line, ↑/↓ the history at its first and last line, Tab the first
-  completion), a Run button, and one line under it, of one height whatever it says, so the composer never changes height
-  as one types. The completions of the word at the input's end list over the transcript (`assist`; the textarea says
-  `aria-autocomplete`, `aria-controls` and the row picked, a textarea taking no combobox role; with the caret at the
-  end: ↑/↓ pick, Tab or Enter take the one picked, Tab the first when none is, Enter with none picked runs, Esc closes
-  until the next keystroke; a row picked is none again whenever the rows change; a line recalled from the history comes
-  without its list, so ↑/↓ go on through the history; Tab on the empty input lists every command, so it does not move
-  focus there: Shift+Tab leaves); a row is its kind or a color's swatch, the label with the part typed marked, and the
-  detail, left out when every row has the same one. The line: while the list is open or the arguments do not read yet,
-  the signature with the argument being typed in bold; else what Enter will do or the first error (the whole, with its
-  hint, in the line's tip; `inspect`). The tab's icon is `terminal` (`>_`). Every error of a submission shows at once,
-  before anything runs; `undo` / `redo` alone are the viewer's history; submissions run one after another. **Import**
-  (and dropping on the tab, an overlay saying where): scripts with the files they load, the ones no other includes run
-  (`rootScripts`), each whole in the dialect its extension says; files without a script are loaded as the line that
-  loads them (`load 1cbs.cif`, `mol new 1cbs.cif`), shown in the transcript. A log, not live (the viewer says each run).
-  The tab fills the panel: the transcript scrolls, the bar and the composer stay, and the newest is always in view (it
-  follows the transcript's sizes: an entry renders its outcome on its own). The history of lines is kept with the
-  preferences (`command-language.history`, the last 200).
+  completion), a Run button, and two lines under it, so the composer never changes height as one types. The completions
+  of the word at the input's end list over the transcript (`assist`; the textarea says `aria-autocomplete`,
+  `aria-controls` and the row picked, a textarea taking no combobox role; with the caret at the end: ↑/↓ pick, Tab or
+  Enter take the one picked, Tab the first when none is, Enter with none picked runs, Esc closes until the next
+  keystroke; a row picked is none again whenever the rows change; a line recalled from the history comes without its
+  list, so ↑/↓ go on through the history; ⌘I (Ctrl+I) asks for it: every command on the empty input, the list again
+  after Esc; Tab on the empty input moves the focus on, as anywhere); a row is its kind or a color's swatch, the label
+  with the part typed marked, and the detail, left out when every row has the same one. The two lines under it, of a
+  fixed height: while the list is open or the arguments do not read yet, the usage with the argument being typed in
+  bold, then what the command does (wrapping once, so the whole shows); else what Enter will do and its warnings, or the
+  first error and its hint (`inspect`; the whole in the tip). The tab's icon is `terminal` (`>_`). Every error of a
+  submission shows at once, before anything runs; `undo` / `redo` alone are the viewer's history; submissions run one
+  after another. **Import** (and dropping on the tab, an overlay saying where): scripts with the files they load, the
+  ones no other includes run (`rootScripts`), each whole in the dialect its extension says; files without a script are
+  loaded as the line that loads them (`load 1cbs.cif`, `mol new 1cbs.cif`), shown in the transcript. A log, not live
+  (the viewer says each run). The tab fills the panel: the transcript scrolls, the bar and the composer stay, and the
+  newest is always in view (it follows the transcript's sizes: an entry renders its outcome on its own). The history of
+  lines is kept with the preferences (`command-language.history`, the last 200).
 
 ## 10. Tests
 
