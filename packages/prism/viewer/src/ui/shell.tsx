@@ -49,6 +49,7 @@ import {
   debounceTime,
   distinctUntilChanged,
   map,
+  merge,
   type Observable,
   of,
   shareReplay,
@@ -856,13 +857,25 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     steps.push(() => followTheme.unsubscribe());
     // Resets frame the scene below the sequence band (a frameless top tab; its faded bottom lets the scene through), not
     // under it (sequence.md §8, README decision 28).
+    // The first framing of a scene too; and the band shown, resized or gone frames it again while the camera is where
+    // the last framing left it (a structure loaded before Seq*'s band came: the band's own reset would move it).
     const canvas3d = core.plugin.canvas3d;
     if (canvas3d) {
       const top = shell.dock('top');
+      const bandPx = () => (top.active.value?.frame === 'none' ? Math.max(0, top.state.value.size - BandFadePx) : 0);
+      const framing = frameBelowTop(canvas3d, canvasHost, bandPx);
+      let last = bandPx();
+      // a scene framed before this hold (a load the options started) with the band already there
+      framing.reframe();
+      const follow = merge(top.state, top.active).subscribe(() => {
+        const now = bandPx();
+        if (now === last) return;
+        last = now;
+        framing.reframe();
+      });
       steps.push(
-        frameBelowTop(canvas3d, canvasHost, () =>
-          top.active.value?.frame === 'none' ? Math.max(0, top.state.value.size - BandFadePx) : 0,
-        ),
+        () => follow.unsubscribe(),
+        () => framing.undo(),
       );
     }
 
