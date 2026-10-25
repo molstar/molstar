@@ -35,6 +35,9 @@ import { addRep, modifyRep, removeRep, showRep } from './vmd.js';
 
 /** Labels made at most per command: more is a selection to narrow. */
 const MaxLabels = 100;
+/** Distances `distance … cutoff` adds at most (each a measurement in the scene), and the pairs it checks. */
+const MaxContacts = 50;
+const MaxContactChecks = 1_000_000;
 /** Values `$sel get` and reads print at most. */
 const MaxValues = 50;
 
@@ -328,7 +331,8 @@ export class PrismScriptHost implements ScriptHost {
           structure: w.ref,
         });
       }
-      return `Colored ${count(where)} atoms ${hex(cmd.color.rgb)}.`;
+      const n = count(where);
+      return `Colored ${n} atom${n === 1 ? '' : 's'} ${hex(cmd.color.rgb)}.`;
     }
     // A theme goes on the representations of the components the selection covers (as `representation.color` does),
     // under the colors set per atom (the color layer). On a whole structure those colors are cleared first (PyMOL's
@@ -357,7 +361,7 @@ export class PrismScriptHost implements ScriptHost {
       ok: true,
       did,
       warnings: [
-        `Mol* colors whole components by a theme: ${partial} component${partial === 1 ? '' : 's'} hold more than '${cmd.sel.text}', and colors set with color stay on top.`,
+        `Mol* colors whole components by a theme: ${partial} ${partial === 1 ? 'component holds' : 'components hold'} more than '${cmd.sel.text}', and colors set with color stay on top.`,
       ],
     };
   }
@@ -486,6 +490,7 @@ export class PrismScriptHost implements ScriptHost {
   }
 
   async #measure(cmd: Extract<Command, { kind: 'measure' }>): Promise<string> {
+    if (cmd.cutoff !== undefined) return this.#contacts(cmd.atoms, cmd.cutoff);
     const { ref, atoms } = this.#atoms(cmd.atoms);
     const keys = ['a', 'b', 'c', 'd'];
     const values: Record<string, unknown> = { structure: ref };
@@ -494,6 +499,46 @@ export class PrismScriptHost implements ScriptHost {
     });
     const r = await this.#ops.run(`measure.${cmd.measure}`, values);
     return r.did;
+  }
+
+  /** `distance name, s1, s2, cutoff`: a distance for every pair of the two sets within the cutoff, in one structure. */
+  async #contacts(sels: readonly Sel[], cutoff: number): Promise<string> {
+    const [one, two] = sels.map((sel) => this.#ops.some(sel));
+    const pairs: { ref: string; a: StructureElement.Loci; b: StructureElement.Loci }[] = [];
+    for (const w1 of one) {
+      for (const w2 of two) {
+        if (w1.ref !== w2.ref) continue;
+        if (atomCount(w1.loci) * atomCount(w2.loci) > MaxContactChecks) {
+          throw new HostFailure(
+            `'${sels[0].text}' and '${sels[1].text}' are too many atoms to pair up.`,
+            'Narrow one: the ligand and the residues around it.',
+          );
+        }
+        const xs = eachAtom(w1.loci, Infinity).map((x) => ({ loci: x.loci, at: positionOf(x.loci)! }));
+        const ys = eachAtom(w2.loci, Infinity).map((y) => ({ loci: y.loci, at: positionOf(y.loci)! }));
+        for (const x of xs) {
+          for (const y of ys) {
+            const d = Vec3.distance(x.at, y.at);
+            if (d > 0 && d <= cutoff) pairs.push({ ref: w1.ref, a: x.loci, b: y.loci });
+          }
+        }
+      }
+    }
+    if (!pairs.length) return `No atoms of '${sels[0].text}' and '${sels[1].text}' within ${cutoff} Å.`;
+    if (pairs.length > MaxContacts) {
+      throw new HostFailure(
+        `${pairs.length} pairs within ${cutoff} Å: Mol* measures at most ${MaxContacts} at once.`,
+        'Narrow a selection, or lower the cutoff.',
+      );
+    }
+    for (const p of pairs) {
+      await this.#ops.run('measure.distance', {
+        structure: p.ref,
+        a: { molql: compactExpression(p.a) },
+        b: { molql: compactExpression(p.b) },
+      });
+    }
+    return `Added ${pairs.length} distance${pairs.length === 1 ? '' : 's'} within ${cutoff} Å.`;
   }
 
   async #label(cmd: Extract<Command, { kind: 'label' }>): Promise<string> {

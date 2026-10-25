@@ -175,8 +175,9 @@ export type CommandBody =
   | {
       readonly kind: 'measure';
       readonly measure: 'distance' | 'angle' | 'dihedral';
-      /** One atom each. */
+      /** One atom each; with a `cutoff` (a distance), sets: every pair within it (PyMOL's mode 0). */
       readonly atoms: readonly Sel[];
+      readonly cutoff?: number;
     }
   | { readonly kind: 'label'; readonly sel: Sel; readonly text: readonly LabelPart[] }
   | { readonly kind: 'label.clear'; readonly sel?: Sel }

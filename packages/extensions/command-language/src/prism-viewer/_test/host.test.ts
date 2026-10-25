@@ -108,6 +108,19 @@ describe('PyMOL commands on the viewer', () => {
     expect(components(v)).toEqual([]);
   });
 
+  it('shows a cartoon right after a load: on the polymer only, nothing for the waters and the ligand', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    await ok(v, 'show cartoon');
+    await ok(v, 'as cartoon');
+    expect(typesShown(v)).toEqual(['cartoon']);
+    // Only polymer atoms take it: as many as `count_atoms polymer` reads.
+    const cartoon = components(v).filter((c) => c.types.includes('cartoon'));
+    const polymer = (await ok(v, 'count_atoms polymer')).value as { outputs: { text: string }[] };
+    expect(String(cartoon.reduce((n, c) => n + c.atoms, 0))).toBe(polymer.outputs[0].text.match(/\d+/)?.[0]);
+    await ok(v, 'show cartoon, resn REA');
+  });
+
   it('is one step per submission: Undo takes it back whole', async () => {
     const v = await viewer();
     await ok(v, 'load 1cbs.cif');
@@ -157,6 +170,20 @@ describe('PyMOL commands on the viewer', () => {
     await ok(v, "label all, ''");
     const after = await v.api.measure!.list({});
     expect(after.ok && after.did).not.toMatch(/label/);
+  });
+
+  it('measures every pair within a cutoff (distance name, s1, s2, cutoff), and says when there is none', async () => {
+    const v = await viewer();
+    await ok(v, 'load 1cbs.cif');
+    // The carboxylate's polar contacts: four O–N/O pairs within 4 Å in 1CBS.
+    const r = await ok(v, 'distance polar, resn REA and elem O, polymer and (elem N or elem O), 4.0');
+    const n = Number(r.did.match(/Added (\d+) distance/)?.[1]);
+    expect(n, r.did).toBe(4);
+    const list = await v.api.measure!.list({});
+    expect(list.ok && (list.did.match(/distance/g) ?? []).length).toBeGreaterThanOrEqual(n);
+    expect((await ok(v, 'distance none, resn REA, resi 1, 2.0')).did).toMatch(/No atoms/);
+    const many = await run(v, 'distance all, polymer, polymer, 4');
+    expect(many.ok).toBe(false);
   });
 });
 

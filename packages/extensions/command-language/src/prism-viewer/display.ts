@@ -8,7 +8,7 @@ import { StructureElement } from '@molstar/model/model/structure';
 import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import type { Command, RepType } from '../language/ir.js';
 import { RepTypes } from '../language/ir.js';
-import { atomCount, compactExpression, componentLoci } from './atoms.js';
+import { atomCount, compactExpression, componentLoci, polymerAtoms } from './atoms.js';
 import { HostFailure, type Ops, type Where } from './ops.js';
 import { MolstarReps, repTypeOf } from './reps.js';
 
@@ -63,6 +63,9 @@ function shownOf(ops: Ops, s: StructureRef): Shown[] {
 const union = (xs: readonly Loci[], parent: StructureElement.Loci['structure']) =>
   xs.reduce((a, b) => StructureElement.Loci.union(a, b), StructureElement.Loci.none(parent));
 
+/** The representations that draw polymers only. */
+const PolymerTypes: ReadonlySet<RepType> = new Set(['cartoon', 'putty', 'tube', 'backbone']);
+
 /** Adds atoms to the console's component of a type, making it when there is none. */
 async function addOwn(
   ops: Ops,
@@ -71,9 +74,11 @@ async function addOwn(
   type: RepType,
   atoms: Loci,
 ): Promise<string | undefined> {
-  // What another component shows as this type already: not drawn twice.
+  // What another component shows as this type already: not drawn twice. A polymer representation takes the polymer
+  // only (`show cartoon` after a load: the waters and the ligand left, PyMOL draws nothing more; Mol* would refuse).
   const others = shown.filter((x) => !x.own && x.types.includes(type)).map((x) => x.loci);
-  const todo = others.length ? StructureElement.Loci.subtract(atoms, union(others, w.data)) : atoms;
+  const drawn = PolymerTypes.has(type) ? polymerAtoms(atoms) : atoms;
+  const todo = others.length ? StructureElement.Loci.subtract(drawn, union(others, w.data)) : drawn;
   if (!atomCount(todo)) return undefined;
   const target = { molql: compactExpression(todo) };
   const own = shown.find((x) => x.own === type);

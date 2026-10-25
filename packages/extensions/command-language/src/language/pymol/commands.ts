@@ -230,10 +230,9 @@ function measure(kind: 'distance' | 'angle' | 'dihedral', n: number) {
         'Give one atom on each side (mode 0); Mol* shows interactions from the Structure panel.',
       );
     }
+    // With a cutoff, PyMOL measures every pair of the two sets within it.
     if (kind === 'distance' && a.has('cutoff')) {
-      c.report(
-        warning('unsupported-argument', 'cutoff is ignored: one atom on each side is measured.', a.at('cutoff')),
-      );
+      return [{ kind: 'measure', measure: kind, atoms, cutoff: a.number('cutoff') }];
     }
     return [{ kind: 'measure', measure: kind, atoms }];
   };
@@ -674,7 +673,7 @@ export const PymolCommands: readonly PymolCommand[] = [
   {
     name: 'distance',
     aliases: ['dist'],
-    summary: 'Measure the distance between two atoms.',
+    summary: 'Measure the distance between two atoms, or every pair of two sets within a cutoff.',
     usage: 'distance [name,] selection1, selection2 [, cutoff [, mode]]',
     params: [p('name', 'name'), sel('selection1'), sel('selection2'), p('cutoff', 'number'), p('mode', 'int')],
     ignored: {

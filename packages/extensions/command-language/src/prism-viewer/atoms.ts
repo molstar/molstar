@@ -32,6 +32,20 @@ export function lociOf(sel: Sel, object: string, structure: Structure): Loci {
   return StructureElement.Loci.remap(StructureSelection.toLociWithSourceUnits(selection), structure);
 }
 
+const PolymerQuery = B.struct.generator.atomGroups({
+  'entity-test': B.core.rel.eq([B.ammp('entityType'), 'polymer']),
+});
+
+/** The atoms of `loci` in polymer entities: what a cartoon, a putty or a backbone draws (PyMOL draws nothing else). */
+export function polymerAtoms(loci: Loci): Loci {
+  if (StructureElement.Loci.isEmpty(loci)) return loci;
+  const polymer = Script.getStructureSelection(PolymerQuery, loci.structure);
+  return StructureElement.Loci.intersect(
+    loci,
+    StructureElement.Loci.remap(StructureSelection.toLociWithSourceUnits(polymer), loci.structure),
+  );
+}
+
 /** The atoms of a component's structure on its parent structure. */
 export function componentLoci(component: Structure | undefined, parent: Structure): Loci {
   if (!component) return StructureElement.Loci.none(parent);

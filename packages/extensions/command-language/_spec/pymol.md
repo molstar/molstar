@@ -44,7 +44,7 @@ What the PyMOL dialect does ([README](README.md)), written from the command tabl
 | `reset` | `reset` | Reset the camera. |
 | `turn` | `turn axis, angle` | Rotate the camera about an axis of the screen, in degrees. |
 | `move` | `move axis, distance` | Move the camera along an axis of the screen, in Ångströms. |
-| `distance` (`dist`) | `distance [name,] selection1, selection2 [, cutoff [, mode]]` | Measure the distance between two atoms. |
+| `distance` (`dist`) | `distance [name,] selection1, selection2 [, cutoff [, mode]]` | Measure the distance between two atoms, or every pair of two sets within a cutoff. |
 | `angle` | `angle [name,] selection1, selection2, selection3` | Measure the angle of three atoms. |
 | `dihedral` | `dihedral [name,] selection1, selection2, selection3, selection4` | Measure the dihedral angle of four atoms. |
 | `label` | `label [selection [, expression]]` | Label atoms: resn, resi, chain, name, elem, b, quoted text, + and "%s" % (…); empty clears. |
