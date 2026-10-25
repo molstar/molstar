@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ActionFooter, domView, ParamsForm, SectionList, Show } from '@molstar/prism-ui';
+import { ActionFooter, domView, effect, ParamsForm, SectionList, Show } from '@molstar/prism-ui';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { createAnimationModel } from './model.js';
 import type { WiggleState } from './source.js';
@@ -82,8 +82,9 @@ export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
         // Mol*'s wiggle: motion from noise (dynamics) or from model uncertainty, and whole copies tumbling (the scene's
         // animation options: `look`'s defaults); Clear stops both.
         render: domView(() => {
-          // The scene's wiggle as it is when the section shows (set elsewhere: a command, a session, Undo).
-          model.refreshWiggle();
+          // The scene's wiggle, followed (set elsewhere: a command, a session, Undo); a paused section reads it again
+          // when it shows (`effect` resumes with its scope).
+          effect(model.wiggle, () => model.refreshWiggle());
           return (
             <div style="display: grid; gap: var(--msp-space-3)">
               <ParamsForm form={model.wiggleForm} />

@@ -138,6 +138,9 @@ const LookKinds: ReadonlySet<SceneNodeKind> = new Set([
   'shape-representation',
 ]);
 
+/** The rows a look mark can show on: structure representations and what holds them (their overrides). */
+const MarkedKinds: ReadonlySet<SceneNodeKind> = new Set(['structure', 'components', 'component', 'representation']);
+
 /** The operation that applies an inspector form, by the kind of representation it edits. */
 const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   representation: 'representation.update',
@@ -251,7 +254,8 @@ class Node implements SceneNode {
   readonly #expanded: ObservableState<boolean>;
   readonly #children = observableState<readonly SceneNode[]>([]);
   #swatch?: ObservableState<number | undefined>;
-  readonly #look = observableState<SceneLookMark | undefined>(undefined, { compare: sameLookMark });
+  /** Only a node that can have a look gets the state (its row builds the mark then): `LookKinds`. */
+  readonly #look?: ObservableState<SceneLookMark | undefined>;
   /** A structure's frames (several): `structureNode` sets it, and takes it away when it has one model again. */
   trajectory?: SceneTrajectory;
   icon: IconName;
@@ -278,6 +282,8 @@ class Node implements SceneNode {
     },
   ) {
     this.icon = icon;
+    if (MarkedKinds.has(kind))
+      this.#look = observableState<SceneLookMark | undefined>(undefined, { compare: sameLookMark });
     this.#label = observableState(label);
     this.#expanded = observableState(expanded);
   }
@@ -320,13 +326,13 @@ class Node implements SceneNode {
     return this.#swatch?.asReadonly;
   }
 
-  get look(): ReadonlyState<SceneLookMark | undefined> {
-    return this.#look.asReadonly;
+  get look(): ReadonlyState<SceneLookMark | undefined> | undefined {
+    return this.#look?.asReadonly;
   }
 
   /** Its look mark: its own values (a representation), or rows under it with theirs (api.md §2, "Look"). */
   setLook(mark: SceneLookMark | undefined): void {
-    this.#look.set(mark);
+    this.#look?.set(mark);
   }
 
   /** The row's color (a volume's isosurface); only rows that have one get it. */
@@ -1038,6 +1044,7 @@ export function createSceneSource(
     const stats = data && volumeStats(data);
     n.set(name, stats ? `${gridText(stats)} · ${voxelText(stats)}` : undefined, !!v.cell.state.isHidden);
     refreshLevels(ref);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -1068,6 +1075,7 @@ export function createSceneSource(
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
     refreshLevels(ref);
     refreshLevels(volumeRef);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 
@@ -1087,6 +1095,7 @@ export function createSceneSource(
     // Built when the row's ⋯ opens, from the list as it is then (its representations, its unit cell).
     if (!n.menuSource) n.menuSource = () => particlesMenu(plugin, api, ref, openCommand);
     inspections.get(ref)?.form?.load(l.cell.transform.params as never);
+    inspections.get(ref)?.look?.refresh();
     // A trajectory's frames (Simularium): a row under it shows and plays them, as a structure's (`particles.frame`)
     const frames = particleFrames(plugin, l.cell);
     const before = n.trajectory;
@@ -1109,12 +1118,9 @@ export function createSceneSource(
     const id = '#shapes';
     let n = nodes.get(id);
     if (!n) {
+      // its eye: every shape at once, one run (`shape.visibility` with no node)
       n = new Node(id, 'shapes', 'shapes', 'Shapes', true, {
-        visibility: groupEye(
-          'Shapes visibility',
-          () => nodes.get(id)?.children.value ?? [],
-          (g, row, visible) => g.run('shape.visibility', { node: row.id, visible }),
-        ),
+        visibility: (hide) => void api.run('shape.visibility', { visible: !hide }),
       });
       n.removable = false;
       nodes.set(id, n);
@@ -1213,6 +1219,7 @@ export function createSceneSource(
     if (!n.menuSource)
       n.menuSource = () => particlesRepresentationMenu(plugin, api, ref, () => picked.set(nodes.get(ref)));
     inspections.get(ref)?.form?.load(r.cell.transform.params as never);
+    inspections.get(ref)?.look?.refresh();
     return n;
   };
 

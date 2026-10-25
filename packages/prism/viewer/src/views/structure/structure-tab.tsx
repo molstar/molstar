@@ -398,7 +398,7 @@ function Inspector(props: {
             popover={(anchor, close) => (
               <NodeLookPopover
                 model={props.inspection.look!}
-                title={`Look of ${node.label.value}`}
+                title={derive(node.label, (l) => `Look of ${l}`)}
                 anchor={anchor}
                 onClose={close}
               />

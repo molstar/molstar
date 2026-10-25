@@ -84,10 +84,3 @@ export function shapeEntries(state: State): ShapeEntry[] {
   visit(StateTransform.RootRef);
   return out;
 }
-
-/** The shape entry a cell is (the provider) or belongs to (a representation of it). */
-export function shapeEntryOf(state: State, ref: string): ShapeEntry | undefined {
-  return shapeEntries(state).find(
-    (e) => e.cell.transform.ref === ref || e.representations.some((r) => r.transform.ref === ref),
-  );
-}

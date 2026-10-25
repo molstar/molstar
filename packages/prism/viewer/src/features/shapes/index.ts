@@ -7,7 +7,7 @@
  */
 
 import { operationCommand } from '../../commands/operations.js';
-import type { ViewerExtension } from '../../spec.js';
+import type { ViewerExtension, ViewerSkill } from '../../spec.js';
 import { ShapeApi } from './operations.js';
 
 declare module '../../api/area.js' {
@@ -21,11 +21,29 @@ declare module '../../api/area.js' {
 // The `shapes` feature (viewer-spec.md §3.1): the `shape` area and its commands. The Structure panel shows the shapes
 // (its Shapes group, `sources/scene.ts`); their look is `look.set`'s. In the default spec.
 
+export const ShapesSkill: ViewerSkill = {
+  id: 'shapes',
+  title: 'Shapes',
+  summary: 'meshes loaded from files (OBJ, PLY): list, show, hide, focus, remove',
+  guidance: [
+    'Skill shapes: a mesh file loads as a shape with its representations (shape.list gives their refs).',
+    '- show_shape shows or hides one (node: its ref) or all; focus_shape points the camera at it; remove_shape removes',
+    "  it with its file's data. Its look (material, light, quality) is set_look with node: the shape's ref.",
+  ].join('\n'),
+  tools: [
+    { id: 'list_shapes', operation: 'shape.list', description: 'The shapes loaded, with their representations.' },
+    { id: 'show_shape', operation: 'shape.visibility', description: 'Shows or hides a shape, or every shape.' },
+    { id: 'focus_shape', operation: 'shape.focus', description: 'Points the camera at a shape.' },
+    { id: 'remove_shape', operation: 'shape.remove', description: 'Removes a shape.' },
+  ],
+};
+
 export const ShapesFeature: ViewerExtension = {
   id: 'shapes',
   title: 'Shapes',
   builtIn: true,
   api: { shape: (ctx) => new ShapeApi(ctx) },
+  skills: [ShapesSkill],
   commands: (api) => {
     const x = api.shape;
     const category = 'Shapes';

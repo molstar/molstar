@@ -366,7 +366,8 @@ export interface CoreApi {
 
 /**
  * The built-in features' areas (viewer-spec.md §3.1): `structure` (structure, contents, component, look, representation,
- * styles), `volume`, `trajectory`, `annotations`. Typed as present, as they are in the default spec,
+ * styles), `volume`, `trajectory`, `annotations`; the features that add theirs here (`clipping`, `shape`, `animation`,
+ * …: `declare module`). Typed as present, as they are in the default spec,
  * so a script writes `api.structure.preset(...)`; in a viewer whose spec leaves the feature out, reading the area throws,
  * naming the feature to add. Code that works either way asks `api.area(id)`.
  */

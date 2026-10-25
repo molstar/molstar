@@ -11,6 +11,8 @@
 import { Button, ParamsForm, Popover } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import { effect } from '@molstar/prism-ui/dom/scope';
+import { setAttr } from '@molstar/prism-ui/dom/writes';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { derive } from '@molstar/prism-ui/reactive/state';
@@ -37,8 +39,17 @@ export function LookButton(props: {
 }) {
   const open = observableState(false);
   let anchor: HTMLElement | undefined;
+  // its dialog's state, said to assistive technology (the press state is the button's own)
+  effect(open.asReadonly, (o) => anchor && setAttr(anchor, 'aria-expanded', o ? 'true' : 'false'));
   return (
-    <span class={classes.button} ref={(el: HTMLElement) => (anchor = el.querySelector('button') ?? undefined)}>
+    <span
+      class={classes.button}
+      ref={(el: HTMLElement) => {
+        anchor = el.querySelector('button') ?? undefined;
+        if (anchor) setAttr(anchor, 'aria-haspopup', 'dialog');
+        if (anchor) setAttr(anchor, 'aria-expanded', open.value ? 'true' : 'false');
+      }}
+    >
       <Button
         size="sm"
         variant="ghost"
@@ -115,7 +126,7 @@ export function SceneLookPopover(props: {
 /** A node's look: the form (its representations' values), then its own values, each with Use default. */
 export function NodeLookPopover(props: {
   model: NodeLookModel;
-  title: string;
+  title: ReadonlyState<string>;
   anchor: HTMLElement;
   onClose(refocus?: boolean): void;
 }) {

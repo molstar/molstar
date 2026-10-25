@@ -36,12 +36,16 @@ const ShapeNodeParam = (description = 'A shape or one of its representations by 
 interface ShapePick {
   readonly shapes: readonly ShapeEntry[];
   readonly representations: readonly StateObjectCell[];
+  /** Each representation's shape (read once a run: `shapeEntries` walks the tree). */
+  readonly shapeOf: ReadonlyMap<StateObjectCell, ShapeEntry>;
 }
 
 function pickShapes(ctx: ApiContext, node: string): ShapePick | ApiFailure {
   const entries = shapeEntries(ctx.plugin.state.data);
   if (!entries.length) return ApiResult.fail('not-found', 'No shape is loaded.', 'Open a mesh file (OBJ, PLY).');
-  if (!node) return { shapes: entries, representations: [] };
+  const shapeOf = new Map<StateObjectCell, ShapeEntry>();
+  for (const e of entries) for (const r of e.representations) shapeOf.set(r, e);
+  if (!node) return { shapes: entries, representations: [], shapeOf };
   const cells = selectNodes(ctx.plugin.state.data, node);
   if (isFailure(cells)) return cells;
   const refs = new Set(cells.map((c) => c.transform.ref));
@@ -56,16 +60,15 @@ function pickShapes(ctx: ApiContext, node: string): ShapePick | ApiFailure {
       `Shapes: ${entries.map((e) => `${e.label} (${e.cell.transform.ref})`).join(', ')}.`,
     );
   }
-  return { shapes, representations };
+  return { shapes, representations, shapeOf };
 }
 
 /** "tetra.obj", "Mesh of tetra.obj", "3 shapes". */
-function pickText(ctx: ApiContext, p: ShapePick): string {
-  const entries = shapeEntries(ctx.plugin.state.data);
+function pickText(p: ShapePick): string {
   const names = [
     ...p.shapes.map((e) => e.label),
     ...p.representations.map((r) => {
-      const e = entries.find((x) => x.representations.includes(r));
+      const e = p.shapeOf.get(r);
       return `${r.obj?.label ?? 'Representation'}${e ? ` of ${e.label}` : ''}`;
     }),
   ];
@@ -109,9 +112,9 @@ export class ShapeApi extends ApiArea {
       if (isFailure(p)) return p;
       const cells = [...p.shapes.map((e) => e.cell), ...p.representations];
       const todo = cells.filter((c) => !!c.state.isHidden === visible);
-      if (!todo.length) return ApiResult.already(`${pickText(ctx, p)} already ${visible ? 'shown' : 'hidden'}.`);
+      if (!todo.length) return ApiResult.already(`${pickText(p)} already ${visible ? 'shown' : 'hidden'}.`);
       for (const c of todo) setSubtreeVisibility(ctx.plugin.state.data, c.transform.ref, !visible);
-      return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} ${pickText(ctx, p)}.`, {
+      return ApiResult.ok(`${visible ? 'Showed' : 'Hid'} ${pickText(p)}.`, {
         nodes: todo.map((c) => c.transform.ref),
       });
     },
@@ -130,7 +133,7 @@ export class ShapeApi extends ApiArea {
       const p = pickShapes(ctx, node);
       if (isFailure(p)) return p;
       const reps = [...p.shapes.flatMap((e) => e.representations), ...p.representations];
-      if (!reps.length) return ApiResult.fail('not-found', `${pickText(ctx, p)} has no representation.`);
+      if (!reps.length) return ApiResult.fail('not-found', `${pickText(p)} has no representation.`);
       return updateEach(
         ctx,
         reps.map((cell) => ({ cell })),
@@ -155,7 +158,7 @@ export class ShapeApi extends ApiArea {
           `Name one: ${p.shapes.map((e) => `${e.label} (#${e.cell.transform.ref})`).join(', ')}.`,
         );
       }
-      const text = pickText(ctx, p);
+      const text = pickText(p);
       // a whole shape goes with what it was made from (its file's data), as a structure does
       const refs = [
         ...p.shapes.map((e) => entryRoot(ctx, e.cell.transform.ref)),
@@ -182,9 +185,9 @@ export class ShapeApi extends ApiArea {
         const repr = (r.obj?.data as { repr?: { getAllLoci(): ModelLoci[] } } | undefined)?.repr;
         if (repr) loci.push(...repr.getAllLoci());
       }
-      if (!loci.length) return ApiResult.fail('not-found', `${pickText(ctx, p)} shows nothing to focus.`);
+      if (!loci.length) return ApiResult.fail('not-found', `${pickText(p)} shows nothing to focus.`);
       ctx.plugin.managers.camera.focusLoci(loci);
-      return ApiResult.ok(`Focused ${pickText(ctx, p)}.`, { view: true });
+      return ApiResult.ok(`Focused ${pickText(p)}.`, { view: true });
     },
   });
 }

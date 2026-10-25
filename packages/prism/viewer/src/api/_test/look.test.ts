@@ -130,7 +130,10 @@ describe('look by node on other representations', () => {
       true,
     );
     expect(await v.api.look.set({ node: iso.transform.ref, ignoreLight: true })).toMatchObject({ unchanged: true });
-    // nothing of a map follows the defaults: nothing to reset
+    // nothing of a map follows the defaults: nothing to reset, and said so for its node
     expect(await v.api.look.reset({})).toMatchObject({ unchanged: true });
+    const r = await v.api.look.reset({ node: iso.transform.ref });
+    expect(r).toMatchObject({ ok: false, code: 'invalid' });
+    expect(!r.ok && r.message).toMatch(/follows no scene defaults/);
   });
 });

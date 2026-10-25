@@ -35,7 +35,7 @@ export interface AnimationModel {
   stop(): void;
   /** The procedural animation: mode (dynamics, uncertainty), strength, type, speed, frequency, and the tumble. */
   readonly wiggleForm: ParamsFormModel<any>;
-  /** The form from the scene's wiggle (the Wiggle section calls it when it shows). */
+  /** The form from the scene's wiggle (the Wiggle section, whenever the wiggle changes). */
   refreshWiggle(): void;
   readonly wiggle: ReadonlyState<WiggleState>;
   applyWiggle(): void;

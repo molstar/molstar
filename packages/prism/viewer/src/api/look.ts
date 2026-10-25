@@ -12,6 +12,7 @@ import { StructureComponentManager } from '@molstar/plugin/state/manager/structu
 import type { StructureRepresentationRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { ClipVolumesTag } from '@molstar/plugin/state/transforms/shape/clip-volumes';
+import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
 import { selectNodes } from './nodes.js';
@@ -73,6 +74,7 @@ export interface LookState {
 
 const P = StructureComponentManager.OptionsParams;
 const DefaultOptions = PD.getDefaultValues(P);
+const FocusTags: ReadonlySet<string> = new Set(Object.values(StructureFocusRepresentationTags));
 
 /** The params of `set`: each value optional (absent: kept). */
 function lookParams() {
@@ -173,6 +175,15 @@ export class LookApi extends ApiArea {
       const which = keys.length ? keys : LookKeyNames;
       const reprs = node ? structureReprsUnder(ctx, node) : everyRepresentation(ctx);
       if (isFailure(reprs)) return reprs;
+      // a map's, particles' or a shape's look is its own: no scene default to go back to
+      if (node && !reprs.length) {
+        const cells = lookCellsUnder(ctx, node);
+        return ApiResult.fail(
+          'invalid',
+          `${isFailure(cells) ? node : cellsText(ctx, cells)} ${!isFailure(cells) && cells.length > 1 ? 'follow' : 'follows'} no scene defaults: only structure representations do.`,
+          'Set its values with look.set by node.',
+        );
+      }
       const own = overridesOf(ctx, reprs, which);
       if (!own.length) {
         return ApiResult.already(
@@ -205,7 +216,7 @@ export class LookApi extends ApiArea {
       const state: LookState = { defaults: lookDefaults(ctx), overrides: overridesOf(ctx, reprs, LookKeyNames) };
       const d = state.defaults;
       const lines = [
-        `Defaults: hydrogens ${d.hydrogens}, quality ${d.quality}, ignore light ${d.ignoreLight ? 'on' : 'off'}, material ${materialText(d.material)}, solid surface ${d.solidSurface ? 'on' : 'off'}.`,
+        `Defaults: ${LookKeyNames.map((k) => `${LookLabels[k]} ${valueText(k, d[k])}`).join(', ')}.`,
         ...state.overrides.map(
           (o) =>
             `${o.label} (${o.ref}) has its own ${(Object.keys(o.values) as LookKey[]).map((k) => `${LookLabels[k]} ${valueText(k, o.values[k])}`).join(', ')}.`,
@@ -246,7 +257,12 @@ export function everyRepresentation(ctx: Pick<ApiContext, 'plugin'>): StructureR
   const out: StructureRepresentationRef[] = [];
   for (const s of loadedStructures(ctx)) {
     for (const c of s.components) {
-      for (const r of c.representations) if (r.cell.transform.transformer === StructureRepresentation3D) out.push(r);
+      for (const r of c.representations) {
+        if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
+        // the focus behavior's are its own (their look comes through its params)
+        if (r.cell.transform.tags?.some((t) => FocusTags.has(t))) continue;
+        out.push(r);
+      }
     }
   }
   return out;
@@ -271,7 +287,10 @@ export function lookCellsUnder(ctx: Pick<ApiContext, 'plugin'>, node: string): S
   const out: StateObjectCell[] = [];
   state.cells.forEach((cell) => {
     if (cell.state.isGhost || !cell.obj || !PluginStateObject.isRepresentation3D(cell.obj)) return;
-    if (cell.transform.tags?.includes(ClipVolumesTag) || !lookParamsOf(cell.transform.params)) return;
+    // a cut's drawing is the cut's; the focus behavior's representations are the behavior's (it rewrites them, and
+    // takes the scene defaults through its params: `setOptions`)
+    const tags = cell.transform.tags;
+    if (tags?.some((t) => t === ClipVolumesTag || FocusTags.has(t)) || !lookParamsOf(cell.transform.params)) return;
     if (under(cell.transform.ref)) out.push(cell);
   });
   if (!out.length) {
@@ -474,5 +493,13 @@ export function valueText(key: LookKey, value: unknown): string {
     ])[];
     return options.find(([v]) => v === value)?.[1] ?? String(value);
   }
-  return 'custom';
+  if (key === 'interior') {
+    const i = value as LookValues['interior'];
+    return `color #${i.color.toString(16).padStart(6, '0')} at ${i.colorStrength}`;
+  }
+  if (key === 'animation') {
+    const a = value as LookValues['animation'];
+    return `wiggle ${a.wiggleAmplitude}, tumble ${a.tumbleAmplitude}`;
+  }
+  return String(value);
 }
