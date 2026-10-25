@@ -300,6 +300,29 @@ describe('draw table', () => {
     expect(table.takeChanged()).toEqual([table.getSlot(objects[1])]);
   });
 
+  it('drops a changed slot until its values change again', () => {
+    const renderables: GraphicsRenderable[] = [];
+    const table = createDrawTable(renderables);
+    const [a, b] = [meshObject(), meshObject()];
+    for (const r of [a, b]) {
+      renderables.push(r);
+      table.add(r);
+    }
+    table.takeChanged();
+    ValueCell.update(a.values.uMetalness, 0.3);
+    ValueCell.update(b.values.uMetalness, 0.3);
+    table.dropChanged(table.getSlot(a));
+    expect(table.takeChanged()).toEqual([table.getSlot(b)]);
+
+    // dropped, then changed again: taken once
+    ValueCell.update(a.values.uMetalness, 0.4);
+    table.dropChanged(table.getSlot(a));
+    ValueCell.update(a.values.uMetalness, 0.5);
+    ValueCell.update(a.values.uMetalness, 0.6);
+    expect(table.takeChanged()).toEqual([table.getSlot(a)]);
+    expect(table.takeChanged()).toEqual([]);
+  });
+
   it('advances the visible version with what is visible only', () => {
     const renderables: GraphicsRenderable[] = [];
     const table = createDrawTable(renderables);

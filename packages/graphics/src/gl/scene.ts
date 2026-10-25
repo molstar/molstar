@@ -441,7 +441,12 @@ namespace Scene {
       update(objects, keepBoundingSphere) {
         if (objects) {
           for (let i = 0, il = objects.length; i < il; ++i) {
-            renderableMap.get(objects[i])?.update();
+            const renderable = renderableMap.get(objects[i]);
+            if (!renderable) continue;
+            // updated: not again by the next `updateChanged` (a hover after a recolor of all), unless changed meanwhile
+            const slot = renderablesTable.getSlot(renderable);
+            if (slot >= 0) renderablesTable.dropChanged(slot);
+            renderable.update();
           }
         } else {
           // all updated: so are the changed ones

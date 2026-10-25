@@ -56,8 +56,9 @@ item stands as written.
     ([direct-volume-performance.md](../plans/gl/direct-volume-performance.md) step 7). 12/V2, V4 and L1 are still open.
   - 14/N1, the scene half: a changed mark updates only the marked render objects (`Scene.updateChanged`), not the
     whole scene. Still open: `repr.mark` runs on every representation. The many-structures bench stub counts the
-    changed objects too (`sceneUpdated`; N = 100: 868 per 21 hovers, 40 without the theme stages before it:
-    `Scene.update(objects)` updates without clearing their changed flags, so the next mark updates them again).
+    changed objects too (`sceneUpdated`; N = 100: 40 per 21 hovers, one per changed mark). `Scene.update(objects)`
+    now clears the changed flags of the objects it updates (`DrawTable.dropChanged`): before, the next mark updated
+    them again (868 per 21 hovers after a recolor of all).
 - **Fixed after #2051**: 10/P12 (Canvas3D side): `Canvas3D.update(repr)` records that representation's renderables
   again (`PrecompileRecorder.recordAgain`), not every renderable of the scene
   ([pipeline-readiness.md](../plans/gl/pipeline-readiness.md) step 6c). The callers still update one representation at

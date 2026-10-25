@@ -95,6 +95,8 @@ export function stubCanvas(graphics: any) {
       counts.add++;
       renderObjects += repr.renderObjects.length - (reprs.get(repr) ?? 0);
       reprs.set(repr, repr.renderObjects.length);
+      // Canvas3D's `add` ends with `scene.update` of the representation's objects: those in the scene not updated again
+      for (const ro of repr.renderObjects) if (live.has(ro)) changedObjects.delete(ro);
       setObjects(repr, [...repr.renderObjects]);
     },
     remove(repr: Representation.Any) {
@@ -105,8 +107,9 @@ export function stubCanvas(graphics: any) {
     },
     update(repr?: Representation.Any) {
       counts.update++;
-      // all updated: so are the changed ones
+      // all updated: so are the changed ones; a representation's objects are not updated again (`Scene.update`)
       if (!repr) changedObjects.clear();
+      else for (const ro of repr.renderObjects) changedObjects.delete(ro);
     },
     mark(reprLoci: Representation.Loci, action: MarkerAction) {
       counts.mark++;

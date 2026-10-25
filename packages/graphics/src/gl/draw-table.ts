@@ -276,6 +276,11 @@ export interface DrawTable {
    * (`Renderable.update`) after changes of a few of many (a hover); some may be free by now
    */
   takeChanged(): number[];
+  /**
+   * the slot's object is updated outside `takeChanged` (`Scene.update` of given objects): not taken until its values
+   * change again
+   */
+  dropChanged(slot: number): void;
   /** the slot of `r`, -1 if not in the table */
   getSlot(r: GraphicsRenderable): number;
   add(r: GraphicsRenderable): void;
@@ -378,15 +383,18 @@ export function createDrawTable(renderables: ReadonlyArray<GraphicsRenderable>):
     queue.push(slot);
   };
 
-  /** the slots of `takeChanged`, flagged in `inChanged` */
+  /**
+   * the slots of `takeChanged`, flagged in `inChanged`: 1 changed, 2 in `changed` but dropped (`dropChanged`, left in
+   * the list so that dropping is O(1); skipped when taken), 0 not in the list
+   */
   let changed: number[] = [];
   let inChanged = new Uint8Array(0);
   const changedValues = (slot: number) => {
     valuesVersions[slot] += 1;
     valuesEpoch += 1;
-    if (inChanged[slot]) return;
+    if (inChanged[slot] === 1) return;
+    if (inChanged[slot] === 0) changed.push(slot);
     inChanged[slot] = 1;
-    changed.push(slot);
   };
 
   const grow = (min: number) => {
@@ -537,8 +545,17 @@ export function createDrawTable(renderables: ReadonlyArray<GraphicsRenderable>):
     takeChanged() {
       const taken = changed;
       changed = [];
-      for (let i = 0, il = taken.length; i < il; ++i) inChanged[taken[i]] = 0;
+      let n = 0;
+      for (let i = 0, il = taken.length; i < il; ++i) {
+        const slot = taken[i];
+        if (inChanged[slot] === 1) taken[n++] = slot;
+        inChanged[slot] = 0;
+      }
+      taken.length = n;
       return taken;
+    },
+    dropChanged(slot) {
+      if (inChanged[slot] === 1) inChanged[slot] = 2;
     },
     getSlot(r) {
       return slots.get(r) ?? -1;
