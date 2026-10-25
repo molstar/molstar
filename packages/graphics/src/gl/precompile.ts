@@ -215,13 +215,22 @@ export class PrecompileRecorder {
   record(renderables: Iterable<GraphicsRenderable>) {
     for (const r of renderables) {
       if (this.recorded.has(r)) continue;
-      this.recorded.add(r);
-      const signature = getObjectSignature(r);
-      if (!signature) continue;
-      const key = getSignatureKey(signature);
-      const recorded = this.signatures.get(key);
-      this.signatures.set(key, recorded ? mergeSignatures(recorded, signature) : signature);
+      this.add(r);
     }
+  }
+
+  /** records the renderables again, recorded before or not, e.g. after their values were updated (defines may have changed) */
+  recordAgain(renderables: Iterable<GraphicsRenderable>) {
+    for (const r of renderables) this.add(r);
+  }
+
+  private add(r: GraphicsRenderable) {
+    this.recorded.add(r);
+    const signature = getObjectSignature(r);
+    if (!signature) return;
+    const key = getSignatureKey(signature);
+    const recorded = this.signatures.get(key);
+    this.signatures.set(key, recorded ? mergeSignatures(recorded, signature) : signature);
   }
 
   /** the next `record` takes the renderables again, e.g. after their values were updated (defines may have changed) */

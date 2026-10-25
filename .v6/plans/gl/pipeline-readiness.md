@@ -77,7 +77,8 @@
     one after the other in the background; Chrome compiles in parallel (26 pipelines in 440 ms when 1grm loads, step
     5's timing); to be measured in the browser (6f).
 - Step 6c done: recording in `Canvas3D` (only renderables know their kind): the signatures of the scene's renderables
-  when a commit finishes and after `update` (values may change defines), deduplicated (`PrecompileRecorder`),
+  when a commit finishes and after `update` (values may change defines: `update(repr)` records that representation's
+  renderables again, `update()` the scene's), deduplicated (`PrecompileRecorder`),
   `getPrecompileList()` and `resetPrecompileList()`; `PrecompileList` (`objects`, not stored, so without a version).
   `Canvas3D.precompile(list, props[])`: per props (the context's transparency mode
   among them, the current by default) the mode as the device draws it (`DrawPass.resolveTransparency`: blended where

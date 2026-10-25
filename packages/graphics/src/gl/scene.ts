@@ -96,6 +96,8 @@ interface Scene extends Object3D {
   readonly needsCommit: boolean;
   readonly commitQueueSize: number;
   has: (o: GraphicsRenderObject) => boolean;
+  /** the renderable of a committed object */
+  get: (o: GraphicsRenderObject) => GraphicsRenderable | undefined;
   clear: () => void;
   forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void;
   /**
@@ -468,6 +470,7 @@ namespace Scene {
       has: (o: GraphicsRenderObject) => {
         return renderableMap.has(o);
       },
+      get: (o: GraphicsRenderObject) => renderableMap.get(o),
       clear,
       forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => {
         renderableMap.forEach(callbackFn);

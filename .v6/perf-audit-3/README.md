@@ -57,8 +57,11 @@ item stands as written.
   - 14/N1, the scene half: a changed mark updates only the marked render objects (`Scene.updateChanged`), not the
     whole scene. Still open: `repr.mark` runs on every representation. The many-structures bench stub
     (`tests/src/pipeline/canvas-stub.ts`, `sceneUpdateAll`) still counts the old whole-scene update.
+- **Fixed after #2051**: 10/P12 (Canvas3D side): `Canvas3D.update(repr)` records that representation's renderables
+  again (`PrecompileRecorder.recordAgain`), not every renderable of the scene
+  ([pipeline-readiness.md](../plans/gl/pipeline-readiness.md) step 6c). The callers still update one representation at
+  a time.
 - **Still open in Canvas3D and `gl`**:
-  - 10/P12: `Canvas3D.update(repr)` still invalidates the precompile recorder and re-records every renderable.
   - 08/P7: cylinder attributes ×6; the plan for it is [primitive-expansion.md](../plans/gl/primitive-expansion.md),
     not started.
 

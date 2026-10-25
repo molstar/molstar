@@ -11,7 +11,7 @@
 import { BehaviorSubject, type Observable, Subject, type Subscription, debounceTime, merge } from 'rxjs';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type GraphicsRenderObject, hasForeignResources } from '@molstar/graphics/gl/render-object';
-import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
+import { type Frame, type GraphicsRenderable, createFrame } from '@molstar/graphics/gl/renderable';
 import { Renderer, RendererParams, type RendererStats } from '@molstar/graphics/gl/renderer';
 import { MaxLightCount } from '@molstar/graphics/gl/renderable/schema';
 import { getVertexArenaStats } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
@@ -2300,15 +2300,23 @@ namespace Canvas3D {
       remove,
       commit,
       update: (repr, keepSphere) => {
+        // updated values may have changed defines: the updated renderables recorded again
         if (repr) {
           if (!reprRenderObjects.has(repr)) return;
-          scene.update(repr.renderObjects, !!keepSphere);
+          const { renderObjects } = repr;
+          scene.update(renderObjects, !!keepSphere);
+          // only the representation's, not the whole scene's: callers update one representation at a time (a drag)
+          const renderables: GraphicsRenderable[] = [];
+          for (let i = 0, il = renderObjects.length; i < il; ++i) {
+            const renderable = scene.get(renderObjects[i]);
+            if (renderable) renderables.push(renderable);
+          }
+          precompileRecorder.recordAgain(renderables);
         } else {
           scene.update(void 0, !!keepSphere);
+          precompileRecorder.invalidate();
+          precompileRecorder.record(scene.renderables);
         }
-        // updated values may have changed defines
-        precompileRecorder.invalidate();
-        precompileRecorder.record(scene.renderables);
         forceDrawAfterAllCommited = true;
         busy();
       },
