@@ -7,6 +7,14 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
+import {
+  BindingSitePml,
+  type ExampleScript,
+  type ExampleStructure,
+  IncludePml,
+  ProteinDnaPml,
+  RepsTcl,
+} from '@molstar/command-language-extension/examples';
 import { CommandLanguageExtension } from '@molstar/command-language-extension/prism-viewer';
 import { ConsoleTab } from '@molstar/command-language-extension/prism-viewer/parts';
 import { story } from '@molstar/prism-ui/testing/index';
@@ -157,3 +165,51 @@ export const VmdReps: StoryObj = commandsStory(async (v) => {
     }),
   );
 });
+
+// --- Scripts imported into the console (src/examples.ts of the extension; a headless test runs each the same way). ---
+
+/** The example files a script loads, by their name in data/examples. */
+const ExampleUrls: Record<ExampleStructure['example'], string> = {
+  '1cbs_updated.cif': ExampleFiles.cbs,
+  '1tup.bcif': ExampleFiles.tup,
+  '1crn.cif': ExampleFiles.crambin,
+};
+
+/** A script's files, as a person drops them: the scripts, and the structures under the names the script loads. */
+async function filesOf(example: ExampleScript): Promise<File[]> {
+  const structures = await Promise.all(
+    example.structures.map(async (s) => new File([await (await fetch(ExampleUrls[s.example])).blob()], s.name)),
+  );
+  return [...example.scripts.map((s) => new File([s.text], s.name)), ...structures];
+}
+
+/** An empty viewer, its console open, then the script dropped on it with what it loads: it replays whole. */
+function importedStory(example: ExampleScript): StoryObj {
+  return commandsStory(async (v) => {
+    await openConsole(v);
+    await dropOnConsole(await filesOf(example));
+  });
+}
+
+/**
+ * A binding-site figure (binding-site.pml, with 1cbs.cif): a quiet grey cartoon, the ligand and the residues within
+ * 5 Å as sticks colored by element, a distance to Arg111, the pocket's residue names, oriented on the ligand on white.
+ * Its known warning: Mol* makes the atoms transparent in every representation, not only the cartoon.
+ */
+export const ImportedBindingSite: StoryObj = importedStory(BindingSitePml);
+
+/**
+ * Protein and DNA (p53-dna.pml, with 1tup.bcif): chains colored, the DNA as sticks by element, the B-factor spectrum on
+ * chain A, the zinc as small spheres. Its known warnings: the spectrum colors the whole component (a theme), and the
+ * sphere scale sizes every representation.
+ */
+export const ImportedProteinDna: StoryObj = importedStory(ProteinDnaPml);
+
+/** A script and the one it includes (crambin.pml with `@style.pml`, and 1crn.cif): one entry, both run in order. */
+export const ImportedInclude: StoryObj = importedStory(IncludePml);
+
+/**
+ * VMD, from a .tcl (reps.tcl, with 1cbs.cif): Lines removed, then a NewCartoon by structure, the ligand as Licorice by
+ * name, a transparent QuickSurf of the residues around it; the background white, the axes off, orthographic.
+ */
+export const ImportedVmdReps: StoryObj = importedStory(RepsTcl);

@@ -141,7 +141,9 @@ PyMOL keeps a show flag per atom per representation; Mol\* keeps components (sel
 tree is the truth, read at each command (`display.ts`): what every component of a structure shows, in the IR's types.
 
 - `show T, X`: the console's component for T (one per structure and type, recorded in the state) grows by the atoms of X
-  that no other component already shows as T (not drawn twice); it is made when there is none.
+  that no other component already shows as T (not drawn twice); it is made when there is none. A polymer type (cartoon,
+  putty, tube, backbone) takes the polymer atoms of X only: PyMOL draws nothing for the rest, and Mol\* refuses such a
+  representation on atoms with no polymer (`show cartoon` right after a load leaves the waters and the ligand).
 - `hide T, X`: every component showing T loses X: in place when it shows only T (a preset's polymer keeps its name), or,
   when it shows other types too, it gives up its T representation and its atoms outside X move to the console's T
   component. Prism removes a component left empty.
@@ -245,4 +247,6 @@ lines.
 Quick lane: `src/language/_test` (tokenizers, every table example, every unsupported command, diagnostics, names and
 objects, completion) and `src/prism-viewer/_test` (a headless viewer with 1CBS given as a file: show/hide/as on the
 tree, Undo of a submission, rollback, names, measurements with a stand-in canvas, VMD reps and handles, the menu's rows,
-the console's model and its view under jsdom). No network.
+the console's model and its view under jsdom, and the example scripts, `src/examples.ts`, each imported with its
+structures and replayed: no error, no warning but the ones it lists as known; the lines that need a canvas are left out
+headless). No network. The stories (`apps/prism-viewer`, "PyMOL and VMD commands") replay the same scripts in full.
