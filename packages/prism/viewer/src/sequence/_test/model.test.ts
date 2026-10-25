@@ -12,7 +12,8 @@ import { SecondaryStructureProvider as ComputedSecondaryStructure } from '@molst
 import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ComplexRef, sequenceDocument } from '../document.js';
+import type { DocNode } from '@molstar/seq-core/format';
+import { ComplexRef, findRef, SecondaryRef, sequenceDocument } from '../document.js';
 import { DefaultTracksRail } from '../presets.js';
 import { SecondaryTrackProvider } from '../tracks.js';
 import { applySaved } from '../runtime.js';
@@ -100,6 +101,21 @@ describe('the sequence model', () => {
     await settled(h);
     expect(h.viewer.seq.ui.style.value.get('main')).toBe('prism_tracks');
     expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain('molstar:secondary_structure');
+    h.viewers.dispose();
+  });
+
+  it('merged copies get one secondary structure, merged; each chain its own once the chains are shown apart', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    const ss = () => findRef(h.viewer.seq.document.shown.value?.root as DocNode, SecondaryRef)?.params?.options;
+    expect(ss()).toMatchObject({ of: ComplexRef, copies: 'one' });
+    await h.viewer.setChains({ each: true });
+    await settled(h);
+    expect(ss()).not.toHaveProperty('copies');
+    await h.viewer.setChains(undefined);
+    await settled(h);
+    expect(ss()).toMatchObject({ copies: 'one' });
     h.viewers.dispose();
   });
 

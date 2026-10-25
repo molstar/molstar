@@ -660,11 +660,15 @@ class Viewer implements SequenceViewer {
     return { ...op, node };
   }
 
-  /** What providers build over: the structure shown and the document's complex. */
-  private trackContext(structure: Structure, complex: string): SequenceTrackContext {
+  /**
+   * What providers build over: the structure shown, the document's complex and whether its section merges copies (the
+   * chain filter's, or a loaded SeqViewSpec's section's).
+   */
+  private trackContext(structure: Structure, complex: string, each: boolean): SequenceTrackContext {
     return {
       structure,
       complex,
+      copies: each ? 'each' : 'one',
       letters: lettersColor(this.themeState.value, plainCellHex(this.deps.ink.value)),
     };
   }
@@ -718,7 +722,8 @@ class Viewer implements SequenceViewer {
       for (const d of data) if (findRef(base.root, d)) ops.push({ op: 'remove', ref: d });
       placed.delete(track);
     }
-    const ctx = this.trackContext(host.structure, shown.complex);
+    const each = this.svsShown ? section.params?.copies === 'each' : !!edits?.chains?.each;
+    const ctx = this.trackContext(host.structure, shown.complex, each);
     const blocks = (section.children ?? []).filter((n) => n.kind === 'block' && n.ref).map((n) => n.ref!);
     let anchor: string = this.svsShown ? (this.svsAfter ?? 'first') : (blocks[blocks.length - 1] ?? 'first');
     for (const p of wanted) {
@@ -767,7 +772,6 @@ class Viewer implements SequenceViewer {
           after = b.ref!;
         }
       }
-      const each = !!edits?.chains?.each;
       if (each !== (section.params?.copies === 'each'))
         ops.push({ op: 'set', ref: shown.section, params: { copies: each ? 'each' : null } });
     }
@@ -1088,7 +1092,8 @@ class Viewer implements SequenceViewer {
         : undefined;
     const svsShown = !!svs;
     // The providers' tracks in (sequence.md §3): their data under the data node, their tracks in order.
-    const ctx = this.trackContext(host.structure, svs?.complex ?? ComplexRef);
+    const each = svs ? findRef(svs.doc.root, svs.section)?.params?.copies === 'each' : !!edits?.chains?.each;
+    const ctx = this.trackContext(host.structure, svs?.complex ?? ComplexRef, each);
     const placed = new Map<string, readonly string[]>();
     const tracks: BuiltTrack[] = [];
     const before = this.svsShown;
@@ -1118,7 +1123,7 @@ class Viewer implements SequenceViewer {
         format: host.source.format,
         ligands: host.ligands,
         ...(units ? { units } : {}),
-        ...(edits?.chains?.each ? { each: true } : {}),
+        ...(each ? { each: true } : {}),
         tracks,
       });
     }

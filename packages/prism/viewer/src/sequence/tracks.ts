@@ -26,6 +26,8 @@ export interface SequenceTrackContext {
   readonly complex: string;
   /** The letters' color as the person chose it (a layer's `color`): the letters track's. */
   readonly letters: Readonly<Record<string, unknown>>;
+  /** The section's copies: merged into one block each copy group (`one`), or each chain its own. */
+  readonly copies: 'one' | 'each';
 }
 
 export interface SequenceTrackProvider {
@@ -121,7 +123,12 @@ export const SecondaryTrackProvider: SequenceTrackProvider = {
         ref: SecondaryData,
         params: {
           provider: 'molstar:secondary_structure',
-          options: { of: ctx.complex, assignment: secondaryAssignmentOf(ctx.structure) },
+          // Merged copies get one merged row set, not every chain's stacked (`molstar:secondary_structure`).
+          options: {
+            of: ctx.complex,
+            assignment: secondaryAssignmentOf(ctx.structure),
+            ...(ctx.copies === 'one' ? { copies: 'one' } : {}),
+          },
         },
       },
     ],

@@ -69,6 +69,42 @@ const range = new Int32Array(2);
 const hull = new Int32Array(2);
 const win = new Int32Array(2);
 const piece = new Float64Array(64);
+/**
+ * The opaque features drawn at the current start (a block's lane is sorted by start): index, color key, half height.
+ * The copies of a merged block often carry one feature each alike (3J3Q: 18,965 rows, 253 distinct), and an opaque shape
+ * over its equal changes no pixel, so it is skipped; past `SAME` variants at one start, the rest are drawn.
+ */
+const SAME = 16;
+const same = new Int32Array(3 * SAME);
+let sameCount = 0;
+let sameStart = -1;
+
+/** Whether feature k (key, half height hk) is one already drawn at its start; else noted, while there is room. */
+function drawnAlike(f: Features, k: number, key: number, hk: number, last: Uint8Array): boolean {
+  if (f.start[k] !== sameStart) {
+    sameStart = f.start[k];
+    sameCount = 0;
+  }
+  for (let i = 0; i < sameCount; i++) {
+    const j = same[3 * i];
+    if (
+      same[3 * i + 1] === key &&
+      same[3 * i + 2] === hk &&
+      f.stop[j] === f.stop[k] &&
+      f.kind[j] === f.kind[k] &&
+      last[j] === last[k] &&
+      f.label[j] === f.label[k]
+    )
+      return true;
+  }
+  if (sameCount < SAME) {
+    same[3 * sameCount] = k;
+    same[3 * sameCount + 1] = key;
+    same[3 * sameCount + 2] = hk;
+    sameCount++;
+  }
+  return false;
+}
 
 /** A vertex of the shape being built (device px, integers: no double crosses the call). */
 function vertex(first: boolean, x: number, y: number) {
@@ -198,6 +234,7 @@ function draw(v: DrawView, f: Features, tiny: boolean, labeled: boolean) {
     }
     const labelY = Math.round((top + height * 0.45) * dpr) | 0;
     const thickness = sizeTheme(v, 0, 1);
+    const last = lastFragments(v, f);
     // The coil line across each block's view, under the features.
     rects.begin(SkinToken.inkFaint);
     for (let b = 0; b < ax.count; b++) {
@@ -213,14 +250,16 @@ function draw(v: DrawView, f: Features, tiny: boolean, labeled: boolean) {
       for (let lane = 0; lane < f.lanes; lane++) {
         const g = b * f.lanes + lane;
         segWindow(f.start, f.reach, f.seg[g], f.seg[g + 1], hull[0], hull[1], win);
+        sameStart = -1;
         for (let k = win[0]; k < win[1]; k++) {
           const stop = Math.max(f.stop[k], f.start[k] + 1);
           if (stop <= hull[0] || (f.on[k] >= 0 && f.on[k] !== v.row)) continue;
-          const n = placeRun(v, b, f.start[k], stop, piece);
           const key = featureKey(v, f, k);
-          const ink = featureInk(key);
           const alpha = keyAlpha(key);
           const hk = thick(h, featureSize(v, f, k, thickness));
+          if (alpha === 255 && drawnAlike(f, k, key, hk, last)) continue;
+          const n = placeRun(v, b, f.start[k], stop, piece);
+          const ink = featureInk(key);
           rects.begin(ink, alpha);
           ext[0] = 0x7fffffff;
           ext[1] = -0x7fffffff;

@@ -18,18 +18,23 @@ import { categoryTable, readStructure } from '../index.js';
 import { structureOf } from '../source.js';
 import { bytesOf, loaders, registries } from './fixtures.js';
 
-/** The annotation's rows by unit: `start-stop category`, 0-based and half-open on the unit's label_seq_id - 1. */
-async function secondary(source: object, load: Loaders) {
+/**
+ * The annotation's rows by unit (or molecule, `copies: "one"`): `start-stop category`, 0-based and half-open on the
+ * unit's label_seq_id - 1.
+ */
+async function secondary(source: object, load: Loaders, copies?: 'one') {
   const b = createSeqViewSpec();
   const m = b.data.complex({ ref: 'c', provider: 'molstar:structure', source } as never);
-  b.data.computed({ ref: 'ss', provider: 'molstar:secondary_structure', options: { of: m } } as never);
+  const options = { of: m, ...(copies ? { copies } : {}) };
+  b.data.computed({ ref: 'ss', provider: 'molstar:secondary_structure', options } as never);
   b.view({ ref: 'v', label: 'V' }).track({ label: '' }).ruler();
   const c = await compile(b.getDocument(), registries(), load);
   const set = c.set;
   const a = set.annotations.find((x) => x && set.strings.get(x.key).endsWith('ss'));
   const byUnit = new Map<string, string[]>();
   for (let r = 0; a && r < a.count; r++) {
-    const unit = set.strings.get(set.units.key[a.target.unit[r]]);
+    const u = a.target.unit[r];
+    const unit = set.strings.get(u >= 0 ? set.units.key[u] : (set.molecules[a.target.molecule[r]]?.key ?? -1));
     const rows = byUnit.get(unit) ?? [];
     rows.push(`${a.start[r]}-${a.stop[r]} ${set.strings.get(a.category?.[r] ?? -1)}`);
     byUnit.set(unit, rows);
@@ -129,6 +134,40 @@ describe('molstar:secondary_structure', () => {
     src.drawn = await structureOf(src, 0, null);
     const { byUnit } = await secondary(source, host);
     expect([...byUnit.values()].flat().some((r) => r.endsWith('helix'))).toBe(true);
+  });
+
+  it('copies "one": one row set per molecule, on it, residue by residue what most of its chains have', async () => {
+    const each = (await secondary(PDBE_2OCJ, loaders())).byUnit;
+    const { issues, byUnit } = await secondary(PDBE_2OCJ, loaders(), 'one');
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+    expect([...byUnit.keys()]).toEqual(['c/entity:1']);
+    const rows = byUnit.get('c/entity:1') ?? [];
+    const window = (lo: number, hi: number) =>
+      rows.filter((r) => Number(r.split('-')[0]) >= lo && Number(r.split('-')[0]) < hi);
+    // 71–90 (the chains above): B's 3₁₀ helix 73–75 is outvoted by the turns of A, C and D, a turn B starts at 76
+    // runs on (one chain of four starts it); A's α-helix to 88 is the others' turn at 88; all four start a turn at 89.
+    // D's strand 79 is outvoted by the PPII helix.
+    expect(window(68, 90)).toEqual([
+      '70-72 turn',
+      '72-77 turn',
+      '77-78 turn',
+      '78-80 helix',
+      '83-87 helix',
+      '87-88 turn',
+      '88-90 turn',
+    ]);
+    // Two of four: the first chain's (A has the turn 46, C and D have none).
+    expect(each.get('c/A')).toContain('45-46 turn');
+    expect(each.get('c/C')).not.toContain('45-46 turn');
+    expect(rows).toContain('45-46 turn');
+    // One of four: D's turn 169 is out; three of four: A's turn from 136 is the others' from 135.
+    expect(rows.some((r) => r.startsWith('168-'))).toBe(false);
+    expect(rows).toContain('134-136 turn');
+    expect(rows).toContain('184-194 helix');
+    // From 94 on, chain B's rows: it has what most chains have there.
+    expect(rows.filter((r) => Number(r.split('-')[0]) >= 93)).toEqual(
+      (each.get('c/B') ?? []).filter((r) => Number(r.split('-')[0]) >= 93),
+    );
   });
 
   it("keeps a file's bends and drops DSSP's, and ignores a drawn model whose residues are not the source's", async () => {

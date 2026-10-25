@@ -29,8 +29,11 @@ export interface MvsFields {
   instance_id?: string;
 }
 
-/** The complex's units (refs) with their `mvs` fields, in its order. */
-export function complexUnits(set: SeqSet, complex: string): { ref: string; mvs: MvsFields; first: number }[] {
+/** The complex's units (ids and refs) with their `mvs` fields, in its order. */
+export function complexUnits(
+  set: SeqSet,
+  complex: string,
+): { unit: number; ref: string; mvs: MvsFields; first: number }[] {
   const t = { kind: 0, id: 0, row: -1 };
   if (!set.byName(complex, t) || t.kind !== KeyKind.complex) return [];
   const cx = set.complexes[t.id];
@@ -38,6 +41,7 @@ export function complexUnits(set: SeqSet, complex: string): { ref: string; mvs: 
     const mol = set.molecules[set.units.molecule[u]];
     const label = mol?.numberings.byName(set.strings.find('label') as never);
     return {
+      unit: u,
       ref: set.strings.get(set.units.key[u]),
       mvs: (set.units.custom[u]?.doc as { mvs?: MvsFields } | undefined)?.mvs ?? {},
       first: label?.method === 'offset' ? label.first : 1,
