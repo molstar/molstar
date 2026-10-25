@@ -172,4 +172,46 @@ describe('the framing below the band', () => {
     expect(calls).toHaveLength(1);
     framing.undo();
   });
+
+  it('joins each commit’s reset until one has framed a drawn scene; a camera of its own (a session’s) is left', () => {
+    const calls: { snapshot?: unknown; durationMs?: number }[] = [];
+    let n = 0;
+    const listeners: ((n: number) => void)[] = [];
+    const canvas3d = {
+      requestCameraReset: (o?: { snapshot?: unknown; durationMs?: number }) => void calls.push(o ?? {}),
+      reprCount: {
+        get value() {
+          return n;
+        },
+        subscribe: (fn: (n: number) => void) => {
+          listeners.push(fn);
+          return { unsubscribe: () => listeners.splice(listeners.indexOf(fn), 1) };
+        },
+      },
+    };
+    const commit = (count: number) => {
+      n = count;
+      for (const l of listeners) l(n);
+    };
+    const framing = frameBelowTop(canvas3d as never, { clientHeight: 1000 } as HTMLElement, () => 0);
+    // the first commit's reset met nothing visible: its snapshot never read (Canvas3D frames nothing then)
+    commit(1);
+    expect(calls).toHaveLength(1);
+    // the next commit asks again; this one frames
+    commit(4);
+    expect(calls).toHaveLength(2);
+    (calls[1].snapshot as (scene: unknown, camera: FramingCamera) => unknown)(
+      { boundingSphereVisible: { center: [0, 0, 0], radius: 10 } },
+      camera(1000),
+    );
+    commit(5);
+    expect(calls).toHaveLength(2);
+
+    // emptied, and a session's camera restored with the next scene: its own, not framed again
+    commit(0);
+    canvas3d.requestCameraReset({ snapshot: { radius: 3 } });
+    commit(3);
+    expect(calls).toHaveLength(3);
+    framing.undo();
+  });
 });

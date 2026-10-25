@@ -28,5 +28,6 @@
   Shapes, Shape representation (meshes made in code).
 - Prism: `look.set` by node reaches volumes', particles' and shapes' representations too, and their inspectors have the
   sliders (the values they take: no hydrogens); only structure representations follow the scene defaults.
-- Prism: a structure loaded is framed below the sequence band from the start (Mol*'s first framing, and again when the
-  band comes while the camera was not moved): Reset view no longer moves it.
+- Prism: a structure loaded is framed below the sequence band from the start (Mol*'s first framing counts in the band
+  that is about to come): Reset view no longer moves it, nothing jumps when the band comes; closing or showing the band
+  later glides the scene to its new frame while the camera was not moved.
