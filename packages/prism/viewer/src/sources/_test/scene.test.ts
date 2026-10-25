@@ -249,8 +249,8 @@ describe('the scene: volumes and particles', () => {
   it('shows a volume as a top-level node with its representations, next to structures', async () => {
     const v = await headlessViewer({ files: [cbs(), mapFile()] });
     const roots = v.views.scene.roots.value;
-    expect(kinds(roots)).toEqual(['structure:1CBS', 'focus:Focus', 'volume:test.ccp4']);
-    const volume = roots[2];
+    expect(kinds(roots)).toEqual(['structure:1CBS', 'volume:test.ccp4', 'focus:Focus']);
+    const volume = roots[1];
     expect(volume.icon).toBe('volume');
     expect(volume.description.value).toMatch(/12 × 12 × 12 · 1\.5 Å/);
     const reps = volume.children.value;

@@ -1331,3 +1331,14 @@ tbl, CSV) take `StringLike | Uint8Array`; passing a string still works (encoded 
 makes transparent instead, exactly and faster. The Gaussian volume keeps it (`GaussianDensityVolumeParams`,
 `UnitsGaussianDensityVolumeParams`, default 4 as before): its density is made on the GPU, and its own bricks measured
 slower. States and code passing `jumpLength` to a volume's direct-volume representation have it ignored.
+
+## The component manager's options keep a representation's own values
+
+`StructureComponentManager.setOptions` used to write every option to every structure representation, so a
+representation given its own material, quality, light, hydrogens, interior, animation or solid surface lost it at the
+next options change, whichever option changed. It now writes a changed option only to the representations that had its
+previous value; one with a value of its own keeps it (an override: a value other than the option's, read from the
+params, `StructureComponentManager.reprOptionOverrides`). Code that relied on `setOptions` to force values everywhere
+passes the options to force: `setOptions(options, { reset: ['materialStyle', …] })`. Representation presets now also
+give their representations the options' material, clip objects, interior and animation (as `addRepresentation` does),
+so a preset applied after an options change follows the options.

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -173,10 +173,11 @@ async function applyRepresentationPreset(plugin: PluginContext, preset: PresetNa
 
 async function applyStyle(plugin: PluginContext, style: StyleName) {
   if (style === 'default') {
-    await plugin.managers.structure.component.setOptions({
-      ...plugin.managers.structure.component.state.options,
-      ignoreLight: false,
-    });
+    // a style is the scene's: every representation takes it, a preset's own lighting included
+    await plugin.managers.structure.component.setOptions(
+      { ...plugin.managers.structure.component.state.options, ignoreLight: false },
+      { reset: ['ignoreLight'] },
+    );
 
     if (plugin.canvas3d) {
       const p = PD.getDefaultValues(PostprocessingParams);
@@ -187,10 +188,11 @@ async function applyStyle(plugin: PluginContext, style: StyleName) {
   }
 
   if (style === 'illustrative') {
-    await plugin.managers.structure.component.setOptions({
-      ...plugin.managers.structure.component.state.options,
-      ignoreLight: true,
-    });
+    // a style is the scene's: every representation takes it, a preset's own lighting included
+    await plugin.managers.structure.component.setOptions(
+      { ...plugin.managers.structure.component.state.options, ignoreLight: true },
+      { reset: ['ignoreLight'] },
+    );
 
     if (plugin.canvas3d) {
       const pp = plugin.canvas3d.props.postprocessing;

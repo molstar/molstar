@@ -1544,13 +1544,6 @@ export function createSceneSource(
     }
     stale.clear();
     const rest: string[] = [];
-    if (list.length) {
-      // Named by its structure when there are several.
-      const fn = focusNode(allFocusParts, list.length > 1 ? focusedOn : undefined);
-      rest.push(fn.id);
-      fn.setChildren(allFocused);
-      top.push(fn);
-    }
     const volumes = plugin.managers.volume.hierarchy.current.volumes;
     const volumeLabels = namesOf(volumes);
     for (const v of volumes) {
@@ -1609,6 +1602,14 @@ export function createSceneSource(
       );
       gn.set('Shapes', shapes.length === 1 ? '1 shape' : `${shapes.length} shapes`, allHidden(gn.children.value));
       top.push(gn);
+    }
+    // The focus after the data (structures, maps, particles, shapes), before the measurements.
+    if (list.length) {
+      // Named by its structure when there are several.
+      const fn = focusNode(allFocusParts, list.length > 1 ? focusedOn : undefined);
+      rest.push(fn.id);
+      fn.setChildren(allFocused);
+      top.push(fn);
     }
     // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
     // through `measure.*` (the measurements feature), their hover and focus through the measured atoms.
@@ -1784,8 +1785,32 @@ export function createSceneSource(
     );
   }
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
-  // The scene defaults changed: the rows' look marks are read again (an override is a value other than the default).
-  scope.add(plugin.managers.structure.component.events.optionsUpdated.subscribe(() => sync()));
+  // The scene defaults changed: the rows' look marks are read again (an override is a value other than the default),
+  // every structure's, not only those a sync rebuilds (an options change that rewrites no representation leaves the
+  // tree's signatures as they were: `signed`); an open inspector's look too. Once a burst, after it.
+  const refreshLook = () => {
+    for (const s of plugin.managers.structure.hierarchy.current.structures) {
+      const ref = s.cell.transform.ref;
+      nodes.get(ref)?.setLook(
+        groupLookMark(
+          plugin,
+          s.components.flatMap((c) => c.representations),
+        ),
+      );
+      nodes.get(componentsNodeId(ref))?.setLook(
+        groupLookMark(
+          plugin,
+          s.components.flatMap((c) => c.representations),
+        ),
+      );
+      for (const c of s.components) {
+        nodes.get(c.cell.transform.ref)?.setLook(groupLookMark(plugin, c.representations));
+        for (const r of c.representations) nodes.get(r.cell.transform.ref)?.setLook(representationLookMark(plugin, r));
+      }
+    }
+    for (const i of inspections.values()) i.look?.refresh();
+  };
+  scope.add(onceATask(plugin.managers.structure.component.events.optionsUpdated).subscribe(refreshLook));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
   // The measurements (one added, removed, or given new params: its label, its unit): the manager says its state

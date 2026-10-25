@@ -83,7 +83,11 @@ function currentLook(ctx: ApiContext): keyof typeof Looks {
 async function keepLook(ctx: ApiContext) {
   const look = currentLook(ctx);
   const options = ctx.plugin.managers.structure.component.state.options;
-  await ctx.plugin.managers.structure.component.setOptions({ ...options, ignoreLight: look === 'illustrative' });
+  // the look is the scene's: forced onto every representation, a preset's own lighting included (api.md §2 "Look")
+  await ctx.plugin.managers.structure.component.setOptions(
+    { ...options, ignoreLight: look === 'illustrative' },
+    { reset: ['ignoreLight'] },
+  );
 }
 
 async function applyLook(ctx: ApiContext, look: keyof typeof Looks) {
@@ -93,7 +97,11 @@ async function applyLook(ctx: ApiContext, look: keyof typeof Looks) {
   const pp = canvas?.props.postprocessing;
   const already = options.ignoreLight === illustrative && (!pp || (pp.outline.name === 'on') === illustrative);
   if (already) return ApiResult.already(`The look is already ${Looks[look].label.toLowerCase()}.`);
-  await ctx.plugin.managers.structure.component.setOptions({ ...options, ignoreLight: illustrative });
+  // a look is the scene's: every representation takes it, those with their own light included
+  await ctx.plugin.managers.structure.component.setOptions(
+    { ...options, ignoreLight: illustrative },
+    { reset: ['ignoreLight'] },
+  );
   if (pp) {
     if (!illustrative) {
       const p = PD.getDefaultValues(PostprocessingParams);

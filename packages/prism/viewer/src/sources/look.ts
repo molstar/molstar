@@ -20,14 +20,17 @@ import {
   LookLabels,
   lookDefaults,
   ownLookValues,
+  reprLabel,
   lookCellsUnder,
   cellTakes,
   cellLookValue,
   structureReprsOf,
 } from '../api/look.js';
-import { componentName, isFailure, labelOf } from '../api/scope.js';
+import { isFailure } from '../api/scope.js';
 import type { LookOverrideSummary, NodeLookModel, SceneLookMark, SceneLookModel } from '../model/look.js';
-import type { SourceScope } from './state.js';
+import { onceATask, sameItems, type SourceScope } from './state.js';
+import { merge } from 'rxjs';
+import type { StateObjectCell } from '@molstar/core/state';
 
 // The look's view models (api.md §2, "Look"): the scene defaults as the Structure panel's sliders show them, a node's
 // own values as its inspector's sliders show them, and the tree rows' marks. Each change is a `look.*` run.
@@ -70,20 +73,34 @@ function sceneValues(plugin: PluginContext) {
 
 /**
  * Collects changed fields while a drag goes on, then runs once (150 ms after the last change): only what changed is
- * sent, so a value another surface set meanwhile is not written back.
+ * sent, so a value another surface set meanwhile is not written back. `busy` while a change waits or runs: the form is
+ * not loaded from the scene then (it would snap back to the value before the drag). The timer goes with `scope`.
  */
-function batched(scope: SourceScope | undefined, run: (changed: Record<string, unknown>) => void, ms = 150) {
+function batched(
+  scope: SourceScope | undefined,
+  run: (changed: Record<string, unknown>) => Promise<unknown>,
+  ms = 150,
+) {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let pending: Record<string, unknown> = {};
+  let pending: Record<string, unknown> | undefined;
+  let running = 0;
   scope?.add(() => clearTimeout(timer));
-  return (values: Record<string, unknown>, name: string) => {
-    pending[name] = values[name];
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      const changed = pending;
-      pending = {};
-      run(changed);
-    }, ms);
+  return {
+    onChange: (values: Record<string, unknown>, name: string) => {
+      (pending ??= {})[name] = values[name];
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const changed = pending!;
+        pending = undefined;
+        running++;
+        void run(changed).finally(() => running--);
+      }, ms);
+    },
+    busy: () => pending !== undefined || running > 0,
+    cancel: () => {
+      clearTimeout(timer);
+      pending = undefined;
+    },
   };
 }
 
@@ -108,47 +125,39 @@ function summarize(plugin: PluginContext, reprs: readonly StructureRepresentatio
     for (const k of ownKeys(plugin, r)) {
       let list = names.get(k);
       if (!list) names.set(k, (list = []));
-      list.push(reprName(plugin, r));
+      list.push(reprLabel({ plugin }, r));
     }
   }
   return LookKeyNames.filter((k) => names.has(k)).map((k) => ({ key: k, label: labelOfKey(k), names: names.get(k)! }));
 }
 
-function reprName(plugin: PluginContext, r: StructureRepresentationRef): string {
-  const type = (r.cell.transform.params as { type: { name: string } }).type.name;
-  const name = plugin.representation.structure.registry.get(type)?.label ?? type;
-  return `${name} of ${componentName(r.component)} (${labelOf({ plugin }, r.component.structure)})`;
-}
-
 const sameSummary = (a: readonly LookOverrideSummary[], b: readonly LookOverrideSummary[]) =>
-  a.length === b.length &&
-  a.every(
-    (x, i) =>
-      x.key === b[i].key && x.names.length === b[i].names.length && x.names.every((n, j) => n === b[i].names[j]),
-  );
+  sameItems(a, b, (x, y) => x.key === y.key && sameItems(x.names, y.names));
 
-/** The scene defaults (the Structure panel's sliders): `look.set` of the scene, the overrides kept, Apply to all. */
+/**
+ * The scene defaults (the Structure panel's sliders): `look.set` of the scene, the overrides kept, Apply to all. Read
+ * again once a burst of what can change them: the options, the structures' hierarchy (a representation's params, one
+ * added or removed); not every state change (a trajectory's frames). The form follows unless a change of its own waits.
+ */
 export function createSceneLookModel(scope: SourceScope, plugin: PluginContext, api: ViewerApi): SceneLookModel {
   const params = sceneFormParams();
-  const form = new ParamsFormModel(params, sceneValues(plugin) as never, {
-    onChange: batched(scope, (changed) => void api.run('look.set', changed)) as never,
-  });
+  const changes = batched(scope, (changed) => api.run('look.set', changed));
+  const form = new ParamsFormModel(params, sceneValues(plugin) as never, { onChange: changes.onChange as never });
   const overrides = observableState<readonly LookOverrideSummary[]>([], { compare: sameSummary });
-  // Read once per burst of changes (a drag's updates, a preset's many cells), after it.
-  let queued = false;
   const read = () => {
-    queued = false;
     overrides.set(summarize(plugin, everyRepresentation({ plugin })));
+    if (changes.busy()) return;
     const values = sceneValues(plugin);
     if (!PD.areEqual(params, form.values.value, values)) form.load(values as never);
   };
-  const queue = () => {
-    if (queued) return;
-    queued = true;
-    queueMicrotask(read);
-  };
-  scope.add(plugin.managers.structure.component.events.optionsUpdated.subscribe(queue));
-  scope.add(plugin.state.data.events.changed.subscribe(queue));
+  scope.add(
+    onceATask(
+      merge(
+        plugin.managers.structure.component.events.optionsUpdated,
+        plugin.managers.structure.hierarchy.behaviors.selection,
+      ),
+    ).subscribe(read),
+  );
   read();
   return {
     form,
@@ -164,15 +173,20 @@ export function createSceneLookModel(scope: SourceScope, plugin: PluginContext, 
  * their own.
  */
 export function createNodeLookModel(plugin: PluginContext, api: ViewerApi, ref: string): NodeLookModel | undefined {
+  // The cells under the node, found again only when the tree's shape changed (not at a param update: a frame)
+  let found: { children: unknown; cells: StateObjectCell[] } | undefined;
   const cells = () => {
-    const r = lookCellsUnder({ plugin }, ref);
-    return isFailure(r) ? [] : r;
+    const children = plugin.state.data.tree.children;
+    if (found?.children !== children) {
+      const r = lookCellsUnder({ plugin }, ref);
+      found = { children, cells: isFailure(r) ? [] : r };
+    }
+    return found.cells;
   };
-  const found = cells();
-  if (!found.length) return undefined;
+  if (!cells().length) return undefined;
   const all = lookFormParams() as Record<string, PD.Any>;
   const params: Record<string, PD.Any> = {};
-  for (const k of LookKeyNames) if (all[k] && found.some((c) => cellTakes(c, k))) params[k] = all[k];
+  for (const k of LookKeyNames) if (all[k] && cells().some((c) => cellTakes(c, k))) params[k] = all[k];
   // each value as the first representation that takes it has it
   const values = () => {
     const now = cells();
@@ -184,17 +198,25 @@ export function createNodeLookModel(plugin: PluginContext, api: ViewerApi, ref: 
     }
     return out;
   };
-  const form = new ParamsFormModel(params, values() as never, {
-    onChange: batched(undefined, (changed) => void api.run('look.set', { node: ref, ...changed })) as never,
-  });
+  // a change waiting when the node is gone is dropped (the inspector closed with it)
+  const changes = batched(undefined, (changed) =>
+    plugin.state.data.cells.has(ref) ? api.run('look.set', { node: ref, ...changed }) : Promise.resolve(),
+  );
+  const form = new ParamsFormModel(params, values() as never, { onChange: changes.onChange as never });
   const reprs = () => structureReprsOf({ plugin }, cells());
   const own = observableState<readonly LookOverrideSummary[]>(summarize(plugin, reprs()), { compare: sameSummary });
+  // What the last refresh read: the options and the cells' transforms (the same: nothing to read again)
+  let seen: readonly unknown[] = [];
   return {
     form,
     own: own.asReadonly,
     reset: (key) => void api.run('look.reset', { node: ref, keys: key ? [key] : [] }),
     refresh: () => {
+      const now = [plugin.managers.structure.component.state.options, ...cells().map((c) => c.transform)];
+      if (sameItems(now, seen)) return;
+      seen = now;
       own.set(summarize(plugin, reprs()));
+      if (changes.busy()) return;
       const next = values();
       if (!PD.areEqual(params, form.values.value, next)) form.load(next as never);
     },

@@ -37,9 +37,7 @@ export const classes = {
   'inspectorKind': 'msp-viewer-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-viewer-structure-tab-inspectorTitle',
   'nothing': 'msp-viewer-structure-tab-nothing',
-  'options': 'msp-viewer-structure-tab-options',
   'optionsButton': 'msp-viewer-structure-tab-optionsButton',
-  'optionsContent': 'msp-viewer-structure-tab-optionsContent',
   'renameField': 'msp-viewer-structure-tab-renameField',
   'renameTitle': 'msp-viewer-structure-tab-renameTitle',
   'search': 'msp-viewer-structure-tab-search',
@@ -279,17 +277,6 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
 
 .msp-viewer-structure-tab-optionsButton {
   margin-right: var(--msp-space-2);
-}
-
-.msp-viewer-structure-tab-options {
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-  flex: none;
-  max-height: 50%;
-}
-
-.msp-viewer-structure-tab-optionsContent {
-  padding: var(--msp-space-2) var(--msp-space-3);
 }
 
 .msp-viewer-structure-tab-children {

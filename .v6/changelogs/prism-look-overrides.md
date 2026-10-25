@@ -13,7 +13,7 @@
   default and Apply to all.
 - Prism: `look.set` (the scene defaults, or a node's representations), `look.reset`, `look.get`, and their commands;
   `component.options` is gone (`look.set` runs under that id until the release).
-- `StructureComponentManager.setOptions` moves only the representations that had the previous value of a changed
+- [Breaking] `StructureComponentManager.setOptions` moves only the representations that had the previous value of a changed
   option; one given its own value keeps it. `reset` writes options to every representation; `reprOptionOverrides`,
   `reprHasOption`, `applyReprOption`, `reprOptionValue` read and write a representation's options. Representation
   presets give their representations the material, clip objects, interior and animation of the options, as

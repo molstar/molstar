@@ -33,6 +33,18 @@ describe('styles', () => {
     expect(v.plugin.managers.structure.component.state.options.ignoreLight).toBe(false);
   });
 
+  it('keeps a plain look on the representations of a preset that brings its own lighting', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    expectOk(await v.api.styles.apply({ style: 'spacefill' }));
+    // the spacefill preset ignores light; the look in effect (plain) is on every representation, not an override
+    const reprs = v.plugin.managers.structure.hierarchy.current.structures[0].components.flatMap(
+      (c) => c.representations,
+    );
+    expect(reprs.length).toBeGreaterThan(0);
+    for (const r of reprs) expect((r.cell.transform.params as any).type.params.ignoreLight).toBe(false);
+    expect(await v.api.look.get({})).toMatchObject({ value: { overrides: [] } });
+  });
+
   it('refuses an unknown style with the list', async () => {
     const v = await headlessViewer({ files: [cbs()] });
     const r = await v.api.run('styles.apply', { style: 'neon' });

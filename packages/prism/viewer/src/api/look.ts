@@ -418,7 +418,8 @@ async function writeLook(
 
 const refOf = (r: StructureRepresentationRef) => r.cell.transform.ref;
 
-function reprLabel(ctx: Pick<ApiContext, 'plugin'>, r: StructureRepresentationRef): string {
+/** "Cartoon of Polymer (1CBS)": a structure representation for a line. */
+export function reprLabel(ctx: Pick<ApiContext, 'plugin'>, r: StructureRepresentationRef): string {
   const type = (r.cell.transform.params as { type: { name: string } }).type.name;
   const name = ctx.plugin.representation.structure.registry.get(type)?.label ?? type;
   return `${name} of ${componentName(r.component)} (${labelOf(ctx, r.component.structure)})`;
