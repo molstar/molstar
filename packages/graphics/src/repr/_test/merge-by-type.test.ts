@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -22,6 +23,21 @@ function spheres(n: number) {
   return createRenderObject('spheres', values, Spheres.Utils.createRenderableState(props), -1);
 }
 
+/**
+ * Runs `merge` and returns whether it checked the members again: the check (`canMergeRenderObjects`) calls
+ * `Array.prototype.includes` (`isMergeableType`), the skip does not. `getMergeKey` caches its sorted keys, so `sort`
+ * tells nothing.
+ */
+function checks(merge: () => void) {
+  const includes = vi.spyOn(Array.prototype, 'includes');
+  try {
+    merge();
+    return includes.mock.calls.length > 0;
+  } finally {
+    includes.mockRestore();
+  }
+}
+
 describe('mergeRenderObjectsByType', () => {
   it('skips the merge check for the same members, unchanged since it passed (perf-audit-2 07/P17)', () => {
     const entries = [spheres(3), spheres(2), spheres(4)].map((renderObject, visual) => ({ visual, renderObject }));
@@ -30,11 +46,11 @@ describe('mergeRenderObjectsByType', () => {
     expect(out.length).toBe(1);
     const object = out[0];
 
-    // the check sorts each member's define keys (getMergeKey)
-    const sort = vi.spyOn(Array.prototype, 'sort');
-    merged = mergeRenderObjectsByType(entries, true, merged, out);
-    expect(sort).not.toHaveBeenCalled();
-    sort.mockRestore();
+    expect(
+      checks(() => {
+        merged = mergeRenderObjectsByType(entries, true, merged, out);
+      }),
+    ).toBe(false);
     expect(out).toEqual([object]);
 
     // a member whose defines changed is checked again: here it no longer merges
@@ -50,7 +66,7 @@ describe('mergeRenderObjectsByType', () => {
     let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
     const object = out[0];
     const props = PD.getDefaultValues(Spheres.Params);
-    // what every update of a visual runs (a recolor, a new alpha): `uLod`, `uClipObjectType`, `lodLevels` set again
+    // what every update of a visual runs (a recolor, a new alpha): `uLod`, `lodLevels` set again
     const update = (p = props) => {
       for (const { renderObject } of entries) {
         Spheres.Utils.updateValues(renderObject.values as any, p);
@@ -58,25 +74,30 @@ describe('mergeRenderObjectsByType', () => {
       }
     };
 
-    const sort = vi.spyOn(Array.prototype, 'sort');
-    try {
-      for (let i = 0; i < 3; i++) {
-        update();
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
-      }
-      update({ ...props, alpha: 0.5 });
-      merged = mergeRenderObjectsByType(entries, true, merged, out);
-      expect(sort).not.toHaveBeenCalled();
-      expect(out).toEqual([object]);
-
-      // a new LOD is read by the check: checked again, and still mergeable
-      update({ ...props, lod: Vec3.create(1, 100, 0) });
-      merged = mergeRenderObjectsByType(entries, true, merged, out);
-      expect(sort).toHaveBeenCalledTimes(entries.length);
-      expect(out).toEqual([object]);
-    } finally {
-      sort.mockRestore();
+    for (let i = 0; i < 3; i++) {
+      update();
+      expect(
+        checks(() => {
+          merged = mergeRenderObjectsByType(entries, true, merged, out);
+        }),
+      ).toBe(false);
     }
+    update({ ...props, alpha: 0.5 });
+    expect(
+      checks(() => {
+        merged = mergeRenderObjectsByType(entries, true, merged, out);
+      }),
+    ).toBe(false);
+    expect(out).toEqual([object]);
+
+    // a new LOD is read by the check: checked again, and still mergeable
+    update({ ...props, lod: Vec3.create(1, 100, 0) });
+    expect(
+      checks(() => {
+        merged = mergeRenderObjectsByType(entries, true, merged, out);
+      }),
+    ).toBe(true);
+    expect(out).toEqual([object]);
   });
 
   it('checks again when any `*Type` cell the merge check reads is set (perf-audit-3 07/P17)', () => {
@@ -95,7 +116,7 @@ describe('mergeRenderObjectsByType', () => {
       'clippingType',
       'wiggleType',
     ];
-    const notRead = ['uClipObjectType', 'markerType', 'uColorIndexType', 'uSizeIndexType'];
+    const notRead = ['markerType', 'uColorIndexType', 'uSizeIndexType'];
     expect(
       Object.keys(values)
         .filter((k) => k.endsWith('Type') && !/^d[A-Z]/.test(k))
@@ -104,16 +125,14 @@ describe('mergeRenderObjectsByType', () => {
 
     const out: GraphicsRenderObject[] = [];
     let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
-    const sort = vi.spyOn(Array.prototype, 'sort');
-    try {
-      for (const k of [...read, ...notRead]) {
-        sort.mockClear();
-        ValueCell.update(values[k], values[k].ref.value);
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
-        expect(sort.mock.calls.length > 0, k).toBe(read.includes(k));
-      }
-    } finally {
-      sort.mockRestore();
+    for (const k of [...read, ...notRead]) {
+      ValueCell.update(values[k], values[k].ref.value);
+      expect(
+        checks(() => {
+          merged = mergeRenderObjectsByType(entries, true, merged, out);
+        }),
+        k,
+      ).toBe(read.includes(k));
     }
   });
 });
