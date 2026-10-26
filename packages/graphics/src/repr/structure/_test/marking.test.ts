@@ -19,7 +19,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
-import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
+import { EmptyLoci, EveryLoci, type Loci } from '@molstar/model/model/loci';
 import { Bond, Structure, StructureElement, StructureProperties, Unit } from '@molstar/model/model/structure';
 import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
@@ -40,13 +40,15 @@ import { GaussianSurfaceMeshParams, GaussianSurfaceMeshVisual } from '../visual/
 import { Transparency } from '@molstar/graphics/theme/transparency';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import type { Representation } from '../../representation.js';
+import { MarkIndex } from '@molstar/graphics/canvas3d/mark-index';
 import { BallAndStickRepresentationProvider } from '../representation/ball-and-stick.js';
 import { CartoonRepresentationProvider } from '../representation/cartoon.js';
 import { GaussianSurfaceRepresentationProvider } from '../representation/gaussian-surface.js';
 
 // Marking and layers over the visuals of a representation: the marker, overpaint and transparency arrays each visual
 // ends up with, for loci of the shapes the interactive paths see (perf-audit 07 P1, P3-P5). Pinned from the
-// implementation before the loci index and the single-pass mark.
+// implementation before the loci index and the single-pass mark; re-pinned where a removal on an all-clear visual
+// left a mixed status (the marker arrays unchanged, the statuses exact).
 
 const registries = (() => {
   const colorThemeRegistry = ColorTheme.createRegistry();
@@ -468,6 +470,96 @@ describe('layer updates and picking', async () => {
     }
     const unknown = Math.max(...repr.renderObjects.map((o) => o.id)) + 1000;
     expect(repr.getLoci({ objectId: unknown, instanceId: 0, groupId: 0 }).kind).toBe('empty-loci');
+    repr.destroy();
+  });
+});
+
+describe('marks through the index of Canvas3D', async () => {
+  const root = await load1cbs();
+  const seqId = StructureProperties.residue.label_seq_id;
+  /** a subset of `parent` with `parent` as its root, as the plugin's components */
+  const subset = (parent: Structure, pick: (l: StructureElement.Location) => boolean) =>
+    Structure.create(StructureElement.Loci.toStructure(lociOf(parent, pick)).units, { parent });
+
+  it('visits the representations a mark changes: includeParent (`asParent`), a child, not another root', async () => {
+    const child = subset(root, (l) => seqId(l) < 50);
+    // the child's root is `root`; the proxy `asParent` makes is a root of its own, equivalent to `root` (equal hashes)
+    expect(child.root).toBe(root);
+    expect(child.asParent().root).not.toBe(root);
+    // ball-and-stick's `getData` with `includeParent`: the parent, `child` as its child
+    const withParent = await createRepr(BallAndStickRepresentationProvider, child.asParent(), { includeParent: true });
+    const ofChild = await createRepr(CartoonRepresentationProvider, child);
+    // another root: a structure of its own (no parent), not equivalent to `root`
+    const other = await createRepr(CartoonRepresentationProvider, Structure.create(child.units));
+    const reprs = [withParent, ofChild, other];
+    const index = new MarkIndex();
+    for (const r of reprs) index.set(r);
+
+    for (const loci of [lociOf(child, (l) => seqId(l) === 10), lociOf(root, (l) => seqId(l) === 20)]) {
+      const visited = new Set<Representation.Any>();
+      index.forEach(loci, MarkerAction.Highlight, (r) => visited.add(r));
+      expect(visited).toEqual(new Set([withParent, ofChild]));
+      // exact: those visited change, the one left out would not
+      for (const r of reprs) {
+        expect(r.mark(loci, MarkerAction.Highlight)).toBe(visited.has(r));
+        r.mark(loci, MarkerAction.RemoveHighlight);
+      }
+    }
+    for (const r of reprs) r.destroy();
+  });
+
+  it('deselects all on the representations a select reached, the others hold no selection', async () => {
+    const a = await createRepr(CartoonRepresentationProvider, root);
+    // a root of its own, not equivalent to `root`
+    const b = await createRepr(
+      CartoonRepresentationProvider,
+      Structure.create(subset(root, (l) => seqId(l) < 50).units),
+    );
+    const index = new MarkIndex();
+    for (const r of [a, b]) index.set(r);
+    // as `Canvas3D.applyMark`
+    const mark = (loci: Loci, action: MarkerAction) => {
+      const visited: Representation.Any[] = [];
+      index.forEach(loci, action, (r) => {
+        visited.push(r);
+        if (r.mark(loci, action)) index.note(r, action);
+      });
+      return visited;
+    };
+    expect(
+      mark(
+        lociOf(root, (l) => seqId(l) === 10),
+        MarkerAction.Select,
+      ),
+    ).toEqual([a]);
+    expect(mark(EveryLoci, MarkerAction.Deselect)).toEqual([a]);
+    expect(a.renderObjects.every((o) => o.values.markerStatus.ref.value === 0)).toBe(true);
+    // the one left out: nothing to deselect
+    expect(b.mark(EveryLoci, MarkerAction.Deselect)).toBe(false);
+    for (const r of [a, b]) r.destroy();
+  });
+});
+
+describe('marks on all-clear visuals', async () => {
+  const root = await load1cbs();
+  const seqId = StructureProperties.residue.label_seq_id;
+  const statusOf = (r: Representation<Structure>) => r.renderObjects.map((o) => o.values.markerStatus.ref.value);
+
+  it('reports no change for a removal on a clear visual, and keeps its status clear', async () => {
+    const repr = await createRepr(CartoonRepresentationProvider, root);
+    const loci = lociOf(root, (l) => seqId(l) >= 25 && seqId(l) <= 35);
+    expect(repr.mark(loci, MarkerAction.Highlight)).toBe(true);
+    // the highlight removed by a mark of all (as one aimed at the representation), the loci's removal comes after
+    expect(repr.mark(EveryLoci, MarkerAction.RemoveHighlight)).toBe(true);
+    expect(statusOf(repr).every((s) => s === 0)).toBe(true);
+    const versions = repr.renderObjects.map((o) => o.values.tMarker.ref.version);
+    expect(repr.mark(loci, MarkerAction.RemoveHighlight)).toBe(false);
+    expect(repr.mark(loci, MarkerAction.Deselect)).toBe(false);
+    expect(statusOf(repr).every((s) => s === 0)).toBe(true);
+    expect(repr.renderObjects.map((o) => o.values.tMarker.ref.version)).toEqual(versions);
+    // still marks after
+    expect(repr.mark(loci, MarkerAction.Select)).toBe(true);
+    expect(statusOf(repr).some((s) => s !== 0)).toBe(true);
     repr.destroy();
   });
 });

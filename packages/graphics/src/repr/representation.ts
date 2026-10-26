@@ -217,6 +217,12 @@ interface Representation<D, P extends PD.Params = PD.Params, S extends Represent
   eachLocation: (cb: LocationCallback) => void;
   mark: (loci: ModelLoci, action: MarkerAction) => boolean;
   /**
+   * The `hashCode`s of the structure roots whose structure loci (structure, element, bond) `mark` may change: `[]` for
+   * none, `undefined` (or no method) for loci of any root. Canvas3D marks such loci only on the representations of
+   * their root (`MarkIndex`); equivalent roots have equal hashes (`Structure.areRootsEquivalent`)
+   */
+  getStructureRootHashes?: () => ReadonlyArray<number> | undefined;
+  /**
    * Creates and updates visuals with `graphics` from now on (the graphics context changed, see
    * `Canvas3D.contextChanged`); the next `createOrUpdate` creates again what holds resources of the previous context
    */
@@ -512,6 +518,16 @@ namespace Representation {
           marked = reprList[i].mark(loci, action) || marked;
         }
         return marked;
+      },
+      getStructureRootHashes: () => {
+        // all of `reprList`, as `mark` marks all of them (also those of visuals left out by the props)
+        const hashes: number[] = [];
+        for (let i = 0, il = reprList.length; i < il; ++i) {
+          const h = reprList[i].getStructureRootHashes?.();
+          if (!h) return;
+          for (const v of h) if (!hashes.includes(v)) hashes.push(v);
+        }
+        return hashes;
       },
       setState: (state: Partial<S>) => {
         stateBuilder.update(currentState, state);

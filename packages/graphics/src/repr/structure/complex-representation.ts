@@ -207,6 +207,8 @@ export function ComplexRepresentation<P extends StructureParams>(
     getAllLoci,
     eachLocation,
     mark,
+    // `mark` takes structure loci of an equivalent root only
+    getStructureRootHashes: () => (_structure ? [_structure.root.hashCode] : []),
     setGraphics: (value: GraphicsContext) => {
       graphics = value;
     },

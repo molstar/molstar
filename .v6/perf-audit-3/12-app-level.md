@@ -48,8 +48,8 @@ waiters), #2048 (P8, 14/N3 doc, 13/P4).
 | 03/B8 | `chunkedSubtask` sizing compounds | **fixed** | #2045 | chunk = processed since last update / 4 ([chunked.ts:18](../../packages/core/src/task/util/chunked.ts#L18)) |
 | P6 | AsyncQueue: O(K²) waiter signalling, no coalescing | partly fixed | #2046 | waiters per value, head resolved only ([async-queue.ts:12](../../packages/core/src/util/async-queue.ts#L12)); coalescing (H3) open |
 | 13/P3 | Unshared 5M per-element allocation | partly fixed | #2007, #2017 | owned by 04/08; not re-measured here |
-| 07/P7 | Merge by count; members keep a CPU copy | still open | | [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127) unchanged; needs a browser GPU check |
-| 14/N1 | Hover/select mark every representation | still open | | [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54), `:132`; hover alloc 18 → 19 MB at N = 500, render-object updates per hover 7,933 (= v2) |
+| 07/P7 | Merge by count; members keep a CPU copy | **fixed in #2051** | #2051 | members' arrays as parts, no copy; the GPU check done ([merged-render-objects.md](../plans/gl/merged-render-objects.md) steps 1, 3, 4); before: [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127) unchanged; needs a browser GPU check |
+| 14/N1 | Hover/select mark every representation | partly: the scene half **fixed in #2051** (`Scene.updateChanged`: a changed mark updates the marked render objects only; the bench stub's `sceneUpdateAll` still counts the whole scene); the representation half fixed after it (`MarkIndex`: the representations of the loci's root; N = 200 hover 1.7–2.1 → 0.40 ms) | #2051 | [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54), `:132`; hover alloc 18 → 19 MB at N = 500, render-object updates per hover 7,933 (= v2) |
 | 14/N2 | Hierarchy walk per change | still open | | [hierarchy.ts:253](../../packages/plugin/core/src/state/manager/structure/hierarchy.ts#L253); ~85–90 % of a single action's state update at N = 200 |
 | P3 | Classic tree: every node subscribes to every event | still open | | [tree.tsx:79](../../packages/plugin/ui/src/state/tree.tsx#L79) |
 | P4 | Classic apps never pause the loop | still open | | `PauseLoopWhenIdle` only in Prism ([compose-plugin.ts:125](../../packages/prism/viewer/src/sources/compose-plugin.ts#L125)); [plugin-spec.ts:85](../../apps/viewer/src/plugin-spec.ts#L85) |
@@ -83,7 +83,7 @@ waiters), #2048 (P8, 14/N3 doc, 13/P4).
 | 1 | H9 (2) | Event storms and per-action walks | 10/P4, 10/P5 done; the hierarchy walk is now most of a single action; hover marks every representation | 14/N2 incremental hierarchy with a differential test; 14/N1 per-root mark | single actions at N = 200 ~10 → ~2 ms of state update; hover ~1.8 → <0.3 ms per event | M | confirmed |
 | 2 | H10 (5) | Perf regression guard | partly: #2026 added clock-free counters (index reads per component, start-closure budget); bench run by nothing in CI, no baselines; B1, B4 open; classic apps have no size budget | B1 + B4 (S); alloc baselines for `many --count 100` and 7qpd nightly; budgets for the Viewer bundle | would have flagged #2039's sniff cost and the 130 kB Prism start growth | M | plausible |
 | 3 | H7 (1) | Startup and bundle per app | P1, P9, B2 done; start closure at 96 % of its budget, 17 % of it exclusive to WebGPU, MVS, extensions, transpilers | P10 lazy MVS runtime and transpilers (S–M); WebGPU backend lazy (async selection, frozen gl descriptors) | −0.3 to −0.9 MB raw at start | S–M | confirmed |
-| 4 | H6 (3) | CPU copies after GPU upload | 07/P7 open | browser draw-call check, then size-aware `'auto'` | flat-192 b&s retained 2.3 → ~1.3 GB | S (after check) | confirmed |
+| 4 | H6 (3) | CPU copies after GPU upload | 07/P7 **fixed in #2051** ([merged-render-objects.md](../plans/gl/merged-render-objects.md)) | browser draw-call check, then size-aware `'auto'` | flat-192 b&s retained 2.3 → ~1.3 GB | S (after check) | confirmed |
 | 5 | H8 (4) | Render loop policy | unchanged (P4) | `PauseLoopWhenIdle` on in the classic apps | idle 60 rAF/s → 0 | S | confirmed (unmeasurable headless) |
 | 6 | H3 (7) | Latest-wins and abort | P6 waiters fixed (#2046), P5 open, no coalescing | P5 checkpoints | abort latency s → ≤ 100 ms | M | plausible |
 | 7 | H1 (6) | Worker pool | none | after H10 | surfaces off the main thread | L | plausible |
@@ -96,9 +96,9 @@ waiters), #2048 (P8, 14/N3 doc, 13/P4).
 | Rank | Id | Status | Title | File | Kind | Estimate | Effort | Frozen |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 14/N2 | still open | Hierarchy rebuilt by a whole-state walk per change | [hierarchy.ts:253](../../packages/plugin/core/src/state/manager/structure/hierarchy.ts#L253) | time | measured: 8.2–8.5 ms of a 9–10 ms state update at N = 200 (profile) | M | no |
-| 2 | P11 | new (partly regressed, #2039) | Text CIF variant sniff scans the whole file 5×, on bytes | [provider.ts:186](../../packages/plugin/core/src/state/formats/provider.ts#L186) | time | measured: flat-192.cif 2.1–2.5 s (string path 1.0–1.8 s), 7qpd 8–11 ms (2.6–3.6), load ~25; parse of the same file ~0.3 s (v2) | S–M | no |
-| 3 | 14/N1 | still open | Hover/select mark every representation | [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54) | time | measured: 7,933 render-object updates per hover at N = 500; 30.7 of 38 ms (21 hovers, N = 200) in `mark` | M | scene update yes |
-| 4 | 07/P7 | still open | Merge by count; members keep a CPU copy | [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127) | memory | v2: flat-192 b&s retained −1 GB | S | release path yes |
+| 2 | P11 | new (partly regressed, #2039); **partly fixed in #2050** (3 scans instead of 5) | Text CIF variant sniff scans the whole file 5×, on bytes | [provider.ts:186](../../packages/plugin/core/src/state/formats/provider.ts#L186) | time | measured: flat-192.cif 2.1–2.5 s (string path 1.0–1.8 s), 7qpd 8–11 ms (2.6–3.6), load ~25; parse of the same file ~0.3 s (v2) | S–M | no |
+| 3 | 14/N1 | partly: the scene half **fixed in #2051** (`Scene.updateChanged`: a changed mark updates the marked render objects only; the bench stub's `sceneUpdateAll` still counts the whole scene); the representation half fixed after it (`MarkIndex`: the representations of the loci's root; N = 200 hover 1.7–2.1 → 0.40 ms) | Hover/select mark every representation | [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54) | time | measured: 7,933 render-object updates per hover at N = 500; 30.7 of 38 ms (21 hovers, N = 200) in `mark` | M | scene update yes |
+| 4 | 07/P7 | **fixed in #2051** ([merged-render-objects.md](../plans/gl/merged-render-objects.md)) | Merge by count; members keep a CPU copy | [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127) | memory | v2: flat-192 b&s retained −1 GB | S | release path yes |
 | 5 | P10 | new | Prism start closure: 877 kB exclusive to WebGPU, MVS, extensions, transpilers; budget at 96 % | [compose-plugin.ts](../../packages/prism/viewer/src/sources/compose-plugin.ts), [graphics-backends.ts:7](../../packages/plugin/core/src/util/graphics-backends.ts#L7), [default-registry.ts](../../packages/plugin/core/src/default-registry.ts) | bundle | measured: −308 kB (WebGPU), −234 (MVS), −222 (extensions), −87 (transpilers), −27 (AI) raw, exclusive | S–M | WebGPU part yes |
 | 6 | P4 | still open | Classic apps never pause the render loop | [plugin-spec.ts:85](../../apps/viewer/src/plugin-spec.ts#L85) | time | idle 60 ticks/s → 0 (estimate) | S | no |
 | 7 | P12 | new | Quick lane: process-spawning tests and real-timer waits | [typecheck-full.test.mjs:9](../../scripts/workspace/_test/typecheck-full.test.mjs#L9) | test time | measured: 13.0 + 2.1 + 2.1 s of 32.5 s summed (86 files); focus tests ≥125 ms wait each | S | no |
@@ -187,6 +187,8 @@ waiters), #2048 (P8, 14/N3 doc, 13/P4).
 - Startup is compile-bound now: 481 of 816 ms profiled under load in `compileSourceTextModule` for a 6.8 MB bundle;
   `normalizeSource` regexes over every GLSL program at module load are ~17 ms of samples
   ([programs.ts:80](../../packages/graphics/src/gl/webgl/programs.ts#L80), frozen).
+  **Fixed after #2051**: normalized on first use (`getGlslProgram`); the module's import 17.4–19.0 → 5.1–7.4 ms, all
+  42 programs normalized later about 12 ms, none in a WebGPU session.
 - Classic bundles (scratch production builds): Viewer `molstar.js` 5.079 MB / 1.467 gzip (v2 5.00 / 1.44),
   docking-viewer 3.908 / 1.134, mesoscale-explorer 3.966 / 1.145, mvs-stories 4.134 / 1.205, Prism single file 7.240 /
   2.221 (budget 8.0). Only Prism has budgets (H10).
@@ -195,8 +197,8 @@ waiters), #2048 (P8, 14/N3 doc, 13/P4).
 
 | Id | Severity | Status | Title | File | Failure scenario |
 | --- | --- | --- | --- | --- | --- |
-| B1 | low | still open | Pipeline bench crashes on coarse-only entries | [bench.ts:324](../../tests/src/pipeline/bench.ts#L324) | `bench.ts --fixture data/examples/ihm-coarse-8zzh.cif`: TypeError "reading 'elements'" after `theme-eval:residue-name`, exit 1, no table |
-| B4 | low | still open | Bench stages record errors as fast results | [stage.ts:99](../../tests/src/pipeline/stage.ts#L99) | a throwing stage is stored with its `ms` and `info: 'ERROR: …'`, exit 0: reads as a speedup in a comparison |
+| B1 | low | **fixed in #2050** | Pipeline bench crashes on coarse-only entries | [bench.ts:324](../../tests/src/pipeline/bench.ts#L324) | `bench.ts --fixture data/examples/ihm-coarse-8zzh.cif`: TypeError "reading 'elements'" after `theme-eval:residue-name`, exit 1, no table |
+| B4 | low | **fixed in #2050** | Bench stages record errors as fast results | [stage.ts:99](../../tests/src/pipeline/stage.ts#L99) | a throwing stage is stored with its `ms` and `info: 'ERROR: …'`, exit 0: reads as a speedup in a comparison |
 | 03/B7 | low | still open | Late abort discards a completed result undisposed | [observable.ts:106](../../packages/core/src/task/execution/observable.ts#L106) | abort requested while `task.f` finishes: `abort()` throws after the result exists; textures/assets of it are never disposed |
 
 - **B1** reproduced at HEAD (`out/8zzh.log`): every stage through `theme-eval:residue-name` runs, then

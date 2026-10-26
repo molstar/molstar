@@ -108,6 +108,10 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [shader-analysis.md](shader-analysis.md): proposed: every reachable variant compiled on every backend, GLSL and WGSL
   reviewed side by side for parity and numerical hazards, the costliest passes measured and analysed.
 
+- [shared-markers.md](shared-markers.md): proposed: one marker layer for the visuals of a structure group with the
+  same location iterator (element, polymer, …) and marker actions, a mark applied once, the data-page range shared;
+  gated on measuring how often groups are shown twice.
+
 ## Dropped
 
 - [batched-draws.md](batched-draws.md): many objects of separate representations per draw (merged geometry, object and

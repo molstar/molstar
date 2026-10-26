@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { ValueCell } from '@molstar/core/util';
 import {
   createSignatureProgramItem,
   getObjectSignature,
@@ -171,6 +172,41 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
     } finally {
       a.plugin.dispose();
       b.plugin.dispose();
+    }
+  });
+
+  it('an updated representation records its objects again, not the rest of the scene', async () => {
+    const { plugin } = await createPlugin();
+    try {
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      const { representation } = plugin.builders.structure;
+      const cartoon = (await representation.addRepresentation(structure, { type: 'cartoon' })).data!.repr;
+      const spacefill = (await representation.addRepresentation(structure, { type: 'spacefill' })).data!.repr;
+      const canvas = plugin.canvas3d!;
+      canvas.commit(true);
+
+      // the types of the signatures recorded since `keys`
+      const keysOf = () => new Map(canvas.getPrecompileList().objects.map((o) => [getSignatureKey(o), o.type]));
+      const newTypes = (keys: Map<string, string>) =>
+        new Set([...keysOf()].filter(([k]) => !keys.has(k)).map(([, type]) => type));
+      const before = keysOf();
+
+      // a signature value changed on the objects of both (meshes, spheres), an update of the cartoon only
+      for (const repr of [cartoon, spacefill]) {
+        for (const ro of repr.renderObjects)
+          ValueCell.update(ro.values.uDoubleSided!, !ro.values.uDoubleSided!.ref.value);
+      }
+      canvas.update(cartoon);
+      expect(newTypes(before)).toEqual(new Set(['mesh']));
+
+      // the spheres' change is recorded with their own update
+      canvas.update(spacefill);
+      expect(newTypes(before)).toEqual(new Set(['mesh', 'spheres']));
+    } finally {
+      plugin.dispose();
     }
   });
 

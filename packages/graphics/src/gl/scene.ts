@@ -96,6 +96,8 @@ interface Scene extends Object3D {
   readonly needsCommit: boolean;
   readonly commitQueueSize: number;
   has: (o: GraphicsRenderObject) => boolean;
+  /** the renderable of a committed object */
+  get: (o: GraphicsRenderObject) => GraphicsRenderable | undefined;
   clear: () => void;
   forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void;
   /**
@@ -439,7 +441,12 @@ namespace Scene {
       update(objects, keepBoundingSphere) {
         if (objects) {
           for (let i = 0, il = objects.length; i < il; ++i) {
-            renderableMap.get(objects[i])?.update();
+            const renderable = renderableMap.get(objects[i]);
+            if (!renderable) continue;
+            // updated: not again by the next `updateChanged` (a hover after a recolor of all), unless changed meanwhile
+            const slot = renderablesTable.getSlot(renderable);
+            if (slot >= 0) renderablesTable.dropChanged(slot);
+            renderable.update();
           }
         } else {
           // all updated: so are the changed ones
@@ -468,6 +475,7 @@ namespace Scene {
       has: (o: GraphicsRenderObject) => {
         return renderableMap.has(o);
       },
+      get: (o: GraphicsRenderObject) => renderableMap.get(o),
       clear,
       forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => {
         renderableMap.forEach(callbackFn);

@@ -39,6 +39,39 @@ Constraints:
 - MVS loading and animation are in [mvs-optimizations](../mvs-optimizations/research/README.md).
 - Ids are slice-qualified (`05/P13`). A v2 item keeps its id; new ones continue the slice's numbering.
 
+## Since this audit
+
+Re-checked against the code at `24aa41e43` (no reruns); the tables below are marked where an item changed. Every other
+item stands as written.
+
+- **#2050** (first batch) fixed 13/P1, 08/P12 + 08/P15 (v2's R1, R2), 07/P17, 01/P14, 05/P25, 05/P23, 02/B6, 02/B7,
+  12/B1 and 12/B4. Partly fixed: 01/P13 = 12/P11 (3 scans of a plain mmCIF, not 5; the header-only sniff is open).
+  Still open: 01/P12 (the anchors keep the builders' maps alive; the `ChunkedArray` stores stay polymorphic across
+  array kinds).
+- **#2051** (graphics) fixed:
+  - 07/P7 (and H6): the merged object's geometry and theme layers are the members' arrays as parts, with no copy.
+    `auto` from 30 units was measured on both backends ([merged-render-objects.md](../plans/gl/merged-render-objects.md)
+    steps 1, 3, 4).
+  - 12/V1: the 3D volume texture is read at `Tensor.strides`
+    ([direct-volume-performance.md](../plans/gl/direct-volume-performance.md) step 7). 12/V2, V4 and L1 are still open.
+  - 14/N1, the scene half: a changed mark updates only the marked render objects (`Scene.updateChanged`), not the
+    whole scene. The many-structures bench stub counts the changed objects too (`sceneUpdated`; N = 100: 40 per 21
+    hovers, one per changed mark). `Scene.update(objects)` now clears the changed flags of the objects it updates
+    (`DrawTable.dropChanged`): before, the next mark updated them again (868 per 21 hovers after a recolor of all).
+  - 14/N1, the representation half: a mark without a representation visits the representations of its structure
+    loci's root only (`MarkIndex`, by `Representation.getStructureRootHashes`; other loci all of them). N = 200:
+    `repr.mark` 534 → 33 per mark (the equivalent copies of the fixture), hover 1.7–2.1 → 0.40 ms and select
+    1.8–3.7 → 0.25 ms per event (clearing highlights marks the previous loci, so indexed too). Deselect all
+    (`EveryLoci`, an action that only removes) visits the representations markers were added to (`MarkIndex.note`):
+    534 → 1, 12.6 → 0.6 ms, the same objects changed.
+- **Fixed after #2051**: 10/P12 (Canvas3D side): `Canvas3D.update(repr)` records that representation's renderables
+  again (`PrecompileRecorder.recordAgain`), not every renderable of the scene
+  ([pipeline-readiness.md](../plans/gl/pipeline-readiness.md) step 6c). The callers still update one representation at
+  a time.
+- **Still open in Canvas3D and `gl`**:
+  - 08/P7: cylinder attributes ×6; the plan for it is [primitive-expansion.md](../plans/gl/primitive-expansion.md),
+    not started.
+
 ## Method
 
 1. **Profile** ([00-profile.md](00-profile.md)): the pipeline bench as an A/B of the v2 base against HEAD, in one session.
@@ -143,8 +176,8 @@ Biggest gains since v2:
 
 **From v2:**
 
-- **R1** (08/P12): 7qpd cartoon still 79 MB alloc against v1's 38.
-- **R2** (08/P15): gaussian 69 → 71 MB. Both are unchanged against the v2 base, and `--trace-deopt` shows the same drops.
+- **R1** (08/P12): 7qpd cartoon still 79 MB alloc against v1's 38. **fixed in #2050**.
+- **R2** (08/P15): gaussian 69 → 71 MB. Both are unchanged against the v2 base, and `--trace-deopt` shows the same drops. **fixed in #2050**.
 - **R3:** dropped.
 
 **New profile leads** (00 only, not bisected, not verified):
@@ -209,16 +242,16 @@ Rank = impact × breadth ÷ effort; v2's still-open items and new ones together.
 
 | #   | Id                           | Status vs v2                | Title                                                                                                    | File                                                                                                                                                                         | Kind        | Estimate                                                                                                   | Effort | Frozen |
 | --- | ---------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- | ------ | ------ |
-| 1   | 13/P1                        | new                         | MessagePack `bin` copied byte by byte                                                                    | [decode.ts:121](../../packages/io/src/common/msgpack/decode.ts#L121)                                                                                                        | time        | measured: flat-192.bcif `decodeMsgPack` 33 → 3 ms (~80 % of `parseBinary`); every BCIF load; output identical | S      | no     |
-| 2   | 08/P12 + 08/P15 (+ 01/P12)   | still open (v2 R1/R2)       | Optimized builder and marching-cubes code dropped at major GC (per-run maps; ChunkedArray adders too)    | [mesh-builder.ts:120](../../packages/graphics/src/geo/geometry/mesh/mesh-builder.ts#L120), [algorithm.ts:117](../../packages/graphics/src/geo/util/marching-cubes/algorithm.ts#L117), [chunked-array.ts:59](../../packages/core/src/data/util/chunked-array.ts#L59) | time+memory | measured (7qpd): cartoon alloc 71 → 33 MB, gaussian 77 → 45 MB; 3000 tubes cold 29–46 → 6.5–8.5 ms        | S      | no     |
-| 3   | 07/P17                       | **regressed** (#2048)       | Merge fingerprint misses on every update                                                                 | [merged.ts:30](../../packages/graphics/src/repr/merged.ts#L30)                                                                                                              | time        | every recolor re-checks every member (416/416 on flat-32); ~35 ms of a 1.5 s flat-192 recolor               | S      | no     |
+| 1   | 13/P1                        | new; **fixed in #2050** | MessagePack `bin` copied byte by byte                                                                    | [decode.ts:121](../../packages/io/src/common/msgpack/decode.ts#L121)                                                                                                        | time        | measured: flat-192.bcif `decodeMsgPack` 33 → 3 ms (~80 % of `parseBinary`); every BCIF load; output identical | S      | no     |
+| 2   | 08/P12 + 08/P15 (+ 01/P12)   | still open (v2 R1/R2); **fixed in #2050** but 01/P12 | Optimized builder and marching-cubes code dropped at major GC (per-run maps; ChunkedArray adders too)    | [mesh-builder.ts:120](../../packages/graphics/src/geo/geometry/mesh/mesh-builder.ts#L120), [algorithm.ts:117](../../packages/graphics/src/geo/util/marching-cubes/algorithm.ts#L117), [chunked-array.ts:59](../../packages/core/src/data/util/chunked-array.ts#L59) | time+memory | measured (7qpd): cartoon alloc 71 → 33 MB, gaussian 77 → 45 MB; 3000 tubes cold 29–46 → 6.5–8.5 ms        | S      | no     |
+| 3   | 07/P17                       | **regressed** (#2048); **fixed in #2050** | Merge fingerprint misses on every update                                                                 | [merged.ts:30](../../packages/graphics/src/repr/merged.ts#L30)                                                                                                              | time        | every recolor re-checks every member (416/416 on flat-32); ~35 ms of a 1.5 s flat-192 recolor               | S      | no     |
 | 4   | 05/P13                       | still open                  | Inter-unit bonds recomputed per symmetry-equivalent unit pair                                            | [inter-compute.ts:406](../../packages/model/src/model/structure/structure/unit/bonds/inter-compute.ts#L406)                                                                 | time        | prototype: asm-192 ÷2.8–3.8, edges equal (30,906 pairs in 241 classes)                                     | M      | no     |
-| 5   | 01/P13 = 12/P11              | new (#2039)                 | CIF variant sniff scans the whole file 5× on `auto` open                                                 | [provider.ts:186](../../packages/plugin/core/src/state/formats/provider.ts#L186), [utf8.ts:271](../../packages/core/src/util/utf8.ts#L271)                                 | time        | ~0.27 s per open of flat-192.cif (124 MB), about the parse itself; 3 scans exact (−40 %), or header sniff   | S      | no     |
-| 6   | 01/P14                       | new (#2043)                 | `numericRange` builds a string `Set` to find min/max                                                     | [value-palette.ts:641](../../packages/core/src/util/color/value-palette.ts#L641)                                                                                            | time+memory | ~0.2 s and 91 MB per 1.1M values (Seq\* rows) → 4–17 ms                                                     | S      | no     |
-| 7   | 05/P25                       | new (verify)                | Always-true `areIntersecting` per residue in `getAtomicPolymerElements`                                  | [polymer.ts:25](../../packages/model/src/model/structure/structure/util/polymer.ts#L25)                                                                                    | time        | −40–60 % of the function (flat-32 11–12 → 4.5–7 ms), identical output                                     | S      | no     |
-| 8   | 05/P23                       | new (#2037)                 | Periodic whole frames held by a module-level `Map`                                                       | [periodic.ts:65](../../packages/model/src/model/structure/model/periodic.ts#L65)                                                                                           | memory      | 83 MB at 100k atoms, 191 MB at 250k retained after every reference is dropped                              | S      | no     |
+| 5   | 01/P13 = 12/P11              | new (#2039); **partly fixed in #2050** (3 scans) | CIF variant sniff scans the whole file 5× on `auto` open                                                 | [provider.ts:186](../../packages/plugin/core/src/state/formats/provider.ts#L186), [utf8.ts:271](../../packages/core/src/util/utf8.ts#L271)                                 | time        | ~0.27 s per open of flat-192.cif (124 MB), about the parse itself; 3 scans exact (−40 %), or header sniff   | S      | no     |
+| 6   | 01/P14                       | new (#2043); **fixed in #2050** | `numericRange` builds a string `Set` to find min/max                                                     | [value-palette.ts:641](../../packages/core/src/util/color/value-palette.ts#L641)                                                                                            | time+memory | ~0.2 s and 91 MB per 1.1M values (Seq\* rows) → 4–17 ms                                                     | S      | no     |
+| 7   | 05/P25                       | new (verify); **fixed in #2050** | Always-true `areIntersecting` per residue in `getAtomicPolymerElements`                                  | [polymer.ts:25](../../packages/model/src/model/structure/structure/util/polymer.ts#L25)                                                                                    | time        | −40–60 % of the function (flat-32 11–12 → 4.5–7 ms), identical output                                     | S      | no     |
+| 8   | 05/P23                       | new (#2037); **fixed in #2050** | Periodic whole frames held by a module-level `Map`                                                       | [periodic.ts:65](../../packages/model/src/model/structure/model/periodic.ts#L65)                                                                                           | memory      | 83 MB at 100k atoms, 191 MB at 250k retained after every reference is dropped                              | S      | no     |
 | 9   | 07/P2                        | still open                  | Segment visuals size markers and layers to the whole grid, per segment                                   | [segment.ts:221](../../packages/graphics/src/repr/volume/segment.ts#L221)                                                                                                   | memory+time | −152.6 MB for 20 segments in 200³; −44 ms per hover pair                                                  | S      | no     |
-| 10  | 14/N2 + 14/N1                | still open                  | Hierarchy rebuilt by a whole-state walk per change; hover marks every representation                     | [hierarchy.ts:253](../../packages/plugin/core/src/state/manager/structure/hierarchy.ts#L253), [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54) | time        | N2 8.2–8.5 ms of a 9–10 ms action at N = 200; N1 7,933 render-object updates per hover at N = 500          | M      | no     |
+| 10  | 14/N2 + 14/N1                | 14/N2 still open; 14/N1 fixed in Canvas3D (#2051 scene half, `MarkIndex`) | Hierarchy rebuilt by a whole-state walk per change; hover marks every representation                     | [hierarchy.ts:253](../../packages/plugin/core/src/state/manager/structure/hierarchy.ts#L253), [representation.ts:54](../../packages/plugin/core/src/behavior/dynamic/representation.ts#L54) | time        | N2 8.2–8.5 ms of a 9–10 ms action at N = 200; N1 7,933 render-object updates per hover at N = 500          | M      | no     |
 | 11  | 05/P18                       | still open                  | Fixed-point `includeConnected` is quadratic                                                              | [modifiers.ts:358](../../packages/model/src/model/structure/query/queries/modifiers.ts#L358)                                                                               | time        | 7qpd ~0.44–0.97 s → a few ms (frontier BFS)                                                                | M      | no     |
 | 12  | 02/P2 + 02/P3                | still open                  | Grid query: bucket-ordered copies; 32 elements per cell                                                  | [grid.ts:360](../../packages/core/src/math/geometry/lookup3d/grid.ts#L360)                                                                                                 | time        | query −22–27 % (+12 B per element), −10–30 % more with 8 per cell (order changes)                          | S      | no     |
 | 13  | 04/P20 + 13/P2               | new (#2037) + still open    | LAMMPS: eager unwrapped coordinates per frame; token store per column and frame                           | [lammps-trajectory.ts:111](../../packages/model/src/formats/structure/lammps-trajectory.ts#L111), [traj/parser.ts:47](../../packages/io/src/reader/lammps/traj/parser.ts#L47) | memory      | −12 B/atom/frame (−1.2 GB at 100k × 1000); token stores 47.5–71.5 B per atom-frame                          | S / M  | no     |
@@ -230,7 +263,7 @@ Rank = impact × breadth ÷ effort; v2's still-open items and new ones together.
 | 19  | 10/P18                       | new                         | ai session record: each append copies and diffs the whole thread (O(E²) per session)                     | [state.ts:51](../../packages/ai/src/threads/state.ts#L51), [host.ts:166](../../packages/ai/src/threads/host.ts#L166)                                                       | time+memory | 285 KB / 0.1 ms per append at 100 entries → 2.1 MB / 0.83 ms at 4000                                       | M      | no     |
 | 20  | 05/P21                       | still open                  | Intra `findBonds` finds every pair twice through per-atom queries                                        | [intra-compute.ts:387](../../packages/model/src/model/structure/structure/unit/bonds/intra-compute.ts#L387)                                                                | time        | pair enumeration ÷2.8; `bonds-intra` −25–40 %                                                              | M      | no     |
 | 21  | 04/P16                       | partly fixed                | BCIF model retains 124 B/atom: occupancy/B Float64 twice, Cartn twice when sorted, `type_symbol` JS array | [atomic.ts:145](../../packages/model/src/formats/structure/basic/atomic.ts#L145)                                                                                          | memory      | −40 B/atom (−45 MB at 1.1M, −200 MB at 5M), estimated                                                      | S–M    | no     |
-| 22  | 07/P7                        | still open                  | `renderMerged: 'auto'` by count; members keep their arrays beside the merged copy                         | [merged.ts:107](../../packages/graphics/src/repr/merged.ts#L107), [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127)                                     | memory      | flat-32: b&s +168 MB beside 165 MB merged; ~2× retained; needs a GPU draw-call check                       | S      | release: yes |
+| 22  | 07/P7                        | **fixed in #2051**: no copy, `auto` measured ([merged-render-objects.md](../plans/gl/merged-render-objects.md)) | `renderMerged: 'auto'` by count; members keep their arrays beside the merged copy                         | [merged.ts:107](../../packages/graphics/src/repr/merged.ts#L107), [base.ts:127](../../packages/graphics/src/geo/geometry/base.ts#L127)                                     | memory      | flat-32: b&s +168 MB beside 165 MB merged; ~2× retained; needs a GPU draw-call check                       | S      | release: yes |
 | 23  | 12/P10                       | new                         | Prism start closure at 96 % of budget; MVS, extension bodies, transpilers, ai threads load at start       | [compose-plugin.ts](../../packages/prism/viewer/src/sources/compose-plugin.ts)                                                                                              | bundle      | ~0.4–0.57 MB deferrable (WebGPU stays: default backend `'auto'`); grew 130 kB in 3 days                    | S–M    | no     |
 | 24  | 06/P3 + 06/P11 + 06/P7       | still open                  | Inter contacts per symmetry pair; line of sight and ASA through the structure lookup                     | [interactions.ts:464](../../packages/model/src/props/computed/interactions/interactions.ts#L464), [area.ts:98](../../packages/model/src/props/computed/accessible-surface-area/shrake-rupley/area.ts#L98) | time        | P3 search reuse ~26 % of interactions; a shared heavy-atom grid pays off only across P11 + P7              | M–L    | no     |
 | 25  | 10/P12                       | still open                  | `Canvas3D.update(repr)` re-records every renderable's signature; callers loop per representation          | [canvas3d.ts:2240](../../packages/graphics/src/canvas3d/canvas3d.ts#L2240)                                                                                                 | time        | drag at N = 100 ~12 → < 0.5 ms (v2 estimate); caller-side batching is not frozen                           | S      | **yes** |
@@ -263,7 +296,7 @@ Re-ranked by slice 12:
 2. **H10**: the regression guard. Only partly done: clock-free counters and the closure budget landed in #2026, but no bench runs in
    CI and there are no baselines. The 12 fix-induced items above make the case again. Bench bugs 12/B1 and 12/B4 still block it.
 3. **H7**: startup and bundle (12/P10; the budget is at 96 %).
-4. **H6**: CPU copies after upload (07/P7).
+4. **H6**: CPU copies after upload (07/P7; fixed in #2051).
 5. **H8**: idle render loop (12/P4).
 6. **H3**: latest-wins and abort.
 7. **H1**: worker pool.
@@ -281,7 +314,7 @@ H5 (byte CIF tokenizer) is done (#2036, #2040).
 | 2    | New bugs:<br>- 02/B7 (27 shifts)<br>- 05/B15 (drop coordinate-derived data in `withAtomicConformation`)<br>- 06/B13, 04/B15, 10/B7, 08/B10, 09/B8, 13/B3<br>Then v2's medium bugs, all still open: 05/B14 (needs a definition), 08/B8, 04/B8, 04/B10, 01/B1, 10/B4, 03/B6, 03/B11, 06/B2 | probes from the slice reports become tests                                                          |
 | 3    | Regression guard (12/H10):<br>- fix 12/B1 and 12/B4<br>- counters for merge checks, chunk counts, edges, retained per atom<br>- a nightly bench with baselines                                                              | the guard flags 07/P17 and 02/B6 when reverted                                                      |
 | 4    | Algorithmic M with identical output: 05/P13 (then 06/P3), 05/P18, 05/P21, 03/P15, 14/N2 + 14/N1, 10/P18 (in `packages/ai`)                                                                                                  | `bonds-inter` on asm, preset sync and hover at N = 500, snapshot frames at 10k                      |
-| 5    | Decisions and memory: 02/P2 + 02/P3, 05/P2, 04/P16, 07/P2, 07/P7 (GPU check), 09/P17 (L), 12/P10 (lazy MVS / extension bodies); hand 10/P12, 08/P7 and the 07/P7 member release to the WebGPU owners                        | retained MB, render-buffer bytes, start closure bytes                                               |
+| 5    | Decisions and memory: 02/P2 + 02/P3, 05/P2, 04/P16, 07/P2, 09/P17 (L), 12/P10 (lazy MVS / extension bodies); hand 10/P12 and 08/P7 ([primitive-expansion.md](../plans/gl/primitive-expansion.md)) to the WebGPU owners (07/P7: fixed in #2051)                        | retained MB, render-buffer bytes, start closure bytes                                               |
 
 ## Open questions for the maintainers
 
@@ -293,7 +326,8 @@ H5 (byte CIF tokenizer) is done (#2036, #2040).
   - 03/B11.
   - 10/P12: caller-side batching now, or after WebGPU?
   - 12/H8: `PauseLoopWhenIdle` on by default?
-  - 07/P7: who runs the GPU draw-call check?
+  - 07/P7: who runs the GPU draw-call check? (Answered: measured in
+    [merged-render-objects.md](../plans/gl/merged-render-objects.md) step 1.)
 - **12/P10:** the Prism start-closure budget has 210 kB left. Should MVS and the extension bodies load lazily now? Or should
   the budget be raised, with a recorded reason?
 - **12/H10:** v2 asked where the regression guard lives. This run counts 12 bugs or costs brought by fixes since v2, 8 in v2.

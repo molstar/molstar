@@ -133,8 +133,8 @@ in 3 reps. CPU gaussian runs headless or on GPU fallback only.
 
 | Id | Severity | Status | Title | File | Failure scenario |
 | --- | --- | --- | --- | --- | --- |
-| B6 | medium | new (regression, #2034) | Molsurf chunks by voxels only: no yield for seconds at coarse resolution | [molecular-surface.ts:489](../../packages/core/src/math/geometry/molecular-surface.ts#L489) | a 186k-atom structure-level molecular surface at res 8: the torus pass runs as 2 synchronous chunks of 1.4–1.5 s each (v2: 56 updates, longest 183 ms); progress and abort wait for each |
-| B7 | medium | new (#2037) | `PeriodicBox.minimumImage` is not the minimum image in triclinic boxes | [periodic-box.ts:47](../../packages/core/src/math/geometry/periodic-box.ts#L47) | GROMACS rhombic dodecahedron, L = 10 Å: d = (0, 0, 4.5) gives (−5, −5, −2.57), \|m\| 7.52 instead of 4.5; 7.7 % of random \|d\| < L/2 get a farther image, by up to 6.1 Å. In `periodic.ts:200` (centre pinning) a chain of the centred complex is put at a wrong image, so the complex stays split |
+| B6 | medium | new (regression, #2034); **fixed in #2050** | Molsurf chunks by voxels only: no yield for seconds at coarse resolution | [molecular-surface.ts:489](../../packages/core/src/math/geometry/molecular-surface.ts#L489) | a 186k-atom structure-level molecular surface at res 8: the torus pass runs as 2 synchronous chunks of 1.4–1.5 s each (v2: 56 updates, longest 183 ms); progress and abort wait for each |
+| B7 | medium | new (#2037); **fixed in #2050** (shifts bounded by the inverse rows, exact for any box) | `PeriodicBox.minimumImage` is not the minimum image in triclinic boxes | [periodic-box.ts:47](../../packages/core/src/math/geometry/periodic-box.ts#L47) | GROMACS rhombic dodecahedron, L = 10 Å: d = (0, 0, 4.5) gives (−5, −5, −2.57), \|m\| 7.52 instead of 4.5; 7.7 % of random \|d\| < L/2 get a farther image, by up to 6.1 Å. In `periodic.ts:200` (centre pinning) a chain of the centred complex is put at a wrong image, so the complex stays split |
 
 ### B6: molsurf yield regression
 

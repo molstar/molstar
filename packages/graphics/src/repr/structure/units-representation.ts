@@ -23,11 +23,10 @@ import { Theme } from '@molstar/graphics/theme/theme';
 import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Loci, EmptyLoci, isEveryLoci, isDataLoci, EveryLoci } from '@molstar/model/model/loci';
-import { MarkerAction, MarkerActions, applyMarkerAction } from '@molstar/core/util/marker-action';
+import { MarkerAction, MarkerActions } from '@molstar/core/util/marker-action';
 import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import { Transparency } from '@molstar/graphics/theme/transparency';
 import { Mat4, EPSILON } from '@molstar/core/math/linear-algebra';
-import { Interval } from '@molstar/core/data/int';
 import type { StructureParams } from './params.js';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -183,12 +182,9 @@ export function UnitsRepresentation<P extends StructureParams>(
           if (visualGroup) {
             oldVisuals.delete(group);
 
-            // Remove highlight
+            // Remove highlight, through `mark`: its status and average follow (they stood for the layer before)
             // TODO: remove selection too??
-            if (visual.renderObject) {
-              const { array, count } = visual.renderObject.values.tMarker.ref.value;
-              applyMarkerAction(array, Interval.ofBounds(0, count), MarkerAction.RemoveHighlight);
-            }
+            visual.mark(EveryLoci, MarkerAction.RemoveHighlight);
           }
           if (runtime.shouldUpdate)
             await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
@@ -509,6 +505,8 @@ export function UnitsRepresentation<P extends StructureParams>(
     getAllLoci,
     eachLocation,
     mark,
+    // `mark` takes structure loci of an equivalent root only
+    getStructureRootHashes: () => (_structure ? [_structure.root.hashCode] : []),
     setGraphics: (value: GraphicsContext) => {
       graphics = value;
     },

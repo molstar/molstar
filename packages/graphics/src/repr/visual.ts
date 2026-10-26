@@ -10,7 +10,7 @@ import { createForeignResourcesCheck, type GraphicsRenderObject } from '@molstar
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Loci, isEmptyLoci, isEveryLoci, EveryLoci } from '@molstar/model/model/loci';
 import {
-  type MarkerAction,
+  MarkerAction,
   applyMarkerAction,
   getMarkerInfo,
   setMarkerValue,
@@ -201,6 +201,13 @@ namespace Visual {
       : uGroupCount.ref.value * instanceCount.ref.value;
     const { array } = tMarker.ref.value;
     const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
+    // all clear: an action that only removes changes nothing; skips the loci's lookup and a marking that changed nothing
+    if (
+      currentStatus === 0 &&
+      (action === MarkerAction.RemoveHighlight || action === MarkerAction.Deselect || action === MarkerAction.Clear)
+    ) {
+      return false;
+    }
 
     let changed = false;
     let average = -1;
@@ -257,10 +264,9 @@ namespace Visual {
       }
     }
     if (changed) {
-      if (average === -1) {
-        average = getMarkersAverage(array, count);
-        if (average === 0) status = 0;
-      }
+      if (average === -1) average = getMarkersAverage(array, count);
+      // nothing marked: the status says so, whichever way the average was found (a partial average can be 0)
+      if (average === 0) status = 0;
       if (previous) {
         previous.action = action;
         previous.loci = loci;

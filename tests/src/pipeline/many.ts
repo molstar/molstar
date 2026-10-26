@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // Headless bench of one scene of N separate structures (many-fixtures.ts: 1.2k–11.5k atoms each, nothing shared),
@@ -10,8 +11,8 @@
 // (state cell, structure, component, representation, visual), not per atom. Results: .v6/perf-audit/14-many-structures.md.
 //
 // There is no WebGL in Node: `plugin.canvas3d` is a stub that does what Canvas3D does with representations (add,
-// remove, mark every representation, update) but has no scene; it counts the calls that reach the scene, whose cost
-// (frozen gl internals) is measured in the browser. The graphics context is the CPU stub of bench.ts (impostors on).
+// remove, mark the representations of a loci's root, update) but has no scene; it counts the calls that reach the scene, whose cost
+// (gl internals) is measured in the browser. The graphics context is the CPU stub of bench.ts (impostors on).
 //
 // usage (through scripts/pipeline-bench.mjs, which bundles this file):
 //   node scripts/pipeline-bench.mjs many-fixtures --count 500                     # once
@@ -210,7 +211,7 @@ async function pipeline(results: Record<string, StageResult>) {
     }),
   );
 
-  // interactive: events on the middle structure, through the behaviors (labels, marks on every representation)
+  // interactive: events on the middle structure, through the behaviors (labels, marks on its root's representations)
   const target = mid(hierarchy()).cell.obj!.data as Structure;
   const hovers = 20;
   const before = { ...c.counts };
@@ -220,7 +221,7 @@ async function pipeline(results: Record<string, StageResult>) {
     () => {
       for (let k = 0; k < hovers; k++) hover(plugin, residueLoci(target, k));
       hover(plugin, EmptyLoci);
-      return `marks=${c.counts.mark - before.mark} sceneUpdate(ROs)=${c.counts.sceneUpdateAll - before.sceneUpdateAll}`;
+      return `marks=${c.counts.mark - before.mark} reprMarks=${c.counts.reprMark - before.reprMark} sceneUpdate(ROs)=${c.counts.sceneUpdated - before.sceneUpdated}`;
     },
     { count: hovers + 1 },
   );
@@ -233,7 +234,11 @@ async function pipeline(results: Record<string, StageResult>) {
     },
     { count: clicks },
   );
-  await stage('deselect-all', results, () => plugin.managers.interactivity.lociSelects.deselectAll());
+  const beforeDeselect = { ...c.counts };
+  await stage('deselect-all', results, () => {
+    plugin.managers.interactivity.lociSelects.deselectAll();
+    return `reprMarks=${c.counts.reprMark - beforeDeselect.reprMark} sceneUpdate(ROs)=${c.counts.sceneUpdated - beforeDeselect.sceneUpdated}`;
+  });
 
   const overpaintOne = mid(hierarchy()).components;
   await stage('overpaint:one', results, () =>

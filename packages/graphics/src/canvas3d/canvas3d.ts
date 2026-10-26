@@ -11,7 +11,7 @@
 import { BehaviorSubject, type Observable, Subject, type Subscription, debounceTime, merge } from 'rxjs';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type GraphicsRenderObject, hasForeignResources } from '@molstar/graphics/gl/render-object';
-import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
+import { type Frame, type GraphicsRenderable, createFrame } from '@molstar/graphics/gl/renderable';
 import { Renderer, RendererParams, type RendererStats } from '@molstar/graphics/gl/renderer';
 import { MaxLightCount } from '@molstar/graphics/gl/renderable/schema';
 import { getVertexArenaStats } from '@molstar/graphics/gl/compute/marching-cubes/chunks';
@@ -62,6 +62,7 @@ import { StereoCamera, StereoCameraParams } from './camera/stereo.js';
 import type { CameraTransitionManager } from './camera/transition.js';
 import { TransitionTrajectoryParamDefinition, type TransitionTrajectory } from './camera/transition-functions.js';
 import { Viewport } from './camera/util.js';
+import { MarkIndex } from './mark-index.js';
 import { DefaultTrackballControlsAttribs, TrackballControls, TrackballControlsParams } from './controls/trackball.js';
 import { CameraHelperParams } from './helper/camera-helper.js';
 import type { DebugRegistry } from './helper/debug-registry.js';
@@ -958,6 +959,8 @@ namespace Canvas3D {
 
     const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
     const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
+    /** the representations a loci marked on all of them may change (`applyMark`) */
+    const markIndex = new MarkIndex();
     const reprCount = new BehaviorSubject(0);
     const interactionEvent = new Subject<void>();
 
@@ -1220,10 +1223,15 @@ namespace Canvas3D {
       const { repr, loci } = reprLoci;
       let changed = false;
       if (repr) {
-        changed = repr.mark(loci, action) || changed;
+        if (repr.mark(loci, action)) {
+          markIndex.note(repr, action);
+          changed = true;
+        }
       } else {
-        reprRenderObjects.forEach((_, _repr) => {
-          changed = _repr.mark(loci, action) || changed;
+        markIndex.forEach(loci, action, (_repr) => {
+          if (!_repr.mark(loci, action)) return;
+          markIndex.note(_repr, action);
+          changed = true;
         });
       }
       const handleChanged = helper.handle.mark(loci, action);
@@ -1991,6 +1999,7 @@ namespace Canvas3D {
         repr.renderObjects.forEach((o) => scene.add(o));
       }
       reprRenderObjects.set(repr, newRO);
+      markIndex.set(repr);
 
       scene.update(repr.renderObjects, false);
       forceDrawAfterAllCommited = true;
@@ -2000,6 +2009,7 @@ namespace Canvas3D {
     function remove(repr: Representation.Any) {
       unregisterAutoUpdate(repr);
       busy();
+      markIndex.delete(repr);
 
       const renderObjects = reprRenderObjects.get(repr);
       if (renderObjects) {
@@ -2300,15 +2310,25 @@ namespace Canvas3D {
       remove,
       commit,
       update: (repr, keepSphere) => {
+        // updated values may have changed defines: the updated renderables recorded again
         if (repr) {
           if (!reprRenderObjects.has(repr)) return;
-          scene.update(repr.renderObjects, !!keepSphere);
+          markIndex.set(repr);
+          const { renderObjects } = repr;
+          scene.update(renderObjects, !!keepSphere);
+          // only the representation's, not the whole scene's: callers update one representation at a time (a drag)
+          const renderables: GraphicsRenderable[] = [];
+          for (let i = 0, il = renderObjects.length; i < il; ++i) {
+            const renderable = scene.get(renderObjects[i]);
+            if (renderable) renderables.push(renderable);
+          }
+          precompileRecorder.recordAgain(renderables);
         } else {
+          reprRenderObjects.forEach((_, r) => markIndex.set(r));
           scene.update(void 0, !!keepSphere);
+          precompileRecorder.invalidate();
+          precompileRecorder.record(scene.renderables);
         }
-        // updated values may have changed defines
-        precompileRecorder.invalidate();
-        precompileRecorder.record(scene.renderables);
         forceDrawAfterAllCommited = true;
         busy();
       },
@@ -2316,6 +2336,7 @@ namespace Canvas3D {
         reprUpdatedSubscriptions.forEach((v) => v.unsubscribe());
         reprUpdatedSubscriptions.clear();
         reprRenderObjects.clear();
+        markIndex.clear();
         scene.clear();
         helper.debug.clear();
         requestDraw();
