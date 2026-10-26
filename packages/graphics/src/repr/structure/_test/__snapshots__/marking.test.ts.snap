@@ -1459,7 +1459,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
 exports[`representation marking and layers > marks ball-and-stick merged on cells 1`] = `
 {
   "all but one atom": [
-    "highlight + d8ea9cbc 7",
+    "highlight + f28de46 7",
     "remove highlight + c2ebae5c 7",
     "select + 81e913ec 7",
     "highlight other + d4501d59 7",
@@ -1467,7 +1467,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + 81e913ec 7",
     "deselect + c2ebae5c 7",
-    "clear + 9a94bd14 7",
+    "clear - c2ebae5c 7",
   ],
   "bonds": [
     "highlight + e125a544 7",
@@ -1478,7 +1478,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + 92d6add7 7",
     "deselect + c2ebae5c 7",
-    "clear + 5090c668 7",
+    "clear - c2ebae5c 7",
   ],
   "carbons": [
     "highlight + 378fa32a 7",
@@ -1489,12 +1489,12 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + ae5ab27 7",
     "deselect + c2ebae5c 7",
-    "clear + 6515b50c 7",
+    "clear - c2ebae5c 7",
   ],
   "empty element loci": [
-    "highlight - 5090c668 7",
-    "remove highlight - 5090c668 7",
-    "select - 5090c668 7",
+    "highlight - c2ebae5c 7",
+    "remove highlight - c2ebae5c 7",
+    "select - c2ebae5c 7",
     "highlight other + ec6beebd 7",
     "toggle - ec6beebd 7",
     "remove other + c2ebae5c 7",
@@ -1522,7 +1522,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + 26b9e7ea 7",
     "deselect + c2ebae5c 7",
-    "clear + 9a94bd14 7",
+    "clear - c2ebae5c 7",
   ],
   "one residue": [
     "highlight + ec6beebd 7",
@@ -1533,7 +1533,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + fb5f83b2 7",
     "deselect + c2ebae5c 7",
-    "clear + 9a94bd14 7",
+    "clear - c2ebae5c 7",
   ],
   "residue range": [
     "highlight + 7d3b979c 7",
@@ -1544,7 +1544,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + f1f6a426 7",
     "deselect + c2ebae5c 7",
-    "clear + 9a94bd14 7",
+    "clear - c2ebae5c 7",
   ],
   "scattered residues": [
     "highlight + 7103529a 7",
@@ -1555,7 +1555,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "remove other + c2ebae5c 7",
     "select again + 87fd5bf 7",
     "deselect + c2ebae5c 7",
-    "clear + 9a94bd14 7",
+    "clear - c2ebae5c 7",
   ],
   "structure loci": [
     "highlight + 552dc50a 7",
@@ -1569,7 +1569,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
     "clear - c2ebae5c 7",
   ],
   "whole structure": [
-    "highlight + 64b29b32 7",
+    "highlight + 552dc50a 7",
     "remove highlight + c2ebae5c 7",
     "select + 6411662b 7",
     "highlight other + 2e8429c3 7",
@@ -1585,7 +1585,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on cell
 exports[`representation marking and layers > marks ball-and-stick merged on model 1`] = `
 {
   "all but one atom": [
-    "highlight + 1b0ae72a 7",
+    "highlight + 5695243a 7",
     "remove highlight + b649b3e9 7",
     "select + 3114fd6a 7",
     "highlight other + 7c0bfe51 7",
@@ -1593,7 +1593,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "remove other + b649b3e9 7",
     "select again + 3114fd6a 7",
     "deselect + b649b3e9 7",
-    "clear + d753a9e3 7",
+    "clear - b649b3e9 7",
   ],
   "bonds": [
     "highlight + cd861be3 7",
@@ -1604,7 +1604,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "remove other + b649b3e9 7",
     "select again + 2004624a 7",
     "deselect + b649b3e9 7",
-    "clear + e4224edb 7",
+    "clear - b649b3e9 7",
   ],
   "carbons": [
     "highlight + f0cf7506 7",
@@ -1615,12 +1615,12 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "remove other + b649b3e9 7",
     "select again + 3c732a0e 7",
     "deselect + b649b3e9 7",
-    "clear + d94a3cf3 7",
+    "clear - b649b3e9 7",
   ],
   "empty element loci": [
-    "highlight - e4224edb 7",
-    "remove highlight - e4224edb 7",
-    "select - e4224edb 7",
+    "highlight - b649b3e9 7",
+    "remove highlight - b649b3e9 7",
+    "select - b649b3e9 7",
     "highlight other + 7cd36374 7",
     "toggle - 7cd36374 7",
     "remove other + b649b3e9 7",
@@ -1659,7 +1659,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "remove other + b649b3e9 7",
     "select again + 172bb598 7",
     "deselect + b649b3e9 7",
-    "clear + d753a9e3 7",
+    "clear - b649b3e9 7",
   ],
   "residue range": [
     "highlight + f5941244 7",
@@ -1670,7 +1670,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "remove other + b649b3e9 7",
     "select again + d72351b8 7",
     "deselect + b649b3e9 7",
-    "clear + d753a9e3 7",
+    "clear - b649b3e9 7",
   ],
   "scattered residues": [
     "highlight + 7274074b 7",
@@ -1681,7 +1681,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "remove other + b649b3e9 7",
     "select again + cdd7c143 7",
     "deselect + b649b3e9 7",
-    "clear + d753a9e3 7",
+    "clear - b649b3e9 7",
   ],
   "structure loci": [
     "highlight + 651afcad 7",
@@ -1695,7 +1695,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
     "clear - b649b3e9 7",
   ],
   "whole structure": [
-    "highlight + c5dab2fd 7",
+    "highlight + 651afcad 7",
     "remove highlight + b649b3e9 7",
     "select + 269d97dd 7",
     "highlight other + a6d67bf1 7",
@@ -1711,7 +1711,7 @@ exports[`representation marking and layers > marks ball-and-stick merged on mode
 exports[`representation marking and layers > marks ball-and-stick on cells 1`] = `
 {
   "all but one atom": [
-    "highlight + 25e37654 5",
+    "highlight + e9fa91b6 5",
     "remove highlight + f19ea7af 5",
     "select + b9a2aad8 5",
     "highlight other + ee262531 5",
@@ -1719,7 +1719,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + b9a2aad8 5",
     "deselect + f19ea7af 5",
-    "clear + c30d801d 5",
+    "clear - f19ea7af 5",
   ],
   "bonds": [
     "highlight + f6ba4926 5",
@@ -1730,7 +1730,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + ab56b4b1 5",
     "deselect + f19ea7af 5",
-    "clear + 1409a401 5",
+    "clear - f19ea7af 5",
   ],
   "carbons": [
     "highlight + 7c784462 5",
@@ -1741,12 +1741,12 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + d08c7b53 5",
     "deselect + f19ea7af 5",
-    "clear + 1ec946e5 5",
+    "clear - f19ea7af 5",
   ],
   "empty element loci": [
-    "highlight - 1409a401 5",
-    "remove highlight - 1409a401 5",
-    "select - 1409a401 5",
+    "highlight - f19ea7af 5",
+    "remove highlight - f19ea7af 5",
+    "select - f19ea7af 5",
     "highlight other + c368f271 5",
     "toggle - c368f271 5",
     "remove other + f19ea7af 5",
@@ -1774,7 +1774,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + 6f93ceeb 5",
     "deselect + f19ea7af 5",
-    "clear + c30d801d 5",
+    "clear - f19ea7af 5",
   ],
   "one residue": [
     "highlight + c368f271 5",
@@ -1785,7 +1785,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + a73cacc4 5",
     "deselect + f19ea7af 5",
-    "clear + c30d801d 5",
+    "clear - f19ea7af 5",
   ],
   "residue range": [
     "highlight + b606940b 5",
@@ -1796,7 +1796,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + e4be675e 5",
     "deselect + f19ea7af 5",
-    "clear + c30d801d 5",
+    "clear - f19ea7af 5",
   ],
   "scattered residues": [
     "highlight + 5c423ef2 5",
@@ -1807,7 +1807,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "remove other + f19ea7af 5",
     "select again + 885095c0 5",
     "deselect + f19ea7af 5",
-    "clear + c30d801d 5",
+    "clear - f19ea7af 5",
   ],
   "structure loci": [
     "highlight + cfdd8f1e 5",
@@ -1821,7 +1821,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
     "clear - f19ea7af 5",
   ],
   "whole structure": [
-    "highlight + d25e7462 5",
+    "highlight + cfdd8f1e 5",
     "remove highlight + f19ea7af 5",
     "select + cd95d1cb 5",
     "highlight other + 3aff1b4 5",
@@ -1837,7 +1837,7 @@ exports[`representation marking and layers > marks ball-and-stick on cells 1`] =
 exports[`representation marking and layers > marks ball-and-stick on model 1`] = `
 {
   "all but one atom": [
-    "highlight + a7d06ee2 5",
+    "highlight + 1e4fbc72 5",
     "remove highlight + 865960a5 5",
     "select + 41b01f18 5",
     "highlight other + 20f129ba 5",
@@ -1845,7 +1845,7 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "remove other + 865960a5 5",
     "select again + 41b01f18 5",
     "deselect + 865960a5 5",
-    "clear + 17f4fc93 5",
+    "clear - 865960a5 5",
   ],
   "bonds": [
     "highlight + 502a5489 5",
@@ -1856,7 +1856,7 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "remove other + 865960a5 5",
     "select again + 37f58c6e 5",
     "deselect + 865960a5 5",
-    "clear + 9886c977 5",
+    "clear - 865960a5 5",
   ],
   "carbons": [
     "highlight + 11e65dd8 5",
@@ -1867,12 +1867,12 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "remove other + 865960a5 5",
     "select again + 318f104e 5",
     "deselect + 865960a5 5",
-    "clear + 6771d443 5",
+    "clear - 865960a5 5",
   ],
   "empty element loci": [
-    "highlight - 9886c977 5",
-    "remove highlight - 9886c977 5",
-    "select - 9886c977 5",
+    "highlight - 865960a5 5",
+    "remove highlight - 865960a5 5",
+    "select - 865960a5 5",
     "highlight other + f72f411f 5",
     "toggle - f72f411f 5",
     "remove other + 865960a5 5",
@@ -1911,7 +1911,7 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "remove other + 865960a5 5",
     "select again + fe79c711 5",
     "deselect + 865960a5 5",
-    "clear + 17f4fc93 5",
+    "clear - 865960a5 5",
   ],
   "residue range": [
     "highlight + 618951e 5",
@@ -1922,7 +1922,7 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "remove other + 865960a5 5",
     "select again + 2e863c61 5",
     "deselect + 865960a5 5",
-    "clear + 17f4fc93 5",
+    "clear - 865960a5 5",
   ],
   "scattered residues": [
     "highlight + 3f9b10db 5",
@@ -1933,7 +1933,7 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "remove other + 865960a5 5",
     "select again + cc23e755 5",
     "deselect + 865960a5 5",
-    "clear + 17f4fc93 5",
+    "clear - 865960a5 5",
   ],
   "structure loci": [
     "highlight + f69eae28 5",
@@ -1947,7 +1947,7 @@ exports[`representation marking and layers > marks ball-and-stick on model 1`] =
     "clear - 865960a5 5",
   ],
   "whole structure": [
-    "highlight + 7fe46dfe 5",
+    "highlight + f69eae28 5",
     "remove highlight + 865960a5 5",
     "select + ace1b51d 5",
     "highlight other + 247ce8a0 5",
@@ -1985,7 +1985,7 @@ exports[`representation marking and layers > marks cartoon on cells 1`] = `
     "clear - 66ce9769 1",
   ],
   "carbons": [
-    "highlight + 449c0825 1",
+    "highlight + 74f6ee54 1",
     "remove highlight + 66ce9769 1",
     "select + c4c3a1ef 1",
     "highlight other + 70d479a3 1",
@@ -2026,7 +2026,7 @@ exports[`representation marking and layers > marks cartoon on cells 1`] = `
     "remove other + 66ce9769 1",
     "select again + 7bd8e89d 1",
     "deselect + 66ce9769 1",
-    "clear + 6dd14d7d 1",
+    "clear - 66ce9769 1",
   ],
   "one residue": [
     "highlight + 7cc1e778 1",
@@ -2037,7 +2037,7 @@ exports[`representation marking and layers > marks cartoon on cells 1`] = `
     "remove other + 66ce9769 1",
     "select again + 8cda363e 1",
     "deselect + 66ce9769 1",
-    "clear + 6dd14d7d 1",
+    "clear - 66ce9769 1",
   ],
   "residue range": [
     "highlight + 2a6a4550 1",
@@ -2048,7 +2048,7 @@ exports[`representation marking and layers > marks cartoon on cells 1`] = `
     "remove other + 66ce9769 1",
     "select again + 6f58fee9 1",
     "deselect + 66ce9769 1",
-    "clear + 6dd14d7d 1",
+    "clear - 66ce9769 1",
   ],
   "scattered residues": [
     "highlight + 75b7f6c1 1",
@@ -2059,7 +2059,7 @@ exports[`representation marking and layers > marks cartoon on cells 1`] = `
     "remove other + 66ce9769 1",
     "select again + fc716e1f 1",
     "deselect + 66ce9769 1",
-    "clear + 6dd14d7d 1",
+    "clear - 66ce9769 1",
   ],
   "structure loci": [
     "highlight + 74f6ee54 1",
@@ -2111,7 +2111,7 @@ exports[`representation marking and layers > marks cartoon on model 1`] = `
     "clear - 233ccad7 1",
   ],
   "carbons": [
-    "highlight + 48dfec72 1",
+    "highlight + db8e4603 1",
     "remove highlight + 233ccad7 1",
     "select + 4fa1360c 1",
     "highlight other + e8011f0c 1",
@@ -2163,7 +2163,7 @@ exports[`representation marking and layers > marks cartoon on model 1`] = `
     "remove other + 233ccad7 1",
     "select again + 676278ec 1",
     "deselect + 233ccad7 1",
-    "clear + 2577bcf3 1",
+    "clear - 233ccad7 1",
   ],
   "residue range": [
     "highlight + 52589575 1",
@@ -2174,7 +2174,7 @@ exports[`representation marking and layers > marks cartoon on model 1`] = `
     "remove other + 233ccad7 1",
     "select again + bb1f82c 1",
     "deselect + 233ccad7 1",
-    "clear + 2577bcf3 1",
+    "clear - 233ccad7 1",
   ],
   "scattered residues": [
     "highlight + e19d9616 1",
@@ -2185,7 +2185,7 @@ exports[`representation marking and layers > marks cartoon on model 1`] = `
     "remove other + 233ccad7 1",
     "select again + d9ab42cd 1",
     "deselect + 233ccad7 1",
-    "clear + 2577bcf3 1",
+    "clear - 233ccad7 1",
   ],
   "structure loci": [
     "highlight + db8e4603 1",
@@ -2215,7 +2215,7 @@ exports[`representation marking and layers > marks cartoon on model 1`] = `
 exports[`representation marking and layers > marks gaussian surface on cells 1`] = `
 {
   "all but one atom": [
-    "highlight + 2589a08 3",
+    "highlight + cf304477 3",
     "remove highlight + 389f20 3",
     "select + 287c1407 3",
     "highlight other + 17f0e9f2 3",
@@ -2223,7 +2223,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "remove other + 389f20 3",
     "select again + 287c1407 3",
     "deselect + 389f20 3",
-    "clear + 62f7b2f4 3",
+    "clear - 389f20 3",
   ],
   "bonds": [
     "highlight - 389f20 3",
@@ -2245,7 +2245,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "remove other + 389f20 3",
     "select again + 1741948c 3",
     "deselect + 389f20 3",
-    "clear + a49ea77a 3",
+    "clear - 389f20 3",
   ],
   "empty element loci": [
     "highlight - 389f20 3",
@@ -2278,7 +2278,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "remove other + 389f20 3",
     "select again + 4ccd3cb2 3",
     "deselect + 389f20 3",
-    "clear + 62f7b2f4 3",
+    "clear - 389f20 3",
   ],
   "one residue": [
     "highlight + bd95bd18 3",
@@ -2289,7 +2289,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "remove other + 389f20 3",
     "select again + b3147763 3",
     "deselect + 389f20 3",
-    "clear + 62f7b2f4 3",
+    "clear - 389f20 3",
   ],
   "residue range": [
     "highlight + 4ae6a218 3",
@@ -2300,7 +2300,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "remove other + 389f20 3",
     "select again + a6fc861c 3",
     "deselect + 389f20 3",
-    "clear + 62f7b2f4 3",
+    "clear - 389f20 3",
   ],
   "scattered residues": [
     "highlight + d7e9859f 3",
@@ -2311,7 +2311,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "remove other + 389f20 3",
     "select again + 8eb9d5b4 3",
     "deselect + 389f20 3",
-    "clear + 62f7b2f4 3",
+    "clear - 389f20 3",
   ],
   "structure loci": [
     "highlight + 6c888adf 3",
@@ -2325,7 +2325,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
     "clear - 389f20 3",
   ],
   "whole structure": [
-    "highlight + 6ee94f52 3",
+    "highlight + 6c888adf 3",
     "remove highlight + 389f20 3",
     "select + 321dee60 3",
     "highlight other + c01f4c82 3",
@@ -2341,7 +2341,7 @@ exports[`representation marking and layers > marks gaussian surface on cells 1`]
 exports[`representation marking and layers > marks gaussian surface on model 1`] = `
 {
   "all but one atom": [
-    "highlight + 48c88216 3",
+    "highlight + 3919a33 3",
     "remove highlight + 66d9708c 3",
     "select + 106d601a 3",
     "highlight other + 92956a55 3",
@@ -2349,7 +2349,7 @@ exports[`representation marking and layers > marks gaussian surface on model 1`]
     "remove other + 66d9708c 3",
     "select again + 106d601a 3",
     "deselect + 66d9708c 3",
-    "clear + 7e406020 3",
+    "clear - 66d9708c 3",
   ],
   "bonds": [
     "highlight - 66d9708c 3",
@@ -2371,7 +2371,7 @@ exports[`representation marking and layers > marks gaussian surface on model 1`]
     "remove other + 66d9708c 3",
     "select again + a5292b52 3",
     "deselect + 66d9708c 3",
-    "clear + 6c940778 3",
+    "clear - 66d9708c 3",
   ],
   "empty element loci": [
     "highlight - 66d9708c 3",
@@ -2415,7 +2415,7 @@ exports[`representation marking and layers > marks gaussian surface on model 1`]
     "remove other + 66d9708c 3",
     "select again + afb79490 3",
     "deselect + 66d9708c 3",
-    "clear + 7e406020 3",
+    "clear - 66d9708c 3",
   ],
   "residue range": [
     "highlight + b59d0036 3",
@@ -2426,7 +2426,7 @@ exports[`representation marking and layers > marks gaussian surface on model 1`]
     "remove other + 66d9708c 3",
     "select again + 7accb9f8 3",
     "deselect + 66d9708c 3",
-    "clear + 7e406020 3",
+    "clear - 66d9708c 3",
   ],
   "scattered residues": [
     "highlight + fac753dd 3",
@@ -2437,7 +2437,7 @@ exports[`representation marking and layers > marks gaussian surface on model 1`]
     "remove other + 66d9708c 3",
     "select again + 21375f7a 3",
     "deselect + 66d9708c 3",
-    "clear + 7e406020 3",
+    "clear - 66d9708c 3",
   ],
   "structure loci": [
     "highlight + 68d5d491 3",
@@ -2451,7 +2451,7 @@ exports[`representation marking and layers > marks gaussian surface on model 1`]
     "clear - 66d9708c 3",
   ],
   "whole structure": [
-    "highlight + b1793f2a 3",
+    "highlight + 68d5d491 3",
     "remove highlight + 66d9708c 3",
     "select + 9cfd857c 3",
     "highlight other + 21ef1d99 3",

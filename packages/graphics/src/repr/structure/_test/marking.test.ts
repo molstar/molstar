@@ -47,7 +47,8 @@ import { GaussianSurfaceRepresentationProvider } from '../representation/gaussia
 
 // Marking and layers over the visuals of a representation: the marker, overpaint and transparency arrays each visual
 // ends up with, for loci of the shapes the interactive paths see (perf-audit 07 P1, P3-P5). Pinned from the
-// implementation before the loci index and the single-pass mark.
+// implementation before the loci index and the single-pass mark; re-pinned where a removal on an all-clear visual
+// left a mixed status (the marker arrays unchanged, the statuses exact).
 
 const registries = (() => {
   const colorThemeRegistry = ColorTheme.createRegistry();
@@ -536,5 +537,29 @@ describe('marks through the index of Canvas3D', async () => {
     // the one left out: nothing to deselect
     expect(b.mark(EveryLoci, MarkerAction.Deselect)).toBe(false);
     for (const r of [a, b]) r.destroy();
+  });
+});
+
+describe('marks on all-clear visuals', async () => {
+  const root = await load1cbs();
+  const seqId = StructureProperties.residue.label_seq_id;
+  const statusOf = (r: Representation<Structure>) => r.renderObjects.map((o) => o.values.markerStatus.ref.value);
+
+  it('reports no change for a removal on a clear visual, and keeps its status clear', async () => {
+    const repr = await createRepr(CartoonRepresentationProvider, root);
+    const loci = lociOf(root, (l) => seqId(l) >= 25 && seqId(l) <= 35);
+    expect(repr.mark(loci, MarkerAction.Highlight)).toBe(true);
+    // the highlight removed by a mark of all (as one aimed at the representation), the loci's removal comes after
+    expect(repr.mark(EveryLoci, MarkerAction.RemoveHighlight)).toBe(true);
+    expect(statusOf(repr).every((s) => s === 0)).toBe(true);
+    const versions = repr.renderObjects.map((o) => o.values.tMarker.ref.version);
+    expect(repr.mark(loci, MarkerAction.RemoveHighlight)).toBe(false);
+    expect(repr.mark(loci, MarkerAction.Deselect)).toBe(false);
+    expect(statusOf(repr).every((s) => s === 0)).toBe(true);
+    expect(repr.renderObjects.map((o) => o.values.tMarker.ref.version)).toEqual(versions);
+    // still marks after
+    expect(repr.mark(loci, MarkerAction.Select)).toBe(true);
+    expect(statusOf(repr).some((s) => s !== 0)).toBe(true);
+    repr.destroy();
   });
 });
