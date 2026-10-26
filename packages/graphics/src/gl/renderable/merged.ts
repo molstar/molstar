@@ -1126,6 +1126,7 @@ export function MergedRenderable(
 
   const mdb = createSegmentedMdbList();
   const clipInfo = createClipInfoCache(renderValues);
+  const segmentSpheres: Sphere3D[] = [];
   let mode: 'none' | 'full' | 'cull' | 'gpu' = 'none';
   let lastCullFrame: Frame | undefined;
 
@@ -1323,6 +1324,11 @@ export function MergedRenderable(
       renderItem.render(variant, globals, getLists());
     },
     getClipInfo: clipInfo.get,
+    getSegmentSpheres: () => {
+      // the members' cells, read again: a member's sphere may be replaced
+      for (let i = 0, il = members.length; i < il; ++i) segmentSpheres[i] = members[i].boundingSphere.ref.value;
+      return segmentSpheres;
+    },
     getByteCount: () => renderItem.getByteCount(),
     getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
     setTransparency: (value: Transparency) => {

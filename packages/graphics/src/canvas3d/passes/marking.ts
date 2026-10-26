@@ -71,6 +71,8 @@ type Props = {
   marking: MarkingProps;
   postprocessing: PostprocessingProps;
   transparentBackground: boolean;
+  /** the renderer's props where they are not the live renderer's (preparing props a canvas is not set to) */
+  renderer?: Partial<RendererProps>;
 };
 
 export type MarkingPresentOptions = {
@@ -387,7 +389,8 @@ export class MarkingPass {
       return false;
     }
 
-    const { colorMarker, dimStrength } = renderer.props;
+    const colorMarker = props.renderer?.colorMarker ?? renderer.props.colorMarker;
+    const dimStrength = props.renderer?.dimStrength ?? renderer.props.dimStrength;
     // nothing to dim when everything is marked
     const dim = colorMarker && dimStrength > 0 && scene.markerAverage < 1;
     // dimming needs to know where marked objects are visible

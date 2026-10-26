@@ -2,13 +2,17 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { DrawPass } from '@molstar/graphics/canvas3d/passes/draw';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import type { ExternalModules } from '@molstar/plugin-headless/screenshot';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { PluginStateObject } from '@molstar/plugin/state/objects';
 
 const require = createRequire(import.meta.url);
 let hasGl = true;
@@ -44,5 +48,30 @@ describe('HeadlessPluginContext', () => {
     await plugin.init();
 
     plugin.dispose();
+  });
+
+  // the warm-up scheduled by a commit of a changed scene (a timer in Node) fired after `dispose` and planned a frame on
+  // the destroyed context: an uncaught "Invalid GL context", which ends a plain Node script
+  (hasGl ? it : it.skip)('plans no frame after dispose', { tags: ['medium'] }, async () => {
+    const externalModules: ExternalModules = { gl: glModule! };
+    const plugin = new HeadlessPluginContext(externalModules, DefaultPluginSpec(), { height: 64, width: 64 }, {});
+    await plugin.init();
+    const cif = readFileSync(new URL('../../../../../data/examples/1cbs_updated.cif', import.meta.url), 'utf8');
+    const data = await plugin.builders.data.rawData({ data: cif, label: '1cbs' });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
+    await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
+    await plugin.getImageRaw();
+
+    const canvas = plugin.canvas3d!;
+    const [cell] = plugin.state.data.selectQ((q) => q.ofType(PluginStateObject.Molecule.Structure.Representation3D));
+    const repr = cell.obj!.data.repr;
+    canvas.remove(repr);
+    canvas.add(repr);
+    canvas.commit(true);
+    const plan = vi.spyOn(DrawPass.prototype, 'plan');
+    plugin.dispose();
+    // past the warm-up (a timer of 0 ms in Node)
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(plan).not.toHaveBeenCalled();
   });
 });

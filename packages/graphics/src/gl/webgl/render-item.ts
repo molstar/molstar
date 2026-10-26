@@ -297,6 +297,7 @@ export function getInstanceDataSchema(schema: RenderableSchema): RenderableSchem
       ...schema,
       tInstanceData: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
       uInstanceBase: UniformSpec('i', undefined, 'draw'),
+      uInstanceDataShift: UniformSpec('i'),
       dInstanceData: DefineSpec('boolean'),
     };
     instanceDataSchemas.set(schema, result);
@@ -304,17 +305,25 @@ export function getInstanceDataSchema(schema: RenderableSchema): RenderableSchem
   return result;
 }
 
-/** Writes the instance data of merged `values` into the image of `tInstanceData`, grown where too small */
-function updateInstanceData(values: RenderableValues) {
-  const count: number = values.instanceCount.ref.value;
-  const image = createTextureImage(
-    Math.max(1, count * InstanceDataVec4s),
-    4,
-    Float32Array,
-    (values.tInstanceData.ref.value as TextureImage<Float32Array>).array,
-  );
-  packInstanceData(values, image.array);
-  ValueCell.update(values.tInstanceData, image);
+/** Instances a row of `tInstanceData` (as a shift), more where its height would exceed `maxTextureSize` */
+const InstanceDataShift = 8;
+
+/**
+ * Writes the instance data of merged `values` into the image of `tInstanceData`, grown where too small: rows of
+ * 1 << `uInstanceDataShift` instances, which the shader addresses by a shift and a mask
+ */
+function updateInstanceData(values: RenderableValues, maxTextureSize: number) {
+  const count: number = Math.max(1, values.instanceCount.ref.value);
+  let shift = InstanceDataShift;
+  while (count > maxTextureSize << shift && InstanceDataVec4s << (shift + 1) <= maxTextureSize) ++shift;
+  const width = InstanceDataVec4s << shift;
+  const height = Math.ceil(count / (1 << shift));
+  const length = width * height * 4;
+  const previous = (values.tInstanceData.ref.value as TextureImage<Float32Array>).array;
+  const array = previous.length >= length ? previous : new Float32Array(length);
+  packInstanceData(values, array);
+  ValueCell.update(values.tInstanceData, { array, width, height });
+  ValueCell.updateIfChanged(values.uInstanceDataShift, shift);
 }
 
 /**
@@ -359,7 +368,7 @@ export function createRenderItem<T extends string>(
         changed = true;
       }
     }
-    if (changed) updateInstanceData(values);
+    if (changed) updateInstanceData(values, resources.limits.maxTextureSize);
   };
   if (instanceData) {
     schema = getInstanceDataSchema(schema);
@@ -367,6 +376,7 @@ export function createRenderItem<T extends string>(
       ...values,
       tInstanceData: ValueCell.create(createTextureImage(1, 4, Float32Array)),
       uInstanceBase: ValueCell.create(0),
+      uInstanceDataShift: ValueCell.create(InstanceDataShift),
       dInstanceData: ValueCell.create(true),
     };
     syncInstanceData();

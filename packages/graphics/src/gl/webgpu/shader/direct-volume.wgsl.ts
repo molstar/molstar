@@ -330,7 +330,9 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
         let viewPosition = viewStart + t * viewStep;
 
         #if defined(dPackedGroup)
-            let group = unpackRGBToInt(textureGroup(floor(unitPos * gridDim + 0.5) / gridDim).rgb);
+            // a cell without a group (packed 0: no atom within reach, density about 0) takes group 0, as the clamped
+            // reads of index -1 did
+            let group = max(unpackRGBToInt(textureGroup(floor(unitPos * gridDim + 0.5) / gridDim).rgb), 0.0);
         #else
             let g = floor(unitPos * gridDim + 0.5);
             // x and z are swapped because the texture is flipped around y

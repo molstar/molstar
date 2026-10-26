@@ -44,17 +44,28 @@ varying vec3 vViewPosition;
     // the instance data of merged render items on WebGL2 without base instances (see \`getInstanceDataSchema\`): read
     // from a texture at the draw's first instance plus gl_InstanceID, instead of instanced attributes re-pointed per draw
     // (those stay declared, unread); 7 texels per instance: the transform's columns, (instance, segment), the segment's
-    // sphere and level scales
-    vec4 instanceTexel(const in int k) {
-        int t = (uInstanceBase + gl_InstanceID) * 7 + k;
-        int w = textureSize(tInstanceData, 0).x;
-        return texelFetch(tInstanceData, ivec2(t % w, t / w), 0);
+    // sphere and level scales. Rows of 1 << uInstanceDataShift instances, addressed by a shift and a mask (an integer
+    // division is emulated); the transform and (instance, segment), read by most chunks, once per vertex into globals
+    // (\`readInstanceData\`, first in main by the group chunks), the sphere and level scales where read
+    ivec2 instanceDataCoord;
+    mat4 instanceTransform;
+    vec4 instanceSegment;
+    void readInstanceData() {
+        int i = uInstanceBase + gl_InstanceID;
+        instanceDataCoord = ivec2((i & ((1 << uInstanceDataShift) - 1)) * 7, i >> uInstanceDataShift);
+        instanceTransform = mat4(
+            texelFetch(tInstanceData, instanceDataCoord, 0),
+            texelFetch(tInstanceData, instanceDataCoord + ivec2(1, 0), 0),
+            texelFetch(tInstanceData, instanceDataCoord + ivec2(2, 0), 0),
+            texelFetch(tInstanceData, instanceDataCoord + ivec2(3, 0), 0)
+        );
+        instanceSegment = texelFetch(tInstanceData, instanceDataCoord + ivec2(4, 0), 0);
     }
-    #define aTransform mat4(instanceTexel(0), instanceTexel(1), instanceTexel(2), instanceTexel(3))
-    #define aInstance instanceTexel(4).x
-    #define aSegment instanceTexel(4).yzw
-    #define aSegmentSphere instanceTexel(5)
-    #define aSegmentLod instanceTexel(6)
+    #define aTransform instanceTransform
+    #define aInstance instanceSegment.x
+    #define aSegment instanceSegment.yzw
+    #define aSegmentSphere texelFetch(tInstanceData, instanceDataCoord + ivec2(5, 0), 0)
+    #define aSegmentLod texelFetch(tInstanceData, instanceDataCoord + ivec2(6, 0), 0)
 #endif
 
 #if defined(dSegmented)

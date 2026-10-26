@@ -25,7 +25,7 @@ import {
 } from '@molstar/graphics/repr/structure/visual/util/gaussian';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import type { Structure } from '@molstar/model/model/structure';
-import { type BenchmarkCase, type PathRun, StageTimer } from './framework.js';
+import { type BenchmarkCase, type PathRun, StageTimer, withGpuPasses } from './framework.js';
 import { exampleStructure, getPhysicalSizeTheme, globuleStructure } from './structures.js';
 
 type GaussianInput = {
@@ -124,24 +124,37 @@ async function webgpuPath(
     texture = graphics.resources.texture('volume-float16', 'rgba', 'fp16', 'linear');
     densityTextures3d.set(graphics, texture);
   }
-  const density = computeStructureGaussianDensityTexture(structure, sizeTheme, props, graphics, texture);
-  await timer.stage('density');
+  // the kernels' GPU times with --gpu-timing, density and marching cubes apart
+  const densityRun = await withGpuPasses(graphics, async () =>
+    computeStructureGaussianDensityTexture(structure, sizeTheme, props, graphics, texture),
+  );
+  const density = densityRun.result;
+  // the setup on the CPU (the atoms collected, packed and uploaded, the kernels encoded), then its kernels' completion
+  timer.cpuStage('density cpu');
+  await timer.stage('density gpu');
   const isoLevel = Math.exp(-props.smoothness) / density.radiusFactor;
   const { compute } = graphics;
-  const result = await computeChunkedIsosurface(
-    compute,
-    { kind: 'texture', texture: density.texture, channel: 'alpha', packedGroup: true },
-    density.gridDim,
-    isoLevel,
-    density.transform,
-    false,
-  );
-  const { count, pages } = await result.count;
+  const mcRun = await withGpuPasses(graphics, async () => {
+    const result = await computeChunkedIsosurface(
+      compute,
+      { kind: 'texture', texture: density.texture, channel: 'alpha', packedGroup: true },
+      density.gridDim,
+      isoLevel,
+      density.transform,
+      false,
+    );
+    return { surface: result.surface, ...(await result.count) };
+  });
+  const { count, pages } = mcRun.result;
   await timer.stage('marching cubes');
   // the bytes of the pages taken
   const bytes = getChunkByteCount(pages);
-  destroyChunkedSurface(compute, result.surface);
-  return { stages: timer.stages, triangles: count / 3, bytes };
+  destroyChunkedSurface(compute, mcRun.result.surface);
+  const gpuPasses = densityRun.gpuPasses && {
+    ...Object.fromEntries(Object.entries(densityRun.gpuPasses).map(([k, v]) => [`density: ${k}`, v])),
+    ...Object.fromEntries(Object.entries(mcRun.gpuPasses ?? {}).map(([k, v]) => [`marching cubes: ${k}`, v])),
+  };
+  return { stages: timer.stages, triangles: count / 3, bytes, gpuPasses };
 }
 
 function gaussianCase(

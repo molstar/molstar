@@ -63,10 +63,13 @@ vec3 perturbNormal(in vec3 modelPosition, in vec3 viewPosition, in vec3 normal, 
 
 #ifdef dXrayShaded
     float calcXrayShadedAlpha(in float alpha, const in vec3 normal) {
+        float d = abs(dot(normal, vec3(0.0, 0.0, 1.0)));
+        // d^falloff, at the silhouette (d = 0) its limit: pow(0, y) is undefined for y = 0 (the falloff's minimum)
+        float p = d > 0.0 ? pow(d, uXrayEdgeFalloff) : (uXrayEdgeFalloff == 0.0 ? 1.0 : 0.0);
         #if defined(dXrayShaded_on)
-            alpha *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+            alpha *= 1.0 - p;
         #elif defined(dXrayShaded_inverted)
-            alpha *= pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+            alpha *= p;
         #endif
         return clamp(alpha, 0.001, 0.999);
     }

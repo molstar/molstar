@@ -14,10 +14,13 @@ export const material_functions_wgsl = /* wgsl */ `
 #if defined(dXrayShaded)
     fn calcXrayShadedAlpha(alpha: f32, normal: vec3<f32>) -> f32 {
         let d = abs(dot(normal, vec3<f32>(0.0, 0.0, 1.0)));
+        // d^falloff, at the silhouette (d = 0) its limit: WGSL's pow is undefined at 0 (log2), as GLSL's for y = 0
+        let falloff = uGlobal.uXrayEdgeFalloff;
+        let p = select(select(0.0, 1.0, falloff == 0.0), pow(d, falloff), d > 0.0);
         #if defined(dXrayShaded_on)
-            let a = alpha * (1.0 - pow(d, uGlobal.uXrayEdgeFalloff));
+            let a = alpha * (1.0 - p);
         #else
-            let a = alpha * pow(d, uGlobal.uXrayEdgeFalloff);
+            let a = alpha * p;
         #endif
         return clamp(a, 0.001, 0.999);
     }

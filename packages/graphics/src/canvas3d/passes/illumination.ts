@@ -35,6 +35,7 @@ import { type SsaoProps, updateOcclusionUpsample } from './ssao.js';
 import { OutlinePass } from './outline.js';
 import { BloomPass } from './bloom.js';
 import type { RenderContext } from '../util.js';
+import { Denoiser, isComputeDenoiseSupported } from '@molstar/graphics/gl/compute/denoise';
 
 let IlluminationWarningShown = false;
 
@@ -121,6 +122,8 @@ export class IlluminationPass {
   }
 
   private markingShading: MarkingShading;
+  /** the denoiser as a kernel (compute shaders), created on first use; else the compose program denoises */
+  private denoiser: Denoiser | undefined;
 
   private _supported = false;
   get supported() {
@@ -350,6 +353,7 @@ export class IlluminationPass {
 
       this.transparentTarget.setSize(width, height);
       this.outputTarget.setSize(width, height);
+      this.denoiser?.output.define(width, height);
 
       ValueCell.update(
         this.copyRenderable.values.uTexSize,
@@ -414,6 +418,17 @@ export class IlluminationPass {
     const { x, y, width, height } = camera.viewport;
     renderer.setViewport(x, y, width, height);
     renderer.update(camera, scene, frame);
+  }
+
+  private getDenoiser() {
+    if (!this.denoiser) {
+      const { graphics, tracing } = this;
+      const { accumulateTarget } = tracing;
+      const output = this.drawPass.targets.texture('image-float16', 'rgba', 'fp16', 'nearest');
+      output.define(accumulateTarget.getWidth(), accumulateTarget.getHeight());
+      this.denoiser = new Denoiser(graphics.compute!, accumulateTarget.texture, tracing.normalTextureOpaque, output);
+    }
+    return this.denoiser;
   }
 
   private compose(
@@ -572,6 +587,26 @@ export class IlluminationPass {
       ValueCell.update(this.composeRenderable.values.dBloomEnable, bloomActive);
     }
 
+    // denoise
+
+    const denoiseThreshold =
+      props.multiSample.mode === 'on'
+        ? props.illumination.denoiseThreshold[0]
+        : lerp(
+            props.illumination.denoiseThreshold[1],
+            props.illumination.denoiseThreshold[0],
+            clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1),
+          );
+    // a kernel where compute shaders run, a texel read and its normal decoded once per tile instead of by each of its
+    // 169 neighbours; the compose program reads its output
+    const computeDenoise = props.illumination.denoise && isComputeDenoiseSupported(this.graphics);
+    if (computeDenoise && b.drawing) this.getDenoiser().run(denoiseThreshold);
+    const composeColor = computeDenoise && this.denoiser ? this.denoiser.output : this.tracing.accumulateTarget.texture;
+    if (this.composeRenderable.values.tColor.ref.value !== composeColor) {
+      ValueCell.update(this.composeRenderable.values.tColor, composeColor);
+      needsUpdateCompose = true;
+    }
+
     // background
 
     // the image is always kept offscreen, so that marking can be redrawn over it without restarting
@@ -598,18 +633,11 @@ export class IlluminationPass {
       this.composeRenderable.values.uTransparentBackground,
       props.transparentBackground || compositeBackground,
     );
-    if (this.composeRenderable.values.dDenoise.ref.value !== props.illumination.denoise) {
-      ValueCell.update(this.composeRenderable.values.dDenoise, props.illumination.denoise);
+    const programDenoise = props.illumination.denoise && !computeDenoise;
+    if (this.composeRenderable.values.dDenoise.ref.value !== programDenoise) {
+      ValueCell.update(this.composeRenderable.values.dDenoise, programDenoise);
       needsUpdateCompose = true;
     }
-    const denoiseThreshold =
-      props.multiSample.mode === 'on'
-        ? props.illumination.denoiseThreshold[0]
-        : lerp(
-            props.illumination.denoiseThreshold[1],
-            props.illumination.denoiseThreshold[0],
-            clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1),
-          );
     ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
     if (needsUpdateCompose) this.composeRenderable.update();
     b.quad(this.composeRenderable, compositeBackground ? RenderState.Premultiplied : RenderState.Default);

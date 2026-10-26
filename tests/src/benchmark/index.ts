@@ -20,6 +20,8 @@ import { MarchingCubesCases } from './marching-cubes.js';
 import {
   DrawTableCases,
   MergingCases,
+  MergingMeshCases,
+  MergingUniqueMeshCases,
   MergingAssemblyCases,
   MergingInstanceCases,
   MergingSingleInstanceCases,
@@ -63,6 +65,8 @@ const OnDemandCases: BenchmarkCase<any>[] = [
   ...DrawTableCases,
   ...DrawOverheadCases,
   ...MergingCases,
+  ...MergingMeshCases,
+  ...MergingUniqueMeshCases,
   ...MergingAssemblyCases,
   ...MergingInstanceCases,
   ...MergingSingleInstanceCases,

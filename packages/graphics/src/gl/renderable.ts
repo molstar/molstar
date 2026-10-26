@@ -189,6 +189,8 @@ export interface Renderable<T extends RenderableValues> {
   render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => void;
   /** Cached clip info, `undefined` if there are no clip objects */
   getClipInfo: () => ClipInfo | undefined;
+  /** The bounding spheres of the objects drawn together (merged render objects), unscaled */
+  getSegmentSpheres?: () => readonly Sphere3D[];
   getByteCount: () => number;
   getProgram: (variant: GraphicsRenderVariant) => GraphicsProgram;
   setTransparency: (transparency: Transparency) => void;

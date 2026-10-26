@@ -54,6 +54,11 @@ export class StageTimer {
 
   async stage(label: string) {
     if (this.graphics) await waitForGpu(this.graphics);
+    this.cpuStage(label);
+  }
+
+  /** A stage without waiting for the GPU: the CPU's part of work the next `stage` waits for */
+  cpuStage(label: string) {
     const now = performance.now();
     this.stages.push({ label, ms: now - this.last });
     this.last = now;

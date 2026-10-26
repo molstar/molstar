@@ -384,15 +384,29 @@ export function getStructureConformationAndRadius(
       const unit = structure.units[i];
       const { elements, conformation: c } = unit;
       l.unit = unit;
+      // the coordinates read directly where the operator is the identity (most units): the mappings differ by operator,
+      // so their methods are slow to call per element
+      if (c.operator.isIdentity) {
+        const { x, y, z } = c.coordinates;
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+          const eI = elements[j];
+          const mj = m + j;
+          _xs[mj] = x[eI];
+          _ys[mj] = y[eI];
+          _zs[mj] = z[eI];
+        }
+      } else {
+        for (let j = 0, jl = elements.length; j < jl; ++j) {
+          const eI = elements[j];
+          const mj = m + j;
+          _xs[mj] = c.x(eI);
+          _ys[mj] = c.y(eI);
+          _zs[mj] = c.z(eI);
+        }
+      }
       for (let j = 0, jl = elements.length; j < jl; ++j) {
-        const eI = elements[j];
-
-        const mj = m + j;
-        _xs[mj] = c.x(eI);
-        _ys[mj] = c.y(eI);
-        _zs[mj] = c.z(eI);
-        l.element = eI;
-        _rs[mj] = sizeTheme.size(l);
+        l.element = elements[j];
+        _rs[m + j] = sizeTheme.size(l);
       }
       m += elements.length;
     }

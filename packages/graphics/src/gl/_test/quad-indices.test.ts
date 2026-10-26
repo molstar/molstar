@@ -5,11 +5,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createQuadIndices, getQuadIndexArray, QuadIndexPattern } from '../quad-indices.js';
+import { createQuadIndexArray, createQuadIndices, QuadIndexPattern } from '../quad-indices.js';
 
 describe('quad indices', () => {
   it('index the six-vertex quads by four of their ids, as their two triangles', () => {
-    const indices = getQuadIndexArray(3);
+    const indices = createQuadIndexArray(3);
     expect(Array.from(indices)).toEqual([0, 1, 2, 1, 4, 2, 6, 7, 8, 7, 10, 8, 12, 13, 14, 13, 16, 14]);
     // the corners the shaders map per id (`m = id % 6`), the triangles of the unindexed quad
     const corner = (id: number) =>
@@ -25,10 +25,12 @@ describe('quad indices', () => {
     expect(triangles(QuadIndexPattern)).toEqual(triangles([0, 1, 2, 3, 4, 5]));
   });
 
-  it('grow the array keeping what it held, the same for any item', () => {
-    const small = Array.from(getQuadIndexArray(2));
-    const large = getQuadIndexArray(100_000);
-    expect(Array.from(large.subarray(0, small.length))).toEqual(small);
+  it('are the same for any item, in a new array per call (none kept between uploads)', () => {
+    const small = createQuadIndexArray(2);
+    const large = createQuadIndexArray(100_000);
+    expect(large.buffer).not.toBe(small.buffer);
+    expect(large.length).toBe(600_000);
+    expect(Array.from(large.subarray(0, small.length))).toEqual(Array.from(small));
     const i = 99_999;
     expect(Array.from(large.subarray(i * 6, i * 6 + 6))).toEqual(QuadIndexPattern.map((k) => i * 6 + k));
   });

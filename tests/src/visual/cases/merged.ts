@@ -5,6 +5,7 @@
  */
 
 import { BackboneRepresentationProvider } from '@molstar/graphics/repr/structure/representation/backbone';
+import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
 import { PointRepresentationProvider } from '@molstar/graphics/repr/structure/representation/point';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
@@ -88,4 +89,11 @@ export const MergedCases: VisualTestCase[] = [
   mergedCase('backbone', BackboneRepresentationProvider, {}, { requires: Impostor }),
   mergedCase('point', PointRepresentationProvider, {}),
   mergedCase('line', LineRepresentationProvider, {}),
+  {
+    // near cuts the units in front (a camera radius below the scene's), which get their caps (`solidInterior`, on for
+    // Gaussian surfaces): decided per unit, not by the merged item's sphere
+    ...mergedCase('gaussian-surface-near-cut', GaussianSurfaceRepresentationProvider, { tryUseGpu: false }),
+    view: { direction: [0, 1, -0.4] },
+    camera: { radius: 14 },
+  },
 ];

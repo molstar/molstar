@@ -31,7 +31,7 @@ import type { ValueCell } from '@molstar/core/util/value-cell';
 type MergeFingerprint = { keyCount: number; cells: ValueCell<any>[]; versions: number[]; lod: string };
 const mergeFingerprints = new WeakMap<GraphicsRenderObject, MergeFingerprint>();
 
-/** The `*Type` cells `canMergeValues` reads */
+/** The `*Type` cells `canMergeValues` reads (not `markerType` and the index types, set on updates it doesn't read) */
 const MergeTypeKeys = new Set([
   'colorType',
   'sizeType',

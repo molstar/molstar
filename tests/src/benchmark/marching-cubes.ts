@@ -21,7 +21,7 @@ import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { createVolumeTexture2d, getVolumeTexture2dLayout } from '@molstar/graphics/repr/volume/util';
 import { Grid, type Volume } from '@molstar/model/model/volume';
 import { blobVolume, createVolume } from '../visual/scenes/volume.js';
-import { type BenchmarkCase, type PathRun, StageTimer } from './framework.js';
+import { type BenchmarkCase, type PathRun, StageTimer, withGpuPasses } from './framework.js';
 
 /** Padding of the 2d volume texture, as in the volume isosurface representation */
 const Padding = 1;
@@ -132,21 +132,25 @@ async function webgpuPath(graphics: GraphicsContext, { volume, isoLevel }: Volum
   await timer.stage('upload');
   const transform = Grid.getGridToCartesianTransform(volume.grid);
   const { compute } = graphics;
-  const result = await computeChunkedIsosurface(
-    compute,
-    { kind: 'buffer', volume: buffer, strides: Vec3.create(sx, sy, sz) },
-    Vec3.clone(space.dimensions as Vec3),
-    isoLevel,
-    transform,
-    isoLevel < 0,
-  );
-  const { count, pages } = await result.count;
+  // the kernels' GPU times with --gpu-timing
+  const { result, gpuPasses } = await withGpuPasses(graphics, async () => {
+    const result = await computeChunkedIsosurface(
+      compute,
+      { kind: 'buffer', volume: buffer, strides: Vec3.create(sx, sy, sz) },
+      Vec3.clone(space.dimensions as Vec3),
+      isoLevel,
+      transform,
+      isoLevel < 0,
+    );
+    return { surface: result.surface, ...(await result.count) };
+  });
+  const { count, pages } = result;
   await timer.stage('marching cubes');
   // the bytes of the pages taken
   const bytes = getChunkByteCount(pages);
   buffer.destroy();
   destroyChunkedSurface(compute, result.surface);
-  return { stages: timer.stages, triangles: count / 3, bytes };
+  return { stages: timer.stages, triangles: count / 3, bytes, gpuPasses };
 }
 
 function volumeCase(id: string, description: string, setup: () => VolumeInput): BenchmarkCase<VolumeInput> {

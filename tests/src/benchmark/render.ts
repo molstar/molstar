@@ -34,6 +34,7 @@ import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
 import { HiZParams } from '@molstar/graphics/canvas3d/passes/hi-z';
 import { Structure } from '@molstar/model/model/structure';
 import { CIF } from '@molstar/io/reader/cif';
+import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Task } from '@molstar/core/task';
 import { createParticleListFromMmcifAssembly, getAssemblyIdsFromMmcif } from '@molstar/model/formats/particles/mmcif';
 import type { ParticleList } from '@molstar/model/model/particles/particle-list';
@@ -968,6 +969,77 @@ export const MergingCases: BenchmarkCase<RenderInput>[] = MergingCounts.flatMap(
             };
           },
         ),
+      ),
+    ),
+  ),
+);
+
+/**
+ * Large meshes merged or not: the 60 copies of 7qpd as a root structure (420 units of about 1.6 k atoms) as Gaussian
+ * surfaces, many vertices per unit (on WebGL2 without base instances, merged objects read their instance data per
+ * vertex from a texture, `dInstanceData`)
+ */
+export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flatMap((merged) =>
+  [undefined, { width: 320, height: 180 }, LargeSize].map((size) =>
+    renderCase(
+      `merging/assembly-gaussian-${merged ? 'merged' : 'unmerged'}${size ? `-${size.width}` : ''}`,
+      `60 copies of 7qpd as a root structure (420 units) as Gaussian surfaces, ${merged ? 'merged' : 'a render object per unit'}`,
+      async () => {
+        const s = await getRootAssembly();
+        return {
+          size,
+          scene: (g) =>
+            Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged })]),
+        };
+      },
+    ),
+  ),
+);
+
+const rootEntries = new Map<string, Promise<Structure>>();
+/** A binary CIF file from the repository root (not checked in), its first model */
+const getRootEntry = (file: string) => {
+  let entry = rootEntries.get(file);
+  if (!entry) {
+    entry = (async () => {
+      const response = await fetch(`/${file}`);
+      if (!response.ok) throw new Error(`${file} not found in the repository root (${response.status})`);
+      const parsed = await CIF.parseBinary(new Uint8Array(await response.arrayBuffer())).run();
+      if (parsed.isError) throw new Error(parsed.message);
+      const trajectory = await trajectoryFromMmCIF(parsed.result.blocks[0]).run();
+      return Structure.ofModel(trajectory.representative);
+    })();
+    rootEntries.set(file, entry);
+  }
+  return entry;
+};
+
+/**
+ * Unique meshes merged or not, no two units sharing a symmetry group (unmerged, a render object per unit): 4V6X, a
+ * ribosome (about 89 chains, `4v6x.bcif`), and 3j3q, the HIV-1 capsid (1356 chains, `3j3q.bcif`), as Gaussian surfaces;
+ * CPU meshes on every backend (`tryUseGpu: false`: WebGPU builds compute surfaces, texture meshes, never merged); the
+ * files go in the repository root (from models.rcsb.org)
+ */
+export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
+  ['4v6x', 'a ribosome, about 89 chains'],
+  ['3j3q', 'the HIV-1 capsid, 1356 chains'],
+].flatMap(([id, about]) =>
+  [true, false].flatMap((merged) =>
+    [undefined, { width: 320, height: 180 }, LargeSize].map((size) =>
+      renderCase(
+        `merging/${id}-gaussian-${merged ? 'merged' : 'unmerged'}${size ? `-${size.width}` : ''}`,
+        `${id} (${about}, unique geometry each) as Gaussian surfaces, ${merged ? 'merged' : 'a render object per unit'}`,
+        async () => {
+          const s = await getRootEntry(`${id}.bcif`);
+          return {
+            size,
+            setupNotes: true,
+            scene: (g) =>
+              Promise.all([
+                structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged, tryUseGpu: false }),
+              ]),
+          };
+        },
       ),
     ),
   ),

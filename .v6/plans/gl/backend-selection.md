@@ -259,8 +259,9 @@ Recommendation: C, once the blockers below are done.
    above), which the frame times do not show. Decided: switch with the known sphere gap (the Viewer default is `auto`,
    step 6). The switch makes the Viewer's `graphics-backend=auto` (`AutoWebGPUBackend`, then WebGL2 and WebGL) the
    default: WebGPU only where the adapter can blend into float32 targets (`float32-blendable`; Firefox cannot yet, so it
-   stays on WebGL2, which has wboit, dpoit and illumination there); `graphics-backend=webgpu` asks for WebGPU
-   regardless.
+   stays on WebGL2, which has wboit, dpoit and illumination there) and that is not a fallback (software) adapter
+   (SwiftShader, offered where no hardware adapter is, while WebGL2 may run on the GPU); `graphics-backend=webgpu` asks
+   for WebGPU regardless.
 
 4. **Adapter limits** (done, [webgpu-device-limits.md](webgpu-device-limits.md)): devices request the adapter's maxima;
    a `webgpu-core` visual profile keeps the minimum spec covered.
@@ -270,7 +271,7 @@ Recommendation: C, once the blockers below are done.
    same; the visual suite (`webgl2`, `webgpu`, `webgpu-core`) passes on Chrome Beta and Edge. Not covered: Firefox's and
    Safari's own WebGPU (Playwright's builds have no adapter), macOS/Metal, Linux, integrated GPUs.
 6. **Switch** (done for the Viewer): the Viewer's `graphics-backend` defaults to `auto` (WebGPU where the adapter has
-   `float32-blendable`, else WebGL2, then WebGL), `graphics-backend=webgl` to opt out, recorded in the v6 changelog; the
+   `float32-blendable` and is no fallback adapter, else WebGL2, then WebGL), `graphics-backend=webgl` to opt out, recorded in the v6 changelog; the
    plugin default (`PluginConfig.General.GraphicsBackends` unset) followed: the `all` set. `PreferWebGl1` is removed: WebGL1 by listing
    only its backend. Headless stays WebGL.
 

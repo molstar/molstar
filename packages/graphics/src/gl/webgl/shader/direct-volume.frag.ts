@@ -239,7 +239,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         vec3 vViewPosition = viewStart + t * viewStep;
 
         #ifdef dPackedGroup
-            float group = unpackRGBToInt(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
+            // a cell without a group (packed 0: no atom within reach, density about 0) takes group 0, as the clamped
+            // reads of index -1 did
+            float group = max(unpackRGBToInt(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb), 0.0);
         #else
             vec3 g = floor(unitPos * uGridDim + 0.5);
             // note that we swap x and z because the texture is flipped around y

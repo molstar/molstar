@@ -251,7 +251,8 @@ export function getAdapterMaxLimits(adapter: Pick<GPUAdapter, 'limits'>): Record
 
 /**
  * The device of an adapter of `gpu` (by default the browser's `navigator.gpu`, e.g. Dawn's in Node.js); `undefined`
- * where the adapter lacks one of `requiredFeatures` (callers fall back, e.g. to WebGL)
+ * where the adapter lacks one of `requiredFeatures`, or is a fallback (software) adapter and `rejectFallbackAdapter` is
+ * set (callers fall back, e.g. to WebGL)
  */
 export async function requestWebGPUDevice(
   powerPreference: 'default' | 'high-performance' | 'low-power' = 'high-performance',
@@ -259,10 +260,19 @@ export async function requestWebGPUDevice(
   limits: WebGPULimits = 'adapter',
   features: WebGPUFeatures = 'optional',
   requiredFeatures: readonly GPUFeatureName[] = [],
+  rejectFallbackAdapter = false,
 ): Promise<GPUDevice | undefined> {
   if (!gpu) return;
   const adapter = await gpu.requestAdapter(powerPreference === 'default' ? undefined : { powerPreference });
   if (!adapter) return;
+  // `isFallbackAdapter` on the adapter itself in older browsers
+  if (
+    rejectFallbackAdapter &&
+    (adapter.info?.isFallbackAdapter || (adapter as { isFallbackAdapter?: boolean }).isFallbackAdapter)
+  ) {
+    if (isDebugMode) console.log('WebGPU adapter is a fallback adapter');
+    return;
+  }
   const lacking = requiredFeatures.filter((f) => !adapter.features.has(f));
   if (lacking.length) {
     if (isDebugMode) console.log(`WebGPU adapter without required features: ${lacking.join(', ')}`);

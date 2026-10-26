@@ -20,20 +20,16 @@ const BytesPerItem = QuadIndicesPerItem * 4;
 /** Items of the first buffer, so that small scenes do not grow it item by item */
 const MinItemCount = 1 << 12;
 
-let pattern = new Uint32Array(0);
-
-/** The indices of the first `itemCount` items, a view of one array grown as needed (do not keep beyond the call) */
-export function getQuadIndexArray(itemCount: number): Uint32Array {
-  const count = itemCount * QuadIndicesPerItem;
-  if (pattern.length < count) {
-    const next = new Uint32Array(Math.max(count, pattern.length * 2));
-    next.set(pattern);
-    for (let o = pattern.length; o < next.length; o += QuadIndicesPerItem) {
-      for (let k = 0; k < QuadIndicesPerItem; ++k) next[o + k] = o + QuadIndexPattern[k];
-    }
-    pattern = next;
+/**
+ * A new array of the indices of the first `itemCount` items: built for an upload and dropped after it, not kept (the
+ * buffer holds them; a kept array was as large as the buffer, 59 MB of heap for 2.4 M spheres)
+ */
+export function createQuadIndexArray(itemCount: number): Uint32Array {
+  const indices = new Uint32Array(itemCount * QuadIndicesPerItem);
+  for (let o = 0, il = indices.length; o < il; o += QuadIndicesPerItem) {
+    for (let k = 0; k < QuadIndicesPerItem; ++k) indices[o + k] = o + QuadIndexPattern[k];
   }
-  return pattern.subarray(0, count);
+  return indices;
 }
 
 export interface QuadIndexBuffer<B> {
@@ -94,7 +90,7 @@ export function createQuadIndices<B>(
       const grown = Math.max(itemCount, MinItemCount, current ? current.itemCount * 2 : 0);
       const next = Math.min(grown, maxItemCount);
       if (current) release(current.buffer);
-      current = { buffer: create(getQuadIndexArray(next)), id: nextId++, itemCount: next };
+      current = { buffer: create(createQuadIndexArray(next)), id: nextId++, itemCount: next };
       return current;
     },
     get id() {

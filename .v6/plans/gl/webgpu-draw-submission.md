@@ -196,8 +196,10 @@ through `drawPass`. Checked: `--draw-lists` 146 pass, 15 cases drawn without rep
 first iteration only), solid interiors drawing caps, and a few (`geometry/merged/spacefill-mesh`, the GPU Gaussian
 surfaces at low resolution, `postprocessing/outline/transparent`) whose captured frame records again, to look into.
 
-The few that record again draw solid interior caps (the near plane cuts their bounding sphere every frame, as the
-direct path decides); `postprocessing/outline/transparent` replays (listed once while its pipelines compiled).
+The few that recorded again drew solid interior caps every frame: the near plane, fitted to the front of the scene's
+sphere, touched their bounding sphere (an object spanning the scene, a merged item's sphere over its members'); the
+near test now keeps a margin and a merged item's member spheres (`getSolidInteriorCaps`), and with `--draw-lists` only
+the illumination cases draw without replay. `postprocessing/outline/transparent` replays (listed once while its pipelines compiled).
 
 **Caps toward recording**: the cap pass and clip index are a draw state (`GlobalBindings.setSolidInteriorCap`), not a
 change of the globals: on WebGPU each item binds a draw block per cap (and per multi-draw level), constant, so its

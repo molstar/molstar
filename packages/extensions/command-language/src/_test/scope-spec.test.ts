@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'node:fs';
@@ -131,7 +132,8 @@ describe('the scope spec', () => {
     it(`${name} is what the code says`, () => {
       const file = new URL(`../../_spec/${name}`, import.meta.url);
       if (process.env.UPDATE_SPEC) fs.writeFileSync(file, text);
-      expect(fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '').toBe(text);
+      // a Windows checkout has the file with CRLF line endings
+      expect(fs.existsSync(file) ? fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n') : '').toBe(text);
     });
   }
 });

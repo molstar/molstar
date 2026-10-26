@@ -49,18 +49,34 @@ export class DofPass {
   }
 
   readonly target: RenderTarget;
+  /** the weighted color sums of the rows (`dDofPass` 'horizontal'), with half-float targets only */
+  private readonly blurTarget: RenderTarget | undefined;
+  private readonly horizontalRenderable: DofRenderable | undefined;
+  /** 'vertical' after the rows' sums, else 'single' */
   private readonly renderable: DofRenderable;
+  private readonly renderables: DofRenderable[];
 
   constructor(targets: PassTargets, width: number, height: number) {
     const graphics = (this.graphics = targets.graphics);
     this.target = targets.createRenderTarget(width, height, 'none');
 
     const nullTexture = createNullTexture();
-    this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture);
+    // the blur separates (its weights are per sample): 2 x blurSize samples instead of blurSize^2, where the sums of
+    // the rows can be kept in half floats
+    if (graphics.capabilities.halfFloatRenderTarget) {
+      this.blurTarget = targets.createRenderTarget(width, height, 'none', 'fp16', 'nearest');
+      this.horizontalRenderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'horizontal');
+      this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'vertical');
+      ValueCell.update(this.renderable.values.tBlur, this.blurTarget.texture);
+      this.renderables = [this.horizontalRenderable, this.renderable];
+    } else {
+      this.renderable = getDofRenderable(graphics, nullTexture, nullTexture, nullTexture, 'single');
+      this.renderables = [this.renderable];
+    }
   }
 
   getByteCount() {
-    return this.target.getByteCount();
+    return this.target.getByteCount() + (this.blurTarget?.getByteCount() ?? 0);
   }
 
   private updateState(viewport: Viewport) {
@@ -77,10 +93,10 @@ export class DofPass {
 
     if (width !== w || height !== h) {
       this.target.setSize(width, height);
-      ValueCell.update(
-        this.renderable.values.uTexSize,
-        Vec2.set(this.renderable.values.uTexSize.ref.value, width, height),
-      );
+      this.blurTarget?.setSize(width, height);
+      for (const r of this.renderables) {
+        ValueCell.update(r.values.uTexSize, Vec2.set(r.values.uTexSize.ref.value, width, height));
+      }
     }
   }
 
@@ -92,62 +108,81 @@ export class DofPass {
     props: DofProps,
     sphere: Sphere3D,
   ) {
+    for (const renderable of this.renderables) {
+      this.updateRenderable(renderable, camera, input, depthOpaque, depthTransparent, props, sphere);
+    }
+  }
+
+  private updateRenderable(
+    renderable: DofRenderable,
+    camera: ICamera,
+    input: Texture,
+    depthOpaque: Texture,
+    depthTransparent: Texture,
+    props: DofProps,
+    sphere: Sphere3D,
+  ) {
     let needsUpdate = false;
-    if (this.renderable.values.tColor.ref.value !== input) {
-      ValueCell.update(this.renderable.values.tColor, input);
+    if (renderable.values.tColor.ref.value !== input) {
+      ValueCell.update(renderable.values.tColor, input);
       needsUpdate = true;
     }
-    if (this.renderable.values.tDepthOpaque.ref.value !== depthOpaque) {
-      ValueCell.update(this.renderable.values.tDepthOpaque, depthOpaque);
+    if (renderable.values.tDepthOpaque.ref.value !== depthOpaque) {
+      ValueCell.update(renderable.values.tDepthOpaque, depthOpaque);
       needsUpdate = true;
     }
-    if (this.renderable.values.tDepthTransparent.ref.value !== depthTransparent) {
-      ValueCell.update(this.renderable.values.tDepthTransparent, depthTransparent);
+    if (renderable.values.tDepthTransparent.ref.value !== depthTransparent) {
+      ValueCell.update(renderable.values.tDepthTransparent, depthTransparent);
       needsUpdate = true;
     }
     const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
-    const invProjection = this.renderable.values.uInvProjection.ref.value;
+    const invProjection = renderable.values.uInvProjection.ref.value;
     Mat4.invert(invProjection, camera.projection);
 
-    const [w, h] = this.renderable.values.uTexSize.ref.value;
+    const [w, h] = renderable.values.uTexSize.ref.value;
     const v = camera.viewport;
 
-    ValueCell.update(this.renderable.values.uProjection, camera.projection);
-    ValueCell.update(this.renderable.values.uInvProjection, invProjection);
-    ValueCell.update(this.renderable.values.uMode, props.mode === 'sphere' ? 1 : 0);
+    ValueCell.update(renderable.values.uProjection, camera.projection);
+    ValueCell.update(renderable.values.uInvProjection, invProjection);
+    ValueCell.update(renderable.values.uMode, props.mode === 'sphere' ? 1 : 0);
 
-    Vec4.set(this.renderable.values.uBounds.ref.value, v.x / w, v.y / h, (v.x + v.width) / w, (v.y + v.height) / h);
-    ValueCell.update(this.renderable.values.uBounds, this.renderable.values.uBounds.ref.value);
+    Vec4.set(renderable.values.uBounds.ref.value, v.x / w, v.y / h, (v.x + v.width) / w, (v.y + v.height) / h);
+    ValueCell.update(renderable.values.uBounds, renderable.values.uBounds.ref.value);
 
-    ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
-    ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
-    ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
+    ValueCell.updateIfChanged(renderable.values.uNear, camera.near);
+    ValueCell.updateIfChanged(renderable.values.uFar, camera.far);
+    ValueCell.updateIfChanged(renderable.values.dOrthographic, orthographic);
 
     const blurSize = Math.round(props.blurSize * this.graphics.pixelRatio);
-    if (this.renderable.values.dBlurSize.ref.value !== blurSize) {
-      ValueCell.update(this.renderable.values.dBlurSize, blurSize);
+    if (renderable.values.dBlurSize.ref.value !== blurSize) {
+      ValueCell.update(renderable.values.dBlurSize, blurSize);
       needsUpdate = true;
     }
 
     const worldCenter = props.center === 'scene-center' ? sphere.center : camera.state.target;
     const distance = Vec3.distance(camera.state.position, worldCenter);
     const inFocus = distance + props.inFocus;
-    ValueCell.updateIfChanged(this.renderable.values.uInFocus, inFocus * camera.scale);
+    ValueCell.updateIfChanged(renderable.values.uInFocus, inFocus * camera.scale);
 
     // transform center in view space
-    const center = this.renderable.values.uCenter.ref.value;
+    const center = renderable.values.uCenter.ref.value;
     Vec3.transformMat4(center, worldCenter, camera.view);
-    ValueCell.update(this.renderable.values.uCenter, center);
+    ValueCell.update(renderable.values.uCenter, center);
 
-    ValueCell.updateIfChanged(this.renderable.values.uBlurSpread, props.blurSpread);
-    ValueCell.updateIfChanged(this.renderable.values.uPPM, props.PPM * camera.scale);
+    ValueCell.updateIfChanged(renderable.values.uBlurSpread, props.blurSpread);
+    ValueCell.updateIfChanged(renderable.values.uPPM, props.PPM * camera.scale);
 
     if (needsUpdate) {
-      this.renderable.update();
+      renderable.update();
     }
   }
 
   render(b: PassBuilder, viewport: Viewport, target: undefined | RenderTarget) {
+    if (this.blurTarget && this.horizontalRenderable) {
+      b.begin(this.blurTarget, { label: 'dof horizontal' });
+      if (b.drawing) this.updateState(viewport);
+      b.quad(this.horizontalRenderable, RenderState.Default);
+    }
     b.begin(target ?? 'drawing-buffer', { label: 'dof' });
     if (b.drawing) this.updateState(viewport);
     b.quad(this.renderable, RenderState.Default);
@@ -161,7 +196,9 @@ export const DofSchema = {
   tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  tBlur: TextureSpec('texture', 'rgba', 'fp16', 'nearest', undefined, { usedIf: ['dDofPass_vertical'] }),
   uTexSize: UniformSpec('v2'),
+  dDofPass: DefineSpec('string', ['single', 'horizontal', 'vertical']),
 
   uProjection: { ...UniformSpec('m4'), depthRange: 'projection' as const },
   uInvProjection: { ...UniformSpec('m4'), depthRange: 'inverse' as const },
@@ -187,6 +224,7 @@ function getDofRenderable(
   colorTexture: Texture,
   depthTextureOpaque: Texture,
   depthTextureTransparent: Texture,
+  pass: 'single' | 'horizontal' | 'vertical',
 ): DofRenderable {
   const width = colorTexture.getWidth();
   const height = colorTexture.getHeight();
@@ -196,7 +234,9 @@ function getDofRenderable(
     tDepthOpaque: ValueCell.create(depthTextureOpaque),
     tDepthTransparent: ValueCell.create(depthTextureTransparent),
     tColor: ValueCell.create(colorTexture),
+    tBlur: ValueCell.create(createNullTexture()),
     uTexSize: ValueCell.create(Vec2.create(width, height)),
+    dDofPass: ValueCell.create(pass),
 
     uProjection: ValueCell.create(Mat4.identity()),
     uInvProjection: ValueCell.create(Mat4.identity()),

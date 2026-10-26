@@ -1,6 +1,6 @@
 import type { GaussianDensityTextureData } from '../gaussian-density.js';
 /**
- * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -453,8 +453,10 @@ function prepareGaussianDensityData(
 
   let maxRadius = 0;
 
+  // a range (the common case) indexed directly, not by `OrderedSet.getAt` per element
+  const offset = OrderedSet.isInterval(indices) ? OrderedSet.start(indices) : -1;
   for (let i = 0; i < n; ++i) {
-    const j = OrderedSet.getAt(indices, i);
+    const j = offset >= 0 ? offset + i : OrderedSet.getAt(indices, i);
 
     positions[i * 3] = x[j];
     positions[i * 3 + 1] = y[j];

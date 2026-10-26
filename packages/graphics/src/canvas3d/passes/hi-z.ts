@@ -187,15 +187,21 @@ export class HiZPass {
 
   /** Built: for the CPU test (`enabled`), or for the GPU's alone (`gpu` with objects culled there) */
   private get active() {
-    return this.supported && (this.props.enabled || (this.props.gpu && this.gpuCulling));
+    return this.isActive(this.props, this.gpuCulling);
+  }
+
+  private isActive(props: HiZProps, gpuCulling: boolean) {
+    return this.supported && (props.enabled || (props.gpu && gpuCulling));
   }
 
   /**
    * What `render` draws, see `PassBuilder`; preparing covers the first level (from the scene depth) and one of the
-   * following ones (each from the level before), and keeps the reading state
+   * following ones (each from the level before), and keeps the reading state. `props` and `gpuCulling` other than
+   * the pass's for preparing what a canvas is not drawing yet (`Canvas3D.prepare`, `precompile`: objects culled on
+   * the GPU before any is drawn)
    */
-  plan(b: PassBuilder, camera: Camera) {
-    if (!this.active) return;
+  plan(b: PassBuilder, camera: Camera, props: HiZProps = this.props, gpuCulling = this.gpuCulling) {
+    if (!this.isActive(props, gpuCulling)) return;
     // no viewport yet (`setViewport`): no levels to build or read
     if (this.levelData.length <= this.props.minLevel) return;
     const { pending } = this.graphics.resources;

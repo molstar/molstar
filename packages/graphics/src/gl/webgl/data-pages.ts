@@ -89,10 +89,13 @@ export function createDataTexturePages(
     allocate(count) {
       const n = Math.max(1, count);
       if (n > pageElements / 4) {
-        // a texture of its own, sized as a data texture of its own
-        const { width, height } = getDataTextureSize(n);
+        // a texture of its own, sized as a data texture of the aligned count: the allocator rounds the range up to
+        // `Alignment`, which a texture of exactly `n` texels (a square count) does not hold
+        const aligned = Math.ceil(n / Alignment) * Alignment;
+        const { width, height } = getDataTextureSize(aligned);
         const page = createPage(width, height, true);
         const offset = page.allocator.allocate(n);
+        if (offset < 0) throw new Error(`data page of ${width}x${height} texels too small for ${n} elements`);
         return { texture: page.texture, width, height, offset, size: n, page } as Range;
       }
       for (const page of pages) {

@@ -59,43 +59,54 @@ float getCOC(vec2 uv) {
     return coc;
 }
 
-// Simple box blur for blurring the image
-vec3 getBlurredImage(vec2 coords) {
-    vec4 blurColor = vec4(0);
+// the color weighted by the circle of confusion at uv (rgb), and the weight (a)
+vec4 getWeightedColor(const in vec2 uv) {
+    float coc = smoothstep(0.0, 1.0, abs(getCOC(uv)));
+    return vec4(texture2D(tColor, uv).rgb * coc, coc);
+}
+
+// the offset of sample i of a row or column, in texels, centered (texel centers for odd sizes, not their edges, where
+// rounding picks a neighbour)
+float sampleOffset(const in int i) {
+    return float(i) - float(dBlurSize - 1) / 2.0;
+}
+
+// Box blur weighted by the circle of confusion: weighted color sums (rgb) and weights (a). The weights are per sample,
+// so the blur separates exactly: dDofPass 'horizontal' writes the sums of a row, 'vertical' adds those of the column
+vec4 getBlurSums(const in vec2 coords) {
     vec2 texelSize = vec2(1.0 / uTexSize.x, 1.0 / uTexSize.y);
-    float count = 0.0;
-    for (int x = 0; x < int(dBlurSize); x++) {
-        for (int y = 0; y < int(dBlurSize); y++) {
-            vec2 offset = vec2(float(x) - float(dBlurSize) / 2.0, float(y) - float(dBlurSize) / 2.0);
-            vec2 uvPixel = coords.xy + offset * texelSize * uBlurSpread;
-            float coc = getCOC(uvPixel);
-            coc = smoothstep(0.0, 1.0, abs(coc));
-            // mix blurColor with new color with weight coc
-            blurColor.rgb = blurColor.rgb + texture2D(tColor, uvPixel).xyz * coc;
-            count+=coc;
+    vec4 sums = vec4(0.0);
+    #if defined(dDofPass_horizontal)
+        for (int x = 0; x < int(dBlurSize); x++) {
+            sums += getWeightedColor(coords + vec2(sampleOffset(x), 0.0) * texelSize * uBlurSpread);
         }
-    }
-    // no sample out of focus: the pixel itself
-    return count > 0.0 ? blurColor.rgb / count : texture2D(tColor, coords).rgb;
+    #elif defined(dDofPass_vertical)
+        for (int y = 0; y < int(dBlurSize); y++) {
+            sums += texture2D(tBlur, coords + vec2(0.0, sampleOffset(y)) * texelSize * uBlurSpread);
+        }
+    #else
+        for (int x = 0; x < int(dBlurSize); x++) {
+            for (int y = 0; y < int(dBlurSize); y++) {
+                sums += getWeightedColor(coords + vec2(sampleOffset(x), sampleOffset(y)) * texelSize * uBlurSpread);
+            }
+        }
+    #endif
+    return sums;
 }
 
 // simplification from https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
 void main() {
     vec2 uv = gl_FragCoord.xy / uTexSize;
-    vec4 color = texture2D(tColor, uv);
-    float depth = getDepth(uv);
-
-    float viewDist = getViewZ(depth);
-
-    vec3 aposition = screenSpaceToViewSpace(vec3(uv.xy, depth), uInvProjection);
-    float focusDist = length(aposition - uCenter);
-    vec3 blurColor = getBlurredImage(uv);
-
-    float coc = getCOC(uv); // Circle of Confusion
-
-    // for debugging the coc
-    // color.rgb = (coc < 0.0) ? (1.0 - abs(coc)) * vec3(1.0,0.0,0.0) : vec3(0.0, 1.0 - coc, 0.0) ;//mix(color.rgb, blurColor.rgb, abs(coc));
-    color.rgb = mix(color.rgb, blurColor, smoothstep(0.0, 1.0, abs(coc))); // Smooth blending based on CoC
-    gl_FragColor = color;
+    #if defined(dDofPass_horizontal)
+        gl_FragColor = getBlurSums(uv);
+    #else
+        vec4 color = texture2D(tColor, uv);
+        vec4 sums = getBlurSums(uv);
+        // no sample out of focus: the pixel itself
+        vec3 blurColor = sums.a > 0.0 ? sums.rgb / sums.a : color.rgb;
+        float coc = getCOC(uv); // Circle of Confusion
+        color.rgb = mix(color.rgb, blurColor, smoothstep(0.0, 1.0, abs(coc))); // Smooth blending based on CoC
+        gl_FragColor = color;
+    #endif
 }
 `;

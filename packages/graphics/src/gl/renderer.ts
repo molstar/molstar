@@ -1019,6 +1019,28 @@ namespace Renderer {
     };
 
     const solidInteriorEye = Vec3();
+    const solidInteriorSphere = Sphere3D();
+
+    /**
+     * Whether near cuts the (scaled) sphere by more than a margin: the camera fits near to the front of the scene's
+     * sphere, and an object spanning the scene has its sphere's front there too, its geometry behind near
+     */
+    const cutsNear = (s: Sphere3D, near: number) => {
+      const d = Plane3D.distanceToPoint(cameraPlane, s.center);
+      return d - s.radius < near * (1 - 1e-4) && d + s.radius >= near;
+    };
+
+    /** Whether near cuts `r`, by its segments where it draws several: a merged object's sphere spans its members' */
+    const cutsNearObject = (r: GraphicsRenderable) => {
+      const near = globalUniforms.uNear.ref.value;
+      if (!cutsNear(boundingSphere, near)) return false;
+      const spheres = r.getSegmentSpheres?.();
+      if (!spheres) return true;
+      for (let i = 0, il = spheres.length; i < il; ++i) {
+        if (cutsNear(Sphere3D.scaleNX(solidInteriorSphere, spheres[i], modelScale), near)) return true;
+      }
+      return false;
+    };
 
     /**
      * The caps `r` draws in this frame into `out`: -1 for the near plane, the indices of the clip objects that cut it
@@ -1027,13 +1049,7 @@ namespace Renderer {
     const getSolidInteriorCaps = (r: GraphicsRenderable, mode: SolidInteriorMode, out: number[]) => {
       out.length = 0;
       const back = mode === 'back';
-      const near = globalUniforms.uNear.ref.value * 1.0001;
-      if (
-        !back &&
-        Math.abs(Plane3D.distanceToPoint(cameraPlane, boundingSphere.center) - near) <= boundingSphere.radius
-      ) {
-        out.push(-1);
-      }
+      if (!back && cutsNearObject(r)) out.push(-1);
 
       const clipInfo = r.getClipInfo();
       if (clipInfo && clipInfo.capIndices.length > 0) {

@@ -10,6 +10,9 @@
  * `position` and `group`
  */
 export const assign_quad_position_group = `
+#if defined(dInstanceData)
+    readInstanceData();
+#endif
 vec2 mapping = vec2(1.0, 1.0); // vertices 2 and 5
 #if __VERSION__ == 100
     int m = imod(VertexID, 6);

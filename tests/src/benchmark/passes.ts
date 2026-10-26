@@ -75,6 +75,17 @@ const pass = (id: string, description: string, props: Partial<PostprocessingProp
 export const PassCases: BenchmarkCase<any>[] = [
   renderCase('passes/mesh', 'cartoon (meshes)', scene([{ provider: CartoonRepresentationProvider }])),
   renderCase('passes/spheres', 'spacefill (sphere impostors)', scene(spheres)),
+  // the impostor's parts apart: its shading, and its ray-sphere hit and depth write
+  renderCase(
+    'passes/spheres-ignore-light',
+    'spacefill (sphere impostors) without lighting',
+    scene([{ provider: SpacefillRepresentationProvider, props: { ignoreLight: true } }]),
+  ),
+  renderCase(
+    'passes/spheres-approximate',
+    'spacefill as approximate impostors (no ray-sphere hit, no depth write)',
+    scene([{ provider: SpacefillRepresentationProvider, props: { approximate: true } }]),
+  ),
   renderCase(
     'passes/cylinders',
     'ball-and-stick (sphere and cylinder impostors)',
