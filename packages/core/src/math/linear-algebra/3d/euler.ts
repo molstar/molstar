@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <autin@scripps.edu>
  *
  * This code has been modified from https://github.com/mrdoob/three.js/,
  * copyright (c) 2010-2023 three.js authors. MIT License
@@ -43,8 +44,8 @@ namespace Euler {
 
   export function set(out: Euler, x: number, y: number, z: number) {
     out[0] = x;
-    out[0] = y;
-    out[0] = z;
+    out[1] = y;
+    out[2] = z;
     return out;
   }
 
