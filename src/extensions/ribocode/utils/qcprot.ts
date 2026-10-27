@@ -45,14 +45,14 @@
  */
 export class QCProt {
     // The quaternion components.
-    q1: number;
-    q2: number;
-    q3: number;
-    q4: number;
+    q1: number = 0;
+    q2: number = 0;
+    q3: number = 0;
+    q4: number = 0;
     // For storing the root mean squared error.
-    rmsd: number;
+    rmsd: number = 0;
     // For storing the weighted root mean squared error.
-    wrmsd: number;
+    wrmsd: number = 0;
     // For storing the rotation matrix.
     rotmat: number[];
     // For storing the weights.
