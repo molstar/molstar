@@ -10,6 +10,7 @@ here.
 
 ## [Unreleased]
 
+- Fix `Euler.set` (and `Euler.fromVec3`, which uses it) writing all three angles into the first component
 - [Breaking] Component options keep overrides: `StructureComponentManager.setOptions` changes only the representations
   that had the previous value of a changed option (a representation given its own material, quality, … keeps it);
   `reset` writes options to every representation. Representation presets give their representations the material, clip
