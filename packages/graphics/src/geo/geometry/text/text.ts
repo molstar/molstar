@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -206,9 +207,9 @@ export namespace Text {
 
     borderWidth: PD.Numeric(0, { min: 0, max: 0.5, step: 0.01 }),
     borderColor: PD.Color(ColorNames.grey),
-    offsetX: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
-    offsetY: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
-    offsetZ: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
+    offsetX: PD.Numeric(0, { min: -10, max: 10, step: 0.1 }),
+    offsetY: PD.Numeric(0, { min: -10, max: 10, step: 0.1 }),
+    offsetZ: PD.Numeric(0, { min: -10, max: 10, step: 0.1 }),
     background: PD.Boolean(false),
     backgroundMargin: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     backgroundColor: PD.Color(ColorNames.grey),
