@@ -10,6 +10,7 @@ here.
 
 ## [Unreleased]
 
+- Allow negative values for the label text offsets X, Y and Z (domain [-10, 10] instead of [0, 10]) (#1899)
 - Fix `Euler.set` (and `Euler.fromVec3`, which uses it) writing all three angles into the first component
 - [Breaking] Component options keep overrides: `StructureComponentManager.setOptions` changes only the representations
   that had the previous value of a changed option (a representation given its own material, quality, … keeps it);
