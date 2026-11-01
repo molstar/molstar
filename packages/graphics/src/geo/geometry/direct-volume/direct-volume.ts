@@ -531,8 +531,14 @@ export namespace DirectVolume {
     );
 
     const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
+    const previousTransfer = values.tTransferTex.ref.value.array.slice();
     createTransferFunctionTexture(controlPoints, values.tTransferTex);
-    createPreIntegratedTransferTexture(values.tTransferTex.ref.value.array, values.tPreIntegratedTex);
+    // its table is 256 × 256 and a texture upload: only where read and out of date
+    const transfer = values.tTransferTex.ref.value.array;
+    const transferChanged = transfer.some((v, i) => v !== previousTransfer[i]);
+    if (props.preIntegration && (transferChanged || !values.dPreIntegration.ref.value)) {
+      createPreIntegratedTransferTexture(transfer, values.tPreIntegratedTex);
+    }
     ValueCell.updateIfChanged(values.dPreIntegration, props.preIntegration);
     // the transfer function or the bricks (a new geometry) may have changed
     const brickRange = values.brickRange.ref.value as BrickRange;
