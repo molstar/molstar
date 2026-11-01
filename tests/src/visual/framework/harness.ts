@@ -226,7 +226,7 @@ export async function renderTest(
 
   const p = getTestCanvasProps(test);
   p.renderer = { ...p.renderer, drawLists: !!options.drawLists };
-  const repeats = options.drawLists ? 2 : 0;
+  const repeats = options.drawLists ? 2 : (test.imagePassRepeats ?? 0);
   canvas3d.setProps({
     camera: p.camera,
     cameraFog: p.cameraFog,
@@ -285,7 +285,13 @@ export async function renderTest(
       await context.graphics.waitForGpuCommandsComplete();
       return {
         image,
-        errors: [...interactErrors, ...releaseErrors, ...instance.takeErrors(), ...log.errors],
+        errors: [
+          ...interactErrors,
+          ...releaseErrors,
+          ...instance.takeErrors(),
+          ...log.errors,
+          ...(test.checkImage?.(image) ?? []),
+        ],
         warnings: log.warnings,
         timeMs: performance.now() - start,
       };

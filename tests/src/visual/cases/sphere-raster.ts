@@ -185,8 +185,9 @@ function rasterCase(
     requires: Impostor,
     canvasProps: { ...canvasProps, renderer: { ...canvasProps.renderer, sphereRaster, sphereRasterRadius: radius } },
     view: options.view ?? ObliqueView,
-    // the canvas's frames, where the raster drew (the image pass's target compiles the resolve again)
-    capture: 'canvas',
+    // the image's target compiles the resolve again: images before the capture. The frames of `untilRasterDrawn`
+    // check that the raster draws, also where a headless browser reads the canvas of WebGPU as blank
+    imagePassRepeats: 3,
     scene,
     interact: async (ctx, reprs) => [
       ...(options.interact ? await options.interact(ctx, reprs) : []),

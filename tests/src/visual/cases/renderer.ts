@@ -469,6 +469,22 @@ export const RendererCases: VisualTestCase[] = [
     scene: primitivesScene,
   },
   {
+    id: 'renderer/viewport/outside-untouched',
+    description:
+      'A frame relative to the canvas: nothing is drawn outside it, which a context may share with other Canvas3D instances.',
+    capture: 'canvas',
+    canvasProps: {
+      renderer: { backgroundColor: Color(0xff00ff) },
+      viewport: { name: 'relative-frame', params: { x: 0.1, y: 0.2, width: 0.6, height: 0.6 } },
+    },
+    checkImage: ({ data }) => {
+      const corner = Array.from(data.subarray(0, 4)).join(',');
+      return corner === '0,0,0,0' ? [] : [`drawn outside the frame: ${corner}`];
+    },
+    view: ObliqueView,
+    scene: primitivesScene,
+  },
+  {
     id: 'renderer/viewport/static-frame',
     description: 'Drawn into a frame of 160x112 CSS pixels at 24, 120 from the top-left corner of the canvas.',
     capture: 'canvas',
