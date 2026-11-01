@@ -472,6 +472,8 @@ export const RendererCases: VisualTestCase[] = [
     id: 'renderer/viewport/outside-untouched',
     description:
       'A frame relative to the canvas: nothing is drawn outside it, which a context may share with other Canvas3D instances.',
+    // a canvas of its own: another case's frame stays outside the frame on WebGL (`preserveDrawingBuffer`)
+    isolate: true,
     capture: 'canvas',
     canvasProps: {
       renderer: { backgroundColor: Color(0xff00ff) },
