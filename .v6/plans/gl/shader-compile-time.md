@@ -3,8 +3,7 @@
 ## Status
 
 - **Current**: analysis in progress. Solid-interior cylinders fixed (their cap functions at one call site each: fresh
-  shader text, WebGPU pipeline 955-1327 -> 522 ms, WebGL2 case 2.8 -> 1.0 s). An empty cache takes about 6 s for scenes
-  of solid interiors with pixel clipping (WebGPU, 3 s on WebGL2), which no single pipeline explains.
+  shader text, WebGPU pipeline 955-1327 -> 522 ms, WebGL2 case 2.8 -> 1.0 s). No pipeline is slow enough to matter now.
 - **Why**: the compilers inline every call site with what it calls (FXC on D3D12, ANGLE's on WebGL), so a large function
   reached from several exclusive branches is compiled that many times.
 
@@ -36,20 +35,21 @@ may run alongside. A WebGPU case's reference page is WebGL2's: both write to wha
 - Direct volumes by forward differences instead of central: three runs each, WebGL2 231 -> 232 ms, WebGPU 96 -> 93 ms.
   The doubled reads cost no compile time.
 
+## Not reproduced
+
+About 6 s (WebGPU, 3 s on WebGL2) with an empty cache for a scene of solid interiors with pixel clipping, seen once; no
+pipeline takes close to that, and it did not come back. In the same period `renderer/clipping/impostor-interior` stalled
+in the GPU process for minutes and `renderer/marking/direct-volume` drew wrongly on WebGPU, repeatably. All three are gone
+on the same commits and the same Chrome, without a reboot: the machine's state, by inference. If it comes back, before a
+reboot: `chrome://gpu`, the GPU process's stack, a run at a known commit.
+
 ## Open
 
-1. A real scene's total with an empty cache: no pipeline takes close to the 6 s seen, so many variants adding up, or what
-   such a scene compiles beyond what was timed here.
-2. Why WebGL2 takes 2.5-3.5 times WebGPU on the slowest programs (solid-interior cylinders 862 against 252 ms, direct
-   volumes 231 against 92 ms), though about the same at the median: ANGLE's translation, not inlining the shaders avoid.
+- Why WebGL2 takes 2.5-3.5 times WebGPU on the slowest programs (solid-interior cylinders 862 against 252 ms, direct
+  volumes 231 against 92 ms), though about the same at the median: ANGLE's translation, not inlining the shaders avoid.
 
 ## What a change must show
 
 Only branches merged so that one call site remains, where one branch runs anyway; work moved ahead of an early exit needs
 a runtime measurement. Compile time clearly better, repeated with fresh text; frame time unchanged on the matching
 benchmark; images identical before and after.
-
-## Also found
-
-`shaders/coverage` fails on WebGPU: `prepareAllKernels` does not compile the sphere raster's four kernels. On demand only,
-so not in CI.
