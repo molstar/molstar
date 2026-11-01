@@ -828,7 +828,8 @@ export function createMergedCuller(
         copyValues.uRasterRadius.ref.value !== (raster?.radius ?? 0) ||
         copyValues.uRasterScale.ref.value !== (raster?.scale ?? 0) ||
         copyValues.uRasterNear.ref.value !== (raster?.near ?? 0);
-      if (!rasterChanged && isDispatched(cameraPlane, frustum, min, max) && isPyramidDispatched(pyramid)) {
+      const viewChanged = !isDispatched(cameraPlane, frustum, min, max);
+      if (!rasterChanged && !viewChanged && isPyramidDispatched(pyramid)) {
         compactRecords();
         return true;
       }
@@ -842,7 +843,9 @@ export function createMergedCuller(
       rasterDispatched = !!raster;
       if (isDebugMode && raster) logRasterInputs(raster);
       if (!pyramid) pyramidRounds = 0;
-      else if (!dispatchedHiZ || !isPyramidCamera(pyramid)) pyramidRounds = 1;
+      // a view of its own: levels of an earlier one (a draw compiling, none of this view yet) left out what stays out
+      // until culled again
+      else if (viewChanged || !dispatchedHiZ || !isPyramidCamera(pyramid)) pyramidRounds = 1;
       else if (pyramid.version !== dispatchedPyramidVersion) pyramidRounds += 1;
       dispatchedHiZ = !!pyramid;
       if (pyramid) {

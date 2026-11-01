@@ -256,6 +256,86 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
     }
   });
 
+  // the frame of a jump without levels of its own (a draw compiling, so no second phase): the next frame culls again
+  it('culls again after a view moved with no new levels', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const scene = Scene.create(graphics);
+      scene.add(
+        createMergedRenderObject([createMember(Vec3.create(0, 0, 0), ColorNames.orange, false)], { gpuCulling: true }),
+      );
+      scene.commit();
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      camera.setState({ ...camera.getFocus(Vec3.create(0, 2, -44), 90), radius: 120, radiusMax: 120 }, 0);
+      camera.update();
+      const levelSize = 64;
+      const width = 2 * levelSize - 1;
+      const array = new Float32Array(width * levelSize).fill(1);
+      const texture = graphics.resources.texture('image-float32', 'r', 'float', 'nearest');
+      texture.load({ array, width, height: levelSize });
+      const view = Mat4.clone(camera.view);
+      const projection = Mat4.clone(camera.projection);
+      const getPyramid = (version: number): OcclusionPyramid => ({
+        texture,
+        levelCount: Math.log2(levelSize) + 1,
+        minLevel: 0,
+        width: levelSize,
+        height: levelSize,
+        view,
+        projection,
+        near: camera.near,
+        far: camera.far,
+        version,
+      });
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+      renderer.setViewport(0, 0, Size, Size);
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+      );
+      let version = 0;
+      const frame = (pyramid: OcclusionPyramid) => {
+        renderer.setOcclusionPyramid(() => pyramid);
+        renderer.update(camera, scene, createFrame());
+        renderer.prepareCull(scene, true);
+        renderer.prepareSphereRaster(scene, camera);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+        return renderer.cullSecondPending;
+      };
+      // at rest: the levels settled, nothing culled again
+      // (the kernels compile in the background)
+      for (let i = 0; i < 12; ++i) {
+        frame(getPyramid(++version));
+        await graphics.resources.pending.whenReady();
+      }
+      const settled = getPyramid(version);
+      expect(frame(settled)).toBe(0);
+      // a jump, the same levels: culled, its second phase not run
+      camera.setState({ ...camera.getFocus(Vec3.create(0, 3, -44), 90), radius: 120, radiusMax: 120 }, 0);
+      camera.update();
+      expect(frame(settled)).toBe(1);
+      // the frame after: culled again, so it has a second phase
+      expect(frame(settled)).toBe(1);
+      await graphics.resources.pending.whenReady();
+      renderer.dispose();
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   it("draws by impostors an object whose resolve isn't ready, also where the raster draws all its spheres", async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
