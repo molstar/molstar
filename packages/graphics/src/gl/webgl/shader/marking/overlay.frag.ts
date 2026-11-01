@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2021-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
+ */
+
 import { common } from '../chunks/common.glsl.js';
 
 export const overlay_frag = `

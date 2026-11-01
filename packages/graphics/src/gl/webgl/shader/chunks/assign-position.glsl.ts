@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 export const assign_position = `
 #ifdef dGeometryType_image
     mat4 transform = aTransform;
