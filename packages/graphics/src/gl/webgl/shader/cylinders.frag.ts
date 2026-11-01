@@ -254,58 +254,50 @@ bool CylinderImpostor(
         h = -h;
         t = (-k1 - h) / k2;
         y = baoc + t * bard;
+        bool inside = false;
         if (y > 0.0 && y < baba) {
             interior = true;
             cameraNormal = -(oc + t * rayDir - ba * y / baba) / radius;
             modelPosition = rayOrigin + t * rayDir;
             viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
-            if (fragmentDepth < 1.0) {
-                #ifdef dSolidInterior
-                    if (depthBack) {
-                        if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
-                    } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
-                #endif
-                return true;
+            inside = fragmentDepth < 1.0;
+        }
+
+        if (!inside) {
+            if (topCap && y < 0.0) {
+                // top cap
+                t = -baoc / bard;
+                if (abs(k1 + k2 * t) < -h) {
+                    interior = true;
+                    cameraNormal = ba / baba;
+                    modelPosition = rayOrigin + t * rayDir;
+                    viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                    fragmentDepth = calcDepth(viewPosition);
+                    inside = fragmentDepth < 1.0;
+                }
+            } else if (bottomCap && y >= 0.0) {
+                // bottom cap
+                t = (baba - baoc) / bard;
+                if (abs(k1 + k2 * t) < -h) {
+                    interior = true;
+                    cameraNormal = -ba / baba;
+                    modelPosition = rayOrigin + t * rayDir;
+                    viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                    fragmentDepth = calcDepth(viewPosition);
+                    inside = fragmentDepth < 1.0;
+                }
             }
         }
 
-        if (topCap && y < 0.0) {
-            // top cap
-            t = -baoc / bard;
-            if (abs(k1 + k2 * t) < -h) {
-                interior = true;
-                cameraNormal = ba / baba;
-                modelPosition = rayOrigin + t * rayDir;
-                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
-                fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth < 1.0) {
-                    #ifdef dSolidInterior
-                        if (depthBack) {
-                            if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
-                        } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
-                    #endif
-                    return true;
-                }
-            }
-        } else if (bottomCap && y >= 0.0) {
-            // bottom cap
-            t = (baba - baoc) / bard;
-            if (abs(k1 + k2 * t) < -h) {
-                interior = true;
-                cameraNormal = -ba / baba;
-                modelPosition = rayOrigin + t * rayDir;
-                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
-                fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth < 1.0) {
-                    #ifdef dSolidInterior
-                        if (depthBack) {
-                            if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
-                        } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
-                    #endif
-                    return true;
-                }
-            }
+        // one call site of each: the compilers inline them with their clip loops, per site
+        if (inside) {
+            #ifdef dSolidInterior
+                if (depthBack) {
+                    if (!solidInteriorBackCap(entryPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+                } else if (!solidInteriorCap(rayOrigin, rayDir, frontT, t, frontDepth, objectClipped, frontModelPosition, cameraNormal, modelPosition, viewPosition, fragmentDepth)) return false;
+            #endif
+            return true;
         }
     }
 

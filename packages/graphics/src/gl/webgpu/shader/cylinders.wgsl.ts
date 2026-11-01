@@ -385,40 +385,36 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
         h = -h;
         t = (-k1 - h) / k2;
         y = baoc + t * bard;
+        var inside = false;
         if (y > 0.0 && y < baba) {
             r = cylinderHitAt(rayOrigin, rayDir, t, -(oc + t * rayDir - ba * y / baba) / radius, true);
-            if (r.hit) {
-                if (depthBack) {
-                    return solidInteriorBackCap(r, entryPosition, clipFlag);
+            inside = r.hit;
+        }
+
+        if (!inside) {
+            if (topCap && y < 0.0) {
+                // top cap
+                t = -baoc / bard;
+                if (abs(k1 + k2 * t) < -h) {
+                    r = cylinderHitAt(rayOrigin, rayDir, t, ba / baba, true);
+                    inside = r.hit;
                 }
-                return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
+            } else if (bottomCap && y >= 0.0) {
+                // bottom cap
+                t = (baba - baoc) / bard;
+                if (abs(k1 + k2 * t) < -h) {
+                    r = cylinderHitAt(rayOrigin, rayDir, t, -ba / baba, true);
+                    inside = r.hit;
+                }
             }
         }
 
-        if (topCap && y < 0.0) {
-            // top cap
-            t = -baoc / bard;
-            if (abs(k1 + k2 * t) < -h) {
-                r = cylinderHitAt(rayOrigin, rayDir, t, ba / baba, true);
-                if (r.hit) {
-                    if (depthBack) {
-                        return solidInteriorBackCap(r, entryPosition, clipFlag);
-                    }
-                    return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
-                }
+        // one call site of each: the compilers inline them with their clip loops, per site
+        if (inside) {
+            if (depthBack) {
+                return solidInteriorBackCap(r, entryPosition, clipFlag);
             }
-        } else if (bottomCap && y >= 0.0) {
-            // bottom cap
-            t = (baba - baoc) / bard;
-            if (abs(k1 + k2 * t) < -h) {
-                r = cylinderHitAt(rayOrigin, rayDir, t, -ba / baba, true);
-                if (r.hit) {
-                    if (depthBack) {
-                        return solidInteriorBackCap(r, entryPosition, clipFlag);
-                    }
-                    return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
-                }
-            }
+            return solidInteriorCap(r, rayOrigin, rayDir, t, front, radius, clipFlag);
         }
     }
 
