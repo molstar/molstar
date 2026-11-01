@@ -76,7 +76,7 @@ const SphereRasterParams = {
   /** per level its spheres (the first of `tPositionGroup`, in level order; unmerged objects) */
   uLevelCounts: UniformSpec('v4'),
   uLevelCount: UniformSpec('i'),
-  /** the object's slot in the counters and the indirect arguments (4 words each) */
+  /** the object's slot in the counters (`CounterWords` each) and the indirect arguments (8 words each) */
   uObjectIndex: UniformSpec('i'),
   /** the object's region of the frame's chunks */
   uChunkBase: UniformSpec('i'),
@@ -299,6 +299,9 @@ export interface SphereRaster {
   destroy: () => void;
 }
 
+/** An object's counters: chunk rows written, single rows written, those two drawn already, all rows asked for */
+const CounterWords = 5;
+
 /** The least chunks of a merged object to start with, 2 MB */
 const InitialChunkCapacity = 65536;
 
@@ -513,7 +516,7 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       for (let i = 0; i < objects.length; ++i) {
         const { culled } = objects[i];
         if (!culled) continue;
-        const need = counts[i * 4] + counts[i * 4 + 1];
+        const need = counts[i * CounterWords + 4];
         if (need * 2 <= capacities[i]) continue;
         chunkCapacities.set(getObjectKey(objects[i]), Math.min(need * 2, culled.chunkCapacity));
       }
@@ -538,12 +541,12 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
 
   return {
     draw: (objects, view, vis, twoPhase = false) => {
-      const words = Math.max(1, objects.length) * 4;
+      const words = Math.max(1, objects.length) * CounterWords;
       if (!counter || counter.byteLength < words * 4) {
         counter?.destroy();
         args?.destroy();
         counter = compute.createBuffer(words * 4, 'sphere raster counters');
-        args = compute.createBuffer(words * 8, 'sphere raster args');
+        args = compute.createBuffer(Math.max(1, objects.length) * 32, 'sphere raster args');
         for (const k of kernels.values()) {
           ValueCell.update(k.rasterValues.counter, counter);
           ValueCell.update(k.argsValues.args, args);

@@ -54,18 +54,24 @@ fn slotTransform(slot: u32) -> mat4x4<f32> {
  */
 const sphere_raster_append_wgsl = /* wgsl */ `
 fn appendChunks(slot: u32, first: u32, count: u32, level: u32, instance: vec4<u32>) {
+    // the rows asked for reserve them from one count, for both ends of the region: what is written never overlaps, and
+    // each end's own count stays contiguous for the raster
+    let object = u32(uParams.uObjectIndex) * 5u;
+    let capacity = u32(uParams.uChunkCapacity);
     if (count == 1u) {
-        let single = atomicAdd(&counter[u32(uParams.uObjectIndex) * 4u + 1u], 1u);
-        if (single >= u32(uParams.uChunkCapacity)) { return; }
+        if (atomicAdd(&counter[object + 4u], 1u) >= capacity) { return; }
+        let single = atomicAdd(&counter[object + 1u], 1u);
         let c = (u32(uParams.uChunkBase) + u32(uParams.uChunkCapacity) - 1u - single) * 2u;
         chunks[c] = vec4<u32>(slot, first, first + 1u, level);
         chunks[c + 1u] = instance;
         return;
     }
     let n = (count + 63u) / 64u;
-    let base = atomicAdd(&counter[u32(uParams.uObjectIndex) * 4u], n);
-    let capacity = u32(uParams.uChunkCapacity);
-    for (var k = 0u; k < n && base + k < capacity; k++) {
+    let reserved = atomicAdd(&counter[object + 4u], n);
+    if (reserved >= capacity) { return; }
+    let written = min(n, capacity - reserved);
+    let base = atomicAdd(&counter[object], written);
+    for (var k = 0u; k < written; k++) {
         let c = (u32(uParams.uChunkBase) + base + k) * 2u;
         chunks[c] = vec4<u32>(slot, first + k * 64u, first + min(k * 64u + 64u, count), level);
         chunks[c + 1u] = instance;
@@ -172,14 +178,14 @@ fn main(@builtin(global_invocation_id) gid: vec3u, @builtin(num_workgroups) grou
 export const sphere_raster_args_wgsl = /* wgsl */ `
 @compute @workgroup_size(WorkgroupSizeX)
 fn main() {
-    let o = u32(uParams.uObjectIndex) * 4u;
+    let o = u32(uParams.uObjectIndex) * 5u;
     if (uParams.uMark != 0) {
         counter[o + 2u] = min(counter[o], u32(uParams.uChunkCapacity));
         counter[o + 3u] = counter[o + 1u];
         return;
     }
     let n = min(counter[o], u32(uParams.uChunkCapacity)) - counter[o + 2u];
-    let d = o * 2u;
+    let d = u32(uParams.uObjectIndex) * 8u;
     args[d] = min(n, 65535u);
     args[d + 1u] = (n + 65534u) / 65535u;
     args[d + 2u] = 1u;
@@ -302,7 +308,7 @@ var<workgroup> wgLargeInfo: array<vec4<u32>, WorkgroupSizeX>;
 fn main(@builtin(workgroup_id) wid: vec3u, @builtin(local_invocation_index) lid: u32) {
     let local = wid.x + wid.y * 65535u;
     let singles = uParams.uSingles != 0;
-    let objectWord = u32(uParams.uObjectIndex) * 4u;
+    let objectWord = u32(uParams.uObjectIndex) * 5u;
     // after those of an earlier phase (\`sphere_raster_args_wgsl\`)
     let chunkIndex = local + counter[objectWord + 2u];
     if (!singles && chunkIndex >= min(counter[objectWord], u32(uParams.uChunkCapacity))) { return; }
