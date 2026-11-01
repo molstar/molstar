@@ -256,6 +256,60 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
     }
   });
 
+  it("draws by impostors an object whose resolve isn't ready, also where the raster draws all its spheres", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      if (!graphics.capabilities.atomicMinMax64) return;
+      const scene = Scene.create(graphics);
+      scene.add(
+        createMergedRenderObject([createMember(Vec3.create(0, 0, 0), ColorNames.orange, false)], { gpuCulling: true }),
+      );
+      scene.commit();
+      const camera = new Camera();
+      Viewport.set(camera.viewport, 0, 0, Size, Size);
+      camera.setState({ ...camera.getFocus(Vec3.create(0, 2, -44), 90), radius: 120, radiusMax: 120 }, 0);
+      camera.update();
+      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+      const renderer = Renderer.create(graphics, { sphereRaster: 'only', sphereRasterRadius: 8 });
+      renderer.setViewport(0, 0, Size, Size);
+      await graphics.resources.preparePipelines(
+        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+      );
+      const draw = async () => {
+        renderer.update(camera, scene, createFrame());
+        renderer.prepareCull(scene, true);
+        renderer.prepareSphereRaster(scene, camera);
+        graphics.beginRenderPass(target);
+        renderer.clear(true);
+        renderer.renderOpaque(scene, camera);
+        graphics.flush();
+        return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+      };
+      for (let i = 0; i < 8; ++i) {
+        await draw();
+        await graphics.resources.pending.whenReady();
+      }
+      const item = scene.renderables[0].renderItem;
+      const resolve = item.renderFullscreen;
+      item.renderFullscreen = () => false;
+      expect(new Set(await draw()).size).toBeGreaterThan(4);
+      item.renderFullscreen = resolve;
+      await graphics.resources.pending.whenReady();
+      renderer.dispose();
+      target.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
   // the levels are of the main camera: built from the eyes' depth they could hide what the next mono frame sees
   it('builds no levels from the depth of a stereo frame', async () => {
     const plugin = await HeadlessPluginContext.create(

@@ -249,10 +249,12 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
     resolve: (globals, scissor) => {
       let resolved = 0;
       // where the resolve's pipeline is not ready yet (compiling in the background) the impostors draw all spheres
-      for (const r of drawn) {
+      for (let i = drawn.length - 1; i >= 0; --i) {
+        const r = drawn[i];
         if (scissor && !scissor(r)) continue;
         if (!r.renderItem.renderFullscreen!('color', 'dSphereResolve', globals)) {
           release(r);
+          drawn.splice(i, 1);
           if (isDebugMode) console.log(`sphere raster #${r.renderItem.id}: resolve not ready`);
         } else {
           resolved += 1;
