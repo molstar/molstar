@@ -19,6 +19,7 @@ import {
   resolveRenderMerged,
 } from '@molstar/graphics/geo/geometry/base';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
+import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -128,7 +129,14 @@ export function mergeRenderObjectsByType<V>(
       for (const e of group) instances += e.renderObject.values.instanceCount.ref.value;
       const levels = (group[0].renderObject.values as { lodLevels?: { ref: { value: unknown[] } } }).lodLevels;
       const draws = group.length * Math.max(1, levels?.ref.value.length ?? 0);
-      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws);
+      let rasterSpheres = 0;
+      if (type === 'spheres' && graphics?.capabilities.atomicMinMax64) {
+        for (const e of group) {
+          const { instanceCount, uVertexCount } = e.renderObject.values as SpheresValues;
+          rasterSpheres += instanceCount.ref.value * uVertexCount.ref.value;
+        }
+      }
+      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres);
       const merge = gpu || (group.length >= 2 && resolveRenderMerged(renderMerged, group.length));
       if (!merge) return;
 

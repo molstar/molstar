@@ -42,7 +42,7 @@ function checks(merge: () => void) {
 describe('mergeRenderObjectsByType', () => {
   it('does not reuse a merged object holding a resource of another context', () => {
     const entries = [spheres(3), spheres(2)].map((renderObject, visual) => ({ visual, renderObject }));
-    const graphics = { resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
+    const graphics = { capabilities: {}, resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
     const out: GraphicsRenderObject[] = [];
     let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
     const object = out[0];
@@ -52,7 +52,7 @@ describe('mergeRenderObjectsByType', () => {
     // a storage buffer in the merged object's own values, of a context `graphics` is not
     const buffer = { copyTo: () => {}, readAsync: async () => new ArrayBuffer(0) };
     (object.values as unknown as { [k: string]: unknown }).sForeign = ValueCell.create(buffer);
-    const other = { resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
+    const other = { capabilities: {}, resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
     mergeRenderObjectsByType(entries, true, merged, out, false, false, other);
     expect(out.length).toBe(1);
     expect(out[0]).not.toBe(object);

@@ -130,9 +130,25 @@ export const AutoGpuCullingThreshold = 30;
  */
 export const AutoGpuCullingMinInstances = 20000;
 
-/** Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels */
-export function resolveGpuCulling(value: GpuCullingValue, instanceCount: number, drawCount: number): boolean {
+/**
+ * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
+ * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
+ * an integrated GPU), about 0.1 ms slower at a few hundred (`sphere-compute-raster.md`)
+ */
+export const AutoGpuCullingMinRasterSpheres = 100_000;
+
+/**
+ * Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels;
+ * `rasterSpheres`: the spheres of those instances the sphere raster could draw, 0 where the device has no raster
+ */
+export function resolveGpuCulling(
+  value: GpuCullingValue,
+  instanceCount: number,
+  drawCount: number,
+  rasterSpheres = 0,
+): boolean {
   if (value === 'auto') {
+    if (rasterSpheres >= AutoGpuCullingMinRasterSpheres) return true;
     return instanceCount >= Math.max(AutoGpuCullingMinInstances, AutoGpuCullingThreshold * Math.max(1, drawCount));
   }
   return value;
@@ -219,7 +235,7 @@ export namespace BaseGeometry {
     gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
       ...CullingLodCategory,
       description:
-        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`).',
+        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`), or with many spheres where the device has the sphere raster, which takes such objects only (`AutoGpuCullingMinRasterSpheres`).',
     }),
     lod: PD.Vec3(Vec3(), undefined, {
       ...CullingLodCategory,

@@ -224,22 +224,31 @@ export function withMergedSignatures(
     readonly instances: number;
     /** the draws per object: its levels of detail (`lodLevels`), at least one */
     readonly levels: number;
+    /** the spheres of all instances, were the objects spheres (`resolveGpuCulling`) */
+    readonly spheres?: number;
     readonly graphics?: GraphicsContext;
   },
 ): ObjectSignature[] {
   if (counts) {
-    const { objects, instances, levels, graphics } = counts;
+    const { objects, instances, levels, spheres, graphics } = counts;
     const renderMerged = (props.renderMerged ?? 'auto') as RenderMergedValue;
     if (renderMerged === false) return [...signatures];
-    const gpu =
+    const resolve = (rasterSpheres: number) =>
       canCullOnGpu(graphics) &&
-      resolveGpuCulling((props.gpuCulling ?? false) as GpuCullingValue, instances, objects * Math.max(1, levels));
-    const merge = gpu || (objects >= 2 && resolveRenderMerged(renderMerged, objects));
+      resolveGpuCulling(
+        (props.gpuCulling ?? false) as GpuCullingValue,
+        instances,
+        objects * Math.max(1, levels),
+        rasterSpheres,
+      );
+    const gpu = resolve(0);
+    const gpuSpheres = graphics?.capabilities.atomicMinMax64 ? resolve(spheres ?? 0) : gpu;
+    const merge = gpu || gpuSpheres || (objects >= 2 && resolveRenderMerged(renderMerged, objects));
     if (!merge) return [...signatures];
     // both: the objects' values may not merge (`canMergeRenderObjects`, known once built), leaving them unmerged
     const out = [...signatures];
     for (const s of signatures) {
-      const merged = getMergedSignature(s, gpu);
+      const merged = getMergedSignature(s, s.type === 'spheres' ? gpuSpheres : gpu);
       if (merged) out.push(merged);
     }
     return out;

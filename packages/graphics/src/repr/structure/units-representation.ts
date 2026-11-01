@@ -526,6 +526,7 @@ export function UnitsRepresentation<P extends StructureParams>(
       const counts = {
         objects: groups.length,
         instances: structure.units.length,
+        spheres: structure.elementCount,
         levels: lodLevels?.length ?? 0,
         graphics: ctx.graphics,
       };

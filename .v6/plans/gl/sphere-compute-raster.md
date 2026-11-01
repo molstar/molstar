@@ -2,6 +2,12 @@
 
 ## Status
 
+- **`auto` for large structures**: merged objects need GPU culling, and `gpuCulling: 'auto'` asked for 20,000 instances,
+  so PDB entries never got the raster (3J3Q: about 1,400 units). It also turns on from 100,000 spheres where the device has
+  the raster (`AutoGpuCullingMinRasterSpheres`). Default against culled and raster, ms, RTX 4070 Ti: crambin 0.51, 0.63;
+  6k atoms 0.90, 0.88; 300k 4.39, 3.47; 4V6X 0.56, 0.63; 3J3Q 1.48, 0.63. AMD iGPU: 300k 290, 210; 4V6X 22.4, 7.29; 3J3Q
+  61.9, 11.5. Decided when objects merge, where `sphereRaster` and the camera mode are not known: with the raster off or an
+  orthographic camera such objects stay culled on the GPU without it (a little slower on what was measured by hand).
 - **Current**: steps 1 (the prototype, the gate passed) and 2 (shared chunks) done, step 3 done, step 4 done (the resolve and the split per instance through the renderer, draw lists, visual cases, instance clipping, prepared ahead), step 5 (occlusion) and step 6 (`auto`: objects culled on the GPU) done:
   with occlusion as the impostors have it (one phase, per instance) the raster takes 9-30 % of their opaque pass zoomed
   into PetWorld and mostly 39-57 % whole, at the default levels and at higher detail (Step 1: results, Levels by size
