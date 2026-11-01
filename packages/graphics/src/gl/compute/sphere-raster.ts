@@ -277,6 +277,8 @@ type ObjectKernels = {
 };
 
 export interface SphereRaster {
+  /** What a render item's objects hold (its kernels and buffers), once it is gone */
+  release: (itemId: number) => void;
   /**
    * Records the dispatches of `objects` into `vis` (`SphereRasterVisibilityBytes` per pixel of the view, cleared by the
    * caller) in a compute pass of its own; their render items updated (their data layers current), merged ones culled
@@ -307,6 +309,15 @@ const InitialChunkCapacity = 65536;
 
 export function createSphereRaster(compute: ComputeContext, resources: GraphicsResources): SphereRaster {
   const kernels = new Map<string, ObjectKernels>();
+  function destroyKernels(k: ObjectKernels) {
+    k.chunk.destroy();
+    k.args.destroy();
+    k.raster.destroy();
+    k.rasterSingles.destroy();
+    k.transforms?.destroy();
+    k.instances?.destroy();
+    k.clipObjects.destroy();
+  }
   /** bound while there is no pyramid */
   const emptyHiZ = createEmptyHiZ(resources);
   const range = [0, 0, 0];
@@ -700,16 +711,17 @@ export function createSphereRaster(compute: ComputeContext, resources: GraphicsR
       readCounts?.();
     },
     skipSecond: () => readCounts?.(),
-    destroy: () => {
-      for (const k of kernels.values()) {
-        k.chunk.destroy();
-        k.args.destroy();
-        k.raster.destroy();
-        k.rasterSingles.destroy();
-        k.transforms?.destroy();
-        k.instances?.destroy();
-        k.clipObjects.destroy();
+    release: (itemId) => {
+      for (const key of [`${itemId}`, `${itemId}:merged`]) {
+        const k = kernels.get(key);
+        if (k) destroyKernels(k);
+        kernels.delete(key);
+        chunkCapacities.delete(key);
+        chunkDispatches.delete(key);
       }
+    },
+    destroy: () => {
+      for (const k of kernels.values()) destroyKernels(k);
       kernels.clear();
       emptyHiZ.destroy();
       counter?.destroy();

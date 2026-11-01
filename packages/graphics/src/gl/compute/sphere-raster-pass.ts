@@ -171,7 +171,11 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
       objects.length = 0;
       renderablesOf.length = 0;
       report.length = 0;
-      for (const r of bound) if (r.state.disposed) bound.delete(r);
+      for (const r of bound) {
+        if (!r.state.disposed) continue;
+        bound.delete(r);
+        raster.release(r.renderItem.id);
+      }
       for (const r of renderables) {
         const values = r.values as SpheresValues;
         if (!('dSphereResolve' in values)) continue;
