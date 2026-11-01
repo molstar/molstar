@@ -67,6 +67,18 @@ describe('Clip.classifySphere', () => {
     Mat4.fromTranslation(Mat4(), Vec3.create(1, -2, 3)),
     // a scaled transform (image trims): the frame's distances not the points'
     Mat4.fromScaling(Mat4(), Vec3.create(2, 2, 2)),
+    // a scale after a rotation, and a shear (e.g. fractional coordinates): more than the longest column
+    Mat4.mul(
+      Mat4(),
+      Mat4.fromScaling(Mat4(), Vec3.create(2, 1, 1)),
+      Mat4.fromRotation(Mat4(), Math.PI / 4, Vec3.create(0, 0, 1)),
+    ),
+    Mat4.ofRows([
+      [1, 1.5, 0.5, 0],
+      [0, 1, 0.5, 0],
+      [0, 0, 1, 0],
+      [0, 0, 0, 1],
+    ]),
   ];
   for (const { type, scale } of Shapes) {
     for (const invert of [false, true]) {

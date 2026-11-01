@@ -7,6 +7,7 @@
  */
 
 import { EPSILON } from '@molstar/core/math/linear-algebra/3d/common';
+import { Mat3 } from '@molstar/core/math/linear-algebra/3d/mat3';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
@@ -51,7 +52,8 @@ export namespace Clip {
     transform: number[];
     /**
      * Per object the transform of a point into the object's frame, `count` 4x4 matrices: `transform`, less `position`,
-     * rotated back by `rotation` (`getFrame`); where the shaders test the shape
+     * rotated back by `rotation` (`getFrame`); where the shaders test the shape. The first column's `w` (a point is
+     * read with `.xyz`) is the frame's largest scale (`classifySphereObject`)
      */
     frame: number[];
     /**
@@ -110,6 +112,21 @@ export namespace Clip {
 
   const mF = Mat4();
   const mT = Mat4();
+  const m3A = Mat3();
+  const m3B = Mat3();
+  const v3Eigen = Vec3();
+  /**
+   * How much the linear part of `m` lengthens a vector at most, its spectral norm (the square root of the largest
+   * eigenvalue of its transpose times it): the longest column is less under a shear or a scale after a rotation. A little
+   * more, as a bound: what it decides is read as 32-bit floats
+   */
+  function getLargestScale(m: Mat4) {
+    Mat3.fromMat4(m3A, m);
+    Mat3.mul(m3B, Mat3.transpose(Mat3(), m3A), m3A);
+    Mat3.symmetricEigenvalues(v3Eigen, m3B);
+    return Math.sqrt(Math.max(v3Eigen[0], v3Eigen[1], v3Eigen[2], 0)) * (1 + 1e-6);
+  }
+
   /** The frame of the object at `index` of `objects` (see `Objects.frame`) into `out` at `index` */
   function setFrame(objects: Objects, index: number) {
     const { position, rotation, transform, frame } = objects;
@@ -120,6 +137,7 @@ export namespace Clip {
     Mat4.mul(mF, mF, mT);
     Mat4.mul(mF, mF, Mat4.fromArray(mT, transform, index * 16));
     Mat4.toArray(mF, frame, index * 16);
+    frame[index * 16 + 3] = getLargestScale(mF);
   }
   /** The shape of the object at `index` of `objects` (see `Objects.shape`) */
   function setShape(objects: Objects, index: number) {
@@ -222,14 +240,7 @@ export namespace Clip {
    */
   export function classifySphereObject(objects: Objects, index: number, sphere: Sphere3D): SphereClass {
     const { frame, shape } = objects;
-    const f = index * 16;
-    const scale = Math.sqrt(
-      Math.max(
-        frame[f] * frame[f] + frame[f + 1] * frame[f + 1] + frame[f + 2] * frame[f + 2],
-        frame[f + 4] * frame[f + 4] + frame[f + 5] * frame[f + 5] + frame[f + 6] * frame[f + 6],
-        frame[f + 8] * frame[f + 8] + frame[f + 9] * frame[f + 9] + frame[f + 10] * frame[f + 10],
-      ),
-    );
+    const scale = frame[index * 16 + 3];
     const o = index * 4;
     const type = Math.round(Math.abs(shape[o + 3]));
     if (type === Type.none) return SphereClass.None;

@@ -135,7 +135,8 @@ float clipObjectSD(const in vec3 center, const in mat4 frame, const in vec4 shap
                 mat4 frame = uClipObjectFrame[i];
                 vec4 shape = uClipObjectShape[i];
                 if (clipType(shape) == 0) continue;
-                float r = radius * max(length(frame[0].xyz), max(length(frame[1].xyz), length(frame[2].xyz)));
+                // the frame's largest scale (\`Clip.Objects.frame\`)
+                float r = radius * frame[0].w;
                 if (clipType(shape) == 5) r *= length(shape.xy);
                 float sd = clipObjectSD(center, frame, shape);
                 // within the clipped side at least this far (it is \`sd <= 0\`, inverted \`sd > 0\`)

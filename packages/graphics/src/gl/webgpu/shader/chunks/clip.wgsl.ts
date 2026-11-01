@@ -210,7 +210,8 @@ fn clipSphereClass(p: vec3<f32>, r: f32, flag: i32) -> u32 {
     for (var i = 0; i < ${count}; i++) {
         if (!isClipObjectActive(i, flag) || clipType(i) == 0) { continue; }
         let f = clipObjectFrame(i);
-        var rl = r * max(length(f[0].xyz), max(length(f[1].xyz), length(f[2].xyz)));
+        // the frame's largest scale (\`Clip.Objects.frame\`)
+        var rl = r * f[0].w;
         if (clipType(i) == 5) {
             rl *= length(clipObjectShape(i).xy);
         }

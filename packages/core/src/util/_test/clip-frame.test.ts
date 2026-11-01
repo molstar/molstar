@@ -41,6 +41,8 @@ describe('clip objects', () => {
     expect(objects.count).toBe(types.length);
     for (let i = 0; i < objects.count; ++i) {
       const frame = Mat4.fromArray(Mat4(), objects.frame, i * 16);
+      // its first column's `w` is the frame's largest scale, read by itself
+      frame[3] = 0;
       for (let k = 0; k < 4; ++k) {
         const p = Vec3.create(random() * 20, random() * 20, random() * 20);
         const expected = oldLocal(objects, i, p);
