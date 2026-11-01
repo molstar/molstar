@@ -285,10 +285,17 @@ export namespace Spheres {
     props: PD.Values<Params>,
   ): SpheresValues {
     const { instanceCount, groupCount } = locationIt;
+    // the sizes' largest for the levels of detail, which order the spheres: what is computed per vertex reads that order
+    const size = createSizes(locationIt, createPositionIterator(spheres, transform), theme.size);
+    spheres.shaderData.update({
+      lodLevels: props.lodLevels,
+      sizeFactor: props.sizeFactor,
+      lodPixelSize: props.lodPixelSize,
+      lodRadius: getLodRadius(props.lodRadius, size),
+    });
     const positionIt = createPositionIterator(spheres, transform);
-
+    if (theme.size.granularity.startsWith('vertex')) createSizes(locationIt, positionIt, theme.size, size);
     const color = createColors(locationIt, positionIt, theme.color);
-    const size = createSizes(locationIt, positionIt, theme.size);
     const marker = resolveInstanceGranularity(props.instanceGranularity, groupCount, instanceCount)
       ? createMarkers(instanceCount, 'instance')
       : createMarkers(instanceCount * groupCount, 'groupInstance');
@@ -315,13 +322,6 @@ export namespace Spheres {
       instanceCount,
       0,
     );
-
-    spheres.shaderData.update({
-      lodLevels: props.lodLevels,
-      sizeFactor: props.sizeFactor,
-      lodPixelSize: props.lodPixelSize,
-      lodRadius: getLodRadius(props.lodRadius, size),
-    });
 
     return {
       dGeometryType: ValueCell.create('spheres'),

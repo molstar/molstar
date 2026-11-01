@@ -168,6 +168,8 @@ export namespace Points {
     props: PD.Values<Params>,
   ): PointsValues {
     const { instanceCount, groupCount } = locationIt;
+    // first: what is computed per vertex reads the points in this order
+    points.shaderData.update({ lodLevels: props.lodLevels });
     const positionIt = createPositionIterator(points, transform);
 
     const color = createColors(locationIt, positionIt, theme.color);
@@ -192,8 +194,6 @@ export namespace Points {
       instanceCount,
       0,
     );
-
-    points.shaderData.update({ lodLevels: props.lodLevels });
 
     return {
       dGeometryType: ValueCell.create('points'),

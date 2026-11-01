@@ -5,6 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { unpackRGBToInt } from '@molstar/core/util/number-packing';
+import { BaseGeometry } from '../base.js';
+import { sizeDataFactor } from '../size-data.js';
+import { createTransform } from '../transform-data.js';
 import { describe, expect, it } from 'vitest';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -135,5 +141,35 @@ describe('Points', () => {
         .toArray(),
     );
     expect(values.lodLevels.ref.value).toEqual([]);
+  });
+  // what is computed per vertex is read in the order of the levels of detail
+  it('colors and sizes per vertex follow the order of the levels of detail', () => {
+    const count = 20;
+    const centers = new Float32Array(count * 3);
+    for (let i = 0; i < count; ++i) centers[i * 3] = i;
+    const groups = new Float32Array(Array.from({ length: count }, (_, i) => i));
+    const spheres = Spheres.create(centers, groups, count);
+    const props = { ...PD.getDefaultValues(Spheres.Params), lodLevels: levels(1, 3) };
+    const transform = createTransform(Mat4.identity() as unknown as Float32Array, 1, Sphere3D.create(Vec3(), 30), 0, 0);
+    const simple = BaseGeometry.createSimple(0 as never, 1, transform);
+    const byX = (l: { position: Vec3 }) => l.position[0];
+    const theme = {
+      ...simple.theme,
+      color: { ...simple.theme.color, granularity: 'vertex', color: (l: unknown) => byX(l as { position: Vec3 }) },
+      size: { ...simple.theme.size, granularity: 'vertex', size: (l: unknown) => 1 + byX(l as { position: Vec3 }) },
+    } as never;
+    const values = Spheres.Utils.createValues(spheres, simple.transform, simple.locationIterator, theme, props);
+    const positions = values.tPositionGroup.ref.value.array;
+    const colors = values.tColor.ref.value.array;
+    const sizes = values.tSize.ref.value.array;
+    let moved = 0;
+    for (let i = 0; i < count; ++i) {
+      const x = positions[i * 4];
+      if (x !== i) moved += 1;
+      expect(colors[i * 4 + 2]).toBe(x);
+      expect(unpackRGBToInt(sizes[i * 4], sizes[i * 4 + 1], sizes[i * 4 + 2]) / sizeDataFactor).toBeCloseTo(1 + x, 3);
+    }
+    // the levels did reorder them: else this tests nothing
+    expect(moved).toBeGreaterThan(0);
   });
 });
