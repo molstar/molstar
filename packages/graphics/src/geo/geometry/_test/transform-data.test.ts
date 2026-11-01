@@ -55,7 +55,13 @@ describe('transform-data', () => {
     });
 
     it('allocates no extra transforms until they are set', () => {
-      const td = createTransform(makeTransforms(3, () => Mat4.identity()), 3, undefined, 0, 0);
+      const td = createTransform(
+        makeTransforms(3, () => Mat4.identity()),
+        3,
+        undefined,
+        0,
+        0,
+      );
       expect(td.extraTransform.ref.value.length).toBe(0);
       expect(td.hasExtraTransform.ref.value).toBe(false);
     });
