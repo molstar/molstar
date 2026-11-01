@@ -241,7 +241,7 @@
    without. Fewer steps per cell by default (1 instead of 2, half the samples) is not done: to be decided on images.
 7. **Data layout** (finding 8; done): 3d grids hold the values only (`createVolumeTexture3d`, one channel), the shader
    computes normals by central differences (six reads per lit sample; forward differences, three reads, lit noisy
-   data by the side it is seen from, `map-256` with `--gpu-timing` 1.53 -> 1.71 ms on WebGPU; the numbers below are forward); the 2d grids of WebGL1 keep their stored gradients, the Gaussian volume its packed groups (rgba). A quarter
+   data by the side it is seen from, `map-256` with `--gpu-timing` 1.53 -> 1.71 ms on WebGPU; the numbers below are forward); the 2d grids of WebGL1 keep their stored gradients, the Gaussian volume its packed groups (rgba), its gradients central differences in 2d grids too. A quarter
    of the GPU memory (256³ byte 64 -> 16 MB, float 256 -> 64 MB; 512³ byte 537 -> 134 MB). The volume pass against
    stored gradients (WebGL2 / WebGPU): float data 0.46 / 0.47 -> 0.40 / 0.37 ms, byte data 0-10 % slower (`map-256`
    0.35 / 0.35 -> 0.38 / 0.36 ms, zoomed 1.02 / 1.06 -> 1.12 / 1.09 ms, tomogram 0.37 / 0.39 -> 0.40 / 0.39 ms);

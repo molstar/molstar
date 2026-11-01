@@ -340,9 +340,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             gl_FragColor.rgb = material.rgb;
         #else
             if (material.a >= 0.01) {
-                #if defined(dGridTexType_3d)
-                    // compute gradient by central differences (3d grids store no gradients): one-sided ones light noisy
-                    // data by the side it is seen from
+                #if defined(dGridTexType_3d) || defined(dPackedGroup)
+                    // compute gradient by central differences (3d grids store no gradients, packed ones groups in rgb):
+                    // one-sided ones light noisy data by the side it is seen from
                     gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
                     gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
                     gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
