@@ -42,7 +42,7 @@
 ## No occlusion
 
 - **Stereo and XR**: the pyramid is the whole viewport's with the main camera, not an eye's: tested against it, 102,172 of
-  921,600 pixels differed on a still camera, for good. So the eyes test nothing: exact, at no occlusion's cost (zoomed
+  921,600 pixels differed on a still camera, for good. So the eyes test nothing and build no levels (their depth would hide what the next mono frame sees): exact, at no occlusion's cost (zoomed
   8.46 ms, 4.13 with the wrong test, 8.61 without occlusion). A pyramid per eye would bring it back.
 
 ## Still one phase

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -24,6 +24,8 @@ import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { now } from '@molstar/core/util/now';
+import { HiZPass } from '@molstar/graphics/canvas3d/passes/hi-z';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 96;
@@ -249,6 +251,39 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
       }
       target.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  });
+
+  // the levels are of the main camera: built from the eyes' depth they could hide what the next mono frame sees
+  it('builds no levels from the depth of a stereo frame', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const canvas = plugin.canvas3d!;
+      const frame = async () => {
+        canvas.commit(true);
+        canvas.requestDraw();
+        canvas.tick(now(), { isSynchronous: true });
+        await canvas.graphics.resources.pending.whenReady();
+      };
+      await frame();
+      const render = vi.spyOn(HiZPass.prototype, 'render');
+      const clear = vi.spyOn(HiZPass.prototype, 'clear');
+      await frame();
+      expect(render).toHaveBeenCalled();
+      canvas.setProps({ camera: { stereo: { name: 'on', params: {} } } } as never);
+      render.mockClear();
+      clear.mockClear();
+      await frame();
+      expect(render).not.toHaveBeenCalled();
+      expect(clear).toHaveBeenCalled();
     } finally {
       plugin.dispose();
     }
