@@ -182,6 +182,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   recomputed or read back on demand (the lost-context path widened); playback without allocations (geometry buffers
   with slack handed out as views, a scratch arena per thread for intermediates); CPU bytes accounted; measured: most of
   what CPU meshes hold (89 % of 3j3q's cartoon at `medium`).
+- [shader-compile-time.md](shader-compile-time.md): in progress: what compiles slowly with an empty cache, and inlining
+  avoidable where one branch runs anyway; solid-interior cylinders 2-3 times faster so far.
 - [two-phase-culling.md](two-phase-culling.md): built, on by default: what the previous frame's pyramid left out of GPU-culled
   objects tested against a pyramid of the frame's depth so far and drawn in the same frame, by the sphere raster too:
   exact while the camera moves and when it stops, 0.4-1.0 ms a moving frame at 1280×720, still frames unchanged.
