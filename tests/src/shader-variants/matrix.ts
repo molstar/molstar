@@ -24,6 +24,7 @@ import { GaussianDensityKernels } from '@molstar/graphics/gl/compute/gaussian-de
 import { getIsosurfaceKernels } from '@molstar/graphics/gl/compute/marching-cubes/compute';
 import { PrefixSumKernels } from '@molstar/graphics/gl/compute/prefix-sum';
 import { MergedCullKernels } from '@molstar/graphics/gl/renderable/merged-culler';
+import { SphereRasterKernels } from '@molstar/graphics/gl/compute/sphere-raster';
 import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { getGlslProgramNames } from '@molstar/graphics/gl/webgl/programs';
 import { isWebGPUContext, type WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
@@ -673,6 +674,7 @@ export async function prepareAllKernels(graphics: GraphicsContext) {
     ),
     ...PrefixSumKernels,
     ...MergedCullKernels,
+    ...(graphics.capabilities.atomicMinMax64 ? SphereRasterKernels : []),
   ];
   // those the device can run (the core limits allow fewer storage buffers a stage), as the GPU paths choose
   await compute.prepareKernels(requests.filter((r) => compute.isKernelSupported(r.code, r.schema)));
