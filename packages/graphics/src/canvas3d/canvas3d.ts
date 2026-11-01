@@ -1869,8 +1869,8 @@ namespace Canvas3D {
       // the culling's kernels of objects culled on the GPU, as `precompile`
       if (graphics.compute && gpuCulled) graphics.compute.prepareKernels(MergedCullKernels);
       if (hasSphereRaster({ objects })) graphics.compute!.prepareKernels(SphereRasterKernels);
-      // the items of earlier requests stay with them
-      for (const key of reuse.keys()) items.delete(key);
+      // the items this request uses too move to it: with an earlier one's they could go before its owners are added
+      for (const entry of preparedObjects) for (const key of items.keys()) entry.items.delete(key);
       preparedObjects.push({ owners: new Set(requests.keys()), added: new Set(), items, time: now() });
     }
 
