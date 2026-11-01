@@ -125,9 +125,7 @@ export namespace Text {
       get boundingSphere() {
         const newHash = hashCode(text);
         if (newHash !== currentHash) {
-          // counted as the 4 vertices an item had, every 4th read (an item's `TextStride` floats as 4 steps of 4): the
-          // helper and its exact extrema for few positions chosen by that count, the spheres as before
-          const b = calculateInvariantBoundingSphere(text.textData.ref.value.array, text.charCount * 4, 4, 4);
+          const b = calculateInvariantBoundingSphere(text.textData.ref.value.array, text.charCount, 1, TextStride);
           Sphere3D.copy(boundingSphere, b);
           currentHash = newHash;
         }

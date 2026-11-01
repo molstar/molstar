@@ -130,10 +130,8 @@ export namespace Lines {
         if (newHash !== currentHash) {
           const { array } = lines.lineData.ref.value;
           const count = lines.lineCount;
-          // counted as the 4 vertices a line had, every 4th read (a line's `LineStride` floats as 4 steps of 2): the
-          // helper and its exact extrema for few positions chosen by that count, the spheres as before
-          const s = calculateInvariantBoundingSphere(array, count * 4, 4, 2);
-          const e = calculateInvariantBoundingSphere(array.subarray(4), count * 4, 4, 2);
+          const s = calculateInvariantBoundingSphere(array, count, 1, LineStride);
+          const e = calculateInvariantBoundingSphere(array.subarray(4), count, 1, LineStride);
 
           Sphere3D.expandBySphere(boundingSphere, s, e);
           currentHash = newHash;

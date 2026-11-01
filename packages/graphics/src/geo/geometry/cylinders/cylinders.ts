@@ -103,10 +103,8 @@ export namespace Cylinders {
         if (newHash !== currentHash) {
           const { array } = cylinders.cylinderData.ref.value;
           const count = cylinders.cylinderCount;
-          // counted as the 6 vertices a cylinder had, every 6th read (a cylinder's `CylinderStride` floats as 6 steps
-          // of 2): the helper and its exact extrema for few positions chosen by that count, the spheres as before
-          const s = calculateInvariantBoundingSphere(array, count * 6, 6, 2);
-          const e = calculateInvariantBoundingSphere(array.subarray(4), count * 6, 6, 2);
+          const s = calculateInvariantBoundingSphere(array, count, 1, CylinderStride);
+          const e = calculateInvariantBoundingSphere(array.subarray(4), count, 1, CylinderStride);
 
           Sphere3D.expandBySphere(boundingSphere, s, e);
           currentHash = newHash;
