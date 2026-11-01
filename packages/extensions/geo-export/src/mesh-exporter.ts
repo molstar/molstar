@@ -600,7 +600,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             const j = k - first + 1;
             arrayCopyOffset(curvePoints, data, j * 3, k * LineStride + 4, 3);
             curveOrigIndices.push(k * 2 + 1);
-            const radius = MeshExporter.getSize(values, instanceIndex, group, k * 2 + 1) * 0.03;
+            const lineGroup = data[k * LineStride + 3];
+            const radius = MeshExporter.getSize(values, instanceIndex, lineGroup, k * 2 + 1) * 0.03;
             widthValues[j] = radius;
             heightValues[j] = radius;
           }
