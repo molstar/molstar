@@ -2,11 +2,13 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { cylinderVertices } from '../../../../geo/geometry/_test/item-vertices.js';
 import { SortedArray } from '@molstar/core/data/int';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
@@ -122,7 +124,7 @@ function groupCentroids(ro: GraphicsRenderObject) {
   const groupCount: number = v.uGroupCount.ref.value;
   const sum = new Float64Array(groupCount * 3);
   const n = new Uint32Array(groupCount);
-  const group = v.aGroup.ref.value as Float32Array;
+  const group = (ro.type === 'cylinders' ? cylinderVertices(v).group : v.aGroup.ref.value) as Float32Array;
   if (ro.type === 'mesh') {
     const pos = v.aPosition.ref.value as Float32Array;
     const index = v.elements.ref.value as Uint32Array;
@@ -138,8 +140,7 @@ function groupCentroids(ro: GraphicsRenderObject) {
       n[g]++;
     }
   } else if (ro.type === 'cylinders') {
-    const start = v.aStart.ref.value as Float32Array;
-    const end = v.aEnd.ref.value as Float32Array;
+    const { start, end } = cylinderVertices(v);
     // six vertices per cylinder, four triangles
     for (let i = 0, il = (v.drawCount.ref.value / 12) * 6; i < il; i += 6) {
       const g = group[i];
@@ -257,15 +258,14 @@ describe('interactions representation', async () => {
       for (const [g, p] of m) expect(Vec3.distance(p, c.get(g)!)).toBeLessThan(1e-3);
 
       const v = impostors.renderObjects[i].values as any;
-      const groups = v.aGroup.ref.value as Float32Array;
       const cylinderCount = v.drawCount.ref.value / 12;
       // one impostor per dash, ceil(dashCount / 2) dashes per drawn half
       expect(cylinderCount).toBe(c.size * Math.ceil(dashCount / 2));
-      // buffers allocated once at their final size
-      expect(groups.length).toBe(cylinderCount * 6);
+      // data allocated once at its final size
+      expect(v.tCylinder.ref.value.count).toBe(cylinderCount * 3);
       // radius: uniform size 1 × sizeFactor × dashScale, as the mesh bakes it
       expect(v.uSize.ref.value * v.uSizeFactor.ref.value).toBeCloseTo(sizeFactor);
-      const scales = (v.aScale.ref.value as Float32Array).subarray(0, cylinderCount * 6);
+      const scales = cylinderVertices(v).scale;
       expect(scales.every((x) => Math.abs(x - dashScale) < 1e-6)).toBe(true);
     }
   });
@@ -275,16 +275,16 @@ describe('interactions representation', async () => {
     const mesh = await createRepr(structure, undefined);
     const versions = (repr: Representation.Any, name: string) =>
       repr.renderObjects.map((ro) => (ro.values as any)[name].ref.version as number);
-    const starts = versions(impostors, 'aStart');
+    const starts = versions(impostors, 'tCylinder');
     const positions = versions(mesh, 'aPosition');
     // the first update after a build keeps the geometry (the interactions version it was built from is known)
     await impostors.createOrUpdate({ alpha: 0.5 }, structure).run();
     await mesh.createOrUpdate({ alpha: 0.5 }, structure).run();
-    expect(versions(impostors, 'aStart')).toEqual(starts);
+    expect(versions(impostors, 'tCylinder')).toEqual(starts);
     expect(versions(mesh, 'aPosition')).toEqual(positions);
     await impostors.createOrUpdate({ sizeFactor: 0.5 }, structure).run();
     await mesh.createOrUpdate({ sizeFactor: 0.5 }, structure).run();
-    expect(versions(impostors, 'aStart')).toEqual(starts);
+    expect(versions(impostors, 'tCylinder')).toEqual(starts);
     for (const ro of impostors.renderObjects) expect((ro.values as any).uSizeFactor.ref.value).toBeCloseTo(0.5);
     const after = versions(mesh, 'aPosition');
     expect(after.every((v, i) => v > positions[i])).toBe(true);
@@ -302,7 +302,7 @@ describe('interactions representation', async () => {
     const repr = await createRepr(structure, graphicsStub, { colorMode: 'interpolate' });
     for (const ro of repr.renderObjects) {
       const v = ro.values as any;
-      const modes = (v.aColorMode.ref.value as Float32Array).subarray(0, (v.drawCount.ref.value / 12) * 6);
+      const modes = cylinderVertices(v).colorMode;
       expect(modes.every((x) => x === 2)).toBe(true);
     }
   });
@@ -501,7 +501,7 @@ describe('interactions representation', async () => {
     const geometryVersions = () =>
       repr.renderObjects.map((ro) => {
         const v = ro.values as any;
-        return (v.aPosition ?? v.aStart).ref.version;
+        return (v.aPosition ?? v.tCylinder).ref.version;
       });
     // the first update records the interactions version and rebuilds once
     await repr.createOrUpdate({}, structure).run();
@@ -531,9 +531,7 @@ describe('interactions representation', async () => {
     const { members, offsets, types } = interactions.unitsFeatures.get(unit.id);
     const ro = repr.renderObjects.find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
     const v = ro.values as any;
-    const group = v.aGroup.ref.value as Float32Array;
-    const start = v.aStart.ref.value as Float32Array;
-    const end = v.aEnd.ref.value as Float32Array;
+    const { group, start, end } = cylinderVertices(v);
 
     const position = (index: number) => unit.conformation.invariantPosition(unit.elements[index], Vec3());
     let checked = 0;
@@ -632,9 +630,7 @@ describe('interactions representation', async () => {
     const { members, offsets, types } = interactions.unitsFeatures.get(heavy.id);
     const ro = repr.renderObjects.find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
     const v = ro.values as any;
-    const group = v.aGroup.ref.value as Float32Array;
-    const start = v.aStart.ref.value as Float32Array;
-    const end = v.aEnd.ref.value as Float32Array;
+    const { group, start, end } = cylinderVertices(v);
 
     let checked = 0;
     for (let c = 0, cl = v.drawCount.ref.value / 12; c < cl; ++c) {

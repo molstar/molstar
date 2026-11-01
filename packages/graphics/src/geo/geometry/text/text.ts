@@ -22,6 +22,8 @@ import {
   createTextureImage,
   calculateInvariantBoundingSphere,
   calculateTransformBoundingSphere,
+  createDataArray,
+  type DataArray,
 } from '@molstar/graphics/gl/renderable/util';
 import type { TextValues } from '@molstar/graphics/gl/renderable/text';
 import { Color } from '@molstar/core/util/color';
@@ -51,32 +53,30 @@ type TextAttachment =
   | 'top-center'
   | 'top-right';
 
+/**
+ * Floats per item of `Text.textData` (4 texels of `tText`): the label's position xyz and group; its depth and whether the
+ * item is a tether (2 unused); then for a glyph or a background its corners (left, top, right, bottom) and texture
+ * coordinates (left, top, right, bottom; 10 for the background), for a tether its four corners (base B, tip, base
+ * center, base A: the two triangles of the shared indices)
+ */
+export const TextStride = 16;
+
 /** Text */
 export interface Text {
   readonly kind: 'text';
 
-  /** Number of characters in the text */
+  /** Number of items of the text: its glyphs, backgrounds and tethers */
   charCount: number;
 
   /** Font Atlas */
   readonly fontTexture: ValueCell<TextureImage<Uint8Array>>;
 
-  /** Center buffer as array of xyz values wrapped in a value cell */
-  readonly centerBuffer: ValueCell<Float32Array>;
-  /** Mapping buffer as array of xy values wrapped in a value cell */
-  readonly mappingBuffer: ValueCell<Float32Array>;
-  /** Depth buffer as array of z values wrapped in a value cell */
-  readonly depthBuffer: ValueCell<Float32Array>;
-  /** Index buffer as array of center index triplets wrapped in a value cell */
-  readonly indexBuffer: ValueCell<Uint32Array>;
-  /** Group buffer as array of group ids for each vertex wrapped in a value cell */
-  readonly groupBuffer: ValueCell<Float32Array>;
-  /** Texture coordinates buffer as array of uv values wrapped in a value cell */
-  readonly tcoordBuffer: ValueCell<Float32Array>;
+  /** Per item (`TextStride` floats, the only copy; the shaders read it as `tText`), see `TextStride` */
+  readonly textData: ValueCell<DataArray<Float32Array>>;
 
   /** Bounding sphere of the text */
   readonly boundingSphere: Sphere3D;
-  /** Maps group ids to text indices */
+  /** Maps group ids to item indices times `TextStride` (offsets into `textData`'s array) */
   readonly groupMapping: GroupMapping;
 
   setBoundingSphere(boundingSphere: Sphere3D): void;
@@ -84,56 +84,33 @@ export interface Text {
 }
 
 export namespace Text {
+  /** From the data of `charCount` items (`TextStride` floats each), kept as the geometry's array */
   export function create(
     fontTexture: TextureImage<Uint8Array>,
-    centers: Float32Array,
-    mappings: Float32Array,
-    depths: Float32Array,
-    indices: Uint32Array,
-    groups: Float32Array,
-    tcoords: Float32Array,
+    textData: Float32Array,
     charCount: number,
     text?: Text,
   ): Text {
-    return text
-      ? update(fontTexture, centers, mappings, depths, indices, groups, tcoords, charCount, text)
-      : fromData(fontTexture, centers, mappings, depths, indices, groups, tcoords, charCount);
+    const data = createDataArray(charCount * 4, 4, Float32Array, textData);
+    if (text) {
+      text.charCount = charCount;
+      ValueCell.update(text.fontTexture, fontTexture);
+      ValueCell.update(text.textData, data);
+      return text;
+    }
+    return fromData(fontTexture, data, charCount);
   }
 
   export function createEmpty(text?: Text): Text {
     const ft = text ? text.fontTexture.ref.value : createTextureImage(0, 1, Uint8Array);
-    const cb = text ? text.centerBuffer.ref.value : new Float32Array(0);
-    const mb = text ? text.mappingBuffer.ref.value : new Float32Array(0);
-    const db = text ? text.depthBuffer.ref.value : new Float32Array(0);
-    const ib = text ? text.indexBuffer.ref.value : new Uint32Array(0);
-    const gb = text ? text.groupBuffer.ref.value : new Float32Array(0);
-    const tb = text ? text.tcoordBuffer.ref.value : new Float32Array(0);
-    return create(ft, cb, mb, db, ib, gb, tb, 0, text);
+    return create(ft, text ? text.textData.ref.value.array : new Float32Array(0), 0, text);
   }
 
   function hashCode(text: Text) {
-    return hashFnv32a([
-      text.charCount,
-      text.fontTexture.ref.version,
-      text.centerBuffer.ref.version,
-      text.mappingBuffer.ref.version,
-      text.depthBuffer.ref.version,
-      text.indexBuffer.ref.version,
-      text.groupBuffer.ref.version,
-      text.tcoordBuffer.ref.version,
-    ]);
+    return hashFnv32a([text.charCount, text.fontTexture.ref.version, text.textData.ref.version]);
   }
 
-  function fromData(
-    fontTexture: TextureImage<Uint8Array>,
-    centers: Float32Array,
-    mappings: Float32Array,
-    depths: Float32Array,
-    indices: Uint32Array,
-    groups: Float32Array,
-    tcoords: Float32Array,
-    charCount: number,
-  ): Text {
+  function fromData(fontTexture: TextureImage<Uint8Array>, data: DataArray<Float32Array>, charCount: number): Text {
     const boundingSphere = Sphere3D();
     let groupMapping: GroupMapping;
 
@@ -144,25 +121,22 @@ export namespace Text {
       kind: 'text' as const,
       charCount,
       fontTexture: ValueCell.create(fontTexture),
-      centerBuffer: ValueCell.create(centers),
-      mappingBuffer: ValueCell.create(mappings),
-      depthBuffer: ValueCell.create(depths),
-      indexBuffer: ValueCell.create(indices),
-      groupBuffer: ValueCell.create(groups),
-      tcoordBuffer: ValueCell.create(tcoords),
+      textData: ValueCell.create(data),
       get boundingSphere() {
         const newHash = hashCode(text);
         if (newHash !== currentHash) {
-          const b = calculateInvariantBoundingSphere(text.centerBuffer.ref.value, text.charCount * 4, 4);
+          // counted as the 4 vertices an item had, every 4th read (an item's `TextStride` floats as 4 steps of 4): the
+          // helper and its exact extrema for few positions chosen by that count, the spheres as before
+          const b = calculateInvariantBoundingSphere(text.textData.ref.value.array, text.charCount * 4, 4, 4);
           Sphere3D.copy(boundingSphere, b);
           currentHash = newHash;
         }
         return boundingSphere;
       },
       get groupMapping() {
-        if (text.groupBuffer.ref.version !== currentGroup) {
-          groupMapping = createGroupMapping(text.groupBuffer.ref.value, text.charCount, 4);
-          currentGroup = text.groupBuffer.ref.version;
+        if (text.textData.ref.version !== currentGroup) {
+          groupMapping = createGroupMapping(text.textData.ref.value.array, text.charCount, TextStride, 3);
+          currentGroup = text.textData.ref.version;
         }
         return groupMapping;
       },
@@ -174,28 +148,6 @@ export namespace Text {
         return currentHash === hashCode(text);
       },
     };
-    return text;
-  }
-
-  function update(
-    fontTexture: TextureImage<Uint8Array>,
-    centers: Float32Array,
-    mappings: Float32Array,
-    depths: Float32Array,
-    indices: Uint32Array,
-    groups: Float32Array,
-    tcoords: Float32Array,
-    charCount: number,
-    text: Text,
-  ) {
-    text.charCount = charCount;
-    ValueCell.update(text.fontTexture, fontTexture);
-    ValueCell.update(text.centerBuffer, centers);
-    ValueCell.update(text.mappingBuffer, mappings);
-    ValueCell.update(text.depthBuffer, depths);
-    ValueCell.update(text.indexBuffer, indices);
-    ValueCell.update(text.groupBuffer, groups);
-    ValueCell.update(text.tcoordBuffer, tcoords);
     return text;
   }
 
@@ -244,21 +196,23 @@ export namespace Text {
   };
 
   function createPositionIterator(text: Text, transform: TransformData): LocationIterator {
-    const groupCount = text.charCount * 4;
+    const groupCount = text.charCount;
     const instanceCount = transform.instanceCount.ref.value;
     const location = PositionLocation();
     const p = location.position;
-    const v = text.centerBuffer.ref.value;
+    // per data vertex (1 per item, see `Geometry.getVertexCount`): the label's position
+    const d = text.textData.ref.value.array;
     const m = transform.aTransform.ref.value;
     const getLocation = (groupIndex: number, instanceIndex: number) => {
+      const o = groupIndex * TextStride;
       if (instanceIndex < 0) {
-        Vec3.fromArray(p, v, groupIndex * 3);
+        Vec3.fromArray(p, d, o);
       } else {
-        Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+        Vec3.transformMat4Offset(p, d, m, 0, o, instanceIndex * 16);
       }
       return location;
     };
-    return LocationIterator(groupCount, instanceCount, 4, getLocation);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
   }
 
   function createValues(
@@ -283,10 +237,10 @@ export namespace Text {
     const clipping = createEmptyClipping();
     const wiggle = createEmptyWiggle();
 
-    const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount * 4, groupCount, instanceCount };
+    const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount, groupCount, instanceCount };
 
     const scale = getMaxSize(size) * props.sizeFactor;
-    const padding = getPadding(text.mappingBuffer.ref.value, text.depthBuffer.ref.value, text.charCount, scale);
+    const padding = getPadding(text.textData.ref.value.array, text.charCount, scale);
     const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding);
     const boundingSphere = calculateTransformBoundingSphere(
       invariantBoundingSphere,
@@ -298,11 +252,7 @@ export namespace Text {
     return {
       dGeometryType: ValueCell.create('text'),
 
-      aPosition: text.centerBuffer,
-      aMapping: text.mappingBuffer,
-      aDepth: text.depthBuffer,
-      aGroup: text.groupBuffer,
-      elements: text.indexBuffer,
+      tText: text.textData,
       boundingSphere: ValueCell.create(boundingSphere),
       invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
       uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -317,7 +267,6 @@ export namespace Text {
       ...wiggle,
       ...transform,
 
-      aTexCoord: text.tcoordBuffer,
       tFont: text.fontTexture,
       padding: ValueCell.create(padding),
 
@@ -367,7 +316,7 @@ export namespace Text {
 
   function updateBoundingSphere(values: TextValues, text: Text) {
     const scale = getMaxSize(values) * values.uSizeFactor.ref.value;
-    const padding = getPadding(values.aMapping.ref.value, values.aDepth.ref.value, text.charCount, scale);
+    const padding = getPadding(values.tText.ref.value.array, text.charCount, scale);
     const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), text.boundingSphere, padding);
     const boundingSphere = calculateTransformBoundingSphere(
       invariantBoundingSphere,
@@ -403,18 +352,24 @@ export namespace Text {
   }
 }
 
-function getPadding(mappings: Float32Array, depths: Float32Array, charCount: number, scale: number) {
+/** the largest corner offset (times `scale`) or depth of the `charCount` items of `data` (`TextStride`) */
+function getPadding(data: Float32Array, charCount: number, scale: number) {
   let maxOffsetX = 0;
   let maxOffsetY = 0;
   let maxDepth = 0;
-  for (let i = 0, il = charCount * 4; i < il; ++i) {
-    const i2 = 2 * i;
-    const ox = Math.abs(mappings[i2]);
-    if (ox > maxOffsetX) maxOffsetX = ox;
-    const oy = Math.abs(mappings[i2 + 1]);
-    if (oy > maxOffsetY) maxOffsetY = oy;
-    const d = Math.abs(depths[i]);
+  for (let i = 0; i < charCount; ++i) {
+    const o = i * TextStride;
+    const d = Math.abs(data[o + 4]);
     if (d > maxDepth) maxDepth = d;
+    // the corners' x at 8, 10, 12, 14 and y at 9, 11, 13, 15 (a glyph's or background's texture coordinates are not
+    // corners: its rectangle is left, top, right, bottom)
+    const tether = data[o + 5] > 0.5;
+    for (let k = 8; k < (tether ? 16 : 12); k += 2) {
+      const ox = Math.abs(data[o + k]);
+      if (ox > maxOffsetX) maxOffsetX = ox;
+      const oy = Math.abs(data[o + k + 1]);
+      if (oy > maxOffsetY) maxOffsetY = oy;
+    }
   }
   return Math.max(maxDepth, scale * Math.sqrt(maxOffsetX * maxOffsetX + maxOffsetY * maxOffsetY));
 }

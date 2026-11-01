@@ -20,12 +20,15 @@ import { Color } from '@molstar/core/util/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { type SceneContext, type VisualTestCase } from '../framework/test-case.js';
 import {
+  cylinderGrid,
   cylinderStar,
   lineCages,
+  lineStrips,
   meshBackdrop,
   meshBox,
   meshPrimitives,
   meshTorus,
+  gridTransforms,
   pointSphere,
   rowTransforms,
   shapeRepr,
@@ -271,6 +274,48 @@ export const RendererCases: VisualTestCase[] = [
     scene: pickScene,
     interact: pickDirectVolume,
   },
+  ...[1, 0.5].flatMap((resolutionScale): VisualTestCase[] => {
+    const suffix = resolutionScale === 1 ? '' : '-half-resolution';
+    const canvasProps: VisualTestCase['canvasProps'] = {
+      renderer: { dimStrength: 0.7 },
+      postprocessing: {
+        occlusion: {
+          name: 'on',
+          params: { ...PD.getDefaultValues(SsaoParams), transparentThreshold: 1, resolutionScale },
+        },
+      },
+    };
+    // a transparent layer of spheres in front of an opaque block
+    const layerScene = async (mark: 'layer' | 'block') => {
+      const front = Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, 6));
+      const layer = await shapeRepr('spheres', sphereGrid(3, 2.5), { transforms: [front], props: { alpha: 0.5 } });
+      const block = await shapeRepr('spheres', sphereGrid(6, 1.8));
+      (mark === 'layer' ? layer : block).mark(EveryLoci, MarkerAction.Select);
+      return [layer, block];
+    };
+    return [
+      {
+        id: `renderer/marking/transparent-layer-marked${suffix}`,
+        description:
+          'A selected transparent layer over a dimmed opaque block: its fill takes the occlusion of the layer, not ' +
+          'the darker one of the block seen through it.',
+        requires: Impostor,
+        view: ObliqueView,
+        canvasProps,
+        scene: () => layerScene('layer'),
+      },
+      {
+        id: `renderer/marking/transparent-layer-unmarked${suffix}`,
+        description:
+          'A selected opaque block behind an unmarked transparent layer: its fill is attenuated by the layer, which ' +
+          'is itself dimmed by its alpha.',
+        requires: Impostor,
+        view: ObliqueView,
+        canvasProps,
+        scene: () => layerScene('block'),
+      },
+    ];
+  }),
   {
     id: 'renderer/marking/alpha-thickness',
     description:
@@ -441,6 +486,40 @@ export const RendererCases: VisualTestCase[] = [
     scene: primitivesScene,
   },
   {
+    id: 'renderer/camera/stereo-spheres',
+    description: 'Side-by-side stereo with a wide eye separation: sphere impostors in strongly off-axis projections.',
+    requires: Impostor,
+    capture: 'canvas',
+    size: { width: 384, height: 192 },
+    canvasProps: { camera: { stereo: { name: 'on', params: { eyeSeparation: 1, focus: 3 } } } },
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('spheres', sphereGrid(3, 3))],
+  },
+  ...(
+    [
+      ['default', {}, [1.25, 0.6, 3]],
+      ['solid-interior', { solidInterior: true }, [1.25, 0.6, 3]],
+      ['double-sided', { solidInterior: false, doubleSided: true }, [1.25, 0.6, 3]],
+      ['open', { solidInterior: false }, [1.25, 0.6, 3]],
+      ['eye-inside', {}, [2.6, 0.2, 2.7]],
+      ['eye-inside-open', { solidInterior: false }, [2.6, 0.2, 2.7]],
+    ] as const
+  ).map(([name, props, [x, y, z]]) => ({
+    id: `renderer/sphere-near/${name}`,
+    description:
+      'The camera in a grid of sphere impostors: spheres cut by the near plane and reaching behind the eye, their ' +
+      `quads the bounds of the part beyond the plane (${name}).`,
+    requires: Impostor,
+    camera: {
+      position: Vec3.create(x, y, z),
+      target: Vec3.create(x, y, -5),
+      up: Vec3.create(0, 1, 0),
+      radius: 3,
+      radiusMax: 3,
+    },
+    scene: async () => [await shapeRepr('spheres', sphereGrid(5, 2.5), { size: 1.2, props })],
+  })),
+  {
     id: 'renderer/clipping/pixel',
     requires: Impostor,
     view: ObliqueView,
@@ -471,6 +550,21 @@ export const RendererCases: VisualTestCase[] = [
       }),
     ],
   },
+  ...[false, true].map((solidInterior) => ({
+    id: `renderer/clipping/impostor-classes${solidInterior ? '-interior' : ''}`,
+    description:
+      'Sphere and cylinder impostors on a grid by pixel clipping: clipped whole (moved out in the vertex stage), cut ' +
+      `(tested per fragment) and not cut (not tested)${solidInterior ? ', with solid interiors' : ''}.`,
+    requires: Impostor,
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('spheres', sphereGrid(4, 2), { size: 0.5, props: { clip: clipProps('pixel'), solidInterior } }),
+      await shapeRepr('cylinders', cylinderGrid(3, 3, 1.6), {
+        size: 0.3,
+        props: { clip: clipProps('pixel'), solidInterior },
+      }),
+    ],
+  })),
   {
     id: 'renderer/clipping/points-lines',
     view: ObliqueView,
@@ -479,6 +573,7 @@ export const RendererCases: VisualTestCase[] = [
         props: { pointStyle: 'circle', sizeFactor: 6, clip: clipProps('pixel') },
       }),
       await shapeRepr('lines', lineCages(), { props: { sizeFactor: 3, clip: clipProps('pixel') } }),
+      await shapeRepr('lines', lineStrips(), { props: { sizeFactor: 3, clip: clipProps('pixel') } }),
     ],
   },
   {
@@ -494,6 +589,46 @@ export const RendererCases: VisualTestCase[] = [
       return [repr];
     },
   },
+  ...(['plane', 'inverted-sphere'] as const).map((clip) => ({
+    id: `renderer/clipping/solid-interior-cells-${clip}`,
+    description:
+      'Solid interiors of instanced tori in small instance-grid cells, those clipped whole culled: the caps of the cut ' +
+      `ones counted over every face behind them${clip === 'inverted-sphere' ? ' (the removed outside of a kept sphere, behind it too)' : ''}.`,
+    requires: Impostor,
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshTorus(0.8), {
+        transforms: gridTransforms(5, 2.2),
+        props: {
+          solidInterior: true,
+          cellSize: 2,
+          batchSize: 6,
+          clip: {
+            variant: 'pixel' as const,
+            objects: [
+              clip === 'plane'
+                ? {
+                    type: 'plane' as const,
+                    invert: false,
+                    position: Vec3.create(0.3, 0, 0),
+                    rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
+                    scale: Vec3.create(1, 1, 1),
+                    transform: Mat4.identity(),
+                  }
+                : {
+                    type: 'sphere' as const,
+                    invert: true,
+                    position: Vec3.create(0.4, 0.2, 0),
+                    rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+                    scale: Vec3.create(7, 7, 7),
+                    transform: Mat4.identity(),
+                  },
+            ],
+          },
+        },
+      }),
+    ],
+  })),
   {
     id: 'renderer/clipping/instance',
     view: ObliqueView,

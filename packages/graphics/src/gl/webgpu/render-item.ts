@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { isQuadIndexing, QuadIndicesPerItem } from '../quad-indices.js';
+import { getItemIndices, isItemIndexing } from '../quad-indices.js';
 import { ReversedZeroToOne } from '../depth-range.js';
 import { ValueCell } from '@molstar/core/util';
 import { idFactory } from '@molstar/core/util/id-factory';
@@ -56,7 +56,7 @@ import {
   MaxDataPages,
 } from './data-layers.js';
 import { TextureChanges } from '../renderable/texture-changes.js';
-import { asWebGPUStorageBuffer, isWebGPUStorageBuffer } from './compute.js';
+import { asWebGPUStorageBuffer, getStorageBufferView, isWebGPUStorageBuffer } from './compute.js';
 import type { DrawIndirect } from '../compute.js';
 import type { WebGPUDrawContext, WebGPULinkable } from './context.js';
 import { asWebGPUGlobalBindings, getTextureEntries } from './global-bindings.js';
@@ -87,6 +87,7 @@ function createVariantProgram(
   variant: ProgramVariant,
   transparency: Transparency | undefined,
   linearTextures: readonly string[],
+  define?: string,
 ) {
   const wgsl = getWgslProgram(shaderCode.name);
   if (!wgsl) notSupported(`the '${shaderCode.name}' program`);
@@ -97,6 +98,7 @@ function createVariantProgram(
     ...defineValues,
     ...Object.fromEntries(linearTextures.map((n) => [`dLinear_${n}`, ValueCell.create(true)])),
     dRenderVariant: ValueCell.create(getRenderVariant(variant, transparency)),
+    ...(define ? { [define]: ValueCell.create(true) } : {}),
   };
   const unsupported = wgsl.getUnsupported?.(variantDefines);
   if (unsupported) notSupported(`${unsupported} of '${shaderCode.name}'`);
@@ -134,17 +136,28 @@ export function createWebGPUProgramItem(
 ): ProgramItem {
   const id = getNextProgramItemId();
   const schema = getGraphicsSchema(renderableSchema);
-  const programs = new Map<ProgramVariant, WebGPUProgram | null>();
-  const getProgram = (variant: ProgramVariant) => {
-    let program = programs.get(variant);
+  const programs = new Map<string, WebGPUProgram | null>();
+  /** the program of `variant`, with `define` on as `renderFullscreen`'s */
+  const getProgram = (variant: ProgramVariant, define?: string) => {
+    const key = define ? `${variant}|${define}` : variant;
+    let program = programs.get(key);
     if (program === undefined) {
       try {
-        program = createVariantProgram(ctx, shaderCode, schema, defineValues, variant, transparency, linearTextures);
+        program = createVariantProgram(
+          ctx,
+          shaderCode,
+          schema,
+          defineValues,
+          variant,
+          transparency,
+          linearTextures,
+          define,
+        );
       } catch {
         // not ported or not supported: a render item of it reports that when drawn
         program = null;
       }
-      programs.set(variant, program);
+      programs.set(key, program);
     }
     return program;
   };
@@ -153,8 +166,8 @@ export function createWebGPUProgramItem(
     getProgram: (variant) => ({ id: id * 16, variant, isReady: () => true, link: () => {}, finalize: () => true }),
     destroy: () => programs.clear(),
   };
-  ctx.itemPreparers.set(item, (variant, state, target) => {
-    const program = getProgram(variant);
+  ctx.itemPreparers.set(item, (variant, state, target, define) => {
+    const program = getProgram(variant, define);
     if (program) ctx.preparePipeline(program, drawMode, state, target);
   });
   return item;
@@ -364,6 +377,13 @@ function releaseMaterial(ctx: WebGPUDrawContext, material: SharedMaterial) {
  * Render item of graphics (`transparency` given) or compute renderables. The WGSL program is resolved at the
  * first render of a variant, so render items of unported programs can be created, rendering them fails.
  */
+/** `GraphicsCapabilities.multiDrawIndirect`: not in the WebGPU types, on render passes only (not in bundles) */
+const MultiDrawIndirectFeature = 'chromium-experimental-multi-draw-indirect' as GPUFeatureName;
+type MultiDrawIndirectEncoder = {
+  readonly multiDrawIndirect?: (buffer: GPUBuffer, offset: number, maxDrawCount: number) => void;
+  readonly multiDrawIndexedIndirect?: (buffer: GPUBuffer, offset: number, maxDrawCount: number) => void;
+};
+
 export function createWebGPURenderItem<T extends ProgramVariant>(
   ctx: WebGPUDrawContext,
   drawMode: DrawMode,
@@ -466,7 +486,8 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     if (ranges) {
       for (let k = 0; k < ranges.length; k += 2) write(ranges[k], ranges[k + 1]);
     } else {
-      for (const p of array.parts) if (p.count > 0) write(p.offset, p.offset + p.count);
+      // all at once: a write per part is a write per member of a merged object (many thousands)
+      write(0, array.length);
     }
   }
   const layerImage = (layer: DataLayer) => dataValues[layer].ref.value as DataArray<Uint8Array>;
@@ -713,8 +734,9 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     return entry.data.range;
   }
   let indexBuffer: GPUData | undefined;
-  /** quads without elements of their own draw indexed by the shared quad indices (`quad-indices.ts`) */
-  const quads = !!shaderCode.quads && !values.elements?.ref.value && isQuadIndexing();
+  /** items without elements of their own (quads, boxes) draw indexed by the shared indices of their pattern */
+  const items =
+    !values.elements?.ref.value && isItemIndexing(shaderCode.itemIndices) ? shaderCode.itemIndices : undefined;
   function createIndexBuffer() {
     if (values.elements?.ref.value) {
       indexBuffer = createGPUData(ctx, values.elements.ref.value, BufferUsage.INDEX);
@@ -802,24 +824,26 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     return key;
   }
 
-  function createProgram(variant: T, linearTextures: string) {
+  function createProgram(variant: T, linearTextures: string, define?: string) {
     const names = linearTextures.split(',').filter((n) => n);
-    return createVariantProgram(ctx, shaderCode, schema, defineValues as DefineValues, variant, transparency, names);
+    const defines = defineValues as DefineValues;
+    return createVariantProgram(ctx, shaderCode, schema, defines, variant, transparency, names, define);
   }
 
   /** `null` if the program is not ported and the context is not strict, the render item then draws nothing */
   const programs = new Map<string, WebGPUProgram | null>();
-  /** the program of each variant for the current textures, see `invalidatePrograms` */
-  const variantPrograms = new Map<T, WebGPUProgram | null>();
-  function getWebGPUProgram(variant: T) {
-    let program = variantPrograms.get(variant);
+  /** the program of each variant (with a define of `renderFullscreen`) for the current textures, see `invalidatePrograms` */
+  const variantPrograms = new Map<string, WebGPUProgram | null>();
+  function getWebGPUProgram(variant: T, define?: string) {
+    const variantKey = define ? `${variant}|${define}` : variant;
+    let program = variantPrograms.get(variantKey);
     if (program !== undefined) return program;
     const linearTextures = getLinearTextures();
-    const programKey = `${variant}|${linearTextures}`;
+    const programKey = `${variantKey}|${linearTextures}`;
     program = programs.get(programKey);
     if (program === undefined) {
       try {
-        program = createProgram(variant, linearTextures);
+        program = createProgram(variant, linearTextures, define);
       } catch (e) {
         if (ctx.strict || !(e instanceof WebGPUUnsupportedError)) throw e;
         ctx.warnUnsupported(e.message);
@@ -827,7 +851,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       }
       programs.set(programKey, program);
     }
-    variantPrograms.set(variant, program);
+    variantPrograms.set(variantKey, program);
     return program;
   }
 
@@ -1019,6 +1043,37 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   };
   ctx.linkables.add(linkable);
 
+  /**
+   * The pipeline of `program`, the global, material and object uniforms and the vertex buffers bound; undefined while
+   * the pipeline compiles in the background (drawn once ready)
+   */
+  function bindProgram(program: WebGPUProgram, gpuGlobals: ReturnType<typeof asWebGPUGlobalBindings> | undefined) {
+    const pipeline = ctx.getPipeline(program, drawMode);
+    if (!pipeline) {
+      stats.skippedDraws += 1;
+      return undefined;
+    }
+    const state = ctx.getPassState();
+    state.setPipeline(pipeline);
+    if (gpuGlobals) {
+      const global = gpuGlobals.getBindGroup(program);
+      globalOffsets[0] = global.offset;
+      state.setBindGroup(0, global.group, globalOffsets);
+    } else {
+      state.setBindGroup(0, getSamplerBindGroup(program));
+    }
+    materialBlock?.write();
+    const material = getBindGroup(program, 1, materialBlock, materialTextures);
+    state.setBindGroup(1, material.group, material.offsets);
+    objectBlock?.write();
+    const slots = program.vertexBufferSlots;
+    for (let i = 0, il = slots.length; i < il; ++i) {
+      const range = getVertexBuffer(slots[i]);
+      state.setVertexBuffer(i, range.buffer, range.offset, range.size);
+    }
+    return state;
+  }
+
   const item: RenderItem<T> = {
     id,
     materialId,
@@ -1036,6 +1091,13 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       for (const range of layerRanges) if (range) count += range.size;
       return count;
     },
+    getDataLayer: (name: string) => {
+      const i = layers.indexOf(name as DataLayer);
+      if (i < 0 || !layersFit) return undefined;
+      const range = layerRanges[layerPageOf[i]];
+      if (!range) return undefined;
+      return { buffer: getStorageBufferView(range.buffer), offset: (range.offset + layerPageOffsets[i]) / 4 };
+    },
     getProgram: getGraphicsProgram,
     setTransparency: (value: Transparency) => {
       if (value === transparency) return;
@@ -1043,46 +1105,39 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       invalidatePrograms(true);
     },
 
+    renderFullscreen: (variant: T, define: string, globals: GlobalBindings) => {
+      if (drawCount === 0 || instanceCount === 0 || !layersFit) return false;
+      const gpuGlobals = asWebGPUGlobalBindings(globals);
+      const program = getWebGPUProgram(variant, define);
+      if (!program) return false;
+      const state = bindProgram(program, gpuGlobals);
+      if (!state) return false;
+      const drawBlock = getDrawBlock(program, gpuGlobals);
+      const object = getBindGroup(program, 2, objectBlock, textures, drawBlock);
+      state.setBindGroup(2, object.group, object.offsets);
+      state.encoder.draw(3, 1);
+      stats.calls.drawInstanced += 1;
+      return true;
+    },
+
     render: (variant: T, globals?: GlobalBindings, mdbDataList?: MultiDrawBaseData[]) => {
       if (drawCount === 0 || instanceCount === 0 || !layersFit) return;
       const gpuGlobals = globals ? asWebGPUGlobalBindings(globals) : undefined;
       const program = getWebGPUProgram(variant);
       if (!program) return;
-
-      const pipeline = ctx.getPipeline(program, drawMode);
-      // compiling in the background, drawn once ready
-      if (!pipeline) {
-        stats.skippedDraws += 1;
-        return;
-      }
-      const state = ctx.getPassState();
+      const state = bindProgram(program, gpuGlobals);
+      if (!state) return;
       const pass = state.encoder;
-      state.setPipeline(pipeline);
-
-      if (gpuGlobals) {
-        const global = gpuGlobals.getBindGroup(program);
-        globalOffsets[0] = global.offset;
-        state.setBindGroup(0, global.group, globalOffsets);
-      } else {
-        state.setBindGroup(0, getSamplerBindGroup(program));
-      }
-      materialBlock?.write();
-      const material = getBindGroup(program, 1, materialBlock, materialTextures);
-      state.setBindGroup(1, material.group, material.offsets);
-      objectBlock?.write();
-      const slots = program.vertexBufferSlots;
-      for (let i = 0, il = slots.length; i < il; ++i) {
-        const range = getVertexBuffer(slots[i]);
-        state.setVertexBuffer(i, range.buffer, range.offset, range.size);
-      }
       if (indexBuffer) {
         const { range } = indexBuffer;
         state.setIndexBuffer(range.buffer, 'uint32', range.offset, range.size);
       }
-      // quads without elements of their own draw indexed by the shared quad indices (`quad-indices.ts`), unindexed
-      // past their limit
-      const quad = quads ? ctx.quadIndices.get(drawCount / QuadIndicesPerItem) : undefined;
+      // items without elements of their own draw indexed by the shared indices of their pattern (`quad-indices.ts`),
+      // quads unindexed past their limit
+      const quad = items ? getItemIndices(ctx, items).get(drawCount / items.pattern.length) : undefined;
       if (quad) state.setIndexBuffer(quad.buffer, 'uint32', 0, quad.buffer.size);
+      // boxes past their limit: not drawn (no unindexed form)
+      if (items?.name === 'box' && !quad) return;
       const indexed = !!indexBuffer || !!quad;
 
       if (mdbDataList) {
@@ -1100,9 +1155,26 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
             const indexedRecords = indirect.indexed ?? !!indexBuffer;
             if (indexedRecords && !indexed) continue;
             const stride = indexedRecords ? IndirectRecordBytes.indexed : IndirectRecordBytes.vertex;
-            for (let i = 0; i < level.count; ++i) {
-              if (indexedRecords) pass.drawIndexedIndirect(buffer, indirect.byteOffset + i * stride);
-              else pass.drawIndirect(buffer, indirect.byteOffset + i * stride);
+            const { records } = indirect;
+            const multi = pass as unknown as MultiDrawIndirectEncoder;
+            // the renderer draws these objects outside of bundles where the device has it
+            if (multi.multiDrawIndexedIndirect && ctx.device.features.has(MultiDrawIndirectFeature)) {
+              // runs of consecutive records by one call each
+              for (let i = 0; i < level.count; ) {
+                const first = records ? records[i] : i;
+                let n = 1;
+                while (i + n < level.count && (records ? records[i + n] : i + n) === first + n) ++n;
+                const offset = indirect.byteOffset + first * stride;
+                if (indexedRecords) multi.multiDrawIndexedIndirect(buffer, offset, n);
+                else multi.multiDrawIndirect!(buffer, offset, n);
+                i += n;
+              }
+            } else {
+              for (let i = 0; i < level.count; ++i) {
+                const offset = indirect.byteOffset + (records ? records[i] : i) * stride;
+                if (indexedRecords) pass.drawIndexedIndirect(buffer, offset);
+                else pass.drawIndirect(buffer, offset);
+              }
             }
             stats.calls.drawInstancedBase += level.count;
             continue;
@@ -1203,10 +1275,10 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     },
   };
   // for `resources.preparePipelines`
-  ctx.itemPreparers.set(item as RenderItem<any>, (variant, state, target) => {
+  ctx.itemPreparers.set(item as RenderItem<any>, (variant, state, target, define) => {
     let program: WebGPUProgram | null;
     try {
-      program = getWebGPUProgram(variant as T);
+      program = getWebGPUProgram(variant as T, define);
     } catch {
       return; // reported by the first draw of the variant
     }

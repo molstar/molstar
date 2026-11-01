@@ -16,6 +16,11 @@ import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { ValueCell } from '@molstar/core/util';
+import { Color } from '@molstar/core/util/color/color';
+import { NullLocation } from '@molstar/model/model/location';
+import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
+import { Cylinders, CylinderStride } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
+import { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 
 function createSpheresRenderObject(centers: Float32Array, groups: Float32Array, count: number) {
   const spheres = Spheres.create(centers, groups, count);
@@ -58,7 +63,8 @@ describe('merged', () => {
     const mv = merged.values;
 
     expect(mv.drawCount.ref.value).toBe(5 * 6);
-    expect(mv.uVertexCount.ref.value).toBe(5 * 6);
+    // one data vertex per sphere ('vertex' color and size), six drawn
+    expect(mv.uVertexCount.ref.value).toBe(5);
     expect(mv.instanceCount.ref.value).toBe(2);
     expect(mv.uInstanceCount.ref.value).toBe(2);
 
@@ -66,14 +72,18 @@ describe('merged', () => {
     expect(segments.count).toBe(2);
     expect(segments.instanceBases).toEqual([0, 1]);
     expect(segments.instanceCounts).toEqual([1, 1]);
-    expect(segments.vertexBases).toEqual([0, 18]);
+    expect(segments.vertexBases).toEqual([0, 3]);
 
     expect(Array.from(mv.aInstance.ref.value.subarray(0, 2))).toEqual([0, 1]);
 
     const g0 = a.values.uGroupCount.ref.value;
     const g1 = b.values.uGroupCount.ref.value;
+    // per instance its segment's group count and offsets and the segment's index; per segment its sphere, level scales
     const aSegment = (mv as any).aSegment.ref.value as Float32Array;
-    expect(Array.from(aSegment.subarray(0, 6))).toEqual([g0, 0, 0, g1, 1 * g0 - 1 * g1, g0]);
+    expect(Array.from(aSegment.subarray(0, 8))).toEqual([g0, 0, 0, 0, g1, 1 * g0 - 1 * g1, g0, 1]);
+    const segment = (mv as any).tSegment.ref.value.array as Float32Array;
+    const sphere = b.values.invariantBoundingSphere.ref.value;
+    expect(Array.from(segment.subarray(8, 12))).toEqual(Array.from(Float32Array.of(...sphere.center, sphere.radius)));
 
     // second member's positions start at texel 3 in the merged position texture
     const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
@@ -105,6 +115,32 @@ describe('merged', () => {
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([3, 0, 0, 0]);
   });
 
+  it('sync advances the cull version where what culling reads of the members changed', () => {
+    const [a, b] = createMembers();
+    const { merged } = createMergedRenderObject([a, b]);
+    const version = () => merged.cullVersion.ref.version;
+
+    let v = version();
+    merged.sync();
+    expect(version()).toBe(v);
+
+    // a mark: drawn data, not culled
+    ValueCell.update(b.values.markerStatus, 1);
+    merged.sync();
+    expect(version()).toBe(v);
+
+    // a member's sphere: the segment culled by it
+    ValueCell.update(b.values.boundingSphere, { ...b.values.boundingSphere.ref.value });
+    merged.sync();
+    expect(version()).toBeGreaterThan(v);
+
+    // a member's transforms: its instance grid with them
+    v = version();
+    ValueCell.update(a.values.aTransform, a.values.aTransform.ref.value);
+    merged.sync();
+    expect(version()).toBeGreaterThan(v);
+  });
+
   it('points', () => {
     const create = (centers: number[], groups: number[]) => {
       const points = Points.create(new Float32Array(centers), new Float32Array(groups), groups.length);
@@ -128,6 +164,45 @@ describe('merged', () => {
     const pg = SegmentedArray.flatten(mv.tPositionGroup.ref.value.array as unknown as SegmentedArray<Float32Array>);
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
     expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
+  });
+
+  it('cylinders colored per vertex', () => {
+    // colored by the x of their start and end, per data vertex: a start and an end per cylinder
+    const create = (xs: [number, number][]) => {
+      const data = new Float32Array(xs.length * CylinderStride);
+      xs.forEach(([start, end], i) => {
+        data[i * CylinderStride] = start;
+        data[i * CylinderStride + 3] = i; // group
+        data[i * CylinderStride + 4] = end;
+        data[i * CylinderStride + 7] = 1; // radius scale
+      });
+      const cylinders = Cylinders.create(data, xs.length);
+      const props = PD.getDefaultValues(Cylinders.Params);
+      const s = BaseGeometry.createSimple();
+      const color = { ...s.theme.color, granularity: 'vertex' as const, color: (l: any) => Color(l.position[0]) };
+      const locationIt = LocationIterator(xs.length, 1, 1, () => NullLocation);
+      const values = Cylinders.Utils.createValues(cylinders, s.transform, locationIt, { ...s.theme, color }, props);
+      return createRenderObject('cylinders', values, Cylinders.Utils.createRenderableState(props), -1);
+    };
+    const a = create([
+      [1, 2],
+      [3, 4],
+    ]);
+    const b = create([[5, 6]]);
+    expect(a.values.colorType.ref.value).toBe('vertex');
+    expect(canMergeRenderObjects([a, b])).toBe(true);
+
+    const merged = createMergedRenderObject([a, b]);
+    const mv = merged.values;
+    expect(mv.uVertexCount.ref.value).toBe(3 * 2);
+    expect(merged.merged.segments.vertexBases).toEqual([0, 4]);
+    // the colors per data vertex, the second member's at its vertex base (the blue byte is the x)
+    const colors = SegmentedArray.flatten(mv.tColor.ref.value.array as unknown as SegmentedArray<Uint8Array>);
+    expect(Array.from({ length: 6 }, (_, i) => colors[i * 4 + 2])).toEqual([1, 2, 3, 4, 5, 6]);
+    // three data texels per cylinder
+    const data = SegmentedArray.flatten(mv.tCylinder.ref.value.array as unknown as SegmentedArray<Float32Array>);
+    expect(data.length).toBe(3 * 3 * 4);
+    expect(data[2 * CylinderStride + 4]).toBe(6);
   });
 
   it('mesh', () => {

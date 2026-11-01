@@ -7,8 +7,8 @@
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
-import { getLayerTypeDefine, type LayerType } from './layer-type.js';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
 
 export type TransparencyType = LayerType;
 
@@ -93,10 +93,10 @@ export function createTransparency(
       transparencyAverage: ValueCell.create(0),
       transparencyMin: ValueCell.create(1),
 
-      tTransparencyGrid: ValueCell.create(createNullTexture()),
-      uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uTransparencyGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tTransparencyGrid: ValueCell.create(NoLayerGrid.texture),
+      uTransparencyGridDim: ValueCell.create(NoLayerGrid.dim),
+      uTransparencyGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uTransparencyGridTransform: ValueCell.create(NoLayerGrid.transform),
       transparencyType: ValueCell.create<string>(type),
       dTransparencyType: ValueCell.create(getLayerTypeDefine(type)),
       uTransparencyStrength: ValueCell.create(1),
@@ -116,10 +116,10 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
       transparencyAverage: ValueCell.create(0),
       transparencyMin: ValueCell.create(1),
 
-      tTransparencyGrid: ValueCell.create(createNullTexture()),
-      uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uTransparencyGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tTransparencyGrid: ValueCell.create(NoLayerGrid.texture),
+      uTransparencyGridDim: ValueCell.create(NoLayerGrid.dim),
+      uTransparencyGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uTransparencyGridTransform: ValueCell.create(NoLayerGrid.transform),
       transparencyType: ValueCell.create<string>('groupInstance'),
       dTransparencyType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uTransparencyStrength: ValueCell.create(1),

@@ -10,7 +10,6 @@ import { read_from_texture } from './chunks/read-from-texture.glsl.js';
 import { common_vert_params } from './chunks/common-vert-params.glsl.js';
 import { color_vert_params } from './chunks/color-vert-params.glsl.js';
 import { common_clip } from './chunks/common-clip.glsl.js';
-import { assign_group } from './chunks/assign-group.glsl.js';
 import { assign_color_varying } from './chunks/assign-color-varying.glsl.js';
 import { assign_marker_varying } from './chunks/assign-marker-varying.glsl.js';
 import { assign_clipping_varying } from './chunks/assign-clipping-varying.glsl.js';
@@ -30,23 +29,47 @@ ${common_clip}
 varying vec2 vTexCoord;
 
 void main(void){
-    int vertexId = VertexID;
+    #if defined(dInstanceData)
+        readInstanceData();
+    #endif
 
-    ${assign_group}
+    // the item of the vertex (4 texels of \`tText\`) and its corner (4 vertices per item)
+    int item = VertexID / 4;
+    int corner = VertexID - item * 4;
+    // the data vertex ('vertex' color, size): one per item
+    int vertexId = item;
+    vec4 textPosition, textFlags, textA, textB; // position and group, depth and tether, then corners or rectangles
+    read_tText2(item * 4, textPosition, textFlags);
+    read_tText2(item * 4 + 2, textA, textB);
+    float group = textPosition.w;
+    vec2 mapping;
+    vec2 texCoord;
+    if (textFlags.y > 0.5) {
+        // a tether: its four corners, no glyph
+        mapping = corner == 0 ? textA.xy : (corner == 1 ? textA.zw : (corner == 2 ? textB.xy : textB.zw));
+        texCoord = vec2(10.0);
+    } else {
+        // a glyph or background: top left, bottom left, top right, bottom right of its rectangles
+        bool right = corner >= 2;
+        bool top = corner == 0 || corner == 2;
+        mapping = vec2(right ? textA.z : textA.x, top ? textA.y : textA.w);
+        texCoord = vec2(right ? textB.z : textB.x, top ? textB.y : textB.w);
+    }
+
     ${assign_color_varying}
     ${assign_marker_varying}
     ${assign_clipping_varying}
     ${assign_size}
 
-    vTexCoord = aTexCoord;
+    vTexCoord = texCoord;
 
     float scale = uModelScale;
 
     float offsetX = uOffsetX * scale;
     float offsetY = uOffsetY * scale;
-    float offsetZ = (uOffsetZ + aDepth * 0.95) * scale;
+    float offsetZ = (uOffsetZ + textFlags.x * 0.95) * scale;
 
-    vec4 position4 = vec4(aPosition, 1.0);
+    vec4 position4 = vec4(textPosition.xyz, 1.0);
     vec4 mvPosition = uHasEyeCamera
          ? uModelViewEye * aTransform * position4
          : uModelView * aTransform * position4;
@@ -86,7 +109,7 @@ void main(void){
     vec4 clip = uProjection * mvCenter;
 
     // compute corner offset in screen-space units
-    vec2 cornerOffset = aMapping * size * scale;
+    vec2 cornerOffset = mapping * size * scale;
     cornerOffset.x += offsetX;
     cornerOffset.y += offsetY;
 

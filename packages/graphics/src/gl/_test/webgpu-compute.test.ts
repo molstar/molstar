@@ -42,6 +42,16 @@ import {
   McChunkPushSchema,
   McTextureInput,
 } from '../compute/marching-cubes/compute.js';
+import {
+  SphereRasterArgsKernel,
+  SphereRasterArgsSchema,
+  SphereRasterCullKernel,
+  SphereRasterCullSchema,
+  SphereRasterKernel,
+  SphereRasterRegionsKernel,
+  SphereRasterRegionsSchema,
+  SphereRasterSchema,
+} from '../compute/sphere-raster.js';
 import { DefineSpec, TextureSpec, UniformSpec } from '../renderable/schema.js';
 import type { DefineValues } from '../shader-code.js';
 import { preprocessShader } from '../shader-preprocessor.js';
@@ -80,6 +90,10 @@ const BuiltInKernels: [KernelCode, KernelSchema, { [k: string]: string | boolean
   [GdAccumulateKernel, GdAccumulateSchema, {}],
   [GdGroupKernel, GdGroupSchema, {}],
   [GdWriteKernel, GdWriteSchema, {}],
+  [SphereRasterCullKernel, SphereRasterCullSchema, {}],
+  [SphereRasterRegionsKernel, SphereRasterRegionsSchema, {}],
+  [SphereRasterArgsKernel, SphereRasterArgsSchema, {}],
+  [SphereRasterKernel, SphereRasterSchema, {}],
 ];
 
 describe('webgpu compute', () => {

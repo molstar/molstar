@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,8 +8,7 @@ import { ChunkedArray } from '@molstar/core/data/util';
 import { Points } from './points.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const caAdd3 = ChunkedArray.add3;
-const caAdd = ChunkedArray.add;
+const caAdd4 = ChunkedArray.add4;
 
 export interface PointsBuilder {
   add(x: number, y: number, z: number, group: number): void;
@@ -18,28 +17,21 @@ export interface PointsBuilder {
 
 export namespace PointsBuilder {
   export function create(initialCount = 2048, chunkSize = 1024, points?: Points): PointsBuilder {
-    const centers = ChunkedArray.create(
+    // center xyz and group per item, the geometry's array (`PositionGroupStride`), reused where given
+    const positionGroup = ChunkedArray.create(
       Float32Array,
-      3,
+      4,
       chunkSize,
-      points ? points.centerBuffer.ref.value : initialCount,
-    );
-    const groups = ChunkedArray.create(
-      Float32Array,
-      1,
-      chunkSize,
-      points ? points.groupBuffer.ref.value : initialCount,
+      points ? points.positionGroup.ref.value.array : initialCount,
     );
 
     return {
       add: (x: number, y: number, z: number, group: number) => {
-        caAdd3(centers, x, y, z);
-        caAdd(groups, group);
+        caAdd4(positionGroup, x, y, z, group);
       },
       getPoints: () => {
-        const cb = ChunkedArray.compactTrimmed(centers) as Float32Array;
-        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
-        return Points.create(cb, gb, centers.elementCount, points);
+        const array = ChunkedArray.compactTrimmed(positionGroup) as Float32Array;
+        return Points.fromPositionGroup(array, positionGroup.elementCount, points);
       },
     };
   }

@@ -24,7 +24,7 @@ export type TransformData = {
   matrix: ValueCell<Mat4>;
   /** base per-instance transform, see aTransform */
   transform: ValueCell<Float32Array>;
-  /** additional per-instance transform, see aTransform */
+  /** additional per-instance transform, see aTransform; empty until set (64 B an instance otherwise unused) */
   extraTransform: ValueCell<Float32Array>;
   /** whether extraTransform is used, see aTransform */
   hasExtraTransform: ValueCell<boolean>;
@@ -75,11 +75,6 @@ export function createTransform(
         : new Float32Array(instanceCount * 16);
     ValueCell.update(transformData.aTransform, aTransform);
 
-    const extraTransform =
-      transformData.extraTransform.ref.value.length >= instanceCount * 16
-        ? transformData.extraTransform.ref.value
-        : new Float32Array(instanceCount * 16);
-    ValueCell.update(transformData.extraTransform, extraTransform);
     ValueCell.updateIfChanged(transformData.hasExtraTransform, false);
 
     const aInstance =
@@ -94,7 +89,7 @@ export function createTransform(
       aTransform: ValueCell.create(new Float32Array(instanceCount * 16)),
       matrix: ValueCell.create(Mat4.identity()),
       transform: ValueCell.create(new Float32Array(transformArray)),
-      extraTransform: ValueCell.create(new Float32Array(instanceCount * 16)),
+      extraTransform: ValueCell.create(new Float32Array(0)),
       hasExtraTransform: ValueCell.create(false),
       uInstanceCount: ValueCell.create(instanceCount),
       instanceCount: ValueCell.create(instanceCount),

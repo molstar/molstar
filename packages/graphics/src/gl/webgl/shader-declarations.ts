@@ -20,7 +20,8 @@ import {
   type UniformBlockLayout,
   UniformBlocks,
 } from '../uniform-layout.js';
-import { getAttributeLayout } from '../attribute-layout.js';
+import { getAttributeLayout, getAttributeLocationNames } from '../attribute-layout.js';
+import { AffineRowsItemSize } from '../affine-rows.js';
 import type { AttributeItemSize } from '../buffer.js';
 import { getUniformGlslType } from './uniform.js';
 import { getDataTextureAccessors } from './data-textures.js';
@@ -113,6 +114,7 @@ export function getAttributeGlslType(itemSize: AttributeItemSize) {
       return 'vec3';
     case 4:
       return 'vec4';
+    case 12:
     case 16:
       return 'mat4';
   }
@@ -187,9 +189,21 @@ export function getShaderDeclarations(
 
   const attributes: string[] = [];
   const attributeTypes = new Map<string, string>();
-  for (const { name, itemSize, location } of getAttributeLayout(schema).entries) {
+  for (const entry of getAttributeLayout(schema).entries) {
+    const { name, itemSize } = entry;
     const type = getAttributeGlslType(itemSize);
-    attributes.push(isWebGL2 ? `layout(location = ${location}) in ${type} ${name};` : `attribute ${type} ${name};`);
+    if (itemSize === AffineRowsItemSize) {
+      // the rows (`affine-rows.ts`); merged items reading their instance data define the transform themselves
+      for (const [row, location] of getAttributeLocationNames(entry)) {
+        attributes.push(isWebGL2 ? `layout(location = ${location}) in vec4 ${row};` : `attribute vec4 ${row};`);
+      }
+      attributes.push(
+        `#if !defined(dInstanceData)\n#define ${name} affineFromRows(${name}0, ${name}1, ${name}2)\n#endif`,
+      );
+    } else {
+      const { location } = entry;
+      attributes.push(isWebGL2 ? `layout(location = ${location}) in ${type} ${name};` : `attribute ${type} ${name};`);
+    }
     attributeTypes.set(name, type);
   }
 

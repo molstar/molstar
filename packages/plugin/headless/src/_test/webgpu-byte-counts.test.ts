@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { WebGPU } from './webgpu-module.js';
@@ -52,11 +53,18 @@ describe.skipIf(!WebGPU.module)('resource counts on WebGPU', () => {
         return resources.getByteCounts();
       };
 
+      // a first cycle settles what the scene doesn't own: the helpers' geometry and the pass targets, created as frames
+      // and the idle warm-up need them (after the first frame, some of it not yet)
+      await load();
+      const settled = await clear();
+      const settledCounts = counts();
+
       const drawn = await load();
       // data textures of the representations and the targets of the passes
       expect(drawn.texture).toBeGreaterThan(0);
-      // cartoon meshes are indexed
-      expect(drawn.attribute).toBeGreaterThan(0);
+      // the peptide is drawn as ball-and-stick: spheres and cylinders keep their data in data arrays
+      // (`tPositionGroup`, `tCylinder`), their vertex buffers are the instance attributes, on top of the helpers'
+      expect(drawn.attribute).toBeGreaterThan(settled.attribute);
       expect(drawn.elements).toBeGreaterThan(0);
       expect(drawn.uniform).toBeGreaterThan(0);
       // no read in flight
@@ -69,21 +77,17 @@ describe.skipIf(!WebGPU.module)('resource counts on WebGPU', () => {
       expect(loaded.pixelPack).toBe(0);
       expect(loaded.instancedDrawCount).toBeGreaterThan(0);
 
-      const cleared = await clear();
-      // what remains is the helpers' geometry (e.g. the camera helper), far less than the structure's
-      expect(cleared.attribute).toBeLessThan(drawn.attribute);
-      // what remains of elements is the context's shared quad indices (`quad-indices.ts`), kept for the next quads
-      expect(cleared.elements).toBeLessThan(drawn.elements);
-      // texture bytes include the pass targets, allocated by what frames draw (an empty scene draws other passes), so
-      // the totals of two scenes don't compare; the structure's textures are released by the check below
-      // the structure's resources are released: after helpers and uniform arenas settled (a first cycle), loading and
-      // clearing again leaves the same counts
-      await load();
-      const settled = await clear();
-      const settledCounts = counts();
+      // the structure's resources are released: clearing leaves the settled counts, live resources (counted until
+      // destroyed) and draws included
+      expect(await clear()).toEqual(settled);
+      expect(counts()).toEqual(settledCounts);
+      // what remains of elements is the context's shared item indices (`quad-indices.ts`), kept for the next spheres
+      // and cylinders: the structure's own are released
+      const { quadIndices, boxIndices } = plugin.canvas3d!.graphics as WebGPUContext;
+      expect(settled.elements).toBe(quadIndices.byteCount + boxIndices.byteCount);
+      // and again
       await load();
       expect(await clear()).toEqual(settled);
-      // and the same number of live resources (counted until destroyed) and draws
       expect(counts()).toEqual(settledCounts);
     } finally {
       plugin.dispose();

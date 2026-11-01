@@ -55,6 +55,10 @@ export interface GraphicsLimits {
   readonly maxTextureImageUnits: number;
   /** The most quad items a draw of the shared quad indices reaches (`quad-indices.ts`): past it quads draw unindexed */
   readonly maxQuadItemCount: number;
+  /** The most box items (cylinders) a draw of the shared box indices reaches: past it they are not drawn */
+  readonly maxBoxItemCount: number;
+  /** The most line items a draw of the shared line indices reaches: past it they are not drawn */
+  readonly maxLineItemCount: number;
 }
 
 export interface GraphicsResources {
@@ -131,6 +135,8 @@ export interface PipelineRequest {
   readonly variant: ProgramVariant;
   readonly state: RenderState;
   readonly target: TargetDescriptor;
+  /** the variant's program with this define on, as `RenderItem.renderFullscreen` draws it (WebGPU; WebGL ignores it) */
+  readonly define?: string;
 }
 
 export interface RenderPassOptions {

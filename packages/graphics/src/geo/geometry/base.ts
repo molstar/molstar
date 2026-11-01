@@ -22,6 +22,7 @@ import { Material } from '@molstar/core/util/material';
 import { Clip } from '@molstar/core/util/clip';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
+import type { InteriorProps } from './interior.js';
 
 export const VisualQualityInfo = {
   custom: {},
@@ -161,6 +162,26 @@ export function resolveRenderMerged(value: RenderMergedValue, unitCount: number)
 //
 
 export namespace BaseGeometry {
+  /** Whether objects fade at their lod distances (`dLodFade`): `lod` with a min or max distance */
+  export function hasLodFade(lod: Vec3): boolean {
+    return lod[0] !== 0 || lod[1] !== 0;
+  }
+
+  /**
+   * Whether bumps show by the props (`dBump`): frequency, amplitude and bumpiness above 0, the bumpiness of the material
+   * or of the interior's substance; a substance layer (`dSubstance`) can add bumpiness per group as well
+   */
+  export function hasBump(props: {
+    bumpFrequency: number;
+    bumpAmplitude: number;
+    material: Material;
+    interior: InteriorProps;
+  }): boolean {
+    if (!(props.bumpFrequency > 0 && props.bumpAmplitude > 0)) return false;
+    const { substance, substanceStrength } = props.interior;
+    return props.material.bumpiness > 0 || (substance.bumpiness > 0 && substanceStrength > 0);
+  }
+
   export const MaterialCategory: PD.Info = { category: 'Material' };
   export const ShadingCategory: PD.Info = { category: 'Shading' };
   export const CullingLodCategory: PD.Info = { category: 'Culling & LOD' };
@@ -266,6 +287,7 @@ export namespace BaseGeometry {
         resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount),
       ),
       uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 0)),
+      dLodFade: ValueCell.create(hasLodFade(props.lod)),
     };
   }
 
@@ -303,6 +325,7 @@ export namespace BaseGeometry {
       ),
     );
     ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 0));
+    ValueCell.updateIfChanged(values.dLodFade, hasLodFade(props.lod));
   }
 
   export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

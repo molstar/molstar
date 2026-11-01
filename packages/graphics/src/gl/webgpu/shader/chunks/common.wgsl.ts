@@ -5,8 +5,10 @@
  */
 
 import { depth_wgsl } from './depth.wgsl.js';
+import { lod_at_wgsl } from './lod.wgsl.js';
+import { size_wgsl } from './size.wgsl.js';
 
-/** `packIntToRGB`: an integer (e.g. a group id) packed into 8-bit rgb, as on WebGL */
+/** `packIntToRGB` and `unpackRGBToInt`: an integer (e.g. a group id) packed into 8-bit rgb, as on WebGL */
 export const pack_int_wgsl = /* wgsl */ `
 fn packIntToRGB(v: f32) -> vec3<f32> {
     var value = clamp(round(v), 0.0, 16777216.0 - 1.0) + 1.0;
@@ -18,10 +20,15 @@ fn packIntToRGB(v: f32) -> vec3<f32> {
     c.r = value % 256.0;
     return c / 255.0;
 }
+
+fn unpackRGBToInt(rgb: vec3<f32>) -> f32 {
+    return (floor(rgb.r * 255.0 + 0.5) * 256.0 * 256.0 + floor(rgb.g * 255.0 + 0.5) * 256.0 + floor(rgb.b * 255.0 + 0.5)) - 1.0;
+}
 `;
 
 /** Derived switches, constants and helpers used by most programs */
 export const common_wgsl = /* wgsl */ `
+${lod_at_wgsl}
 #if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit) || defined(dRenderVariant_colorDpoit)
     #define dRenderVariant_color
 #endif
@@ -60,19 +67,37 @@ ${depth_wgsl}
 
 ${pack_int_wgsl}
 
+${size_wgsl}
+
 fn packMarkingMask(hidden: f32, highlight: bool, fogAlpha: f32, opacity: f32) -> vec4<f32> {
     let g = hidden + (1.0 - 2.0 * hidden) * (1.0 - opacity) * 0.25;
     return vec4<f32>(0.0, g, select(0.0, 1.0, highlight), fogAlpha);
-}
-
-fn unpackRGBToInt(rgb: vec3<f32>) -> f32 {
-    return (floor(rgb.r * 255.0 + 0.5) * 256.0 * 256.0 + floor(rgb.g * 255.0 + 0.5) * 256.0 + floor(rgb.b * 255.0 + 0.5)) - 1.0;
 }
 
 /** Depth in [0, 1] of a view space position (the projection maps to [0, 1]) */
 fn calcDepth(pos: vec3<f32>) -> f32 {
     let clipZW = pos.z * uGlobal.uProjection[2].zw + uGlobal.uProjection[3].zw;
     return clipZW.x / clipZW.y;
+}
+
+/**
+ * The direction of an octahedral encoding (\`oct-normals.ts\`), not normalized (the callers normalize): the lower
+ * hemisphere folded back, branchless
+ */
+fn octDecode(e: vec2<f32>) -> vec3<f32> {
+    let z = 1.0 - abs(e.x) - abs(e.y);
+    let t = max(-z, 0.0);
+    return vec3<f32>(e + select(vec2<f32>(t), vec2<f32>(-t), e >= vec2<f32>(0.0)), z);
+}
+
+/** The affine transform of the rows \`r0\` to \`r2\` (\`affine-rows.ts\`), the last row 0, 0, 0, 1 */
+fn affineTransform(r0: vec4<f32>, r1: vec4<f32>, r2: vec4<f32>) -> mat4x4<f32> {
+    return mat4x4<f32>(
+        vec4<f32>(r0.x, r1.x, r2.x, 0.0),
+        vec4<f32>(r0.y, r1.y, r2.y, 0.0),
+        vec4<f32>(r0.z, r1.z, r2.z, 0.0),
+        vec4<f32>(r0.w, r1.w, r2.w, 1.0)
+    );
 }
 
 fn mat3From4(m: mat4x4<f32>) -> mat3x3<f32> {

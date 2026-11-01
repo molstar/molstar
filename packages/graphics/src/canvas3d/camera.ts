@@ -27,6 +27,8 @@ interface ICamera {
   readonly inverseProjectionView: Mat4;
   readonly state: Readonly<Camera.Snapshot>;
   readonly viewOffset: Camera.ViewOffset;
+  /** where the viewport is a cropped part of a larger frame (`Camera.Crop`); none is the viewport as the frame */
+  readonly crop?: Camera.Crop;
   readonly far: number;
   readonly near: number;
   readonly fogFar: number;
@@ -62,6 +64,7 @@ export class Camera implements ICamera {
   readonly viewport: Viewport;
   readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
   readonly viewOffset = Camera.ViewOffset();
+  readonly crop = Camera.Crop();
 
   readonly disabled = false as const;
 
@@ -121,7 +124,7 @@ export class Camera implements ICamera {
     }
 
     const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target) * this.scale;
-    this.zoom = this.viewport.height / height;
+    this.zoom = Camera.getFrame(tmpFrame, this).height / height;
 
     updateClip(this);
 
@@ -174,9 +177,10 @@ export class Camera implements ICamera {
   }
 
   getTargetDistance(radius: number) {
+    const { width, height } = Camera.getFrame(tmpFrame, this);
     return Math.max(
       this.minTargetDistance / this.scale,
-      Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height),
+      Camera.targetDistance(radius, this.state.mode, this.state.fov, width, height),
     );
   }
 
@@ -405,6 +409,50 @@ export namespace Camera {
     out.height = view.height;
   }
 
+  /**
+   * The part of a larger frame the viewport is, where the frame extends past the drawing buffer and is cropped to it
+   * (Canvas3D's `viewport` prop): the projection is of the frame's frustum narrowed to the viewport, so that the
+   * viewport draws what the whole frame would draw there; the jitter's `ViewOffset` applies within the viewport
+   */
+  export interface Crop {
+    enabled: boolean;
+    fullWidth: number;
+    fullHeight: number;
+    /** where the viewport starts in the frame (window coordinates: top-left origin, y down) */
+    offsetX: number;
+    offsetY: number;
+  }
+
+  export function Crop(): Crop {
+    return { enabled: false, fullWidth: 1, fullHeight: 1, offsetX: 0, offsetY: 0 };
+  }
+
+  export function setCrop(out: Crop, fullWidth: number, fullHeight: number, offsetX: number, offsetY: number) {
+    out.enabled = true;
+    out.fullWidth = fullWidth;
+    out.fullHeight = fullHeight;
+    out.offsetX = offsetX;
+    out.offsetY = offsetY;
+  }
+
+  export function copyCrop(out: Crop, crop: Crop) {
+    out.enabled = crop.enabled;
+    out.fullWidth = crop.fullWidth;
+    out.fullHeight = crop.fullHeight;
+    out.offsetX = crop.offsetX;
+    out.offsetY = crop.offsetY;
+  }
+
+  /**
+   * The frame the field of view spans: the viewport, or where it is cropped (`Crop`) the whole frame. What measures the
+   * view (control speeds, sizes in pixels, aspects) reads it; what draws reads the viewport
+   */
+  export function getFrame(out: Viewport, camera: Pick<ICamera, 'viewport' | 'crop'>) {
+    const { viewport, crop } = camera;
+    if (!crop?.enabled) return Viewport.copy(out, viewport);
+    return Viewport.set(out, viewport.x - crop.offsetX, viewport.y - crop.offsetY, crop.fullWidth, crop.fullHeight);
+  }
+
   export function targetDistance(radius: number, mode: Mode, fov: number, width: number, height: number) {
     const r = Math.max(radius, 0.01);
     const aspect = width / height;
@@ -489,6 +537,7 @@ export namespace Camera {
 
 const tmpPosition = Vec3();
 const tmpTarget = Vec3();
+const tmpFrame = Viewport.zero();
 
 function updateView(camera: Camera) {
   if (camera.scale === 1) {
@@ -501,7 +550,7 @@ function updateView(camera: Camera) {
 }
 
 function updateOrtho(camera: Camera) {
-  const { viewport, zoom, near, far, viewOffset } = camera;
+  const { viewport, zoom, near, far, viewOffset, crop } = camera;
 
   const fullLeft = -viewport.width / 2;
   const fullRight = viewport.width / 2;
@@ -510,8 +559,13 @@ function updateOrtho(camera: Camera) {
 
   const dx = (fullRight - fullLeft) / (2 * zoom);
   const dy = (fullTop - fullBottom) / (2 * zoom);
-  const cx = (fullRight + fullLeft) / 2;
-  const cy = (fullTop + fullBottom) / 2;
+  let cx = (fullRight + fullLeft) / 2;
+  let cy = (fullTop + fullBottom) / 2;
+  if (crop.enabled) {
+    // the viewport's center from the frame's (window y down, view y up)
+    cx += (crop.offsetX + viewport.width / 2 - crop.fullWidth / 2) / zoom;
+    cy -= (crop.offsetY + viewport.height / 2 - crop.fullHeight / 2) / zoom;
+  }
 
   let left = cx - dx;
   let right = cx + dx;
@@ -537,14 +591,21 @@ function updateOrtho(camera: Camera) {
 }
 
 function updatePers(camera: Camera) {
-  const aspect = camera.viewport.width / camera.viewport.height;
-
-  const { near, far, viewOffset } = camera;
+  const { viewport, near, far, viewOffset, crop } = camera;
+  const frame = Camera.getFrame(tmpFrame, camera);
+  const aspect = frame.width / frame.height;
 
   let top = near * Math.tan(0.5 * camera.state.fov);
   let height = 2 * top;
   let width = aspect * height;
   let left = -0.5 * width;
+
+  if (crop.enabled) {
+    left += (crop.offsetX * width) / crop.fullWidth;
+    top -= (crop.offsetY * height) / crop.fullHeight;
+    width *= viewport.width / crop.fullWidth;
+    height *= viewport.height / crop.fullHeight;
+  }
 
   if (viewOffset.enabled) {
     left += (viewOffset.offsetX * width) / viewOffset.fullWidth;

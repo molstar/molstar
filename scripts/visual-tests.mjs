@@ -116,6 +116,7 @@ const ChangedCases = [
     (m) => [`${m[1]}/**`],
   ],
   [/^tests\/src\/visual\/cases\/merged\.ts$/, () => ['geometry/merged/**']],
+  [/^tests\/src\/visual\/cases\/sphere-raster\.ts$/, () => ['renderer/sphere-raster/**']],
   [
     /\/canvas3d\/passes\/(postprocessing|ssao|outline|shadow|bloom|dof|fxaa|smaa|cas|background|fog)[^/]*\.ts$/,
     () => ['postprocessing/**'],
@@ -125,6 +126,7 @@ const ChangedCases = [
   [/\/canvas3d\/passes\/hi-z[^/]*\.ts$/, () => ['renderer/hi-z/**', 'gpu-paths/hi-z-occlusion']],
   [/\/canvas3d\/passes\/marking[^/]*\.ts$/, () => ['renderer/marking/**']],
   [/\/canvas3d\/passes\/multi-sample[^/]*\.ts$/, () => ['renderer/multisample/**']],
+  [/\/gl\/(compute|webgpu\/shader)\/sphere-raster[^/]*\.ts$/, () => ['renderer/sphere-raster/**']],
   [/\/gl\/(webgpu\/)?compute\//, () => ['compute/**', 'gpu-paths/**', 'fallback/**']],
 ];
 
@@ -255,6 +257,8 @@ async function launchChromium() {
       '--enable-gpu',
       '--ignore-gpu-blocklist',
       '--enable-unsafe-webgpu',
+      // the sphere raster's `atomic-vec2u-min-max` (Chrome 156)
+      '--enable-webgpu-developer-features',
       ...(angle ? [`--use-angle=${angle}`] : []),
     ],
   });

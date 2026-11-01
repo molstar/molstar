@@ -19,7 +19,11 @@ import {
   hasColorThemes,
   hasSizeThemes,
 } from '../../helpers/representation-registry.js';
-import { getRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
+import {
+  getRepresentationSignatures,
+  prepareRepresentation,
+  registerTransformSignatures,
+} from '@molstar/plugin/state/precompile';
 
 export { VolumeRepresentation3D };
 type VolumeRepresentation3D = typeof VolumeRepresentation3D;
@@ -90,15 +94,16 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
         provider.getParams,
       );
       await Theme.ensureDependencies(propertyCtx, plugin.representation.volume.themes, { volume: a.data }, params);
-      repr.setTheme(
-        Theme.create(
-          plugin.representation.volume.themes,
-          { volume: a.data, locationKinds: provider.locationKinds },
-          params,
-        ),
+      const theme = Theme.create(
+        plugin.representation.volume.themes,
+        { volume: a.data, locationKinds: provider.locationKinds },
+        params,
       );
+      repr.setTheme(theme);
 
       const props = params.type.params || {};
+      // compiling what it draws while it builds
+      prepareRepresentation(plugin, repr, { ...repr.props, ...props }, theme, a.data);
       await repr.createOrUpdate(props, a.data).runInContext(ctx);
       return new SO.Volume.Representation3D(
         { repr, sourceData: a.data },
@@ -131,6 +136,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
       );
 
       const props = { ...b.data.repr.props, ...newParams.type.params };
+      prepareRepresentation(plugin, b.data.repr, props, b.data.repr.theme, a.data);
       await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
       b.data.sourceData = a.data;
       b.description = VolumeRepresentation3DHelpers.getDescription(props);

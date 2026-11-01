@@ -54,11 +54,17 @@ describe('transform-data', () => {
       expect(td.hasReflection.ref.value).toBe(true);
     });
 
+    it('allocates no extra transforms until they are set', () => {
+      const td = createTransform(makeTransforms(3, () => Mat4.identity()), 3, undefined, 0, 0);
+      expect(td.extraTransform.ref.value.length).toBe(0);
+      expect(td.hasExtraTransform.ref.value).toBe(false);
+    });
+
     it('resets hasExtraTransform to false when reusing an existing TransformData', () => {
       const transformArray = makeTransforms(1, () => Mat4.identity());
       const td = createTransform(transformArray, 1, undefined, 0, 0);
 
-      ValueCell.update(td.extraTransform, fillIdentityTransform(td.extraTransform.ref.value, 1));
+      ValueCell.update(td.extraTransform, fillIdentityTransform(new Float32Array(16), 1));
       ValueCell.updateIfChanged(td.hasExtraTransform, true);
       expect(td.hasExtraTransform.ref.value).toBe(true);
 

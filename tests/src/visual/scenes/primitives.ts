@@ -8,7 +8,7 @@ import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '@molstar/graphics/geo/geometry/cylinders/cylinders-builder';
 import { Geometry } from '@molstar/graphics/geo/geometry/geometry';
 import { Lines } from '@molstar/graphics/geo/geometry/lines/lines';
-import { LinesBuilder } from '@molstar/graphics/geo/geometry/lines/lines-builder';
+import { LinesBuilder, StripLinesBuilder } from '@molstar/graphics/geo/geometry/lines/lines-builder';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
@@ -81,6 +81,22 @@ export function rowTransforms(count: number, spacing: number): Mat4[] {
   const offset = ((count - 1) * spacing) / 2;
   for (let i = 0; i < count; ++i) {
     transforms.push(Mat4.fromTranslation(Mat4(), Vec3.create(i * spacing - offset, 0, 0)));
+  }
+  return transforms;
+}
+
+/** Translations on an n x n x n grid about the origin */
+export function gridTransforms(n: number, spacing: number): Mat4[] {
+  const transforms: Mat4[] = [];
+  const offset = ((n - 1) * spacing) / 2;
+  for (let i = 0; i < n; ++i) {
+    for (let j = 0; j < n; ++j) {
+      for (let k = 0; k < n; ++k) {
+        transforms.push(
+          Mat4.fromTranslation(Mat4(), Vec3.create(i * spacing - offset, j * spacing - offset, k * spacing - offset)),
+        );
+      }
+    }
   }
   return transforms;
 }
@@ -164,6 +180,26 @@ export function cylinderStar(length: number): Cylinders {
   return builder.getCylinders();
 }
 
+/** Short cylinders on an n x n x n grid, tilted along the diagonal, with alternating caps */
+export function cylinderGrid(n: number, spacing: number, length: number): Cylinders {
+  const builder = CylindersBuilder.create(n * n * n, 1);
+  const offset = ((n - 1) * spacing) / 2;
+  const d = length / 2 / Math.sqrt(3);
+  let g = 0;
+  for (let i = 0; i < n; ++i) {
+    for (let j = 0; j < n; ++j) {
+      for (let k = 0; k < n; ++k) {
+        const x = i * spacing - offset,
+          y = j * spacing - offset,
+          z = k * spacing - offset;
+        builder.add(x - d, y - d, z - d, x + d, y + d, z + d, 1, g % 2 === 0, true, 2, g);
+        g += 1;
+      }
+    }
+  }
+  return builder.getCylinders();
+}
+
 /** Points on a Fibonacci sphere */
 export function pointSphere(count: number, radius: number): Points {
   const builder = PointsBuilder.create(count, 1);
@@ -182,6 +218,25 @@ export function lineCages(): Lines {
   builder.addCage(translateScale(-2, 0, 0, 1.5), DodecahedronCage(), 0);
   builder.addCage(translateScale(2, 0, 0, 2.5), BoxCage(), 1);
   builder.addFixedCountDashes(Vec3.create(-4, -3, 0), Vec3.create(4, -3, 0), 12, 2);
+  return builder.getLines();
+}
+
+/** Connected strips (`StripLinesBuilder`): a helix, a zigzag of sharp turns and a strip of a single line */
+export function lineStrips(): Lines {
+  const builder = StripLinesBuilder.create(64, 16);
+  builder.start(0);
+  for (let i = 0; i <= 24; ++i) {
+    const a = (i / 24) * 4 * Math.PI;
+    builder.add(-3 + Math.cos(a) * 1.5, -3 + (i / 24) * 6, Math.sin(a) * 1.5);
+  }
+  builder.end();
+  builder.start(1);
+  for (let i = 0; i <= 6; ++i) builder.add(1 + (i % 2) * 1.5, -3 + i, 0);
+  builder.end();
+  builder.start(2);
+  builder.add(3.5, -3, 0);
+  builder.add(3.5, 3, 1);
+  builder.end();
   return builder.getLines();
 }
 

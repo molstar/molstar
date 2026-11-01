@@ -27,17 +27,31 @@ export const spheres_frag = `
 precision highp float;
 precision highp int;
 
-#define bumpEnabled
-
 ${common}
 ${common_frag_params}
 ${color_frag_params}
 ${light_frag_params}
 ${common_clip}
 
-varying float vRadius;
+// the sphere's view-space center (negated) and radius, the same at every corner: one flat varying
+#if __VERSION__ == 100
+    varying vec4 vSphere;
+#else
+    flat in vec4 vSphere;
+#endif
 varying vec3 vPoint;
-varying vec3 vPointViewPosition;
+
+#if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
+    #define dClipSphere
+#endif
+#if defined(dClipSphere)
+    // 1 where the clip objects may cut the sphere (\`clipSphereClass\`): the clip tests skipped if 0
+    #if __VERSION__ == 100
+        varying float vClipSome;
+    #else
+        flat in float vClipSome;
+    #endif
+#endif
 
 #ifdef dSolidInterior
     const bool solidInterior = true;
@@ -48,14 +62,14 @@ varying vec3 vPointViewPosition;
 bool isCap = false;
 
 bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal, out bool interior, out float fragmentDepth){
-    vec3 cameraSpherePos = -vPointViewPosition;
+    vec3 cameraSpherePos = -vSphere.xyz;
 
     vec3 rayOrigin = mix(vec3(0.0, 0.0, 0.0), vPoint, uIsOrtho);
     vec3 rayDirection = mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
     vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, uIsOrtho);
 
     float B = dot(rayDirection, cameraSphereDir);
-    float det = B * B + vRadius * vRadius - dot(cameraSphereDir, cameraSphereDir);
+    float det = B * B + vSphere.w * vSphere.w - dot(cameraSphereDir, cameraSphereDir);
 
     if (det < 0.0) return false;
 
@@ -70,7 +84,8 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
             modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
             cameraNormal = -normalize(cameraPos - cameraSpherePos);
             interior = true;
-            #if defined(dSolidInterior) && !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
+            #if defined(dSolidInterior) && defined(dClipSphere)
+            if (vClipSome > 0.5) {
                 vec3 frontModelPos = (uInvView * vec4(rayDirection * negT + rayOrigin, 1.0)).xyz;
                 float s = clipExit(modelPos / uModelScale, frontModelPos / uModelScale, 0.0);
                 if (s < 0.0) return false;
@@ -80,6 +95,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
                     cameraNormal = -normalize(clipNormal(modelPos / uModelScale) * mat3(uInvView));
                     isCap = true;
                 }
+            }
             #endif
             fragmentDepth = calcDepth(cameraPos);
             // depth is reversed: in front of the near plane above 1
@@ -95,8 +111,8 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 
     bool objectClipped = false;
 
-    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
-        if (clipTest(modelPos / uModelScale)) {
+    #if defined(dClipSphere)
+        if (vClipSome > 0.5 && clipTest(modelPos / uModelScale)) {
             objectClipped = true;
             fragmentDepth = 2.0;
         }
@@ -116,23 +132,23 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
             #ifdef dSolidInterior
                 float nearT = - (uNear + rayOrigin.z) / rayDirection.z;
                 float sNear = frontDepth < 1.0 ? 0.0 : clamp((nearT - negT) / (posT - negT), 0.0, 1.0);
-                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
-                    float sCap = clipExit(frontModelPos / uModelScale, modelPos / uModelScale, sNear);
+                #if defined(dClipSphere)
+                    float sCap = vClipSome > 0.5 ? clipExit(frontModelPos / uModelScale, modelPos / uModelScale, sNear) : sNear;
                     if (sCap < 0.0) return false;
                 #else
                     float sCap = sNear;
                 #endif
                 if (sCap == sNear && frontDepth >= 1.0) {
-                    fragmentDepth = 1.0 - (0.0000001 / vRadius);
+                    fragmentDepth = 1.0 - (0.0000001 / vSphere.w);
                     cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, -1.0), uIsOrtho);
                     cameraPos = rayDirection * nearT + rayOrigin;
                     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
                 }
-                #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
+                #if defined(dClipSphere)
                     else {
                         cameraPos = rayDirection * mix(negT, posT, sCap) + rayOrigin;
                         modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
-                        fragmentDepth = calcDepth(cameraPos) - (0.0000001 / vRadius);
+                        fragmentDepth = calcDepth(cameraPos) - (0.0000001 / vSphere.w);
                         cameraNormal = -normalize(clipNormal(modelPos / uModelScale) * mat3(uInvView));
                         isCap = true;
                     }
@@ -150,12 +166,12 @@ void main(void){
     float fragmentDepth;
 
     #ifdef dApproximate
-        vec3 pointDir = -vPointViewPosition - vPoint;
-        if (dot(pointDir, pointDir) > vRadius * vRadius) discard;
-        vec3 vViewPosition = -vPointViewPosition;
+        vec3 pointDir = -vSphere.xyz - vPoint;
+        if (dot(pointDir, pointDir) > vSphere.w * vSphere.w) discard;
+        vec3 vViewPosition = -vSphere.xyz;
         fragmentDepth = gl_FragCoord.z;
         #if !defined(dIgnoreLight) || defined(dXrayShaded) || defined(dRenderVariant_tracing)
-            pointDir.z -= cos(length(pointDir)) * vRadius * 0.5;
+            pointDir.z -= cos(length(pointDir)) * vSphere.w * 0.5;
             cameraNormal = -normalize(pointDir);
         #endif
         interior = false;
@@ -175,8 +191,8 @@ void main(void){
     #endif
 
     ${fade_lod}
-    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
-        if (!isCap) {
+    #if defined(dClipSphere)
+        if (!isCap && vClipSome > 0.5) {
             ${clip_pixel}
         }
     #endif
@@ -193,7 +209,7 @@ void main(void){
         #else
         if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
         #endif
-            material.a *= min(1.0, vRadius / (uAlphaThickness * uModelScale));
+            material.a *= min(1.0, vSphere.w / (uAlphaThickness * uModelScale));
         }
     #endif
 

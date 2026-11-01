@@ -16,6 +16,7 @@ import { type TestView, type VisualTestCase } from '../framework/test-case.js';
 import {
   cylinderStar,
   lineCages,
+  lineStrips,
   meshPrimitives,
   meshTorus,
   pointSphere,
@@ -309,6 +310,23 @@ export const GeometryCases: VisualTestCase[] = [
     ],
   },
   {
+    id: 'geometry/points/lod-levels',
+    description: 'As spheres: everything is in the far level, every 8th point at 2x size.',
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('points', pointSphere(400, 4), {
+        props: {
+          pointStyle: 'circle',
+          sizeFactor: 4,
+          lodLevels: [
+            { minDistance: 0, maxDistance: 1, overlap: 0, stride: 1, scaleBias: 1 },
+            { minDistance: 1, maxDistance: 10000000, overlap: 0, stride: 8, scaleBias: 3 },
+          ],
+        },
+      }),
+    ],
+  },
+  {
     id: 'geometry/points/circle',
     view: ObliqueView,
     scene: async () => [
@@ -339,10 +357,32 @@ export const GeometryCases: VisualTestCase[] = [
     scene: async () => [await shapeRepr('lines', lineCages(), { props: { sizeFactor: 3 } })],
   },
   {
+    id: 'geometry/lines/strips',
+    description:
+      'Connected strips of wide lines: the joints of their turns (each line starts where the one before ended).',
+    // a fixed camera, not fitted to the bounding sphere: the strips drawn as they are
+    camera: {
+      target: Vec3.create(0, 0, 0),
+      position: Vec3.create(-4, 5, 12),
+      up: Vec3.create(0, 1, 0),
+      radius: 6,
+      radiusMax: 6,
+    },
+    scene: async () => [await shapeRepr('lines', lineStrips(), { props: { sizeFactor: 8 } })],
+  },
+  {
     id: 'geometry/text/labels',
     tags: ['smoke'],
     description: 'Font atlas is rasterized with a 2D canvas; expect browser/OS dependent snapshots.',
     scene: async () => [await shapeRepr('text', textLabels(textProps), { props: textProps })],
+  },
+  {
+    id: 'geometry/text/tether',
+    description: 'Labels with a background and a tether to their position (the tether a quad of four points).',
+    scene: async () => {
+      const props = { ...textProps, tether: true, attachment: 'bottom-left' as const, tetherLength: 1.5 };
+      return [await shapeRepr('text', textLabels(props), { props })];
+    },
   },
   {
     id: 'geometry/mesh/isosurface-cpu',
@@ -608,6 +648,19 @@ export const GeometryCases: VisualTestCase[] = [
     scene: async ({ graphics }) => [
       await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(48), {
         controlPoints: [Vec2.create(0.3, 0), Vec2.create(0.35, 1), Vec2.create(1, 1)],
+      }),
+    ],
+  },
+  {
+    id: 'geometry/direct-volume/narrow-peak',
+    description:
+      'A narrow transfer peak (as the sharp-surface presets) at one step per cell: pre-integration (on by default) ' +
+      'draws the shell where rays cross the peak, not only where a sample lands on it.',
+    view: ObliqueView,
+    scene: async ({ graphics }) => [
+      await volumeRepr(graphics, DirectVolumeRepresentationProvider, blobVolume(48), {
+        stepsPerCell: 1,
+        controlPoints: [Vec2.create(0.494, 0), Vec2.create(0.5, 0.6), Vec2.create(0.506, 0)],
       }),
     ],
   },

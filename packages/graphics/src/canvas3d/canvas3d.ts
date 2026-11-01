@@ -26,6 +26,7 @@ import {
 import type { ProgramItem } from '@molstar/graphics/gl/render-item';
 import type { GlobalDefines } from '@molstar/graphics/gl/renderable/schema';
 import { MergedCullKernels } from '@molstar/graphics/gl/renderable/merged-culler';
+import { SphereRasterKernels } from '@molstar/graphics/gl/compute/sphere-raster';
 import { getDenoiseKernels, isComputeDenoiseSupported } from '@molstar/graphics/gl/compute/denoise';
 import { Object3D } from '@molstar/graphics/gl/object3d';
 import {
@@ -58,7 +59,7 @@ import { deepClone } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { produce } from '@molstar/core/util/produce';
 import { SetUtils } from '@molstar/core/util/set';
-import { Camera } from './camera.js';
+import { Camera, type ICamera } from './camera.js';
 import { StereoCamera, StereoCameraParams } from './camera/stereo.js';
 import type { CameraTransitionManager } from './camera/transition.js';
 import { TransitionTrajectoryParamDefinition, type TransitionTrajectory } from './camera/transition-functions.js';
@@ -793,6 +794,14 @@ interface Canvas3D {
    * The programs are kept until the next call; entries of unknown kinds are skipped. Resolves when they are ready
    */
   precompile(list: PrecompileList, props?: readonly Canvas3DPrecompileProps[]): Promise<void>;
+  /**
+   * Starts compiling, in the background, what the next frames with the current props need to draw objects of `list`
+   * that `owner` (a representation) is building, e.g. its transform's signatures with its data before it builds, so
+   * that compiling overlaps building. Requests until the caller awaits are planned together; their programs are kept
+   * until each owner was added (`add`) and committed and the work is ready. Not where compiling blocks the main thread
+   * (`parallelCompile`)
+   */
+  prepareObjects(owner: object, list: PrecompileList): void;
   /** The objects drawn since the last reset (`resetPrecompileList`), as signatures, see `precompile` */
   getPrecompileList(): PrecompileList;
   resetPrecompileList(): void;
@@ -970,6 +979,10 @@ namespace Canvas3D {
     const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
     const commitQueueSize = new BehaviorSubject<number>(0);
 
+    // the frame (`props.viewport`) and what of it is drawn: its part inside the drawing buffer (`updateViewport`)
+    const viewFrame = Viewport.create(0, 0, 128, 128);
+    const viewCrop = Camera.Crop();
+    const tmpViewport = Viewport.zero();
     let x = 0;
     let y = 0;
     let width = 128;
@@ -1354,10 +1367,20 @@ namespace Canvas3D {
           if (p.camera.stereo.name === 'on' || xrChanged) {
             if (!xrChanged) stereoCamera.update();
             cam = stereoCamera;
+            // the levels are of the whole viewport with the main camera, not of an eye: they would hide what it sees
+            renderer.setOcclusionTest(null);
+            renderer.setOcclusionPyramid(null);
           }
 
           if (isTimingMode) graphics.timer.group('Canvas3D.render', { captureStats: true });
-          const ctx = { renderer, camera: cam, scene, helper, frame };
+          // GPU culling catching up within the frame (`hiZ.twoPhase`)
+          const occlusion =
+            cam === camera && !xrFrame && hiZ.props.gpu && hiZ.props.twoPhase
+              ? (b: PassBuilder, c: ICamera, complete: boolean) => hiZ.planFrame(b, c, complete)
+              : undefined;
+          const ctx = { renderer, camera: cam, scene, helper, frame, occlusion };
+          // the levels need the frame's depth complete, not every pending work done (a pick's readback would skip them)
+          const skippedDraws = graphics.stats.skippedDraws;
           if (multiSampleEnabled) {
             const forceOn =
               p.multiSample.reduceFlicker &&
@@ -1371,7 +1394,7 @@ namespace Canvas3D {
           }
           // the GPU's occlusion test of the objects culled there needs the levels (also with Hi-Z off)
           hiZ.setGpuCulling(renderer.gpuCulledCount > 0);
-          hiZ.render(camera);
+          hiZ.render(camera, graphics.stats.skippedDraws === skippedDraws);
           if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
           // if only marking has updated, do not set the flag to dirty
@@ -1416,12 +1439,16 @@ namespace Canvas3D {
       until.then(release, release);
     }
 
-    function holdFramesUntilPrepared() {
+    /**
+     * `inFlight`: also while work started before is pending, which may be what the frames need (an update whose
+     * pipelines `prepareObjects` requested while it built)
+     */
+    function holdFramesUntilPrepared(inFlight = false) {
       if (isContextLost || graphics.isContextLost) return;
       const { pending } = graphics.resources;
       const trackedCount = pending.trackedCount;
       const ready = prepare();
-      if (pending.trackedCount === trackedCount) return;
+      if (pending.trackedCount === trackedCount && !(inFlight && !pending.isReady())) return;
       propsPreparing += 1;
       let held = true;
       const release = () => {
@@ -1641,24 +1668,40 @@ namespace Canvas3D {
       };
     }
 
-    function precompile(list: PrecompileList, propsList: readonly Canvas3DPrecompileProps[] = [{}]): Promise<void> {
-      if (isContextLost || graphics.isContextLost) return Promise.resolve();
-      const previous = precompileItems;
-      precompileItems = new Map();
+    /** what `planSignatures` plans: with the interaction (marking and picking), the stand-in scenes' averages */
+    interface PlanSignaturesOptions {
+      readonly interaction: boolean;
+      /** the opacity and emissive averages the stand-in scenes take: each branch drawing objects by default */
+      readonly opacity?: readonly number[];
+      readonly emissive?: readonly number[];
+    }
+
+    /**
+     * Plans the passes frames with each of `propsList` draw `list`'s objects with, against stand-in scenes, requesting
+     * their pipelines: the program items in `items` by transparency, globals and signature (taken from `reuse` where
+     * there); whether objects are culled on the GPU
+     */
+    function planSignatures(
+      list: PrecompileList,
+      propsList: readonly Canvas3DPrecompileProps[],
+      items: Map<string, ProgramItem>,
+      reuse: ReadonlyMap<string, ProgramItem> | undefined,
+      options: PlanSignaturesOptions,
+    ) {
       const gpuCulled = list.objects.some((s) => s.gpuCulled);
       // the passes plan against scenes of the list's objects: groups with their counts (the requests come from the
-      // signatures, see `collect`) and averages that take every branch drawing objects (opaque and transparent or
+      // signatures, see `collect`) and averages that take the branches drawing objects (opaque and transparent or
       // only opaque, emissive or not); marking as for the first interaction
       const group = (n: number): Scene.Group => ({ ...Object3D.create(), renderables: new Array(n) });
-      for (const { transparency: mode, ...options } of propsList) {
-        const props: Canvas3DProps = { ...p, ...options };
+      for (const { transparency: mode, ...overrides } of propsList) {
+        const props: Canvas3DProps = { ...p, ...overrides };
         const transparency = passes.draw.resolveTransparency(mode ?? passes.draw.transparency);
         const globals = getGlobals(props);
         const primitives: { signature: ObjectSignature; item: ProgramItem }[] = [];
         const volumes: { signature: ObjectSignature; item: ProgramItem }[] = [];
         for (const signature of list.objects) {
           const key = `${transparency}|${globals.dLightCount}|${globals.dColorMarker}|${getSignatureKey(signature)}`;
-          let item = precompileItems.get(key) ?? previous.get(key);
+          let item = items.get(key) ?? reuse?.get(key);
           if (!item) {
             try {
               item = createSignatureProgramItem(graphics, signature, transparency, globals);
@@ -1667,7 +1710,7 @@ namespace Canvas3D {
             }
             if (!item) continue;
           }
-          precompileItems.set(key, item);
+          items.set(key, item);
           (signature.type === 'direct-volume' ? volumes : primitives).push({ signature, item });
         }
 
@@ -1676,8 +1719,8 @@ namespace Canvas3D {
         // the averages decide between exclusive branches (e.g. bloom composites the background over emissive objects
         // only, postprocessing blends transparency only with transparent objects): planned with none and some
         const listScenes: Scene[] = [];
-        for (const opacityAverage of [1, 0.5]) {
-          for (const emissiveAverage of [0, 0.5]) {
+        for (const opacityAverage of options.opacity ?? [1, 0.5]) {
+          for (const emissiveAverage of options.emissive ?? [0, 0.5]) {
             listScenes.push(
               Object.create(scene, {
                 primitives: { value: listPrimitives },
@@ -1725,18 +1768,38 @@ namespace Canvas3D {
               // where the list has objects culled there
               hiZ.plan(b, camera, props.hiZ, gpuCulled);
             }
-            if (MarkingPass.isEnabled(props.marking)) {
+            if (options.interaction && MarkingPass.isEnabled(props.marking)) {
               passes.draw.plan(b, { ...ctx, scene: markedScenes[i] }, props, true, false, true);
             }
           }
-          pickHelper.plan(b, cam, frame);
+          if (options.interaction) pickHelper.plan(b, cam, frame);
         });
       }
+      return gpuCulled;
+    }
+
+    /**
+     * whether the sphere raster may draw spheres of `list` (`RendererProps.sphereRaster`, a device with it; `auto`: of
+     * objects culled on the GPU)
+     */
+    function hasSphereRaster(list: PrecompileList) {
+      const mode = renderer.props.sphereRaster;
+      if (mode === 'off' || !graphics.compute || !graphics.capabilities.atomicMinMax64) return false;
+      return list.objects.some((s) => s.type === 'spheres' && s.opaque && (mode !== 'auto' || s.gpuCulled === true));
+    }
+
+    function precompile(list: PrecompileList, propsList: readonly Canvas3DPrecompileProps[] = [{}]): Promise<void> {
+      if (isContextLost || graphics.isContextLost) return Promise.resolve();
+      const previous = precompileItems;
+      precompileItems = new Map();
+      const gpuCulled = planSignatures(list, propsList, precompileItems, previous, { interaction: true });
       for (const [key, item] of previous) {
         if (!precompileItems.has(key)) item.destroy();
       }
       // the culling's kernels of objects culled on the GPU, else compiled once such an object is created
       const kernels = graphics.compute && gpuCulled ? graphics.compute.prepareKernels(MergedCullKernels) : undefined;
+      // the sphere raster's kernels where it may draw the list's spheres, else compiled at its first frame
+      const raster = hasSphereRaster(list) ? graphics.compute!.prepareKernels(SphereRasterKernels) : undefined;
       // the illumination's denoiser, a kernel where compute shaders run
       const denoise =
         passes.illumination.supported &&
@@ -1747,7 +1810,95 @@ namespace Canvas3D {
         })
           ? graphics.compute.prepareKernels(getDenoiseKernels())
           : undefined;
-      return Promise.all([graphics.resources.pending.whenReady(), kernels, denoise]).then(() => {});
+      return Promise.all([graphics.resources.pending.whenReady(), kernels, raster, denoise]).then(() => {});
+    }
+
+    /**
+     * Objects being built (`prepareObjects`): the requests until the caller awaits, planned together then, and
+     * the program items of those planned, kept until each owner's objects were added and committed and are ready
+     */
+    let preparingObjects: Map<object, PrecompileList> | undefined;
+    const preparedObjects: {
+      owners: Set<object>;
+      added: Set<object>;
+      items: Map<string, ProgramItem>;
+      time: number;
+    }[] = [];
+    /** how long prepared objects' items wait for their owners (a build aborted or failed adds nothing) */
+    const PreparedObjectsMaxMs = 60_000;
+
+    function prepareObjects(owner: object, list: PrecompileList) {
+      if (!graphics.capabilities.parallelCompile || isContextLost || graphics.isContextLost || canvasDisposed) return;
+      if (list.objects.length === 0) return;
+      if (!preparingObjects) {
+        preparingObjects = new Map();
+        // at the builder's first await: a timer could wait until a build that never yields to it is committed and drawn
+        queueMicrotask(planPreparedObjects);
+      }
+      preparingObjects.set(owner, list);
+    }
+
+    function planPreparedObjects() {
+      const requests = preparingObjects;
+      preparingObjects = undefined;
+      if (!requests || canvasDisposed || isContextLost || graphics.isContextLost) return;
+      const objects: ObjectSignature[] = [];
+      requests.forEach((l) => objects.push(...l.objects));
+      // the branches the objects and the scene they join take (not every one, as `precompile`): the frame's passes
+      // with the current props; the interaction is the warm-up's, once they are drawn
+      const opacity = new Set<number>();
+      const emissive = new Set<number>([0]);
+      for (const o of objects) {
+        if (o.opaque) opacity.add(1);
+        if (o.transparent) opacity.add(0.5);
+        if (o.emissive) emissive.add(0.5);
+      }
+      if (scene.opacityAverage < 1) opacity.add(0.5);
+      if (scene.emissiveAverage > 0) emissive.add(0.5);
+      if (opacity.size === 0) opacity.add(1);
+      const reuse = new Map<string, ProgramItem>();
+      for (const entry of preparedObjects) entry.items.forEach((item, key) => reuse.set(key, item));
+      const items = new Map<string, ProgramItem>();
+      const gpuCulled = planSignatures({ objects }, [{}], items, reuse, {
+        interaction: false,
+        opacity: [...opacity],
+        emissive: [...emissive],
+      });
+      // the culling's kernels of objects culled on the GPU, as `precompile`
+      if (graphics.compute && gpuCulled) graphics.compute.prepareKernels(MergedCullKernels);
+      if (hasSphereRaster({ objects })) graphics.compute!.prepareKernels(SphereRasterKernels);
+      // the items of earlier requests stay with them
+      for (const key of reuse.keys()) items.delete(key);
+      preparedObjects.push({ owners: new Set(requests.keys()), added: new Set(), items, time: now() });
+    }
+
+    /** releases the prepared objects' items whose owners were all added and are committed, once the work is ready */
+    function releasePreparedObjects() {
+      const done: Map<string, ProgramItem>[] = [];
+      for (let i = preparedObjects.length - 1; i >= 0; --i) {
+        const entry = preparedObjects[i];
+        if (entry.added.size < entry.owners.size && now() - entry.time < PreparedObjectsMaxMs) continue;
+        done.push(entry.items);
+        preparedObjects.splice(i, 1);
+      }
+      if (done.length === 0) return;
+      // the committed objects hold the programs by then
+      graphics.resources.pending.whenReady().then(() => {
+        for (const items of done) for (const item of items.values()) item.destroy();
+      });
+    }
+
+    /** `owner`'s objects were added (or removed): its prepared items may go once committed */
+    function markPreparedObjectsAdded(owner: object) {
+      for (const entry of preparedObjects) {
+        if (entry.owners.has(owner)) entry.added.add(owner);
+      }
+    }
+
+    function destroyPreparedObjects() {
+      preparingObjects = undefined;
+      for (const entry of preparedObjects) for (const item of entry.items.values()) item.destroy();
+      preparedObjects.length = 0;
     }
 
     /** the scheduled warm-up, cancelled by `dispose` (it would plan a frame on the destroyed context) */
@@ -1758,7 +1909,11 @@ namespace Canvas3D {
       const warmUp = () => {
         warmUpCancel = undefined;
         if (canvasDisposed) return;
-        prepare({ interaction: true });
+        // the frame's pipelines first, the interaction's once they are ready: compiling together, they share the
+        // compiler's threads, and the frame waits for its own
+        prepare().then(() => {
+          if (!canvasDisposed) prepare({ interaction: true });
+        });
         scheduleTargetRelease();
       };
       if (typeof requestIdleCallback !== 'undefined') {
@@ -1880,6 +2035,7 @@ namespace Canvas3D {
       }
       commitQueueSize.next(0);
       precompileRecorder.record(scene.renderables);
+      releasePreparedObjects();
       // frames held for the props (`holdFramesUntilPrepared`) wait for the new scene too: the hold's prepare had the
       // previous one, so the first frame after it would compile (and skip) the draws of what was added meanwhile
       if (propsPreparing > 0) holdFramesUntilPrepared();
@@ -1999,6 +2155,7 @@ namespace Canvas3D {
     function add(repr: Representation.Any) {
       registerAutoUpdate(repr);
       busy();
+      markPreparedObjectsAdded(repr);
 
       const oldRO = reprRenderObjects.get(repr);
       const newRO = new Set<GraphicsRenderObject>();
@@ -2031,13 +2188,30 @@ namespace Canvas3D {
       markIndex.set(repr);
 
       scene.update(repr.renderObjects, false);
+      // the objects kept were updated in place (e.g. a theme change)
+      if (oldRO) holdForUpdated(repr.renderObjects);
       forceDrawAfterAllCommited = true;
       if (isDebugMode) consoleStats();
+    }
+
+    /**
+     * Records the committed renderables of `renderObjects` again after their values were updated in place; where their
+     * new defines (e.g. another color type) may need programs not compiled yet, frames wait for them as after a props
+     * change, instead of skipping their draws meanwhile (WebGPU)
+     */
+    function holdForUpdated(renderObjects: ArrayLike<GraphicsRenderObject>) {
+      const renderables: GraphicsRenderable[] = [];
+      for (let i = 0, il = renderObjects.length; i < il; ++i) {
+        const renderable = scene.get(renderObjects[i]);
+        if (renderable) renderables.push(renderable);
+      }
+      if (precompileRecorder.recordAgain(renderables)) holdFramesUntilPrepared(true);
     }
 
     function remove(repr: Representation.Any) {
       unregisterAutoUpdate(repr);
       busy();
+      markPreparedObjectsAdded(repr);
       markIndex.delete(repr);
 
       const renderObjects = reprRenderObjects.get(repr);
@@ -2167,6 +2341,7 @@ namespace Canvas3D {
     function setContext(change: Canvas3DContext.ContextChange) {
       const { renderer: rendererProps, hiZ: hiZProps } = getProps();
       destroyPrecompileItems();
+      destroyPreparedObjects();
       renderer.dispose();
       hiZ.dispose();
       pickHelper.dispose();
@@ -2347,17 +2522,12 @@ namespace Canvas3D {
           const { renderObjects } = repr;
           scene.update(renderObjects, !!keepSphere);
           // only the representation's, not the whole scene's: callers update one representation at a time (a drag)
-          const renderables: GraphicsRenderable[] = [];
-          for (let i = 0, il = renderObjects.length; i < il; ++i) {
-            const renderable = scene.get(renderObjects[i]);
-            if (renderable) renderables.push(renderable);
-          }
-          precompileRecorder.recordAgain(renderables);
+          holdForUpdated(renderObjects);
         } else {
           reprRenderObjects.forEach((_, r) => markIndex.set(r));
           scene.update(void 0, !!keepSphere);
           precompileRecorder.invalidate();
-          precompileRecorder.record(scene.renderables);
+          if (precompileRecorder.recordAgain(scene.renderables)) holdFramesUntilPrepared(true);
         }
         forceDrawAfterAllCommited = true;
         busy();
@@ -2387,6 +2557,7 @@ namespace Canvas3D {
       requestDraw,
       prepare,
       precompile,
+      prepareObjects,
       getPrecompileList: () => precompileRecorder.getList(),
       resetPrecompileList: () => precompileRecorder.reset(),
       tick,
@@ -2476,6 +2647,9 @@ namespace Canvas3D {
         if (props.camera?.stereo !== undefined) {
           Object.assign(p.camera.stereo, props.camera.stereo);
           stereoCamera.setProps(p.camera.stereo.params);
+          // the frame is cropped outside stereo only
+          updateViewport();
+          syncViewport();
         }
         if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
         if (props.cameraResetEasing !== undefined) p.cameraResetEasing = props.cameraResetEasing;
@@ -2613,6 +2787,7 @@ namespace Canvas3D {
         scene.clear();
         helper.debug.clear();
         destroyPrecompileItems();
+        destroyPreparedObjects();
         controls.dispose();
         renderer.dispose();
         interactionHelper.dispose();
@@ -2643,26 +2818,62 @@ namespace Canvas3D {
         oldY = y,
         oldWidth = width,
         oldHeight = height;
+      const oldFrame = Viewport.clone(viewFrame);
       const drs = graphics.getDrawingBufferSize();
 
       if (p.viewport.name === 'canvas') {
-        x = 0;
-        y = 0;
-        width = drs.width;
-        height = drs.height;
+        Viewport.set(viewFrame, 0, 0, drs.width, drs.height);
       } else if (p.viewport.name === 'static-frame') {
-        x = p.viewport.params.x * graphics.pixelRatio;
-        height = p.viewport.params.height * graphics.pixelRatio;
-        y = p.viewport.params.y * graphics.pixelRatio;
-        width = p.viewport.params.width * graphics.pixelRatio;
+        const { params } = p.viewport;
+        const { pixelRatio } = graphics;
+        Viewport.set(
+          viewFrame,
+          params.x * pixelRatio,
+          params.y * pixelRatio,
+          params.width * pixelRatio,
+          params.height * pixelRatio,
+        );
       } else if (p.viewport.name === 'relative-frame') {
-        x = Math.round(p.viewport.params.x * drs.width);
-        height = Math.round(p.viewport.params.height * drs.height);
-        y = Math.round(p.viewport.params.y * drs.height);
-        width = Math.round(p.viewport.params.width * drs.width);
+        const { params } = p.viewport;
+        Viewport.set(
+          viewFrame,
+          Math.round(params.x * drs.width),
+          Math.round(params.y * drs.height),
+          Math.round(params.width * drs.width),
+          Math.round(params.height * drs.height),
+        );
       }
 
-      if (oldX !== x || oldY !== y || oldWidth !== width || oldHeight !== height) {
+      // the frame's part inside the drawing buffer is drawn, the camera projecting that part of the frame's frustum
+      // (`Camera.Crop`): implementations may reject a viewport outside the target (Safari's WebGPU). Not in stereo
+      // (the eyes' projections are of `camera.viewport`) or where nothing is inside: the frame as given
+      const x0 = Math.max(viewFrame.x, 0);
+      const y0 = Math.max(viewFrame.y, 0);
+      const x1 = Math.min(viewFrame.x + viewFrame.width, drs.width);
+      const y1 = Math.min(viewFrame.y + viewFrame.height, drs.height);
+      const cropped =
+        x1 > x0 && y1 > y0 && !Viewport.equals(Viewport.set(tmpViewport, x0, y0, x1 - x0, y1 - y0), viewFrame);
+      if (cropped && p.camera.stereo.name !== 'on') {
+        x = x0;
+        y = y0;
+        width = x1 - x0;
+        height = y1 - y0;
+        Camera.setCrop(viewCrop, viewFrame.width, viewFrame.height, x0 - viewFrame.x, y0 - viewFrame.y);
+      } else {
+        x = viewFrame.x;
+        y = viewFrame.y;
+        width = viewFrame.width;
+        height = viewFrame.height;
+        viewCrop.enabled = false;
+      }
+
+      if (
+        oldX !== x ||
+        oldY !== y ||
+        oldWidth !== width ||
+        oldHeight !== height ||
+        !Viewport.equals(oldFrame, viewFrame)
+      ) {
         forceNextRender = true;
       }
     }
@@ -2671,7 +2882,9 @@ namespace Canvas3D {
       pickHelper.setViewport(x, y, width, height);
       renderer.setViewport(x, y, width, height);
       Viewport.set(camera.viewport, x, y, width, height);
-      Viewport.set(controls.viewport, x, y, width, height);
+      Camera.copyCrop(camera.crop, viewCrop);
+      // the controls measure by the frame (`Camera.getFrame`)
+      Viewport.copy(controls.viewport, viewFrame);
       hiZ.setViewport(x, y, width, height);
     }
   }

@@ -68,6 +68,10 @@ export type MultiDrawIndirect = {
   readonly byteOffset: number;
   /** whether the records are indexed (`drawIndexedIndirect`); undefined: where the item has elements */
   readonly indexed?: boolean;
+  /** the records drawn (the list's `count` of them): undefined, the first `count` in turn */
+  readonly records?: Uint32Array;
+  /** advances where `records` changed: draw keys read this, not the records (thousands, per frame) */
+  readonly recordsVersion?: number;
 };
 
 /** Bytes of an indirect argument record, indexed (`drawIndexedIndirect`) or not (`drawIndirect`) */
@@ -107,6 +111,9 @@ export interface DrawList {
   reset: () => void;
 }
 
+/** A data layer of a render item in a storage buffer: its elements from u32 `offset` on, in the layer's format */
+export type DataLayerBinding = { readonly buffer: StorageBuffer; readonly offset: number };
+
 export interface RenderItem<T extends string> {
   readonly id: number;
   readonly materialId: number;
@@ -118,9 +125,21 @@ export interface RenderItem<T extends string> {
    * signature of the item's object (`ObjectSignature`)
    */
   getLinearTextures?: () => readonly string[];
+  /**
+   * The storage buffer holding data layer `name` (e.g. `tPositionGroup`, `tSize`) and the layer's first u32 in it, for
+   * kernels reading the item's data (read-only, valid until the item's next `update`); WebGPU only, undefined where the
+   * item has no such layer or does not draw
+   */
+  getDataLayer?: (name: string) => DataLayerBinding | undefined;
   setTransparency: (transparency: Transparency) => void;
 
   render: (variant: T, globals?: GlobalBindings, mdbDataList?: MultiDrawBaseData[]) => void;
+  /**
+   * Draws `variant`'s program built with the boolean define `define` (e.g. `dSphereResolve`) as one triangle covering
+   * the viewport, its fragment stage shading what kernels drew for the item (the sphere raster's resolve); false where
+   * not drawn (its pipeline compiling in the background); WebGPU only
+   */
+  renderFullscreen?: (variant: T, define: string, globals: GlobalBindings) => boolean;
   update: () => void;
   destroy: () => void;
 }

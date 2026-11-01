@@ -43,7 +43,7 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
 
 /** The SSAO shading of the overlay (`dMarkingShading_ssao`): the occlusion read with or without upsampling */
 const overlay_ssao_wgsl = (d: DefineLookup) => /* wgsl */ `
-${d('dOcclusionUpsample') ? texture_read_wgsl('tDepth') : texture_read_wgsl('tSsaoDepth')}
+${d('dOcclusionUpsample') ? texture_read_wgsl('tDepth') : `${texture_read_wgsl('tSsaoDepth')}\n${texture_read_wgsl('tSsaoDepthTransparent')}`}
 
 /** occlusion at \`coords\`, depth-aware upsampled from a lower SSAO resolution with the scene's opaque depth */
 fn getOcclusion(coords: vec2<f32>) -> f32 {
@@ -52,6 +52,19 @@ fn getOcclusion(coords: vec2<f32>) -> f32 {
         return getSsaoUpsampled(tSsaoDepth, coords + uObject.uOcclusionOffset, viewZ, uObject.uNear, uObject.uFar);
     #else
         return unpackSsao(read_tSsaoDepth(coords + uObject.uOcclusionOffset));
+    #endif
+}
+
+/** occlusion of the front transparent layer at \`coords\`, at its \`depth\` (0: none there) */
+fn getOcclusionTransparent(coords: vec2<f32>, depth: f32) -> f32 {
+    if (uObject.uHasSsaoTransparent == 0u || depth == 0.0) {
+        return 1.0;
+    }
+    #if defined(dOcclusionUpsample)
+        let viewZ = depthToViewZ(uObject.uIsOrtho, depth, uObject.uNear, uObject.uFar);
+        return getSsaoUpsampled(tSsaoDepthTransparent, coords + uObject.uOcclusionOffset, viewZ, uObject.uNear, uObject.uFar);
+    #else
+        return unpackSsao(read_tSsaoDepthTransparent(coords + uObject.uOcclusionOffset));
     #endif
 }
 
@@ -94,6 +107,7 @@ ${packing_wgsl}
 ${quad_vert_wgsl}
 ${texture_read_wgsl('tMaskTexture')}
 ${texture_read_wgsl('tDimTexture')}
+${texture_read_wgsl('tTransparentDepth')}
 ${d('dMarkingShading_ssao') ? overlay_ssao_wgsl(d) : ''}
 ${d('dMarkingShading_traced') ? overlay_traced_wgsl : ''}
 
@@ -139,17 +153,18 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     let coords = fragmentUv(in.position, 1.0 / uObject.uTexSizeInv);
 
     // coverage of the visible unmarked geometry, see dim
-    var dimAlpha = 0.0;
+    var dimCoverage = 0.0;
     var dimFogAlpha = 1.0;
     if (uObject.uDimStrength > 0.0) {
         let d = read_tDimTexture(coords);
-        dimAlpha = d.r * uObject.uDimStrength;
+        dimCoverage = d.r;
         dimFogAlpha = d.r / max(d.g, 0.001);
     }
 
     // solid fill covering the interior of marked regions, sampled directly from the mask
     var fillRgb = vec3<f32>(0.0);
     var fillAlpha = 0.0;
+    var fillOpacity = 1.0;
     var fillFogAlpha = 1.0;
     if (uObject.uHighlightFillStrength > 0.0 || uObject.uSelectFillStrength > 0.0) {
         let m = read_tMaskTexture(coords);
@@ -162,8 +177,28 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
             fillFogAlpha = marked.z;
             // marked.x: 1.0 = hidden, 0.0 = visible; without depth test every marked texel reads as hidden
             let visibility = select(1.0, 0.0, uObject.uDepthTest != 0u && marked.x > 0.5);
-            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * unpackMarkingOpacity(marked.x);
+            fillOpacity = unpackMarkingOpacity(marked.x);
+            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * fillOpacity;
         }
+    }
+
+    // the front transparent layer, cleared to 0.0 (no alpha) where there is none: a fill below full opacity is of a
+    // transparent fragment, the fill of opaque geometry is seen through the layer; an unmarked layer is dimmed by its
+    // alpha, the opaque share behind it by what it lets through
+    var layerAlpha = 0.0;
+    var layerDepth = 0.0;
+    if (uObject.uHasTransparentDepth != 0u && (uObject.uDimStrength > 0.0 || fillAlpha > 0.0)) {
+        let layer = unpackRGBAToDepthWithAlpha(read_tTransparentDepth(coords));
+        layerDepth = layer.x;
+        layerAlpha = layer.y;
+    }
+    let fillOfLayer = fillOpacity < 0.98;
+    let dimLayer = select(0.0, layerAlpha, uObject.uDimStrength > 0.0 && !(fillAlpha > 0.0 && fillOfLayer));
+    let dimOpaque = (1.0 - dimLayer) * dimCoverage;
+    let dimWeight = dimLayer + dimOpaque;
+    let dimAlpha = uObject.uDimStrength * dimWeight;
+    if (!fillOfLayer) {
+        fillAlpha *= 1.0 - layerAlpha;
     }
 
     // keep the shading of the image, so that blending toward the color does not wash it out
@@ -171,8 +206,16 @@ fn fragmentMain(in: VertexOutput) -> @location(0) vec4<f32> {
     #if defined(dMarkingShading_ssao)
         if (dimAlpha > 0.0 || fillAlpha > 0.0) {
             let occlusion = getOcclusion(coords);
-            dimRgb = applyOcclusion(dimRgb, occlusion, dimFogAlpha);
-            fillRgb = applyOcclusion(fillRgb, occlusion, fillFogAlpha);
+            var occlusionLayer = 1.0;
+            if (dimLayer > 0.0 || fillOfLayer) {
+                occlusionLayer = getOcclusionTransparent(coords, layerDepth);
+            }
+            var dimOcclusion = occlusion;
+            if (dimWeight > 0.0) {
+                dimOcclusion = (occlusionLayer * dimLayer + occlusion * dimOpaque) / dimWeight;
+            }
+            dimRgb = applyOcclusion(dimRgb, dimOcclusion, dimFogAlpha);
+            fillRgb = applyOcclusion(fillRgb, select(occlusion, occlusionLayer, fillOfLayer), fillFogAlpha);
         }
     #elif defined(dMarkingShading_traced)
         if (dimAlpha > 0.0 || fillAlpha > 0.0) {

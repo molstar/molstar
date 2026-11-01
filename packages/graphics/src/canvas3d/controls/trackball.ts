@@ -445,8 +445,9 @@ namespace TrackballControls {
 
       if (Vec2.squaredMagnitude(panMouseChange)) {
         const factor = input.pixelRatio * p.panSpeed;
-        panMouseChange[0] *= (1 / camera.zoom) * camera.viewport.width * factor;
-        panMouseChange[1] *= (1 / camera.zoom) * camera.viewport.height * factor;
+        // the frame the field of view spans (`controls.viewport`), not just its drawn part
+        panMouseChange[0] *= (1 / camera.zoom) * viewport.width * factor;
+        panMouseChange[1] *= (1 / camera.zoom) * viewport.height * factor;
 
         Vec3.cross(panOffset, Vec3.copy(panOffset, _eye), camera.up);
         Vec3.setMagnitude(panOffset, panOffset, panMouseChange[0]);

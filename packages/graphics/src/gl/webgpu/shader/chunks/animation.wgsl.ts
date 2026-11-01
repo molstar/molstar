@@ -4,9 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-/** Wiggle (per position or group) and tumble (per instance) animations; expects `fbm` */
+/**
+ * Wiggle (per position or group) and tumble (per instance) animations; expects `fbm`. Their noise only where an object
+ * animates (`dWiggleAnimation`, the wiggle layer `dWiggle`, `dTumbleAnimation`): inlined, it was about half of a
+ * pipeline's compile time
+ */
 export const animation_wgsl = /* wgsl */ `
 fn applyWiggle(pos: vec3<f32>, groupId: f32, wiggle: f32) -> vec3<f32> {
+    #if defined(dWiggleAnimation) || defined(dWiggle)
     if (uGlobal.uEnableAnimation == 0u) {
         return pos;
     }
@@ -32,10 +37,12 @@ fn applyWiggle(pos: vec3<f32>, groupId: f32, wiggle: f32) -> vec3<f32> {
             fbm(vec3<f32>(s.x + t, s.y + 73.0, s.z)) / 0.4375 - 1.0
         ) * amplitude;
     }
+    #endif
     return pos;
 }
 
-fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32, sphere: vec4<f32>) -> mat4x4<f32> {
+fn applyTumble(transform: mat4x4<f32>, sphere: vec4<f32>) -> mat4x4<f32> {
+    #if defined(dTumbleAnimation)
     if (uGlobal.uEnableAnimation == 0u) {
         return transform;
     }
@@ -43,7 +50,10 @@ fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32, sphere
         // scale amplitude inversely with bounding-sphere radius (Stokes-Einstein: D ~ 1/r)
         let amplitude = uMaterial.uTumbleAmplitude / max(sphere.w, 1.0);
         let t = uGlobal.uTime * uMaterial.uTumbleSpeed;
-        let seed = (instanceIndex * 127.1 + objectId * 311.7) * uMaterial.uTumbleFrequency;
+        // per instance and object: its bounding sphere's center placed by the instance's transform, not ids or
+        // indices, which differ by backend, merging and each rebuild
+        let center = (transform * vec4<f32>(sphere.xyz, 1.0)).xyz;
+        let seed = fract(dot(center, vec3<f32>(0.0137, 0.0219, 0.0173))) * 311.7 * uMaterial.uTumbleFrequency;
 
         // per-instance rotation angles from layered noise (Brownian-like)
         let angleX = (fbm(vec3<f32>(seed, t, 0.0)) / 0.4375 - 1.0) * amplitude;
@@ -79,6 +89,7 @@ fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32, sphere
             vec4<f32>(transform[3].xyz + localCenter - rot * localCenter + offset, transform[3].w)
         );
     }
+    #endif
     return transform;
 }
 `;
@@ -90,7 +101,8 @@ fn applyTumble(transform: mat4x4<f32>, instanceIndex: f32, objectId: f32, sphere
 export const assign_wiggle_wgsl = /* wgsl */ `
     #if defined(dWiggle)
         #if defined(dSegmented)
-            let wiggleGroupInstance = i32(in.aSegment.y + in.aInstance * in.aSegment.x + group);
+            let wiggleSegment = segmentGroups(in);
+            let wiggleGroupInstance = i32(wiggleSegment.y + in.aInstance * wiggleSegment.x + group);
         #else
             let wiggleGroupInstance = i32(in.aInstance * f32(uObject.uGroupCount) + group);
         #endif

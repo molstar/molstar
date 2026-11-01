@@ -42,6 +42,9 @@ export const DirectVolumeSchema = {
   uTransform: UniformSpec('m4'),
   uGridDim: UniformSpec('v3'),
   tTransferTex: TextureSpec('image-uint8', 'r', 'ubyte', 'linear'),
+  /** the transfer function's opacity between two values (`preIntegration`, `createPreIntegratedTransferTexture`) */
+  tPreIntegratedTex: TextureSpec('image-uint8', 'r', 'ubyte', 'linear', undefined, { usedIf: ['dPreIntegration'] }),
+  dPreIntegration: DefineSpec('boolean'),
   uTransferScale: UniformSpec('f', 'material'),
   /** the opacity at which the marking and pick variants put the volume's surface */
   uSurfaceOpacity: UniformSpec('f'),
@@ -54,7 +57,6 @@ export const DirectVolumeSchema = {
   dGridTexType: DefineSpec('string', ['2d', '3d']),
   uGridTexDim: UniformSpec('v3'),
   tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, { dimension: { define: 'dGridTexType' } }),
-  uGridStats: UniformSpec('v4'), // [min, max, mean, sigma]
 
   uCellDim: UniformSpec('v3'),
   uCartnToUnit: UniformSpec('m4'),

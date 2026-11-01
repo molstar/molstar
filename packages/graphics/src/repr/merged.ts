@@ -10,6 +10,7 @@ import {
   type MergedGraphicsRenderObject,
   canMergeRenderObjects,
   createMergedRenderObject,
+  hasForeignResources,
 } from '@molstar/graphics/gl/render-object';
 import {
   type GpuCullingValue,
@@ -20,6 +21,7 @@ import {
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 /**
  * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
@@ -106,6 +108,8 @@ export function mergeRenderObjectsByType<V>(
   gpuCulling: GpuCullingValue = false,
   /** whether the device culls on the GPU (`canCullOnGpu`): else no group is merged for it */
   gpuSupported = false,
+  /** the current context: a merged object holding resources of another is not reused (its own cells stay foreign) */
+  graphics?: GraphicsContext,
 ): Map<string, MergedEntry<V>> {
   renderObjects.length = 0;
   const nextMerged = new Map<string, MergedEntry<V>>();
@@ -130,7 +134,7 @@ export function mergeRenderObjectsByType<V>(
 
       const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}`;
       const prev = prevMergedByType.get(type);
-      const same = !!prev && prev.key === key;
+      const same = !!prev && prev.key === key && !(graphics && hasForeignResources(prev.object, graphics));
       // the members checked again only where one of them changed what merging reads (the key: the same members, the
       // same culling and so the same least count)
       if (!same || !group.every((e) => isMergeFingerprintUnchanged(e.renderObject))) {

@@ -2,8 +2,8 @@
 
 ## Status
 
-- **Current**: steps 0-5, 8, 10 and 11 done (the Gaussian volume keeps `jumpLength`, see step 4); steps 6, 7 (the data
-  layout) and 9 open, not worth it on the numbers below.
+- **Current**: steps 0-8, 10 and 11 done (the Gaussian volume keeps `jumpLength`, see step 4; steps 6 and 7 with
+  [direct-volume-quality.md](direct-volume-quality.md)); step 9 open, not worth it on the numbers below.
 - **Measurements** (RTX 4070 Ti, Chrome, 2560x1440, `node scripts/benchmark.mjs --filter 'render/direct-volume/*'
   --gpu-timing --runs 7`; the cases in `tests/src/benchmark/direct-volume.ts`, on demand). GPU time of the pass the
   volume draws in (`wboit transparent`, the default transparency), medians of 7 runs of 30 frames, WebGL2 / WebGPU:
@@ -232,11 +232,21 @@
    Full size, illumination and packed depth (no depth textures) keep the passes as before. The full resolution while
    still was not needed: the half-resolution images differ too little. Prism sets it in the Canvas card's Advanced
    section (`canvas.settings`, Volume resolution).
-6. **Pre-integrated transfer function** (finding 6, second half): 256x256 table built on transfer changes; the loop
-   looks up `(prevValue, value)` (the unused `prevValue` today), opacity corrected by step length. Only if step 3 does
-   not already reach 1-1.5 steps per cell at equal quality.
-7. **Data layout** (finding 8): measure value-only plus on-the-fly gradients against RGBA for `byte` and `float` at
-   256³ and 512³; change the default storage only with a measured gain. Separately the CPU texture build (perf-audit
+6. **Pre-integrated transfer function** (finding 6, second half; done): `preIntegration` (on by default), a 256x256
+   table (`createPreIntegratedTransferTexture`) of the mean optical depth between two values as an opacity per cell,
+   built on transfer changes; the loop looks up `(prevValue, value)` (none after skipped bricks or jumps), the opacity
+   corrected by step length as before. No measurable cost (the benchmark's cases within noise of the final column).
+   Images: up to 3-9 levels on the visual cases, 73 on `opaque-transfer`, whose wood-grain rings at the steep ramp are
+   gone; a narrow peak at one step per cell (`geometry/direct-volume/narrow-peak`) draws a smooth shell, noise
+   without. Fewer steps per cell by default (1 instead of 2, half the samples) is not done: to be decided on images.
+7. **Data layout** (finding 8; done): 3d grids hold the values only (`createVolumeTexture3d`, one channel), the shader
+   computes normals by central differences (six reads per lit sample; forward differences, three reads, lit noisy
+   data by the side it is seen from, `map-256` with `--gpu-timing` 1.53 -> 1.71 ms on WebGPU; the numbers below are forward); the 2d grids of WebGL1 keep their stored gradients, the Gaussian volume its packed groups (rgba). A quarter
+   of the GPU memory (256³ byte 64 -> 16 MB, float 256 -> 64 MB; 512³ byte 537 -> 134 MB). The volume pass against
+   stored gradients (WebGL2 / WebGPU): float data 0.46 / 0.47 -> 0.40 / 0.37 ms, byte data 0-10 % slower (`map-256`
+   0.35 / 0.35 -> 0.38 / 0.36 ms, zoomed 1.02 / 1.06 -> 1.12 / 1.09 ms, tomogram 0.37 / 0.39 -> 0.40 / 0.39 ms);
+   central differences (six reads) cost 10-20 % on byte data, computing them from the RGBA texture 10-25 %, gaining
+   nothing. Images: up to 10 levels, 22-26 at sharp transfer functions, not visible. Separately the CPU texture build (perf-audit
    V1): done, `createVolumeTexture3d` and `createVolumeBrickRange` read at `Tensor.strides` (a copy read through the
    accessors for the spaces without: periodic and wrapped volumes) instead of `dataOffset` per cell, the normals inline:
    the texture 2.2-3.5x faster (256³ byte: 0.9 -> 0.4 s, float 0.6 -> 0.23 s; 512x512x96 byte: 1.6 -> 0.65 s), output

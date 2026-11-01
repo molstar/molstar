@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { Volume } from '@molstar/model/model/volume';
+import { Volume } from '@molstar/model/model/volume';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { getNextMaterialId, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
@@ -247,8 +247,11 @@ export function VolumeRepresentation<P extends VolumeParams>(
     setGraphics: (value: GraphicsContext) => {
       graphics = value;
     },
-    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
-      getQualitySignatures(props, (props) => getFactorySignatures(visualCtor, props, ctx)),
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
+      // with the volume: 'auto' quality by its size, the visuals it selects (by the volume, as every key does)
+      const data = Volume.is(ctx.data) ? [{ volume: ctx.data, key: 0 }] : undefined;
+      return getQualitySignatures(props, (props) => getFactorySignatures(visualCtor, props, ctx, data), ctx.data);
+    },
     destroy,
   };
 }

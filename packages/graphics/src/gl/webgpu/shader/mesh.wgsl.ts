@@ -74,11 +74,11 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #else
         let group = in.aGroup;
         let basePosition = in.aPosition;
-        let baseNormal = in.aNormal;
+        let baseNormal = octDecode(in.aNormal);
     #endif
 
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
     let model = uGlobal.uModel * transform;
     let modelView = uGlobal.uView * model;
     ${assign_wiggle_wgsl}
@@ -120,7 +120,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 @fragment
 fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> FragmentOutput {
     var out: FragmentOutput;
-    ${clip_flag_wgsl('in.vClipping')}
+    ${clip_flag_wgsl('in.vMarkerClipping.y')}
 
     // derivatives in uniform control flow; framebuffer y points down, so dpdy has the opposite sign of GL's dFdy
     let fdx = dpdx(in.vViewPosition);

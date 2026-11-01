@@ -55,8 +55,9 @@ namespace Box3D {
   /** Get box from sphere, uses extrema if available */
   export function fromSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
     if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length >= 14) {
-      // 14 extrema with coarse boundary helper
-      return fromVec3Array(out, sphere.extrema);
+      // 14 extrema with coarse boundary helper; grown by the balls around them (`extremaRadius`)
+      fromVec3Array(out, sphere.extrema);
+      return expandUniformly(out, out, Sphere3D.getExtremaRadius(sphere));
     }
     Vec3.set(tmpV, sphere.radius, sphere.radius, sphere.radius);
     Vec3.sub(out.min, sphere.center, tmpV);
@@ -79,8 +80,14 @@ namespace Box3D {
 
   export function addSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
     if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length >= 14) {
-      // 14 extrema with coarse boundary helper
-      return addVec3Array(out, sphere.extrema);
+      // 14 extrema with coarse boundary helper; grown by the balls around them (`extremaRadius`)
+      const r = Sphere3D.getExtremaRadius(sphere);
+      if (r === 0) return addVec3Array(out, sphere.extrema);
+      for (const e of sphere.extrema) {
+        add(out, Vec3.subScalar(tmpV, e, r));
+        add(out, Vec3.addScalar(tmpV, e, r));
+      }
+      return out;
     }
     add(out, Vec3.subScalar(tmpV, sphere.center, sphere.radius));
     add(out, Vec3.addScalar(tmpV, sphere.center, sphere.radius));

@@ -157,7 +157,11 @@ async function getAtomSiteBounds<K>(
   db: mmCIF_Database,
   key: (row: number) => K,
 ): Promise<Map<K, AtomSiteBounds>> {
-  const { Cartn_x, Cartn_y, Cartn_z, _rowCount } = db.atom_site;
+  const { _rowCount } = db.atom_site;
+  // as Float32, the conformation's decode (shared with the model): `value(i)` decodes and keeps the source-type columns
+  const x = db.atom_site.Cartn_x.toArray({ array: Float32Array });
+  const y = db.atom_site.Cartn_y.toArray({ array: Float32Array });
+  const z = db.atom_site.Cartn_z.toArray({ array: Float32Array });
   const updateChunk = 10000;
 
   interface Accum {
@@ -176,9 +180,9 @@ async function getAtomSiteBounds<K>(
       acc = { x: 0, y: 0, z: 0, n: 0, radiusSq: 0 };
       accums.set(k, acc);
     }
-    acc.x += Cartn_x.value(i);
-    acc.y += Cartn_y.value(i);
-    acc.z += Cartn_z.value(i);
+    acc.x += x[i];
+    acc.y += y[i];
+    acc.z += z[i];
     acc.n++;
     if (i % updateChunk === 0 && ctx.shouldUpdate) {
       await ctx.update({ message: 'Calculating particle bounds', current: i, max: _rowCount * 2 });
@@ -193,9 +197,9 @@ async function getAtomSiteBounds<K>(
 
   for (let i = 0; i < _rowCount; i++) {
     const acc = accums.get(key(i))!;
-    const dx = Cartn_x.value(i) - acc.x;
-    const dy = Cartn_y.value(i) - acc.y;
-    const dz = Cartn_z.value(i) - acc.z;
+    const dx = x[i] - acc.x;
+    const dy = y[i] - acc.y;
+    const dz = z[i] - acc.z;
     const d2 = dx * dx + dy * dy + dz * dz;
     if (d2 > acc.radiusSq) acc.radiusSq = d2;
     if (i % updateChunk === 0 && ctx.shouldUpdate) {

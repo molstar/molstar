@@ -2,12 +2,14 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Grid, Volume } from '@molstar/model/model/volume';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
+import type { Spheres } from '../../../geo/geometry/spheres/spheres.js';
 import { createVolumeSphereImpostor } from '../dot.js';
 
 function createTestVolume(dimensions: [number, number, number], data: number[]): Volume {
@@ -25,6 +27,10 @@ function createTestVolume(dimensions: [number, number, number], data: number[]):
   };
 }
 
+/** The group of each sphere, in the order of the geometry */
+const groupsOf = (spheres: Spheres) =>
+  Array.from({ length: spheres.sphereCount }, (_, i) => spheres.positionGroup.ref.value.array[i * 4 + 3]);
+
 describe('volume dot representation', () => {
   it('adds sphere impostor dots in Morton order for LOD sampling', () => {
     const volume = createTestVolume([2, 2, 2], [1, 1, 1, 1, 1, 1, 1, 1]);
@@ -40,7 +46,7 @@ describe('volume dot representation', () => {
       } as any,
     );
 
-    expect(Array.from(spheres.groupBuffer.ref.value)).toEqual([0, 4, 2, 6, 1, 5, 3, 7]);
+    expect(groupsOf(spheres)).toEqual([0, 4, 2, 6, 1, 5, 3, 7]);
   });
 
   it('adds sphere impostor dots in row-major order when no LOD levels are configured', () => {
@@ -57,6 +63,6 @@ describe('volume dot representation', () => {
       } as any,
     );
 
-    expect(Array.from(spheres.groupBuffer.ref.value)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(groupsOf(spheres)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 });

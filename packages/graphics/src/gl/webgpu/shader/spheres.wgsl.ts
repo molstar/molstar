@@ -7,6 +7,7 @@
 import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
 import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
 import { segment_wgsl } from './chunks/segment.wgsl.js';
+import { sphere_shared_wgsl } from './chunks/sphere.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import { light_wgsl } from './chunks/light.wgsl.js';
 import {
@@ -35,6 +36,7 @@ import {
   assign_size_wgsl,
   assign_varyings_wgsl,
   vertex_output_wgsl,
+  assign_lod_factor_wgsl,
 } from './chunks/varyings.wgsl.js';
 
 /** Sphere impostors: a screen-aligned quad per sphere covering its projection, ray-sphere intersection per fragment */
@@ -47,89 +49,47 @@ ${material_functions_wgsl}
 ${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
+${sphere_shared_wgsl}
 
-${vertex_output_wgsl(`    @location(9) vRadius: f32,
+#if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
+    #define dClipSphere
+#endif
+
+${vertex_output_wgsl(`    // the sphere's view-space center (negated) and radius, the same at every corner
+    @location(9) @interpolate(flat) vSphere: vec4<f32>,
     @location(10) vPoint: vec3<f32>,
-    @location(11) vPointViewPosition: vec3<f32>,`)}
+#if defined(dClipSphere)
+    // 1 where the clip objects may cut the sphere (\`clipSphereClass\`): the fragment stage's clip tests skipped if 0
+    @location(11) @interpolate(flat) vClipSome: u32,
+#endif`)}
 
 /**
- * Bounding rectangle of a clipped, perspective-projected 3D Sphere.
- * Michael Mara, Morgan McGuire. 2013
- *
- * Specialization by Arseny Kapoulkine, MIT License Copyright (c) 2018
- * https://github.com/zeux/niagara
- *
- * Only works for for symmetric projections.
+ * The quad corner \`mapping\` of the bounding rectangle of a perspective-projected 3D sphere (\`sphereBounds\`), with the
+ * off-axis terms of asymmetric projections (stereo, XR), \`uProjection[2].xy\`, zero for symmetric ones.
  */
 fn sphereProjection(p: vec3<f32>, r: f32, mapping: vec2<f32>, w: f32) -> vec2<f32> {
-    let pr = p * r;
-    let pzr2 = p.z * p.z - r * r;
     let projection = uGlobal.uProjection;
-
-    let vx = sqrt(p.x * p.x + pzr2);
-    let minx = ((vx * p.x - pr.z) / (vx * p.z + pr.x)) * projection[0][0];
-    let maxx = ((vx * p.x + pr.z) / (vx * p.z - pr.x)) * projection[0][0];
-
-    let vy = sqrt(p.y * p.y + pzr2);
-    let miny = ((vy * p.y - pr.z) / (vy * p.z + pr.y)) * projection[1][1];
-    let maxy = ((vy * p.y + pr.z) / (vy * p.z - pr.y)) * projection[1][1];
-
-    let xy = vec2<f32>(maxx + minx, maxy + miny) * -0.5 - mapping * vec2<f32>(maxx - minx, maxy - miny) * 0.5;
-    return xy * w;
-}
-
-/**
- * Point size and center using the technique described in:
- * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
- * by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.
- */
-fn quadraticProjection(position: vec3<f32>, radius: f32, mapping: vec2<f32>, transform: mat4x4<f32>, w: f32) -> vec2<f32> {
-    let T = mat4x4<f32>(
-        radius, 0.0, 0.0, 0.0,
-        0.0, radius, 0.0, 0.0,
-        0.0, 0.0, radius, 0.0,
-        position.x, position.y, position.z, 1.0
-    );
-    let D = mat4x4<f32>(
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, -1.0
-    );
-    // only the x, y and w rows of the projection are used, they are the same for [0, 1] depth
-    let R = transpose(uGlobal.uProjection * uGlobal.uModelView * transform * T);
-
-    var A = dot(R[3], D * R[3]);
-    var B = -2.0 * dot(R[0], D * R[3]);
-    var C = dot(R[0], D * R[0]);
-    let xbc = vec2<f32>(
-        (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A),
-        (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A)
-    );
-    let sx = abs(xbc.x - xbc.y) * 0.5;
-
-    A = dot(R[3], D * R[3]);
-    B = -2.0 * dot(R[1], D * R[3]);
-    C = dot(R[1], D * R[1]);
-    let ybc = vec2<f32>(
-        (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A),
-        (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A)
-    );
-    let sy = abs(ybc.x - ybc.y) * 0.5;
-
-    let xy = vec2<f32>(0.5 * (xbc.x + xbc.y), 0.5 * (ybc.x + ybc.y)) - mapping * vec2<f32>(sx, sy);
-    return xy * w;
+    let b = sphereBounds(p, r, projection);
+    let xy = vec2<f32>(b.z + b.x, b.w + b.y) * -0.5 - mapping * vec2<f32>(b.z - b.x, b.w - b.y) * 0.5;
+    return (xy - projection[2].xy) * w;
 }
 
 @vertex
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
+    #if defined(dSphereResolve)
+        // one triangle covering the viewport: its pixels shaded from the visibility buffer (\`resolveSphere\`)
+        let corner = vec2<f32>(f32((in.vertexIndex << 1u) & 2u), f32(in.vertexIndex & 2u));
+        out.position = vec4<f32>(corner * 2.0 - 1.0, 0.0, 1.0);
+        return out;
+    #else
+
     ${assign_quad_position_group_wgsl}
     ${assign_wiggle_wgsl}
     position = applyWiggle(position, group, wiggle);
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
 
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
@@ -140,46 +100,36 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let position4 = vec4<f32>(position, 1.0);
     out.vModelPosition = (uGlobal.uModel * transform * position4).xyz; // for clipping in the fragment stage
 
-    let lod = uDraw.uLod;
-    let hasLod = lod.w != 0.0 && (lod.x != 0.0 || lod.y != 0.0);
-    var d = 0.0;
-    if (hasLod) {
-        #if defined(dSegmented)
-            // members of a merged item can have different scales for the same lod level (sphere-count dependent)
-            let lodScale = in.aSegmentLod[clamp(uDraw.uLodLevel, 0, 3)];
-        #else
-            let lodScale = lod.w;
-        #endif
-        if (modelScale != 1.0) {
-            radius *= lodScale;
-        } else {
-            d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / modelScale;
-            let f = min(smoothstep(lod.x, lod.x + lod.z, d), 1.0 - smoothstep(lod.y - lod.z, lod.y, d)) * lodScale;
-            radius *= f;
-        }
-    }
+    ${assign_lod_factor_wgsl}
+    radius *= lodFactor;
 
     var mvPosition = uGlobal.uModelView * transform * position4;
     out.vViewPosition = mvPosition.xyz;
 
+    // through the near plane with none of it beyond
+    var nearNone = false;
     #if defined(dApproximate)
         out.position = uGlobal.uProjection * vec4<f32>(mvPosition.xy + mapping * radius, mvPosition.z, 1.0);
     #else
         if (uGlobal.uIsOrtho == 1.0) {
             out.position = uGlobal.uProjection * vec4<f32>(mvPosition.xy + mapping * radius, mvPosition.z, 1.0);
-        } else if (uGlobal.uIsAsymmetricProjection != 0u) {
-            let p = uGlobal.uProjection * vec4<f32>(mvPosition.xyz, 1.0);
-            out.position = vec4<f32>(quadraticProjection(position, radius / modelScale, mapping, transform, p.w), p.zw);
-        } else {
+        } else if (-mvPosition.z - radius > uGlobal.uNear) {
             let p = uGlobal.uProjection * vec4<f32>(mvPosition.xyz, 1.0);
             out.position = vec4<f32>(sphereProjection(mvPosition.xyz, radius, mapping, p.w), p.zw);
+        } else {
+            // through the near plane: the bounds of its part beyond it (the whole sphere's are unbounded where it
+            // reaches behind the eye, a quad over the view), at a depth within the clip volume (the fragments write
+            // theirs; the corners on one view plane, so the rays between them interpolate exactly)
+            let b = sphereNearBounds(mvPosition.xyz, radius, uGlobal.uNear, uGlobal.uProjection);
+            let xy = vec2<f32>(b.z + b.x, b.w + b.y) * -0.5 - mapping * vec2<f32>(b.z - b.x, b.w - b.y) * 0.5;
+            out.position = vec4<f32>(xy - uGlobal.uProjection[2].xy, 0.5, 1.0);
+            nearNone = b.x > b.z;
         }
     #endif
 
-    out.vRadius = radius;
     let point4 = uGlobal.uInvProjection * out.position;
     out.vPoint = point4.xyz / point4.w;
-    out.vPointViewPosition = -mvPosition.xyz / mvPosition.w;
+    out.vSphere = vec4<f32>(-mvPosition.xyz / mvPosition.w, radius);
 
     // in front of the near plane (clip z is reversed)
     if (out.position.z > out.position.w) {
@@ -187,21 +137,120 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
         out.position.z = (uGlobal.uProjection * vec4<f32>(mvPosition.xyz, 1.0)).z;
     }
 
-    if (modelScale == 1.0 && hasLod && (d < lod.x || d > lod.y)) {
+    if (lodCulled || nearNone) {
         // move out of [0, w] to 'discard' in the vertex stage
         out.position.z = 2.0 * out.position.w;
     }
+
+    #if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit) || defined(dRenderVariant_colorDpoit)
+        // drawn by the sphere raster (\`rasterizesSphere\`), with a margin: a sphere at its limits drawn by both, never
+        // by neither (the raster's arithmetic is not the vertex stage's)
+        if (uObject.uRasterMaxRadius > 0.0 && uGlobal.uIsOrtho == 0.0) {
+            let b = spherePixelBounds(out.vViewPosition, radius, uGlobal.uProjection, uGlobal.uViewport.zw);
+            if (rasterizesSphere(out.vViewPosition, radius, uGlobal.uNear * 1.001, b, uObject.uRasterMaxRadius * 0.999)) {
+                out.position.z = 2.0 * out.position.w;
+            }
+        }
+    #endif
 
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && defined(dClipObjects)
         if (clipTest(out.vModelPosition / modelScale, clipFlag)) {
             // move out of [0, w] to 'discard' in the vertex stage
             out.position.z = 2.0 * out.position.w;
         }
+    #elif defined(dClipSphere)
+        // pixel clipping: a sphere clipped whole moved out of [0, w], one not cut not tested per fragment
+        let clipClass = clipSphereClass(out.vModelPosition / modelScale, radius / modelScale, clipFlag);
+        if (clipClass == 2u) {
+            out.position.z = 2.0 * out.position.w;
+        }
+        out.vClipSome = select(0u, 1u, clipClass == 1u);
     #else
         ${clip_instance_wgsl}
     #endif
     return out;
+    #endif
 }
+
+#if defined(dSphereResolve)
+struct Resolved {
+    out: VertexOutput,
+    hit: bool,
+};
+
+/**
+ * The sphere of the pixel at \`position\` in the visibility buffer as the vertex stage outputs it for the impostor
+ * (\`hit\` false where none of the object's): its chunk's instance and item (\`SphereRasterTable\`), sized and levelled
+ * as the raster drew it, the theme layers read by its indices (\`assign_varyings\`)
+ */
+fn resolveSphere(position: vec4<f32>) -> Resolved {
+    var resolved: Resolved;
+    resolved.hit = false;
+    let pixel = vec2<u32>(position.xy);
+    let v = sRasterVisibility[pixel.y * u32(uObject.uRasterWidth) + pixel.x];
+    if (v.x == 0u) {
+        return resolved;
+    }
+    let chunk = (v.x - 1u) / 64u;
+    let base = u32(uObject.uRasterChunkBase);
+    if (chunk < base || chunk >= base + u32(uObject.uRasterChunkCount)) {
+        return resolved;
+    }
+    let e = sRasterChunks[chunk * 2u];
+    let instance = sRasterChunks[chunk * 2u + 1u];
+    let vertexId = i32(e.y + (v.x - 1u) % 64u);
+    let positionGroup = read_tPositionGroup(vertexId);
+    let group = positionGroup.w;
+    let o = e.x * 3u;
+    let transform = affineTransform(sRasterTransforms[o], sRasterTransforms[o + 1u], sRasterTransforms[o + 2u]);
+
+    // the instance as the vertex stage reads it: the group offsets the chunk holds
+    var in: VertexInput;
+    in.aInstance = f32(instance.x);
+    #if defined(dSegmented)
+        in.aSegment = vec4<f32>(0.0, f32(instance.y), f32(instance.z), 0.0);
+    #endif
+    var out: VertexOutput;
+    ${assign_varyings_wgsl}
+    ${assign_size_wgsl}
+
+    let position4 = vec4<f32>(positionGroup.xyz, 1.0);
+    out.vModelPosition = (uGlobal.uModel * transform * position4).xyz;
+    var radius = size * uGlobal.uModelScale;
+    // the chunk's level at its scale, as \`assign_lod_factor\`
+    let lod = uObject.uRasterLevels[e.w];
+    let scale = bitcast<f32>(instance.w);
+    if (lod.w != 0.0 && (lod.x != 0.0 || lod.y != 0.0)) {
+        if (uGlobal.uModelScale != 1.0) {
+            radius *= scale;
+        } else {
+            let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
+            radius *= lodAt(d, lod.xyz, scale).factor;
+        }
+    }
+    // the center as the raster transforms it: the instance's transform first
+    let mvPosition = uGlobal.uModelView * (transform * position4);
+    out.vViewPosition = mvPosition.xyz;
+    out.vSphere = vec4<f32>(-mvPosition.xyz / mvPosition.w, radius);
+    // the view ray through the pixel's center as the raster casts it (\`sphere-raster.wgsl.ts\`), as the quad's point
+    let viewport = uGlobal.uViewport.zw;
+    let ndc = vec2<f32>(position.x / viewport.x * 2.0 - 1.0, 1.0 - position.y / viewport.y * 2.0);
+    let projection = uGlobal.uProjection;
+    out.vPoint = vec3<f32>(
+        (ndc.x + projection[2].x) / projection[0][0],
+        (ndc.y + projection[2].y) / projection[1][1],
+        -1.0
+    );
+    out.position = position;
+    #if defined(dClipSphere)
+        // the raster tested the sphere: every one by pixel, as it drew it
+        out.vClipSome = 1u;
+    #endif
+    resolved.out = out;
+    resolved.hit = true;
+    return resolved;
+}
+#endif
 
 struct SphereHit {
     hit: bool,
@@ -214,11 +263,8 @@ struct SphereHit {
     isCap: bool,
 };
 
-#if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
-    #define dClipSphere
-#endif
-
-fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, clipFlag: i32) -> SphereHit {
+/** \`clipSome\`: the clip objects may cut the sphere (\`vClipSome\`), else its clip tests are skipped */
+fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, clipFlag: i32, clipSome: bool) -> SphereHit {
     var h: SphereHit;
     h.hit = false;
     h.isCap = false;
@@ -229,15 +275,15 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
     let rayDirection = mix(normalize(point), vec3<f32>(0.0, 0.0, 1.0), isOrtho);
     let cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, isOrtho);
 
-    let B = dot(rayDirection, cameraSphereDir);
-    let det = B * B + radius * radius - dot(cameraSphereDir, cameraSphereDir);
-    if (det < 0.0) {
-        return h;
-    }
-
-    let sqrtDet = sqrt(det);
-    let posT = mix(B + sqrtDet, B - sqrtDet, isOrtho);
-    let negT = mix(B - sqrtDet, B + sqrtDet, isOrtho);
+    let hits = raySphere(rayDirection, cameraSphereDir, radius);
+    // the resolve's pixels are the raster's hits: a grazing miss here is its rounding, the tangent point is taken
+    #if !defined(dSphereResolve)
+        if (hits.x < 0.0) {
+            return h;
+        }
+    #endif
+    let posT = mix(hits.z, hits.y, isOrtho);
+    let negT = mix(hits.y, hits.z, isOrtho);
 
     #if defined(dRenderVariant_depth)
         if (uGlobal.uDepthBack != 0u) {
@@ -247,6 +293,7 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
             h.normal = -normalize(h.viewPosition - cameraSpherePos);
             h.interior = true;
             #if defined(dSolidInterior) && defined(dClipSphere)
+            if (clipSome) {
                 let nearModelPosition = (uGlobal.uInvView * vec4<f32>(rayDirection * negT + rayOrigin, 1.0)).xyz;
                 let s = clipExit(h.modelPosition / uGlobal.uModelScale, nearModelPosition / uGlobal.uModelScale, 0.0, clipFlag);
                 if (s < 0.0) {
@@ -260,6 +307,7 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
                     h.normal = -normalize(clipNormal(h.modelPosition / uGlobal.uModelScale, clipFlag) * invView3);
                     h.isCap = true;
                 }
+            }
             #endif
             h.depth = calcDepth(h.viewPosition);
             h.hit = h.depth < 1.0;
@@ -273,7 +321,7 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
     let frontDepth = h.depth;
     let frontModelPosition = h.modelPosition;
     #if defined(dClipSphere)
-        if (clipTest(h.modelPosition / uGlobal.uModelScale, clipFlag)) {
+        if (clipSome && clipTest(h.modelPosition / uGlobal.uModelScale, clipFlag)) {
             h.depth = 2.0; // clipped, beyond the near plane (depth is reversed)
         }
     #endif
@@ -302,7 +350,10 @@ fn sphereImpostor(radius: f32, point: vec3<f32>, pointViewPosition: vec3<f32>, c
                 let sNear = select(clamp((nearT - negT) / (posT - negT), 0.0, 1.0), 0.0, frontDepth < 1.0);
                 #if defined(dClipSphere)
                     // the first point along the ray inside the sphere that no clip object removes
-                    let sCap = clipExit(frontModelPosition / uGlobal.uModelScale, h.modelPosition / uGlobal.uModelScale, sNear, clipFlag);
+                    var sCap = sNear;
+                    if (clipSome) {
+                        sCap = clipExit(frontModelPosition / uGlobal.uModelScale, h.modelPosition / uGlobal.uModelScale, sNear, clipFlag);
+                    }
                     if (sCap < 0.0) {
                         h.hit = false;
                         return h;
@@ -340,24 +391,38 @@ ${fragment_output_wgsl(`#if !defined(dApproximate)
 #endif`)}
 
 @fragment
-fn fragmentMain(in: VertexOutput) -> FragmentOutput {
-    var out: FragmentOutput;
-    ${clip_flag_wgsl('in.vClipping')}
-
-    #if defined(dApproximate)
-        var pointDir = -in.vPointViewPosition - in.vPoint;
-        if (dot(pointDir, pointDir) > in.vRadius * in.vRadius) {
+fn fragmentMain(fragmentIn: VertexOutput) -> FragmentOutput {
+    #if defined(dSphereResolve)
+        let resolved = resolveSphere(fragmentIn.position);
+        if (!resolved.hit) {
             discard;
         }
-        let viewPosition = -in.vPointViewPosition;
+        let in = resolved.out;
+    #else
+        let in = fragmentIn;
+    #endif
+    var out: FragmentOutput;
+    ${clip_flag_wgsl('in.vMarkerClipping.y')}
+
+    #if defined(dApproximate)
+        var pointDir = -in.vSphere.xyz - in.vPoint;
+        if (dot(pointDir, pointDir) > in.vSphere.w * in.vSphere.w) {
+            discard;
+        }
+        let viewPosition = -in.vSphere.xyz;
         let modelPosition = in.vModelPosition;
         let fragmentDepth = in.position.z;
-        pointDir.z -= cos(length(pointDir)) * in.vRadius * 0.5;
+        pointDir.z -= cos(length(pointDir)) * in.vSphere.w * 0.5;
         let cameraNormal = -normalize(pointDir);
         let interior = false;
         let isCap = false;
     #else
-        let h = sphereImpostor(in.vRadius, in.vPoint, in.vPointViewPosition, clipFlag);
+        #if defined(dClipSphere)
+            let clipSome = in.vClipSome != 0u;
+        #else
+            let clipSome = false;
+        #endif
+        let h = sphereImpostor(in.vSphere.w, in.vPoint, in.vSphere.xyz, clipFlag, clipSome);
         if (!h.hit || h.depth < 0.0 || h.depth > 1.0) {
             discard;
         }
@@ -373,7 +438,11 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     if (fadeLod(in.position, modelPosition)) {
         discard;
     }
-    #if !defined(dClipPrimitive)
+    #if defined(dClipSphere)
+        if (!isCap && in.vClipSome != 0u) {
+            ${clip_pixel_wgsl('modelPosition')}
+        }
+    #elif !defined(dClipPrimitive)
         if (!isCap) {
             ${clip_pixel_wgsl('modelPosition')}
         }
@@ -390,7 +459,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
         let thicknessAlpha = uGlobal.uRenderMask == MaskTransparent;
     #endif
     if (thicknessAlpha && uObject.uAlphaThickness > 0.0) {
-        material.a *= min(1.0, in.vRadius / (uObject.uAlphaThickness * uGlobal.uModelScale));
+        material.a *= min(1.0, in.vSphere.w / (uObject.uAlphaThickness * uGlobal.uModelScale));
     }
 
     ${check_transparency_wgsl}

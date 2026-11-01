@@ -4,16 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-/**
- * Clip object signed distances, tests and ray intervals, bounded by \`oClipObjectCount\`. \`flag\` is the bit-flag of the
- * clip objects to ignore (object ids start at 1), see \`clip_flag_wgsl\`.
- */
-export const clip_functions_wgsl = /* wgsl */ `
-fn quaternionTransform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {
-    let t = 2.0 * cross(q.xyz, v);
-    return v + q.w * t + cross(q.xyz, t);
-}
-
+/** The signed distance of a point in a clip object's frame to its shape (\`localSD\`) */
+export const clip_shape_wgsl = /* wgsl */ `
 /**
  * Signed distance of \`t\` (in the shape's frame) to a shape of half size \`size\` (1 plane, 2 sphere, 3 cube,
  * 4 cylinder, 5 infinite cone)
@@ -34,40 +26,37 @@ fn localSD(type_: i32, t: vec3<f32>, size: vec3<f32>) -> f32 {
     }
     return 0.1;
 }
+`;
 
-/** Signed distance of \`center\` to a shape by position, rotation, scale and the transform of the point (image trims) */
-fn getShapeSignedDistance(center: vec3<f32>, type_: i32, position: vec3<f32>, rotation: vec4<f32>, scale: vec3<f32>, transform: mat4x4<f32>) -> f32 {
-    let c = (transform * vec4<f32>(center, 1.0)).xyz;
-    return localSD(type_, quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), c - position), scale * 0.5);
-}
-
-#if defined(dClipObjects)
-override oClipObjectCount: i32 = 1;
-
+/**
+ * What clips by clip objects (`localSD` of `clip_shape_wgsl`): the signed distance, `clipTest`, `clipDistance`,
+ * `clipNormal`, the intervals along a segment, `clipExit` and a sphere's class (`clipSphereClass`), on accessors of clip object `i` its caller defines
+ * (`clipObjectFrame`, `clipObjectShape`, `isClipObjectActive(i, flag)`): the programs' from the material block, the
+ * kernels' from storage (`clip_storage_wgsl`); `count` the clip objects (the programs' a pipeline constant, the
+ * loops unrolled)
+ */
+function clip_core_wgsl(count: string) {
+  return /* wgsl */ `
 /** The point \`p\` in the frame of clip object \`i\` (\`Clip.Objects.frame\`) */
 fn clipLocal(i: i32, p: vec3<f32>) -> vec3<f32> {
-    return (uMaterial.uClipObjectFrame[i] * vec4<f32>(p, 1.0)).xyz;
+    return (clipObjectFrame(i) * vec4<f32>(p, 1.0)).xyz;
 }
 
 /** The type of clip object \`i\`: \`w\` of its shape, negative where inverted (\`Clip.Objects.shape\`) */
 fn clipType(i: i32) -> i32 {
-    return i32(abs(uMaterial.uClipObjectShape[i].w) + 0.5);
+    return i32(abs(clipObjectShape(i).w) + 0.5);
 }
 
 fn getSignedDistance(center: vec3<f32>, i: i32) -> f32 {
-    return localSD(clipType(i), clipLocal(i, center), uMaterial.uClipObjectShape[i].xyz);
-}
-
-fn isClipObjectActive(i: i32, flag: i32) -> bool {
-    return i != uDraw.uSolidInteriorClip && (flag == 0 || (flag & (1 << u32(i))) == 0);
+    return localSD(clipType(i), clipLocal(i, center), clipObjectShape(i).xyz);
 }
 
 fn isClipObjectInverted(i: i32) -> bool {
-    return uMaterial.uClipObjectShape[i].w < 0.0;
+    return clipObjectShape(i).w < 0.0;
 }
 
 fn clipTest(center: vec3<f32>, flag: i32) -> bool {
-    for (var i = 0; i < oClipObjectCount; i++) {
+    for (var i = 0; i < ${count}; i++) {
         if (isClipObjectActive(i, flag)) {
             let test = getSignedDistance(center, i) <= 0.0;
             if (test != isClipObjectInverted(i)) {
@@ -80,7 +69,7 @@ fn clipTest(center: vec3<f32>, flag: i32) -> bool {
 
 fn clipDistance(center: vec3<f32>, flag: i32) -> f32 {
     var d = 1.0e10;
-    for (var i = 0; i < oClipObjectCount; i++) {
+    for (var i = 0; i < ${count}; i++) {
         if (isClipObjectActive(i, flag)) {
             let sd = getSignedDistance(center, i);
             d = min(d, select(sd, -sd, isClipObjectInverted(i)));
@@ -133,7 +122,7 @@ fn clipObjectInterval(i: i32, pFront: vec3<f32>, pBack: vec3<f32>) -> vec2<f32> 
     if (type_ == 1) {
         return clipHalfLine(-qF.y, -qB.y);
     }
-    let size = uMaterial.uClipObjectShape[i].xyz;
+    let size = clipObjectShape(i).xyz;
     if (type_ == 2) {
         let o = qF / size;
         let d = (qB - qF) / size;
@@ -183,9 +172,9 @@ fn clipObjectInterval(i: i32, pFront: vec3<f32>, pBack: vec3<f32>) -> vec2<f32> 
  */
 fn clipExit(pFront: vec3<f32>, pBack: vec3<f32>, sStart: f32, flag: i32) -> f32 {
     var s = sStart;
-    for (var k = 0; k <= oClipObjectCount; k++) {
+    for (var k = 0; k <= ${count}; k++) {
         var sNext = s;
-        for (var i = 0; i < oClipObjectCount; i++) {
+        for (var i = 0; i < ${count}; i++) {
             if (isClipObjectActive(i, flag)) {
                 let iv = clipObjectInterval(i, pFront, pBack);
                 if (isClipObjectInverted(i)) {
@@ -209,6 +198,99 @@ fn clipExit(pFront: vec3<f32>, pBack: vec3<f32>, sStart: f32, flag: i32) -> f32 
     }
     return -1.0;
 }
+
+/**
+ * The sphere at \`p\` (the clip objects' space) of radius \`r\` against the clip objects, from the signed distance of its center: 0 no
+ * point clipped, 2 every point (by one object), 1 per pixel. The distances (\`localSD\`) are at most the true ones once
+ * divided by their largest slope (1, the cone's \`|size.xy|\`; the ellipsoid's scaled by its smallest axis): bounds, the
+ * radius by the frame's largest scale
+ */
+fn clipSphereClass(p: vec3<f32>, r: f32, flag: i32) -> u32 {
+    var perPixel = false;
+    for (var i = 0; i < ${count}; i++) {
+        if (!isClipObjectActive(i, flag)) { continue; }
+        let f = clipObjectFrame(i);
+        var rl = r * max(length(f[0].xyz), max(length(f[1].xyz), length(f[2].xyz)));
+        if (clipType(i) == 5) {
+            rl *= length(clipObjectShape(i).xy);
+        }
+        let sd = getSignedDistance(p, i);
+        // within the clipped side at least this far (it is \`sd <= 0\`, inverted \`sd > 0\`)
+        let depth = select(-sd, sd, isClipObjectInverted(i));
+        if (depth > rl) {
+            return 2u;
+        }
+        if (depth >= -rl) {
+            perPixel = true;
+        }
+    }
+    return select(0u, 1u, perPixel);
+}
+`;
+}
+
+/**
+ * Clipping by clip objects read from storage (compute kernels, which have no material block): per clip object five
+ * vec4s in `buffer` from vec4 `base`, its frame's columns (`Clip.Objects.frame`) and its shape (half size, the type
+ * in `w`, negative where inverted), `count` of them (expressions); the functions of `clip_core_wgsl`, without a flag
+ * (no clipping layer: pass 0) or a solid interior's clip object
+ */
+export function clip_storage_wgsl(buffer: string, base: string, count: string) {
+  return /* wgsl */ `
+${clip_shape_wgsl}
+
+fn clipObjectFrame(i: i32) -> mat4x4<f32> {
+    let o = ${base} + u32(i) * 5u;
+    return mat4x4<f32>(${buffer}[o], ${buffer}[o + 1u], ${buffer}[o + 2u], ${buffer}[o + 3u]);
+}
+
+fn clipObjectShape(i: i32) -> vec4<f32> {
+    return ${buffer}[${base} + u32(i) * 5u + 4u];
+}
+
+fn isClipObjectActive(i: i32, flag: i32) -> bool {
+    return flag == 0 || (flag & (1 << u32(i))) == 0;
+}
+
+${clip_core_wgsl(`i32(${count})`)}
+`;
+}
+
+/**
+ * Clip object signed distances, tests and ray intervals, bounded by \`oClipObjectCount\`. \`flag\` is the bit-flag of the
+ * clip objects to ignore (object ids start at 1), see \`clip_flag_wgsl\`.
+ */
+export const clip_functions_wgsl = /* wgsl */ `
+fn quaternionTransform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {
+    let t = 2.0 * cross(q.xyz, v);
+    return v + q.w * t + cross(q.xyz, t);
+}
+
+${clip_shape_wgsl}
+
+/** Signed distance of \`center\` to a shape by position, rotation, scale and the transform of the point (image trims) */
+fn getShapeSignedDistance(center: vec3<f32>, type_: i32, position: vec3<f32>, rotation: vec4<f32>, scale: vec3<f32>, transform: mat4x4<f32>) -> f32 {
+    let c = (transform * vec4<f32>(center, 1.0)).xyz;
+    return localSD(type_, quaternionTransform(vec4<f32>(-rotation.xyz, rotation.w), c - position), scale * 0.5);
+}
+
+#if defined(dClipObjects)
+override oClipObjectCount: i32 = 1;
+
+/** The clip objects of the program (\`uMaterial\`), the core's accessors */
+fn clipObjectFrame(i: i32) -> mat4x4<f32> {
+    return uMaterial.uClipObjectFrame[i];
+}
+
+fn clipObjectShape(i: i32) -> vec4<f32> {
+    return uMaterial.uClipObjectShape[i];
+}
+
+fn isClipObjectActive(i: i32, flag: i32) -> bool {
+    return i != uDraw.uSolidInteriorClip && (flag == 0 || (flag & (1 << u32(i))) == 0);
+}
+
+${clip_core_wgsl('oClipObjectCount')}
 
 /** Whether the clip object \`index\` doesn't cut the fragment (its group is exempt) */
 fn clipIgnored(index: i32, flag: i32) -> bool {

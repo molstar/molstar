@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -142,11 +142,13 @@ function createBuffer(
 
   const _usageHint = getUsageHint(gl, usageHint);
   const _bufferType = getBufferType(gl, bufferType);
-  // segmented arrays: of merged render objects, float attributes and uint32 elements
+  // segmented arrays: of merged render objects, float or encoded (int16) attributes and uint32 elements
   const _dataType = SegmentedArray.is(array)
     ? bufferType === 'elements'
       ? gl.UNSIGNED_INT
-      : gl.FLOAT
+      : array.ctor === Int16Array
+        ? gl.SHORT
+        : gl.FLOAT
     : dataTypeFromArray(gl, array);
   const _bpe = array.BYTES_PER_ELEMENT;
   const _length = array.length;
@@ -209,6 +211,9 @@ function createBuffer(
 
 export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemSize: AttributeItemSize) {
   switch (kind) {
+    case 'oct16':
+      // two normalized shorts, read as floats
+      return gl.FLOAT_VEC2;
     case 'float32':
       switch (itemSize) {
         case 1:
@@ -218,6 +223,8 @@ export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemS
         case 3:
           return gl.FLOAT_VEC3;
         case 4:
+        case 12:
+          // an affine transform's rows (`affine-rows.ts`)
           return gl.FLOAT_VEC4;
         case 16:
           return gl.FLOAT_MAT4;
@@ -249,6 +256,8 @@ export function createAttributeBuffer<T extends ArrayType | SegmentedArray, S ex
 
   const buffer = createBuffer(gl, array, usageHint, 'attribute');
   const { _bufferType, _dataType, _bpe } = buffer;
+  // integer data are encoded unit vectors (`oct-normals.ts`): normalized
+  const normalized = _dataType !== gl.FLOAT;
 
   return {
     ...buffer,
@@ -256,27 +265,28 @@ export function createAttributeBuffer<T extends ArrayType | SegmentedArray, S ex
     divisor,
     bind: (location: number) => {
       gl.bindBuffer(_bufferType, buffer.getBuffer());
-      if (itemSize === 16) {
-        for (let i = 0; i < 4; ++i) {
+      if (itemSize === 16 || itemSize === 12) {
+        // columns of a `mat4`, rows of an affine transform (`affine-rows.ts`)
+        for (let i = 0, il = itemSize / 4; i < il; ++i) {
           state.enableVertexAttrib(location + i);
-          gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe);
+          gl.vertexAttribPointer(location + i, 4, _dataType, false, itemSize * _bpe, i * 4 * _bpe);
           instancedArrays.vertexAttribDivisor(location + i, divisor);
         }
       } else {
         state.enableVertexAttrib(location);
-        gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0);
+        gl.vertexAttribPointer(location, itemSize, _dataType, normalized, 0, 0);
         instancedArrays.vertexAttribDivisor(location, divisor);
       }
     },
     changeOffset: (location: number, offset: number) => {
       const o = offset * _bpe * itemSize;
       gl.bindBuffer(_bufferType, buffer.getBuffer());
-      if (itemSize === 16) {
-        for (let i = 0; i < 4; ++i) {
-          gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe + o);
+      if (itemSize === 16 || itemSize === 12) {
+        for (let i = 0, il = itemSize / 4; i < il; ++i) {
+          gl.vertexAttribPointer(location + i, 4, _dataType, false, itemSize * _bpe, i * 4 * _bpe + o);
         }
       } else {
-        gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, o);
+        gl.vertexAttribPointer(location, itemSize, _dataType, normalized, 0, o);
       }
     },
   };

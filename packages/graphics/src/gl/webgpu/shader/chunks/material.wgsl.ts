@@ -26,8 +26,12 @@ export const material_functions_wgsl = /* wgsl */ `
     }
 #endif
 
-/** Dithered fade between levels of detail, coordinates with a bottom-left origin as on WebGL */
+/**
+ * Dithered fade at the object's lod distances, only where it has them (\`dLodFade\`); coordinates with a bottom-left
+ * origin as on WebGL
+ */
 fn fadeLod(position: vec4<f32>, modelPosition: vec3<f32>) -> bool {
+    #if defined(dLodFade)
     let lod = uDraw.uLod;
     if (lod.w != 0.0 || (lod.x == 0.0 && lod.y == 0.0)) {
         return false;
@@ -44,6 +48,9 @@ fn fadeLod(position: vec4<f32>, modelPosition: vec3<f32>) -> bool {
     );
     let at = thresholds[i32(coord.x) % 4][i32(coord.y) % 4];
     return ta < 0.99 && (ta < 0.01 || ta < at);
+    #else
+    return false;
+    #endif
 }
 `;
 
@@ -56,12 +63,12 @@ export const assign_material_wgsl = /* wgsl */ `
     #if defined(dNeedsMarker)
         var marker = uObject.uMarker;
         if (uObject.uMarker == -1.0) {
-            marker = floor(in.vMarker * 255.0 + 0.5);
+            marker = floor(in.vMarkerClipping.x * 255.0 + 0.5);
         }
     #endif
 
     #if defined(dUsePalette)
-        var material = vec4<f32>(sample_tPalette(vec2<f32>(in.vPaletteV, 0.5)).rgb, uMaterial.uAlpha);
+        var material = vec4<f32>(sample_tPalette(vec2<f32>(in.vColor.w, 0.5)).rgb, uMaterial.uAlpha);
     #elif defined(dColorType_uniform)
         var material = vec4<f32>(uMaterial.uColor, uMaterial.uAlpha);
     #else
@@ -74,7 +81,7 @@ export const assign_material_wgsl = /* wgsl */ `
 
     var emissive = uMaterial.uEmissive;
     #if defined(dEmissive)
-        emissive += in.vEmissive;
+        emissive += in.vTransparencyEmissive.y;
     #endif
 
     var metalness = uMaterial.uMetalness;
@@ -92,8 +99,8 @@ export const assign_material_wgsl = /* wgsl */ `
     #endif
 
     #if defined(dTransparency)
-        var ta = 1.0 - in.vTransparency;
-        if (in.vTransparency < 0.09) {
+        var ta = 1.0 - in.vTransparencyEmissive.x;
+        if (in.vTransparencyEmissive.x < 0.09) {
             ta = 1.0; // hard cutoff looks better
         }
         #if defined(dRenderVariant_pick)
@@ -161,23 +168,29 @@ export const apply_interior_wgsl = /* wgsl */ `
 `;
 
 /**
- * Lit (or unlit with \`dIgnoreLight\`) \`color\` with bump mapping and exposure; expects \`normal\`,
- * \`modelPosition\` and \`viewPosition\`
+ * Lit (or unlit with \`dIgnoreLight\`) \`color\` with bump mapping (its noise only where an object may
+ * have bumps: \`dBump\`, a substance layer) and exposure; expects \`normal\`, \`modelPosition\` and \`viewPosition\`
  */
 export const apply_light_wgsl = /* wgsl */ `
-    let bumpFrequency = uMaterial.uBumpFrequency;
-    let bumpAmplitude = uMaterial.uBumpAmplitude;
-    let hasBump = bumpFrequency > 0.0 && bumpAmplitude > 0.0 && bumpiness > 0.0;
+    #if defined(dBump) || defined(dSubstance)
+        let bumpFrequency = uMaterial.uBumpFrequency;
+        let bumpAmplitude = uMaterial.uBumpAmplitude;
+        let hasBump = bumpFrequency > 0.0 && bumpAmplitude > 0.0 && bumpiness > 0.0;
+    #endif
     #if defined(dIgnoreLight)
-        if (hasBump) {
-            let bump = fbm(modelPosition * bumpFrequency) * bumpAmplitude * bumpiness - 0.5 * bumpAmplitude * bumpiness;
-            material = vec4<f32>(material.rgb + bump, material.a);
-        }
+        #if defined(dBump) || defined(dSubstance)
+            if (hasBump) {
+                let bump = fbm(modelPosition * bumpFrequency) * bumpAmplitude * bumpiness - 0.5 * bumpAmplitude * bumpiness;
+                material = vec4<f32>(material.rgb + bump, material.a);
+            }
+        #endif
         var color = vec4<f32>(material.rgb + material.rgb * emissive, material.a);
     #else
-        if (hasBump) {
-            normal = perturbNormal(modelPosition, viewPosition, normal, bumpFrequency, (bumpAmplitude * bumpiness) / bumpFrequency);
-        }
+        #if defined(dBump) || defined(dSubstance)
+            if (hasBump) {
+                normal = perturbNormal(modelPosition, viewPosition, normal, bumpFrequency, (bumpAmplitude * bumpiness) / bumpFrequency);
+            }
+        #endif
         var color = applyLight(material, normal, viewPosition, metalness, roughness, emissive);
     #endif
     color = vec4<f32>(color.rgb * uGlobal.uExposure, color.a);

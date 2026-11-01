@@ -43,10 +43,21 @@ ${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 
-${vertex_output_wgsl(`    @location(9) vStart: vec3<f32>,
-    @location(10) vEnd: vec3<f32>,
-    @location(11) vSize: f32,
-    @location(12) vCap: f32,`)}
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
+    #define dClipCylinder
+#endif
+
+${vertex_output_wgsl(`    // the cylinder's start and size, end and cap, the same at every corner of its box
+    @location(9) @interpolate(flat) vCylinderStart: vec4<f32>,
+    @location(10) @interpolate(flat) vCylinderEnd: vec4<f32>,
+#if defined(dClipCylinder)
+    // 1 where the clip objects may cut the cylinder (\`clipSphereClass\` of its bounding sphere): its clip tests
+    // skipped if 0
+    @location(11) @interpolate(flat) vClipSome: u32,
+#endif`)}
+
+/** The fragment's \`vClipSome\`: the clip objects may cut its cylinder, else its clip tests are skipped */
+var<private> clipSome: bool = true;
 
 ${fragment_output_wgsl('    @builtin(frag_depth) fragDepth: f32,')}
 
@@ -54,30 +65,51 @@ ${fragment_output_wgsl('    @builtin(frag_depth) fragDepth: f32,')}
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
-    let vertexId = i32(in.vertexIndex);
-    let group = in.aGroup;
+    // the cylinder of the vertex (3 texels of \`tCylinder\`) and the corner of its box (6 vertices per cylinder)
+    let item = i32(in.vertexIndex) / 6;
+    let corner = i32(in.vertexIndex) % 6;
+    // the data vertex ('vertex' color, size): the start for the corners at the start, else the end
+    let vertexId = item * 2 + select(1, 0, corner < 2);
+    let cylinderStart = read_tCylinder(item * 3); // start xyz, group
+    let cylinderEnd = read_tCylinder(item * 3 + 1); // end xyz, radius scale
+    let cylinderFlags = read_tCylinder(item * 3 + 2); // cap, color mode
+    let group = cylinderStart.w;
+    let colorMode = cylinderFlags.y;
+    // -1 or 1 along the axis, across it and up
+    let mapping = vec3<f32>(
+        select(1.0, -1.0, corner < 2),
+        select(-1.0, 1.0, corner == 0 || corner == 2 || corner == 3),
+        select(-1.0, 1.0, corner == 3 || corner == 5),
+    );
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
 
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
     ${assign_wiggle_wgsl}
-    let wigStart = applyWiggle(in.aStart, group, wiggle);
-    let wigEnd = applyWiggle(in.aEnd, group, wiggle);
+    let wigStart = applyWiggle(cylinderStart.xyz, group, wiggle);
+    let wigEnd = applyWiggle(cylinderEnd.xyz, group, wiggle);
     let modelTransform = uGlobal.uModel * transform;
 
     let start = (modelTransform * vec4<f32>(wigStart, 1.0)).xyz;
     let end = (modelTransform * vec4<f32>(wigEnd, 1.0)).xyz;
-    let vSize = size * in.aScale * uGlobal.uModelScale;
-    out.vStart = start;
-    out.vEnd = end;
-    out.vSize = vSize;
-    out.vCap = in.aCap;
+    let vSize = size * cylinderEnd.w * uGlobal.uModelScale;
+    out.vCylinderStart = vec4<f32>(start, vSize);
+    out.vCylinderEnd = vec4<f32>(end, cylinderFlags.x);
 
     var modelPosition = (start + end) * 0.5;
+
+    #if defined(dClipCylinder)
+        // pixel clipping by the bounding sphere: a cylinder clipped whole moved out of [0, w], one not cut not tested
+        // per fragment
+        let halfLength = length(end - start) * 0.5;
+        let boundingRadius = sqrt(halfLength * halfLength + vSize * vSize);
+        let clipClass = clipSphereClass(modelPosition / uGlobal.uModelScale, boundingRadius / uGlobal.uModelScale, clipFlag);
+        out.vClipSome = select(0u, 1u, clipClass == 1u);
+    #endif
     let camDir = -mix(normalize(modelPosition - uGlobal.uCameraPosition), uGlobal.uCameraDir, uGlobal.uIsOrtho);
     var dir = end - start;
-    var f = select(0.0, 1.0, in.aMapping.x > 0.0);
+    var f = select(0.0, 1.0, mapping.x > 0.0);
     // ensure cylinder 'dir' is pointing towards the camera
     if (dot(camDir, dir) < 0.0) {
         dir = -dir;
@@ -90,7 +122,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     up = vSize * normalize(up);
 
     // move vertex in object-space from center to corner
-    modelPosition += in.aMapping.x * dir + in.aMapping.y * left + in.aMapping.z * up;
+    modelPosition += mapping.x * dir + mapping.y * left + mapping.z * up;
     out.vModelPosition = modelPosition;
 
     let mvPosition = uGlobal.uView * vec4<f32>(modelPosition, 1.0);
@@ -105,15 +137,20 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 
     #if defined(dDualColor) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)) && defined(dColorType_texture)
         // dual-color mixing (group color types)
-        // - for aColorMode between 0 and 1 use aColorMode to interpolate
-        // - for aColorMode == 2 do nothing, i.e., use vColor
-        // - for aColorMode == 3 use position on cylinder axis to interpolate
+        // - for colorMode between 0 and 1 use colorMode to interpolate
+        // - for colorMode == 2 do nothing, i.e., use vColor
+        // - for colorMode == 3 use position on cylinder axis to interpolate
         if (dualColor) {
-            if (in.aColorMode <= 1.0) {
-                out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, in.aColorMode), out.vColor.a);
-            } else if (in.aColorMode == 3.0) {
+            if (colorMode <= 1.0) {
+                out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, colorMode), out.vColor.a);
+            } else if (colorMode == 3.0) {
                 out.vColor = vec4<f32>(mix(out.vColor.rgb, color2, mix(-0.25, 1.25, f / 1.5)), out.vColor.a);
             }
+        }
+    #endif
+    #if defined(dClipCylinder)
+        if (clipClass == 2u) {
+            out.position.z = 2.0 * out.position.w;
         }
     #endif
     ${clip_instance_wgsl}
@@ -130,10 +167,6 @@ struct CylinderHit {
     /** on a clip cap of a solid interior, not tested by pixel clipping */
     isCap: bool,
 };
-
-#if defined(dClipVariant_pixel) && defined(dClipObjects)
-    #define dClipCylinder
-#endif
 
 fn cylinderHitAt(rayOrigin: vec3<f32>, rayDir: vec3<f32>, t: f32, cameraNormal: vec3<f32>, interior: bool) -> CylinderHit {
     var h: CylinderHit;
@@ -159,7 +192,7 @@ struct CylinderFront {
 /** Whether a clip object removes \`modelPosition\` of the front */
 fn isFrontClipped(modelPosition: vec3<f32>, clipFlag: i32) -> bool {
     #if defined(dClipCylinder)
-        return clipTest(modelPosition / uGlobal.uModelScale, clipFlag);
+        return clipSome && clipTest(modelPosition / uGlobal.uModelScale, clipFlag);
     #else
         return false;
     #endif
@@ -178,7 +211,7 @@ fn isFrontClipped(modelPosition: vec3<f32>, clipFlag: i32) -> bool {
         let sNear = select(clamp((nearT - front.t) / (t - front.t), 0.0, 1.0), 0.0, front.depth < 1.0);
         #if defined(dClipCylinder)
             var sCap = sNear;
-            if (front.clipped || front.depth >= 1.0) {
+            if (clipSome && (front.clipped || front.depth >= 1.0)) {
                 sCap = clipExit(front.modelPosition / uGlobal.uModelScale, h.modelPosition / uGlobal.uModelScale, sNear, clipFlag);
             }
             if (sCap < 0.0) {
@@ -210,7 +243,10 @@ fn isFrontClipped(modelPosition: vec3<f32>, clipFlag: i32) -> bool {
     fn solidInteriorBackCap(hit: CylinderHit, entryPosition: vec3<f32>, clipFlag: i32) -> CylinderHit {
         var h = hit;
         #if defined(dClipCylinder)
-            let s = clipExit(h.modelPosition / uGlobal.uModelScale, entryPosition / uGlobal.uModelScale, 0.0, clipFlag);
+            var s = 0.0;
+            if (clipSome) {
+                s = clipExit(h.modelPosition / uGlobal.uModelScale, entryPosition / uGlobal.uModelScale, 0.0, clipFlag);
+            }
             if (s < 0.0) {
                 h.hit = false;
                 return h;
@@ -393,12 +429,15 @@ fn cylinderImpostor(rayOrigin: vec3<f32>, rayDir: vec3<f32>, start: vec3<f32>, e
 @fragment
 fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
-    ${clip_flag_wgsl('in.vClipping')}
+    ${clip_flag_wgsl('in.vMarkerClipping.y')}
+    #if defined(dClipCylinder)
+        clipSome = in.vClipSome != 0u;
+    #endif
 
     let rayOrigin = in.vModelPosition;
     let rayDir = mix(normalize(in.vModelPosition - uGlobal.uCameraPosition), uGlobal.uCameraDir, uGlobal.uIsOrtho);
 
-    let h = cylinderImpostor(rayOrigin, rayDir, in.vStart, in.vEnd, in.vSize, in.vCap, clipFlag);
+    let h = cylinderImpostor(rayOrigin, rayDir, in.vCylinderStart.xyz, in.vCylinderEnd.xyz, in.vCylinderStart.w, in.vCylinderEnd.w, clipFlag);
     if (!h.hit || h.depth < 0.0 || h.depth > 1.0) {
         discard;
     }
@@ -412,7 +451,7 @@ fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     if (fadeLod(in.position, modelPosition)) {
         discard;
     }
-    if (!h.isCap) {
+    if (!h.isCap && clipSome) {
         ${clip_pixel_wgsl('modelPosition')}
     }
 

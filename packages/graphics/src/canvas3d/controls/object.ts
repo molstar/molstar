@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { InputObserver } from '@molstar/core/util/input/input-observer';
-import type { Camera } from '../camera.js';
-import type { Viewport } from '../camera/util.js';
+import { Camera } from '../camera.js';
+import { Viewport } from '../camera/util.js';
 
 export namespace ObjectControls {
   function mouseOnScreen(out: Vec2, page: Vec2, viewport: Viewport) {
@@ -22,6 +22,7 @@ export namespace ObjectControls {
   const panEnd = Vec2();
 
   const target = Vec3();
+  const frame = Viewport.zero();
 
   /**
    * Get vector for movement in camera projection plane:
@@ -36,8 +37,10 @@ export namespace ObjectControls {
     camera: Camera,
     ref?: Vec3,
   ) {
-    mouseOnScreen(panStart, pageStart, camera.viewport);
-    mouseOnScreen(panEnd, pageEnd, camera.viewport);
+    // the frame the field of view spans, not just its drawn part
+    Camera.getFrame(frame, camera);
+    mouseOnScreen(panStart, pageStart, frame);
+    mouseOnScreen(panEnd, pageEnd, frame);
     Vec2.sub(panMouseChange, Vec2.copy(panMouseChange, panEnd), panStart);
     Vec3.sub(eye, camera.position, camera.target);
 
@@ -46,10 +49,10 @@ export namespace ObjectControls {
 
     const dist = Vec3.distance(camera.position, target);
     const height = 2 * Math.tan(camera.state.fov / 2) * dist;
-    const zoom = camera.viewport.height / height;
+    const zoom = frame.height / height;
 
-    panMouseChange[0] *= (1 / zoom) * camera.viewport.width * input.pixelRatio;
-    panMouseChange[1] *= (1 / zoom) * camera.viewport.height * input.pixelRatio;
+    panMouseChange[0] *= (1 / zoom) * frame.width * input.pixelRatio;
+    panMouseChange[1] *= (1 / zoom) * frame.height * input.pixelRatio;
 
     Vec3.cross(panOffset, Vec3.copy(panOffset, eye), camera.up);
     Vec3.setMagnitude(panOffset, panOffset, panMouseChange[0]);

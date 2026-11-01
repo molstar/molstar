@@ -13,6 +13,7 @@ import { MergedCases } from './merged.js';
 import { PostprocessingCases } from './postprocessing.js';
 import { RendererCases } from './renderer.js';
 import { ShaderVariantCases } from './shader-variants.js';
+import { SphereRasterCases } from './sphere-raster.js';
 import { ThemeDataCases } from './theme-data.js';
 import { TransparencyCases } from './transparency.js';
 
@@ -26,6 +27,7 @@ export const AllCases: VisualTestCase[] = [
   ...FallbackCases,
   ...ComputeCases,
   ...GpuPathCases,
+  ...SphereRasterCases,
 ];
 
 const ids = new Set<string>();

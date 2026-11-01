@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
+
 export const common = `
 // TODO find a better place for these convenience defines
 
@@ -48,6 +54,27 @@ float intMod(const in float a, const in float b) { return a - b * float(int(a) /
 int imod(const in int a, const in int b) { return a - b * (a / b); }
 
 float pow2(const in float x) { return x * x; }
+
+/**
+ * The direction of an octahedral encoding (\`oct-normals.ts\`), not normalized (the callers normalize): the lower
+ * hemisphere folded back, branchless
+ */
+vec3 octDecode(const in vec2 e) {
+    vec3 v = vec3(e, 1.0 - abs(e.x) - abs(e.y));
+    float t = max(-v.z, 0.0);
+    v.xy += vec2(v.x >= 0.0 ? -t : t, v.y >= 0.0 ? -t : t);
+    return v;
+}
+
+/** The affine transform of the rows \`r0\` to \`r2\` (\`affine-rows.ts\`), the last row 0, 0, 0, 1 */
+mat4 affineFromRows(const in vec4 r0, const in vec4 r1, const in vec4 r2) {
+    return mat4(
+        vec4(r0.x, r1.x, r2.x, 0.0),
+        vec4(r0.y, r1.y, r2.y, 0.0),
+        vec4(r0.z, r1.z, r2.z, 0.0),
+        vec4(r0.w, r1.w, r2.w, 1.0)
+    );
+}
 
 vec3 packIntToRGB(in float value) {
     value = clamp(round(value), 0.0, 16777216.0 - 1.0) + 1.0;

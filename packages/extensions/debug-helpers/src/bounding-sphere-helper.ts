@@ -215,7 +215,8 @@ function createBoundingSphereMesh(boundingSphere: Sphere3D, mesh?: Mesh) {
   const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
   if (boundingSphere.radius) {
     addSphere(builderState, boundingSphere.center, boundingSphere.radius, detail);
-    const er = boundingSphere.radius * 0.01;
+    // the balls around the extrema where they have them (`extremaRadius`)
+    const er = Sphere3D.getExtremaRadius(boundingSphere) || boundingSphere.radius * 0.01;
     if (Sphere3D.hasExtrema(boundingSphere)) {
       for (const e of boundingSphere.extrema) addSphere(builderState, e, er, 0);
     }

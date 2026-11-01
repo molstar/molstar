@@ -18,7 +18,12 @@ const tmpPosition = Vec3();
 // and pass (perf-audit-2 05/P15)
 function includeTransformed(helper: BoundaryHelper, sphere: Sphere3D, m: Mat4) {
   if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length > 1) {
-    for (const e of sphere.extrema) helper.includePosition(Vec3.transformMat4(tmpPosition, e, m));
+    const r = Sphere3D.getExtremaRadius(sphere) * Mat4.getMaxScaleOnAxis(m);
+    if (r > 0) {
+      for (const e of sphere.extrema) helper.includePositionRadius(Vec3.transformMat4(tmpPosition, e, m), r);
+    } else {
+      for (const e of sphere.extrema) helper.includePosition(Vec3.transformMat4(tmpPosition, e, m));
+    }
   } else {
     helper.includePositionRadius(
       Vec3.transformMat4(tmpPosition, sphere.center, m),
@@ -29,7 +34,12 @@ function includeTransformed(helper: BoundaryHelper, sphere: Sphere3D, m: Mat4) {
 
 function radiusTransformed(helper: BoundaryHelper, sphere: Sphere3D, m: Mat4) {
   if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length > 1) {
-    for (const e of sphere.extrema) helper.radiusPosition(Vec3.transformMat4(tmpPosition, e, m));
+    const r = Sphere3D.getExtremaRadius(sphere) * Mat4.getMaxScaleOnAxis(m);
+    if (r > 0) {
+      for (const e of sphere.extrema) helper.radiusPositionRadius(Vec3.transformMat4(tmpPosition, e, m), r);
+    } else {
+      for (const e of sphere.extrema) helper.radiusPosition(Vec3.transformMat4(tmpPosition, e, m));
+    }
   } else {
     helper.radiusPositionRadius(
       Vec3.transformMat4(tmpPosition, sphere.center, m),

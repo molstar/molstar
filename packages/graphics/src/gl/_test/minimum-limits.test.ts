@@ -20,6 +20,11 @@ import { getBindingLayout, getUniformBlockLayout, UniformBlocks } from '../unifo
 import { ComputeShaders, getComputeDefineVariants, getComputePrefixDefines } from './compute-shaders.js';
 import { GraphicsShaders, getProgramDefines, preprocessGlsl, preprocessProgram } from './graphics-shaders.js';
 import { getGlslProgram } from '../webgl/programs.js';
+import { getWgslProgram, resolveWgslSource } from '../webgpu/shader/programs.js';
+import { getWgslDefines } from '../webgpu/program.js';
+import { preprocessShader } from '../shader-preprocessor.js';
+import type { DefineValues } from '../renderable/schema.js';
+import { ValueCell } from '@molstar/core/util';
 
 /**
  * Everything must work with these; exceedances need a documented fallback and are listed
@@ -42,7 +47,7 @@ const WebGPUDefault = {
 };
 
 /** one buffer per attribute; fallback (open): interleaving or storage buffers + vertex pulling */
-const KnownVertexBufferExceedances = new Set(['cylinders', 'cylinders (merged)', 'lines (merged)', 'text (merged)']);
+const KnownVertexBufferExceedances = new Set<string>();
 
 /** all textures without `usedIf` are bound; fallback (open): `usedIf` for the BaseSchema feature textures */
 const KnownBindingLayoutExceedances = new Set<string>();
@@ -51,9 +56,6 @@ const KnownBindingLayoutExceedances = new Set<string>();
  * WGSL has no automatic varying packing, every inter-stage variable takes a location (a `mat4` four);
  * fallback (open): pack scalar varyings into `vec4`s in the WGSL shaders
  */
-const KnownInterStageExceedances = new Set(
-  ['colorBlended', 'colorWboit', 'colorDpoit', 'tracing'].map((v) => `cylinders ${v}`),
-);
 
 function getSchema(schema: RenderableSchema, merged: boolean): RenderableSchema {
   return {
@@ -161,9 +163,20 @@ function getVaryingTypes(vertSource: string) {
   ].map((m) => m[1]);
 }
 
-/** inter-stage locations without packing (WGSL) */
+/** inter-stage locations of GLSL varyings without packing, as WGSL would declare them */
 function getInterStageLocations(types: string[]) {
   return types.reduce((count, type) => count + (type === 'mat4' ? 4 : type === 'mat3' ? 3 : 1), 0);
+}
+
+/** the locations of the WGSL program's vertex outputs with `values`: each an inter-stage variable, whatever its size */
+function getWgslInterStageLocations(name: string, values: { [k: string]: string | boolean | number }) {
+  const program = getWgslProgram(name);
+  if (!program) return undefined;
+  const defineValues: DefineValues = {};
+  for (const [k, v] of Object.entries(values)) defineValues[k] = ValueCell.create(v);
+  const code = preprocessShader(resolveWgslSource(program.source, defineValues), getWgslDefines(defineValues));
+  const output = /struct VertexOutput\s*\{([\s\S]*?)\}/.exec(code)?.[1] ?? '';
+  return (output.match(/@location\(/g) ?? []).length;
 }
 
 /** vec4 rows after GLSL ES 3.00 varying packing (simplified, appendix A.7) */
@@ -280,8 +293,12 @@ describe('minimum limits: per program', () => {
       it(`varyings: ${id}`, () => {
         const types = getVaryingTypes(vert);
         expect(getPackedVaryingRows(types)).toBeLessThanOrEqual(WebGL2Minimum.varyingVectors);
-        const exceeds = getInterStageLocations(types) > WebGPUDefault.interStageVariables;
-        expect(exceeds).toBe(KnownInterStageExceedances.has(id));
+        // WebGPU counts locations, not packed rows: the WGSL program's own
+        const locations = getWgslInterStageLocations(shaderCode.name, values);
+        if (locations !== undefined) {
+          expect(locations).toBeGreaterThan(0);
+          expect(locations).toBeLessThanOrEqual(WebGPUDefault.interStageVariables);
+        }
       });
 
       it(`webgpu binding layout: ${id}`, () => {

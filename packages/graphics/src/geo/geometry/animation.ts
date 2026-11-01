@@ -8,6 +8,8 @@ import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
 export type AnimationData = {
+  dWiggleAnimation: ValueCell<boolean>;
+  dTumbleAnimation: ValueCell<boolean>;
   uWiggleSpeed: ValueCell<number>;
   uWiggleAmplitude: ValueCell<number>;
   uWiggleFrequency: ValueCell<number>;
@@ -74,6 +76,8 @@ export function areAnimationPropsEqual(a: AnimationProps, b: AnimationProps): bo
 
 export function createAnimationValues(props: AnimationProps) {
   return {
+    dWiggleAnimation: ValueCell.create(props.wiggleAmplitude > 0),
+    dTumbleAnimation: ValueCell.create(props.tumbleAmplitude > 0),
     uWiggleSpeed: ValueCell.create(props.wiggleSpeed),
     uWiggleAmplitude: ValueCell.create(props.wiggleAmplitude),
     uWiggleFrequency: ValueCell.create(props.wiggleFrequency),
@@ -85,6 +89,8 @@ export function createAnimationValues(props: AnimationProps) {
 }
 
 export function updateAnimationValues(values: AnimationData, props: AnimationProps) {
+  ValueCell.updateIfChanged(values.dWiggleAnimation, props.wiggleAmplitude > 0);
+  ValueCell.updateIfChanged(values.dTumbleAnimation, props.tumbleAmplitude > 0);
   ValueCell.updateIfChanged(values.uWiggleSpeed, props.wiggleSpeed);
   ValueCell.updateIfChanged(values.uWiggleAmplitude, props.wiggleAmplitude);
   ValueCell.updateIfChanged(values.uWiggleFrequency, props.wiggleFrequency);

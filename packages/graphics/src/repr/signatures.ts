@@ -12,7 +12,7 @@ import { type ColorType, getColorTypeDefine } from '@molstar/graphics/geo/geomet
 import { getSizeTypeDefine, type SizeType } from '@molstar/graphics/geo/geometry/size-data';
 import { getRenderableProgramSource, type RenderObjectType } from '@molstar/graphics/gl/render-object';
 import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
-import { isMergeableType } from '@molstar/graphics/gl/renderable/merged';
+import { canCullOnGpu, isMergeableType } from '@molstar/graphics/gl/renderable/merged';
 import {
   ContextDefines,
   getSchemaLinearTextures,
@@ -23,7 +23,13 @@ import {
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { getQualityProps } from './util.js';
-import type { VisualQuality } from '@molstar/graphics/geo/geometry/base';
+import {
+  type GpuCullingValue,
+  type RenderMergedValue,
+  resolveGpuCulling,
+  resolveRenderMerged,
+  type VisualQuality,
+} from '@molstar/graphics/geo/geometry/base';
 
 type DefineValue = string | number | boolean;
 
@@ -53,6 +59,11 @@ export interface SignatureContext {
     readonly clipping: boolean;
     readonly wiggle: boolean;
   };
+  /**
+   * The representation's data (e.g. its structure) where known, as when its transform applies: what data decides is
+   * then resolved (quality, the visuals' choices, merging) instead of taken every way params allow
+   */
+  readonly data?: unknown;
 }
 
 export const NoSignatureLayers: SignatureContext['layers'] = {
@@ -204,19 +215,53 @@ export function getGeometrySignatures<G extends Geometry>(
 export function withMergedSignatures(
   signatures: readonly ObjectSignature[],
   props: { readonly renderMerged?: unknown; readonly gpuCulling?: unknown },
+  /**
+   * the objects' counts where the data is known (`mergeRenderObjectsByType`: per type, the objects and their
+   * instances): 'auto' resolved, unmerged only where they don't merge
+   */
+  counts?: {
+    readonly objects: number;
+    readonly instances: number;
+    /** the draws per object: its levels of detail (`lodLevels`), at least one */
+    readonly levels: number;
+    readonly graphics?: GraphicsContext;
+  },
 ): ObjectSignature[] {
+  if (counts) {
+    const { objects, instances, levels, graphics } = counts;
+    const renderMerged = (props.renderMerged ?? 'auto') as RenderMergedValue;
+    if (renderMerged === false) return [...signatures];
+    const gpu =
+      canCullOnGpu(graphics) &&
+      resolveGpuCulling((props.gpuCulling ?? false) as GpuCullingValue, instances, objects * Math.max(1, levels));
+    const merge = gpu || (objects >= 2 && resolveRenderMerged(renderMerged, objects));
+    if (!merge) return [...signatures];
+    // both: the objects' values may not merge (`canMergeRenderObjects`, known once built), leaving them unmerged
+    const out = [...signatures];
+    for (const s of signatures) {
+      const merged = getMergedSignature(s, gpu);
+      if (merged) out.push(merged);
+    }
+    return out;
+  }
   const gpuCulled = props.gpuCulling === true;
   if (props.renderMerged !== true && !gpuCulled) return [...signatures];
   const out = [...signatures];
   for (const s of signatures) {
-    if (!isMergeableType(s.type) || s.defines.dUsePalette) continue;
-    const source = getRenderableProgramSource({ type: s.type, merged: true });
-    if (!source) continue;
-    const defines = { ...s.defines, dSegmented: true };
-    const linearTextures = getSchemaLinearTextures(source.schema, defines);
-    out.push({ ...s, merged: true, defines, linearTextures, gpuCulled });
+    const merged = getMergedSignature(s, gpuCulled);
+    if (merged) out.push(merged);
   }
   return out;
+}
+
+/** The signature of `s`'s objects merged, where their type merges and their values allow it (`canMergeValues`) */
+function getMergedSignature(s: ObjectSignature, gpuCulled: boolean): ObjectSignature | undefined {
+  if (!isMergeableType(s.type) || s.defines.dUsePalette) return;
+  const source = getRenderableProgramSource({ type: s.type, merged: true });
+  if (!source) return;
+  const defines = { ...s.defines, dSegmented: true };
+  const linearTextures = getSchemaLinearTextures(source.schema, defines);
+  return { ...s, merged: true, defines, linearTextures, gpuCulled };
 }
 
 /** `signatures` without duplicates, the draw flags of those of the same key merged (`mergeSignatures`) */
@@ -246,7 +291,10 @@ export function getSurfaceSignatureDefines(_props: unknown, graphics?: GraphicsC
 export function getQualitySignatures<P extends { quality?: VisualQuality }>(
   props: P,
   get: (props: P) => ObjectSignature[],
+  /** the data where known (`SignatureContext.data`): 'auto' resolved by it, as the representation does */
+  data?: unknown,
 ): ObjectSignature[] {
+  if (data !== undefined) return get({ ...props, ...getQualityProps(props, data) });
   const quality: VisualQuality = !props.quality || props.quality === 'auto' ? 'medium' : props.quality;
   return get({ ...props, ...getQualityProps({ ...props, quality }) });
 }

@@ -13,6 +13,7 @@ import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import { Clip } from '@molstar/core/util/clip';
 import {
   type CullValues,
   createSegmentedMdbList,
@@ -55,8 +56,17 @@ function view(eye: Vec3, target: Vec3) {
   return { frustum, cameraPlane };
 }
 
-/** The draws per level as the cells give them one by one (contiguous ranges joined) */
-function referenceDraws(grid: InstanceGrid, levels: LodLevelsValue, frustum: Frustum3D, cameraPlane: Plane3D) {
+/**
+ * The draws per level as the cells give them one by one (contiguous ranges joined); without the cells `clip` clips
+ * whole
+ */
+function referenceDraws(
+  grid: InstanceGrid,
+  levels: LodLevelsValue,
+  frustum: Frustum3D,
+  cameraPlane: Plane3D,
+  clip?: Clip.Objects,
+) {
   const draws: number[][] = levels.map(() => []);
   const s = Sphere3D();
   for (let c = 0; c < grid.cellCount; ++c) {
@@ -65,6 +75,7 @@ function referenceDraws(grid: InstanceGrid, levels: LodLevelsValue, frustum: Fru
     if (count === 0) continue;
     Sphere3D.fromArray(s, grid.cellSpheres, c * 4);
     if (!Frustum3D.intersectsSphere3D(frustum, s)) continue;
+    if (clip && Clip.classifySphere(clip, s) === Clip.SphereClass.All) continue;
     const d = Plane3D.distanceToPoint(cameraPlane, s.center);
     for (let j = 0; j < levels.length; ++j) {
       if (d + s.radius < levels[j][0] || d - s.radius > levels[j][1]) continue;
@@ -140,5 +151,110 @@ describe('culling a segment', () => {
     expect(draws).toEqual(reference);
     // something drawn, and in the views with levels at more than one level
     expect(reference.flat().length).toBeGreaterThan(0);
+  });
+
+  // clip objects without a clipping layer cull the cells and batches they clip whole (`clip-culling.md`), from classes
+  // cached per grid and clip version
+  it('leaves out what clip objects clip whole, as the cells give it, and follows a clip change', () => {
+    const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
+    const level = [[0, 1e7, 0, 600, 1]] as unknown as LodLevelsValue;
+    const lodLevels = ValueCell.create(level);
+    const clip = (y: number, angle: number) =>
+      Clip.getClip({
+        variant: 'pixel',
+        objects: [
+          {
+            type: 'plane',
+            invert: false,
+            position: Vec3.create(95, y, 95),
+            rotation: { axis: Vec3.create(1, 0, 0), angle },
+            scale: Vec3.create(1, 1, 1),
+            transform: Mat4.identity(),
+          },
+        ],
+      } as Clip.Props).objects;
+    const clipObjects = ValueCell.create(clip(95, 20));
+    const clipped: CullValues = {
+      ...values,
+      lodLevels,
+      dClipObjects: ValueCell.create(true),
+      dClipping: ValueCell.create(false),
+      clipObjects,
+    };
+    const cull = (v: CullValues) => {
+      const mdb = createSegmentedMdbList();
+      const prepared = mdb.prepare(lodLevels, grid.cellCount, false, LodView());
+      mdb.cullSegment(v, ZeroCullSegment, prepared, cameraPlane, frustum, null, createGraphicsStats(), false);
+      const out: number[] = [];
+      for (let i = 0; i < mdb.list[0].count; ++i) out.push(mdb.list[0].baseInstances[i], mdb.list[0].instanceCounts[i]);
+      return out;
+    };
+    const instances = (draws: number[]) => draws.reduce((sum, v, i) => (i % 2 ? sum + v : sum), 0);
+
+    const all = cull({ ...values, lodLevels });
+    const half = cull(clipped);
+    expect(half).toEqual(referenceDraws(grid, level, frustum, cameraPlane, clipObjects.ref.value)[0]);
+    expect(instances(half)).toBeLessThan(instances(all) * 0.8);
+    expect(instances(half)).toBeGreaterThan(0);
+
+    // the same objects moved (a new version): classified again
+    Object.assign(clipObjects.ref.value, clip(40, -30));
+    ValueCell.update(clipObjects, clipObjects.ref.value);
+    const moved = cull(clipped);
+    expect(moved).toEqual(referenceDraws(grid, level, frustum, cameraPlane, clipObjects.ref.value)[0]);
+    expect(moved).not.toEqual(half);
+
+    // with a clipping layer (its flags exempt groups) nothing is culled by the clip objects
+    expect(cull({ ...clipped, dClipping: ValueCell.create(true) })).toEqual(all);
+  });
+
+  // instance clipping tests an instance's center: the cells' and batches' spheres shrunk to their centers
+  it('culls by the instance centers for instance clipping', () => {
+    const { frustum, cameraPlane } = view(Vec3.create(95, 95, -300), Vec3.create(95, 95, 95));
+    const lodLevels = ValueCell.create([[0, 1e7, 0, 600, 1]] as unknown as LodLevelsValue);
+    // above y 94 clipped: the cells of the rows at 100 and 110 (centered at 105, 11 away) reach it with their spheres
+    // (radius 12.1), not with their centers (10.1 less the instances' radius)
+    const objects = Clip.getClip({
+      variant: 'instance',
+      objects: [
+        {
+          type: 'plane',
+          invert: false,
+          position: Vec3.create(95, 94, 95),
+          rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+          scale: Vec3.create(1, 1, 1),
+          transform: Mat4.identity(),
+        },
+      ],
+    } as Clip.Props).objects;
+    const clipped = (variant: 'pixel' | 'instance'): CullValues => ({
+      ...values,
+      lodLevels,
+      dClipObjects: ValueCell.create(true),
+      dClipping: ValueCell.create(false),
+      clipObjects: ValueCell.create(objects),
+      dClipVariant: ValueCell.create(variant),
+      invariantBoundingSphere: ValueCell.create(Sphere3D.create(Vec3(), 2)),
+    });
+    const drawn = (v: CullValues) => {
+      const mdb = createSegmentedMdbList();
+      const prepared = mdb.prepare(lodLevels, grid.cellCount, false, LodView());
+      mdb.cullSegment(v, ZeroCullSegment, prepared, cameraPlane, frustum, null, createGraphicsStats(), false);
+      const slots = new Uint8Array(grid.cellOffsets[grid.cellCount]);
+      const l = mdb.list[0];
+      for (let i = 0; i < l.count; ++i) slots.fill(1, l.baseInstances[i], l.baseInstances[i] + l.instanceCounts[i]);
+      return slots;
+    };
+    const pixel = drawn(clipped('pixel'));
+    const instance = drawn(clipped('instance'));
+    const count = (slots: Uint8Array) => slots.reduce((sum, v) => sum + v, 0);
+    expect(count(instance)).toBeLessThan(count(pixel));
+    // every instance left out has its center clipped (the view holds them all)
+    const center = Vec3();
+    for (let i = 0; i < instance.length; ++i) {
+      if (instance[i]) continue;
+      Vec3.fromArray(center, grid.cellTransform, i * 16 + 12);
+      expect(center[1]).toBeGreaterThanOrEqual(94);
+    }
   });
 });

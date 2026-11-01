@@ -33,7 +33,8 @@ export const MeshSchema = {
   ...BaseSchema,
   aGroup: AttributeSpec('float32', 1, 0),
   aPosition: AttributeSpec('float32', 3, 0),
-  aNormal: AttributeSpec('float32', 3, 0),
+  /** unit normals, three floats on the CPU, octahedral in two snorm16 on the GPU (`oct-normals.ts`) */
+  aNormal: AttributeSpec('oct16', 2, 0),
   elements: ElementsSpec('uint32'),
   dVaryingGroup: DefineSpec('boolean'),
   dFlatShaded: DefineSpec('boolean'),
@@ -44,6 +45,8 @@ export const MeshSchema = {
   dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
   dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
   dSolidInterior: DefineSpec('boolean'),
+  /** whether the bump noise is compiled (`BaseGeometry.hasBump`; with a substance layer, `dSubstance`, too) */
+  dBump: DefineSpec('boolean'),
   uBumpFrequency: UniformSpec('f', 'material'),
   uBumpAmplitude: UniformSpec('f', 'material'),
   meta: ValueSpec('unknown'),

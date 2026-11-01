@@ -165,6 +165,36 @@ function createStorageBuffer(env: WebGPUComputeEnv, byteLength: number, label?: 
   return buffer;
 }
 
+const BufferViews = new WeakMap<GPUBuffer, WebGPUStorageBuffer>();
+
+/**
+ * A buffer of the renderer (a data page) as a storage buffer kernels bind read-only, the same view per buffer (stable
+ * bind groups); owned by the renderer: writes, copies, reads and `destroy` are not the kernels' to do
+ */
+export function getStorageBufferView(buffer: GPUBuffer): WebGPUStorageBuffer {
+  let view = BufferViews.get(buffer);
+  if (view) return view;
+  const notOwned = () => {
+    throw new Error(`'${buffer.label}' is a view of a buffer of the renderer`);
+  };
+  view = {
+    id: getNextStorageBufferId(),
+    byteLength: buffer.size,
+    version: 0,
+    getGPUBuffer: () => buffer,
+    write: notOwned,
+    clear: notOwned,
+    copyTo: notOwned,
+    readAsync: notOwned,
+    // counted with the render items
+    getByteCount: () => 0,
+    destroy: () => {},
+  };
+  StorageBuffers.add(view);
+  BufferViews.set(buffer, view);
+  return view;
+}
+
 //
 
 type KernelBinding =
@@ -302,6 +332,8 @@ function getKernelKey(code: KernelCode, schema: KernelSchema, defines: DefineVal
   return `${code.name}|${getDefineKey(defines)}|${Object.keys(schema).join(',')}`;
 }
 
+const EnableDirectives = /^[ \t]*enable [^;]+;/gm;
+
 /** The pipeline descriptor of a kernel, and what its kernels bind */
 function getKernelPipelineDescriptor(
   env: WebGPUComputeEnv,
@@ -313,7 +345,10 @@ function getKernelPipelineDescriptor(
   if (!source) throw new Error(`no WGSL source for kernel '${code.name}'`);
   const wgslDefines = getWgslDefines(defines);
   const body = preprocessShader(source, wgslDefines, { expandMacros: true });
-  const wgsl = `${getWgslKernelDeclarations(code, schema, defines)}\n\n${body}`;
+  // directives (`enable`) before any declaration
+  const directives = body.match(EnableDirectives)?.join('\n') ?? '';
+  const declarations = getWgslKernelDeclarations(code, schema, defines);
+  const wgsl = `${directives}\n${declarations}\n\n${body.replace(EnableDirectives, '')}`;
   const { device } = env;
   const module = device.createShaderModule({ code: wgsl, label: code.name });
   env.stats.resourceCounts.shader += 1;

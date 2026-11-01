@@ -16,6 +16,7 @@ import { assign_marker_varying } from './chunks/assign-marker-varying.glsl.js';
 import { assign_clipping_varying } from './chunks/assign-clipping-varying.glsl.js';
 import { assign_size } from './chunks/assign-size.glsl.js';
 import { clip_instance } from './chunks/clip-instance.glsl.js';
+import { assign_lod_factor } from './chunks/assign-lod-factor.glsl.js';
 
 /** Points are drawn as screen-aligned quads of two triangles (6 vertices) with the point data read per quad */
 export const points_vert = `
@@ -39,7 +40,7 @@ void main(){
     ${assign_marker_varying}
     ${assign_clipping_varying}
 
-    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
+    mat4 transform = applyTumble(aTransform);
     mat4 model = uModel * transform;
     mat4 modelView = uView * model;
     position = applyWiggle(position, group, aInstance);
@@ -56,12 +57,26 @@ void main(){
     #else
         float pointSize = size * uPixelRatio;
     #endif
-    pointSize = max(1.0, pointSize);
+
+    ${assign_lod_factor}
+    pointSize = max(1.0, pointSize * lodFactor);
 
     gl_Position = uProjection * mvPosition;
     // offset the corner by half the point size in pixels, in clip space
     gl_Position.xy += mapping * (pointSize / uViewport.zw) * gl_Position.w;
     vPointCoord = mapping * 0.5 + 0.5;
+
+    if (lodCulled) {
+        // move out of [ -w, +w ] to 'discard' in vert shader
+        gl_Position.z = 2.0 * gl_Position.w;
+    }
+
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        // pixel clipping: every fragment of the point is at its center, the point tested once
+        if (clipTest(vModelPosition / uModelScale)) {
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+    #endif
 
     ${clip_instance}
 }

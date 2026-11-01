@@ -310,10 +310,11 @@ export namespace TextureMesh {
   /** Reads the vertices and normals back into `meta.vertexData`, for the position iterator */
   async function readVertexData(textureMesh: TextureMesh, graphics: GraphicsContext) {
     const table = textureMesh.isoTable.ref.value;
-    const arena = textureMesh.isoVertices.ref.value;
-    if (textureMesh.isoChunks.ref.value && table && arena && graphics.compute) {
+    if (textureMesh.isoChunks.ref.value && table && textureMesh.isoVertices.ref.value && graphics.compute) {
       const count = textureMesh.meta.readVertexCount ?? textureMesh.vertexCount;
-      const { vertices, normals } = await readChunkedVertices(graphics.compute, { table, vertices: arena }, count);
+      // the arena's buffer as it is when the table is read (`onVertexArenaGrow` updates the cell)
+      const chunks = { table, vertices: () => textureMesh.isoVertices.ref.value! };
+      const { vertices, normals } = await readChunkedVertices(graphics.compute, chunks, count);
       textureMesh.meta.vertexData = { vertices, normals };
       return;
     }
@@ -510,6 +511,7 @@ export namespace TextureMesh {
       ),
       dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
       dSolidInterior: ValueCell.create(props.solidInterior),
+      dBump: ValueCell.create(BaseGeometry.hasBump(props)),
       uBumpFrequency: ValueCell.create(props.bumpFrequency),
       uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
 
@@ -545,6 +547,7 @@ export namespace TextureMesh {
     );
     ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
     ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
+    ValueCell.updateIfChanged(values.dBump, BaseGeometry.hasBump(props));
     ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     updateInteriorValues(values, props.interior);

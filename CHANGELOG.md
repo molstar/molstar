@@ -10,6 +10,7 @@ here.
 
 ## [Unreleased]
 
+- Marking: fill and dim account for transparent layers (shading, see-through, dim of unmarked transparent objects)
 - Fix `Euler.set` (and `Euler.fromVec3`, which uses it) writing all three angles into the first component
 - [Breaking] Component options keep overrides: `StructureComponentManager.setOptions` changes only the representations
   that had the previous value of a changed option (a representation given its own material, quality, … keeps it);
@@ -231,6 +232,9 @@ here.
 - Fixed Kinemage handling of files with multiple same-named subgroups so it behaves like KiNG
 - Sets the viewer background to black when loading a Kinemage, to match the default color scheme
 - Handle Kinemage triangle normals separately from ribbon normals so that each renders as expected
+- Geometry export: spheres of a representation with several instances (symmetry copies) export each copy's spheres,
+  not the first copy's followed by invalid ones
+- Strips of lines (streamlines, fibers) get the bounding sphere of their points: it read past their buffers
 
 ## [v5.13.1] - 2026-10-08
 

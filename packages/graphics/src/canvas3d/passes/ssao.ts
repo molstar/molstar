@@ -579,26 +579,22 @@ export class SsaoPass {
     const includeTransparent = this.renderable.values.dIncludeTransparent.ref.value;
     const multiScale = this.renderable.values.dMultiScale.ref.value;
 
-    const sx = Math.floor(x * this.ssaoScale);
-    const sy = Math.floor(y * this.ssaoScale);
-    const sw = Math.ceil(width * this.ssaoScale);
-    const sh = Math.ceil(height * this.ssaoScale);
+    // the camera viewport scaled to a target, its pixels covered and never beyond the target: the targets are the
+    // drawing buffer's size scaled and floored, and Safari rejects viewports past the attachment (Chrome crops them)
+    const setScaledViewport = (scale: number, target: { getWidth(): number; getHeight(): number }) => {
+      const x0 = Math.floor(x * scale);
+      const y0 = Math.floor(y * scale);
+      const x1 = Math.min(Math.ceil((x + width) * scale), target.getWidth());
+      const y1 = Math.min(Math.ceil((y + height) * scale), target.getHeight());
+      graphics.setViewport(x0, y0, x1 - x0, y1 - y0);
+      graphics.setScissor(x0, y0, x1 - x0, y1 - y0);
+    };
 
-    if (b.drawing) {
-      graphics.setViewport(sx, sy, sw, sh);
-      graphics.setScissor(sx, sy, sw, sh);
-    }
+    if (b.drawing) setScaledViewport(this.ssaoScale, this.ssaoDepthTexture);
 
     if (multiScale) {
       // half-resolution viewport (matches dimensions of depthHalfTarget*)
-      if (b.drawing) {
-        const hsx = Math.floor(sx * 0.5);
-        const hsy = Math.floor(sy * 0.5);
-        const hsw = Math.ceil(sw * 0.5);
-        const hsh = Math.ceil(sh * 0.5);
-        graphics.setViewport(hsx, hsy, hsw, hsh);
-        graphics.setScissor(hsx, hsy, hsw, hsh);
-      }
+      if (b.drawing) setScaledViewport(this.ssaoScale * 0.5, this.depthHalfTargetOpaque);
 
       if (timing) graphics.timer.group('SSAO.half');
       b.begin(this.depthHalfTargetOpaque, { label: 'ssao half' });
@@ -610,14 +606,7 @@ export class SsaoPass {
       if (timing) graphics.timer.groupEnd('SSAO.half');
 
       // quarter-resolution viewport (matches dimensions of depthQuarterTarget*)
-      if (b.drawing) {
-        const qsx = Math.floor(sx * 0.25);
-        const qsy = Math.floor(sy * 0.25);
-        const qsw = Math.ceil(sw * 0.25);
-        const qsh = Math.ceil(sh * 0.25);
-        graphics.setViewport(qsx, qsy, qsw, qsh);
-        graphics.setScissor(qsx, qsy, qsw, qsh);
-      }
+      if (b.drawing) setScaledViewport(this.ssaoScale * 0.25, this.depthQuarterTargetOpaque);
 
       if (timing) graphics.timer.group('SSAO.quarter');
       b.begin(this.depthQuarterTargetOpaque, { label: 'ssao quarter' });
@@ -629,10 +618,7 @@ export class SsaoPass {
       if (timing) graphics.timer.groupEnd('SSAO.quarter');
 
       // restore full-scale viewport for SSAO + blur passes
-      if (b.drawing) {
-        graphics.setViewport(sx, sy, sw, sh);
-        graphics.setScissor(sx, sy, sw, sh);
-      }
+      if (b.drawing) setScaledViewport(this.ssaoScale, this.ssaoDepthTexture);
     }
 
     this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');

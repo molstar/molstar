@@ -10,12 +10,11 @@ import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
-  AttributeSpec,
   type Values,
   InternalSchema,
   SizeSchema,
   type InternalValues,
-  ElementsSpec,
+  DataSpec,
   ValueSpec,
   DefineSpec,
   GlobalTextureSchema,
@@ -32,14 +31,11 @@ import { ValueCell } from '@molstar/core/util';
 export const CylindersSchema = {
   ...BaseSchema,
   ...SizeSchema,
-  aGroup: AttributeSpec('float32', 1, 0),
-  aStart: AttributeSpec('float32', 3, 0),
-  aEnd: AttributeSpec('float32', 3, 0),
-  aMapping: AttributeSpec('float32', 3, 0),
-  aScale: AttributeSpec('float32', 1, 0),
-  aCap: AttributeSpec('float32', 1, 0),
-  aColorMode: AttributeSpec('float32', 1, 0),
-  elements: ElementsSpec('uint32'),
+  /**
+   * Per cylinder 3 texels (`Cylinders.cylinderData`): start xyz and group, end xyz and radius scale, cap and color mode;
+   * drawn as boxes of 6 vertex ids by the shared box indices (`quad-indices.ts`)
+   */
+  tCylinder: DataSpec('rgba32f'),
 
   padding: ValueSpec('number'),
   uDoubleSided: UniformSpec('b', 'material'),
@@ -48,6 +44,8 @@ export const CylindersSchema = {
   dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
   dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
   dSolidInterior: DefineSpec('boolean'),
+  /** whether the bump noise is compiled (`BaseGeometry.hasBump`; with a substance layer, `dSubstance`, too) */
+  dBump: DefineSpec('boolean'),
   uBumpFrequency: UniformSpec('f', 'material'),
   uBumpAmplitude: UniformSpec('f', 'material'),
   dDualColor: DefineSpec('boolean'),

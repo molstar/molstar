@@ -155,6 +155,75 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     }
   }, 60_000);
 
+  // a later draw of a recording growing the shared indices: the earlier draws bound the released buffer, and the
+  // recording, taken as current (its snapshot after the growth), replayed drawing nothing
+  it('record again where a draw of the recording grew the shared quad indices', async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
+      const canvas = plugin.canvas3d!;
+      canvas.setProps({
+        multiSample: { ...canvas.props.multiSample, mode: 'off' },
+        renderer: { ...canvas.props.renderer, drawLists: true },
+      });
+      const graphics = canvas.graphics as WebGPUContext;
+      const { stats, quadIndices } = graphics;
+      const passes = plugin.renderer.canvas3dContext!.passes;
+      let time = now();
+      const frame = async () => {
+        canvas.commit(true);
+        canvas.requestDraw();
+        canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+        await graphics.resources.pending.whenReady();
+        return Array.from(await graphics.readRenderTarget(passes.draw.drawTarget, 0, 0, Size, Size));
+      };
+      let before = await frame();
+      for (let i = 0; i < 8 && stats.drawLists.replayed === 0; ++i) before = await frame();
+      expect(stats.drawLists.replayed).toBeGreaterThan(0);
+
+      // replaced between frames, so that the next frame records; in it, the first draw binding the indices grows them
+      // after (as a later, larger draw would): the recording binds the released buffer
+      quadIndices.get(quadIndices.get(1)!.itemCount + 1);
+      const get = quadIndices.get.bind(quadIndices);
+      let grow = true;
+      (quadIndices as { get: typeof quadIndices.get }).get = (itemCount: number) => {
+        const current = get(itemCount);
+        if (grow && current) {
+          grow = false;
+          get(current.itemCount + 1);
+        }
+        return current;
+      };
+      try {
+        // a replay binding the destroyed buffer fails its submit (the frame not drawn; the target keeps the frame before,
+        // so its pixels tell nothing): validation errors caught
+        const { device } = graphics;
+        device.pushErrorScope('validation');
+        const recorded = stats.drawLists.recorded;
+        expect(await frame()).toEqual(before);
+        expect(grow).toBe(false);
+        // no recording kept that binds the released buffer: the frames after draw as before, replayed again
+        for (let i = 0; i < 3; ++i) expect(await frame()).toEqual(before);
+        expect(await device.popErrorScope()).toBeNull();
+        expect(stats.drawLists.recorded).toBeGreaterThan(recorded);
+      } finally {
+        (quadIndices as { get: typeof quadIndices.get }).get = get;
+      }
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
   it('replay with changed markers written, not recorded again (hover)', async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },

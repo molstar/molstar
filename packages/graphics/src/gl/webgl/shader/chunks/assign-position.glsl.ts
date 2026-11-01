@@ -2,7 +2,7 @@ export const assign_position = `
 #ifdef dGeometryType_image
     mat4 transform = aTransform;
 #else
-    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
+    mat4 transform = applyTumble(aTransform);
 #endif
 mat4 model = uModel * transform;
 mat4 modelView = uView * model;

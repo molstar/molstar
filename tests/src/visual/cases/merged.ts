@@ -88,6 +88,14 @@ export const MergedCases: VisualTestCase[] = [
   mergedCase('spacefill-mesh', SpacefillRepresentationProvider, { tryUseImpostor: false }),
   mergedCase('backbone', BackboneRepresentationProvider, {}, { requires: Impostor }),
   mergedCase('point', PointRepresentationProvider, {}),
+  // levels of detail merged: every 4th point of each unit, larger (the far level)
+  mergedCase('point-lod-levels', PointRepresentationProvider, {
+    sizeFactor: 6,
+    lodLevels: [
+      { minDistance: 0, maxDistance: 1, overlap: 0, stride: 1, scaleBias: 1 },
+      { minDistance: 1, maxDistance: 10000000, overlap: 0, stride: 4, scaleBias: 3 },
+    ],
+  }),
   mergedCase('line', LineRepresentationProvider, {}),
   {
     // near cuts the units in front (a camera radius below the scene's), which get their caps (`solidInterior`, on for

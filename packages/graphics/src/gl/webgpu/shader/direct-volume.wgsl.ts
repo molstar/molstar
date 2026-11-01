@@ -24,6 +24,9 @@ ${light_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 ${texture_sample_wgsl('tTransferTex')}
+#if defined(dPreIntegration)
+    ${texture_sample_wgsl('tPreIntegratedTex')}
+#endif
 #if defined(dUsePalette)
     ${texture_sample_wgsl('tPalette')}
 #endif
@@ -33,10 +36,10 @@ struct VertexOutput {
     @location(0) vModelPosition: vec3<f32>,
     @location(1) @interpolate(flat) vInstance: f32,
     @location(2) @interpolate(flat) vBoundingSphere: vec4<f32>,
+    // the transform's rows (\`affine-rows.ts\`)
     @location(3) @interpolate(flat) vTransform0: vec4<f32>,
     @location(4) @interpolate(flat) vTransform1: vec4<f32>,
     @location(5) @interpolate(flat) vTransform2: vec4<f32>,
-    @location(6) @interpolate(flat) vTransform3: vec4<f32>,
     // the normal matrix per instance: per fragment it costs as if it were computed per lit sample
     @location(7) @interpolate(flat) vNormalMatrix0: vec3<f32>,
     @location(8) @interpolate(flat) vNormalMatrix1: vec3<f32>,
@@ -50,7 +53,7 @@ ${fragment_output_wgsl(`#if defined(dRenderVariant_marking) || defined(dRenderVa
 @vertex
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
     let unitCoord = vec4<f32>(in.aPosition + vec3<f32>(0.5), 1.0);
     let mvPosition = uGlobal.uModelView * aTransform * uObject.uUnitToCartn * unitCoord;
 
@@ -61,8 +64,9 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     out.vTransform0 = in.aTransform0;
     out.vTransform1 = in.aTransform1;
     out.vTransform2 = in.aTransform2;
-    out.vTransform3 = in.aTransform3;
-    let normalMatrix = adjoint(uGlobal.uModelView * aTransform);
+    // the gradient is in grid axes; a mirroring transform flips what the adjoint gives
+    let gradientToView = uGlobal.uModelView * aTransform * uObject.uTransform;
+    let normalMatrix = adjoint(gradientToView) * sign(determinant(mat3x3<f32>(gradientToView[0].xyz, gradientToView[1].xyz, gradientToView[2].xyz)));
     out.vNormalMatrix0 = normalMatrix[0];
     out.vNormalMatrix1 = normalMatrix[1];
     out.vNormalMatrix2 = normalMatrix[2];
@@ -114,14 +118,22 @@ fn inverse4(m: mat4x4<f32>) -> mat4x4<f32> {
     ) * (1.0 / det);
 }
 
-/** value (alpha) and gradient (rgb) at \`pos\` in unit grid coordinates, filtered where the format allows */
+/**
+ * the value (alpha) at \`pos\` in unit grid coordinates, filtered where the format allows: volumes' grids hold the
+ * values only, the Gaussian density's packed groups in rgb too
+ */
 fn textureVal(pos: vec3<f32>) -> vec4<f32> {
     let p = pos + (vec3<f32>(0.5) / uObject.uGridDim);
     #if defined(dLinear_tGridTex)
-        return textureSampleLevel(tGridTex, sLinear, p, 0.0);
+        let sample = textureSampleLevel(tGridTex, sLinear, p, 0.0);
     #else
         let size = vec3<i32>(textureDimensions(tGridTex));
-        return textureLoad(tGridTex, clamp(vec3<i32>(floor(p * vec3<f32>(size))), vec3<i32>(0), size - 1), 0);
+        let sample = textureLoad(tGridTex, clamp(vec3<i32>(floor(p * vec3<f32>(size))), vec3<i32>(0), size - 1), 0);
+    #endif
+    #if defined(dPackedGroup)
+        return sample;
+    #else
+        return vec4<f32>(0.0, 0.0, 0.0, sample.r);
     #endif
 }
 
@@ -163,6 +175,13 @@ fn texture3dFrom1dTrilinear(layer: u32, pos: vec3<f32>, gridDim: vec3<f32>, offs
 fn transferFunction(value: f32) -> f32 {
     return sample_tTransferTex(vec2<f32>(value, 0.0)).r;
 }
+
+#if defined(dPreIntegration)
+    /** the opacity per cell between the values of two samples, the table's entries at its texels' centers */
+    fn transferSegment(front: f32, back: f32) -> f32 {
+        return sample_tPreIntegratedTex((vec2<f32>(front, back) * 255.0 + 0.5) / 256.0).r;
+    }
+#endif
 
 fn v3m4(p: vec3<f32>, m: mat4x4<f32>) -> vec3<f32> {
     return (m * vec4<f32>(p, 1.0)).xyz;
@@ -213,6 +232,8 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
     let modelScale = uGlobal.uModelScale;
     let groupCount = f32(uObject.uGroupCount);
     var value = 0.0;
+    // the value of the previous sample (\`preIntegration\`), -1 where there is none to integrate from
+    var prevValue = -1.0;
     var dst = vec4<f32>(0.0);
 
     let posMin = vec3<f32>(0.0);
@@ -296,6 +317,7 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
                 let exitFace = select(brick, brick + 1.0, invStep > vec3<f32>(0.0)) * BrickSize / gridDim;
                 let exits = (exitFace - unitStart) * invStep;
                 t = max(t + 1.0, ceil(min(min(exits.x, exits.y), exits.z) - jitter - 1e-3) + jitter);
+                prevValue = -1.0;
                 continue;
             }
         }
@@ -307,12 +329,19 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
             let nextT = t + jumpSteps;
             if (textureVal(unitStart + nextT * unitStep).a < 0.01) {
                 t = nextT;
+                prevValue = -1.0;
                 continue;
             }
         }
 
         // transparent samples add nothing (markers don't lift them either)
-        material.a = transferFunction(value);
+        #if defined(dPreIntegration)
+            // from the previous sample's value (none after skipped steps)
+            material.a = select(transferSegment(prevValue, value), transferFunction(value), prevValue < 0.0);
+            prevValue = value;
+        #else
+            material.a = transferFunction(value);
+        #endif
         if (material.a <= 0.0) {
             t += 1.0;
             continue;
@@ -409,16 +438,13 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
         var color = vec4<f32>(material.rgb, 0.0);
         #if !defined(dIgnoreLight)
             if (material.a >= 0.01) {
-                #if defined(dPackedGroup)
-                    // gradient by central differences
-                    let gradient = vec3<f32>(
-                        textureVal(unitPos - dx).a - textureVal(unitPos + dx).a,
-                        textureVal(unitPos - dy).a - textureVal(unitPos + dy).a,
-                        textureVal(unitPos - dz).a - textureVal(unitPos + dz).a
-                    );
-                #else
-                    let gradient = cell.xyz * 2.0 - 1.0;
-                #endif
+                // gradient by central differences (the grids store no gradients): one-sided ones light noisy data by the
+                // side it is seen from
+                let gradient = vec3<f32>(
+                    textureVal(unitPos - dx).a - textureVal(unitPos + dx).a,
+                    textureVal(unitPos - dy).a - textureVal(unitPos + dy).a,
+                    textureVal(unitPos - dz).a - textureVal(unitPos + dz).a
+                );
                 // a zero gradient (byte normals filtered halfway between 127 and 128) faces the camera, not NaN
                 let normal = select(vec3<f32>(0.0, 0.0, 1.0), -normalize(normalMatrix * gradient), dot(gradient, gradient) > 1e-12);
                 color = applyLight(material, normal, viewPosition, metalness, roughness, emissive);
@@ -503,7 +529,7 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
     let boundingSphereNear = distance(boundingSphere.xyz, cameraPosition) - boundingSphere.w;
     let d = max(uGlobal.uNear, boundingSphereNear) - mix(0.0, distance(in.vModelPosition, cameraPosition), isOrtho);
     let start = mix(cameraPosition, in.vModelPosition, isOrtho) + (d * rayDir);
-    let transform = mat4x4<f32>(in.vTransform0, in.vTransform1, in.vTransform2, in.vTransform3);
+    let transform = affineTransform(in.vTransform0, in.vTransform1, in.vTransform2);
     let normalMatrix = mat3x3<f32>(in.vNormalMatrix0, in.vNormalMatrix1, in.vNormalMatrix2);
     #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick)
         _ = raymarch(start, step, in.position.xy, in.vInstance, transform, normalMatrix);

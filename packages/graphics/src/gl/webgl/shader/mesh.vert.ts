@@ -59,7 +59,7 @@ void main(){
     #ifdef dGeometryType_textureMesh
         vec3 normal = readFromTexture(tNormal, vertexId, uGeoTexDim).xyz;
     #else
-        vec3 normal = aNormal;
+        vec3 normal = octDecode(aNormal);
     #endif
     mat3 normalMatrix = adjoint(modelView);
     vec3 transformedNormal = normalize(normalMatrix * normalize(normal));

@@ -2,9 +2,11 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
+import { perVertexLines } from '../../../geometry/_test/item-vertices.js';
 import { Tensor } from '@molstar/core/math/linear-algebra';
 import { computeMarchingCubesLines, computeMarchingCubesMesh, type MarchingCubesParams } from '../algorithm.js';
 import { createWrappedTensor } from '../../../../repr/volume/util.js';
@@ -76,11 +78,13 @@ function meshSummary(mesh: Mesh) {
 
 function linesSummary(lines: Lines) {
   const { lineCount } = lines;
+  // the per-vertex buffers lines had, from the data per line: the hashes are theirs
+  const v = perVertexLines(lines.lineData.ref.value.array, lineCount);
   return {
     lineCount,
-    starts: hash(lines.startBuffer.ref.value, lineCount * 4 * 3),
-    ends: hash(lines.endBuffer.ref.value, lineCount * 4 * 3),
-    groups: hash(lines.groupBuffer.ref.value, lineCount * 4),
+    starts: hash(v.start, lineCount * 4 * 3),
+    ends: hash(v.end, lineCount * 4 * 3),
+    groups: hash(v.group, lineCount * 4),
   };
 }
 

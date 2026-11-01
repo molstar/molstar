@@ -27,19 +27,30 @@ export const cylinders_frag = `
 precision highp float;
 precision highp int;
 
-#define bumpEnabled
-
 varying mat4 vTransform;
-varying vec3 vStart;
-varying vec3 vEnd;
-varying float vSize;
-varying float vCap;
+// the cylinder's start and size, end and cap, the same at every corner of its box: two flat varyings
+#if __VERSION__ == 100
+    varying vec4 vCylinderStart;
+    varying vec4 vCylinderEnd;
+#else
+    flat in vec4 vCylinderStart;
+    flat in vec4 vCylinderEnd;
+#endif
 
 ${common}
 ${common_frag_params}
 ${color_frag_params}
 ${light_frag_params}
 ${common_clip}
+
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
+    // 1 where the clip objects may cut the cylinder (\`clipSphereClass\` of its bounding sphere): its clip tests skipped if 0
+    #if __VERSION__ == 100
+        varying float vClipSome;
+    #else
+        flat in float vClipSome;
+    #endif
+#endif
 
 #ifdef dSolidInterior
     const bool solidInterior = true;
@@ -60,13 +71,13 @@ bool isCap = false;
         float nearT = - (uNear + cameraRayOrigin.z) / cameraRayDir.z;
         float sNear = frontDepth < 1.0 ? 0.0 : clamp((nearT - frontT) / (t - frontT), 0.0, 1.0);
         #if defined(dClipVariant_pixel) && defined(dClipObjects)
-            float sCap = objectClipped || frontDepth >= 1.0 ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
+            float sCap = vClipSome > 0.5 && (objectClipped || frontDepth >= 1.0) ? clipExit(frontModelPosition / uModelScale, modelPosition / uModelScale, sNear) : sNear;
             if (sCap < 0.0) return false;
         #else
             float sCap = sNear;
         #endif
         if (sCap == sNear && frontDepth >= 1.0) {
-            fragmentDepth = 1.0 - (0.0000002 / vSize);
+            fragmentDepth = 1.0 - (0.0000002 / vCylinderStart.w);
             cameraNormal = -rayDir;
             viewPosition = cameraRayOrigin + nearT * cameraRayDir;
             modelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
@@ -75,7 +86,7 @@ bool isCap = false;
             else if (objectClipped || frontDepth >= 1.0) {
                 modelPosition = mix(frontModelPosition, modelPosition, sCap);
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
-                fragmentDepth = calcDepth(viewPosition) - (0.0000002 / vSize);
+                fragmentDepth = calcDepth(viewPosition) - (0.0000002 / vCylinderStart.w);
                 cameraNormal = -clipNormal(modelPosition / uModelScale);
                 isCap = true;
             }
@@ -86,7 +97,7 @@ bool isCap = false;
     // back-depth pass: move the exit point towards the entry until it is not clipped
     bool solidInteriorBackCap(in vec3 entryPosition, inout vec3 cameraNormal, inout vec3 modelPosition, inout vec3 viewPosition, inout float fragmentDepth) {
         #if defined(dClipVariant_pixel) && defined(dClipObjects)
-            float s = clipExit(modelPosition / uModelScale, entryPosition / uModelScale, 0.0);
+            float s = vClipSome > 0.5 ? clipExit(modelPosition / uModelScale, entryPosition / uModelScale, 0.0) : 0.0;
             if (s < 0.0) return false;
             if (s > 0.0) {
                 modelPosition = mix(modelPosition, entryPosition, s);
@@ -122,8 +133,8 @@ bool CylinderImpostor(
     float h = k1 * k1 - k2 * k0;
     if (h < 0.0) return false;
 
-    bool topCap = (vCap > 0.9 && vCap < 1.1) || vCap >= 2.9;
-    bool bottomCap = (vCap > 1.9 && vCap < 2.1) || vCap >= 2.9;
+    bool topCap = (vCylinderEnd.w > 0.9 && vCylinderEnd.w < 1.1) || vCylinderEnd.w >= 2.9;
+    bool bottomCap = (vCylinderEnd.w > 1.9 && vCylinderEnd.w < 2.1) || vCylinderEnd.w >= 2.9;
 
     #ifdef dSolidInterior
         bool topInterior = !topCap;
@@ -167,7 +178,7 @@ bool CylinderImpostor(
         frontDepth = fragmentDepth;
         frontModelPosition = modelPosition;
         #if defined(dClipVariant_pixel) && defined(dClipObjects)
-            if (clipTest(modelPosition / uModelScale)) {
+            if (vClipSome > 0.5 && clipTest(modelPosition / uModelScale)) {
                 objectClipped = true;
                 fragmentDepth = 2.0;
             }
@@ -190,7 +201,7 @@ bool CylinderImpostor(
                 frontDepth = fragmentDepth;
                 frontModelPosition = modelPosition;
                 #if defined(dClipVariant_pixel) && defined(dClipObjects)
-                    if (clipTest(modelPosition / uModelScale)) {
+                    if (vClipSome > 0.5 && clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = 2.0;
                     }
@@ -219,7 +230,7 @@ bool CylinderImpostor(
                 frontDepth = fragmentDepth;
                 frontModelPosition = modelPosition;
                 #if defined(dClipVariant_pixel) && defined(dClipObjects)
-                    if (clipTest(modelPosition / uModelScale)) {
+                    if (vClipSome > 0.5 && clipTest(modelPosition / uModelScale)) {
                         objectClipped = true;
                         fragmentDepth = 2.0;
                     }
@@ -309,7 +320,7 @@ void main() {
     vec3 modelPosition;
     vec3 viewPosition;
     float fragmentDepth;
-    bool hit = CylinderImpostor(rayOrigin, rayDir, vStart, vEnd, vSize, cameraNormal, interior, modelPosition, viewPosition, fragmentDepth);
+    bool hit = CylinderImpostor(rayOrigin, rayDir, vCylinderStart.xyz, vCylinderEnd.xyz, vCylinderStart.w, cameraNormal, interior, modelPosition, viewPosition, fragmentDepth);
     if (!hit) discard;
 
     if (fragmentDepth < 0.0) discard;
@@ -321,9 +332,11 @@ void main() {
     vec3 vModelPosition = modelPosition;
 
     ${fade_lod}
-    if (!isCap) {
-        ${clip_pixel}
-    }
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        if (!isCap && vClipSome > 0.5) {
+            ${clip_pixel}
+        }
+    #endif
 
     #ifdef dNeedsNormal
         mat3 normalMatrix = adjoint(uView);

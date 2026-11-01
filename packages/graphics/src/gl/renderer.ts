@@ -35,6 +35,11 @@ import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Clip } from '@molstar/core/util/clip';
+import { isDebugMode } from '@molstar/core/util/debug';
+import { createSphereRasterPass, isSphereRasterEligible, type SphereRasterPass } from './compute/sphere-raster-pass.js';
+import type { SpheresValues } from './renderable/spheres.js';
+import { projectSphere } from './project-sphere.js';
+import type { MergedRasterParams } from './renderable/merged-culler.js';
 import {
   BlendState,
   type CullMode,
@@ -86,7 +91,21 @@ interface Renderer {
    * Culls on the GPU (merged render objects, `Renderable.prepareCull`) with the planes of the last `update`: outside of
    * passes (compute), before the passes of the frame that draw with it; others draw the CPU culling's lists
    */
-  prepareCull: (scene: Scene.Group) => void;
+  prepareCull: (scene: Scene.Group, twoPhase?: boolean) => void;
+  /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */
+  readonly cullSecondPending: number;
+  /**
+   * After the opaque pass's first part, no pass open: the second phase of GPU culling against `pyramid`, of the depth so
+   * far, and of the sphere raster; none: left out. Then `renderOpaqueSecond`
+   */
+  prepareCullSecond: (scene: Scene.Group, pyramid: OcclusionPyramid | undefined) => void;
+  /** The opaque pass's second part: what the second phase found, on the first part's target */
+  renderOpaqueSecond: (group: Scene.Group, camera: ICamera) => void;
+  /**
+   * Draws the small opaque spheres of `scene` by the sphere raster (`sphereRaster`, WebGPU with `atomicMinMax64`) for
+   * the next `renderOpaque`, which resolves them; after `update` and `prepareCull`, no pass open (compute)
+   */
+  prepareSphereRaster: (scene: Scene.Group, camera: ICamera) => void;
   /** The objects the last `prepareCull` culled on the GPU */
   readonly gpuCulledCount: number;
   setTime: (time: number) => void;
@@ -211,6 +230,18 @@ export const RendererParams = {
     description:
       'Replay the passes from recordings while they draw the same objects (WebGPU render bundles); objects changing every frame are drawn directly.',
   }),
+  sphereRaster: PD.Select('auto', PD.arrayToOptions(['off', 'auto', 'on', 'only'] as const), {
+    description:
+      'Draw small opaque spheres by compute kernels instead of impostor quads (WebGPU with 64-bit atomics, perspective views). "auto" draws those of objects culled on the GPU (merged, many instances: their instances split), where measured faster; "on" those of every eligible object (unmerged objects split per sphere, their quads drawn all the same: no faster); "only" (for testing) draws all spheres of the eligible objects by the kernels, whatever their size, and none as quads (spheres through the near plane are missing).',
+  }),
+  sphereRasterRadius: PD.Numeric(
+    24,
+    { min: 1, max: 64, step: 1 },
+    {
+      description:
+        'The largest sphere radius on screen, in CSS pixels, the sphere raster draws; larger ones are quads.',
+    },
+  ),
 };
 export type RendererProps = PD.Values<typeof RendererParams>;
 
@@ -559,6 +590,7 @@ namespace Renderer {
     },
     tracing: simplePassDraws('tracing', checkOpaque, OpaqueState, { mode: 'opaque' }),
     opaque: simplePassDraws('color', checkOpaque, OpaqueState, { mode: 'opaque' }),
+    opaqueSecond: { variant: 'color', check: checkOpaque, draws: singleDraw(OpaqueState) } as PassDraws,
     blendedTransparent: createBlendedTransparentPassDraws(false),
     blendedTransparentBackground: createBlendedTransparentPassDraws(true),
     volume: { variant: 'color', select: isDirectVolume, check: checkAll, draws: singleDraw(VolumeState) },
@@ -720,7 +752,6 @@ namespace Renderer {
       uHasEyeCamera: ValueCell.create(false),
       uModelViewEye: ValueCell.create(modelViewEye),
       uInvModelViewEye: ValueCell.create(invModelViewEye),
-      uIsAsymmetricProjection: ValueCell.create(false),
 
       uIsOrtho: ValueCell.create(1),
       uViewOffset: ValueCell.create(viewOffset),
@@ -774,6 +805,18 @@ namespace Renderer {
     };
     const globals = ctx.createGlobalBindings(GlobalUniformSchema, Object.entries(globalUniforms), sharedTexturesList);
 
+    /**
+     * Whether clip objects remove all of `r` within `sphere` (unscaled): with clip objects and no clipping layer
+     * (`DrawFact.ClipCull`), its bounding sphere clipped whole (`Clip.classifySphere`, `clip-culling.md`)
+     */
+    const clipSphere = Sphere3D();
+    const isClippedWhole = (r: GraphicsRenderable, sphere: Sphere3D) => {
+      const values = r.values as { dClipObjects?: ValueCell<boolean>; dClipping?: ValueCell<boolean> };
+      if (!values.dClipObjects?.ref.value || values.dClipping?.ref.value) return false;
+      const objects = (r.values as { clipObjects?: ValueCell<Clip.Objects> }).clipObjects?.ref.value;
+      return !!objects && Clip.classifySphere(objects, sphere) === Clip.SphereClass.All;
+    };
+
     /** also sets `boundingSphere` to the scaled bounding sphere of `r`, and `drawFacts` */
     const isVisible = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
       if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
@@ -789,6 +832,8 @@ namespace Renderer {
       if (!Frustum3D.intersectsSphere3D(frustum, boundingSphere)) {
         return false;
       }
+      // clipped whole (the unscaled sphere: clip objects test model space divided by the model scale)
+      if (isClippedWhole(r, r.values.boundingSphere.ref.value)) return false;
 
       const [minDistance, maxDistance] = r.values.uLod.ref.value;
       if (minDistance !== 0 || maxDistance !== 0) {
@@ -914,6 +959,16 @@ namespace Renderer {
           }
         }
         if (!inside) continue;
+        if ((bits[o + DrawRow.Facts] & DrawFact.ClipCull) !== 0) {
+          Vec3.set(
+            clipSphere.center,
+            floats[o + DrawRow.CenterX],
+            floats[o + DrawRow.CenterY],
+            floats[o + DrawRow.CenterZ],
+          );
+          clipSphere.radius = floats[o + DrawRow.Radius];
+          if (isClippedWhole(table.objects[slot]!, clipSphere)) continue;
+        }
         const minDistance = floats[o + DrawRow.LodMin];
         const maxDistance = floats[o + DrawRow.LodMax];
         if (minDistance !== 0 || maxDistance !== 0) {
@@ -958,14 +1013,29 @@ namespace Renderer {
       }
     };
 
-    /** assumes `isVisible` returned true, which also set `boundingSphere` */
-    const drawObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag, passState: RenderState) => {
+    /**
+     * assumes `isVisible` returned true, which also set `boundingSphere`; `segments`: of an object drawing several, those
+     * to draw (`Renderable.renderSegments`), all where empty
+     */
+    const drawObject = (
+      r: GraphicsRenderable,
+      variant: GraphicsRenderVariant,
+      flag: Flag,
+      passState: RenderState,
+      segments?: readonly number[],
+    ) => {
+      // culled all the same: the views of a frame culled already draw (and raster) by its lists (`getRasterInput`)
       cullObject(r);
+      // the raster draws all its objects' spheres (`sphereRaster` 'only')
+      if (sphereRasterOnly && sphereRasterPass?.isDrawn(r)) return;
+      if (drawingSecond && !r.renderSecond) return;
       const state = getObjectState(drawFacts, variant, flag, passState);
       if (!state) return;
       ctx.setRenderState(state);
 
-      r.render(variant, globals);
+      if (drawingSecond) r.renderSecond!(variant, globals);
+      else if (segments && segments.length > 0) r.renderSegments!(variant, globals, segments);
+      else r.render(variant, globals);
     };
 
     const renderObject = (
@@ -995,10 +1065,11 @@ namespace Renderer {
       variant: GraphicsRenderVariant,
       clipIndex: number,
       passState: RenderState,
+      segments: readonly number[],
     ) => {
       ctx.clear({ stencil: 0 });
       setSolidInteriorPass(2, clipIndex);
-      drawObject(r, variant, Flag.SolidInteriorMark, getSolidInteriorMarkState(passState));
+      drawObject(r, variant, Flag.SolidInteriorMark, getSolidInteriorMarkState(passState), segments);
     };
 
     const renderSolidInteriorFill = (
@@ -1007,15 +1078,16 @@ namespace Renderer {
       mode: SolidInteriorMode,
       clipIndex: number,
       passState: RenderState,
+      segments: readonly number[],
     ) => {
       setSolidInteriorPass(1, clipIndex);
       const { resolve, fill } = getSolidInteriorFillStates(passState, mode);
       if (resolve) {
         // the OIT depth attachment is otherwise unused: resolve the nearest back face, then only draw that one
         ctx.clear({ depth: 0 });
-        drawObject(r, variant, Flag.SolidInteriorFill, resolve);
+        drawObject(r, variant, Flag.SolidInteriorFill, resolve, segments);
       }
-      drawObject(r, variant, Flag.SolidInteriorFill, fill);
+      drawObject(r, variant, Flag.SolidInteriorFill, fill, segments);
     };
 
     const solidInteriorEye = Vec3();
@@ -1030,38 +1102,65 @@ namespace Renderer {
       return d - s.radius < near * (1 - 1e-4) && d + s.radius >= near;
     };
 
-    /** Whether near cuts `r`, by its segments where it draws several: a merged object's sphere spans its members' */
-    const cutsNearObject = (r: GraphicsRenderable) => {
-      const near = globalUniforms.uNear.ref.value;
-      if (!cutsNear(boundingSphere, near)) return false;
-      const spheres = r.getSegmentSpheres?.();
+    const cutsNearSegment = (s: Sphere3D) =>
+      cutsNear(Sphere3D.scaleNX(solidInteriorSphere, s, modelScale), globalUniforms.uNear.ref.value);
+
+    /**
+     * Per cap of the last `getSolidInteriorCaps` (by position), the segments it cuts of an object drawing several (a
+     * merged object, `Renderable.renderSegments`), drawn instead of every member the object draws; empty where it cuts
+     * all or the object draws one
+     */
+    const capSegments: number[][] = [];
+
+    /**
+     * The segments `cuts` (by the segment's sphere, unscaled) into `capSegments[k]` (empty where all, or without
+     * `spheres`); false where none
+     */
+    const setCapSegments = (
+      spheres: readonly Sphere3D[] | undefined,
+      k: number,
+      cuts: (s: Sphere3D, objectIndex: number) => boolean,
+      objectIndex: number,
+    ) => {
+      const segments = (capSegments[k] ??= []);
+      segments.length = 0;
       if (!spheres) return true;
-      for (let i = 0, il = spheres.length; i < il; ++i) {
-        if (cutsNear(Sphere3D.scaleNX(solidInteriorSphere, spheres[i], modelScale), near)) return true;
-      }
-      return false;
+      for (let i = 0, il = spheres.length; i < il; ++i) if (cuts(spheres[i], objectIndex)) segments.push(i);
+      if (segments.length === 0) return false;
+      // whole also where it cuts all while a second phase of GPU culling is to come: its part draws no caps, and the
+      // object's lists hold the first phase's instances only
+      if (segments.length === spheres.length && cullSecondPending === 0) segments.length = 0;
+      return true;
     };
+
+    let clipObjects: Clip.Objects | undefined;
+    const clipsSegment = (s: Sphere3D, objectIndex: number) => Clip.canIntersectSphere(clipObjects!, objectIndex, s);
 
     /**
      * The caps `r` draws in this frame into `out`: -1 for the near plane, the indices of the clip objects that cut it
-     * (camera dependent); assumes `isVisible` returned true, which also set `boundingSphere`
+     * (camera dependent), and per cap the segments it cuts (`capSegments`): a merged object's sphere spans its
+     * members'; assumes `isVisible` returned true, which also set `boundingSphere`
      */
     const getSolidInteriorCaps = (r: GraphicsRenderable, mode: SolidInteriorMode, out: number[]) => {
       out.length = 0;
       const back = mode === 'back';
-      if (!back && cutsNearObject(r)) out.push(-1);
+      const spheres = r.renderSegments ? r.getSegmentSpheres?.() : undefined;
+      if (!back && cutsNear(boundingSphere, globalUniforms.uNear.ref.value)) {
+        if (setCapSegments(spheres, 0, cutsNearSegment, -1)) out.push(-1);
+      }
 
       const clipInfo = r.getClipInfo();
       if (clipInfo && clipInfo.capIndices.length > 0) {
         const { objects, planes, capIndices } = clipInfo;
         Vec3.scale(solidInteriorEye, cameraPosition, 1 / modelScale);
+        clipObjects = objects;
         for (let j = 0, jl = capIndices.length; j < jl; ++j) {
           const i = capIndices[j];
           if (objects.type[i] === Clip.Type.plane) {
             const d = Plane3D.distanceToPoint(planes[i], solidInteriorEye) * modelScale;
             if (back ? d >= -1e-4 : d <= 1e-4) continue;
           }
-          out.push(i);
+          if (setCapSegments(spheres, out.length, clipsSegment, i)) out.push(i);
         }
       }
       return out;
@@ -1077,8 +1176,8 @@ namespace Renderer {
     ) => {
       const caps = getSolidInteriorCaps(r, mode, solidInteriorCapList);
       for (let j = 0, jl = caps.length; j < jl; ++j) {
-        renderSolidInteriorMark(r, variant, caps[j], passState);
-        renderSolidInteriorFill(r, variant, mode, caps[j], passState);
+        renderSolidInteriorMark(r, variant, caps[j], passState, capSegments[j]);
+        renderSolidInteriorFill(r, variant, mode, caps[j], passState, capSegments[j]);
       }
       setSolidInteriorPass(0, -1);
     };
@@ -1108,18 +1207,139 @@ namespace Renderer {
     let updateScale = 1;
     let getOcclusionPyramid: (() => OcclusionPyramid | undefined) | null = null;
     let gpuCulledCount = 0;
-    const prepareCull = (scene: Scene.Group) => {
+    /** the sum of the `recordsVersion`s of the objects of the last `prepareCull`: the draws a recording holds */
+    let cullRecords = 0;
+    let cullSecondPending = 0;
+    /** drawing the opaque pass's second part (`drawObject`) */
+    let drawingSecond = false;
+    const prepareCull = (scene: Scene.Group, twoPhase = false) => {
       gpuCulledCount = 0;
+      cullRecords = 0;
+      cullSecondPending = 0;
       if (updateScale !== 1) return;
       const pyramid = getOcclusionPyramid?.();
       const { renderables } = scene;
       for (let i = 0, il = renderables.length; i < il; ++i) {
-        if (renderables[i].prepareCull?.(cameraPlane, frustum, currentFrame, lodView, pyramid)) gpuCulledCount += 1;
+        const r = renderables[i];
+        if (r.prepareCull?.(cameraPlane, frustum, currentFrame, lodView, pyramid, cullRaster)) gpuCulledCount += 1;
+        cullRecords += r.recordsVersion ?? 0;
+        if (twoPhase && r.needsCullSecond?.(currentFrame)) cullSecondPending += 1;
       }
     };
+    const prepareCullSecond = (scene: Scene.Group, pyramid: OcclusionPyramid | undefined) => {
+      const { renderables } = scene;
+      for (let i = 0, il = renderables.length; i < il; ++i) renderables[i].prepareCullSecond?.(currentFrame, pyramid);
+      if (pyramid) sphereRasterPass?.second();
+      else sphereRasterPass?.skipSecond();
+    };
 
+    let sphereRasterPass: SphereRasterPass | undefined;
+    /**
+     * the sphere raster's split per instance for the GPU culling of the next `prepareCull` (merged objects), from the
+     * camera of the last `update`; undefined where the raster does not draw the view (`prepareSphereRaster`)
+     */
+    let cullRaster: MergedRasterParams | undefined;
+    const getCullRaster = (camera: ICamera): MergedRasterParams | undefined => {
+      if (!isSphereRasterView(camera)) return undefined;
+      const P = camera.projection;
+      return {
+        radius: getSphereRasterRadius(),
+        scale: Math.max(P[0] * viewport.width, P[5] * viewport.height) / 2,
+        near: camera.near,
+      };
+    };
+    /** whether the raster is on and the device has it */
+    const isSphereRasterAvailable = () => p.sphereRaster !== 'off' && !!ctx.compute && ctx.capabilities.atomicMinMax64;
+    /**
+     * whether the raster may draw `r` (`isSphereRasterEligible`); a precompile list's stand-in (`collectSignatures`,
+     * without the values it reads) where it is of spheres and opaque
+     */
+    const isSphereRasterCandidate = (r: GraphicsRenderable) => {
+      const values = r.values as { [k: string]: ValueCell<any> | undefined };
+      if ('dSphereResolve' in values) {
+        // `auto`: objects that can be culled on the GPU only
+        if (p.sphereRaster === 'auto' && !r.getRasterInput) return false;
+        return isSphereRasterEligible(r.values as SpheresValues);
+      }
+      // `auto`: of objects culled on the GPU (unmerged ones never are, their signatures without the flag)
+      if (p.sphereRaster === 'auto' && (r as { gpuCulled?: boolean }).gpuCulled !== true) return false;
+      return values.dGeometryType?.ref.value === 'spheres' && values.uAlpha?.ref.value === 1;
+    };
+    /** whether the raster draws the view: perspective, unscaled, the viewport the whole target */
+    const isSphereRasterView = (camera: ICamera) => {
+      if (!isSphereRasterAvailable()) return false;
+      // the visibility buffer's pixels the fragments'; offsets and crops of a larger frame are the projection's
+      if (camera.state.mode === 'orthographic' || camera.scale !== 1) return false;
+      return viewport.x === 0 && viewport.y === 0;
+    };
+    /** the largest half size in pixels of the target the raster draws */
+    const getSphereRasterRadius = () =>
+      p.sphereRaster === 'only' ? 1e9 : p.sphereRasterRadius * globalUniforms.uPixelRatio.ref.value;
+    /** in the opaque pass with `sphereRaster` 'only': the raster's objects not drawn as impostors */
+    let sphereRasterOnly = false;
+    const sphereRasterModel = Mat4();
+    const sphereRasterModelView = Mat4();
+    const sphereRasterProjection = Mat4();
+    let sphereRasterNear = 0;
+    const sphereRasterCenter = Vec3();
+    const sphereRasterRect = Vec4();
+    /**
+     * the resolve of `r` scissored to its bounding sphere on screen (a pixel's margin), the viewport where the sphere
+     * reaches the near plane; false where it is off screen
+     */
+    const scissorSphereResolve = (r: GraphicsRenderable) => {
+      const { center, radius } = r.values.boundingSphere.ref.value as Sphere3D;
+      const c = Vec3.transformMat4(sphereRasterCenter, center, sphereRasterModelView);
+      const s = radius * Mat4.getMaxScaleOnAxis(sphereRasterModelView);
+      const { x, y, width, height } = viewport;
+      if (-c[2] - s <= sphereRasterNear) {
+        ctx.setScissor(x, y, width, height);
+        return true;
+      }
+      const rect = projectSphere(sphereRasterRect, c, s, sphereRasterProjection);
+      const x0 = Math.max(0, Math.floor(rect[0] * width) - 1);
+      const y0 = Math.max(0, Math.floor(rect[1] * height) - 1);
+      const x1 = Math.min(width, Math.ceil(rect[2] * width) + 1);
+      const y1 = Math.min(height, Math.ceil(rect[3] * height) + 1);
+      if (x1 <= x0 || y1 <= y0) return false;
+      ctx.setScissor(x + x0, y + y0, x1 - x0, y1 - y0);
+      return true;
+    };
+    const prepareSphereRaster = (group: Scene.Group, camera: ICamera) => {
+      sphereRasterPass?.finish();
+      if (!isSphereRasterView(camera)) return;
+      sphereRasterPass ??= createSphereRasterPass(ctx.compute!, ctx.resources);
+      Mat4.scaleUniformly(sphereRasterModel, group.view, camera.scale);
+      Mat4.mul(sphereRasterModelView, camera.view, sphereRasterModel);
+      Mat4.copy(sphereRasterProjection, camera.projection);
+      sphereRasterNear = camera.near;
+      sphereRasterPass.prepare(group.renderables, {
+        modelView: sphereRasterModelView,
+        projection: camera.projection,
+        cameraPlane: globalUniforms.uCameraPlane.ref.value,
+        model: sphereRasterModel,
+        modelScale: camera.scale,
+        near: camera.near,
+        width: viewport.width,
+        height: viewport.height,
+        maxRadius: getSphereRasterRadius(),
+        lod: lodView,
+        pyramid: getOcclusionPyramid?.(),
+        twoPhase: cullSecondPending > 0,
+        cull: { frame: currentFrame, cameraPlane, frustum },
+        culledOnly: p.sphereRaster === 'auto',
+      });
+    };
+
+    let cullRasterLogged = '';
     const update = (camera: ICamera, scene: Scene, frame: Frame) => {
       currentFrame = frame;
+      cullRaster = getCullRaster(camera);
+      if (isDebugMode && p.sphereRaster !== 'off') {
+        const text = `sphere raster culling: ${cullRaster ? JSON.stringify(cullRaster) : 'off for this view'}`;
+        if (text !== cullRasterLogged) console.log(text);
+        cullRasterLogged = text;
+      }
 
       ValueCell.update(globalUniforms.uView, camera.view);
       ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view));
@@ -1179,8 +1399,6 @@ namespace Renderer {
         ValueCell.updateIfChanged(globalUniforms.uInvHeadRotation, Mat4.id);
         ValueCell.update(globalUniforms.uLightDirection, light.direction);
       }
-
-      ValueCell.update(globalUniforms.uIsAsymmetricProjection, camera.isAsymmetricProjection);
     };
 
     const updateInternal = (
@@ -1320,6 +1538,7 @@ namespace Renderer {
       caps: boolean;
       /** `GraphicsContext.drawResourcesVersion` */
       drawResources: number;
+      cullRecords: number;
       count: number;
       slots: Uint32Array;
       programVersions: Uint32Array;
@@ -1339,6 +1558,7 @@ namespace Renderer {
       near: NaN,
       caps: false,
       drawResources: -1,
+      cullRecords: 0,
       count: 0,
       slots: new Uint32Array(0),
       programVersions: new Uint32Array(0),
@@ -1370,6 +1590,7 @@ namespace Renderer {
       snap.near = globalUniforms.uNear.ref.value;
       snap.caps = isCapsDrawn();
       snap.drawResources = ctx.drawResourcesVersion ?? 0;
+      snap.cullRecords = cullRecords;
     };
     /**
      * Whether nothing the walk read changed (the rows and order, values, programs, the view and model scale, the near
@@ -1388,7 +1609,8 @@ namespace Renderer {
       snap.modelScale === modelScale &&
       snap.near === globalUniforms.uNear.ref.value &&
       snap.caps === isCapsDrawn() &&
-      snap.drawResources === (ctx.drawResourcesVersion ?? 0);
+      snap.drawResources === (ctx.drawResourcesVersion ?? 0) &&
+      snap.cullRecords === cullRecords;
 
     const walkCapList: number[] = [];
     /**
@@ -1413,6 +1635,12 @@ namespace Renderer {
         DrawKey.add(key, valuesVersion);
         DrawKey.add(key, caps.length);
         for (let k = 0, kl = caps.length; k < kl; ++k) DrawKey.add(key, caps[k]);
+        // the segments each cap draws (`capSegments`): a recording replays while the same are cut
+        for (let k = 0, kl = caps.length; k < kl; ++k) {
+          const segments = capSegments[k];
+          DrawKey.add(key, segments.length);
+          for (let i = 0, il = segments.length; i < il; ++i) DrawKey.add(key, segments[i]);
+        }
         return key.length;
       }
       const v = key.values;
@@ -1423,7 +1651,14 @@ namespace Renderer {
       for (let k = 0, kl = caps.length; k < kl; ++k) {
         if (v[c + 4 + k] !== caps[k]) return -1;
       }
-      return c + 4 + caps.length;
+      let o = c + 4 + caps.length;
+      for (let k = 0, kl = caps.length; k < kl; ++k) {
+        const segments = capSegments[k];
+        if (o + 1 + segments.length > key.length || v[o] !== segments.length) return -1;
+        for (let i = 0, il = segments.length; i < il; ++i) if (v[o + 1 + i] !== segments[i]) return -1;
+        o += 1 + segments.length;
+      }
+      return o;
     };
 
     /**
@@ -1459,8 +1694,9 @@ namespace Renderer {
         const r = objects[slot]!;
         setRowBoundingSphere(table, slot);
         const objectDraws = draws(facts);
-        if (objectDraws.length > 0) {
-          cullObject(r);
+        // as `drawObject`: culled, the raster's objects left out (`sphereRaster` 'only')
+        if (objectDraws.length > 0) cullObject(r);
+        if (objectDraws.length > 0 && !(sphereRasterOnly && sphereRasterPass?.isDrawn(r))) {
           const { programVersion, drawVersion } = r;
           const valuesVersion = valuesVersions[slot];
           for (let j = 0, jl = objectDraws.length; j < jl; ++j) {
@@ -1726,8 +1962,29 @@ namespace Renderer {
      */
     const isDrawnDirectly = (chunk: Chunk) =>
       chunk.outcome === 'recorded' || chunk.outcome === 'direct' || chunk.rowCount <= FewChunkRows;
+    /**
+     * Whether `part` holds an object culled on the GPU while it moves: the records its lists hold change from frame to
+     * frame (a recording per frame would cost more than it saves), and multi-draw indirect, where the device has it, is
+     * not in bundles; so drawn directly. At rest they hold those with instances (`recordsCompact`), recorded as other
+     * draws
+     */
+    const isMultiDrawn = (table: DrawTable, part: PassPart) => {
+      if (gpuCulledCount === 0) return false;
+      const { order, objects } = table;
+      for (let k = part.begin, kl = Math.min(part.end, table.count); k < kl; ++k) {
+        if (objects[order[k]]?.recordsCompact === false) return true;
+      }
+      return false;
+    };
     const drawChunkOnce = (pass: PassDraws, table: DrawTable, chunk: Chunk): ChunkOutcome => {
       const { snapshot, list, part } = chunk;
+      if (part.objects && isMultiDrawn(table, part)) {
+        renderPassRows(pass, table, part);
+        if (snapshot.valid) list.reset();
+        snapshot.valid = false;
+        setChunkInputs(chunk, table);
+        return 'direct';
+      }
       if (part.objects) {
         const submit = ctx.submitCount ?? 0;
         const current = isChunkInputsCurrent(chunk, table);
@@ -1873,8 +2130,8 @@ namespace Renderer {
      */
     const signatureStandIns = new WeakMap<ProgramItem, Map<string, GraphicsRenderable[]>>();
     const getSignatureStandIns = (signature: ObjectSignature, item: ProgramItem) => {
-      const { opaque, transparent, emissive } = signature;
-      const flags = `${opaque}|${transparent}|${emissive}`;
+      const { opaque, transparent, emissive, gpuCulled } = signature;
+      const flags = `${opaque}|${transparent}|${emissive}|${gpuCulled}`;
       let cache = signatureStandIns.get(item);
       if (!cache) signatureStandIns.set(item, (cache = new Map()));
       let standIns = cache.get(flags);
@@ -1907,6 +2164,8 @@ namespace Renderer {
             values,
             renderItem: item,
             state: { disposed: false, colorOnly: false },
+            // whether the sphere raster's `auto` may draw it (`isSphereRasterCandidate`)
+            gpuCulled,
           } as unknown as GraphicsRenderable;
         });
         cache.set(flags, standIns);
@@ -1937,11 +2196,16 @@ namespace Renderer {
         const state = getObjectState(getObjectFacts(r), variant, flag, passState);
         if (state) requests.push({ item: r.renderItem, variant, state, target });
       };
+      // the opaque pass with the raster on: the resolves of its objects (`renderOpaque`), drawn before the impostors
+      const resolves = pass.name === 'opaque' && isSphereRasterAvailable();
       for (const r of renderables) {
         const facts = getObjectFacts(r);
         const state = getDrawState(r.state);
         if (r.state.disposed || (select && !select(facts, state)) || (!all && !check(facts, state))) continue;
         for (const { flag, passState } of draws(facts)) request(r, flag, passState);
+        if (resolves && isSphereRasterCandidate(r)) {
+          requests.push({ item: r.renderItem, variant: 'color', state: OpaqueState, target, define: 'dSphereResolve' });
+        }
         if (caps && capsDrawn && hasSolidInteriorCap(facts) && (all || caps.check(facts, state))) {
           request(r, Flag.SolidInteriorMark, getSolidInteriorMarkState(caps.passState));
           const { resolve, fill } = getSolidInteriorFillStates(caps.passState, caps.mode);
@@ -2031,7 +2295,38 @@ namespace Renderer {
 
     const renderOpaque = (group: Scene.Group, camera: ICamera) => {
       updateInternal(group, camera, null, null, Mask.Opaque, false);
+      // the raster's spheres first, the impostors leave them out (`prepareSphereRaster`)
+      if (sphereRasterPass?.active) {
+        ctx.setRenderState(OpaqueState);
+        ctx.stats.sphereRasterResolves += sphereRasterPass.resolve(globals, scissorSphereResolve);
+        ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
+      }
+      // the objects' raster values change per view (set by `prepareSphereRaster`, reset by `finish`): their draws are
+      // walked and their data flushed before a recording replays (`flushDataChanges`)
+      sphereRasterOnly = p.sphereRaster === 'only';
       drawPass(PassDraws.opaque, group);
+      sphereRasterOnly = false;
+      // the second part draws them too
+      if (cullSecondPending === 0) sphereRasterPass?.finish();
+    };
+
+    const renderOpaqueSecond = (group: Scene.Group, camera: ICamera) => {
+      updateInternal(group, camera, null, null, Mask.Opaque, false);
+      // the pyramid's passes set theirs
+      ctx.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+      ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
+      if (sphereRasterPass?.active) {
+        ctx.setRenderState(OpaqueState);
+        ctx.stats.sphereRasterResolves += sphereRasterPass.resolve(globals, scissorSphereResolve);
+        ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
+      }
+      sphereRasterOnly = p.sphereRaster === 'only';
+      drawingSecond = true;
+      renderPass(PassDraws.opaqueSecond, group);
+      drawingSecond = false;
+      sphereRasterOnly = false;
+      sphereRasterPass?.finish();
+      cullSecondPending = 0;
     };
 
     const renderBlendedTransparent = (group: Scene.Group, camera: ICamera) => {
@@ -2084,6 +2379,12 @@ namespace Renderer {
       },
       update,
       prepareCull,
+      prepareSphereRaster,
+      get cullSecondPending() {
+        return cullSecondPending;
+      },
+      prepareCullSecond,
+      renderOpaqueSecond,
       get gpuCulledCount() {
         return gpuCulledCount;
       },
@@ -2127,6 +2428,14 @@ namespace Renderer {
           p.drawLists = props.drawLists;
           resetDrawLists();
         }
+        if (props.sphereRaster !== undefined && props.sphereRaster !== p.sphereRaster) {
+          p.sphereRaster = props.sphereRaster;
+          if (p.sphereRaster === 'off') {
+            sphereRasterPass?.destroy();
+            sphereRasterPass = undefined;
+          }
+        }
+        if (props.sphereRasterRadius !== undefined) p.sphereRasterRadius = props.sphereRasterRadius;
 
         if (props.colorMarker !== undefined && props.colorMarker !== p.colorMarker) {
           p.colorMarker = props.colorMarker;
@@ -2257,6 +2566,7 @@ namespace Renderer {
         return globalUniforms.uAmbientColor.ref.value;
       },
       dispose: () => {
+        sphereRasterPass?.destroy();
         globals.destroy();
         if (emptyDepthTexture !== emptyDepthAlphaTexture) emptyDepthTexture.destroy();
         emptyDepthAlphaTexture.destroy();

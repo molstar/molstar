@@ -25,6 +25,8 @@ import { Clip } from '@molstar/core/util/clip';
 import type { DrawIndirect, StorageBuffer, StorageBufferSpec } from '../compute.js';
 import { convertDepthRange, type DepthRangeConversion, type DepthRangeTag } from '../depth-range.js';
 import { flipWindowRects, type WindowRectTag } from '../window-rect.js';
+import { affineRowsCell, AffineRowsItemSize } from '../affine-rows.js';
+import { octNormalsCell } from '../oct-normals.js';
 import type { DataArray } from './util.js';
 
 export type ValueKindType = {
@@ -36,6 +38,8 @@ export type ValueKindType = {
 
   m4: Mat4;
   float32: Float32Array;
+  /** unit vectors, three floats each on the CPU (`oct-normals.ts`) */
+  oct16: Float32Array;
   uint32: Uint32Array;
   sphere: Sphere3D;
   instanceGrid: InstanceGrid;
@@ -82,7 +86,15 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues, 
   Object.keys(schema).forEach((k) => {
     if (schema[k].type === 'storage-buffer' && values[k] !== undefined) storageBufferValues[k] = values[k];
     const spec = schema[k];
-    if (spec.type === 'attribute') attributeValues[k] = values[k];
+    // affine transforms as their rows on the GPU (`affine-rows.ts`), unit normals encoded (`oct-normals.ts`)
+    if (spec.type === 'attribute') {
+      attributeValues[k] =
+        spec.itemSize === AffineRowsItemSize
+          ? affineRowsCell(values[k])
+          : spec.kind === 'oct16'
+            ? octNormalsCell(values[k])
+            : values[k];
+    }
     if (spec.type === 'define') defineValues[k] = values[k];
     if (spec.type === 'data' && values[k] !== undefined) dataValues[k] = values[k];
     // check if k exists in values to exclude global textures
@@ -405,7 +417,6 @@ export const GlobalUniformSchema = {
   uInvModelViewProjection: { ...GlobalUniformSpec('m4'), depthRange: 'inverse' as const },
   uHasHeadRotation: GlobalUniformSpec('b'),
   uInvHeadRotation: GlobalUniformSpec('m4'),
-  uIsAsymmetricProjection: GlobalUniformSpec('b'),
   uHasEyeCamera: GlobalUniformSpec('b'),
   uModelViewEye: GlobalUniformSpec('m4'),
   uInvModelViewEye: GlobalUniformSpec('m4'),
@@ -499,17 +510,16 @@ export type InternalValues = Values<InternalSchema>;
  */
 export const SegmentSchema = {
   /**
-   * per-instance segment data:
-   * x: segment groupCount,
-   * y: groupInstance texel offset (base - instanceBase * groupCount),
-   * z: group texel offset
+   * per instance its segment's (member's) x: groupCount, y: groupInstance offset (base - instanceBase * groupCount),
+   * z: group offset, read by every color, marker and layer index; w: the segment's index, its elements of `tSegment`
    */
-  aSegment: AttributeSpec('float32', 3, 1, ['dSegmented']),
-  /** per-instance invariant bounding sphere (xyz: center, w: radius) of the segment */
-  aSegmentSphere: AttributeSpec('float32', 4, 1, ['dSegmented']),
-  /** per-instance, per-lod-level radius scale (see spheres' `lodLevels`), duplicated across a segment's instances */
-  aSegmentLod: AttributeSpec('float32', 4, 1, ['dSegmented']),
-  /** index of the lod level currently being drawn, selects a component of `aSegmentLod` */
+  aSegment: AttributeSpec('float32', 4, 1, ['dSegmented']),
+  /**
+   * per segment two elements, read by `aSegment.w` where needed (the shaders' `aSegmentSphere`, `aSegmentLod`): the
+   * invariant bounding sphere (xyz: center, w: radius); the per-lod-level radius scales (see spheres' `lodLevels`)
+   */
+  tSegment: DataSpec('rgba32f', ['dSegmented']),
+  /** index of the lod level currently being drawn, selects a component of the segment's level scales */
   uLodLevel: DrawUniformSpec('i'),
   dSegmented: DefineSpec('boolean'),
 } as const;
@@ -709,9 +719,10 @@ export const BaseSchema = {
   aInstance: AttributeSpec('float32', 1, 1),
   /**
    * final per-instance transform calculated for instance `i` as
-   * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
+   * `aTransform[i] = matrix * transform[i] * extraTransform[i]`; a `Mat4` per instance on the CPU, its first three rows
+   * on the GPU (affine, `affine-rows.ts`)
    */
-  aTransform: AttributeSpec('float32', 16, 1),
+  aTransform: AttributeSpec('float32', 12, 1),
   /** vertex index, emulates `gl_VertexID`; the render item fills it when used */
   aVertex: AttributeSpec('float32', 1, 0, ['emulateVertexId']),
 
@@ -731,6 +742,8 @@ export const BaseSchema = {
   uInvariantBoundingSphere: ObjectUniformSpec('v4'),
   /** overridden per lod level via `MultiDrawBaseData.uniforms` */
   uLod: DrawUniformSpec('v4'),
+  /** whether the dithered fade at the object's lod distances is compiled (its `lod` min or max not 0) */
+  dLodFade: DefineSpec('boolean'),
 
   drawCount: ValueSpec('number'),
   instanceCount: ValueSpec('number'),
@@ -747,7 +760,7 @@ export const BaseSchema = {
   matrix: ValueSpec('m4'),
   /** base per-instance transform, see aTransform */
   transform: ValueSpec('float32'),
-  /** additional per-instance transform, see aTransform */
+  /** additional per-instance transform, see aTransform; empty until set */
   extraTransform: ValueSpec('float32'),
   /** whether extraTransform is used, see aTransform */
   hasExtraTransform: ValueSpec('boolean'),
@@ -779,6 +792,10 @@ export type InteriorSchema = typeof InteriorSchema;
 export type InteriorValues = Values<InteriorSchema>;
 
 export const AnimationSchema = {
+  /** whether the wiggle animation's noise is compiled (its amplitude above 0; the wiggle layer's `dWiggle` too) */
+  dWiggleAnimation: DefineSpec('boolean'),
+  /** whether the tumble animation's noise is compiled (its amplitude above 0) */
+  dTumbleAnimation: DefineSpec('boolean'),
   uWiggleSpeed: MaterialUniformSpec('f'),
   uWiggleAmplitude: MaterialUniformSpec('f'),
   uWiggleFrequency: MaterialUniformSpec('f'),

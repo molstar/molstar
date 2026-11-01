@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -73,17 +73,19 @@ export function createRenderObject<G extends Geometry>(shape: Shape<G>, props: P
 const sphereHelper = new CentroidHelper(),
   tmpPos = Vec3.zero();
 
+/** `indexScale`: floats of `positions` per index of `mapping` (3; 1 where the indices are offsets, `tPositionGroup`) */
 function sphereHelperInclude(
   groups: ShapeGroup.Loci['groups'],
   mapping: GroupMapping,
   positions: Float32Array,
   transforms: Mat4[],
+  indexScale = 3,
 ) {
   const { indices, offsets } = mapping;
   for (const { ids, instance } of groups) {
     OrderedSet.forEach(ids, (v) => {
       for (let i = offsets[v], il = offsets[v + 1]; i < il; ++i) {
-        Vec3.fromArray(tmpPos, positions, indices[i] * 3);
+        Vec3.fromArray(tmpPos, positions, indices[i] * indexScale);
         Vec3.transformMat4(tmpPos, tmpPos, transforms[instance]);
         sphereHelper.includeStep(tmpPos);
       }
@@ -96,12 +98,13 @@ function sphereHelperRadius(
   mapping: GroupMapping,
   positions: Float32Array,
   transforms: Mat4[],
+  indexScale = 3,
 ) {
   const { indices, offsets } = mapping;
   for (const { ids, instance } of groups) {
     OrderedSet.forEach(ids, (v) => {
       for (let i = offsets[v], il = offsets[v + 1]; i < il; ++i) {
-        Vec3.fromArray(tmpPos, positions, indices[i] * 3);
+        Vec3.fromArray(tmpPos, positions, indices[i] * indexScale);
         Vec3.transformMat4(tmpPos, tmpPos, transforms[instance]);
         sphereHelper.radiusStep(tmpPos);
       }
@@ -116,24 +119,35 @@ export function getGroupBoundingSphere(loci: ShapeGroup.Loci, boundingSphere?: S
   let padding = 0;
   const geometry = loci.shape.geometry as Geometry;
   const { transforms } = loci.shape;
-  if (geometry.kind === 'mesh' || geometry.kind === 'points') {
-    const positions = geometry.kind === 'mesh' ? geometry.vertexBuffer.ref.value : geometry.centerBuffer.ref.value;
+  if (geometry.kind === 'mesh') {
+    const positions = geometry.vertexBuffer.ref.value;
     sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms);
     sphereHelper.finishedIncludeStep();
     sphereHelperRadius(loci.groups, geometry.groupMapping, positions, transforms);
+  } else if (geometry.kind === 'points') {
+    // the mapping's indices are offsets into the position groups
+    const positions = geometry.positionGroup.ref.value.array;
+    sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms, 1);
+    sphereHelper.finishedIncludeStep();
+    sphereHelperRadius(loci.groups, geometry.groupMapping, positions, transforms, 1);
   } else if (geometry.kind === 'lines') {
-    const start = geometry.startBuffer.ref.value,
-      end = geometry.endBuffer.ref.value;
-    sphereHelperInclude(loci.groups, geometry.groupMapping, start, transforms);
-    sphereHelperInclude(loci.groups, geometry.groupMapping, end, transforms);
+    // the mapping's indices are offsets into the line data: the start there, the end 4 floats after
+    const data = geometry.lineData.ref.value.array;
+    const start = data,
+      end = data.subarray(4);
+    sphereHelperInclude(loci.groups, geometry.groupMapping, start, transforms, 1);
+    sphereHelperInclude(loci.groups, geometry.groupMapping, end, transforms, 1);
     sphereHelper.finishedIncludeStep();
-    sphereHelperRadius(loci.groups, geometry.groupMapping, start, transforms);
-    sphereHelperRadius(loci.groups, geometry.groupMapping, end, transforms);
+    sphereHelperRadius(loci.groups, geometry.groupMapping, start, transforms, 1);
+    sphereHelperRadius(loci.groups, geometry.groupMapping, end, transforms, 1);
   } else if (geometry.kind === 'spheres' || geometry.kind === 'text') {
-    const positions = geometry.centerBuffer.ref.value;
-    sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms);
+    // the mappings' indices are offsets into the position groups and the text data (the label's position there)
+    const positions =
+      geometry.kind === 'spheres' ? geometry.positionGroup.ref.value.array : geometry.textData.ref.value.array;
+    const indexScale = 1;
+    sphereHelperInclude(loci.groups, geometry.groupMapping, positions, transforms, indexScale);
     sphereHelper.finishedIncludeStep();
-    sphereHelperRadius(loci.groups, geometry.groupMapping, positions, transforms);
+    sphereHelperRadius(loci.groups, geometry.groupMapping, positions, transforms, indexScale);
     for (const { ids, instance } of loci.groups)
       OrderedSet.forEach(ids, (v) => {
         const value = loci.shape.getSize(v, instance);

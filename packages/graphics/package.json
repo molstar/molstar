@@ -18,6 +18,7 @@
     "./formats/shape/_test/*": null,
     "./geo/_test/*": null,
     "./geo/geometry/_test/*": null,
+    "./geo/geometry/direct-volume/_test/*": null,
     "./geo/geometry/mesh/_test/*": null,
     "./geo/geometry/text/_test/*": null,
     "./geo/geometry/texture-mesh/_test/*": null,

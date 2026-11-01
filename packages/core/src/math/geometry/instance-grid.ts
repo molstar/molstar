@@ -60,7 +60,41 @@ export function createEmptyInstanceGrid(): InstanceGrid {
   };
 }
 
+/** The offsets of one cell or batch of one instance, and the cell of one batch: read only, shared by all */
+const SingleOffsets = new Uint32Array([0, 1]);
+const SingleBatchCell = new Uint32Array([0]);
+
+/**
+ * The grid of a single instance, as `calcInstanceGrid` computes it (a cell and a batch, both the instance's transformed
+ * sphere with the invariant radius) without the grid lookups: three arrays of its own, as objects of one instance are
+ * many (a unit each)
+ */
+function calcSingleInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
+  const { instance, transform, invariantBoundingSphere } = instanceData;
+  const spheres = new Float32Array(4);
+  const v = v3transformMat4Offset(Vec3(), invariantBoundingSphere.center, transform, 0, 0, 0);
+  spheres[0] = v[0];
+  spheres[1] = v[1];
+  spheres[2] = v[2];
+  spheres[3] = invariantBoundingSphere.radius;
+  return {
+    cellSize,
+    cellCount: 1,
+    cellOffsets: SingleOffsets,
+    cellSpheres: spheres,
+    cellTransform: transform.slice(0, 16),
+    cellInstance: new Float32Array([instance[0]]),
+
+    batchSize,
+    batchCount: 1,
+    batchOffsets: SingleOffsets,
+    batchSpheres: spheres,
+    batchCell: SingleBatchCell,
+  };
+}
+
 export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
+  if (instanceData.instanceCount === 1) return calcSingleInstanceGrid(instanceData, cellSize, batchSize);
   const bottomGrid = calcBottomGrid(instanceData, cellSize);
   const topGrid = calcTopGrid(bottomGrid, batchSize);
 

@@ -12,7 +12,8 @@ import { type RenderableSchema, UniformSpec } from '../renderable/schema.js';
  * (group, instance or vertex), WebGL lays them out in data textures. `rgba8` one `u32` per element, `r8` four elements
  * per `u32`, `rgba32f` four `u32` (the floats' bits), the formats of their specs; the arrays are the layers'
  * `DataArray`s, element `i` at the same index. The positions and groups of spheres and points (`tPositionGroup`, one
- * element per item) are a layer too
+ * element per item) the cylinders' data (`tCylinder`, three per cylinder), the lines' (`tLine`, two per line) and the text's (`tText`,
+ * four per item) are layers too, and so is merged items' segment data (`tSegment`, two per segment)
  */
 export const DataLayers = {
   tColor: 'rgba8',
@@ -25,6 +26,10 @@ export const DataLayers = {
   tClipping: 'r8',
   tWiggle: 'r8',
   tPositionGroup: 'rgba32f',
+  tCylinder: 'rgba32f',
+  tSegment: 'rgba32f',
+  tLine: 'rgba32f',
+  tText: 'rgba32f',
 } as const;
 export type DataLayer = keyof typeof DataLayers;
 /** Bytes per element of the encodings of `DataLayers` */

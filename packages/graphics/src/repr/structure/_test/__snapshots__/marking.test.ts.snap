@@ -1131,7 +1131,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:d480735d",
+      "vertexInstance:33de48bf",
       "clear",
       "clear",
     ],
@@ -1153,13 +1153,13 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "carbons": {
     "overpaint": [
-      "vertexInstance:8c602d1",
-      "vertexInstance:79e319d",
+      "vertexInstance:cd89e73",
+      "vertexInstance:5e9619a3",
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:68cfae07",
-      "vertexInstance:79e319d",
+      "vertexInstance:349d31af",
+      "vertexInstance:5e9619a3",
       "clear",
     ],
     "overpaint cleared": [
@@ -1168,8 +1168,8 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "vertexInstance:c5742ab5 0.3136/0.4980",
-      "vertexInstance:ab8d7d26 0.4528/0.4980",
+      "vertexInstance:22f4489a 0.3136/0.4980",
+      "vertexInstance:71cab385 0.4528/0.4980",
       "clear 0.0000/1.0000",
     ],
     "transparency cleared": [
@@ -1185,7 +1185,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:d480735d",
+      "vertexInstance:33de48bf",
       "clear",
       "clear",
     ],
@@ -1207,12 +1207,12 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "one chain": {
     "overpaint": [
-      "vertexInstance:721e1b23",
+      "vertexInstance:2277c6bf",
       "clear",
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:6a7affd6",
+      "vertexInstance:2c7389c0",
       "clear",
       "clear",
     ],
@@ -1222,7 +1222,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "vertexInstance:6a9b8e6 0.0623/0.4980",
+      "vertexInstance:e795f65c 0.0623/0.4980",
       "clear 0.0000/1.0000",
       "clear 0.0000/1.0000",
     ],
@@ -1234,12 +1234,12 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "scattered residues": {
     "overpaint": [
-      "vertexInstance:cd8af14d",
+      "vertexInstance:da118edb",
       "vertexInstance:7edcdf85",
       "vertexInstance:d48dcaa5",
     ],
     "overpaint + other": [
-      "vertexInstance:7b95fca7",
+      "vertexInstance:39d8577f",
       "vertexInstance:7edcdf85",
       "vertexInstance:d48dcaa5",
     ],
@@ -1249,7 +1249,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "vertexInstance:e884917 0.0931/0.4980",
+      "vertexInstance:eec9e1a9 0.0931/0.4980",
       "vertexInstance:fbce0225 0.4980/0.4980",
       "vertexInstance:19d9a975 0.4980/0.4980",
     ],
@@ -1266,7 +1266,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "vertexInstance:d48dcaa5",
     ],
     "overpaint + other": [
-      "vertexInstance:82c6b8f4",
+      "vertexInstance:8e4e842e",
       "vertexInstance:7edcdf85",
       "vertexInstance:d48dcaa5",
     ],
@@ -1298,7 +1298,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:f2bee991",
+      "vertexInstance:b3374423",
       "clear",
       "clear",
     ],
@@ -1320,13 +1320,13 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "carbons": {
     "overpaint": [
-      "vertexInstance:7e9a3839",
-      "vertexInstance:13ac8f35",
+      "vertexInstance:2924b2b9",
+      "vertexInstance:f16379e7",
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:fb791755",
-      "vertexInstance:13ac8f35",
+      "vertexInstance:81a87ffb",
+      "vertexInstance:f16379e7",
       "clear",
     ],
     "overpaint cleared": [
@@ -1335,8 +1335,8 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "vertexInstance:26609769 0.3136/0.4980",
-      "vertexInstance:616b04af 0.4528/0.4980",
+      "vertexInstance:10162521 0.3136/0.4980",
+      "vertexInstance:e06027de 0.4528/0.4980",
       "clear 0.0000/1.0000",
     ],
     "transparency cleared": [
@@ -1352,7 +1352,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:f2bee991",
+      "vertexInstance:b3374423",
       "clear",
       "clear",
     ],
@@ -1379,7 +1379,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "clear",
     ],
     "overpaint + other": [
-      "vertexInstance:8367658c",
+      "vertexInstance:2cb33851",
       "clear",
       "clear",
     ],
@@ -1401,12 +1401,12 @@ exports[`representation marking and layers > applies layers on gaussian surface 
   },
   "scattered residues": {
     "overpaint": [
-      "vertexInstance:ba21cb4b",
+      "vertexInstance:9eeb575b",
       "vertexInstance:e228b475",
       "vertexInstance:3455cb35",
     ],
     "overpaint + other": [
-      "vertexInstance:520171fa",
+      "vertexInstance:9c7e4e5d",
       "vertexInstance:e228b475",
       "vertexInstance:3455cb35",
     ],
@@ -1416,7 +1416,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "off",
     ],
     "transparency": [
-      "vertexInstance:d29bba78 0.0931/0.4980",
+      "vertexInstance:bcf1d1af 0.0931/0.4980",
       "vertexInstance:35fbd2bd 0.4980/0.4980",
       "vertexInstance:253d59d 0.4980/0.4980",
     ],
@@ -1433,7 +1433,7 @@ exports[`representation marking and layers > applies layers on gaussian surface 
       "vertexInstance:3455cb35",
     ],
     "overpaint + other": [
-      "vertexInstance:8367658c",
+      "vertexInstance:2cb33851",
       "vertexInstance:e228b475",
       "vertexInstance:3455cb35",
     ],

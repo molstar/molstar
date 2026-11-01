@@ -19,7 +19,8 @@ import {
 } from '../uniform-layout.js';
 import { getShaderDeclarations } from './shader-declarations.js';
 import { type AttributeBuffers, bindAttributeBuffers, getAttribType } from './buffer.js';
-import { type AttributeLayout, getAttributeLayout } from '../attribute-layout.js';
+import { type AttributeLayout, getAttributeLayout, getAttributeLocationNames } from '../attribute-layout.js';
+import { AffineRowsItemSize } from '../affine-rows.js';
 import { asGLTexture, type GLTexture, type TextureId } from './texture.js';
 import { isDataPageTexture } from './data-pages.js';
 import { isNullTexture, type Texture, type Textures } from '../texture.js';
@@ -118,7 +119,10 @@ function checkActiveAttributes(
       if (name === 'gl_VertexID') continue; // WebGL2 built-in
       if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
       if (name === 'gl_ViewID_OVR') continue; // OVR_multiview2 built-in
-      const spec = schema[name];
+      // the rows of an affine transform (`affine-rows.ts`) by their attribute
+      const row = /^(\w+)[0-2]$/.exec(name);
+      const rowSpec = row ? schema[row[1]] : undefined;
+      const spec = rowSpec?.type === 'attribute' && rowSpec.itemSize === AffineRowsItemSize ? rowSpec : schema[name];
       if (spec === undefined) {
         throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`);
       }
@@ -296,7 +300,7 @@ function checkTextureBinding(gl: GLRenderingContext, name: string, texture: GLTe
 
 /** active attributes must be at their fixed location, see `getAttributeLayout` */
 function checkAttributeLocations(gl: GLRenderingContext, program: WebGLProgram, layout: AttributeLayout) {
-  for (const { name, location } of layout.entries) {
+  for (const [name, location] of layout.entries.flatMap(getAttributeLocationNames)) {
     const actual = gl.getAttribLocation(program, name);
     if (actual !== -1 && actual !== location) {
       throw new Error(`attribute '${name}' is at location ${actual}, expected ${location}`);
@@ -410,20 +414,16 @@ export function createProgram(
 ): Program {
   const { defineValues, shaderCode: _shaderCode, schema } = props;
 
-  const program = getProgram(gl);
   const programId = getNextProgramId();
   const variant = normalizeVariant(defineValues.dRenderVariant.ref.value);
 
-  const shaderCode = addShaderDefines(
-    gl,
-    extensions,
-    parameters,
-    defineValues,
-    _shaderCode,
-    getShaderDeclarations(schema, isWebGL2(gl), getDefineValuesLookup(defineValues), useBlocks),
-  );
-  const vertShader = getShader('vert', shaderCode.vert);
-  const fragShader = getShader('frag', shaderCode.frag);
+  // the sources, shaders and GL program are created on `link`, not here: the variants no frame or interaction links
+  // (emissive, tracing, depth without the props asking) are never compiled, and the compiles a frame waits for don't
+  // share the compiler (parallel compile) with those of variants created alongside
+  let program: WebGLProgram;
+  let shaderCode: GlslSources;
+  let vertShader: Shader | undefined;
+  let fragShader: Shader | undefined;
 
   const attributeLayout = getAttributeLayout(schema);
   if (attributeLayout.size > parameters.maxVertexAttribs) {
@@ -469,10 +469,21 @@ export function createProgram(
   let destroyed = false;
 
   function link() {
+    shaderCode = addShaderDefines(
+      gl,
+      extensions,
+      parameters,
+      defineValues,
+      _shaderCode,
+      getShaderDeclarations(schema, isWebGL2(gl), getDefineValuesLookup(defineValues), useBlocks),
+    );
+    vertShader = getShader('vert', shaderCode.vert);
+    fragShader = getShader('frag', shaderCode.frag);
+    program = getProgram(gl);
     vertShader.attach(program);
     fragShader.attach(program);
-    for (const { name, location } of attributeLayout.entries) {
-      gl.bindAttribLocation(program, location, name);
+    for (const entry of attributeLayout.entries) {
+      for (const [name, location] of getAttributeLocationNames(entry)) gl.bindAttribLocation(program, location, name);
     }
     gl.linkProgram(program);
     if (isDebugMode) {
@@ -496,8 +507,10 @@ export function createProgram(
   function finalize() {
     locations = getLocations(gl, program, schema, useBlocks);
     activeAttributes = new Set();
-    for (const { name } of attributeLayout.entries) {
-      if (gl.getAttribLocation(program, name) !== -1) activeAttributes.add(name);
+    for (const entry of attributeLayout.entries) {
+      for (const [name] of getAttributeLocationNames(entry)) {
+        if (gl.getAttribLocation(program, name) !== -1) activeAttributes.add(entry.name);
+      }
     }
     uniformSetters = getUniformSetters(schema);
     setTextureUnits(getShaderDefineLookup(shaderCode));
@@ -642,9 +655,10 @@ export function createProgram(
 
     destroy: () => {
       if (destroyed) return;
-      vertShader.destroy();
-      fragShader.destroy();
-      gl.deleteProgram(program);
+      // what `link` created
+      vertShader?.destroy();
+      fragShader?.destroy();
+      if (linked) gl.deleteProgram(program);
       destroyed = true;
     },
   };

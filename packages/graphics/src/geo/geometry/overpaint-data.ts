@@ -8,8 +8,8 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import { Color } from '@molstar/core/util/color';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
-import { getLayerTypeDefine, type LayerType } from './layer-type.js';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
 
 export type OverpaintType = LayerType;
 
@@ -67,10 +67,10 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
       tOverpaint: ValueCell.create(overpaint),
       dOverpaint: ValueCell.create(count > 0),
 
-      tOverpaintGrid: ValueCell.create(createNullTexture()),
-      uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uOverpaintGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tOverpaintGrid: ValueCell.create(NoLayerGrid.texture),
+      uOverpaintGridDim: ValueCell.create(NoLayerGrid.dim),
+      uOverpaintGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uOverpaintGridTransform: ValueCell.create(NoLayerGrid.transform),
       overpaintType: ValueCell.create<string>(type),
       dOverpaintType: ValueCell.create(getLayerTypeDefine(type)),
       uOverpaintStrength: ValueCell.create(1),
@@ -88,10 +88,10 @@ export function createEmptyOverpaint(overpaintData?: OverpaintData): OverpaintDa
       tOverpaint: ValueCell.create(emptyOverpaintTexture),
       dOverpaint: ValueCell.create(false),
 
-      tOverpaintGrid: ValueCell.create(createNullTexture()),
-      uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uOverpaintGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tOverpaintGrid: ValueCell.create(NoLayerGrid.texture),
+      uOverpaintGridDim: ValueCell.create(NoLayerGrid.dim),
+      uOverpaintGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uOverpaintGridTransform: ValueCell.create(NoLayerGrid.transform),
       overpaintType: ValueCell.create<string>('groupInstance'),
       dOverpaintType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uOverpaintStrength: ValueCell.create(1),

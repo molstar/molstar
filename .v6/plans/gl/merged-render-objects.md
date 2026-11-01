@@ -5,7 +5,7 @@
 - Steps 1 (benchmarks, `auto`), 2 (the update costs), 3 (geometry without copies), 4 (layers without copies), 5 (the
   costs per member: location iterators, WebGL's segment draws, the merged `sync`, props kept as one object, the
   allocations of a recolor, the color themes' per-location work) and 6 (GPU culling, its occlusion test and `auto`;
-  levels per instance and view-independent draw lists measured and dropped) done. Left: the visuals' own update work.
+  levels per instance and view-independent draw lists measured and dropped) done. Left: the visuals' own update work, and the memory per member at 100k units ([many-units.md](many-units.md)).
   The GPU culling's instance copy on weak GPUs (about 4 ms of a 55 ms PetWorld frame on an integrated GPU) measured
   and not taken up: a smaller instance transform would save about 2% and change `aTransform` in every program. Replaces batching
   ([batched-draws.md](batched-draws.md), dropped) for scenes of many objects: those come as many units of few
@@ -76,9 +76,10 @@ For merged render objects on WebGPU with compute and `indirectInstanceRanges` (`
 `canCullOnGpu`); CPU culling (`cullSegment`) stays for WebGL and devices without them. A plain instanced object is
 culled on the GPU as a merged object of one member (`mergeRenderObjectsByType`).
 
-- **Cells, not instances**: a thread per cell of the members' instance grids (a member without a grid one cell) tests
+- **Cells, then instances**: a thread per cell of the members' instance grids (a member without a grid one cell) tests
   its sphere against the frustum and the object's distance range and picks its levels, as `cullSegment` does per cell;
-  finer cells cost threads, not draws. Testing each instance cost more than it saved.
+  finer cells cost threads, not draws. The copy (below) tests each instance of a drawn cell the same way (GPU
+  occlusion step 9). Testing each instance on its own, read per vertex, cost more than it saved.
 - **Compaction by copy**: a thread per instance of a drawn cell copies its instanced attributes (transform, instance
   id, segment data, about 112 bytes) into compacted buffers, a slot per level in its segment's region (`atomicAdd` on a
   counter per level and segment); the compacted buffers are the render item's instanced vertex buffers. The programs
@@ -132,13 +133,13 @@ for densely packed scenes (mesoscale), where most of what is in view is hidden b
 - **The pyramid**: `HiZPass` builds it after the opaque pass from `depthTextureOpaque` (`r32f` levels, those from
   `minLevel` side by side in one atlas texture, read back for the CPU test). On the GPU the atlas is read directly
   (`textureLoad`): no readback, no lag beyond the frame.
-- **One phase first**: the next frame's cells tested against the previous frame's pyramid with its view and projection
+- **The first phase**: the next frame's cells tested against the previous frame's pyramid with its view and projection
   (the CPU test's projection of a padded sphere, its level by the screen size, four texels compared, ported to WGSL).
-  A cell that comes into view behind what moved shows a frame late (a frame of popping while the camera moves; the CPU
-  test, with its readback lag, pops longer). Still frames are stable (the skip stays valid: a pyramid of the same view).
-- **Two phases later, if the popping shows**: draw the cells visible last frame, build the pyramid from that depth,
-  test the rest against it and draw what is newly visible (a second set of records per level and segment, the opaque
-  pass split in two). Exact, at the cost of a pyramid build within the frame.
+  Still frames are stable (the skip stays valid: a pyramid of the same view).
+- **The second phase** ([two-phase-culling.md](two-phase-culling.md)): what the first left out tested against a pyramid
+  of the frame's depth so far and drawn in the same frame (a second set of records per level and segment, the opaque
+  pass split in two). Exact: one phase alone shows what comes into view a frame late, or not at all once the camera
+  stops and the render loop goes idle (the CPU test, with its readback lag, pops longer).
 - **What occludes**: opaque depth only (transparent objects are occluded, never occlude). Off where a pass needs what
   is hidden: illumination (path tracing reads hidden geometry for shadows and reflections; the CPU test is off there
   too), and views without a pyramid of their own (they draw the CPU lists, as now).
@@ -176,8 +177,10 @@ Steps:
 3. **Grid size** (dropped): cells of 50 or 20 Å against 200 gained about 6% zoomed (step 1: 20.6 to 19.4 ms, distance
    levels), far less than the pixel levels; not pursued.
 4. **Draw lists** (dropped with step 6.5).
-5. **Two phases** (dropped): rotating 2° a frame (`-rotating`), 3 of 921,600 pixels differ from the frames without
-   occlusion, zoomed; no popping shows.
+5. **Two phases** (dropped, then built and parked): rotating 2° a frame (`-rotating`), 3 of 921,600 pixels differ
+   from the frames without occlusion, zoomed; no popping shows. With the test that culls (steps 7-9) 251, from 30° a
+   frame whole regions for a frame: built in [two-phase-culling.md](two-phase-culling.md), exact, parked (not visible
+   in normal use; the cost while moving zoomed in).
 6. **WebGL2, the CPU test** (measured, dropped): the benchmark's frames ran in one task, where WebGL's fences never
    signal (a sync's status changes between tasks only): the CPU test never had levels (every read timed out after
    `maxFrameLag`); on WebGPU only a read landing in the warm-up served the still frames (step 1's 12%). The Hi-Z cases
@@ -187,6 +190,51 @@ Steps:
    ms, 26.9k draws. A hidden cell splits the ranges `emit` joins, so the draws grow even with a test for free (e.g.
    visibility per cell computed on the GPU, read back): their CPU costs more than the opaque pass saves. WebGPU's test
    compacts what is drawn and its draws stay; the CPU test stays as it is (`hiZ.enabled` off by default).
+7. **The test tested more, the still frame culled to the end** (done; found comparing with the sphere compute raster's
+   per-instance test, `sphere-compute-raster.md`, which culled 78% of its chunks where this saved 11%). Step 1's
+   conclusion (the visible molecules are the cost, not what occlusion could cull) was wrong: the test rarely tested.
+   - A rectangle below `minLevel` (about 8 pixels: a pyramid texel there is 10×6 pixels at 1280×720) was never
+     tested, nor one straddling three texels at the level of its size (up to two texels wide: about half of them);
+     now tested at `minLevel` (larger texels, as conservative) and a level up where it straddles three. The CPU test
+     (`HiZPass.isOccluded`) the same.
+   - A still camera stopped culling once tested against a pyramid of its own view, but that pyramid is of a frame
+     culled against another view's, which can lack occluders (occluding less): now after the second such test.
+     Alone it changed nothing (the test hardly culled); with the test, half of the zoomed gain.
+   - Measured (`postsynstubby_2`, distance levels, WebGPU, RTX, 1280×720, opaque pass; occlusion off / before / now):
+     whole 2.75 / 2.46 / 0.99 ms, zoomed 14.9 / 13.2 / 6.11, rotating 2° a frame 2.74 / – / 0.99 and 15.4 / – / 6.59;
+     the test fix without the second test 9.6 zoomed. Cells of 20 Å (default 200): whole 0.71, zoomed 4.68, rotating
+     5.22 (step 3's grid size worth taking up again). Still frames: no pixel differs from no occlusion. Rotating, the
+     one-phase test's frame of lag shows: 1 and 44 pixels of 921,600 (200 Å), 4 and 268 (20 Å) whole and zoomed (step
+     5's two phases worth taking up again with finer cells).
+   - Level 0 maps the viewport onto a power-of-two square (1280 pixels onto 1024 texels) and read two pixels a texel
+     per axis, which could skip one (its farthest depth not always the farthest: over-culling possible, none seen):
+     now every pixel the texel's span touches, up to 3x3 (`hi-z.wgsl.ts`, `hi-z.frag.ts`); unchanged in time.
+8. **Finer cells on the GPU** (done): the culler splits each grid cell into up to 4x4x4 cells by its instances' centers
+   (`GpuCellDivisions`, `splitCell` in `merged-culler.ts`), their spheres as the grid's (the centers' box expanded by
+   the invariant radius); the grid itself stays, as the CPU culling's draws are ordered by it. A finer grid instead
+   (`cellSize` 50 Å) cost the CPU culling: zoomed into `postsynstubby_2` 12.9k to 29.3k draws, CPU submit 7.1 to
+   11.5 ms, the GPU the same (WebGL2); a grid of 20 Å also allocates large temporary lookups while built (dense,
+   per member over the whole scene: read as 1.2 GB of JS heap after one collection, 0.28 GB after four; retained the
+   same as at 200 Å). Measured (WebGPU, opaque pass, 1280×720, before / after): whole
+   0.94 / 0.76 ms, zoomed 6.14 / 5.17, zoomed rotating 6.56 / 5.64; storage, heap and setup unchanged; 8 a side no
+   better (5.11 zoomed, 5.81 rotating, add and commit 50 ms more). No pixel differs from no occlusion still; rotating 4
+   and 76 pixels of 921,600 (whole, zoomed). `webgpu-gpu-culling` now expects at most the CPU culling's instances.
+9. **Each instance tested in the copy** (done): the copy kernel's thread per instance of a drawn cell tests the
+   instance's sphere as the cell's (`sphereLevels`, shared: the frustum, the distance ranges, the pyramid) and copies it
+   at the levels of both. Its sphere computed in the kernel from its transform's rows and its segment's invariant
+   sphere (`segmentData`: the sphere and the segment's first instance, and for the sphere raster's split per instance
+   the largest sphere's radius and the level scales, `sphere-compute-raster.md` step 4b; a buffer per instance would be
+   a ninth storage buffer, above the core limit of 8, `webgpu-core-limits`). Measured (as step 8, before / after): whole 0.76 / 0.71
+   ms, zoomed 5.17 / 4.64, zoomed rotating 5.64 / 5.10; the culling pass 0.03-0.05 ms. Still: no pixel differs from no
+   occlusion (the frames without vary by up to 7 pixels between runs: the instances' order at equal depths); rotating
+   13 and 251 pixels (whole, zoomed).
+10. **Finer pyramid levels** (measured, dropped): `minLevel` 2 or 1 instead of 3 (the finest texel tested about 5×3
+    or 2.5×1.5 pixels at 1280×720 instead of 10×6): the opaque pass the same (0.70-0.71 ms whole, 4.60-4.66 zoomed,
+    5.10-5.13 zoomed rotating), the pyramid 0.03 ms; the CPU test's readback would grow. The sphere compute raster's
+    finer tiles are not what its occlusion has over this.
+11. **The levels after the frame while a readback is pending** (done): built where no draw of the frame was skipped
+    (`HiZPass.render`'s `complete`), not only once no work at all is pending: a pick's readback, or the CPU test's,
+    skipped them (the GPU's test then read older levels).
 
 ## Steps
 

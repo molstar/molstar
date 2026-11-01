@@ -48,8 +48,13 @@ varying mat3 vNormalMatrix;
         return texture3dFrom2dNearest(tGridTex, pos + (vec3(0.5, 0.5, 0.0) / uGridDim), uGridDim, uGridTexDim.xy);
     }
 #elif defined(dGridTexType_3d)
+    // the value in alpha: volumes' grids hold the values only, the Gaussian density's packed groups in rgb too
     vec4 textureVal(vec3 pos) {
-        return texture(tGridTex, pos + (vec3(0.5) / uGridDim));
+        #ifdef dPackedGroup
+            return texture(tGridTex, pos + (vec3(0.5) / uGridDim));
+        #else
+            return vec4(0.0, 0.0, 0.0, texture(tGridTex, pos + (vec3(0.5) / uGridDim)).r);
+        #endif
     }
     vec4 textureGroup(vec3 pos) {
         return texelFetch(tGridTex, ivec3(pos * uGridDim), 0);
@@ -64,6 +69,13 @@ float calcDepth(const in vec3 pos) {
 float transferFunction(float value) {
     return texture2D(tTransferTex, vec2(value, 0.0)).r;
 }
+
+#ifdef dPreIntegration
+    // the opacity per cell between the values of two samples, the table's entries at its texels' centers
+    float transferSegment(float front, float back) {
+        return texture2D(tPreIntegratedTex, (vec2(front, back) * 255.0 + 0.5) / 256.0).r;
+    }
+#endif
 
 float getDepth(const in vec2 coords) {
     #ifdef depthTextureSupport
@@ -121,6 +133,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec3 scaleVol = vec3(1.0) / uGridDim;
     vec4 cell;
     float value = 0.0;
+    // the value of the previous sample (\`preIntegration\`), -1 where there is none to integrate from
+    float prevValue = -1.0;
     vec4 src = vec4(0.0);
     vec4 dst = vec4(0.0);
     float fragmentDepth;
@@ -206,6 +220,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                 ) * BrickSize / uGridDim;
                 vec3 exits = (exitFace - unitStart) * invStep;
                 t = max(t + 1.0, ceil(min(min(exits.x, exits.y), exits.z) - jitter - 1e-3) + jitter);
+                prevValue = -1.0;
                 continue;
             }
         }
@@ -217,12 +232,19 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             nextT = t + jumpSteps;
             if (textureVal(unitStart + nextT * unitStep).a < 0.01) {
                 t = nextT;
+                prevValue = -1.0;
                 continue;
             }
         }
 
         // transparent samples add nothing (markers don't lift them either)
-        material.a = transferFunction(value);
+        #ifdef dPreIntegration
+            // from the previous sample's value (none after skipped steps)
+            material.a = prevValue < 0.0 ? transferFunction(value) : transferSegment(prevValue, value);
+            prevValue = value;
+        #else
+            material.a = transferFunction(value);
+        #endif
         if (material.a <= 0.0) {
             t += 1.0;
             continue;
@@ -318,8 +340,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             gl_FragColor.rgb = material.rgb;
         #else
             if (material.a >= 0.01) {
-                #ifdef dPackedGroup
-                    // compute gradient by central differences
+                #if defined(dGridTexType_3d)
+                    // compute gradient by central differences (3d grids store no gradients): one-sided ones light noisy
+                    // data by the side it is seen from
                     gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
                     gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
                     gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;

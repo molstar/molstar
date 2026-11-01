@@ -60,6 +60,11 @@ export enum DrawFact {
   SingleSided = 1 << 22,
   /** wiggling (`uWiggleAmplitude` or `wiggleAverage`, with speed and frequency) or tumbling: drawn anew per frame */
   Animated = 1 << 23,
+  /**
+   * clip objects (`dClipObjects`) without a clipping layer (`dClipping`, its flags exempt groups): the object culled
+   * where they clip its bounding sphere whole (`Clip.classifySphere`)
+   */
+  ClipCull = 1 << 24,
 }
 
 /** The cells `getDrawFacts` and the row's bounds read: a change of any refreshes the row */
@@ -83,6 +88,9 @@ export const DrawFactCells = [
   'lodLevels',
   'boundingSphere',
   'uLod',
+  'dClipObjects',
+  'dClipping',
+  'clipObjects',
   // the scene's averages (`DrawTable.contributions`)
   'wiggleAverage',
   'transparencyMin',
@@ -150,13 +158,16 @@ function writeContributions(c: DrawContributions, slot: number, values: Values, 
     (alpha === 1 && values.transparencyAverage.ref.value !== 1) || (facts & DrawFact.BackfacesOpaque) !== 0 ? 1 : 0;
 }
 
-/** The `DrawFact` bits of the draw count and of what culling reads: the instance grid and count, lod levels */
+/**
+ * The `DrawFact` bits of the draw count and of what culling reads: the instance grid and count, lod levels, clip objects
+ */
 export function getCullFacts(values: Values): number {
   let f = 0;
   if (values.drawCount.ref.value) f |= DrawFact.DrawCount;
   if (values.instanceGrid.ref.value.cellSize > 0) f |= DrawFact.InstanceGrid;
   if (values.uInstanceCount.ref.value > 1) f |= DrawFact.MultipleInstances;
   if (getValue(values, 'lodLevels')) f |= DrawFact.LodLevels;
+  if (getValue(values, 'dClipObjects') && !getValue(values, 'dClipping')) f |= DrawFact.ClipCull;
   return f;
 }
 
@@ -468,7 +479,10 @@ export function createDrawTable(renderables: ReadonlyArray<GraphicsRenderable>):
       const cell = values[name];
       if (cell) ValueCell.observe(cell, row);
     }
+    // with the members' cells of a merged object: its values change where theirs do (`Renderable.memberCells`)
     const cells = getValueCells(r.values);
+    // not spread: millions of cells with many members
+    if (r.memberCells) for (const cell of r.memberCells) cells.push(cell);
     const volatile: SlotObservers['volatile'] = [];
     for (const cell of cells) {
       ValueCell.observe(cell, valuesObserver);

@@ -20,6 +20,17 @@ float getOcclusion(const in vec2 coords) {
     #endif
 }
 
+// occlusion of the front transparent layer at \`coords\`, at its \`depth\` (0: none there)
+float getOcclusionTransparent(const in vec2 coords, const in float depth) {
+    if (!uHasSsaoTransparent || depth == 0.0) return 1.0;
+    #ifdef dOcclusionUpsample
+        float viewZ = depthToViewZ(uIsOrtho, depth, uNear, uFar);
+        return getSsaoUpsampled(tSsaoDepthTransparent, uOcclusionTexSize, coords + uOcclusionOffset, viewZ, uNear, uFar);
+    #else
+        return unpackSsao(texture2D(tSsaoDepthTransparent, coords + uOcclusionOffset));
+    #endif
+}
+
 // mixes toward the SSAO occlusion color, like the postprocessing pass
 vec3 applyOcclusion(const in vec3 color, const in float occlusion, const in float fogAlpha) {
     vec3 occlusionColor = uTransparentBackground ? uOcclusionColor * fogAlpha : mix(uFogColor, uOcclusionColor, fogAlpha);
@@ -67,17 +78,18 @@ void main() {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
 
     // coverage of the visible unmarked geometry, see dim.frag
-    float dimAlpha = 0.0;
+    float dimCoverage = 0.0;
     float dimFogAlpha = 1.0;
     if (uDimStrength > 0.0) {
         vec4 d = texture2D(tDimTexture, coords);
-        dimAlpha = d.r * uDimStrength;
+        dimCoverage = d.r;
         dimFogAlpha = d.r / max(d.g, 0.001);
     }
 
     // solid fill covering the interior of marked regions, sampled directly from the mask
     vec3 fillRgb = vec3(0.0);
     float fillAlpha = 0.0;
+    float fillOpacity = 1.0;
     float fillFogAlpha = 1.0;
     if (uHighlightFillStrength > 0.0 || uSelectFillStrength > 0.0) {
         vec4 m = texture2D(tMaskTexture, coords);
@@ -90,17 +102,36 @@ void main() {
             fillFogAlpha = marked.z;
             // marked.x: 1.0 = hidden, 0.0 = visible; without depth test every marked texel reads as hidden
             float visibility = uDepthTest && marked.x > 0.5 ? 0.0 : 1.0;
-            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * unpackMarkingOpacity(marked.x);
+            fillOpacity = unpackMarkingOpacity(marked.x);
+            fillAlpha = coverage * fillStrength * visibility * fillFogAlpha * fillOpacity;
         }
     }
+
+    // the front transparent layer, cleared to 0.0 (no alpha) where there is none: a fill below full opacity is of a
+    // transparent fragment, the fill of opaque geometry is seen through the layer; an unmarked layer is dimmed by its
+    // alpha, the opaque share behind it by what it lets through
+    float layerAlpha = 0.0;
+    float layerDepth = 0.0;
+    if (uHasTransparentDepth && (uDimStrength > 0.0 || fillAlpha > 0.0)) {
+        vec2 layer = unpackRGBAToDepthWithAlpha(texture2D(tTransparentDepth, coords));
+        layerDepth = layer.x;
+        layerAlpha = layer.y;
+    }
+    bool fillOfLayer = fillOpacity < 0.98;
+    float dimLayer = uDimStrength > 0.0 && !(fillAlpha > 0.0 && fillOfLayer) ? layerAlpha : 0.0;
+    float dimOpaque = (1.0 - dimLayer) * dimCoverage;
+    float dimWeight = dimLayer + dimOpaque;
+    float dimAlpha = uDimStrength * dimWeight;
+    if (!fillOfLayer) fillAlpha *= 1.0 - layerAlpha;
 
     // keep the shading of the image, so that blending toward the color does not wash it out
     vec3 dimRgb = uDimColor;
     if (dimAlpha > 0.0 || fillAlpha > 0.0) {
         #if defined(dMarkingShading_ssao)
             float occlusion = getOcclusion(coords);
-            dimRgb = applyOcclusion(dimRgb, occlusion, dimFogAlpha);
-            fillRgb = applyOcclusion(fillRgb, occlusion, fillFogAlpha);
+            float occlusionLayer = dimLayer > 0.0 || fillOfLayer ? getOcclusionTransparent(coords, layerDepth) : 1.0;
+            dimRgb = applyOcclusion(dimRgb, dimWeight > 0.0 ? (occlusionLayer * dimLayer + occlusion * dimOpaque) / dimWeight : occlusion, dimFogAlpha);
+            fillRgb = applyOcclusion(fillRgb, fillOfLayer ? occlusionLayer : occlusion, fillFogAlpha);
         #elif defined(dMarkingShading_traced)
             float baseLuminance = luminance(texture2D(tBase, coords).rgb);
             float shadedLuminance = luminance(texture2D(tShaded, coords).rgb);

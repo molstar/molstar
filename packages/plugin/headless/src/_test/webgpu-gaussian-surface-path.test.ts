@@ -155,7 +155,7 @@ describe.skipIf(!WebGPU.module)('Gaussian surfaces on WebGPU: CPU or GPU', () =>
         };
         const table = values.sIsoTable.ref.value;
         const count = new Uint32Array(await table.readAsync(0, 16))[3];
-        const chunks = { table, vertices: values.sIsoVertices.ref.value };
+        const chunks = { table, vertices: () => values.sIsoVertices.ref.value };
         const { groups, vertexCount } = await readChunkedVertices(canvas.graphics.compute!, chunks, count);
         expect(vertexCount).toBeGreaterThan(0);
         let missing = 0;

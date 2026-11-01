@@ -80,9 +80,10 @@ export function getDataTextureNames(schema: RenderableSchema) {
 
 /**
  * GLSL accessors `read_<name>(i)` of the data textures of `schema` (`vec4`, an `r8` element in `.r`), by `int` and by
- * `float` index, from the array's offset in its texture; after the declarations of the samplers and uniforms, so
- * self-contained. Integer math on WebGL2; float math on WebGL1, whose integers may be 16-bit (floats are exact up to
- * 2^24 elements)
+ * `float` index, from the array's offset in its texture, and `read_<name>2(i, a, b)` and `read_<name>3(i, a, b, c)` of
+ * the two and three elements from `i` (items of several elements, lines and cylinders: one division for them on
+ * WebGL2, the next texels by a step that wraps at the row's end); after the declarations of the samplers and uniforms, so self-contained. Integer math on WebGL2;
+ * float math on WebGL1, whose integers may be 16-bit (floats are exact up to 2^24 elements)
  */
 export function getDataTextureAccessors(schema: RenderableSchema, isWebGL2: boolean) {
   const lines: string[] = [];
@@ -96,9 +97,32 @@ export function getDataTextureAccessors(schema: RenderableSchema, isWebGL2: bool
         `    int width = int(${dim}.x);`,
         `    int j = ${offset} + i;`,
         '    int y = j / width;',
-        `    return texture2D(${name}, (vec2(float(j - y * width), float(y)) + 0.5) / ${dim});`,
+        `    return texelFetch(${name}, ivec2(j - y * width, y), 0);`,
         '}',
         `vec4 ${fn}(const in float i) { return ${fn}(int(i)); }`,
+        `void ${fn}2(const in int i, out vec4 a, out vec4 b) {`,
+        `    int width = int(${dim}.x);`,
+        `    int j = ${offset} + i;`,
+        '    int y = j / width;',
+        '    int x = j - y * width;',
+        `    a = texelFetch(${name}, ivec2(x, y), 0);`,
+        '    x += 1;',
+        '    if (x == width) { x = 0; y += 1; }',
+        `    b = texelFetch(${name}, ivec2(x, y), 0);`,
+        '}',
+        `void ${fn}3(const in int i, out vec4 a, out vec4 b, out vec4 c) {`,
+        `    int width = int(${dim}.x);`,
+        `    int j = ${offset} + i;`,
+        '    int y = j / width;',
+        '    int x = j - y * width;',
+        `    a = texelFetch(${name}, ivec2(x, y), 0);`,
+        '    x += 1;',
+        '    if (x == width) { x = 0; y += 1; }',
+        `    b = texelFetch(${name}, ivec2(x, y), 0);`,
+        '    x += 1;',
+        '    if (x == width) { x = 0; y += 1; }',
+        `    c = texelFetch(${name}, ivec2(x, y), 0);`,
+        '}',
       );
     } else {
       lines.push(
@@ -108,6 +132,15 @@ export function getDataTextureAccessors(schema: RenderableSchema, isWebGL2: bool
         `    return texture2D(${name}, (vec2(j - y * ${dim}.x, y) + 0.5) / ${dim});`,
         '}',
         `vec4 ${fn}(const in int i) { return ${fn}(float(i)); }`,
+        `void ${fn}2(const in int i, out vec4 a, out vec4 b) {`,
+        `    a = ${fn}(float(i));`,
+        `    b = ${fn}(float(i + 1));`,
+        '}',
+        `void ${fn}3(const in int i, out vec4 a, out vec4 b, out vec4 c) {`,
+        `    a = ${fn}(float(i));`,
+        `    b = ${fn}(float(i + 1));`,
+        `    c = ${fn}(float(i + 2));`,
+        '}',
       );
     }
   }

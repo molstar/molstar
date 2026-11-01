@@ -34,8 +34,20 @@ import {
   type ParticleTargetRepresentationProps,
   createTargetVisual,
   createParticleTargetPropsProvider,
+  getTargetGeometryChoice,
+  getTargetGeometryUtils,
   type TargetVisual,
 } from './common.js';
+import type { ObjectSignature } from '@molstar/graphics/gl/precompile';
+import {
+  getGeometrySignatures,
+  getSurfaceSignatureDefines,
+  type SignatureContext,
+  type SignatureDefines,
+  uniqueSignatures,
+  withMergedSignatures,
+} from '../../../signatures.js';
+import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 
 export { ParticleTargetRepresentationParams };
 export type { ParticleTargetRepresentationProps };
@@ -154,7 +166,8 @@ export function ParticleTargetRepresentation(
       mergedByType,
       renderObjects,
       _props.gpuCulling,
-      canCullOnGpu(ctx.graphics),
+      canCullOnGpu(graphics),
+      graphics,
     );
   }
 
@@ -280,8 +293,70 @@ export function ParticleTargetRepresentation(
     setGraphics: (value: GraphicsContext) => {
       graphics = value;
     },
+    getSignatures: (props: ParticleTargetRepresentationProps, ctx: SignatureContext) =>
+      getParticleTargetSignatures(props, ctx),
     destroy,
   };
+}
+
+/**
+ * The signatures of the targets of the particle list (`ctx.data`), as `createOrUpdate` draws them: per target with
+ * particles, the geometry it is drawn with (`getTargetGeometryChoice`) with its props, colored per particle, sized as
+ * the visual sizes it (a structure's impostors per element, volume dots uniformly); merged per geometry type as their
+ * counts decide. None without data: every kind the params configure would compile many pipelines a list never draws,
+ * and the representation prepares with its data when added and updated
+ */
+function getParticleTargetSignatures(
+  props: ParticleTargetRepresentationProps,
+  ctx: SignatureContext,
+): ObjectSignature[] {
+  const particles = ctx.data;
+  if (!Particle.is(particles) || !particles.targetMapping?.size) return [];
+  const targetProps = createParticleTargetPropsProvider(props);
+  const groups = getParticleTargetGroups(particles);
+  const uniformSize = ctx.size.types.length === 1 && ctx.size.types[0] === 'uniform';
+  // per geometry type: the signatures, the objects (a target each) and their particles
+  const byType = new Map<string, { signatures: ObjectSignature[]; objects: number; instances: number }>();
+  for (let g = 0; g < groups.targetIds.length; g++) {
+    const target = particles.targetMapping.get(groups.targetIds[g]);
+    const count = OrderedSet.size(groups.sets[g]);
+    if (!target || count === 0) continue;
+    // marking is per particle (see `createTargetVisual`)
+    const tProps = { ...targetProps(target), instanceGranularity: true };
+    const choice = getTargetGeometryChoice(target, tProps, ctx.graphics);
+    const size: SignatureContext['size'] =
+      choice === 'volume-dot-spheres' || choice === 'volume-dot-mesh'
+        ? { types: ['uniform'] }
+        : choice === 'structure-spheres'
+          ? { types: [uniformSize ? 'uniform' : 'group'] }
+          : ctx.size;
+    // surfaces keep varying groups where flat interpolation is supported, a shape's mesh as it is
+    const visualDefines: SignatureDefines | undefined =
+      choice === 'volume-isosurface' || choice === 'blob-surface'
+        ? getSurfaceSignatureDefines(tProps, ctx.graphics)
+        : target.kind === 'shape' && target.shape.geometry.kind === 'mesh'
+          ? { dVaryingGroup: [(target.shape.geometry as Mesh).varyingGroup.ref.value] }
+          : undefined;
+    const utils = getTargetGeometryUtils(target, choice);
+    const signatures = getGeometrySignatures(utils, tProps, { ...ctx, size }, visualDefines);
+    for (const s of signatures) {
+      let entry = byType.get(s.type);
+      if (!entry) byType.set(s.type, (entry = { signatures: [], objects: 0, instances: 0 }));
+      entry.signatures.push(s);
+    }
+    const type = signatures[0]?.type;
+    if (type) {
+      const entry = byType.get(type)!;
+      entry.objects += 1;
+      entry.instances += count;
+    }
+  }
+  const out: ObjectSignature[] = [];
+  const levels = props.lodLevels.length;
+  for (const { signatures, objects, instances } of byType.values()) {
+    out.push(...withMergedSignatures(signatures, props, { objects, instances, levels, graphics: ctx.graphics }));
+  }
+  return uniqueSignatures(out);
 }
 
 function getParticleTargetParams(ctx: RepresentationContext, particles: ParticleList | undefined) {

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -203,13 +204,18 @@ function bondedResidues(s: Structure) {
 /** The largest distance by which an element (centre plus radius) of `s` lies outside `sphere`. */
 function worstOutside(sphere: { center: Vec3; radius: number }, s: Structure) {
   let worst = -Infinity;
+  for (const u of s.units) worst = Math.max(worst, worstOutsideUnit(sphere, u));
+  return worst;
+}
+
+/** How far the elements of `u` (with their radii) reach outside `sphere` at most */
+function worstOutsideUnit(sphere: { center: Vec3; radius: number }, u: Unit) {
+  let worst = -Infinity;
   const p = Vec3();
-  for (const u of s.units) {
-    for (let i = 0; i < u.elements.length; i++) {
-      const e = u.elements[i];
-      u.conformation.position(e, p);
-      worst = Math.max(worst, Vec3.distance(p, sphere.center) + u.conformation.r(e) - sphere.radius);
-    }
+  for (let i = 0; i < u.elements.length; i++) {
+    const e = u.elements[i];
+    u.conformation.position(e, p);
+    worst = Math.max(worst, Vec3.distance(p, sphere.center) + u.conformation.r(e) - sphere.radius);
   }
   return worst;
 }
@@ -588,6 +594,16 @@ describe('structure building', async () => {
     check(`${name}: unit spheres`, hash(s.units.flatMap((u) => sphereOf(u.boundary.sphere))), expected);
     // structure box and sphere: exact (these fixtures stay under the 10k points of the 98-direction helper)
     const { box, sphere } = s.boundary;
+    // every element with its radius inside its unit's sphere: units of few elements keep them as extrema with their
+    // largest radius (`Sphere3D.extremaRadius`)
+    const unitSphere = Sphere3D();
+    for (const u of s.units) {
+      Sphere3D.transform(unitSphere, u.boundary.sphere, u.conformation.operator.matrix);
+      expect(worstOutsideUnit(unitSphere, u)).toBeLessThan(1e-3);
+    }
+    // the structure's: its radius pass visits the units' extrema, points on the atoms' balls in 49 directions, so an
+    // atom between two directions reaches out a little (0.02 Å for 1grm)
+    expect(worstOutside(sphere, s)).toBeLessThan(0.05);
     check(`${name}: box`, [...Array.from(box.min, (x) => round(x)), ...Array.from(box.max, (x) => round(x))], expected);
     const [cx, cy, cz, r] = sphereOf(sphere);
     if (PIN) pinned[`${name}: sphere`] = [cx, cy, cz, r];
@@ -766,7 +782,7 @@ const expected: Record<string, unknown> = {
   '1grm / loci first halves: intra': 'count=138 sorted=eaba25e0',
   '1bna cell: unit spheres': 'fc0869f5',
   '1bna cell: box': '-11.333,-15.52,-13.081,61.073,55.91,79.281',
-  '1bna cell: sphere': [19.838, 18.015, 34.215, 54.83],
+  '1bna cell: sphere': [19.838, 18.015, 34.215, 54.843],
   '1bna cell: half loci radius': 53.965,
   '7qpd: unit spheres': '365ed797',
   '7qpd: box': '147.773,119.237,144.23,238.404,247.235,266.855',
@@ -777,8 +793,8 @@ const expected: Record<string, unknown> = {
   '1cbs split cell: sphere': [43.928, 26.527, 40.729, 71.729],
   '1cbs split cell: half loci radius': 71.334,
   'ace2 split: unit spheres': 'ab5765b2',
-  'ace2 split: box': '62.049,76.941,27.882,71.887,90.831,40.835',
-  'ace2 split: sphere': [67.064, 84.401, 34.51, 7.749],
+  'ace2 split: box': '61.869,76.711,27.652,72.037,90.981,40.835',
+  'ace2 split: sphere': [67.011, 84.344, 34.472, 7.956],
   'ace2 split: half loci radius': 7.895,
   '1grm: unit spheres': 'c1defe0f',
   '1grm: box': '-10.448,-14.779,-6.382,10.421,14.756,14.354',

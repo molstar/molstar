@@ -17,7 +17,11 @@ import {
   hasColorThemes,
   hasSizeThemes,
 } from '../../helpers/representation-registry.js';
-import { getRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
+import {
+  getRepresentationSignatures,
+  prepareRepresentation,
+  registerTransformSignatures,
+} from '@molstar/plugin/state/precompile';
 
 export { ParticlesRepresentation3D };
 type ParticlesRepresentation3D = typeof ParticlesRepresentation3D;
@@ -107,8 +111,11 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       const themes = plugin.representation.particles.themes;
       const provider = plugin.representation.particles.registry.get(params.type.name);
       const repr = provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, provider.getParams);
-      repr.setTheme(Theme.create(themes, { particles: a.data }, params));
+      const theme = Theme.create(themes, { particles: a.data }, params);
+      repr.setTheme(theme);
       const props = params.type.params || {};
+      // compiling what it draws while it builds
+      prepareRepresentation(plugin, repr, { ...repr.props, ...props }, theme, a.data);
       await repr.createOrUpdate(props, a.data).runInContext(ctx);
       return new SO.Particle.Representation3D({ repr, sourceData: a.data }, { label: provider.label });
     });
@@ -125,6 +132,7 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       const themes = plugin.representation.particles.themes;
       b.data.repr.setTheme(Theme.create(themes, { particles: a.data }, newParams));
       const props = { ...b.data.repr.props, ...newParams.type.params };
+      prepareRepresentation(plugin, b.data.repr, props, b.data.repr.theme, a.data);
       await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
       b.data.sourceData = a.data;
       return StateTransformer.UpdateResult.Updated;

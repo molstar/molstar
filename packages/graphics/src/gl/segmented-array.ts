@@ -5,10 +5,10 @@
  */
 
 /**
- * The typed arrays a segmented array is made of: vertex attributes (`Float32Array`), elements (`Uint32Array`) and data
- * images (`Uint8Array`, `Float32Array`)
+ * The typed arrays a segmented array is made of: vertex attributes (`Float32Array`, encoded normals `Int16Array`),
+ * elements (`Uint32Array`) and data images (`Uint8Array`, `Float32Array`)
  */
-export type SegmentedArrayType = Float32Array | Uint32Array | Uint8Array;
+export type SegmentedArrayType = Float32Array | Uint32Array | Uint8Array | Int16Array;
 
 type ArrayCtor<T extends SegmentedArrayType> = { new (length: number): T; readonly BYTES_PER_ELEMENT: number };
 
@@ -74,6 +74,18 @@ export namespace SegmentedArray {
     for (const p of a.parts) if (p.count > 0) write(getPartData(p), p.offset);
   }
 
+  /** The index of the first of `parts` ending after `index` (by offset, not overlapping: their ends ascend) */
+  function findFirstPartEndingAfter(parts: readonly Part[], index: number) {
+    let lo = 0;
+    let hi = parts.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (parts[mid].offset + parts[mid].count <= index) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+
   /**
    * The elements `[start, end)` of `a` composed from its parts (zeros between them): for writers of whole words or rows,
    * which a part may share with its neighbors
@@ -81,8 +93,11 @@ export namespace SegmentedArray {
   export function read<T extends SegmentedArrayType>(a: SegmentedArray<T>, start: number, end: number): T {
     const out = new a.ctor(end - start);
     const { parts } = a;
-    for (let i = 0, il = parts.length; i < il; ++i) {
+    // from the first part ending after `start`, to the first starting at `end`: a read per part of many (a merged
+    // object's members) stays linear
+    for (let i = findFirstPartEndingAfter(parts, start), il = parts.length; i < il; ++i) {
       const p = parts[i];
+      if (p.offset >= end) break;
       const s = Math.max(start, p.offset);
       const e = Math.min(end, p.offset + p.count);
       if (e <= s) continue;

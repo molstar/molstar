@@ -5,7 +5,7 @@
  */
 
 import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
-import { clip_flag_wgsl, clip_functions_wgsl, clip_instance_wgsl, clip_pixel_wgsl } from './chunks/clip.wgsl.js';
+import { clip_functions_wgsl, clip_instance_wgsl } from './chunks/clip.wgsl.js';
 import { segment_wgsl } from './chunks/segment.wgsl.js';
 import { common_wgsl } from './chunks/common.wgsl.js';
 import {
@@ -32,6 +32,7 @@ import {
   assign_size_wgsl,
   assign_varyings_wgsl,
   vertex_output_wgsl,
+  assign_lod_factor_wgsl,
 } from './chunks/varyings.wgsl.js';
 
 /** Points as screen-aligned quads with a size in pixels, unlit */
@@ -54,8 +55,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     ${assign_quad_position_group_wgsl}
     ${assign_varyings_wgsl}
 
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
     let model = uGlobal.uModel * transform;
     let modelView = uGlobal.uView * model;
     ${assign_wiggle_wgsl}
@@ -73,12 +74,25 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     #else
         var pointSize = size * uGlobal.uPixelRatio;
     #endif
-    pointSize = max(1.0, pointSize);
+
+    ${assign_lod_factor_wgsl}
+    pointSize = max(1.0, pointSize * lodFactor);
 
     let p = uGlobal.uProjection * mvPosition;
     // offset the corner by half the point size in pixels, in clip space
     out.position = vec4<f32>(p.xy + mapping * (pointSize / viewport.zw) * p.w, p.zw);
     out.vPointCoord = mapping * 0.5 + 0.5;
+
+    if (lodCulled) {
+        // move out of [0, w] to 'discard' in the vertex stage
+        out.position.z = 2.0 * out.position.w;
+    }
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        // pixel clipping: every fragment of the point is at its center, the point tested once
+        if (clipTest(out.vModelPosition / uGlobal.uModelScale, clipFlag)) {
+            out.position.z = 2.0 * out.position.w;
+        }
+    #endif
     ${clip_instance_wgsl}
     return out;
 }
@@ -86,12 +100,11 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 @fragment
 fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
-    ${clip_flag_wgsl('in.vClipping')}
 
     if (fadeLod(in.position, in.vModelPosition)) {
         discard;
     }
-    ${clip_pixel_wgsl('in.vModelPosition')}
+    // pixel clipping in the vertex stage: the point's fragments are all at its center
 
     let fragmentDepth = in.position.z;
     let interior = false;

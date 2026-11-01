@@ -5,14 +5,14 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { type Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
+import { type Mat4, Vec4 } from '@molstar/core/math/linear-algebra';
 import { transformPositionArray, type GroupMapping } from '../../util.js';
 import type { GeometryUtils } from '../geometry.js';
 import { createColors } from '../color-data.js';
 import { createMarkers } from '../marker-data.js';
 import { createSizes } from '../size-data.js';
 import type { TransformData } from '../transform-data.js';
-import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
+import type { LocationIterator } from '../../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type DataArray, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { Sphere3D } from '@molstar/core/math/geometry';
@@ -28,7 +28,14 @@ import { createEmptySubstance } from '../substance-data.js';
 import { createEmptyEmissive } from '../emissive-data.js';
 import { createEmptyWiggle } from '../wiggle-data.js';
 import { getAnimationParam, createAnimationValues, updateAnimationValues } from '../animation.js';
-import { createCenterGroupData } from '../center-group.js';
+import {
+  createCenterGroupData,
+  createPositionGroupIterator,
+  interleavePositionGroup,
+  PositionGroupStride,
+  setPositionGroup,
+} from '../center-group.js';
+import * as Lod from '../lod-levels.js';
 
 /** Point cloud */
 export interface Points {
@@ -37,14 +44,12 @@ export interface Points {
   /** Number of vertices in the point cloud */
   pointCount: number;
 
-  /** Center buffer as array of xyz values wrapped in a value cell */
-  readonly centerBuffer: ValueCell<Float32Array>;
-  /** Group buffer as array of group ids for each vertex wrapped in a value cell */
-  readonly groupBuffer: ValueCell<Float32Array>;
+  /** Center xyz and group per point (`PositionGroupStride` floats), the only copy (the shaders read it as `tPositionGroup`) */
+  readonly positionGroup: ValueCell<DataArray<Float32Array>>;
 
   /** Bounding sphere of the points */
   readonly boundingSphere: Sphere3D;
-  /** Maps group ids to point indices */
+  /** Maps group ids to point indices times `PositionGroupStride` (offsets into `positionGroup`'s array) */
   readonly groupMapping: GroupMapping;
 
   setBoundingSphere(boundingSphere: Sphere3D): void;
@@ -56,29 +61,35 @@ export interface Points {
 export namespace Points {
   /** Data read by the shaders, points are drawn as quads of 6 vertices that pull their center and group */
   export interface ShaderData {
-    /** center xyz and group per point */
+    /** center xyz and group per point, in level of detail order where levels are set */
     readonly positionGroup: ValueCell<DataArray<Float32Array>>;
-    update(): void;
+    readonly lodLevels: ValueCell<Lod.LodLevelsValue>;
+    /** orders the points into the levels of detail `lodLevels` (the current ones by default) */
+    update(props?: { lodLevels: Lod.LodLevels }): void;
   }
 
+  /** From separate `centers` (xyz) and `groups`, interleaved (`fromPositionGroup` takes them as they are stored) */
   export function create(centers: Float32Array, groups: Float32Array, pointCount: number, points?: Points): Points {
-    return points ? update(centers, groups, pointCount, points) : fromArrays(centers, groups, pointCount);
+    return fromPositionGroup(interleavePositionGroup(centers, groups, pointCount), pointCount, points);
+  }
+
+  /** From center xyz and group per point (`PositionGroupStride` floats), kept as the geometry's array */
+  export function fromPositionGroup(positionGroup: Float32Array, pointCount: number, points?: Points): Points {
+    return points ? update(positionGroup, pointCount, points) : fromArray(positionGroup, pointCount);
   }
 
   export function createEmpty(points?: Points): Points {
-    const cb = points ? points.centerBuffer.ref.value : new Float32Array(0);
-    const gb = points ? points.groupBuffer.ref.value : new Float32Array(0);
-    return create(cb, gb, 0, points);
+    return fromPositionGroup(points ? points.positionGroup.ref.value.array : new Float32Array(0), 0, points);
   }
 
-  function fromArrays(centers: Float32Array, groups: Float32Array, pointCount: number): Points {
-    const data = createCenterGroupData(centers, groups, () => points.pointCount);
+  function fromArray(positionGroup: Float32Array, pointCount: number): Points {
+    const data = createCenterGroupData(positionGroup, pointCount, () => points.pointCount);
+    const lodLevels = ValueCell.create([] as Lod.LodLevelsValue);
 
     const points = {
       kind: 'points' as const,
       pointCount,
-      centerBuffer: data.centerBuffer,
-      groupBuffer: data.groupBuffer,
+      positionGroup: data.positionGroup,
       get boundingSphere() {
         return data.getBoundingSphere();
       },
@@ -89,28 +100,28 @@ export namespace Points {
       hasBoundingSphere: data.hasBoundingSphere,
       shaderData: {
         positionGroup: data.positionGroup,
-        update() {
-          data.updatePositionGroup();
+        lodLevels,
+        update(props?: { lodLevels: Lod.LodLevels }) {
+          const lodLevelsProp = props?.lodLevels ?? Lod.getLodLevels(lodLevels.ref.value);
+          // strides as given: a point's size is in pixels, not adjusted for `sizeFactor` as spheres' strides are
+          ValueCell.update(lodLevels, Lod.orderLodLevels(data.positionGroup, points.pointCount, lodLevelsProp, 1));
         },
       },
     };
-    points.shaderData.update();
     return points;
   }
 
-  function update(centers: Float32Array, groups: Float32Array, pointCount: number, points: Points) {
+  function update(positionGroup: Float32Array, pointCount: number, points: Points) {
     points.pointCount = pointCount;
-    ValueCell.update(points.centerBuffer, centers);
-    ValueCell.update(points.groupBuffer, groups);
+    setPositionGroup(points.positionGroup, positionGroup, pointCount);
     points.shaderData.update();
     return points;
   }
 
   export function transform(points: Points, t: Mat4) {
-    const c = points.centerBuffer.ref.value;
-    transformPositionArray(t, c, 0, points.pointCount);
-    ValueCell.update(points.centerBuffer, c);
-    points.shaderData.update();
+    const pg = points.positionGroup.ref.value;
+    transformPositionArray(t, pg.array, 0, points.pointCount, PositionGroupStride);
+    ValueCell.update(points.positionGroup, pg);
   }
 
   //
@@ -129,6 +140,7 @@ export namespace Points {
     pointSizeAttenuation: PD.Boolean(false),
     pointStyle: PD.Select('square', PD.objectToOptions(StyleTypes)),
     animation: getAnimationParam(),
+    lodLevels: Lod.getLodLevelsParam(),
   };
   export type Params = typeof Params;
 
@@ -145,21 +157,7 @@ export namespace Points {
   };
 
   function createPositionIterator(points: Points, transform: TransformData): LocationIterator {
-    const groupCount = points.pointCount;
-    const instanceCount = transform.instanceCount.ref.value;
-    const location = PositionLocation();
-    const p = location.position;
-    const v = points.centerBuffer.ref.value;
-    const m = transform.aTransform.ref.value;
-    const getLocation = (groupIndex: number, instanceIndex: number) => {
-      if (instanceIndex < 0) {
-        Vec3.fromArray(p, v, groupIndex * 3);
-      } else {
-        Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
-      }
-      return location;
-    };
-    return LocationIterator(groupCount, instanceCount, 1, getLocation);
+    return createPositionGroupIterator(points.positionGroup, points.pointCount, transform);
   }
 
   function createValues(
@@ -195,12 +193,13 @@ export namespace Points {
       0,
     );
 
+    points.shaderData.update({ lodLevels: props.lodLevels });
+
     return {
       dGeometryType: ValueCell.create('points'),
 
       tPositionGroup: points.shaderData.positionGroup,
-      centerBuffer: points.centerBuffer,
-      groupBuffer: points.groupBuffer,
+      lodLevels: points.shaderData.lodLevels,
       boundingSphere: ValueCell.create(boundingSphere),
       invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
       uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -241,6 +240,12 @@ export namespace Points {
     ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation);
     ValueCell.updateIfChanged(values.dPointStyle, props.pointStyle);
     updateAnimationValues(values, props.animation);
+
+    const lodLevels = values.lodLevels.ref.value as Lod.LodLevelsValue;
+    if (!Lod.areLodLevelsEqual(props.lodLevels, Lod.getLodLevels(lodLevels))) {
+      const count = values.uVertexCount.ref.value;
+      ValueCell.update(values.lodLevels, Lod.orderLodLevels(values.tPositionGroup, count, props.lodLevels, 1));
+    }
   }
 
   function updateBoundingSphere(values: PointsValues, points: Points) {

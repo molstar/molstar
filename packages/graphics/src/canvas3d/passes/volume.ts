@@ -115,12 +115,12 @@ export class VolumePass {
     const viewport = () => {
       // the volume shader reads the opaque depth at its fragment's position over the drawing buffer size
       renderer.setDrawingBufferSize(this.target.getWidth(), this.target.getHeight());
-      renderer.setViewport(
-        Math.floor(x * scale),
-        Math.floor(y * scale),
-        Math.ceil((x + vw) * scale) - Math.floor(x * scale),
-        Math.ceil((y + vh) * scale) - Math.floor(y * scale),
-      );
+      // never past the target (the drawing buffer's size scaled and floored): Safari rejects such viewports
+      const x0 = Math.floor(x * scale);
+      const y0 = Math.floor(y * scale);
+      const x1 = Math.min(Math.ceil((x + vw) * scale), this.target.getWidth());
+      const y1 = Math.min(Math.ceil((y + vh) * scale), this.target.getHeight());
+      renderer.setViewport(x0, y0, x1 - x0, y1 - y0);
     };
 
     if (transparency === 'wboit' && this.wboit.supported) {

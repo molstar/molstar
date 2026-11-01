@@ -12,7 +12,6 @@ import { common_vert_params } from './chunks/common-vert-params.glsl.js';
 import { color_vert_params } from './chunks/color-vert-params.glsl.js';
 import { common_clip } from './chunks/common-clip.glsl.js';
 import { common_animation } from './chunks/common-animation.glsl.js';
-import { assign_group } from './chunks/assign-group.glsl.js';
 import { assign_color_varying } from './chunks/assign-color-varying.glsl.js';
 import { assign_marker_varying } from './chunks/assign-marker-varying.glsl.js';
 import { assign_clipping_varying } from './chunks/assign-clipping-varying.glsl.js';
@@ -29,6 +28,15 @@ ${common_vert_params}
 ${color_vert_params}
 ${common_clip}
 ${common_animation}
+
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
+    // 1 where the clip objects may cut the line (\`clipSphereClass\` of its bounding sphere): its clip tests skipped if 0
+    #if __VERSION__ == 100
+        varying float vClipSome;
+    #else
+        flat out float vClipSome;
+    #endif
+#endif
 
 void trimSegment(const in vec4 start, inout vec4 end) {
     // trim end segment so it terminates between the camera plane and the near plane
@@ -48,17 +56,38 @@ void trimSegment(const in vec4 start, inout vec4 end) {
 
 void main(){
     float aspect = uViewport.z / uViewport.w;
-    int vertexId = VertexID;
+    #if defined(dInstanceData)
+        readInstanceData();
+    #endif
 
-    ${assign_group}
+    // the line of the vertex (2 texels of \`tLine\`) and its corner (4 vertices per line: left and right of the start,
+    // then of the end)
+    int item = VertexID / 4;
+    int corner = VertexID - item * 4;
+    // the data vertex ('vertex' color, size): the start for the corners at the start, else the end
+    int vertexId = item * 2 + (corner < 2 ? 0 : 1);
+    vec4 lineStart, lineEnd; // start xyz and group, end xyz and whether the line continues the one before
+    read_tLine2(item * 2, lineStart, lineEnd);
+    float group = lineStart.w;
+    // -1 or 1: left or right, start or end
+    vec2 mapping = vec2(corner == 0 || corner == 2 ? -1.0 : 1.0, corner < 2 ? -1.0 : 1.0);
+    vec3 segmentStart = lineStart.xyz;
+    vec3 segmentEnd = lineEnd.xyz;
+    // the start corners of a line continuing the one before (strips): that line's end corners, across it
+    if (lineEnd.w > 0.5 && mapping.y < 0.0) {
+        segmentEnd = lineStart.xyz;
+        segmentStart = read_tLine(item * 2 - 2).xyz;
+        mapping.y = 1.0;
+    }
+
     ${assign_color_varying}
     ${assign_marker_varying}
     ${assign_clipping_varying}
     ${assign_size}
 
-    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
-    vec3 wigStart = applyWiggle(aStart, group, aInstance);
-    vec3 wigEnd = applyWiggle(aEnd, group, aInstance);
+    mat4 transform = applyTumble(aTransform);
+    vec3 wigStart = applyWiggle(segmentStart, group, aInstance);
+    vec3 wigEnd = applyWiggle(segmentEnd, group, aInstance);
     mat4 modelView = uView * uModel * transform;
 
     // camera space
@@ -66,8 +95,8 @@ void main(){
     vec4 end = modelView * vec4(wigEnd, 1.0);
 
     // assign position
-    vec4 position4 = vec4((aMapping.y < 0.5) ? wigStart : wigEnd, 1.0);
-    vViewPosition = (aMapping.y < 0.5) ? start.xyz : end.xyz;
+    vec4 position4 = vec4((mapping.y < 0.5) ? wigStart : wigEnd, 1.0);
+    vViewPosition = (mapping.y < 0.5) ? start.xyz : end.xyz;
 
     vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
 
@@ -107,7 +136,7 @@ void main(){
     offset.x /= aspect;
 
     // sign flip
-    if (aMapping.x < 0.0) offset *= -1.0;
+    if (mapping.x < 0.0) offset *= -1.0;
 
     // calculate linewidth
     float linewidth;
@@ -125,12 +154,25 @@ void main(){
     offset /= uViewport.w;
 
     // select end
-    vec4 clip = (aMapping.y < 0.5) ? clipStart : clipEnd;
+    vec4 clip = (mapping.y < 0.5) ? clipStart : clipEnd;
 
     // back to clip space
     offset *= clip.w;
     clip.xy += offset;
     gl_Position = clip;
+
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        // pixel clipping by the bounding sphere of the item's line (not the segment of a strip's start corners, which
+        // continue the line before): a line clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
+        mat4 modelTransform = uModel * transform;
+        vec3 lineA = (modelTransform * vec4(applyWiggle(lineStart.xyz, group, aInstance), 1.0)).xyz;
+        vec3 lineB = (modelTransform * vec4(applyWiggle(lineEnd.xyz, group, aInstance), 1.0)).xyz;
+        int clipClass = clipSphereClass((lineA + lineB) * 0.5 / uModelScale, length(lineB - lineA) * 0.5 / uModelScale);
+        if (clipClass == 2) {
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+        vClipSome = clipClass == 1 ? 1.0 : 0.0;
+    #endif
 
     ${clip_instance}
 }

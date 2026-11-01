@@ -22,8 +22,10 @@ export type DataTypeArrayType = {
 export type ArrayType = ValueOf<DataTypeArrayType>;
 export type ArrayKind = keyof DataTypeArrayType;
 
-export type AttributeItemSize = 1 | 2 | 3 | 4 | 16;
-export type AttributeKind = 'float32';
+/** 12: an affine transform as its first three rows (`affine-rows.ts`), 16: a `mat4` */
+export type AttributeItemSize = 1 | 2 | 3 | 4 | 12 | 16;
+/** `oct16`: unit vectors, three floats on the CPU, two snorm16 on the GPU (`oct-normals.ts`) */
+export type AttributeKind = 'float32' | 'oct16';
 
 export type AttributeDefs = {
   [k: string]: { kind: AttributeKind; itemSize: AttributeItemSize; divisor: number };

@@ -10,20 +10,23 @@ import type { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/te
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Representation, RepresentationProvider } from '@molstar/graphics/repr/representation';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
+import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { IsosurfaceRepresentationProvider } from '@molstar/graphics/repr/volume/isosurface';
 import { Theme } from '@molstar/graphics/theme/theme';
 import type { Structure } from '@molstar/model/model/structure';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Volume } from '@molstar/model/model/volume';
 import { blobVolume } from '../visual/scenes/volume.js';
-import { type BenchmarkCase, type PathRun, StageTimer, withGpuPasses } from './framework.js';
-import { exampleStructure, getThemeRegistries, globuleStructure } from './structures.js';
+import { type BenchmarkCase, collectedHeap, type PathRun, StageTimer, withGpuPasses } from './framework.js';
+import { chainGrid, exampleStructure, getThemeRegistries, globuleStructure } from './structures.js';
 
 type ReprInput = {
   provider: RepresentationProvider<any, any, any>;
   data: Structure | Volume;
   props: { [k: string]: unknown };
   sizeTheme: string;
+  /** the units of the structure: the retained heap is noted per unit too */
+  units?: number;
 };
 
 /**
@@ -59,16 +62,25 @@ async function createRepresentation(graphics: GraphicsContext, input: ReprInput,
     Theme.create(registries, themeData, { colorTheme: { name: 'uniform' }, sizeTheme: { name: sizeTheme } }),
   );
   const params = PD.getDefaultValues(provider.getParams(registries as never, data as never));
+  const heapBefore = collectedHeap();
   const { gpuPasses } = await withGpuPasses(graphics, async () => {
     await repr.createOrUpdate({ ...params, ...props, tryUseGpu }, data).run();
     await timer.stage('representation');
     await graphics.resources.pending.whenReady();
     await timer.stage('settled');
   });
+  // what the representation retains (its geometry, values, visuals), not what it allocated on the way
+  const heapAfter = heapBefore === undefined ? undefined : collectedHeap();
+  const notes: string[] = [];
+  if (heapBefore !== undefined && heapAfter !== undefined) {
+    const bytes = heapAfter - heapBefore;
+    notes.push(`heap ${(bytes / 1e6).toFixed(1)} MB`);
+    if (input.units) notes.push(`${(bytes / input.units / 1e3).toFixed(2)} KB a unit`);
+  }
   const triangles = drawnTriangles(repr);
   repr.destroy();
   if ('grid' in data) data.customProperties.dispose();
-  return { stages: timer.stages, triangles, gpuPasses };
+  return { stages: timer.stages, triangles, gpuPasses, notes };
 }
 
 type UpdateInput = ReprInput & {
@@ -155,7 +167,25 @@ function reprCase(
   };
 }
 
+/** A representation of many small units, merged: its build time and the heap it retains a unit */
+function unitsCase(id: string, description: string, setup: () => Promise<ReprInput>): BenchmarkCase<ReprInput> {
+  const path = (graphics: GraphicsContext, input: ReprInput) => createRepresentation(graphics, input, true);
+  return { id: `repr/${id}`, description, setup, paths: { webgl: path, webgpu: path } };
+}
+
 export const RepresentationCases: BenchmarkCase<any>[] = [
+  unitsCase(
+    'units-100k-spacefill',
+    '100k chains of 6 atoms as spacefill with its per-unit visual, merged: build time and retained heap a unit.',
+    async () => ({
+      provider: SpacefillRepresentationProvider,
+      data: await chainGrid(100_000, 6),
+      // the per-unit visual (above 10k unit groups the default is the structure-level one)
+      props: { visuals: ['element-sphere'], renderMerged: true },
+      sizeTheme: 'physical',
+      units: 100_000,
+    }),
+  ),
   reprCase('isosurface-blobs-128', 'Volume isosurface representation of three blobs on 128³ cells, iso 0.5.', () => ({
     provider: IsosurfaceRepresentationProvider,
     data: blobVolume(128),

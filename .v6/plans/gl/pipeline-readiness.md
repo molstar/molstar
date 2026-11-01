@@ -3,7 +3,10 @@
 ## Status
 
 - **Current**: steps 1–5 done; 6 (snapshot replay with precompile lists) done (6a–6g), 6h (WebGL's first draws into
-  several targets, an ANGLE compile once per browser) analysed and accepted.
+  several targets, an ANGLE compile once per browser) analysed and accepted. Step 7 (precompiling when a
+  representation transform applies or updates): 7a measured (adding: 60–190 ms after the commit to hide, up to 1.1 s;
+  updates: frames to hold rather than compiles to start earlier, done); 7b and 7c done: representations prepared with
+  their data while they build; 7d (particle targets) done.
 - Step 6f done, measured in Chrome (RTX 4070 Ti, 1280x800, the Viewer, `kinase-story` and a fade story of three
   snapshots), loading the story and playing it right away:
 
@@ -136,7 +139,13 @@
   then the frame's passes as `render` chooses them (illumination, else multi-sample or the draw pass, and Hi-Z) planned
   with the prepare builder; with `interaction` also the first hover: the pick and marking variants linked, the pick pass
   (`PickHelper.plan`) and marking as if objects were marked (`DrawPass.plan` with `asIfMarked`, the marking passes
-  collected with `all`). The idle warm-up after scene changes is `prepare({ interaction: true })`. Removed: collect mode
+  collected with `all`). The idle warm-up after scene changes is `prepare()`, then `prepare({ interaction: true })` once
+  the frame's pipelines are ready: requested together, the pick and marking pipelines share the compiler's threads with
+  the frame's, which the first frame waits for (WebGPU, Viewer loading 1cbs: first draw 260–280 ms after the state
+  update instead of 350–390 ms, 20 pipelines compiling at once before; WebGL2 unchanged, its programs from the browser's
+  cache). Precompiling a state update's tree (`getTreePrecompileList`) when the update starts was tried and dropped: the
+  representations' transforms arrive in the update's last tree, about 30 ms before the commit for 1cbs, and the list's
+  stand-in scenes compiled 50 pipelines instead of the 32 the load needs. Removed: collect mode
   (`resources.preparePrograms(run)`, WebGPU's preparing state), `DrawPass.prepareMarking`, `ShaderManager.warmUp`,
   `PickHelper.warmUp`. Pick, ray and Hi-Z passes are plans too (Hi-Z prepares its first level, from the scene depth, and
   one following level). Linking matters on WebGPU beyond the drawn objects: setting props that require a variant links
@@ -193,6 +202,41 @@
   requests, as measured not needed: only clears that are not load operations draw (a partial viewport's scissored
   clears, clears after drawing), in the Viewer seven pipelines over a session with a relative-frame viewport and
   illumination, each created in at most 0.2 ms with no frame gap above 17 ms (the shader is trivial).
+- Compile time per pipeline (Chrome trace of Dawn's categories, `gpu.dawn`; Viewer loading 1cbs on WebGPU, NVIDIA,
+  32 pipelines): DXC is about 90 % of it (Tint's HLSL about 9 %), and the vertex stage cost more than the fragment
+  stage (75–157 against 16–93 ms, compiling in parallel). The wiggle and tumble noise (`fbm`, 9 calls inlined into every
+  vertex stage, off by a uniform) was about half: alone on Dawn (D3D12, DXC) mesh 95 → 45 ms, spheres 133 → 73,
+  cylinders 153 → 82 ms without it. Now compiled only where an object animates (`dWiggleAnimation`, `dTumbleAnimation`
+  from the amplitudes; wiggle also with the wiggle layer, `dWiggle`): the load's pipelines 3.5 → 1.9 s of compile time,
+  the longest 235 → 130 ms; first draw 170–185 ms after the state update (was 260–280 ms); WebGL2 with a cold cache
+  1.2 → 1.0 s to the first draw. Turning an animation on compiles the object's pipelines once (its draws are skipped
+  meanwhile, as for any define change). Images unchanged (new visual cases `renderer/animation/wiggle-*`). The bump
+  noise of the fragment stage likewise (`dBump`, `BaseGeometry.hasBump`: frequency, amplitude and the bumpiness of the
+  material or the interior's substance above 0; with a substance layer, `dSubstance`, too, its bumpiness per group): the
+  representations' frequency and amplitude default above 0, their bumpiness to 0. Alone on Dawn, the color pipelines
+  (before both, after both) mesh 104 → 37 ms, spheres 131 → 58, cylinders 146 → 69, pick pipelines mesh 69 → 23,
+  spheres 97 → 46; the load's pipelines 1.76 s of compile time, the longest 113 ms; first draw 140–170 ms after the
+  state update; WebGL2 with a cold cache 0.88 s to the first draw. Images unchanged (new visual cases
+  `renderer/bump/*`, the material's and a substance layer's bumpiness). The other runtime-switched paths, each
+  disabled alone (median of 11 interleaved compiles on Dawn): the lod fade of the fragment stage 4–6 ms (mesh, spheres,
+  cylinders: 9–12 %), now behind `dLodFade` (the object's `lod` with a min or max distance; images unchanged, new visual
+  cases `renderer/lod-fade/*`): mesh 36 → 33 ms, spheres 59 → 53, cylinders 70 → 64, the mesh pick pipeline 23 → 18; the
+  load's pipelines 1.60 s, the longest 97 ms. Without it the mesh programs read no draw uniforms: programs bind
+  `uDraw` only where they read it. The spheres' quadratic projection (the stereo and XR eye cameras' asymmetric
+  projections, by a uniform) cost 7.6 ms: the bounding rectangle of `sphereProjection` now takes the off-axis terms
+  (`uProjection[2].xy`, zero for symmetric projections) instead, so the quadratic projection and
+  `uIsAsymmetricProjection` are removed: sphere color pipelines 57 → 49 ms, pick 42 → 33. Images unchanged; a new
+  visual case `renderer/camera/stereo-spheres` (sphere impostors, a wide eye separation) differs from the quadratic
+  projection in about 10 pixels by 1/255. Fog, the interior mix, the transparent branch, the vertex stage's lod
+  levels and the color and size type switches cost 1–3 ms each, not worth a variant. Lighting alone is about 13 ms of
+  the mesh's; the rest is a floor of Tint and DXC. Found on the way: tumble seeded its noise by the object's id
+  (`uObjectId`), a creation counter that differs by backend, merging and each rebuild (WebGPU's images differed from
+  WebGL2's, and a rebuilt representation jumped to another pose): now by the object's bounding sphere center placed by
+  the instance's transform (the same merged, `aSegmentSphere`), visual cases `renderer/animation/tumble-unmerged` and
+  `tumble-merged`; and the byte-count test on WebGPU (`webgpu-byte-counts.test.ts`) failed now and then: its peptide is
+  drawn as ball-and-stick, whose spheres and cylinders hold their data in data arrays, so the attributes after the first
+  frame were mostly the helpers', not all created yet (256 against 336 bytes settled); it now compares against counts
+  settled by a first load and clear.
 - Planned: replaces the collect mode (`resources.preparePrograms(run)`, `DrawPass.prepareMarking`) and the
   `ImagePass` re-render loop from [resource-readiness.md](resource-readiness.md). A dry run of the `ImagePass` passes in
   collect mode was tried: over the WebGPU visual profile renders that started work went from 63 of 142 cases to none
@@ -312,6 +356,8 @@ the signatures it drew, the reference the derivation is tested against.
    transparency modes and postprocessing options that were prepared compiles nothing.
 5. **Kernels**: `prepareKernels`, async compute pipelines, the GPU surface visuals prepare their kernels when created.
 6. **Snapshot replay**: precompile lists derived from a state's params when it is loaded, see Step 6 below.
+7. **Representation transforms**: precompiling when a representation transform applies or updates, with its data, see
+   Step 7 below.
 
 ## Step 6: snapshot replay
 
@@ -460,6 +506,127 @@ WebGL's WBOIT freeze on the first impostor draws is unchanged (6h).
 
 Fewer defines (uniforms with uniform branches instead of defines, which shrinks the program space for drawing too) is
 a separate plan: [fewer-defines.md](fewer-defines.md).
+
+## Step 7: representation transforms
+
+A representation's programs compile after its geometry is built: the state update commits, the first frame requests
+the pipelines, and draws are skipped (WebGPU) or the frame waits (WebGL) until they are ready. A transform that
+applies (`StructureRepresentation3D` and the other registered ones) or updates could start compiling first, so that
+compiling overlaps building.
+
+- **Why not the tree** (step 4, tried and dropped): precompiling a state update's tree when the update starts gained
+  little, as the representations' transforms arrive in the update's last tree (about 30 ms before the commit for
+  1cbs), and the params-only list compiled 50 pipelines where the load needed 32, competing for the compiler's threads
+  with the ones needed.
+- **What the transform adds**: the time its geometry takes to build, which the overlap can hide (nothing for 1cbs;
+  seconds for large structures, surfaces and mesoscale scenes, where compiling took 440 ms in Chrome for 1grm), and its
+  data, which resolves what the params-only derivation crosses: the color theme's granularity, 'auto' quality by size,
+  the visuals' choices (GPU or CPU, impostors or meshes), merging; a narrower list than the tree's.
+- **Updates**: a theme or props change of an existing representation compiles programs its new defines create;
+  compiling them first keeps the old geometry drawn until they are ready, instead of skipping its draws meanwhile.
+
+Design:
+
+- **Additive precompile**: `Canvas3D.precompile` releases the previous call's items; transforms precompile alongside
+  each other (a preset's representations, one update), so items are kept per owner (the transform) and released once
+  its objects are committed and drawn (their own items then hold the programs).
+- **Batched**: the requests of one update are merged before planning the passes against the stand-in scenes (CPU work
+  per call), so that a preset of several representations plans once, not once each.
+- **Not awaited**: the transform starts precompiling and builds right away; awaiting would serialize the two again.
+- **With data**: `Representation.getSignatures(props, ctx, data)` beside the params-only derivation: the factories'
+  choosers and the themes' granularity resolved from the data (themes created with it, cheap next to building).
+- **Not where linking blocks**: WebGL without `KHR_parallel_shader_compile` links on the main thread, which would delay
+  building; skipped there.
+
+Steps:
+
+- **7a Measure** (done): in Chrome (RTX 4070 Ti, 1280x800, the Viewer, a fresh browser per case), the time from
+  adding a representation to its commit (its build), and from the commit to the first frame that draws it fully (WebGPU:
+  skips no draw; WebGL: the first frame, which waits for linking); then the color theme set to `uniform` (another
+  color type) and `alpha` 0.5 on it:
+
+  | case (WebGPU / WebGL2)    | add: build      | add: commit to full | theme: commit to full      | alpha: to full |
+  | ------------------------- | --------------- | ------------------- | -------------------------- | -------------- |
+  | 1cbs cartoon              | 25 / 26 ms      | 57 / 67 ms          | 51 / 68 ms                 | 17 / 0 ms      |
+  | 1cbs Gaussian surface     | 93 / 476 ms     | 82 / 80 ms          | 68 / 69 ms                 | 17 / 0 ms      |
+  | 4v6x Gaussian surface     | 233 / 1183 ms   | 96 / 83 ms          | 69 / 86 ms                 | 18 / 0 ms      |
+  | 3j3q cartoon (`medium`)   | 3209 / 4121 ms  | 1115 / not measured | 1063 / 61 ms               | 9 / 0 ms       |
+  | 3j3q Gaussian surface     | 1428 / 1489 ms  | 72 / 81 ms          | 71 / 76 ms                 | 17 / 0 ms      |
+  | PetWorld spacefill        | 1409 / 1497 ms  | 183 / 99 ms         | not measured               | not measured   |
+
+  - **Adding**: what follows the commit (8 pipelines, 25 to 34 with a GPU surface's kernels; 2 programs on WebGL) is
+    60–190 ms, 1.1 s for 3j3q's cartoon on WebGPU; the build is longer than that except for 1cbs's cartoon, so
+    compiling during it would hide most of it: 60–190 ms per added representation, up to 1.1 s.
+  - **Updating**: a theme change compiles 1–3 pipelines (WebGPU) or a program (WebGL), 50–90 ms (1.1 s for 3j3q's
+    cartoon on WebGPU). Meanwhile WebGPU skips the representation's draws (4–5 frames without it), WebGL holds the frame.
+    The update's own build is often shorter than the compile (20 ms against 51 ms for 1cbs), so starting the compile
+    earlier would not keep it drawn: frames after an update need holding until its pipelines are ready, as after a
+    props change (`holdFramesUntilPrepared`), more than precompiling.
+  - **Updates held** (done): `Canvas3D` records the renderables a representation update changed in place (its
+    `updated` re-adding it, or `update(repr)`) again, and where a signature changed (`PrecompileRecorder.recordAgain`),
+    frames wait for what they need (`holdFramesUntilPrepared`, at most 1 s). Measured again (WebGPU): the theme change
+    holds the last frame 36 ms (1cbs cartoon), 53 ms (1cbs Gaussian surface), 1.0 s (3j3q cartoon) and skips no draw,
+    `alpha` none either. Test on Dawn (`webgpu-update-hold.test.ts`). Not held: updates that replace render objects (a
+    rebuild), whose new objects compile after the commit as added ones do.
+  - Not measured: WebGL2's 3j3q cartoon add (no frame caught after the commit) and PetWorld's updates (the theme
+    change reached no canvas update; `alpha` rebuilt its geometry, 9 s). One run each.
+
+- **7b With data** (done): `SignatureContext.data` (the representation's data, `repr/signatures.ts`): 'auto' quality
+  resolved by it (`getQualitySignatures`), the visuals the data selects (`signatureVisuals` with data: per symmetry
+  group for units representations, the structure for complex ones), merging and GPU culling by the objects' counts
+  (`withMergedSignatures` with counts: 'auto' resolved, the draws per object by their levels of detail; where merging
+  resolves on, unmerged as well, for values that don't merge); the themes are the
+  transform's, created with the data (their granularity). Test on Dawn (`webgpu-prepare-representation.test.ts`): the
+  lists with data cover what every representation type (and some props and themes) on 1cbs and DNA draws, and 32 chains
+  merged by 'auto' merging, which the params-only list misses (it takes 'auto' as unmerged). Small structures: the
+  lists equal the params-only ones (16 signatures each); the data decides for large ones.
+- **7c Prepared while they build** (done): `Canvas3D.prepareObjects(owner, list)`: requests of one task planned
+  together (`planSignatures`, shared with `precompile`) for the frame's passes with the current props, the stand-in
+  scenes' averages from the objects and the scene (not every branch), without the interaction (the warm-up's, once
+  drawn), with the culling's kernels of objects culled on the GPU; the program items kept per request until each owner
+  (the representation) was added and committed and the work is ready, at most 60 s. `prepareRepresentation`
+  (`plugin/state/precompile.ts`) in the apply and update of the structure, volume, particle and shape representation
+  transforms (shapes colored and sized by shape group), before building, not awaited; not
+  where compiling blocks the main thread (`GraphicsCapabilities.parallelCompile`: WebGL without
+  `KHR_parallel_shader_compile`). An update's hold waits for work in flight too (`holdFramesUntilPrepared(true)`): its
+  pipelines are requested while it builds. Test on Dawn: the first frame after adding a cartoon and ball-and-stick of
+  1cbs compiles no pipeline, with `prepareObjects` stubbed out it does; a volume's isosurface (a GPU texture mesh) and
+  particles' spacefill are covered by what their transforms prepare. Not prepared: the measurements, unit cells and
+  bounding boxes (small, built at once), which compile when first drawn. Measured again in Chrome (as 7a): the commit to
+  the full frame of an added representation goes to 0 on both backends where the build is longer than the compile
+  (WebGPU: 3j3q cartoon 1.3–1.5 s to 0, its total 5.2–6.0 s to 4.8–5.5 s; 3j3q Gaussian surface 107–120 ms to 0, 1cbs
+  Gaussian surface 82 ms to 0; WebGL2: 4v6x, 3j3q, PetWorld 80–100 ms to 0), unchanged for 1cbs's cartoon (built in
+  25 ms); builds vary by up to 1.3 s between runs, three runs each with and without. PetWorld's spacefill (8 objects, a million
+  instances) waited 230–250 ms after its commit for spheres derived as merged and culled on the GPU, drawn unmerged:
+  the draws per object count their levels of detail, and the objects' values may not merge (`canMergeRenderObjects`,
+  known once built), so where merging resolves on, both are prepared; now 0 (three runs).
+- **7d Particle targets** (done but for a measured load): the particle target representation (`repr/particles/representation/target`:
+  particles drawn as the structures, shapes or volumes their targets are, a visual per target, merged by type) has no
+  `getSignatures`, so neither precompile lists (mesoscale states, stories) nor `prepareRepresentation` cover it: its
+  objects compile when first drawn, after the build.
+  - **With data** (the transform's apply and update, `SignatureContext.data` the particle list): per target of
+    `targetMapping` with particles (as `createOrUpdate` walks `getParticleTargetGroups`), its props
+    (`createParticleTargetPropsProvider`: the kind's group, quality resolved by the target's data) and the geometry
+    `createTargetGeometry` would make, without making it: structures as sphere impostors or meshes
+    (`structureTargetUseImpostor`) or a blob surface (mesh), volumes as an isosurface (mesh) or dots (spheres, the
+    uniform dot size theme), shapes as their shape's geometry; its signatures from that geometry's utils with the
+    props (`getGeometrySignatures`), colored by the theme's granularity (instances: a particle per instance, one
+    group). Merging as `mergeRenderObjectsByType` decides, per geometry type: the targets of the type, their particles
+    and levels of detail (`withMergedSignatures` with counts).
+  - **Without data**: no signatures. The targets are not known, and taking every kind the params configure
+    (structure impostors, meshes and blob surfaces, volume isosurfaces and dots, shape meshes, lines and spheres, each
+    by color types and passes) would compile dozens of pipelines a particle list never draws. Not needed either: the
+    representation prepares with its data when it is added and on every update (7c, updates held until ready), and a
+    story's later snapshots usually keep the particle list its first build prepared.
+  - **Done**: `getTargetGeometryChoice` (the geometry a target is drawn with, which `createTargetGeometry` follows) and
+    `getTargetGeometryUtils`; the representation's `getSignatures` with data (sizes as the visual sets them: structure
+    impostors per element, volume dots uniform; surfaces with varying groups where flat interpolation is supported, a
+    shape's mesh as its geometry has them). Found on the way: `prepareObjects` planned on a timer, which a build that
+    never yields to it (a small target) only reached after its commit and first frame; it plans at the caller's first
+    await now (a microtask: less batching across representations, but never late). Test on Dawn
+    (`webgpu-prepare-particle-targets.test.ts`): RELION particles with a structure (1crn), a volume (a DX grid) and a
+    shape (an OBJ cube) target each: the lists with data cover what their first frame records, which compiles no
+    pipeline (all three fail without the signatures). Not measured: a mesoscale state's load (no such data here).
 
 ## Open questions
 

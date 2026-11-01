@@ -51,6 +51,9 @@ const createPlugin = async () => {
     { backend: 'webgpu' },
   );
   await plugin.init();
+  // the lists under test only: the representation transforms prepare their objects while they build too (here also
+  // the label's text, which has no canvas to draw its glyphs with and so draws nothing)
+  plugin.canvas3d!.prepareObjects = () => {};
   const graphics = plugin.canvas3d!.graphics;
   // the draw pass's formats, with stencil
   const target = graphics.describeTarget(graphics.createRenderTarget(8, 8, 'depth-stencil'));
@@ -140,7 +143,9 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
       }
       expect(bPending.trackedCount).toBeGreaterThan(beforePrepare);
       const bScene = await addScene(b.plugin);
-      // what Canvas3D compiles for its own scene and passes settled first
+      // what Canvas3D compiles for its own scene, passes and first interaction settled first (its idle warm-up prepares
+      // the interaction only once the frame is ready)
+      await b.plugin.canvas3d!.prepare({ interaction: true });
       await bPending.whenReady();
       const before = bPending.trackedCount;
       for (const pass of Passes) {

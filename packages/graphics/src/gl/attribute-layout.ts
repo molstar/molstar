@@ -19,9 +19,18 @@ export type AttributeLayoutEntry = {
   readonly itemSize: AttributeItemSize;
   readonly divisor: number;
   readonly location: number;
-  /** 4 for `mat4` (one per column), 1 otherwise */
+  /** 4 for `mat4` (one per column), 3 for an affine transform (one per row, `affine-rows.ts`), 1 otherwise */
   readonly locationCount: number;
 };
+
+/**
+ * The names bound at the locations of `entry`: an affine transform's rows each by its own (`aTransform0` to
+ * `aTransform2`), any other attribute by its name at its first location (a `mat4` takes the following ones too)
+ */
+export function getAttributeLocationNames(entry: AttributeLayoutEntry): readonly [name: string, location: number][] {
+  if (entry.locationCount === 3) return [0, 1, 2].map((i) => [`${entry.name}${i}`, entry.location + i] as const);
+  return [[entry.name, entry.location]];
+}
 
 export interface AttributeLayout {
   readonly entries: readonly AttributeLayoutEntry[];
@@ -62,7 +71,7 @@ function computeAttributeLayout(schema: RenderableSchema): AttributeLayout {
   const byName: { [k: string]: AttributeLayoutEntry } = {};
   let location = 0;
   for (const [name, spec] of specs) {
-    const locationCount = spec.itemSize === 16 ? 4 : 1;
+    const locationCount = spec.itemSize === 16 ? 4 : spec.itemSize === 12 ? 3 : 1;
     const entry = { name, kind: spec.kind, itemSize: spec.itemSize, divisor: spec.divisor, location, locationCount };
     entries.push(entry);
     byName[name] = entry;

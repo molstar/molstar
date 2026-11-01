@@ -122,9 +122,11 @@ describe('wgsl declarations', () => {
     expect(code).toContain('@builtin(instance_index) instanceIndex: u32,');
     expect(code).toContain(`@location(${byName.aPosition.location}) aPosition: vec3<f32>,`);
     expect(code).toContain(`@location(${byName.aGroup.location}) aGroup: f32,`);
-    for (let i = 0; i < 4; ++i) {
+    // the transform's three rows (affine)
+    for (let i = 0; i < 3; ++i) {
       expect(code).toContain(`@location(${byName.aTransform.location + i}) aTransform${i}: vec4<f32>,`);
     }
+    expect(code).not.toContain('aTransform3');
     // vertex ids are builtins
     expect(code).not.toContain('aVertex');
   });
@@ -471,6 +473,7 @@ describe('compute wgsl', () => {
     ],
     ['dim', dim_wgsl, {}],
     ['overlay', overlay_wgsl, { dMarkingShading: 'ssao' }],
+    ['overlay', overlay_wgsl, { dMarkingShading: 'ssao', dOcclusionUpsample: true }],
     ['overlay', overlay_wgsl, { dMarkingShading: 'off' }],
     ['overlay', overlay_wgsl, { dMarkingShading: 'traced' }],
     [
