@@ -323,6 +323,11 @@ export interface GraphicsContext {
   /** Resolves when the GPU finished the submitted commands */
   waitForGpuCommandsComplete: () => Promise<void>;
   /**
+   * Keeps the image of the canvas across frames, for several Canvas3D instances drawing parts of it: a frame of one
+   * leaves those of the others. Only where presenting drops it: WebGL has `preserveDrawingBuffer`
+   */
+  setPreserveDrawingBuffer?: (value: boolean) => void;
+  /**
    * Reads the color attachment of `target` as rgba8 in a rectangle with a top-left origin, rows top to bottom.
    * Ends the open render pass.
    */

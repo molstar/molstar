@@ -4,6 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Canvas3D, Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { now } from '@molstar/core/util/now';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
 import { createClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import type { Representation } from '@molstar/graphics/repr/representation';
@@ -102,6 +105,91 @@ async function pickDirectVolume({ graphics, canvas3d }: SceneContext, reprs: Rep
 }
 
 export const RendererCases: VisualTestCase[] = [
+  {
+    id: 'renderer/context/shared-canvas',
+    description:
+      'Two Canvas3D instances of one context, each with half of its canvas: a frame of one keeps the image of the other.',
+    scene: async () => [],
+    check: async (_, profile) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 256;
+      const container = document.createElement('div');
+      container.style.cssText = 'position: absolute; left: -10000px; width: 256px; height: 256px';
+      container.appendChild(canvas);
+      document.body.appendChild(container);
+      const context = await profile.createContext(canvas, new DefaultAssetManager());
+      if (!context) return [`no context of profile '${profile.id}'`];
+      const create = async (x: number, backgroundColor: Color) => {
+        const c = Canvas3D.create(context, {
+          viewport: { name: 'relative-frame', params: { x, y: 0, width: 0.5, height: 1 } },
+          renderer: { ...PD.getDefaultValues(Canvas3DParams).renderer, backgroundColor },
+        });
+        c.add(await shapeRepr('mesh', meshPrimitives()));
+        c.commit(true);
+        return c;
+      };
+      const frame = async (c: Canvas3D) => {
+        await context.graphics.resources.pending.whenReady();
+        c.requestDraw();
+        c.tick(now(), { isSynchronous: true });
+      };
+      const read = () => {
+        const copy = document.createElement('canvas');
+        copy.width = copy.height = 256;
+        const ctx = copy.getContext('2d')!;
+        ctx.drawImage(canvas, 0, 0);
+        const at = (x: number) => Array.from(ctx.getImageData(x, 2, 1, 1).data).join(',');
+        return { left: at(2), right: at(253) };
+      };
+      const left = await create(0, Color(0xff0000));
+      // what an instance drew alone is not kept: one added asks the others for a frame
+      let requested = 0;
+      const removeProbe = context.addInstance!(() => {
+        requested += 1;
+      });
+      const right = await create(0.5, Color(0x0000ff));
+      removeProbe();
+      try {
+        for (let i = 0; i < 3; ++i) {
+          await frame(left);
+          await frame(right);
+          await context.graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => requestAnimationFrame(r));
+        }
+        await frame(left);
+        await frame(right);
+        const both = read();
+        await context.graphics.waitForGpuCommandsComplete();
+        await new Promise((r) => requestAnimationFrame(r));
+        // a new frame, of one instance only
+        await frame(left);
+        const one = read();
+        const red = '255,0,0,255';
+        const blue = '0,0,255,255';
+        const errors: string[] = [];
+        if (requested !== 1) errors.push(`frames asked of an instance when another is added: ${requested}`);
+        if (both.left !== red || both.right !== blue) errors.push(`both drawn: ${both.left} | ${both.right}`);
+        if (one.left !== red || one.right !== blue) errors.push(`one drawn: ${one.left} | ${one.right}`);
+        // a resize leaves nothing to keep; frames go on without the other instance
+        canvas.width = canvas.height = 128;
+        await context.graphics.waitForGpuCommandsComplete();
+        await new Promise((r) => requestAnimationFrame(r));
+        await frame(left);
+        await context.graphics.waitForGpuCommandsComplete();
+        right.dispose();
+        await new Promise((r) => requestAnimationFrame(r));
+        await frame(left);
+        await context.graphics.waitForGpuCommandsComplete();
+        errors.push(...((context.graphics as { takeErrors?: () => string[] }).takeErrors?.() ?? []));
+        return errors;
+      } finally {
+        left.dispose();
+        right.dispose();
+        context.dispose?.();
+        container.remove();
+      }
+    },
+  },
   {
     id: 'renderer/context/release-restore',
     description: 'the context released on purpose (a canvas out of view) and restored: the scene is built again on it',

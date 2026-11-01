@@ -244,6 +244,11 @@ interface Canvas3DContext {
   readonly passes: Passes;
   readonly attribs: Readonly<Canvas3DContext.Attribs>;
   readonly props: Readonly<Canvas3DContext.Props>;
+  /**
+   * A Canvas3D of this context, until the returned function: with several the canvas keeps its image between frames;
+   * the others `requestDraw` when one is added, what they drew before is not kept
+   */
+  addInstance?: (requestDraw: () => void) => () => void;
   readonly contextLost?: Subject<now.Timestamp>;
   readonly contextRestored?: Subject<now.Timestamp>;
   /**
@@ -572,6 +577,7 @@ namespace Canvas3DContext {
 
       canvas = next.canvas;
       graphics = next.graphics;
+      updatePreserveDrawingBuffer();
       input.setElement(canvas);
       if (isDebugMode) canvas.addEventListener('mousedown', simulateContextLoss, false);
       contextSubs = subscribeContext();
@@ -624,6 +630,18 @@ namespace Canvas3DContext {
         changing = false;
       }
     };
+    const instances = new Set<() => void>();
+    const updatePreserveDrawingBuffer = () => graphics.setPreserveDrawingBuffer?.(instances.size > 1);
+    const addInstance = (requestDraw: () => void) => {
+      instances.forEach((draw) => draw());
+      instances.add(requestDraw);
+      updatePreserveDrawingBuffer();
+      return () => {
+        instances.delete(requestDraw);
+        updatePreserveDrawingBuffer();
+      };
+    };
+
     const setBackend = async (candidates: readonly GraphicsBackendDescriptor[]) => {
       // a released canvas (e.g. out of view) gets no live context before `restore`
       if (released && !changing) {
@@ -645,6 +663,7 @@ namespace Canvas3DContext {
         return passes;
       },
       attribs: a,
+      addInstance,
       get props() {
         return { ...p };
       },
@@ -962,6 +981,7 @@ namespace Canvas3D {
   ): Canvas3D {
     const { input, assetManager, contextLost } = ctx;
     let { graphics, passes, canvas } = ctx;
+    const removeInstance = ctx.addInstance?.(() => requestDraw());
     const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
     let limitToSupported = createSupportedPropsLimiter(graphics);
     limitToSupported(p);
@@ -2778,6 +2798,7 @@ namespace Canvas3D {
       xr,
       dispose: () => {
         canvasDisposed = true;
+        removeInstance?.();
         warmUpCancel?.();
         warmUpCancel = undefined;
         passes.targets.cancelRelease();

@@ -437,7 +437,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     canvasContext.configure({
       device,
       format: drawingBufferFormat,
-      usage: TextureUsage.RENDER_ATTACHMENT | TextureUsage.COPY_SRC,
+      usage: TextureUsage.RENDER_ATTACHMENT | TextureUsage.COPY_SRC | TextureUsage.COPY_DST,
       alphaMode: 'premultiplied',
     });
     canvasConfigured = true;
@@ -546,6 +546,11 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   // drawing buffer
 
   let drawingBuffer: { color: GPUTexture; depth: GPUTexture; target: PassTarget } | undefined;
+  /** `setPreserveDrawingBuffer`: the canvas's image, copied into each frame's new texture */
+  let preserveDrawingBuffer = false;
+  let preservedColor: GPUTexture | undefined;
+  /** the canvas texture to copy from at a submit: valid in the task that got it, presented at its end */
+  let colorToPreserve: GPUTexture | undefined;
   let drawingBufferWidth = options.width;
   let drawingBufferHeight = options.height;
   let pixelScale = options.pixelScale ?? 1;
@@ -588,6 +593,30 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return zeroSizeBuffer;
   }
 
+  /** Into a new canvas texture, in a submit of its own: the current encoder may hold an open pass */
+  function restorePreservedColor(color: GPUTexture) {
+    if (!preservedColor || preservedColor.width !== color.width || preservedColor.height !== color.height) return;
+    const encoder = device.createCommandEncoder();
+    encoder.copyTextureToTexture({ texture: preservedColor }, { texture: color }, [color.width, color.height]);
+    device.queue.submit([encoder.finish()]);
+  }
+
+  function savePreservedColor(encoder: GPUCommandEncoder) {
+    const color = colorToPreserve;
+    if (!color) return;
+    if (preservedColor && (preservedColor.width !== color.width || preservedColor.height !== color.height)) {
+      preservedColor.destroy();
+      preservedColor = undefined;
+    }
+    preservedColor ??= device.createTexture({
+      size: [color.width, color.height],
+      format: drawingBufferFormat,
+      usage: TextureUsage.COPY_SRC | TextureUsage.COPY_DST,
+      label: 'preserved drawing buffer',
+    });
+    encoder.copyTextureToTexture({ texture: color }, { texture: preservedColor }, [color.width, color.height]);
+  }
+
   /** The canvas texture of the current frame, or an offscreen texture without canvas */
   function getDrawingBuffer() {
     if (canvasContext) {
@@ -597,6 +626,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       if (!canvasConfigured) return getZeroSizeBuffer();
       // a new texture per frame, presented when the task that rendered into it ends
       const color = canvasContext.getCurrentTexture();
+      if (preserveDrawingBuffer && colorToPreserve !== color) {
+        colorToPreserve = color;
+        setTimeout(() => {
+          if (colorToPreserve === color) colorToPreserve = undefined;
+        });
+        restorePreservedColor(color);
+      }
       if (drawingBuffer?.color !== color) {
         let depth = drawingBuffer?.depth;
         if (!depth || depth.width !== color.width || depth.height !== color.height) {
@@ -1273,6 +1309,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     endPassEncoder();
     endComputePassEncoder();
     if (!commandEncoder) return;
+    savePreservedColor(commandEncoder);
     ring.upload();
     globalRing.upload();
     const afterSubmit = timerSource?.beforeSubmit(commandEncoder);
@@ -1665,6 +1702,14 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       options.canvas
         ? { width: options.canvas.width, height: options.canvas.height }
         : { width: drawingBufferWidth, height: drawingBufferHeight },
+    setPreserveDrawingBuffer: (value: boolean) => {
+      if (!canvasContext || value === preserveDrawingBuffer) return;
+      preserveDrawingBuffer = value;
+      if (value) return;
+      colorToPreserve = undefined;
+      preservedColor?.destroy();
+      preservedColor = undefined;
+    },
     setDrawingBufferSize: (width: number, height: number) => {
       // with a canvas the drawing buffer follows the canvas size
       if (canvasContext) return;
@@ -1831,6 +1876,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     },
 
     destroy: (options?: GraphicsDestroyOptions) => {
+      preservedColor?.destroy();
+      preservedColor = undefined;
       destroyed = true;
       pending.clear();
       contextLost.complete();
