@@ -208,7 +208,7 @@ fn clipExit(pFront: vec3<f32>, pBack: vec3<f32>, sStart: f32, flag: i32) -> f32 
 fn clipSphereClass(p: vec3<f32>, r: f32, flag: i32) -> u32 {
     var perPixel = false;
     for (var i = 0; i < ${count}; i++) {
-        if (!isClipObjectActive(i, flag)) { continue; }
+        if (!isClipObjectActive(i, flag) || clipType(i) == 0) { continue; }
         let f = clipObjectFrame(i);
         var rl = r * max(length(f[0].xyz), max(length(f[1].xyz), length(f[2].xyz)));
         if (clipType(i) == 5) {

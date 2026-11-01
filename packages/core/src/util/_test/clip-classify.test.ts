@@ -19,6 +19,29 @@ function random(seed: number) {
   };
 }
 
+describe('Clip.classifySphere of an object switched off', () => {
+  it('clips nothing, inverted or not', () => {
+    for (const invert of [false, true]) {
+      const objects = Clip.getClip({
+        variant: 'pixel',
+        objects: [
+          {
+            type: 'none',
+            invert,
+            position: Vec3(),
+            rotation: { axis: Vec3.create(0, 1, 0), angle: 0 },
+            scale: Vec3.create(1, 1, 1),
+            transform: Mat4.identity(),
+          },
+        ],
+      } as Clip.Props).objects;
+      for (const radius of [0.01, 1, 100]) {
+        expect(Clip.classifySphere(objects, Sphere3D.create(Vec3(), radius))).toBe(Clip.SphereClass.None);
+      }
+    }
+  });
+});
+
 const Shapes: { type: keyof typeof Clip.Type; scale: Vec3 }[] = [
   { type: 'plane', scale: Vec3.create(1, 1, 1) },
   { type: 'sphere', scale: Vec3.create(8, 8, 8) },

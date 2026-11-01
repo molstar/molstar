@@ -134,6 +134,7 @@ float clipObjectSD(const in vec3 center, const in mat4 frame, const in vec4 shap
             if (i != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(i)))) {
                 mat4 frame = uClipObjectFrame[i];
                 vec4 shape = uClipObjectShape[i];
+                if (clipType(shape) == 0) continue;
                 float r = radius * max(length(frame[0].xyz), max(length(frame[1].xyz), length(frame[2].xyz)));
                 if (clipType(shape) == 5) r *= length(shape.xy);
                 float sd = clipObjectSD(center, frame, shape);

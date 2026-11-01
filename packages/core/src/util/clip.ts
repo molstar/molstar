@@ -232,6 +232,7 @@ export namespace Clip {
     );
     const o = index * 4;
     const type = Math.round(Math.abs(shape[o + 3]));
+    if (type === Type.none) return SphereClass.None;
     const slope = type === Type.infiniteCone ? Math.hypot(shape[o], shape[o + 1]) : 1;
     const r = sphere.radius * scale * slope;
     const sd = getSignedDistance(objects, index, Vec3.copy(vC, sphere.center));
