@@ -1828,6 +1828,7 @@ namespace Canvas3D {
     }[] = [];
     /** how long prepared objects' items wait for their owners (a build aborted or failed adds nothing) */
     const PreparedObjectsMaxMs = 60_000;
+    let preparedObjectsTimer: ReturnType<typeof setTimeout> | undefined;
 
     function prepareObjects(owner: object, list: PrecompileList) {
       if (!graphics.capabilities.parallelCompile || isContextLost || graphics.isContextLost || canvasDisposed) return;
@@ -1872,6 +1873,14 @@ namespace Canvas3D {
       // the items this request uses too move to it: with an earlier one's they could go before its owners are added
       for (const entry of preparedObjects) for (const key of items.keys()) entry.items.delete(key);
       preparedObjects.push({ owners: new Set(requests.keys()), added: new Set(), items, time: now() });
+      // a build aborted or failed commits nothing
+      preparedObjectsTimer ??= setTimeout(onPreparedObjectsTimer, PreparedObjectsMaxMs);
+    }
+
+    function onPreparedObjectsTimer() {
+      preparedObjectsTimer = undefined;
+      releasePreparedObjects();
+      if (preparedObjects.length > 0) preparedObjectsTimer = setTimeout(onPreparedObjectsTimer, PreparedObjectsMaxMs);
     }
 
     /** releases the prepared objects' items whose owners were all added and are committed, once the work is ready */
@@ -1899,6 +1908,8 @@ namespace Canvas3D {
 
     function destroyPreparedObjects() {
       preparingObjects = undefined;
+      clearTimeout(preparedObjectsTimer);
+      preparedObjectsTimer = undefined;
       for (const entry of preparedObjects) for (const item of entry.items.values()) item.destroy();
       preparedObjects.length = 0;
     }
