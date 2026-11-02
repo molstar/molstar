@@ -75,6 +75,9 @@
       "path": "./examples/lighting"
     },
     {
+      "path": "./examples/bond-orders"
+    },
+    {
       "path": "./examples/bond-providers"
     },
     {
@@ -109,6 +112,9 @@
     },
     {
       "path": "./packages/extensions/backgrounds"
+    },
+    {
+      "path": "./packages/extensions/bond-orders"
     },
     {
       "path": "./packages/extensions/debug-helpers"

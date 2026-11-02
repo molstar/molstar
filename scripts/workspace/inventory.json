@@ -157,6 +157,12 @@
       "private": true
     },
     {
+      "name": "@molstar/bond-orders-example",
+      "path": "examples/bond-orders",
+      "kind": "example",
+      "private": true
+    },
+    {
       "name": "@molstar/bond-providers-example",
       "path": "examples/bond-providers",
       "kind": "example",
@@ -225,6 +231,12 @@
     {
       "name": "@molstar/backgrounds-extension",
       "path": "packages/extensions/backgrounds",
+      "kind": "extension",
+      "private": false
+    },
+    {
+      "name": "@molstar/bond-orders-extension",
+      "path": "packages/extensions/bond-orders",
       "kind": "extension",
       "private": false
     },
