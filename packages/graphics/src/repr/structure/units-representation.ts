@@ -257,7 +257,8 @@ export function UnitsRepresentation<P extends StructureParams>(
       mergedByType,
       renderObjects,
       gpuCulling,
-      canCullOnGpu(ctx.graphics),
+      canCullOnGpu(graphics),
+      graphics,
     );
     mergedVisuals.clear();
     mergedByType.forEach(({ visuals }) => {
@@ -515,7 +516,21 @@ export function UnitsRepresentation<P extends StructureParams>(
       // GPU); 'auto' merges above `AutoRenderMergedThreshold` units, taken as unmerged: such objects compile while they
       // build
       const p = props as { renderMerged?: RenderMergedValue; gpuCulling?: GpuCullingValue };
-      return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx), p);
+      if (!(ctx.data instanceof Structure))
+        return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx), p);
+      // with the structure: the visuals its groups select, merged as their counts decide
+      const structure = ctx.data;
+      const groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
+      const data = groups.map((group) => ({ structure, group }));
+      const lodLevels = (props as { lodLevels?: readonly unknown[] }).lodLevels;
+      const counts = {
+        objects: groups.length,
+        instances: structure.units.length,
+        spheres: structure.elementCount,
+        levels: lodLevels?.length ?? 0,
+        graphics: ctx.graphics,
+      };
+      return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx, data), p, counts);
     },
     destroy,
   };

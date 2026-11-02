@@ -210,6 +210,8 @@ export interface PrecompileList {
 export class PrecompileRecorder {
   private readonly signatures = new Map<string, ObjectSignature>();
   private recorded = new WeakSet<GraphicsRenderable>();
+  /** each renderable's signature when last recorded, kept across `reset` (what `recordAgain` compares) */
+  private readonly keys = new WeakMap<GraphicsRenderable, string>();
 
   /** records the renderables not recorded before, or since `invalidate` */
   record(renderables: Iterable<GraphicsRenderable>) {
@@ -219,18 +221,29 @@ export class PrecompileRecorder {
     }
   }
 
-  /** records the renderables again, recorded before or not, e.g. after their values were updated (defines may have changed) */
+  /**
+   * records the renderables again, recorded before or not, e.g. after their values were updated (defines may have
+   * changed); whether the signature of one of them changed (programs it may not have yet)
+   */
   recordAgain(renderables: Iterable<GraphicsRenderable>) {
-    for (const r of renderables) this.add(r);
+    let changed = false;
+    for (const r of renderables) {
+      if (this.add(r)) changed = true;
+    }
+    return changed;
   }
 
+  /** whether `r`'s signature differs from when it was last recorded */
   private add(r: GraphicsRenderable) {
     this.recorded.add(r);
     const signature = getObjectSignature(r);
-    if (!signature) return;
+    if (!signature) return false;
     const key = getSignatureKey(signature);
+    const changed = this.keys.get(r) !== key;
+    this.keys.set(r, key);
     const recorded = this.signatures.get(key);
     this.signatures.set(key, recorded ? mergeSignatures(recorded, signature) : signature);
+    return changed;
   }
 
   /** the next `record` takes the renderables again, e.g. after their values were updated (defines may have changed) */

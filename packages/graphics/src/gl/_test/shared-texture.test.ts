@@ -38,16 +38,8 @@ function createAtlas(n = 4096) {
 
 /** A text of one glyph quad sampling `atlas`, so that drawing it binds the texture */
 function createText(atlas: TextureImage<Uint8Array>) {
-  const text = Text.create(
-    atlas,
-    new Float32Array(12),
-    new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]),
-    new Float32Array(4),
-    new Uint32Array([0, 1, 2, 0, 2, 3]),
-    new Float32Array(4),
-    new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]),
-    1,
-  );
+  // one item (`TextStride`): at the origin, group 0, no depth, a glyph of corners -1 to 1 and the whole atlas
+  const text = Text.create(atlas, new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, -1, 1, 1, -1, 0, 0, 1, 1]), 1);
   const props = PD.getDefaultValues(Text.Params);
   const values = Text.Utils.createValuesSimple(text, props, ColorNames.orange, 1);
   return createRenderObject('text', values, Text.Utils.createRenderableState(props), -1);

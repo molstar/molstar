@@ -5,6 +5,7 @@
  */
 
 import './index.html';
+import { SphereRasterCases } from './sphere-raster.js';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { setTimingMode } from '@molstar/core/util/debug';
 import { Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
@@ -22,17 +23,33 @@ import {
   MergingCases,
   MergingMeshCases,
   MergingUniqueMeshCases,
+  MergingNearCapCases,
+  MergingMemoryCases,
+  MergingSetupCases,
+  CylinderCases,
+  LineCases,
   MergingAssemblyCases,
   MergingInstanceCases,
+  MergingSegmentDataCases,
   MergingSingleInstanceCases,
   MergingPostsynCases,
+  OcclusionLagCases,
+  OcclusionDollyCases,
+  OcclusionViewCases,
   MergingPostsynSizeCases,
+  SphereRasterRendererCases,
+  SphereRasterSceneCases,
+  SphereRasterMgCases,
+  SphereRasterIGpuCases,
+  SphereRasterZoomCases,
   MergingPostsynPixelCases,
   MergingPostsynChainCases,
   MergingPostsynPixelModeCases,
   MergingPostsynUpdateCases,
   UnindexedQuadCases,
   ClipCases,
+  ClipPostsynCases,
+  ClipMeshCases,
   CelCases,
   RenderBundleCases,
   RenderCases,
@@ -59,6 +76,7 @@ const AllCases: BenchmarkCase<any>[] = [
 
 /** Cases run only when a filter selects them (measurements for a decision, not the default run) */
 const OnDemandCases: BenchmarkCase<any>[] = [
+  ...SphereRasterCases,
   ...GaussianSurfaceCutoffCases,
   ...RenderBundleCases,
   ...PassCases,
@@ -67,17 +85,33 @@ const OnDemandCases: BenchmarkCase<any>[] = [
   ...MergingCases,
   ...MergingMeshCases,
   ...MergingUniqueMeshCases,
+  ...MergingNearCapCases,
+  ...MergingMemoryCases,
+  ...MergingSetupCases,
+  ...CylinderCases,
+  ...LineCases,
   ...MergingAssemblyCases,
   ...MergingInstanceCases,
+  ...MergingSegmentDataCases,
   ...MergingSingleInstanceCases,
   ...MergingPostsynCases,
+  ...OcclusionLagCases,
+  ...OcclusionDollyCases,
+  ...OcclusionViewCases,
   ...MergingPostsynSizeCases,
+  ...SphereRasterRendererCases,
+  ...SphereRasterSceneCases,
+  ...SphereRasterMgCases,
+  ...SphereRasterIGpuCases,
+  ...SphereRasterZoomCases,
   ...MergingPostsynPixelCases,
   ...MergingPostsynChainCases,
   ...MergingPostsynPixelModeCases,
   ...MergingPostsynUpdateCases,
   ...UnindexedQuadCases,
   ...ClipCases,
+  ...ClipPostsynCases,
+  ...ClipMeshCases,
   ...CelCases,
   ...DirectVolumeCases,
 ];
@@ -152,6 +186,10 @@ async function run() {
   }
   if (params.get('images')) state.images = BenchmarkEnv.images = {};
   if (params.get('drawLists')) BenchmarkEnv.drawLists = params.get('drawLists') === '1';
+  if (params.get('byteNotes')) BenchmarkEnv.byteNotes = true;
+  if (params.get('rasterSplitNotes')) BenchmarkEnv.rasterSplitNotes = true;
+  const rasterProfile = params.get('rasterProfile');
+  if (rasterProfile === 'raster' || rasterProfile === 'impostors') BenchmarkEnv.rasterProfile = rasterProfile;
   const graphics = await createContext(backend, Number(params.get('dataBinding') ?? 0));
   if (isWebGLContext(graphics)) {
     const ext = graphics.gl.getExtension('WEBGL_debug_renderer_info');

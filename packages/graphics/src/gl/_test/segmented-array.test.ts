@@ -30,6 +30,27 @@ describe('segmented array', () => {
     expect(Array.from(SegmentedArray.read(s, 2, 5))).toEqual([3, 0, 14]);
   });
 
+  it('reads any range of many parts, empty parts and gaps among them', () => {
+    // part i holds i at offset 3i, one element (none where i % 5 === 0), gaps of two
+    const parts: SegmentedArray.Part<Uint32Array>[] = [];
+    for (let i = 0; i < 1000; ++i) {
+      parts.push({ array: new Uint32Array([i]), offset: 3 * i, count: i % 5 === 0 ? 0 : 1, bias: 0, version: 0 });
+    }
+    const s = SegmentedArray.create(Uint32Array, parts);
+    const all = new Uint32Array(s.length);
+    for (let i = 0; i < 1000; ++i) if (i % 5 !== 0) all[3 * i] = i;
+    for (const [start, end] of [
+      [0, 1],
+      [2, 4],
+      [3, 4],
+      [1500, 1503],
+      [2995, s.length],
+      [0, s.length],
+    ]) {
+      expect(Array.from(SegmentedArray.read(s, start, end))).toEqual(Array.from(all.subarray(start, end)));
+    }
+  });
+
   it('writes all parts first, then the parts whose version changed', () => {
     const s = create();
     const writes: [number[], number][] = [];

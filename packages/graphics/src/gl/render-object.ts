@@ -269,6 +269,17 @@ export function createForeignResourcesCheck() {
 export function transferTextures(o: GraphicsRenderObject, graphics: GraphicsContext): boolean {
   let complete = !hasForeignBuffers(o, graphics);
   for (const cell of getForeignTextureCells(o, graphics)) {
+    // a volume's 2d grid (WebGL1) on a context with 3d textures: its visual makes the 3d grid they draw, not the 2d one
+    // (WebGPU has no 2d grids, on WebGL2 they cost more memory)
+    if (
+      o.type === 'direct-volume' &&
+      cell === (o.values as DirectVolumeValues).tGridTex &&
+      graphics.capabilities.texture3d &&
+      cell.ref.value.getDepth() === 0
+    ) {
+      complete = false;
+      continue;
+    }
     const texture = transferTexture(cell.ref.value, graphics);
     if (texture) ValueCell.update(cell, texture);
     else complete = false;

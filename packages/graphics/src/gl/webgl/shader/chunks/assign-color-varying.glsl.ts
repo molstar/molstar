@@ -22,10 +22,10 @@ export const assign_color_varying = `
             colorIndex = float(int(aInstance) * uVertexCount + vertexId);
         }
         #if defined(dDualColor)
-            // two colors per group, except for color mode 2 (cylinders)
+            // two colors per group, except for color mode 2 (cylinders: \`colorMode\` of the cylinder)
             bool dualColor = uColorIndexType == 1 || uColorIndexType == 2;
             vec4 color2;
-            if (dualColor && aColorMode != 2.0) {
+            if (dualColor && colorMode != 2.0) {
                 vColor.rgb = read_tColor(colorIndex * 2.0).rgb;
                 color2.rgb = read_tColor(colorIndex * 2.0 + 1.0).rgb;
             } else {

@@ -2,11 +2,13 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { clearFontAtlasCache, getFontAtlas, setCanvasModule } from '../font-atlas.js';
 import { TextBuilder } from '../text-builder.js';
+import { TextStride } from '../text.js';
 
 // A font of 40 px glyphs where 'A' then 'V' kern by -12 px and 'j' reaches 6 px left of its pen; it draws nothing.
 beforeAll(() => {
@@ -42,9 +44,10 @@ describe('TextBuilder', () => {
     const builder = TextBuilder.create({ ...props, attachment }, 16, 16);
     builder.add(str, 0, 0, 0, 0, 1, 0);
     const text = builder.getText();
-    const m = text.mappingBuffer.ref.value;
+    // a glyph's corners (left, top, right, bottom) at 8 of its data
+    const d = text.textData.ref.value.array;
     const lefts: number[] = [];
-    for (let i = 0; i < text.charCount; ++i) lefts.push(m[i * 8]);
+    for (let i = 0; i < text.charCount; ++i) lefts.push(d[i * TextStride + 8]);
     return lefts;
   }
 

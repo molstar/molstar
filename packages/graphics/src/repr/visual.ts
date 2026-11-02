@@ -828,8 +828,11 @@ namespace Visual {
       ValueCell.update(values.matrix, values.matrix.ref.value);
     }
     if (instanceTransforms) {
-      values.extraTransform.ref.value.set(instanceTransforms);
-      ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
+      const count = values.instanceCount.ref.value * 16;
+      const extraTransform =
+        values.extraTransform.ref.value.length >= count ? values.extraTransform.ref.value : new Float32Array(count);
+      extraTransform.set(instanceTransforms);
+      ValueCell.update(values.extraTransform, extraTransform);
       ValueCell.updateIfChanged(values.hasExtraTransform, true);
     } else if (instanceTransforms === null) {
       ValueCell.updateIfChanged(values.hasExtraTransform, false);

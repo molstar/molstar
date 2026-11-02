@@ -224,7 +224,8 @@ export class MultiSamplePass {
       offsets: offsetList,
       restart: true,
       samples: offsetList.length,
-      shading: drawPass.getMarkingShading(props.postprocessing),
+      shading: drawPass.getMarkingShading(ctx.scene, props.postprocessing),
+      transparentDepth: drawPass.getMarkingTransparentDepth(ctx.scene, props.postprocessing),
     });
     if (timing) graphics.timer.groupEnd('MultiSamplePass.renderMultiSample');
   }
@@ -336,7 +337,8 @@ export class MultiSamplePass {
       offsets: offsetList,
       restart: firstFrame,
       samples: firstFrame ? 1 : samplesPerFrame,
-      shading: drawPass.getMarkingShading(props.postprocessing),
+      shading: drawPass.getMarkingShading(ctx.scene, props.postprocessing),
+      transparentDepth: drawPass.getMarkingTransparentDepth(ctx.scene, props.postprocessing),
     });
     if (timing) graphics.timer.groupEnd('MultiSamplePass.renderTemporalMultiSample');
 

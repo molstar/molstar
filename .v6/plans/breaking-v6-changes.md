@@ -1342,3 +1342,70 @@ params, `StructureComponentManager.reprOptionOverrides`). Code that relied on `s
 passes the options to force: `setOptions(options, { reset: ['materialStyle', …] })`. Representation presets now also
 give their representations the options' material, clip objects, interior and animation (as `addRepresentation` does),
 so a preset applied after an options change follows the options.
+
+## Sphere and point positions and groups
+
+`Spheres` and `Points` (`@molstar/graphics/geo/geometry/spheres/spheres`, `…/points/points`) keep center and group
+per item in one array, `positionGroup` (a `DataArray`, center xyz and group per item, `PositionGroupStride` floats,
+`@molstar/graphics/geo/geometry/center-group`), which the shaders read as `tPositionGroup`: `centerBuffer` and
+`groupBuffer` are removed from the geometries and from `SpheresValues` and `PointsValues`. Read centers and groups from
+`positionGroup.ref.value.array` (item `i` at `i * 4`, its group at `i * 4 + 3`). `Spheres.create` and `Points.create`
+still take separate centers and groups (interleaved into a new array); `fromPositionGroup` takes the array as stored.
+With levels of detail (`lodLevels`) the items of a sphere geometry are in the levels' order: the order has no meaning
+beyond the geometry (groups name the items). `groupMapping` of spheres and points maps a group to offsets into that
+array (item index times 4), not item indices. `createGroupMapping` (`@molstar/graphics/geo/util`) takes the offset of
+the group within a step (`groupOffset`), `calculateInvariantBoundingSphere` and `transformPositionArray` a stride.
+
+## Cylinder data
+
+`Cylinders` (`@molstar/graphics/geo/geometry/cylinders/cylinders`) keep one array, `cylinderData` (a `DataArray`, 3
+`rgba32f` elements per cylinder, `CylinderStride` floats: start xyz and group, end xyz and radius scale, cap and color
+mode), which the shaders read as `tCylinder`: `mappingBuffer`, `indexBuffer`, `groupBuffer`, `startBuffer`, `endBuffer`,
+`scaleBuffer`, `capBuffer` and `colorModeBuffer` are removed, and so are `aMapping`, `aGroup`, `aStart`, `aEnd`,
+`aScale`, `aCap`, `aColorMode` and `elements` from `CylindersValues`. `Cylinders.create(cylinderData, cylinderCount,
+cylinders?)` takes the array (`CylindersBuilder` is unchanged). `groupMapping` of cylinders maps a group to offsets into
+the array (cylinder index times 12). Cylinders draw 6 vertex ids per cylinder indexed by a shared box pattern per context
+(`resources.boxIndices`, `GraphicsLimits.maxBoxItemCount`); `ShaderCode.quads` is `ShaderCode.itemIndices` (the pattern,
+`QuadItems` or `BoxItems` of `@molstar/graphics/gl/quad-indices`). The GLSL data accessors read with `texelFetch` on
+WebGL2 and have a three-element form, `read_<name>3(i, a, b, c)`.
+
+## Line data
+
+`Lines` (`@molstar/graphics/geo/geometry/lines/lines`) keep one array, `lineData` (a `DataArray`, 2 `rgba32f` elements per
+line, `LineStride` floats: start xyz and group, end xyz and whether the line continues the one before), which the
+shaders read as `tLine`: `mappingBuffer`, `indexBuffer`, `groupBuffer`, `startBuffer`, `endBuffer`, `stripCount`,
+`stripBuffer` and `vertexCount` are removed, and so are `aMapping`, `aGroup`, `aStart`, `aEnd`, `elements`, `stripCount`
+and `stripOffsets` from `LinesValues`. `Lines.create(lineData, lineCount, lines?)` takes the array (`LinesBuilder` and
+`StripLinesBuilder` are unchanged; a strip's lines after its first continue the one before, their start corners those
+of its end). `groupMapping` of lines maps a group to offsets into the array (line index times 8). Lines draw 4 vertex ids
+per line indexed by a shared pattern per context (`resources.lineIndices`, `GraphicsLimits.maxLineItemCount`,
+`LineItems` of `@molstar/graphics/gl/quad-indices`). The GLSL data accessors have a two-element form,
+`read_<name>2(i, a, b)`.
+
+## Text data
+
+`Text` (`@molstar/graphics/geo/geometry/text/text`) keeps one array, `textData` (a `DataArray`, 4 `rgba32f` elements per
+item, `TextStride` floats: the label's position and group, its depth and whether the item is a tether, then a glyph's or
+background's corners and texture coordinates as rectangles, or a tether's four corners), which the shaders read as
+`tText`: `centerBuffer`, `mappingBuffer`, `depthBuffer`, `indexBuffer`, `groupBuffer` and `tcoordBuffer` are removed,
+and so are `aPosition`, `aMapping`, `aDepth`, `aGroup`, `aTexCoord` and `elements` from `TextValues`.
+`Text.create(fontTexture, textData, charCount, text?)` takes the array (`TextBuilder` is unchanged). `groupMapping` of
+text maps a group to offsets into the array (item index times 16). Text draws 4 vertex ids per item indexed by the
+shared line indices (`LineItems`).
+
+## Data vertex counts
+
+`Geometry.getVertexCount` and the render values' `uVertexCount` are the data vertices (the values of 'vertex' and
+'vertexInstance' color, size and layers per instance), not the drawn vertices: one per sphere (was 6), point and text
+item (was 4), a start and an end per cylinder (was 6) and line (was 4). The position iterators of cylinders, lines and
+text (`GeometryUtils.createPositionIterator`) give one location per data vertex.
+
+## Sphere extrema radius
+
+`Sphere3D` (`@molstar/core/math/geometry/primitives/sphere3d`) has `extremaRadius`: the radius of a ball around each of
+its `extrema` (absent: 0). A set of few points with radii (a unit of at most 98 atoms, `getBoundary`) keeps its points
+as extrema with their largest radius, and `Sphere3D.expand` keeps the extrema and grows that radius by its delta
+(it shifted them along the principal axes). Code reading `extrema` as points on the bounded set adds the radius
+(`Sphere3D.getExtremaRadius`), or its spheres and boxes come out too small by up to it; `BoundaryHelper.includeSphere`,
+`radiusSphere`, `Sphere3D.includes` and `Box3D.fromSphere3D` do. `Sphere3D.setExtrema(out, extrema, extremaRadius = 0)`
+sets it.

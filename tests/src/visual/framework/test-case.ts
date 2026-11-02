@@ -65,6 +65,10 @@ export interface VisualTestCase {
    * drawing buffer, for what only Canvas3D draws (viewports other than the canvas, stereo, Hi-Z culling)
    */
   readonly capture?: 'image-pass' | 'canvas';
+  /** Images an image pass renders before the capture, for what compiles for its target in the background */
+  readonly imagePassRepeats?: number;
+  /** Errors of the captured image itself, for what comparing with the reference cannot see (both alike wrong) */
+  readonly checkImage?: (image: ImageData) => string[];
   /** Called once per backend; GPU resources are per context */
   readonly scene: (ctx: SceneContext) => Promise<Representation.Any[]>;
   /**

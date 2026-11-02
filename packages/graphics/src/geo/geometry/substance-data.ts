@@ -7,9 +7,9 @@
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Material } from '@molstar/core/util/material';
-import { getLayerTypeDefine, type LayerType } from './layer-type.js';
+import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
 
 export type SubstanceType = LayerType;
 
@@ -67,10 +67,10 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
       tSubstance: ValueCell.create(substance),
       dSubstance: ValueCell.create(count > 0),
 
-      tSubstanceGrid: ValueCell.create(createNullTexture()),
-      uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uSubstanceGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tSubstanceGrid: ValueCell.create(NoLayerGrid.texture),
+      uSubstanceGridDim: ValueCell.create(NoLayerGrid.dim),
+      uSubstanceGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uSubstanceGridTransform: ValueCell.create(NoLayerGrid.transform),
       substanceType: ValueCell.create<string>(type),
       dSubstanceType: ValueCell.create(getLayerTypeDefine(type)),
       uSubstanceStrength: ValueCell.create(1),
@@ -88,10 +88,10 @@ export function createEmptySubstance(substanceData?: SubstanceData): SubstanceDa
       tSubstance: ValueCell.create(emptySubstanceTexture),
       dSubstance: ValueCell.create(false),
 
-      tSubstanceGrid: ValueCell.create(createNullTexture()),
-      uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uSubstanceGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tSubstanceGrid: ValueCell.create(NoLayerGrid.texture),
+      uSubstanceGridDim: ValueCell.create(NoLayerGrid.dim),
+      uSubstanceGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uSubstanceGridTransform: ValueCell.create(NoLayerGrid.transform),
       substanceType: ValueCell.create<string>('groupInstance'),
       dSubstanceType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uSubstanceStrength: ValueCell.create(1),

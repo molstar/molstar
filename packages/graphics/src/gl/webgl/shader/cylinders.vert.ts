@@ -10,7 +10,6 @@ import { common_vert_params } from './chunks/common-vert-params.glsl.js';
 import { color_vert_params } from './chunks/color-vert-params.glsl.js';
 import { common_clip } from './chunks/common-clip.glsl.js';
 import { common_animation } from './chunks/common-animation.glsl.js';
-import { assign_group } from './chunks/assign-group.glsl.js';
 import { assign_color_varying } from './chunks/assign-color-varying.glsl.js';
 import { assign_marker_varying } from './chunks/assign-marker-varying.glsl.js';
 import { assign_clipping_varying } from './chunks/assign-clipping-varying.glsl.js';
@@ -29,35 +28,78 @@ ${common_clip}
 ${common_animation}
 
 varying mat4 vTransform;
-varying vec3 vStart;
-varying vec3 vEnd;
-varying float vSize;
-varying float vCap;
+// the cylinder's start and size, end and cap, the same at every corner of its box: two flat varyings
+#if __VERSION__ == 100
+    varying vec4 vCylinderStart;
+    varying vec4 vCylinderEnd;
+#else
+    flat out vec4 vCylinderStart;
+    flat out vec4 vCylinderEnd;
+#endif
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
+    // 1 where the clip objects may cut the cylinder (\`clipSphereClass\` of its bounding sphere): the clip tests skipped if 0
+    #if __VERSION__ == 100
+        varying float vClipSome;
+    #else
+        flat out float vClipSome;
+    #endif
+#endif
 
 void main() {
-    int vertexId = VertexID;
+    #if defined(dInstanceData)
+        readInstanceData();
+    #endif
 
-    ${assign_group}
+    // the cylinder of the vertex (3 texels of \`tCylinder\`) and the corner of its box (6 vertices per cylinder)
+    int item = VertexID / 6;
+    #if __VERSION__ == 100
+        int corner = imod(VertexID, 6);
+    #else
+        int corner = VertexID % 6;
+    #endif
+    // the data vertex ('vertex' color, size): the start for the corners at the start, else the end
+    int vertexId = item * 2 + (corner < 2 ? 0 : 1);
+    // start xyz and group, end xyz and radius scale, cap and color mode
+    vec4 cylinderStart, cylinderEnd, cylinderFlags;
+    read_tCylinder3(item * 3, cylinderStart, cylinderEnd, cylinderFlags);
+    float group = cylinderStart.w;
+    float colorMode = cylinderFlags.y;
+    // -1 or 1 along the axis, across it and up
+    vec3 mapping = vec3(
+        corner < 2 ? -1.0 : 1.0,
+        corner == 0 || corner == 2 || corner == 3 ? 1.0 : -1.0,
+        corner == 3 || corner == 5 ? 1.0 : -1.0
+    );
+
     ${assign_color_varying}
     ${assign_marker_varying}
     ${assign_clipping_varying}
     ${assign_size}
 
-    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
-    vec3 wigStart = applyWiggle(aStart, aGroup, aInstance);
-    vec3 wigEnd = applyWiggle(aEnd, aGroup, aInstance);
+    mat4 transform = applyTumble(aTransform);
+    vec3 wigStart = applyWiggle(cylinderStart.xyz, group, aInstance);
+    vec3 wigEnd = applyWiggle(cylinderEnd.xyz, group, aInstance);
     mat4 modelTransform = uModel * transform;
 
     vTransform = modelTransform;
-    vStart = (modelTransform * vec4(wigStart, 1.0)).xyz;
-    vEnd = (modelTransform * vec4(wigEnd, 1.0)).xyz;
-    vSize = size * aScale * uModelScale;
-    vCap = aCap;
+    vCylinderStart.xyz = (modelTransform * vec4(wigStart, 1.0)).xyz;
+    vCylinderEnd.xyz = (modelTransform * vec4(wigEnd, 1.0)).xyz;
+    vCylinderStart.w = size * cylinderEnd.w * uModelScale;
+    vCylinderEnd.w = cylinderFlags.x;
 
-    vModelPosition = (vStart + vEnd) * 0.5;
+    vModelPosition = (vCylinderStart.xyz + vCylinderEnd.xyz) * 0.5;
+
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        // pixel clipping by the bounding sphere: a cylinder clipped whole moved out of [ -w, +w ], one not cut not
+        // tested per fragment
+        float halfLength = length(vCylinderEnd.xyz - vCylinderStart.xyz) * 0.5;
+        float boundingRadius = sqrt(halfLength * halfLength + vCylinderStart.w * vCylinderStart.w);
+        int clipClass = clipSphereClass(vModelPosition / uModelScale, boundingRadius / uModelScale);
+        vClipSome = clipClass == 1 ? 1.0 : 0.0;
+    #endif
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
-    vec3 dir = vEnd - vStart;
-    float f = aMapping.x > 0.0 ? 1.0 : 0.0;
+    vec3 dir = vCylinderEnd.xyz - vCylinderStart.xyz;
+    float f = mapping.x > 0.0 ? 1.0 : 0.0;
     // ensure cylinder 'dir' is pointing towards the camera
     if(dot(camDir, dir) < 0.0) {
         dir = -dir;
@@ -66,11 +108,11 @@ void main() {
 
     vec3 left = cross(camDir, dir);
     vec3 up = cross(left, dir);
-    left = vSize * normalize(left);
-    up = vSize * normalize(up);
+    left = vCylinderStart.w * normalize(left);
+    up = vCylinderStart.w * normalize(up);
 
     // move vertex in object-space from center to corner
-    vModelPosition += aMapping.x * dir + aMapping.y * left + aMapping.z * up;
+    vModelPosition += mapping.x * dir + mapping.y * left + mapping.z * up;
 
     vec4 mvPosition = uView * vec4(vModelPosition, 1.0);
     vViewPosition = mvPosition.xyz;
@@ -84,15 +126,21 @@ void main() {
 
     #if defined(dDualColor) && (defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)) && defined(dColorType_texture)
         // dual-color mixing (group color types)
-        // - for aColorMode between 0 and 1 use aColorMode to interpolate
-        // - for aColorMode == 2 do nothing, i.e., use vColor
-        // - for aColorMode == 3 use position on cylinder axis to interpolate
+        // - for colorMode between 0 and 1 use colorMode to interpolate
+        // - for colorMode == 2 do nothing, i.e., use vColor
+        // - for colorMode == 3 use position on cylinder axis to interpolate
         if (dualColor) {
-            if (aColorMode <= 1.0) {
-                vColor.rgb = mix(vColor.rgb, color2.rgb, aColorMode);
-            } else if (aColorMode == 3.0) {
+            if (colorMode <= 1.0) {
+                vColor.rgb = mix(vColor.rgb, color2.rgb, colorMode);
+            } else if (colorMode == 3.0) {
                 vColor.rgb = mix(vColor.rgb, color2.rgb, mix(-0.25, 1.25, f / 1.5));
             }
+        }
+    #endif
+
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        if (clipClass == 2) {
+            gl_Position.z = 2.0 * gl_Position.w;
         }
     #endif
 

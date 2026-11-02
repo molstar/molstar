@@ -74,11 +74,10 @@ async function withVariantPlugin(
   let record: CompileRecord | undefined;
   try {
     await plugin.init();
-    const context = await profile.createContext(canvas, plugin.managers.asset);
-    if (!context) return [`no context of profile '${profile.id}'`];
+    // before the context makes its passes (their programs compiled with it)
+    const context = await profile.createContext(canvas, plugin.managers.asset, (g) => (record = recordCompiles(g)));
+    if (!context || !record) return [`no context of profile '${profile.id}'`];
     const { graphics } = context;
-    // before the plugin's canvas makes its passes
-    record = recordCompiles(graphics);
     await plugin.initViewerAsync(canvas, container, context);
     let failed: string | undefined;
     try {

@@ -22,6 +22,7 @@ import { Material } from '@molstar/core/util/material';
 import { Clip } from '@molstar/core/util/clip';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
+import type { InteriorProps } from './interior.js';
 
 export const VisualQualityInfo = {
   custom: {},
@@ -129,9 +130,25 @@ export const AutoGpuCullingThreshold = 30;
  */
 export const AutoGpuCullingMinInstances = 20000;
 
-/** Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels */
-export function resolveGpuCulling(value: GpuCullingValue, instanceCount: number, drawCount: number): boolean {
+/**
+ * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
+ * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
+ * an integrated GPU), about 0.1 ms slower at a few hundred (`sphere-compute-raster.md`)
+ */
+export const AutoGpuCullingMinRasterSpheres = 100_000;
+
+/**
+ * Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels;
+ * `rasterSpheres`: the spheres of those instances the sphere raster could draw, 0 where the device has no raster
+ */
+export function resolveGpuCulling(
+  value: GpuCullingValue,
+  instanceCount: number,
+  drawCount: number,
+  rasterSpheres = 0,
+): boolean {
   if (value === 'auto') {
+    if (rasterSpheres >= AutoGpuCullingMinRasterSpheres) return true;
     return instanceCount >= Math.max(AutoGpuCullingMinInstances, AutoGpuCullingThreshold * Math.max(1, drawCount));
   }
   return value;
@@ -161,6 +178,26 @@ export function resolveRenderMerged(value: RenderMergedValue, unitCount: number)
 //
 
 export namespace BaseGeometry {
+  /** Whether objects fade at their lod distances (`dLodFade`): `lod` with a min or max distance */
+  export function hasLodFade(lod: Vec3): boolean {
+    return lod[0] !== 0 || lod[1] !== 0;
+  }
+
+  /**
+   * Whether bumps show by the props (`dBump`): frequency, amplitude and bumpiness above 0, the bumpiness of the material
+   * or of the interior's substance; a substance layer (`dSubstance`) can add bumpiness per group as well
+   */
+  export function hasBump(props: {
+    bumpFrequency: number;
+    bumpAmplitude: number;
+    material: Material;
+    interior: InteriorProps;
+  }): boolean {
+    if (!(props.bumpFrequency > 0 && props.bumpAmplitude > 0)) return false;
+    const { substance, substanceStrength } = props.interior;
+    return props.material.bumpiness > 0 || (substance.bumpiness > 0 && substanceStrength > 0);
+  }
+
   export const MaterialCategory: PD.Info = { category: 'Material' };
   export const ShadingCategory: PD.Info = { category: 'Shading' };
   export const CullingLodCategory: PD.Info = { category: 'Culling & LOD' };
@@ -198,7 +235,7 @@ export namespace BaseGeometry {
     gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
       ...CullingLodCategory,
       description:
-        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`).',
+        'Cull and choose the level of detail per cell of instances on the GPU where the device supports it (WebGPU with compute and indirect draws by first instance), merging the render objects for it. When set to `auto`, enabled with many instances (`AutoGpuCullingMinInstances`), and many per draw (`AutoGpuCullingThreshold`), or with many spheres where the device has the sphere raster, which takes such objects only (`AutoGpuCullingMinRasterSpheres`).',
     }),
     lod: PD.Vec3(Vec3(), undefined, {
       ...CullingLodCategory,
@@ -266,6 +303,7 @@ export namespace BaseGeometry {
         resolveInstanceGranularity(props.instanceGranularity, counts.groupCount, counts.instanceCount),
       ),
       uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 0)),
+      dLodFade: ValueCell.create(hasLodFade(props.lod)),
     };
   }
 
@@ -303,6 +341,7 @@ export namespace BaseGeometry {
       ),
     );
     ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 0));
+    ValueCell.updateIfChanged(values.dLodFade, hasLodFade(props.lod));
   }
 
   export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

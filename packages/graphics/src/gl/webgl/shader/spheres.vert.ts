@@ -16,6 +16,7 @@ import { assign_marker_varying } from './chunks/assign-marker-varying.glsl.js';
 import { assign_clipping_varying } from './chunks/assign-clipping-varying.glsl.js';
 import { assign_size } from './chunks/assign-size.glsl.js';
 import { clip_instance } from './chunks/clip-instance.glsl.js';
+import { assign_lod_factor } from './chunks/assign-lod-factor.glsl.js';
 
 export const spheres_vert = `
 precision highp float;
@@ -28,9 +29,25 @@ ${color_vert_params}
 ${common_clip}
 ${common_animation}
 
-varying float vRadius;
+// the sphere's view-space center (negated) and radius, the same at every corner: one flat varying
+#if __VERSION__ == 100
+    varying vec4 vSphere;
+#else
+    flat out vec4 vSphere;
+#endif
 varying vec3 vPoint;
-varying vec3 vPointViewPosition;
+
+#if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && defined(dClipObjects)
+    #define dClipSphere
+#endif
+#if defined(dClipSphere)
+    // 1 where the clip objects may cut the sphere (\`clipSphereClass\`): the fragment stage's clip tests skipped if 0
+    #if __VERSION__ == 100
+        varying float vClipSome;
+    #else
+        flat out float vClipSome;
+    #endif
+#endif
 
 /**
  * Bounding rectangle of a clipped, perspective-projected 3D Sphere.
@@ -39,7 +56,7 @@ varying vec3 vPointViewPosition;
  * Specialization by Arseny Kapoulkine, MIT License Copyright (c) 2018
  * https://github.com/zeux/niagara
  *
- * Only works for for symmetric projections.
+ * With the off-axis terms of asymmetric projections (stereo, XR), \`uProjection[2].xy\`, zero for symmetric ones.
  */
 void sphereProjection(const in vec3 p, const in float r, const in vec2 mapping) {
     vec3 pr = p * r;
@@ -55,124 +72,108 @@ void sphereProjection(const in vec3 p, const in float r, const in vec2 mapping) 
 
     gl_Position.xy = vec2(maxx + minx, maxy + miny) * -0.5;
     gl_Position.xy -= mapping * vec2(maxx - minx, maxy - miny) * 0.5;
+    gl_Position.xy -= uProjection[2].xy;
     gl_Position.xy *= gl_Position.w;
 }
 
-const mat4 D = mat4(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, -1.0
-);
+// the least and greatest x / z over the part beyond the near plane (z <= -near) of the circle at (a, c) of radius r (a
+// sphere's projection onto the plane of an axis and z): at the tangent points from the eye that lie beyond it, and at
+// the ends of the chord the plane cuts (the only bounds where the eye is in the circle); least above greatest where no
+// part lies beyond it. After "2D Polyhedral Bounds of a Clipped, Perspective-Projected 3D Sphere", Michael Mara, Morgan
+// McGuire. 2013
+vec2 nearAxisBounds(const in float a, const in float c, const in float r, const in float near) {
+    float lo = 1e30;
+    float hi = -1e30;
+    float l2 = a * a + c * c;
+    float t2 = l2 - r * r;
+    if (t2 > 0.0) {
+        float t = sqrt(t2);
+        for (int i = 0; i < 2; ++i) {
+            float s = i == 0 ? -1.0 : 1.0;
+            float tx = (a * t2 - s * c * t * r) / l2;
+            float tz = (c * t2 + s * a * t * r) / l2;
+            if (tz <= -near) {
+                lo = min(lo, tx / tz);
+                hi = max(hi, tx / tz);
+            }
+        }
+    }
+    float d = c + near;
+    float w2 = r * r - d * d;
+    if (w2 > 0.0) {
+        float w = sqrt(w2);
+        lo = min(lo, min((a - w) / -near, (a + w) / -near));
+        hi = max(hi, max((a - w) / -near, (a + w) / -near));
+    }
+    return vec2(lo, hi);
+}
 
-/**
- * Compute point size and center using the technique described in:
- * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
- * by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.
- */
-void quadraticProjection(const in vec3 position, const in float radius, const in vec2 mapping, const in mat4 transform) {
-    vec2 xbc, ybc;
-
-    mat4 T = mat4(
-        radius, 0.0, 0.0, 0.0,
-        0.0, radius, 0.0, 0.0,
-        0.0, 0.0, radius, 0.0,
-        position.x, position.y, position.z, 1.0
-    );
-
-    mat4 R = transpose4(uProjection * uModelView * transform * T);
-    float A = dot(R[3], D * R[3]);
-    float B = -2.0 * dot(R[0], D * R[3]);
-    float C = dot(R[0], D * R[0]);
-    xbc[0] = (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    xbc[1] = (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    float sx = abs(xbc[0] - xbc[1]) * 0.5;
-
-    A = dot(R[3], D * R[3]);
-    B = -2.0 * dot(R[1], D * R[3]);
-    C = dot(R[1], D * R[1]);
-    ybc[0] = (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    ybc[1] = (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    float sy = abs(ybc[0] - ybc[1]) * 0.5;
-
-    gl_Position.xy = vec2(0.5 * (xbc.x + xbc.y), 0.5 * (ybc.x + ybc.y));
-    gl_Position.xy -= mapping * vec2(sx, sy);
-    gl_Position.xy *= gl_Position.w;
+// the quad of a sphere through the near plane: the bounds of its part beyond it (the whole sphere's are unbounded where
+// it reaches behind the eye, a quad over the view), at a depth within the clip volume (the fragments write theirs; the
+// corners on one view plane, so the rays between them interpolate exactly); false where none of it lies beyond
+bool sphereNearProjection(const in vec3 p, const in float r, const in vec2 mapping) {
+    vec2 x = nearAxisBounds(p.x, p.z, r, uNear) * uProjection[0][0];
+    vec2 y = nearAxisBounds(p.y, p.z, r, uNear) * uProjection[1][1];
+    gl_Position.xy = vec2(x.y + x.x, y.y + y.x) * -0.5;
+    gl_Position.xy -= mapping * vec2(x.y - x.x, y.y - y.x) * 0.5;
+    gl_Position.xy -= uProjection[2].xy;
+    gl_Position.zw = vec2(0.5, 1.0);
+    return x.x <= x.y;
 }
 
 void main(void){
     ${assign_quad_position_group}
 
     position = applyWiggle(position, group, aInstance);
-    mat4 transform = applyTumble(aTransform, aInstance, float(uObjectId));
+    mat4 transform = applyTumble(aTransform);
 
     ${assign_color_varying}
     ${assign_marker_varying}
     ${assign_clipping_varying}
     ${assign_size}
 
-    vRadius = size * uModelScale;
+    vSphere.w = size * uModelScale;
 
     vec4 position4 = vec4(position, 1.0);
     vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
 
-    float d;
-    if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
-        // members of a merged item can have different scales for the same lod level (sphere-count dependent)
-        #if defined(dSegmented)
-            float lodScale = uLodLevel == 0 ? aSegmentLod.x : (uLodLevel == 1 ? aSegmentLod.y : (uLodLevel == 2 ? aSegmentLod.z : aSegmentLod.w));
-        #else
-            float lodScale = uLod.w;
-        #endif
-        if (uModelScale != 1.0) {
-            vRadius *= lodScale;
-        } else {
-            d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
-            float f = min(
-                smoothstep(uLod.x, uLod.x + uLod.z, d),
-                1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
-            ) * lodScale;
-            vRadius *= f;
-        }
-    }
+    ${assign_lod_factor}
+    vSphere.w *= lodFactor;
 
     vec4 mvPosition = uModelView * transform * position4;
 
+    // through the near plane with none of it beyond
+    bool nearNone = false;
     #ifdef dApproximate
         vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
-        mvCorner.xy += mapping * vRadius;
+        mvCorner.xy += mapping * vSphere.w;
         gl_Position = uProjection * mvCorner;
     #else
         if (uIsOrtho == 1.0) {
             vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
-            mvCorner.xy += mapping * vRadius;
+            mvCorner.xy += mapping * vSphere.w;
             gl_Position = uProjection * mvCorner;
-        } else if (uIsAsymmetricProjection) {
+        } else if (-mvPosition.z - vSphere.w > uNear) {
             gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-            quadraticProjection(position, vRadius / uModelScale, mapping, transform);
+            sphereProjection(mvPosition.xyz, vSphere.w, mapping);
         } else {
-            gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-            sphereProjection(mvPosition.xyz, vRadius, mapping);
+            nearNone = !sphereNearProjection(mvPosition.xyz, vSphere.w, mapping);
         }
     #endif
 
     vec4 vPoint4 = uInvProjection * gl_Position;
     vPoint = vPoint4.xyz / vPoint4.w;
-    vPointViewPosition = -mvPosition.xyz / mvPosition.w;
+    vSphere.xyz = -mvPosition.xyz / mvPosition.w;
 
     // in front of the near plane (clip z is reversed)
     if (gl_Position.z > gl_Position.w) {
-        mvPosition.z -= 2.0 * vRadius; // avoid clipping
+        mvPosition.z -= 2.0 * vSphere.w; // avoid clipping
         gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
     }
 
-    if (uModelScale == 1.0) {
-        if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
-            if (d < uLod.x || d > uLod.y) {
-                // move out of [ -w, +w ] to 'discard' in vert shader
-                gl_Position.z = 2.0 * gl_Position.w;
-            }
-        }
+    if (lodCulled || nearNone) {
+        // move out of [ -w, +w ] to 'discard' in vert shader
+        gl_Position.z = 2.0 * gl_Position.w;
     }
 
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && defined(dClipObjects)
@@ -180,6 +181,13 @@ void main(void){
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }
+    #elif defined(dClipSphere)
+        // pixel clipping: a sphere clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
+        int clipClass = clipSphereClass(vModelPosition / uModelScale, vSphere.w / uModelScale);
+        if (clipClass == 2) {
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+        vClipSome = clipClass == 1 ? 1.0 : 0.0;
     #else
         ${clip_instance}
     #endif

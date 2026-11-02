@@ -45,7 +45,7 @@ function createVolume(dim: [number, number, number], axisOrder: [number, number,
   };
 }
 
-/** the texture as built cell by cell through `dataOffset` with `Vec3` (the implementation before strides) */
+/** the texture as built cell by cell through `dataOffset`: the values normalized by the grid's min and max, x fastest */
 function reference(volume: Volume, type: 'byte' | 'float' | 'halfFloat') {
   const {
     cells: { space, data },
@@ -53,47 +53,16 @@ function reference(volume: Volume, type: 'byte' | 'float' | 'halfFloat') {
   } = volume.grid;
   const [width, height, depth] = space.dimensions as Vec3;
   const o = space.dataOffset;
+  const count = width * height * depth;
   const array =
-    type === 'byte'
-      ? new Uint8Array(width * height * depth * 4)
-      : type === 'halfFloat'
-        ? new Uint16Array(width * height * depth * 4)
-        : new Float32Array(width * height * depth * 4);
+    type === 'byte' ? new Uint8Array(count) : type === 'halfFloat' ? new Uint16Array(count) : new Float32Array(count);
   const diff = max - min;
-  const n0 = Vec3();
-  const n1 = Vec3();
   let i = 0;
   for (let z = 0; z < depth; ++z) {
     for (let y = 0; y < height; ++y) {
-      for (let x = 0; x < width; ++x) {
-        const offset = o(x, y, z);
-        Vec3.set(
-          n0,
-          data[o(Math.max(0, x - 1), y, z)],
-          data[o(x, Math.max(0, y - 1), z)],
-          data[o(x, y, Math.max(0, z - 1))],
-        );
-        Vec3.set(
-          n1,
-          data[o(Math.min(width - 1, x + 1), y, z)],
-          data[o(x, Math.min(height - 1, y + 1), z)],
-          data[o(x, y, Math.min(depth - 1, z + 1))],
-        );
-        Vec3.normalize(n0, Vec3.sub(n0, n0, n1));
-        Vec3.addScalar(n0, Vec3.scale(n0, n0, 0.5), 0.5);
-        if (type === 'byte') {
-          Vec3.toArray(Vec3.scale(n0, n0, 255), array, i);
-          array[i + 3] = Math.round(((data[offset] - min) / diff) * 255);
-        } else if (type === 'halfFloat') {
-          array[i] = toHalfFloat(n0[0]);
-          array[i + 1] = toHalfFloat(n0[1]);
-          array[i + 2] = toHalfFloat(n0[2]);
-          array[i + 3] = toHalfFloat((data[offset] - min) / diff);
-        } else {
-          Vec3.toArray(n0, array, i);
-          array[i + 3] = (data[offset] - min) / diff;
-        }
-        i += 4;
+      for (let x = 0; x < width; ++x, ++i) {
+        const value = (data[o(x, y, z)] - min) / diff;
+        array[i] = type === 'byte' ? Math.round(value * 255) : type === 'halfFloat' ? toHalfFloat(value) : value;
       }
     }
   }

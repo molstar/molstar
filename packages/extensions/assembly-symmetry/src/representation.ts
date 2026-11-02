@@ -1,6 +1,6 @@
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -312,7 +312,8 @@ function setSymbolTransform(
         if (Sphere3D.hasExtrema(sphere)) {
           const n = Mat3.directionTransform(Mat3(), t);
           const dirs = unitCircleDirections.map((d) => Vec3.transformMat3(Vec3(), d, n));
-          sizeXY = getMaxProjectedDistance(sphere.extrema, dirs, sphere.center) * 1.6;
+          sizeXY =
+            (getMaxProjectedDistance(sphere.extrema, dirs, sphere.center) + Sphere3D.getExtremaRadius(sphere)) * 1.6;
         }
         Mat4.scale(t, t, Vec3.create(sizeXY, sizeXY, Vec3.distance(aA.start, aA.end) * 0.9));
       } else {
@@ -331,7 +332,7 @@ function setSymbolTransform(
       if (Sphere3D.hasExtrema(sphere)) {
         const n = Mat3.directionTransform(Mat3(), t);
         const dirs = unitCircleDirections.map((d) => Vec3.transformMat3(Vec3(), d, n));
-        sizeXY = getMaxProjectedDistance(sphere.extrema, dirs, sphere.center);
+        sizeXY = getMaxProjectedDistance(sphere.extrema, dirs, sphere.center) + Sphere3D.getExtremaRadius(sphere);
       }
       Mat4.scale(t, t, Vec3.create(sizeXY, sizeXY, size * 0.9));
     }

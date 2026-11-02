@@ -13,7 +13,8 @@ import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { LocationIterator } from '../util/location-iterator.js';
 import { NullLocation } from '@molstar/model/model/location';
 import type { LocationColor, ColorTheme, ColorVolume } from '@molstar/graphics/theme/color';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import { NoLayerGrid } from './layer-type.js';
 
 export type ColorTypeLocation = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
 export type ColorTypeGrid = 'volume' | 'volumeInstance';
@@ -192,13 +193,13 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
     return {
       uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
       tColor: ValueCell.create({ array: new Uint8Array(4), count: 1 }),
-      tColorGrid: ValueCell.create(createNullTexture()),
+      tColorGrid: ValueCell.create(NoLayerGrid.texture),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
       tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
-      uColorGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      uColorGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uColorGridDim: ValueCell.create(NoLayerGrid.dim),
+      uColorGridTransform: ValueCell.create(NoLayerGrid.transform),
       ...createColorType('uniform'),
       dUsePalette: ValueCell.create(false),
     };
@@ -223,13 +224,13 @@ export function createTextureColor(colors: DataArray<Uint8Array>, type: ColorTyp
     return {
       uColor: ValueCell.create(Vec3()),
       tColor: ValueCell.create(colors),
-      tColorGrid: ValueCell.create(createNullTexture()),
+      tColorGrid: ValueCell.create(NoLayerGrid.texture),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
       tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
-      uColorGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      uColorGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uColorGridDim: ValueCell.create(NoLayerGrid.dim),
+      uColorGridTransform: ValueCell.create(NoLayerGrid.transform),
       ...createColorType(type),
       dUsePalette: ValueCell.create(false),
     };
@@ -377,13 +378,13 @@ function createDirectColor(colorData?: ColorData): ColorData {
     return {
       uColor: ValueCell.create(Vec3()),
       tColor: ValueCell.create({ array: new Uint8Array(4), count: 1 }),
-      tColorGrid: ValueCell.create(createNullTexture()),
+      tColorGrid: ValueCell.create(NoLayerGrid.texture),
       uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
       uPaletteDefault: ValueCell.create(Vec3()),
       tPalette: ValueCell.create({ array: new Uint8Array(4), width: 1, height: 1 }),
-      uColorGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      uColorGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uColorGridDim: ValueCell.create(NoLayerGrid.dim),
+      uColorGridTransform: ValueCell.create(NoLayerGrid.transform),
       ...createColorType('direct'),
       dUsePalette: ValueCell.create(false),
     };

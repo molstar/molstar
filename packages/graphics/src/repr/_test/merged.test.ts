@@ -12,6 +12,7 @@ import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
   AutoGpuCullingMinInstances,
+  AutoGpuCullingMinRasterSpheres,
   AutoGpuCullingThreshold,
   resolveGpuCulling,
 } from '@molstar/graphics/geo/geometry/base';
@@ -49,6 +50,13 @@ describe('merging render objects', () => {
     expect(resolveGpuCulling('auto', AutoGpuCullingThreshold * draws - 1, draws)).toBe(false);
     expect(resolveGpuCulling(true, 1, 4)).toBe(true);
     expect(resolveGpuCulling(false, 1e6, 1)).toBe(false);
+  });
+
+  it('culls on the GPU from many spheres the raster could draw', () => {
+    const min = AutoGpuCullingMinRasterSpheres;
+    expect(resolveGpuCulling('auto', 100, 100, min)).toBe(true);
+    expect(resolveGpuCulling('auto', 100, 100, min - 1)).toBe(false);
+    expect(resolveGpuCulling(false, 100, 100, min)).toBe(false);
   });
 
   it('merges an object alone to cull it on the GPU, where the device does and it pays', () => {

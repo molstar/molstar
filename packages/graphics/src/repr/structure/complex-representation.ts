@@ -212,7 +212,9 @@ export function ComplexRepresentation<P extends StructureParams>(
     setGraphics: (value: GraphicsContext) => {
       graphics = value;
     },
-    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => getFactorySignatures(visualCtor, props, ctx),
+    getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
+      // with the structure: the visuals it selects
+      getFactorySignatures(visualCtor, props, ctx, ctx.data instanceof Structure ? [ctx.data] : undefined),
     destroy,
   };
 }

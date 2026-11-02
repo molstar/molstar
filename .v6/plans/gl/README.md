@@ -58,6 +58,14 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   (`tFont`): one GPU copy of a font atlas per context, uploaded once per change.
 - [screen-space-lod.md](screen-space-lod.md): sphere levels of detail by their size on screen (`lodPixelSize`, CSS
   pixels, coarser strides 1, 10, 100, 1000), the mesoscale preset's and the particle representations' default.
+- [viewport-outside-target.md](viewport-outside-target.md): a Canvas3D frame extending past the canvas cropped by
+  Canvas3D (the passes draw the part inside, the camera projects that part of the frame's frustum through a crop
+  separate from the jitter's view offset), so no viewport outside the target reaches the backend; the WebGPU backend
+  clips one where the device rejects it (Safari 26 on iOS loses the pass) or beyond the spec's bounds, behind a probe;
+  checked on iOS.
+- [clip-culling.md](clip-culling.md): objects, cells, instances and primitives that clip objects remove entirely culled
+  (CPU, GPU culler, vertex stage), primitives they don't touch without per-fragment clip tests: the sphere raster's
+  classification by distance bounds made general.
 
 ## In progress or paused
 
@@ -85,7 +93,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   snapshot replay without compile hitches (step 6): precompile lists (object signatures, recorded and prepared) and
   their derivation from a state's params, prepared when a state or story is loaded, done and measured (WebGPU stories play
   without compiling); fewer variants per signature done (kinase story: 24 signatures, 1.6 s on WebGPU); WebGL's first draws into several
-  targets (an ANGLE compile once per browser) accepted.
+  targets (an ANGLE compile once per browser) accepted; proposed: precompiling when a representation transform applies or
+  updates, with its data, overlapping its build (step 7, measurements first).
 - [fewer-defines.md](fewer-defines.md): paused, good enough for now: the color, size and instance-granularity types
   as runtime selectors (kinase story 24 to 18 precompiled signatures), the clip object count on WebGL (WebGPU keeps it
   a pipeline constant); the shading switches measured, not converted (a frame cost for programs rarely saved); the
@@ -98,22 +107,56 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   (depth writes); conservative depth without gain on NVIDIA; WebGPU's WGSL shading costs 3.8 ms more at 2560x1440
   (generated code).
 
-- [direct-volume-performance.md](direct-volume-performance.md): the ray marcher only inside the volume's box (step 1,
-  about 2x for maps, 4x for tilted slabs, truncated rays fixed); next: skipping transparent samples, jitter,
-  empty-space skipping, reduced resolution.
+- [direct-volume-performance.md](direct-volume-performance.md): done but for step 9 (a compute marcher: not worth it on
+  the numbers): box clipping, transparent samples skipped, jitter, empty-space skipping, half resolution,
+  pre-integration, value-only grids (a quarter of the memory); the volume pass 0.4-1.2 ms at 2560x1440 (from 6-34 ms).
 
+- [direct-volume-quality.md](direct-volume-quality.md): pre-integration and normals from the values done; shading by the gradient's magnitude
+  and ambient occlusion built and removed (not good on our data); shadows and volumes in illumination not for now.
 - [gizmo-layer.md](gizmo-layer.md): proposed: overlay layers replacing `HandleHelper` and `CameraHelper` (gizmos above
   the scene, scene depth as occluded alpha, screen-constant size; the corner axes on a screen-anchored layer).
 
-- [shader-analysis.md](shader-analysis.md): proposed: every reachable variant compiled on every backend, GLSL and WGSL
+- [shader-analysis.md](shader-analysis.md): done: every reachable variant compiled on every backend, GLSL and WGSL
   reviewed side by side for parity and numerical hazards, the costliest passes measured and analysed.
 
 - [shared-markers.md](shared-markers.md): proposed: one marker layer for the visuals of a structure group with the
   same location iterator (element, polymer, …) and marker actions, a mark applied once, the data-page range shared;
   gated on measuring how often groups are shown twice.
+- [primitive-expansion.md](primitive-expansion.md): per-item data expanded in the renderer; done for spheres and
+  points (one position-group array, shared quad indices, levels of detail), cylinders (`tCylinder`, shared box
+  indices: 48 instead of about 360 bytes a cylinder), lines (`tLine`, strips included: 32 instead of about 170
+  bytes) and text (`tText`: 64 instead of about 170 bytes an item); counts explicit (data vertices); open: shared index blocks.
+- [vertex-inputs-and-varyings.md](vertex-inputs-and-varyings.md): done: per-instance data (the transform as 3 vec4,
+  merged segment data by member), per-primitive varyings flat and packed, layer scalars packed, mesh normals
+  oct-encoded.
+- [merged-segment-caps.md](merged-segment-caps.md): done: merged objects' solid-interior caps only for the segments
+  the near plane or a clip object cuts (4V6X merged near cut: WebGPU 1.19 → 0.96 ms GPU, as unmerged).
+- [webgl-compile-on-link.md](webgl-compile-on-link.md): done: WebGL shaders compiled when a program links, not when a
+  render item creates its variants (4V6X ball-and-stick add and commit 92 → 70 ms; open: the reporting GTX 980).
+- [draw-table-observing.md](draw-table-observing.md): paused: the draw table observing only the cells drawing and
+  marking read; observing all costs 23 MB of 550 MB for 2888 unmerged objects (36ZA), not worth the complexity for now;
+  merged objects observe their members' marks only (done).
+- [many-units.md](many-units.md): proposed: 100k small units merged within a tab's heap, the memory per member from
+  about 41 KB to under 10 KB (never more sphere extrema than points, absent layers shared, no instance grid for one
+  instance, hashed merge keys).
+- [merged-from-units.md](merged-from-units.md): proposed: merged objects built from the symmetry groups by one visual,
+  without a visual, render values and render object per member (about 19.5 KB a member after many-units.md).
+- [merged-segment-draws.md](merged-segment-draws.md): merged objects of many single-instance segments: the cull view
+  by one version done (70 → 50 ms a moving frame of the NPC capsid); item-range draws (GPU 1.31 → 0.23 ms) and
+  flattening rejected (complexity, clipping by the original unit); culling by batches open.
+
+- [sphere-compute-raster.md](sphere-compute-raster.md): small opaque spheres rasterized by compute kernels into a
+  visibility buffer (64-bit `atomicStoreMax` of depth and id, `atomic-vec2u-min-max`), shaded once per pixel by a
+  resolve in the opaque pass: through the renderer with draw lists, the split per instance of merged objects culled on
+  the GPU, occlusion, instance and pixel clipping (clipping layers too), prepared ahead; `sphereRaster` 'auto' (objects
+  culled on the GPU) the default, to be revisited. Up to 7× faster zoomed into PetWorld; large spheres, transparency,
+  the other variants and devices without the feature keep the impostors.
 
 ## Dropped
 
+- [sphere-occlusion.md](sphere-occlusion.md): occlusion per sphere in the impostors' vertex stage against the depth
+  pyramid: measured, it occludes none of the overdrawing spheres (neighbors at about the same depth; the pyramid's
+  coarse texels see the background through gaps).
 - [batched-draws.md](batched-draws.md): many objects of separate representations per draw (merged geometry, object and
   material blocks by index, solo and merged programs); built, then removed: Mol* has at most about 1k such objects,
   many units of a representation are served better by merging (`units-1000-spacefill` merged 0.43 ms, batched
@@ -129,17 +172,18 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 ## Not started
 
 - [webgpu-xr.md](webgpu-xr.md): XR on WebGPU through `XRGPUBinding` behind the neutral `GraphicsXR`.
-- [primitive-expansion.md](primitive-expansion.md): cylinders, lines and text expanded in the renderer.
 - [core-gpu-compute.md](core-gpu-compute.md): a neutral map-kernel tier and GPU algorithms in core.
 - [attribute-color-size.md](attribute-color-size.md): per-vertex color and size attributes, to be considered.
 - [dual-source-blending.md](dual-source-blending.md): dual-source blending where available, for features (colored
   transmission in blended transparency, per-pixel accumulation weights); not for performance, and not for the passes
   with multiple render targets (WBOIT, DPOIT).
-- [geometry-residency.md](geometry-residency.md): proposed: CPU copies of geometry that can be computed again released
-  after upload (recomputed or read back on demand, the lost-context path widened); playback without allocations
-  (geometry buffers with slack handed out as views, a scratch arena per thread for intermediates); CPU bytes
-  accounted; gated on measurements.
-- [sphere-compute-raster.md](sphere-compute-raster.md): proposed: small opaque spheres rasterized by a compute kernel
-  into a visibility buffer (one 64-bit `atomicStoreMax` of depth and id, `atomic-vec2u-min-max`), shaded once per
-  pixel by a resolve; large spheres, transparency, the other variants and devices without the feature keep the
-  impostors; gated on a prototype.
+- [geometry-residency.md](geometry-residency.md): proposed, deferred for now: CPU copies of geometry released as soon
+  as the purpose they were created for is served (drawn: after upload; exported: after writing), configurable;
+  recomputed or read back on demand (the lost-context path widened); playback without allocations (geometry buffers
+  with slack handed out as views, a scratch arena per thread for intermediates); CPU bytes accounted; measured: most of
+  what CPU meshes hold (89 % of 3j3q's cartoon at `medium`).
+- [shader-compile-time.md](shader-compile-time.md): in progress: what compiles slowly with an empty cache, and inlining
+  avoidable where one branch runs anyway; solid-interior cylinders 2-3 times faster so far.
+- [two-phase-culling.md](two-phase-culling.md): built, on by default: what the previous frame's pyramid left out of GPU-culled
+  objects tested against a pyramid of the frame's depth so far and drawn in the same frame, by the sphere raster too:
+  exact while the camera moves and when it stops, 0.4-1.0 ms a moving frame at 1280×720, still frames unchanged.

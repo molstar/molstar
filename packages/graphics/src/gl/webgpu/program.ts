@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import type { AttributeKind } from '../buffer.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { AttributeLayoutEntry } from '../attribute-layout.js';
 import { type DefineLookup, type RenderableSchema, type TextureSampleType } from '../renderable/schema.js';
@@ -134,7 +135,9 @@ export function isFilteredTexture(source: string, name: string) {
 
 const Visibility = ShaderStage.VERTEX | ShaderStage.FRAGMENT;
 
-function getVertexFormat(itemSize: number): GPUVertexFormat {
+function getVertexFormat(itemSize: number, kind: AttributeKind = 'float32'): GPUVertexFormat {
+  // unit vectors encoded in two normalized shorts (`oct-normals.ts`)
+  if (kind === 'oct16') return 'snorm16x2';
   switch (itemSize) {
     case 1:
       return 'float32';
@@ -170,7 +173,8 @@ export function getVertexBufferSlots(
       layouts: attributes.map(getVertexBufferLayout),
     };
   }
-  const merged = attributes.filter((a) => !a.divisor && a.locationCount === 1);
+  // float attributes only: interleaving copies floats
+  const merged = attributes.filter((a) => !a.divisor && a.locationCount === 1 && a.kind === 'float32');
   const separate = attributes.filter((a) => !merged.includes(a));
   if (separate.length + 1 > maxVertexBuffers) {
     throw new Error(`${attributes.length} attributes don't fit into ${maxVertexBuffers} vertex buffers`);
@@ -196,11 +200,11 @@ export function getVertexBufferSlots(
 
 export function getVertexBufferLayout(entry: AttributeLayoutEntry): GPUVertexBufferLayout {
   const stepMode: GPUVertexStepMode = entry.divisor ? 'instance' : 'vertex';
-  if (entry.locationCount === 4) {
+  if (entry.locationCount > 1) {
     return {
-      arrayStride: 64,
+      arrayStride: entry.locationCount * 16,
       stepMode,
-      attributes: [0, 1, 2, 3].map((i) => ({
+      attributes: Array.from({ length: entry.locationCount }, (_, i) => ({
         shaderLocation: entry.location + i,
         offset: i * 16,
         format: 'float32x4' as GPUVertexFormat,
@@ -208,9 +212,9 @@ export function getVertexBufferLayout(entry: AttributeLayoutEntry): GPUVertexBuf
     };
   }
   return {
-    arrayStride: entry.itemSize * 4,
+    arrayStride: entry.itemSize * (entry.kind === 'oct16' ? 2 : 4),
     stepMode,
-    attributes: [{ shaderLocation: entry.location, offset: 0, format: getVertexFormat(entry.itemSize) }],
+    attributes: [{ shaderLocation: entry.location, offset: 0, format: getVertexFormat(entry.itemSize, entry.kind) }],
   };
 }
 
@@ -311,7 +315,8 @@ export function createWebGPUProgram(
     referenced.add(WgslSamplers[i]);
     groups[0].push({ binding: samplerBinding + i, visibility: Visibility, sampler: { type: 'filtering' } });
   }
-  const drawLayout = getWgslDrawLayout(schema);
+  // the draw uniforms only where read (e.g. no `uLod` without the lod fade, `dLodFade`)
+  const drawLayout = isReferenced('uDraw') ? getWgslDrawLayout(schema) : undefined;
   const drawBinding = getWgslDrawBinding(schema);
   if (drawLayout) {
     groups[getWgslGroup('object')].push({

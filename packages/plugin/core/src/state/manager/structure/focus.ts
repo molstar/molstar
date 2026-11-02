@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,6 +7,8 @@
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
+import { Camera } from '@molstar/graphics/canvas3d/camera';
+import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Loci } from '@molstar/model/model/loci';
 import { Structure, StructureElement } from '@molstar/model/model/structure';
@@ -211,7 +213,10 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
           Loci.getBoundingSphere(loci, sphere);
           const camera = this.plugin.canvas3d?.camera!;
           const d = camera.getTargetDistance(sphere.radius + 4); // default extraRadius
-          if (Vec3.distance(camera.target, sphere.center) > sphere.radius || d > camera.viewport.height / camera.zoom) {
+          if (
+            Vec3.distance(camera.target, sphere.center) > sphere.radius ||
+            d > Camera.getFrame(Viewport.zero(), camera).height / camera.zoom
+          ) {
             this.plugin.managers.camera.focusSphere(sphere, { durationMs: 0 });
           }
         }

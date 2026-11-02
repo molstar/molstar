@@ -61,6 +61,11 @@ describe('renderer', () => {
     expect(ctx.stats.resourceCounts.texture).toBe(6);
     expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 1 : 0);
     expect(ctx.stats.resourceCounts.program).toBe(5);
+    // a program's shaders compiled when it links, not when created: a variant no frame links is never compiled
+    expect(ctx.stats.resourceCounts.shader).toBe(0);
+    ctx.resources.linkPrograms(['color']);
+    expect(ctx.stats.resourceCounts.shader).toBe(2);
+    ctx.resources.linkPrograms();
     expect(ctx.stats.resourceCounts.shader).toBe(10);
 
     scene.remove(points);
@@ -94,6 +99,7 @@ describe('renderer', () => {
     const sceneDpoit = Scene.create(ctx, 'dpoit');
     sceneDpoit.add(points);
     sceneDpoit.commit();
+    ctx.resources.linkPrograms();
 
     expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 6 : 9);
     expect(ctx.stats.resourceCounts.texture).toBe(8);

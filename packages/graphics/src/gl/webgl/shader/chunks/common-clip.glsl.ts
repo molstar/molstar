@@ -118,6 +118,36 @@ float clipObjectSD(const in vec3 center, const in mat4 frame, const in vec4 shap
         return false;
     }
 
+    // the sphere at \`center\` (the clip objects' space) of radius \`radius\` against the clip objects, from the signed
+    // distance of its center: 0 no point clipped, 2 every point (by one object), 1 per fragment; the distances are at
+    // most the true ones once divided by their largest slope (1, the cone's \`|size.xy|\`, the ellipsoid's scaled by
+    // its smallest axis), the radius scaled by the frame's largest scale
+    int clipSphereClass(const in vec3 center, const in float radius) {
+        #if defined(dClipping)
+            int flag = int(floor(vClipping * 255.0 + 0.5));
+        #else
+            int flag = 0;
+        #endif
+
+        bool some = false;
+        for (int i = 0; i < uClipObjectCount; ++i) {
+            if (i != uSolidInteriorClip && (flag == 0 || hasBit(flag, clipBit(i)))) {
+                mat4 frame = uClipObjectFrame[i];
+                vec4 shape = uClipObjectShape[i];
+                if (clipType(shape) == 0) continue;
+                // the frame's largest scale (\`Clip.Objects.frame\`)
+                float r = radius * frame[0].w;
+                if (clipType(shape) == 5) r *= length(shape.xy);
+                float sd = clipObjectSD(center, frame, shape);
+                // within the clipped side at least this far (it is \`sd <= 0\`, inverted \`sd > 0\`)
+                float depth = clipInverted(shape) ? sd : -sd;
+                if (depth > r) return 2;
+                if (depth >= -r) some = true;
+            }
+        }
+        return some ? 1 : 0;
+    }
+
     float clipDistance(const in vec3 center) {
         #if defined(dClipping)
             int flag = int(floor(vClipping * 255.0 + 0.5));

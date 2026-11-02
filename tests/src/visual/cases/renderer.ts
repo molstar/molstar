@@ -4,6 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Canvas3D, Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { now } from '@molstar/core/util/now';
+import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { OutlineParams } from '@molstar/graphics/canvas3d/passes/outline';
 import { createClipping } from '@molstar/graphics/geo/geometry/clipping-data';
 import type { Representation } from '@molstar/graphics/repr/representation';
@@ -20,12 +23,15 @@ import { Color } from '@molstar/core/util/color';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { type SceneContext, type VisualTestCase } from '../framework/test-case.js';
 import {
+  cylinderGrid,
   cylinderStar,
   lineCages,
+  lineStrips,
   meshBackdrop,
   meshBox,
   meshPrimitives,
   meshTorus,
+  gridTransforms,
   pointSphere,
   rowTransforms,
   shapeRepr,
@@ -99,6 +105,91 @@ async function pickDirectVolume({ graphics, canvas3d }: SceneContext, reprs: Rep
 }
 
 export const RendererCases: VisualTestCase[] = [
+  {
+    id: 'renderer/context/shared-canvas',
+    description:
+      'Two Canvas3D instances of one context, each with half of its canvas: a frame of one keeps the image of the other.',
+    scene: async () => [],
+    check: async (_, profile) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 256;
+      const container = document.createElement('div');
+      container.style.cssText = 'position: absolute; left: -10000px; width: 256px; height: 256px';
+      container.appendChild(canvas);
+      document.body.appendChild(container);
+      const context = await profile.createContext(canvas, new DefaultAssetManager());
+      if (!context) return [`no context of profile '${profile.id}'`];
+      const create = async (x: number, backgroundColor: Color) => {
+        const c = Canvas3D.create(context, {
+          viewport: { name: 'relative-frame', params: { x, y: 0, width: 0.5, height: 1 } },
+          renderer: { ...PD.getDefaultValues(Canvas3DParams).renderer, backgroundColor },
+        });
+        c.add(await shapeRepr('mesh', meshPrimitives()));
+        c.commit(true);
+        return c;
+      };
+      const frame = async (c: Canvas3D) => {
+        await context.graphics.resources.pending.whenReady();
+        c.requestDraw();
+        c.tick(now(), { isSynchronous: true });
+      };
+      const read = () => {
+        const copy = document.createElement('canvas');
+        copy.width = copy.height = 256;
+        const ctx = copy.getContext('2d')!;
+        ctx.drawImage(canvas, 0, 0);
+        const at = (x: number) => Array.from(ctx.getImageData(x, 2, 1, 1).data).join(',');
+        return { left: at(2), right: at(253) };
+      };
+      const left = await create(0, Color(0xff0000));
+      // what an instance drew alone is not kept: one added asks the others for a frame
+      let requested = 0;
+      const removeProbe = context.addInstance!(() => {
+        requested += 1;
+      });
+      const right = await create(0.5, Color(0x0000ff));
+      removeProbe();
+      try {
+        for (let i = 0; i < 3; ++i) {
+          await frame(left);
+          await frame(right);
+          await context.graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => requestAnimationFrame(r));
+        }
+        await frame(left);
+        await frame(right);
+        const both = read();
+        await context.graphics.waitForGpuCommandsComplete();
+        await new Promise((r) => requestAnimationFrame(r));
+        // a new frame, of one instance only
+        await frame(left);
+        const one = read();
+        const red = '255,0,0,255';
+        const blue = '0,0,255,255';
+        const errors: string[] = [];
+        if (requested !== 1) errors.push(`frames asked of an instance when another is added: ${requested}`);
+        if (both.left !== red || both.right !== blue) errors.push(`both drawn: ${both.left} | ${both.right}`);
+        if (one.left !== red || one.right !== blue) errors.push(`one drawn: ${one.left} | ${one.right}`);
+        // a resize leaves nothing to keep; frames go on without the other instance
+        canvas.width = canvas.height = 128;
+        await context.graphics.waitForGpuCommandsComplete();
+        await new Promise((r) => requestAnimationFrame(r));
+        await frame(left);
+        await context.graphics.waitForGpuCommandsComplete();
+        right.dispose();
+        await new Promise((r) => requestAnimationFrame(r));
+        await frame(left);
+        await context.graphics.waitForGpuCommandsComplete();
+        errors.push(...((context.graphics as { takeErrors?: () => string[] }).takeErrors?.() ?? []));
+        return errors;
+      } finally {
+        left.dispose();
+        right.dispose();
+        context.dispose?.();
+        container.remove();
+      }
+    },
+  },
   {
     id: 'renderer/context/release-restore',
     description: 'the context released on purpose (a canvas out of view) and restored: the scene is built again on it',
@@ -271,6 +362,48 @@ export const RendererCases: VisualTestCase[] = [
     scene: pickScene,
     interact: pickDirectVolume,
   },
+  ...[1, 0.5].flatMap((resolutionScale): VisualTestCase[] => {
+    const suffix = resolutionScale === 1 ? '' : '-half-resolution';
+    const canvasProps: VisualTestCase['canvasProps'] = {
+      renderer: { dimStrength: 0.7 },
+      postprocessing: {
+        occlusion: {
+          name: 'on',
+          params: { ...PD.getDefaultValues(SsaoParams), transparentThreshold: 1, resolutionScale },
+        },
+      },
+    };
+    // a transparent layer of spheres in front of an opaque block
+    const layerScene = async (mark: 'layer' | 'block') => {
+      const front = Mat4.fromTranslation(Mat4(), Vec3.create(0, 0, 6));
+      const layer = await shapeRepr('spheres', sphereGrid(3, 2.5), { transforms: [front], props: { alpha: 0.5 } });
+      const block = await shapeRepr('spheres', sphereGrid(6, 1.8));
+      (mark === 'layer' ? layer : block).mark(EveryLoci, MarkerAction.Select);
+      return [layer, block];
+    };
+    return [
+      {
+        id: `renderer/marking/transparent-layer-marked${suffix}`,
+        description:
+          'A selected transparent layer over a dimmed opaque block: its fill takes the occlusion of the layer, not ' +
+          'the darker one of the block seen through it.',
+        requires: Impostor,
+        view: ObliqueView,
+        canvasProps,
+        scene: () => layerScene('layer'),
+      },
+      {
+        id: `renderer/marking/transparent-layer-unmarked${suffix}`,
+        description:
+          'A selected opaque block behind an unmarked transparent layer: its fill is attenuated by the layer, which ' +
+          'is itself dimmed by its alpha.',
+        requires: Impostor,
+        view: ObliqueView,
+        canvasProps,
+        scene: () => layerScene('block'),
+      },
+    ];
+  }),
   {
     id: 'renderer/marking/alpha-thickness',
     description:
@@ -424,6 +557,24 @@ export const RendererCases: VisualTestCase[] = [
     scene: primitivesScene,
   },
   {
+    id: 'renderer/viewport/outside-untouched',
+    description:
+      'A frame relative to the canvas: nothing is drawn outside it, which a context may share with other Canvas3D instances.',
+    // a canvas of its own: another case's frame stays outside the frame on WebGL (`preserveDrawingBuffer`)
+    isolate: true,
+    capture: 'canvas',
+    canvasProps: {
+      renderer: { backgroundColor: Color(0xff00ff) },
+      viewport: { name: 'relative-frame', params: { x: 0.1, y: 0.2, width: 0.6, height: 0.6 } },
+    },
+    checkImage: ({ data }) => {
+      const corner = Array.from(data.subarray(0, 4)).join(',');
+      return corner === '0,0,0,0' ? [] : [`drawn outside the frame: ${corner}`];
+    },
+    view: ObliqueView,
+    scene: primitivesScene,
+  },
+  {
     id: 'renderer/viewport/static-frame',
     description: 'Drawn into a frame of 160x112 CSS pixels at 24, 120 from the top-left corner of the canvas.',
     capture: 'canvas',
@@ -440,6 +591,40 @@ export const RendererCases: VisualTestCase[] = [
     view: ObliqueView,
     scene: primitivesScene,
   },
+  {
+    id: 'renderer/camera/stereo-spheres',
+    description: 'Side-by-side stereo with a wide eye separation: sphere impostors in strongly off-axis projections.',
+    requires: Impostor,
+    capture: 'canvas',
+    size: { width: 384, height: 192 },
+    canvasProps: { camera: { stereo: { name: 'on', params: { eyeSeparation: 1, focus: 3 } } } },
+    view: ObliqueView,
+    scene: async () => [await shapeRepr('spheres', sphereGrid(3, 3))],
+  },
+  ...(
+    [
+      ['default', {}, [1.25, 0.6, 3]],
+      ['solid-interior', { solidInterior: true }, [1.25, 0.6, 3]],
+      ['double-sided', { solidInterior: false, doubleSided: true }, [1.25, 0.6, 3]],
+      ['open', { solidInterior: false }, [1.25, 0.6, 3]],
+      ['eye-inside', {}, [2.6, 0.2, 2.7]],
+      ['eye-inside-open', { solidInterior: false }, [2.6, 0.2, 2.7]],
+    ] as const
+  ).map(([name, props, [x, y, z]]) => ({
+    id: `renderer/sphere-near/${name}`,
+    description:
+      'The camera in a grid of sphere impostors: spheres cut by the near plane and reaching behind the eye, their ' +
+      `quads the bounds of the part beyond the plane (${name}).`,
+    requires: Impostor,
+    camera: {
+      position: Vec3.create(x, y, z),
+      target: Vec3.create(x, y, -5),
+      up: Vec3.create(0, 1, 0),
+      radius: 3,
+      radiusMax: 3,
+    },
+    scene: async () => [await shapeRepr('spheres', sphereGrid(5, 2.5), { size: 1.2, props })],
+  })),
   {
     id: 'renderer/clipping/pixel',
     requires: Impostor,
@@ -471,6 +656,21 @@ export const RendererCases: VisualTestCase[] = [
       }),
     ],
   },
+  ...[false, true].map((solidInterior) => ({
+    id: `renderer/clipping/impostor-classes${solidInterior ? '-interior' : ''}`,
+    description:
+      'Sphere and cylinder impostors on a grid by pixel clipping: clipped whole (moved out in the vertex stage), cut ' +
+      `(tested per fragment) and not cut (not tested)${solidInterior ? ', with solid interiors' : ''}.`,
+    requires: Impostor,
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('spheres', sphereGrid(4, 2), { size: 0.5, props: { clip: clipProps('pixel'), solidInterior } }),
+      await shapeRepr('cylinders', cylinderGrid(3, 3, 1.6), {
+        size: 0.3,
+        props: { clip: clipProps('pixel'), solidInterior },
+      }),
+    ],
+  })),
   {
     id: 'renderer/clipping/points-lines',
     view: ObliqueView,
@@ -479,6 +679,7 @@ export const RendererCases: VisualTestCase[] = [
         props: { pointStyle: 'circle', sizeFactor: 6, clip: clipProps('pixel') },
       }),
       await shapeRepr('lines', lineCages(), { props: { sizeFactor: 3, clip: clipProps('pixel') } }),
+      await shapeRepr('lines', lineStrips(), { props: { sizeFactor: 3, clip: clipProps('pixel') } }),
     ],
   },
   {
@@ -494,6 +695,46 @@ export const RendererCases: VisualTestCase[] = [
       return [repr];
     },
   },
+  ...(['plane', 'inverted-sphere'] as const).map((clip) => ({
+    id: `renderer/clipping/solid-interior-cells-${clip}`,
+    description:
+      'Solid interiors of instanced tori in small instance-grid cells, those clipped whole culled: the caps of the cut ' +
+      `ones counted over every face behind them${clip === 'inverted-sphere' ? ' (the removed outside of a kept sphere, behind it too)' : ''}.`,
+    requires: Impostor,
+    view: ObliqueView,
+    scene: async () => [
+      await shapeRepr('mesh', meshTorus(0.8), {
+        transforms: gridTransforms(5, 2.2),
+        props: {
+          solidInterior: true,
+          cellSize: 2,
+          batchSize: 6,
+          clip: {
+            variant: 'pixel' as const,
+            objects: [
+              clip === 'plane'
+                ? {
+                    type: 'plane' as const,
+                    invert: false,
+                    position: Vec3.create(0.3, 0, 0),
+                    rotation: { axis: Vec3.create(0, 0, 1), angle: 30 },
+                    scale: Vec3.create(1, 1, 1),
+                    transform: Mat4.identity(),
+                  }
+                : {
+                    type: 'sphere' as const,
+                    invert: true,
+                    position: Vec3.create(0.4, 0.2, 0),
+                    rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+                    scale: Vec3.create(7, 7, 7),
+                    transform: Mat4.identity(),
+                  },
+            ],
+          },
+        },
+      }),
+    ],
+  })),
   {
     id: 'renderer/clipping/instance',
     view: ObliqueView,

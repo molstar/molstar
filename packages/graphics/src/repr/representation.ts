@@ -548,14 +548,18 @@ namespace Representation {
       },
       getSignatures(props: PD.Values<P>, ctx: SignatureContext) {
         const { visuals } = props;
-        return getQualitySignatures(props, (p) => {
-          const signatures: ObjectSignature[] = [];
-          for (let i = 0, il = reprList.length; i < il; ++i) {
-            if (visuals && !visuals.includes(reprMap[i])) continue;
-            signatures.push(...(reprList[i].getSignatures?.(p, ctx) ?? []));
-          }
-          return signatures;
-        });
+        return getQualitySignatures(
+          props,
+          (p) => {
+            const signatures: ObjectSignature[] = [];
+            for (let i = 0, il = reprList.length; i < il; ++i) {
+              if (visuals && !visuals.includes(reprMap[i])) continue;
+              signatures.push(...(reprList[i].getSignatures?.(p, ctx) ?? []));
+            }
+            return signatures;
+          },
+          ctx.data,
+        );
       },
       destroy() {
         for (let i = 0, il = reprList.length; i < il; ++i) {

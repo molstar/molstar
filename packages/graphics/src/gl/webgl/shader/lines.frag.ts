@@ -28,9 +28,22 @@ ${common_frag_params}
 ${color_frag_params}
 ${common_clip}
 
+#if defined(dClipVariant_pixel) && defined(dClipObjects)
+    // 1 where the clip objects may cut the line (\`clipSphereClass\` of its bounding sphere): its clip tests skipped if 0
+    #if __VERSION__ == 100
+        varying float vClipSome;
+    #else
+        flat in float vClipSome;
+    #endif
+#endif
+
 void main(){
     ${fade_lod}
-    ${clip_pixel}
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        if (vClipSome > 0.5) {
+            ${clip_pixel}
+        }
+    #endif
 
     float fragmentDepth = gl_FragCoord.z;
     ${assign_material_color}

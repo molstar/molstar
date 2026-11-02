@@ -55,6 +55,29 @@ export async function globuleStructure(count: number): Promise<Structure> {
   return atomStructure('globule', x, y, z, ['A', 'B', 'C', 'D'], chainOf);
 }
 
+/**
+ * `count` chains of `atoms` atoms on a grid: a unit each (none sharing elements, so none instanced), the visuals of one
+ * representation share its material
+ */
+export function chainGrid(count: number, atoms = 10) {
+  const n = Math.ceil(Math.sqrt(count));
+  const x = new Float32Array(count * atoms);
+  const y = new Float32Array(count * atoms);
+  const z = new Float32Array(count * atoms);
+  const chainOf = new Int32Array(count * atoms);
+  for (let c = 0; c < count; ++c) {
+    for (let a = 0; a < atoms; ++a) {
+      const i = c * atoms + a;
+      x[i] = (c % n) * 8 + a * 0.5;
+      y[i] = Math.floor(c / n) * 8;
+      z[i] = (a % 2) * 1.5;
+      chainOf[i] = c;
+    }
+  }
+  const chains = Array.from({ length: count }, (_, c) => `C${c}`);
+  return atomStructure('chain-grid', x, y, z, chains, chainOf);
+}
+
 let registries: { colorThemeRegistry: ColorTheme.Registry; sizeThemeRegistry: SizeTheme.Registry } | undefined;
 /** Uniform color, uniform and physical size: the themes the benchmarked representations use */
 export function getThemeRegistries() {

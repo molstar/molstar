@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StateTransform, StateTransformer } from '@molstar/core/state';
@@ -74,6 +75,7 @@ export const SettingsMapping: readonly GroupDef[] = [
     description: 'Background, colors, lighting and effects.',
     canvas: [
       'renderer.backgroundColor',
+      'renderer.colorMarker',
       'renderer.highlightColor',
       'renderer.selectColor',
       'renderer.dimColor',

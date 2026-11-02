@@ -47,20 +47,41 @@ ${fragment_output_wgsl('    @builtin(frag_depth) fragDepth: f32,')}
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
-    let vertexId = i32(in.vertexIndex);
-    let group = in.aGroup;
+    // the item of the vertex (4 texels of \`tText\`) and its corner (4 vertices per item)
+    let item = i32(in.vertexIndex) / 4;
+    let corner = i32(in.vertexIndex) - item * 4;
+    // the data vertex ('vertex' color, size): one per item
+    let vertexId = item;
+    let textPosition = read_tText(item * 4); // position xyz, group
+    let textFlags = read_tText(item * 4 + 1); // depth, tether
+    let textA = read_tText(item * 4 + 2);
+    let textB = read_tText(item * 4 + 3);
+    let group = textPosition.w;
+    var mapping: vec2<f32>;
+    var texCoord: vec2<f32>;
+    if (textFlags.y > 0.5) {
+        // a tether: its four corners, no glyph
+        mapping = select(select(select(textB.zw, textB.xy, corner == 2), textA.zw, corner == 1), textA.xy, corner == 0);
+        texCoord = vec2<f32>(10.0);
+    } else {
+        // a glyph or background: top left, bottom left, top right, bottom right of its rectangles
+        let right = corner >= 2;
+        let top = corner == 0 || corner == 2;
+        mapping = vec2<f32>(select(textA.x, textA.z, right), select(textA.w, textA.y, top));
+        texCoord = vec2<f32>(select(textB.x, textB.z, right), select(textB.w, textB.y, top));
+    }
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
 
-    out.vTexCoord = in.aTexCoord;
+    out.vTexCoord = texCoord;
 
     let scale = uGlobal.uModelScale;
     let offsetX = uMaterial.uOffsetX * scale;
     let offsetY = uMaterial.uOffsetY * scale;
-    var offsetZ = (uMaterial.uOffsetZ + in.aDepth * 0.95) * scale;
+    var offsetZ = (uMaterial.uOffsetZ + textFlags.x * 0.95) * scale;
 
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let position4 = vec4<f32>(in.aPosition, 1.0);
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let position4 = vec4<f32>(textPosition.xyz, 1.0);
     let hasEyeCamera = uGlobal.uHasEyeCamera != 0u;
     var mvPosition = uGlobal.uModelView * aTransform * position4;
     if (hasEyeCamera) {
@@ -71,7 +92,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 
     var mvCenter = vec4<f32>(mvPosition.xyz, 1.0);
 
-    if (in.aTexCoord.x == 10.0) { // indicates background plane
+    if (texCoord.x == 10.0) { // indicates background plane
         // move a bit to the back, taking distance to camera into account to avoid z-fighting; the distance is to the
         // GL clip-space position (z of the [-1, 1] projection: 2 * z - w of the [0, 1] one)
         let p = uGlobal.uProjection * mvCenter;
@@ -95,7 +116,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     var clip = uGlobal.uProjection * mvCenter;
 
     // compute corner offset in screen-space units
-    var cornerOffset = in.aMapping * size * scale;
+    var cornerOffset = mapping * size * scale;
     cornerOffset.x += offsetX;
     cornerOffset.y += offsetY;
 
@@ -116,7 +137,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 @fragment
 fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
-    ${clip_flag_wgsl('in.vClipping')}
+    ${clip_flag_wgsl('in.vMarkerClipping.y')}
 
     // anti-aliased SDF text (.v6/designs/labels.md §5)
     // sampled and differentiated before anything can discard: derivatives need uniform control flow

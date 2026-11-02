@@ -2,11 +2,13 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { cylinderVertices } from '../../../geo/geometry/_test/item-vertices.js';
 import { RuntimeContext } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
@@ -63,9 +65,9 @@ function cylinderStarts(repr: { renderObjects: readonly any[] }) {
   const starts: number[] = [];
   for (const ro of repr.renderObjects) {
     if (ro.type !== 'cylinders') continue;
-    const a = ro.values.aStart.ref.value as Float32Array;
+    const { start } = cylinderVertices(ro.values);
     const n = ro.values.drawCount.ref.value;
-    for (let i = 0; i < Math.min(a.length, n * 3); i++) starts.push(a[i]);
+    for (let i = 0; i < Math.min(start.length, n * 3); i++) starts.push(start[i]);
   }
   return starts;
 }

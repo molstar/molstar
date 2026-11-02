@@ -58,7 +58,7 @@ export type HeadlessScreenshotHelperOptions = {
   backend?: 'webgl' | 'webgpu';
   webgl?: WebGLContextAttributes;
   /** of the WebGPU context, e.g. a lower data binding size (`maxDataBindingSize`) */
-  webgpu?: Pick<WebGPUContextOptions, 'maxDataBindingSize'>;
+  webgpu?: Pick<WebGPUContextOptions, 'maxDataBindingSize' | 'fragDepthInBundles' | 'viewportOutsideTarget'>;
   canvas?: Partial<Canvas3DProps>;
   imagePass?: Partial<ImageProps>;
 };

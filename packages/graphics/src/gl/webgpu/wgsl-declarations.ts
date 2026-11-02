@@ -63,10 +63,17 @@ function getWgslAttributeType(itemSize: number) {
   }
 }
 
-/** Vertex inputs of an attribute, `mat4` attributes are split into four `vec4<f32>` inputs (`aTransform0` to `aTransform3`) */
+/**
+ * Vertex inputs of an attribute: `mat4` attributes split into four `vec4<f32>` inputs (columns), affine transforms into
+ * three (rows, `affine-rows.ts`: `aTransform0` to `aTransform2`, rebuilt by `affineTransform`)
+ */
 export function getWgslVertexInputs(entry: AttributeLayoutEntry): { name: string; location: number; type: string }[] {
-  if (entry.locationCount === 4) {
-    return [0, 1, 2, 3].map((i) => ({ name: `${entry.name}${i}`, location: entry.location + i, type: 'vec4<f32>' }));
+  if (entry.locationCount > 1) {
+    return Array.from({ length: entry.locationCount }, (_, i) => ({
+      name: `${entry.name}${i}`,
+      location: entry.location + i,
+      type: 'vec4<f32>',
+    }));
   }
   return [{ name: entry.name, location: entry.location, type: getWgslAttributeType(entry.itemSize) }];
 }

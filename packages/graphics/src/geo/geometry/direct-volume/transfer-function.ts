@@ -77,3 +77,40 @@ export function createTransferFunctionTexture(
     return ValueCell.create(textureImage);
   }
 }
+
+/** The highest opacity per cell the pre-integration takes (its optical depth is finite) */
+const MaxPreIntegratedAlpha = 0.999;
+
+/**
+ * The pre-integrated transfer function (`preIntegration`): for a ray step from value `i` to value `j` (rows `j`,
+ * columns `i`, of 256 each, as the 1D table's bytes), the opacity of crossing one cell with the value varying
+ * linearly between them, as an opacity per cell: the mean optical depth `-ln(1 - alpha)` over the values between,
+ * `1 - exp(-mean)`. Independent of the step's length (the shader scales a cell's opacity to its step), so built once
+ * per transfer function; on the diagonal the 1D table's own opacity. Narrow peaks crossed between two samples count,
+ * which with the 1D table only show where a sample lands on them (slabs, and banding at few steps per cell)
+ */
+export function createPreIntegratedTransferTexture(
+  alpha: Uint8Array,
+  texture?: ValueCell<TextureImage<Uint8Array>>,
+): ValueCell<TextureImage<Uint8Array>> {
+  const n = TF_WIDTH;
+  const depth = new Float64Array(n);
+  for (let i = 0; i < n; ++i) depth[i] = -Math.log(1 - Math.min(alpha[i] / 255, MaxPreIntegratedAlpha));
+  // the integral of the depth from value 0 to each value, linear between the table's values (trapezoids)
+  const integral = new Float64Array(n);
+  for (let i = 1; i < n; ++i) integral[i] = integral[i - 1] + (depth[i - 1] + depth[i]) / 2;
+  const reuse = texture && texture.ref.value.array.length === n * n;
+  const array = reuse ? texture!.ref.value.array : new Uint8Array(n * n);
+  for (let j = 0; j < n; ++j) {
+    for (let i = 0; i < n; ++i) {
+      const mean = i === j ? depth[i] : (integral[j] - integral[i]) / (j - i);
+      array[j * n + i] = Math.round((1 - Math.exp(-mean)) * 255);
+    }
+  }
+  const image = { array, width: n, height: n };
+  if (texture) {
+    ValueCell.update(texture, image);
+    return texture;
+  }
+  return ValueCell.create(image);
+}

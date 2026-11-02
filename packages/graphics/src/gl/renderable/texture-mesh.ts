@@ -48,6 +48,8 @@ export const TextureMeshSchema = {
   dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
   dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
   dSolidInterior: DefineSpec('boolean'),
+  /** whether the bump noise is compiled (`BaseGeometry.hasBump`; with a substance layer, `dSubstance`, too) */
+  dBump: DefineSpec('boolean'),
   uBumpFrequency: UniformSpec('f', 'material'),
   uBumpAmplitude: UniformSpec('f', 'material'),
   meta: ValueSpec('unknown'),

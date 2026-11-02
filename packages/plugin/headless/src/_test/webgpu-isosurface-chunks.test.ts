@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Mat4, Tensor, Vec3 } from '@molstar/core/math/linear-algebra';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
 import { estimateIsosurfaceVertexCount } from '@molstar/graphics/geo/util/marching-cubes/estimate';
-import type { ComputeContext } from '@molstar/graphics/gl/compute';
+import type { ComputeContext, StorageBuffer } from '@molstar/graphics/gl/compute';
 import {
   IsosurfaceChunkSize,
   IsosurfaceTableHeader,
@@ -72,7 +72,7 @@ function sphereVolume(compute: ComputeContext, n: number): IsosurfaceInput {
 
 /** The positions, normals and groups of a surface's first `count` vertices, read through its page table */
 async function readVertices(compute: ComputeContext, surface: ChunkedSurface, count: number) {
-  const chunks = { table: surface.table, vertices: surface.arena.vertices.ref.value };
+  const chunks = { table: surface.table, vertices: () => surface.arena.vertices.ref.value };
   const { vertices, normals, groups, vertexCount } = await readChunkedVertices(compute, chunks, count);
   const out: { p: Vec3; n: Vec3; group: number }[] = [];
   for (let i = 0; i < vertexCount; ++i) {
@@ -249,6 +249,32 @@ describe.skipIf(!WebGPU.module)('chunked isosurfaces on WebGPU', () => {
       const vertices = await readVertices(compute, a.surface, stateA.count);
       const c = (n - 1) / 2;
       for (const { p } of vertices) expect(Math.abs(Vec3.distance(p, Vec3.create(c, c, c)) - 50)).toBeLessThan(0.1);
+    });
+  });
+
+  it('reads a surface back from the arena as it is after its table was read: grown meanwhile', async () => {
+    await withCompute(async (graphics) => {
+      const { compute } = graphics;
+      const n = 128;
+      const input = sphereVolume(compute, n);
+      const a = await computeChunkedIsosurface(compute, input, Vec3.create(n, n, n), n - 50, Mat4.identity(), false);
+      const { count } = await a.count;
+      // the arena grows while the table is read (another surface extracted): its buffer replaced, the old destroyed
+      const { arena, table } = a.surface;
+      const grownTable = Object.create(table) as StorageBuffer;
+      grownTable.readAsync = async (byteOffset?: number, length?: number) => {
+        const header = await table.readAsync(byteOffset, length);
+        expect(await growVertexArena(compute, arena, 64)).toBe(true);
+        return header;
+      };
+      const chunks = { table: grownTable, vertices: () => arena.vertices.ref.value };
+      const { vertices, vertexCount } = await readChunkedVertices(compute, chunks, count);
+      expect(vertexCount).toBe(count);
+      const c = (n - 1) / 2;
+      for (let i = 0; i < vertexCount; ++i) {
+        const p = Vec3.fromArray(Vec3(), vertices, i * 4);
+        expect(Math.abs(Vec3.distance(p, Vec3.create(c, c, c)) - 50)).toBeLessThan(0.1);
+      }
     });
   });
 

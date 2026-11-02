@@ -42,6 +42,21 @@ export const GraphicsFeatures = [
    * GPU culling)
    */
   'indirectInstanceRanges',
+  /**
+   * indirect records drawn by one call (`chromium-experimental-multi-draw-indirect`, Chrome with
+   * `--enable-unsafe-webgpu`), on render passes only, not in bundles
+   */
+  'multiDrawIndirect',
+  /**
+   * 64-bit atomic min and max in kernels (`atomic<vec2u>`, `atomicStoreMax` and `atomicStoreMin`, WGSL
+   * `enable atomic_vec2u_min_max;`): a depth and an id written at once (the sphere raster)
+   */
+  'atomicMinMax64',
+  /**
+   * programs compile off the main thread (WebGL `KHR_parallel_shader_compile`, WebGPU's asynchronous pipelines):
+   * compiling ahead costs the main thread little
+   */
+  'parallelCompile',
 ] as const;
 export type GraphicsFeature = (typeof GraphicsFeatures)[number];
 

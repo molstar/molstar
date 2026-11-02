@@ -62,7 +62,12 @@ export function createDirectVolume2d(
   const bbox = getBoundingBox(gridDimension, transform);
 
   let texture: Texture;
-  if (directVolume && directVolume.dataType.ref.value === dataType) {
+  // not one of the previous context (a backend switch or restore)
+  if (
+    directVolume &&
+    directVolume.dataType.ref.value === dataType &&
+    graphics.resources.ownsTexture(directVolume.gridTexture.ref.value)
+  ) {
     texture = directVolume.gridTexture.ref.value;
   } else {
     texture =
@@ -132,22 +137,27 @@ export function createDirectVolume3d(
 
   const dataType = props.dataType === 'halfFloat' && !graphics.capabilities.halfFloatTexture ? 'float' : props.dataType;
 
-  const textureVolume = createVolumeTexture3d(volume, dataType);
   const transform = Grid.getGridToCartesianTransform(volume.grid);
   const bbox = getBoundingBox(gridDimension, transform);
 
   let texture: Texture;
-  if (directVolume && directVolume.dataType.ref.value === dataType) {
+  // not one of the previous context (a backend switch or restore)
+  if (
+    directVolume &&
+    directVolume.dataType.ref.value === dataType &&
+    graphics.resources.ownsTexture(directVolume.gridTexture.ref.value)
+  ) {
     texture = directVolume.gridTexture.ref.value;
   } else {
+    // the values only (`createVolumeTexture3d`): the shader computes the normals
     texture =
       dataType === 'byte'
-        ? graphics.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear')
+        ? graphics.resources.texture('volume-uint8', 'r', 'ubyte', 'linear')
         : dataType === 'halfFloat'
-          ? graphics.resources.texture('volume-float16', 'rgba', 'fp16', 'linear')
-          : graphics.resources.texture('volume-float32', 'rgba', 'float', 'linear');
+          ? graphics.resources.texture('volume-float16', 'r', 'fp16', 'linear')
+          : graphics.resources.texture('volume-float32', 'r', 'float', 'linear');
   }
-  texture.load(textureVolume);
+  texture.load(createVolumeTexture3d(volume, dataType));
 
   const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
   const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;

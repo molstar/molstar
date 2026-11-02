@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { createRenderObject, type GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { type MergedEntry, mergeRenderObjectsByType } from '../merged.js';
 
 function spheres(n: number) {
@@ -39,6 +40,24 @@ function checks(merge: () => void) {
 }
 
 describe('mergeRenderObjectsByType', () => {
+  it('does not reuse a merged object holding a resource of another context', () => {
+    const entries = [spheres(3), spheres(2)].map((renderObject, visual) => ({ visual, renderObject }));
+    const graphics = { capabilities: {}, resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
+    const out: GraphicsRenderObject[] = [];
+    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
+    const object = out[0];
+    merged = mergeRenderObjectsByType(entries, true, merged, out, false, false, graphics);
+    expect(out).toEqual([object]);
+
+    // a storage buffer in the merged object's own values, of a context `graphics` is not
+    const buffer = { copyTo: () => {}, readAsync: async () => new ArrayBuffer(0) };
+    (object.values as unknown as { [k: string]: unknown }).sForeign = ValueCell.create(buffer);
+    const other = { capabilities: {}, resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
+    mergeRenderObjectsByType(entries, true, merged, out, false, false, other);
+    expect(out.length).toBe(1);
+    expect(out[0]).not.toBe(object);
+  });
+
   it('skips the merge check for the same members, unchanged since it passed (perf-audit-2 07/P17)', () => {
     const entries = [spheres(3), spheres(2), spheres(4)].map((renderObject, visual) => ({ visual, renderObject }));
     const out: GraphicsRenderObject[] = [];

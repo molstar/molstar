@@ -211,6 +211,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
       updateState.updateColor = true;
     }
 
+    // they order the items, which what is computed per vertex follows
+    const levels = (p: Partial<PD.Values<P>>) => (p as { lodLevels?: unknown }).lodLevels;
+    if (levels(newProps) !== levels(currentProps)) {
+      updateState.updateColor = true;
+      updateState.updateSize = true;
+    }
+
     if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
       updateState.updateSize = true;
     }
@@ -306,6 +313,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         positionIt = createPositionIterator(newGeometry || geometry, renderObject.values);
       }
 
+      // first: it may order the items (`lodLevels`), which the sizes and colors follow
+      updateValues(renderObject.values, newProps);
+
       if (updateState.updateSize) {
         // not all geometries have size data, so check here
         if ('uSize' in renderObject.values) {
@@ -319,7 +329,6 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         createColors(locationIt, positionIt, newTheme.color, renderObject.values);
       }
 
-      updateValues(renderObject.values, newProps);
       updateRenderableState(renderObject.state, newProps);
     }
 

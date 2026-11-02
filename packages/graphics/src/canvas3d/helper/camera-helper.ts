@@ -28,7 +28,7 @@ import { type MarkerAction, MarkerActions } from '@molstar/core/util/marker-acti
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { Camera, type ICamera } from '../camera.js';
-import type { Viewport } from '../camera/util.js';
+import { Viewport } from '../camera/util.js';
 
 // TODO add scale line/grid
 
@@ -194,7 +194,9 @@ export class CameraHelper {
       this.setProps(this.props);
     }
 
-    updateCamera(this.camera, camera.viewport, camera.viewOffset);
+    // in a corner of the frame, cropped with the scene where the frame is (`Camera.Crop`)
+    const frame = Camera.getFrame(tmpFrame, camera);
+    updateCamera(this.camera, camera.viewport, camera.viewOffset, camera.crop);
     Mat4.extractRotation(this.scene.view, camera.view);
 
     const r = this.textRenderObject
@@ -204,25 +206,13 @@ export class CameraHelper {
     const ox = this.props.axes.params.locationOffsetX * this.pixelRatio;
     const oy = this.props.axes.params.locationOffsetY * this.pixelRatio;
     if (l === 'bottom-left') {
-      Mat4.setTranslation(
-        this.scene.view,
-        Vec3.create(-camera.viewport.width / 2 + r + ox, -camera.viewport.height / 2 + r + oy, 0),
-      );
+      Mat4.setTranslation(this.scene.view, Vec3.create(-frame.width / 2 + r + ox, -frame.height / 2 + r + oy, 0));
     } else if (l === 'bottom-right') {
-      Mat4.setTranslation(
-        this.scene.view,
-        Vec3.create(camera.viewport.width / 2 - r - ox, -camera.viewport.height / 2 + r + oy, 0),
-      );
+      Mat4.setTranslation(this.scene.view, Vec3.create(frame.width / 2 - r - ox, -frame.height / 2 + r + oy, 0));
     } else if (l === 'top-left') {
-      Mat4.setTranslation(
-        this.scene.view,
-        Vec3.create(-camera.viewport.width / 2 + r + ox, camera.viewport.height / 2 - r - oy, 0),
-      );
+      Mat4.setTranslation(this.scene.view, Vec3.create(-frame.width / 2 + r + ox, frame.height / 2 - r - oy, 0));
     } else if (l === 'top-right') {
-      Mat4.setTranslation(
-        this.scene.view,
-        Vec3.create(camera.viewport.width / 2 - r - ox, camera.viewport.height / 2 - r - oy, 0),
-      );
+      Mat4.setTranslation(this.scene.view, Vec3.create(frame.width / 2 - r - ox, frame.height / 2 - r - oy, 0));
     } else {
       assertUnreachable(l);
     }
@@ -275,7 +265,9 @@ export function isCameraAxesLoci(x: Loci): x is CameraAxesLoci {
   return x.kind === 'data-loci' && x.tag === 'camera-axes';
 }
 
-function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.ViewOffset) {
+const tmpFrame = Viewport.zero();
+
+function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.ViewOffset, crop?: Camera.Crop) {
   const { near, far } = camera;
 
   const fullLeft = -viewport.width / 2;
@@ -285,8 +277,13 @@ function updateCamera(camera: Camera, viewport: Viewport, viewOffset: Camera.Vie
 
   const dx = (fullRight - fullLeft) / 2;
   const dy = (fullTop - fullBottom) / 2;
-  const cx = (fullRight + fullLeft) / 2;
-  const cy = (fullTop + fullBottom) / 2;
+  let cx = (fullRight + fullLeft) / 2;
+  let cy = (fullTop + fullBottom) / 2;
+  if (crop?.enabled) {
+    // the viewport's center from the frame's, in pixels (window y down, view y up)
+    cx += crop.offsetX + viewport.width / 2 - crop.fullWidth / 2;
+    cy -= crop.offsetY + viewport.height / 2 - crop.fullHeight / 2;
+  }
 
   let left = cx - dx;
   let right = cx + dx;

@@ -30,7 +30,10 @@ void main() {
         uModelScale * uInvariantBoundingSphere.w
     );
     vTransform = aTransform;
-    vNormalMatrix = adjoint(uModelView * aTransform);
+    // the gradient is in grid axes; a mirroring transform flips what the adjoint gives
+    mat4 gradientToView = uModelView * aTransform * uTransform;
+    vec3 c0 = gradientToView[0].xyz, c1 = gradientToView[1].xyz, c2 = gradientToView[2].xyz;
+    vNormalMatrix = adjoint(gradientToView) * sign(dot(cross(c0, c1), c2));
 
     gl_Position = uProjection * mvPosition;
 

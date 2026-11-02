@@ -2,12 +2,17 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
 import { hashFnv32a } from '@molstar/core/data/util/hash-functions';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { CylindersBuilder } from '../cylinders/cylinders-builder.js';
+import { CylinderStride } from '../cylinders/cylinders.js';
+import { perVertexCylinders, perVertexLines } from './item-vertices.js';
+import { LineStride } from '../lines/lines.js';
+import { BoxItems, createItemIndexArray, LineItems } from '../../../gl/quad-indices.js';
 import { LinesBuilder } from '../lines/lines-builder.js';
 import { MeshBuilder } from '../mesh/mesh-builder.js';
 import { addSphere } from '../mesh/builder/sphere.js';
@@ -26,6 +31,17 @@ function hash(array: ArrayLike<number> & { buffer?: ArrayBufferLike }, length: n
   ).toString(16);
 }
 
+/** Centers (xyz) and groups of `count` items of a position group array (xyz and group each), as separate buffers */
+function deinterleave(positionGroup: Float32Array, count: number) {
+  const centers = new Float32Array(count * 3);
+  const groups = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    centers.set(positionGroup.subarray(i * 4, i * 4 + 3), i * 3);
+    groups[i] = positionGroup[i * 4 + 3];
+  }
+  return { centers, groups };
+}
+
 const point = (i: number) => Vec3.create(Math.sin(i) * 10, Math.cos(1.3 * i) * 10, (i % 17) - 8);
 
 function cylinders(n: number, initialCount: number, chunkSize: number) {
@@ -34,18 +50,21 @@ function cylinders(n: number, initialCount: number, chunkSize: number) {
     builder.add(...point(i), ...point(i + 1), 1 + (i % 3) * 0.1, i % 2 === 0, i % 3 === 0, 0, i);
   const c = builder.getCylinders();
   const vertexCount = c.cylinderCount * 6;
+  // the per-vertex buffers cylinders had (6 vertices each), from the data per cylinder: the hashes are theirs
+  const v = perVertexCylinders(c.cylinderData.ref.value.array, c.cylinderCount);
   return {
     counts: [c.cylinderCount],
     buffers: [
-      hash(c.startBuffer.ref.value, vertexCount * 3),
-      hash(c.endBuffer.ref.value, vertexCount * 3),
-      hash(c.groupBuffer.ref.value, vertexCount),
-      hash(c.scaleBuffer.ref.value, vertexCount),
-      hash(c.capBuffer.ref.value, vertexCount),
-      hash(c.mappingBuffer.ref.value, vertexCount * 3),
-      hash(c.indexBuffer.ref.value, c.cylinderCount * 12),
+      hash(v.start, vertexCount * 3),
+      hash(v.end, vertexCount * 3),
+      hash(v.group, vertexCount),
+      hash(v.scale, vertexCount),
+      hash(v.cap, vertexCount),
+      hash(v.mapping, vertexCount * 3),
+      // the shared box indices are the indices cylinders had
+      hash(createItemIndexArray(c.cylinderCount, BoxItems), c.cylinderCount * 12),
     ],
-    capacity: c.startBuffer.ref.value.length / 3 / 6,
+    capacity: c.cylinderData.ref.value.array.length / CylinderStride,
   };
 }
 
@@ -54,16 +73,19 @@ function lines(n: number, initialCount: number, chunkSize: number) {
   for (let i = 0; i < n; i++) builder.add(...point(i), ...point(i + 1), i);
   const l = builder.getLines();
   const vertexCount = l.lineCount * 4;
+  // the per-vertex buffers lines had (4 vertices each), from the data per line: the hashes are theirs
+  const v = perVertexLines(l.lineData.ref.value.array, l.lineCount);
   return {
     counts: [l.lineCount],
     buffers: [
-      hash(l.startBuffer.ref.value, vertexCount * 3),
-      hash(l.endBuffer.ref.value, vertexCount * 3),
-      hash(l.groupBuffer.ref.value, vertexCount),
-      hash(l.mappingBuffer.ref.value, vertexCount * 2),
-      hash(l.indexBuffer.ref.value, l.lineCount * 6),
+      hash(v.start, vertexCount * 3),
+      hash(v.end, vertexCount * 3),
+      hash(v.group, vertexCount),
+      hash(v.mapping, vertexCount * 2),
+      // the shared line indices are the indices lines had
+      hash(createItemIndexArray(l.lineCount, LineItems), l.lineCount * 6),
     ],
-    capacity: l.startBuffer.ref.value.length / 3 / 4,
+    capacity: l.lineData.ref.value.array.length / LineStride,
   };
 }
 
@@ -71,10 +93,12 @@ function spheres(n: number, initialCount: number, chunkSize: number) {
   const builder = SpheresBuilder.create(initialCount, chunkSize);
   for (let i = 0; i < n; i++) builder.add(...point(i), i);
   const s = builder.getSpheres();
+  // the hashes of the centers and groups as separate buffers: the contents of the position groups are theirs
+  const { centers, groups } = deinterleave(s.positionGroup.ref.value.array, s.sphereCount);
   return {
     counts: [s.sphereCount],
-    buffers: [hash(s.centerBuffer.ref.value, s.sphereCount * 3), hash(s.groupBuffer.ref.value, s.sphereCount)],
-    capacity: s.centerBuffer.ref.value.length / 3,
+    buffers: [hash(centers, s.sphereCount * 3), hash(groups, s.sphereCount)],
+    capacity: s.positionGroup.ref.value.array.length / 4,
   };
 }
 
@@ -82,10 +106,11 @@ function points(n: number, initialCount: number, chunkSize: number) {
   const builder = PointsBuilder.create(initialCount, chunkSize);
   for (let i = 0; i < n; i++) builder.add(...point(i), i);
   const p = builder.getPoints();
+  const { centers, groups } = deinterleave(p.positionGroup.ref.value.array, p.pointCount);
   return {
     counts: [p.pointCount],
-    buffers: [hash(p.centerBuffer.ref.value, p.pointCount * 3), hash(p.groupBuffer.ref.value, p.pointCount)],
-    capacity: p.centerBuffer.ref.value.length / 3,
+    buffers: [hash(centers, p.pointCount * 3), hash(groups, p.pointCount)],
+    capacity: p.positionGroup.ref.value.array.length / 4,
   };
 }
 

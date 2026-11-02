@@ -34,7 +34,29 @@ export const BenchmarkEnv: {
   drawLists?: boolean;
   /** the canvas after the last run of each render case, as PNG data URLs by case id (`--images`) */
   images?: { [id: string]: string };
+  /** every render case with its byte notes (`RenderInput.byteNotes`, `--byte-notes`) */
+  byteNotes?: boolean;
+  /** every render case with the sphere raster's split replayed on the CPU (`--raster-split-notes`) */
+  rasterSplitNotes?: boolean;
+  /**
+   * The sphere compute raster's cases for a GPU profiler (`?rasterProfile=`): `raster` loops its one-phase raster and the
+   * resolve, `impostors` the impostors' frames, after setup and without end (`sphere-raster.ts`)
+   */
+  rasterProfile?: 'raster' | 'impostors';
 } = {};
+
+/**
+ * The JS heap in use after full garbage collections: with `--expose-gc` and Chrome's `performance.memory`. One
+ * collection leaves large garbage behind (a scene whose setup allocated 1 GB of temporary grids read 1.2 GB after one,
+ * 0.28 after four)
+ */
+export function collectedHeap() {
+  const gc = (globalThis as { gc?: () => void }).gc;
+  const memory = (performance as { memory?: { usedJSHeapSize: number } }).memory;
+  if (!gc || !memory) return undefined;
+  for (let i = 0; i < 4; ++i) gc();
+  return memory.usedJSHeapSize;
+}
 
 /**
  * Waits until the GPU completed the submitted work: on WebGL with a 1-pixel readback (the fence of

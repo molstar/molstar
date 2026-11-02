@@ -55,7 +55,7 @@ import type { UniformBlockLayout } from '../uniform-layout.js';
 import type { AttributeLayout } from '../attribute-layout.js';
 import { getShaderDeclarations } from './shader-declarations.js';
 import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
-import { createQuadIndices, getMaxQuadItemCount, type QuadIndices } from '../quad-indices.js';
+import { BoxItems, createQuadIndices, getMaxQuadItemCount, LineItems, type QuadIndices } from '../quad-indices.js';
 import { getDefineLookup, getDefineValueNames } from '../renderable/schema.js';
 import { now } from '@molstar/core/util/now';
 import type { ProgramVariant, RenderItem } from '../render-item.js';
@@ -107,6 +107,10 @@ export interface WebGLResources extends GraphicsResources {
   sharedTextures: SharedTextures;
   /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`) */
   quadIndices: QuadIndices<ElementsBuffer>;
+  /** The index buffer of box items (cylinders), shared by all */
+  boxIndices: QuadIndices<ElementsBuffer>;
+  /** The index buffer of line items, shared by all */
+  lineIndices: QuadIndices<ElementsBuffer>;
   /** The pages of the data arrays (`DataSpec`) of a format, shared by render items (`data-pages.ts`) */
   dataPages: (format: DataFormat) => DataTexturePages;
   vertexArray: (
@@ -275,6 +279,8 @@ export function createResources(
     maxDrawBuffers: parameters.maxDrawBuffers,
     maxTextureImageUnits: parameters.maxTextureImageUnits,
     maxQuadItemCount: getMaxQuadItemCount(QuadIndicesMaxBytes),
+    maxBoxItemCount: getMaxQuadItemCount(QuadIndicesMaxBytes, BoxItems),
+    maxLineItemCount: getMaxQuadItemCount(QuadIndicesMaxBytes, LineItems),
   };
 
   function texture(kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) {
@@ -292,6 +298,18 @@ export function createResources(
     (indices) => wrap('elements', createElementsBuffer(gl, indices)),
     (buffer) => buffer.destroy(),
     QuadIndicesMaxBytes,
+  );
+  const boxIndices = createQuadIndices(
+    (indices) => wrap('elements', createElementsBuffer(gl, indices)),
+    (buffer) => buffer.destroy(),
+    QuadIndicesMaxBytes,
+    BoxItems,
+  );
+  const lineIndices = createQuadIndices(
+    (indices) => wrap('elements', createElementsBuffer(gl, indices)),
+    (buffer) => buffer.destroy(),
+    QuadIndicesMaxBytes,
+    LineItems,
   );
 
   // gone with the resources, their textures with the others
@@ -344,6 +362,8 @@ export function createResources(
     texture,
     sharedTextures,
     quadIndices,
+    boxIndices,
+    lineIndices,
     ownsTexture: (texture: Texture) => ownTextures.has(texture),
     cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void) => {
       // settles once: a face that fails to load reports an error of its own

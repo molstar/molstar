@@ -2,6 +2,11 @@
 
 ## Status
 
+- Safari (26, iOS): a draw writing `frag_depth` replayed from a render bundle loses its depth (fails its depth test)
+  where it follows another pipeline in the bundle and the layout has two or more uniform buffers at dynamic offsets,
+  which our programs and draw lists always have (spheres, cylinders, solid-interior meshes invisible). A probe at
+  context creation (`bundle-frag-depth.ts`, one bundle of two pipelines read back) decides; where the depth is lost,
+  or until the probe answers, recordings with a depth-writing draw fail and their chunks are drawn directly.
 - Since the paragraph below: steps 2 (layer A) and 3 done (caps recorded, a draw block per cap,
   `setSolidInteriorCap`, not drawn directly after a bundle), 4 in part (theme layers in shared storage pages,
   [shared-draw-resources.md](shared-draw-resources.md) 3.1), 5 superseded (shared object groups with dynamic offsets
@@ -441,8 +446,8 @@ visible fraction.
 7. **GPU-driven culling and lod** for instanced structures (layer D), first for spheres with lod levels; a large
    assembly benchmark case with the camera inside.
 8. **Optional accelerations** with core fallbacks (checked on this machine, Chrome 156: `chromium-experimental-multi-draw-indirect`
-   only with `--enable-unsafe-webgpu`, so not for users yet): multi-draw indirect where available (one call per pass), immediate
-   data if it helps beyond `firstInstance`.
+   only with `--enable-unsafe-webgpu`, so not for users yet): multi-draw indirect where available (one call per pass;
+   done for objects culled on the GPU, `sphere-compute-raster.md` step 8), immediate data if it helps beyond `firstInstance`.
 
 ## Open questions
 

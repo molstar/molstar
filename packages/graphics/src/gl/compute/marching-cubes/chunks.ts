@@ -639,15 +639,17 @@ export function destroyChunkedSurface(compute: ComputeContext, surface: ChunkedS
 /**
  * The first `count` vertices drawn of the surface of `table` (3 per triangle, unindexed), gathered from its pages and
  * read back: positions (`w` 1), normals and groups (packed rgba bytes) per vertex, as the texture readback of a
- * texture mesh gives them
+ * texture mesh gives them; `vertices` the arena's buffer, asked for once the table is read: the arena may grow meanwhile
+ * (another surface extracted), its buffer replaced and the old one destroyed
  */
 export async function readChunkedVertices(
   compute: ComputeContext,
-  chunks: { readonly table: StorageBuffer; readonly vertices: StorageBuffer },
+  chunks: { readonly table: StorageBuffer; readonly vertices: () => StorageBuffer },
   count: number,
 ) {
-  const { table, vertices: arenaVertices } = chunks;
+  const { table } = chunks;
   const header = new Uint32Array(await table.readAsync());
+  const arenaVertices = chunks.vertices();
   const triangleCount = Math.min(Math.floor(count / 3), Math.floor(header[3] / 3));
   const vertexPages = header[1];
   const trianglePages = Math.min(header[11], getChunkPages(triangleCount));

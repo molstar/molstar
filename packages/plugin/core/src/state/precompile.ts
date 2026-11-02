@@ -5,6 +5,7 @@
  */
 
 import { type StateTransform, type StateTransformer, StateTree } from '@molstar/core/state';
+import { isDebugMode } from '@molstar/core/util/debug';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Canvas3DPrecompileProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -26,7 +27,7 @@ import type {
 } from '@molstar/graphics/repr/representation';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { SizeTheme } from '@molstar/graphics/theme/size';
-import type { ThemeRegistryContext } from '@molstar/graphics/theme/theme';
+import type { Theme, ThemeRegistryContext } from '@molstar/graphics/theme/theme';
 import type { PluginContext } from '../context.js';
 import type { PluginState } from '../state.js';
 
@@ -209,6 +210,44 @@ export function getRepresentationSignatures(
   }
 }
 
+/**
+ * Starts compiling what `repr` draws with `props` and `theme` for `data` while it builds (`Canvas3D.prepareObjects`),
+ * so that compiling overlaps building: its signatures with the data, which resolves what params alone take every way
+ * (the themes' granularity, 'auto' quality, the visuals' choices, merging); the layers as `repr`'s state has them.
+ * Shapes (`theme` 'shape-group') are colored and sized by shape group (see `ShapeRepresentation`)
+ */
+export function prepareRepresentation(
+  plugin: PluginContext,
+  repr: Representation<any, any, any>,
+  props: object,
+  theme: Theme | 'shape-group',
+  data: unknown,
+) {
+  const canvas = plugin.canvas3d;
+  // (a canvas without graphics or `prepareObjects`: e.g. tests' stand-ins)
+  if (!canvas?.prepareObjects || !repr.getSignatures || !canvas.graphics?.capabilities.parallelCompile) return;
+  try {
+    const { state } = repr;
+    const objects = repr.getSignatures(props, {
+      graphics: canvas.graphics,
+      color: theme === 'shape-group' ? ShapeGroupColor : getColorThemeSignature(theme.color),
+      size: theme === 'shape-group' ? ShapeGroupSize : getSizeThemeSignature(theme.size),
+      layers: {
+        overpaint: state.overpaint.layers.length > 0,
+        transparency: state.transparency.layers.length > 0,
+        emissive: state.emissive.layers.length > 0,
+        substance: state.substance.layers.length > 0,
+        clipping: state.clipping.layers.length > 0,
+        wiggle: state.wiggle.layers.length > 0,
+      },
+      data,
+    });
+    canvas.prepareObjects(repr, { objects: uniqueSignatures(objects) });
+  } catch (e) {
+    if (isDebugMode) console.warn('Preparing a representation failed', e);
+  }
+}
+
 /** The geometries of the shapes a transform provides (`SO.Shape.Provider`) with `params` */
 export type ShapeGeometries = (params: any) => GeometryUtils<any>[];
 
@@ -236,13 +275,11 @@ export function getShapeSignatures(
 }
 
 /** Shapes are colored and sized by shape group (see `ShapeRepresentation`) */
+const ShapeGroupColor: SignatureContext['color'] = { types: ['groupInstance'], palette: false, preferSmoothing: false };
+const ShapeGroupSize: SignatureContext['size'] = { types: ['groupInstance'] };
+
 function getShapeContext(ctx: TransformSignatureContext): SignatureContext {
-  return {
-    graphics: ctx.graphics,
-    color: { types: ['groupInstance'], palette: false, preferSmoothing: false },
-    size: { types: ['groupInstance'] },
-    layers: ctx.layers,
-  };
+  return { graphics: ctx.graphics, color: ShapeGroupColor, size: ShapeGroupSize, layers: ctx.layers };
 }
 
 /**

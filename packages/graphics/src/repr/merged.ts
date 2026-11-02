@@ -10,6 +10,7 @@ import {
   type MergedGraphicsRenderObject,
   canMergeRenderObjects,
   createMergedRenderObject,
+  hasForeignResources,
 } from '@molstar/graphics/gl/render-object';
 import {
   type GpuCullingValue,
@@ -18,8 +19,10 @@ import {
   resolveRenderMerged,
 } from '@molstar/graphics/geo/geometry/base';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
+import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import { type Loci, EmptyLoci } from '@molstar/model/model/loci';
 import type { ValueCell } from '@molstar/core/util/value-cell';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 /**
  * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
@@ -106,6 +109,8 @@ export function mergeRenderObjectsByType<V>(
   gpuCulling: GpuCullingValue = false,
   /** whether the device culls on the GPU (`canCullOnGpu`): else no group is merged for it */
   gpuSupported = false,
+  /** the current context: a merged object holding resources of another is not reused (its own cells stay foreign) */
+  graphics?: GraphicsContext,
 ): Map<string, MergedEntry<V>> {
   renderObjects.length = 0;
   const nextMerged = new Map<string, MergedEntry<V>>();
@@ -124,13 +129,20 @@ export function mergeRenderObjectsByType<V>(
       for (const e of group) instances += e.renderObject.values.instanceCount.ref.value;
       const levels = (group[0].renderObject.values as { lodLevels?: { ref: { value: unknown[] } } }).lodLevels;
       const draws = group.length * Math.max(1, levels?.ref.value.length ?? 0);
-      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws);
+      let rasterSpheres = 0;
+      if (type === 'spheres' && graphics?.capabilities.atomicMinMax64) {
+        for (const e of group) {
+          const { instanceCount, uVertexCount } = e.renderObject.values as SpheresValues;
+          rasterSpheres += instanceCount.ref.value * uVertexCount.ref.value;
+        }
+      }
+      const gpu = gpuSupported && resolveGpuCulling(gpuCulling, instances, draws, rasterSpheres);
       const merge = gpu || (group.length >= 2 && resolveRenderMerged(renderMerged, group.length));
       if (!merge) return;
 
       const key = `${group.map((e) => e.renderObject.id).join(',')}|${gpu}`;
       const prev = prevMergedByType.get(type);
-      const same = !!prev && prev.key === key;
+      const same = !!prev && prev.key === key && !(graphics && hasForeignResources(prev.object, graphics));
       // the members checked again only where one of them changed what merging reads (the key: the same members, the
       // same culling and so the same least count)
       if (!same || !group.every((e) => isMergeFingerprintUnchanged(e.renderObject))) {

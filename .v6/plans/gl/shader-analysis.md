@@ -30,6 +30,18 @@
   sharpening with each antialiasing. Every registered program and kernel is compiled (SMAA in the browser only: its
   lookup tables are `HTMLImageElement`s).
 - **Findings**:
+  - fixed: WebGL direct volumes with a substance layer failed to compile (the lighting chunk's bumps under
+    `dSubstance`, no bump uniforms in their schema; skipped for direct volumes as on WebGPU), `shaders/define-axes`;
+  - fixed: `shaders/coverage` on WebGL2 reported registered programs never asked for (the passes' programs, color
+    smoothing), since this plan was done: the harness recorded after the context made its passes (`createContext`
+    takes `onGraphics`, called before), and the real scene of `prepareFrames` was never built (the MolViewSpec source
+    replaced the state the presets' protein was in, an autoplaying document kept replacing it; the protein loaded
+    again after it, playback stopped, `getStructureRef` failing where its structure is gone);
+  - fixed: `shaders/mvs` on WebGPU failed once in six runs, a buffer of the isosurface vertex arena used in a submit
+    after it was destroyed: the readback of a chunked surface (`readChunkedVertices`, for position iterators and
+    export) took the arena's buffer before awaiting its table, another extraction grew the arena meanwhile (its buffer
+    replaced and destroyed); it asks for the buffer after the table now (`webgpu-isosurface-chunks.test.ts`, the arena
+    grown during the table's readback);
   - fixed: the precompile list of a MolViewSpec volume failed (`clip: undefined` in its params overwrote the default;
     an undefined param is the default now, `plugin/core/src/state/_test/precompile.test.ts`);
   - fixed: WebGL program items (precompile) were made with the schema as given, not as render items adapt it: no data

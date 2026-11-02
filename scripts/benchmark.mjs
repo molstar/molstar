@@ -21,6 +21,13 @@
 //                    render bundles; on by default)
 //   --data-binding <bytes>  WebGPU: the theme layers' storage binding limit (`maxDataBindingSize`), lower than the
 //                    device's, so that large items read their layers from several pages
+//   --byte-notes     every render case with its byte notes: GPU bytes, the render objects' CPU bytes and the JS heap
+//                    its scene retains (collected before it and after its first frame)
+//   --raster-split-notes  every render case with the sphere raster's split per instance replayed on the CPU: the
+//                    instances of merged sphere objects in view sent to the impostors (through the near plane, too
+//                    large) and their spheres, those each the raster could draw (no occlusion, no levels)
+//   --no-parallel-compile  WebGL without `KHR_parallel_shader_compile` (hidden from the page): compiles and links
+//                    block where they are called, as on devices without it
 //   --browser-arg <flag>  an extra browser flag (repeatable), e.g. to choose the GPU of a machine with two
 //   --images <dir>   writes the canvas after the last run of each render case (<dir>/<backend>/<case id>.png)
 //   --profile <dir>  records a V8 CPU profile of each backend's page (<dir>/<backend>.cpuprofile, open in the DevTools
@@ -28,6 +35,8 @@
 //   --heap-profile <dir>  records a V8 sampling heap profile of each backend's page with the objects garbage collected
 //                    since (<dir>/<backend>.heapprofile, open in the DevTools Memory panel): what is allocated, not only
 //                    what stays
+//   --heap-snapshot <dir>  a V8 heap snapshot of each backend's page after its cases (<dir>/<backend>.heapsnapshot): the
+//                    last case's scene stays until the next, so with one case (--filter) what that scene holds
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -53,6 +62,7 @@ const compareFile = value('--compare');
 const channel = value('--channel', 'chrome');
 const profileDir = value('--profile');
 const heapProfileDir = value('--heap-profile');
+const heapSnapshotDir = value('--heap-snapshot');
 const imagesDir = value('--images');
 const strictMath = value('--strict-math', 'on');
 if (strictMath !== 'on' && strictMath !== 'off') throw new Error(`--strict-math takes on or off, not '${strictMath}'`);
@@ -148,6 +158,8 @@ async function main() {
       ...(strictMath === 'off' ? ['--enable-webgpu-developer-features'] : []),
       // garbage collection before each run, so earlier cases' garbage doesn't slow later CPU runs
       '--js-flags=--expose-gc',
+      // `performance.memory` unrounded: the heap the representation cases retain
+      '--enable-precise-memory-info',
       ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : []),
       ...args.flatMap((a, i) => (args[i - 1] === '--browser-arg' ? [a] : [])),
     ],
@@ -167,18 +179,32 @@ async function main() {
           };
         });
       }
+      if (args.includes('--no-parallel-compile')) {
+        await page.addInitScript(() => {
+          for (const C of [globalThis.WebGLRenderingContext, globalThis.WebGL2RenderingContext]) {
+            if (!C) continue;
+            const getExtension = C.prototype.getExtension;
+            C.prototype.getExtension = function (name) {
+              return name === 'KHR_parallel_shader_compile' ? null : getExtension.call(this, name);
+            };
+          }
+        });
+      }
       const q = new URLSearchParams({ backend, runs, warmup });
       if (paths) q.set('paths', paths);
       if (filter) q.set('filter', filter);
       if (args.includes('--gpu-timing')) q.set('gpuTiming', '1');
       if (args.includes('--draw-lists')) q.set('drawLists', '1');
       if (args.includes('--no-draw-lists')) q.set('drawLists', '0');
+      if (args.includes('--byte-notes')) q.set('byteNotes', '1');
+      if (args.includes('--raster-split-notes')) q.set('rasterSplitNotes', '1');
       if (value('--data-binding')) q.set('dataBinding', value('--data-binding'));
       if (imagesDir) q.set('images', '1');
       page.on('console', (m) => {
         if (m.type() === 'error' || m.type() === 'warning') console.log(`  [${backend}] ${m.text()}`);
       });
-      const cdp = profileDir || heapProfileDir ? await page.context().newCDPSession(page) : undefined;
+      const cdp =
+        profileDir || heapProfileDir || heapSnapshotDir ? await page.context().newCDPSession(page) : undefined;
       if (cdp && profileDir) {
         await cdp.send('Profiler.enable');
         await cdp.send('Profiler.setSamplingInterval', { interval: 100 });
@@ -203,6 +229,15 @@ async function main() {
         const { profile } = await cdp.send('HeapProfiler.stopSampling');
         fs.mkdirSync(heapProfileDir, { recursive: true });
         fs.writeFileSync(path.join(heapProfileDir, `${backend}.heapprofile`), JSON.stringify(profile));
+      }
+      if (cdp && heapSnapshotDir) {
+        const chunks = [];
+        const onChunk = (e) => chunks.push(e.chunk);
+        cdp.on('HeapProfiler.addHeapSnapshotChunk', onChunk);
+        await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false });
+        cdp.off('HeapProfiler.addHeapSnapshotChunk', onChunk);
+        fs.mkdirSync(heapSnapshotDir, { recursive: true });
+        fs.writeFileSync(path.join(heapSnapshotDir, `${backend}.heapsnapshot`), chunks.join(''));
       }
       const state = await page.evaluate(() => window.__benchmark);
       if (state.error) console.log(`${backend}: ${state.error}`);

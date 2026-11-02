@@ -20,7 +20,11 @@ import {
   hasColorThemes,
   hasSizeThemes,
 } from '../../helpers/representation-registry.js';
-import { getRepresentationSignatures, registerTransformSignatures } from '@molstar/plugin/state/precompile';
+import {
+  getRepresentationSignatures,
+  prepareRepresentation,
+  registerTransformSignatures,
+} from '@molstar/plugin/state/precompile';
 
 export { StructureRepresentation3D };
 type StructureRepresentation3D = typeof StructureRepresentation3D;
@@ -141,9 +145,12 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         provider.getParams,
       );
       await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: data }, params);
-      repr.setTheme(Theme.create(plugin.representation.structure.themes, { structure: data }, params));
+      const theme = Theme.create(plugin.representation.structure.themes, { structure: data }, params);
+      repr.setTheme(theme);
 
       const props = params.type.params || {};
+      // compiling what it draws while it builds
+      prepareRepresentation(plugin, repr, { ...repr.props, ...props }, theme, data);
       await repr.createOrUpdate(props, data).runInContext(ctx);
       // after the visuals: a theme or a visual may read a property only then (its container made on first read)
       (cache as ThemeCache).themeProperties = propertyState(data);
@@ -188,6 +195,8 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       }
 
       const props = { ...b.data.repr.props, ...newParams.type.params };
+      // compiling what it draws while it builds (an update in place also holds its frames until then)
+      prepareRepresentation(plugin, b.data.repr, props, b.data.repr.theme, data);
       await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
       if (!sameThemes) themeCache.themeProperties = propertyState(data);
       b.data.sourceData = a.data;

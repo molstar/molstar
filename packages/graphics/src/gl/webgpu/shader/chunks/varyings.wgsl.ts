@@ -20,37 +20,27 @@ struct VertexOutput {
 #if defined(dRenderVariant_pick)
     @location(2) @interpolate(flat) vPickIds: vec2<f32>,
 #endif
+// scalars share locations (each counts against the 16 inter-stage variables, whatever its size): the palette
+// coordinate in the color's alpha (unread, materials take \`uAlpha\`), the marker with the clipping flags (both flat by
+// group), the transparency with the emissive
 #if defined(dColorType_varying)
     @location(3) vColor: vec4<f32>,
 #endif
-#if defined(dNeedsMarker)
+#if defined(dNeedsMarker) || (defined(dClipObjects) && defined(dClipping))
     #if !defined(dVaryingGroup)
-        @location(4) vMarker: f32,
+        @location(4) vMarkerClipping: vec2<f32>,
     #else
-        @location(4) @interpolate(flat) vMarker: f32,
+        @location(4) @interpolate(flat) vMarkerClipping: vec2<f32>,
     #endif
 #endif
 #if defined(dOverpaint)
     @location(5) vOverpaint: vec4<f32>,
 #endif
-#if defined(dTransparency)
-    @location(6) vTransparency: f32,
-#endif
-#if defined(dEmissive)
-    @location(7) vEmissive: f32,
+#if defined(dTransparency) || defined(dEmissive)
+    @location(6) vTransparencyEmissive: vec2<f32>,
 #endif
 #if defined(dSubstance)
     @location(8) vSubstance: vec4<f32>,
-#endif
-#if defined(dUsePalette)
-    @location(14) vPaletteV: f32,
-#endif
-#if defined(dClipObjects) && defined(dClipping)
-    #if !defined(dVaryingGroup)
-        @location(15) vClipping: f32,
-    #else
-        @location(15) @interpolate(flat) vClipping: f32,
-    #endif
 #endif
 ${extra}
 };
@@ -75,6 +65,33 @@ export const assign_quad_position_group_wgsl = /* wgsl */ `
     let positionGroup = read_tPositionGroup(vertexId);
     var position = positionGroup.xyz;
     let group = positionGroup.w;
+`;
+
+/**
+ * Levels of detail of the items drawn as quads (spheres, points), after `out.vModelPosition`: `lodFactor` the level's
+ * scale (a coarser level's fewer items larger) faded at the level's range (1 without levels), `lodCulled` beyond the
+ * range
+ */
+export const assign_lod_factor_wgsl = /* wgsl */ `
+    var lodFactor = 1.0;
+    var lodCulled = false;
+    let lod = uDraw.uLod;
+    if (lod.w != 0.0 && (lod.x != 0.0 || lod.y != 0.0)) {
+        #if defined(dSegmented)
+            // members of a merged item can have different scales for the same lod level (item-count dependent)
+            let lodScale = segmentLod(in)[clamp(uDraw.uLodLevel, 0, 3)];
+        #else
+            let lodScale = lod.w;
+        #endif
+        if (uGlobal.uModelScale != 1.0) {
+            lodFactor = lodScale;
+        } else {
+            let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
+            let level = lodAt(d, lod.xyz, lodScale);
+            lodFactor = level.factor;
+            lodCulled = level.culled;
+        }
+    }
 `;
 
 /**
@@ -138,8 +155,9 @@ export const assign_varyings_wgsl = /* wgsl */ `
     let instanceIndex = i32(in.aInstance);
     #if defined(dSegmented)
         // the data of merged render items, offset per segment (see \`SegmentSchema\`)
-        let groupInstanceIndex = i32(in.aSegment.y + in.aInstance * in.aSegment.x + group);
-        let groupIndex = i32(in.aSegment.z + group);
+        let segment = segmentGroups(in);
+        let groupInstanceIndex = i32(segment.y + in.aInstance * segment.x + group);
+        let groupIndex = i32(segment.z + group);
     #else
         let groupInstanceIndex = i32(in.aInstance * f32(uObject.uGroupCount) + group);
         let groupIndex = i32(group);
@@ -152,7 +170,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
     #if defined(dNeedsMarker)
         ${assign_data_index_wgsl(undefined, 'markerIndex')}
-        out.vMarker = read_tMarker(markerIndex).r;
+        out.vMarkerClipping.x = read_tMarker(markerIndex).r;
     #endif
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
@@ -171,7 +189,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 // two colors per group, except for color mode 2 (cylinders)
                 let dualColor = uObject.uColorIndexType == 1 || uObject.uColorIndexType == 2;
                 var color2 = vec3<f32>(0.0);
-                if (dualColor && in.aColorMode != 2.0) {
+                if (dualColor && colorMode != 2.0) {
                     out.vColor = vec4<f32>(read_tColor(colorIndex * 2).rgb, 1.0);
                     color2 = read_tColor(colorIndex * 2 + 1).rgb;
                 } else {
@@ -188,7 +206,7 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
         #if defined(dUsePalette)
             // the color data hold palette indices, see \`ColorTheme.Palette\`
-            out.vPaletteV = ((out.vColor.r * 256.0 * 256.0 * 255.0 + out.vColor.g * 256.0 * 255.0 + out.vColor.b * 255.0) - 1.0) / 16777214.0;
+            out.vColor.w = ((out.vColor.r * 256.0 * 256.0 * 255.0 + out.vColor.g * 256.0 * 255.0 + out.vColor.b * 255.0) - 1.0) / 16777214.0;
         #endif
 
         #if defined(dOverpaint)
@@ -209,10 +227,10 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
         #if defined(dEmissive)
             #if defined(dEmissiveType_volumeInstance)
-                out.vEmissive = ${grid_value_wgsl('tEmissiveGrid', GridModelPosition)}.r * uMaterial.uEmissiveStrength;
+                out.vTransparencyEmissive.y = ${grid_value_wgsl('tEmissiveGrid', GridModelPosition)}.r * uMaterial.uEmissiveStrength;
             #else
                 ${assign_data_index_wgsl('dEmissiveType', 'emissiveIndex')}
-                out.vEmissive = read_tEmissive(emissiveIndex).r * uMaterial.uEmissiveStrength;
+                out.vTransparencyEmissive.y = read_tEmissive(emissiveIndex).r * uMaterial.uEmissiveStrength;
             #endif
         #endif
 
@@ -231,18 +249,18 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
     #if defined(dTransparency)
         #if defined(dTransparencyType_volumeInstance)
-            out.vTransparency = ${grid_value_wgsl('tTransparencyGrid', GridModelPosition)}.r * uMaterial.uTransparencyStrength;
+            out.vTransparencyEmissive.x = ${grid_value_wgsl('tTransparencyGrid', GridModelPosition)}.r * uMaterial.uTransparencyStrength;
         #else
             ${assign_data_index_wgsl('dTransparencyType', 'transparencyIndex')}
-            out.vTransparency = read_tTransparency(transparencyIndex).r * uMaterial.uTransparencyStrength;
+            out.vTransparencyEmissive.x = read_tTransparency(transparencyIndex).r * uMaterial.uTransparencyStrength;
         #endif
     #endif
 
     #if defined(dClipObjects) && defined(dClipping)
         ${assign_data_index_wgsl(undefined, 'clippingIndex')}
-        out.vClipping = read_tClipping(clippingIndex).r;
+        out.vMarkerClipping.y = read_tClipping(clippingIndex).r;
     #endif
-    ${clip_flag_wgsl('out.vClipping')}
+    ${clip_flag_wgsl('out.vMarkerClipping.y')}
 `;
 
 /** \`size\` from the size data; expects the indices of \`assign_varyings_wgsl\` */
@@ -250,18 +268,10 @@ export const assign_size_wgsl = /* wgsl */ `
     #if defined(dSizeType_uniform)
         var size = uMaterial.uSize;
     #else
-        // the texture's index by the size type (\`SizeTypeIndex\`): instance, group, groupInstance, vertex,
-        // vertexInstance
-        var sizeIndex = instanceIndex;
-        switch uObject.uSizeIndexType {
-            case 1: { sizeIndex = groupIndex; }
-            case 2: { sizeIndex = groupInstanceIndex; }
-            case 3: { sizeIndex = vertexId; }
-            case 4: { sizeIndex = vertexInstanceIndex; }
-            default: {}
-        }
-        // sizes are stored times 100
-        var size = unpackRGBToInt(read_tSize(sizeIndex).rgb) / 100.0;
+        let sizeDataIndex = sizeIndex(
+            uObject.uSizeIndexType, instanceIndex, groupIndex, groupInstanceIndex, vertexId, vertexInstanceIndex
+        );
+        var size = unpackSize(read_tSize(sizeDataIndex));
     #endif
     size *= uMaterial.uSizeFactor;
 `;

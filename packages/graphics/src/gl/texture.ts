@@ -133,6 +133,8 @@ export interface TextureSource {
 export function transferTexture(texture: Texture, graphics: GraphicsContext): Texture | undefined {
   const source = texture.getSource?.();
   if (!source?.data) return;
+  // a 3d texture on a context without them (WebGL1): its producer makes what the context has
+  if (source.kind.startsWith('volume-') && !graphics.capabilities.texture3d) return;
   const t = graphics.resources.texture(source.kind, source.format, source.type, source.filter);
   t.load(source.data);
   if (source.mipmap) t.mipmap();

@@ -6,6 +6,8 @@
  */
 
 import { createWebGPUComputeContext } from './compute.js';
+import { testBundleFragDepth } from './bundle-frag-depth.js';
+import { testViewportOutsideTarget } from './viewport-outside-target.js';
 import { Subject } from 'rxjs';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { fromHalfFloat } from '@molstar/core/util/number-conversion';
@@ -70,7 +72,15 @@ import { createWebGPURenderbuffer } from './renderbuffer.js';
 import { createRenderTargetFromResources, type RenderTarget } from '../render-target.js';
 import { type CubeFaces, createNullTexture, decodeImage, type Texture } from '../texture.js';
 import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
-import { createQuadIndices, getMaxQuadItemCount, type QuadIndices } from '../quad-indices.js';
+import {
+  BoxItems,
+  createQuadIndices,
+  LineItems,
+  getMaxQuadItemCount,
+  type ItemIndexPattern,
+  type QuadIndices,
+  QuadItems,
+} from '../quad-indices.js';
 import { createPendingWork } from '../pending-work.js';
 import { ValueCell } from '@molstar/core/util';
 import { createUniformRing } from './uniform-ring.js';
@@ -145,6 +155,10 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
   readonly sharedTextures: SharedTextures;
   /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`), a buffer of its own */
   readonly quadIndices: QuadIndices<GPUBuffer>;
+  /** The index buffer of box items (cylinders), shared by all */
+  readonly boxIndices: QuadIndices<GPUBuffer>;
+  /** The index buffer of line items, shared by all */
+  readonly lineIndices: QuadIndices<GPUBuffer>;
 }
 
 /**
@@ -158,7 +172,12 @@ export interface WebGPULinkables {
 }
 
 /** Requests the pipeline of a render item's program for `variant`, `state` and `target` */
-export type WebGPUItemPreparer = (variant: ProgramVariant, state: RenderState, target: WebGPUTargetDescriptor) => void;
+export type WebGPUItemPreparer = (
+  variant: ProgramVariant,
+  state: RenderState,
+  target: WebGPUTargetDescriptor,
+  define?: string,
+) => void;
 
 /** Creates the programs of a render item for a render variant (shader module, pipelines of known keys) */
 export interface WebGPULinkable {
@@ -167,8 +186,17 @@ export interface WebGPULinkable {
 
 export interface WebGPUContext extends GraphicsContext {
   readonly device: GPUDevice;
+  /**
+   * Whether a viewport partly outside the target is set as given (cropped); false where the device rejects one, which
+   * is then clipped to the target; undefined until the probe answers (`testViewportOutsideTarget`)
+   */
+  readonly viewportOutsideTarget: boolean | undefined;
   /** The index buffer of quad items, shared by all (`quad-indices.ts`) */
   readonly quadIndices: QuadIndices<GPUBuffer>;
+  /** The index buffer of box items (cylinders), shared by all */
+  readonly boxIndices: QuadIndices<GPUBuffer>;
+  /** The index buffer of line items, shared by all */
+  readonly lineIndices: QuadIndices<GPUBuffer>;
   /** Textures shared by render items (`.v6/plans/gl/shared-textures.md`), as WebGL's `resources.sharedTextures` */
   readonly sharedTextures: SharedTextures;
   /**
@@ -213,6 +241,10 @@ const OptionalFeatures: GPUFeatureName[] = [
   'timestamp-query',
   // indirect draws of instance ranges (GPU culling of merged render objects)
   'indirect-first-instance',
+  // 64-bit atomic min and max (`atomicStoreMax` on `atomic<vec2u>`), not in the WebGPU types yet
+  'atomic-vec2u-min-max' as GPUFeatureName,
+  // draws of indirect records by one call, on render passes (`--enable-unsafe-webgpu`), not in the WebGPU types
+  'chromium-experimental-multi-draw-indirect' as GPUFeatureName,
 ];
 
 /** Image bitmap of `source` with the raw pixel values, as WebGL uploads with `UNPACK_COLORSPACE_CONVERSION_WEBGL` `NONE` */
@@ -325,6 +357,16 @@ export interface WebGPUContextOptions {
   ownsDevice?: boolean;
   /** The bytes a data page binding may span, at most the device's `maxStorageBufferBindingSize` (lower in tests) */
   maxDataBindingSize?: number;
+  /**
+   * Whether draws writing `frag_depth` may be recorded into render bundles, instead of probing the device
+   * (`testBundleFragDepth`); for tests
+   */
+  fragDepthInBundles?: boolean;
+  /**
+   * Whether viewports partly outside the target may be set as given, instead of probing the device
+   * (`testViewportOutsideTarget`); for tests
+   */
+  viewportOutsideTarget?: boolean;
 }
 
 /** The least time between reports of out-of-memory errors (`GraphicsResources.outOfMemory`) */
@@ -395,7 +437,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     canvasContext.configure({
       device,
       format: drawingBufferFormat,
-      usage: TextureUsage.RENDER_ATTACHMENT | TextureUsage.COPY_SRC,
+      usage: TextureUsage.RENDER_ATTACHMENT | TextureUsage.COPY_SRC | TextureUsage.COPY_DST,
       alphaMode: 'premultiplied',
     });
     canvasConfigured = true;
@@ -406,6 +448,78 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   const stats = createGraphicsStats();
   const pending = createPendingWork();
+
+  /**
+   * Whether draws writing `frag_depth` may be recorded into render bundles: not where they lose their depth there
+   * (`testBundleFragDepth`, Safari); unknown, and so not recorded, until the probe answers
+   */
+  let fragDepthInBundles = options.fragDepthInBundles;
+  if (fragDepthInBundles === undefined) {
+    pending.track(
+      testBundleFragDepth(device).then((kept) => {
+        fragDepthInBundles = kept;
+        if (!kept && isDebugMode) console.log('WebGPU: draws writing frag_depth are not recorded into render bundles');
+      }),
+      'render bundle frag_depth probe',
+    );
+  }
+  /**
+   * Whether a viewport partly outside the target is set as given (cropped, as in WebGL): not where the device rejects
+   * it (`testViewportOutsideTarget`, Safari), there it is clipped to the target (squashed into it, but its pass drawn);
+   * clipped until the probe answers, and beyond the spec's bounds (`toTargetViewport`). Canvas3D crops its frame itself
+   * (`Camera.Crop`), so this is a guard
+   */
+  let viewportOutsideTarget = options.viewportOutsideTarget;
+  if (viewportOutsideTarget === undefined) {
+    pending.track(
+      testViewportOutsideTarget(device).then((taken) => {
+        viewportOutsideTarget = taken;
+        if (!taken && isDebugMode) console.log('WebGPU: viewports outside the target are clipped to it');
+      }),
+      'viewport outside the target probe',
+    );
+  }
+  let loggedClippedViewport = false;
+  /** the spec's bounds of `setViewport` (2 × `maxTextureDimension2D` either way, its size at most one) */
+  const maxViewportSize = device.limits.maxTextureDimension2D;
+  const maxViewportRange = 2 * maxViewportSize;
+  /**
+   * the viewport as set: as given where the device takes one outside the target and the spec's bounds hold (an
+   * oversized one, e.g. a frame in stereo, would invalidate the pass everywhere), else clipped to the target
+   */
+  function toTargetViewport(rect: Rect, target: PassTarget): Rect {
+    if (
+      viewportOutsideTarget === true &&
+      rect.x >= -maxViewportRange &&
+      rect.y >= -maxViewportRange &&
+      rect.width <= maxViewportSize &&
+      rect.height <= maxViewportSize &&
+      rect.x + rect.width <= maxViewportRange - 1 &&
+      rect.y + rect.height <= maxViewportRange - 1
+    ) {
+      return rect;
+    }
+    const x0 = Math.min(Math.max(rect.x, 0), target.width);
+    const y0 = Math.min(Math.max(rect.y, 0), target.height);
+    const x1 = Math.min(Math.max(rect.x + rect.width, 0), target.width);
+    const y1 = Math.min(Math.max(rect.y + rect.height, 0), target.height);
+    if (x0 === rect.x && y0 === rect.y && x1 === rect.x + rect.width && y1 === rect.y + rect.height) return rect;
+    if (isDebugMode && !loggedClippedViewport) {
+      loggedClippedViewport = true;
+      console.log(
+        `WebGPU: viewport ${rect.x},${rect.y},${rect.width},${rect.height} outside the ${target.width}x${target.height} target clipped to it`,
+      );
+    }
+    return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+  }
+
+  /** per program, whether its fragment stage writes `frag_depth` */
+  const writesFragDepth = new WeakMap<WebGPUProgram, boolean>();
+  function isWritingFragDepth(program: WebGPUProgram) {
+    let writes = writesFragDepth.get(program);
+    if (writes === undefined) writesFragDepth.set(program, (writes = program.code.includes('@builtin(frag_depth)')));
+    return writes;
+  }
   const timerSource = createWebGPUTimerSource(device);
   /** the timer keeps its source, which changes with the device */
   const timerSourceRef: TimerSource | undefined = timerSource && {
@@ -432,6 +546,11 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   // drawing buffer
 
   let drawingBuffer: { color: GPUTexture; depth: GPUTexture; target: PassTarget } | undefined;
+  /** `setPreserveDrawingBuffer`: the canvas's image, copied into each frame's new texture */
+  let preserveDrawingBuffer = false;
+  let preservedColor: GPUTexture | undefined;
+  /** the canvas texture to copy from at a submit: valid in the task that got it, presented at its end */
+  let colorToPreserve: GPUTexture | undefined;
   let drawingBufferWidth = options.width;
   let drawingBufferHeight = options.height;
   let pixelScale = options.pixelScale ?? 1;
@@ -474,6 +593,30 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return zeroSizeBuffer;
   }
 
+  /** Into a new canvas texture, in a submit of its own: the current encoder may hold an open pass */
+  function restorePreservedColor(color: GPUTexture) {
+    if (!preservedColor || preservedColor.width !== color.width || preservedColor.height !== color.height) return;
+    const encoder = device.createCommandEncoder();
+    encoder.copyTextureToTexture({ texture: preservedColor }, { texture: color }, [color.width, color.height]);
+    device.queue.submit([encoder.finish()]);
+  }
+
+  function savePreservedColor(encoder: GPUCommandEncoder) {
+    const color = colorToPreserve;
+    if (!color) return;
+    if (preservedColor && (preservedColor.width !== color.width || preservedColor.height !== color.height)) {
+      preservedColor.destroy();
+      preservedColor = undefined;
+    }
+    preservedColor ??= device.createTexture({
+      size: [color.width, color.height],
+      format: drawingBufferFormat,
+      usage: TextureUsage.COPY_SRC | TextureUsage.COPY_DST,
+      label: 'preserved drawing buffer',
+    });
+    encoder.copyTextureToTexture({ texture: color }, { texture: preservedColor }, [color.width, color.height]);
+  }
+
   /** The canvas texture of the current frame, or an offscreen texture without canvas */
   function getDrawingBuffer() {
     if (canvasContext) {
@@ -483,6 +626,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       if (!canvasConfigured) return getZeroSizeBuffer();
       // a new texture per frame, presented when the task that rendered into it ends
       const color = canvasContext.getCurrentTexture();
+      if (preserveDrawingBuffer && colorToPreserve !== color) {
+        colorToPreserve = color;
+        setTimeout(() => {
+          if (colorToPreserve === color) colorToPreserve = undefined;
+        });
+        restorePreservedColor(color);
+      }
       if (drawingBuffer?.color !== color) {
         let depth = drawingBuffer?.depth;
         if (!depth || depth.width !== color.width || depth.height !== color.height) {
@@ -806,7 +956,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   /** Whether the scissor (the target without one) lies inside the viewport (the target without one) */
   function isScissorInViewport(target: PassTarget) {
     const s = scissor ? toTargetScissor(scissor, target) : { x: 0, y: 0, width: target.width, height: target.height };
-    const v = viewport ?? { x: 0, y: 0, width: target.width, height: target.height };
+    const v = viewport
+      ? toTargetViewport(viewport, target)
+      : { x: 0, y: 0, width: target.width, height: target.height };
     return s.x >= v.x && s.y >= v.y && s.x + s.width <= v.x + v.width && s.y + s.height <= v.y + v.height;
   }
 
@@ -847,8 +999,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     const state = capturing ?? recording?.state ?? passState!;
     const target = passTarget;
     if (viewport) {
-      // as given: a viewport partly outside the target is cropped as in WebGL
-      const { x, y, width, height } = viewport;
+      // as given where the device takes it: a viewport partly outside the target is cropped as in WebGL
+      const { x, y, width, height } = toTargetViewport(viewport, target);
       state.setViewport(x, y, width, height);
     }
     if (scissor) {
@@ -888,6 +1040,10 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
   function getPipeline(program: WebGPUProgram, drawMode: DrawMode): GPURenderPipeline | undefined {
     const target = passTarget;
     if (!target) throw new Error('draw outside of a render pass');
+    // drawn directly where a render bundle loses the depth it writes
+    if (recording && fragDepthInBundles !== true && isWritingFragDepth(program)) {
+      recording.failed ??= 'a draw writing frag_depth';
+    }
     return getPipelineFor(program, drawMode, renderState, target);
   }
 
@@ -1022,6 +1178,11 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return undefined;
   }
 
+  /** Advances when one of the shared index buffers is replaced (grown): their ids only increase */
+  function getSharedIndicesVersion() {
+    return drawContext.quadIndices.id + drawContext.boxIndices.id + drawContext.lineIndices.id;
+  }
+
   function recordRenderBundle(draw: () => void): GPURenderBundle | undefined {
     const target = passTarget;
     if (!target) throw new Error('recording a render bundle outside of a render pass');
@@ -1038,6 +1199,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       current.failed ??= `the ${what} changing`;
     });
     const arenaReplacements = ring.arenaReplacements;
+    const sharedIndices = getSharedIndicesVersion();
     recording = current;
     try {
       draw();
@@ -1046,6 +1208,11 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     }
     // draws recorded before bind the released buffer
     if (ring.arenaReplacements !== arenaReplacements) current.failed ??= 'a uniform arena growing';
+    // likewise the shared quad or box indices grown by a later draw (`quad-indices.ts`): drawn directly, recorded again
+    // next frame with the grown buffer
+    if (getSharedIndicesVersion() !== sharedIndices) {
+      current.failed ??= 'the shared indices growing';
+    }
     const bundle = encoder.finish();
     return current.failed ? undefined : bundle;
   }
@@ -1142,6 +1309,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     endPassEncoder();
     endComputePassEncoder();
     if (!commandEncoder) return;
+    savePreservedColor(commandEncoder);
     ring.upload();
     globalRing.upload();
     const afterSubmit = timerSource?.beforeSubmit(commandEncoder);
@@ -1229,6 +1397,31 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     getSubmitCount: () => submitCount,
   });
 
+  /** The shared index buffer of the items of `items` (`quad-indices.ts`), a buffer of its own */
+  function createItemIndices(items: ItemIndexPattern) {
+    return createQuadIndices(
+      (indices) => {
+        const buffer = device.createBuffer({
+          size: indices.byteLength,
+          usage: BufferUsage.INDEX | BufferUsage.COPY_DST,
+          label: `${items.name} indices`,
+        });
+        device.queue.writeBuffer(buffer, 0, indices);
+        byteCounts.elements += indices.byteLength;
+        stats.resourceCounts.elements += 1;
+        return buffer;
+      },
+      (buffer) => {
+        byteCounts.elements -= buffer.size;
+        stats.resourceCounts.elements -= 1;
+        // recorded work may still bind it
+        release(buffer);
+      },
+      device.limits.maxBufferSize,
+      items,
+    );
+  }
+
   const drawContext: WebGPUDrawContext = {
     byteCounts,
     get generateMipmaps() {
@@ -1266,26 +1459,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       (spec) => createWebGPUTexture(drawContext, spec.kind, spec.format, spec.dataType, spec.filter),
       (texture) => asWebGPUTexture(texture).version,
     ),
-    quadIndices: createQuadIndices(
-      (indices) => {
-        const buffer = device.createBuffer({
-          size: indices.byteLength,
-          usage: BufferUsage.INDEX | BufferUsage.COPY_DST,
-          label: 'quad indices',
-        });
-        device.queue.writeBuffer(buffer, 0, indices);
-        byteCounts.elements += indices.byteLength;
-        stats.resourceCounts.elements += 1;
-        return buffer;
-      },
-      (buffer) => {
-        byteCounts.elements -= buffer.size;
-        stats.resourceCounts.elements -= 1;
-        // recorded work may still bind it
-        release(buffer);
-      },
-      device.limits.maxBufferSize,
-    ),
+    quadIndices: createItemIndices(QuadItems),
+    boxIndices: createItemIndices(BoxItems),
+    lineIndices: createItemIndices(LineItems),
   };
 
   // stubs
@@ -1324,6 +1500,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     depthClamp: device.features.has('depth-clip-control'),
     compute: true,
     indirectInstanceRanges: device.features.has('indirect-first-instance'),
+    multiDrawIndirect: device.features.has('chromium-experimental-multi-draw-indirect' as GPUFeatureName),
+    atomicMinMax64: device.features.has('atomic-vec2u-min-max' as GPUFeatureName),
+    parallelCompile: true,
   };
 
   const resources: GraphicsResources = {
@@ -1334,6 +1513,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       maxDrawBuffers: device.limits.maxColorAttachments,
       maxTextureImageUnits: device.limits.maxSampledTexturesPerShaderStage,
       maxQuadItemCount: getMaxQuadItemCount(device.limits.maxBufferSize),
+      maxBoxItemCount: getMaxQuadItemCount(device.limits.maxBufferSize, BoxItems),
+      maxLineItemCount: getMaxQuadItemCount(device.limits.maxBufferSize, LineItems),
     },
     texture: (kind, format, type, filter) => {
       const texture = createWebGPUTexture(env, kind, format, type, filter);
@@ -1406,8 +1587,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     // frames don't wait for programs: draws of pipelines compiling in the background are skipped, see `getPipeline`
     finalizePrograms: () => true,
     preparePipelines: (requests: Iterable<PipelineRequest>) => {
-      for (const { item, variant, state, target } of requests) {
-        itemPreparers.get(item)?.(variant, state, target as WebGPUTargetDescriptor);
+      for (const { item, variant, state, target, define } of requests) {
+        itemPreparers.get(item)?.(variant, state, target as WebGPUTargetDescriptor, define);
       }
       return pending.whenReady();
     },
@@ -1422,11 +1603,16 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     get submitCount() {
       return submitCount;
     },
+    get viewportOutsideTarget() {
+      return viewportOutsideTarget;
+    },
     get drawResourcesVersion() {
       // both only advance: their sum advances with either
-      return drawContext.quadIndices.id + drawContext.sharedTextures.version;
+      return getSharedIndicesVersion() + drawContext.sharedTextures.version;
     },
     quadIndices: drawContext.quadIndices,
+    boxIndices: drawContext.boxIndices,
+    lineIndices: drawContext.lineIndices,
     sharedTextures: drawContext.sharedTextures,
     capabilities,
     resources,
@@ -1516,6 +1702,14 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       options.canvas
         ? { width: options.canvas.width, height: options.canvas.height }
         : { width: drawingBufferWidth, height: drawingBufferHeight },
+    setPreserveDrawingBuffer: (value: boolean) => {
+      if (!canvasContext || value === preserveDrawingBuffer) return;
+      preserveDrawingBuffer = value;
+      if (value) return;
+      colorToPreserve = undefined;
+      preservedColor?.destroy();
+      preservedColor = undefined;
+    },
     setDrawingBufferSize: (width: number, height: number) => {
       // with a canvas the drawing buffer follows the canvas size
       if (canvasContext) return;
@@ -1682,6 +1876,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     },
 
     destroy: (options?: GraphicsDestroyOptions) => {
+      preservedColor?.destroy();
+      preservedColor = undefined;
       destroyed = true;
       pending.clear();
       contextLost.complete();

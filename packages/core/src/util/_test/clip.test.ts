@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -83,8 +84,12 @@ describe('clip', () => {
         sphere,
       ),
     ).toBe(false);
+    // the cone's surface 20 sin 45° from the sphere (its apex 20 away, its half angle 45°): bounded, not assumed cut
     expect(
       Clip.canIntersectSphere(getObjects('infiniteCone', false, Vec3.create(20, 0, 0), one, identity), 0, sphere),
+    ).toBe(false);
+    expect(
+      Clip.canIntersectSphere(getObjects('infiniteCone', false, Vec3.create(1.2, 0, 0), one, identity), 0, sphere),
     ).toBe(true);
   });
 });

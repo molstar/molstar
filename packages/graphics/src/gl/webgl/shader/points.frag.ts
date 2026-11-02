@@ -9,7 +9,6 @@ import { common_frag_params } from './chunks/common-frag-params.glsl.js';
 import { color_frag_params } from './chunks/color-frag-params.glsl.js';
 import { common_clip } from './chunks/common-clip.glsl.js';
 import { fade_lod } from './chunks/fade-lod.glsl.js';
-import { clip_pixel } from './chunks/clip-pixel.glsl.js';
 import { assign_material_color } from './chunks/assign-material-color.glsl.js';
 import { check_transparency } from './chunks/check-transparency.glsl.js';
 import { check_picking_alpha } from './chunks/check-picking-alpha.glsl.js';
@@ -36,7 +35,7 @@ const float radius = 0.5;
 
 void main(){
     ${fade_lod}
-    ${clip_pixel}
+    // pixel clipping in the vertex stage: the point's fragments are all at its center
 
     float fragmentDepth = gl_FragCoord.z;
     ${assign_material_color}

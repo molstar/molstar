@@ -111,6 +111,18 @@ describe('instance-grid', () => {
     expect(grid.cellSpheres[3]).toBeCloseTo(1);
   });
 
+  it('single instances own their spheres, transform and instance, and share their offsets', () => {
+    const a = calcInstanceGrid(createInstanceData([Vec3.create(1, 2, 3)]), 10, 100);
+    const data = createInstanceData([Vec3.create(4, 5, 6)], 2);
+    data.instance[0] = 7;
+    const b = calcInstanceGrid(data, 10, 100);
+    expect(b.cellSpheres).not.toBe(a.cellSpheres);
+    expect(Array.from(b.batchSpheres)).toEqual([4, 5, 6, 2]);
+    expect(b.cellTransform).not.toBe(data.transform);
+    expect(b.cellInstance[0]).toBe(7);
+    expect(b.cellOffsets).toBe(a.cellOffsets);
+  });
+
   it('two clusters far apart get separate cells', () => {
     const data = createInstanceData([
       Vec3.create(0, 0, 0),

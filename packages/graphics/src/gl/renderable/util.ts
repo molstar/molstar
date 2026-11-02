@@ -228,30 +228,34 @@ function getHelper(count: number) {
   return count > 100_000 ? boundaryHelperCoarse : boundaryHelperFine;
 }
 
+/** `stride`: floats per position (3, or 4 where a group follows each, as `tPositionGroup`) */
 export function calculateInvariantBoundingSphere(
   position: Float32Array,
   positionCount: number,
   stepFactor: number,
+  stride = 3,
 ): Sphere3D {
-  const step = stepFactor * 3;
+  const step = stepFactor * stride;
   const boundaryHelper = getHelper(positionCount);
 
   boundaryHelper.reset();
-  for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
+  for (let i = 0, _i = positionCount * stride; i < _i; i += step) {
     v3fromArray(v, position, i);
     boundaryHelper.includePosition(v);
   }
   boundaryHelper.finishedIncludeStep();
-  for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
+  for (let i = 0, _i = positionCount * stride; i < _i; i += step) {
     v3fromArray(v, position, i);
     boundaryHelper.radiusPosition(v);
   }
 
   const sphere = boundaryHelper.getSphere();
 
-  if (positionCount <= 14) {
+  // no more positions than the fine helper's extrema (49 directions, two each): the positions themselves, never more
+  // extrema than positions
+  if (positionCount <= 98) {
     const extrema: Vec3[] = [];
-    for (let i = 0, _i = positionCount * 3; i < _i; i += step) {
+    for (let i = 0, _i = positionCount * stride; i < _i; i += step) {
       extrema.push(v3fromArray(Vec3(), position, i));
     }
     Sphere3D.setExtrema(sphere, extrema);
@@ -278,21 +282,36 @@ export function calculateTransformBoundingSphere(
   boundaryHelper.reset();
 
   const { center, radius, extrema } = invariantBoundingSphere;
+  // the balls around the extrema (`Sphere3D.extremaRadius`): instance transforms are rigid
+  const extremaRadius = Sphere3D.getExtremaRadius(invariantBoundingSphere);
 
   // only use extrema if there are not too many transforms
   if (extrema && transformCount <= 14) {
     for (let i = 0, _i = transformCount; i < _i; ++i) {
       for (const e of extrema) {
         v3transformMat4Offset(v, e, transform, 0, 0, i * 16 + transformOffset);
-        boundaryHelper.includePosition(v);
+        boundaryHelper.includePositionRadius(v, extremaRadius);
       }
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, _i = transformCount; i < _i; ++i) {
       for (const e of extrema) {
         v3transformMat4Offset(v, e, transform, 0, 0, i * 16 + transformOffset);
-        boundaryHelper.radiusPosition(v);
+        boundaryHelper.radiusPositionRadius(v, extremaRadius);
       }
+    }
+    // with balls, few points: the transformed points themselves (the helper's extrema would be points on their balls,
+    // as many as its directions)
+    if (extremaRadius > 0 && extrema.length * transformCount <= 98) {
+      const points: Vec3[] = [];
+      for (let i = 0, _i = transformCount; i < _i; ++i) {
+        for (const e of extrema) {
+          const p = Vec3();
+          v3transformMat4Offset(p, e, transform, 0, 0, i * 16 + transformOffset);
+          points.push(p);
+        }
+      }
+      return Sphere3D.setExtrema(boundaryHelper.getSphere(), points, extremaRadius);
     }
   } else {
     for (let i = 0, _i = transformCount; i < _i; ++i) {

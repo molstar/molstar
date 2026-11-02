@@ -846,6 +846,7 @@ export namespace Mesh {
       ),
       dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
       dSolidInterior: ValueCell.create(props.solidInterior),
+      dBump: ValueCell.create(BaseGeometry.hasBump(props)),
       uBumpFrequency: ValueCell.create(props.bumpFrequency),
       uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
 
@@ -881,6 +882,7 @@ export namespace Mesh {
     );
     ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
     ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
+    ValueCell.updateIfChanged(values.dBump, BaseGeometry.hasBump(props));
     ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     updateInteriorValues(values, props.interior);

@@ -326,7 +326,8 @@ async function checkReadTextureData(graphics: GraphicsContext) {
 
 /**
  * A viewport partly outside the target is cropped, as in GL and WebGPU core, not squashed into the target: a quad over
- * the bottom-left quarter of the viewport is drawn where the viewport places it
+ * the bottom-left quarter of the viewport is drawn where the viewport places it. Where the WebGPU device rejects such a
+ * viewport (Safari), the backend clips it to the target: the quad is drawn (its pass not lost), squashed
  */
 async function checkViewportCropping(graphics: GraphicsContext) {
   const size = 64;
@@ -371,6 +372,13 @@ async function checkViewportCropping(graphics: GraphicsContext) {
     // rows top to bottom (rendered content is stored flipped on WebGPU, so not `readTextureData`)
     const array = await graphics.readTextureAsync(target, 0, 0, size, size);
     const red = ([x, y]: readonly [number, number]) => array[(y * size + x) * 4];
+    if (isWebGPUContext(graphics) && graphics.viewportOutsideTarget === false) {
+      // clipped: drawn somewhere, not lost with its pass
+      let drawn = false;
+      for (let i = 0; i < size * size && !drawn; ++i) drawn = array[i * 4] === 255;
+      if (!drawn) errors.push(`${c.name}: nothing drawn (the pass lost)`);
+      continue;
+    }
     if (red(c.drawn) !== 255) errors.push(`${c.name}: pixel ${c.drawn} not drawn`);
     if (red(c.empty) !== 0) errors.push(`${c.name}: pixel ${c.empty} drawn (viewport squashed into the target)`);
   }

@@ -16,6 +16,12 @@ import {
 import { scan_add_wgsl, scan_block_wgsl } from './prefix-sum.wgsl.js';
 import { cell_cull_wgsl, cull_args_wgsl, instance_copy_wgsl } from './cell-cull.wgsl.js';
 import { denoise_wgsl } from './denoise.wgsl.js';
+import {
+  sphere_raster_args_wgsl,
+  sphere_raster_cull_wgsl,
+  sphere_raster_regions_wgsl,
+  sphere_raster_wgsl,
+} from './sphere-raster.wgsl.js';
 
 /** WGSL compute kernels by the name of their `KernelCode`, like `programs.ts` for render programs */
 const Kernels = new Map<string, string>([
@@ -35,6 +41,10 @@ const Kernels = new Map<string, string>([
   ['instance-copy', instance_copy_wgsl],
   ['cull-args', cull_args_wgsl],
   ['illumination-denoise', denoise_wgsl],
+  ['sphere-raster-cull', sphere_raster_cull_wgsl],
+  ['sphere-raster-regions', sphere_raster_regions_wgsl],
+  ['sphere-raster-args', sphere_raster_args_wgsl],
+  ['sphere-raster', sphere_raster_wgsl],
 ]);
 
 /** Registers the WGSL source of a kernel; the bindings are declared from its schema, see `getWgslKernelDeclarations` */

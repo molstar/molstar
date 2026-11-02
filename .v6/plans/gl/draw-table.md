@@ -59,13 +59,16 @@ come from their owners instead of being derived from the outside.
     (`createRenderableState`); plain states (built by hand) stay as they are and are compared on `refresh`.
   - Values: any change of an object's values (all its cells, not only the facts') advances its values version and the
     table's values epoch at once (`valuesVersions`, `valuesEpoch`); volatile cells are compared on `refresh`. The
-    renderer reads them for its plans and draw lists (data changes, flushed), it keeps no watches of its own.
+    renderer reads them for its plans and draw lists (data changes, flushed), it keeps no watches of its own. Proposed:
+    only the cells drawing and marking read ([draw-table-observing.md](draw-table-observing.md)).
   - Adds and removes: slots taken and freed with the scene's adds, removes and clear; observers removed with them.
 - The scene's aggregates (marker, emissive, wiggle, opacity averages, transparency minimum, `hasOpaque`,
   `hasAnimation`) come from the columns instead of walks over the values: what each object adds is written with its
   row (`DrawTable.contributions`, the `Animated` fact), the scene sums over the visible rows of its primitives.
 - Changed objects only: the table lists the slots whose values changed (`takeChanged`); `Scene.updateChanged` updates
-  those objects (marking, which changes a few of many per hover) instead of all. The scene's visibility follows the
+  those objects (marking, which changes a few of many per hover) instead of all; a merged object's values change with
+  its members' marks (`Renderable.memberCells`, the members' marker cells observed with its own: a mark changes a
+  member, other member changes come with an update of the merged object). The scene's visibility follows the
   table's `visibleVersion` (rows whose visibility changed, added or removed) instead of a hash over all objects.
 
 ### Renderer: what the facts mean for its passes

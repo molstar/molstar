@@ -27,7 +27,8 @@ import { EmptyLoci, Loci, isEmptyLoci } from '@molstar/model/model/loci';
 import { Asset } from '@molstar/core/util/assets';
 import { GlobalModelTransformInfo } from '@molstar/model/model/structure/model/properties/global-transform';
 import { distinctUntilChanged, filter, map, Observable, throttleTime } from 'rxjs';
-import type { Camera } from '@molstar/graphics/canvas3d/camera';
+import { Camera } from '@molstar/graphics/canvas3d/camera';
+import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import type { PluginCommand } from '@molstar/plugin/command';
 import { SingleAsyncQueue } from '@molstar/core/util/single-async-queue';
 
@@ -516,7 +517,9 @@ export namespace VolumeStreaming {
       const distance = this.cameraTargetDistance(snapshot);
       const top = Math.tan(0.5 * snapshot.fov) * distance;
       let radius = top;
-      const viewport = this.plugin.canvas3d?.camera.viewport;
+      // the frame the field of view spans, not just its drawn part
+      const camera = this.plugin.canvas3d?.camera;
+      const viewport = camera && Camera.getFrame(Viewport.zero(), camera);
       if (viewport && viewport.width > viewport.height) {
         radius *= viewport.width / viewport.height;
       }

@@ -1,6 +1,6 @@
 import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
 /**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -68,6 +68,8 @@ export class PointerHelper {
     Mat4.copy(this.camera.projectionView, camera.projectionView);
     Mat4.copy(this.camera.headRotation, camera.headRotation);
     Camera.copyViewOffset(this.camera.viewOffset, camera.viewOffset);
+    if (camera.crop) Camera.copyCrop(this.camera.crop, camera.crop);
+    else this.camera.crop.enabled = false;
     this.camera.far = camera.far;
     this.camera.near = camera.near;
     this.camera.fogFar = camera.fogFar;
@@ -147,11 +149,13 @@ export enum PointerHelperGroup {
 }
 
 const tmpV = Vec3();
+const tmpFrame = Viewport.zero();
 function getSizeForPixels(position: Vec3, pixels: number, camera: ICamera, modelScale: number) {
   const cameraPosition = Vec3.scale(tmpV, camera.state.position, modelScale);
   const d = Vec3.distance(position, cameraPosition);
   const height = 2 * Math.tan(camera.state.fov / 2) * d;
-  return (height / camera.viewport.height) * pixels;
+  // the frame the field of view spans, not just its drawn part
+  return (height / Camera.getFrame(tmpFrame, camera).height) * pixels;
 }
 
 function createPointerMesh(data: PointerData, mesh?: Mesh) {

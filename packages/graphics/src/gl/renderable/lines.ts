@@ -10,19 +10,17 @@ import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
-  AttributeSpec,
   DefineSpec,
   type Values,
   InternalSchema,
   SizeSchema,
-  ElementsSpec,
+  DataSpec,
   type InternalValues,
   GlobalTextureSchema,
   UniformSpec,
   type GlobalDefineValues,
   type GlobalDefines,
   GlobalDefineSchema,
-  ValueSpec,
   AnimationSchema,
 } from './schema.js';
 import { ValueCell } from '@molstar/core/util';
@@ -31,16 +29,14 @@ import { LinesShaderCode } from '../shader-code.js';
 export const LinesSchema = {
   ...BaseSchema,
   ...SizeSchema,
-  aGroup: AttributeSpec('float32', 1, 0),
-  aMapping: AttributeSpec('float32', 2, 0),
-  aStart: AttributeSpec('float32', 3, 0),
-  aEnd: AttributeSpec('float32', 3, 0),
-  elements: ElementsSpec('uint32'),
+  /**
+   * Per line 2 texels (`Lines.lineData`): start xyz and group, end xyz and whether it continues the line before (strips);
+   * drawn as quads of 4 vertex ids by the shared line indices (`quad-indices.ts`)
+   */
+  tLine: DataSpec('rgba32f'),
   dLineSizeAttenuation: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),
   dFlipSided: DefineSpec('boolean'),
-  stripCount: ValueSpec('number'),
-  stripOffsets: ValueSpec('uint32'),
 
   ...AnimationSchema,
 };

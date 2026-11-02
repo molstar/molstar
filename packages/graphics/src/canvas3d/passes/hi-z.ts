@@ -6,6 +6,7 @@
 
 import { createRenderBuilder, type PassBuilder } from './pass-builder.js';
 import { type HiZRenderable, createHiZRenderable } from '@molstar/graphics/gl/compute/hi-z';
+import { projectSphere } from '@molstar/graphics/gl/project-sphere';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { Texture } from '@molstar/graphics/gl/texture';
@@ -17,7 +18,7 @@ import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import { ValueCell } from '@molstar/core/util/value-cell';
-import type { Camera } from '../camera.js';
+import type { Camera, ICamera } from '../camera.js';
 import { Viewport } from '../camera/util.js';
 import type { DrawPass } from './draw.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -26,7 +27,6 @@ import type { OcclusionPyramid } from '@molstar/graphics/gl/compute/cell-cull';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
-const v4set = Vec4.set;
 const fasterLog2 = _fasterLog2;
 
 // depth is reversed: the near plane at depth 1, the far plane at 0
@@ -40,48 +40,6 @@ function orthographicDepthToViewZ(depth: number, near: number, far: number) {
 
 function depthToViewZ(depth: number, near: number, far: number, projection: Mat4) {
   return projection[11] === -1 ? perspectiveDepthToViewZ(depth, near, far) : orthographicDepthToViewZ(depth, near, far);
-}
-
-/**
- * Bounding rectangle of a clipped, perspective-projected 3D Sphere.
- * Michael Mara, Morgan McGuire. 2013
- *
- * Specialization by Arseny Kapoulkine, MIT License Copyright (c) 2018
- * https://github.com/zeux/niagara
- */
-function perspectiveProjectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
-  const prx = p[0] * r;
-  const pry = p[1] * r;
-  const prz = p[2] * r;
-  const pzr2 = p[2] * p[2] - r * r;
-
-  const vx = Math.sqrt(p[0] * p[0] + pzr2);
-  const minx = ((vx * p[0] - prz) / (vx * p[2] + prx)) * projection[0];
-  const maxx = ((vx * p[0] + prz) / (vx * p[2] - prx)) * projection[0];
-
-  const vy = Math.sqrt(p[1] * p[1] + pzr2);
-  const miny = ((vy * p[1] - prz) / (vy * p[2] + pry)) * projection[5];
-  const maxy = ((vy * p[1] + prz) / (vy * p[2] - pry)) * projection[5];
-
-  return v4set(out, maxx * -0.5 + 0.5, miny * 0.5 + 0.5, minx * -0.5 + 0.5, maxy * 0.5 + 0.5);
-}
-
-function orthographicProjectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
-  const sx = projection[0];
-  const sy = projection[5];
-
-  const minx = (p[0] + r) * sx;
-  const maxx = (p[0] - r) * sx;
-  const miny = (p[1] + r) * sy;
-  const maxy = (p[1] - r) * sy;
-
-  return v4set(out, maxx * 0.5 + 0.5, miny * -0.5 + 0.5, minx * 0.5 + 0.5, maxy * -0.5 + 0.5);
-}
-
-function projectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
-  return projection[11] === -1
-    ? perspectiveProjectSphere(out, p, r, projection)
-    : orthographicProjectSphere(out, p, r, projection);
 }
 
 type LevelData = {
@@ -106,6 +64,10 @@ export const HiZParams = {
     description:
       "Occlusion culling on the GPU of the objects culled there (gpuCulling), against the previous frame's depth without reading it back; also with Hi-Z off.",
   }),
+  twoPhase: PD.Boolean(true, {
+    description:
+      "GPU occlusion culling catching up within the frame: what the previous frame's depth left out is tested against the frame's depth so far and drawn where visible. Exact while the camera moves; off, what comes into view shows a frame late, or not until the next draw.",
+  }),
 };
 export type HiZProps = PD.Values<typeof HiZParams>;
 
@@ -128,6 +90,8 @@ export class HiZPass {
   private readonly buildView = Mat4();
   private readonly buildProjection = Mat4();
   private pyramid?: OcclusionPyramid;
+  /** the builds of `pyramid` so far (`OcclusionPyramid.version`) */
+  private pyramidVersion = 0;
 
   private readonly aabb = Vec4();
   private readonly levelZeroInvSize = Vec2();
@@ -176,8 +140,24 @@ export class HiZPass {
     }
   }
 
-  render(camera: Camera) {
-    this.plan(this.renderBuilder, camera);
+  /**
+   * `complete`: no draw of the frame's depth skipped (e.g. a pipeline compiling): built also while other work is pending
+   * (a readback: a pick, the CPU test's own), else only once nothing is
+   */
+  render(camera: Camera, complete = false) {
+    this.plan(this.renderBuilder, camera, this.props, this.gpuCulling, complete);
+  }
+
+  /**
+   * The levels of the opaque depth drawn so far with `camera`, planned within the draw pass (`b`), for the second phase
+   * of GPU culling (`RenderContext.occlusion`); undefined where not built (a draw of the depth skipped, `gpu` off). The
+   * pass builds them again after the frame, of its whole depth: the next frame's and the CPU test's
+   */
+  planFrame(b: PassBuilder, camera: ICamera, complete: boolean): OcclusionPyramid | undefined {
+    if (!complete || !this.props.gpu) return undefined;
+    const last = this.pyramid;
+    this.plan(b, camera, this.props, true, true, false);
+    return this.pyramid === last ? undefined : this.pyramid;
   }
 
   /** Whether objects are culled on the GPU this frame (`Renderer.gpuCulledCount`), see `gpu` */
@@ -200,15 +180,23 @@ export class HiZPass {
    * the pass's for preparing what a canvas is not drawing yet (`Canvas3D.prepare`, `precompile`: objects culled on
    * the GPU before any is drawn)
    */
-  plan(b: PassBuilder, camera: Camera, props: HiZProps = this.props, gpuCulling = this.gpuCulling) {
+  plan(
+    b: PassBuilder,
+    camera: ICamera,
+    props: HiZProps = this.props,
+    gpuCulling = this.gpuCulling,
+    complete = false,
+    /** the CPU test's read of these levels: not of a frame's depth so far (`planFrame`) */
+    read = true,
+  ) {
     if (!this.isActive(props, gpuCulling)) return;
     // no viewport yet (`setViewport`): no levels to build or read
     if (this.levelData.length <= this.props.minLevel) return;
     const { pending } = this.graphics.resources;
     if (b.drawing) {
       // draws are skipped while work is pending (e.g. a pipeline compiling), levels missing them would occlude
-      // everything
-      if (!pending.isReady()) return;
+      // everything; a depth known complete is built also while other work is (a readback)
+      if (!complete && !pending.isReady()) return;
       // built every frame for the tests on the GPU (`gpuPyramid`), also while the last read for the CPU test is pending
       this.buildNear = camera.near;
       this.buildFar = camera.far;
@@ -285,8 +273,9 @@ export class HiZPass {
         projection: Mat4.copy(this.pyramid?.projection ?? Mat4(), this.buildProjection),
         near: this.buildNear,
         far: this.buildFar,
+        version: ++this.pyramidVersion,
       };
-      if (this.props.enabled && !this.reading) {
+      if (read && this.props.enabled && !this.reading) {
         // the CPU test reads these levels with this camera once read back (`tick`)
         this.nextNear = this.buildNear;
         this.nextFar = this.buildFar;
@@ -376,19 +365,30 @@ export class HiZPass {
     const z = vp[2] + r;
     if (-z < near) return false;
 
-    const { aabb, lod } = this.project(vp, r);
-    if (lod >= this.levelData.length || lod < this.props.minLevel) return false;
+    const projected = this.project(vp, r);
+    const { aabb } = projected;
+    // below the lowest level kept, tested there (its texels larger: as conservative)
+    let lod = Math.max(projected.lod, this.props.minLevel);
 
-    const { offset, size } = this.levelData[lod];
-    const ts = size[0];
-
-    // the texels the rectangle covers (rows top to bottom, as the rectangle's y): at most two per axis at this level,
-    // its size at most a texel; the 2x2 texels around its center miss a side where it is off the texel's center
-    const x0 = Math.floor(aabb[0] * ts);
-    const x1 = Math.floor(aabb[2] * ts);
-    const y0 = Math.floor(aabb[1] * ts);
-    const y1 = Math.floor(aabb[3] * ts);
-    if (x0 < 0 || y0 < 0 || x1 >= ts || y1 >= ts || x1 - x0 > 1 || y1 - y0 > 1) return false;
+    // the texels the rectangle covers (rows top to bottom, as the rectangle's y): at most two per axis, a level up
+    // where it straddles three (its size up to two texels at the level of its size); the 2x2 texels around its
+    // center miss a side where it is off the texel's center
+    let ts = 0;
+    let x0 = 0;
+    let x1 = 0;
+    let y0 = 0;
+    let y1 = 0;
+    for (; ; ++lod) {
+      if (lod >= this.levelData.length) return false;
+      ts = this.levelData[lod].size[0];
+      x0 = Math.floor(aabb[0] * ts);
+      x1 = Math.floor(aabb[2] * ts);
+      y0 = Math.floor(aabb[1] * ts);
+      y1 = Math.floor(aabb[3] * ts);
+      if (x1 - x0 <= 1 && y1 - y0 <= 1) break;
+    }
+    if (x0 < 0 || y0 < 0 || x1 >= ts || y1 >= ts) return false;
+    const { offset } = this.levelData[lod];
 
     // the levels side by side at the top of the texture
     const dw = this.tex.getWidth();

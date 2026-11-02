@@ -11,14 +11,13 @@ import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
-  AttributeSpec,
   UniformSpec,
   type Values,
   InternalSchema,
   SizeSchema,
   type InternalValues,
   TextureSpec,
-  ElementsSpec,
+  DataSpec,
   ValueSpec,
   GlobalTextureSchema,
   type GlobalDefineValues,
@@ -31,13 +30,11 @@ import { ValueCell } from '@molstar/core/util';
 export const TextSchema = {
   ...BaseSchema,
   ...SizeSchema,
-  aGroup: AttributeSpec('float32', 1, 0),
-  aPosition: AttributeSpec('float32', 3, 0),
-  aMapping: AttributeSpec('float32', 2, 0),
-  aDepth: AttributeSpec('float32', 1, 0),
-  elements: ElementsSpec('uint32'),
-
-  aTexCoord: AttributeSpec('float32', 2, 0),
+  /**
+   * Per item 4 texels (`Text.textData`): the label's position and group, depth and whether a tether, corners, texture
+   * coordinates; drawn as quads of 4 vertex ids by the shared line indices (`quad-indices.ts`)
+   */
+  tText: DataSpec('rgba32f'),
   // one font atlas per font, shared by the texts (`.v6/plans/gl/shared-textures.md`)
   tFont: TextureSpec('image-uint8', 'r', 'ubyte', 'linear', undefined, { shared: true }),
   padding: ValueSpec('number'),

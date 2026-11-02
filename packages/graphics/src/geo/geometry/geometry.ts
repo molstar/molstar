@@ -6,17 +6,18 @@
 
 import { Mesh } from './mesh/mesh.js';
 import { Points } from './points/points.js';
-import { Text } from './text/text.js';
+import { Text, TextStride } from './text/text.js';
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
 import type { LocationIterator } from '../util/location-iterator.js';
 import type { ColorType } from './color-data.js';
 import type { SizeType } from './size-data.js';
-import { Lines } from './lines/lines.js';
+import { Lines, LineStride } from './lines/lines.js';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { DirectVolume } from './direct-volume/direct-volume.js';
 import type { Color } from '@molstar/core/util/color';
 import { Spheres } from './spheres/spheres.js';
 import { arrayMax } from '@molstar/core/util/array';
+import { getPositionGroupGroupCount } from './center-group.js';
 import type { TransformData } from './transform-data.js';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
@@ -24,7 +25,7 @@ import type { GeometryRequest } from './request.js';
 import type { RenderObjectValues } from '@molstar/graphics/gl/render-object';
 import { TextureMesh } from './texture-mesh/texture-mesh.js';
 import { Image } from './image/image.js';
-import { Cylinders } from './cylinders/cylinders.js';
+import { CylinderStride, Cylinders } from './cylinders/cylinders.js';
 import { arrayMaxPackedIntToRGB } from '@molstar/core/util/number-packing';
 
 export type GeometryKind =
@@ -145,6 +146,11 @@ export namespace Geometry {
     }
   }
 
+  /**
+   * The data vertices: the values of 'vertex' and 'vertexInstance' color, size and layers per instance (the shaders'
+   * `uVertexCount`), not the drawn vertices; one per sphere, point and text item, a start and an end per cylinder and
+   * line
+   */
   export function getVertexCount(geometry: Geometry): number {
     switch (geometry.kind) {
       case 'mesh':
@@ -152,13 +158,13 @@ export namespace Geometry {
       case 'points':
         return geometry.pointCount;
       case 'spheres':
-        return geometry.sphereCount * 6;
+        return geometry.sphereCount;
       case 'cylinders':
-        return geometry.cylinderCount * 6;
+        return geometry.cylinderCount * 2;
       case 'text':
-        return geometry.charCount * 4;
+        return geometry.charCount;
       case 'lines':
-        return geometry.vertexCount;
+        return geometry.lineCount * 2;
       case 'direct-volume':
         const [x, y, z] = geometry.gridDimension.ref.value;
         return x * y * z;
@@ -171,12 +177,17 @@ export namespace Geometry {
 
   export function getGroupCount(geometry: Geometry): number {
     switch (geometry.kind) {
-      case 'mesh':
       case 'points':
+        return getPositionGroupGroupCount(geometry.positionGroup.ref.value, geometry.pointCount);
       case 'spheres':
+        return getPositionGroupGroupCount(geometry.positionGroup.ref.value, geometry.sphereCount);
       case 'cylinders':
-      case 'text':
+        return getPositionGroupGroupCount(geometry.cylinderData.ref.value, geometry.cylinderCount, CylinderStride);
       case 'lines':
+        return getPositionGroupGroupCount(geometry.lineData.ref.value, geometry.lineCount, LineStride);
+      case 'text':
+        return getPositionGroupGroupCount(geometry.textData.ref.value, geometry.charCount, TextStride);
+      case 'mesh':
         return getDrawCount(geometry) === 0 ? 0 : arrayMax(geometry.groupBuffer.ref.value) + 1;
       case 'direct-volume':
         return 1;

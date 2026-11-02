@@ -8,9 +8,10 @@
  * which under the MIT License, Copyright © 2010-2021 three.js authors
  */
 
+// no bumps on direct volumes (no bump uniforms, as on WebGPU): a substance layer sets only their material
 export const apply_light_color = `
 #if defined(dIgnoreLight)
-    #ifdef bumpEnabled
+    #if (defined(dBump) || defined(dSubstance)) && !defined(dGeometryType_directVolume)
         if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
             material.rgb += fbm(vModelPosition * uBumpFrequency) * uBumpAmplitude * bumpiness;
             material.rgb -= 0.5 * uBumpAmplitude * bumpiness;
@@ -23,7 +24,7 @@ export const apply_light_color = `
 
     gl_FragColor = material;
 #else
-    #ifdef bumpEnabled
+    #if (defined(dBump) || defined(dSubstance)) && !defined(dGeometryType_directVolume)
         if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
             normal = perturbNormal(vModelPosition, vViewPosition, normal, uBumpFrequency, (uBumpAmplitude * bumpiness) / uBumpFrequency);
         }

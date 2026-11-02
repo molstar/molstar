@@ -16,6 +16,7 @@ import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { createRenderObject } from '../render-object.js';
 import { RenderableState, type GraphicsRenderable } from '../renderable.js';
 import { createDrawTable, DrawFact, DrawRow, DrawState, getDrawFacts } from '../draw-table.js';
+import { createMergedValues, type MergeableValues } from '../renderable/merged.js';
 
 /** A render object standing in for its renderable: the table reads only the values and the state */
 function meshObject(props: Partial<PD.Values<Mesh.Params>> = {}) {
@@ -298,6 +299,26 @@ describe('draw table', () => {
     ValueCell.update(objects[1].values.markerAverage, 1);
     ValueCell.update(objects[1].values.uMetalness, 0.3);
     expect(table.takeChanged()).toEqual([table.getSlot(objects[1])]);
+  });
+
+  it('lists a merged object whose members changed: a mark of a member, not of the object', () => {
+    const renderables: GraphicsRenderable[] = [];
+    const table = createDrawTable(renderables);
+    const members = [meshObject(), meshObject()];
+    const merged = createMergedValues(
+      'mesh',
+      members.map((m) => m.values as unknown as MergeableValues),
+    );
+    const r = {
+      values: merged.values,
+      state: members[0].state,
+      memberCells: merged.memberCells,
+    } as unknown as GraphicsRenderable;
+    renderables.push(r);
+    table.add(r);
+    table.takeChanged();
+    ValueCell.update(members[1].values.markerStatus, -1);
+    expect(table.takeChanged()).toEqual([table.getSlot(r)]);
   });
 
   it('drops a changed slot until its values change again', () => {

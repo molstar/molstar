@@ -11,9 +11,7 @@ import { type Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Cage } from '../../primitive/cage.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const caAdd = ChunkedArray.add;
-const caAdd2 = ChunkedArray.add2;
-const caAdd3 = ChunkedArray.add3;
+const caAdd4 = ChunkedArray.add4;
 
 const tmpVecA = Vec3();
 const tmpVecB = Vec3();
@@ -28,15 +26,23 @@ export interface LinesBuilder {
   getLines(): Lines;
 }
 
+/**
+ * The geometry's data (`LineStride` floats per line) as 2 elements of 4 floats, in the given lines' array where
+ * given; `initialCount` and `chunkSize` count lines
+ */
+function createLineData(initialCount: number, chunkSize: number, lines?: Lines) {
+  return ChunkedArray.create(
+    Float32Array,
+    4,
+    Math.max(1, chunkSize) * 2,
+    lines ? lines.lineData.ref.value.array : Math.max(1, initialCount) * 2,
+  );
+}
+
 export namespace LinesBuilder {
-  /** `initialCount` and `chunkSize` count lines (4 vertices each) */
+  /** `initialCount` and `chunkSize` count lines */
   export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): LinesBuilder {
-    // ChunkedArray sizes count elements, one per vertex (perf-audit 08/P8)
-    initialCount *= 4;
-    chunkSize *= 4;
-    const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
-    const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
-    const ends = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.endBuffer.ref.value : initialCount);
+    const data = createLineData(initialCount, chunkSize, lines);
 
     const add = (
       startX: number,
@@ -47,19 +53,12 @@ export namespace LinesBuilder {
       endZ: number,
       group: number,
     ) => {
-      for (let i = 0; i < 4; ++i) {
-        caAdd3(starts, startX, startY, startZ);
-        caAdd3(ends, endX, endY, endZ);
-        caAdd(groups, group);
-      }
+      caAdd4(data, startX, startY, startZ, group);
+      caAdd4(data, endX, endY, endZ, 0);
     };
 
     const addVec = (start: Vec3, end: Vec3, group: number) => {
-      for (let i = 0; i < 4; ++i) {
-        caAdd3(starts, start[0], start[1], start[2]);
-        caAdd3(ends, end[0], end[1], end[2]);
-        caAdd(groups, group);
-      }
+      add(start[0], start[1], start[2], end[0], end[1], end[2], group);
     };
 
     const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, group: number) => {
@@ -101,50 +100,10 @@ export namespace LinesBuilder {
         }
       },
       getLines: () => {
-        const lineCount = groups.elementCount / 4;
-        const vertexCount = groups.elementCount;
-        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
-        const sb = ChunkedArray.compactTrimmed(starts) as Float32Array;
-        const eb = ChunkedArray.compactTrimmed(ends) as Float32Array;
-        const mb =
-          lines && lineCount <= lines.lineCount && lines.stripCount.ref.value === 0
-            ? lines.mappingBuffer.ref.value
-            : new Float32Array(lineCount * 8);
-        const ib =
-          lines && lineCount <= lines.lineCount && lines.stripCount.ref.value === 0
-            ? lines.indexBuffer.ref.value
-            : new Uint32Array(lineCount * 6);
-        const ob = lines ? lines.stripBuffer.ref.value : new Uint32Array(0);
-        if (!lines || lineCount > lines.lineCount || lines.stripCount.ref.value > 0)
-          fillMappingAndIndices(lineCount, mb, ib);
-        return Lines.create(mb, ib, gb, sb, eb, ob, lineCount, vertexCount, 0, lines);
+        const array = ChunkedArray.compactTrimmed(data) as Float32Array;
+        return Lines.create(array, data.elementCount / 2, lines);
       },
     };
-  }
-}
-
-function fillMappingAndIndices(n: number, mb: Float32Array, ib: Uint32Array) {
-  for (let i = 0; i < n; ++i) {
-    const mo = i * 8;
-    mb[mo] = -1;
-    mb[mo + 1] = -1;
-    mb[mo + 2] = 1;
-    mb[mo + 3] = -1;
-    mb[mo + 4] = -1;
-    mb[mo + 5] = 1;
-    mb[mo + 6] = 1;
-    mb[mo + 7] = 1;
-  }
-
-  for (let i = 0; i < n; ++i) {
-    const o = i * 4;
-    const io = i * 6;
-    ib[io] = o;
-    ib[io + 1] = o + 1;
-    ib[io + 2] = o + 2;
-    ib[io + 3] = o + 1;
-    ib[io + 4] = o + 3;
-    ib[io + 5] = o + 2;
   }
 }
 
@@ -159,68 +118,24 @@ export interface StripLinesBuilder {
 }
 
 export namespace StripLinesBuilder {
-  /** `initialCount` and `chunkSize` count vertices, unlike `LinesBuilder.create` (a strip's size depends on its points) */
+  /**
+   * Connected strips of lines: a line between consecutive points of a strip, those after the first continuing the one
+   * before (`Lines.lineData`); `initialCount` and `chunkSize` count points (about the lines of the strips)
+   */
   export function create(initialCount = 2048, chunkSize = 1024, lines?: Lines): StripLinesBuilder {
-    const groups = ChunkedArray.create(Float32Array, 1, chunkSize, lines ? lines.groupBuffer.ref.value : initialCount);
-    const starts = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.startBuffer.ref.value : initialCount);
-    const ends = ChunkedArray.create(Float32Array, 3, chunkSize, lines ? lines.endBuffer.ref.value : initialCount);
-    const mapping = ChunkedArray.create(
-      Float32Array,
-      2,
-      chunkSize,
-      lines ? lines.mappingBuffer.ref.value : initialCount,
-    );
-    const indices = ChunkedArray.create(Uint32Array, 3, chunkSize, lines ? lines.indexBuffer.ref.value : initialCount);
-    const strips = ChunkedArray.create(Uint32Array, 1, chunkSize, lines ? lines.stripBuffer.ref.value : initialCount);
+    const data = createLineData(initialCount, chunkSize, lines);
 
     let stripGroup = 0;
     let pointCount = 0;
-    let firstVertexOffset = 0;
     let prevX = 0,
       prevY = 0,
       prevZ = 0;
 
     const addPoint = (x: number, y: number, z: number) => {
-      if (pointCount === 0) {
-        firstVertexOffset = groups.elementCount;
-        prevX = x;
-        prevY = y;
-        prevZ = z;
-        pointCount = 1;
-        return;
+      if (pointCount > 0) {
+        caAdd4(data, prevX, prevY, prevZ, stripGroup);
+        caAdd4(data, x, y, z, pointCount > 1 ? 1 : 0);
       }
-
-      const vertexOffset = groups.elementCount;
-
-      if (pointCount === 1) {
-        caAdd3(starts, prevX, prevY, prevZ);
-        caAdd3(ends, x, y, z);
-        caAdd(groups, stripGroup);
-        caAdd2(mapping, -1, -1); // left, start
-
-        caAdd3(starts, prevX, prevY, prevZ);
-        caAdd3(ends, x, y, z);
-        caAdd(groups, stripGroup);
-        caAdd2(mapping, 1, -1); // right, start
-      }
-
-      caAdd3(starts, prevX, prevY, prevZ);
-      caAdd3(ends, x, y, z);
-      caAdd(groups, stripGroup);
-      caAdd2(mapping, -1, 1); // left, end
-
-      caAdd3(starts, prevX, prevY, prevZ);
-      caAdd3(ends, x, y, z);
-      caAdd(groups, stripGroup);
-      caAdd2(mapping, 1, 1); // right, end
-
-      const prevOffset = pointCount === 1 ? firstVertexOffset : vertexOffset - 2;
-      const currOffset = pointCount === 1 ? vertexOffset + 2 : vertexOffset;
-      // Triangle 1: prev-left, prev-right, curr-left
-      caAdd3(indices, prevOffset, prevOffset + 1, currOffset);
-      // Triangle 2: prev-right, curr-right, curr-left
-      caAdd3(indices, prevOffset + 1, currOffset + 1, currOffset);
-
       prevX = x;
       prevY = y;
       prevZ = z;
@@ -231,9 +146,6 @@ export namespace StripLinesBuilder {
       start: (group: number) => {
         stripGroup = group;
         pointCount = 0;
-        if (strips.elementCount === 0) {
-          caAdd(strips, 0);
-        }
       },
       add: (x: number, y: number, z: number) => {
         addPoint(x, y, z);
@@ -243,19 +155,10 @@ export namespace StripLinesBuilder {
       },
       end: () => {
         pointCount = 0;
-        caAdd(strips, groups.elementCount);
       },
       getLines: () => {
-        const lineCount = indices.elementCount / 2;
-        const vertexCount = groups.elementCount;
-        const stripCount = strips.elementCount - 1;
-        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
-        const sb = ChunkedArray.compactTrimmed(starts) as Float32Array;
-        const eb = ChunkedArray.compactTrimmed(ends) as Float32Array;
-        const mb = ChunkedArray.compactTrimmed(mapping) as Float32Array;
-        const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
-        const ob = ChunkedArray.compactTrimmed(strips) as Uint32Array;
-        return Lines.create(mb, ib, gb, sb, eb, ob, lineCount, vertexCount, stripCount, lines);
+        const array = ChunkedArray.compactTrimmed(data) as Float32Array;
+        return Lines.create(array, data.elementCount / 2, lines);
       },
     };
   }

@@ -61,7 +61,9 @@ import {
   volumeTargetGeometryPropsChanged,
   volumeTargetMustRecreate,
   volumeTargetSizeFactorChanged,
+  volumeTargetUseImpostor,
 } from './volume.js';
+import type { GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
 import { VolumeIsosurfaceParams } from '../../../volume/isosurface.js';
 import { BlobSurfaceCoreParams } from '../../../structure/visual/util/blob-surface.js';
 import { getQualityProps } from '../../../util.js';
@@ -369,6 +371,52 @@ function getDotSizeTheme(): SizeTheme<any> {
   return _dotSizeTheme;
 }
 
+/**
+ * The geometry a target is drawn with (`createTargetGeometry` makes it): structures as sphere impostors or a sphere
+ * mesh, or a blob surface; volumes as an isosurface or dots (impostors or a mesh); shapes as their own geometry. What
+ * the precompile signatures take without building it (`getTargetGeometryUtils`)
+ */
+export type TargetGeometryChoice =
+  | 'structure-spheres'
+  | 'structure-mesh'
+  | 'blob-surface'
+  | 'volume-isosurface'
+  | 'volume-dot-spheres'
+  | 'volume-dot-mesh'
+  | 'shape';
+
+export function getTargetGeometryChoice(
+  target: ParticleTarget,
+  props: ParticleTargetProps,
+  graphics: GraphicsContext | undefined,
+): TargetGeometryChoice {
+  switch (target.kind) {
+    case 'structure':
+      if ((props as StructureTargetProps).type === 'blob-surface') return 'blob-surface';
+      return structureTargetUseImpostor(props as StructureTargetProps, graphics)
+        ? 'structure-spheres'
+        : 'structure-mesh';
+    case 'shape':
+      return 'shape';
+    case 'volume':
+      if ((props as VolumeTargetProps).type !== 'dot') return 'volume-isosurface';
+      return volumeTargetUseImpostor(props as VolumeTargetProps, graphics) ? 'volume-dot-spheres' : 'volume-dot-mesh';
+  }
+}
+
+/** The utils of the geometry `choice` makes for `target` (a shape's own geometry's) */
+export function getTargetGeometryUtils(target: ParticleTarget, choice: TargetGeometryChoice): GeometryUtils<any> {
+  switch (choice) {
+    case 'structure-spheres':
+    case 'volume-dot-spheres':
+      return Spheres.Utils;
+    case 'shape':
+      return Geometry.getUtils((target as Extract<ParticleTarget, { kind: 'shape' }>).shape.geometry as Geometry);
+    default:
+      return Mesh.Utils;
+  }
+}
+
 export function createTargetGeometry(
   ctx: VisualContext,
   target: ParticleTarget,
@@ -379,9 +427,11 @@ export function createTargetGeometry(
 ): Geometry | Promise<Geometry> {
   const spheresOrMesh =
     existing?.kind === 'spheres' || existing?.kind === 'mesh' ? (existing as Spheres | Mesh) : undefined;
+  // the choice the precompile signatures take too (`getTargetGeometryChoice`)
+  const choice = getTargetGeometryChoice(target, props, graphics);
   switch (target.kind) {
     case 'structure':
-      return (props as StructureTargetProps).type === 'blob-surface'
+      return choice === 'blob-surface'
         ? createBlobSurfaceTargetGeometry(
             ctx,
             target.structure,
@@ -567,6 +617,8 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
     // Sizes of a structure target are per-element, unlike the per-particle colors and picking.
     if (target.kind === 'structure' && 'uSize' in values) {
       createStructureTargetSizes(target.structure, theme, values as unknown as SizeValues);
+      // the padding and bounds `createValues` took from the representation's (per-particle) size theme
+      Geometry.getUtils(geom).updateBoundingSphere(values as any, geom as any);
     }
     return createRenderObject(geom.kind, values, state, materialId);
   }
@@ -693,6 +745,7 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
       if (updateState.updateSize && 'uSize' in renderObject.values) {
         if (target.kind === 'structure') {
           createStructureTargetSizes(target.structure, theme, renderObject.values as SizeValues);
+          Geometry.getUtils(geometry!).updateBoundingSphere(renderObject.values as any, geometry! as any);
         } else {
           locationIt = createLocIt(particles, particleIndices);
           createSizes(locationIt, positionIt, theme.size, renderObject.values as SizeValues);

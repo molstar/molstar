@@ -7,6 +7,7 @@
  */
 
 import { EPSILON } from '@molstar/core/math/linear-algebra/3d/common';
+import { Mat3 } from '@molstar/core/math/linear-algebra/3d/mat3';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
@@ -51,7 +52,8 @@ export namespace Clip {
     transform: number[];
     /**
      * Per object the transform of a point into the object's frame, `count` 4x4 matrices: `transform`, less `position`,
-     * rotated back by `rotation` (`getFrame`); where the shaders test the shape
+     * rotated back by `rotation` (`getFrame`); where the shaders test the shape. The first column's `w` (a point is
+     * read with `.xyz`) is the frame's largest scale (`classifySphereObject`)
      */
     frame: number[];
     /**
@@ -110,6 +112,21 @@ export namespace Clip {
 
   const mF = Mat4();
   const mT = Mat4();
+  const m3A = Mat3();
+  const m3B = Mat3();
+  const v3Eigen = Vec3();
+  /**
+   * How much the linear part of `m` lengthens a vector at most, its spectral norm (the square root of the largest
+   * eigenvalue of its transpose times it): the longest column is less under a shear or a scale after a rotation. A little
+   * more, as a bound: what it decides is read as 32-bit floats
+   */
+  function getLargestScale(m: Mat4) {
+    Mat3.fromMat4(m3A, m);
+    Mat3.mul(m3B, Mat3.transpose(Mat3(), m3A), m3A);
+    Mat3.symmetricEigenvalues(v3Eigen, m3B);
+    return Math.sqrt(Math.max(v3Eigen[0], v3Eigen[1], v3Eigen[2], 0)) * (1 + 1e-6);
+  }
+
   /** The frame of the object at `index` of `objects` (see `Objects.frame`) into `out` at `index` */
   function setFrame(objects: Objects, index: number) {
     const { position, rotation, transform, frame } = objects;
@@ -120,6 +137,7 @@ export namespace Clip {
     Mat4.mul(mF, mF, mT);
     Mat4.mul(mF, mF, Mat4.fromArray(mT, transform, index * 16));
     Mat4.toArray(mF, frame, index * 16);
+    frame[index * 16 + 3] = getLargestScale(mF);
   }
   /** The shape of the object at `index` of `objects` (see `Objects.shape`) */
   function setShape(objects: Objects, index: number) {
@@ -159,7 +177,6 @@ export namespace Clip {
   }
 
   const v4A = Vec4();
-  const pA = Plane3D();
 
   /**
    * Plane of the clip object at `index`, in the space of the points
@@ -177,28 +194,87 @@ export namespace Clip {
   }
 
   /**
-   * Test if the surface of the clip object at `index` can intersect `sphere`,
-   * exact for planes, conservative for spheres, cubes and cylinders
+   * The signed distance of `p` to the shape of the clip object at `index` in its frame (`frame`, `shape`), as the
+   * shaders' `localSD`: at most 0 inside (where an object not inverted clips), not a true distance for all shapes (see
+   * `classifySphere`)
+   */
+  export function getSignedDistance(objects: Objects, index: number, p: Vec3): number {
+    const { frame, shape } = objects;
+    const f = index * 16;
+    const x = frame[f] * p[0] + frame[f + 4] * p[1] + frame[f + 8] * p[2] + frame[f + 12];
+    const y = frame[f + 1] * p[0] + frame[f + 5] * p[1] + frame[f + 9] * p[2] + frame[f + 13];
+    const z = frame[f + 2] * p[0] + frame[f + 6] * p[1] + frame[f + 10] * p[2] + frame[f + 14];
+    const o = index * 4;
+    const sx = shape[o],
+      sy = shape[o + 1],
+      sz = shape[o + 2];
+    const type = Math.round(Math.abs(shape[o + 3]));
+    if (type === Type.plane) return -y;
+    if (type === Type.sphere) return (Math.hypot(x / sx, y / sy, z / sz) - 1) * Math.min(sx, sy, sz);
+    if (type === Type.cube) {
+      const dx = Math.abs(x) - sx,
+        dy = Math.abs(y) - sy,
+        dz = Math.abs(z) - sz;
+      return Math.min(Math.max(dx, dy, dz), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0), Math.max(dz, 0));
+    }
+    if (type === Type.cylinder) {
+      const dx = Math.hypot(x, z) - sx,
+        dy = Math.abs(y) - sy;
+      return Math.min(Math.max(dx, dy), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+    }
+    if (type === Type.infiniteCone) return sx * Math.hypot(x, y) + sy * z;
+    return 0.1;
+  }
+
+  /** How a sphere lies against clip objects (`classifySphere`): no point clipped, some, every point */
+  export const SphereClass = { None: 0, Some: 1, All: 2 } as const;
+  export type SphereClass = (typeof SphereClass)[keyof typeof SphereClass];
+
+  const vC = Vec3();
+  /**
+   * How `sphere` lies against the clip object at `index`: from the signed distance of its center, which divided by its
+   * largest slope (1; the infinite cone's `|shape.xy|`; the ellipsoid's distance already scaled by its smallest axis)
+   * bounds the true one, the radius scaled by the frame's largest scale: `All` within the clipped side by more, `None`
+   * outside it by more, `Some` else (exact where it decides, conservative elsewhere); as the sphere raster's
+   * `clipSphereClass`
+   */
+  export function classifySphereObject(objects: Objects, index: number, sphere: Sphere3D): SphereClass {
+    const { frame, shape } = objects;
+    const scale = frame[index * 16 + 3];
+    const o = index * 4;
+    const type = Math.round(Math.abs(shape[o + 3]));
+    if (type === Type.none) return SphereClass.None;
+    const slope = type === Type.infiniteCone ? Math.hypot(shape[o], shape[o + 1]) : 1;
+    const r = sphere.radius * scale * slope;
+    const sd = getSignedDistance(objects, index, Vec3.copy(vC, sphere.center));
+    // within the clipped side at least this far (it is `sd <= 0`, inverted `sd > 0`)
+    const depth = shape[o + 3] < 0 ? sd : -sd;
+    if (depth > r) return SphereClass.All;
+    if (depth >= -r) return SphereClass.Some;
+    return SphereClass.None;
+  }
+
+  /**
+   * How `sphere` lies against all clip objects (`classifySphereObject`; a point is clipped by any): `All` where one clips
+   * every point, `None` where none clips any, `Some` else; `flag` the objects to ignore, a bit each (a clipping layer's)
+   */
+  export function classifySphere(objects: Objects, sphere: Sphere3D, flag = 0): SphereClass {
+    let some = false;
+    for (let i = 0, il = objects.count; i < il; ++i) {
+      if (flag & (1 << i)) continue;
+      const c = classifySphereObject(objects, i, sphere);
+      if (c === SphereClass.All) return SphereClass.All;
+      if (c === SphereClass.Some) some = true;
+    }
+    return some ? SphereClass.Some : SphereClass.None;
+  }
+
+  /**
+   * Test if the surface of the clip object at `index` can intersect `sphere` (`classifySphereObject`'s `Some`): exact
+   * where the distance is (planes, cubes, cylinders, round spheres), conservative elsewhere
    */
   export function canIntersectSphere(objects: Objects, index: number, sphere: Sphere3D): boolean {
-    const { type, position, scale, transform } = objects;
-    const t = type[index];
-    if (t === Type.plane) {
-      return Math.abs(Plane3D.distanceToPoint(getPlane(pA, objects, index), sphere.center)) <= sphere.radius;
-    }
-    if (t !== Type.sphere && t !== Type.cube && t !== Type.cylinder) return true;
-
-    Mat4.fromArray(mA, transform, index * 16);
-    Vec3.transformMat4(vA, sphere.center, mA);
-    const radius = sphere.radius * Mat4.getMaxScaleOnAxis(mA);
-    const distance = Vec3.distance(vA, Vec3.fromArray(vB, position, index * 3));
-    const sx = scale[index * 3],
-      sy = scale[index * 3 + 1],
-      sz = scale[index * 3 + 2];
-    const inner = (t === Type.cylinder ? Math.min(sx, sy) : Math.min(sx, sy, sz)) / 2;
-    const outer =
-      (t === Type.sphere ? Math.max(sx, sy, sz) : t === Type.cube ? Math.hypot(sx, sy, sz) : Math.hypot(sx, sy)) / 2;
-    return distance <= radius + outer && distance + radius >= inner;
+    return classifySphereObject(objects, index, sphere) === SphereClass.Some;
   }
 
   export function areEqual(cA: Clip, cB: Clip) {

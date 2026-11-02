@@ -306,7 +306,7 @@ export function createVolumeTexture2d(
  * space is linear (`Tensor.strides`), else a copy in x-fastest order read once through the space's accessors (spaces
  * that override them: periodic and wrapped volumes, which `dataOffset` maps modulo the data)
  */
-function getStridedGrid(cells: Tensor): { data: ArrayLike<number>; sx: number; sy: number; sz: number } {
+export function getStridedGrid(cells: Tensor): { data: ArrayLike<number>; sx: number; sy: number; sz: number } {
   const { space, data } = cells;
   const strides = Tensor.strides(space);
   if (strides) return { data, sx: strides[0], sy: strides[1], sz: strides[2] };
@@ -398,6 +398,11 @@ export function createVolumeBrickRange(volume: Volume): BrickRange {
   return { array, dim: Vec3.create(bx, by, bz) };
 }
 
+/**
+ * The values of `volume` normalized by its min and max, one channel per cell, x fastest: the direct volume's 3d grid
+ * texture, whose normals the shader computes from the filtered values (a quarter of the bytes of values with stored
+ * gradients, and faster for float data, where bandwidth dominates)
+ */
 export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | 'halfFloat' = 'byte') {
   const {
     cells,
@@ -406,68 +411,21 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
   const [width, height, depth] = cells.space.dimensions as Vec3;
   // offsets from strides, not `dataOffset` per cell (polymorphic, seven calls a cell)
   const { data, sx, sy, sz } = getStridedGrid(cells);
-
+  const count = width * height * depth;
   const array =
-    type === 'byte'
-      ? new Uint8Array(width * height * depth * 4)
-      : type === 'halfFloat'
-        ? new Uint16Array(width * height * depth * 4)
-        : new Float32Array(width * height * depth * 4);
-  const textureVolume = { array, width, height, depth };
+    type === 'byte' ? new Uint8Array(count) : type === 'halfFloat' ? new Uint16Array(count) : new Float32Array(count);
   const diff = max - min;
-  const byte = type === 'byte';
-  const half = type === 'halfFloat';
-
   let i = 0;
   for (let z = 0; z < depth; ++z) {
-    // the neighbors' offsets, clamped at the grid's faces
-    const zm = z > 0 ? -sz : 0;
-    const zp = z < depth - 1 ? sz : 0;
     for (let y = 0; y < height; ++y) {
-      const ym = y > 0 ? -sy : 0;
-      const yp = y < height - 1 ? sy : 0;
       let offset = z * sz + y * sy;
-      for (let x = 0; x < width; ++x, offset += sx, i += 4) {
-        const xm = x > 0 ? -sx : 0;
-        const xp = x < width - 1 ? sx : 0;
-
-        // the normal: the negated central differences, normalized (zero stays zero), mapped to [0, 1]
-        let nx = data[offset + xm] - data[offset + xp];
-        let ny = data[offset + ym] - data[offset + yp];
-        let nz = data[offset + zm] - data[offset + zp];
-        const len = nx * nx + ny * ny + nz * nz;
-        if (len > 0) {
-          const inv = 1 / Math.sqrt(len);
-          nx *= inv;
-          ny *= inv;
-          nz *= inv;
-        }
-        nx = nx * 0.5 + 0.5;
-        ny = ny * 0.5 + 0.5;
-        nz = nz * 0.5 + 0.5;
+      for (let x = 0; x < width; ++x, offset += sx, ++i) {
         const value = (data[offset] - min) / diff;
-
-        if (byte) {
-          array[i] = nx * 255;
-          array[i + 1] = ny * 255;
-          array[i + 2] = nz * 255;
-          array[i + 3] = Math.round(value * 255);
-        } else if (half) {
-          array[i] = toHalfFloat(nx);
-          array[i + 1] = toHalfFloat(ny);
-          array[i + 2] = toHalfFloat(nz);
-          array[i + 3] = toHalfFloat(value);
-        } else {
-          array[i] = nx;
-          array[i + 1] = ny;
-          array[i + 2] = nz;
-          array[i + 3] = value;
-        }
+        array[i] = type === 'byte' ? Math.round(value * 255) : type === 'halfFloat' ? toHalfFloat(value) : value;
       }
     }
   }
-
-  return textureVolume;
+  return { array, width, height, depth };
 }
 
 /**

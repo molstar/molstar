@@ -7,8 +7,8 @@
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
-import { getLayerTypeDefine, type LayerType } from './layer-type.js';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
 
 export type EmissiveType = LayerType;
 
@@ -76,10 +76,10 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
       dEmissive: ValueCell.create(count > 0),
       emissiveAverage: ValueCell.create(0),
 
-      tEmissiveGrid: ValueCell.create(createNullTexture()),
-      uEmissiveGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uEmissiveGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uEmissiveGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tEmissiveGrid: ValueCell.create(NoLayerGrid.texture),
+      uEmissiveGridDim: ValueCell.create(NoLayerGrid.dim),
+      uEmissiveGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uEmissiveGridTransform: ValueCell.create(NoLayerGrid.transform),
       emissiveType: ValueCell.create<string>(type),
       dEmissiveType: ValueCell.create(getLayerTypeDefine(type)),
       uEmissiveStrength: ValueCell.create(1),
@@ -98,10 +98,10 @@ export function createEmptyEmissive(emissiveData?: EmissiveData): EmissiveData {
       dEmissive: ValueCell.create(false),
       emissiveAverage: ValueCell.create(0),
 
-      tEmissiveGrid: ValueCell.create(createNullTexture()),
-      uEmissiveGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
-      uEmissiveGridTexDim: ValueCell.create(Vec2.create(1, 1)),
-      uEmissiveGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+      tEmissiveGrid: ValueCell.create(NoLayerGrid.texture),
+      uEmissiveGridDim: ValueCell.create(NoLayerGrid.dim),
+      uEmissiveGridTexDim: ValueCell.create(NoLayerGrid.texDim),
+      uEmissiveGridTransform: ValueCell.create(NoLayerGrid.transform),
       emissiveType: ValueCell.create<string>('groupInstance'),
       dEmissiveType: ValueCell.create(getLayerTypeDefine('groupInstance')),
       uEmissiveStrength: ValueCell.create(1),

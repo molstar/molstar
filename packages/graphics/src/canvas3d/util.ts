@@ -10,6 +10,8 @@ import type { Scene } from '@molstar/graphics/gl/scene';
 import type { Camera, ICamera } from './camera.js';
 import type { StereoCamera } from './camera/stereo.js';
 import type { Helper } from './helper/helper.js';
+import type { PassBuilder } from './passes/pass-builder.js';
+import type { OcclusionPyramid } from '@molstar/graphics/gl/compute/cell-cull';
 
 export type RenderContext<C extends ICamera | StereoCamera = Camera | StereoCamera> = {
   renderer: Renderer;
@@ -17,6 +19,12 @@ export type RenderContext<C extends ICamera | StereoCamera = Camera | StereoCame
   scene: Scene;
   helper: Helper;
   frame: Frame;
+  /**
+   * Builds the depth pyramid of the opaque depth drawn so far with the frame's camera, within the draw pass's builder:
+   * the second phase of GPU culling tests against it (`Renderer.prepareCullSecond`), none culls in one phase.
+   * `complete`: no draw of the depth skipped (else none is built)
+   */
+  occlusion?: (b: PassBuilder, camera: ICamera, complete: boolean) => OcclusionPyramid | undefined;
 };
 
 /**

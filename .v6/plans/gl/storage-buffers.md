@@ -3,7 +3,7 @@
 ## Status
 
 - **Current**: done, in part by other work. On WebGPU the index-addressed theme layers (tColor, tSize, tMarker, the
-  layers, tPositionGroup) are read from storage since [shared-draw-resources.md](shared-draw-resources.md) step 3.1:
+  layers, tPositionGroup, tCylinder, tLine, tText) are read from storage since [shared-draw-resources.md](shared-draw-resources.md) step 3.1:
   shared per-context data pages (`webgpu/data-layers.ts`, an item's layers in one range, word offsets in object
   uniforms, range uploads), generated `read_tX(i)` accessors (sizes as rgba8), not an arena per render object. GPU
   surfaces read a vertex arena ([gpu-surface-buffers.md](gpu-surface-buffers.md)), GPU culling writes instance data into

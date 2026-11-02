@@ -4,8 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+/**
+ * Wiggle (per position or group) and tumble (per instance) animations. Their noise only where an object animates
+ * (`dWiggleAnimation`, the wiggle layer `dWiggle`, `dTumbleAnimation`): inlined, it was about half of a pipeline's
+ * compile time
+ */
 export const common_animation = `
 vec3 applyWiggle(vec3 pos, float groupId, float instanceId) {
+    #if defined(dWiggleAnimation) || defined(dWiggle)
     if (!uEnableAnimation) return pos;
     float amplitude = uWiggleAmplitude;
     #ifdef dWiggle
@@ -31,16 +37,21 @@ vec3 applyWiggle(vec3 pos, float groupId, float instanceId) {
         pos.y += (fbm(vec3(s.x + 37.0, s.y, s.z + t)) / 0.4375 - 1.0) * amplitude;
         pos.z += (fbm(vec3(s.x + t, s.y + 73.0, s.z)) / 0.4375 - 1.0) * amplitude;
     }
+    #endif
     return pos;
 }
 
-mat4 applyTumble(mat4 transform, float instanceIndex, float objectId) {
+mat4 applyTumble(mat4 transform) {
+    #if defined(dTumbleAnimation)
     if (!uEnableAnimation) return transform;
     if (uTumbleAmplitude > 0.0 && uTumbleSpeed > 0.0 && uTumbleFrequency > 0.0) {
         // Scale amplitude inversely with bounding-sphere radius (Stokes-Einstein: D ~ 1/r)
         float amplitude = uTumbleAmplitude / max(InvariantBoundingSphere.w, 1.0);
         float t = uTime * uTumbleSpeed;
-        float seed = (instanceIndex * 127.1 + objectId * 311.7) * uTumbleFrequency;
+        // per instance and object: its bounding sphere's center placed by the instance's transform, not ids or
+        // indices, which differ by backend, merging and each rebuild
+        vec3 center = (transform * vec4(InvariantBoundingSphere.xyz, 1.0)).xyz;
+        float seed = fract(dot(center, vec3(0.0137, 0.0219, 0.0173))) * 311.7 * uTumbleFrequency;
 
         // Per-instance rotation angles from layered noise (Brownian-like)
         float angleX = (fbm(vec3(seed, t, 0.0)) / 0.4375 - 1.0) * amplitude;
@@ -79,6 +90,7 @@ mat4 applyTumble(mat4 transform, float instanceIndex, float objectId) {
 
         return result;
     }
+    #endif
     return transform;
 }
 `;

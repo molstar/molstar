@@ -22,8 +22,8 @@ export type VisualFactory<D, P extends PD.Params> =
 
 export interface SelectingVisualFactory<D, P extends PD.Params> {
   (materialId: number, data: D, props: PD.Values<P>, graphics?: GraphicsContext): Visual<D, P>;
-  /** the visuals `props` and `graphics` allow, before any data */
-  readonly signatureVisuals: (props: PD.Values<P>, graphics?: GraphicsContext) => Visual<D, P>[];
+  /** the visuals `props` and `graphics` allow, before any data; with `data`, those it selects */
+  readonly signatureVisuals: (props: PD.Values<P>, graphics?: GraphicsContext, data?: readonly D[]) => Visual<D, P>[];
 }
 
 /** The visual `factory` creates for `data` */
@@ -56,8 +56,10 @@ export function selectVisual<D, P extends PD.Params, K extends string>(
     return visual;
   };
   return Object.assign(factory, {
-    signatureVisuals: (props: PD.Values<P>, graphics?: GraphicsContext) =>
-      candidates(props, graphics).map((k) => variants[k](-1)),
+    signatureVisuals: (props: PD.Values<P>, graphics?: GraphicsContext, data?: readonly D[]) => {
+      const kinds = data ? new Set(data.map((d) => select(d, props, graphics))) : candidates(props, graphics);
+      return [...kinds].map((k) => variants[k](-1));
+    },
   });
 }
 
@@ -73,12 +75,16 @@ export function chooseVisual<D, P extends PD.Params, K extends string>(
   );
 }
 
-/** The signatures of the visuals `factory` may create with `props` in `ctx` */
+/**
+ * The signatures of the visuals `factory` may create with `props` in `ctx`; with `data` (what the visuals are made
+ * of), of those it creates for them
+ */
 export function getFactorySignatures<D, P extends PD.Params>(
   factory: VisualFactory<D, P>,
   props: PD.Values<P>,
   ctx: SignatureContext,
+  data?: readonly D[],
 ): ObjectSignature[] {
-  const visuals = 'signatureVisuals' in factory ? factory.signatureVisuals(props, ctx.graphics) : [factory(-1)];
+  const visuals = 'signatureVisuals' in factory ? factory.signatureVisuals(props, ctx.graphics, data) : [factory(-1)];
   return visuals.flatMap((v) => v.getSignatures?.(props, ctx) ?? []);
 }

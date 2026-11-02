@@ -11,6 +11,8 @@ import { isWebGPUContext, type WebGPUFeatures, type WebGPULimits } from '@molsta
 import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
 import { createWebGLBackend } from '@molstar/graphics/gl/webgl/backend';
+import type { GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { type Capabilities, type CapabilityReport, getCapabilities, getWebGLCapabilityReport } from './capabilities.js';
 
 /** Unported features throw, so that their cases are skipped instead of rendering without them */
@@ -23,9 +25,14 @@ export interface BackendProfile {
   create(size: { width: number; height: number }): Promise<BackendInstance | undefined>;
   /**
    * A context of the profile alone on `canvas` (its backend, options and masked extensions), nothing drawn or compiled
-   * with it yet (`create` builds a `Canvas3D` and an image pass on it); undefined where the profile can't be created
+   * with it yet (`create` builds a `Canvas3D` and an image pass on it); undefined where the profile can't be created.
+   * `onGraphics` is called with its graphics context before the context makes its passes (their programs compiled)
    */
-  createContext(canvas: HTMLCanvasElement, assetManager: AssetManager): Promise<Canvas3DContext | undefined>;
+  createContext(
+    canvas: HTMLCanvasElement,
+    assetManager: AssetManager,
+    onGraphics?: (graphics: GraphicsContext) => void,
+  ): Promise<Canvas3DContext | undefined>;
 }
 
 /** Renders through `Canvas3D` and `ImagePass` */
@@ -69,6 +76,22 @@ const ContextAttribs: WebGLContextAttributes = {
 };
 
 /** The context attributes of every profile (`BackendProfile.createContext`) */
+/** `backend` calling `onGraphics` with each context it creates, before `Canvas3DContext` makes its passes with it */
+function withOnGraphics(
+  backend: GraphicsBackendDescriptor,
+  onGraphics?: (graphics: GraphicsContext) => void,
+): GraphicsBackendDescriptor {
+  if (!onGraphics) return backend;
+  return {
+    ...backend,
+    create: async (canvas, attribs) => {
+      const graphics = await backend.create(canvas, attribs);
+      if (graphics) onGraphics(graphics);
+      return graphics;
+    },
+  };
+}
+
 const ContextOptions = {
   powerPreference: ContextAttribs.powerPreference,
   failIfMajorPerformanceCaveat: ContextAttribs.failIfMajorPerformanceCaveat,
@@ -158,9 +181,9 @@ function WebGLProfile(
     id,
     kind: 'webgl',
     description,
-    createContext: async (canvas, assetManager) => {
+    createContext: async (canvas, assetManager, onGraphics) => {
       if (!getMaskedContext(canvas, type, mask)) return undefined;
-      return Canvas3DContext.create(canvas, assetManager, [backend], ContextOptions, {
+      return Canvas3DContext.create(canvas, assetManager, [withOnGraphics(backend, onGraphics)], ContextOptions, {
         pixelScale: 1,
         resolutionMode: 'native',
       });
@@ -238,13 +261,19 @@ function WebGPUProfile(
     id,
     kind: 'webgpu',
     description,
-    createContext: async (canvas, assetManager) => {
+    createContext: async (canvas, assetManager, onGraphics) => {
       if (!backend.isAvailable()) return undefined;
       try {
-        return await Canvas3DContext.create(canvas, assetManager, [backend], ContextOptions, {
-          pixelScale: 1,
-          resolutionMode: 'native',
-        });
+        return await Canvas3DContext.create(
+          canvas,
+          assetManager,
+          [withOnGraphics(backend, onGraphics)],
+          ContextOptions,
+          {
+            pixelScale: 1,
+            resolutionMode: 'native',
+          },
+        );
       } catch {
         return undefined;
       }

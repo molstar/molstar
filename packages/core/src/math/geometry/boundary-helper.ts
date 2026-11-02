@@ -56,8 +56,11 @@ export class BoundaryHelper {
 
   includeSphere(s: Sphere3D) {
     if (Sphere3D.hasExtrema(s) && s.extrema.length > 1) {
-      for (const e of s.extrema) {
-        this.includePosition(e);
+      const r = Sphere3D.getExtremaRadius(s);
+      if (r > 0) {
+        for (const e of s.extrema) this.includePositionRadius(e, r);
+      } else {
+        for (const e of s.extrema) this.includePosition(e);
       }
     } else {
       this.includePositionRadius(s.center, s.radius);
@@ -120,8 +123,11 @@ export class BoundaryHelper {
 
   radiusSphere(s: Sphere3D) {
     if (Sphere3D.hasExtrema(s) && s.extrema.length > 1) {
-      for (const e of s.extrema) {
-        this.radiusPosition(e);
+      const r = Sphere3D.getExtremaRadius(s);
+      if (r > 0) {
+        for (const e of s.extrema) this.radiusPositionRadius(e, r);
+      } else {
+        for (const e of s.extrema) this.radiusPosition(e);
       }
     } else {
       this.radiusPositionRadius(s.center, s.radius);
@@ -137,7 +143,7 @@ export class BoundaryHelper {
   }
 
   getSphere(sphere?: Sphere3D) {
-    return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), this.extrema.slice());
+    return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), getDistinct(this.extrema));
   }
 
   getBox(box?: Box3D) {
@@ -162,6 +168,28 @@ export class BoundaryHelper {
     this.dirLength = this.dir.length;
     this.reset();
   }
+}
+
+/**
+ * The distinct points of `points` (exact equality), in their order: a point extreme in several directions is kept once,
+ * so that a sphere keeps no more extrema than the points it bounds
+ */
+function getDistinct(points: Vec3[]): Vec3[] {
+  const n = points.length;
+  // by x (a stable sort: equal points in their order), equal points are among the neighbors of equal x
+  const order = points.map((_, i) => i).sort((i, j) => points[i][0] - points[j][0]);
+  const keep = new Uint8Array(n).fill(1);
+  for (let i = 0; i < n; ++i) {
+    const a = points[order[i]];
+    for (let j = i + 1; j < n; ++j) {
+      const b = points[order[j]];
+      if (b[0] !== a[0]) break;
+      if (keep[order[j]] && b[1] === a[1] && b[2] === a[2]) keep[order[j]] = 0;
+    }
+  }
+  const out: Vec3[] = [];
+  for (let i = 0; i < n; ++i) if (keep[i]) out.push(points[i]);
+  return out;
 }
 
 type EposQuality = '6' | '14' | '26' | '98';

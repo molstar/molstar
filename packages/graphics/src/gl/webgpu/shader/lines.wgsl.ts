@@ -39,7 +39,11 @@ ${segment_wgsl}
 ${clip_functions_wgsl}
 ${packing_wgsl}
 
-${vertex_output_wgsl('')}
+${vertex_output_wgsl(`#if defined(dClipVariant_pixel) && defined(dClipObjects)
+    // 1 where the clip objects may cut the line (\`clipSphereClass\` of its bounding sphere): its clip tests skipped
+    // if 0
+    @location(9) @interpolate(flat) vClipSome: u32,
+#endif`)}
 ${fragment_output_wgsl()}
 
 /**
@@ -61,16 +65,33 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     let viewport = uGlobal.uViewport;
     let aspect = viewport.z / viewport.w;
 
-    let vertexId = i32(in.vertexIndex);
-    let group = in.aGroup;
+    // the line of the vertex (2 texels of \`tLine\`) and its corner (4 vertices per line: left and right of the start,
+    // then of the end)
+    let item = i32(in.vertexIndex) / 4;
+    let corner = i32(in.vertexIndex) - item * 4;
+    // the data vertex ('vertex' color, size): the start for the corners at the start, else the end
+    let vertexId = item * 2 + select(1, 0, corner < 2);
+    let lineStart = read_tLine(item * 2); // start xyz, group
+    let lineEnd = read_tLine(item * 2 + 1); // end xyz, whether the line continues the one before
+    let group = lineStart.w;
+    // -1 or 1: left or right, start or end
+    var mapping = vec2<f32>(select(1.0, -1.0, corner == 0 || corner == 2), select(1.0, -1.0, corner < 2));
+    var segmentStart = lineStart.xyz;
+    var segmentEnd = lineEnd.xyz;
+    // the start corners of a line continuing the one before (strips): that line's end corners, across it
+    if (lineEnd.w > 0.5 && mapping.y < 0.0) {
+        segmentEnd = lineStart.xyz;
+        segmentStart = read_tLine(item * 2 - 2).xyz;
+        mapping.y = 1.0;
+    }
     ${assign_varyings_wgsl}
     ${assign_size_wgsl}
 
-    let aTransform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
-    let transform = applyTumble(aTransform, in.aInstance, f32(uObject.uObjectId), invariantBoundingSphere(in));
+    let aTransform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
+    let transform = applyTumble(aTransform, invariantBoundingSphere(in));
     ${assign_wiggle_wgsl}
-    let wigStart = applyWiggle(in.aStart, group, wiggle);
-    let wigEnd = applyWiggle(in.aEnd, group, wiggle);
+    let wigStart = applyWiggle(segmentStart, group, wiggle);
+    let wigEnd = applyWiggle(segmentEnd, group, wiggle);
     let modelView = uGlobal.uView * uGlobal.uModel * transform;
 
     // camera space
@@ -78,7 +99,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     var end = modelView * vec4<f32>(wigEnd, 1.0);
 
     // assign position
-    let isStart = in.aMapping.y < 0.5;
+    let isStart = mapping.y < 0.5;
     let position4 = vec4<f32>(select(wigEnd, wigStart, isStart), 1.0);
     out.vViewPosition = select(end.xyz, start.xyz, isStart);
     out.vModelPosition = (uGlobal.uModel * transform * position4).xyz;
@@ -111,7 +132,7 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     offset.x /= aspect;
 
     // sign flip
-    if (in.aMapping.x < 0.0) {
+    if (mapping.x < 0.0) {
         offset *= -1.0;
     }
 
@@ -132,6 +153,18 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
     offset *= clip.w;
     clip = vec4<f32>(clip.xy + offset, clip.zw);
     out.position = clip;
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        // pixel clipping by the bounding sphere of the item's line (not the segment of a strip's start corners, which
+        // continue the line before): a line clipped whole moved out of [0, w], one not cut not tested per fragment
+        let modelTransform = uGlobal.uModel * transform;
+        let lineA = (modelTransform * vec4<f32>(applyWiggle(lineStart.xyz, group, wiggle), 1.0)).xyz;
+        let lineB = (modelTransform * vec4<f32>(applyWiggle(lineEnd.xyz, group, wiggle), 1.0)).xyz;
+        let clipClass = clipSphereClass((lineA + lineB) * 0.5 / uGlobal.uModelScale, length(lineB - lineA) * 0.5 / uGlobal.uModelScale, clipFlag);
+        if (clipClass == 2u) {
+            out.position.z = 2.0 * out.position.w;
+        }
+        out.vClipSome = select(0u, 1u, clipClass == 1u);
+    #endif
     ${clip_instance_wgsl}
     return out;
 }
@@ -139,12 +172,16 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
 @fragment
 fn fragmentMain(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
-    ${clip_flag_wgsl('in.vClipping')}
+    ${clip_flag_wgsl('in.vMarkerClipping.y')}
 
     if (fadeLod(in.position, in.vModelPosition)) {
         discard;
     }
-    ${clip_pixel_wgsl('in.vModelPosition')}
+    #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        if (in.vClipSome != 0u) {
+            ${clip_pixel_wgsl('in.vModelPosition')}
+        }
+    #endif
 
     let fragmentDepth = in.position.z;
     let interior = false;

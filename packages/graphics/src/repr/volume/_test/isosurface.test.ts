@@ -2,9 +2,11 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
+import { perVertexLines } from '../../../geo/geometry/_test/item-vertices.js';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { type Grid, Volume } from '@molstar/model/model/volume';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
@@ -82,8 +84,7 @@ describe('volume isosurface', () => {
       const lines = await createVolumeIsosurfaceWireframe(ctx, volume, 0, undefined as any, props(floodfill));
       // each line has 4 vertices with its start and end and one group
       const { lineCount } = lines;
-      const starts = lines.startBuffer.ref.value;
-      const groups = lines.groupBuffer.ref.value;
+      const { start: starts, group: groups } = perVertexLines(lines.lineData.ref.value.array, lineCount);
       const { dataOffset } = volume.grid.cells.space;
       expect(lineCount).toBeGreaterThan(0);
       for (let l = 0; l < lineCount; l++) {

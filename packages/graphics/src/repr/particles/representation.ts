@@ -187,7 +187,8 @@ export function ParticleRepresentation<P extends ParticleParams>(
       graphics = value;
     },
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
-      getQualitySignatures(props, (props) => getFactorySignatures(visualCtor, props, ctx)),
+      // with the particles: 'auto' quality by their count
+      getQualitySignatures(props, (props) => getFactorySignatures(visualCtor, props, ctx), ctx.data),
     destroy,
   };
 }

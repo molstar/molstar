@@ -7,6 +7,7 @@
 
 import type { ValueCell } from '@molstar/core/util';
 import { idFactory } from '@molstar/core/util/id-factory';
+import { BoxItems, type ItemIndexPattern, LineItems, QuadItems } from './quad-indices.js';
 
 export type DefineKind = 'boolean' | 'string' | 'number';
 export type DefineType = boolean | string;
@@ -45,19 +46,19 @@ export interface ShaderCode {
   readonly extensions: ShaderExtensions;
   readonly ignoreDefine?: IgnoreDefine;
   /**
-   * Whether the items are quads of six vertex ids without elements (`QuadIndicesPerItem`): drawn indexed by the
-   * context's shared quad indices (`quad-indices.ts`)
+   * The pattern of items of six vertex ids without elements (quads, boxes): drawn indexed by the context's shared
+   * indices of the pattern (`quad-indices.ts`)
    */
-  readonly quads?: boolean;
+  readonly itemIndices?: ItemIndexPattern;
 }
 
 export function ShaderCode(
   name: string,
   extensions: ShaderExtensions = {},
   ignoreDefine?: IgnoreDefine,
-  quads?: boolean,
+  itemIndices?: ItemIndexPattern,
 ): ShaderCode {
-  return { id: shaderCodeId(), name, extensions, ignoreDefine, quads };
+  return { id: shaderCodeId(), name, extensions, ignoreDefine, itemIndices };
 }
 
 // Note: `drawBuffers` need to be 'optional' for wboit
@@ -88,20 +89,26 @@ function ignoreDefineUnlit(name: string, variant: string, defines: ShaderDefines
   return ignoreDefine(name, variant, defines);
 }
 
-export const PointsShaderCode = ShaderCode('points', { drawBuffers: 'optional' }, ignoreDefineUnlit, true);
+export const PointsShaderCode = ShaderCode('points', { drawBuffers: 'optional' }, ignoreDefineUnlit, QuadItems);
 export const SpheresShaderCode = ShaderCode(
   'spheres',
   { fragDepth: 'required', drawBuffers: 'optional' },
   ignoreDefine,
-  true,
+  QuadItems,
 );
 export const CylindersShaderCode = ShaderCode(
   'cylinders',
   { fragDepth: 'required', drawBuffers: 'optional' },
   ignoreDefine,
+  BoxItems,
 );
-export const TextShaderCode = ShaderCode('text', { fragDepth: 'optional', drawBuffers: 'optional' }, ignoreDefineUnlit);
-export const LinesShaderCode = ShaderCode('lines', { drawBuffers: 'optional' }, ignoreDefineUnlit);
+export const TextShaderCode = ShaderCode(
+  'text',
+  { fragDepth: 'optional', drawBuffers: 'optional' },
+  ignoreDefineUnlit,
+  LineItems,
+);
+export const LinesShaderCode = ShaderCode('lines', { drawBuffers: 'optional' }, ignoreDefineUnlit, LineItems);
 export const MeshShaderCode = ShaderCode('mesh', { fragDepth: 'optional', drawBuffers: 'optional' }, ignoreDefine);
 export const DirectVolumeShaderCode = ShaderCode(
   'direct-volume',

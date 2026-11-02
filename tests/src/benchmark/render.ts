@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { StereoCameraParams } from '@molstar/graphics/canvas3d/camera/stereo';
 import { Canvas3D, Canvas3DContext, Canvas3DParams, type Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { PostprocessingParams } from '@molstar/graphics/canvas3d/passes/postprocessing';
 import { IlluminationParams } from '@molstar/graphics/canvas3d/passes/illumination';
@@ -14,15 +15,19 @@ import { Interval } from '@molstar/core/data/int/interval';
 import { Color } from '@molstar/core/util/color';
 import { StructureElement } from '@molstar/model/model/structure';
 import { Theme } from '@molstar/graphics/theme/theme';
+import { ParticleSizeThemeProvider } from '@molstar/graphics/theme/size/particle-size';
 import { getThemeRegistries } from '../visual/scenes/structure.js';
 import type { Representation, RepresentationProvider } from '@molstar/graphics/repr/representation';
 import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
+import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
 import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
+import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
+import type { ValueCell } from '@molstar/core/util/value-cell';
 import { Renderer } from '@molstar/graphics/gl/renderer';
 import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
 import { type GraphicsRenderObject, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
@@ -43,12 +48,12 @@ import { ParticleTargetRepresentationParams } from '@molstar/graphics/repr/parti
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { setQuadIndexing } from '@molstar/graphics/gl/quad-indices';
 import { meshBox, shapeRepr } from '../visual/scenes/primitives.js';
-import { atomStructure, structureRepr } from '../visual/scenes/structure.js';
-import { type BenchmarkCase, BenchmarkEnv, type PathRun, waitForGpu } from './framework.js';
-import { exampleStructure, globuleStructure } from './structures.js';
+import { structureRepr } from '../visual/scenes/structure.js';
+import { type BenchmarkCase, BenchmarkEnv, collectedHeap, type PathRun, waitForGpu } from './framework.js';
+import { chainGrid, exampleStructure, globuleStructure } from './structures.js';
 
 /** Drawing buffer of the render cases, at pixel scale 1 */
-const Size = { width: 1280, height: 720 };
+export const Size = { width: 1280, height: 720 };
 /** Camera rotation per frame of rotating cases, about the camera's up axis */
 const RotationStep = (2 * Math.PI) / 180;
 
@@ -58,10 +63,19 @@ const Frames = 30;
 export type RenderInput = {
   readonly scene: (graphics: GraphicsContext) => Promise<Representation.Any[]>;
   readonly props?: Partial<Canvas3DProps>;
+  /**
+   * multi-sampling `on` (every sample a frame, the samples views of the same culled frame), off by default: progressive
+   * multi-sampling would make frames differ
+   */
+  readonly multiSample?: boolean;
   /** the context's transparency mode (`Canvas3DContext.Props`), the default restored with the scene's disposal */
   readonly transparency?: Canvas3DContext.Props['transparency'];
   /** rotates the camera by `RotationStep` per frame, as an interactive rotation (culling and globals change) */
   readonly rotate?: boolean;
+  /** the rotation per frame in degrees with `rotate` (default `RotationStep`'s 2) */
+  readonly rotateDegrees?: number;
+  /** moves the camera towards the target by this fraction of its distance per frame, from the `zoom` of the case */
+  readonly dolly?: number;
   /**
    * yields to the event loop after each frame (a task, as an app's frames do): readbacks complete only then (Hi-Z's;
    * WebGL's fences signal between tasks), the frames in one task would never see them; counted in `wait`
@@ -71,6 +85,11 @@ export type RenderInput = {
   readonly size?: { readonly width: number; readonly height: number };
   /** moves the camera towards the target, to this fraction of its distance, after the reset */
   readonly zoom?: number;
+  /**
+   * the camera's radius (what near and far fit) as this fraction of its radius after the reset: below 1 the near plane
+   * cuts the scene's front (solid-interior caps)
+   */
+  readonly cameraRadius?: number;
   /** false: the scene's quads (spheres, points) drawn unindexed (`setQuadIndexing`), for comparisons */
   readonly quadIndexing?: boolean;
   /** everything highlighted: the marking passes drawn per frame besides the scene's */
@@ -151,6 +170,12 @@ type SceneSetup = {
   bytes?: ResourceByteCounts;
   /** the CPU bytes of the render objects' values after the first frame */
   cpuBytes?: CpuBytes;
+  /** the JS heap before the scene was created (collected, `collectedHeap`) */
+  readonly heapBefore?: number;
+  /** the JS heap the scene retains after its first frame: its representations, render objects and their resources */
+  heapBytes?: number;
+  /** the notes of `getRasterSplitNotes` */
+  rasterSplit?: string[];
 };
 
 type ByteKinds = { geometry: number; instances: number; layers: number };
@@ -158,6 +183,8 @@ type ByteKinds = { geometry: number; instances: number; layers: number };
 type CpuBytes = { objects: ByteKinds; merged: ByteKinds };
 
 const InstanceKeys = /^(aTransform|aInstance|aSegment|instanceGrid)/;
+/** the items' data of spheres, points, cylinders, lines and text: geometry, though data arrays (`t…`) */
+const ItemGeometryKeys = /^(tPositionGroup|tCylinder|tLine|tText)$/;
 
 /**
  * The CPU bytes of render objects' values, each `ArrayBuffer` counted once: theme layers (`t*`, data texture images),
@@ -174,7 +201,8 @@ function getCpuBytes(reprs: readonly Representation.Any[]): CpuBytes {
       const array = ArrayBuffer.isView(v) ? v : ArrayBuffer.isView(v?.array) ? v.array : undefined;
       if (!array || seen.has(array.buffer)) continue;
       seen.add(array.buffer);
-      const kind = k.startsWith('t') ? 'layers' : InstanceKeys.test(k) ? 'instances' : 'geometry';
+      const kind =
+        k.startsWith('t') && !ItemGeometryKeys.test(k) ? 'layers' : InstanceKeys.test(k) ? 'instances' : 'geometry';
       into[kind] += array.buffer.byteLength;
     }
   };
@@ -192,7 +220,7 @@ function getCpuBytes(reprs: readonly Representation.Any[]): CpuBytes {
 /** The scene of the case rendered last, kept across its runs */
 let current: { id: string; canvas3d: Canvas3D; reprs: Representation.Any[]; setup: SceneSetup } | undefined;
 
-async function getScene(id: string, graphics: GraphicsContext, input: RenderInput) {
+export async function getScene(id: string, graphics: GraphicsContext, input: RenderInput) {
   if (current?.id === id) return current.canvas3d;
   disposeScene();
 
@@ -215,12 +243,13 @@ async function getScene(id: string, graphics: GraphicsContext, input: RenderInpu
         ...(BenchmarkEnv.drawLists !== undefined
           ? { renderer: { ...(input.props?.renderer ?? DrawLists.renderer!), drawLists: BenchmarkEnv.drawLists } }
           : {}),
-        multiSample: { ...PD.getDefaultValues(Canvas3DParams).multiSample, mode: 'off' },
+        multiSample: { ...PD.getDefaultValues(Canvas3DParams).multiSample, mode: input.multiSample ? 'on' : 'off' },
       },
       { warmUp: false },
     );
   const canvas3d = input.bundles?.record ? withBundleRecording(graphics, create) : create();
   canvas3d.handleResize();
+  const heapBefore = collectedHeap();
   const t0 = performance.now();
   const reprs = await input.scene(graphics);
   const t1 = performance.now();
@@ -236,11 +265,15 @@ async function getScene(id: string, graphics: GraphicsContext, input: RenderInpu
   if (input.highlight) canvas3d.mark({ loci: { kind: 'every-loci' } }, MarkerAction.Highlight);
   canvas3d.requestCameraReset({ durationMs: 0 });
   canvas3d.tick(now(), { isSynchronous: true });
-  const setup: SceneSetup = { reprsMs: t1 - t0, commitMs: t2 - t1 };
+  const setup: SceneSetup = { reprsMs: t1 - t0, commitMs: t2 - t1, heapBefore };
   if (input.zoom) {
     const { position, target } = canvas3d.camera.getSnapshot();
     const offset = Vec3.scale(Vec3(), Vec3.sub(Vec3(), position, target), input.zoom);
     canvas3d.camera.setState({ position: Vec3.add(Vec3(), target, offset) }, 0);
+    canvas3d.tick(now(), { isSynchronous: true });
+  }
+  if (input.cameraRadius) {
+    canvas3d.camera.setState({ radius: canvas3d.camera.getSnapshot().radius * input.cameraRadius }, 0);
     canvas3d.tick(now(), { isSynchronous: true });
   }
   current = { id, canvas3d, reprs, setup };
@@ -270,7 +303,7 @@ function resetDrawCalls(graphics: GraphicsContext) {
  * and the rest of the time until the GPU completed all (`wait`); their sum is the frame time at full throughput (CPU and
  * GPU overlap, the wait for the last frame is spread over all)
  */
-async function renderFrames(id: string, graphics: GraphicsContext, input: RenderInput): Promise<PathRun> {
+export async function renderFrames(id: string, graphics: GraphicsContext, input: RenderInput): Promise<PathRun> {
   const canvas3d = await getScene(id, graphics, input);
   if (input.update && current) {
     // an update first, outside the timing: the programs it needs (a color type, a marker type) compiled, as after any
@@ -293,15 +326,23 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
     }
   }
   const first = performance.now();
-  // pipelines compiling in the background (WebGPU) would skip draws
-  await graphics.resources.pending.whenReady();
-  canvas3d.requestDraw();
-  canvas3d.tick(now(), { isSynchronous: true });
-  await waitForGpu(graphics);
+  // the first frame that draws everything: programs (WebGL) and pipelines (WebGPU) compiling in the background skip
+  // draws, and a frame links what it needs first (`whenReady` waits only for what is compiling already)
+  for (let k = 0; k < 200; ++k) {
+    await graphics.resources.pending.whenReady();
+    const skipped = graphics.stats.skippedDraws;
+    canvas3d.requestDraw();
+    canvas3d.tick(now(), { isSynchronous: true });
+    await waitForGpu(graphics);
+    if (graphics.stats.skippedDraws === skipped) break;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
   if (current && current.setup.firstFrameMs === undefined) {
     current.setup.firstFrameMs = performance.now() - first;
     current.setup.bytes = { ...graphics.resources.getByteCounts() };
     current.setup.cpuBytes = getCpuBytes(current.reprs);
+    const heap = current.setup.heapBefore === undefined ? undefined : collectedHeap();
+    if (heap !== undefined) current.setup.heapBytes = heap - current.setup.heapBefore!;
   }
 
   let submit = 0;
@@ -325,7 +366,8 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
   const start = performance.now();
   try {
     for (let i = 0; i < Frames; ++i) {
-      if (input.rotate) rotateCamera(canvas3d);
+      if (input.rotate) rotateCamera(canvas3d, input.rotateDegrees);
+      if (input.dolly) dollyCamera(canvas3d, input.dolly, i);
       if (input.sweep && current) sweepHighlight(canvas3d, current.reprs, i);
       if (input.update && current) {
         const tu = performance.now();
@@ -363,11 +405,11 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
       `setup: representations ${reprsMs.toFixed(0)} ms, add and commit ${commitMs.toFixed(0)} ms, first frame ${firstFrameMs?.toFixed(0)} ms`,
     );
   }
-  if (input.byteNotes && current?.setup.bytes) {
+  if ((input.byteNotes || BenchmarkEnv.byteNotes) && current?.setup.bytes) {
     const b = current.setup.bytes;
     const mb = (n: number) => (n / 1048576).toFixed(1);
     notes.push(
-      `GPU bytes: attributes ${mb(b.attribute)} MB, elements ${mb(b.elements)} MB, textures ${mb(b.texture)} MB, uniforms ${mb(b.uniform)} MB`,
+      `GPU bytes: attributes ${mb(b.attribute)} MB, elements ${mb(b.elements)} MB, textures ${mb(b.texture)} MB, uniforms ${mb(b.uniform)} MB, storage ${mb(b.storageBuffer ?? 0)} MB`,
     );
     const c = current.setup.cpuBytes;
     if (c) {
@@ -375,6 +417,8 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
         `geometry ${mb(k.geometry)}, instances ${mb(k.instances)}, layers ${mb(k.layers)}`;
       notes.push(`CPU bytes: objects ${kinds(c.objects)} MB; merged copies ${kinds(c.merged)} MB`);
     }
+    const heap = current.setup.heapBytes;
+    if (heap !== undefined) notes.push(`JS heap retained by the scene: ${mb(heap)} MB`);
   }
   // draws of objects whose pipelines were not ready (WebGPU): frames that did less than the case measures
   const skipped = graphics.stats.skippedDraws - skippedBefore;
@@ -384,6 +428,11 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
     notes.push(
       `draw lists: replayed ${drawLists.replayed} (unplanned ${drawLists.unplanned}, flushed ${drawLists.flushed}), recorded ${drawLists.recorded} (${drawLists.chunksRecorded} chunks), ${drawLists.chunksDirect} chunks drawn directly`,
     );
+  }
+  // the replay walks spheres in JS: once per scene, and not without a raster (every sphere of the scene to walk)
+  if (BenchmarkEnv.rasterSplitNotes && current && input.props?.renderer?.sphereRaster !== 'off') {
+    current.setup.rasterSplit ??= getRasterSplitNotes(canvas3d, current.reprs, input);
+    notes.push(...current.setup.rasterSplit);
   }
   if (input.bundles?.record) notes.push(`opaque pass recorded ${bundleStats.recorded}, failed ${bundleStats.failed}`);
   if (input.bundles?.visibility) {
@@ -397,7 +446,8 @@ async function renderFrames(id: string, graphics: GraphicsContext, input: Render
   if (BenchmarkEnv.images && BenchmarkEnv.context?.canvas) {
     // a frame of its own, read in the task that drew it (before the canvas is presented and cleared); rotating cases
     // turned on as in their frames (what lags behind the view shows)
-    if (input.rotate) rotateCamera(canvas3d);
+    if (input.rotate) rotateCamera(canvas3d, input.rotateDegrees);
+    if (input.dolly) dollyCamera(canvas3d, input.dolly, Frames);
     canvas3d.requestDraw();
     canvas3d.tick(now(), { isSynchronous: true });
     BenchmarkEnv.images[id] = BenchmarkEnv.context.canvas.toDataURL('image/png');
@@ -441,6 +491,102 @@ async function getGpuPasses(graphics: GraphicsContext) {
   return avgs;
 }
 
+/**
+ * The sphere raster's split per instance (`rasterized` in `cell-cull.wgsl.ts`) replayed on the CPU for the merged sphere
+ * objects of the scene (`--raster-split-notes`): of their instances in view, those the raster draws and those sent to
+ * the impostors, through the near plane or too large at their nearest point; of the latter's spheres in view, those
+ * through the near plane, too large, and those the raster could draw one by one. Every sphere at its member's largest
+ * radius (`padding`, as the split); no occlusion, no levels (the instances near the camera are at the finest)
+ */
+function getRasterSplitNotes(canvas3d: Canvas3D, reprs: readonly Representation.Any[], input: RenderInput): string[] {
+  const { camera } = canvas3d;
+  const { width, height } = input.size ?? Size;
+  const P = camera.projection;
+  const scale = Math.max(P[0] * width, P[5] * height) / 2;
+  const limit = input.props?.renderer?.sphereRaster === 'off' ? 0 : (input.props?.renderer?.sphereRasterRadius ?? 24);
+  const near = camera.near;
+  const view = camera.view;
+  const frustum = Frustum3D.fromProjectionMatrix(Frustum3D(), camera.projectionView);
+  // the view-space depth (the distance from the camera plane) of the point at `o` in `a`
+  const depth = (a: ArrayLike<number>, o: number, t: Float32Array, to: number) => {
+    const x = a[o];
+    const y = a[o + 1];
+    const z = a[o + 2];
+    const wx = t[to] * x + t[to + 4] * y + t[to + 8] * z + t[to + 12];
+    const wy = t[to + 1] * x + t[to + 5] * y + t[to + 9] * z + t[to + 13];
+    const wz = t[to + 2] * x + t[to + 6] * y + t[to + 10] * z + t[to + 14];
+    s.center[0] = wx;
+    s.center[1] = wy;
+    s.center[2] = wz;
+    return -(view[2] * wx + view[6] * wy + view[10] * wz + view[14]);
+  };
+  const s = Sphere3D();
+  const rasterizes = (d: number, r: number) =>
+    d - r > near && r * scale <= limit * Math.sqrt(Math.max(d * d - r * r, 0));
+  const c = {
+    raster: 0,
+    rasterSpheres: 0,
+    near: 0,
+    large: 0,
+    spheres: 0,
+    spheresNear: 0,
+    spheresLarge: 0,
+    split: 0,
+    area: 0,
+  };
+  for (const repr of reprs) {
+    for (const o of repr.renderObjects) {
+      if (!isMergedRenderObject(o) || o.type !== 'spheres') continue;
+      for (const m of o.members) {
+        const v = m.values as unknown as {
+          invariantBoundingSphere: ValueCell<Sphere3D>;
+          padding: ValueCell<number>;
+          aTransform: ValueCell<Float32Array>;
+          instanceCount: ValueCell<number>;
+          uVertexCount: ValueCell<number>;
+          tPositionGroup: ValueCell<{ array: Float32Array }>;
+        };
+        const inv = v.invariantBoundingSphere.ref.value;
+        const pad = v.padding.ref.value;
+        const t = v.aTransform.ref.value;
+        const count = v.uVertexCount.ref.value;
+        const positions = v.tPositionGroup.ref.value.array;
+        for (let i = 0, il = v.instanceCount.ref.value; i < il; ++i) {
+          const d = depth(inv.center, 0, t, i * 16) - inv.radius;
+          s.radius = inv.radius;
+          if (!Frustum3D.intersectsSphere3D(frustum, s)) continue;
+          // the instance's nearest point, its largest sphere there (as the split)
+          if (rasterizes(d, pad)) {
+            c.raster += 1;
+            c.rasterSpheres += count;
+            continue;
+          }
+          if (d - pad <= near) c.near += 1;
+          else c.large += 1;
+          s.radius = pad;
+          for (let k = 0; k < count; ++k) {
+            const ds = depth(positions, k * 4, t, i * 16);
+            if (!Frustum3D.intersectsSphere3D(frustum, s)) continue;
+            c.spheres += 1;
+            if (ds - pad <= near * 1.001) c.spheresNear += 1;
+            else if (!rasterizes(ds, pad)) c.spheresLarge += 1;
+            else c.split += 1;
+            // the screen area of its disc (the tangents' radius), at most the viewport's
+            if (ds - pad > near) {
+              const px = (pad * scale) / Math.sqrt(Math.max(ds * ds - pad * pad, 1e-6));
+              c.area += Math.min(Math.PI * px * px, width * height);
+            }
+          }
+        }
+      }
+    }
+  }
+  const k = (n: number) => (n >= 1e4 ? `${(n / 1e3).toFixed(0)}k` : `${n}`);
+  return [
+    `raster split (CPU, ${limit} px, no occlusion): instances in view to the raster ${k(c.raster)} (${k(c.rasterSpheres)} spheres), to the impostors ${k(c.near + c.large)} (through near ${k(c.near)}, too large ${k(c.large)}); their spheres in view ${k(c.spheres)}: through near ${k(c.spheresNear)}, too large ${k(c.spheresLarge)}, each rasterizable ${k(c.split)}; their discs ${(c.area / (width * height)).toFixed(1)}× the viewport`,
+  ];
+}
+
 /** the highlight of frame `i` of a sweep (`RenderInput.sweep`): representations far apart in turn */
 function sweepHighlight(canvas3d: Canvas3D, reprs: readonly Representation.Any[], i: number) {
   const at = (k: number) => reprs[(k * 7919) % reprs.length];
@@ -460,9 +606,19 @@ function nextTask() {
   });
 }
 
-function rotateCamera(canvas3d: Canvas3D) {
+/** the camera's offset from the target when a dolly started, per canvas: frame `i` of a run is at the same place in each */
+const dollyStart = new WeakMap<Canvas3D, Vec3>();
+function dollyCamera(canvas3d: Canvas3D, step: number, i: number) {
+  const { position, target } = canvas3d.camera.getSnapshot();
+  let start = dollyStart.get(canvas3d);
+  if (!start) dollyStart.set(canvas3d, (start = Vec3.sub(Vec3(), position, target)));
+  const offset = Vec3.scale(Vec3(), start, (1 - step) ** i);
+  canvas3d.camera.setState({ position: Vec3.add(Vec3(), target, offset) }, 0);
+}
+
+export function rotateCamera(canvas3d: Canvas3D, degrees?: number) {
   const { position, target, up } = canvas3d.camera.getSnapshot();
-  const rotation = Mat4.fromRotation(Mat4(), RotationStep, up);
+  const rotation = Mat4.fromRotation(Mat4(), degrees === undefined ? RotationStep : (degrees * Math.PI) / 180, up);
   const offset = Vec3.transformMat4(Vec3(), Vec3.sub(Vec3(), position, target), rotation);
   canvas3d.camera.setState({ position: Vec3.add(Vec3(), target, offset) }, 0);
 }
@@ -489,27 +645,6 @@ export function renderCase(
 
 let structure: Promise<Structure> | undefined;
 export const getStructure = () => (structure ??= exampleStructure('7qpd.fw2.cif'));
-/** `count` chains of 10 atoms on a grid: a unit each, the visuals of one representation share its material */
-function chainGrid(count: number) {
-  const atoms = 10;
-  const n = Math.ceil(Math.sqrt(count));
-  const x = new Float32Array(count * atoms);
-  const y = new Float32Array(count * atoms);
-  const z = new Float32Array(count * atoms);
-  const chainOf = new Int32Array(count * atoms);
-  for (let c = 0; c < count; ++c) {
-    for (let a = 0; a < atoms; ++a) {
-      const i = c * atoms + a;
-      x[i] = (c % n) * 8 + a * 0.5;
-      y[i] = Math.floor(c / n) * 8;
-      z[i] = (a % 2) * 1.5;
-      chainOf[i] = c;
-    }
-  }
-  const chains = Array.from({ length: count }, (_, c) => `C${c}`);
-  return atomStructure('chain-grid', x, y, z, chains, chainOf);
-}
-
 /**
  * 60 copies of 7qpd on a ring of radius 150 Å (\`Structure.instances\`): the copies of a unit share its model and
  * elements, so each unit is drawn instanced, as the units of an assembly
@@ -534,7 +669,7 @@ const getRootAssembly = () => (rootAssembly ??= getAssembly().then((a) => Struct
 
 let globule: Promise<Structure> | undefined;
 /** 300k atoms: fragment and vertex work */
-const getGlobule = () => (globule ??= globuleStructure(300_000));
+export const getGlobule = () => (globule ??= globuleStructure(300_000));
 
 export const RenderCases: BenchmarkCase<any>[] = [
   renderCase(
@@ -998,7 +1133,7 @@ export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [true, false].flat
 
 const rootEntries = new Map<string, Promise<Structure>>();
 /** A binary CIF file from the repository root (not checked in), its first model */
-const getRootEntry = (file: string) => {
+export const getRootEntry = (file: string) => {
   let entry = rootEntries.get(file);
   if (!entry) {
     entry = (async () => {
@@ -1034,6 +1169,7 @@ export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
           return {
             size,
             setupNotes: true,
+            byteNotes: true,
             scene: (g) =>
               Promise.all([
                 structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged, tryUseGpu: false }),
@@ -1042,6 +1178,117 @@ export const MergingUniqueMeshCases: BenchmarkCase<RenderInput>[] = [
         },
       ),
     ),
+  ),
+);
+
+/**
+ * The memory of large scenes, with `--byte-notes` and `--heap-snapshot` (the files in the repository root): 3j3q, the
+ * HIV-1 capsid, as Gaussian surfaces with the defaults (texture meshes, the small units merged CPU meshes) and as
+ * cartoon at medium quality
+ */
+export const MergingMemoryCases: BenchmarkCase<RenderInput>[] = [
+  renderCase('merging/3j3q-gaussian-defaults', '3j3q as Gaussian surfaces, the defaults', async () => {
+    const s = await getRootEntry('3j3q.bcif');
+    return {
+      setupNotes: true,
+      byteNotes: true,
+      scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, {})]),
+    };
+  }),
+  renderCase('merging/3j3q-cartoon-medium', '3j3q as cartoon, medium quality', async () => {
+    const s = await getRootEntry('3j3q.bcif');
+    return {
+      setupNotes: true,
+      byteNotes: true,
+      scene: (g) => Promise.all([structureRepr(g, CartoonRepresentationProvider, s, { quality: 'medium' })]),
+    };
+  }),
+];
+
+/**
+ * 4V6X's Gaussian surfaces (CPU meshes) with the near plane at half the scene's radius (`cameraRadius`): the
+ * solid-interior caps of the near cut (on by default for Gaussian surfaces), merged or a render object per unit
+ */
+export const MergingNearCapCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+  renderCase(
+    `merging/4v6x-gaussian-${merged ? 'merged' : 'unmerged'}-near`,
+    `4v6x as Gaussian surfaces, ${merged ? 'merged' : 'a render object per unit'}, the near plane at half the scene's radius (caps)`,
+    async () => {
+      const s = await getRootEntry('4v6x.bcif');
+      return {
+        cameraRadius: 0.5,
+        scene: (g) =>
+          Promise.all([
+            structureRepr(g, GaussianSurfaceRepresentationProvider, s, { renderMerged: merged, tryUseGpu: false }),
+          ]),
+      };
+    },
+  ),
+);
+
+/**
+ * 4V6X as cartoon and ball-and-stick, merged or a render object per unit: the setup notes (add and commit, the first
+ * frame with its programs compiled); run alone with the browser's shader caches off (`--browser-arg
+ * --disable-gpu-program-cache --browser-arg --disable-gpu-shader-disk-cache`) for the compile cost
+ */
+const SetupProviders: [string, RepresentationProvider<any, any, any>][] = [
+  ['cartoon', CartoonRepresentationProvider],
+  ['ball-and-stick', BallAndStickRepresentationProvider],
+];
+export const MergingSetupCases: BenchmarkCase<RenderInput>[] = SetupProviders.flatMap(([name, provider]) =>
+  [true, false].map((merged) =>
+    renderCase(
+      `merging/4v6x-${name}-${merged ? 'merged' : 'unmerged'}`,
+      `4v6x as ${name}, ${merged ? 'merged' : 'a render object per unit'}: the setup and first frame`,
+      async () => {
+        const s = await getRootEntry('4v6x.bcif');
+        return {
+          setupNotes: true,
+          scene: (g) => Promise.all([structureRepr(g, provider, s, { renderMerged: merged })]),
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * Cylinders: the bonds of 4V6X's ball-and-stick (`4v6x.bcif` in the repository root), merged or not, with their CPU and
+ * GPU bytes: the baseline of cylinders as per-item data
+ */
+export const CylinderCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+  renderCase(
+    `cylinders/4v6x-bonds-${merged ? 'merged' : 'unmerged'}`,
+    `4v6x ball-and-stick bonds only (cylinder impostors), ${merged ? 'merged' : 'a render object per unit'}`,
+    async () => {
+      const s = await getRootEntry('4v6x.bcif');
+      return {
+        setupNotes: true,
+        byteNotes: true,
+        scene: (g) =>
+          Promise.all([
+            structureRepr(g, BallAndStickRepresentationProvider, s, {
+              visuals: ['intra-bond', 'inter-bond'],
+              renderMerged: merged,
+            }),
+          ]),
+      };
+    },
+  ),
+);
+
+/** Lines: 4V6X as the line representation (bonds as lines), merged or not, with their CPU and GPU bytes */
+export const LineCases: BenchmarkCase<RenderInput>[] = [true, false].map((merged) =>
+  renderCase(
+    `lines/4v6x-${merged ? 'merged' : 'unmerged'}`,
+    `4v6x as lines (bonds), ${merged ? 'merged' : 'a render object per unit'}`,
+    async () => {
+      const s = await getRootEntry('4v6x.bcif');
+      return {
+        setupNotes: true,
+        byteNotes: true,
+        scene: (g) => Promise.all([structureRepr(g, LineRepresentationProvider, s, { renderMerged: merged })]),
+      };
+    },
   ),
 );
 
@@ -1074,12 +1321,68 @@ export const MergingInstanceCases: BenchmarkCase<RenderInput>[] = [100, 1000].fl
           return {
             scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, props)]),
             setupNotes: true,
+            byteNotes: true,
             rotate,
           };
         },
       ),
     ),
   ),
+);
+
+/**
+ * The merged instances (100 chains of 1000 copies, rotating) with what reads their segment's sphere: tumble (the
+ * animation's noise, by the instance's bounding sphere) and instance clipping (an inverted sphere around everything:
+ * the test per instance, cutting nothing); merged, and culled on the GPU; on demand
+ */
+export const MergingSegmentDataCases: BenchmarkCase<RenderInput>[] = (['merged', 'merged-gpu'] as const).flatMap(
+  (kind) =>
+    (['tumble', 'clip'] as const).map((use) =>
+      renderCase(
+        `merging/instances-1000-spacefill-${kind}-${use}-rotating`,
+        `100 chains of 1000 copies each as spacefill, ${kind === 'merged' ? 'merged' : 'merged, culled on the GPU'}, ${use === 'tumble' ? 'tumbling' : 'clipped per instance (cutting nothing)'}, rotating`,
+        async () => {
+          const s = await instancedChainGrid(100, 1000);
+          const props = {
+            renderMerged: true,
+            gpuCulling: kind === 'merged-gpu',
+            ...(use === 'tumble'
+              ? {
+                  // every field: a partial group replaces the defaults
+                  animation: {
+                    wiggleMode: 'position' as const,
+                    wiggleSpeed: 7,
+                    wiggleAmplitude: 0,
+                    wiggleFrequency: 0.2,
+                    tumbleSpeed: 1,
+                    tumbleAmplitude: 10,
+                    tumbleFrequency: 0.2,
+                  },
+                }
+              : {
+                  clip: {
+                    variant: 'instance' as const,
+                    objects: [
+                      {
+                        type: 'sphere' as const,
+                        invert: true,
+                        position: Vec3(),
+                        rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+                        scale: Vec3.create(1e5, 1e5, 1e5),
+                        transform: Mat4.identity(),
+                      },
+                    ],
+                  },
+                }),
+          };
+          return {
+            scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, props)]),
+            setupNotes: true,
+            rotate: true,
+          };
+        },
+      ),
+    ),
 );
 
 /**
@@ -1108,7 +1411,7 @@ let postsyn: Promise<ParticleList> | undefined;
  * operators) as the particle list the viewer loads (`mmcif_particles`): the molecule types the targets, instanced at
  * their particles
  */
-const getPostsyn = () =>
+export const getPostsyn = () =>
   (postsyn ??= (async () => {
     const response = await fetch('/postsynstubby_2-no_bonds.bcif');
     if (!response.ok) {
@@ -1126,7 +1429,7 @@ const getPostsyn = () =>
 /** The particle targets as the viewer shows them, with the mesoscale preset's sphere settings */
 type LodLevels = (typeof Spheres.LodLevelsPresets)['quality'];
 
-async function postsynRepr(
+export async function postsynRepr(
   graphics: GraphicsContext,
   list: ParticleList,
   gpuCulling: boolean,
@@ -1161,9 +1464,146 @@ async function postsynRepr(
 }
 
 /**
+ * The PetWorld particles with the particle target's defaults as the viewer adds them (sized by `particle-size`: the
+ * targets' elements by their physical radii), culled on the GPU
+ */
+async function postsynViewerRepr(graphics: GraphicsContext, list: ParticleList, props: { [k: string]: unknown } = {}) {
+  const registries = getThemeRegistries();
+  if (!registries.sizeThemeRegistry.has(ParticleSizeThemeProvider))
+    registries.sizeThemeRegistry.add(ParticleSizeThemeProvider);
+  const provider = ParticleTargetRepresentationProvider;
+  const repr = provider.factory({ graphics, ...registries }, provider.getParams);
+  repr.setTheme(
+    Theme.create(
+      registries,
+      { particles: list },
+      {
+        colorTheme: { name: provider.defaultColorTheme.name, params: {} },
+        sizeTheme: { name: ParticleSizeThemeProvider.name, params: { scale: 1, defaultSize: 0 } },
+      },
+    ),
+  );
+  await repr
+    .createOrUpdate({ ...PD.getDefaultValues(ParticleTargetRepresentationParams), gpuCulling: true, ...props }, list)
+    .run();
+  return repr as unknown as Representation.Any;
+}
+
+/**
  * GPU culling on a large PetWorld model (on demand, needs `postsynstubby_2-no_bonds.bcif` in the repository root):
  * its particle targets as spacefill (merged by `auto`), culled on the CPU or the GPU, still or rotating
  */
+/**
+ * What the one-phase occlusion test of GPU culling misses while the camera moves (`two-phase-culling.md`): PetWorld
+ * whole and zoomed, rotating 2, 10, 30 and 90 (a jump) degrees a frame, with the GPU's occlusion and without, the
+ * impostors and with the sphere raster on (`-raster`, `sphereRaster` 'on' at 6 px: its instances those of the same
+ * culling, `sphere-compute-raster.md` step 5); with `--images` the last frame drawn after one more step, the images of
+ * `-occlusion` and `-none` differ where it popped
+ */
+export const OcclusionLagCases: BenchmarkCase<RenderInput>[] = [2, 10, 30, 90].flatMap((degrees) =>
+  [undefined, 0.3].flatMap((zoom) =>
+    [false, true].flatMap((raster) =>
+      (['occlusion', 'one-phase', 'none'] as const).map((occlusion) =>
+        renderCase(
+          `occlusion-lag/postsyn${zoom ? '-zoom' : ''}-${degrees}deg${raster ? '-raster' : ''}-${occlusion}`,
+          `postsynstubby_2 culled on the GPU${zoom ? `, zoomed to ${zoom} of the distance` : ''}, rotating ${degrees}° a frame, occlusion on the GPU: ${occlusion}${raster ? ', the sphere raster on' : ''}`,
+          async () => {
+            const list = await getPostsyn();
+            return {
+              scene: (g) => Promise.all([postsynRepr(g, list, true)]),
+              zoom,
+              rotate: true,
+              rotateDegrees: degrees,
+              props: {
+                hiZ: {
+                  ...PD.getDefaultValues(HiZParams),
+                  gpu: occlusion !== 'none',
+                  twoPhase: occlusion === 'occlusion',
+                },
+                ...(raster && {
+                  renderer: {
+                    ...PD.getDefaultValues(Canvas3DParams).renderer,
+                    sphereRaster: 'on',
+                    sphereRasterRadius: 6,
+                  },
+                }),
+              },
+            };
+          },
+        ),
+      ),
+    ),
+  ),
+);
+
+/**
+ * What the one-phase occlusion test misses while zooming in: the models as the viewer draws them, the camera moving
+ * towards the target by 1, 3 and 8 % of its distance a frame, from the whole view and from 0.3 of the distance, with the
+ * GPU's occlusion in two phases, in one and without; with `--images` the frame after the last, the images of
+ * `-one-phase` and `-none` differ where it lost something, those of `-occlusion` and `-none` not
+ */
+export const OcclusionDollyCases: BenchmarkCase<RenderInput>[] = (['postsyn', 'mg'] as const).flatMap((model) =>
+  [1, 3, 8].flatMap((percent) =>
+    [undefined, 0.3].flatMap((zoom) =>
+      (['occlusion', 'one-phase', 'none'] as const).map((occlusion) =>
+        renderCase(
+          `occlusion-dolly/${model}${zoom ? '-zoom' : ''}-${percent}pct-${occlusion}`,
+          `${model} as the viewer draws it${zoom ? `, from ${zoom} of the distance` : ''}, moving in by ${percent} % a frame; occlusion on the GPU: ${occlusion}`,
+          async () => {
+            const list = await (model === 'mg' ? getMg() : getPostsyn());
+            return {
+              scene: (g) => Promise.all([postsynViewerRepr(g, list)]),
+              zoom,
+              dolly: percent / 100,
+              yieldFrames: true,
+              props: {
+                hiZ: {
+                  ...PD.getDefaultValues(HiZParams),
+                  gpu: occlusion !== 'none',
+                  twoPhase: occlusion === 'occlusion',
+                },
+              },
+            };
+          },
+        ),
+      ),
+    ),
+  ),
+);
+
+/**
+ * The GPU's occlusion in the views the frame's pyramid is not built for or not alone: stereo's eyes, still and moving,
+ * and multi-sampling's samples moving; with `--images`, as `OcclusionDollyCases`, `-occlusion` and `-none` differ where it
+ * lost something
+ */
+export const OcclusionViewCases: BenchmarkCase<RenderInput>[] = (['stereo', 'multi-sample'] as const).flatMap((view) =>
+  (view === 'stereo' ? [0, 0.03] : [0.03]).flatMap((dolly) =>
+    (['occlusion', 'none'] as const).map((occlusion) =>
+      renderCase(
+        `occlusion-view/postsyn-zoom-${view}-${dolly ? `${dolly * 100}pct` : 'still'}-${occlusion}`,
+        `postsyn as the viewer draws it, from 0.3 of the distance, ${view}, ${dolly ? `moving in by ${dolly * 100} % a frame` : 'still'}; occlusion on the GPU: ${occlusion}`,
+        async () => {
+          const list = await getPostsyn();
+          const { camera } = PD.getDefaultValues(Canvas3DParams);
+          return {
+            scene: (g) => Promise.all([postsynViewerRepr(g, list)]),
+            zoom: 0.3,
+            dolly: dolly || undefined,
+            yieldFrames: true,
+            multiSample: view === 'multi-sample',
+            props: {
+              hiZ: { ...PD.getDefaultValues(HiZParams), gpu: occlusion === 'occlusion' },
+              ...(view === 'stereo' && {
+                camera: { ...camera, stereo: { name: 'on' as const, params: PD.getDefaultValues(StereoCameraParams) } },
+              }),
+            },
+          };
+        },
+      ),
+    ),
+  ),
+);
+
 export const MergingPostsynCases: BenchmarkCase<RenderInput>[] = (
   ['cpu', 'cpu-hiz', 'gpu', 'gpu-hiz', 'gpu-hiz-cell50', 'gpu-hiz-cell20'] as const
 ).flatMap((culling) =>
@@ -1390,6 +1830,8 @@ export const MergingPostsynPixelModeCases: BenchmarkCase<RenderInput>[] = [undef
         return {
           size,
           scene: (g) => Promise.all([postsynRepr(g, list, !cpuCulling, undefined, lod, undefined, pixelSize)]),
+          setupNotes: true,
+          byteNotes: true,
           zoom,
           rotate,
           // the CPU's test reads the levels back
@@ -1397,6 +1839,254 @@ export const MergingPostsynPixelModeCases: BenchmarkCase<RenderInput>[] = [undef
           props: {
             hiZ: { ...PD.getDefaultValues(HiZParams), enabled: !noHiZ, gpu: !noOcclusion },
             ...(ortho ? { camera: { ...camera, mode: 'orthographic' as const } } : {}),
+          },
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * The sphere raster (`sphere-compute-raster.md`) through the renderer (`sphereRaster`) on the PetWorld particles as
+ * `merging/postsyn-lod-pixel1` draws them (levels by size on screen at 1 px: more spheres, and larger, than at the
+ * default 3), whole and zoomed, at 1280×720 and 2560×1440, and multi-sampled (`-ms`: four samples a frame, views of
+ * a frame culled already, as temporal multi-sampling draws them at rest): off (the impostors), on at
+ * `sphereRasterRadius` 4, 6 and 8 CSS pixels (larger spheres as impostors), `only` (every sphere by the raster, no
+ * impostor); needs `atomic-vec2u-min-max` (Chrome 156: `--browser-arg --enable-webgpu-developer-features`)
+ */
+export const SphereRasterRendererCases: BenchmarkCase<RenderInput>[] = [undefined, 0.3].flatMap((zoom) =>
+  [Size, LargeSize, 'multi-sample' as const, 'viewer' as const].flatMap((variant) =>
+    (
+      [
+        { label: 'off', sphereRaster: 'off', radius: 6 },
+        ...[4, 6, 8].map((radius) => ({ label: `on${radius}`, sphereRaster: 'on' as const, radius })),
+        { label: 'auto', sphereRaster: 'auto', radius: 6 },
+        { label: 'only', sphereRaster: 'only', radius: 6 },
+      ] as const
+    ).map(({ label, sphereRaster, radius }) => {
+      const size = variant === 'multi-sample' || variant === 'viewer' ? Size : variant;
+      const name =
+        variant === LargeSize ? '-large' : variant === 'multi-sample' ? '-ms' : variant === 'viewer' ? '-viewer' : '';
+      return renderCase(
+        `sphere-raster-renderer/postsyn${zoom ? '-zoom' : ''}${name}-${label}`,
+        `postsynstubby_2 particles as spacefill (mesoscale settings), culled on the GPU with Hi-Z, ${zoom ? `zoomed to ${zoom} of the distance, ` : ''}at ${size.width}×${size.height}${variant === 'multi-sample' ? ', multi-sampled (4 samples a frame)' : ''}, levels by size on screen (1 px); sphere raster ${sphereRaster}${sphereRaster === 'on' ? ` up to ${radius} px` : ''}`,
+        async () => {
+          const list = await getPostsyn();
+          const chain = CoarseChains['x10-b2.3'];
+          const lod = Spheres.LodLevelsPresets.quality.map((l, j) => ({
+            ...l,
+            stride: chain[j][0],
+            scaleBias: chain[j][1],
+          }));
+          // the particles' defaults as the viewer draws them (`viewer`): their levels by size on screen at 3 px
+          const viewer = variant === 'viewer';
+          return {
+            size,
+            scene: (g) =>
+              Promise.all([
+                viewer ? postsynViewerRepr(g, list) : postsynRepr(g, list, true, undefined, lod, undefined, 1),
+              ]),
+            setupNotes: true,
+            zoom,
+            yieldFrames: true,
+            multiSample: variant === 'multi-sample',
+            props: {
+              hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+              renderer: {
+                ...PD.getDefaultValues(Canvas3DParams).renderer,
+                sphereRaster,
+                sphereRasterRadius: radius,
+              },
+            },
+          };
+        },
+      );
+    }),
+  ),
+);
+
+/**
+ * What still goes to the impostors as spheres grow past the raster's limit (`sphere-compute-raster.md` option A, tiles
+ * for larger spheres): PetWorld as the viewer draws it, whole and zoomed to 0.3, 0.1 and 0.03 of the distance; `off`,
+ * `auto` with the limit at 6, 24, 64 and 256 px (larger spheres to the raster, the large ones by its workgroups),
+ * `only` (every sphere); on demand
+ */
+export const SphereRasterZoomCases: BenchmarkCase<RenderInput>[] = [1, 0.3, 0.1, 0.03].flatMap((zoom) =>
+  (
+    [
+      { label: 'off', sphereRaster: 'off', radius: 6 },
+      ...[6, 24, 64, 256].map((radius) => ({ label: `auto${radius}`, sphereRaster: 'auto' as const, radius })),
+      { label: 'only', sphereRaster: 'only', radius: 6 },
+    ] as const
+  ).map(({ label, sphereRaster, radius }) =>
+    renderCase(
+      `sphere-raster-zoom/postsyn-viewer-${zoom === 1 ? 'whole' : `zoom${zoom}`}-${label}`,
+      `postsynstubby_2 as the viewer draws it, ${zoom === 1 ? 'whole' : `zoomed to ${zoom} of the distance`}; sphere raster ${sphereRaster}${sphereRaster === 'auto' ? ` up to ${radius} px` : ''}`,
+      async () => {
+        const list = await getPostsyn();
+        return {
+          scene: (g) => Promise.all([postsynViewerRepr(g, list)]),
+          zoom: zoom === 1 ? undefined : zoom,
+          yieldFrames: true,
+          props: {
+            hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+            renderer: { ...PD.getDefaultValues(Canvas3DParams).renderer, sphereRaster, sphereRasterRadius: radius },
+          },
+        };
+      },
+    ),
+  ),
+);
+
+let mg: Promise<ParticleList> | undefined;
+/** `MG_1184_cellpack_atom_instances.bcif` in the repository root as the particle list the viewer loads */
+const getMg = () =>
+  (mg ??= (async () => {
+    const response = await fetch('/MG_1184_cellpack_atom_instances.bcif');
+    if (!response.ok) {
+      throw new Error(`MG_1184_cellpack_atom_instances.bcif not found in the repository root (${response.status})`);
+    }
+    const parsed = await CIF.parseBinary(new Uint8Array(await response.arrayBuffer())).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const cif = parsed.result;
+    const assemblyId = getAssemblyIdsFromMmcif(cif)[0];
+    return Task.create('particles', (ctx) => createParticleListFromMmcifAssembly(ctx, cif, { assemblyId })).run();
+  })());
+
+/**
+ * The impostors against the sphere raster on a cellPACK model unlike PetWorld (848 units, 2.1 M instances of about 76
+ * spheres, a scene a fifth of the size), as the viewer draws it: whole and zoomed, 1280×720; `off` (culled on the GPU),
+ * `auto`, `only` and `cpu` (the impostors culled on the CPU); whole and zoomed to 0.3 at 2560×1440 and rotating; on demand
+ */
+export const SphereRasterMgCases: BenchmarkCase<RenderInput>[] = (
+  [
+    ...[1, 0.3, 0.1, 0.03].flatMap((zoom) =>
+      (['off', 'auto', 'only', 'cpu'] as const).map((variant) => ({ zoom, variant, view: '' })),
+    ),
+    ...[1, 0.3].flatMap((zoom) =>
+      (['off', 'auto'] as const).flatMap((variant) => [
+        { zoom, variant, view: 'large' },
+        { zoom, variant, view: 'rotate' },
+      ]),
+    ),
+  ] as { zoom: number; variant: 'off' | 'auto' | 'only' | 'cpu'; view: string }[]
+).map(({ zoom, variant, view }) =>
+  renderCase(
+    `sphere-raster-mg/${zoom === 1 ? 'whole' : `zoom${zoom}`}${view ? `-${view}` : ''}-${variant}`,
+    `MG_1184 as the viewer draws it, ${zoom === 1 ? 'whole' : `zoomed to ${zoom} of the distance`}${view === 'large' ? ', 2560×1440' : view === 'rotate' ? ', rotating' : ''}; ${variant === 'cpu' ? 'culled on the CPU, the impostors' : `sphere raster ${variant}`}`,
+    async () => {
+      const list = await getMg();
+      return {
+        size: view === 'large' ? LargeSize : Size,
+        rotate: view === 'rotate',
+        setupNotes: true,
+        byteNotes: true,
+        zoom: zoom === 1 ? undefined : zoom,
+        yieldFrames: true,
+        scene: (g) => Promise.all([postsynViewerRepr(g, list, variant === 'cpu' ? { gpuCulling: false } : {})]),
+        props: {
+          hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+          renderer: {
+            ...PD.getDefaultValues(Canvas3DParams).renderer,
+            sphereRaster: variant === 'cpu' ? 'off' : variant,
+          },
+        },
+      };
+    },
+  ),
+);
+
+/**
+ * The sphere raster's prop on scenes other than PetWorld (`sphere-compute-raster.md` step 6, what `auto` decides from):
+ * spacefill with the default props, Hi-Z on, of a crambin (327 atoms), a globule of 6k and one of 300k atoms (an
+ * unmerged object each: the raster's split per sphere), 60 copies of 7qpd as an object per unit (instanced, unmerged)
+ * and merged and culled on the GPU (the split per instance); whole and zoomed, at 1280×720 and 2560×1440; `off`,
+ * `auto`, `on` and `only` at the default limit (`sphereRasterRadius`)
+ */
+export const SphereRasterSceneCases: BenchmarkCase<RenderInput>[] = (
+  [
+    ['crambin', () => exampleStructure('1crn.cif'), {}],
+    ['globule-6k', () => globuleStructure(6000), {}],
+    ['globule-300k', getGlobule, {}],
+    ['assembly-60', getRootAssembly, {}],
+    ['assembly-60-merged', getRootAssembly, { renderMerged: true, gpuCulling: true }],
+  ] as const
+).flatMap(([scene, structure, props]) =>
+  [undefined, 0.3].flatMap((zoom) =>
+    [Size, LargeSize].flatMap((size) =>
+      (['off', 'auto', 'on', 'only'] as const).map((sphereRaster) =>
+        renderCase(
+          `sphere-raster-scene/${scene}${zoom ? '-zoom' : ''}${size === LargeSize ? '-large' : ''}-${sphereRaster}`,
+          `${scene} as spacefill${zoom ? `, zoomed to ${zoom} of the distance` : ''}, at ${size.width}×${size.height}; sphere raster ${sphereRaster}`,
+          async () => {
+            const s = await structure();
+            return {
+              size,
+              zoom,
+              yieldFrames: true,
+              scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, props)]),
+              props: {
+                hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+                renderer: { ...PD.getDefaultValues(Canvas3DParams).renderer, sphereRaster },
+              },
+            };
+          },
+        ),
+      ),
+    ),
+  ),
+);
+
+/**
+ * The sphere raster's prop where PetWorld is too large (an integrated GPU: `--browser-arg --force_low_power_gpu`):
+ * 3j3q, the HIV-1 capsid (`3j3q.bcif` in the repository root, about 2.4 M atoms, 1356 chains), as spacefill merged and
+ * culled on the GPU (what `auto` draws), Hi-Z on, the default limit; whole and zoomed at 1280×720, whole at 2560×1440,
+ * and zoomed cut through its center by a plane by pixel; `off`, `auto` and `only`
+ */
+export const SphereRasterIGpuCases: BenchmarkCase<RenderInput>[] = (
+  [
+    { label: 'whole', size: Size },
+    { label: 'whole-large', size: LargeSize },
+    { label: 'zoom', size: Size, zoom: 0.3 },
+    { label: 'zoom-plane', size: Size, zoom: 0.3, plane: true },
+  ] as const
+).flatMap(({ label, size, zoom, plane }: { label: string; size: typeof Size; zoom?: number; plane?: boolean }) =>
+  (['off', 'auto', 'only'] as const).map((sphereRaster) =>
+    renderCase(
+      `sphere-raster-igpu/3j3q-${label}-${sphereRaster}`,
+      `3j3q as spacefill, merged and culled on the GPU${zoom ? `, zoomed to ${zoom} of the distance` : ''}${plane ? ', cut through its center by a plane' : ''}, at ${size.width}×${size.height}; sphere raster ${sphereRaster}`,
+      async () => {
+        const s = await getRootEntry('3j3q.bcif');
+        const clip = plane
+          ? {
+              variant: 'pixel' as const,
+              objects: [
+                {
+                  type: 'plane' as const,
+                  invert: false,
+                  position: Vec3.copy(Vec3(), s.boundary.sphere.center),
+                  rotation: { axis: Vec3.create(1, 0, 0), angle: 30 },
+                  scale: Vec3.create(1, 1, 1),
+                  transform: Mat4.identity(),
+                },
+              ],
+            }
+          : undefined;
+        return {
+          size,
+          zoom,
+          yieldFrames: true,
+          scene: (g) =>
+            Promise.all([
+              structureRepr(g, SpacefillRepresentationProvider, s, {
+                renderMerged: true,
+                gpuCulling: true,
+                ...(clip && { clip }),
+              }),
+            ]),
+          props: {
+            hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+            renderer: { ...PD.getDefaultValues(Canvas3DParams).renderer, sphereRaster },
           },
         };
       },
@@ -1547,28 +2237,140 @@ export const MergingAssemblyCases: BenchmarkCase<RenderInput>[] = MergingKinds.f
 
 /**
  * Clip objects that cut nothing (inverted spheres around everything) on the globule at 2560x1440 (fragment-bound): the
- * cost of the per-pixel clip tests, their loops bounded by a uniform (`uClipObjectCount`), on demand
+ * cost of the per-pixel clip tests, their loops bounded by a uniform (`uClipObjectCount`), on demand; with the sphere
+ * raster (`-on`, `-only`: its tests per covered pixel of every sphere, the impostors' per fragment)
  */
-export const ClipCases: BenchmarkCase<RenderInput>[] = [1, 3].map((count) =>
-  renderCase(
-    `clip/globule-300k-spacefill-large-${count}`,
-    `300k atoms as spacefill, 2560x1440, ${count} clip object${count > 1 ? 's' : ''} cutting nothing (pixel)`,
-    async () => {
-      const s = await getGlobule();
-      const object = {
-        type: 'sphere' as const,
-        invert: true,
-        position: Vec3(),
-        rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
-        scale: Vec3.create(1e5, 1e5, 1e5),
-        transform: Mat4.identity(),
-      };
-      const clip = { variant: 'pixel' as const, objects: Array.from({ length: count }, () => ({ ...object })) };
-      return {
-        size: LargeSize,
-        scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { clip })]),
-      };
-    },
+export const ClipCases: BenchmarkCase<RenderInput>[] = [1, 3].flatMap((count) =>
+  (['off', 'on', 'only'] as const).map((sphereRaster) =>
+    renderCase(
+      `clip/globule-300k-spacefill-large-${count}${sphereRaster === 'off' ? '' : `-${sphereRaster}`}`,
+      `300k atoms as spacefill, 2560x1440, ${count} clip object${count > 1 ? 's' : ''} cutting nothing (pixel)${sphereRaster === 'off' ? '' : `, sphere raster ${sphereRaster}`}`,
+      async () => {
+        const s = await getGlobule();
+        const object = {
+          type: 'sphere' as const,
+          invert: true,
+          position: Vec3(),
+          rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+          scale: Vec3.create(1e5, 1e5, 1e5),
+          transform: Mat4.identity(),
+        };
+        const clip = { variant: 'pixel' as const, objects: Array.from({ length: count }, () => ({ ...object })) };
+        return {
+          size: LargeSize,
+          scene: (g) => Promise.all([structureRepr(g, SpacefillRepresentationProvider, s, { clip })]),
+          props: { renderer: { ...PD.getDefaultValues(Canvas3DParams).renderer, sphereRaster } },
+        };
+      },
+    ),
+  ),
+);
+
+/**
+ * PetWorld as the viewer draws it, zoomed, cut through its center by pixel (the caps of the cut spheres' solid
+ * interiors) by a plane, an ellipsoid (the inside removed) or an infinite cone: the impostors (`off`, culled on the GPU;
+ * `cpu`, on the CPU, `clip-culling.md`; `cpu-instance`, clipped by instance, culled on the CPU) and the raster
+ * (`auto`; its spheres classified against the clip objects by distance bounds, per pixel only where they reach a
+ * surface), on demand
+ */
+const ClipPostsynObjects = {
+  plane: { type: 'plane' as const, scale: Vec3.create(1, 1, 1) },
+  ellipsoid: { type: 'sphere' as const, scale: Vec3.create(600, 300, 400) },
+  cone: { type: 'infiniteCone' as const, scale: Vec3.create(1, 1, 1) },
+};
+export const ClipPostsynCases: BenchmarkCase<RenderInput>[] = (['plane', 'ellipsoid', 'cone'] as const).flatMap(
+  (shape) =>
+    (['off', 'auto', 'cpu', 'cpu-instance'] as const).map((variant) =>
+      renderCase(
+        `clip/postsyn-zoom-${shape}-${variant}`,
+        `postsynstubby_2 as the viewer draws it, zoomed to 0.3 of the distance, cut by ${shape === 'ellipsoid' ? 'an' : 'a'} ${shape} ${variant === 'cpu-instance' ? 'by instance' : 'by pixel'}; ${variant === 'cpu' || variant === 'cpu-instance' ? 'culled on the CPU, the impostors' : `sphere raster ${variant}`}`,
+        async () => {
+          const list = await getPostsyn();
+          const { type, scale } = ClipPostsynObjects[shape];
+          // the particles' center (their bounds'): the model is not about the origin
+          const min = Vec3.create(Infinity, Infinity, Infinity);
+          const max = Vec3.create(-Infinity, -Infinity, -Infinity);
+          for (let i = 0; i < list.count; ++i) {
+            const p = Vec3.fromArray(Vec3(), list.coordinates, i * 3);
+            Vec3.min(min, min, p);
+            Vec3.max(max, max, p);
+          }
+          const center = Vec3.scale(Vec3(), Vec3.add(Vec3(), min, max), 0.5);
+          const clip = {
+            variant: variant === 'cpu-instance' ? ('instance' as const) : ('pixel' as const),
+            objects: [
+              {
+                type,
+                invert: false,
+                position: center,
+                rotation: { axis: Vec3.create(1, 0, 0), angle: 30 },
+                scale,
+                transform: Mat4.identity(),
+              },
+            ],
+          };
+          return {
+            scene: (g) =>
+              Promise.all([
+                postsynViewerRepr(g, list, {
+                  clip,
+                  ...((variant === 'cpu' || variant === 'cpu-instance') && { gpuCulling: false }),
+                }),
+              ]),
+            zoom: 0.3,
+            yieldFrames: true,
+            props: {
+              hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true },
+              renderer: {
+                ...PD.getDefaultValues(Canvas3DParams).renderer,
+                sphereRaster: variant === 'auto' ? 'auto' : 'off',
+              },
+            },
+          };
+        },
+      ),
+    ),
+);
+
+/**
+ * 60 copies of 7qpd as cartoon and as Gaussian surfaces (meshes), zoomed to 0.5 and cut through the center by a plane
+ * by pixel: instanced, culled on the CPU, and merged, culled on the GPU; the culling of what the plane clips whole on
+ * geometry other than spheres (`clip-culling.md`), on demand
+ */
+export const ClipMeshCases: BenchmarkCase<RenderInput>[] = (['cartoon', 'gaussian'] as const).flatMap((repr) =>
+  ([false, true] as const).map((merged) =>
+    renderCase(
+      `clip/assembly-60-${repr}-plane${merged ? '-merged' : ''}`,
+      `60 copies of 7qpd as ${repr === 'cartoon' ? 'cartoon' : 'Gaussian surfaces'}, zoomed to 0.5, cut through the center by a plane by pixel; ${merged ? 'merged, culled on the GPU' : 'instanced, culled on the CPU'}`,
+      async () => {
+        const s = await getRootAssembly();
+        const clip = {
+          variant: 'pixel' as const,
+          objects: [
+            {
+              type: 'plane' as const,
+              invert: false,
+              position: Vec3.copy(Vec3(), s.boundary.sphere.center),
+              rotation: { axis: Vec3.create(1, 0, 0), angle: 30 },
+              scale: Vec3.create(1, 1, 1),
+              transform: Mat4.identity(),
+            },
+          ],
+        };
+        const props = { clip, ...(merged && { renderMerged: true, gpuCulling: true }) };
+        return {
+          zoom: 0.5,
+          yieldFrames: true,
+          scene: (g) =>
+            Promise.all([
+              repr === 'cartoon'
+                ? structureRepr(g, CartoonRepresentationProvider, s, props)
+                : structureRepr(g, GaussianSurfaceRepresentationProvider, s, props),
+            ]),
+          props: { hiZ: { ...PD.getDefaultValues(HiZParams), enabled: true } },
+        };
+      },
+    ),
   ),
 );
 

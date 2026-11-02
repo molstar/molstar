@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { isQuadIndexing, QuadIndicesPerItem } from '../quad-indices.js';
+import { getItemIndices, isItemIndexing } from '../quad-indices.js';
 import type { UniformBlockWriter } from '../uniform-layout.js';
 import { createAttributeBuffers, type ElementsBuffer, type AttributeBuffers } from './buffer.js';
 import type { AttributeKind } from '../buffer.js';
@@ -358,7 +358,7 @@ export function createRenderItem<T extends string>(
     schema.aSegment !== undefined;
   /** the versions of the instance values `tInstanceData` was written from */
   const instanceDataVersions: number[] = [];
-  const instanceDataKeys = ['instanceCount', 'aTransform', 'aInstance', 'aSegment', 'aSegmentSphere', 'aSegmentLod'];
+  const instanceDataKeys = ['instanceCount', 'aTransform', 'aInstance', 'aSegment'];
   const syncInstanceData = () => {
     let changed = false;
     for (let i = 0; i < instanceDataKeys.length; ++i) {
@@ -590,8 +590,8 @@ export function createRenderItem<T extends string>(
   if (elements && elements.ref.value) {
     elementsBuffer = resources.elements(elements.ref.value);
   }
-  /** quads without elements of their own draw indexed by the shared quad indices (`quad-indices.ts`) */
-  const quads = shaderCode.quads && !elementsBuffer && isQuadIndexing();
+  /** items without elements of their own (quads, boxes) draw indexed by the shared indices of their pattern */
+  const items = !elementsBuffer && isItemIndexing(shaderCode.itemIndices) ? shaderCode.itemIndices : undefined;
 
   // attribute locations are fixed per schema, so all variants share one vertex array
   const attributeLayout = getAttributeLayout(schema);
@@ -700,9 +700,13 @@ export function createRenderItem<T extends string>(
         }
         state.currentRenderItemId = id;
       }
-      // the shared quad indices, bound on every draw (shared, and replaced when grown); unindexed past their limit
-      const eb = quads ? resources.quadIndices.get(drawCount / QuadIndicesPerItem)?.buffer : elementsBuffer;
-      if (quads && eb) eb.bind();
+      // the shared indices of the items' pattern, bound on every draw (shared, and replaced when grown); quads
+      // unindexed past their limit, boxes (no unindexed form) not drawn
+      const eb = items
+        ? getItemIndices(resources, items).get(drawCount / items.pattern.length)?.buffer
+        : elementsBuffer;
+      if (items && eb) eb.bind();
+      if (items?.name === 'box' && !eb) return;
       if (isDebugMode) {
         ctx.checkFramebufferStatus(`Framebuffer error rendering item id ${id}`);
       }

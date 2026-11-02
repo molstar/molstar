@@ -18,6 +18,8 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import {
   calculateInvariantBoundingSphere,
   calculateTransformBoundingSphere,
+  createDataArray,
+  type DataArray,
 } from '@molstar/graphics/gl/renderable/util';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import type { Theme } from '@molstar/graphics/theme/theme';
@@ -35,37 +37,30 @@ import { createEmptyWiggle } from '../wiggle-data.js';
 import { getInteriorParam, updateInteriorValues, createInteriorValues } from '../interior.js';
 import { getAnimationParam, createAnimationValues, updateAnimationValues } from '../animation.js';
 
+/**
+ * Floats per cylinder of `Cylinders.cylinderData` (3 texels of `tCylinder`): start xyz and group, end xyz and radius
+ * scale, cap and color mode (2 unused)
+ */
+export const CylinderStride = 12;
+
 export interface Cylinders {
   readonly kind: 'cylinders';
 
   /** Number of cylinders */
   cylinderCount: number;
 
-  /** Mapping buffer as array of uvw values wrapped in a value cell */
-  readonly mappingBuffer: ValueCell<Float32Array>;
-  /** Index buffer as array of vertex index triplets wrapped in a value cell */
-  readonly indexBuffer: ValueCell<Uint32Array>;
-  /** Group buffer as array of group ids for each vertex wrapped in a value cell */
-  readonly groupBuffer: ValueCell<Float32Array>;
-  /** Cylinder start buffer as array of xyz values wrapped in a value cell */
-  readonly startBuffer: ValueCell<Float32Array>;
-  /** Cylinder end buffer as array of xyz values wrapped in a value cell */
-  readonly endBuffer: ValueCell<Float32Array>;
-  /** Cylinder scale buffer as array of scaling factors wrapped in a value cell */
-  readonly scaleBuffer: ValueCell<Float32Array>;
-  /** Cylinder cap buffer as array of cap flags wrapped in a value cell */
-  readonly capBuffer: ValueCell<Float32Array>;
   /**
-   * Cylinder colorMode buffer as array of coloring modes flags wrapped in a value cell
+   * Per cylinder (`CylinderStride` floats, the only copy; the shaders read it as `tCylinder`): start xyz and group, end
+   * xyz and radius scale, cap (1 top, 2 bottom, 3 both) and color mode:
    * - for colorMode between 0 and 1 use colorMode to interpolate
    * - for colorMode == 2 do nothing, i.e., use given theme color
    * - for colorMode == 3 use position on cylinder axis to interpolate
    */
-  readonly colorModeBuffer: ValueCell<Float32Array>;
+  readonly cylinderData: ValueCell<DataArray<Float32Array>>;
 
   /** Bounding sphere of the cylinders */
   readonly boundingSphere: Sphere3D;
-  /** Maps group ids to cylinder indices */
+  /** Maps group ids to cylinder indices times `CylinderStride` (offsets into `cylinderData`'s array) */
   readonly groupMapping: GroupMapping;
 
   setBoundingSphere(boundingSphere: Sphere3D): void;
@@ -73,60 +68,26 @@ export interface Cylinders {
 }
 
 export namespace Cylinders {
-  export function create(
-    mappings: Float32Array,
-    indices: Uint32Array,
-    groups: Float32Array,
-    starts: Float32Array,
-    ends: Float32Array,
-    scales: Float32Array,
-    caps: Float32Array,
-    colorModes: Float32Array,
-    cylinderCount: number,
-    cylinders?: Cylinders,
-  ): Cylinders {
-    return cylinders
-      ? update(mappings, indices, groups, starts, ends, scales, caps, colorModes, cylinderCount, cylinders)
-      : fromArrays(mappings, indices, groups, starts, ends, scales, caps, colorModes, cylinderCount);
+  /** From the data of `cylinderCount` cylinders (`CylinderStride` floats each), kept as the geometry's array */
+  export function create(cylinderData: Float32Array, cylinderCount: number, cylinders?: Cylinders): Cylinders {
+    const data = createDataArray(cylinderCount * 3, 4, Float32Array, cylinderData);
+    if (cylinders) {
+      cylinders.cylinderCount = cylinderCount;
+      ValueCell.update(cylinders.cylinderData, data);
+      return cylinders;
+    }
+    return fromData(data, cylinderCount);
   }
 
   export function createEmpty(cylinders?: Cylinders): Cylinders {
-    const mb = cylinders ? cylinders.mappingBuffer.ref.value : new Float32Array(0);
-    const ib = cylinders ? cylinders.indexBuffer.ref.value : new Uint32Array(0);
-    const gb = cylinders ? cylinders.groupBuffer.ref.value : new Float32Array(0);
-    const sb = cylinders ? cylinders.startBuffer.ref.value : new Float32Array(0);
-    const eb = cylinders ? cylinders.endBuffer.ref.value : new Float32Array(0);
-    const ab = cylinders ? cylinders.scaleBuffer.ref.value : new Float32Array(0);
-    const cb = cylinders ? cylinders.capBuffer.ref.value : new Float32Array(0);
-    const cmb = cylinders ? cylinders.colorModeBuffer.ref.value : new Float32Array(0);
-    return create(mb, ib, gb, sb, eb, ab, cb, cmb, 0, cylinders);
+    return create(cylinders ? cylinders.cylinderData.ref.value.array : new Float32Array(0), 0, cylinders);
   }
 
   function hashCode(cylinders: Cylinders) {
-    return hashFnv32a([
-      cylinders.cylinderCount,
-      cylinders.mappingBuffer.ref.version,
-      cylinders.indexBuffer.ref.version,
-      cylinders.groupBuffer.ref.version,
-      cylinders.startBuffer.ref.version,
-      cylinders.endBuffer.ref.version,
-      cylinders.scaleBuffer.ref.version,
-      cylinders.capBuffer.ref.version,
-      cylinders.colorModeBuffer.ref.version,
-    ]);
+    return hashFnv32a([cylinders.cylinderCount, cylinders.cylinderData.ref.version]);
   }
 
-  function fromArrays(
-    mappings: Float32Array,
-    indices: Uint32Array,
-    groups: Float32Array,
-    starts: Float32Array,
-    ends: Float32Array,
-    scales: Float32Array,
-    caps: Float32Array,
-    colorModes: Float32Array,
-    cylinderCount: number,
-  ): Cylinders {
+  function fromData(data: DataArray<Float32Array>, cylinderCount: number): Cylinders {
     const boundingSphere = Sphere3D();
     let groupMapping: GroupMapping;
 
@@ -136,19 +97,14 @@ export namespace Cylinders {
     const cylinders = {
       kind: 'cylinders' as const,
       cylinderCount,
-      mappingBuffer: ValueCell.create(mappings),
-      indexBuffer: ValueCell.create(indices),
-      groupBuffer: ValueCell.create(groups),
-      startBuffer: ValueCell.create(starts),
-      endBuffer: ValueCell.create(ends),
-      scaleBuffer: ValueCell.create(scales),
-      capBuffer: ValueCell.create(caps),
-      colorModeBuffer: ValueCell.create(colorModes),
+      cylinderData: ValueCell.create(data),
       get boundingSphere() {
         const newHash = hashCode(cylinders);
         if (newHash !== currentHash) {
-          const s = calculateInvariantBoundingSphere(cylinders.startBuffer.ref.value, cylinders.cylinderCount * 6, 6);
-          const e = calculateInvariantBoundingSphere(cylinders.endBuffer.ref.value, cylinders.cylinderCount * 6, 6);
+          const { array } = cylinders.cylinderData.ref.value;
+          const count = cylinders.cylinderCount;
+          const s = calculateInvariantBoundingSphere(array, count, 1, CylinderStride);
+          const e = calculateInvariantBoundingSphere(array.subarray(4), count, 1, CylinderStride);
 
           Sphere3D.expandBySphere(boundingSphere, s, e);
           currentHash = newHash;
@@ -156,9 +112,10 @@ export namespace Cylinders {
         return boundingSphere;
       },
       get groupMapping() {
-        if (cylinders.groupBuffer.ref.version !== currentGroup) {
-          groupMapping = createGroupMapping(cylinders.groupBuffer.ref.value, cylinders.cylinderCount, 6);
-          currentGroup = cylinders.groupBuffer.ref.version;
+        if (cylinders.cylinderData.ref.version !== currentGroup) {
+          const { array } = cylinders.cylinderData.ref.value;
+          groupMapping = createGroupMapping(array, cylinders.cylinderCount, CylinderStride, 3);
+          currentGroup = cylinders.cylinderData.ref.version;
         }
         return groupMapping;
       },
@@ -173,39 +130,11 @@ export namespace Cylinders {
     return cylinders;
   }
 
-  function update(
-    mappings: Float32Array,
-    indices: Uint32Array,
-    groups: Float32Array,
-    starts: Float32Array,
-    ends: Float32Array,
-    scales: Float32Array,
-    caps: Float32Array,
-    colorModes: Float32Array,
-    cylinderCount: number,
-    cylinders: Cylinders,
-  ) {
-    if (cylinderCount > cylinders.cylinderCount) {
-      ValueCell.update(cylinders.mappingBuffer, mappings);
-      ValueCell.update(cylinders.indexBuffer, indices);
-    }
-    cylinders.cylinderCount = cylinderCount;
-    ValueCell.update(cylinders.groupBuffer, groups);
-    ValueCell.update(cylinders.startBuffer, starts);
-    ValueCell.update(cylinders.endBuffer, ends);
-    ValueCell.update(cylinders.scaleBuffer, scales);
-    ValueCell.update(cylinders.capBuffer, caps);
-    ValueCell.update(cylinders.colorModeBuffer, colorModes);
-    return cylinders;
-  }
-
   export function transform(cylinders: Cylinders, t: Mat4) {
-    const start = cylinders.startBuffer.ref.value;
-    transformPositionArray(t, start, 0, cylinders.cylinderCount * 6);
-    ValueCell.update(cylinders.startBuffer, start);
-    const end = cylinders.endBuffer.ref.value;
-    transformPositionArray(t, end, 0, cylinders.cylinderCount * 6);
-    ValueCell.update(cylinders.endBuffer, end);
+    const data = cylinders.cylinderData.ref.value;
+    transformPositionArray(t, data.array, 0, cylinders.cylinderCount, CylinderStride);
+    transformPositionArray(t, data.array, 4, cylinders.cylinderCount, CylinderStride);
+    ValueCell.update(cylinders.cylinderData, data);
   }
 
   //
@@ -256,24 +185,24 @@ export namespace Cylinders {
     createPositionIterator,
   };
 
+  /** per data vertex (2 per cylinder, see `Geometry.getVertexCount`): the cylinder's start, then its end */
   function createPositionIterator(cylinders: Cylinders, transform: TransformData): LocationIterator {
-    const groupCount = cylinders.cylinderCount * 6;
+    const groupCount = cylinders.cylinderCount * 2;
     const instanceCount = transform.instanceCount.ref.value;
     const location = PositionLocation();
     const p = location.position;
-    const s = cylinders.startBuffer.ref.value;
-    const e = cylinders.endBuffer.ref.value;
+    const d = cylinders.cylinderData.ref.value.array;
     const m = transform.aTransform.ref.value;
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-      const v = groupIndex % 6 === 0 ? s : e;
+      const o = (groupIndex >> 1) * CylinderStride + (groupIndex & 1) * 4;
       if (instanceIndex < 0) {
-        Vec3.fromArray(p, v, groupIndex * 3);
+        Vec3.fromArray(p, d, o);
       } else {
-        Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+        Vec3.transformMat4Offset(p, d, m, 0, o, instanceIndex * 16);
       }
       return location;
     };
-    return LocationIterator(groupCount, instanceCount, 2, getLocation);
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
   }
 
   function createValues(
@@ -300,7 +229,7 @@ export namespace Cylinders {
 
     const counts = {
       drawCount: cylinders.cylinderCount * 4 * 3,
-      vertexCount: cylinders.cylinderCount * 6,
+      vertexCount: cylinders.cylinderCount * 2,
       groupCount,
       instanceCount,
     };
@@ -316,14 +245,7 @@ export namespace Cylinders {
     return {
       dGeometryType: ValueCell.create('cylinders'),
 
-      aMapping: cylinders.mappingBuffer,
-      aGroup: cylinders.groupBuffer,
-      aStart: cylinders.startBuffer,
-      aEnd: cylinders.endBuffer,
-      aScale: cylinders.scaleBuffer,
-      aCap: cylinders.capBuffer,
-      aColorMode: cylinders.colorModeBuffer,
-      elements: cylinders.indexBuffer,
+      tCylinder: cylinders.cylinderData,
       boundingSphere: ValueCell.create(boundingSphere),
       invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
       uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -350,6 +272,7 @@ export namespace Cylinders {
       ),
       dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
       dSolidInterior: ValueCell.create(props.solidInterior),
+      dBump: ValueCell.create(BaseGeometry.hasBump(props)),
       uBumpFrequency: ValueCell.create(props.bumpFrequency),
       uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
       dDualColor: ValueCell.create(props.colorMode === 'interpolate'),
@@ -383,6 +306,7 @@ export namespace Cylinders {
     );
     ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
     ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
+    ValueCell.updateIfChanged(values.dBump, BaseGeometry.hasBump(props));
     ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     ValueCell.updateIfChanged(values.dDualColor, props.colorMode === 'interpolate');

@@ -12,6 +12,8 @@ import type { LinesValues } from '@molstar/graphics/gl/renderable/lines';
 import type { PointsValues } from '@molstar/graphics/gl/renderable/points';
 import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import type { CylindersValues } from '@molstar/graphics/gl/renderable/cylinders';
+import { CylinderStride } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
+import { LineStride } from '@molstar/graphics/geo/geometry/lines/lines';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import type { BaseValues, SizeValues } from '@molstar/graphics/gl/renderable/schema';
 import type { DataArray } from '@molstar/graphics/gl/renderable/util';
@@ -72,6 +74,8 @@ export interface AddMeshInput {
     readonly uDoubleSided?: ValueCell<boolean>;
     readonly aGroup?: ValueCell<Float32Array>;
     readonly tPositionGroup?: ValueCell<DataArray<Float32Array>>;
+    readonly tCylinder?: ValueCell<DataArray<Float32Array>>;
+    readonly tLine?: ValueCell<DataArray<Float32Array>>;
   };
   isGeoTexture: boolean;
   mode: MeshMode;
@@ -84,6 +88,8 @@ export type MeshGeoData = {
   values: BaseValues & {
     readonly aGroup?: ValueCell<Float32Array>;
     readonly tPositionGroup?: ValueCell<DataArray<Float32Array>>;
+    readonly tCylinder?: ValueCell<DataArray<Float32Array>>;
+    readonly tLine?: ValueCell<DataArray<Float32Array>>;
   };
   groups?: Float32Array | Uint8Array;
   vertexCount: number;
@@ -95,6 +101,25 @@ export type MeshGeoData = {
 
 export abstract class MeshExporter<D extends RenderObjectExportData> implements RenderObjectExporter<D> {
   abstract readonly fileExtension: string;
+
+  /**
+   * The group of data vertex `vertexIndex` (`Geometry.getVertexCount`): from the items' data of spheres and points
+   * (`tPositionGroup`), cylinders (`tCylinder`, a start and an end per cylinder) and lines (`tLine`, a start and an end
+   * per line), else per vertex (`aGroup`)
+   */
+  private static getVertexGroup(values: MeshGeoData['values'], vertexIndex: number): number {
+    switch (values.dGeometryType.ref.value) {
+      case 'spheres':
+      case 'points':
+        return values.tPositionGroup!.ref.value.array[vertexIndex * 4 + 3];
+      case 'cylinders':
+        return values.tCylinder!.ref.value.array[(vertexIndex >> 1) * CylinderStride + 3];
+      case 'lines':
+        return values.tLine!.ref.value.array[(vertexIndex >> 1) * LineStride + 3];
+      default:
+        return values.aGroup!.ref.value[vertexIndex];
+    }
+  }
 
   private static getSizeFromTexture(tSize: DataArray<Uint8Array>, i: number): number {
     const r = tSize.array[i * 4];
@@ -342,7 +367,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     interpolatedColors?: Uint8Array,
     interpolatedOverpaint?: Uint8Array,
   ): Color {
-    const { values, groups, instanceIndex, isGeoTexture, mode } = geoData;
+    const { values, groups, instanceIndex, isGeoTexture } = geoData;
     const groupCount = values.uGroupCount.ref.value;
     const colorType = values.colorType.ref.value;
     const uColor = values.uColor.ref.value;
@@ -356,16 +381,11 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     if (geoData.vertexMapping) {
       vertexIndex = geoData.vertexMapping[vertexIndex];
       vertexCount = values.uVertexCount.ref.value;
-    } else if (mode === 'lines') {
-      vertexIndex *= 2;
-      vertexCount *= 2;
     }
 
     const group = isGeoTexture
       ? MeshExporter.getGroup(groups!, vertexIndex)
-      : values.dGeometryType.ref.value === 'spheres'
-        ? values.tPositionGroup!.ref.value.array[vertexIndex * 4 + 3]
-        : values.aGroup!.ref.value[vertexIndex];
+      : MeshExporter.getVertexGroup(values, vertexIndex);
 
     let color: Color;
     switch (colorType) {
@@ -458,7 +478,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     geoData: MeshGeoData,
     interpolatedTransparency?: Uint8Array,
   ): number {
-    const { values, instanceIndex, isGeoTexture, mode, groups } = geoData;
+    const { values, instanceIndex, isGeoTexture, groups } = geoData;
     const groupCount = values.uGroupCount.ref.value;
     const dTransparency = values.dTransparency.ref.value;
     const tTransparency = values.tTransparency.ref.value.array;
@@ -468,16 +488,11 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     if (geoData.vertexMapping) {
       vertexIndex = geoData.vertexMapping[vertexIndex];
       vertexCount = values.uVertexCount.ref.value;
-    } else if (mode === 'lines') {
-      vertexIndex *= 2;
-      vertexCount *= 2;
     }
 
     const group = isGeoTexture
       ? MeshExporter.getGroup(groups!, vertexIndex)
-      : values.dGeometryType.ref.value === 'spheres'
-        ? values.tPositionGroup!.ref.value.array[vertexIndex * 4 + 3]
-        : values.aGroup!.ref.value[vertexIndex];
+      : MeshExporter.getVertexGroup(values, vertexIndex);
 
     let transparency: number = 0;
     if (dTransparency) {
@@ -535,14 +550,26 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     });
   }
 
-  private async addLineStrips(values: LinesValues, graphics: GraphicsContext, ctx: RuntimeContext) {
-    const aStart = values.aStart.ref.value;
-    const aEnd = values.aEnd.ref.value;
-    const aGroup = values.aGroup.ref.value;
-    const stripCount = values.stripCount.ref.value;
+  /**
+   * The strips of the lines (`LineStride` floats each): runs of lines each continuing the one before (`tLine`'s end w),
+   * as the first line and the line after the last of each
+   */
+  private static getLineStrips(data: Float32Array, lineCount: number) {
+    const strips: [first: number, end: number][] = [];
+    for (let k = 0; k < lineCount; ) {
+      let e = k + 1;
+      while (e < lineCount && data[e * LineStride + 7] > 0.5) ++e;
+      strips.push([k, e]);
+      k = e;
+    }
+    return strips;
+  }
 
-    const stripOffsets = values.stripOffsets.ref.value;
-    const aMapping = values.aMapping.ref.value;
+  /** Strips as tubes or as their segments: the points the first line's start and each line's end */
+  private async addLineStrips(values: LinesValues, graphics: GraphicsContext, ctx: RuntimeContext) {
+    const data = values.tLine.ref.value.array;
+    const lineCount = values.uVertexCount.ref.value / 2;
+    const strips = MeshExporter.getLineStrips(data, lineCount);
 
     if (this.options.linesAsTriangles) {
       const instanceCount = values.instanceCount.ref.value;
@@ -553,42 +580,30 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
         const state = MeshBuilder.createState(512, 256);
 
-        for (let s = 0; s < stripCount; ++s) {
-          const stripStart = stripOffsets[s];
-          const stripEnd = stripOffsets[s + 1];
-
-          // Collect segments for this strip (only end-side vertices)
-          const segmentIndices: number[] = [];
-          for (let v = stripStart; v < stripEnd; v += 2) {
-            const mappingY = aMapping[v * 2 + 1];
-            if (mappingY < 0) continue;
-            segmentIndices.push(v);
-          }
-          if (segmentIndices.length === 0) continue;
-
-          const nPoints = segmentIndices.length + 1;
-          const linearSegments = nPoints - 1;
+        for (const [first, end] of strips) {
+          const linearSegments = end - first;
+          const nPoints = linearSegments + 1;
           const curvePoints = new Float32Array(nPoints * 3);
+          // the data vertices the colors are read at: the first line's start, each line's end
           const curveOrigIndices: number[] = [];
           const widthValues = new Float32Array(nPoints);
           const heightValues = new Float32Array(nPoints);
+          const group = data[first * LineStride + 3];
 
-          // First point: start of first segment
-          const v0 = segmentIndices[0];
-          arrayCopyOffset(curvePoints, aStart, 0, v0 * 3, 3);
-          curveOrigIndices.push(v0);
-          const radius0 = MeshExporter.getSize(values, instanceIndex, aGroup[v0], v0) * 0.03;
+          arrayCopyOffset(curvePoints, data, 0, first * LineStride, 3);
+          curveOrigIndices.push(first * 2);
+          const radius0 = MeshExporter.getSize(values, instanceIndex, group, first * 2) * 0.03;
           widthValues[0] = radius0;
           heightValues[0] = radius0;
 
-          // Subsequent points: end of each segment
-          for (let j = 0; j < segmentIndices.length; ++j) {
-            const v = segmentIndices[j];
-            arrayCopyOffset(curvePoints, aEnd, (j + 1) * 3, v * 3, 3);
-            curveOrigIndices.push(v);
-            const radius = MeshExporter.getSize(values, instanceIndex, aGroup[v], v) * 0.03;
-            widthValues[j + 1] = radius;
-            heightValues[j + 1] = radius;
+          for (let k = first; k < end; ++k) {
+            const j = k - first + 1;
+            arrayCopyOffset(curvePoints, data, j * 3, k * LineStride + 4, 3);
+            curveOrigIndices.push(k * 2 + 1);
+            const lineGroup = data[k * LineStride + 3];
+            const radius = MeshExporter.getSize(values, instanceIndex, lineGroup, k * 2 + 1) * 0.03;
+            widthValues[j] = radius;
+            heightValues[j] = radius;
           }
 
           const normalVectors = new Float32Array(nPoints * 3);
@@ -639,68 +654,14 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         vertexMapping,
       });
     } else {
-      // Decompose strips into individual line segments
-      let nLineSegments = 0;
-      for (let s = 0; s < stripCount; ++s) {
-        const stripStart = stripOffsets[s];
-        const stripEnd = stripOffsets[s + 1];
-        for (let v = stripStart; v < stripEnd; v += 2) {
-          const mappingY = aMapping[v * 2 + 1];
-          if (mappingY < 0) continue;
-          nLineSegments++;
-        }
-      }
-
-      const vertexCount = nLineSegments * 2;
-      const drawCount = nLineSegments;
-      const vertices = new Float32Array(vertexCount * 3);
-      const vertexMapping: number[] = [];
-
-      let vertexIndex = 0;
-      for (let s = 0; s < stripCount; ++s) {
-        const stripStart = stripOffsets[s];
-        const stripEnd = stripOffsets[s + 1];
-        for (let v = stripStart; v < stripEnd; v += 2) {
-          const mappingY = aMapping[v * 2 + 1];
-          if (mappingY < 0) continue;
-
-          arrayCopyOffset(vertices, aStart, vertexIndex * 3, v * 3, 3);
-          vertexMapping[vertexIndex] = v;
-          vertexIndex++;
-
-          arrayCopyOffset(vertices, aEnd, vertexIndex * 3, v * 3, 3);
-          vertexMapping[vertexIndex] = v;
-          vertexIndex++;
-        }
-      }
-
-      await this.addMeshWithColors({
-        mesh: {
-          vertices,
-          normals: undefined,
-          indices: undefined,
-          groups: aGroup,
-          vertexCount,
-          drawCount,
-          vertexMapping,
-        },
-        meshes: undefined,
-        values,
-        isGeoTexture: false,
-        mode: 'lines',
-        graphics: graphics,
-        ctx,
-      });
+      await this.addLineSegments(values, graphics, ctx);
     }
   }
 
   private async addLineSegments(values: LinesValues, graphics: GraphicsContext, ctx: RuntimeContext) {
-    const aStart = values.aStart.ref.value;
-    const aEnd = values.aEnd.ref.value;
-    const aGroup = values.aGroup.ref.value;
-
-    const vertexCount = (values.uVertexCount.ref.value / 4) * 2;
-    const drawCount = values.drawCount.ref.value / (2 * 3);
+    // per line: start xyz and group, end xyz and whether it continues the line before (`LineStride` floats)
+    const data = values.tLine.ref.value.array;
+    const lineCount = values.uVertexCount.ref.value / 2;
 
     if (this.options.linesAsTriangles) {
       const start = Vec3();
@@ -718,12 +679,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
         const state = MeshBuilder.createState(512, 256);
 
-        for (let i = 0, il = vertexCount * 2; i < il; i += 4) {
-          v3fromArray(start, aStart, i * 3);
-          v3fromArray(end, aEnd, i * 3);
+        for (let k = 0; k < lineCount; ++k) {
+          const o = k * LineStride;
+          v3fromArray(start, data, o);
+          v3fromArray(end, data, o + 4);
 
-          const group = aGroup[i / 4];
-          const radius = MeshExporter.getSize(values, instanceIndex, group, i / 4) * 0.03;
+          const group = data[o + 3];
+          const radius = MeshExporter.getSize(values, instanceIndex, group, k * 2) * 0.03;
 
           const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
           const vertexOffset = state.vertices.elementCount;
@@ -731,7 +693,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
           if (instanceIndex === 0) {
             for (let vi = vertexOffset; vi < state.vertices.elementCount; ++vi) {
-              vertexMapping.push(i);
+              vertexMapping.push(k * 2);
             }
           }
         }
@@ -750,15 +712,18 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         vertexMapping,
       });
     } else {
-      const n = vertexCount / 2;
-      const vertices = new Float32Array(n * 2 * 3);
-      for (let i = 0; i < n; ++i) {
-        arrayCopyOffset(vertices, aStart, i * 6, i * 4 * 3, 3);
-        arrayCopyOffset(vertices, aEnd, i * 6 + 3, i * 4 * 3, 3);
+      // two vertices per line, its data vertices (start and end)
+      const vertexCount = lineCount * 2;
+      const vertices = new Float32Array(vertexCount * 3);
+      const groups = new Float32Array(vertexCount);
+      for (let k = 0; k < lineCount; ++k) {
+        arrayCopyOffset(vertices, data, k * 6, k * LineStride, 3);
+        arrayCopyOffset(vertices, data, k * 6 + 3, k * LineStride + 4, 3);
+        groups[k * 2] = groups[k * 2 + 1] = data[k * LineStride + 3];
       }
 
       await this.addMeshWithColors({
-        mesh: { vertices, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount },
+        mesh: { vertices, normals: undefined, indices: undefined, groups, vertexCount, drawCount: lineCount },
         meshes: undefined,
         values,
         isGeoTexture: false,
@@ -769,8 +734,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     }
   }
 
+  /** Strips (lines continuing the one before) as strips, else as segments */
   private async addLines(values: LinesValues, graphics: GraphicsContext, ctx: RuntimeContext) {
-    if (values.stripCount.ref.value !== 0) {
+    const data = values.tLine.ref.value.array;
+    const lineCount = values.uVertexCount.ref.value / 2;
+    let strips = false;
+    for (let k = 0; k < lineCount && !strips; ++k) strips = data[k * LineStride + 7] > 0.5;
+    if (strips) {
       await this.addLineStrips(values, graphics, ctx);
     } else {
       await this.addLineSegments(values, graphics, ctx);
@@ -778,9 +748,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   }
 
   private async addPoints(values: PointsValues, graphics: GraphicsContext, ctx: RuntimeContext) {
-    const aPosition = values.centerBuffer.ref.value;
-    const aGroup = values.groupBuffer.ref.value;
-    // one vertex per point (drawn as quads of 6 vertices)
+    // center xyz and group per point; one vertex per point (drawn as quads of 6 vertices)
+    const positionGroup = values.tPositionGroup.ref.value.array;
     const vertexCount = values.uVertexCount.ref.value;
     const drawCount = vertexCount;
 
@@ -797,9 +766,9 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const state = MeshBuilder.createState(512, 256);
 
         for (let i = 0; i < vertexCount; ++i) {
-          v3fromArray(center, aPosition, i * 3);
+          v3fromArray(center, positionGroup, i * 4);
 
-          const group = aGroup[i];
+          const group = positionGroup[i * 4 + 3];
           const radius = MeshExporter.getSize(values, instanceIndex, group, i) * 0.03;
           const vertexOffset = state.vertices.elementCount;
           addSphere(state, center, radius, detail);
@@ -825,6 +794,15 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         vertexMapping,
       });
     } else {
+      // the writers take separate positions and groups
+      const aPosition = new Float32Array(vertexCount * 3);
+      const aGroup = new Float32Array(vertexCount);
+      for (let i = 0; i < vertexCount; ++i) {
+        aPosition[i * 3] = positionGroup[i * 4];
+        aPosition[i * 3 + 1] = positionGroup[i * 4 + 1];
+        aPosition[i * 3 + 2] = positionGroup[i * 4 + 2];
+        aGroup[i] = positionGroup[i * 4 + 3];
+      }
       await this.addMeshWithColors({
         mesh: { vertices: aPosition, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount },
         meshes: undefined,
@@ -840,13 +818,14 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   private async addSpheres(values: SpheresValues, graphics: GraphicsContext, ctx: RuntimeContext) {
     const center = Vec3();
 
-    const aPosition = values.centerBuffer.ref.value;
-    const aGroup = values.groupBuffer.ref.value;
+    // center xyz and group per sphere
+    const positionGroup = values.tPositionGroup.ref.value.array;
     const instanceCount = values.instanceCount.ref.value;
     const vertexCount = values.uVertexCount.ref.value;
     const meshes: Mesh[] = [];
 
-    const sphereCount = (vertexCount / 6) * instanceCount;
+    const count = vertexCount;
+    const sphereCount = count * instanceCount;
     let detail: number;
     switch (this.options.primitivesQuality) {
       case 'auto':
@@ -872,10 +851,11 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
       const state = MeshBuilder.createState(512, 256);
 
-      for (let i = 0; i < sphereCount; ++i) {
-        v3fromArray(center, aPosition, i * 3);
+      // the spheres of one instance (the count over all instances chooses the detail)
+      for (let i = 0; i < count; ++i) {
+        v3fromArray(center, positionGroup, i * 4);
 
-        const group = aGroup[i];
+        const group = positionGroup[i * 4 + 3];
         const radius = MeshExporter.getSize(values, instanceIndex, group, i);
         const vertexOffset = state.vertices.elementCount;
         addSphere(state, center, radius, detail);
@@ -907,16 +887,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const end = Vec3();
     const dir = Vec3();
 
-    const aStart = values.aStart.ref.value;
-    const aEnd = values.aEnd.ref.value;
-    const aScale = values.aScale.ref.value;
-    const aCap = values.aCap.ref.value;
-    const aGroup = values.aGroup.ref.value;
+    // per cylinder: start xyz and group, end xyz and radius scale, cap and color mode (`CylinderStride` floats)
+    const data = values.tCylinder.ref.value.array;
     const instanceCount = values.instanceCount.ref.value;
     const vertexCount = values.uVertexCount.ref.value;
     const meshes: Mesh[] = [];
 
-    const cylinderCount = (vertexCount / 6) * instanceCount;
+    const cylinderCount = (vertexCount / 2) * instanceCount;
     let radialSegments: number;
     switch (this.options.primitivesQuality) {
       case 'auto':
@@ -942,14 +919,16 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
       const state = MeshBuilder.createState(512, 256);
 
-      for (let i = 0; i < vertexCount; i += 6) {
-        v3fromArray(start, aStart, i * 3);
-        v3fromArray(end, aEnd, i * 3);
+      // per cylinder its start's data vertex `i`
+      for (let i = 0; i < vertexCount; i += 2) {
+        const o = (i / 2) * CylinderStride;
+        v3fromArray(start, data, o);
+        v3fromArray(end, data, o + 4);
         v3sub(dir, end, start);
 
-        const group = aGroup[i];
-        const radius = MeshExporter.getSize(values, instanceIndex, group, i) * aScale[i];
-        const cap = aCap[i];
+        const group = data[o + 3];
+        const radius = MeshExporter.getSize(values, instanceIndex, group, i) * data[o + 7];
+        const cap = data[o + 8];
         let topCap = cap === 1 || cap === 3;
         let bottomCap = cap >= 2;
         if (v3dot(v3unitY, dir) > 0) {
@@ -991,7 +970,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       const count = meta.readVertexCount ?? values.drawCount.ref.value;
       const { vertices, normals, groups, vertexCount } = await readChunkedVertices(
         graphics.compute,
-        { table, vertices: arena },
+        // the arena's buffer as it is when the table is read: it may grow meanwhile
+        { table, vertices: () => values.sIsoVertices.ref.value! },
         count,
       );
       await this.addMeshWithColors({

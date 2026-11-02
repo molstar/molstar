@@ -11,7 +11,8 @@
 - Step 1 (guards) done: `a*` identifier guard in `_test/shader-uniforms.test.ts`, `checkAttributeBinding` (debug mode,
   now part of `bindAttributeBuffers` in `webgl/buffer.ts`; `AttributeBuffer` exposes `itemSize`). Findings:
   `aColor`/`aSize` are only referenced in the never-used `dColorType_attribute`/`dSizeType_attribute` branches (schema
-  entries are commented TODOs), `aColorMode` is cylinders-only (`dDualColor`); all allowlisted.
+  entries are commented TODOs); allowlisted. (`aColorMode` was cylinders-only; cylinders read their data from
+  `tCylinder` now, [primitive-expansion.md](primitive-expansion.md).)
 - Step 2 (schema) done: `aVertex` is a `BaseSchema` entry with `usedIf: ['!noNonInstancedActiveAttribs']` (value from
   `BaseGeometry.createValues`/merged values, filled by the render item when used; no schema mutation); `AttributeSpec`
   has `usedIf` (`aSegment*`: `dSegmented`). The render item skips attributes that are unused for the context
@@ -49,9 +50,9 @@
   may differ between variants. `aVertex` is added to the schema object at render item creation (schema mutation).
 - One GL buffer per attribute (no interleaving). Per-instance data: `aTransform` (mat4), `aInstance`, `aSegment*`;
   everything else per vertex.
-- Location counts (worst case per graphics schema, e.g. cylinders): `aTransform` 4 + `aInstance` + `aGroup` + 6 cylinder
-  attributes + `aColor` + `aSize` + `aVertex` + 3 `aSegment*` ≈ 18; never all active at once. Buffers for plain
-  cylinders: 9.
+- Location counts (worst case per graphics schema, e.g. a merged mesh): the per-vertex attributes of the kind
+  + `aTransform` 4 + `aInstance` + `aVertex` + 3 `aSegment*`; never all active at once. Cylinders had 9 buffers (7
+  per-vertex attributes); they read their data from `tCylinder` now, only the instance attributes remain.
 
 ## 2. Evaluation: is the schema the right source of truth for a WebGL + WebGPU backend?
 
@@ -68,7 +69,7 @@ outputs).
   vertex buffer slot/interleaving or storage buffer + vertex pulling). This keeps the schema backend-neutral and lets
   the backends differ where their limits differ.
 - **WebGPU limits force a different transport**: default `maxVertexBuffers` is 8 and `maxVertexAttributes` 16; plain
-  cylinders already use 9 buffers, and `mat4` vertex inputs don't exist in WGSL (4 × `vec4<f32>`). So WebGPU needs
+  cylinders used 9 buffers (now none per vertex, see above; no schema exceeds it since text's data moved too), and `mat4` vertex inputs don't exist in WGSL (4 × `vec4<f32>`). So WebGPU needs
   either interleaving into few buffers or, more robustly, per-instance data (transforms, instance ids, segment data) in
   storage buffers read by `instance_index` (vertex pulling; similar to what Mol* already does with data textures). A
   schema-driven generator can make that choice per backend without touching the shared description; hand-written

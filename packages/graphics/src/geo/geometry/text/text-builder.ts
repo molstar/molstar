@@ -12,12 +12,8 @@ import { Text } from './text.js';
 import { getFontAtlas } from './font-atlas.js';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 
-const quadIndices = new Uint16Array([0, 1, 2, 1, 3, 2]);
-
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const caAdd3 = ChunkedArray.add3;
-const caAdd2 = ChunkedArray.add2;
-const caAdd = ChunkedArray.add;
+const caAdd4 = ChunkedArray.add4;
 
 export interface TextBuilder {
   add(str: string, x: number, y: number, z: number, depth: number, scale: number, group: number): void;
@@ -31,19 +27,14 @@ export namespace TextBuilder {
     chunkSize = 1024,
     text?: Text,
   ): TextBuilder {
-    initialCount *= 2;
-    chunkSize *= 2;
-    const centers = ChunkedArray.create(Float32Array, 3, chunkSize, text ? text.centerBuffer.ref.value : initialCount);
-    const mappings = ChunkedArray.create(
+    // the geometry's data (`TextStride` floats per item: a glyph, background or tether) as 4 elements of 4 floats,
+    // reused where given; `initialCount` and `chunkSize` count items
+    const data = ChunkedArray.create(
       Float32Array,
-      2,
-      chunkSize,
-      text ? text.mappingBuffer.ref.value : initialCount,
+      4,
+      Math.max(1, chunkSize) * 4,
+      text ? text.textData.ref.value.array : Math.max(1, initialCount) * 4,
     );
-    const depths = ChunkedArray.create(Float32Array, 1, chunkSize, text ? text.depthBuffer.ref.value : initialCount);
-    const indices = ChunkedArray.create(Uint32Array, 3, chunkSize, text ? text.indexBuffer.ref.value : initialCount);
-    const groups = ChunkedArray.create(Float32Array, 1, chunkSize, text ? text.groupBuffer.ref.value : initialCount);
-    const tcoords = ChunkedArray.create(Float32Array, 2, chunkSize, text ? text.tcoordBuffer.ref.value : initialCount);
 
     const p = { ...PD.getDefaultValues(Text.Params), ...props };
     const { attachment, background, backgroundMargin, tether, tetherLength, tetherBaseWidth } = p;
@@ -52,10 +43,27 @@ export namespace TextBuilder {
     const margin = (1 / 2.5) * backgroundMargin;
     const outline = fontAtlas.buffer / fontAtlas.lineHeight;
 
-    const add = (x: number, y: number, z: number, depth: number, group: number) => {
-      caAdd3(centers, x, y, z);
-      caAdd(depths, depth);
-      caAdd(groups, group);
+    /** an item of the label at x, y, z: a glyph or a background (`tether` false), or a tether, by its 8 numbers */
+    const addItem = (
+      x: number,
+      y: number,
+      z: number,
+      depth: number,
+      group: number,
+      tether: boolean,
+      a0: number,
+      a1: number,
+      a2: number,
+      a3: number,
+      b0: number,
+      b1: number,
+      b2: number,
+      b3: number,
+    ) => {
+      caAdd4(data, x, y, z, group);
+      caAdd4(data, depth, tether ? 1 : 0, 0, 0);
+      caAdd4(data, a0, a1, a2, a3);
+      caAdd4(data, b0, b1, b2, b3);
     };
 
     return {
@@ -125,20 +133,9 @@ export namespace TextBuilder {
         const yTop = (yMid + bHeight / 2 + margin) * scale;
         const yBottom = (yMid - bHeight / 2 - margin) * scale;
 
-        // background
+        // background: texture coordinates 10 (no glyph)
         if (background) {
-          caAdd2(mappings, xLeft, yTop); // top left
-          caAdd2(mappings, xLeft, yBottom); // bottom left
-          caAdd2(mappings, xRight, yTop); // top right
-          caAdd2(mappings, xRight, yBottom); // bottom right
-
-          const offset = centers.elementCount;
-          for (let i = 0; i < 4; ++i) {
-            caAdd2(tcoords, 10, 10);
-            add(x, y, z, depth, group);
-          }
-          caAdd3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
-          caAdd3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
+          addItem(x, y, z, depth, group, false, xLeft, yTop, xRight, yBottom, 10, 10, 10, 10);
         }
 
         if (tether) {
@@ -244,18 +241,9 @@ export namespace TextBuilder {
             default:
               assertUnreachable(attachment);
           }
-          caAdd2(mappings, xTip, yTip); // tip
-          caAdd2(mappings, xBaseA, yBaseA); // base A
-          caAdd2(mappings, xBaseB, yBaseB); // base B
-          caAdd2(mappings, xBaseCenter, yBaseCenter); // base center
-
-          const offset = centers.elementCount;
-          for (let i = 0; i < 4; ++i) {
-            caAdd2(tcoords, 10, 10);
-            add(x, y, z, depth, group);
-          }
-          caAdd3(indices, offset, offset + 1, offset + 3);
-          caAdd3(indices, offset, offset + 3, offset + 2);
+          // the corners in the order the shared indices draw the triangles (tip, base A, base center) and (tip,
+          // base center, base B) in: base B, tip, base center, base A
+          addItem(x, y, z, depth, group, true, xBaseB, yBaseB, xTip, yTip, xBaseCenter, yBaseCenter, xBaseA, yBaseA);
         }
 
         yShift += outline;
@@ -267,34 +255,31 @@ export namespace TextBuilder {
           const top = (c.nh - yShift) * scale;
           const bottom = -yShift * scale;
 
-          caAdd2(mappings, left, top);
-          caAdd2(mappings, left, bottom);
-          caAdd2(mappings, right, top);
-          caAdd2(mappings, right, bottom);
-
           const texWidth = fontAtlas.texture.width;
           const texHeight = fontAtlas.texture.height;
 
-          caAdd2(tcoords, c.x / texWidth, c.y / texHeight); // top left
-          caAdd2(tcoords, c.x / texWidth, (c.y + c.h) / texHeight); // bottom left
-          caAdd2(tcoords, (c.x + c.w) / texWidth, c.y / texHeight); // top right
-          caAdd2(tcoords, (c.x + c.w) / texWidth, (c.y + c.h) / texHeight); // bottom right
-
-          const offset = centers.elementCount;
-          for (let i = 0; i < 4; ++i) add(x, y, z, depth, group);
-          caAdd3(indices, offset + quadIndices[0], offset + quadIndices[1], offset + quadIndices[2]);
-          caAdd3(indices, offset + quadIndices[3], offset + quadIndices[4], offset + quadIndices[5]);
+          // corners and texture coordinates as left, top, right, bottom
+          addItem(
+            x,
+            y,
+            z,
+            depth,
+            group,
+            false,
+            left,
+            top,
+            right,
+            bottom,
+            c.x / texWidth,
+            c.y / texHeight,
+            (c.x + c.w) / texWidth,
+            (c.y + c.h) / texHeight,
+          );
         }
       },
       getText: () => {
-        const ft = fontAtlas.texture;
-        const cb = ChunkedArray.compactTrimmed(centers) as Float32Array;
-        const mb = ChunkedArray.compactTrimmed(mappings) as Float32Array;
-        const db = ChunkedArray.compactTrimmed(depths) as Float32Array;
-        const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
-        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
-        const tb = ChunkedArray.compactTrimmed(tcoords) as Float32Array;
-        return Text.create(ft, cb, mb, db, ib, gb, tb, indices.elementCount / 2, text);
+        const array = ChunkedArray.compactTrimmed(data) as Float32Array;
+        return Text.create(fontAtlas.texture, array, data.elementCount / 4, text);
       },
     };
   }

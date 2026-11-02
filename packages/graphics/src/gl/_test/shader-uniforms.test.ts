@@ -90,14 +90,14 @@ function getIdentifiers(source: string, prefix: 'u' | 't' | 'a') {
   return new Set(code.match(new RegExp(`\\b${prefix}[A-Z]\\w*`, 'g')) ?? []);
 }
 
-/** referenced in a shared chunk only in `bumpEnabled` branches, defined by shaders of geometries with these uniforms */
+/** referenced in a shared chunk only in `dBump` (or `dSubstance`) branches, defined by the schemas of geometries with these uniforms */
 const ConditionalUniforms = new Set(['uBumpFrequency', 'uBumpAmplitude']);
 
 const Guards: [string, 'u' | 't' | 'a', RenderableSchema['k']['type'], Set<string>][] = [
   ['uniforms', 'u', 'uniform', ConditionalUniforms],
   ['textures', 't', 'texture', new Set()],
-  // `aColorMode` is cylinders-only (`dDualColor`)
-  ['attributes', 'a', 'attribute', new Set(['aColorMode'])],
+  // the segment data of merged items, read from `tSegment` by macros of the segment's index (`common-vert-params`)
+  ['attributes', 'a', 'attribute', new Set(['aSegmentSphere', 'aSegmentLod'])],
 ];
 
 describe('shader identifiers', () => {

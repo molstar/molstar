@@ -29,7 +29,11 @@ import { createMarkers } from '../marker-data.js';
 import { createEmptyOverpaint } from '../overpaint-data.js';
 import type { TransformData } from '../transform-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
-import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function.js';
+import {
+  createPreIntegratedTransferTexture,
+  createTransferFunctionTexture,
+  getControlPointsFromVec2Array,
+} from './transfer-function.js';
 import { createEmptyClipping } from '../clipping-data.js';
 import { Grid } from '@molstar/model/model/volume';
 import { createEmptySubstance } from '../substance-data.js';
@@ -299,6 +303,11 @@ export namespace DirectVolume {
       { isEssential: true, yAxis: { scale: 'log' } },
     ),
     stepsPerCell: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
+    preIntegration: PD.Boolean(true, {
+      description:
+        'Opacity from the transfer function integrated between consecutive samples: narrow peaks show where rays ' +
+        'cross them, not only where a sample lands on them (no slabs or banding at few steps per cell).',
+    }),
     surfaceOpacity: PD.Numeric(
       0.3,
       { min: 0.05, max: 0.95, step: 0.05 },
@@ -405,7 +414,7 @@ export namespace DirectVolume {
     theme: Theme,
     props: PD.Values<Params>,
   ): DirectVolumeValues {
-    const { gridTexture, gridTextureDim, gridStats } = directVolume;
+    const { gridTexture, gridTextureDim } = directVolume;
     const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume;
 
     const { instanceCount, groupCount } = locationIt;
@@ -469,6 +478,8 @@ export namespace DirectVolume {
       uTransform: gridTransform,
       uGridDim: gridDimension,
       tTransferTex: transferTex,
+      tPreIntegratedTex: createPreIntegratedTransferTexture(transferTex.ref.value.array),
+      dPreIntegration: ValueCell.create(props.preIntegration),
       uTransferScale: ValueCell.create(getTransferScale(props.stepsPerCell)),
       uSurfaceOpacity: ValueCell.create(props.surfaceOpacity),
       brickRange: directVolume.brickRange,
@@ -479,7 +490,6 @@ export namespace DirectVolume {
       dGridTexType: ValueCell.create(gridTexture.ref.value.getDepth() > 0 ? '3d' : '2d'),
       uGridTexDim: gridTextureDim,
       tGridTex: gridTexture,
-      uGridStats: gridStats,
 
       uCellDim: directVolume.cellDim,
       uCartnToUnit: directVolume.cartnToUnit,
@@ -511,6 +521,8 @@ export namespace DirectVolume {
 
   function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
     BaseGeometry.updateValues(values, props);
+    // created again for a context with or without 3d textures
+    ValueCell.updateIfChanged(values.dGridTexType, values.tGridTex.ref.value.getDepth() > 0 ? '3d' : '2d');
     ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
     ValueCell.updateIfChanged(values.dCelShaded, props.celShaded);
     ValueCell.updateIfChanged(
@@ -519,7 +531,15 @@ export namespace DirectVolume {
     );
 
     const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
+    const previousTransfer = values.tTransferTex.ref.value.array.slice();
     createTransferFunctionTexture(controlPoints, values.tTransferTex);
+    // its table is 256 × 256 and a texture upload: only where read and out of date
+    const transfer = values.tTransferTex.ref.value.array;
+    const transferChanged = transfer.some((v, i) => v !== previousTransfer[i]);
+    if (props.preIntegration && (transferChanged || !values.dPreIntegration.ref.value)) {
+      createPreIntegratedTransferTexture(transfer, values.tPreIntegratedTex);
+    }
+    ValueCell.updateIfChanged(values.dPreIntegration, props.preIntegration);
     // the transfer function or the bricks (a new geometry) may have changed
     const brickRange = values.brickRange.ref.value as BrickRange;
     const brickImage = getBrickVisibility(brickRange, values.tTransferTex.ref.value.array, values.tBrickTex.ref.value);

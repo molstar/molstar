@@ -48,7 +48,7 @@ ${fragment_output_wgsl()}
 @vertex
 fn vertexMain(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    let transform = mat4x4<f32>(in.aTransform0, in.aTransform1, in.aTransform2, in.aTransform3);
+    let transform = affineTransform(in.aTransform0, in.aTransform1, in.aTransform2);
     let model = uGlobal.uModel * transform;
     let position4 = vec4<f32>(in.aPosition, 1.0);
     out.vModelPosition = (model * position4).xyz;

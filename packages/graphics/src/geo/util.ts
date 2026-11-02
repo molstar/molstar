@@ -7,7 +7,6 @@
 
 import { Vec3, type Mat4, type Mat3 } from '@molstar/core/math/linear-algebra';
 import type { NumberArray } from '@molstar/core/util/type-helpers';
-import { arrayMax } from '@molstar/core/util/array';
 
 export function normalizeVec3Array<T extends NumberArray>(a: T, count: number) {
   for (let i = 0, il = count * 3; i < il; i += 3) {
@@ -29,8 +28,11 @@ const tmpV3 = Vec3();
 // Oct 2026), and the generic `Vec3.fromArray` / `toArray` are megamorphic app-wide. Per-element loops that call other
 // code use the typed `Vec3` helpers instead.
 
-/** In place, as `Vec3.transformMat4`; skips the w divide for an affine `t`, where w is exactly 1 */
-export function transformPositionArray(t: Mat4, array: NumberArray, offset: number, count: number) {
+/**
+ * In place, as `Vec3.transformMat4`; skips the w divide for an affine `t`, where w is exactly 1. `stride`: floats per
+ * position (4 where a group follows each, as `tPositionGroup`)
+ */
+export function transformPositionArray(t: Mat4, array: NumberArray, offset: number, count: number, stride = 3) {
   const m0 = t[0],
     m1 = t[1],
     m2 = t[2],
@@ -47,10 +49,10 @@ export function transformPositionArray(t: Mat4, array: NumberArray, offset: numb
     m13 = t[13],
     m14 = t[14],
     m15 = t[15];
-  const end = offset + count * 3;
+  const end = offset + count * stride;
   // two loops: a branch on `affine` inside one is ~3x slower (V8, Oct 2026)
   if (m3 === 0 && m7 === 0 && m11 === 0 && m15 === 1) {
-    for (let i = offset; i < end; i += 3) {
+    for (let i = offset; i < end; i += stride) {
       const x = array[i],
         y = array[i + 1],
         z = array[i + 2];
@@ -59,7 +61,7 @@ export function transformPositionArray(t: Mat4, array: NumberArray, offset: numb
       array[i + 2] = m2 * x + m6 * y + m10 * z + m14;
     }
   } else {
-    for (let i = offset; i < end; i += 3) {
+    for (let i = offset; i < end; i += stride) {
       const x = array[i],
         y = array[i + 1],
         z = array[i + 2];
@@ -196,10 +198,17 @@ export type GroupMapping = {
 };
 
 /**
- * The `step` parameter allows to skip over repeated values in `groups`
+ * The `step` parameter allows to skip over repeated values in `groups`; `groupOffset` where the group is within a step (3 in
+ * `tPositionGroup`'s xyz and group). The indices are of the groups' array without the offset (multiples of `step`)
  */
-export function createGroupMapping(groups: ArrayLike<number>, dataCount: number, step = 1): GroupMapping {
-  const maxId = arrayMax(groups);
+export function createGroupMapping(
+  groups: ArrayLike<number>,
+  dataCount: number,
+  step = 1,
+  groupOffset = 0,
+): GroupMapping {
+  let maxId = -Infinity;
+  for (let i = groupOffset, il = dataCount * step; i < il; i += step) if (groups[i] > maxId) maxId = groups[i];
   // one bucket per group id, not per item: a shape's group ids may exceed its item count (perf-audit-2 08/B2)
   const groupCount = dataCount > 0 ? maxId + 1 : 0;
 
@@ -207,7 +216,7 @@ export function createGroupMapping(groups: ArrayLike<number>, dataCount: number,
   const bucketFill = new Int32Array(groupCount);
   const bucketSizes = new Int32Array(groupCount);
 
-  for (let i = 0, il = dataCount * step; i < il; i += step) ++bucketSizes[groups[i]];
+  for (let i = 0, il = dataCount * step; i < il; i += step) ++bucketSizes[groups[i + groupOffset]];
 
   let offset = 0;
   for (let i = 0; i < groupCount; i++) {
@@ -218,7 +227,7 @@ export function createGroupMapping(groups: ArrayLike<number>, dataCount: number,
 
   const indices = new Int32Array(offset);
   for (let i = 0, il = dataCount * step; i < il; i += step) {
-    const g = groups[i];
+    const g = groups[i + groupOffset];
     const og = offsets[g] + bucketFill[g];
     indices[og] = i;
     ++bucketFill[g];

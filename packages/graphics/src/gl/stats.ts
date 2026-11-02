@@ -34,6 +34,11 @@ export function createGraphicsStats() {
      * pass that skipped draws compares it before and after
      */
     skippedDraws: 0,
+    /**
+     * Objects whose spheres the sphere raster drew (their resolves drawn, WebGPU, `RendererProps.sphereRaster`), counted
+     * since the context was made
+     */
+    sphereRasterResolves: 0,
 
     drawCount: 0,
     instanceCount: 0,

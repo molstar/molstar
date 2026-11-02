@@ -1,10 +1,12 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+/** The dithered fade at the object's lod distances, only where it has them (`dLodFade`) */
 export const fade_lod = `
+#if defined(dLodFade)
 if (uLod.w == 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
     float d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
     float ta = min(
@@ -46,4 +48,5 @@ if (uLod.w == 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
         }
     #endif
 }
+#endif
 `;

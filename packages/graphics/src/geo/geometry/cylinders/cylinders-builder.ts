@@ -59,50 +59,17 @@ const tmpVecB = Vec3();
 const tmpDir = Vec3();
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const caAdd = ChunkedArray.add;
-const caAdd3 = ChunkedArray.add3;
+const caAdd4 = ChunkedArray.add4;
 
 export namespace CylindersBuilder {
-  /** `initialCount` and `chunkSize` count cylinders (6 vertices each) */
+  /** `initialCount` and `chunkSize` count cylinders */
   export function create(initialCount = 2048, chunkSize = 1024, cylinders?: Cylinders): CylindersBuilder {
-    // ChunkedArray sizes count elements, one per vertex (perf-audit 08/P8)
-    initialCount *= 6;
-    chunkSize *= 6;
-    const groups = ChunkedArray.create(
+    // the geometry's data (`CylinderStride` floats per cylinder) as 3 elements of 4 floats, reused where given
+    const data = ChunkedArray.create(
       Float32Array,
-      1,
-      chunkSize,
-      cylinders ? cylinders.groupBuffer.ref.value : initialCount,
-    );
-    const starts = ChunkedArray.create(
-      Float32Array,
-      3,
-      chunkSize,
-      cylinders ? cylinders.startBuffer.ref.value : initialCount,
-    );
-    const ends = ChunkedArray.create(
-      Float32Array,
-      3,
-      chunkSize,
-      cylinders ? cylinders.endBuffer.ref.value : initialCount,
-    );
-    const scales = ChunkedArray.create(
-      Float32Array,
-      1,
-      chunkSize,
-      cylinders ? cylinders.scaleBuffer.ref.value : initialCount,
-    );
-    const caps = ChunkedArray.create(
-      Float32Array,
-      1,
-      chunkSize,
-      cylinders ? cylinders.capBuffer.ref.value : initialCount,
-    );
-    const colorModes = ChunkedArray.create(
-      Float32Array,
-      1,
-      chunkSize,
-      cylinders ? cylinders.colorModeBuffer.ref.value : initialCount,
+      4,
+      chunkSize * 3,
+      cylinders ? cylinders.cylinderData.ref.value.array : initialCount * 3,
     );
 
     const add = (
@@ -119,66 +86,9 @@ export namespace CylindersBuilder {
       group: number,
     ) => {
       const cap = (topCap ? 1 : 0) + (bottomCap ? 2 : 0);
-      if (
-        starts.currentIndex + 18 > starts.currentSize ||
-        ends.currentIndex + 18 > ends.currentSize ||
-        groups.currentIndex + 6 > groups.currentSize ||
-        scales.currentIndex + 6 > scales.currentSize ||
-        caps.currentIndex + 6 > caps.currentSize ||
-        colorModes.currentIndex + 6 > colorModes.currentSize
-      ) {
-        // a chunk ends: the generic adders allocate the next one
-        for (let i = 0; i < 6; ++i) {
-          caAdd3(starts, startX, startY, startZ);
-          caAdd3(ends, endX, endY, endZ);
-          caAdd(groups, group);
-          caAdd(scales, radiusScale);
-          caAdd(caps, cap);
-          caAdd(colorModes, colorMode);
-        }
-        return;
-      }
-
-      // the 6 vertices straight into the current chunks: one capacity check per array, not 36 adder calls, each with
-      // its own (perf-audit-2 08/P16)
-      const sc = starts.currentChunk as Float32Array;
-      const ec = ends.currentChunk as Float32Array;
-      const gc = groups.currentChunk as Float32Array;
-      const ac = scales.currentChunk as Float32Array;
-      const cc = caps.currentChunk as Float32Array;
-      const mc = colorModes.currentChunk as Float32Array;
-      const si = starts.currentIndex;
-      const ei = ends.currentIndex;
-      const gi = groups.currentIndex;
-      const ai = scales.currentIndex;
-      const ci = caps.currentIndex;
-      const mi = colorModes.currentIndex;
-      for (let i = 0; i < 6; ++i) {
-        const s3 = si + 3 * i;
-        const e3 = ei + 3 * i;
-        sc[s3] = startX;
-        sc[s3 + 1] = startY;
-        sc[s3 + 2] = startZ;
-        ec[e3] = endX;
-        ec[e3 + 1] = endY;
-        ec[e3 + 2] = endZ;
-        gc[gi + i] = group;
-        ac[ai + i] = radiusScale;
-        cc[ci + i] = cap;
-        mc[mi + i] = colorMode;
-      }
-      starts.currentIndex = si + 18;
-      ends.currentIndex = ei + 18;
-      groups.currentIndex = gi + 6;
-      scales.currentIndex = ai + 6;
-      caps.currentIndex = ci + 6;
-      colorModes.currentIndex = mi + 6;
-      starts.elementCount += 6;
-      ends.elementCount += 6;
-      groups.elementCount += 6;
-      scales.elementCount += 6;
-      caps.elementCount += 6;
-      colorModes.elementCount += 6;
+      caAdd4(data, startX, startY, startZ, group);
+      caAdd4(data, endX, endY, endZ, radiusScale);
+      caAdd4(data, cap, colorMode, 0, 0);
     };
 
     const addFixedCountDashes = (
@@ -245,65 +155,9 @@ export namespace CylindersBuilder {
         addFixedCountDashes(start, end, d / segmentLength, radiusScale, topCap, bottomCap, true, interpolate, group);
       },
       getCylinders: () => {
-        const cylinderCount = groups.elementCount / 6;
-        const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
-        const sb = ChunkedArray.compactTrimmed(starts) as Float32Array;
-        const eb = ChunkedArray.compactTrimmed(ends) as Float32Array;
-        const ab = ChunkedArray.compactTrimmed(scales) as Float32Array;
-        const cb = ChunkedArray.compactTrimmed(caps) as Float32Array;
-        const cmb = ChunkedArray.compactTrimmed(colorModes) as Float32Array;
-        const mb =
-          cylinders && cylinderCount <= cylinders.cylinderCount
-            ? cylinders.mappingBuffer.ref.value
-            : new Float32Array(cylinderCount * 18);
-        const ib =
-          cylinders && cylinderCount <= cylinders.cylinderCount
-            ? cylinders.indexBuffer.ref.value
-            : new Uint32Array(cylinderCount * 12);
-        if (!cylinders || cylinderCount > cylinders.cylinderCount) fillMappingAndIndices(cylinderCount, mb, ib);
-        return Cylinders.create(mb, ib, gb, sb, eb, ab, cb, cmb, cylinderCount, cylinders);
+        const array = ChunkedArray.compactTrimmed(data) as Float32Array;
+        return Cylinders.create(array, data.elementCount / 3, cylinders);
       },
     };
-  }
-}
-
-function fillMappingAndIndices(n: number, mb: Float32Array, ib: Uint32Array) {
-  for (let i = 0; i < n; ++i) {
-    const mo = i * 18;
-    mb[mo] = -1;
-    mb[mo + 1] = 1;
-    mb[mo + 2] = -1;
-    mb[mo + 3] = -1;
-    mb[mo + 4] = -1;
-    mb[mo + 5] = -1;
-    mb[mo + 6] = 1;
-    mb[mo + 7] = 1;
-    mb[mo + 8] = -1;
-    mb[mo + 9] = 1;
-    mb[mo + 10] = 1;
-    mb[mo + 11] = 1;
-    mb[mo + 12] = 1;
-    mb[mo + 13] = -1;
-    mb[mo + 14] = -1;
-    mb[mo + 15] = 1;
-    mb[mo + 16] = -1;
-    mb[mo + 17] = 1;
-  }
-
-  for (let i = 0; i < n; ++i) {
-    const o = i * 6;
-    const io = i * 12;
-    ib[io] = o;
-    ib[io + 1] = o + 1;
-    ib[io + 2] = o + 2;
-    ib[io + 3] = o + 1;
-    ib[io + 4] = o + 4;
-    ib[io + 5] = o + 2;
-    ib[io + 6] = o + 2;
-    ib[io + 7] = o + 4;
-    ib[io + 8] = o + 3;
-    ib[io + 9] = o + 4;
-    ib[io + 10] = o + 5;
-    ib[io + 11] = o + 3;
   }
 }
