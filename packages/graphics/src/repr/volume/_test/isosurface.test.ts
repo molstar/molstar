@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -12,8 +13,16 @@ import { type Grid, Volume } from '@molstar/model/model/volume';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import {
+  type AtlasIsosurfaceExtraction,
+  registerAtlasIsosurfaceExtraction,
+} from '../../../gl/compute/marching-cubes/atlas.js';
+import type { GraphicsContext } from '../../../gl/context.js';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import {
   createVolumeIsosurfaceMesh,
   createVolumeIsosurfaceWireframe,
+  IsosurfaceMeshParams,
+  IsosurfaceVisual,
   type VolumeIsosurfaceProps,
 } from '../isosurface.js';
 
@@ -22,12 +31,12 @@ const N = 12;
 const Iso = 2000;
 
 /** A shell around a cavity: floodfill 'inside' fills the cavity, 'outside' the outside, each leaving one surface */
-function createTestVolume(): Volume {
-  const space = Tensor.Space([N, N, N], [2, 1, 0], Float32Array);
+function createTestVolume(n = N): Volume {
+  const space = Tensor.Space([n, n, n], [2, 1, 0], Float32Array);
   const data = space.create();
-  for (let k = 0; k < N; k++) {
-    for (let j = 0; j < N; j++) {
-      for (let i = 0; i < N; i++) {
+  for (let k = 0; k < n; k++) {
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
         const r = Math.hypot(i - 5.5, j - 5.5, k - 5.5);
         space.set(data, i, j, k, 4000 * (1 - Math.abs(r - 3.5) / 1.5));
       }
@@ -108,5 +117,25 @@ describe('volume isosurface', () => {
     expect(counts[1]).toBeLessThan(counts[0]);
     expect(counts[2]).toBeLessThan(counts[0]);
     expect(counts[1] + counts[2]).toBe(counts[0]);
+  });
+});
+
+describe('volume isosurface gpu fallback', () => {
+  // the 2d atlas of 14³ fits in 64², wrapped (15³) it needs 128²
+  const graphics = {
+    capabilities: { floatRenderTarget: true, multipleRenderTargets: true },
+    resources: { limits: { maxTextureSize: 128 } },
+  } as unknown as GraphicsContext;
+  registerAtlasIsosurfaceExtraction({ isSupported: (g) => g === graphics } as AtlasIsosurfaceExtraction);
+  const key = { volume: createTestVolume(14), key: 0 };
+  const props = (wrap: VolumeIsosurfaceProps['wrap']) => ({ ...PD.getDefaultValues(IsosurfaceMeshParams), wrap });
+
+  it('falls back to the cpu once the wrapped volume is too large for the atlas', () => {
+    const gpu = IsosurfaceVisual(0, key, props('off'), graphics);
+    expect(gpu.mustRecreate?.(key, props('off'), graphics)).toBe(false);
+    expect(gpu.mustRecreate?.(key, props('on'), graphics)).toBe(true);
+    const cpu = IsosurfaceVisual(0, key, props('on'), graphics);
+    expect(cpu.mustRecreate?.(key, props('on'), graphics)).toBe(false);
+    expect(cpu.mustRecreate?.(key, props('off'), graphics)).toBe(true);
   });
 });
