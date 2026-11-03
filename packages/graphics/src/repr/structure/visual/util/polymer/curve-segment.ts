@@ -3,17 +3,17 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import type { NumberArray } from '@molstar/core/util/type-helpers';
-import { clamp, lerp, smoothstep, spline } from '@molstar/core/math/interpolate';
+import { lerp, spline } from '@molstar/core/math/interpolate';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
 const v3set = Vec3.set;
 const v3orthogonalize = Vec3.orthogonalize;
-const v3matchDirection = Vec3.matchDirection;
 
 export interface CurveSegmentState {
   curvePoints: NumberArray;
@@ -62,8 +62,9 @@ export function interpolateCurveSegment(
 }
 
 // The per-point loops below work on scalar locals instead of `Vec3` calls: the `Vec3` helpers are called app-wide
-// with many array kinds, so their keyed loads are megamorphic, also where V8 inlines them. Each expression keeps the
-// operation order of the `Vec3` function it replaces (named in the comments), so the output is bit-identical.
+// with many array kinds, so their keyed loads are megamorphic, also where V8 inlines them. In
+// `interpolatePointsAndTangents` each expression keeps the operation order of the `Vec3` function it replaces (named in
+// the comments), so the output is bit-identical.
 
 export function interpolatePointsAndTangents(
   state: CurveSegmentState,
@@ -157,79 +158,96 @@ const lastTangentVec = Vec3();
 const firstNormalVec = Vec3();
 const lastNormalVec = Vec3();
 
+const HalfPi = Math.PI / 2;
+
 /**
- * Populate normalVectors by interpolating from firstDirection to lastDirection with
- * resulting vector perpendicular to tangentVectors and binormalVectors
+ * Populate normalVectors and binormalVectors with a rotation minimizing frame, propagated from firstDirection by the
+ * double reflection method (Wang et al. 2008). The residual twist to reach lastDirection, taken modulo 180° since the
+ * profiles are 2-fold symmetric, is distributed evenly along the segment.
  */
 export function interpolateNormals(state: CurveSegmentState, controls: CurveSegmentControls) {
   const { curvePoints, tangentVectors, normalVectors, binormalVectors } = state;
   const { d12: firstDirection, d23: lastDirection } = controls;
 
   const n = curvePoints.length / 3;
+  const n1 = n - 1;
 
   v3fromArray(firstTangentVec, tangentVectors, 0);
-  v3fromArray(lastTangentVec, tangentVectors, (n - 1) * 3);
+  v3fromArray(lastTangentVec, tangentVectors, n1 * 3);
 
   v3orthogonalize(firstNormalVec, firstTangentVec, firstDirection);
   v3orthogonalize(lastNormalVec, lastTangentVec, lastDirection);
-  v3matchDirection(lastNormalVec, lastNormalVec, firstNormalVec);
 
-  const lx = lastNormalVec[0],
-    ly = lastNormalVec[1],
-    lz = lastNormalVec[2];
-  // previous normal
-  let px = firstNormalVec[0],
-    py = firstNormalVec[1],
-    pz = firstNormalVec[2];
+  let nx = firstNormalVec[0],
+    ny = firstNormalVec[1],
+    nz = firstNormalVec[2];
+  normalVectors[0] = nx;
+  normalVectors[1] = ny;
+  normalVectors[2] = nz;
 
-  const n1 = n - 1;
-  for (let i = 0; i < n; ++i) {
-    const j = smoothstep(0, n1, i) * n1;
-    const t = i === 0 ? 0 : 1 / (n - j);
+  let qx = curvePoints[0],
+    qy = curvePoints[1],
+    qz = curvePoints[2];
+  let tx = tangentVectors[0],
+    ty = tangentVectors[1],
+    tz = tangentVectors[2];
+
+  for (let i = 1; i < n; ++i) {
     const i3 = i * 3;
+    const ux = tx,
+      uy = ty,
+      uz = tz;
+    tx = tangentVectors[i3];
+    ty = tangentVectors[i3 + 1];
+    tz = tangentVectors[i3 + 2];
+    const px = curvePoints[i3],
+      py = curvePoints[i3 + 1],
+      pz = curvePoints[i3 + 2];
+    const sx = px - qx,
+      sy = py - qy,
+      sz = pz - qz;
+    qx = px;
+    qy = py;
+    qz = pz;
 
-    const tx = tangentVectors[i3],
-      ty = tangentVectors[i3 + 1],
-      tz = tangentVectors[i3 + 2];
-
-    // `Vec3.slerp(prev, last, t)`
-    const d = clamp(px * lx + py * ly + pz * lz, -1, 1);
-    const theta = Math.acos(d) * t;
-    const md = -d;
-    let rx = lx + px * md,
-      ry = ly + py * md,
-      rz = lz + pz * md;
-    let rl = rx * rx + ry * ry + rz * rz;
-    if (rl > 0) {
-      rl = 1 / Math.sqrt(rl);
-      rx *= rl;
-      ry *= rl;
-      rz *= rl;
+    let rx = nx,
+      ry = ny,
+      rz = nz;
+    const c1 = sx * sx + sy * sy + sz * sz;
+    if (c1 > 1e-12) {
+      const k1 = -2 / c1;
+      const kr = k1 * (sx * rx + sy * ry + sz * rz);
+      rx += sx * kr;
+      ry += sy * kr;
+      rz += sz * kr;
+      const ku = k1 * (sx * ux + sy * uy + sz * uz);
+      const vx = tx - (ux + sx * ku),
+        vy = ty - (uy + sy * ku),
+        vz = tz - (uz + sz * ku);
+      const c2 = vx * vx + vy * vy + vz * vz;
+      if (c2 > 1e-12) {
+        const k2 = (-2 / c2) * (vx * rx + vy * ry + vz * rz);
+        rx += vx * k2;
+        ry += vy * k2;
+        rz += vz * k2;
+      }
     }
-    const cosTheta = Math.cos(theta);
-    const sinTheta = Math.sin(theta);
-    const sx = px * cosTheta + rx * sinTheta,
-      sy = py * cosTheta + ry * sinTheta,
-      sz = pz * cosTheta + rz * sinTheta;
 
-    // `Vec3.orthogonalize(tangent, slerped)`: `normalize(cross(cross(tangent, slerped), tangent))`
-    const cx = ty * sz - tz * sy,
-      cy = tz * sx - tx * sz,
-      cz = tx * sy - ty * sx;
-    let nx = cy * tz - cz * ty,
-      ny = cz * tx - cx * tz,
-      nz = cx * ty - cy * tx;
+    const cx = ty * rz - tz * ry,
+      cy = tz * rx - tx * rz,
+      cz = tx * ry - ty * rx;
+    nx = cy * tz - cz * ty;
+    ny = cz * tx - cx * tz;
+    nz = cx * ty - cy * tx;
     let nl = nx * nx + ny * ny + nz * nz;
     if (nl > 0) {
       nl = 1 / Math.sqrt(nl);
       nx *= nl;
       ny *= nl;
       nz *= nl;
-    }
-    if (nx === 0 && ny === 0 && nz === 0) {
-      // the fallbacks for a parallel or zero input
+    } else {
       v3set(tmpTangent, tx, ty, tz);
-      v3set(tmpDirection, sx, sy, sz);
+      v3set(tmpDirection, rx, ry, rz);
       v3orthogonalize(tmpNormal, tmpTangent, tmpDirection);
       nx = tmpNormal[0];
       ny = tmpNormal[1];
@@ -238,52 +256,54 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
     normalVectors[i3] = nx;
     normalVectors[i3 + 1] = ny;
     normalVectors[i3 + 2] = nz;
-
-    px = nx;
-    py = ny;
-    pz = nz;
-
-    setBinormal(binormalVectors, i3, tx, ty, tz, nx, ny, nz);
   }
 
-  for (let i = 1; i < n1; ++i) {
+  const lx = lastNormalVec[0],
+    ly = lastNormalVec[1],
+    lz = lastNormalVec[2];
+  let twist = Math.atan2(
+    (ty * nz - tz * ny) * lx + (tz * nx - tx * nz) * ly + (tx * ny - ty * nx) * lz,
+    nx * lx + ny * ly + nz * lz,
+  );
+  if (twist > HalfPi) twist -= Math.PI;
+  else if (twist < -HalfPi) twist += Math.PI;
+
+  const cosStep = Math.cos(twist / n1);
+  const sinStep = Math.sin(twist / n1);
+  let cos = 1,
+    sin = 0;
+  for (let i = 0; i < n; ++i) {
     const i3 = i * 3;
-    // `Vec3.scale(Vec3.add(prev, Vec3.add(next, normal)), 1 / 3)`
-    const nx = (normalVectors[i3 - 3] + (normalVectors[i3 + 3] + normalVectors[i3])) * (1 / 3);
-    const ny = (normalVectors[i3 - 2] + (normalVectors[i3 + 4] + normalVectors[i3 + 1])) * (1 / 3);
-    const nz = (normalVectors[i3 - 1] + (normalVectors[i3 + 5] + normalVectors[i3 + 2])) * (1 / 3);
-    normalVectors[i3] = nx;
-    normalVectors[i3 + 1] = ny;
-    normalVectors[i3 + 2] = nz;
-
-    setBinormal(binormalVectors, i3, tangentVectors[i3], tangentVectors[i3 + 1], tangentVectors[i3 + 2], nx, ny, nz);
+    const tx = tangentVectors[i3],
+      ty = tangentVectors[i3 + 1],
+      tz = tangentVectors[i3 + 2];
+    const nx = normalVectors[i3],
+      ny = normalVectors[i3 + 1],
+      nz = normalVectors[i3 + 2];
+    let bx = ty * nz - tz * ny,
+      by = tz * nx - tx * nz,
+      bz = tx * ny - ty * nx;
+    let bl = bx * bx + by * by + bz * bz;
+    if (bl > 0) {
+      bl = 1 / Math.sqrt(bl);
+      bx *= bl;
+      by *= bl;
+      bz *= bl;
+      normalVectors[i3] = nx * cos + bx * sin;
+      normalVectors[i3 + 1] = ny * cos + by * sin;
+      normalVectors[i3 + 2] = nz * cos + bz * sin;
+      binormalVectors[i3] = bx * cos - nx * sin;
+      binormalVectors[i3 + 1] = by * cos - ny * sin;
+      binormalVectors[i3 + 2] = bz * cos - nz * sin;
+    } else {
+      binormalVectors[i3] = 0;
+      binormalVectors[i3 + 1] = 0;
+      binormalVectors[i3 + 2] = 0;
+    }
+    const c = cos * cosStep - sin * sinStep;
+    sin = sin * cosStep + cos * sinStep;
+    cos = c;
   }
-}
-
-/** `Vec3.normalize(Vec3.cross(tangent, normal))` */
-function setBinormal(
-  binormalVectors: NumberArray,
-  i3: number,
-  tx: number,
-  ty: number,
-  tz: number,
-  nx: number,
-  ny: number,
-  nz: number,
-) {
-  let bx = ty * nz - tz * ny,
-    by = tz * nx - tx * nz,
-    bz = tx * ny - ty * nx;
-  let len = bx * bx + by * by + bz * bz;
-  if (len > 0) {
-    len = 1 / Math.sqrt(len);
-    bx *= len;
-    by *= len;
-    bz *= len;
-  }
-  binormalVectors[i3] = bx;
-  binormalVectors[i3 + 1] = by;
-  binormalVectors[i3 + 2] = bz;
 }
 
 export function interpolateSizes(

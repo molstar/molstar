@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -203,18 +204,75 @@ describe('cartoon geometry', () => {
     out.degenerate = `${d.vertexCount}v ${d.triangleCount}t curve=${d.curve} v=${d.vertices} n=${d.normals} i=${d.indices} g=${d.groups}`;
     expect(out).toMatchInlineSnapshot(`
       {
-        "coil tube": "3016v 5248t curve=22430911 v=607549172 n=1795098989 i=2528217029 g=3823400037",
-        "degenerate": "3016v 5248t curve=281995042 v=3482627721 n=3611377989 i=2528217029 g=3823400037",
-        "helix elliptical": "3016v 5248t curve=3662355717 v=981845174 n=1525901127 i=2528217029 g=3823400037",
-        "helix rounded": "2024v 3456t curve=3749712538 v=1711728876 n=1683080486 i=1912354837 g=2503719653",
-        "nucleic tube": "896v 1488t curve=3214162229 v=3865116821 n=3567090349 i=2968838797 g=2020398021",
-        "one linear segment": "200v 192t curve=4068756566 v=2239648245 n=1270629583 i=239117461 g=3150690405",
-        "ribbon with arrows": "400v 320t curve=3092466637 v=2628284509 n=1848946621 i=1027626085 g=1653499653",
-        "rounded, flat": "1288v 2080t curve=979255584 v=177480482 n=955150066 i=526155157 g=2695361893",
-        "sheet with arrows": "1488v 1304t curve=22430911 v=810127339 n=2760085901 i=910468645 g=3331605509",
-        "sheet, square": "672v 496t curve=3886727563 v=679132635 n=2103513057 i=3034569877 g=2020009541",
-        "tubular helix, round caps": "3135v 5360t curve=22430911 v=4244870438 n=95562765 i=961893269 g=206096711",
+        "coil tube": "3016v 5248t curve=2333589030 v=3862293639 n=1162244021 i=2528217029 g=3823400037",
+        "degenerate": "3016v 5248t curve=3223941467 v=562689290 n=1333435979 i=2528217029 g=3823400037",
+        "helix elliptical": "3016v 5248t curve=1144807048 v=863378944 n=3706819048 i=2528217029 g=3823400037",
+        "helix rounded": "2024v 3456t curve=844614140 v=3736767465 n=3484826495 i=1912354837 g=2503719653",
+        "nucleic tube": "896v 1488t curve=4158886629 v=514964450 n=4097688871 i=2968838797 g=2020398021",
+        "one linear segment": "200v 192t curve=699304310 v=3443622594 n=3867938960 i=239117461 g=3150690405",
+        "ribbon with arrows": "400v 320t curve=1420342767 v=562058045 n=545023109 i=1027626085 g=1653499653",
+        "rounded, flat": "1288v 2080t curve=2069462369 v=3299690048 n=1572208531 i=526155157 g=2695361893",
+        "sheet with arrows": "1488v 1304t curve=2333589030 v=1296133905 n=1943066435 i=910468645 g=3331605509",
+        "sheet, square": "672v 496t curve=1618106690 v=3719697382 n=1909322117 i=3034569877 g=2020009541",
+        "tubular helix, round caps": "3135v 5360t curve=2333589030 v=2844756929 n=2691703814 i=961893269 g=206096711",
       }
     `);
+  });
+});
+
+describe('cartoon normals on tight turns of 4V6X (#649)', () => {
+  const linearSegments = 8;
+  const angle = (x: Vec3, y: Vec3) => (Math.acos(Math.min(1, Math.abs(Vec3.dot(x, y)))) * 180) / Math.PI;
+
+  it.each([
+    {
+      name: 'RNA',
+      shift: 0.3,
+      p: [
+        Vec3.create(93.775, -37.06, -14.431),
+        Vec3.create(90.078, -32.656, -16.342),
+        Vec3.create(86.01, -27.076, -14.678),
+        Vec3.create(83.877, -32.335, -16.233),
+        Vec3.create(82.599, -28.903, -10.817),
+      ],
+      d12: Vec3.create(-0.42075, 1.34875, 0.132),
+      d23: Vec3.create(0.371, -1.19675, -0.15),
+    },
+    {
+      name: 'protein',
+      shift: 0.5,
+      p: [
+        Vec3.create(-97.194, 4.796, -58.202),
+        Vec3.create(-100.441, 3.941, -59.373),
+        Vec3.create(-100.373, 4.589, -63.03),
+        Vec3.create(-101.99, 1.229, -62.481),
+        Vec3.create(-105.258, 1.813, -64.168),
+      ],
+      d12: Vec3.create(-0.5275, -0.0985, -0.823),
+      d23: Vec3.create(-0.39325, 0.025, 0.81325),
+    },
+  ])('$name: end normals on the direction lines, at most 90° of roll', ({ shift, p, d12, d23 }) => {
+    const state = createCurveSegmentState(linearSegments);
+    const controls: CurveSegmentControls = {
+      secStrucFirst: false,
+      secStrucLast: false,
+      p0: p[0],
+      p1: p[1],
+      p2: p[2],
+      p3: p[3],
+      p4: p[4],
+      d12,
+      d23,
+    };
+    interpolateCurveSegment(state, controls, 0.5, shift);
+    const { tangentVectors, normalVectors } = state;
+    const t = (i: number) => Vec3.fromArray(Vec3(), tangentVectors, i * 3);
+    const n = (i: number) => Vec3.fromArray(Vec3(), normalVectors, i * 3);
+
+    expect(angle(n(0), Vec3.orthogonalize(Vec3(), t(0), d12))).toBeLessThan(0.1);
+    expect(angle(n(linearSegments), Vec3.orthogonalize(Vec3(), t(linearSegments), d23))).toBeLessThan(0.1);
+    for (let i = 0; i < linearSegments; ++i) {
+      expect(angle(n(i), n(i + 1)) - angle(t(i), t(i + 1))).toBeLessThan(90 / linearSegments + 0.5);
+    }
   });
 });
