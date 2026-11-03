@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Grid, Volume } from '@molstar/model/model/volume';
@@ -338,62 +339,53 @@ export function createVolumeBrickRange(volume: Volume): BrickRange {
   const bz = Math.ceil(nz / BrickSize);
   const bxy = bx * by;
   const count = bxy * bz;
-  // per brick the lowest and highest value, normalized, times 255; rounded once at the end
-  const lows = new Float32Array(count).fill(Infinity);
-  const highs = new Float32Array(count).fill(-Infinity);
-  const scale = max > min ? 255 / (max - min) : 0;
-
-  // per x its brick column, and whether it is on a brick's lower face (the next cell of the brick before)
-  const brickX = new Int32Array(nx);
-  const faceX = new Uint8Array(nx);
-  for (let x = 0; x < nx; ++x) {
-    brickX[x] = Math.floor(x / BrickSize);
-    faceX[x] = x > 0 && x % BrickSize === 0 ? 1 : 0;
-  }
-
-  let v = 0;
-  const add = (b: number) => {
-    if (v < lows[b]) lows[b] = v;
-    if (v > highs[b]) highs[b] = v;
-  };
+  // per brick the lowest and highest value; normalized and rounded once at the end
+  const lows = new Float64Array(count).fill(Infinity);
+  const highs = new Float64Array(count).fill(-Infinity);
 
   for (let z = 0; z < nz; ++z) {
-    const bz0 = Math.floor(z / BrickSize);
     const ez = z > 0 && z % BrickSize === 0;
     for (let y = 0; y < ny; ++y) {
-      const by0 = Math.floor(y / BrickSize);
       const ey = y > 0 && y % BrickSize === 0;
-      const row = bz0 * bxy + by0 * bx;
-      let i = z * sz + y * sy;
-      for (let x = 0; x < nx; ++x, i += sx) {
-        v = (data[i] - min) * scale;
-        const b = row + brickX[x];
-        if (v < lows[b]) lows[b] = v;
-        if (v > highs[b]) highs[b] = v;
-        if (faceX[x] === 0 && !ey && !ez) continue;
-        const ex = faceX[x] === 1;
-        if (ex) add(b - 1);
+      const row = Math.floor(z / BrickSize) * bxy + Math.floor(y / BrickSize) * bx;
+      const offset = z * sz + y * sy;
+      for (let b = 0; b < bx; ++b) {
+        let lo = Infinity;
+        let hi = -Infinity;
+        const end = offset + Math.min(nx, (b + 1) * BrickSize + 1) * sx;
+        for (let i = offset + b * BrickSize * sx; i < end; i += sx) {
+          const v = data[i];
+          if (v < lo) lo = v;
+          if (v > hi) hi = v;
+        }
+        let k = row + b;
+        if (lo < lows[k]) lows[k] = lo;
+        if (hi > highs[k]) highs[k] = hi;
         if (ey) {
-          add(b - bx);
-          if (ex) add(b - bx - 1);
+          k = row + b - bx;
+          if (lo < lows[k]) lows[k] = lo;
+          if (hi > highs[k]) highs[k] = hi;
         }
         if (ez) {
-          add(b - bxy);
-          if (ex) add(b - bxy - 1);
+          k = row + b - bxy;
+          if (lo < lows[k]) lows[k] = lo;
+          if (hi > highs[k]) highs[k] = hi;
           if (ey) {
-            add(b - bxy - bx);
-            if (ex) add(b - bxy - bx - 1);
+            k = row + b - bxy - bx;
+            if (lo < lows[k]) lows[k] = lo;
+            if (hi > highs[k]) highs[k] = hi;
           }
         }
       }
     }
   }
 
+  const scale = max > min ? 255 / (max - min) : 0;
   const array = new Uint8Array(count * 2);
   for (let b = 0; b < count; ++b) {
     // a little wider than the values: half-float data rounds
-    array[2 * b] = clamp(Math.floor(lows[b] - 0.01), 0, 255);
-    array[2 * b + 1] = clamp(Math.ceil(highs[b] + 0.01), 0, 255);
+    array[2 * b] = clamp(Math.floor(Math.fround((lows[b] - min) * scale) - 0.01), 0, 255);
+    array[2 * b + 1] = clamp(Math.ceil(Math.fround((highs[b] - min) * scale) + 0.01), 0, 255);
   }
   return { array, dim: Vec3.create(bx, by, bz) };
 }
@@ -416,12 +408,22 @@ export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | '
     type === 'byte' ? new Uint8Array(count) : type === 'halfFloat' ? new Uint16Array(count) : new Float32Array(count);
   const diff = max - min;
   let i = 0;
+  if (type === 'byte') {
+    for (let z = 0; z < depth; ++z) {
+      for (let y = 0; y < height; ++y) {
+        for (let x = 0, offset = z * sz + y * sy; x < width; ++x, offset += sx, ++i) {
+          array[i] = ((data[offset] - min) / diff) * 255 + 0.5;
+        }
+      }
+    }
+    return { array, width, height, depth };
+  }
   for (let z = 0; z < depth; ++z) {
     for (let y = 0; y < height; ++y) {
       let offset = z * sz + y * sy;
       for (let x = 0; x < width; ++x, offset += sx, ++i) {
         const value = (data[offset] - min) / diff;
-        array[i] = type === 'byte' ? Math.round(value * 255) : type === 'halfFloat' ? toHalfFloat(value) : value;
+        array[i] = type === 'halfFloat' ? toHalfFloat(value) : value;
       }
     }
   }
