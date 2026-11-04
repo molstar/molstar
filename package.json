@@ -140,7 +140,6 @@
     "benchmark": "catalog:",
     "concurrently": "catalog:",
     "cross-spawn": "catalog:",
-    "cpx2": "catalog:",
     "css-loader": "catalog:",
     "esbuild": "catalog:",
     "esbuild-sass-plugin": "catalog:",
