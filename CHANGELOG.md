@@ -236,6 +236,7 @@ here.
 - Geometry export: spheres of a representation with several instances (symmetry copies) export each copy's spheres, not
   the first copy's followed by invalid ones
 - Strips of lines (streamlines, fibers) get the bounding sphere of their points: it read past their buffers
+- Fix cartoon trace normals flipping on tight curves by using rotation minimizing frames (#649)
 
 ## [v5.13.1] - 2026-10-08
 
