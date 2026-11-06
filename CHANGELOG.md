@@ -237,6 +237,8 @@ here.
   the first copy's followed by invalid ones
 - Strips of lines (streamlines, fibers) get the bounding sphere of their points: it read past their buffers
 - Fix NaN vertices from `Mesh.smoothEdges` where neighbouring border vertices coincide
+- Fix `solidInterior` caps of surfaces (molecular, gaussian, blob) with `includeParent`: closed against the parent's
+  atoms, shown as interior with `solidInterior`
 
 ## [v5.13.1] - 2026-10-08
 

@@ -734,6 +734,132 @@ export namespace Mesh {
     return t;
   }
 
+  /** Moves the triangles with a vertex `isClosure` to the end, on copies of their vertices, as the closure */
+  export function splitClosure(mesh: Mesh, isClosure: (x: number, y: number, z: number) => boolean, iterations = 20) {
+    const { vertexCount, triangleCount } = mesh;
+    const vb = mesh.vertexBuffer.ref.value;
+    const nb = mesh.normalBuffer.ref.value;
+    const gb = mesh.groupBuffer.ref.value;
+    const ib = mesh.indexBuffer.ref.value;
+
+    const closureVertex = new Uint8Array(vertexCount);
+    for (let v = 0; v < vertexCount; ++v) {
+      if (isClosure(vb[v * 3], vb[v * 3 + 1], vb[v * 3 + 2])) closureVertex[v] = 1;
+    }
+    const patchIndex = new Int32Array(vertexCount).fill(-1);
+    const closureIndex = new Int32Array(vertexCount).fill(-1);
+    let patchVertexCount = 0;
+    let closureVertexCount = 0;
+    let closureTriangleCount = 0;
+    for (let i = 0, il = triangleCount * 3; i < il; i += 3) {
+      const a = ib[i];
+      const b = ib[i + 1];
+      const c = ib[i + 2];
+      const map = closureVertex[a] || closureVertex[b] || closureVertex[c] ? closureIndex : patchIndex;
+      if (map === closureIndex) ++closureTriangleCount;
+      for (const v of [a, b, c]) {
+        if (map[v] < 0) map[v] = map === closureIndex ? closureVertexCount++ : patchVertexCount++;
+      }
+    }
+    if (closureTriangleCount === 0) return mesh;
+
+    const newVertexCount = patchVertexCount + closureVertexCount;
+    const newVb = new Float32Array(newVertexCount * 3);
+    const newNb = new Float32Array(newVertexCount * 3);
+    const newGb = new Float32Array(newVertexCount);
+    const newIb = new Uint32Array(triangleCount * 3);
+    const fixed = new Uint8Array(closureVertexCount);
+    for (let v = 0; v < vertexCount; ++v) {
+      for (const [map, base] of [
+        [patchIndex, 0],
+        [closureIndex, patchVertexCount],
+      ] as const) {
+        if (map[v] < 0) continue;
+        const n = base + map[v];
+        for (let j = 0; j < 3; ++j) {
+          newVb[n * 3 + j] = vb[v * 3 + j];
+          newNb[n * 3 + j] = nb[v * 3 + j];
+        }
+        newGb[n] = gb[v];
+      }
+      if (patchIndex[v] >= 0 && closureIndex[v] >= 0) fixed[closureIndex[v]] = 1;
+    }
+    const closureIb = new Uint32Array(closureTriangleCount * 3);
+    let p = 0;
+    let q = 0;
+    for (let i = 0, il = triangleCount * 3; i < il; i += 3) {
+      const a = ib[i];
+      const b = ib[i + 1];
+      const c = ib[i + 2];
+      if (closureVertex[a] || closureVertex[b] || closureVertex[c]) {
+        closureIb[q++] = closureIndex[a];
+        closureIb[q++] = closureIndex[b];
+        closureIb[q++] = closureIndex[c];
+      } else {
+        newIb[p++] = patchIndex[a];
+        newIb[p++] = patchIndex[b];
+        newIb[p++] = patchIndex[c];
+      }
+    }
+
+    const offsets = new Int32Array(closureVertexCount + 1);
+    for (let i = 0; i < closureIb.length; ++i) offsets[closureIb[i] + 1] += 2;
+    for (let v = 0; v < closureVertexCount; ++v) offsets[v + 1] += offsets[v];
+    const neighbours = new Int32Array(offsets[closureVertexCount]);
+    const cursor = offsets.slice(0, closureVertexCount);
+    for (let i = 0; i < closureIb.length; i += 3) {
+      for (let j = 0; j < 3; ++j) {
+        const v = closureIb[i + j];
+        neighbours[cursor[v]++] = closureIb[i + ((j + 1) % 3)];
+        neighbours[cursor[v]++] = closureIb[i + ((j + 2) % 3)];
+      }
+    }
+    let pos = Float64Array.from(newVb.subarray(patchVertexCount * 3));
+    let tmp = pos.slice();
+    const step = (factor: number) => {
+      for (let v = 0; v < closureVertexCount; ++v) {
+        const o = v * 3;
+        if (fixed[v]) {
+          tmp[o] = pos[o];
+          tmp[o + 1] = pos[o + 1];
+          tmp[o + 2] = pos[o + 2];
+          continue;
+        }
+        let x = 0;
+        let y = 0;
+        let z = 0;
+        const k0 = offsets[v];
+        const k1 = offsets[v + 1];
+        for (let k = k0; k < k1; ++k) {
+          const n = neighbours[k] * 3;
+          x += pos[n];
+          y += pos[n + 1];
+          z += pos[n + 2];
+        }
+        const f = 1 / (k1 - k0);
+        tmp[o] = pos[o] + factor * (x * f - pos[o]);
+        tmp[o + 1] = pos[o + 1] + factor * (y * f - pos[o + 1]);
+        tmp[o + 2] = pos[o + 2] + factor * (z * f - pos[o + 2]);
+      }
+      const t = pos;
+      pos = tmp;
+      tmp = t;
+    };
+    for (let it = 0; it < iterations; ++it) {
+      step(0.5);
+      step(-0.53);
+    }
+    newVb.set(pos, patchVertexCount * 3);
+    const closureNb = new Float32Array(closureVertexCount * 3);
+    computeIndexedVertexNormals(pos, closureIb, closureNb, closureVertexCount, closureTriangleCount);
+    newNb.set(closureNb, patchVertexCount * 3);
+    for (let i = 0; i < closureIb.length; ++i) newIb[p + i] = patchVertexCount + closureIb[i];
+
+    update(newVb, newIb, newNb, newGb, newVertexCount, triangleCount, mesh);
+    ValueCell.updateIfChanged(mesh.closureVertexCount, closureVertexCount);
+    return mesh;
+  }
+
   //
 
   export const Params = {
