@@ -654,8 +654,11 @@ export namespace Mesh {
         Vec3.fromArray(b, pos, nbs[0] * 3);
         Vec3.fromArray(c, pos, nbs[1] * 3);
 
-        const wab = 1 / Vec3.distance(a, b);
-        const wac = 1 / Vec3.distance(a, c);
+        const dab = Vec3.distance(a, b);
+        const dac = Vec3.distance(a, c);
+        if (dab === 0 || dac === 0) return;
+        const wab = 1 / dab;
+        const wac = 1 / dac;
         Vec3.scale(b, b, wab);
         Vec3.scale(c, c, wac);
 
