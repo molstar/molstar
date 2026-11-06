@@ -33,6 +33,9 @@ ${common_animation}
 ${texture3d_from_2d_linear}
 
 varying vec3 vNormal;
+#if defined(dGeometryType_mesh) && defined(dSolidInterior)
+    varying float vClosure;
+#endif
 
 void main(){
     int vertexId = VertexID;
@@ -51,6 +54,15 @@ void main(){
                 gl_Position.z = max(gl_Position.z, -gl_Position.w * 0.9999);
             #endif
         }
+    #endif
+
+    #ifdef dGeometryType_mesh
+        bool closure = vertexId >= uVertexCount - uClosureVertexCount;
+        #ifdef dSolidInterior
+            vClosure = closure ? 1.0 : 0.0;
+        #else
+            if (closure) gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        #endif
     #endif
 
     ${assign_color_varying}

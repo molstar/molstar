@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import type { OcclusionPyramid } from '../compute/cell-cull.js';
@@ -393,8 +394,10 @@ export function canMergeValues(type: string, members: readonly MergeableValues[]
   if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.clippingType.ref.value)) return false;
   if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.wiggleType.ref.value)) return false;
 
+  if (first.uClosureVertexCount?.ref.value) return false;
   const key = getMergeKey(first);
   for (let i = 1, il = members.length; i < il; ++i) {
+    if (members[i].uClosureVertexCount?.ref.value) return false;
     if (getMergeKey(members[i]) !== key) return false;
   }
   return true;

@@ -3,6 +3,7 @@
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { sort, arraySwap } from '@molstar/core/data/util';
@@ -537,6 +538,10 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
       indices = values.elements.ref.value;
       vertexCount = values.uVertexCount.ref.value;
       drawCount = values.drawCount.ref.value;
+    }
+    if (!values.dSolidInterior.ref.value) {
+      vertexCount -= values.uClosureVertexCount.ref.value;
+      drawCount = Mesh.getClosureTriangleStart(indices, drawCount / 3, vertexCount) * 3;
     }
 
     await this.addMeshWithColors({

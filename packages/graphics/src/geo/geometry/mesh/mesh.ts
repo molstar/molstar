@@ -62,6 +62,8 @@ export interface Mesh {
   readonly groupBuffer: ValueCell<Float32Array>;
   /** Indicates that group may vary within a triangle, wrapped in a value cell */
   readonly varyingGroup: ValueCell<boolean>;
+  /** Number of the last vertices, of the last triangles, drawn only with solid interior (the closure) */
+  readonly closureVertexCount: ValueCell<number>;
 
   /** Bounding sphere of the mesh */
   readonly boundingSphere: Sphere3D;
@@ -131,6 +133,7 @@ export namespace Mesh {
       normalBuffer: ValueCell.create(normals),
       groupBuffer: ValueCell.create(groups),
       varyingGroup: ValueCell.create(false),
+      closureVertexCount: ValueCell.create(0),
       get boundingSphere() {
         const newHash = hashCode(mesh);
         if (newHash !== currentHash) {
@@ -174,6 +177,7 @@ export namespace Mesh {
     ValueCell.update(mesh.indexBuffer, indices);
     ValueCell.update(mesh.normalBuffer, normals);
     ValueCell.update(mesh.groupBuffer, groups);
+    ValueCell.updateIfChanged(mesh.closureVertexCount, 0);
     return mesh;
   }
 
@@ -326,8 +330,12 @@ export namespace Mesh {
     let newVertexCount = vertexCount;
     let newTriangleCount = 0;
 
+    const closureVertexCount = mesh.closureVertexCount.ref.value;
+    const closureVertexStart = vertexCount - closureVertexCount;
+    const closureTriangleStart = getClosureTriangleStart(ib, triangleCount, closureVertexStart);
+
     if (splitTriangles) {
-      for (let i = 0, il = triangleCount; i < il; ++i) {
+      for (let i = 0, il = closureTriangleStart; i < il; ++i) {
         const i0 = ib[i * 3],
           i1 = ib[i * 3 + 1],
           i2 = ib[i * 3 + 2];
@@ -376,7 +384,7 @@ export namespace Mesh {
         }
       }
     } else {
-      for (let i = 0, il = triangleCount; i < il; ++i) {
+      for (let i = 0, il = closureTriangleStart; i < il; ++i) {
         const i0 = ib[i * 3],
           i1 = ib[i * 3 + 1],
           i2 = ib[i * 3 + 2];
@@ -398,6 +406,17 @@ export namespace Mesh {
         }
       }
     }
+
+    for (let i = closureVertexStart; i < vertexCount; ++i) {
+      add(i);
+      ChunkedArray.add(group, gb[i]);
+    }
+    const closureOffset = newVertexCount - closureVertexStart;
+    for (let i = closureTriangleStart * 3, il = triangleCount * 3; i < il; i += 3) {
+      ChunkedArray.add3(index, ib[i] + closureOffset, ib[i + 1] + closureOffset, ib[i + 2] + closureOffset);
+    }
+    newVertexCount += closureVertexCount;
+    newTriangleCount += triangleCount - closureTriangleStart;
 
     const newIb = ChunkedArray.compact(index);
     const newVb = ChunkedArray.compact(vertex);
@@ -704,6 +723,17 @@ export namespace Mesh {
     return mesh;
   }
 
+  /** The first of the closure's triangles: the last ones, of the vertices from `closureVertexStart` */
+  export function getClosureTriangleStart(
+    indices: ArrayLike<number>,
+    triangleCount: number,
+    closureVertexStart: number,
+  ) {
+    let t = triangleCount;
+    while (t > 0 && indices[(t - 1) * 3] >= closureVertexStart) --t;
+    return t;
+  }
+
   //
 
   export const Params = {
@@ -825,6 +855,7 @@ export namespace Mesh {
       aGroup: mesh.groupBuffer,
       elements: mesh.indexBuffer,
       dVaryingGroup: mesh.varyingGroup,
+      uClosureVertexCount: mesh.closureVertexCount,
       boundingSphere: ValueCell.create(boundingSphere),
       invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
       uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
