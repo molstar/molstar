@@ -311,6 +311,7 @@ function setMeshUpdateState(...args: Parameters<typeof setUpdateState>) {
   setUpdateState(...args);
   const [state, newProps, currentProps] = args;
   if (
+    newProps.solidInterior !== currentProps.solidInterior ||
     newProps.sizeFactor !== currentProps.sizeFactor ||
     newProps.radialSegments !== currentProps.radialSegments ||
     newProps.sizeAspectRatio !== currentProps.sizeAspectRatio

@@ -241,6 +241,8 @@ here.
   atoms, shown as interior with `solidInterior`
 - Fix `solidInterior` caps of cartoon and putty where the chain goes on outside of the selection: the open tube ends
   are closed, shown as interior with `solidInterior`
+- Fix `solidInterior` caps of mesh cylinders (bonds, backbone, interactions, links without impostors): their open ends
+  are closed, shown as interior with `solidInterior`
 
 ## [v5.13.1] - 2026-10-08
 

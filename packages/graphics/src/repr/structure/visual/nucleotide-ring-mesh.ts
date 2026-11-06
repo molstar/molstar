@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -80,7 +81,7 @@ function createNucleotideRingMesh(
   unit: Unit,
   structure: Structure,
   theme: Theme,
-  props: NucleotideRingProps,
+  props: NucleotideRingProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ) {
   if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -91,7 +92,7 @@ function createNucleotideRingMesh(
   const { sizeFactor, thicknessFactor, radialSegments, detail } = props;
 
   const vertexCount = nucleotideElementCount * (26 + radialSegments * 2);
-  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
+  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh, props.solidInterior);
 
   const { elements, model, conformation: c } = unit;
   const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
@@ -208,6 +209,7 @@ export function NucleotideRingVisual(materialId: number): UnitsVisual<Nucleotide
         currentProps: PD.Values<NucleotideRingParams>,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.thicknessFactor !== currentProps.thicknessFactor ||
           newProps.radialSegments !== currentProps.radialSegments;

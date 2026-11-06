@@ -83,6 +83,7 @@ export function CarbohydrateLinkVisual(materialId: number): ComplexVisual<Carboh
         currentProps: PD.Values<CarbohydrateLinkParams>,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
           newProps.radialSegments !== currentProps.radialSegments ||
           newProps.linkCap !== currentProps.linkCap;

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -59,7 +60,7 @@ function createNucleotideBlockMesh(
   unit: Unit,
   structure: Structure,
   theme: Theme,
-  props: NucleotideBlockMeshProps,
+  props: NucleotideBlockMeshProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ) {
   if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -70,7 +71,7 @@ function createNucleotideBlockMesh(
   const { sizeFactor, thicknessFactor, radialSegments } = props;
 
   const vertexCount = nucleotideElementCount * (box.vertices.length / 3 + radialSegments * 2);
-  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
+  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh, props.solidInterior);
 
   const { elements, model, conformation: c } = unit;
   const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
@@ -176,6 +177,7 @@ export function NucleotideBlockVisual(materialId: number): UnitsVisual<Nucleotid
         currentProps: PD.Values<NucleotideBlockParams>,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.thicknessFactor !== currentProps.thicknessFactor ||
           newProps.radialSegments !== currentProps.radialSegments;

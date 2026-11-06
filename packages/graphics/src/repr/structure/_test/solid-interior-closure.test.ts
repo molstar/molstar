@@ -24,6 +24,8 @@ import type { Representation } from '../../representation.js';
 import { CartoonRepresentationProvider } from '../representation/cartoon.js';
 import { PuttyRepresentationProvider } from '../representation/putty.js';
 import { BlobSurfaceRepresentationProvider } from '../representation/blob-surface.js';
+import { BallAndStickRepresentationProvider } from '../representation/ball-and-stick.js';
+import { BackboneRepresentationProvider } from '../representation/backbone.js';
 
 const registries = (() => {
   const colorThemeRegistry = ColorTheme.createRegistry();
@@ -150,4 +152,25 @@ describe('blob surface with includeParent', async () => {
     expect(mesh.uClosureVertexCount.ref.value).toBeGreaterThan(0);
     expect(openEdges(mesh)).toBe(0);
   });
+});
+
+describe('mesh cylinders and spheres (no impostors)', async () => {
+  const root = await load1cbs();
+
+  for (const [name, provider] of [
+    ['ball and stick', BallAndStickRepresentationProvider],
+    ['backbone', BackboneRepresentationProvider],
+  ] as const) {
+    it(`closes the open ends of the ${name} cylinders`, async () => {
+      const meshes = await meshesOf(provider, root, { tryUseImpostor: false, solidInterior: true });
+      expect(meshes.length).toBeGreaterThan(1);
+      expect(meshes.some((m) => m.uClosureVertexCount.ref.value > 0)).toBe(true);
+      for (const mesh of meshes) expect(openEdges(mesh)).toBe(0);
+    });
+
+    it(`adds no closure to the ${name} cylinders without solid interior`, async () => {
+      const meshes = await meshesOf(provider, root, { tryUseImpostor: false, solidInterior: false });
+      for (const mesh of meshes) expect(mesh.uClosureVertexCount.ref.value).toBe(0);
+    });
+  }
 });

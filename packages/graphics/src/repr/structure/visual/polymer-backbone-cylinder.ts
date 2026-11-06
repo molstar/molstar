@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -134,7 +135,7 @@ function createPolymerBackboneCylinderMesh(
   unit: Unit,
   structure: Structure,
   theme: Theme,
-  props: PolymerBackboneCylinderProps,
+  props: PolymerBackboneCylinderProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ) {
   const polymerElementCount = unit.polymerElements.length;
@@ -143,7 +144,12 @@ function createPolymerBackboneCylinderMesh(
   const { radialSegments, sizeFactor } = props;
 
   const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2;
-  const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh);
+  const builderState = MeshBuilder.createState(
+    vertexCountEstimate,
+    vertexCountEstimate / 10,
+    mesh,
+    props.solidInterior,
+  );
 
   const c = unit.conformation;
   const pA = Vec3();
@@ -202,7 +208,9 @@ export function PolymerBackboneCylinderMeshVisual(materialId: number): UnitsVisu
         currentProps: PD.Values<PolymerBackboneCylinderParams>,
       ) => {
         state.createGeometry =
-          newProps.sizeFactor !== currentProps.sizeFactor || newProps.radialSegments !== currentProps.radialSegments;
+          newProps.solidInterior !== currentProps.solidInterior ||
+          newProps.sizeFactor !== currentProps.sizeFactor ||
+          newProps.radialSegments !== currentProps.radialSegments;
       },
     },
     materialId,
