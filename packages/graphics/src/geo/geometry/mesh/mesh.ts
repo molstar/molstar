@@ -860,6 +860,76 @@ export namespace Mesh {
     return mesh;
   }
 
+  /** Closes tube rings (first vertex, count, 1 at the tube start, -1 at its end) with fans, as the closure */
+  export function addClosureFans(mesh: Mesh, rings: ArrayLike<number>) {
+    const { vertexCount, triangleCount } = mesh;
+    let closureVertexCount = 0;
+    let closureTriangleCount = 0;
+    for (let r = 0; r < rings.length; r += 3) {
+      closureVertexCount += rings[r + 1] + 1;
+      closureTriangleCount += rings[r + 1];
+    }
+    if (closureTriangleCount === 0) return mesh;
+
+    const vb = new Float32Array((vertexCount + closureVertexCount) * 3);
+    const nb = new Float32Array((vertexCount + closureVertexCount) * 3);
+    const gb = new Float32Array(vertexCount + closureVertexCount);
+    const ib = new Uint32Array((triangleCount + closureTriangleCount) * 3);
+    vb.set(mesh.vertexBuffer.ref.value.subarray(0, vertexCount * 3));
+    nb.set(mesh.normalBuffer.ref.value.subarray(0, vertexCount * 3));
+    gb.set(mesh.groupBuffer.ref.value.subarray(0, vertexCount));
+    ib.set(mesh.indexBuffer.ref.value.subarray(0, triangleCount * 3));
+
+    const centroid = (out: Vec3, start: number, count: number) => {
+      Vec3.set(out, 0, 0, 0);
+      for (let i = start; i < start + count; ++i) {
+        out[0] += vb[i * 3];
+        out[1] += vb[i * 3 + 1];
+        out[2] += vb[i * 3 + 2];
+      }
+      return Vec3.scale(out, out, 1 / count);
+    };
+    const center = Vec3();
+    const axis = Vec3();
+    let v = vertexCount;
+    let t = triangleCount * 3;
+    for (let r = 0; r < rings.length; r += 3) {
+      const start = rings[r];
+      const count = rings[r + 1];
+      centroid(center, start, count);
+      Vec3.normalize(axis, Vec3.sub(axis, center, centroid(axis, start + rings[r + 2] * count, count)));
+      let winding = 0;
+      for (let i = 0; i < count; ++i) {
+        const a = (start + i) * 3;
+        const b = (start + ((i + 1) % count)) * 3;
+        winding +=
+          axis[0] * (vb[a + 1] - vb[b + 1]) * (vb[a + 2] + vb[b + 2]) +
+          axis[1] * (vb[a + 2] - vb[b + 2]) * (vb[a] + vb[b]) +
+          axis[2] * (vb[a] - vb[b]) * (vb[a + 1] + vb[b + 1]);
+      }
+      const c = v + count;
+      for (let i = 0; i <= count; ++i) {
+        const o = (v + i) * 3;
+        if (i < count) {
+          vb.copyWithin(o, (start + i) * 3, (start + i) * 3 + 3);
+          const j = (i + 1) % count;
+          ib[t++] = v + (winding > 0 ? i : j);
+          ib[t++] = v + (winding > 0 ? j : i);
+          ib[t++] = c;
+        } else {
+          Vec3.toArray(center, vb, o);
+        }
+        Vec3.toArray(axis, nb, o);
+        gb[v + i] = gb[start];
+      }
+      v += count + 1;
+    }
+
+    update(vb, ib, nb, gb, vertexCount + closureVertexCount, triangleCount + closureTriangleCount, mesh);
+    ValueCell.updateIfChanged(mesh.closureVertexCount, closureVertexCount);
+    return mesh;
+  }
+
   //
 
   export const Params = {

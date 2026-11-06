@@ -21,6 +21,8 @@ import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import type { Representation } from '../../representation.js';
+import { CartoonRepresentationProvider } from '../representation/cartoon.js';
+import { PuttyRepresentationProvider } from '../representation/putty.js';
 import { BlobSurfaceRepresentationProvider } from '../representation/blob-surface.js';
 
 const registries = (() => {
@@ -109,6 +111,35 @@ function openEdges(v: MeshValues) {
   }
   return unpaired;
 }
+
+describe('polymer traces cut by the selection', async () => {
+  const root = await load1cbs();
+  const cut = residues(root, 20, 60);
+
+  for (const [name, provider, props] of [
+    ['cartoon', CartoonRepresentationProvider, { arrowFactor: 0, solidInterior: true }],
+    ['putty', PuttyRepresentationProvider, { solidInterior: true }],
+  ] as const) {
+    it(`closes the ${name} where the chain goes on outside of the selection`, async () => {
+      const [mesh] = await meshesOf(provider, cut, props);
+      expect(mesh.uClosureVertexCount.ref.value).toBeGreaterThan(0);
+      expect(openEdges(mesh)).toBe(0);
+    });
+
+    it(`closes the ${name} once solid interior is turned on, not before`, async () => {
+      const off = { ...props, solidInterior: false };
+      expect((await meshesOf(provider, cut, off))[0].uClosureVertexCount.ref.value).toBe(0);
+      const [mesh] = await meshesOf(provider, cut, off, { solidInterior: true });
+      expect(mesh.uClosureVertexCount.ref.value).toBeGreaterThan(0);
+      expect(openEdges(mesh)).toBe(0);
+    });
+
+    it(`adds no closure to the ${name} of whole chains`, async () => {
+      const [mesh] = await meshesOf(provider, root, props);
+      expect(mesh.uClosureVertexCount.ref.value).toBe(0);
+    });
+  }
+});
 
 describe('blob surface with includeParent', async () => {
   const root = await load1cbs();
