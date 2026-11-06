@@ -239,8 +239,8 @@ here.
 - Fix NaN vertices from `Mesh.smoothEdges` where neighbouring border vertices coincide
 - Fix `solidInterior` caps of surfaces (molecular, gaussian, blob) with `includeParent`: closed against the parent's
   atoms, shown as interior with `solidInterior`
-- Fix `solidInterior` caps of cartoon and putty where the chain goes on outside of the selection: the open tube ends
-  are closed, shown as interior with `solidInterior`
+- Fix `solidInterior` caps of cartoon and putty where the chain goes on outside of the selection: the open tube ends are
+  closed, shown as interior with `solidInterior`
 - Fix `solidInterior` caps of mesh cylinders (bonds, backbone, interactions, links without impostors): their open ends
   are closed, shown as interior with `solidInterior`
 
