@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -26,7 +26,7 @@ import { SecondaryStructureProvider } from '@molstar/model/props/computed/second
 import { HelixOrientationProvider } from '@molstar/model/props/computed/helix-orientation';
 import type { SecondaryStructure } from '@molstar/model/model/structure/model/properties/secondary-structure';
 import { Segmentation } from '@molstar/core/data/int/segmentation';
-import type { SortedArray } from '@molstar/core/data/int/sorted-array';
+import { SortedArray } from '@molstar/core/data/int/sorted-array';
 
 function isHelixSS(ss: SecondaryStructureType.Flag) {
   return SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Helix);
@@ -69,6 +69,10 @@ interface PolymerTraceElement {
   last: boolean;
   initial: boolean;
   final: boolean;
+  /** whether the polymer continues before the element outside of the unit (the trace is open there) */
+  cutFirst: boolean;
+  /** whether the polymer continues after the element outside of the unit (the trace is open there) */
+  cutLast: boolean;
   secStrucFirst: boolean;
   secStrucLast: boolean;
   secStrucType: SecondaryStructureType;
@@ -96,6 +100,8 @@ function createPolymerTraceElement(structure: Structure, unit: Unit): PolymerTra
     last: false,
     initial: false,
     final: false,
+    cutFirst: false,
+    cutLast: false,
     secStrucFirst: false,
     secStrucLast: false,
     secStrucType: SecStrucTypeNA,
@@ -294,6 +300,9 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
       value.initial = residueIndex === residueIndexPrev1;
       value.final = residueIndex === residueIndexNext1;
+      value.cutFirst =
+        !value.initial && !SortedArray.has(this.unit.elements, this.traceElementIndex[residueIndexPrev1]);
+      value.cutLast = !value.final && !SortedArray.has(this.unit.elements, this.traceElementIndex[residueIndexNext1]);
 
       value.centerPrev.element = this.traceElementIndex[residueIndexPrev1];
       value.center.element = this.traceElementIndex[residueIndex];

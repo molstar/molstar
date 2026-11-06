@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -16,6 +17,7 @@ import {
   computeUnitMolecularSurface,
 } from './util/molecular-surface.js';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
+import { getClosureFields } from '@molstar/graphics/geo/util/marching-cubes/closure';
 import {
   ElementIterator,
   getElementLoci,
@@ -67,18 +69,16 @@ async function createMolecularSurfaceMesh(
     props,
   ).runInContext(ctx.runtime);
 
+  const scalarField =
+    props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field;
+  const closure = props.includeParent ? getClosureFields(scalarField, idField, props.probeRadius) : undefined;
   const params = {
     isoLevel: props.probeRadius,
-    scalarField:
-      props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
-    idField,
+    scalarField: closure?.scalarField ?? scalarField,
+    idField: closure?.idField ?? idField,
   };
   const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
-
-  if (props.includeParent) {
-    const iterations = Math.ceil(2 / props.resolution);
-    Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
-  }
+  if (closure?.isClosure) Mesh.splitClosure(surface, closure.isClosure);
 
   Mesh.transform(surface, transform);
   if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
@@ -165,18 +165,16 @@ async function createStructureMolecularSurfaceMesh(
     props,
   ).runInContext(ctx.runtime);
 
+  const scalarField =
+    props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field;
+  const closure = props.includeParent ? getClosureFields(scalarField, idField, props.probeRadius) : undefined;
   const params = {
     isoLevel: props.probeRadius,
-    scalarField:
-      props.floodfill !== 'off' ? Tensor.createFloodfilled(field, props.probeRadius, props.floodfill) : field,
-    idField,
+    scalarField: closure?.scalarField ?? scalarField,
+    idField: closure?.idField ?? idField,
   };
   const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
-
-  if (props.includeParent) {
-    const iterations = Math.ceil(2 / props.resolution);
-    Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
-  }
+  if (closure?.isClosure) Mesh.splitClosure(surface, closure.isClosure);
 
   Mesh.transform(surface, transform);
   if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {

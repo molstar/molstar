@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import {
@@ -25,8 +26,8 @@ import type { ValueCell } from '@molstar/core/util/value-cell';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 /**
- * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity and
- * LOD), as the cells and their versions when it last passed. A group of the same members with none of them changed
+ * What `canMergeRenderObjects` reads of a member (its defines, the color/size/layer types, instance granularity, closure
+ * vertices and LOD), as the cells and their versions when it last passed. A group of the same members with none of them changed
  * was mergeable then and is now: the check (a sorted key string per member) is skipped (perf-audit-2 07/P17).
  * `uLod` and `lodLevels` are kept by value, as `getMergeKey` reads them: `BaseGeometry.updateValues` sets `uLod` on
  * every update, and a structure update `lodLevels`, with the same values (perf-audit-3 07/P17).
@@ -48,7 +49,10 @@ const MergeTypeKeys = new Set([
 
 function isMergeRelevantKey(k: string) {
   return (
-    (k.length > 1 && k[0] === 'd' && k[1] >= 'A' && k[1] <= 'Z') || MergeTypeKeys.has(k) || k === 'uInstanceGranularity'
+    (k.length > 1 && k[0] === 'd' && k[1] >= 'A' && k[1] <= 'Z') ||
+    MergeTypeKeys.has(k) ||
+    k === 'uInstanceGranularity' ||
+    k === 'uClosureVertexCount'
   );
 }
 

@@ -29,6 +29,7 @@ import type { Unit, Structure } from '@molstar/model/model/structure';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
+import { getClosureFields } from '@molstar/graphics/geo/util/marching-cubes/closure';
 import {
   ElementIterator,
   getElementLoci,
@@ -344,18 +345,16 @@ async function createGaussianSurfaceMesh(
   ).runInContext(ctx.runtime);
 
   const isoLevel = Math.exp(-smoothness) / radiusFactor;
+  const scalarField = floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field;
+  const closure = includeParent ? getClosureFields(scalarField, idField, isoLevel) : undefined;
   const params = {
     isoLevel,
-    scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
-    idField,
+    scalarField: closure?.scalarField ?? scalarField,
+    idField: closure?.idField ?? idField,
   };
   const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
   (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
-
-  if (includeParent) {
-    const iterations = Math.ceil(2 / resolution);
-    Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
-  }
+  if (closure?.isClosure) Mesh.splitClosure(surface, closure.isClosure);
 
   Mesh.transform(surface, transform);
   if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
@@ -444,18 +443,16 @@ async function createStructureGaussianSurfaceMesh(
   ).runInContext(ctx.runtime);
 
   const isoLevel = Math.exp(-smoothness) / radiusFactor;
+  const scalarField = floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field;
+  const closure = includeParent ? getClosureFields(scalarField, idField, isoLevel) : undefined;
   const params = {
     isoLevel,
-    scalarField: floodfill !== 'off' ? Tensor.createFloodfilled(field, isoLevel, floodfill) : field,
-    idField,
+    scalarField: closure?.scalarField ?? scalarField,
+    idField: closure?.idField ?? idField,
   };
   const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
   (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
-
-  if (includeParent) {
-    const iterations = Math.ceil(2 / resolution);
-    Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
-  }
+  if (closure?.isClosure) Mesh.splitClosure(surface, closure.isClosure);
 
   Mesh.transform(surface, transform);
   if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {

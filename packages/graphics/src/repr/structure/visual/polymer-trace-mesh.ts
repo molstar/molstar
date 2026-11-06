@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -64,7 +64,7 @@ function createPolymerTraceMesh(
   unit: Unit,
   structure: Structure,
   theme: Theme,
-  props: PolymerTraceMeshProps,
+  props: PolymerTraceMeshProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ) {
   const polymerElementCount = unit.polymerElements.length;
@@ -91,6 +91,7 @@ function createPolymerTraceMesh(
   const state = createCurveSegmentState(linearSegments);
   const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
 
+  const closureRings: number[] = [];
   let i = 0;
   const polymerTraceIt = PolymerTraceIterator(unit, structure, {
     ignoreSecondaryStructure: false,
@@ -140,6 +141,8 @@ function createPolymerTraceMesh(
       Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
     }
 
+    const vertexStart = builderState.vertices.elementCount;
+    let ringSize = 0;
     if (v.initial === true && v.final === true) {
       addSphere(builderState, v.p2, w1 * 2, detail);
     } else if (isSheet) {
@@ -162,6 +165,7 @@ function createPolymerTraceMesh(
           arrowHeight,
         );
       } else {
+        ringSize = 8;
         addSheet(
           builderState,
           curvePoints,
@@ -218,6 +222,7 @@ function createPolymerTraceMesh(
           addRibbon(builderState, curvePoints, normals, binormals, segmentCount, widthValues, heightValues, 0);
         }
       } else if (radialSegments === 4) {
+        ringSize = 8;
         addSheet(
           builderState,
           curvePoints,
@@ -231,6 +236,7 @@ function createPolymerTraceMesh(
           endCap,
         );
       } else if (h1 === w1) {
+        ringSize = radialSegments;
         addTube(
           builderState,
           curvePoints,
@@ -246,6 +252,7 @@ function createPolymerTraceMesh(
           hasRoundCap,
         );
       } else if (profile === 'square') {
+        ringSize = 8;
         addSheet(
           builderState,
           curvePoints,
@@ -259,6 +266,7 @@ function createPolymerTraceMesh(
           endCap,
         );
       } else {
+        ringSize = radialSegments;
         addTube(
           builderState,
           curvePoints,
@@ -275,10 +283,16 @@ function createPolymerTraceMesh(
       }
     }
 
+    if (ringSize > 0) {
+      if (v.cutFirst && !startCap) closureRings.push(vertexStart, ringSize, 1);
+      if (v.cutLast && !endCap) closureRings.push(vertexStart + segmentCount * ringSize, ringSize, -1);
+    }
+
     ++i;
   }
 
   const m = MeshBuilder.getMesh(builderState);
+  if (props.solidInterior && closureRings.length > 0) Mesh.addClosureFans(m, closureRings);
 
   const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
   m.setBoundingSphere(sphere);
@@ -311,6 +325,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
         currentStructureGroup: StructureGroup,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.tubularHelices !== currentProps.tubularHelices ||
           newProps.roundCap !== currentProps.roundCap ||

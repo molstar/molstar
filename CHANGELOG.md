@@ -236,6 +236,13 @@ here.
 - Geometry export: spheres of a representation with several instances (symmetry copies) export each copy's spheres, not
   the first copy's followed by invalid ones
 - Strips of lines (streamlines, fibers) get the bounding sphere of their points: it read past their buffers
+- Fix NaN vertices from `Mesh.smoothEdges` where neighbouring border vertices coincide
+- Fix `solidInterior` caps of surfaces (molecular, gaussian, blob) with `includeParent`: closed against the parent's
+  atoms, shown as interior with `solidInterior`
+- Fix `solidInterior` caps of cartoon and putty where the chain goes on outside of the selection: the open tube ends are
+  closed, shown as interior with `solidInterior`
+- Fix `solidInterior` caps of mesh cylinders (bonds, backbone, interactions, links without impostors): their open ends
+  are closed, shown as interior with `solidInterior`
 
 ## [v5.13.1] - 2026-10-08
 

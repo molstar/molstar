@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { animation_wgsl, assign_wiggle_wgsl } from './chunks/animation.wgsl.js';
@@ -44,7 +45,10 @@ ${clip_functions_wgsl}
 ${packing_wgsl}
 ${grid_functions_wgsl}
 
-${vertex_output_wgsl('    @location(9) vNormal: vec3<f32>,')}
+${vertex_output_wgsl(`    @location(9) vNormal: vec3<f32>,
+#if defined(dGeometryType_mesh) && defined(dSolidInterior)
+    @location(10) @interpolate(flat) vClosure: f32,
+#endif`)}
 ${fragment_output_wgsl(`#if defined(dSolidInterior)
     @builtin(frag_depth) fragDepth: f32,
 #endif`)}
@@ -113,6 +117,16 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
             out.position.z = max(out.position.z, out.position.w * 0.0001);
         }
     #endif
+    #if defined(dGeometryType_mesh)
+        let closure = vertexId >= uObject.uVertexCount - uObject.uClosureVertexCount;
+        #if defined(dSolidInterior)
+            out.vClosure = select(0.0, 1.0, closure);
+        #else
+            if (closure) {
+                out.position = vec4<f32>(0.0, 0.0, 2.0, 1.0);
+            }
+        #endif
+    #endif
     ${clip_instance_wgsl}
     return out;
 }
@@ -131,6 +145,11 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
         // of the mark pass (\`uSolidInteriorPass\` 2) counts more back than front faces, at the cut (pass 1)
         var fragmentDepth = in.position.z;
         let capPass = uDraw.uSolidInteriorPass != 0;
+        #if defined(dGeometryType_mesh)
+            let closure = in.vClosure > 0.5;
+        #else
+            let closure = false;
+        #endif
         var viewPosition = in.vViewPosition;
         var modelPosition = in.vModelPosition;
         if (capPass) {
@@ -190,7 +209,7 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
                 interior = false;
             }
         #else
-            if (capPass) {
+            if (capPass || closure) {
                 interior = true;
             }
         #endif
@@ -226,8 +245,8 @@ fn fragmentMain(in: VertexOutput, @builtin(front_facing) frontFacing: bool) -> F
     #if defined(dRenderVariant_pick)
         ${pick_output_wgsl}
         #if defined(dSolidInterior)
-            if (capPass) {
-                // 16777214 is PickingId.Null, the cap picks the whole instance
+            if (capPass || closure) {
+                // 16777214 is PickingId.Null, caps and closures pick the whole instance
                 out.group = vec4<f32>(packIntToRGB(16777214.0), 1.0);
             }
         #endif

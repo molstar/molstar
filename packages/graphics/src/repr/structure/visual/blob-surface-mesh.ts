@@ -13,6 +13,7 @@ import type { Unit, Structure } from '@molstar/model/model/structure';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from '@molstar/graphics/geo/util/marching-cubes/algorithm';
+import { getClosureFields } from '@molstar/graphics/geo/util/marching-cubes/closure';
 import {
   ElementIterator,
   getElementLoci,
@@ -62,9 +63,10 @@ async function createBlobSurfaceMesh(
   ).runInContext(ctx.runtime);
 
   const isoLevel = Math.exp(-smoothness) / radiusFactor;
-  const surface = await computeMarchingCubesMesh({ isoLevel, scalarField: field, idField }, mesh).runAsChild(
-    ctx.runtime,
-  );
+  const closure = props.includeParent ? getClosureFields(field, idField, isoLevel) : undefined;
+  const params = { isoLevel, scalarField: closure?.scalarField ?? field, idField: closure?.idField ?? idField };
+  const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+  if (closure?.isClosure) Mesh.splitClosure(surface, closure.isClosure);
 
   Mesh.transform(surface, transform);
   if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
@@ -119,9 +121,10 @@ async function createStructureBlobSurfaceMesh(
   ).runInContext(ctx.runtime);
 
   const isoLevel = Math.exp(-smoothness) / radiusFactor;
-  const surface = await computeMarchingCubesMesh({ isoLevel, scalarField: field, idField }, mesh).runAsChild(
-    ctx.runtime,
-  );
+  const closure = props.includeParent ? getClosureFields(field, idField, isoLevel) : undefined;
+  const params = { isoLevel, scalarField: closure?.scalarField ?? field, idField: closure?.idField ?? idField };
+  const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+  if (closure?.isClosure) Mesh.splitClosure(surface, closure.isClosure);
 
   Mesh.transform(surface, transform);
   if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {

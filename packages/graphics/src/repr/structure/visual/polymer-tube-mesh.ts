@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -51,7 +52,7 @@ function createPolymerTubeMesh(
   unit: Unit,
   structure: Structure,
   theme: Theme,
-  props: PolymerTubeMeshProps,
+  props: PolymerTubeMeshProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ) {
   const polymerElementCount = unit.polymerElements.length;
@@ -66,6 +67,7 @@ function createPolymerTubeMesh(
   const state = createCurveSegmentState(linearSegments);
   const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
 
+  const closureRings: number[] = [];
   let i = 0;
   const polymerTraceIt = PolymerTraceIterator(unit, structure, { ignoreSecondaryStructure: true });
   while (polymerTraceIt.hasNext) {
@@ -107,11 +109,14 @@ function createPolymerTubeMesh(
       Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
     }
 
+    const vertexStart = builderState.vertices.elementCount;
+    let ringSize = 0;
     if (v.initial === true && v.final === true) {
       addSphere(builderState, v.p2, s1 * 2, detail);
     } else if (radialSegments === 2) {
       addRibbon(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0);
     } else if (radialSegments === 4) {
+      ringSize = 8;
       addSheet(
         builderState,
         curvePoints,
@@ -125,6 +130,7 @@ function createPolymerTubeMesh(
         endCap,
       );
     } else {
+      ringSize = radialSegments;
       addTube(
         builderState,
         curvePoints,
@@ -140,10 +146,16 @@ function createPolymerTubeMesh(
       );
     }
 
+    if (ringSize > 0) {
+      if (v.cutFirst && !startCap) closureRings.push(vertexStart, ringSize, 1);
+      if (v.cutLast && !endCap) closureRings.push(vertexStart + segmentCount * ringSize, ringSize, -1);
+    }
+
     ++i;
   }
 
   const m = MeshBuilder.getMesh(builderState);
+  if (props.solidInterior && closureRings.length > 0) Mesh.addClosureFans(m, closureRings);
 
   const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
   m.setBoundingSphere(sphere);
@@ -172,6 +184,7 @@ export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubePa
         currentProps: PD.Values<PolymerTubeParams>,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.detail !== currentProps.detail ||
           newProps.linearSegments !== currentProps.linearSegments ||

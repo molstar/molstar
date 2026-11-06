@@ -250,7 +250,7 @@ function createNucleotideAtomicBondMesh(
   unit: Unit,
   structure: Structure,
   theme: Theme,
-  props: NucleotideAtomicBondMeshProps,
+  props: NucleotideAtomicBondMeshProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ) {
   if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -261,7 +261,7 @@ function createNucleotideAtomicBondMesh(
   const { sizeFactor, radialSegments } = props;
 
   const vertexCount = nucleotideElementCount * (radialSegments * 15); // 15 is the average purine (17) & pirimidine (13) bonds
-  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
+  const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh, props.solidInterior);
 
   const { elements, model, conformation: c } = unit;
   const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
@@ -401,7 +401,9 @@ export function NucleotideAtomicBondMeshVisual(materialId: number): UnitsVisual<
         currentProps: PD.Values<NucleotideAtomicBondParams>,
       ) => {
         state.createGeometry =
-          newProps.sizeFactor !== currentProps.sizeFactor || newProps.radialSegments !== currentProps.radialSegments;
+          newProps.solidInterior !== currentProps.solidInterior ||
+          newProps.sizeFactor !== currentProps.sizeFactor ||
+          newProps.radialSegments !== currentProps.radialSegments;
       },
     },
     materialId,

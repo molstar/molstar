@@ -130,7 +130,7 @@ const v3dot = Vec3.dot;
 export function createLinkCylinderMesh(
   ctx: VisualContext,
   linkBuilder: LinkBuilderProps,
-  props: LinkCylinderProps,
+  props: LinkCylinderProps & { solidInterior?: boolean },
   mesh?: Mesh,
 ): { mesh: Mesh; boundingSphere?: Sphere3D } {
   const { linkCount, referencePosition, position, style, radius, ignore, stub } = linkBuilder;
@@ -142,7 +142,7 @@ export function createLinkCylinderMesh(
   const oldBoundingSphere = mesh?.hasBoundingSphere() ? Sphere3D.clone(mesh.boundingSphere) : undefined;
 
   const vertexCountEstimate = radialSegments * 2 * linkCount * 2;
-  const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh);
+  const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh, props.solidInterior);
 
   const center = Vec3();
   let count = 0;

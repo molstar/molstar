@@ -375,6 +375,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
         currentStructureGroup: StructureGroup,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
           newProps.radialSegments !== currentProps.radialSegments ||
@@ -630,6 +631,7 @@ export function StructureIntraUnitBondCylinderMeshVisual(
         currentStructure: Structure,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
           newProps.radialSegments !== currentProps.radialSegments ||

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -244,6 +245,17 @@ describe('merged', () => {
     expect(mv.aPosition.ref.value).toBe(segmentedPositions);
     expect(segmentedPositions.parts.map((p) => p.version)).toEqual([before[0], before[1] + 1]);
     expect(SegmentedArray.flatten(segmentedPositions)[6 * 3]).toBe(200);
+  });
+
+  it('mesh with closure vertices', () => {
+    const a = createMeshRenderObject(6, 0);
+    const b = createMeshRenderObject(9, 100);
+    ValueCell.update(b.values.uClosureVertexCount, 3);
+    expect(canMergeRenderObjects([a, b])).toBe(false);
+    expect(canMergeRenderObjects([b, a])).toBe(false);
+    expect(canMergeRenderObjects([b], 1)).toBe(false);
+    ValueCell.update(b.values.uClosureVertexCount, 0);
+    expect(canMergeRenderObjects([a, b])).toBe(true);
   });
 
   const ctx = tryGetGLContext(32, 32, { fragDepth: true });

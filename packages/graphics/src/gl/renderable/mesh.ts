@@ -37,6 +37,7 @@ export const MeshSchema = {
   aNormal: AttributeSpec('oct16', 2, 0),
   elements: ElementsSpec('uint32'),
   dVaryingGroup: DefineSpec('boolean'),
+  uClosureVertexCount: UniformSpec('i', undefined, 'object'),
   dFlatShaded: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),
   dFlipSided: DefineSpec('boolean'),

@@ -10,7 +10,7 @@ import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { MeshBuilder } from '../mesh-builder.js';
 import { type Primitive, transformPrimitive } from '../../../primitive/primitive.js';
 import { Cylinder, type CylinderProps, DefaultCylinderProps } from '../../../primitive/cylinder.js';
-import { Prism } from '../../../primitive/prism.js';
+import { DefaultPrismProps, Prism } from '../../../primitive/prism.js';
 import { polygon } from '../../../primitive/polygon.js';
 import { hashFnv32a } from '@molstar/core/data/util';
 import type { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
@@ -95,18 +95,62 @@ function getCylinder(props: CylinderProps) {
   return cylinder;
 }
 
+const closureMap = new WeakMap<Primitive, Primitive | null>();
+
+/** the caps that `cylinder`, made by `getCylinder(props)`, lacks */
+function getCylinderClosure(props: CylinderProps, cylinder: Primitive) {
+  let closure = closureMap.get(cylinder);
+  if (closure !== undefined) return closure;
+  const radialSegments = props.radialSegments ?? DefaultCylinderProps.radialSegments;
+  if (radialSegments <= 4) {
+    const topCap = !(props.topCap ?? DefaultPrismProps.topCap);
+    const bottomCap = !(props.bottomCap ?? DefaultPrismProps.bottomCap);
+    const prism = Prism(polygon(Math.max(3, radialSegments), true, props.radiusTop), {
+      ...props,
+      topCap,
+      bottomCap,
+      sides: false,
+    });
+    closure = topCap || bottomCap ? transformPrimitive(prism, Mat4.rotX90) : null;
+  } else {
+    const topCap = !(props.topCap ?? DefaultCylinderProps.topCap);
+    const bottomCap = !(props.bottomCap ?? DefaultCylinderProps.bottomCap);
+    const { vertices, normals, indices } = Cylinder({ ...props, topCap, bottomCap });
+    const thetaLength = props.thetaLength ?? DefaultCylinderProps.thetaLength;
+    const columnCount = thetaLength === Math.PI * 2 ? radialSegments : radialSegments + 1;
+    const heightSegments = props.heightSegments ?? DefaultCylinderProps.heightSegments;
+    const offset = (heightSegments + 1) * columnCount;
+    const capIndices = indices.slice(radialSegments * heightSegments * 6);
+    for (let i = 0; i < capIndices.length; ++i) capIndices[i] -= offset;
+    closure =
+      capIndices.length > 0
+        ? { vertices: vertices.slice(offset * 3), normals: normals.slice(offset * 3), indices: capIndices }
+        : null;
+  }
+  closureMap.set(cylinder, closure);
+  return closure;
+}
+
+function addCylinderPrimitive(state: MeshBuilder.State, m: Mat4, props: CylinderProps, cylinder: Primitive) {
+  MeshBuilder.addPrimitive(state, m, cylinder);
+  if (state.closure) {
+    const closure = getCylinderClosure(props, cylinder);
+    if (closure) MeshBuilder.addClosurePrimitive(state, m, closure);
+  }
+}
+
 export type BasicCylinderProps = Omit<CylinderProps, 'height'>;
 
 export function addSimpleCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, props: BasicCylinderProps) {
   const d = Vec3.distance(start, end);
   Vec3.sub(tmpCylinderDir, end, start);
   setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d, false);
-  MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
+  addCylinderPrimitive(state, tmpCylinderMat, props, getCylinder(props));
 }
 
 export function addCylinderFromRay3D(state: MeshBuilder.State, ray: Ray3D, length: number, props: BasicCylinderProps) {
   setCylinderMat(tmpCylinderMat, ray.origin, ray.direction, length, false);
-  MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
+  addCylinderPrimitive(state, tmpCylinderMat, props, getCylinder(props));
 }
 
 export function addCylinder(
@@ -119,7 +163,7 @@ export function addCylinder(
   const d = Vec3.distance(start, end) * lengthScale;
   Vec3.sub(tmpCylinderDir, end, start);
   setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d, true);
-  MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
+  addCylinderPrimitive(state, tmpCylinderMat, props, getCylinder(props));
 }
 
 export function addDoubleCylinder(
@@ -136,11 +180,11 @@ export function addDoubleCylinder(
   // positivly shifted cylinder
   Vec3.add(tmpCylinderStart, start, shift);
   setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d, true);
-  MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
+  addCylinderPrimitive(state, tmpCylinderMat, props, cylinder);
   // negativly shifted cylinder
   Vec3.sub(tmpCylinderStart, start, shift);
   setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d, true);
-  MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
+  addCylinderPrimitive(state, tmpCylinderMat, props, cylinder);
 }
 
 export function addFixedCountDashedCylinder(
@@ -157,6 +201,7 @@ export function addFixedCountDashedCylinder(
   const s = Math.floor((segmentCount + 1) / 2);
   let step = d / (segmentCount + 0.5);
 
+  let cylinderProps: CylinderProps = props;
   let cylinder = getCylinder(props);
   Vec3.setMagnitude(tmpCylinderDir, Vec3.sub(tmpCylinderDir, end, start), step);
   Vec3.copy(tmpCylinderStart, start);
@@ -165,12 +210,13 @@ export function addFixedCountDashedCylinder(
     if (isOdd && j === s - 1) {
       if (!stubCap && props.topCap) {
         // a copy: the caller passes the same props again (MirroredAromatic's second row, perf-audit-2 08/B7)
-        cylinder = getCylinder({ ...props, topCap: false });
+        cylinderProps = { ...props, topCap: false };
+        cylinder = getCylinder(cylinderProps);
       }
       step /= 2;
     }
     setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, step, false);
-    MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
+    addCylinderPrimitive(state, tmpCylinderMat, cylinderProps, cylinder);
 
     Vec3.add(tmpCylinderStart, tmpCylinderStart, tmpCylinderDir);
   }

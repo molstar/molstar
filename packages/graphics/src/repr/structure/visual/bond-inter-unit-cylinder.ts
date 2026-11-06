@@ -333,6 +333,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
         currentStructure: Structure,
       ) => {
         state.createGeometry =
+          newProps.solidInterior !== currentProps.solidInterior ||
           newProps.sizeFactor !== currentProps.sizeFactor ||
           newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
           newProps.radialSegments !== currentProps.radialSegments ||

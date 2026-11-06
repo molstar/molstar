@@ -3,10 +3,12 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Vec3, type Mat4, Mat3 } from '@molstar/core/math/linear-algebra';
 import { ChunkedArray } from '@molstar/core/data/util';
+import { ValueCell } from '@molstar/core/util/value-cell';
 import { anchorMap } from '@molstar/core/util/map-anchor';
 import { Mesh } from './mesh.js';
 import type { Primitive } from '../../primitive/primitive.js';
@@ -116,9 +118,11 @@ export namespace MeshBuilder {
     readonly indices: ChunkedArray<number, 3>;
     readonly groups: ChunkedArray<number, 1>;
     readonly mesh?: Mesh;
+    /** the closure (`addClosurePrimitive`), appended last by `getMesh`, when the state was made with one */
+    readonly closure: State | undefined;
   }
 
-  export function createState(initialCount = 2048, chunkSize = 1024, mesh?: Mesh): State {
+  export function createState(initialCount = 2048, chunkSize = 1024, mesh?: Mesh, closure = false): State {
     return {
       currentGroup: -1,
       vertices: ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.vertexBuffer.ref.value : initialCount),
@@ -127,6 +131,7 @@ export namespace MeshBuilder {
       indices: ChunkedArray.create(Uint32Array, 3, chunkSize * 2, mesh ? mesh.indexBuffer.ref.value : initialCount * 2),
       groups: ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.groupBuffer.ref.value : initialCount),
       mesh,
+      closure: closure ? createState(initialCount, chunkSize) : undefined,
     };
   }
 
@@ -206,6 +211,14 @@ export namespace MeshBuilder {
     addTransformedPrimitive(state, t, primitive, false);
   }
 
+  /** Adds the primitive to the closure (`Mesh.closureVertexCount`) of a state made with one */
+  export function addClosurePrimitive(state: State, t: Mat4, primitive: Primitive) {
+    const { closure } = state;
+    if (!closure) return;
+    closure.currentGroup = state.currentGroup;
+    addTransformedPrimitive(closure, t, primitive, false);
+  }
+
   /** Flips triangle normals and winding order */
   export function addPrimitiveFlipped(state: State, t: Mat4, primitive: Primitive) {
     addTransformedPrimitive(state, t, primitive, true);
@@ -234,11 +247,23 @@ export namespace MeshBuilder {
   }
 
   export function getMesh(state: State): Mesh {
-    const { vertices, normals, indices, groups, mesh } = state;
+    const { vertices, normals, indices, groups, mesh, closure } = state;
+    const closureVertexCount = closure ? closure.vertices.elementCount : 0;
+    if (closure && closureVertexCount > 0) {
+      const offset = vertices.elementCount;
+      ChunkedArray.addMany(vertices, ChunkedArray.compact(closure.vertices));
+      ChunkedArray.addMany(normals, ChunkedArray.compact(closure.normals));
+      ChunkedArray.addMany(groups, ChunkedArray.compact(closure.groups));
+      const ci = ChunkedArray.compact(closure.indices);
+      for (let i = 0, il = ci.length; i < il; i += 3)
+        caAdd3(indices, ci[i] + offset, ci[i + 1] + offset, ci[i + 2] + offset);
+    }
     const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
     const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
     const nb = ChunkedArray.compactTrimmed(normals) as Float32Array;
     const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
-    return Mesh.create(vb, ib, nb, gb, state.vertices.elementCount, state.indices.elementCount, mesh);
+    const m = Mesh.create(vb, ib, nb, gb, state.vertices.elementCount, state.indices.elementCount, mesh);
+    ValueCell.updateIfChanged(m.closureVertexCount, closureVertexCount);
+    return m;
   }
 }

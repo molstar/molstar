@@ -35,10 +35,19 @@ ${light_frag_params}
 ${normal_frag_params}
 ${common_clip}
 
+#if defined(dGeometryType_mesh) && defined(dSolidInterior)
+    varying float vClosure;
+#endif
+
 void main() {
     #ifdef dSolidInterior
         float fragmentDepth = gl_FragCoord.z;
         bool capPass = uSolidInteriorPass != 0;
+        #ifdef dGeometryType_mesh
+            bool closure = vClosure > 0.5;
+        #else
+            bool closure = false;
+        #endif
         vec3 viewPosition = vViewPosition;
         vec3 modelPosition = vModelPosition;
         #ifdef enabledFragDepth
@@ -87,7 +96,7 @@ void main() {
             // a cap is the visible surface, so the depth passes must not discard it as interior
             if (capPass) interior = false;
         #else
-            if (capPass) interior = true;
+            if (capPass || closure) interior = true;
         #endif
     #endif
 
@@ -124,8 +133,8 @@ void main() {
             gl_FragColor = vObject;
             gl_FragData[1] = vInstance;
             #ifdef dSolidInterior
-                // 16777214 is PickingId.Null, the cap picks the whole instance
-                gl_FragData[2] = capPass ? vec4(packIntToRGB(16777214.0), 1.0) : vGroup;
+                // 16777214 is PickingId.Null, caps and closures pick the whole instance
+                gl_FragData[2] = capPass || closure ? vec4(packIntToRGB(16777214.0), 1.0) : vGroup;
             #else
                 gl_FragData[2] = vGroup;
             #endif
@@ -133,7 +142,7 @@ void main() {
         #else
             gl_FragColor = vColor;
             #ifdef dSolidInterior
-                if (capPass && uPickType == 3) gl_FragColor = vec4(packIntToRGB(16777214.0), 1.0);
+                if ((capPass || closure) && uPickType == 3) gl_FragColor = vec4(packIntToRGB(16777214.0), 1.0);
             #endif
         #endif
     #elif defined(dRenderVariant_depth)
