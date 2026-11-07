@@ -2,10 +2,11 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import type { TextureImage } from '@molstar/graphics/gl/renderable/util';
-import { spline } from '@molstar/core/math/interpolate';
+import { clamp, spline } from '@molstar/core/math/interpolate';
 import { ValueCell } from '@molstar/core/util';
 import type { Vec2 } from '@molstar/core/math/linear-algebra';
 
@@ -52,7 +53,8 @@ function build1DAlphaArray(controlPoints: ControlPoint[], out?: Uint8Array): Uin
     for (let j = 0; j < jl; ++j) {
       const t = j / jl;
       if (k < TF_WIDTH) {
-        array[k] = Math.max(0, spline(a0, a1, a2, a3, t, 0.5) * 255);
+        // the spline overshoots next to an opacity of 1: clamped, as the bytes would wrap around (256 to 0)
+        array[k] = clamp(spline(a0, a1, a2, a3, t, 0.5) * 255, 0, 255);
         ++k;
       }
     }

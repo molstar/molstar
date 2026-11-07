@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { hashFnv32a } from '@molstar/core/data/util';
@@ -289,6 +290,32 @@ export namespace DirectVolume {
       ],
       BaseGeometry.ShadingCategory,
     ),
+    renderMode: PD.Select(
+      'composite',
+      [
+        ['composite', 'Composite'],
+        ['maximum', 'Maximum'],
+        ['attenuated', 'Attenuated maximum'],
+        ['additive', 'Additive'],
+      ] as const,
+      {
+        description:
+          'Composite: the samples along a ray blended front to back, each as opaque as the transfer function makes ' +
+          'it. The projections are unlit, the transfer function their brightness (see the Projection presets): ' +
+          'Maximum, the brightest sample along a ray (a maximum intensity projection), a sample below where the ' +
+          'transfer function first rises above zero adding nothing; Attenuated maximum, the sample brightest by the ' +
+          'transfer function once each is dimmed by the density in front of it (Attenuation), for depth; Additive, the ' +
+          'samples summed (Attenuation as the gain).',
+      },
+    ),
+    attenuation: PD.Numeric(
+      0.15,
+      { min: 0, max: 5, step: 0.01 },
+      {
+        description: 'Attenuated maximum: how much the density in front dims a sample. Additive: the gain.',
+        hideIf: (p) => p.renderMode !== 'attenuated' && p.renderMode !== 'additive',
+      },
+    ),
     controlPoints: PD.LineGraph(
       [
         Vec2.create(0.19, 0.0),
@@ -386,6 +413,28 @@ export namespace DirectVolume {
   }
 
   /**
+   * The start of the `maximum` render mode's window: the value (at its texel's center) the transfer function is first
+   * above 0 at, above every value (2) where it is 0 throughout
+   */
+  function getMaximumStart(transfer: Uint8Array) {
+    const lo = transfer.findIndex((v) => v > 0);
+    return lo < 0 ? 2 : (lo + 0.5) / transfer.length;
+  }
+
+  /**
+   * Per transfer texel whether a sample of that value adds to a ray, for the brick skipping: the transfer function
+   * itself (its opacity), but every value from the window's start on in the `maximum` mode (any value there can be the
+   * brightest)
+   */
+  function getSampleGate(renderMode: PD.Values<Params>['renderMode'], transfer: Uint8Array) {
+    if (renderMode !== 'maximum') return transfer;
+    const gate = new Uint8Array(transfer.length);
+    const lo = transfer.findIndex((v) => v > 0);
+    if (lo >= 0) gate.fill(255, lo);
+    return gate;
+  }
+
+  /**
    * Per brick 255 where the transfer function is above 0 somewhere in the brick's value range (`BrickRange`), else 0:
    * the ray marcher skips the bricks of 0
    */
@@ -445,7 +494,7 @@ export namespace DirectVolume {
     const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
     const transferTex = createTransferFunctionTexture(controlPoints);
     const brickRange = directVolume.brickRange.ref.value;
-    const brickImage = getBrickVisibility(brickRange, transferTex.ref.value.array);
+    const brickImage = getBrickVisibility(brickRange, getSampleGate(props.renderMode, transferTex.ref.value.array));
 
     return {
       dGeometryType: ValueCell.create('directVolume'),
@@ -482,6 +531,9 @@ export namespace DirectVolume {
       dPreIntegration: ValueCell.create(props.preIntegration),
       uTransferScale: ValueCell.create(getTransferScale(props.stepsPerCell)),
       uSurfaceOpacity: ValueCell.create(props.surfaceOpacity),
+      dRenderMode: ValueCell.create(props.renderMode),
+      uMaximumStart: ValueCell.create(getMaximumStart(transferTex.ref.value.array)),
+      uAttenuation: ValueCell.create(props.attenuation),
       brickRange: directVolume.brickRange,
       tBrickTex: ValueCell.create(brickImage),
       uBrickTexDim: ValueCell.create(Vec2.create(brickImage.width, brickImage.height)),
@@ -540,9 +592,16 @@ export namespace DirectVolume {
       createPreIntegratedTransferTexture(transfer, values.tPreIntegratedTex);
     }
     ValueCell.updateIfChanged(values.dPreIntegration, props.preIntegration);
-    // the transfer function or the bricks (a new geometry) may have changed
+    ValueCell.updateIfChanged(values.dRenderMode, props.renderMode);
+    ValueCell.updateIfChanged(values.uMaximumStart, getMaximumStart(transfer));
+    ValueCell.updateIfChanged(values.uAttenuation, props.attenuation);
+    // the transfer function, the render mode or the bricks (a new geometry) may have changed
     const brickRange = values.brickRange.ref.value as BrickRange;
-    const brickImage = getBrickVisibility(brickRange, values.tTransferTex.ref.value.array, values.tBrickTex.ref.value);
+    const brickImage = getBrickVisibility(
+      brickRange,
+      getSampleGate(props.renderMode, transfer),
+      values.tBrickTex.ref.value,
+    );
     ValueCell.update(values.tBrickTex, brickImage);
     ValueCell.update(values.uBrickTexDim, Vec2.set(values.uBrickTexDim.ref.value, brickImage.width, brickImage.height));
     if (!Vec3.exactEquals(values.uBrickDim.ref.value, brickRange.dim)) {
