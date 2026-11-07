@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { clip_functions_wgsl } from './chunks/clip.wgsl.js';
@@ -220,6 +221,9 @@ fn safeInverse(v: vec3<f32>) -> vec3<f32> {
     return select(vec3<f32>(1e8), vec3<f32>(1.0) / v, abs(v) > vec3<f32>(1e-8));
 }
 
+#if defined(dRenderMode_maximum) || defined(dRenderMode_attenuated) || defined(dRenderMode_additive)
+    #define dProjection
+#endif
 fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance: f32, transform: mat4x4<f32>, normalMatrix: mat3x3<f32>) -> vec4<f32> {
     let cartnToUnit = uObject.uCartnToUnit * inverse4(transform);
     #if defined(dClipVariant_pixel) && defined(dClipObjects)
@@ -235,6 +239,16 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
     // the value of the previous sample (\`preIntegration\`), -1 where there is none to integrate from
     var prevValue = -1.0;
     var dst = vec4<f32>(0.0);
+    #if defined(dRenderMode_maximum) || defined(dRenderMode_attenuated)
+        // the brightest sample so far (\`renderMode\`), -1 before one
+        var maxValue = -1.0;
+    #endif
+    #if defined(dRenderMode_attenuated)
+        var attSum = 0.0;
+    #endif
+    #if defined(dRenderMode_additive)
+        var addSum = 0.0;
+    #endif
 
     let posMin = vec3<f32>(0.0);
     let posMax = vec3<f32>(1.0) - vec3<f32>(1.0) / gridDim;
@@ -334,6 +348,57 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
             }
         }
 
+        #if defined(dProjection)
+            #if defined(dClipVariant_pixel) && defined(dClipObjects)
+                // a clipped sample adds nothing to the projection: tested before it counts
+                let modelPosition = v3m4(unitPos * gridDim, modelTransform);
+                // direct volumes have no per-group clipping flags
+                if (clipTest(modelPosition, 0)) {
+                    t += 1.0;
+                    continue;
+                }
+            #endif
+            #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick)
+                // the surface of the marking and pick variants: the first sample from the window's start on
+                if (value < uObject.uMaximumStart) {
+                    t += 1.0;
+                    continue;
+                }
+                material.a = 1.0;
+            #elif defined(dRenderMode_maximum)
+                // the brightest sample from the window's start on, as bright as the transfer function makes its value
+                if (value < uObject.uMaximumStart || value <= maxValue) {
+                    t += 1.0;
+                    continue;
+                }
+                maxValue = value;
+                material.a = transferFunction(value);
+            #elif defined(dRenderMode_attenuated)
+                // the sample brightest by the transfer function, each dimmed by the transfer function's opacity summed in
+                // front of it (per cell, the first cell free) and the \`attenuation\`; past a dimming no sample can
+                // beat, the ray ends
+                let ta = transferFunction(value);
+                attSum += ta * uMaterial.uTransferScale;
+                let scale = exp(-uObject.uAttenuation * max(attSum - 1.0, 0.0));
+                if (maxValue >= scale) { break; }
+                if (ta * scale <= maxValue) {
+                    t += 1.0;
+                    continue;
+                }
+                maxValue = ta * scale;
+                material.a = maxValue;
+            #elif defined(dRenderMode_additive)
+                // the transfer function's opacities summed per cell, as brightness by the \`attenuation\` as gain; an
+                // empty sample adds nothing and is not drawn, so the color, depth and fog are those of a dense one
+                let ta = transferFunction(value);
+                if (ta <= 0.0) {
+                    t += 1.0;
+                    continue;
+                }
+                addSum += ta * uMaterial.uTransferScale;
+                material.a = 1.0 - exp(-uObject.uAttenuation * addSum);
+            #endif
+        #else
         // transparent samples add nothing (markers don't lift them either)
         #if defined(dPreIntegration)
             // from the previous sample's value (none after skipped steps)
@@ -346,8 +411,9 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
             t += 1.0;
             continue;
         }
+        #endif
 
-        #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        #if defined(dClipVariant_pixel) && defined(dClipObjects) && !defined(dProjection)
             let modelPosition = v3m4(unitPos * gridDim, modelTransform);
             // direct volumes have no per-group clipping flags
             if (clipTest(modelPosition, 0)) {
@@ -436,7 +502,7 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
         #endif
 
         var color = vec4<f32>(material.rgb, 0.0);
-        #if !defined(dIgnoreLight)
+        #if !defined(dIgnoreLight) && !defined(dProjection)
             if (material.a >= 0.01) {
                 // gradient by central differences (the grids store no gradients): one-sided ones light noisy data by the
                 // side it is seen from
@@ -452,9 +518,13 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
             }
         #endif
 
+        #if defined(dProjection)
+            color.a = material.a * uMaterial.uAlpha;
+        #else
         // the transfer function's opacity is per cell: a step of 1 / stepsPerCell cells (\`uTransferScale\`) is as opaque
         // as that fraction of a cell, exactly (the linear \`a * uTransferScale\` is only close for small opacities)
         color.a = 1.0 - pow(1.0 - clamp(material.a * uMaterial.uAlpha, 0.0, 1.0), uMaterial.uTransferScale);
+        #endif
 
         #if defined(dColorMarker)
             var marker = uObject.uMarker;
@@ -474,7 +544,11 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
             }
         #endif
 
+        #if defined(dProjection)
+            preFogAlphaBlended = color.a;
+        #else
         preFogAlphaBlended = (1.0 - preFogAlphaBlended) * color.a + preFogAlphaBlended;
+        #endif
         let fragmentDepth = calcDepth(viewPosition);
         if (fog) {
             let viewZ = depthToViewZ(uGlobal.uIsOrtho, fragmentDepth, uGlobal.uNear, uGlobal.uFar);
@@ -499,12 +573,17 @@ fn raymarch(startLoc: vec3<f32>, step: vec3<f32>, fragCoord: vec2<f32>, instance
             // done by the fog otherwise
             src = vec4<f32>(src.rgb * src.a, src.a);
         }
+        #if defined(dProjection)
+            // the projection so far replaces the one before
+            dst = src;
+        #else
         dst = (1.0 - dst.a) * src + dst; // standard blending
 
         // break if the color is opaque enough
         if (dst.a > 0.95) {
             break;
         }
+        #endif
 
         t += 1.0;
         #endif

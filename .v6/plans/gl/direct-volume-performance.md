@@ -83,7 +83,8 @@
   fetch per step, `vertex` types eight), overpaint, marker fetch, fog, blending;
 - **Lighting** only where the transfer alpha is at least 0.01; packed groups (Gaussian volume) compute the gradient
   from six more grid fetches.
-- **Empty space**: volumes skip bricks the transfer function makes transparent (step 4); the Gaussian volume
+- **Empty space**: volumes skip bricks the transfer function makes transparent (step 4; in `renderMode: 'maximum'`
+  the bricks below the transfer function's first non-zero value); the Gaussian volume
   probes `jumpLength` (4 Å) ahead where the density is below 0.01 (approximate: may step over thin features).
 - **Steps**: `stepsPerCell` 2 by default (step 3), step `min(cellDim) / stepsPerCell`; `uMaxSteps` the steps along the
   box's longest diagonal (a loop bound only, the box exit ends the ray); the samples offset per pixel (jitter, step

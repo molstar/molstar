@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { common } from './chunks/common.glsl.js';
@@ -123,6 +124,9 @@ vec3 safeInverse(const in vec3 v) {
     );
 }
 
+#if defined(dRenderMode_maximum) || defined(dRenderMode_attenuated) || defined(dRenderMode_additive)
+    #define dProjection
+#endif
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     mat4 cartnToUnit = uCartnToUnit * inverse4(vTransform);
     #if defined(dClipVariant_pixel) && defined(dClipObjects)
@@ -138,6 +142,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec4 src = vec4(0.0);
     vec4 dst = vec4(0.0);
     float fragmentDepth;
+    #if defined(dRenderMode_maximum) || defined(dRenderMode_attenuated)
+        // the brightest sample so far (\`renderMode\`), -1 before one
+        float maxValue = -1.0;
+    #endif
+    #if defined(dRenderMode_attenuated)
+        float attSum = 0.0;
+    #endif
+    #if defined(dRenderMode_additive)
+        float addSum = 0.0;
+    #endif
 
     vec3 posMin = vec3(0.0);
     vec3 posMax = vec3(1.0) - vec3(1.0) / uGridDim;
@@ -237,6 +251,56 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             }
         }
 
+        #if defined(dProjection)
+            #if defined(dClipVariant_pixel) && defined(dClipObjects)
+                // a clipped sample adds nothing to the projection: tested before it counts
+                vec3 modelPosition = v3m4(unitPos * uGridDim, modelTransform);
+                if (clipTest(modelPosition)) {
+                    t += 1.0;
+                    continue;
+                }
+            #endif
+            #if defined(dRenderVariant_marking) || defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
+                // the surface of the marking, pick and depth variants: the first sample from the window's start on
+                if (value < uMaximumStart) {
+                    t += 1.0;
+                    continue;
+                }
+                material.a = 1.0;
+            #elif defined(dRenderMode_maximum)
+                // the brightest sample from the window's start on, as bright as the transfer function makes its value
+                if (value < uMaximumStart || value <= maxValue) {
+                    t += 1.0;
+                    continue;
+                }
+                maxValue = value;
+                material.a = transferFunction(value);
+            #elif defined(dRenderMode_attenuated)
+                // the sample brightest by the transfer function, each dimmed by the transfer function's opacity summed in
+                // front of it (per cell, the first cell free) and the \`attenuation\`; past a dimming no sample can
+                // beat, the ray ends
+                float ta = transferFunction(value);
+                attSum += ta * uTransferScale;
+                float scale = exp(-uAttenuation * max(attSum - 1.0, 0.0));
+                if (maxValue >= scale) break;
+                if (ta * scale <= maxValue) {
+                    t += 1.0;
+                    continue;
+                }
+                maxValue = ta * scale;
+                material.a = maxValue;
+            #elif defined(dRenderMode_additive)
+                // the transfer function's opacities summed per cell, as brightness by the \`attenuation\` as gain; an
+                // empty sample adds nothing and is not drawn, so the color, depth and fog are those of a dense one
+                float ta = transferFunction(value);
+                if (ta <= 0.0) {
+                    t += 1.0;
+                    continue;
+                }
+                addSum += ta * uTransferScale;
+                material.a = 1.0 - exp(-uAttenuation * addSum);
+            #endif
+        #else
         // transparent samples add nothing (markers don't lift them either)
         #ifdef dPreIntegration
             // from the previous sample's value (none after skipped steps)
@@ -249,8 +313,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             t += 1.0;
             continue;
         }
+        #endif
 
-        #if defined(dClipVariant_pixel) && defined(dClipObjects)
+        #if defined(dClipVariant_pixel) && defined(dClipObjects) && !defined(dProjection)
             vec3 modelPosition = v3m4(unitPos * uGridDim, modelTransform);
             if (clipTest(modelPosition)) {
                 t += 1.0;
@@ -336,7 +401,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
         #endif
 
-        #if defined(dIgnoreLight)
+        #if defined(dIgnoreLight) || defined(dProjection)
             gl_FragColor.rgb = material.rgb;
         #else
             if (material.a >= 0.01) {
@@ -357,9 +422,13 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             }
         #endif
 
+        #if defined(dProjection)
+            gl_FragColor.a = material.a * uAlpha;
+        #else
         // the transfer function's opacity is per cell: a step of 1 / stepsPerCell cells (\`uTransferScale\`) is as opaque
         // as that fraction of a cell, exactly (the linear \`a * uTransferScale\` is only close for small opacities)
         gl_FragColor.a = 1.0 - pow(1.0 - clamp(material.a * uAlpha, 0.0, 1.0), uTransferScale);
+        #endif
 
         #if defined(dColorMarker)
             float marker = uMarker;
@@ -370,7 +439,11 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #endif
         ${apply_marker_color}
 
+        #if defined(dProjection)
+            preFogAlphaBlended = gl_FragColor.a;
+        #else
         preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
+        #endif
         fragmentDepth = calcDepth(vViewPosition);
         ${apply_fog}
 
@@ -380,11 +453,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             // done in 'apply_fog' otherwise
             src.rgb *= src.a;
         }
+        #if defined(dProjection)
+            // the projection so far replaces the one before
+            dst = src;
+        #else
         dst = (1.0 - dst.a) * src + dst; // standard blending
 
         // break if the color is opaque enough
         if (dst.a > 0.95)
             break;
+        #endif
 
         t += 1.0;
         #endif
