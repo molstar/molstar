@@ -2,6 +2,7 @@
  * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -90,5 +91,48 @@ describe('camera', () => {
         expect(cropped.getPixelSize(points[1])).toBeCloseTo(full.getPixelSize(points[1]), 9);
       });
     }
+  });
+
+  describe('clipping', () => {
+    // the camera 100 from its target, the scene's radius 40 (its front at 60, its back at 140), clipped to 10 around the target
+    function planes(clip: Partial<Camera.Snapshot>) {
+      const camera = new Camera(
+        {
+          position: Vec3.create(0, 0, 100),
+          target: Vec3.create(0, 0, 0),
+          radius: 10,
+          radiusMax: 40,
+          minNear: 1,
+          ...clip,
+        },
+        Viewport.create(0, 0, 100, 100),
+      );
+      camera.update();
+      return [camera.near, camera.far];
+    }
+
+    it('clips both sides by the radius', () => {
+      expect(planes({})).toEqual([90, 110]);
+    });
+
+    it('keeps the front with near off', () => {
+      expect(planes({ clipNear: false })).toEqual([60, 110]);
+    });
+
+    it('keeps the back with far off', () => {
+      expect(planes({ clipFar: false })).toEqual([90, 140]);
+    });
+
+    it('keeps both sides with near and far off', () => {
+      expect(planes({ clipNear: false, clipFar: false })).toEqual([60, 140]);
+    });
+
+    it('copies and compares clipNear', () => {
+      const a = Camera.createDefaultSnapshot();
+      const b = Camera.copySnapshot(Camera.createDefaultSnapshot(), { clipNear: false });
+      expect(b.clipNear).toBe(false);
+      expect(Camera.areSnapshotsEqual(a, b)).toBe(false);
+      expect(Camera.areSnapshotsEqual(a, Camera.copySnapshot(Camera.createDefaultSnapshot(), a))).toBe(true);
+    });
   });
 });

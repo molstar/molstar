@@ -3,6 +3,7 @@
  *
  * @author Russ Taylor <russ@reliasolve.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 /** Based on the ../anvil extension. */
@@ -153,6 +154,7 @@ export const ParseKinemage = Transform({
             radius,
             radiusMax: 1e4,
             fog: 0,
+            clipNear: true,
             clipFar: true,
             minNear: 1,
             minFar: 1,

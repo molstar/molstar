@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { produce } from '@molstar/core/util/produce';
@@ -196,6 +197,7 @@ const SimpleSettingsMapping = ParamMapping({
     canvas.cameraFog = s.lighting.fog;
     canvas.cameraClipping = {
       radius: s.clipping.radius,
+      near: s.clipping.near,
       far: s.clipping.far,
       minNear: s.clipping.minNear,
     };

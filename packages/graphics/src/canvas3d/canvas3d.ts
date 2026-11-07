@@ -6,6 +6,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Herman Bergwerf <post@hbergwerf.nl>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { BehaviorSubject, type Observable, Subject, type Subscription, debounceTime, merge } from 'rxjs';
@@ -126,6 +127,7 @@ export const Canvas3DParams = {
         { min: 0, max: 99, step: 1 },
         { label: 'Clipping', description: 'How much of the scene to show.' },
       ),
+      near: PD.Boolean(true, { description: 'Hide scene close to the camera' }),
       far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
       minNear: PD.Numeric(
         1,
@@ -1042,6 +1044,7 @@ namespace Canvas3D {
         position: Vec3.create(0, 0, 100),
         mode: p.camera.mode,
         fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
+        clipNear: p.cameraClipping.near,
         clipFar: p.cameraClipping.far,
         minNear: p.cameraClipping.minNear,
         fov: degToRad(p.camera.fov),
@@ -2297,6 +2300,7 @@ namespace Canvas3D {
             ? { name: 'on' as const, params: { intensity: camera.state.fog } }
             : { name: 'off' as const, params: {} },
         cameraClipping: {
+          near: camera.state.clipNear,
           far: camera.state.clipFar,
           radius,
           minNear: camera.state.minNear,
@@ -2659,6 +2663,9 @@ namespace Canvas3D {
           if (newFog !== camera.state.fog) cameraState.fog = newFog;
         }
         if (props.cameraClipping !== undefined) {
+          if (props.cameraClipping.near !== undefined && props.cameraClipping.near !== camera.state.clipNear) {
+            cameraState.clipNear = props.cameraClipping.near;
+          }
           if (props.cameraClipping.far !== undefined && props.cameraClipping.far !== camera.state.clipFar) {
             cameraState.clipFar = props.cameraClipping.far;
           }

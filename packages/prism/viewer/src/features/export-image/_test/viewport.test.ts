@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -38,6 +39,7 @@ function snapshot(position: number[]): Camera.Snapshot {
     radius: 50,
     radiusMax: 100,
     fog: 50,
+    clipNear: true,
     clipFar: true,
     minNear: 5,
     minFar: 0,
