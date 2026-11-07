@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { holdCanvas } from '../../sources/canvas-presence.js';
@@ -300,6 +301,7 @@ export function readViewport(
     for (const k of ['fov', 'radius', 'radiusMax', 'fog', 'minNear', 'minFar'] as const) {
       if (typeof camera[k] === 'number' && Number.isFinite(camera[k])) snapshot[k] = camera[k];
     }
+    if (typeof camera.clipNear === 'boolean') snapshot.clipNear = camera.clipNear;
     if (typeof camera.clipFar === 'boolean') snapshot.clipFar = camera.clipFar;
     out.camera = snapshot;
   }

@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { Viewport, cameraProject, cameraUnproject } from './camera/util.js';
@@ -476,6 +477,7 @@ export namespace Camera {
       radius: 0,
       radiusMax: 10,
       fog: 50,
+      clipNear: true,
       clipFar: true,
       minNear: 5,
       minFar: 0,
@@ -493,6 +495,8 @@ export namespace Camera {
     radius: number;
     radiusMax: number;
     fog: number;
+    /** whether `radius` clips the scene in front of the target (the near plane, as `clipFar` the far one): off, the near plane is at the scene's `radiusMax` */
+    clipNear: boolean;
     clipFar: boolean;
     minNear: number;
     minFar: number;
@@ -511,6 +515,7 @@ export namespace Camera {
     if (typeof source.radius !== 'undefined') out.radius = source.radius;
     if (typeof source.radiusMax !== 'undefined') out.radiusMax = source.radiusMax;
     if (typeof source.fog !== 'undefined') out.fog = source.fog;
+    if (typeof source.clipNear !== 'undefined') out.clipNear = source.clipNear;
     if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
     if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
     if (typeof source.minFar !== 'undefined') out.minFar = source.minFar;
@@ -525,6 +530,7 @@ export namespace Camera {
       a.radius === b.radius &&
       a.radiusMax === b.radiusMax &&
       a.fog === b.fog &&
+      a.clipNear === b.clipNear &&
       a.clipFar === b.clipFar &&
       a.minNear === b.minNear &&
       a.minFar === b.minFar &&
@@ -623,7 +629,7 @@ function updatePers(camera: Camera) {
 
 function updateClip(camera: Camera) {
   const { forceFull, scale } = camera;
-  let { radius, radiusMax, mode, fog, clipFar, minNear, minFar } = camera.state;
+  let { radius, radiusMax, mode, fog, clipNear, clipFar, minNear, minFar } = camera.state;
   radiusMax *= scale;
   minFar *= scale;
   minNear *= scale;
@@ -637,7 +643,7 @@ function updateClip(camera: Camera) {
   Vec3.scale(tmpTarget, camera.state.target, scale);
   Vec3.scale(tmpPosition, camera.state.position, scale);
   const cameraDistance = Vec3.distance(tmpPosition, tmpTarget);
-  let near = forceFull ? 0.01 : cameraDistance - radius;
+  let near = forceFull ? 0.01 : cameraDistance - (clipNear ? radius : radiusMax);
   let far = cameraDistance + normalizedFar;
   if (forceFull) minNear = near;
 
