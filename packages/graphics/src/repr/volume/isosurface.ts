@@ -108,6 +108,7 @@ function getPropsGpuFallbackReason(props: PD.Values<IsosurfaceMeshParams>, graph
 function getGpuFallbackReason(volume: Volume, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) {
   const reason = getPropsGpuFallbackReason(props, graphics);
   if (reason || !graphics) return reason;
+  if (shouldWrap(volume, props.wrap)) volume = createWrappedVolume(volume);
   return getVolumeGpuFallbackReason(volume, graphics, Padding, ['floatRenderTarget', 'multipleRenderTargets']);
 }
 
