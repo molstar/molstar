@@ -11,7 +11,7 @@ here.
 ## [Unreleased]
 
 - `cameraClipping.near` (`Camera.Snapshot.clipNear`, default on), as `far`: off, the clipping radius moves only the far
-  plane, so a scene can be cut behind a plane with its front intact
+  plane, so a scene can be cut behind a plane with its front intact (#2067)
 - Marking: fill and dim account for transparent layers (shading, see-through, dim of unmarked transparent objects)
 - Allow negative values for the label text offsets X, Y and Z (domain [-10, 10] instead of [0, 10]) (#1899)
 - Fix `Euler.set` (and `Euler.fromVec3`, which uses it) writing all three angles into the first component
