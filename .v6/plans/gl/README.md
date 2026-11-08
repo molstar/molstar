@@ -188,6 +188,10 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 
 ## Not started
 
+- [graphics-review.md](graphics-review.md): the graphics layer review triaged against this branch: late callbacks on
+  WebGL (C1-C3), WebGPU buffer reclaim, Dawn and visual smoke tests in CI, a GLSL/WGSL schema cross-check, measured
+  multi-sample savings, the large closures split; next: batch A.
+
 - [clip-drag.md](clip-drag.md): a clip object's drag on the yeast cell was about 74 ms a mousemove, all CPU (every
   particle target updated in full, every merged group checked); the merge check cheap and a clip-only path done
   (PetWorld's update a frame 1.59 -> 0.22 ms); next: the yeast cell measured.
