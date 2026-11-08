@@ -583,6 +583,7 @@ namespace Canvas3DContext {
       input.setElement(canvas);
       if (isDebugMode) canvas.addEventListener('mousedown', simulateContextLoss, false);
       contextSubs = subscribeContext();
+      // the old passes' assets: released by the canvas once the new ones drew (`Canvas3D`, `retiredPasses`)
       passes = createPasses();
       syncPixelScale();
       pendingRestore?.cancel();
@@ -983,6 +984,11 @@ namespace Canvas3D {
   ): Canvas3D {
     const { input, assetManager, contextLost } = ctx;
     let { graphics, passes, canvas } = ctx;
+    /**
+     * Passes replaced with a new context, disposed once the new ones drew (their background holding its assets by
+     * then: released earlier, a skybox's or an image's would be removed and fetched again)
+     */
+    let retiredPasses: Passes | undefined;
     const removeInstance = ctx.addInstance?.(() => requestDraw());
     const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
     let limitToSupported = createSupportedPropsLimiter(graphics);
@@ -1453,6 +1459,10 @@ namespace Canvas3D {
         didRender = redrawMarking(false, getTemporalSamplesPerFrame(p.multiSample.sampleLevel));
       }
 
+      if (didRender && retiredPasses) {
+        retiredPasses.dispose();
+        retiredPasses = undefined;
+      }
       return didRender;
     }
 
@@ -2476,6 +2486,12 @@ namespace Canvas3D {
       for (const s of contextSubs) s.unsubscribe();
 
       graphics = ctx.graphics;
+      // the passes replaced: their background's assets released once the new ones drew (their textures went with the
+      // old context)
+      if (passes !== ctx.passes) {
+        retiredPasses?.dispose();
+        retiredPasses = passes;
+      }
       passes = ctx.passes;
       canvas = ctx.canvas;
 
@@ -2927,6 +2943,8 @@ namespace Canvas3D {
       xr,
       dispose: () => {
         canvasDisposed = true;
+        retiredPasses?.dispose();
+        retiredPasses = undefined;
         removeInstance?.();
         warmUpCancel?.();
         warmUpCancel = undefined;
