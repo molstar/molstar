@@ -292,7 +292,7 @@ export namespace BaseGeometry {
   }
 
   export function createValues(props: PD.Values<Params>, counts: Counts) {
-    const clip = Clip.getClip(props.clip);
+    const clip = getSharedClip(props.clip);
     return {
       alpha: ValueCell.create(props.alpha),
       uAlpha: ValueCell.create(clamp(props.alpha, 0, 1)),
@@ -330,6 +330,39 @@ export namespace BaseGeometry {
 
   /** The clip props each values were updated with last (`updateValues`) */
   const clipProps = new WeakMap<BaseValues, Clip.Props>();
+  /**
+   * The clip of a clip props object, made once: the visuals of a representation share their props' clip (each target of
+   * a particle list, each unit), so a moved clip object is computed once, not per visual. Read only.
+   */
+  const clips = new WeakMap<Clip.Props, Clip>();
+  function getSharedClip(props: Clip.Props) {
+    let clip = clips.get(props);
+    if (!clip) {
+      clip = Clip.getClip(props);
+      clips.set(props, clip);
+    }
+    return clip;
+  }
+
+  /** Whether `a` and `b` set the same clip defines (`dClipObjects`, `dClipObjectCount`, `dClipVariant`) */
+  export function isSameClipDefines(a: Clip.Props, b: Clip.Props) {
+    const count = (p: Clip.Props) => Math.min(p.objects.length, Clip.MaxObjectCount);
+    return a.variant === b.variant && count(a) === count(b);
+  }
+
+  /** The clip values of `values` for `clip` (as `updateValues` sets them), nothing else */
+  export function updateClip(values: BaseValues, clip: Clip.Props) {
+    if (clipProps.get(values) === clip) return;
+    clipProps.set(values, clip);
+    const c = getSharedClip(clip);
+    ValueCell.updateIfChanged(values.dClipObjects, c.objects.count > 0);
+    ValueCell.updateIfChanged(values.dClipObjectCount, c.objects.count);
+    ValueCell.updateIfChanged(values.uClipObjectCount, c.objects.count);
+    ValueCell.updateIfChanged(values.dClipVariant, c.variant);
+    ValueCell.update(values.clipObjects, c.objects);
+    ValueCell.update(values.uClipObjectFrame, c.objects.frame);
+    ValueCell.update(values.uClipObjectShape, c.objects.shape);
+  }
 
   export function updateValues(values: BaseValues, props: PD.Values<Params>) {
     ValueCell.updateIfChanged(values.alpha, props.alpha);
@@ -343,17 +376,7 @@ export namespace BaseGeometry {
     ValueCell.updateIfChanged(values.clipGhost, props.clipGhost);
 
     // the clip of the props applied last: updates keep the props' clip unless it changed (e.g. a recolor of many units)
-    if (clipProps.get(values) !== props.clip) {
-      clipProps.set(values, props.clip);
-      const clip = Clip.getClip(props.clip);
-      ValueCell.updateIfChanged(values.dClipObjects, clip.objects.count > 0);
-      ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);
-      ValueCell.updateIfChanged(values.uClipObjectCount, clip.objects.count);
-      ValueCell.updateIfChanged(values.dClipVariant, clip.variant);
-      ValueCell.update(values.clipObjects, clip.objects);
-      ValueCell.update(values.uClipObjectFrame, clip.objects.frame);
-      ValueCell.update(values.uClipObjectShape, clip.objects.shape);
-    }
+    updateClip(values, props.clip);
 
     ValueCell.updateIfChanged(
       values.uInstanceGranularity,

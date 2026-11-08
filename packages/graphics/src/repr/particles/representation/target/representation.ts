@@ -26,6 +26,7 @@ import { type Loci as ModelLoci, EmptyLoci, isEveryLoci, EveryLoci } from '@mols
 import { type MarkerAction, MarkerActions } from '@molstar/core/util/marker-action';
 import type { LocationCallback } from '../../../util.js';
 import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
+import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { OrderedSet } from '@molstar/core/data/int';
 import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../../../merged.js';
 import { Visual } from '../../../visual.js';
@@ -87,6 +88,23 @@ export function ParticleTargetRepresentation(
 
   let mergedByType = new Map<string, MergedEntry<TargetVisual>>();
 
+  /** What the last full update built from: a later one changing the clip alone sets it on the visuals (`isClipOnly`) */
+  let built: { particles: ParticleList; theme: Theme; props: ParticleTargetRepresentationProps } | undefined;
+
+  /**
+   * Whether the update to `_props` changes the clip alone, its defines kept: a clip object moved (a clipping gizmo's
+   * drag), nothing to rebuild and nothing merged otherwise; every target's full update and the merge check are skipped
+   */
+  function isClipOnly() {
+    if (!built || built.particles !== _particles || built.theme !== _theme || targetVisuals.size === 0) return false;
+    const before = built.props;
+    if (before.clip === _props.clip) return false;
+    for (const k in _props) {
+      if (k !== 'clip' && (_props as any)[k] !== (before as any)[k]) return false;
+    }
+    return BaseGeometry.isSameClipDefines(before.clip, _props.clip);
+  }
+
   /** updates one after another, see `Representation.createUpdateQueue` */
   const serialize = Representation.createUpdateQueue();
   function createOrUpdate(props: Partial<ParticleTargetRepresentationProps> = {}, input?: ParticleList) {
@@ -98,6 +116,21 @@ export function ParticleTargetRepresentation(
     // Quality-derived props are resolved per target (see `createParticleTargetPropsProvider`),
     // since each target has its own data and its own geometry params.
     Object.assign(_props, props);
+
+    if (isClipOnly()) {
+      const clip = _props.clip;
+      built!.props = { ..._props };
+      return serialize(
+        Task.create('ParticleTargetRepresentation clip', async () => {
+          // every member, also of a merged object (its first member's cells are the merged object's): one leaving its
+          // group draws right
+          for (const visual of targetVisuals.values()) {
+            if (visual.renderObject) BaseGeometry.updateClip(visual.renderObject.values as any, clip);
+          }
+          updated.next(version++);
+        }),
+      );
+    }
 
     const task = Task.create('ParticleTargetRepresentation', async (runtime) => {
       if (!_particles) return;
@@ -156,6 +189,7 @@ export function ParticleTargetRepresentation(
 
       updateRenderObjectList(entries);
       geometryState.snapshot();
+      built = { particles, theme: _theme, props: { ..._props } };
       updated.next(version++);
     });
     return serialize(task);

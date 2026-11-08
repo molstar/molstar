@@ -2458,6 +2458,45 @@ export const MergingPostsynUpdateCases: BenchmarkCase<RenderInput>[] = (['unifor
 );
 
 /**
+ * A clip plane dragged through the PetWorld particles (as the viewer adds them), its preview every frame: the
+ * representation updated with the moved clip object only, as a clipping gizmo's drag updates it (`ClipBinding.preview`)
+ */
+export const ClipDragCases: BenchmarkCase<RenderInput>[] = [
+  renderCase(
+    'clip/postsyn-drag',
+    'postsynstubby_2 particles (viewer defaults, culled on the GPU), a clip plane moved through them every frame',
+    async () => {
+      const list = await getPostsyn();
+      const { center, radius } = Particle.getBoundary(list).sphere;
+      const clipAt = (i: number) => ({
+        variant: 'pixel' as const,
+        objects: [
+          {
+            type: 'plane' as const,
+            invert: false,
+            position: Vec3.create(center[0] + radius * (0.5 * Math.sin(i * 0.1)), center[1], center[2]),
+            rotation: { axis: Vec3.create(0, 0, 1), angle: 90 },
+            scale: Vec3.create(1, 1, 1),
+            transform: Mat4.identity(),
+          },
+        ],
+      });
+      return {
+        scene: async (g) => {
+          const repr = await postsynViewerRepr(g, list);
+          // the cut made before the drag: its defines set, the drag moving it only
+          await repr.createOrUpdate({ clip: clipAt(0) }, list).run();
+          return [repr];
+        },
+        update: async (_canvas3d, reprs, i) => {
+          await reprs[0].createOrUpdate({ clip: clipAt(i + 1) }, list).run();
+        },
+      };
+    },
+  ),
+];
+
+/**
  * Quads (sphere impostors) drawn unindexed (`setQuadIndexing(false)`): against the indexed draws of the same cases
  * (`render/7qpd-spacefill`, `render/globule-300k-spacefill`, `merging/postsyn-gpu-hiz-zoom`, `merging/postsyn-lod-pixel3`)
  */
